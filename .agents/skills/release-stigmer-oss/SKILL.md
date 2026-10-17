@@ -21,7 +21,7 @@ Versions run on one 0.x line. Its first release is `v0.1.0`; until it is tagged,
 every dev build is a 0.1.0 prerelease
 (`0.1.0-dev.<14-digit UTC stamp>.g<12-character commit>`), and after it a dev
 build targets the next patch. `scripts/lib/line-base.mjs` reads the newest
-stable `vX.Y.Z` tag and gives the next version, for the dev lanes and for
+stable `vX.Y.Z` tag and gives the next version, for the dev lane and for
 `make release` alike.
 
 Releases are batched. Finishing an issue or a pull request never cuts one: the
@@ -214,15 +214,20 @@ Every lane triggers on the `v*` tag; the list is
 `.github/workflows/release.*.yaml` and `make release` prints the summary. In
 short: protos to the Buf registry; CLI binaries and the GitHub release; desktop
 installers as a draft; the `@stigmer/*` npm packages including `@stigmer/server`
-(the library the cloud composition pins) and `@stigmer/server-slim`, with the
-server, Enterprise server, runner and all-in-one images pushed to GHCR and the
-Helm chart to its OCI registry, each smoked before promotion; the Go SDK through
-the module proxy; the Python packages to PyPI; the Java SDK to Maven; the MCP
-server image; the Rust crate; the sandbox cloud image, whose `runner:v<version>`
-tag and `prod` appear only after its smoke test passes. When the npm release
-succeeds for a release tag (a prerelease tag ends the run green with nothing
-run), `ci.live.yaml` runs the tagged commit's live suites and the published CLI
-against the real model providers. A red run files a `live-failure` issue: a
-broken provider path is fixed like any defect, an outage is waited out, and a
-person closes the issue once a dispatch of the workflow runs green. A dispatch
-installs a published CLI, so a fix on the CLI's side needs a release first.
+(the library the cloud composition pins) and `@stigmer/server-slim`, then, once
+that run is green, a copy of the release's packages into Stigmer's own npm
+repository (`release.npm-mirror.yaml`, its own run, where compositions install
+`@stigmer/*` from; a failed copy is re-run by dispatching that workflow with the
+version, and a release dispatched rather than tagged is copied that way), with
+the server, Enterprise server, runner and all-in-one images pushed to GHCR and
+the Helm chart to its OCI registry, each smoked before promotion; the Go SDK
+through the module proxy; the Python packages to PyPI; the Java SDK to Maven;
+the MCP server image; the Rust crate; the sandbox cloud image, whose
+`runner:v<version>` tag and `prod` appear only after its smoke test passes. When
+the npm release succeeds for a release tag (a prerelease tag ends the run green
+with nothing run), `ci.live.yaml` runs the tagged commit's live suites and the
+published CLI against the real model providers. A red run files a `live-failure`
+issue: a broken provider path is fixed like any defect, an outage is waited out,
+and a person closes the issue once a dispatch of the workflow runs green. A
+dispatch installs a published CLI, so a fix on the CLI's side needs a release
+first.

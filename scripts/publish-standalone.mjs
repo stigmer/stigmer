@@ -75,6 +75,10 @@
  *
  * Authentication is npm's own (NODE_AUTH_TOKEN with setup-node's
  * registry-url, as the workflows configure); a --pack-dir run needs none.
+ * The registry is npm's too: `npm publish` sends an @stigmer/* package to
+ * the scope's registry when one is configured, and the wait reads the same
+ * one (`configuredRegistry`), so the workflow's npm configuration alone
+ * decides where a lane publishes.
  * Needs a prior build of the package and of the workspace libs it links.
  */
 
@@ -91,6 +95,18 @@ import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
+
+/**
+ * The standalone packages, each published by this script from its own
+ * directory: the runner, the server and Enterprise. With publish-libs.mjs's
+ * PACKAGES they are a release's npm packages, the set release.npm-mirror.yaml
+ * copies into Stigmer's npm repository (scripts/mirror-npm-release.mjs).
+ */
+export const STANDALONE_PACKAGES = [
+  "backend/services/runner",
+  "backend/services/stigmer-server",
+  "ee/server",
+];
 
 /**
  * How long the pinned libs may take to appear on npm, and how often to ask.
@@ -277,11 +293,27 @@ function faultOf(error) {
     : error.message;
 }
 
-/** The registry the job's npm is configured for (setup-node writes it). */
-export function configuredRegistry() {
-  return execFileSync("npm", ["config", "get", "registry"], {
+/** One npm config value as npm resolves it for this job. */
+function npmConfigGet(key) {
+  return execFileSync("npm", ["config", "get", key], {
     encoding: "utf8",
   }).trim();
+}
+
+/**
+ * The registry the job's npm sends @stigmer/* packages to, which is where
+ * the wait and the consumer smoke must look. npm routes a scoped package
+ * to `@stigmer:registry` when it is set and to `registry` otherwise, and
+ * setup-node writes the scope line when a workflow names `scope:`: the dev
+ * lane points the scope at Stigmer's own registry while the release lane
+ * leaves npm's default. Reading only `registry` would wait on npmjs.com for
+ * a dev build that never goes there. npm prints `undefined` for an unset
+ * key.
+ */
+export function configuredRegistry(configGet = npmConfigGet) {
+  const scoped = configGet("@stigmer:registry");
+  if (scoped !== "" && scoped !== "undefined") return scoped;
+  return configGet("registry");
 }
 
 /** Each lib the wait still misses, with what it misses: `name@v (gap), ...`. */

@@ -7,8 +7,7 @@
 # source build cannot — the workspace package.json mains point at ./src/*.ts).
 #
 # Release ordering: this build requires @stigmer/mcp-server@<version> to already
-# be on npm. release.mcp-server waits for it (see the wait-for-npm step) and
-# release.dev runs publish-mcp after publish-npm.
+# be on npm. release.mcp-server waits for it (see the wait-for-npm step).
 #
 #   docker build -f mcp-server/Dockerfile \
 #     --build-arg MCP_SERVER_VERSION=<npm-version-or-dist-tag> -t mcp-server-stigmer .
@@ -26,8 +25,8 @@ LABEL org.opencontainers.image.vendor="Stigmer"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 # The npm version to install. Also reported by the server itself via
-# STIGMER_MCP_VERSION (server.ts). Release workflows pass this explicitly
-# (release.mcp-server, release.dev); the default below serves builds that
+# STIGMER_MCP_VERSION (server.ts). The release workflow passes this explicitly
+# (release.mcp-server); the default below serves builds that
 # don't — notably the prod deploy pipeline, which builds on every
 # mcp-server-touching push to main.
 #

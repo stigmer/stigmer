@@ -2,9 +2,9 @@
 
 /**
  * The next version on the release line, read from the checkout's stable
- * `vX.Y.Z` tags: the one rule the dev lanes (release.dev.yaml's
- * determine-version and scripts/publish-dev-local.sh) take their base from
- * and `make release` takes its new tag from, so the three cannot drift apart.
+ * `vX.Y.Z` tags: the one rule the dev lane (release.dev.yaml's
+ * determine-version) takes its base from and `make release` takes its new
+ * tag from, so the two cannot drift apart.
  *
  * Once a stable tag exists, the next version bumps the newest one: the patch
  * by default (a dev build targets the next unreleased patch, so it sorts

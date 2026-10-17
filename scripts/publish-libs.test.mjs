@@ -8,6 +8,11 @@
 // (and the patched CLI launcher) rely on; and it once published every test,
 // fixture and test helper under src/ while every source map named a path
 // one level outside the installed package.
+//
+// It also pins which registry a run is tied to: only an NPM_TOKEN run (the
+// release lane, npmjs.com) writes a registry into .npmrc. The dev lane sets no
+// NPM_TOKEN and publishes where npm's scope configuration sends @stigmer/*,
+// so an npmjs.com line there would be a second, wrong statement of it.
 
 import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
@@ -27,6 +32,7 @@ import {
   rewriteBinPaths,
   rewriteMapSources,
   stageSources,
+  tokenNpmrc,
 } from "./publish-libs.mjs";
 
 test("PACKAGES is exactly the workspace members that are not private", () => {
@@ -445,4 +451,15 @@ test("assertStagedDist refuses a test-side file and a map source not in the tarb
   } finally {
     rmSync(pkgDir, { recursive: true, force: true });
   }
+});
+
+test("only an NPM_TOKEN run writes a registry into .npmrc, by reference to the token", () => {
+  assert.equal(tokenNpmrc({}), undefined);
+  assert.equal(tokenNpmrc({ NPM_TOKEN: "" }), undefined);
+  // The dev lane's credential is setup-node's NODE_AUTH_TOKEN for the scope's
+  // registry; it never makes this script write anything.
+  assert.equal(tokenNpmrc({ NODE_AUTH_TOKEN: "ya29.example" }), undefined);
+  const npmrc = tokenNpmrc({ NPM_TOKEN: "npm_secret_value" });
+  assert.equal(npmrc, "//registry.npmjs.org/:_authToken=${NPM_TOKEN}\n");
+  assert.doesNotMatch(npmrc, /npm_secret_value/);
 });

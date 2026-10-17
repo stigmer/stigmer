@@ -1,0 +1,100 @@
+name: release.npm-mirror
+# The version in every run's title, so `gh run list` finds a release's copy by it
+# (a workflow_run's branch is main, not the tag).
+run-name: release.npm-mirror ${{ inputs.version || github.event.workflow_run.head_branch }}
+
+# =============================================================================
+# Mirror a release's npm packages into Stigmer's own npm repository
+# =============================================================================
+# Copies every @stigmer/* package a release published to npmjs.com into the
+# npm repository on Google Artifact Registry (vars.STIGMER_NPM_REGISTRY), by
+# integrity, so both registries serve the same bytes under each version. The
+# release lane publishes to npmjs.com only; this is the one step that writes
+# a release into Stigmer's repository, which also holds the dev builds
+# (release.dev.yaml), so a consumer that routes the @stigmer scope there
+# installs both from one place. The package list is the publishing scripts'
+# own (scripts/mirror-npm-release.mjs).
+#
+# Triggers:
+#   - workflow_run, when release.npm-libs completes successfully for a v* tag
+#     push: the tagged commit is checked out, so the package set is the one
+#     that release published. A separate run, not a job inside the release
+#     lane, so a failed copy never turns the release red (ci.live runs only
+#     after a green release.npm-libs).
+#   - workflow_dispatch with a version: mirror an existing release (a backfill
+#     of a release cut before this lane existed, a release dispatched rather
+#     than tagged, or a re-run after a failed copy). Dispatch it from main.
+#
+# A re-run is safe: a version already mirrored with the same integrity is
+# skipped, and one mirrored with other bytes is refused, never replaced.
+#
+# Authentication is keyless: GitHub's OIDC token is exchanged with Google's
+# workload identity pool for a short-lived token of the publisher. The pool's
+# provider admits this workflow, release.dev.yaml and
+# release.runner-images.yaml, on a tag or on main only. The provider and the
+# publisher are repository Variables (vars.GCP_WORKLOAD_IDENTITY_PROVIDER,
+# vars.GCP_IMAGE_PUBLISHER; .github/workflows/docs/dev-publishing.md).
+# =============================================================================
+
+# workflow_run is safe here: the job admits only a successful release run of a
+# v* tag push, checks out that tag (which only maintainers push) with
+# persist-credentials off, and reads nothing from the triggering run but its
+# tag name, which the mirror script refuses unless it is a release version.
+on: # zizmor: ignore[dangerous-triggers]
+  workflow_run:
+    workflows:
+      - "release.npm-libs"
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The release version to mirror (X.Y.Z or vX.Y.Z)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       startsWith(github.event.workflow_run.head_branch, 'v'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write # the OIDC token Google's workload identity pool exchanges
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # The released commit on a release run; main on a dispatch.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          package-manager-cache: false
+          node-version-file: ".nvmrc"
+          # npm publishes @stigmer/* to the scope's registry: the mirror's target.
+          registry-url: ${{ vars.STIGMER_NPM_REGISTRY }}
+          scope: '@stigmer'
+
+      - name: Authenticate to Google Cloud (keyless)
+        id: gcp
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_IMAGE_PUBLISHER }}
+          token_format: access_token
+          create_credentials_file: false
+
+      - name: Mirror by integrity
+        env:
+          NODE_AUTH_TOKEN: ${{ steps.gcp.outputs.access_token }}
+          VERSION: ${{ inputs.version || github.event.workflow_run.head_branch }}
+        run: node scripts/mirror-npm-release.mjs --version "${VERSION#v}"

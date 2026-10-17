@@ -18,7 +18,8 @@ name: release.sandbox-cloud
 # arch (<stage>-<arch>), proven on foreign bases, then merged into the stage
 # tag, latest and the version tag (never prod). The runner tags:
 #   - main-<sha>: every build from here, before the smoke; the bytes the
-#     smoke tests. A dev build's is dev-<sha12> instead.
+#     smoke tests. A dev build's is dev-<sha12> instead, in Stigmer's own
+#     image repository, never on ghcr.io.
 #   - latest: every build from here that passed the smoke (development, and
 #     an OSS server with no release of its own, follow latest). Never a dev
 #     build's.
@@ -26,8 +27,9 @@ name: release.sandbox-cloud
 #     existing means that release's runner booted. A server release launches
 #     the runner of the same release by it (the OSS default and the cloud).
 #   - v<X.Y.Z-dev.<stamp>.g<sha12>>: a dev build's runner that passed the
-#     smoke, published by release.dev before the server of that version, so
-#     a composition pinning a dev build launches its runner by the same rule.
+#     smoke, published by release.dev to Stigmer's own image repository
+#     (not ghcr.io) before the server of that version, so a composition
+#     pinning a dev build launches its runner by the version it pins.
 #   - prod: the latest smoke-tested release. Moved only on a release tag,
 #     never on a main push, a prerelease tag, a dev build, or a rebuild
 #     dispatched from main, so nothing unreleased reaches a deployment that
@@ -52,8 +54,7 @@ name: release.sandbox-cloud
 #   - workflow_dispatch: manual rebuild from main or a v* tag; dispatched
 #     from a v* tag it re-publishes that release's version tag (and prod,
 #     for a release). Refused from any other ref: it would push main-<sha>
-#     and move latest to code that is not on main. A branch's runner is a
-#     dev build's (release.dev).
+#     and move latest to code that is not on main.
 #
 # A red main push files (or comments on) a `ci-sandbox-cloud-failure` issue
 # (notify-failure.yaml): nobody watches a main push, and a smoke that failed
@@ -89,7 +90,7 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
         run: |
           if [ "$REF" != "refs/heads/main" ] && ! { [ "$REF_TYPE" = "tag" ] && [[ "$REF_NAME" == v* ]]; }; then
-            echo "release.sandbox-cloud runs from main or a v* tag, not $REF: it would move latest to code that is not on main. Dispatch release.dev with targets=npm for a branch's runner." >&2
+            echo "release.sandbox-cloud runs from main or a v* tag, not $REF: it would move latest to code that is not on main. A branch's runner is built locally; dev builds come from main only." >&2
             exit 1
           fi
 
@@ -148,6 +149,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+      # Asked by the called lane's job for a dev build's keyless push; a main
+      # or tag build never takes a Google token.
+      id-token: write
     uses: ./.github/workflows/release.runner-images.yaml
 
   # Only a main push is unattended: a tag push is a release someone is

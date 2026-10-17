@@ -503,13 +503,25 @@ export function rewriteBinPaths(bin) {
 }
 
 /**
- * If NPM_TOKEN is set, write a project-level .npmrc that authenticates
- * against the npm registry. Returns true if a file was written (caller
- * must clean up).
+ * The project-level .npmrc an NPM_TOKEN run writes, or `undefined` when
+ * there is no NPM_TOKEN. The release lane sets NPM_TOKEN and publishes to
+ * npmjs.com; the dev lane sets none and publishes wherever npm's own
+ * configuration sends @stigmer/* (setup-node's `registry-url` and `scope`,
+ * Stigmer's npm repository), so this script never names a registry for it.
+ * The file names the token by reference, never its value.
+ */
+export function tokenNpmrc(env = process.env) {
+  if (!env.NPM_TOKEN) return undefined;
+  return `//registry.npmjs.org/:_authToken=\${NPM_TOKEN}\n`;
+}
+
+/**
+ * If NPM_TOKEN is set, write the project-level .npmrc `tokenNpmrc` gives.
+ * Returns true if a file was written (caller must clean up).
  */
 function setupNpmrc() {
-  const token = process.env.NPM_TOKEN;
-  if (!token) return false;
+  const npmrc = tokenNpmrc();
+  if (npmrc === undefined) return false;
 
   const npmrcPath = resolve(root, ".npmrc");
   if (existsSync(npmrcPath)) {
@@ -519,10 +531,7 @@ function setupNpmrc() {
     process.exit(1);
   }
 
-  writeFileSync(
-    npmrcPath,
-    `//registry.npmjs.org/:_authToken=\${NPM_TOKEN}\n`,
-  );
+  writeFileSync(npmrcPath, npmrc);
   console.log("  Created temporary .npmrc (will be removed after publish)\n");
   return true;
 }

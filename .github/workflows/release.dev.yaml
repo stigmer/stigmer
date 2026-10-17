@@ -1,40 +1,53 @@
 name: release.dev
 
 # =============================================================================
-# Dev-publishing pipeline (manual / on-demand).
+# Dev-publishing pipeline (manual / on-demand, from `main` only).
 #
-# Publishes throwaway "dev" builds of the Stigmer dependencies so two developers
-# can iterate across repos fast: one publishes a dev build, the other bumps a
-# version reference and tries it within minutes.
+# Publishes a "dev" build of the Stigmer npm packages and of the sandbox runner
+# image from a commit of `main`. Dev builds exist for compositions that embed
+# @stigmer/server (the hosted edition): an open-source change a composition
+# needs merges here first, this workflow publishes that commit, and the
+# composition pins the build and merges on it before the change is released.
 #
 # Design (see .github/workflows/docs/dev-publishing.md):
 #   - This is a SEPARATE pipeline from the production release.* workflows. Those
-#     stay pristine and only ever publish immutable, signed, lockstep `v*`
-#     releases. This one is dispatch-only and routes to each ecosystem's NATIVE
-#     EPHEMERAL dev channel so nothing pollutes a production release index:
-#       * Maven  -> `X.Y.Z-SNAPSHOT` to the Sonatype Central snapshot repo
-#                   (mutable, auto-expired; reuses MAVEN_CENTRAL_* creds).
-#       * npm    -> `X.Y.Z-dev.<stamp>.g<sha>` under the `dev` dist-tag on
-#                   public npm (never touches `latest`/`next`); the version
-#                   names the commit it was built from.
-#       * PyPI   -> `X.Y.Z.dev<N>` to TestPyPI (the purpose-built throwaway PyPI).
-#       * Docker -> `ghcr.io/stigmer/mcp-server-stigmer:dev-<sha>` on GHCR;
-#                   with npm, the sandbox runner images at the npm version,
-#                   `ghcr.io/stigmer/runner:v<npm version>` (and runner-layer,
-#                   runner-base), before the server that launches them.
-#   - X.Y.Z is one base for every channel: the next patch after the newest
-#     stable v* tag, or 0.1.0 while the line has no release yet
-#     (scripts/lib/line-base.mjs). Until v0.1.0 is tagged an npm dev build is
-#     `0.1.0-dev.<14-digit UTC stamp>.g<12-char sha>`; after it, `0.1.1-dev...`.
-#   - Consumers configure each channel ONCE; thereafter switching a dev<->prod
-#     dependency is only a version-string change (see the consumer doc).
-#   - Go SDK and the Rust crate have no dev publish step: their native dev
-#     mechanism is a git ref (`go get ...@<branch>` / a Cargo git dependency).
-#     The job summary documents the exact coordinates.
+#     only ever publish immutable, lockstep `v*` releases to npmjs.com and
+#     ghcr.io, the registries users install from. A dev build never goes there:
+#       * npm    -> `X.Y.Z-dev.<stamp>.g<sha>` under the `dev` dist-tag in
+#                   Stigmer's own npm repository on Google Artifact Registry
+#                   (vars.STIGMER_NPM_REGISTRY); the version names the commit.
+#       * Docker -> the sandbox runner image at the npm version,
+#                   `<vars.STIGMER_OSS_REGISTRY_ROOT>/runner:v<npm version>`,
+#                   published before the server that launches it.
+#     Both repositories are publicly readable, so installing or pulling a dev
+#     build needs no login, and nobody browsing npmjs.com or ghcr.io sees one.
+#     Releases are copied into the npm repository too (release.npm-mirror.yaml),
+#     so a consumer that routes the @stigmer scope there once installs a dev
+#     build and a release alike, and switching is a version-string change.
+#   - Publishing is keyless. Each publishing job exchanges GitHub's OIDC token
+#     with Google's workload identity pool for a short-lived token of the
+#     publisher (vars.GCP_WORKLOAD_IDENTITY_PROVIDER, vars.GCP_IMAGE_PUBLISHER).
+#     The pool admits this workflow, release.runner-images.yaml and
+#     release.npm-mirror.yaml, on `main` or a `v*` tag only. No npm token is
+#     involved.
+#   - Where a package goes is npm's own configuration: setup-node points the
+#     @stigmer scope at the npm repository (`scope:`), npm publishes a scoped
+#     package to its scope's registry, and the publish scripts wait on and
+#     smoke-install from that same registry (scripts/publish-standalone.mjs,
+#     configuredRegistry).
+#   - X.Y.Z is the next patch after the newest stable v* tag, or 0.1.0 while the
+#     line has no release yet (scripts/lib/line-base.mjs). Until v0.1.0 is
+#     tagged a dev build is `0.1.0-dev.<14-digit UTC stamp>.g<12-char sha>`;
+#     after it, `0.1.1-dev...`.
+#   - Python, Java, the Go SDK, the Rust crate and the MCP server image have no
+#     dev build: their consumers install releases, and Go and Rust can follow a
+#     commit of `main` by git ref.
 #
-# Trigger: workflow_dispatch only. The file must exist on the default branch for
-# GitHub to expose the dispatch, but it can then run against ANY branch/ref
-# (publish dev builds straight off your feature branch).
+# Trigger: workflow_dispatch only, on `main`. The first job refuses any other
+# ref: the publisher's trust admits `main` and release tags only, so a run from
+# a branch would otherwise fail at its first Google sign-in, many minutes in.
+# Unmerged work is tried from tarballs of the checkout instead
+# (scripts/stage-server-library.mjs), which publishes nothing.
 # =============================================================================
 
 on:
@@ -45,7 +58,7 @@ on:
         required: false
         type: string
       targets:
-        description: 'Comma-separated targets to publish: maven, npm, python, mcp (or "all")'
+        description: 'What to publish: "npm" (the packages and the sandbox runner image) or "all" (the same)'
         required: false
         default: 'all'
         type: string
@@ -55,45 +68,56 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Derive one dev "base" version and the per-ecosystem coordinates from it.
-  # Mirrors the lockstep mental model of the production release train: one base
-  # drives every artifact, just with an ecosystem-appropriate dev suffix.
+  # Refuse a ref other than `main`, then derive the dev version: one base,
+  # stamped with the time and the commit.
   # ---------------------------------------------------------------------------
   determine-version:
     runs-on: ubuntu-latest
     outputs:
       targets: ${{ steps.v.outputs.targets }}
       base: ${{ steps.v.outputs.base }}
-      maven_version: ${{ steps.v.outputs.maven_version }}
       npm_version: ${{ steps.v.outputs.npm_version }}
-      py_version: ${{ steps.v.outputs.py_version }}
-      docker_tag: ${{ steps.v.outputs.docker_tag }}
       short_sha: ${{ steps.v.outputs.short_sha }}
     steps:
+      - name: Refuse a ref other than main
+        env:
+          REF: ${{ github.ref }}
+          NPM_REGISTRY: ${{ vars.STIGMER_NPM_REGISTRY }}
+        run: |
+          if [ "$REF" != "refs/heads/main" ]; then
+            echo "::error::release.dev publishes from main only, and this run is on '$REF'. The publisher's trust admits main and release tags, so a dev build is always a commit of main a composition can merge on; stage unmerged work as tarballs with scripts/stage-server-library.mjs, which publishes nothing." >&2
+            exit 1
+          fi
+          # Without it setup-node writes no scope line and npm would publish to
+          # npmjs.com, which then refuses for want of a token: refuse here instead.
+          if [ -z "$NPM_REGISTRY" ]; then
+            echo "::error::the repository Variable STIGMER_NPM_REGISTRY is unset: dev builds publish to Stigmer's npm repository, never npmjs.com" >&2
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Derive dev versions
+      - name: Derive the dev version
         id: v
         run: |
           set -euo pipefail
 
-          # Normalize the target list. "all" expands to every publishable channel.
+          # "all" and "npm" are the same publish: the packages and the runner
+          # image their server launches. The Maven, PyPI and MCP-image dev
+          # channels were retired; a stale dispatch naming one is refused
+          # rather than publishing half of what was asked.
           TARGETS="${GITHUB_EVENT_INPUTS_TARGETS}"
-          [ -z "$TARGETS" ] && TARGETS="all"
-          if [ "$TARGETS" = "all" ]; then
-            TARGETS="maven,npm,python,mcp"
-          fi
-
-          # The dev MCP image installs the published @stigmer/mcp-server package,
-          # so building it requires the npm publish to run first. Ensure npm is
-          # selected whenever mcp is.
-          if echo ",$TARGETS," | grep -q ",mcp," && ! echo ",$TARGETS," | grep -q ",npm,"; then
-            TARGETS="$TARGETS,npm"
-          fi
+          case "${TARGETS:-all}" in
+            all|npm) TARGETS="npm" ;;
+            *)
+              echo "::error::targets '$TARGETS' is not a dev channel: release.dev publishes npm (with the runner image) only. Maven, PyPI and the MCP image publish releases only." >&2
+              exit 1
+              ;;
+          esac
 
           # Base semver: explicit input wins; otherwise the next patch after the
           # newest stable v* tag, or 0.1.0 before the line's first release
@@ -114,100 +138,37 @@ jobs:
           fi
 
           STAMP=$(date -u +%Y%m%d%H%M%S)   # monotonic; keeps each npm dev build unique
-          EPOCH=$(date -u +%s)             # PEP 440 .devN must be an integer
           SHORT_SHA=$(git rev-parse --short HEAD)
           # The npm version names the commit it was built from (`.g<sha>`);
-          # scripts/lib/dev-version.mjs is the one rule both dev lanes stamp.
+          # scripts/lib/dev-version.mjs is the rule.
           NPM_VERSION=$(node scripts/lib/dev-version.mjs --base "$BASE" --stamp "$STAMP")
 
           {
             echo "targets=$TARGETS"
             echo "base=$BASE"
-            echo "maven_version=${BASE}-SNAPSHOT"
             echo "npm_version=${NPM_VERSION}"
-            echo "py_version=${BASE}.dev${EPOCH}"
-            echo "docker_tag=dev-${SHORT_SHA}"
             echo "short_sha=${SHORT_SHA}"
           } >> "$GITHUB_OUTPUT"
 
-          echo "Dev build base: $BASE (targets: $TARGETS)"
-          echo "  maven  : ${BASE}-SNAPSHOT"
+          echo "Dev build base: $BASE"
           echo "  npm    : ${NPM_VERSION} (tag: dev)"
-          echo "  python : ${BASE}.dev${EPOCH} (TestPyPI)"
-          echo "  docker : dev-${SHORT_SHA}"
+          echo "  runner : runner:v${NPM_VERSION}"
         env:
           GITHUB_EVENT_INPUTS_TARGETS: ${{ github.event.inputs.targets }}
           GITHUB_EVENT_INPUTS_BASE_VERSION: ${{ github.event.inputs.base_version }}
 
   # ---------------------------------------------------------------------------
-  # Java: deploy `X.Y.Z-SNAPSHOT` to the Central snapshot repo.
-  # No GPG, no `-P release`: plain `mvn deploy` uses the default
-  # maven-deploy-plugin, which routes a -SNAPSHOT to <snapshotRepository>.
-  # ---------------------------------------------------------------------------
-  publish-maven:
-    needs: determine-version
-    if: contains(needs.determine-version.outputs.targets, 'maven')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Set up Java
-        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          server-id: central
-          server-username: MAVEN_CENTRAL_USERNAME
-          server-password: MAVEN_CENTRAL_PASSWORD
-
-      - name: Set up Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
-        with:
-          go-version: '1.25'
-
-      - name: Deploy protos SNAPSHOT
-        working-directory: apis/stubs/java
-        env:
-          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-          NEEDS_DETERMINE_VERSION_OUTPUTS_MAVEN_VERSION: ${{ needs.determine-version.outputs.maven_version }}
-        run: |
-          VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_MAVEN_VERSION}"
-          mvn --batch-mode versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
-          # `deploy` runs through `install`, so the SNAPSHOT is also placed in the
-          # local ~/.m2 for the SDK build below to resolve.
-          mvn --batch-mode deploy -DskipTests
-          echo "Deployed ai.stigmer:stigmer-apis:$VERSION"
-
-      - name: Generate SDK client code
-        run: make -C sdk/java codegen
-
-      - name: Deploy SDK SNAPSHOT
-        working-directory: sdk/java
-        env:
-          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-          NEEDS_DETERMINE_VERSION_OUTPUTS_MAVEN_VERSION: ${{ needs.determine-version.outputs.maven_version }}
-        run: |
-          VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_MAVEN_VERSION}"
-          mvn --batch-mode versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
-          mvn --batch-mode versions:set-property -Dproperty=stigmer-apis.version -DnewVersion="$VERSION" -DgenerateBackupPoms=false
-          mvn --batch-mode deploy -DskipTests
-          echo "Deployed ai.stigmer:stigmer-sdk:$VERSION (protos: $VERSION)"
-
-  # ---------------------------------------------------------------------------
-  # npm: publish all @stigmer/* libs under the `dev` dist-tag.
-  # publish-libs.mjs handles build + dist/package.json stamping; --tag dev keeps
-  # these off `latest` and `next`.
+  # npm: publish all @stigmer/* libs under the `dev` dist-tag, to Stigmer's
+  # npm repository. publish-libs.mjs handles build + dist/package.json
+  # stamping; --tag dev keeps these off `latest` and `next` there too.
   # ---------------------------------------------------------------------------
   publish-npm:
     needs: determine-version
     if: contains(needs.determine-version.outputs.targets, 'npm')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # exchanged for the publisher's token (Authenticate to Google Cloud)
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -228,6 +189,9 @@ jobs:
           # No restored npm cache in a release (v5+ caches by default).
           package-manager-cache: false
           node-version-file: ".nvmrc"
+          # @stigmer/* goes to Stigmer's npm repository, never npmjs.com.
+          registry-url: ${{ vars.STIGMER_NPM_REGISTRY }}
+          scope: '@stigmer'
 
       - name: Install dependencies
         run: npm ci
@@ -235,19 +199,34 @@ jobs:
       - name: Generate TypeScript proto stubs
         run: STUBS_FORCE=1 make -C apis ts-stubs
 
-      - name: Publish @stigmer/* to npm (dev tag)
+      # Keyless: GitHub's OIDC token, exchanged for a short-lived token of the
+      # publisher, which may write Stigmer's npm repository. Taken just before
+      # the publish so the hour it lasts covers the wait and the smoke.
+      - name: Authenticate to Google Cloud (keyless)
+        id: gcp
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_IMAGE_PUBLISHER }}
+          token_format: access_token
+          create_credentials_file: false
+
+      - name: Publish @stigmer/* to Stigmer's npm repository (dev tag)
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ steps.gcp.outputs.access_token }}
           NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION: ${{ needs.determine-version.outputs.npm_version }}
         run: node scripts/publish-libs.mjs --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION}" --tag dev
 
   # @stigmer/runner is a non-workspace npm package built via `make build-runner`.
   # It pins @stigmer/apis to the exact dev version, so it must run after the
-  # libs job has put that version on npm. Mirrors the production publish-runner.
+  # libs job has published that version. Mirrors the production publish-runner.
   publish-npm-runner:
     needs: [determine-version, publish-npm]
     if: contains(needs.determine-version.outputs.targets, 'npm')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # exchanged for the publisher's token (Authenticate to Google Cloud)
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -268,7 +247,9 @@ jobs:
           # No restored npm cache in a release (v5+ caches by default).
           package-manager-cache: false
           node-version-file: ".nvmrc"
-          registry-url: 'https://registry.npmjs.org'
+          # @stigmer/* goes to, and is read from, Stigmer's npm repository.
+          registry-url: ${{ vars.STIGMER_NPM_REGISTRY }}
+          scope: '@stigmer'
 
       - name: Install dependencies
         run: npm ci
@@ -279,17 +260,29 @@ jobs:
       - name: Build runner
         run: make build-runner
 
+      # Keyless: GitHub's OIDC token, exchanged for a short-lived token of the
+      # publisher, which may write Stigmer's npm repository. Taken just before
+      # the publish so the hour it lasts covers the wait and the smoke.
+      - name: Authenticate to Google Cloud (keyless)
+        id: gcp
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_IMAGE_PUBLISHER }}
+          token_format: access_token
+          create_credentials_file: false
+
       # The standalone publish sequence (scripts/publish-standalone.mjs, shared
       # with @stigmer/server and with release.npm-libs.yaml): stamp the dev
       # version, pin EVERY workspace-lib file: link to it (the inline block
       # this replaced pinned protos and temporal-codecs but not zip-structure,
       # so a dev runner tarball carried an unresolvable file: link), wait for
-      # the pinned libs on npm, run the consumer-install smoke (#786) over the
+      # the pinned libs in the registry, run the consumer-install smoke (#786) over the
       # real stamped manifest, publish under the `dev` dist-tag. The manifest
       # stays stamped for the slim steps below.
-      - name: Publish runner to npm (dev tag)
+      - name: Publish runner to Stigmer's npm repository (dev tag)
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ steps.gcp.outputs.access_token }}
           NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION: ${{ needs.determine-version.outputs.npm_version }}
         run: |
           node scripts/publish-standalone.mjs \
@@ -320,10 +313,10 @@ jobs:
           done
           node scripts/verify-slim-artifact.mjs
 
-      - name: Publish slim packages to npm (dev tag)
+      - name: Publish slim packages to Stigmer's npm repository (dev tag)
         working-directory: backend/services/runner
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ steps.gcp.outputs.access_token }}
         run: |
           # Platform packages first so the meta package's optionalDependencies
           # resolve the moment it lands.
@@ -332,38 +325,44 @@ jobs:
           done
           cd dist-slim-pkgs/runner-slim && npm publish --access public --tag dev
 
-  # The sandbox runner images of this build (release.runner-images.yaml, the
-  # lane release.sandbox-cloud runs for main and the release tags), tagged
+  # The sandbox runner image of this build (release.runner-images.yaml, the
+  # lane release.sandbox-cloud runs for main and the release tags), pushed to
+  # Stigmer's image repository (vars.STIGMER_OSS_REGISTRY_ROOT) and tagged
   # v<npm version> after the in-image smoke: a composition that selects its
-  # runner by its pin (the cloud's runnerImageFor) finds it by the version it
-  # pins, so it names no image by hand. Never latest or prod, and the layer is a development
-  # layer (a dev server sends no release). Read and write packages only:
-  # the lane's failure notice stays with release.sandbox-cloud.
+  # runner by its pin finds it by the version it pins, so it names no image
+  # by hand. Never latest or prod, no runner-base or runner-layer, and the
+  # layer inside is a development layer (a dev server sends no release).
+  # id-token for the keyless push; packages to read the build cache on
+  # ghcr.io. The lane's failure notice stays with release.sandbox-cloud.
   publish-runner-image:
     needs: determine-version
     if: contains(needs.determine-version.outputs.targets, 'npm')
     permissions:
       contents: read
       packages: write
+      id-token: write
     uses: ./.github/workflows/release.runner-images.yaml
     with:
       dev_version: ${{ needs.determine-version.outputs.npm_version }}
 
   # @stigmer/server as a library — the dev twin of release.npm-libs.yaml's
   # publish-server. This is the lane a cross-repo seam change rides: once the
-  # OSS pull request has merged, dispatch this workflow on `main`, and the
-  # cloud composition's PR pins the `X.Y.Z-dev.<stamp>.g<sha>` it prints and
-  # merges on it (the cloud is expected to refuse a commit not on `main`).
+  # OSS pull request has merged, dispatch this workflow (it runs on `main`
+  # only), and the composition's PR pins the `X.Y.Z-dev.<stamp>.g<sha>` it
+  # prints and merges on it.
   # Same publish-standalone.mjs sequence as production; the consumer-install
   # smoke boots the staged install against a Temporal dev server and requires
   # every worker to start. It waits for this build's runner image, so a
-  # server version on npm always has its runner (about two minutes: the
+  # server version in the npm repository always has its runner (about two minutes: the
   # runner lane ends shortly after publish-npm, which the server waits for
   # anyway).
   publish-npm-server:
     needs: [determine-version, publish-npm, publish-runner-image]
     if: contains(needs.determine-version.outputs.targets, 'npm')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # exchanged for the publisher's token (Authenticate to Google Cloud)
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -382,7 +381,9 @@ jobs:
           # No restored npm cache in a release (v5+ caches by default).
           package-manager-cache: false
           node-version-file: ".nvmrc"
-          registry-url: 'https://registry.npmjs.org'
+          # @stigmer/* goes to, and is read from, Stigmer's npm repository.
+          registry-url: ${{ vars.STIGMER_NPM_REGISTRY }}
+          scope: '@stigmer'
 
       - name: Install workspace dependencies
         run: npm ci
@@ -393,9 +394,21 @@ jobs:
       - name: Set up Temporal CLI
         uses: temporalio/setup-temporal@1059a504f87e7fa2f385e3fa40d1aa7e62f1c6ca # v0
 
-      - name: Publish server to npm (dev tag)
+      # Keyless: GitHub's OIDC token, exchanged for a short-lived token of the
+      # publisher, which may write Stigmer's npm repository. Taken just before
+      # the publish so the hour it lasts covers the wait and the smoke.
+      - name: Authenticate to Google Cloud (keyless)
+        id: gcp
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_IMAGE_PUBLISHER }}
+          token_format: access_token
+          create_credentials_file: false
+
+      - name: Publish server to Stigmer's npm repository (dev tag)
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ steps.gcp.outputs.access_token }}
           NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION: ${{ needs.determine-version.outputs.npm_version }}
         run: |
           temporal server start-dev --headless --log-level error &
@@ -418,6 +431,9 @@ jobs:
     needs: [determine-version, publish-npm-server]
     if: contains(needs.determine-version.outputs.targets, 'npm')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # exchanged for the publisher's token (Authenticate to Google Cloud)
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -436,7 +452,9 @@ jobs:
           # No restored npm cache in a release (v5+ caches by default).
           package-manager-cache: false
           node-version-file: ".nvmrc"
-          registry-url: 'https://registry.npmjs.org'
+          # @stigmer/* goes to, and is read from, Stigmer's npm repository.
+          registry-url: ${{ vars.STIGMER_NPM_REGISTRY }}
+          scope: '@stigmer'
 
       - name: Install workspace dependencies
         run: npm ci
@@ -447,9 +465,21 @@ jobs:
       - name: Set up Temporal CLI
         uses: temporalio/setup-temporal@1059a504f87e7fa2f385e3fa40d1aa7e62f1c6ca # v0
 
-      - name: Publish Enterprise to npm (dev tag)
+      # Keyless: GitHub's OIDC token, exchanged for a short-lived token of the
+      # publisher, which may write Stigmer's npm repository. Taken just before
+      # the publish so the hour it lasts covers the wait and the smoke.
+      - name: Authenticate to Google Cloud (keyless)
+        id: gcp
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_IMAGE_PUBLISHER }}
+          token_format: access_token
+          create_credentials_file: false
+
+      - name: Publish Enterprise to Stigmer's npm repository (dev tag)
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ steps.gcp.outputs.access_token }}
           NEEDS_DETERMINE_VERSION_OUTPUTS_NPM_VERSION: ${{ needs.determine-version.outputs.npm_version }}
         run: |
           temporal server start-dev --headless --log-level error &
@@ -465,310 +495,53 @@ jobs:
             --tag dev
 
   # ---------------------------------------------------------------------------
-  # Python: publish dev releases to TestPyPI (keeps prod PyPI clean).
-  # Auth is OIDC trusted publishing, matching release.python-sdk; a Trusted
-  # Publisher for test.pypi.org must be configured for both projects.
-  # ---------------------------------------------------------------------------
-  publish-python-protos:
-    needs: determine-version
-    if: contains(needs.determine-version.outputs.targets, 'python')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Set up Buf
-        uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      # Node before stub generation: the stub scrub inside gen-stubs.sh runs
-      # from TypeScript source via the repo-pinned tsx.
-      - name: Set up Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
-        with:
-          # No restored npm cache in a release (v5+ caches by default).
-          package-manager-cache: false
-          node-version-file: ".nvmrc"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Python proto stubs
-        run: STUBS_FORCE=1 make -C apis python-stubs
-
-      - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
-        with:
-          python-version: '3.11'
-
-      - name: Set version
-        working-directory: apis/stubs/python/stigmer
-        run: |
-          VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_PY_VERSION}"
-          python -c "
-          import re, pathlib
-          p = pathlib.Path('pyproject.toml')
-          text = p.read_text()
-          text = re.sub(r'version\s*=\s*\"[^\"]*\"', 'version = \"$VERSION\"', text, count=1)
-          p.write_text(text)
-          "
-          echo "Set stigmer-apis version to $VERSION"
-        env:
-          NEEDS_DETERMINE_VERSION_OUTPUTS_PY_VERSION: ${{ needs.determine-version.outputs.py_version }}
-
-      - name: Build package
-        working-directory: apis/stubs/python/stigmer
-        run: |
-          pip install build
-          python -m build
-
-      - name: Publish to TestPyPI
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
-        with:
-          packages-dir: apis/stubs/python/stigmer/dist/
-          repository-url: https://test.pypi.org/legacy/
-
-  publish-python-sdk:
-    needs: [determine-version, publish-python-protos]
-    if: contains(needs.determine-version.outputs.targets, 'python')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Set up Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
-        with:
-          go-version: '1.25'
-          cache: false
-
-      # The client generator runs from TypeScript source via the repo-pinned
-      # tsx, so the root npm install must exist before the codegen step (the
-      # release lane's publish-sdk job does the same).
-      - name: Set up Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
-        with:
-          # No restored npm cache in a release (v5+ caches by default).
-          package-manager-cache: false
-          node-version-file: ".nvmrc"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
-        with:
-          python-version: '3.11'
-
-      - name: Generate SDK client code
-        run: make -C sdk/python codegen
-
-      - name: Set version and pin protos dependency
-        working-directory: sdk/python
-        run: |
-          VERSION="${NEEDS_DETERMINE_VERSION_OUTPUTS_PY_VERSION}"
-          python -c "
-          import re, pathlib
-          p = pathlib.Path('pyproject.toml')
-          text = p.read_text()
-          text = re.sub(r'version\s*=\s*\"[^\"]*\"', 'version = \"$VERSION\"', text, count=1)
-          text = re.sub(r'\"stigmer-apis[^\"]*\"', '\"stigmer-apis==$VERSION\"', text)
-          p.write_text(text)
-          "
-          echo "Set stigmer version to $VERSION (protos dependency: $VERSION)"
-        env:
-          NEEDS_DETERMINE_VERSION_OUTPUTS_PY_VERSION: ${{ needs.determine-version.outputs.py_version }}
-
-      - name: Build package
-        working-directory: sdk/python
-        run: |
-          pip install build
-          python -m build
-
-      - name: Publish to TestPyPI
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
-        with:
-          packages-dir: sdk/python/dist/
-          repository-url: https://test.pypi.org/legacy/
-
-  # ---------------------------------------------------------------------------
-  # MCP server: build + push a dev Docker image to GHCR (mutable, deletable).
-  # Tags both an immutable-per-commit `dev-<sha>` and a moving `dev` pointer.
-  # ---------------------------------------------------------------------------
-  # The dev image installs the published dev @stigmer/mcp-server, so it runs
-  # after publish-npm (which publishes it under the `dev` dist-tag). determine-
-  # version guarantees npm is targeted whenever mcp is.
-  publish-mcp:
-    needs: [determine-version, publish-npm]
-    if: contains(needs.determine-version.outputs.targets, 'mcp')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Set up Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
-        with:
-          # No restored npm cache in a release (v5+ caches by default).
-          package-manager-cache: false
-          node-version: '20'
-
-      - name: Wait for @stigmer/mcp-server on npm
-        env:
-          NPM_VERSION: ${{ needs.determine-version.outputs.npm_version }}
-        run: |
-          echo "Waiting for @stigmer/mcp-server@$NPM_VERSION on npm..."
-          for i in $(seq 1 30); do
-            if npm view "@stigmer/mcp-server@$NPM_VERSION" version 2>/dev/null; then
-              echo "Found @stigmer/mcp-server@$NPM_VERSION on npm"
-              exit 0
-            fi
-            echo "Attempt $i/30: not yet available, waiting 10s..."
-            sleep 10
-          done
-          echo "ERROR: @stigmer/mcp-server@$NPM_VERSION not found on npm after 5 minutes"
-          exit 1
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push dev image
-        env:
-          DOCKER_TAG: ${{ needs.determine-version.outputs.docker_tag }}
-          NPM_VERSION: ${{ needs.determine-version.outputs.npm_version }}
-        run: |
-          docker buildx build \
-            --platform linux/amd64,linux/arm64 \
-            --file mcp-server/Dockerfile \
-            --build-arg NODE_IMAGE=node:22-alpine \
-            --build-arg MCP_SERVER_VERSION=$NPM_VERSION \
-            --tag ghcr.io/stigmer/mcp-server-stigmer:$DOCKER_TAG \
-            --tag ghcr.io/stigmer/mcp-server-stigmer:dev \
-            --push \
-            .
-          echo "Pushed ghcr.io/stigmer/mcp-server-stigmer:$DOCKER_TAG (and :dev)"
-
-  # ---------------------------------------------------------------------------
-  # Print the exact consumer coordinates for every target that ran. This is the
-  # copy-paste block the other developer uses to upgrade their references.
+  # Print what a composition pins: the version, where it lives, and the scope
+  # line that routes @stigmer/* there.
   # ---------------------------------------------------------------------------
   summary:
-    needs: [determine-version, publish-maven, publish-npm, publish-runner-image, publish-npm-runner, publish-npm-server, publish-npm-enterprise, publish-python-protos, publish-python-sdk, publish-mcp]
-    if: always()
+    needs: [determine-version, publish-npm, publish-runner-image, publish-npm-runner, publish-npm-server, publish-npm-enterprise]
+    if: always() && needs.determine-version.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Write dev build summary
         env:
-          TARGETS: ${{ needs.determine-version.outputs.targets }}
           BASE: ${{ needs.determine-version.outputs.base }}
-          MAVEN_VERSION: ${{ needs.determine-version.outputs.maven_version }}
           NPM_VERSION: ${{ needs.determine-version.outputs.npm_version }}
-          PY_VERSION: ${{ needs.determine-version.outputs.py_version }}
-          DOCKER_TAG: ${{ needs.determine-version.outputs.docker_tag }}
           SHORT_SHA: ${{ needs.determine-version.outputs.short_sha }}
-          REF_NAME: ${{ github.ref_name }}
+          NPM_REGISTRY: ${{ vars.STIGMER_NPM_REGISTRY }}
+          OSS_REGISTRY_ROOT: ${{ vars.STIGMER_OSS_REGISTRY_ROOT }}
           RUNNER_RESULT: ${{ needs.publish-runner-image.result }}
           SERVER_RESULT: ${{ needs.publish-npm-server.result }}
         run: |
           {
             echo "# Stigmer dev build published"
             echo ""
-            echo "Base: \`$BASE\` · ref: \`$REF_NAME\` · commit: \`$SHORT_SHA\` · targets: \`$TARGETS\`"
+            echo "Base: \`$BASE\` · commit: \`$SHORT_SHA\` on \`main\`"
             echo ""
-            echo "Setup is one-time (see \`.github/workflows/docs/dev-publishing.md\`); afterwards, switching dev<->prod is only a version-string change."
-            echo ""
-
-            if [[ "$TARGETS" == *maven* ]]; then
-              echo "## Maven (Java SDK)"
-              echo '```xml'
-              echo "<dependency>"
-              echo "  <groupId>ai.stigmer</groupId>"
-              echo "  <artifactId>stigmer-sdk</artifactId>"
-              echo "  <version>$MAVEN_VERSION</version>"
-              echo "</dependency>"
-              echo '```'
-              echo "Run \`mvn -U ...\` to force-refresh the SNAPSHOT."
-              echo ""
-            fi
-
-            if [[ "$TARGETS" == *npm* ]]; then
-              echo "## npm (React / TS SDK)"
-              echo '```bash'
-              echo "npm install @stigmer/react-sdk@dev   # or pin exactly: @stigmer/react-sdk@$NPM_VERSION"
-              echo '```'
-              echo "The \`dev\` dist-tag always resolves to the newest dev build."
-              echo ""
-              echo "## Sandbox runner images (GHCR)"
-              if [ "$RUNNER_RESULT" = "success" ]; then
-                echo '```text'
-                echo "ghcr.io/stigmer/runner:v$NPM_VERSION         (linux/amd64)"
-                echo "ghcr.io/stigmer/runner-layer:v$NPM_VERSION   (linux/amd64, linux/arm64)"
-                echo "ghcr.io/stigmer/runner-base:v$NPM_VERSION    (linux/amd64, linux/arm64)"
-                echo '```'
-                echo "Booted in the image before publishing. A composition that selects its runner by its pin launches \`runner:v$NPM_VERSION\`; the open-source server itself follows \`latest\` on a dev version."
-              else
-                echo "Not published (\`publish-runner-image\`: $RUNNER_RESULT)."
-              fi
-              echo ""
-              echo "## npm (@stigmer/server library — a composition's pin)"
-              if [ "$SERVER_RESULT" = "success" ]; then
-                echo '```json'
-                echo "\"@stigmer/server\": \"$NPM_VERSION\", \"@stigmer/apis\": \"$NPM_VERSION\", \"@stigmer/temporal-codecs\": \"$NPM_VERSION\", \"@stigmer/outbound\": \"$NPM_VERSION\", \"@stigmer/enterprise\": \"$NPM_VERSION\""
-                echo '```'
-                echo "Exact versions, all equal. Built from \`main\`, this is a build a composition may merge on; built from a branch, its commit is not on \`main\`, so it is for trying, not for merging."
-              else
-                echo "Not pinnable: \`@stigmer/server@$NPM_VERSION\` was not published (\`publish-npm-server\`: $SERVER_RESULT; it waits for the runner images, \`publish-runner-image\`: $RUNNER_RESULT)."
-              fi
-              echo ""
-            fi
-
-            if [[ "$TARGETS" == *python* ]]; then
-              echo "## Python SDK (TestPyPI)"
-              echo '```bash'
-              echo "pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ --pre 'stigmer-sdk==$PY_VERSION'"
-              echo '```'
-              echo ""
-            fi
-
-            if [[ "$TARGETS" == *mcp* ]]; then
-              echo "## MCP server (Docker)"
-              echo '```bash'
-              echo "docker pull ghcr.io/stigmer/mcp-server-stigmer:$DOCKER_TAG"
-              echo '```'
-              echo ""
-            fi
-
-            echo "## Go SDK / Rust crate (no publish needed — use a git ref)"
-            echo '```bash'
-            echo "# Go:"
-            echo "go get go.stigmer.ai/sdk@$REF_NAME"
-            echo "# Rust (Cargo.toml):"
-            echo "# stigmer-runner-host = { git = \"https://github.com/stigmer/stigmer\", branch = \"$REF_NAME\" }"
+            echo "## npm (Stigmer's npm repository)"
+            echo "A consumer routes the scope once, in an \`.npmrc\` beside its manifest:"
+            echo '```ini'
+            echo "@stigmer:registry=$NPM_REGISTRY"
             echo '```'
+            echo "then pins exactly \`$NPM_VERSION\` (the \`dev\` dist-tag there names the newest dev build). Releases are mirrored into the same repository, so a release pin needs no other change."
+            echo ""
+            echo "## Sandbox runner image"
+            if [ "$RUNNER_RESULT" = "success" ]; then
+              echo '```text'
+              echo "$OSS_REGISTRY_ROOT/runner:v$NPM_VERSION   (linux/amd64)"
+              echo '```'
+              echo "Booted in the image before publishing. A composition that selects its runner by its pin launches this image."
+            else
+              echo "Not published (\`publish-runner-image\`: $RUNNER_RESULT)."
+            fi
+            echo ""
+            echo "## @stigmer/server library (a composition's pin)"
+            if [ "$SERVER_RESULT" = "success" ]; then
+              echo '```json'
+              echo "\"@stigmer/server\": \"$NPM_VERSION\", \"@stigmer/apis\": \"$NPM_VERSION\", \"@stigmer/temporal-codecs\": \"$NPM_VERSION\", \"@stigmer/outbound\": \"$NPM_VERSION\", \"@stigmer/enterprise\": \"$NPM_VERSION\""
+              echo '```'
+              echo "Exact versions, all equal. Built from \`main\`, so a composition may merge on it."
+            else
+              echo "Not pinnable: \`@stigmer/server@$NPM_VERSION\` was not published (\`publish-npm-server\`: $SERVER_RESULT; it waits for the runner image, \`publish-runner-image\`: $RUNNER_RESULT)."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"

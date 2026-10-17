@@ -116,9 +116,9 @@ const temporalAddress = process.env.TEMPORAL_SERVICE_ADDRESS ?? "localhost:7233"
 const sizeBudgetMb = Number(process.env.SLIM_SIZE_BUDGET_MB ?? 120);
 
 // When set, run only the checks that need no Temporal server (1–5 above).
-// This is the slice the dev-publish fast path (publish-dev-local.sh) runs, so
-// a slim build can never reach the dev channel without at least proving its
-// interceptor load order survived bundling.
+// This is the slice a build with no Temporal server at hand runs (the
+// desktop's staged-runtime check), so a slim build is never staged without
+// at least proving its interceptor load order survived bundling.
 const skipTemporalBoots = options["no-temporal"] || process.env.SLIM_VERIFY_SKIP_TEMPORAL === "1";
 
 const BOOT_TIMEOUT_MS = 90_000;
