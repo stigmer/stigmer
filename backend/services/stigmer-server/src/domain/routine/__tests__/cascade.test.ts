@@ -8,11 +8,17 @@
  *     routine of another agent, or of another organization naming the
  *     agent, is left; a teardown that fails is logged and the delete goes
  *     on; with no clock wired nothing is torn down and the rows still go;
- *   - a chain that never loaded the agent is a broken invariant and throws;
+ *   - its store faults: a routine row that does not decode is skipped with
+ *     a warning naming it; a routine already gone is not an error; a fire
+ *     ledger that cannot be removed is logged and the delete goes on; a
+ *     list or a row delete the store cannot do fails the agent's delete as
+ *     INTERNAL;
+ *   - a chain that never loaded the agent is a broken invariant and throws,
+ *     and an agent with no id reads nothing;
  *   - EnsureRoutineAgentStillExists, after a create, reads the agent again:
  *     present, the routine stays; deleted meanwhile, the routine, its
  *     artifact and its ledger go and the create answers NOT_FOUND naming
- *     the agent by id.
+ *     the agent by id; a read the store cannot do answers INTERNAL.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -25,7 +31,7 @@ import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
-import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
+import { errorOf, testCallerIdentity, untouchable } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
@@ -35,6 +41,7 @@ import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { newCascadeDeleteRoutinesStep, newEnsureRoutineAgentStillExistsStep } from "../cascade.js";
 import type { RoutineClock } from "../clock.js";
+import { capturingLogger, storeWith } from "./support.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -169,6 +176,99 @@ describe("CascadeDeleteRoutines", () => {
       newCascadeDeleteRoutinesStep({ store: temp.store, logger: silentLogger, authorizationLifecycle: undefined, clock: () => undefined }).execute(ctx),
     ).rejects.toThrow(/LoadExistingForDelete must run first/);
   });
+
+  it("reads nothing and deletes nothing for an agent with no id", async () => {
+    const ctx = deleteContext("", "org_acme");
+    await newCascadeDeleteRoutinesStep({
+      store: untouchable<Store>("store"),
+      logger: silentLogger,
+      authorizationLifecycle: undefined,
+      clock: () => undefined,
+    }).execute(ctx);
+  });
+
+  it("skips a routine row that does not decode, logging it, and deletes nothing for it", async () => {
+    const { logger, lines } = capturingLogger();
+    const store = {
+      queryResources: () => Promise.resolve([{ id: "rtn_undecodable", data: new Uint8Array([0x22, 0xff]) }]),
+    } as unknown as Store;
+
+    await newCascadeDeleteRoutinesStep({ store, logger, authorizationLifecycle: undefined, clock: () => undefined }).execute(
+      deleteContext("agt_1", "org_acme"),
+    );
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({
+      level: "warn",
+      message: "skipped a routine row that does not decode",
+      routineId: "rtn_undecodable",
+      agentId: "agt_1",
+    });
+  });
+
+  it("fails the agent's delete as INTERNAL when the store cannot list its routines", async () => {
+    const store = { queryResources: () => Promise.reject(new Error("disk on fire")) } as unknown as Store;
+    const error = await errorOf(async () => {
+      await newCascadeDeleteRoutinesStep({ store, logger: silentLogger, authorizationLifecycle: undefined, clock: () => undefined }).execute(
+        deleteContext("agt_1", "org_acme"),
+      );
+    });
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("failed to list the agent's routines for cascade delete");
+  });
+
+  it("treats a routine another delete already removed as gone, and still removes its fire history", async () => {
+    temp = tempStore();
+    await seedRoutine(temp.store, routine("rtn_raced", "org_acme", "agt_1", "0 9 * * *"));
+    const store = storeWith(temp.store, "deleteResource", () =>
+      Promise.reject(new ResourceNotFoundError("routine rtn_raced")),
+    );
+    const clock = recordingClock();
+
+    await newCascadeDeleteRoutinesStep({ store, logger: silentLogger, authorizationLifecycle: undefined, clock: () => clock }).execute(
+      deleteContext("agt_1", "org_acme"),
+    );
+
+    expect(clock.toreDown).toEqual(["rtn_raced"]);
+    expect(await temp.store.listRoutineFires("rtn_raced", undefined, 10)).toEqual([]);
+  });
+
+  it("fails the agent's delete as INTERNAL naming the routine when the store cannot delete its row", async () => {
+    temp = tempStore();
+    await seedRoutine(temp.store, routine("rtn_stuck", "org_acme", "agt_1", "0 9 * * *"));
+    const store = storeWith(temp.store, "deleteResource", () => Promise.reject(new Error("disk on fire")));
+
+    const error = await errorOf(async () => {
+      await newCascadeDeleteRoutinesStep({ store, logger: silentLogger, authorizationLifecycle: undefined, clock: () => undefined }).execute(
+        deleteContext("agt_1", "org_acme"),
+      );
+    });
+
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("failed to cascade-delete routine rtn_stuck");
+    expect(await exists(temp.store, "rtn_stuck")).toBe(true);
+  });
+
+  it("logs a fire ledger the store cannot remove and still deletes the routine", async () => {
+    temp = tempStore();
+    await seedRoutine(temp.store, routine("rtn_ledger", "org_acme", "agt_1", "0 9 * * *"));
+    const store = storeWith(temp.store, "deleteRoutineFiresByRoutine", () => Promise.reject(new Error("disk on fire")));
+    const { logger, lines } = capturingLogger();
+
+    await newCascadeDeleteRoutinesStep({ store, logger, authorizationLifecycle: undefined, clock: () => undefined }).execute(
+      deleteContext("agt_1", "org_acme"),
+    );
+
+    expect(await exists(temp.store, "rtn_ledger")).toBe(false);
+    expect(lines).toEqual([
+      expect.objectContaining({
+        level: "warn",
+        message: "Fire-ledger cleanup failed (non-fatal — orphaned rows answer no query; retention prunes them)",
+        routine_id: "rtn_ledger",
+        error: "disk on fire",
+      }),
+    ]);
+  });
 });
 
 describe("EnsureRoutineAgentStillExists", () => {
@@ -210,5 +310,24 @@ describe("EnsureRoutineAgentStillExists", () => {
     expect(await exists(store, "rtn_orphan")).toBe(false);
     expect(clock.toreDown).toEqual(["rtn_orphan"]);
     expect(await store.listRoutineFires("rtn_orphan", undefined, 10)).toEqual([]);
+  });
+
+  it("answers INTERNAL and keeps the routine when the store cannot read the agent again", async () => {
+    temp = tempStore();
+    const row = routine("rtn_unread", "org_acme", "agt_1", "0 9 * * *");
+    await seedRoutine(temp.store, row);
+    const store = storeWith(temp.store, "getResource", () => Promise.reject(new Error("disk on fire")));
+    const clock = recordingClock();
+
+    const error = await errorOf(async () => {
+      await newEnsureRoutineAgentStillExistsStep({ store, logger: silentLogger, authorizationLifecycle: undefined, clock: () => clock }).execute(
+        createContext(row),
+      );
+    });
+
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("failed to read the routine's agent again");
+    expect(await exists(temp.store, "rtn_unread")).toBe(true);
+    expect(clock.toreDown).toEqual([]);
   });
 });

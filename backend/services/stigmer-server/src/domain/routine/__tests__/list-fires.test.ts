@@ -3,11 +3,14 @@
  * origin and outcome label the store writes maps to its RoutineFire enum
  * value, and a label the store never writes reads as UNSPECIFIED rather than
  * failing the page; a row still in flight takes its run's live phase, and
- * keeps its recorded outcome when the run is gone; a store that cannot list
- * the ledger fails the read as an internal error.
+ * keeps its recorded outcome when the run is gone; a row whose times are
+ * empty or unparseable reads with those times unset; a store that cannot
+ * list the ledger, or cannot read the routine the fires belong to, fails
+ * the read as an internal error.
  *
- * The store is a real throwaway SQLite store; the step runs as the listFires
- * pipeline runs it.
+ * The store is a real throwaway SQLite store, or a double whose one method
+ * answers where a case says so; the steps run as the listFires pipeline
+ * runs them.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -24,12 +27,12 @@ import type { RoutineFireList } from "@stigmer/apis/ai/stigmer/agentic/routine/v
 import { RoutineQueryController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
+import { errorOf, failingStore, testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
-import type { Store } from "../../../store/interface.js";
-import { LIST_FIRES_RESULT_KEY, newListFiresFromLedgerStep } from "../list-fires.js";
+import type { RoutineFireRecord, Store } from "../../../store/interface.js";
+import { LIST_FIRES_RESULT_KEY, newListFiresFromLedgerStep, newLoadRoutineForFiresStep } from "../list-fires.js";
 
 const ROUTINE_ID = "sch_ledger";
 
@@ -159,5 +162,43 @@ describe("a ledger the store cannot list", () => {
     expect(failure).toBeInstanceOf(ConnectError);
     expect((failure as ConnectError).code).toBe(Code.Internal);
     expect((failure as ConnectError).rawMessage).toBe("failed to list routine fires");
+  });
+});
+
+describe("a ledger row whose times do not read", () => {
+  it("leaves an empty or unparseable time unset rather than failing the page", async () => {
+    const rows: RoutineFireRecord[] = [
+      {
+        routineId: ROUTINE_ID,
+        fireId: "fire-blank",
+        org: "org_acme",
+        nominalFireTime: "",
+        origin: "schedule",
+        outcome: "completed",
+        reason: "",
+        runId: "",
+        recordedAt: "",
+        completedAt: "not a time",
+      },
+    ];
+    const store = { listRoutineFires: () => Promise.resolve(rows) } as unknown as Store;
+    const ctx = listRequest(10);
+    await newListFiresFromLedgerStep(store).execute(ctx);
+    const [fire] = (ctx.get(LIST_FIRES_RESULT_KEY) as RoutineFireList).entries;
+    expect(fire?.fireId).toBe("fire-blank");
+    expect(fire?.outcome).toBe(RoutineFireOutcome.COMPLETED);
+    expect(fire?.nominalFireTime).toBeUndefined();
+    expect(fire?.recordedAt).toBeUndefined();
+    expect(fire?.completedAt).toBeUndefined();
+  });
+});
+
+describe("a routine the store cannot read", () => {
+  it("fails the read as an internal error, never NOT_FOUND", async () => {
+    const error = await errorOf(async () => {
+      await newLoadRoutineForFiresStep(failingStore(new Error("disk on fire"))).execute(listRequest(10));
+    });
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("failed to load routine");
   });
 });

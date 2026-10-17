@@ -7,6 +7,9 @@
  * never refuse).
  *
  * The load-bearing pins the conformance suite does NOT own:
+ *   - the create refusals an unattended run needs: a workspace entry that
+ *     is not a git repository, a Cursor routine with no pinned model, and
+ *     a pin the model registry does not know;
  *   - status preservation across apply-as-update (the auto-pause can never
  *     be clobbered declaratively) and the update graft's status honesty;
  *   - an update keeps the tick's pause that lands between its read and its
@@ -25,6 +28,7 @@
  */
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase, ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -250,6 +254,60 @@ describe("create — the defaults resolver through the real chain", () => {
     );
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toContain("spec.agent.run_config.model_name");
+  });
+
+  it("refuses a workspace entry that is not a git repository, naming the entry", async () => {
+    const input = routineInput({ name: "Local tree" });
+    const err = await refusal(() =>
+      command.create({
+        ...input,
+        spec: {
+          ...input.spec,
+          agent: {
+            ...input.spec.agent,
+            workspaceEntries: [
+              { name: "repo", source: { source: { case: "gitRepo", value: { url: "https://github.com/acme/repo" } } } },
+              { name: "laptop", source: { source: { case: "localPath", value: { path: "/home/ana/src" } } } },
+            ],
+          },
+        },
+      }),
+    );
+    expect(err.code).toBe(Code.InvalidArgument);
+    expect(err.rawMessage).toBe(
+      "spec.agent.workspace_entries[1] must use a git_repo source — a routine's run has no connected client to serve a local_path",
+    );
+  });
+
+  it("refuses a Cursor routine that pins no model", async () => {
+    const input = routineInput({ name: "Cursor unpinned" });
+    const err = await refusal(() =>
+      command.create({
+        ...input,
+        spec: { ...input.spec, agent: { ...input.spec.agent, harness: Harness.CURSOR } },
+      }),
+    );
+    expect(err.code).toBe(Code.InvalidArgument);
+    expect(err.rawMessage).toMatch(
+      /^spec\.agent\.run_config\.model_name must name a pinned model when the run would use the Cursor harness/,
+    );
+  });
+
+  it("refuses a pinned model the registry does not know", async () => {
+    const input = routineInput({ name: "Typo pin" });
+    const err = await refusal(() =>
+      command.create({
+        ...input,
+        spec: {
+          ...input.spec,
+          agent: { ...input.spec.agent, runConfig: { modelName: "no-such-model-anywhere" } },
+        },
+      }),
+    );
+    expect(err.code).toBe(Code.InvalidArgument);
+    expect(err.rawMessage).toMatch(
+      /^spec\.agent\.run_config\.model_name: model 'no-such-model-anywhere' is not in the model registry \(native harness\)/,
+    );
   });
 
   it("validates the cron grammar and time zone through the pipeline", async () => {

@@ -96,6 +96,22 @@ export interface RoutineRunner {
 /** A provider so the compose root can wire the runner after the clock stage. */
 export type RunnerProvider = () => RoutineRunner | undefined;
 
+/**
+ * The wire outcome of each run outcome. A Record, so a new run outcome
+ * does not compile until it names its wire value here.
+ */
+const FIRE_OUTCOME_OF_RUN: Readonly<Record<RunOutcomeResult["kind"], RoutineFireOutcome>> = {
+  started: RoutineFireOutcome.STARTED,
+  targetMissing: RoutineFireOutcome.TARGET_MISSING,
+  refused: RoutineFireOutcome.REFUSED,
+};
+
+/** The warning each fire that started no run logs, keyed the same way. */
+const FIRE_NO_RUN_LOG: Readonly<Record<Exclude<RunOutcomeResult["kind"], "started">, string>> = {
+  targetMissing: "Routine fired — target missing",
+  refused: "Routine fired — run refused by a launch gate",
+};
+
 /** Carries the shaped RoutineFireResult from the fire step to the handler. */
 export const FIRE_RESULT_KEY = "fire_result";
 
@@ -200,36 +216,22 @@ export function newFireDirectRunStep(
         outcome,
       );
 
-      const result = create(RoutineFireResultSchema, { fireId: fire.fireId });
-      switch (outcome.kind) {
-        case "started":
-          result.outcome = RoutineFireOutcome.STARTED;
-          result.runId = outcome.runId;
-          deps.logger.info("Routine fired — run started", {
-            routine_id: routineId,
-            run_id: outcome.runId,
-          });
-          break;
-        case "targetMissing":
-          result.outcome = RoutineFireOutcome.TARGET_MISSING;
-          result.refusalReason = outcome.reason;
-          deps.logger.warn("Routine fired — target missing", {
-            routine_id: routineId,
-            reason: outcome.reason,
-          });
-          break;
-        case "refused":
-          result.outcome = RoutineFireOutcome.REFUSED;
-          result.refusalReason = outcome.reason;
-          deps.logger.warn("Routine fired — run refused by a launch gate", {
-            routine_id: routineId,
-            reason: outcome.reason,
-          });
-          break;
-        default: {
-          const exhaustive: never = outcome;
-          throw new Error(`unknown run outcome ${String(exhaustive)}`);
-        }
+      const result = create(RoutineFireResultSchema, {
+        fireId: fire.fireId,
+        outcome: FIRE_OUTCOME_OF_RUN[outcome.kind],
+      });
+      if (outcome.kind === "started") {
+        result.runId = outcome.runId;
+        deps.logger.info("Routine fired — run started", {
+          routine_id: routineId,
+          run_id: outcome.runId,
+        });
+      } else {
+        result.refusalReason = outcome.reason;
+        deps.logger.warn(FIRE_NO_RUN_LOG[outcome.kind], {
+          routine_id: routineId,
+          reason: outcome.reason,
+        });
       }
 
       // Answer with the post-fire row — last_fire_at and (on success)

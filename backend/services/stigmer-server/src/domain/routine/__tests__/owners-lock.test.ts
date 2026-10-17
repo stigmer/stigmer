@@ -11,7 +11,9 @@
  *   - a routine whose stamp names nobody has no owner: only the internal
  *     class changes what it runs;
  *   - under the trusted-local posture (no account port) the step is off;
- *   - an account-store fault is INTERNAL, never a refusal.
+ *   - an account-store fault is INTERNAL, never a refusal;
+ *   - a chain that never loaded the existing routine is a broken invariant
+ *     and throws INTERNAL.
  */
 import { clone, create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -149,5 +151,13 @@ describe("the owner's lock", () => {
     const existing = routine("ida_priya");
     const error = await refusal(run(failing, existing, edited(existing, newMessage), ADMIN));
     expect(error.code).toBe(Code.Internal);
+  });
+
+  it("throws INTERNAL when the chain never loaded the existing routine", async () => {
+    const existing = routine("ida_priya");
+    const ctx = new RequestContext(RoutineSchema, edited(existing, newMessage), ADMIN, ApiResourceKind.routine);
+    const error = await refusal(Promise.resolve(newOwnersLockStep(ACCOUNTS).execute(ctx)));
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("existing routine not found in context");
   });
 });

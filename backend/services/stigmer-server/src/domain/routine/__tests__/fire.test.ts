@@ -9,10 +9,19 @@
  * answers "refused", and the step must answer REFUSED with the gate's copy
  * verbatim and no run, and record the refused fire.
  *
- * The store is a real throwaway SQLite store; the run starter is a stub
- * that records the routine and the fire it was asked to run.
+ * And the fire's edges no composed call reaches: a fire naming no routine
+ * is INVALID_ARGUMENT; a process with no run starter refuses with
+ * FAILED_PRECONDITION and the byte-pinned copy; the bookkeeping after a
+ * started run is best-effort: a last_fire_at stamp the store cannot write
+ * is logged, one for a routine deleted mid-fire is skipped silently, and
+ * a post-fire re-read that fails answers with the loaded routine.
+ *
+ * The store is a real throwaway SQLite store, with one method faulted
+ * where a case says so; the run starter is a stub that records the
+ * routine and the fire it was asked to run.
  */
 import { create } from "@bufbuild/protobuf";
+import { Code } from "@connectrpc/connect";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
@@ -26,13 +35,23 @@ import { RoutineCommandController } from "@stigmer/apis/ai/stigmer/agentic/routi
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { createLogger } from "../../../boot/logger.js";
-import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
+import { errorOf, testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
+import { RESOURCE_ID_KEY } from "../../../pipeline/steps/delete.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
+import { ResourceNotFoundError } from "../../../store/interface.js";
+import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { RoutineFireRequest } from "../../../temporal/routine/run-starter.js";
-import { FIRE_RESULT_KEY, newFireDirectRunStep } from "../fire.js";
+import {
+  FIRE_NO_RUNNER_MESSAGE,
+  FIRE_RESULT_KEY,
+  newExtractFireRoutineIdStep,
+  newFireDirectRunStep,
+} from "../fire.js";
+import type { RoutineRunner } from "../fire.js";
+import { capturingLogger, storeWith } from "./support.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -156,5 +175,115 @@ describe("FireDirectRun — a run a launch gate refused", () => {
     const total = fires.length;
     expect(total).toBe(1);
     expect(fires[0]).toMatchObject({ origin: "manual", outcome: "refused", runId: "", fireId: result.fireId });
+  });
+});
+
+describe("ExtractFireRoutineId", () => {
+  it("refuses a fire that names no routine with INVALID_ARGUMENT", async () => {
+    const ctx = new RequestContext(
+      RoutineCommandController.method.fire.input,
+      create(RoutineCommandController.method.fire.input, { id: "" }),
+      testCallerIdentity(),
+    );
+    const error = await errorOf(async () => {
+      await newExtractFireRoutineIdStep().execute(ctx);
+    });
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(error.rawMessage).toBe("resource id is required");
+    expect(ctx.get(RESOURCE_ID_KEY)).toBeUndefined();
+  });
+});
+
+describe("FireDirectRun — the edges around the run", () => {
+  const STARTED: RoutineRunner = {
+    startRun: () => Promise.resolve({ kind: "started", runId: RUN_ID, alreadyExisted: false }),
+  };
+
+  function fireRoutine(): Routine {
+    return create(RoutineSchema, {
+      metadata: { id: ROUTINE_ID, org: "org_acme", name: "Fire" },
+      spec: { enabled: true },
+    });
+  }
+
+  function fireContext(routine: Routine) {
+    const ctx = new RequestContext(
+      RoutineCommandController.method.fire.input,
+      create(RoutineCommandController.method.fire.input, { id: ROUTINE_ID }),
+      testCallerIdentity(),
+    );
+    ctx.set(EXISTING_RESOURCE_KEY, routine);
+    return ctx;
+  }
+
+  it("refuses with FAILED_PRECONDITION and the byte-pinned copy when no run starter is wired", async () => {
+    temp = tempStore();
+    const ctx = fireContext(fireRoutine());
+    const error = await errorOf(async () => {
+      await newFireDirectRunStep({ store: temp!.store, logger: silentLogger, runner: () => undefined }).execute(ctx);
+    });
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toBe(FIRE_NO_RUNNER_MESSAGE);
+    expect(ctx.get(FIRE_RESULT_KEY)).toBeUndefined();
+    expect(await temp.store.listRoutineFires(ROUTINE_ID, undefined, 10)).toEqual([]);
+  });
+
+  it("logs a last_fire_at stamp the store cannot write and still answers the fire", async () => {
+    temp = tempStore();
+    const routine = fireRoutine();
+    await temp.store.saveResource(ApiResourceKind.routine, ROUTINE_ID, RoutineSchema, routine);
+    const store = storeWith(temp.store, "updateResource", () => Promise.reject(new Error("disk on fire")));
+    const { logger, lines } = capturingLogger();
+    const ctx = fireContext(routine);
+
+    await newFireDirectRunStep({ store, logger, runner: () => STARTED }).execute(ctx);
+
+    const result = ctx.get(FIRE_RESULT_KEY) as RoutineFireResult;
+    expect(result.outcome).toBe(RoutineFireOutcome.STARTED);
+    expect(result.routine?.status?.lastFireAt).toBeUndefined();
+    expect(lines).toEqual([
+      expect.objectContaining({
+        level: "warn",
+        message: "Fire's last_fire_at not stamped (best-effort — the run is unaffected)",
+        routine_id: ROUTINE_ID,
+        error: "disk on fire",
+      }),
+    ]);
+  });
+
+  it("skips the stamp silently for a routine deleted mid-fire, and answers with the routine it loaded", async () => {
+    temp = tempStore();
+    const routine = fireRoutine();
+    const store: Store = storeWith(
+      storeWith(temp.store, "updateResource", () => Promise.reject(new ResourceNotFoundError(`routine ${ROUTINE_ID}`))),
+      "getResource",
+      () => Promise.reject(new ResourceNotFoundError(`routine ${ROUTINE_ID}`)),
+    );
+    const { logger, lines } = capturingLogger();
+    const ctx = fireContext(routine);
+
+    await newFireDirectRunStep({ store, logger, runner: () => STARTED }).execute(ctx);
+
+    const result = ctx.get(FIRE_RESULT_KEY) as RoutineFireResult;
+    expect(result.outcome).toBe(RoutineFireOutcome.STARTED);
+    expect(result.runId).toBe(RUN_ID);
+    expect(result.routine).toBe(routine);
+    expect(lines).toEqual([]);
+  });
+
+  it("answers with the routine it loaded when the post-fire re-read fails", async () => {
+    temp = tempStore();
+    const routine = fireRoutine();
+    await temp.store.saveResource(ApiResourceKind.routine, ROUTINE_ID, RoutineSchema, routine);
+    const store = storeWith(temp.store, "getResource", () => Promise.reject(new Error("disk on fire")));
+    const ctx = fireContext(routine);
+
+    await newFireDirectRunStep({ store, logger: silentLogger, runner: () => STARTED }).execute(ctx);
+
+    const result = ctx.get(FIRE_RESULT_KEY) as RoutineFireResult;
+    expect(result.routine).toBe(routine);
+    // The stamp itself was written: the row the re-read missed carries it.
+    const stored = await temp.store.getResource(ApiResourceKind.routine, ROUTINE_ID, RoutineSchema);
+    expect(stored.status?.lastFireAt).toBeDefined();
   });
 });

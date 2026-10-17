@@ -445,14 +445,7 @@ async function deleteRoutine(
     .build()
     .execute(reqCtx);
 
-  const deleted = reqCtx.get(EXISTING_RESOURCE_KEY);
-  if (deleted === undefined) {
-    throw internalError(
-      new Error("deleted routine not found in context"),
-      "deleted routine not found in context",
-    );
-  }
-  return deleted as Routine;
+  return reqCtx.get(EXISTING_RESOURCE_KEY) as Routine;
 }
 
 /** Resume: clears the platform's pause and re-arms the schedule. */
@@ -483,14 +476,7 @@ async function resume(
     .build()
     .execute(reqCtx);
 
-  const resumed = reqCtx.get(EXISTING_RESOURCE_KEY);
-  if (resumed === undefined) {
-    throw internalError(
-      new Error("resumed routine not found in context"),
-      "resumed routine not found in context",
-    );
-  }
-  return resumed as Routine;
+  return reqCtx.get(EXISTING_RESOURCE_KEY) as Routine;
 }
 
 /** Fire: one run now, acting as the owner, optionally with text (fire.ts). */
@@ -522,14 +508,7 @@ async function fire(
     .build()
     .execute(reqCtx);
 
-  const result = reqCtx.get(FIRE_RESULT_KEY);
-  if (result === undefined) {
-    throw internalError(
-      new Error("fire result not found in context"),
-      "fire result not found in context",
-    );
-  }
-  return result as RoutineFireResult;
+  return reqCtx.get(FIRE_RESULT_KEY) as RoutineFireResult;
 }
 
 /** Get — LoadTarget by id; NotFound when absent (get.go). */
@@ -622,14 +601,7 @@ async function listByAgent(
     .build()
     .execute(reqCtx);
 
-  const result = reqCtx.get(ROUTINE_LIST_KEY);
-  if (result === undefined) {
-    throw internalError(
-      new Error("routine list not found in context"),
-      "routine list not found in context",
-    );
-  }
-  return result as RoutineList;
+  return reqCtx.get(ROUTINE_LIST_KEY) as RoutineList;
 }
 
 function newLoadRoutinesByAgentStep(
@@ -699,14 +671,7 @@ async function list(
     .build()
     .execute(reqCtx);
 
-  const result = reqCtx.get(ROUTINE_LIST_KEY);
-  if (result === undefined) {
-    throw internalError(
-      new Error("routine list not found in context"),
-      "routine list not found in context",
-    );
-  }
-  return result as RoutineList;
+  return reqCtx.get(ROUTINE_LIST_KEY) as RoutineList;
 }
 
 function newListByOrgAndLabelsStep(
@@ -801,12 +766,5 @@ async function listFires(
     .build()
     .execute(reqCtx);
 
-  const result = reqCtx.get(LIST_FIRES_RESULT_KEY);
-  if (result === undefined) {
-    throw internalError(
-      new Error("routine fire list not found in context"),
-      "routine fire list not found in context",
-    );
-  }
-  return result as RoutineFireList;
+  return reqCtx.get(LIST_FIRES_RESULT_KEY) as RoutineFireList;
 }

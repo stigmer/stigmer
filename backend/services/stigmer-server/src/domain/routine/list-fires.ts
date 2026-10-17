@@ -206,7 +206,7 @@ async function toProtoFire(
     case RunPhase.RUN_CANCELLED:
     case RunPhase.RUN_TERMINATED:
       fire.outcome = RoutineFireOutcome.FAILED;
-      fire.reason = `run ${record.runId} ended ${runPhaseWord(phase)}`;
+      fire.reason = `run ${record.runId} ended ${RUN_PHASE_WORD[phase]}`;
       break;
     default:
       // Genuinely still running — "started" is the honest answer.
@@ -216,21 +216,17 @@ async function toProtoFire(
 }
 
 /**
- * Lowers a RunPhase to the reason vocabulary the tick's verdict writer
- * uses ("run X ended failed").
+ * Lowers an ended RunPhase to the reason vocabulary the tick's verdict
+ * writer uses ("run X ended failed"). A Record over the phases the caller
+ * narrowed to, so no phase reaches it without a word.
  */
-function runPhaseWord(phase: RunPhase): string {
-  switch (phase) {
-    case RunPhase.RUN_FAILED:
-      return "failed";
-    case RunPhase.RUN_CANCELLED:
-      return "cancelled";
-    case RunPhase.RUN_TERMINATED:
-      return "terminated";
-    default:
-      return "unknown";
-  }
-}
+const RUN_PHASE_WORD: Readonly<
+  Record<RunPhase.RUN_FAILED | RunPhase.RUN_CANCELLED | RunPhase.RUN_TERMINATED, string>
+> = {
+  [RunPhase.RUN_FAILED]: "failed",
+  [RunPhase.RUN_CANCELLED]: "cancelled",
+  [RunPhase.RUN_TERMINATED]: "terminated",
+};
 
 /** Maps the ledger's lowercase origin vocabulary back to the wire enum. */
 function fireOriginFromLabel(origin: string): RoutineFireOrigin {
