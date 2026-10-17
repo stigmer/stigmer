@@ -40,7 +40,7 @@ import { WORKFLOW_LINEAGE_LABELS, agentRunRow } from "./retired-workflow-rows.js
 
 const ORG = "org_01jz0000000000000000000000";
 const TOKEN = new Uint8Array([0x01, 0x02, 0x03]);
-const OWN_LABELS = { "stigmer.ai/schedule-id": "sch_1", team: "support" };
+const OWN_LABELS = { "stigmer.ai/routine-id": "rtn_1", team: "support" };
 const ENDED_AT = "2026-10-07T12:00:00.000Z";
 
 describe("the retired kinds and tables", () => {

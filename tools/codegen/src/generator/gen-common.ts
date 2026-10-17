@@ -185,7 +185,7 @@ export function isUpdateInputType(typeName: string, resourceType: string): boole
 
 /** A paged list RPC and the message type of the entries it pages. */
 export interface PagedList {
-  /** The entries' message type, short name (`Schedule`, `ScheduleFire`). */
+  /** The entries' message type, short name (`Routine`, `RoutineFire`). */
   readonly entryType: string;
   /** The entries' fully-qualified proto type. */
   readonly entryFullType: string;

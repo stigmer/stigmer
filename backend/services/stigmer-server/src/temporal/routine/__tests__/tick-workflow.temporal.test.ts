@@ -107,7 +107,7 @@ async function nonRetryable(message: string): Promise<never> {
 }
 
 // Typed as the REAL activity surface: a signature change in
-// ScheduleTickActivities flags these doubles at compile time instead of
+// RoutineTickActivities flags these doubles at compile time instead of
 // silently decoupling the tests from the contract they pin.
 function scriptedActivities(): RoutineTickActivities {
   return {

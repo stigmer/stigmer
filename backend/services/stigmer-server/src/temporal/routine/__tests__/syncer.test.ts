@@ -57,14 +57,14 @@ function fakeClient(): Client {
       fake.createCalls++;
       if (fake.createError) throw fake.createError;
     },
-    getHandle: (routineId: string) => ({
+    getHandle: (scheduleId: string) => ({
       describe: async () => ({ info: { nextActionTimes: fake.describeNextActionTimes } }),
       update: async () => {
         fake.updateCalls++;
         if (fake.updateError) throw fake.updateError;
       },
       delete: async () => {
-        fake.deleteCalls.push(routineId);
+        fake.deleteCalls.push(scheduleId);
         if (fake.deleteError) throw fake.deleteError;
       },
     }),

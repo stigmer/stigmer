@@ -54,7 +54,7 @@ const MESSAGE_MAX_LEN = 8192;
 const MESSAGE_COUNTER_THRESHOLD = 500;
 
 /**
- * Single-page form for creating a {@link Schedule}.
+ * Single-page form for creating a {@link Routine}.
  *
  * The form speaks the composer's vocabulary: a schedule is
  * a saved run — which agent, what message, what workspace, which

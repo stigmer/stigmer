@@ -729,9 +729,9 @@ describe("update / delete over the wire", () => {
  * Update's reserved-label guard where an authorizer enforces it. The
  * open-source authorizer grants `can_write_reserved_labels` to everyone,
  * so this composition denies exactly that permission, as a hosted edition
- * does. A run's `stigmer.ai/schedule-id` names the schedule whose vaults a
+ * does. A run's `stigmer.ai/routine-id` names the routine whose vaults a
  * person-less run uses, so a caller that could set it on its own run would
- * reach that schedule's vaults on the run's next recover.
+ * reach that routine's vaults on the run's next recover.
  */
 describe("update under an authorizer that enforces reserved labels", () => {
   let enforcingDir: string;
@@ -800,31 +800,31 @@ describe("update under an authorizer that enforces reserved labels", () => {
           kind: KIND,
           metadata: {
             ...init.metadata,
-            labels: { "stigmer.ai/schedule-id": "sch_someone_elses" },
+            labels: { "stigmer.ai/routine-id": "rtn_someone_elses" },
           },
           spec: { target: init.spec?.target, message: "Say goodbye." },
         }, updateMask: { paths: ["*"] } }),
       Code.InvalidArgument,
     );
-    expect(refused.rawMessage).toContain("stigmer.ai/schedule-id");
+    expect(refused.rawMessage).toContain("stigmer.ai/routine-id");
     const stored = await enforcing.store.getResource(
       ApiResourceKind.run,
       init.metadata.id,
       RunSchema,
     );
-    expect(stored.metadata?.labels["stigmer.ai/schedule-id"]).toBeUndefined();
+    expect(stored.metadata?.labels["stigmer.ai/routine-id"]).toBeUndefined();
     expect(stored.spec?.message).toBe("Say hello.");
   });
 
   it("lets an update echo the run's stored reserved label unchanged", async () => {
-    const init = await seedEnforced({ "stigmer.ai/schedule-id": "sch_nightly" });
+    const init = await seedEnforced({ "stigmer.ai/routine-id": "rtn_nightly" });
     const updated = await enforcingCommand.update({ resource: {
       apiVersion: API_VERSION,
       kind: KIND,
       metadata: init.metadata,
       spec: { target: init.spec?.target, message: "Say goodbye." },
     }, updateMask: { paths: ["*"] } });
-    expect(updated.metadata?.labels["stigmer.ai/schedule-id"]).toBe("sch_nightly");
+    expect(updated.metadata?.labels["stigmer.ai/routine-id"]).toBe("rtn_nightly");
     expect(updated.spec?.message).toBe("Say goodbye.");
   });
 });

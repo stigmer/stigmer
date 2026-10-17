@@ -141,7 +141,7 @@ not-found state management. The loaded resource carries the spec
 (`next_fire_at`, `last_fire_at`, `last_run_id`,
 `consecutive_failures`, `paused_reason`) — everything the detail view
 renders, including the disabled-vs-paused distinction (see
-`deriveScheduleState`).
+[`deriveRoutineState`](#deriveroutinestate)).
 
 Pass `null` for either `org` or `slug` to skip fetching (stable
 no-op).
@@ -432,7 +432,7 @@ with the absolute instant on hover), duration (recorded → completed;
 "—" while a run is in flight or when no run was created), and the
 run reference.
 
-Owns its data: give it a `scheduleId` and it fetches via
+Owns its data: give it a `routineId` and it fetches via
 `useRoutineFires` with internal page state. To force a refresh
 from outside (e.g. after triggering a manual run), remount with a
 React `key` — the standard reset idiom; the remount also
@@ -456,7 +456,7 @@ All visual properties flow through `--stgm-*` design tokens.
 
 ```tsx
 <RoutineFiresTable
-  scheduleId={schedule.metadata.id}
+  routineId={routine.metadata.id}
   onNavigateToRun={(id) => router.push(`/runs/${id}`)}
 />
 ```
@@ -464,7 +464,7 @@ All visual properties flow through `--stgm-*` design tokens.
 
 ### RoutineForm
 
-Single-page form for creating a `Schedule`.
+Single-page form for creating a `Routine`.
 
 The form speaks the composer's vocabulary: a schedule is
 a saved run — which agent, what message, what workspace, which

@@ -54,7 +54,7 @@ const NOTHING = { labels: false, tags: false, annotations: false };
 describe("labelTagFindings", () => {
   it("finds nothing in a row whose labels and tags the contract admits", () => {
     const clean = agent({
-      labels: { team: "support", "stigmer.ai/schedule-id": "sch_01", "example.com/tier": "", app: "a.b_c-d" },
+      labels: { team: "support", "stigmer.ai/routine-id": "rtn_01", "example.com/tier": "", app: "a.b_c-d" },
       tags: ["prod", "a-b-testing"],
     });
     expect(labelTagFindings("agent", bytes(clean))).toEqual(NOTHING);

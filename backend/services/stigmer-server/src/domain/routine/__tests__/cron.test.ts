@@ -25,7 +25,7 @@ function refusal(run: () => void): ConnectError {
   throw new Error("expected a refusal");
 }
 
-describe("validateScheduleCron — accepted grammar", () => {
+describe("validateRoutineCron — accepted grammar", () => {
   it.each([
     "* * * * *",
     "0 9 * * *",
@@ -47,7 +47,7 @@ describe("validateScheduleCron — accepted grammar", () => {
   });
 });
 
-describe("validateScheduleCron — rejection matrix (byte-pinned copy)", () => {
+describe("validateRoutineCron — rejection matrix (byte-pinned copy)", () => {
   it("rejects a CRON_TZ= prefix", () => {
     const err = refusal(() => validateRoutineCron("CRON_TZ=UTC 0 9 * * *"));
     expect(err.code).toBe(Code.InvalidArgument);
@@ -116,7 +116,7 @@ describe("validateScheduleCron — rejection matrix (byte-pinned copy)", () => {
   });
 });
 
-describe("validateScheduleTimeZone", () => {
+describe("validateRoutineTimeZone", () => {
   it.each(["UTC", "Asia/Kolkata", "America/New_York", "Europe/Berlin"])(
     "accepts the IANA zone %j",
     (zone) => {

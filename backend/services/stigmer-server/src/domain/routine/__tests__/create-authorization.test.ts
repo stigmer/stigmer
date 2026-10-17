@@ -1,8 +1,8 @@
 /**
  * Pins the create lane's authorization question (steps.ts,
- * resolveScheduleCreateTargets): can_edit on the REFERENCED AGENT with the
+ * resolveRoutineCreateTargets): can_edit on the REFERENCED AGENT with the
  * Java handler's copy, and nothing on the organization (the same-org
- * invariant already binds the schedule to the agent's); a missing
+ * invariant already binds the routine to the agent's); a missing
  * referenced agent throws.
  */
 import { describe, expect, it } from "vitest";
@@ -38,7 +38,7 @@ function ctxFor(stash = true) {
   return ctx;
 }
 
-describe("resolveScheduleCreateTargets", () => {
+describe("resolveRoutineCreateTargets", () => {
   it("asks can_edit on the referenced agent and nothing else", () => {
     expect(resolveRoutineCreateTargets(ctxFor())).toEqual([
       {
