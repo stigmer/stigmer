@@ -239,18 +239,18 @@
       "components": 12
     },
     {
+      "slug": "routine",
+      "title": "routine",
+      "description": "",
+      "hooks": 8,
+      "components": 6
+    },
+    {
       "slug": "run",
       "title": "Run",
       "description": "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
       "hooks": 20,
       "components": 34
-    },
-    {
-      "slug": "schedule",
-      "title": "schedule",
-      "description": "",
-      "hooks": 8,
-      "components": 6
     },
     {
       "slug": "score",

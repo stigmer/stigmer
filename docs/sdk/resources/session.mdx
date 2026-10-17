@@ -1464,6 +1464,7 @@ SessionStatus contains system-managed state for a session.
     state: { type: "string", description: "Whether the session is working: running (a turn works) or idle (it waits for input), the newest session.status_running or session.status_idle event's word." },
     harnessStateId: { type: "string", description: "Harness-specific state identifier for conversation continuity." },
     harnessStateIdHistory: { type: "string[]", description: "Prior harness state identifiers this session has owned, oldest first." },
+    routineId: { type: "string", description: "The routine whose fire started this conversation; empty for every other conversation." },
   }}
 />
 
