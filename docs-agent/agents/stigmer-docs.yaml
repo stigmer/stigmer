@@ -4,7 +4,7 @@ metadata:
   name: stigmer-docs
   org: stigmer
   # Org visibility on purpose: this is first-party docs infrastructure, not a
-  # marketplace template (that role belongs to stigmer/org-knowledge-agent).
+  # marketplace template.
   # Public chat access comes from the web Channel in ../channels/ — a channel
   # carries its own audience and never exposes this blueprint's internals.
   visibility: visibility_org

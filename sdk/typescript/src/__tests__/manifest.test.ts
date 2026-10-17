@@ -27,11 +27,11 @@ import { ApiResourceReferenceSchema, RenameInputSchema, type RenameInput } from 
  * parses back to the same proto (minus system-managed state), and any
  * repo-authored manifest (snake_case fields, `apiVersion` spelling) parses
  * to a proto the `apply` RPC accepts. Fixtures mirror the real manifests
- * in the whatsapp-doctor-assistant dogfooding repo.
+ * of a dogfooding app, a WhatsApp clinic assistant.
  */
 
 // ---------------------------------------------------------------------------
-// Fixtures — shaped like the whatsapp-doctor-assistant repo manifests
+// Fixtures — shaped like the clinic assistant's manifests
 // ---------------------------------------------------------------------------
 
 const AGENT_YAML = `

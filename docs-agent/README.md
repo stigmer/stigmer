@@ -30,9 +30,8 @@ the agent's knowledge cannot drift.
 Three deliberate postures, chosen once and worth preserving:
 
 - **Blueprint is `visibility_org`; chat access is the channel's job.** The agent
-  is first-party infrastructure, not a marketplace template (that role belongs
-  to [`org-knowledge-agent`](https://github.com/stigmer/org-knowledge-agent)).
-  The public-audience web `Channel` grants anonymous chat without exposing the
+  is first-party infrastructure, not a marketplace template. The
+  public-audience web `Channel` grants anonymous chat without exposing the
   blueprint.
 - **Credential-free by construction.** The docs' Markdown exports are public
   and web retrieval is a harness built-in, so the agent declares no MCP
