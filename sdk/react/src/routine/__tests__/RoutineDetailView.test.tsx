@@ -299,7 +299,7 @@ describe("RoutineDetailView", () => {
     renderView(client);
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
-    fireEvent.click(screen.getByRole("button", { name: "Run now" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Run now" }));
 
     // The dialog first — nothing fired yet.
     await screen.findByText("Run this routine now?");
@@ -322,8 +322,9 @@ describe("RoutineDetailView", () => {
     await screen.findByText("Routine is disabled");
     // No plain "Run now": a disabled routine cannot fire server-side, so
     // the staged-test flow is one click that enables THEN fires.
+    // Both wait for the can_fire answer; find the one that shows first.
+    const enableAndRun = await screen.findByRole("button", { name: "Enable & run now" });
     expect(screen.queryByRole("button", { name: "Run now" })).toBeNull();
-    const enableAndRun = screen.getByRole("button", { name: "Enable & run now" });
     expect((enableAndRun as HTMLButtonElement).disabled).toBe(false);
 
     fireEvent.click(enableAndRun);
@@ -345,7 +346,7 @@ describe("RoutineDetailView", () => {
     renderView(client, { onNavigateToRun });
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
-    fireEvent.click(screen.getByRole("button", { name: "Run now" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Run now" }));
     await screen.findByText("Run this routine now?");
     fireEvent.click(screen.getByText("Start run"));
 
@@ -983,7 +984,7 @@ describe("RoutineDetailView: starting it, who started it, and its API", () => {
     );
     await waitFor(() => expect(screen.queryByText("Run this routine now?")).toBeNull());
 
-    fireEvent.click(screen.getByRole("button", { name: "Run now" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Run now" }));
     fireEvent.change(await screen.findByLabelText(/Note for this run/), {
       target: { value: "   " },
     });
