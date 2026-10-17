@@ -94,7 +94,7 @@ export function integrityOf(bytes) {
 /** A registry's packument URL for a scoped name, escaped as npm's client does. */
 export function packumentUrl(registry, name) {
   const base = registry.endsWith("/") ? registry : `${registry}/`;
-  return `${base}${name.replace("/", "%2f")}`;
+  return `${base}${name.replaceAll("/", "%2f")}`;
 }
 
 function authHeaders(token) {

@@ -162,7 +162,7 @@ workflows read four **repository Variables** (identifiers, not secrets):
 | Variable | Value |
 | --- | --- |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | `projects/<number>/locations/global/workloadIdentityPools/github/providers/github-actions` |
-| `GCP_IMAGE_PUBLISHER` | `github-image-publisher@pc-stigmer-foundation.iam.gserviceaccount.com` |
+| `GCP_IMAGE_PUBLISHER` | `github-image-publisher@pc-stigmer-github.iam.gserviceaccount.com` |
 | `STIGMER_NPM_REGISTRY` | `https://us-central1-npm.pkg.dev/pc-stigmer-foundation/stigmer-npm/` |
 | `STIGMER_OSS_REGISTRY_ROOT` | `us-central1-docker.pkg.dev/pc-stigmer-foundation/stigmer-oss` |
 
