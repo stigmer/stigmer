@@ -29,3 +29,23 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request made before launch renames the Schedule kind Routine
+  # (agentic/routine/v1): the kind's value 56 keeps its number under the
+  # name routine, the schedule package's files move with every field and
+  # value number kept, the spec's one-arm target oneof becomes the plain
+  # field it encodes as, cron becomes proto3 optional, the trigger RPC
+  # becomes fire with its own input, and a fire origin's value 1 is
+  # renamed SCHEDULE. The release notes name it under Upgrading. This block
+  # exists for that one pull request. While it stays, buf breaking does not
+  # report these rules on the listed files, so the pull request that removes
+  # it lands straight after the merge.
+  ignore_only:
+    ENUM_VALUE_SAME_NAME:
+      - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
+    FILE_NO_DELETE:
+      - ai/stigmer/agentic/schedule/v1/api.proto
+      - ai/stigmer/agentic/schedule/v1/command.proto
+      - ai/stigmer/agentic/schedule/v1/io.proto
+      - ai/stigmer/agentic/schedule/v1/query.proto
+      - ai/stigmer/agentic/schedule/v1/spec.proto
+      - ai/stigmer/agentic/schedule/v1/status.proto

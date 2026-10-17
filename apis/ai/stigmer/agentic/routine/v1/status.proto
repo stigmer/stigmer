@@ -1,11 +1,11 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.schedule.v1;
+package ai.stigmer.agentic.routine.v1;
 
 import "ai/stigmer/commons/apiresource/status.proto";
 import "google/protobuf/timestamp.proto";
 
-// ScheduleStatus contains system-managed state for a schedule.
+// RoutineStatus contains system-managed state for a routine.
 //
 // @internal
 // Platform-owned; written only by the scheduling runtime (tick +
@@ -14,20 +14,21 @@ import "google/protobuf/timestamp.proto";
 // posture) — load-bearing for the failure-streak auto-pause,
 // which records on status precisely so the platform never writes spec.
 // A routine manifest apply must never reset the failure streak or
-// un-pause a schedule; both editions carry a regression test for this.
-message ScheduleStatus {
-  // When the schedule next fires, in UTC. Absent while the schedule is
-  // disabled, auto-paused, or not yet synchronized with the clock.
+// un-pause a routine; both editions carry a regression test for this.
+message RoutineStatus {
+  // When the routine's schedule next fires, in UTC. Absent while the
+  // routine has no schedule, is disabled or auto-paused, or is not yet
+  // synchronized with the clock.
   google.protobuf.Timestamp next_fire_at = 1;
 
-  // When the schedule last fired, in UTC.
+  // When the routine last fired, in UTC.
   google.protobuf.Timestamp last_fire_at = 2;
 
   // ID of the run created by the most recent fire.
   //
   // @internal
-  // The reverse pointer of the stigmer.ai/schedule-id label stamped on
-  // every schedule-created run — the audit link is
+  // The reverse pointer of the stigmer.ai/routine-id label stamped on
+  // every run a routine starts — the audit link is
   // queryable from either end.
   string last_run_id = 3;
 
@@ -37,7 +38,7 @@ message ScheduleStatus {
   // Feeds the failure-streak auto-pause (platform default 5).
   int32 consecutive_failures = 4;
 
-  // Why the platform paused this schedule; empty when not paused.
+  // Why the platform paused this routine; empty when not paused.
   // Cleared only by the resume RPC — the owner's explicit act.
   //
   // @internal

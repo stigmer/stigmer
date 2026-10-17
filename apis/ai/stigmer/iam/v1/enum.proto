@@ -26,15 +26,19 @@ enum IamPermission {
   can_grant_access = 4;
   can_view_access = 5;
 
-  // Whether the caller may grant, revoke or remove the owner role on an
-  // organization: only its owners hold it.
+  // Whether the caller may grant a role that acts with the resource holder's
+  // authority: the owner role on an organization (only its owners hold
+  // it), or Participant on a routine (only the routine's owner holds it,
+  // because a Participant's fire acts as the owner).
   //
   // @internal
-  // The organization relation `can_assign_roles`. The Grant lanes and
-  // the invitation lane ask it whenever a change touches the owner role, on
-  // top of can_grant_access. Every caller that reaches them already holds
-  // can_grant_access (admin), so this one question is the whole of "no role
-  // above your own".
+  // The relation `can_assign_roles`. The Grant lanes and the invitation lane
+  // ask it on top of can_grant_access whenever a change touches the
+  // organization's owner role, and when a grant gives Participant on a
+  // routine. Every caller that reaches them already holds can_grant_access,
+  // so this one question is the whole of "no role above your own". Taking a
+  // routine's Participant away asks only can_grant_access: removing access
+  // only shrinks it.
   can_assign_roles = 47;
 
   // Whether the caller may change who reaches the resource: its visibility,
@@ -318,6 +322,15 @@ enum IamPermission {
   // A push onto an existing eval asks can_edit on that eval instead, as
   // agent apply does; createArtifactUploadUrl asks what the push will.
   can_create_eval = 58;
+
+  // Whether the caller may fire a routine: start a run of it now, with an
+  // optional note. Its owner and the Participants the owner granted.
+  //
+  // @internal
+  // Not held by organization admins, who manage a routine (see it, switch
+  // it off, rename or delete it) but do not act as its owner: the run acts
+  // as the routine's owner, and the fire's text reaches it.
+  can_fire = 59;
 }
 
 // Display metadata for an IamRole value: the one place a role's name lives,

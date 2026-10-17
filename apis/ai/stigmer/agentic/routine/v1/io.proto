@@ -1,21 +1,39 @@
 syntax = "proto3";
 
-package ai.stigmer.agentic.schedule.v1;
+package ai.stigmer.agentic.routine.v1;
 
-import "ai/stigmer/agentic/schedule/v1/api.proto";
+import "ai/stigmer/agentic/routine/v1/api.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 
-// ScheduleId wraps a schedule identifier.
-message ScheduleId {
-  // Unique identifier of the schedule.
+// RoutineId wraps a routine identifier.
+message RoutineId {
+  // Unique identifier of the routine.
   string value = 1 [(buf.validate.field).required = true];
 }
 
-// Input for retrieving all schedules of a specific agent.
-message ListSchedulesByAgentRequest {
-  // Identifier of the agent whose schedules to retrieve.
+// Input for firing a routine once.
+message FireRoutineInput {
+  // Identifier of the routine to fire.
+  string id = 1 [(buf.validate.field).required = true];
+
+  // A short note for this run, such as the alert that prompted it. The run
+  // receives it after the routine's message, inside a block that says it is
+  // information from whoever started the run, not instructions.
+  //
+  // @internal
+  // Untrusted by construction: whoever holds can_fire supplies it, and the
+  // run acts as the routine's owner. The server fences it in one place
+  // (composeMessage), writing any tag that would close the block early as
+  // `&lt;`, so the text cannot leave the block.
+  string text = 2 [(buf.validate.field).string.max_len = 65536];
+}
+
+// Input for retrieving all routines of a specific agent.
+message ListRoutinesByAgentRequest {
+  // Identifier of the agent whose routines to retrieve.
   string agent_id = 1 [(buf.validate.field).required = true];
 
   reserved 2;
@@ -23,7 +41,7 @@ message ListSchedulesByAgentRequest {
 
   // Organization slug to scope the results to.
   //
-  // When set, only schedules whose metadata.org matches are returned —
+  // When set, only routines whose metadata.org matches are returned —
   // the org-context view a console tab needs. When empty, results are
   // bounded only by the caller's view permissions, which for a member of
   // several organizations spans all of them.
@@ -48,21 +66,21 @@ message ListSchedulesByAgentRequest {
   map<string, string> labels = 6;
 }
 
-// Response containing a paginated list of schedules.
-message ScheduleList {
+// Response containing a paginated list of routines.
+message RoutineList {
   reserved 1;
   reserved "total_count";
 
-  // Schedules in the current page.
-  repeated Schedule entries = 2;
+  // Routines in the current page.
+  repeated Routine entries = 2;
 
   // Set when more entries may follow: pass it as page_token to continue.
   // A page may be short, even empty, and still carry a token.
   string next_page_token = 3;
 }
 
-// Input for listing schedules within an organization.
-message ListSchedulesRequest {
+// Input for listing routines within an organization.
+message ListRoutinesRequest {
   // Organization slug to scope the listing.
   string org = 1 [(buf.validate.field).string.min_len = 1];
 
@@ -83,67 +101,70 @@ message ListSchedulesRequest {
   string page_token = 5 [(buf.validate.field).string.max_len = 1024];
 }
 
-// How a schedule fire was initiated.
-enum ScheduleFireOrigin {
-  SCHEDULE_FIRE_ORIGIN_UNSPECIFIED = 0;
+// How a routine fire was initiated.
+enum RoutineFireOrigin {
+  ROUTINE_FIRE_ORIGIN_UNSPECIFIED = 0;
 
-  // The clock fired the schedule on its cron cadence.
-  SCHEDULE_FIRE_ORIGIN_CRON = 1;
+  // The routine's schedule fired it on its cron cadence.
+  //
+  // @internal
+  // Number 1 was CRON while the kind was Schedule; the stored ledger value
+  // moved from "cron" to "schedule" with it.
+  ROUTINE_FIRE_ORIGIN_SCHEDULE = 1;
 
-  // A caller fired the schedule through the trigger command.
-  SCHEDULE_FIRE_ORIGIN_MANUAL = 2;
+  // A caller fired the routine through the fire command (Run now, the API).
+  ROUTINE_FIRE_ORIGIN_MANUAL = 2;
 }
 
-// What one schedule fire produced.
+// What one routine fire produced.
 //
 // @internal
-// One vocabulary for two surfaces: the trigger
-// result reports the START outcomes (STARTED / REFUSED /
-// TARGET_MISSING), and the fire-history rows additionally reach the
-// terminal outcomes (COMPLETED / FAILED / TIMED_OUT) written by the cron
-// tick's tracking. SKIPPED records a cron fire that revalidated against
-// a row deleted/disabled/paused between recording and starting.
-enum ScheduleFireOutcome {
-  SCHEDULE_FIRE_OUTCOME_UNSPECIFIED = 0;
+// One vocabulary for two surfaces: the fire result reports the START
+// outcomes (STARTED / REFUSED / TARGET_MISSING), and the fire-history rows
+// additionally reach the terminal outcomes (COMPLETED / FAILED / TIMED_OUT)
+// written by the schedule tick's tracking. SKIPPED records a schedule fire
+// that revalidated against a row deleted/disabled/paused between recording
+// and starting.
+enum RoutineFireOutcome {
+  ROUTINE_FIRE_OUTCOME_UNSPECIFIED = 0;
 
   // A run was created (or idempotently re-found) and is running.
-  SCHEDULE_FIRE_OUTCOME_STARTED = 1;
+  ROUTINE_FIRE_OUTCOME_STARTED = 1;
 
   // A launch gate refused the run deterministically; reason carries the
   // gate's copy verbatim.
-  SCHEDULE_FIRE_OUTCOME_REFUSED = 2;
+  ROUTINE_FIRE_OUTCOME_REFUSED = 2;
 
-  // The schedule's agent_ref no longer resolves.
-  SCHEDULE_FIRE_OUTCOME_TARGET_MISSING = 3;
+  // The routine's agent_ref no longer resolves.
+  ROUTINE_FIRE_OUTCOME_TARGET_MISSING = 3;
 
   // The fire no-opped: the row was deleted, disabled, or paused between
   // the fire being recorded and the run starting.
-  SCHEDULE_FIRE_OUTCOME_SKIPPED = 4;
+  ROUTINE_FIRE_OUTCOME_SKIPPED = 4;
 
   // The tracked run reached RUN_COMPLETED.
-  SCHEDULE_FIRE_OUTCOME_COMPLETED = 5;
+  ROUTINE_FIRE_OUTCOME_COMPLETED = 5;
 
   // The tracked run ended terminal-but-not-completed (failed, cancelled,
   // or terminated); reason names the terminal phase.
-  SCHEDULE_FIRE_OUTCOME_FAILED = 6;
+  ROUTINE_FIRE_OUTCOME_FAILED = 6;
 
   // The tracked run outlived the fire's tracking budget.
-  SCHEDULE_FIRE_OUTCOME_TIMED_OUT = 7;
+  ROUTINE_FIRE_OUTCOME_TIMED_OUT = 7;
 }
 
-// Result of manually triggering a schedule.
+// Result of firing a routine.
 //
-// A gRPC error means the trigger itself was refused (disabled schedule,
-// missing schedule, unauthorized). A successful response means the fire
+// A gRPC error means the fire itself was refused (disabled routine,
+// missing routine, unauthorized). A successful response means the fire
 // happened, and this message names the run's real outcome.
-message ScheduleTriggerResult {
-  // The schedule after the fire, status freshly stamped.
-  Schedule schedule = 1;
+message RoutineFireResult {
+  // The routine after the fire, status freshly stamped.
+  Routine routine = 1;
 
   // What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the
-  // terminal outcomes belong to fire history — a manual fire answers at
-  // run start).
-  ScheduleFireOutcome outcome = 2;
+  // terminal outcomes belong to fire history: a fire answers at run start).
+  RoutineFireOutcome outcome = 2;
 
   // ID of the created run. Set only when outcome is STARTED.
   string run_id = 3;
@@ -151,9 +172,12 @@ message ScheduleTriggerResult {
   // The refusing launch gate's copy, verbatim. Set only when outcome is
   // REFUSED or TARGET_MISSING.
   string refusal_reason = 4;
+
+  // This fire's id in the routine's fire history (RoutineFire.fire_id).
+  string fire_id = 5;
 }
 
-// One recorded schedule fire — a fire-history row.
+// One recorded routine fire — a fire-history row.
 //
 // @internal
 // Backed by the fire ledger: every fire leaves a
@@ -162,22 +186,22 @@ message ScheduleTriggerResult {
 // Rows carrying a run id but no terminal outcome are enriched
 // with the run's live phase at read time, so outcome never lies
 // while a run is in flight.
-message ScheduleFire {
-  // Schedule this fire belongs to.
-  string schedule_id = 1;
+message RoutineFire {
+  // Routine this fire belongs to.
+  string routine_id = 1;
 
-  // Organization that owns the schedule.
+  // Organization that owns the routine.
   string org = 2;
 
-  // The fire's nominal time (cron: the scheduled instant; manual: the
-  // trigger instant).
+  // The fire's nominal time (schedule: the scheduled instant; manual: the
+  // instant it was fired).
   google.protobuf.Timestamp nominal_fire_time = 3;
 
   // How the fire was initiated.
-  ScheduleFireOrigin origin = 4;
+  RoutineFireOrigin origin = 4;
 
   // What the fire produced.
-  ScheduleFireOutcome outcome = 5;
+  RoutineFireOutcome outcome = 5;
 
   // The refusing gate's or terminal verdict's copy, verbatim. Empty for
   // healthy outcomes.
@@ -193,12 +217,22 @@ message ScheduleFire {
   // When the terminal outcome was recorded. Absent while the run is in
   // flight or when no run was created.
   google.protobuf.Timestamp completed_at = 9;
+
+  // The fire's id, unique within its routine: its run's name. A schedule
+  // fire's id is fixed by its nominal time, so a retried tick finds its run
+  // again; a manual fire's id adds a random suffix, so every call is its own
+  // fire.
+  string fire_id = 10;
+
+  // Who fired it: the caller of fire, with the service account whose key
+  // minted the caller's token when there is one. Empty for a schedule fire.
+  ai.stigmer.commons.apiresource.ApiResourceAuditActor fired_by = 11;
 }
 
-// Input for listing a schedule's fire history.
-message ListScheduleFiresRequest {
-  // Schedule whose fires to list.
-  string schedule_id = 1 [(buf.validate.field).required = true];
+// Input for listing a routine's fire history.
+message ListRoutineFiresRequest {
+  // Routine whose fires to list.
+  string routine_id = 1 [(buf.validate.field).required = true];
 
   reserved 2;
   reserved "page_info";
@@ -212,32 +246,32 @@ message ListScheduleFiresRequest {
   string page_token = 4 [(buf.validate.field).string.max_len = 1024];
 }
 
-// Response containing a paginated list of schedule fires, newest first.
-message ScheduleFireList {
+// Response containing a paginated list of routine fires, newest first.
+message RoutineFireList {
   reserved 1;
   reserved "total_count";
 
   // Fires in the current page.
-  repeated ScheduleFire entries = 2;
+  repeated RoutineFire entries = 2;
 
   // Set when more entries may follow: pass it as page_token to continue.
   // A page may be short, even empty, and still carry a token.
   string next_page_token = 3;
 }
 
-// The changes an update makes to a schedule: the fields update_mask names,
+// The changes an update makes to a routine: the fields update_mask names,
 // taken from resource.
-message UpdateScheduleInput {
+message UpdateRoutineInput {
   option (buf.validate.message).cel = {
     id: "update_names_its_target"
-    message: "resource.metadata.id is required: an update names the schedule by its id"
+    message: "resource.metadata.id is required: an update names the routine by its id"
     expression: "has(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''"
   };
 
-  // The schedule carrying the new values, named by metadata.id. Only the fields
+  // The routine carrying the new values, named by metadata.id. Only the fields
   // update_mask names are read, so the others may be left empty; the result
   // is validated as a whole.
-  Schedule resource = 1 [(buf.validate.field).ignore = IGNORE_ALWAYS];
+  Routine resource = 1 [(buf.validate.field).ignore = IGNORE_ALWAYS];
 
   // The paths the update changes, as proto field names (spec.instructions,
   // metadata.labels). A list or map at a named path is replaced whole; "*"

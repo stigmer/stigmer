@@ -106,14 +106,14 @@ message AgentInvocation {
   // Vaults whose logins and secrets the runs this invocation creates use, in
   // order: the first vault holding a match wins. At most 20.
   //
-  // A schedule's runs have no person, so these vaults are all they use. The
-  // schedule's owner may attach their own My vault; nobody else's.
+  // A routine's runs use these vaults and no others. The routine's owner
+  // may attach their own My vault; nobody else's.
   //
   // @internal
   // Read by the run's credential resolver for a run carrying the
-  // stigmer.ai/schedule-id label. Each run asks can_use again of the account
-  // recorded in the schedule's status.vault_attachers, so a revoked grant
-  // stops the schedule at its next fire.
+  // stigmer.ai/routine-id label. Each run asks can_use again of the account
+  // recorded in the routine's status.vault_attachers, so a revoked grant
+  // stops the routine at its next fire.
   repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 7 [
     (ai.stigmer.commons.apiresource.reference_kind) = vault,
     (buf.validate.field).repeated.max_items = 20
