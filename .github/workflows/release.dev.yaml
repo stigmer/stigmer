@@ -82,9 +82,16 @@ jobs:
       - name: Refuse a ref other than main
         env:
           REF: ${{ github.ref }}
+          NPM_REGISTRY: ${{ vars.STIGMER_NPM_REGISTRY }}
         run: |
           if [ "$REF" != "refs/heads/main" ]; then
             echo "::error::release.dev publishes from main only, and this run is on '$REF'. The publisher's trust admits main and release tags, so a dev build is always a commit of main a composition can merge on; stage unmerged work as tarballs with scripts/stage-server-library.mjs, which publishes nothing." >&2
+            exit 1
+          fi
+          # Without it setup-node writes no scope line and npm would publish to
+          # npmjs.com, which then refuses for want of a token: refuse here instead.
+          if [ -z "$NPM_REGISTRY" ]; then
+            echo "::error::the repository Variable STIGMER_NPM_REGISTRY is unset: dev builds publish to Stigmer's npm repository, never npmjs.com" >&2
             exit 1
           fi
 

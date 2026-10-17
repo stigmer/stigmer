@@ -356,22 +356,6 @@ jobs:
             --package ee/server \
             --version "${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
 
-  # The release's packages, copied byte for byte into Stigmer's own npm
-  # repository (release.npm-mirror.yaml), where a composition that routes the
-  # @stigmer scope there installs releases and dev builds alike. After every
-  # job that publishes one of them (scripts/mirror-npm-release.mjs reads the
-  # set from the publishing scripts). This lane holds no Google credential:
-  # only the called mirror job takes one, keylessly, and a failed copy is
-  # re-run by dispatching release.npm-mirror with this version.
-  mirror-npm:
-    needs: [determine-version, publish, publish-runner, publish-server, publish-enterprise]
-    permissions:
-      contents: read
-      id-token: write # the mirror's keyless sign-in to Stigmer's npm repository
-    uses: ./.github/workflows/release.npm-mirror.yaml
-    with:
-      version: ${{ needs.determine-version.outputs.version }}
-
   # The TS server's slim artifact: @stigmer/server-slim
   # plus per-platform native-bridge packages, the runner-slim pattern exactly.
   # The CLI installs it on demand at `stigmer up` and launches `node main.js`

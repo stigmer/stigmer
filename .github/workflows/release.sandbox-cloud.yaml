@@ -90,7 +90,7 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
         run: |
           if [ "$REF" != "refs/heads/main" ] && ! { [ "$REF_TYPE" = "tag" ] && [[ "$REF_NAME" == v* ]]; }; then
-            echo "release.sandbox-cloud runs from main or a v* tag, not $REF: it would move latest to code that is not on main. Dispatch release.dev with targets=npm for a branch's runner." >&2
+            echo "release.sandbox-cloud runs from main or a v* tag, not $REF: it would move latest to code that is not on main. A branch's runner is built locally; dev builds come from main only." >&2
             exit 1
           fi
 

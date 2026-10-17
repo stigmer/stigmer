@@ -227,15 +227,13 @@ const laneJobs = Object.entries(gate.jobs).filter(([, job]) => job.uses);
 // Callable workflows that are not gate lanes: the failure notice every
 // unattended lane calls; the runner images' build, which the release lanes
 // call (release.sandbox-cloud on main and tags, release.dev for a dev build)
-// and no pull request runs; the npm mirror, which the npm release calls after
-// its publish (and a person dispatches to backfill a release); and the
+// and no pull request runs; and the
 // website's build, which the release and the review sites call
 // (release.website on main, preview.website on a pull request), so a review
 // site is the export its merge would deploy.
 const NOT_LANES = new Set([
   "build.website.yaml",
   "notify-failure.yaml",
-  "release.npm-mirror.yaml",
   "release.runner-images.yaml",
 ]);
 

@@ -13,10 +13,14 @@ name: release.npm-mirror
 # own (scripts/mirror-npm-release.mjs).
 #
 # Triggers:
-#   - workflow_call from release.npm-libs.yaml, after its npm publish jobs.
+#   - workflow_run, when release.npm-libs completes successfully for a v* tag
+#     push: the tagged commit is checked out, so the package set is the one
+#     that release published. A separate run, not a job inside the release
+#     lane, so a failed copy never turns the release red (ci.live runs only
+#     after a green release.npm-libs).
 #   - workflow_dispatch with a version: mirror an existing release (a backfill
-#     of a release cut before this lane existed, or a re-run after a failed
-#     copy). Dispatch it from main.
+#     of a release cut before this lane existed, a release dispatched rather
+#     than tagged, or a re-run after a failed copy). Dispatch it from main.
 #
 # A re-run is safe: a version already mirrored with the same integrity is
 # skipped, and one mirrored with other bytes is refused, never replaced.
@@ -29,13 +33,15 @@ name: release.npm-mirror
 # vars.GCP_IMAGE_PUBLISHER; .github/workflows/docs/dev-publishing.md).
 # =============================================================================
 
-on:
-  workflow_call:
-    inputs:
-      version:
-        description: 'The release version to mirror (X.Y.Z, no v)'
-        required: true
-        type: string
+# workflow_run is safe here: the job admits only a successful release run of a
+# v* tag push, checks out that tag (which only maintainers push) with
+# persist-credentials off, and reads nothing from the triggering run but its
+# tag name, which the mirror script refuses unless it is a release version.
+on: # zizmor: ignore[dangerous-triggers]
+  workflow_run:
+    workflows:
+      - "release.npm-libs"
+    types: [completed]
   workflow_dispatch:
     inputs:
       version:
@@ -48,6 +54,11 @@ permissions:
 
 jobs:
   mirror:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       startsWith(github.event.workflow_run.head_branch, 'v'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -57,6 +68,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          # The released commit on a release run; main on a dispatch.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
           persist-credentials: false
 
       - name: Set up Node.js
@@ -80,5 +93,5 @@ jobs:
       - name: Mirror by integrity
         env:
           NODE_AUTH_TOKEN: ${{ steps.gcp.outputs.access_token }}
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ inputs.version || github.event.workflow_run.head_branch }}
         run: node scripts/mirror-npm-release.mjs --version "${VERSION#v}"
