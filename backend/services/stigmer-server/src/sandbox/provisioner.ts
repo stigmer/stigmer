@@ -60,7 +60,7 @@ export interface SandboxEnvironment {
   /**
    * The class of the caller whose request provisioned this sandbox — the
    * identity interceptor's word for it (`user`, `internal`, a composed
-   * verifier's own lane such as a guest or a scheduled fire). A driver
+   * verifier's own lane such as a guest). A driver
    * that gives some session classes a workspace that does not outlive the
    * conversation reads it here; the built-in drivers (`local-process`,
    * `docker`, `agent-sandbox`) ignore it and keep every session persistent.
@@ -69,6 +69,17 @@ export interface SandboxEnvironment {
    * session to every driver.
    */
   readonly callerClass: CallerClass;
+  /**
+   * The routine whose fire provisioned this sandbox
+   * (`CallerIdentity.routineId`, which the run starter sets in process on
+   * the identity a fire presents for the routine's owner), absent for every
+   * other request. A fire's class is its owner's own, so this is how a
+   * driver tells a routine's run from the owner's interactive ones, for
+   * instance to give it a workspace that does not outlive the run; the
+   * built-in drivers ignore it. Never read from a label: a client cannot
+   * set it.
+   */
+  readonly routineId?: string;
 }
 
 /** One sandbox's observed live state (the live-state probe's result). */

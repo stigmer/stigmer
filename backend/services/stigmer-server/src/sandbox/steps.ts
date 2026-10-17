@@ -70,15 +70,16 @@ export const SANDBOX_PROVISIONING_FAILED_PREFIX =
   "Sandbox provisioning failed: ";
 
 /**
- * The two facts about the requesting caller a sandbox ensure carries, cut
+ * The facts about the requesting caller a sandbox ensure carries, cut
  * from the chain's CallerIdentity (the domain/identityaccount/actor.ts
- * shape): the class rides onto the driver's environment, so a driver can
- * decide the workspace's durability by who asked; the id is minted for
- * only under the trusted-local posture (the module header: otherwise the
+ * shape): the class, and the routine when the request is a routine's
+ * fire, ride onto the driver's environment, so a driver can decide the
+ * workspace's durability by who asked and why; the id is minted for only
+ * under the trusted-local posture (the module header: otherwise the
  * session's creator is). A step hands `ctx.callerIdentity` in whole; the
- * pick keeps a test's fixture to the two fields the body reads.
+ * pick keeps a test's fixture to the fields the body reads.
  */
-export type SandboxCaller = Pick<CallerIdentity, "identityId" | "callerClass">;
+export type SandboxCaller = Pick<CallerIdentity, "identityId" | "callerClass" | "routineId">;
 
 type AgentExecutionCreateDesc = typeof RunSchema;
 
@@ -130,8 +131,9 @@ export function newEnsureSessionSandboxStep(
  *
  * The credential mint (lane.ts) names the session's creator, read with a
  * point read of its own and resolved as the runner verifier resolves a
- * stamp (`accountForStamp`); `callerClass` rides onto the driver's
- * environment as the one request fact a driver may decide durability by.
+ * stamp (`accountForStamp`); `callerClass` and, for a routine's fire,
+ * `routineId` ride onto the driver's environment as the request facts a
+ * driver may decide durability by.
  * The chain always has a caller: the in-process transport mints
  * `internal` for the server's own calls.
  */
@@ -184,6 +186,7 @@ export async function ensureSessionSandboxForExecution(
         deps.logger,
       ),
       callerClass: caller.callerClass,
+      ...(caller.routineId !== undefined ? { routineId: caller.routineId } : {}),
     });
   } catch (error) {
     // Non-critical: never fail the launch — but never silent either
