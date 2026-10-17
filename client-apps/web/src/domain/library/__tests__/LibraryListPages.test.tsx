@@ -95,9 +95,9 @@ vi.mock("@stigmer/react", () => {
     },
     // A stand-in that shows which org id the column handed it.
     OrgSlugText: ({ orgId }: { orgId: string }) => <span>slug of {orgId}</span>,
-    ScheduleRowActions: () => null,
-    createScheduleColumns: () => [],
-    createScheduleListFn: () => kind.list,
+    RoutineRowActions: () => null,
+    createRoutineColumns: () => [],
+    createRoutineListFn: () => kind.list,
     createLibraryListFn: () => kind.list,
     useStigmer: () => ({
       agent: kind,

@@ -22,7 +22,7 @@ export interface UseRoutineReturn {
 /**
  * Data hook that fetches a single Schedule by organization and slug.
  *
- * Wraps `stigmer.schedule.getByReference()` with loading, error, and
+ * Wraps `stigmer.routine.getByReference()` with loading, error, and
  * not-found state management. The loaded resource carries the spec
  * (cron, time zone, enabled, target) and the platform-written status
  * (`next_fire_at`, `last_fire_at`, `last_run_id`,
@@ -39,7 +39,7 @@ export interface UseRoutineReturn {
  *
  * @example
  * ```tsx
- * const { schedule, isLoading, error, refetch } = useSchedule("isc", "daily-fee-reminders");
+ * const { schedule, isLoading, error, refetch } = useRoutine("isc", "daily-fee-reminders");
  * ```
  */
 export function useRoutine(

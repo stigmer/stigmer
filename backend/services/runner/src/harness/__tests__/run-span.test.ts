@@ -176,7 +176,7 @@ describe("withRunSpan", () => {
 
   it.each([
     ["conversation", {}],
-    ["schedule", { [ROUTINE_ID_LABEL]: "sch_1" }],
+    ["routine", { [ROUTINE_ID_LABEL]: "rtn_1" }],
     ["judge", { "stigmer.ai/grades-run": "run_x" }],
     ["eval-try", { [EVAL_RUN_LABEL]: "evr_1" }],
   ] as const)("carries no text and no asker with content off, for a %s run", async (kind, labels) => {

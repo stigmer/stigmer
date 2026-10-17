@@ -79,7 +79,7 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
   ],
   [
     ApiResourceKind.routine,
-    { name: "Schedule", displayName: "Schedule", idPrefix: "sch" },
+    { name: "Routine", displayName: "Routine", idPrefix: "rtn", retiredIdPrefixes: ["sch"] },
   ],
   [
     ApiResourceKind.session,
@@ -162,6 +162,10 @@ export const RETIRED_KINDS: ReadonlyMap<string, string> = new Map([
   [
     "AgentChannel",
     "is now a channel. Rewrite the file as `kind: Channel`, keep `spec.slack` or `spec.whatsapp`, and move `app_ref` and `proactive_messaging_enabled` from `spec` into that type (`spec.slack.app_ref`, `spec.whatsapp.app_ref`, `spec.whatsapp.proactive_messaging_enabled`), then apply it with `stigmer apply -f <file>`.",
+  ],
+  [
+    "Schedule",
+    "is now a routine. Rewrite the file as `kind: Routine`, which is the whole change, then apply it with `stigmer apply -f <file>`.",
   ],
   [
     "Project",

@@ -70,7 +70,7 @@ function makeRoutine(overrides?: {
 }): Routine {
   return create(RoutineSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
-    kind: "Schedule",
+    kind: "Routine",
     metadata: {
       id: "sch_01example",
       name: "daily-fee-reminders",
@@ -81,9 +81,7 @@ function makeRoutine(overrides?: {
       cron: overrides?.cron ?? "0 9 * * *",
       timeZone: "Asia/Kolkata",
       enabled: overrides?.enabled ?? true,
-      target: {
-        case: "agent",
-        value: {
+      agent: {
           agentRef: { kind: ApiResourceKind.agent, org: "isc", slug: "fee-reminder" },
           message: "Send today's fee reminders.",
           vaults: (overrides?.vaults ?? []).map((r) => ({
@@ -96,7 +94,6 @@ function makeRoutine(overrides?: {
             : {}),
           ...(overrides?.runConfig ? { runConfig: overrides.runConfig } : {}),
         },
-      },
     },
     status: {
       nextFireAt: timestampFromDate(new Date(NOW.getTime() + 3 * 3_600_000)),
@@ -227,7 +224,7 @@ function pagedFires(total: number) {
   };
 }
 
-describe("ScheduleDetailView", () => {
+describe("RoutineDetailView", () => {
   it("renders definition and status for an active schedule", async () => {
     renderView(makeClient(makeRoutine()));
 
@@ -304,7 +301,7 @@ describe("ScheduleDetailView", () => {
 
     fireEvent.click(screen.getByText("Start run"));
     await waitFor(() =>
-      expect(client.routine.fire).toHaveBeenCalledWith("sch_01example"),
+      expect(client.routine.fire).toHaveBeenCalledWith(expect.objectContaining({ id: "sch_01example" })),
     );
     // Refetch picks up the new last_run_id.
     await waitFor(() =>
@@ -332,7 +329,7 @@ describe("ScheduleDetailView", () => {
     const doc = { message: sentUpdate<Routine>(client.routine.update).resource };
     expect(doc.message.spec?.enabled).toBe(true);
     await waitFor(() =>
-      expect(client.routine.fire).toHaveBeenCalledWith("sch_01example"),
+      expect(client.routine.fire).toHaveBeenCalledWith(expect.objectContaining({ id: "sch_01example" })),
     );
   });
 
@@ -489,7 +486,7 @@ describe("ScheduleDetailView", () => {
 
   it("shows the not-found state for a missing schedule", async () => {
     const client = makeClient(makeRoutine());
-    // NOT_FOUND resolves to null via useSchedule's isNotFound handling —
+    // NOT_FOUND resolves to null via useRoutine's isNotFound handling —
     // simulate the resolved-null directly.
     client.routine.getByReference.mockResolvedValue(null);
     renderView(client);
@@ -687,9 +684,7 @@ describe("ScheduleDetailView", () => {
     await waitFor(() => expect(client.routine.update).toHaveBeenCalledOnce());
     const doc = { message: sentUpdate<Routine>(client.routine.update).resource };
     const target =
-      doc.message.spec?.target?.case === "agent"
-        ? doc.message.spec.target.value
-        : undefined;
+      doc.message.spec?.agent;
     expect(target?.message).toBe("Send this week's fee reminders.");
     // The one changed field by its path, on the schedule's id; the rest of
     // the edited spec is sent as loaded.
@@ -740,9 +735,7 @@ describe("ScheduleDetailView", () => {
     await waitFor(() => expect(client.routine.update).toHaveBeenCalledOnce());
     const doc = { message: sentUpdate<Routine>(client.routine.update).resource };
     const target =
-      doc.message.spec?.target?.case === "agent"
-        ? doc.message.spec.target.value
-        : undefined;
+      doc.message.spec?.agent;
     expect(target?.runConfig?.maxCostUsd).toBe(2.5);
     // The budget editor owns exactly one field — everything else the
     // run config stores survives the save.
@@ -775,9 +768,7 @@ describe("ScheduleDetailView", () => {
     await waitFor(() => expect(client.routine.update).toHaveBeenCalledOnce());
     const doc = { message: sentUpdate<Routine>(client.routine.update).resource };
     const target =
-      doc.message.spec?.target?.case === "agent"
-        ? doc.message.spec.target.value
-        : undefined;
+      doc.message.spec?.agent;
     expect(target?.runConfig?.maxCostUsd).toBe(4);
     expect(target?.runConfig?.serviceTier).toBe(ServiceTier.STANDARD);
     expect(target?.runConfig?.thinkingMode).toBe(ThinkingMode.DISABLED);
@@ -834,9 +825,7 @@ describe("ScheduleDetailView", () => {
     await waitFor(() => expect(client.routine.update).toHaveBeenCalledOnce());
     const doc = { message: sentUpdate<Routine>(client.routine.update).resource };
     const target =
-      doc.message.spec?.target?.case === "agent"
-        ? doc.message.spec.target.value
-        : undefined;
+      doc.message.spec?.agent;
     expect(target?.runConfig?.serviceTier).toBe(ServiceTier.UNSPECIFIED);
     expect(target?.runConfig?.thinkingMode).toBe(ThinkingMode.UNSPECIFIED);
     expect(target?.runConfig?.maxCostUsd).toBe(1);
@@ -866,9 +855,7 @@ describe("ScheduleDetailView", () => {
     await waitFor(() => expect(client.routine.update).toHaveBeenCalledOnce());
     const doc = { message: sentUpdate<Routine>(client.routine.update).resource };
     const target =
-      doc.message.spec?.target?.case === "agent"
-        ? doc.message.spec.target.value
-        : undefined;
+      doc.message.spec?.agent;
     // Model and harness are one atomic choice: unpinning the model
     // unpins the engine with it (the platform defaults apply again)...
     expect(target?.harness).toBe(Harness.UNSPECIFIED);
@@ -883,8 +870,8 @@ describe("ScheduleDetailView", () => {
     });
     // A reference stored before kinds were stamped: the editor's save
     // stamps it, so the save changes the vaults.
-    if (routine.spec?.target.case === "agent") {
-      routine.spec.target.value.vaults[0]!.kind = ApiResourceKind.api_resource_kind_unknown;
+    if (routine.spec?.agent !== undefined) {
+      routine.spec.agent.vaults[0]!.kind = ApiResourceKind.api_resource_kind_unknown;
     }
     const client = makeClient(routine);
     renderView(client, { editable: true });
@@ -896,9 +883,7 @@ describe("ScheduleDetailView", () => {
     await waitFor(() => expect(client.routine.update).toHaveBeenCalledOnce());
     const doc = { message: sentUpdate<Routine>(client.routine.update).resource };
     const target =
-      doc.message.spec?.target?.case === "agent"
-        ? doc.message.spec.target.value
-        : undefined;
+      doc.message.spec?.agent;
     expect(target?.vaults).toHaveLength(1);
     expect(target?.vaults?.[0].slug).toBe("isc-mcp-credentials");
     expect(target?.vaults?.[0].kind).toBe(ApiResourceKind.vault);

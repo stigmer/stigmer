@@ -155,12 +155,12 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     getByReference: (c, ref) => c(ChannelQueryController).getByReference(ref),
     rename: (c, i) => c(ChannelCommandController).rename(i),
   },
-  // Last: a Schedule references an Agent — it applies after every kind it
+  // Last: a Routine references an Agent — it applies after every kind it
   // can target.
   {
     kind: ApiResourceKind.routine,
-    yamlKind: "Schedule",
-    displayName: "Schedule",
+    yamlKind: "Routine",
+    displayName: "Routine",
     apiVersion: AGENTIC_V1,
     schema: RoutineSchema,
     applyOrder: 12,

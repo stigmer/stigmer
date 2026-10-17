@@ -58,7 +58,7 @@ export interface RoutineFiresTableProps {
  *
  * @example
  * ```tsx
- * <ScheduleFiresTable
+ * <RoutineFiresTable
  *   scheduleId={schedule.metadata.id}
  *   onNavigateToRun={(id) => router.push(`/runs/${id}`)}
  * />

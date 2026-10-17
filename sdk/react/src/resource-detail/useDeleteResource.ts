@@ -10,7 +10,7 @@ import { toast } from "../feedback/toast.js";
 export type DeletableResourceKind =
   | "agent"
   | "skill"
-  | "schedule"
+  | "routine"
   | "plugin";
 
 export interface UseDeleteResourceReturn {
@@ -75,7 +75,7 @@ export function useDeleteResource(
         case "skill":
           await stigmer.skill.delete(resourceId);
           break;
-        case "schedule":
+        case "routine":
           await stigmer.routine.delete(resourceId);
           break;
         case "plugin":
@@ -110,7 +110,8 @@ function kindLabel(kind: DeletableResourceKind): string {
       return "agent";
     case "skill":
       return "skill";
-    case "schedule":
+    // The console still calls a routine a schedule on its pages.
+    case "routine":
       return "schedule";
     case "plugin":
       return "plugin";

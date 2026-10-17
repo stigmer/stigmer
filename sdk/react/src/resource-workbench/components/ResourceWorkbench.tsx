@@ -40,7 +40,7 @@ export interface ResourceWorkbenchProps<TData = SearchResult> {
    * Reads one page of resources (`WorkbenchListFn`): the workbench passes
    * the organization, the search box's text, the page size and the page's
    * token. Pass `null` to disable fetching. `createLibraryListFn` builds
-   * one for agents, skills and plugins; `createScheduleListFn` for
+   * one for agents, skills and plugins; `createRoutineListFn` for
    * schedules.
    */
   readonly listFn: WorkbenchListFn<TData> | null;

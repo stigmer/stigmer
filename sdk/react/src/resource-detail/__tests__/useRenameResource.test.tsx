@@ -20,7 +20,7 @@ afterEach(cleanup);
 const KINDS: ReadonlyArray<readonly [RenamableResourceKind, string]> = [
   ["agent", "agent"],
   ["vault", "vault"],
-  ["schedule", "schedule"],
+  ["routine", "routine"],
   ["channel_app", "channelapp"],
   ["oauth_app", "oauthapp"],
   ["team", "team"],

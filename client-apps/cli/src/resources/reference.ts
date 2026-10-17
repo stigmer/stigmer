@@ -102,7 +102,7 @@ export function isSessionId(ref: string): boolean {
   return hasPrefixOf(ref, ApiResourceKind.session);
 }
 
-/** True if `ref` carries the schedule ID prefix (`sch_…`/`sch-…`). */
+/** True if `ref` carries a routine ID prefix (`rtn_…`, or `sch_…` from while the kind was Schedule; either separator). */
 export function isRoutineId(ref: string): boolean {
   return hasPrefixOf(ref, ApiResourceKind.routine);
 }

@@ -45,9 +45,9 @@
       "title": "the server's schedules, secrets at rest and archive limits",
       "package": "backend/services/stigmer-server",
       "mutate": [
-        "src/domain/schedule/cron.ts",
-        "src/domain/schedule/clock.ts",
-        "src/domain/schedule/trigger.ts",
+        "src/domain/routine/cron.ts",
+        "src/domain/routine/clock.ts",
+        "src/domain/routine/fire.ts",
         "src/encryption/codec.ts",
         "src/encryption/v1-codec.ts",
         "src/encryption/scope.ts",

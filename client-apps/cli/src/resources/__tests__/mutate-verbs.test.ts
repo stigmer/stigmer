@@ -65,7 +65,7 @@ const knownChannelApp = create(ChannelAppSchema, {
 });
 
 const knownRoutine = create(RoutineSchema, {
-  metadata: { name: "daily-fee-reminders", slug: "daily-fee-reminders", org: "acme", id: "sch_1" },
+  metadata: { name: "daily-fee-reminders", slug: "daily-fee-reminders", org: "acme", id: "rtn_1" },
 });
 
 const knownPlugin = create(PluginSchema, {
@@ -97,7 +97,7 @@ let agentTagCalls: { agentId: string; versionHash: string; tag: string }[] = [];
 // Force-carrying deletes record what actually rode the RPC.
 let vaultDeletes: { resourceId: string; force: boolean }[] = [];
 let channelAppDeletes: { resourceId: string; force: boolean }[] = [];
-// channel and schedule delete by typed ID — no force field exists on
+// channel and routine delete by typed ID — no force field exists on
 // their wire contracts.
 let channelDeleteIds: string[] = [];
 let routineDeleteIds: string[] = [];
@@ -173,7 +173,7 @@ beforeAll(async () => {
 
     router.service(RoutineQueryController, {
       getByReference: (req) => {
-        if (req.slug !== "daily-fee-reminders") throw new ConnectError("schedule not found", Code.NotFound);
+        if (req.slug !== "daily-fee-reminders") throw new ConnectError("routine not found", Code.NotFound);
         return knownRoutine;
       },
     });
@@ -274,12 +274,12 @@ describe("delete (standard kinds)", () => {
     expect(classify(err)?.exitCode).toBe(ExitCode.NotFound);
   });
 
-  it("deletes a schedule via its typed ID (tears down the Temporal artifact server-side)", async () => {
-    const plan = await planDelete(client, "schedule", "daily-fee-reminders", "acme");
+  it("deletes a routine via its typed ID (tears down the Temporal artifact server-side)", async () => {
+    const plan = await planDelete(client, "routine", "daily-fee-reminders", "acme");
     const result = await plan.perform();
     expect(result.status).toBe("success");
-    expect(result.message).toBe("Schedule deleted successfully");
-    expect(routineDeleteIds).toEqual(["sch_1"]);
+    expect(result.message).toBe("Routine deleted successfully");
+    expect(routineDeleteIds).toEqual(["rtn_1"]);
   });
 
   it("refuses workflow-instance as a type the CLI does not know", async () => {
@@ -298,7 +298,7 @@ describe("delete (standard kinds)", () => {
       "vault",
       "channel",
       "channelapp",
-      "schedule",
+      "routine",
       "run",
       "organization",
     ]) {

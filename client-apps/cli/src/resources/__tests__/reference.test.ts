@@ -99,7 +99,10 @@ describe("resource-ID classification", () => {
     expect(isAgentId(`agt_${ULID}`)).toBe(true);
     expect(isAgentId(`agt-${ULID}`)).toBe(true);
     expect(isSessionId(`ses_${ULID}`)).toBe(true);
+    expect(isRoutineId(`rtn_${ULID}`)).toBe(true);
+    // A routine stored while the kind was Schedule keeps its sch_ id.
     expect(isRoutineId(`sch_${ULID}`)).toBe(true);
+    expect(isRoutineId(`sch-${ULID}`)).toBe(true);
     expect(isRoutineId(`ses_${ULID}`)).toBe(false);
   });
 

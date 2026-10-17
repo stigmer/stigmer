@@ -55,7 +55,7 @@ export interface UseRoutineFiresReturn {
  *
  * @example
  * ```tsx
- * const { fires, hasNext, next, isLoading } = useScheduleFires(schedule?.metadata?.id ?? null);
+ * const { fires, hasNext, next, isLoading } = useRoutineFires(routine?.metadata?.id ?? null);
  * ```
  */
 export function useRoutineFires(

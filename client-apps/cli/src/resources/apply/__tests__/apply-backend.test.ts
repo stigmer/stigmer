@@ -189,7 +189,7 @@ const CHANNEL_YAML = [
 
 const ROUTINE_YAML = [
   "apiVersion: agentic.stigmer.ai/v1",
-  "kind: Schedule",
+  "kind: Routine",
   "metadata:",
   "  name: daily-fee-reminders",
   "  slug: daily-fee-reminders",
@@ -280,17 +280,17 @@ describe("file-mode apply — channel app (#353)", () => {
     }
   });
 
-  it("orders one bundle app → channel → schedule regardless of file order", () => {
+  it("orders one bundle app → channel → routine regardless of file order", () => {
     const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
     try {
       // File names chosen so lexical file order is exactly WRONG — before
       // the registry unification all three kinds fell to a shared default
       // priority and applied in this (broken) file order.
-      writeYaml(dir, "a-schedule.yaml", ROUTINE_YAML);
+      writeYaml(dir, "a-routine.yaml", ROUTINE_YAML);
       writeYaml(dir, "b-channel.yaml", CHANNEL_YAML);
       writeYaml(dir, "c-chapp.yaml", CHANNEL_APP_YAML);
       const items = resolveApplyItems(dir);
-      expect(items.map((i) => i.handler.displayName)).toEqual(["Channel App", "Channel", "Schedule"]);
+      expect(items.map((i) => i.handler.displayName)).toEqual(["Channel App", "Channel", "Routine"]);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -375,6 +375,18 @@ describe("file-mode apply — kinds the registry does not know", () => {
       writeYaml(dir, "environment.yaml", ["kind: Environment", "metadata:", "  name: Prod", "  slug: prod", ""].join("\n"));
       expect(() => resolveApplyItems(dir)).toThrow(
         /kind 'Environment' in .*environment\.yaml is no longer a Stigmer resource: logins and secrets live in vaults.*stigmer vault set-secret <NAME> --mine/,
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a Schedule manifest, naming the routine it is now", () => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(dir, "nightly.yaml", ["kind: Schedule", "metadata:", "  name: Nightly", ""].join("\n"));
+      expect(() => resolveApplyItems(dir)).toThrow(
+        /kind 'Schedule' in .*nightly\.yaml is now a routine\. Rewrite the file as `kind: Routine`, which is the whole change/,
       );
     } finally {
       rmSync(dir, { recursive: true, force: true });

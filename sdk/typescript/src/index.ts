@@ -502,7 +502,7 @@ export {
 } from "./eval.js";
 
 // The input a loaded resource restates, for copying it into a new resource
-// (`create({ ...toScheduleInput(res), id: undefined })`). An update never
+// (`create({ ...toRoutineInput(res), id: undefined })`). An update never
 // needs one: it takes the resource itself and the paths it changes.
 export { toAgentInput } from "./gen/agent.js";
 export { toChannelInput } from "./gen/channel.js";

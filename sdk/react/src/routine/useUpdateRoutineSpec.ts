@@ -37,7 +37,7 @@ export interface UseUpdateRoutineSpecReturn {
  * keeps its stored value, so a teammate's change to another field
  * survives, and a schedule changed since it was loaded refuses the save.
  * An edit never clears a platform pause (Resume is the one clearing
- * path — see `useResumeSchedule`).
+ * path — see `useResumeRoutine`).
  *
  * Errors are NOT toasted here: inline editors surface the server's
  * message next to the field that was edited, and a toast on
@@ -45,7 +45,7 @@ export interface UseUpdateRoutineSpecReturn {
  *
  * @example
  * ```tsx
- * const { updateSpec, isUpdating } = useUpdateScheduleSpec();
+ * const { updateSpec, isUpdating } = useUpdateRoutineSpec();
  *
  * await updateSpec(schedule, (spec) => {
  *   spec.cron = "0 9 * * 1-5";

@@ -79,7 +79,7 @@ const MESSAGE_COUNTER_THRESHOLD = 500;
  * ```tsx
  * const slugForOrg = useOrgSlugForId();
  *
- * <ScheduleForm
+ * <RoutineForm
  *   org="acme"
  *   onComplete={(s) =>
  *     navigate(`/library/schedules/${slugForOrg(s.metadata?.org ?? "")}/${s.metadata?.slug}`)
@@ -198,7 +198,7 @@ export function RoutineForm({
         });
         onComplete?.(routine);
       } catch {
-        // error state is managed by useCreateSchedule
+        // error state is managed by useCreateRoutine
       }
     },
     [

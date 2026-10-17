@@ -69,10 +69,10 @@ beforeEach(() => vi.clearAllMocks());
 afterEach(cleanup);
 
 // ---------------------------------------------------------------------------
-// useCreateSchedule
+// useCreateRoutine
 // ---------------------------------------------------------------------------
 
-describe("useCreateSchedule", () => {
+describe("useCreateRoutine", () => {
   it("applies the input and returns the created schedule", async () => {
     const apply = vi.fn().mockResolvedValue(CREATED);
     const client = { routine: { apply } };
@@ -115,7 +115,7 @@ describe("useCreateSchedule", () => {
 
     await act(async () => {
       await expect(
-        result.current.create({ name: "x", org: "isc" }),
+        result.current.create({ name: "x", org: "isc", agent: { agentRef: { org: "isc", slug: "bot" } } }),
       ).rejects.toThrow(failure);
     });
 
@@ -203,7 +203,7 @@ describe("CadenceField", () => {
 });
 
 // ---------------------------------------------------------------------------
-// ScheduleForm
+// RoutineForm
 // ---------------------------------------------------------------------------
 
 function createClient(overrides?: {
@@ -253,7 +253,7 @@ async function pickAgent() {
   fireEvent.click(result);
 }
 
-describe("ScheduleForm", () => {
+describe("RoutineForm", () => {
   it("disables submit until name, agent, and message are provided", async () => {
     const client = createClient();
     render(<RoutineForm org="isc" />, { wrapper: wrapper(client) });

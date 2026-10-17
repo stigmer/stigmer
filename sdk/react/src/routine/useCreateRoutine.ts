@@ -9,9 +9,9 @@ import { toError } from "../internal/toError.js";
 /** Return value of {@link useCreateRoutine}. */
 export interface UseCreateRoutineReturn {
   /**
-   * Submit a {@link ScheduleInput} to create (or upsert) a schedule.
+   * Submit a {@link RoutineInput} to create (or upsert) a schedule.
    *
-   * Uses `stigmer.schedule.apply()` — the idempotent upsert operation.
+   * Uses `stigmer.routine.apply()` — the idempotent upsert operation.
    * Resolves with the server-created `Schedule` proto including
    * populated metadata (id, slug, audit timestamps) and the
    * platform-computed `status.next_fire_at`.
@@ -29,22 +29,22 @@ export interface UseCreateRoutineReturn {
  * Behavior hook that wraps `schedule.apply()` with loading and error
  * state.
  *
- * Creates a schedule from a {@link ScheduleInput}. Uses `apply()`
+ * Creates a schedule from a {@link RoutineInput}. Uses `apply()`
  * (upsert) rather than `create()` so re-submissions are idempotent —
  * matching the CLI's `stigmer apply` semantics and the established SDK
  * mutation hook pattern (`isCreating` flag, `error` state, `clearError`
  * reset, result returned from the promise, not stored in hook state).
  *
  * NOTE: this hook is for CREATION. Editing an existing schedule must
- * NOT go through `ScheduleInput` — the input type cannot express every
+ * NOT go through `RoutineInput` — the input type cannot express every
  * metadata field (tags, description), and the server replaces spec and
  * mutable metadata wholesale on update, so a down-converting edit would
  * silently wipe them. Edit flows use the full-proto path instead (see
- * `useSetScheduleEnabled` for the pattern).
+ * `useSetRoutineEnabled` for the pattern).
  *
  * @example
  * ```tsx
- * const { create, isCreating, error, clearError } = useCreateSchedule();
+ * const { create, isCreating, error, clearError } = useCreateRoutine();
  *
  * const schedule = await create({
  *   name: "daily-fee-reminders",

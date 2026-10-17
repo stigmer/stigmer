@@ -87,7 +87,7 @@ export interface ApplyHandler {
   updatePolicies?(controller: ControllerFn, input: UpdateOrganizationPoliciesInput): Promise<Message>;
 }
 
-// The SDK registry's applyOrder values end at schedule = 12; the extras slot
+// The SDK registry's applyOrder values end at routine = 12; the extras slot
 // outside that range so a future SDK kind never collides with them.
 const CLI_EXTRA_HANDLERS: readonly ApplyHandler[] = [
   {

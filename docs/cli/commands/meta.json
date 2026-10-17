@@ -21,7 +21,7 @@
     "delete",
     "get",
     "list",
-    "schedule",
+    "routine",
     "search",
     "tag",
     "validate",

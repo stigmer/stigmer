@@ -205,22 +205,22 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 | ChannelAppQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy; response redacted) |
 | ChannelAppQueryController.list | config: can_view on organization (field org), error_msg yes | chain-with-Authorize (a page of the organization's apps through the channel app list index; a composed ListReadScope narrows to the apps the caller may view) |
 
-## 14. Schedule (`src/domain/schedule/controller.ts`)
+## 14. Routine (`src/domain/routine/controller.ts`)
 
 | Method | Annotation | Handler |
 |---|---|---|
-| ScheduleCommandController.apply | none | chain-with-Authorize |
-| ScheduleCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_edit on the referenced agent ResolveScheduleDefaults stashed; before the duplicate check and before ArmSchedule) |
-| ScheduleCommandController.update | config: can_edit on schedule (field resource.metadata.id), error_msg yes | chain-with-Authorize |
-| ScheduleCommandController.rename | config: can_delete on schedule (field resource_id), error_msg yes | chain-with-Authorize (whoever may delete it may rename it: LoadForRename, ValidateNewSlug, RenameName, PersistRenamed in `src/pipeline/steps/rename.ts`) |
-| ScheduleCommandController.delete | config: can_delete on schedule (field value), error_msg yes | chain-with-Authorize |
-| ScheduleCommandController.resume | config: can_edit on schedule (field value), error_msg yes | chain-with-Authorize |
-| ScheduleCommandController.trigger | config: can_edit on schedule (field value), error_msg yes | chain-with-Authorize |
-| ScheduleQueryController.get | config: can_view on schedule (field value), error_msg yes | chain-with-Authorize |
-| ScheduleQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy) |
-| ScheduleQueryController.listByAgent | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
-| ScheduleQueryController.list | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
-| ScheduleQueryController.listFires | config: can_view on schedule (field schedule_id), error_msg yes | chain-with-Authorize |
+| RoutineCommandController.apply | none | chain-with-Authorize |
+| RoutineCommandController.create | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — can_edit on the referenced agent ResolveRoutineDefaults stashed; before the duplicate check and before ArmRoutineArtifact) |
+| RoutineCommandController.update | config: can_edit on routine (field resource.metadata.id), error_msg yes | chain-with-Authorize (guard: OwnersLock — only the routine's owner changes what it runs) |
+| RoutineCommandController.rename | config: can_delete on routine (field resource_id), error_msg yes | chain-with-Authorize (whoever may delete it may rename it: LoadForRename, ValidateNewSlug, RenameName, PersistRenamed in `src/pipeline/steps/rename.ts`) |
+| RoutineCommandController.delete | config: can_delete on routine (field value), error_msg yes | chain-with-Authorize |
+| RoutineCommandController.resume | config: can_edit on routine (field value), error_msg yes | chain-with-Authorize |
+| RoutineCommandController.fire | config: can_fire on routine (field id), error_msg yes | chain-with-Authorize |
+| RoutineQueryController.get | config: can_view on routine (field value), error_msg yes | chain-with-Authorize |
+| RoutineQueryController.getByReference | is_skip_authorization | chain-with-Authorize (guard: AuthorizeResolvedTarget — the loaded row authorized exactly as `get` is: can_view with the get annotation's copy) |
+| RoutineQueryController.listByAgent | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
+| RoutineQueryController.list | is_skip_authorization | chain-with-Authorize (driver: ListReadScope — a composed scope narrows to the caller's authorized rows) |
+| RoutineQueryController.listFires | config: can_view on routine (field routine_id), error_msg yes | chain-with-Authorize |
 
 ## 15. Memory (`src/domain/memory/controller.ts`)
 

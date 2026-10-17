@@ -31,7 +31,7 @@ export function RoutineRowActions({
   onChanged,
 }: RoutineRowActionsProps) {
   const { resumeRoutine, isResuming } = useResumeRoutine();
-  const { fireRoutine, isTriggering } = useFireRoutine();
+  const { fireRoutine, isFiring } = useFireRoutine();
   const { confirmState, confirm, handleConfirm, handleCancel } =
     useConfirmAction();
 
@@ -68,7 +68,7 @@ export function RoutineRowActions({
       {info.state === "active" ? (
         <RowActionButton
           label={`Run ${name} now`}
-          busy={isTriggering}
+          busy={isFiring}
           onClick={() => void handleTrigger()}
         >
           Run now

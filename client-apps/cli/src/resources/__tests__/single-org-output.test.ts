@@ -2,7 +2,7 @@
 // organization: the field view and the delete warning leave the Org line out
 // (machine output keeps it), an empty version history names no organization
 // (and names one by slug on a server that holds several),
-// and a schedule named by bare slug with no organization resolves on such a
+// and a routine named by bare slug with no organization resolves on such a
 // server and is refused, naming the ways to set one, on a server that holds
 // several.
 
@@ -100,16 +100,16 @@ describe("renderAgentVersionHistory with no versions", () => {
   });
 });
 
-describe("resumeSchedule by bare slug with no organization", () => {
+describe("resumeRoutine by bare slug with no organization", () => {
   function serverHolding(singleOrg: boolean) {
     const getByReference = vi.fn(async () =>
-      create(RoutineSchema, { metadata: { id: "sch_1", slug: "nightly" } }),
+      create(RoutineSchema, { metadata: { id: "rtn_1", slug: "nightly" } }),
     );
     const stigmer = {
       platform: { getServerInfo: async () => ({ singleOrg }) },
       routine: {
         getByReference,
-        resume: async () => create(RoutineSchema, { metadata: { id: "sch_1", slug: "nightly" } }),
+        resume: async () => create(RoutineSchema, { metadata: { id: "rtn_1", slug: "nightly" } }),
       },
     } as unknown as Stigmer;
     return { stigmer, getByReference };
@@ -125,7 +125,7 @@ describe("resumeSchedule by bare slug with no organization", () => {
     const { stigmer, getByReference } = serverHolding(false);
     const refusal = resumeRoutine(stigmer, "nightly", "");
     await expect(refusal).rejects.toBeInstanceOf(UsageError);
-    await expect(refusal).rejects.toThrow(/stigmer schedule resume --org <org>/);
+    await expect(refusal).rejects.toThrow(/stigmer routine resume --org <org>/);
     expect(getByReference).not.toHaveBeenCalled();
   });
 });

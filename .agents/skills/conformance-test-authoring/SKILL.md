@@ -41,7 +41,7 @@ repository is in [references/test-discipline.md](references/test-discipline.md).
 
 Extend the existing `<domain>-<facet>.conformance.test.ts` when the facet
 exists; the execution class has one file per facet (`run-approval`,
-`run-file-review`, `schedule-firing`, and the rest), and a new file is a new
+`run-file-review`, `routine-firing`, and the rest), and a new file is a new
 facet, opened with an intent header that states the contract it pins and what is
 deliberately out of scope.
 

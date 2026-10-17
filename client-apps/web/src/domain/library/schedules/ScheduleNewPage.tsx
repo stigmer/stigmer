@@ -13,7 +13,7 @@ import {
  * Console page for creating a new schedule.
  *
  * Mounted at `/library/schedules/new`. Renders the SDK's
- * `ScheduleForm` component and handles routing on
+ * `RoutineForm` component and handles routing on
  * completion (navigate to detail) and cancellation (navigate to list).
  */
 export function ScheduleNewPage() {

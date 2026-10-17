@@ -376,11 +376,11 @@ describe("serializeManifest", () => {
 
 describe("manifestDocumentForResource", () => {
   // Shaped like a server-returned schedule: full metadata (including
-  // fields the curated ScheduleInput cannot express, like tags) and a
+  // fields the curated RoutineInput cannot express, like tags) and a
   // populated status — the exact input of a lossless partial edit.
   const routine = create(RoutineSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
-    kind: "Schedule",
+    kind: "Routine",
     metadata: {
       id: "sch_01example",
       name: "daily-fee-reminders",
@@ -393,13 +393,10 @@ describe("manifestDocumentForResource", () => {
       cron: "0 9 * * *",
       timeZone: "Asia/Kolkata",
       enabled: true,
-      target: {
-        case: "agent",
-        value: {
+      agent: {
           agentRef: { kind: ApiResourceKind.agent, org: "isc", slug: "fee-reminder" },
           message: "Send today's fee reminders.",
         },
-      },
     },
     status: { consecutiveFailures: 2, pausedReason: "" },
   });
@@ -410,12 +407,12 @@ describe("manifestDocumentForResource", () => {
 
     const doc = manifestDocumentForResource(flipped);
 
-    expect(doc.handler.yamlKind).toBe("Schedule");
+    expect(doc.handler.yamlKind).toBe("Routine");
     expect(doc.name).toBe("daily-fee-reminders");
     expect(doc.slug).toBe("daily-fee-reminders");
     expect(doc.org).toBe("isc");
     // Identity, not a copy: nothing is re-serialized or down-converted,
-    // so every field survives (the ScheduleInput path would drop tags).
+    // so every field survives (the RoutineInput path would drop tags).
     expect(doc.message).toBe(flipped);
 
     const expected = clone(RoutineSchema, routine);
@@ -495,7 +492,7 @@ describe("manifest registry", () => {
       expect(await handler.rename?.(recording, input)).toBe(input);
     }
 
-    expect(renamable.map((h) => h.yamlKind).sort()).toEqual(["Agent", "Channel", "ChannelApp", "FederationIssuer", "OAuthApp", "Schedule"]);
+    expect(renamable.map((h) => h.yamlKind).sort()).toEqual(["Agent", "Channel", "ChannelApp", "FederationIssuer", "OAuthApp", "Routine"]);
     expect(services).toEqual(renamable.map((h) => h.schema.typeName.replace(/\.([A-Za-z]+)$/, ".$1CommandController")));
   });
 

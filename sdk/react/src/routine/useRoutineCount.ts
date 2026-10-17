@@ -44,13 +44,13 @@ interface RoutineCount {
  * hook reads the list's largest page and counts it, with `isLowerBound`
  * set when more follow. There is no scope option: schedules are org-only.
  *
- * For the schedules themselves, use {@link useScheduleList} instead.
+ * For the schedules themselves, use {@link useRoutineList} instead.
  *
  * Pass `null` as `org` to skip fetching (stable no-op).
  *
  * @example
  * ```tsx
- * const { count, isLowerBound, isLoading } = useScheduleCount("isc");
+ * const { count, isLowerBound, isLoading } = useRoutineCount("isc");
  * ```
  */
 export function useRoutineCount(

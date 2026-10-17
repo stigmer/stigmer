@@ -86,8 +86,8 @@ export const DELETE_HANDLERS: ReadonlyMap<ApiResourceKind, DeleteFn> = new Map<
     ApiResourceKind.channel_app,
     (c, id, force) => c.channelapp.delete({ resourceId: id, force }),
   ],
-  // A schedule delete also tears down its Temporal Schedule artifact
-  // server-side; the RPC takes a bare ScheduleId, so force is ignored.
+  // A routine delete also tears down its Temporal Schedule artifact
+  // server-side; the RPC takes a bare RoutineId, so force is ignored.
   [ApiResourceKind.routine, (c, id) => c.routine.delete(id)],
   [ApiResourceKind.skill, (c, id) => c.skill.delete(id)],
   [ApiResourceKind.plugin, (c, id) => c.plugin.delete(id)],

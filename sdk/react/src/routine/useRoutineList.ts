@@ -37,7 +37,7 @@ export interface UseRoutineListReturn {
  * Data hook that lists an organization's schedules, newest first, a page at
  * a time (`hasMore` / `loadMore`; a list carries no total).
  *
- * Backed by the direct `listSchedules` query — not the search service —
+ * Backed by the direct `listRoutines` query — not the search service —
  * so each entry is a full `Schedule` proto with the operational status
  * fields a schedule list exists to show (`next_fire_at`, enabled/paused
  * state, `last_fire_at`). There is no text query or visibility scope:
@@ -47,7 +47,7 @@ export interface UseRoutineListReturn {
  *
  * @example
  * ```tsx
- * const { schedules, hasMore, loadMore, isLoading } = useScheduleList("isc", {
+ * const { schedules, hasMore, loadMore, isLoading } = useRoutineList("isc", {
  *   pageSize: 20,
  * });
  * ```

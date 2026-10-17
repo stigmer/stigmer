@@ -10,7 +10,7 @@ import {
 import { useCanonicalDetailSlug } from "./canonical-slug";
 
 /**
- * Thin shell around the SDK's `ScheduleDetailView` (which owns the full
+ * Thin shell around the SDK's `RoutineDetailView` (which owns the full
  * action set — trigger, resume, enable/disable, inline editing, YAML,
  * delete): the page contributes only breadcrumb label sync and the
  * navigation seams. Wired identically to the web page,

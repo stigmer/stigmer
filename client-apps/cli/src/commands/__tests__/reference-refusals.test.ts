@@ -31,7 +31,9 @@ const session = vi.hoisted(() => ({ openSession: vi.fn() }));
 vi.mock("../../resources/run/resume.js", () => session);
 
 const AGENT_ID = "agt_01abc123xyz456789012345678";
-const ROUTINE_ID = "sch_01abc123xyz456789012345678";
+const ROUTINE_ID = "rtn_01abc123xyz456789012345678";
+// A routine stored while the kind was Schedule keeps its sch_ id.
+const LEGACY_ROUTINE_ID = "sch_01abc123xyz456789012345678";
 
 /** Runs `stigmer ...` against the stubbed backend with the context org acme. */
 async function stigmer(...args: string[]): Promise<void> {
@@ -64,6 +66,15 @@ describe("stigmer resume", () => {
     await expect(stigmer("resume", AGENT_ID)).rejects.toThrow(
       new UsageError(
         `Resource IDs like "${AGENT_ID}" are not sessions\n\nTo run a resource:\n  stigmer run ${AGENT_ID}`,
+      ),
+    );
+    expect(session.openSession).not.toHaveBeenCalled();
+  });
+
+  it.each([ROUTINE_ID, LEGACY_ROUTINE_ID])("refuses routine id %s as not a session and points at routine resume", async (id) => {
+    await expect(stigmer("resume", id)).rejects.toThrow(
+      new UsageError(
+        `Resource IDs like "${id}" are not sessions\n\nTo resume a paused routine:\n  stigmer routine resume ${id}`,
       ),
     );
     expect(session.openSession).not.toHaveBeenCalled();

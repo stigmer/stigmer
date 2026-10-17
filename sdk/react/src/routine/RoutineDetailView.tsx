@@ -196,7 +196,7 @@ export function RoutineDetailView({
   // it feeds the History tab badge (its length, "+" when older fires
   // follow), the Overview strip, and
   // post-trigger freshness. The History tab's full table owns its own
-  // paginated fetch inside ScheduleFiresTable.
+  // paginated fetch inside RoutineFiresTable.
   const {
     fires: recentFires,
     hasNext: olderFiresFollow,
@@ -205,11 +205,11 @@ export function RoutineDetailView({
   } = useRoutineFires(routine?.metadata?.id ?? null, RECENT_FIRES_OPTIONS);
 
   const { resumeRoutine, isResuming } = useResumeRoutine();
-  const { fireRoutine, isTriggering } = useFireRoutine();
+  const { fireRoutine, isFiring } = useFireRoutine();
   const { setEnabled, isPending: isToggling } = useSetRoutineEnabled();
   const { updateSpec, isUpdating } = useUpdateRoutineSpec();
   const { deleteResource, isDeleting } = useDeleteResource(
-    "schedule",
+    "routine",
     routine?.metadata?.id ?? null,
     routine?.metadata?.name,
   );
@@ -302,7 +302,7 @@ export function RoutineDetailView({
 
   const routineId = meta?.id ?? "";
   const routineOrg = meta?.org || org;
-  const target = spec?.target?.case === "agent" ? spec.target.value : undefined;
+  const target = spec?.agent;
 
   const handleResume = async () => {
     await resumeRoutine(routineId);
@@ -389,13 +389,13 @@ export function RoutineDetailView({
           id: "enable-and-run",
           label: "Enable & run now",
           onAction: () => void handleEnableAndRun(),
-          disabled: isTriggering || isToggling,
+          disabled: isFiring || isToggling,
         }
       : {
           id: "trigger",
           label: "Run now",
           onAction: () => void handleTrigger(),
-          disabled: isTriggering,
+          disabled: isFiring,
         };
 
   const actions: DetailAction[] = [
@@ -507,7 +507,7 @@ export function RoutineDetailView({
     <div className="stg:flex stg:flex-col stg:gap-6">
       {editable && (
         <ResourceSlugField
-          kind="schedule"
+          kind="routine"
           resourceId={routineId || null}
           currentSlug={meta?.slug ?? ""}
           onRenamed={(renamed) => {
@@ -574,8 +574,8 @@ export function RoutineDetailView({
                 placeholder="The instruction the agent receives on every fire — write it for a run with no human present."
                 onSave={(v) =>
                   saveSpecField("message", (s) => {
-                    if (s.target.case === "agent") {
-                      s.target.value.message = v.trim();
+                    if (s.agent !== undefined) {
+                      s.agent.message = v.trim();
                     }
                   })
                 }
@@ -599,8 +599,8 @@ export function RoutineDetailView({
                 creatorId={specAudit?.createdBy?.id ?? ""}
                 onSave={(refs) =>
                   saveSpecField("vaults", (s) => {
-                    if (s.target.case === "agent") {
-                      s.target.value.vaults = refs.map((r) =>
+                    if (s.agent !== undefined) {
+                      s.agent.vaults = refs.map((r) =>
                         create(ApiResourceReferenceSchema, {
                           ...keptReference(r),
                           kind: ApiResourceKind.vault,
@@ -636,8 +636,8 @@ export function RoutineDetailView({
                 invocation={target}
                 onSave={(harness, modelName, serviceTier, thinkingMode) =>
                   saveSpecField("engine-model", (s) => {
-                    if (s.target.case === "agent") {
-                      applyEngineModel(s.target.value, harness, modelName, serviceTier, thinkingMode);
+                    if (s.agent !== undefined) {
+                      applyEngineModel(s.agent, harness, modelName, serviceTier, thinkingMode);
                     }
                   })
                 }
@@ -658,8 +658,8 @@ export function RoutineDetailView({
                 config={target.runConfig}
                 onSave={(maxCostUsd) =>
                   saveSpecField("budget", (s) => {
-                    if (s.target.case === "agent") {
-                      applyBudget(s.target.value, maxCostUsd);
+                    if (s.agent !== undefined) {
+                      applyBudget(s.agent, maxCostUsd);
                     }
                   })
                 }

@@ -46,10 +46,10 @@ function wrapper(client: unknown) {
 }
 
 // Shaped like a server-returned schedule, including metadata the curated
-// ScheduleInput cannot express (tags) — the round-trip canary.
+// RoutineInput cannot express (tags) — the round-trip canary.
 const SCHEDULE = create(RoutineSchema, {
   apiVersion: "agentic.stigmer.ai/v1",
-  kind: "Schedule",
+  kind: "Routine",
   metadata: {
     id: "sch_01example",
     name: "daily-fee-reminders",
@@ -62,13 +62,10 @@ const SCHEDULE = create(RoutineSchema, {
     cron: "0 9 * * *",
     timeZone: "Asia/Kolkata",
     enabled: true,
-    target: {
-      case: "agent",
-      value: {
+    agent: {
         agentRef: { kind: ApiResourceKind.agent, org: "isc", slug: "fee-reminder" },
         message: "Send today's fee reminders.",
       },
-    },
   },
   status: { consecutiveFailures: 2 },
 });
@@ -79,7 +76,7 @@ beforeEach(() => vi.clearAllMocks());
 // Data hooks
 // ---------------------------------------------------------------------------
 
-describe("useSchedule", () => {
+describe("useRoutine", () => {
   it("fetches a schedule by org/slug reference", async () => {
     const getByReference = vi.fn().mockResolvedValue(SCHEDULE);
     const client = { routine: { getByReference } };
@@ -126,7 +123,7 @@ describe("useSchedule", () => {
   });
 });
 
-describe("useScheduleList", () => {
+describe("useRoutineList", () => {
   it("fetches a page of full Schedule protos", async () => {
     const list = vi.fn().mockResolvedValue(
       create(RoutineListSchema, { entries: [SCHEDULE]}),
@@ -156,7 +153,7 @@ describe("useScheduleList", () => {
   });
 });
 
-describe("useScheduleCount", () => {
+describe("useRoutineCount", () => {
   it("counts the largest first page and says whether more follow", async () => {
     const list = vi.fn().mockResolvedValue(
       create(RoutineListSchema, { entries: [SCHEDULE], nextPageToken: "tok_2" }),
@@ -178,7 +175,7 @@ describe("useScheduleCount", () => {
 // Behavior hooks
 // ---------------------------------------------------------------------------
 
-describe("useResumeSchedule", () => {
+describe("useResumeRoutine", () => {
   it("resumes by id and toasts success", async () => {
     const resume = vi.fn().mockResolvedValue(SCHEDULE);
     const client = { routine: { resume } };
@@ -208,7 +205,7 @@ describe("useResumeSchedule", () => {
   });
 });
 
-describe("useTriggerSchedule", () => {
+describe("useFireRoutine", () => {
   it("resolves a STARTED result and toasts success", async () => {
     const started = create(RoutineFireResultSchema, {
       outcome: RoutineFireOutcome.STARTED,
@@ -224,7 +221,7 @@ describe("useTriggerSchedule", () => {
 
     const res = await result.current.fireRoutine("sch_01example");
 
-    expect(trigger).toHaveBeenCalledWith("sch_01example");
+    expect(trigger).toHaveBeenCalledWith(expect.objectContaining({ id: "sch_01example" }));
     expect(res.outcome).toBe(RoutineFireOutcome.STARTED);
     expect(res.runId).toBe("aex_01run");
     expect(toast.success).toHaveBeenCalledWith("Run started");
@@ -261,7 +258,7 @@ describe("useTriggerSchedule", () => {
     // error, not a result. Copy is byte-identical across editions.
     const refusal = new StigmerError(
       "failed-precondition",
-      "schedule is disabled (spec.enabled=false) — enable it before triggering",
+      "routine is disabled (spec.enabled=false) — enable it before firing",
       9, // Connect FailedPrecondition
     );
     const client = { routine: { fire: vi.fn().mockRejectedValue(refusal) } };
@@ -272,12 +269,12 @@ describe("useTriggerSchedule", () => {
 
     await expect(result.current.fireRoutine("sch_x")).rejects.toThrow();
     expect(toast.error).toHaveBeenCalledWith(
-      "schedule is disabled (spec.enabled=false) — enable it before triggering",
+      "routine is disabled (spec.enabled=false) — enable it before firing",
     );
   });
 });
 
-describe("useScheduleFires", () => {
+describe("useRoutineFires", () => {
   it("fetches a schedule's run history, newest first", async () => {
     const listFires = vi.fn().mockResolvedValue(
       create(RoutineFireListSchema, {
@@ -355,7 +352,7 @@ describe("useScheduleFires", () => {
   });
 });
 
-describe("useSetScheduleEnabled", () => {
+describe("useSetRoutineEnabled", () => {
   it("names spec.enabled alone, on the schedule's id and the etag it was loaded at", async () => {
     const loaded = clone(RoutineSchema, SCHEDULE);
     loaded.metadata!.etag = "etag-at-load";
@@ -416,7 +413,7 @@ describe("useSetScheduleEnabled", () => {
   });
 });
 
-describe("useUpdateScheduleSpec", () => {
+describe("useUpdateRoutineSpec", () => {
   it("names only the spec field the edit changed, sends nothing for no change, and says to reload a schedule changed since", async () => {
     const update = vi.fn(async () => SCHEDULE);
     const client = { routine: { update } };

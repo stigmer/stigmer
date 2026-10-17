@@ -84,10 +84,11 @@ export const VERB_SUPPORT: ReadonlyMap<
     ApiResourceKind.channel_app,
     new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),
   ],
-  // Firing is the platform's job (Temporal Schedules); the generic verbs
-  // cover the declarative path, and get/list surface the state the dedicated
-  // `stigmer schedule` commands act on — spec.enabled (the owner's switch)
-  // versus status.paused_reason (the platform's failure latch).
+  // Firing on its schedule is the platform's job (Temporal Schedules); the
+  // generic verbs cover the declarative path, and get/list surface the state
+  // the dedicated `stigmer routine` commands act on — spec.enabled (the
+  // owner's switch) versus status.paused_reason (the platform's failure
+  // latch).
   [
     ApiResourceKind.routine,
     new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),

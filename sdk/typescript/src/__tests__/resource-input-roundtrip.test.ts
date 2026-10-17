@@ -715,7 +715,7 @@ describe("toOrganizationInput (tripwire)", () => {
   });
 });
 
-describe("toScheduleInput", () => {
+describe("toRoutineInput", () => {
   const fixture = () =>
     create(RoutineSchema, {
       metadata: META,
@@ -723,23 +723,20 @@ describe("toScheduleInput", () => {
         cron: "0 9 * * 1",
         timeZone: "America/New_York",
         enabled: true,
-        target: {
-          case: "agent",
-          value: {
-            agentRef: { org: "acme", slug: "support-bot", kind: ApiResourceKind.agent },
-            message: "Weekly triage.",
-            harness: Harness.NATIVE,
-            workspaceEntries: WORKSPACE_ENTRIES,
-            vaults: [
-              { org: "acme", slug: "prod", kind: ApiResourceKind.vault },
-            ],
-            runConfig: RUN_CONFIG,
-          },
+        agent: {
+          agentRef: { org: "acme", slug: "support-bot", kind: ApiResourceKind.agent },
+          message: "Weekly triage.",
+          harness: Harness.NATIVE,
+          workspaceEntries: WORKSPACE_ENTRIES,
+          vaults: [
+            { org: "acme", slug: "prod", kind: ApiResourceKind.vault },
+          ],
+          runConfig: RUN_CONFIG,
         },
       },
     });
 
-  it("fixture covers every ScheduleSpec field (schema tripwire)", () => {
+  it("fixture covers every RoutineSpec field (schema tripwire)", () => {
     assertFixtureCoversSpec(RoutineSpecSchema, fixture().spec!);
   });
 
@@ -750,6 +747,14 @@ describe("toScheduleInput", () => {
       original,
       buildRoutineProto(toRoutineInput(original)),
     );
+  });
+
+  it("keeps a routine with no schedule without one: cron stays absent, not empty", () => {
+    const original = fixture();
+    delete original.spec!.cron;
+    const rebuilt = buildRoutineProto(toRoutineInput(original));
+    expect(rebuilt.spec?.cron).toBeUndefined();
+    expect(rebuilt.spec?.timeZone).toBe("America/New_York");
   });
 });
 

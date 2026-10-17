@@ -59,10 +59,11 @@ async function runResume(reference: string | undefined, options: ResumeFlags): P
     throw new UsageError(`Resource IDs like "${reference}" are not sessions\n\nTo run a resource:\n  stigmer run ${reference}`);
   }
 
-  // Schedule IDs belong to `schedule resume` (clearing a platform pause).
+  // Routine IDs (rtn_, and sch_ from before the kind was renamed) belong to
+  // `routine resume` (clearing a platform pause).
   if (isRoutineId(reference)) {
     throw new UsageError(
-      `Resource IDs like "${reference}" are not sessions\n\nTo resume a paused schedule:\n  stigmer schedule resume ${reference}`,
+      `Resource IDs like "${reference}" are not sessions\n\nTo resume a paused routine:\n  stigmer routine resume ${reference}`,
     );
   }
 

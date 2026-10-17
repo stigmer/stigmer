@@ -101,7 +101,7 @@ export const STIGMER_MCP_SERVER_NAME = "stigmer.mcp.server_name";
 export const STIGMER_CURSOR_MODE = "stigmer.cursor.mode";
 
 /** `stigmer.run.kind`: what started a run, read from its labels. */
-export type RunKind = "conversation" | "schedule" | "judge" | "eval-try";
+export type RunKind = "conversation" | "routine" | "judge" | "eval-try";
 
 // ─── Metrics (names unchanged since the Go runner) ─────────────────────────
 

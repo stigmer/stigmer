@@ -29,7 +29,7 @@ export interface UseSetRoutineEnabledReturn {
  * value, so a teammate's edit to the cron or the target survives the
  * flip, and a schedule changed since it was loaded refuses it (the toast
  * says to reload). Flipping never clears a platform pause (Resume is the
- * one clearing path — see {@link useResumeSchedule}).
+ * one clearing path — see {@link useResumeRoutine}).
  */
 export function useSetRoutineEnabled(): UseSetRoutineEnabledReturn {
   const stigmer = useStigmer();

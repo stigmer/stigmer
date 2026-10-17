@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { create } from "@bufbuild/protobuf";
 import {
+  FireRoutineInputSchema,
   RoutineFireOutcome,
   type RoutineFireResult,
 } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/io_pb";
@@ -13,29 +15,30 @@ import { toError } from "../internal/toError.js";
 /** Return value of {@link useFireRoutine}. */
 export interface UseFireRoutineReturn {
   /**
-   * Fire the schedule once, now — a real run, outside the
-   * cron cadence. Resolves with the {@link ScheduleTriggerResult}: the
-   * run's REAL outcome (started with a run id, or refused with the
-   * gate's copy), so a caller can navigate to the run or surface
-   * the refusal. Refetch the schedule afterwards to pick up the freshly
-   * stamped `status.last_fire_at` / `status.last_run_id`.
+   * Fire the routine once, now — a real run, acting as the routine's
+   * owner, outside its schedule. `text`, when given, reaches the run
+   * fenced as information from whoever started it. Resolves with the
+   * {@link RoutineFireResult}: the run's REAL outcome (started with a run
+   * id, or refused with the gate's copy), so a caller can navigate to the
+   * run or surface the refusal. Refetch the routine afterwards to pick up
+   * the freshly stamped `status.last_fire_at` / `status.last_run_id`.
    */
-  readonly fireRoutine: (routineId: string) => Promise<RoutineFireResult>;
-  /** `true` while the trigger request is in flight. */
-  readonly isTriggering: boolean;
-  /** Error from the last failed or refused trigger, or `null` when healthy. */
+  readonly fireRoutine: (routineId: string, text?: string) => Promise<RoutineFireResult>;
+  /** `true` while the fire request is in flight. */
+  readonly isFiring: boolean;
+  /** Error from the last failed or refused fire, or `null` when healthy. */
   readonly error: Error | null;
 }
 
 /**
- * Behavior hook that fires a schedule once, immediately, and reports the
+ * Behavior hook that fires a routine once, immediately, and reports the
  * run's real outcome.
  *
- * The trigger is a two-level contract, and this hook honors both levels:
+ * A fire is a two-level contract, and this hook honors both levels:
  *
- * - A **gRPC error** means the trigger itself was refused — a disabled
- *   schedule answers `FAILED_PRECONDITION` with copy that names the
- *   remedy ("enable it before triggering"). The error toast relays that
+ * - A **gRPC error** means the fire itself was refused — a disabled
+ *   routine answers `FAILED_PRECONDITION` with copy that names the
+ *   remedy ("enable it before firing"). The error toast relays that
  *   copy verbatim (byte-identical across editions) and the promise
  *   rejects.
  * - A **success** means the fire happened. The result's `outcome` then
@@ -43,23 +46,23 @@ export interface UseFireRoutineReturn {
  *   success toast), or `REFUSED` / `TARGET_MISSING` (a launch gate said
  *   no — an error toast carrying the gate's `refusalReason` verbatim).
  *   The promise RESOLVES in every one of these cases: a refused run is a
- *   successful trigger honestly reported, and the caller decides what to
+ *   successful fire honestly reported, and the caller decides what to
  *   do with it (navigate to the run, show the reason).
  *
- * Triggering starts a real, billable run — gate the call behind a
+ * Firing starts a real, billable run — gate the call behind a
  * confirmation (the detail view uses `ConfirmDialog`).
  */
 export function useFireRoutine(): UseFireRoutineReturn {
   const stigmer = useStigmer();
-  const [isTriggering, setIsTriggering] = useState(false);
+  const [isFiring, setIsFiring] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const fireRoutine = useCallback(
-    async (routineId: string): Promise<RoutineFireResult> => {
-      setIsTriggering(true);
+    async (routineId: string, text = ""): Promise<RoutineFireResult> => {
+      setIsFiring(true);
       setError(null);
       try {
-        const result = await stigmer.routine.fire(routineId);
+        const result = await stigmer.routine.fire(create(FireRoutineInputSchema, { id: routineId, text }));
         if (result.outcome === RoutineFireOutcome.STARTED) {
           toast.success("Run started");
         } else {
@@ -77,14 +80,14 @@ export function useFireRoutine(): UseFireRoutineReturn {
         toast.error(getUserMessage(err));
         throw wrapped;
       } finally {
-        setIsTriggering(false);
+        setIsFiring(false);
       }
     },
     [stigmer],
   );
 
   return useMemo(
-    () => ({ fireRoutine, isTriggering, error }),
-    [fireRoutine, isTriggering, error],
+    () => ({ fireRoutine, isFiring, error }),
+    [fireRoutine, isFiring, error],
   );
 }

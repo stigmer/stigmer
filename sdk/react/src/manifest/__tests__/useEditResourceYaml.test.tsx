@@ -118,25 +118,28 @@ describe("useEditResourceYaml", () => {
     );
 
     act(() => {
-      // A structurally valid Schedule — the schema accepts it, so the
+      // A structurally valid Routine — the schema accepts it, so the
       // kind guard (not the schema) must be what rejects it.
       result.current.setYaml(
         [
           "apiVersion: agentic.stigmer.ai/v1",
-          "kind: Schedule",
+          "kind: Routine",
           "metadata:",
           "  name: nightly-report",
           "  org: rakeshreddi098",
           "spec:",
           "  cron: \"0 2 * * *\"",
           "  timeZone: UTC",
+          "  agent:",
+          "    agentRef:",
+          "      slug: reporter",
         ].join("\n"),
       );
     });
 
     expect(result.current.validation).toMatchObject({
       status: "invalid",
-      message: expect.stringContaining("kind changed from Agent to Schedule"),
+      message: expect.stringContaining("kind changed from Agent to Routine"),
     });
   });
 

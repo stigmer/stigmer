@@ -105,7 +105,7 @@ export function createRoutineColumns(
       header: "Target agent",
       cell: (item) => {
         const target =
-          item.spec?.target?.case === "agent" ? item.spec.target.value : undefined;
+          item.spec?.agent;
         return (
           <span className="stg:text-muted-foreground">
             {target?.agentRef && isDeletedReference(target.agentRef) ? (

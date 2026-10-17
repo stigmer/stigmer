@@ -31,7 +31,7 @@ vi.mock("@stigmer/react", () => {
       return null;
     },
     useAgentCount: count,
-    useScheduleCount: count,
+    useRoutineCount: count,
     useSkillCount: count,
     usePluginCount: count,
     useActiveOrgId: () => "org_acme",

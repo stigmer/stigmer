@@ -1,5 +1,5 @@
 /**
- * Pins the web schedule page's seams around the SDK's ScheduleDetailView: a
+ * Pins the web schedule page's seams around the SDK's RoutineDetailView: a
  * run picked on the schedule opens through run navigation, the agent it
  * targets opens as a library detail, a deleted schedule lands on the
  * schedules list, the loaded schedule names the breadcrumb, and a `?tab=`
@@ -31,7 +31,7 @@ const page = vi.hoisted(() => ({
 }));
 
 vi.mock("@stigmer/react", () => ({
-  ScheduleDetailView: (props: ViewProps) => {
+  RoutineDetailView: (props: ViewProps) => {
     page.view.push(props);
     return null;
   },

@@ -1,16 +1,15 @@
-// `stigmer schedule resume <ref>` — clear a platform auto-pause from a
-// schedule. `stigmer schedule trigger <ref>` — fire it once, immediately.
+// `stigmer routine resume <ref>` — clear a platform auto-pause from a
+// routine. `stigmer routine fire <ref>` — run it once, immediately.
 //
-// The platform pauses a schedule after repeated failed runs and records
-// why in status.paused_reason; resume is the owner's explicit act that
+// The platform pauses a routine after repeated failed runs on its schedule
+// and records why in status.paused_reason; resume is the explicit act that
 // clears it (the owner's enabled switch is a different lever — see
-// docs/vocabulary.md, "Disabled vs. paused"). Trigger fires the schedule
-// through its own clock, so everything a cron fire does applies
-// — including feeding the failure streak. Declarative verbs stay in the
-// generic matrix (apply/get/list/delete); this group exists for the
-// kind-specific operational actions, the `stigmer channel` shape.
+// docs/vocabulary.md, "Disabled vs. paused"). Fire runs the routine now,
+// as its owner, and does not feed the failure streak. Declarative verbs
+// stay in the generic matrix (apply/get/list/delete); this group exists for
+// the kind-specific operational actions, the `stigmer channel` shape.
 //
-// Thin handler: resolve credentials/org, delegate to resources/schedule,
+// Thin handler: resolve credentials/org, delegate to resources/routine,
 // render the result. Heavy modules are lazy-imported so `--help` stays
 // fast.
 
@@ -20,19 +19,19 @@ import type { OutputFlags } from "../output/index.js";
 import { addResultFlags, globalOrg, resultFormat } from "./shared.js";
 
 export function registerRoutine(program: Command): void {
-  const schedule = program.command("schedule").description("operate on schedules");
+  const routine = program.command("routine").description("operate on routines");
 
-  const resume = schedule
+  const resume = routine
     .command("resume <ref>")
-    .description("clear a platform pause so a schedule fires again (id, org/slug, or slug)")
+    .description("clear a platform pause so a routine runs on its schedule again (id, org/slug, or slug)")
     .action((ref: string, options: OutputFlags, command: Command) => runRoutineResume(ref, options, command));
   addResultFlags(resume);
 
-  const trigger = schedule
-    .command("trigger <ref>")
-    .description("fire a schedule once, immediately (id, org/slug, or slug)")
+  const fire = routine
+    .command("fire <ref>")
+    .description("run a routine once, immediately (id, org/slug, or slug)")
     .action((ref: string, options: OutputFlags, command: Command) => runRoutineFire(ref, options, command));
-  addResultFlags(trigger);
+  addResultFlags(fire);
 }
 
 async function runRoutineFire(ref: string, options: OutputFlags, command: Command): Promise<void> {

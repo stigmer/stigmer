@@ -30,7 +30,7 @@ export interface UseResumeRoutineReturn {
  * schedule. Resuming a schedule that is not paused is a server-side
  * no-op; resuming a disabled schedule clears the pause but the schedule
  * stays disabled (the owner's lever is separate — see
- * {@link useSetScheduleEnabled}).
+ * {@link useSetRoutineEnabled}).
  *
  * Error toasts relay the server's message verbatim: the copy is
  * identical across editions and states the remedy.

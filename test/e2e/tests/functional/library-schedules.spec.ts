@@ -196,9 +196,7 @@ test.describe("Schedule creation form", () => {
       expect(created.spec?.cron).toBe("0 9 * * *");
       expect(created.spec?.enabled).toBe(false);
       expect(
-        created.spec?.target?.case === "agent"
-          ? created.spec.target.value.agentRef?.slug
-          : undefined,
+        created.spec?.agent?.agentRef?.slug,
       ).toBe(agentSlug);
     } finally {
       if (routineId) {
@@ -263,9 +261,7 @@ test.describe("Schedule detail tabs and inline editing", () => {
         slug: seeded.routineSlug,
       });
       expect(
-        after.spec?.target?.case === "agent"
-          ? after.spec.target.value.message
-          : undefined,
+        after.spec?.agent?.message,
       ).toBe("Send this week's reminders.");
       expect(after.spec?.cron).toBe("0 9 * * *");
       expect(after.spec?.enabled).toBe(true);
@@ -341,7 +337,7 @@ test.describe("Disabled-vs-paused rendering", () => {
       await expect(page.getByText("Disabled").first()).toBeVisible();
       // A disabled schedule's primary action is "Enable & run now", the
       // one-click staged-test flow, never a bare "Run now"
-      // (ScheduleDetailView's primaryAction).
+      // (RoutineDetailView's primaryAction).
       await expect(page.getByRole("button", { name: "Enable & run now" })).toBeEnabled();
       await expect(page.getByRole("button", { name: "Run now", exact: true })).toHaveCount(0);
 

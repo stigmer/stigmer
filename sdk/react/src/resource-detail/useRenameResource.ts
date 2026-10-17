@@ -23,7 +23,7 @@ import { toError } from "../internal/toError.js";
 export type RenamableResourceKind =
   | "agent"
   | "vault"
-  | "schedule"
+  | "routine"
   | "channel_app"
   | "oauth_app"
   | "team"
@@ -107,7 +107,7 @@ function renameOf(
       return stigmer.agent.rename(input);
     case "vault":
       return stigmer.vault.rename(input);
-    case "schedule":
+    case "routine":
       return stigmer.routine.rename(input);
     case "channel_app":
       return stigmer.channelapp.rename(input);

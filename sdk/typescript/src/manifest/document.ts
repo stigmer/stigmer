@@ -36,10 +36,10 @@ import { manifestHandlerForTypeName, manifestKinds } from "./registry.js";
  * @example
  * ```ts
  * import { clone } from "@bufbuild/protobuf";
- * import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+ * import { RoutineSchema } from "@stigmer/protos/ai/stigmer/agentic/routine/v1/api_pb";
  *
- * const schedule = await stigmer.schedule.getByReference({ org, slug });
- * const updated = clone(ScheduleSchema, schedule);
+ * const routine = await stigmer.routine.getByReference({ org, slug });
+ * const updated = clone(RoutineSchema, routine);
  * updated.spec!.enabled = false;
  * await stigmer.manifest.apply(manifestDocumentForResource(updated));
  * ```

@@ -43,13 +43,10 @@ function makeRoutine(overrides?: {
       cron: "0 9 * * *",
       timeZone: "Asia/Kolkata",
       enabled: overrides?.enabled ?? true,
-      target: {
-        case: "agent",
-        value: {
+      agent: {
           agentRef: { kind: ApiResourceKind.agent, org: "isc", slug: "fee-reminder" },
           message: "Send reminders.",
         },
-      },
     },
     status: {
       nextFireAt: timestampFromDate(new Date(NOW.getTime() + 2 * 3_600_000)),
@@ -59,7 +56,7 @@ function makeRoutine(overrides?: {
   });
 }
 
-describe("createScheduleColumns", () => {
+describe("createRoutineColumns", () => {
   const columns = createRoutineColumns({ now: () => NOW });
   const byId = new Map(columns.map((c) => [c.id, c]));
 
@@ -108,7 +105,7 @@ describe("createScheduleColumns", () => {
   });
 });
 
-describe("ScheduleRowActions", () => {
+describe("RoutineRowActions", () => {
   function renderRow(
     routine: Routine,
     client: unknown,
@@ -136,7 +133,7 @@ describe("ScheduleRowActions", () => {
     expect(trigger).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByText("Start run"));
-    await waitFor(() => expect(trigger).toHaveBeenCalledWith("sch_01example"));
+    await waitFor(() => expect(trigger).toHaveBeenCalledWith(expect.objectContaining({ id: "sch_01example" })));
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
   });
 

@@ -175,7 +175,7 @@ function buildGuidance(target: string): CommandResult {
   const result = CommandResult.warning(`No plugin manifest in ${target}`);
   result
     .addSection("What 'stigmer apply' does")
-    .item("stigmer apply -f <file>        apply a resource file (agent, schedule, ...)")
+    .item("stigmer apply -f <file>        apply a resource file (agent, routine, ...)")
     .item("stigmer apply -f <dir>         apply every YAML file in a directory")
     .item("stigmer push skill <dir>       publish a skill folder")
     .item("stigmer push plugin <dir>      install a folder of resources as one plugin");

@@ -142,12 +142,12 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   [
     ApiResourceKind.routine,
     async (client, org, limit, labels) => {
-      // ListSchedulesRequest requires an org (min_len 1): a server that holds
+      // ListRoutinesRequest requires an org (min_len 1): a server that holds
       // one fills it, and on one that holds several an unset context is
       // refused with actionable copy instead of the server's raw validation
       // error.
       await requireOrganization(client, org, [
-        "stigmer list schedules --org <org>",
+        "stigmer list routines --org <org>",
         "stigmer config context set --org <org>",
       ]);
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
@@ -443,12 +443,13 @@ const CHANNEL_APP_TABLE: TableShape = {
 // ENABLED is the owner's switch (spec.enabled); STATE is the platform's
 // failure latch, derived from status.paused_reason. They are different
 // states with different remedies — re-apply with `enabled: true` versus
-// `stigmer schedule resume` — so the table keeps them as two columns. An
-// auto-paused schedule with ENABLED true is exactly the condition this
-// surface exists to make visible (stigmer/stigmer#352).
+// `stigmer routine resume` — so the table keeps them as two columns. An
+// auto-paused routine with ENABLED true is exactly the condition this
+// surface exists to make visible (stigmer/stigmer#352). CRON is empty for a
+// routine that runs only when fired.
 const ROUTINE_TABLE: TableShape = {
-  resourceName: "schedules",
-  headers: ["ID", "SLUG", "TARGET", "CRON", "TZ", "ENABLED", "STATE"],
+  resourceName: "routines",
+  headers: ["ID", "SLUG", "AGENT", "CRON", "TZ", "ENABLED", "STATE"],
   orgs: (json) => [str(routineAgentRef(json), "org")],
   row: (json, orgLabel) => {
     const metadata = obj(json, "metadata");
@@ -485,7 +486,7 @@ const VAULT_TABLE: TableShape = {
   },
 };
 
-// The schedule's target is the agent it runs.
+// The agent the routine runs.
 function routineAgentRef(json: JsonObject): JsonObject {
   return obj(obj(obj(json, "spec"), "agent"), "agent_ref");
 }

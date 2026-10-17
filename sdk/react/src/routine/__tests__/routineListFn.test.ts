@@ -19,7 +19,7 @@ function clientReturning(entries: Routine[], nextPageToken: string) {
   return { client: { routine: { list } }, list };
 }
 
-describe("listSchedulesPage", () => {
+describe("listRoutinesPage", () => {
   it("sends the org, the page size and the token in the query", async () => {
     const { client, list } = clientReturning([], "");
 
@@ -62,7 +62,7 @@ describe("listSchedulesPage", () => {
   });
 });
 
-describe("createScheduleListFn", () => {
+describe("createRoutineListFn", () => {
   it("adapts a workbench page request to the direct query and back", async () => {
     const { client, list } = clientReturning(routines(3), "");
     const listFn = createRoutineListFn(client);
