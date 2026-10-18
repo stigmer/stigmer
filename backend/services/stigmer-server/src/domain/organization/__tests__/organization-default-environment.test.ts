@@ -21,6 +21,13 @@
  * it (environment.fga), so the writer clause never refuses one of them in
  * their own organization; the cross-organization clause is the one a
  * default can fail beside a missing target.
+ *
+ * Signed in (the built-in evaluator over the compiled model), a person with
+ * no standing on a parent organization who creates a child of it naming a
+ * default gets the child-organization denial, the same sentence whether or
+ * not the parent shares an Environment of that name: the reference is
+ * judged only after the parent is authorized, so the create answers nothing
+ * about what the parent holds.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -29,7 +36,7 @@ import path from "node:path";
 import { clone, create } from "@bufbuild/protobuf";
 import { Code, createClient } from "@connectrpc/connect";
 import type { Client, Transport } from "@connectrpc/connect";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { EnvironmentCommandController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -43,9 +50,17 @@ import { OrganizationPreferencesSchema, OrganizationSpecSchema } from "@stigmer/
 import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ComposedServer } from "../../../boot/compose.js";
-import { baseConfig, silentLogger, transportFor } from "../../../extensions/__tests__/composed-support.js";
+import {
+  baseConfig,
+  fakeJwt,
+  fakeVerifier,
+  silentLogger,
+  transportFor,
+} from "../../../extensions/__tests__/composed-support.js";
 import { errorOf } from "../../../pipeline/__tests__/support.js";
-import { environmentInput } from "../../environment/__tests__/support.js";
+import { FAKE_SANDBOX_DRIVER, environmentInput, sandboxUnit } from "../../environment/__tests__/support.js";
+import { IdentityAccountCommandController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/command_pb";
+import { CHILD_ORGS_DENIED_MESSAGE } from "../children.js";
 import { stillNamedMessage } from "../../environment/steps.js";
 import { organizationId, organizationInput, seedOrganizations } from "./support.js";
 
@@ -178,5 +193,68 @@ describe("an organization's default Environment is judged as every reference is 
     expect(refused.rawMessage).toContain("referenced environment 'members-only' of another organization is not available");
     const children = await organizationQuery.listChildOrgs({ org: orgId });
     expect(children.entries.map((entry) => entry.metadata?.slug)).toEqual(["default-env-kids"]);
+  });
+});
+
+describe("a child organization's default, created by someone with no standing on its parent (signed in, composed server)", () => {
+  const CAROL = "fake|default-env-carol";
+  const DAVE = "fake|default-env-dave";
+  const PARENT = "default-env-parent";
+  let dir: string;
+  let server: ComposedServer;
+  let port: number;
+  let parentId: string;
+
+  const asCarol = (): Transport => transportFor(port, fakeJwt(CAROL, "carol@example.com"));
+  const asDave = (): Transport => transportFor(port, fakeJwt(DAVE, "dave@example.com"));
+
+  beforeAll(async () => {
+    dir = mkdtempSync(path.join(tmpdir(), "organization-default-environment-signed-in-"));
+    vi.stubEnv("STIGMER_ACTIVITY_ROUTING", "session");
+    server = await composeServer({
+      config: loadConfig({ ...baseConfig(dir), SANDBOX_PROVISIONER_TYPE: FAKE_SANDBOX_DRIVER }),
+      logger: silentLogger,
+      extensions: [sandboxUnit(undefined, { requireAuthentication: true, identityVerifiers: [fakeVerifier] })],
+      portOverride: 0,
+      host: "127.0.0.1",
+    });
+    port = await server.start();
+    await createClient(IdentityAccountCommandController, asCarol()).provisionMyAccount({});
+    const parent = await createClient(OrganizationCommandController, asCarol()).create(organizationInput(PARENT));
+    parentId = parent.metadata!.id;
+    await createClient(EnvironmentCommandController, asCarol()).create(
+      environmentInput(PARENT, "Shared Box", {}, ApiResourceVisibility.visibility_child_orgs),
+    );
+    // Dave provisions after the parent exists: he joins it as a member,
+    // who may not manage its child organizations.
+    await createClient(IdentityAccountCommandController, asDave()).provisionMyAccount({});
+  });
+
+  afterAll(async () => {
+    vi.unstubAllEnvs();
+    await server.shutdown();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  async function daveCreatesChildNaming(slug: string, childSlug: string) {
+    return errorOf(() =>
+      createClient(OrganizationCommandController, asDave()).create({
+        ...organizationInput(childSlug),
+        spec: {
+          description: childSlug,
+          parentOrg: parentId,
+          preferences: { defaultEnvironmentRef: { kind: ApiResourceKind.environment, org: PARENT, slug } },
+        },
+      }),
+    );
+  }
+
+  it("answers the same denial whether or not the parent shares an Environment of that name", async () => {
+    const shared = await daveCreatesChildNaming("shared-box", "dave-kids-a");
+    const absent = await daveCreatesChildNaming("no-such-box", "dave-kids-b");
+    expect(shared.code).toBe(Code.PermissionDenied);
+    expect(absent.code).toBe(Code.PermissionDenied);
+    expect(shared.rawMessage).toBe(CHILD_ORGS_DENIED_MESSAGE);
+    expect(absent.rawMessage).toBe(CHILD_ORGS_DENIED_MESSAGE);
   });
 });

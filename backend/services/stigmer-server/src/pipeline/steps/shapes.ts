@@ -55,8 +55,11 @@ export function owningOrgOf(schema: DescMessage, msg: Message): string {
  * in, when the row itself says it: an Organization judging its own settings
  * is that organization, and the row being written is its newest word (on a
  * create its stored row does not exist yet; `spec.parent_org` is written at
- * create only). Undefined for every other kind, whose writer's parent is
- * read from the store.
+ * create only). The request names that parent, so a chain may judge
+ * references against it only after the caller is authorized on it
+ * (organization create runs the reference steps after
+ * ValidateChildOrganization). Undefined for every other kind, whose
+ * writer's parent is read from the store.
  */
 export function ownParentOrgOf(schema: DescMessage, msg: Message): string | undefined {
   if (schema.typeName !== OrganizationSchema.typeName) {
