@@ -67,7 +67,7 @@ import { MIN_TOOL_ROUNDS, TOOL_CALL_LIMIT_ERROR_PREFIX, TOOL_CALL_LIMIT_USER_COP
 import type { FailureSurface, HarnessAdapter } from "../../harness/types.js";
 import type { ExecuteActivityInput } from "../../shared/activity-input.js";
 import { acquireWorkspaceLock } from "../../shared/workspace/workspace-lock.js";
-import { DEFAULT_RECORD_IDS, executionRecordFixture, type ExecutionRecordOptions } from "../execution-record-fixture.js";
+import { DEFAULT_RECORD_IDS, executionRecordFixture, savedAgentFixture, type ExecutionRecordOptions } from "../execution-record-fixture.js";
 import { initGitWorkspace } from "../git-workspace-fixture.js";
 import {
   ExecutionRecord,
@@ -80,8 +80,9 @@ import {
   type InvocationControls,
 } from "../hermetic-activity.js";
 import { emptyRows, emptyStatus } from "../proto-helpers.js";
-import { scenario } from "./types.js";
-import type { EngineView, HarnessContractSubject, TurnScenario } from "./types.js";
+import { expectKnownGap, type KnownGap, type TodayOutcome } from "../known-gap.js";
+import { KIT_SUBAGENT_INSTRUCTIONS, KIT_SUBAGENT_SLUG, scenario } from "./types.js";
+import type { EngineView, HarnessContractSubject, LongTurnControls, TurnScenario } from "./types.js";
 import type { AgentMessage, TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import {
   ApprovalAction,
@@ -1007,6 +1008,230 @@ export async function assertWorkspaceLockTimeoutFails(harness: RuntimeContractHa
   }
 }
 
+// ── Arms: the long turn ─────────────────────────────────────────────────────
+//
+// What a turn that works for hours owes the user, stated as the behaviour the
+// user should get. Several are not true today on some harness; a subject's
+// registration names the issue for each arm that is a known gap there
+// (`RuntimeContractOptions.knownGaps`), and the arm then passes while the
+// gap's own outcome holds and fails the day it closes (`../known-gap.ts`).
+//
+// Time is the scripted clock's, as in the stall arm: once the subject reports
+// the operation running (`whenOpen`), the arm advances the clock by stall
+// windows and lets one real watchdog poll pass, so "ten silent minutes" is
+// three windows and about a second. Every arm runs with the record's
+// whole-run trust (`autoApproveAll`), the product's own "trust this whole
+// run", because a native shell is gated in every other posture.
+
+/** How many stall windows an open operation lasts: the "ten silent minutes" of a long build, at three times the window. */
+export const LONG_OPERATION_WINDOWS = 3;
+
+/** The arms of the long turn, by the name a registration's `knownGaps` keys them on. */
+export type LongTurnArm = "silent-operation" | "streamed-output" | "subagent-operation" | "three-compactions" | "no-resent-task";
+
+/** The saved agent the subagent arm's agent lists (`types.ts` names it). */
+const KIT_SUBAGENT = savedAgentFixture(KIT_SUBAGENT_SLUG, { description: "Does the contract kit's delegated work.", instructions: KIT_SUBAGENT_INSTRUCTIONS });
+
+/** Real time for one watchdog poll (a quarter of the window) to pass, with margin. */
+function oneWatchdogPoll(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, STALL_TIMEOUT_MS / 4 + 100));
+}
+
+/**
+ * The operation runs silent for {@link LONG_OPERATION_WINDOWS} windows. Half
+ * a window and a poll first: on a push-based engine the marks it made before
+ * the operation opened are still in its pipeline when the subject reports it
+ * open (the stall arm's measurement), and they must land before the silence
+ * is measured, or they reset the idle time and the arm proves nothing.
+ */
+async function silentFor(clock: ScriptedClock): Promise<void> {
+  clock.tick(STALL_TIMEOUT_MS / 2);
+  await oneWatchdogPoll();
+  clock.tick(LONG_OPERATION_WINDOWS * STALL_TIMEOUT_MS);
+  await oneWatchdogPoll();
+}
+
+/** `closing` ends the transcript's last assistant text: the turn played on after the operation (an engine may fold consecutive texts into one message). */
+function endsWithText(closing: string): RegExp {
+  return new RegExp(`${closing.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`);
+}
+
+function longTurnOf(subject: HarnessContractSubject): LongTurnControls {
+  if (!subject.longTurn) throw new Error(`${subject.name}: a long-turn arm ran on a subject with no long-turn controls (kit bug: declare the arm off, or give the subject \`longTurn\`)`);
+  return subject.longTurn;
+}
+
+/** The mark for one arm on this subject, with the arm's own statement of today's outcome. */
+function gapFor(issue: string | undefined, today: TodayOutcome): KnownGap | undefined {
+  return issue ? { issue, today } : undefined;
+}
+
+/** Today's outcome every liveness gap shares: the watchdog failed the turn while the operation ran. */
+function endedOnTheStall(driver: RuntimeExecutionDriver): TodayOutcome {
+  return {
+    says: "the stall watchdog fails the turn while the operation runs",
+    holds: () => /^\[StallTimeoutError\] /.test(driver.record.lastFullStatus?.error ?? "") && driver.record.persistedPhases.at(-1) === RunPhase.RUN_FAILED,
+  };
+}
+
+/**
+ * One turn that opens `toolCallId` and plays on after it: the arm's `drive`
+ * runs once the subject reports the operation running, then the operation is
+ * released. A turn that settles before the operation ever ran fails the arm,
+ * named: the arm would otherwise measure the wrong thing.
+ */
+async function turnWithOpenOperation(
+  harness: RuntimeContractHarness,
+  driver: RuntimeExecutionDriver,
+  turn: TurnScenario,
+  toolCallId: string,
+  drive: (controls: LongTurnControls) => Promise<void>,
+): Promise<ActivityInvocation> {
+  const { subject } = harness;
+  const controls = longTurnOf(subject);
+  const settled = driver.turn(turn, { config: { cursorStreamStallTimeoutMs: STALL_TIMEOUT_MS } });
+  let opened = false;
+  const driving = Promise.race([controls.whenOpen(toolCallId).then(() => true), settled.then(() => false, () => false)]).then(async (running) => {
+    opened = running;
+    if (running) await drive(controls);
+    await controls.release(toolCallId);
+  });
+  const invocation = await settled;
+  await controls.release(toolCallId);
+  await driving;
+  if (!opened) throw new Error(`${subject.name}: the turn settled before the operation '${toolCallId}' ever ran`);
+  return invocation;
+}
+
+/** The desired end of every long-turn arm: the turn completes, its closing text on the transcript, no error. */
+function expectCompleted(harness: RuntimeContractHarness, driver: RuntimeExecutionDriver, invocation: ActivityInvocation, closing: string): void {
+  const { subject } = harness;
+  expect(slimOf(subject, invocation).phase, `${subject.name}: the turn completes`).toBe("RUN_COMPLETED");
+  const final = finalStatusOf(harness, driver);
+  expect(final.error, `${subject.name}: a completed turn carries no error`).toBe("");
+  expect(aiMessages(driver.record.rowsOf(final)).at(-1), `${subject.name}: the turn played on after the operation`).toMatch(endsWithText(closing));
+}
+
+/**
+ * A silent operation outlives the stall window: a build that prints nothing
+ * for three windows is work, not a wedge, and the turn completes when it
+ * finishes. Today the watchdog measures only stream events, so an open
+ * operation that says nothing reads as a stall.
+ */
+export async function assertSilentOperationOutlivesTheStallWindow(harness: RuntimeContractHarness, gap?: string, label = "rt-silent-operation"): Promise<RuntimeArmResult> {
+  const { clock } = harness;
+  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
+  const id = `${label}-build`;
+  const invocation = await turnWithOpenOperation(harness, driver, [scenario.say("Building."), scenario.open(id), scenario.say("Built.")], id, () => silentFor(clock));
+  await expectKnownGap(gapFor(gap, endedOnTheStall(driver)), () => expectCompleted(harness, driver, invocation, "Built."));
+  return { driver, invocations: [invocation], final: finalStatusOf(harness, driver) };
+}
+
+/**
+ * Output streams while an operation runs: each line the operation prints
+ * goes out to the session as a `stigmer.tool_output_delta` preview before the
+ * operation's result, and a line per window keeps the turn alive, so it
+ * completes. The lines are the user's only sign the build is moving.
+ */
+export async function assertStreamedOutputReachesTheSession(harness: RuntimeContractHarness, gap?: string, label = "rt-streamed-output"): Promise<RuntimeArmResult> {
+  const { clock, subject } = harness;
+  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
+  const id = `${label}-build`;
+  const lines = Array.from({ length: LONG_OPERATION_WINDOWS + 1 }, (_, i) => `compiling module ${i + 1}`);
+  const invocation = await turnWithOpenOperation(harness, driver, [scenario.say("Building."), scenario.open(id, { streams: true }), scenario.say("Built.")], id, async (controls) => {
+    // A line, then three quarters of a window: the operation is never silent
+    // for a whole window, and the lines span three windows in all.
+    for (const line of lines) {
+      await controls.emit(id, line);
+      clock.tick((STALL_TIMEOUT_MS * 3) / 4);
+      await oneWatchdogPoll();
+    }
+  });
+  const streamed = (): string =>
+    driver.record.sessionPreviews.flatMap((p) => (p.preview.case === "stigmerToolOutputDelta" ? [p.preview.value.delta] : [])).join("");
+  await expectKnownGap(
+    gapFor(gap, {
+      says: "no line the operation prints reaches the session while it runs",
+      holds: () => !lines.some((line) => streamed().includes(line)),
+    }),
+    () => {
+      for (const line of lines) expect(streamed(), `${subject.name}: '${line}' went out as a tool-output preview`).toContain(line);
+      expectCompleted(harness, driver, invocation, "Built.");
+    },
+  );
+  return { driver, invocations: [invocation], final: finalStatusOf(harness, driver) };
+}
+
+/**
+ * A subagent outlives the stall window: delegated work that takes three
+ * windows is work, and the parent's turn completes when the subagent
+ * answers. Today the parent's stream is silent while its subagent thinks.
+ */
+export async function assertSubagentOutlivesTheStallWindow(harness: RuntimeContractHarness, gap?: string, label = "rt-subagent-operation"): Promise<RuntimeArmResult> {
+  const { clock } = harness;
+  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true, subagents: [KIT_SUBAGENT] });
+  const id = `${label}-task`;
+  const invocation = await turnWithOpenOperation(harness, driver, [scenario.say("Delegating."), scenario.open(id, { as: "subagent" }), scenario.say("Delegated work is in.")], id, () => silentFor(clock));
+  await expectKnownGap(gapFor(gap, endedOnTheStall(driver)), () => expectCompleted(harness, driver, invocation, "Delegated work is in."));
+  return { driver, invocations: [invocation], final: finalStatusOf(harness, driver) };
+}
+
+/**
+ * Three compactions in one turn: an engine that summarizes its context three
+ * times keeps working through each and the turn completes. Whether the user
+ * is TOLD of a compaction is not asserted here; that event does not exist yet.
+ */
+export async function assertTurnSurvivesThreeCompactions(harness: RuntimeContractHarness, gap?: string, label = "rt-three-compactions"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const controls = longTurnOf(subject);
+  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
+  const invocation = await driver.turn([scenario.say("Reading everything."), scenario.compact(), scenario.compact(), scenario.compact(), scenario.say("Read it all.")]);
+  await expectKnownGap(
+    gapFor(gap, {
+      says: "the turn does not complete through three compactions",
+      holds: () => driver.record.persistedPhases.at(-1) !== RunPhase.RUN_COMPLETED,
+    }),
+    () => {
+      expectCompleted(harness, driver, invocation, "Read it all.");
+      expect(controls.compactions(driver.sessionId), `${subject.name}: the engine compacted three times`).toBe(3);
+    },
+  );
+  return { driver, invocations: [invocation], final: finalStatusOf(harness, driver) };
+}
+
+/**
+ * A continued turn never re-sends the task: a runner drained while a tool
+ * runs, then reinvoked, picks the turn up where it was. Across both
+ * invocations the engine is handed the user's message as a new request
+ * once. Today each invocation hands it again, and the model starts over.
+ */
+export async function assertContinuedTurnNeverResendsTheTask(harness: RuntimeContractHarness, gap?: string, label = "rt-no-resent-task"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const controls = longTurnOf(subject);
+  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
+  const id = `${label}-build`;
+  let interrupted: InvocationControls | undefined;
+  void controls.whenOpen(id).then(() => {
+    interrupted!.signalWorkerShutdown();
+    interrupted!.cancel();
+  });
+  const first = await driver.turn([scenario.say("Building."), scenario.open(id), scenario.say(NEVER_SEEN)], { onControls: (c) => (interrupted = c) });
+  await controls.release(id);
+  expect(threwCancelledFailure(first.outcome), `${subject.name}: the drained invocation throws the shutdown's CancelledFailure`).toBe(true);
+  const second = await driver.turn([scenario.open(id), scenario.say("Picked up where I left off.")]);
+  await controls.release(id);
+  await expectKnownGap(
+    gapFor(gap, {
+      says: "each invocation hands the engine the user's message again",
+      holds: () => controls.tasksHanded(driver.sessionId, RUNTIME_USER_MESSAGE) === 2,
+    }),
+    () => {
+      expect(controls.tasksHanded(driver.sessionId, RUNTIME_USER_MESSAGE), `${subject.name}: the engine was handed the task once across both invocations`).toBe(1);
+    },
+  );
+  return { driver, invocations: [first, second], final: finalStatusOf(harness, driver) };
+}
+
 // ── The runnable suite ──────────────────────────────────────────────────────
 
 export interface RuntimeContractOptions {
@@ -1031,6 +1256,25 @@ export interface RuntimeContractOptions {
    * and settles `interrupted`).
    */
   readonly engineCancel?: boolean;
+  /**
+   * Whether this subject's engine can hand work to a subagent
+   * (`scenario.open(…, { as: "subagent" })`); the arm is registered SKIPPED
+   * otherwise. On by default; the scripted fake turns it off (no subagents).
+   */
+  readonly subagentOperation?: boolean;
+  /**
+   * Whether this subject's engine can compact its context
+   * (`scenario.compact()`); the arm is registered SKIPPED otherwise. On by
+   * default; the scripted fake turns it off (no context).
+   */
+  readonly compaction?: boolean;
+  /**
+   * The long-turn arms that are a known gap on this subject, each with the
+   * open issue that names it (`<owner>/<repo>#<n>`). The arm passes while the
+   * gap's outcome holds and fails the day it closes: the fix removes the
+   * entry here.
+   */
+  readonly knownGaps?: Partial<Readonly<Record<LongTurnArm, string>>>;
 }
 
 const ALL_SURFACES: readonly FailureSurface[] = ["engine", "actionable", "internal"];
@@ -1131,6 +1375,30 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
     it("a workspace lock held by another turn settles FAILED with the lock's message and its one row", async () => {
       clock.reset();
       await assertWorkspaceLockTimeoutFails(harness);
+    });
+
+    describe("long turn", () => {
+      const gaps = options.knownGaps ?? {};
+      it("a silent operation outlives the stall window and the turn completes", async () => {
+        clock.reset();
+        await assertSilentOperationOutlivesTheStallWindow(harness, gaps["silent-operation"]);
+      });
+      it("output streams to the session while an operation runs, and the turn completes", async () => {
+        clock.reset();
+        await assertStreamedOutputReachesTheSession(harness, gaps["streamed-output"]);
+      });
+      it.skipIf(options.subagentOperation === false)("a subagent outlives the stall window and the parent's turn completes", async () => {
+        clock.reset();
+        await assertSubagentOutlivesTheStallWindow(harness, gaps["subagent-operation"]);
+      });
+      it.skipIf(options.compaction === false)("a turn completes through three compactions", async () => {
+        clock.reset();
+        await assertTurnSurvivesThreeCompactions(harness, gaps["three-compactions"]);
+      });
+      it("a turn continued after a drain never hands the engine the task again", async () => {
+        clock.reset();
+        await assertContinuedTurnNeverResendsTheTask(harness, gaps["no-resent-task"]);
+      });
     });
   });
 }

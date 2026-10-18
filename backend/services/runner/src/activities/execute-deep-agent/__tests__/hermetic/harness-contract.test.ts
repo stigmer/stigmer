@@ -28,6 +28,13 @@
  * adapter has one surface), and an engine-side cancel (no native path ends a
  * turn `cancelled`).
  *
+ * The long-turn arms that are known gaps on this harness are marked by their
+ * open issue (`knownGaps`): a silent `execute`, a streaming one (deepagents'
+ * shell buffers its output until exit) and a working subagent all fail the
+ * turn on the stall watchdog, and a turn continued after a drain puts the
+ * task on the thread a second time. Three real compactions by deepagents'
+ * summarization middleware complete today; that arm is an ordinary pass.
+ *
  * Beside the kit, the native-only observations its vocabulary cannot
  * express — the interrupt primitive's own facts: an APPROVED pending action
  * executes at the resume, before the model is asked (the order the kit's
@@ -86,7 +93,16 @@ describe("ExecuteDeepAgent hermetic — the harness contract kit against the rea
   });
 
   describeHarnessContract(subject);
-  describeHarnessRuntimeContract({ subject, env, clock }, { failureSurfaces: ["internal"], engineCancel: false });
+  describeHarnessRuntimeContract({ subject, env, clock }, {
+    failureSurfaces: ["internal"],
+    engineCancel: false,
+    knownGaps: {
+      "silent-operation": "stigmer/stigmer#2414",
+      "streamed-output": "stigmer/stigmer#2415",
+      "subagent-operation": "stigmer/stigmer#2416",
+      "no-resent-task": "stigmer/stigmer#2417",
+    },
+  });
 
   describe("native-only observations", () => {
     beforeAll(async () => {

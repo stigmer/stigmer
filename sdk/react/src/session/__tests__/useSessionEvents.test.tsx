@@ -8,7 +8,11 @@
  * follow is reconnected once, then `connectTimedOut` is surfaced until a
  * manual `reconnect`; a null id follows nothing; another session starts
  * from an empty fold; `isSlow` only while the newest turn works; unmounting
- * mid-reconnect ends the follow.
+ * mid-reconnect ends the follow. And what a person who leaves a tab for
+ * twenty minutes should come back to: a follow that rode the outage out and
+ * resumed after the newest event, and one that follows again when the tab is
+ * shown or the network returns — both known gaps today, marked by their
+ * issue (`@stigmer/test-support/known-gap`).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
@@ -23,6 +27,7 @@ import { StigmerContext } from "../../context";
 import { ConversationStore } from "../../internal/store/index";
 import { samples } from "../../test/samples";
 import { useSessionEvents, type UseSessionEventsOptions } from "../useSessionEvents";
+import { expectKnownGap } from "@stigmer/test-support/known-gap";
 
 // ---------------------------------------------------------------------------
 // A controllable session.streamEvents: every call opens a stream the test
@@ -64,12 +69,15 @@ class FakeStream {
 
 let streams: FakeStream[] = [];
 let seq = 0n;
+/** While set, every stream opened fails at once as an unreachable server does. */
+let unreachable = false;
 
 const client = {
   session: {
     streamEvents: vi.fn((request: StreamSessionEventsRequest, signal?: AbortSignal) => {
       const stream = new FakeStream(request);
       streams.push(stream);
+      if (unreachable) stream.send({ kind: "fail", error: new StigmerError("unavailable", "connection refused", 14) });
       return stream.frames(signal);
     }),
   },
@@ -101,6 +109,7 @@ const QUICK: UseSessionEventsOptions = { reconnectOptions: { baseDelayMs: 0, max
 beforeEach(() => {
   streams = [];
   seq = 0n;
+  unreachable = false;
   vi.clearAllMocks();
 });
 
@@ -263,5 +272,92 @@ describe("useSessionEvents", () => {
     unmount();
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(streams).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A long outage: a tab left for twenty minutes, a laptop lid closed.
+// ---------------------------------------------------------------------------
+
+/** The open issue: a follow stops once its reconnects run out (about three minutes) and nothing re-opens it. */
+const FOLLOW_GIVES_UP = "stigmer/stigmer#2418";
+
+/** An event the turn adds once the follow is back; its id is past every sample turn's. */
+const LATER = samples.agentMessageEvent("still here", { id: "run_00000000000000000000000001.root.m9" });
+
+describe("useSessionEvents — a long outage", () => {
+  it("rides out a twenty-minute outage and resumes after the newest event, with nothing missing or doubled", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.spyOn(Math, "random").mockReturnValue(1);
+      const { result } = follow("ses-1");
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      expect(streams).toHaveLength(1);
+      act(() => send(...samples.turnEvents({ phase: "running", reply: "" })));
+      await act(() => vi.advanceTimersByTimeAsync(50));
+      const folded = result.current.fold!.lastSeq;
+
+      unreachable = true;
+      act(() => streams[0]!.send({ kind: "end" }));
+      for (let elapsed = 0; elapsed < 20 * 60_000; elapsed += 10_000) await act(() => vi.advanceTimersByTimeAsync(10_000));
+      unreachable = false;
+      await act(() => vi.advanceTimersByTimeAsync(60_000));
+
+      await expectKnownGap(
+        {
+          issue: FOLLOW_GIVES_UP,
+          today: {
+            says: "the follow gives up after ten reconnects, about three minutes in, and stays stopped",
+            holds: () => /interrupted/.test(result.current.error?.message ?? ""),
+          },
+        },
+        async () => {
+          expect(result.current.error, "no error once the server is back").toBeNull();
+          expect(streams.at(-1)!.request.afterSeq, "the follow resumed after the newest event folded").toBe(folded);
+          act(() => send(LATER));
+          await act(() => vi.advanceTimersByTimeAsync(50));
+          expect(result.current.isStreaming).toBe(true);
+          expect(result.current.fold!.lastSeq, "nothing missing").toBe(seq);
+          expect(result.current.fold!.turns, "nothing doubled").toHaveLength(1);
+        },
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("follows again when the tab is shown or the network returns after a follow gave up", async () => {
+    const { result } = follow("ses-1", { reconnectOptions: { baseDelayMs: 0, maxDelayMs: 0, maxAttempts: 1 } });
+    await waitFor(() => expect(streams).toHaveLength(1));
+    act(() => send(...samples.turnEvents({ phase: "running", reply: "" })));
+    await waitFor(() => expect(result.current.fold).not.toBeNull());
+    unreachable = true;
+    act(() => streams[0]!.send({ kind: "end" }));
+    await waitFor(() => expect(result.current.error?.message).toMatch(/interrupted/));
+    const opened = streams.length;
+
+    unreachable = false;
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+      window.dispatchEvent(new Event("online"));
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    await expectKnownGap(
+      {
+        issue: FOLLOW_GIVES_UP,
+        today: {
+          says: "neither a shown tab nor a returned network re-opens a follow that gave up",
+          holds: () => streams.length === opened && result.current.error !== null,
+        },
+      },
+      async () => {
+        // Promptly: the person is looking at the tab now.
+        await waitFor(() => expect(streams.length, "a new follow opened").toBeGreaterThan(opened), { timeout: 500 });
+        act(() => send(LATER));
+        await waitFor(() => expect(result.current.isStreaming).toBe(true));
+        expect(result.current.error).toBeNull();
+      },
+    );
   });
 });

@@ -150,6 +150,7 @@
     "@lezer/highlight": "^1.2.3",
     "@stigmer/apis": "*",
     "@stigmer/client": "*",
+    "@stigmer/test-support": "*",
     "@tailwindcss/postcss": "^4",
     "@tanstack/react-table": "^8.21.3",
     "@testing-library/react": "^16.3.2",

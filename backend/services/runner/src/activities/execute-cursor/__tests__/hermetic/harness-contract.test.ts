@@ -22,6 +22,13 @@
  * this harness (`unattributed-hook-block.test.ts` pins it), and the kit's
  * vocabulary has no word for it.
  *
+ * The long-turn arms that are known gaps on this harness are marked by their
+ * open issue (`knownGaps`): a silent tool and a working subagent fail the
+ * turn on the stall watchdog, a shell's streamed output keeps the turn alive
+ * but never reaches the session while it runs, and a turn continued after a
+ * drain sends the parked agent the task again. Three compactions (the
+ * server's `summary-*` deltas) complete today; that arm is an ordinary pass.
+ *
  * Beside the kit, the Cursor-only observations the kit's vocabulary cannot
  * express: the agent the SDK minted is CLOSED when the session write behind
  * `bindHarnessState` rejects (a regression the kit's rejected-bind leg
@@ -98,7 +105,16 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — the harness contract kit a
   });
 
   describeHarnessContract(subject);
-  describeHarnessRuntimeContract({ subject, env, clock }, { failureSurfaces: ["engine", "internal"], toolCallLimit: false });
+  describeHarnessRuntimeContract({ subject, env, clock }, {
+    failureSurfaces: ["engine", "internal"],
+    toolCallLimit: false,
+    knownGaps: {
+      "silent-operation": "stigmer/stigmer#2414",
+      "streamed-output": "stigmer/stigmer#2415",
+      "subagent-operation": "stigmer/stigmer#2416",
+      "no-resent-task": "stigmer/stigmer#2417",
+    },
+  });
 
   describe("cursor-only observations", () => {
     beforeAll(async () => {

@@ -65,6 +65,19 @@ import type { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/en
  *    `tool_call_limit`. Not every engine has such a budget (Cursor's SDK does
  *    not), so a subject that cannot produce it says so and the runtime arm
  *    is reported SKIPPED there.
+ *  - `open`: the engine starts an operation identified by `toolCallId` and
+ *    keeps it open until the kit releases it: a tool that runs for a while
+ *    (`as: "tool"`), or a subagent that works (`as: "subagent"`). With
+ *    `streams`, the operation prints each line the kit emits while it runs;
+ *    without, it is silent. Parked like `hang`, never on a timer: on the
+ *    kit's release the operation finishes and the turn plays on, and the
+ *    stop signal ends it the way it ends a hang. The kit times the operation
+ *    on the scripted clock (`runtime-contract.ts`, the long-turn arms), so
+ *    "ten silent minutes" is clock windows, never wall time. A subject that
+ *    cannot open a subagent says so and the arm is reported SKIPPED there.
+ *  - `compact`: the engine compacts its context once — the summarization a
+ *    long conversation forces — and the turn plays on. A subject whose engine
+ *    has no context to compact says so and the arm is reported SKIPPED there.
  */
 export type ScenarioStep =
   | { readonly kind: "say"; readonly text: string }
@@ -74,7 +87,21 @@ export type ScenarioStep =
   | { readonly kind: "hang" }
   | { readonly kind: "fail"; readonly message: string; readonly surface: FailureSurface }
   | { readonly kind: "cancelled" }
-  | { readonly kind: "limit" };
+  | { readonly kind: "limit" }
+  | { readonly kind: "open"; readonly toolCallId: string; readonly as: OperationShape; readonly streams: boolean }
+  | { readonly kind: "compact" };
+
+/**
+ * The saved agent an `open(…, { as: "subagent" })` hands work to: the
+ * runtime arm's record lists it, and a subject whose engine delegates by
+ * name delegates to this slug and knows the subagent's turns by these
+ * instructions (both are in the subagent's own prompt).
+ */
+export const KIT_SUBAGENT_SLUG = "kit-helper";
+export const KIT_SUBAGENT_INSTRUCTIONS = "You are the contract kit's helper. Do the delegated work, then answer.";
+
+/** What an open operation is: a tool the engine runs, or a subagent it hands work to. */
+export type OperationShape = "tool" | "subagent";
 
 /** One turn's worth of engine behaviour. */
 export type TurnScenario = readonly ScenarioStep[];
@@ -116,6 +143,12 @@ export const scenario = {
   },
   limit(): ScenarioStep {
     return { kind: "limit" };
+  },
+  open(toolCallId: string, options: { readonly as?: OperationShape; readonly streams?: boolean } = {}): ScenarioStep {
+    return { kind: "open", toolCallId, as: options.as ?? "tool", streams: options.streams ?? false };
+  },
+  compact(): ScenarioStep {
+    return { kind: "compact" };
   },
 } as const;
 
@@ -197,4 +230,29 @@ export interface HarnessContractSubject {
    * id the engine never reached.
    */
   executionCount(toolCallId: string): number;
+  /**
+   * The long-turn controls: a subject that can play `open` and `compact`
+   * provides them all (`runtime-contract.ts` refuses an arm on a subject
+   * that lacks one, naming it). Each is the engine's own fact, read off its
+   * double, never a timer.
+   */
+  readonly longTurn?: LongTurnControls;
+}
+
+/** What the long-turn arms drive and read through a subject (see {@link HarnessContractSubject.longTurn}). */
+export interface LongTurnControls {
+  /** Resolves once the operation behind `toolCallId` is running — the engine's own report, as `whenHanging` is. */
+  whenOpen(toolCallId: string): Promise<void>;
+  /** A streaming operation prints `line`; resolves once the engine has printed it. */
+  emit(toolCallId: string, line: string): Promise<void>;
+  /**
+   * Let the operation finish, and any operation opened later under the same
+   * id finish at once (a reinvocation that re-runs the call). Safe to call on
+   * one that never started or already ended.
+   */
+  release(toolCallId: string): Promise<void>;
+  /** How many times the session's engine was handed `message` as a new request, across every invocation. */
+  tasksHanded(sessionId: string, message: string): number;
+  /** How many times the session's engine compacted its context, across every invocation. */
+  compactions(sessionId: string): number;
 }

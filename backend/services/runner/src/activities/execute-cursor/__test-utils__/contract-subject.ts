@@ -56,6 +56,17 @@
  *                       surface, and the kit's invariants do not ask for it.
  *  - `cancelled`      → an `effect` calling `run.cancel()` from the SDK side
  *                       (the `run-cancelled` golden's shape).
+ *  - `open(id, o)`    → the call's `running` event (`shell`, or `task` to the
+ *                       kit's helper for a subagent), an `effect` parked on
+ *                       the kit's release or the run's cancel (never a
+ *                       timer; resolves `whenOpen`), and the `completed`
+ *                       event. Each line the kit emits is a
+ *                       `shell-output-delta` fired through `onDelta` from
+ *                       inside the parked step, as the SDK streams a running
+ *                       shell's output.
+ *  - `compact`        → the `summary-started`, `summary` and
+ *                       `summary-completed` deltas Cursor's server sends when
+ *                       it summarizes the conversation; counted once played.
  * Every script that does not end in `fail`, `cancelled` or `hang` closes with
  * `finished({ result: <last say> })` so `run.wait()` has an answer.
  *
@@ -86,12 +97,15 @@ import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/
 import type { Config } from "../../../config.js";
 import type { HarnessAdapter } from "../../../harness/types.js";
 import type { ProposedAction } from "../../../__test-utils__/approval-contract/types.js";
-import type {
-  EngineView,
-  HarnessContractSubject,
-  ScenarioStep,
-  SubjectInputOverrides,
-  TurnScenario,
+import {
+  KIT_SUBAGENT_SLUG,
+  type EngineView,
+  type HarnessContractSubject,
+  type LongTurnControls,
+  type OperationShape,
+  type ScenarioStep,
+  type SubjectInputOverrides,
+  type TurnScenario,
 } from "../../../__test-utils__/harness-contract/types.js";
 import type { HermeticEnvironment } from "../../../__test-utils__/hermetic-activity.js";
 import { loopbackHostedRow } from "../../../__test-utils__/loopback-host.js";
@@ -99,7 +113,7 @@ import { createCursorAdapter } from "../adapter.js";
 import { resolveSessionStoreLocation } from "../session-store.js";
 import { hookInputFor, streamArgsFor, STREAM_NAME, type GatedActionKind } from "./cursor-hook-harness.js";
 import { FIXTURE, SDK_CATALOG, hermeticCursorConfig, runWorkspaceHook } from "./hermetic-cursor.js";
-import { ScriptedCursorAgent, sdkEvents, step, type ScriptStep, type ScriptedRun } from "./scripted-agent.js";
+import { ScriptedCursorAgent, sdkEvents, step, type RecordedSend, type ScriptStep, type ScriptedRun } from "./scripted-agent.js";
 import { ScriptedCursorSdk, bindScriptedSdk } from "./scripted-sdk.js";
 import { ApprovalAction } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
@@ -111,6 +125,15 @@ const ALLOWED_RESULT = "ok (kit)";
 
 /** The error the SDK surfaces on a hook-denied call, as the goldens script it. */
 const HOOK_BLOCKED_RESULT = "Blocked by hook";
+
+/** What the kit's helper answers a delegated task with; the parent's turn reads it as the subagent's result. */
+const SUBAGENT_RESULT = { conversationSteps: [{ type: "assistantMessage", message: { text: "The delegated work is done." } }] };
+
+/** One operation an `open` step holds: the run it streams through, and the latch the kit releases. */
+interface OpenOperation {
+  readonly run: ScriptedRun;
+  readonly release: () => void;
+}
 
 /** What this subject remembers about one proposal id across the turns of an execution. */
 interface ProposalMemory {
@@ -159,7 +182,31 @@ class CursorSubject implements CursorContractSubject {
   private readonly proposals = new Map<string, ProposalMemory>();
   private readonly forcedReissues = new Set<string>();
   private readonly hangWaiters: Array<() => void> = [];
+  private readonly openOperations = new Map<string, OpenOperation>();
+  private readonly openWaiters = new Map<string, Array<() => void>>();
+  /** The ids the kit has released: an operation opened under one of them later finishes at once. */
+  private readonly released = new Set<string>();
+  private readonly compactionCounts = new Map<string, number>();
   private mintCounter = 0;
+  readonly longTurn: LongTurnControls = {
+    whenOpen: (toolCallId) =>
+      this.openOperations.has(toolCallId)
+        ? Promise.resolve()
+        : new Promise((resolve) => this.openWaiters.set(toolCallId, [...(this.openWaiters.get(toolCallId) ?? []), resolve])),
+    emit: async (toolCallId, line) => {
+      const operation = this.openOperations.get(toolCallId);
+      if (!operation) throw new Error(`${this.name}: emit(${toolCallId}) with no such operation open (kit bug)`);
+      await operation.run.fireDelta({ type: "shell-output-delta", event: { callId: toolCallId, type: "stdout", data: `${line}\n` } });
+    },
+    release: async (toolCallId) => {
+      const operation = this.openOperations.get(toolCallId);
+      this.released.add(toolCallId);
+      operation?.release();
+    },
+    tasksHanded: (sessionId, message) =>
+      (this.agents.get(sessionId)?.sends ?? []).filter((send) => textOfSend(send.message).includes(message)).length,
+    compactions: (sessionId) => this.compactionCounts.get(sessionId) ?? 0,
+  };
 
   constructor(private readonly env: HermeticEnvironment) {
     this.config = hermeticCursorConfig(env);
@@ -292,6 +339,19 @@ class CursorSubject implements CursorContractSubject {
           break;
         case "limit":
           throw new Error(`${this.name}: limit() is not producible by this subject (the Cursor SDK has no tool-round budget; the runtime arm is declared off for it); test bug`);
+        case "open":
+          script.push(...this.openSteps(s.toolCallId, s.as, ev));
+          break;
+        case "compact":
+          script.push(
+            step.delta({ type: "summary-started" }),
+            step.delta({ type: "summary", summary: "The conversation so far, condensed (kit)." }),
+            step.delta({ type: "summary-completed" }),
+            step.effect("kit: count the compaction the server reported", () => {
+              this.compactionCounts.set(view.sessionId, (this.compactionCounts.get(view.sessionId) ?? 0) + 1);
+            }),
+          );
+          break;
         default: {
           const exhaustive: never = s;
           throw new Error(`${this.name}: unknown scenario step ${JSON.stringify(exhaustive)}`);
@@ -426,6 +486,45 @@ class CursorSubject implements CursorContractSubject {
   }
 
   /**
+   * An operation the kit holds open: the stream's `running` event, a step
+   * parked on the kit's release or the run's cancel, and the completion. A
+   * subagent is Cursor's `task` call to the kit's helper.
+   */
+  private openSteps(toolCallId: string, shape: OperationShape, ev: ReturnType<typeof sdkEvents>): ScriptStep[] {
+    const [name, args, result] =
+      shape === "subagent"
+        ? ["task", { subagentType: KIT_SUBAGENT_SLUG, description: "The kit's delegated work.", prompt: "Do the delegated work." }, SUBAGENT_RESULT]
+        : ["shell", { command: `kit operation ${toolCallId}` }, "done"];
+    return [
+      step.event(ev.toolCall(toolCallId, name, "running", args)),
+      step.effect(`kit: ${name} ${toolCallId} runs until the kit releases it`, ({ run }) => this.holdOpen(toolCallId, run)),
+      step.event(ev.toolCall(toolCallId, name, "completed", args, result)),
+    ];
+  }
+
+  private async holdOpen(toolCallId: string, run: ScriptedRun): Promise<void> {
+    let release: () => void = () => {};
+    const released = new Promise<void>((resolve) => (release = resolve));
+    this.openOperations.set(toolCallId, { run, release });
+    if (this.released.has(toolCallId)) release();
+    for (const waiter of this.openWaiters.get(toolCallId) ?? []) waiter();
+    this.openWaiters.delete(toolCallId);
+    const cancelled = new Promise<void>((resolve) => {
+      if (run.status === "cancelled") return resolve();
+      const unsubscribe = run.onDidChangeStatus((status) => {
+        if (status !== "cancelled") return;
+        unsubscribe();
+        resolve();
+      });
+    });
+    try {
+      await Promise.race([released, cancelled]);
+    } finally {
+      this.openOperations.delete(toolCallId);
+    }
+  }
+
+  /**
    * Park until the adapter cancels the run — the real shape of "the engine
    * makes no progress until told to stop": the adapter's stop-signal listener
    * calls `run.cancel()`, the double's status flips, and its stream breaks at
@@ -442,4 +541,10 @@ class CursorSubject implements CursorContractSubject {
       });
     });
   }
+}
+
+/** The text of a prompt the adapter sent: the string itself, or a structured message's text parts. */
+function textOfSend(message: RecordedSend["message"]): string {
+  if (typeof message === "string") return message;
+  return JSON.stringify(message);
 }

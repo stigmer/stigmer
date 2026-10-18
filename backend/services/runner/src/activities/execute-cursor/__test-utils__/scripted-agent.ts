@@ -255,6 +255,15 @@ export class ScriptedRun implements Run {
     return { id: this.id, ...this.scriptedResult };
   }
 
+  /**
+   * Fire a delta from inside a step, as the SDK does while a tool runs (its
+   * output streams through `onDelta` between the call's own stream events):
+   * an `effect` that holds a tool open reaches the delta channel here.
+   */
+  async fireDelta(update: InteractionUpdate): Promise<void> {
+    await this.onDelta?.({ update });
+  }
+
   async cancel(): Promise<void> {
     this.cancelCalls.push(Date.now());
     this.cancelled = true;

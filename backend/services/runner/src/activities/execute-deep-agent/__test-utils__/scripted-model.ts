@@ -50,6 +50,14 @@
  * stop is what unparks it. The `onPark` hook is how a test learns the engine
  * is silent before it stops the turn from the outside.
  *
+ * The model can be given a context window ({@link ScriptedModelOptions.contextWindow}):
+ * deepagents' summarization middleware reads `profile.maxInputTokens` off the
+ * request's model and compacts at 0.85 of it, counting the transcript's own
+ * content, never reported usage. A summary call is the same model's
+ * `invoke` with one human message that opens with the middleware's summary
+ * prompt; the double answers it out of band ({@link isSummaryRequest}), so a
+ * compaction never takes a scripted turn, and reports it through `onSummary`.
+ *
  * The model STREAMS. With LangGraph's v3 messages handler attached, LangChain
  * Core streams a model internally when it implements `_streamResponseChunks`
  * and otherwise falls back to a synthesized final-message event sequence
@@ -76,6 +84,7 @@ import type { CallbackManagerForLLMRun } from "@langchain/core/callbacks/manager
 import {
   AIMessage,
   AIMessageChunk,
+  HumanMessage,
   SystemMessage,
   ToolMessage,
   isAIMessage,
@@ -84,6 +93,7 @@ import {
   type ContentBlock,
   type UsageMetadata,
 } from "@langchain/core/messages";
+import type { ModelProfile } from "@langchain/core/language_models/profile";
 import { ChatGenerationChunk, type ChatResult } from "@langchain/core/outputs";
 
 /** A single tool call the scripted model proposes on a turn. */
@@ -127,6 +137,12 @@ export type TurnEnding = { readonly kind: "fail"; readonly error: Error } | { re
  * chunks are streamed, then the ending takes the call.
  */
 export interface ScriptedTurn {
+  /**
+   * The call waits for this promise before its chunks — a model that takes
+   * its time, held by the test, never by a timer. The call's abort ends the
+   * wait the way a `hang` ends: by throwing the abort.
+   */
+  readonly waitsFor?: Promise<void>;
   readonly reasoning?: string;
   readonly text?: string;
   readonly toolCalls?: readonly ScriptedToolCall[];
@@ -229,6 +245,33 @@ export interface ScriptedModelOptions {
    * so the stop lands in the hang and never in the adapter's setup.
    */
   readonly onPark?: () => void;
+  /**
+   * The window this model reports in its profile (`maxInputTokens`), which
+   * deepagents' summarization middleware compacts at 0.85 of. Absent, the
+   * profile is `BaseChatModel`'s empty one and the middleware falls back to
+   * its fixed 170,000-token trigger. A function is read on every profile
+   * read, as the middleware reads it on every call: a test may size the
+   * window once it has seen the first request.
+   */
+  readonly contextWindow?: number | (() => number | undefined);
+  /** Called once per summary call the double answers (see the header): the compaction count. */
+  readonly onSummary?: () => void;
+}
+
+/**
+ * How deepagents' summary prompt opens (`DEFAULT_SUMMARY_PROMPT`, deepagents
+ * 1.14.1 `dist/langsmith-*.js`; not exported). `scripted-model.test.ts`
+ * provokes a real compaction, so a library that rewords it fails there.
+ */
+export const SUMMARY_PROMPT_OPENING = "You are a conversation summarizer.";
+
+/** What the double answers every summary call with. */
+export const SCRIPTED_SUMMARY = "Summary (scripted): the conversation so far, condensed.";
+
+/** A summary call: exactly one human message, opening with the summary prompt. */
+export function isSummaryRequest(messages: readonly BaseMessage[]): boolean {
+  if (messages.length !== 1 || !HumanMessage.isInstance(messages[0])) return false;
+  return messages[0].text.startsWith(SUMMARY_PROMPT_OPENING);
 }
 
 /**
@@ -260,6 +303,13 @@ export class ScriptedModel extends BaseChatModel {
     return "scripted";
   }
 
+  /** The window the options name, as a real provider's profile states it; `BaseChatModel`'s empty profile otherwise. */
+  override get profile(): ModelProfile {
+    const { contextWindow } = this.options;
+    const window = typeof contextWindow === "function" ? contextWindow() : contextWindow;
+    return window === undefined ? super.profile : { maxInputTokens: window };
+  }
+
   bindTools(tools: unknown[]): this {
     const next = new ScriptedModel(this.select, this.boundTools, this.options);
     next.toolNames = tools.map(boundToolName);
@@ -270,6 +320,10 @@ export class ScriptedModel extends BaseChatModel {
 
   /** The turn for this transcript, after the driver hook has run. */
   private async turnFor(messages: BaseMessage[]): Promise<ScriptedTurn> {
+    if (isSummaryRequest(messages)) {
+      this.options.onSummary?.();
+      return { text: SCRIPTED_SUMMARY };
+    }
     assertProviderTranscript(messages);
     const round = completedToolRounds(messages);
     await this.options.onTurn?.({
@@ -296,6 +350,7 @@ export class ScriptedModel extends BaseChatModel {
    */
   async _generate(messages: BaseMessage[], options: this["ParsedCallOptions"]): Promise<ChatResult> {
     const turn = await this.turnFor(messages);
+    if (turn.waitsFor) await this.waitOut(turn.waitsFor, options.signal);
     if (turn.ends) await this.takeEnding(turn.ends, options.signal);
     const message = renderTurnChunks(turn).reduce((merged, chunk) => merged.concat(chunk));
     return { generations: [{ message, text: turn.text ?? "" }] };
@@ -307,10 +362,30 @@ export class ScriptedModel extends BaseChatModel {
     _runManager?: CallbackManagerForLLMRun,
   ): AsyncGenerator<ChatGenerationChunk> {
     const turn = await this.turnFor(messages);
+    if (turn.waitsFor) await this.waitOut(turn.waitsFor, options.signal);
     for (const chunk of renderTurnChunks(turn)) {
       yield new ChatGenerationChunk({ message: chunk, text: typeof chunk.content === "string" ? chunk.content : "" });
     }
     if (turn.ends) await this.takeEnding(turn.ends, options.signal);
+  }
+
+  /** Wait for a turn's hold; the call's abort, when it fires first, ends it with the abort. */
+  private async waitOut(hold: Promise<void>, signal: AbortSignal | undefined): Promise<void> {
+    if (!signal) {
+      await hold;
+      return;
+    }
+    if (signal.aborted) throw abortErrorOf(signal);
+    let onAbort: (() => void) | undefined;
+    const aborted = new Promise<"aborted">((resolve) => {
+      onAbort = () => resolve("aborted");
+      signal.addEventListener("abort", onAbort, { once: true });
+    });
+    try {
+      if ((await Promise.race([hold.then(() => "held" as const), aborted])) === "aborted") throw abortErrorOf(signal);
+    } finally {
+      if (onAbort) signal.removeEventListener("abort", onAbort);
+    }
   }
 
   /** Never returns: throws the ending's error, or parks on the signal and throws its abort. */

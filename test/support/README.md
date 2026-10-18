@@ -16,6 +16,7 @@ The test machinery two or more suites share, in one place (`test/README.md`, "Th
 | `jwt`, `local-oidc-issuer`, `local-oidc-issuer-main` | A hermetic OIDC issuer, in process or as a process |
 | `oauth-authorization-server` | A hermetic OAuth authorization server |
 | `real-plugins` | Real Claude Code plugins vendored whole under `fixtures/claude-plugins/` (hookify), scripts included: a plugin's files as a push's archive input, the manifest of upstream's git blob SHAs a test holds them to, and a rule from the plugin's own examples |
+| `known-gap` | `expectKnownGap`: a case that asserts what the user should get, passes while a named open issue's own outcome still holds, fails once the gap closes (remove the mark), and fails with both errors when neither holds; the runner's twin is `backend/services/runner/src/__test-utils__/known-gap.ts` |
 
 ## The rule
 
