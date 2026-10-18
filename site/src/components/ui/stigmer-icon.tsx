@@ -1,5 +1,5 @@
-/** Render the canonical three-fin brand outline using the surrounding theme color. */
-import { MARK_PATHS } from "../../../../brand/geometry";
+/** Render the approved shaded mark in the dark documentation header. */
+import { SHADED_PATHS } from "../../../../brand/shaded-geometry";
 
 export function StigmerIcon({
   size = 24,
@@ -18,8 +18,8 @@ export function StigmerIcon({
       aria-label="Stigmer"
       role="img"
     >
-      {MARK_PATHS.map((d, index) => (
-        <path key={index} d={d} />
+      {SHADED_PATHS.map(({ d, dark }, index) => (
+        <path key={index} d={d} fill={dark} />
       ))}
     </svg>
   );

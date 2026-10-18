@@ -5,7 +5,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import sharp from "sharp";
 import { StigmerMark } from "../../marketing/src/films/intro/graphics/StigmerMark.js";
-import { brandSvg } from "../assets.mjs";
+import { brandShadedSvg } from "../assets.mjs";
 
 async function alpha(reveal?: (index: number) => number): Promise<Buffer> {
   const svg = renderToStaticMarkup(
@@ -15,7 +15,7 @@ async function alpha(reveal?: (index: number) => number): Promise<Buffer> {
 }
 
 test("the fully revealed film mark matches the static SVG silhouette", async () => {
-  const expected = await sharp(Buffer.from(await brandSvg({ size: 128 })))
+  const expected = await sharp(Buffer.from(await brandShadedSvg({ size: 128 })))
     .extractChannel("alpha")
     .raw()
     .toBuffer();

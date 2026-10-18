@@ -5,10 +5,12 @@ circular avatar uploads. It is a 1024 × 1024 PNG of the shaded mark on a
 graphite background.
 
 The mark comes in two forms. The **shaded** mark lights each face of the hexagon
-and of the inner cube in its own gray, so it reads as a solid object; use it at
-48 px and larger: avatars, app icons, touch icons and social images. The
-**flat** mark is one color; use it below 48 px, for favicons and the menu bar
-icon, inside the product UI, and anywhere a single ink is required.
+and of the inner cube in its own gray, so it reads as a solid object. It is the
+default for website and docs headers,
+lockups, avatars, sign-in branding, app icons, touch icons and social images.
+The **flat** mark is one color; reserve it for tiny favicons, the menu bar icon,
+and anywhere a single ink is required. There is no blanket 48 px cutoff: check
+the artwork at its actual display size.
 
 The logo uses two tones, never pure black or white: graphite `#1c1c1e` for the
 dark mark and dark backgrounds, and light gray `#ededed` for the light mark and
@@ -27,6 +29,9 @@ reads those names.
 | `logo-white.png`        | Flat white mark, transparent background, 1024 × 1024        |
 | `logo.svg`              | Flat dark vector mark; the canonical outline                |
 | `logo-white.svg`        | Flat white vector mark for dark backgrounds                 |
+
+The default lockups are shaded. The `logo-lockup-flat` SVG and PNG files (with
+`-white` variants) preserve the one-color pairing for single-ink uses.
 
 Use **logo-lockup.svg** when the name should appear beside the symbol, such as a
 website header, presentation or sponsorship listing. The horizontal pairing uses
@@ -54,8 +59,8 @@ three-fin mark is a closed hexagonal enclosure with three broad, angled fins
 joined to its lower-right wall, each rising the full height of the inner cube's
 side. The inner negative space gives the impression of a cube. It is one filled
 outline with a transparent interior; no strokes, masks, gradients or separate
-dots are needed. `geometry.ts` is generated for the inline UI marks; do not edit
-it directly.
+dots are needed. `geometry.ts` and `shaded-geometry.ts` are generated for inline UI marks; do not
+edit them directly.
 
 `source/shaded.svg` draws the shaded mark over the same outline as seven filled
 faces, in this order: the inner cube's top, left and right, then the hexagon's
