@@ -65,8 +65,9 @@ way.
   add more: **Also allow package registries and code hosts** (the
   [list below](#the-package-registries-and-code-hosts)) and **Also allow this
   Agent's MCP servers** (the addresses of the conversation's Agent's and
-  subagents' MCP servers). Plain HTTP reaches only the Debian and Ubuntu
-  archives, which publish their packages that way; everything else is HTTPS.
+  subagents' MCP servers). Of all those hosts, only the Debian and Ubuntu
+  archives are reached over plain HTTP too, because they publish their packages
+  that way.
 - **A description**, shown wherever the Environment is listed.
 
 An Environment never holds a secret, an environment variable, an image or a
@@ -152,9 +153,9 @@ install fails naming what to add, such as `ruby-full` in the `apt` packages for
 ## What a blocked website looks like
 
 Under limited networking, an HTTPS connection to a host the list doesn't admit
-is closed during its handshake, so a tool reports a connection or certificate
-error. A plain HTTP request is answered `403` with the body `egress denied`; it
-doesn't name the host.
+is closed during its handshake, so a tool reports a connection or TLS error. A
+plain HTTP request is answered `403` with the body `egress denied`; it doesn't
+name the host.
 
 Two cases to know about:
 
@@ -264,12 +265,13 @@ haven't picked one.
   every subdomain at any depth. Here it matches exactly one more label, the
   meaning of the gateway that enforces the list, so a list written for Managed
   Agents admits less here, never more.
-- **No install cache.** Managed Agents caches packages across sessions. Here
-  every fresh sandbox installs them, and the time is the conversation's working
-  time. A cache would hold files across people's conversations, which a sandbox
-  per conversation is meant to avoid.
-- **Deleting is refused while something names it, instead of archiving.** One
-  lifecycle: an Environment is either in use, and kept, or removed.
+- **No install cache yet.** Managed Agents caches packages across the sessions
+  that share an environment. Here every fresh sandbox installs them, and the
+  time is the conversation's working time.
+- **Deleting is refused while something names it, instead of archiving.** An
+  Environment is either kept or removed, with nothing in between, and the
+  refusal names what still uses it, so a removal never surprises an Agent or a
+  routine.
 - **An Agent's default and an Organization's.** Channels, chat links,
   evaluations and routines start conversations nobody configures by hand, so an
   Agent and an Organization can each say which Environment those get.
