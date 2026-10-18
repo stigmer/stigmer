@@ -30,9 +30,9 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| AgentCommandController.apply | `metadata.org`, `spec.skill_refs.org`, `spec.plugins.org`, `spec.subagents.org` |
-| AgentCommandController.create | `metadata.org`, `spec.skill_refs.org`, `spec.plugins.org`, `spec.subagents.org` |
-| AgentCommandController.update | `resource.metadata.org`, `resource.spec.skill_refs.org`, `resource.spec.plugins.org`, `resource.spec.subagents.org` |
+| AgentCommandController.apply | `metadata.org`, `spec.skill_refs.org`, `spec.plugins.org`, `spec.subagents.org`, `spec.environment_ref.org` |
+| AgentCommandController.create | `metadata.org`, `spec.skill_refs.org`, `spec.plugins.org`, `spec.subagents.org`, `spec.environment_ref.org` |
+| AgentCommandController.update | `resource.metadata.org`, `resource.spec.skill_refs.org`, `resource.spec.plugins.org`, `resource.spec.subagents.org`, `resource.spec.environment_ref.org` |
 | AgentQueryController.getByReference | `org` |
 | AgentQueryController.list | `org` |
 | AgentQueryController.listVersions | `org` |
@@ -56,9 +56,9 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| RoutineCommandController.apply | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.vaults.org` |
-| RoutineCommandController.create | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.vaults.org` |
-| RoutineCommandController.update | `resource.metadata.org`, `resource.spec.agent.agent_ref.org`, `resource.spec.agent.vaults.org` |
+| RoutineCommandController.apply | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.vaults.org`, `spec.agent.environment_ref.org` |
+| RoutineCommandController.create | `metadata.org`, `spec.agent.agent_ref.org`, `spec.agent.vaults.org`, `spec.agent.environment_ref.org` |
+| RoutineCommandController.update | `resource.metadata.org`, `resource.spec.agent.agent_ref.org`, `resource.spec.agent.vaults.org`, `resource.spec.agent.environment_ref.org` |
 | RoutineQueryController.listByAgent | `org` |
 | RoutineQueryController.getByReference | `org` |
 | RoutineQueryController.list | `org` |
@@ -67,8 +67,8 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| RunCommandController.create | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.skill_refs.org`, `spec.session_spec.vaults.org`, `spec.session_spec.plugins.org`, `status.loaded_versions.skills.org`, `status.loaded_versions.plugins.org` |
-| RunCommandController.update | `resource.metadata.org`, `resource.spec.session_spec.agent_ref.org`, `resource.spec.session_spec.skill_refs.org`, `resource.spec.session_spec.vaults.org`, `resource.spec.session_spec.plugins.org`, `resource.status.loaded_versions.skills.org`, `resource.status.loaded_versions.plugins.org` |
+| RunCommandController.create | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.skill_refs.org`, `spec.session_spec.vaults.org`, `spec.session_spec.plugins.org`, `spec.session_spec.environment_ref.org`, `status.loaded_versions.skills.org`, `status.loaded_versions.plugins.org` |
+| RunCommandController.update | `resource.metadata.org`, `resource.spec.session_spec.agent_ref.org`, `resource.spec.session_spec.skill_refs.org`, `resource.spec.session_spec.vaults.org`, `resource.spec.session_spec.plugins.org`, `resource.spec.session_spec.environment_ref.org`, `resource.status.loaded_versions.skills.org`, `resource.status.loaded_versions.plugins.org` |
 | RunCommandController.updateStatus | `status.loaded_versions.skills.org`, `status.loaded_versions.plugins.org` |
 | RunQueryController.getAgentUsageReport | `org` |
 | RunQueryController.getRunSummary | `org` |
@@ -84,6 +84,11 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | ChannelAppCommandController.update | `resource.metadata.org` |
 | ChannelAppQueryController.getByReference | `org` |
 | ChannelAppQueryController.list | `org` |
+| EnvironmentCommandController.apply | `metadata.org` |
+| EnvironmentCommandController.create | `metadata.org` |
+| EnvironmentCommandController.update | `resource.metadata.org` |
+| EnvironmentQueryController.getByReference | `org` |
+| EnvironmentQueryController.list | `org` |
 
 ## `ai.stigmer.agentic.eval.v1`
 
@@ -143,9 +148,9 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| SessionCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.skill_refs.org`, `spec.vaults.org`, `spec.plugins.org` |
-| SessionCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.skill_refs.org`, `spec.vaults.org`, `spec.plugins.org` |
-| SessionCommandController.update | `resource.metadata.org`, `resource.spec.agent_ref.org`, `resource.spec.skill_refs.org`, `resource.spec.vaults.org`, `resource.spec.plugins.org` |
+| SessionCommandController.apply | `metadata.org`, `spec.agent_ref.org`, `spec.skill_refs.org`, `spec.vaults.org`, `spec.plugins.org`, `spec.environment_ref.org`, `status.environment.org` |
+| SessionCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.skill_refs.org`, `spec.vaults.org`, `spec.plugins.org`, `spec.environment_ref.org`, `status.environment.org` |
+| SessionCommandController.update | `resource.metadata.org`, `resource.spec.agent_ref.org`, `resource.spec.skill_refs.org`, `resource.spec.vaults.org`, `resource.spec.plugins.org`, `resource.spec.environment_ref.org`, `resource.status.environment.org` |
 | SessionQueryController.list | `org` |
 
 ## `ai.stigmer.agentic.skill.v1`
@@ -251,11 +256,11 @@ Rows read `| Service.method | <field>, <field>, … |`.
 
 | Method | Organization fields |
 |---|---|
-| OrganizationCommandController.apply | `metadata.org`, `spec.parent_org`, `spec.embedding.vaults.org` |
-| OrganizationCommandController.create | `metadata.org`, `spec.parent_org`, `spec.embedding.vaults.org` |
+| OrganizationCommandController.apply | `metadata.org`, `spec.parent_org`, `spec.preferences.default_environment_ref.org`, `spec.embedding.vaults.org` |
+| OrganizationCommandController.create | `metadata.org`, `spec.parent_org`, `spec.preferences.default_environment_ref.org`, `spec.embedding.vaults.org` |
 | OrganizationCommandController.delete | `value (annotation)` |
 | OrganizationCommandController.rename | `resource_id (annotation)` |
-| OrganizationCommandController.update | `resource.metadata.org`, `resource.spec.parent_org`, `resource.spec.embedding.vaults.org`, `resource.metadata.id (annotation)` |
+| OrganizationCommandController.update | `resource.metadata.org`, `resource.spec.parent_org`, `resource.spec.preferences.default_environment_ref.org`, `resource.spec.embedding.vaults.org`, `resource.metadata.id (annotation)` |
 | OrganizationCommandController.updateEmbedding | `embedding.vaults.org`, `org_id (annotation)` |
 | OrganizationCommandController.updatePolicies | `org_id (annotation)` |
 | OrganizationQueryController.get | `value (annotation)` |

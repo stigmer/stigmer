@@ -170,7 +170,7 @@ describe("REFERENCE_TARGET_KINDS against the contract", () => {
     ).toEqual([K.skill, K.agent, K.plugin]);
     expect(
       REFERENCE_TARGET_KINDS.filter((e) => !e.readByRun).map((e) => e.kind),
-    ).toEqual([K.eval, K.vault, K.channel_app]);
+    ).toEqual([K.eval, K.vault, K.environment, K.channel_app]);
   });
 });
 
@@ -1180,7 +1180,7 @@ describe("GuardReferenceFloorOnEscalation", () => {
   });
 });
 
-describe("the writer clause: a write may introduce only a vault its writer may use", () => {
+describe("the writer clause: a write may introduce only a vault its writer may use, or an environment it may view", () => {
   let store: SqliteStore;
   let cleanup: () => Promise<void>;
 
@@ -1385,10 +1385,14 @@ describe("the writer clause: a write may introduce only a vault its writer may u
     expect((error as ConnectError).code).toBe(Code.InvalidArgument);
   });
 
-  it("only vaults carry the clause: other kinds are judged by existence and the floor alone", () => {
+  it("only vaults and environments carry the clause: other kinds are judged by existence and the floor alone", () => {
     for (const entry of REFERENCE_TARGET_KINDS) {
       expect(entry.writerMust).toBe(
-        entry.kind === K.vault ? IamPermission.can_use : undefined,
+        entry.kind === K.vault
+          ? IamPermission.can_use
+          : entry.kind === K.environment
+            ? IamPermission.can_view
+            : undefined,
       );
     }
   });

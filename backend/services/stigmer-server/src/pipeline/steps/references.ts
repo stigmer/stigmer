@@ -49,7 +49,10 @@
  *        edition's Authorizer. Vaults carry it with `can_use`: the server
  *        opens a vault for the run, and the run is a person with a shell,
  *        so attaching a vault one may not use would hand its values to
- *        whoever runs the surface. A refusal is PERMISSION_DENIED with its
+ *        whoever runs the surface. Environments carry it with `can_view`:
+ *        whoever names one for a conversation, a routine, an agent's
+ *        default or the organization's default vouches for it, and must be
+ *        able to see what it installs and reaches. A refusal is PERMISSION_DENIED with its
  *        own sentence. Judging only what a write introduces is the
  *        reserved-label guard's echo rule (guard-reserved-labels.ts): an
  *        edit that keeps an attachment someone else made passes, and the

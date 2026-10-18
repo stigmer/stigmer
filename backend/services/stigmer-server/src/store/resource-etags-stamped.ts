@@ -43,6 +43,7 @@ import type { DescMessage } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { EnvironmentSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
 import { ScoringRuleSchema } from "@stigmer/apis/ai/stigmer/agentic/scoringrule/v1/api_pb";
 import { MemorySchema } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/api_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -81,6 +82,7 @@ export const RESOURCE_SCHEMAS: ReadonlyMap<ApiResourceKind, DescMessage> = new M
   [ApiResourceKind.channel, ChannelSchema],
   [ApiResourceKind.api_key, ApiKeySchema],
   [ApiResourceKind.channel_app, ChannelAppSchema],
+  [ApiResourceKind.environment, EnvironmentSchema],
   [ApiResourceKind.scoring_rule, ScoringRuleSchema],
   [ApiResourceKind.grant, GrantSchema],
   [ApiResourceKind.identity_account, IdentityAccountSchema],

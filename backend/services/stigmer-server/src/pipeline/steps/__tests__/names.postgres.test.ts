@@ -104,6 +104,7 @@ const CLAIMING_KINDS = [
   ApiResourceKind.scoring_rule,
   ApiResourceKind.eval,
   ApiResourceKind.eval_run,
+  ApiResourceKind.environment,
 ];
 
 describe("NAMED_KINDS", () => {
