@@ -67,6 +67,8 @@ export interface LongTurnReport {
     readonly stepsEnded: number;
     readonly stoppedByBudget: boolean;
     readonly transcript: TranscriptCheck | undefined;
+    /** The agent's final reply on the turn (its last message's text), "" when it wrote none: what a live model answered instead of acting, when it did. */
+    readonly reply?: string;
   };
 }
 
@@ -105,6 +107,7 @@ export function renderSummary(report: LongTurnReport): string {
       : `ended ${end.phase} at minute ${end.elapsedMinutes}`;
     lines.push(`**Outcome**: ${outcome}, at step \`${end.atStep ?? "none"}\`, ${end.stepsEnded} of ${report.steps.length} steps ended.`);
     if (end.error !== "") lines.push("", `Error: ${end.error}`);
+    if (end.reply !== undefined && end.reply !== "") lines.push("", `Reply: ${end.reply.length > 600 ? `${end.reply.slice(0, 600)}…` : end.reply}`);
     if (end.transcript !== undefined) {
       const t = end.transcript;
       lines.push(

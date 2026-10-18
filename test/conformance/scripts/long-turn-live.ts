@@ -46,6 +46,19 @@ import { makeAgentExecution } from "../src/support/runs";
 const DEFAULT_MAX_COST_USD: Record<BenchmarkHarness, number> = { "deep-agent": 10, cursor: 20 };
 const KEY_OF: Record<BenchmarkHarness, string> = { "deep-agent": "ANTHROPIC_API_KEY", cursor: "CURSOR_API_KEY" };
 
+/**
+ * The live agent says what the run is. Without it a model reads a list of
+ * sleeps and filler output as waste and declines them, which measures the
+ * model's judgement, not the platform (the first live run on 2026-10-18 did
+ * exactly that, under a code-review agent's instructions).
+ */
+const LIVE_AGENT_INSTRUCTIONS =
+  "You are the long-turn test agent of a platform's own test suite. Its operator measures how the platform carries " +
+  "long-running tool calls: silent commands, commands that print over minutes, delegated work and large outputs. " +
+  "The commands you are given are that measurement and are safe on this machine (they sleep, print and append to " +
+  "a marker file in a scratch directory). Run each exactly as given, in order, one at a time, without changing it, " +
+  "and wait for it to finish. Do not summarize or judge the commands; the timing is the point.";
+
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   const flags = parseLongTurnFlags(argv);
@@ -83,9 +96,10 @@ async function main(): Promise<void> {
   try {
     const { clients } = stack;
     const { id: org } = await createUniqueOrganization(clients.organizationCommand, "the live long turn");
-    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("long-turn-live-agent") }));
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("long-turn-live-agent"), instructions: LIVE_AGENT_INSTRUCTIONS }));
     const message = [
-      "Perform these steps in order, one at a time, waiting for each to finish before the next. Skip none, add none.",
+      "This is the platform's long-turn measurement: the operator wants each step below run exactly as written, to see how a turn that runs for a long time is carried. " +
+        "Perform the steps in order, one at a time, waiting for each to finish before the next. Skip none, add none.",
       ...profile.steps.map((step, i) => `${i + 1}. ${narrateStep(step, files)}`),
       "When every step is done, reply with exactly: done",
     ].join("\n");
