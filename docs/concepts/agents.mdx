@@ -112,10 +112,10 @@ The Agent's `env` map declares the keys it needs, never a person's values.
 Values reach a run when it starts, from [vaults](/docs/concepts/vaults): the My
 vault of the person sending the message, when the conversation includes it, then
 the vaults the conversation lists. An Agent carries no vaults: it is a
-blueprint, and each conversation names its own. A run no person sent (a routine's
-or a channel's) uses only the vaults its conversation and that routine or channel
-name. The same Agent runs with test credentials from one routine and production
-credentials from another, and its definition never changes.
+blueprint, and each conversation names its own. A run no person sent (a
+routine's or a channel's) uses only the vaults its conversation and that routine
+or channel name. The same Agent runs with test credentials from one routine and
+production credentials from another, and its definition never changes.
 
 ### Sessions and runs
 
@@ -341,9 +341,8 @@ Stigmer appears when you create Agents tailored to your domain, and a
 conversation can pick one up at any point: choosing an Agent binds the Session
 to it, and removing the Agent returns the Session to the assistant.
 
-Routines and channels always name an Agent; they never fall back to the
-built-in assistant. The built-in assistant is for a person opening a
-conversation.
+Routines and channels always name an Agent; they never fall back to the built-in
+assistant. The built-in assistant is for a person opening a conversation.
 
 ## Instructions matter
 

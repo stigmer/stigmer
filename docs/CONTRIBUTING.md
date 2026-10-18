@@ -43,14 +43,14 @@ configures Husky pre-commit hooks.
 Documentation lives in `docs/` at the repo root. Fumadocs renders it at `/docs/`
 on the site. The sections, in sidebar order, are:
 
-| Directory          | Purpose                                             |
-| ------------------ | --------------------------------------------------- |
-| `getting-started/` | Cloud quickstart, local quickstart, first Skill     |
-| `concepts/`        | Core concepts (Agents, Skills, Sessions, etc.)      |
+| Directory          | Purpose                                            |
+| ------------------ | -------------------------------------------------- |
+| `getting-started/` | Cloud quickstart, local quickstart, first Skill    |
+| `concepts/`        | Core concepts (Agents, Skills, Sessions, etc.)     |
 | `tutorials/`       | Progressive tutorials (tools, approvals, Routines) |
-| `sdks/`            | Per-language SDK guides                             |
-| `cli/`             | CLI overview and command reference                  |
-| `reference/`       | API reference                                       |
+| `sdks/`            | Per-language SDK guides                            |
+| `cli/`             | CLI overview and command reference                 |
+| `reference/`       | API reference                                      |
 
 Non-rendered files that remain in `docs/` but are excluded from the sidebar:
 `vocabulary.md`, `STYLE.md`, `CONTRIBUTING.md`, `README.md`.

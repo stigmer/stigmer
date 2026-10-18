@@ -17,15 +17,15 @@ change it.
 
 ## The reserved keys
 
-| Key                             | Value                                                                                                                                                                                                     |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `STIGMER_CALLER_IDENTITY_KIND`  | What kind of identity this is: `whatsapp_phone`, `slack_user_id`, `stigmer_user` (a signed-in person, a routine's owner, or the configured operator of a server without sign-in), or `anonymous`          |
-| `STIGMER_CALLER_IDENTITY_VALUE` | The identity itself: the WhatsApp wa_id, the Slack user ID, the Stigmer user's email, or a service account's ID (`ida_…`) when a service account owns the conversation. Empty for `anonymous`             |
-| `STIGMER_SESSION_ID`            | The Session the identity was resolved for. Empty outside a Session                                                                                                                                        |
+| Key                             | Value                                                                                                                                                                                            |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `STIGMER_CALLER_IDENTITY_KIND`  | What kind of identity this is: `whatsapp_phone`, `slack_user_id`, `stigmer_user` (a signed-in person, a routine's owner, or the configured operator of a server without sign-in), or `anonymous` |
+| `STIGMER_CALLER_IDENTITY_VALUE` | The identity itself: the WhatsApp wa*id, the Slack user ID, the Stigmer user's email, or a service account's ID (`ida*…`) when a service account owns the conversation. Empty for `anonymous`    |
+| `STIGMER_SESSION_ID`            | The Session the identity was resolved for. Empty outside a Session                                                                                                                               |
 
 The identity comes from the strongest source available: the channel-verified
-sender for channel Sessions, the signed-in person for console and CLI Sessions on
-a server with sign-in (stigmer.ai, or a self-hosted server you set sign-in up
+sender for channel Sessions, the signed-in person for console and CLI Sessions
+on a server with sign-in (stigmer.ai, or a self-hosted server you set sign-in up
 on), the routine's owner for a routine's runs, the configured operator identity
 on a server without sign-in, and `anonymous` when none exists.
 
@@ -85,8 +85,8 @@ keep their original attribution and continue to present `anonymous`.
 
 A server without sign-in is a single-operator trust domain, so the identity
 covers everything the server does — console and CLI Sessions and routines alike.
-A grant for the operator email therefore also covers your unattended
-automation; keep that in mind when gating destructive tools.
+A grant for the operator email therefore also covers your unattended automation;
+keep that in mind when gating destructive tools.
 
 A malformed email (no `@`) is refused at `stigmer setup` time, and a malformed
 `STIGMER_OPERATOR_EMAIL` fails the server boot rather than silently stamping a

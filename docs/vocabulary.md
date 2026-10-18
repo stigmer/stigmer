@@ -537,19 +537,19 @@ system calls it with a note.
   instructions. By default a routine starts by hand at most 30 times an hour.
 - **Who it acts as**: every run, on its schedule or started by anyone, acts as
   the routine's owner: the person or service account that created it. On a
-  routine the Owner role is only that account, never granted and never
-  inherited by an Organization's admins, so say "the person who created it" on
-  first use and never call an admin a routine's owner. A routine meant to
-  outlive a person is created by a service account.
+  routine the Owner role is only that account, never granted and never inherited
+  by an Organization's admins, so say "the person who created it" on first use
+  and never call an admin a routine's owner. A routine meant to outlive a person
+  is created by a service account.
 - **Roles**: only the person who created it grants a role on it, to people,
   Teams or service accounts. A **Participant** starts it, with or without a
   note, and reads its conversations; a **Viewer** reads it, its history and its
   conversations, and starts nothing. Only its owner changes what it runs. An
   Organization's admins see it, its history and who has access, and may switch
   it off, rename, relabel, resume or delete it, and remove access; they neither
-  start it, nor change what it runs, nor read its conversations. Granting a
-  role on one routine is Enterprise and Cloud; on open source only its owner
-  starts it.
+  start it, nor change what it runs, nor read its conversations. Granting a role
+  on one routine is Enterprise and Cloud; on open source only its owner starts
+  it.
 - **Disabled vs. paused**: two words, two levers, two writers. A routine is
   **disabled** when its owner sets `enabled: false` in the spec---the owner's
   switch, cleared by the owner editing the spec. A routine is **paused** when
@@ -583,10 +583,10 @@ system calls it with a note.
 
 **Bad examples**:
 
-| Context | Copy                                                       | Problem                                                                                         |
-| ------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Any     | "Create a Schedule for the Agent."                         | The kind is Routine; "Schedule" is its former name.                                             |
-| Any     | "The run acts as the organization's schedule account."     | No such account exists: every run acts as the routine's owner.                                  |
+| Context | Copy                                                        | Problem                                                                                               |
+| ------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Any     | "Create a Schedule for the Agent."                          | The kind is Routine; "Schedule" is its former name.                                                   |
+| Any     | "The run acts as the organization's schedule account."      | No such account exists: every run acts as the routine's owner.                                        |
 | How-to  | "Ask an admin, the routine's owner, to change the message." | An admin is not a routine's owner and cannot change what it runs; only the person who created it can. |
 
 <!-- vale Stigmer.FormerNames = YES -->
@@ -2267,8 +2267,8 @@ mean the person who created it or anyone who inherited the Owner role, and
 
 **Resolution**: The `Routine` kind replaced it, shaped after Claude Code's
 routines: an optional schedule, a start with an optional note, Participant to
-start it, and every run acting as the person or service account that created
-it, in every edition. Each retired word has a replacement, defined in its entry:
+start it, and every run acting as the person or service account that created it,
+in every edition. Each retired word has a replacement, defined in its entry:
 
 - `Schedule` and `kind: Schedule` for the resource: a **Routine** (Routine).
 - `trigger` and `ScheduleFire` for starting one by hand: **start** and **Run

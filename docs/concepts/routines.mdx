@@ -73,14 +73,14 @@ the run: a teammate pressing **Run now** or an alerting tool calling it does not
 change who the run acts as.
 
 A routine's owner is only the account that created it. No one else can be made
-its owner, and an Organization's admins do not become its owner by being
-admins. Only the owner changes what a routine runs: its Agent's message, its
-schedule, its workspace, its vaults. Anyone else who manages it can switch it
-off, but not change the words and credentials that run in the owner's name.
+its owner, and an Organization's admins do not become its owner by being admins.
+Only the owner changes what a routine runs: its Agent's message, its schedule,
+its workspace, its vaults. Anyone else who manages it can switch it off, but not
+change the words and credentials that run in the owner's name.
 
 A routine that must keep running when a person leaves is created by a
-[service account](/docs/guides/authentication/service-accounts), so it acts as that account
-rather than as a teammate.
+[service account](/docs/guides/authentication/service-accounts), so it acts as
+that account rather than as a teammate.
 
 ## Who may start it and read its conversations
 
@@ -127,13 +127,13 @@ Claude Code's routines
 the closest idea, and Stigmer uses their words: a saved configuration that runs
 on a schedule, through **Run now**, or from an API call with a `text` note.
 
-| On Stigmer                                          | What you already know from Claude Code                     |
-| --------------------------------------------------- | ---------------------------------------------------------- |
-| A routine: an Agent, a message, a workspace, vaults | A routine: a prompt, repositories, connectors              |
-| Its schedule, **Run now**, another system's call    | Its schedule, API and GitHub triggers, and **Run now**     |
-| The note, marked as information, not instructions   | The `text`, marked as data, not instructions               |
-| Every run acts as the routine's owner               | Runs act as you                                            |
-| At most 30 starts by hand an hour                   | 30 Run now and API fires an hour, per routine              |
+| On Stigmer                                          | What you already know from Claude Code                 |
+| --------------------------------------------------- | ------------------------------------------------------ |
+| A routine: an Agent, a message, a workspace, vaults | A routine: a prompt, repositories, connectors          |
+| Its schedule, **Run now**, another system's call    | Its schedule, API and GitHub triggers, and **Run now** |
+| The note, marked as information, not instructions   | The `text`, marked as data, not instructions           |
+| Every run acts as the routine's owner               | Runs act as you                                        |
+| At most 30 starts by hand an hour                   | 30 Run now and API fires an hour, per routine          |
 
 Claude Managed Agents' scheduled deployments
 ([Scheduled deployments](https://platform.claude.com/docs/en/managed-agents/scheduled-deployments))
@@ -161,8 +161,7 @@ it.
 ## What's next
 
 A routine runs a conversation for you, unattended, as you. To see what one did,
-and to share that with your team,
-[Sessions](/docs/concepts/sessions) explains how a conversation remembers what
-was said and who may read it, and
+and to share that with your team, [Sessions](/docs/concepts/sessions) explains
+how a conversation remembers what was said and who may read it, and
 [Sharing and access](/docs/concepts/sharing-and-access) explains the roles a
 routine's Participants and Viewers hold.
