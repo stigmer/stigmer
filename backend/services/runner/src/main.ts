@@ -333,6 +333,7 @@ async function main(): Promise<void> {
   const config = loadConfig();
   markBoot("config_loaded");
 
+  /* v8 ignore next -- @preserve: the process boundary; only the runner's own process chooses its mode: the desktop app and test/conformance's runner-ipc harness boot manager mode, the CLI daemon static mode */
   const runnerMode = process.env.STIGMER_RUNNER_MODE === "manager" ? "manager" : "static";
   console.warn(
     `[runner] mode=${runnerMode}, proxy=${config.proxyEndpoint ?? "none"}, ` +
@@ -352,6 +353,7 @@ async function main(): Promise<void> {
   // flushed). The backstop is the safety net, not the path: a healthy runner exits in
   // milliseconds and it never fires; a leaked handle gets a named bound and a log line naming
   // it, instead of holding the process for the orchestrator's whole grace (exit-backstop.ts).
+  /* v8 ignore next -- @preserve: static mode's process boundary, booted by the CLI daemon as the execution conformance lanes and the from-source smokes run it */
   await runStaticMode(config);
   armExitBackstop();
 }
