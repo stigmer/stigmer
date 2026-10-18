@@ -66,6 +66,11 @@ describe("the summary", () => {
     const whole = renderSummary({ ...running, end: { phase: "RUN_COMPLETED", error: "", elapsedMinutes: 9, atStep: undefined, stepsEnded: 2, stoppedByBudget: true, transcript: transcriptCheckOf([1, 2, 3, 4]) } });
     expect(whole).toContain("stopped by the run's budget at minute 9, at step `none`");
     expect(whole).toContain("seq 1 to 4, unbroken.");
+    expect(whole, "no reply line when the turn wrote none").not.toContain("Reply:");
+    const replied = renderSummary({ ...running, end: { phase: "RUN_COMPLETED", error: "", elapsedMinutes: 1, atStep: undefined, stepsEnded: 0, stoppedByBudget: false, transcript: undefined, reply: "I won't run that." } });
+    expect(replied).toContain("Reply: I won't run that.");
+    const long = renderSummary({ ...running, end: { phase: "RUN_COMPLETED", error: "", elapsedMinutes: 1, atStep: undefined, stepsEnded: 0, stoppedByBudget: false, transcript: undefined, reply: "x".repeat(700) } });
+    expect(long).toContain(`Reply: ${"x".repeat(600)}…`);
     expect(renderSummary({ ...running, end: { phase: "RUN_FAILED", error: "", elapsedMinutes: 1, atStep: "x", stepsEnded: 0, stoppedByBudget: false, transcript: transcriptCheckOf([1, 2, 3, 6]) } })).toContain("gaps 4-5.");
   });
 });

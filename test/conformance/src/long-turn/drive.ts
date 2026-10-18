@@ -16,6 +16,7 @@ import { join } from "node:path";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ConformanceClients } from "../harness/clients";
 import { sessionIdOf } from "../support/runs";
+import { foldSession, turnOf } from "@stigmer/session-log";
 import { stepProgressOf, type LongTurnProfile, type StepFiles } from "./profile";
 import { transcriptCheckOf, writeLongTurnReport, type LongTurnReport, type MinuteSample } from "./report";
 
@@ -88,7 +89,8 @@ export async function driveLongTurn(options: DriveOptions): Promise<LongTurnRepo
     terminalSince = TERMINAL.has(phase) ? (terminalSince ?? Date.now()) : undefined;
     const stoppedByBudget = Date.now() - options.startedAtMs > profile.budgetMs;
     if (phase === RunPhase.RUN_COMPLETED || (terminalSince !== undefined && Date.now() - terminalSince >= TERMINAL_SETTLE_MS) || stoppedByBudget) {
-      const seqs = (await listAllEvents(clients, sessionIdOf(run))).map((e) => Number(e.seq));
+      const log = await listAllEvents(clients, sessionIdOf(run));
+      const seqs = log.map((e) => Number(e.seq));
       report = {
         ...report,
         end: {
@@ -99,6 +101,7 @@ export async function driveLongTurn(options: DriveOptions): Promise<LongTurnRepo
           stepsEnded: progress.ended.length,
           stoppedByBudget,
           transcript: transcriptCheckOf(seqs),
+          reply: turnOf(foldSession(log), runId)?.answer ?? "",
         },
       };
       await writeLongTurnReport(out, report);
