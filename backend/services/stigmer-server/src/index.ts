@@ -889,7 +889,7 @@ export type {
   SandboxBackgroundContext,
   SandboxBackgroundHandle,
   SandboxDriverConfig,
-  SandboxEnvironment,
+  SandboxFacts,
   SandboxProbeState,
   SandboxProvisioner,
   SandboxProvisionerFactory,

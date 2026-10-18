@@ -228,7 +228,7 @@ export interface RunnerCredentialProvider {
   ): Promise<RunnerBootstrapCredentials>;
 
   /**
-   * The credential baked into a provisioned sandbox (SandboxEnvironment.
+   * The credential baked into a provisioned sandbox (SandboxFacts.
    * stigmerToken). When present, the ensure steps and the connect lane
    * delegate here with the full provisioning context; absent, they mint
    * on the execution_scoped lane exactly as before. Returns "" to launch tokenless (the

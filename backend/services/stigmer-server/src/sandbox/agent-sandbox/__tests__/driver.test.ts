@@ -30,7 +30,7 @@ import { describe, expect, it } from "vitest";
 import { sandboxBaseName } from "../../naming.js";
 import type {
   SandboxDriverConfig,
-  SandboxEnvironment,
+  SandboxFacts,
 } from "../../provisioner.js";
 import { FakeAgentSandboxCluster } from "../__test-utils__/fake-gateway.js";
 import {
@@ -53,7 +53,7 @@ const config: SandboxDriverConfig = {
   serverRelease: "",
 };
 
-const env: SandboxEnvironment = {
+const facts: SandboxFacts = {
   taskQueue: "session:ses_1",
   stigmerToken: "tok-1",
   callerClass: "user",
@@ -84,7 +84,7 @@ describe("the ensure", () => {
   it("absent: creates the Sandbox Suspended, writes its owned Secret, then wakes it with the template", async () => {
     const cluster = new FakeAgentSandboxCluster();
     const logged: Array<Record<string, unknown>> = [];
-    await driverOver(cluster, { logged }).ensureSessionSandbox("ses_1", env);
+    await driverOver(cluster, { logged }).ensureSessionSandbox("ses_1", facts);
     expect(cluster.calls).toEqual([
       `get:${name}`,
       `create:${name}:Suspended`,
@@ -111,7 +111,7 @@ describe("the ensure", () => {
   it("Suspended: the wake writes a fresh token and the current template, so a changed image is the one that runs", async () => {
     const cluster = new FakeAgentSandboxCluster();
     cluster.seed(
-      buildAgentSandbox("session", "ses_1", env, {
+      buildAgentSandbox("session", "ses_1", facts, {
         ...config,
         runnerImage: "ghcr.io/stigmer/runner:v3.41.0",
       }),
@@ -119,7 +119,7 @@ describe("the ensure", () => {
     );
     const logged: Array<Record<string, unknown>> = [];
     await driverOver(cluster, { logged }).ensureSessionSandbox("ses_1", {
-      ...env,
+      ...facts,
       stigmerToken: "tok-2",
     });
     expect(cluster.calls).toEqual([
@@ -139,7 +139,7 @@ describe("the ensure", () => {
   it("Running: rewrites the Secret's token and nothing else", async () => {
     const cluster = new FakeAgentSandboxCluster();
     cluster.seed(
-      buildAgentSandbox("session", "ses_1", env, {
+      buildAgentSandbox("session", "ses_1", facts, {
         ...config,
         runnerImage: "ghcr.io/stigmer/runner:v3.41.0",
       }),
@@ -147,7 +147,7 @@ describe("the ensure", () => {
     );
     const logged: Array<Record<string, unknown>> = [];
     await driverOver(cluster, { logged }).ensureSessionSandbox("ses_1", {
-      ...env,
+      ...facts,
       stigmerToken: "tok-3",
     });
     expect(cluster.calls).toEqual([`get:${name}`, `secret:${name}-env`]);
@@ -164,10 +164,10 @@ describe("the ensure", () => {
   it("a Sandbox being deleted is waited out, then created again", async () => {
     const cluster = new FakeAgentSandboxCluster();
     cluster.seed(
-      buildAgentSandbox("session", "ses_1", env, config),
+      buildAgentSandbox("session", "ses_1", facts, config),
       "Running",
     ).deletingReads = 2;
-    await driverOver(cluster).ensureSessionSandbox("ses_1", env);
+    await driverOver(cluster).ensureSessionSandbox("ses_1", facts);
     expect(cluster.calls).toEqual([
       `get:${name}`,
       `get:${name}`,
@@ -181,11 +181,11 @@ describe("the ensure", () => {
   it("a Sandbox that is never deleted fails the ensure loudly", async () => {
     const cluster = new FakeAgentSandboxCluster();
     cluster.seed(
-      buildAgentSandbox("session", "ses_1", env, config),
+      buildAgentSandbox("session", "ses_1", facts, config),
       "Running",
     ).deletingReads = Number.MAX_SAFE_INTEGER;
     await expect(
-      driverOver(cluster).ensureSessionSandbox("ses_1", env),
+      driverOver(cluster).ensureSessionSandbox("ses_1", facts),
     ).rejects.toThrow(
       `agent-sandbox Sandbox '${name}' is still being deleted after 300s`,
     );
@@ -196,10 +196,10 @@ describe("the ensure", () => {
     cluster.createdElsewhere = buildAgentSandbox(
       "session",
       "ses_1",
-      env,
+      facts,
       config,
     );
-    await driverOver(cluster).ensureSessionSandbox("ses_1", env);
+    await driverOver(cluster).ensureSessionSandbox("ses_1", facts);
     expect(cluster.calls).toEqual([
       `get:${name}`,
       `create:${name}:Suspended`,
@@ -216,7 +216,7 @@ describe("the ensure", () => {
     const cluster = new FakeAgentSandboxCluster();
     cluster.createSandbox = async () => undefined;
     await expect(
-      driverOver(cluster).ensureSessionSandbox("ses_1", env),
+      driverOver(cluster).ensureSessionSandbox("ses_1", facts),
     ).rejects.toThrow(
       `agent-sandbox Sandbox '${name}' was reported to exist and then could not be read`,
     );
@@ -225,7 +225,7 @@ describe("the ensure", () => {
   it("waits out a deletion on the real clock when no sleep is given", async () => {
     const cluster = new FakeAgentSandboxCluster();
     cluster.seed(
-      buildAgentSandbox("session", "ses_1", env, config),
+      buildAgentSandbox("session", "ses_1", facts, config),
       "Running",
     ).deletingReads = 1;
     const started = Date.now();
@@ -233,7 +233,7 @@ describe("the ensure", () => {
       gateway: cluster,
       config,
       logger: { info: () => {} },
-    }).ensureSessionSandbox("ses_1", env);
+    }).ensureSessionSandbox("ses_1", facts);
     expect(Date.now() - started).toBeGreaterThanOrEqual(450);
     expect(cluster.sandboxes.get(name)?.operatingMode).toBe("Running");
   });
@@ -246,11 +246,11 @@ describe("the ensure", () => {
     };
     await driverOver(cluster, { config: before }).ensureSessionSandbox(
       "ses_1",
-      env,
+      facts,
     );
     // The server restarts without the secret, and the token goes empty.
     await driverOver(cluster).ensureSessionSandbox("ses_1", {
-      ...env,
+      ...facts,
       stigmerToken: "",
     });
     const secret = cluster.secrets.get(`${name}-env`);
@@ -279,11 +279,11 @@ describe("the ensure", () => {
     cluster.applySecret = async () => {
       throw new Error("the API server refused");
     };
-    await expect(driver.ensureSessionSandbox("ses_1", env)).rejects.toThrow(
+    await expect(driver.ensureSessionSandbox("ses_1", facts)).rejects.toThrow(
       "the API server refused",
     );
     cluster.applySecret = applySecret;
-    await driver.ensureSessionSandbox("ses_1", env);
+    await driver.ensureSessionSandbox("ses_1", facts);
     expect(cluster.sandboxes.get(name)?.operatingMode).toBe("Running");
     await driver.deprovisionSessionSandbox("ses_1");
     expect(cluster.sandboxes.size).toBe(0);
@@ -292,7 +292,7 @@ describe("the ensure", () => {
   it("a token-less sandbox still gets its Secret", async () => {
     const cluster = new FakeAgentSandboxCluster();
     await driverOver(cluster).ensureSessionSandbox("ses_1", {
-      ...env,
+      ...facts,
       stigmerToken: "",
     });
     expect(cluster.secrets.get(`${name}-env`)?.stringData).toEqual({});
@@ -302,7 +302,7 @@ describe("the ensure", () => {
     const cluster = new FakeAgentSandboxCluster();
     await driverOver(cluster, {
       config: { ...config, runnerSecretEnv: { ANTHROPIC_API_KEY: "sk-test" } },
-    }).ensureSessionSandbox("ses_1", env);
+    }).ensureSessionSandbox("ses_1", facts);
     expect(cluster.secrets.get(`${name}-env`)?.stringData).toEqual({
       ANTHROPIC_API_KEY: "sk-test",
       STIGMER_TOKEN: "tok-1",
@@ -314,7 +314,7 @@ describe("the ensure", () => {
     const driver = driverOver(cluster);
     expect(
       await driver.createConnectSandbox("mcp_1", {
-        ...env,
+        ...facts,
         taskQueue: "mcpconnect:mcp_1",
       }),
     ).toBe("mcp_1");
@@ -327,8 +327,8 @@ describe("the ensure", () => {
     const cluster = new FakeAgentSandboxCluster();
     const driver = driverOver(cluster);
     await Promise.all([
-      driver.ensureSessionSandbox("ses_1", env),
-      driver.ensureSessionSandbox("ses_1", env),
+      driver.ensureSessionSandbox("ses_1", facts),
+      driver.ensureSessionSandbox("ses_1", facts),
     ]);
     expect(cluster.calls).toEqual([
       `get:${name}`,
@@ -345,7 +345,7 @@ describe("deprovision and probe", () => {
   it("deprovision deletes the Sandbox alone, for every scope, and a missing one is success", async () => {
     const cluster = new FakeAgentSandboxCluster();
     const driver = driverOver(cluster);
-    await driver.ensureSessionSandbox("ses_1", env);
+    await driver.ensureSessionSandbox("ses_1", facts);
     await driver.deprovisionSessionSandbox("ses_1");
     await driver.deprovisionConnectSandbox("mcp_1");
     expect(
@@ -366,7 +366,7 @@ describe("deprovision and probe", () => {
     const driver = driverOver(cluster);
     expect(await driver.probe("session", "ses_1")).toBe("absent");
     const sandbox = cluster.seed(
-      buildAgentSandbox("session", "ses_1", env, config),
+      buildAgentSandbox("session", "ses_1", facts, config),
       "Suspended",
     );
     expect(await driver.probe("session", "ses_1")).toBe("stopped");
@@ -393,7 +393,7 @@ describe("the sweep's suspend and the ensure record", () => {
   it("suspends a Running Sandbox once the guard agrees, and skips it when it does not", async () => {
     const cluster = new FakeAgentSandboxCluster();
     const { internals } = driverWithInternals(cluster);
-    cluster.seed(buildAgentSandbox("session", "ses_1", env, config), "Running");
+    cluster.seed(buildAgentSandbox("session", "ses_1", facts, config), "Running");
     expect(await internals.suspend(name, async () => false)).toBe("skipped");
     expect(cluster.sandboxes.get(name)?.operatingMode).toBe("Running");
     expect(await internals.suspend(name, async () => true)).toBe("done");
@@ -411,7 +411,7 @@ describe("the sweep's suspend and the ensure record", () => {
     };
     expect(await internals.suspend(name, guard)).toBe("skipped");
     const sandbox = cluster.seed(
-      buildAgentSandbox("session", "ses_1", env, config),
+      buildAgentSandbox("session", "ses_1", facts, config),
       "Suspended",
     );
     expect(await internals.suspend(name, guard)).toBe("skipped");
@@ -427,7 +427,7 @@ describe("the sweep's suspend and the ensure record", () => {
   it("a suspend waits behind an ensure of the same Sandbox, and an ensure behind a suspend", async () => {
     const cluster = new FakeAgentSandboxCluster();
     const { provisioner, internals } = driverWithInternals(cluster);
-    cluster.seed(buildAgentSandbox("session", "ses_1", env, config), "Running");
+    cluster.seed(buildAgentSandbox("session", "ses_1", facts, config), "Running");
     let release: () => void = () => {};
     const applySecret = cluster.applySecret.bind(cluster);
     cluster.applySecret = async (secret) => {
@@ -436,7 +436,7 @@ describe("the sweep's suspend and the ensure record", () => {
       });
       return applySecret(secret);
     };
-    const ensured = provisioner.ensureSessionSandbox("ses_1", env);
+    const ensured = provisioner.ensureSessionSandbox("ses_1", facts);
     const suspended = internals.suspend(name, async () => true);
     await new Promise((resolve) => setTimeout(resolve, 0));
     // The ensure holds the queue (blocked writing its Secret): the suspend
@@ -459,7 +459,7 @@ describe("the sweep's suspend and the ensure record", () => {
       () => new Promise<boolean>((resolve) => (proceed = resolve)),
     );
     cluster.sandboxes.get(name)!.operatingMode = "Running";
-    const waking = provisioner.ensureSessionSandbox("ses_1", env);
+    const waking = provisioner.ensureSessionSandbox("ses_1", facts);
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(cluster.calls).toEqual([`get:${name}`]);
     proceed(false);
@@ -475,10 +475,10 @@ describe("the sweep's suspend and the ensure record", () => {
     const cluster = new FakeAgentSandboxCluster();
     const { provisioner, internals, tick } = driverWithInternals(cluster);
     expect(internals.lastEnsuredAt(name)).toBeUndefined();
-    await provisioner.ensureSessionSandbox("ses_1", env);
+    await provisioner.ensureSessionSandbox("ses_1", facts);
     expect(internals.lastEnsuredAt(name)).toEqual(new Date(1_000));
     tick(5_000);
-    await provisioner.ensureSessionSandbox("ses_1", env);
+    await provisioner.ensureSessionSandbox("ses_1", facts);
     expect(internals.lastEnsuredAt(name)).toEqual(new Date(6_000));
     await provisioner.deprovisionSessionSandbox("ses_1");
     expect(internals.lastEnsuredAt(name)).toBeUndefined();

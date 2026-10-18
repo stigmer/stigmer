@@ -46,7 +46,7 @@
 import { sandboxBaseName } from "../naming.js";
 import type {
   SandboxDriverConfig,
-  SandboxEnvironment,
+  SandboxFacts,
   SandboxProbeState,
   SandboxProvisioner,
   SandboxScope,
@@ -153,7 +153,7 @@ export function newAgentSandboxDriverOverGateway(
   async function ensure(
     scope: SandboxScope,
     id: string,
-    env: SandboxEnvironment,
+    facts: SandboxFacts,
   ): Promise<void> {
     const name = sandboxBaseName(scope, id);
     await serialize(name, async () => {
@@ -164,7 +164,7 @@ export function newAgentSandboxDriverOverGateway(
         // its Sandbox is then this one's to wake.
         sandbox =
           (await gateway.createSandbox(
-            buildAgentSandbox(scope, id, env, config),
+            buildAgentSandbox(scope, id, facts, config),
           )) ?? (await gateway.getSandbox(name));
         if (sandbox === undefined) {
           throw new Error(
@@ -177,12 +177,12 @@ export function newAgentSandboxDriverOverGateway(
       }
       // The Secret before the pod: the pod's environment names its keys.
       await gateway.applySecret(
-        buildAgentSandboxSecret(scope, id, env.stigmerToken, config, sandbox),
+        buildAgentSandboxSecret(scope, id, facts.stigmerToken, config, sandbox),
       );
       if (arm !== "running") {
         await gateway.patchSandbox(name, {
           operatingMode: "Running",
-          podTemplate: buildAgentSandboxPodTemplate(scope, id, env, config),
+          podTemplate: buildAgentSandboxPodTemplate(scope, id, facts, config),
         });
       }
       ensuredAt.set(name, now());
@@ -191,7 +191,7 @@ export function newAgentSandboxDriverOverGateway(
         id,
         sandbox: name,
         arm,
-        taskQueue: env.taskQueue,
+        taskQueue: facts.taskQueue,
       });
     });
   }
@@ -230,10 +230,10 @@ export function newAgentSandboxDriverOverGateway(
   };
 
   const provisioner: SandboxProvisioner = {
-    ensureSessionSandbox: (sessionId, env) => ensure("session", sessionId, env),
+    ensureSessionSandbox: (sessionId, facts) => ensure("session", sessionId, facts),
     deprovisionSessionSandbox: (sessionId) => deprovision("session", sessionId),
-    async createConnectSandbox(connectRequestId, env) {
-      await ensure("connect", connectRequestId, env);
+    async createConnectSandbox(connectRequestId, facts) {
+      await ensure("connect", connectRequestId, facts);
       return connectRequestId;
     },
     deprovisionConnectSandbox: (sandboxId) => deprovision("connect", sandboxId),

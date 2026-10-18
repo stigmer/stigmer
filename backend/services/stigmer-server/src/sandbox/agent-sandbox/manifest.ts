@@ -43,7 +43,7 @@ import type { V1EnvVar, V1PodSpec, V1Secret } from "@kubernetes/client-node";
 
 import type {
   SandboxDriverConfig,
-  SandboxEnvironment,
+  SandboxFacts,
   SandboxScope,
 } from "../provisioner.js";
 import {
@@ -104,7 +104,7 @@ export function agentSandboxSecretName(
 function runnerEnv(
   scope: SandboxScope,
   id: string,
-  env: SandboxEnvironment,
+  facts: SandboxFacts,
   config: SandboxDriverConfig,
 ): V1EnvVar[] {
   const secretName = agentSandboxSecretName(scope, id);
@@ -116,7 +116,7 @@ function runnerEnv(
   });
   const entries: V1EnvVar[] = [
     { name: "MODE", value: "local" },
-    { name: "STIGMER_TASK_QUEUE", value: env.taskQueue },
+    { name: "STIGMER_TASK_QUEUE", value: facts.taskQueue },
     { name: "STIGMER_BACKEND_ENDPOINT", value: config.backendEndpoint },
     { name: "TEMPORAL_SERVICE_ADDRESS", value: config.temporalAddress },
     { name: "TEMPORAL_NAMESPACE", value: config.temporalNamespace },
@@ -138,7 +138,7 @@ function runnerEnv(
   for (const name of Object.keys(config.runnerSecretEnv)) {
     entries.push(fromSecret(name));
   }
-  if (env.stigmerToken !== "") {
+  if (facts.stigmerToken !== "") {
     entries.push(fromSecret("STIGMER_TOKEN"));
   }
   for (const name of Object.keys(config.temporalConnectionEnv)) {
@@ -154,7 +154,7 @@ function runnerEnv(
 export function buildAgentSandboxPodTemplate(
   scope: SandboxScope,
   id: string,
-  env: SandboxEnvironment,
+  facts: SandboxFacts,
   config: SandboxDriverConfig,
 ): AgentSandboxPodTemplate {
   const spec: V1PodSpec = {
@@ -168,7 +168,7 @@ export function buildAgentSandboxPodTemplate(
         // The image's CMD is /bin/bash by design; the driver sets the command.
         command: runnerCommand(),
         workingDir: WORKSPACE_MOUNT_PATH,
-        env: runnerEnv(scope, id, env, config),
+        env: runnerEnv(scope, id, facts, config),
         resources: {
           requests: { ...RUNNER_RESOURCES.requests },
           limits: { ...RUNNER_RESOURCES.limits },
@@ -198,7 +198,7 @@ export function buildAgentSandboxPodTemplate(
 export function buildAgentSandbox(
   scope: SandboxScope,
   id: string,
-  env: SandboxEnvironment,
+  facts: SandboxFacts,
   config: SandboxDriverConfig,
 ): AgentSandboxResource {
   return {
@@ -209,7 +209,7 @@ export function buildAgentSandbox(
       labels: agentSandboxLabels(scope, id),
     },
     spec: {
-      podTemplate: buildAgentSandboxPodTemplate(scope, id, env, config),
+      podTemplate: buildAgentSandboxPodTemplate(scope, id, facts, config),
       ...(PERSISTENT_SCOPES.has(scope)
         ? {
             volumeClaimTemplates: [

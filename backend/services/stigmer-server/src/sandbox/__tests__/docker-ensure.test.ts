@@ -16,7 +16,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { LogFields, Logger } from "../../boot/logger.js";
 import { newDockerSandboxProvisioner } from "../docker.js";
 import { sandboxBaseName } from "../naming.js";
-import type { SandboxDriverConfig, SandboxEnvironment } from "../provisioner.js";
+import type { SandboxDriverConfig, SandboxFacts } from "../provisioner.js";
 
 const CONFIG: SandboxDriverConfig = {
   backendEndpoint: "http://host.docker.internal:7234",
@@ -32,7 +32,7 @@ const CONFIG: SandboxDriverConfig = {
   serverRelease: "",
 };
 
-const ENV: SandboxEnvironment = {
+const ENV: SandboxFacts = {
   taskQueue: "session:ses_ensure",
   stigmerToken: "token-ensure",
   callerClass: "user",

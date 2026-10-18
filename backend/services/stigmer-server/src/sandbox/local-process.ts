@@ -38,7 +38,7 @@ import { TEMPORAL_CONNECTION_ENV_NAMES } from "@stigmer/temporal-codecs";
 
 import type { Logger } from "../boot/logger.js";
 import type {
-  SandboxEnvironment,
+  SandboxFacts,
   SandboxProbeState,
   SandboxProvisioner,
   SandboxProvisionerFactory,
@@ -69,7 +69,7 @@ export const newLocalProcessSandboxProvisioner: SandboxProvisionerFactory = ({
   function ensure(
     scope: SandboxScope,
     id: string,
-    env: SandboxEnvironment,
+    facts: SandboxFacts,
   ): void {
     // No awaits from here to children.set — the double-spawn guard.
     const existing = children.get(key(scope, id));
@@ -103,7 +103,7 @@ export const newLocalProcessSandboxProvisioner: SandboxProvisionerFactory = ({
       ...config.runnerSecretEnv,
       ...config.temporalConnectionEnv,
       MODE: "local",
-      STIGMER_TASK_QUEUE: env.taskQueue,
+      STIGMER_TASK_QUEUE: facts.taskQueue,
       TEMPORAL_NAMESPACE: config.temporalNamespace,
       WORKSPACE_ROOT_DIR: workspaceRoot,
     };
@@ -116,8 +116,8 @@ export const newLocalProcessSandboxProvisioner: SandboxProvisionerFactory = ({
     if (config.mcpPublicEndpoint !== "") {
       childEnv["STIGMER_MCP_PUBLIC_ENDPOINT"] = config.mcpPublicEndpoint;
     }
-    if (env.stigmerToken !== "") {
-      childEnv["STIGMER_TOKEN"] = env.stigmerToken;
+    if (facts.stigmerToken !== "") {
+      childEnv["STIGMER_TOKEN"] = facts.stigmerToken;
     }
 
     // stdio inherits: the process tier's sandbox logs belong in the
@@ -131,7 +131,7 @@ export const newLocalProcessSandboxProvisioner: SandboxProvisionerFactory = ({
       scope,
       id,
       pid: child.pid ?? -1,
-      taskQueue: env.taskQueue,
+      taskQueue: facts.taskQueue,
     });
     child.once("exit", (code, signal) => {
       // Self-removal IS the repair arm: the next ensure sees absent.
@@ -173,14 +173,14 @@ export const newLocalProcessSandboxProvisioner: SandboxProvisionerFactory = ({
   }
 
   const provisioner: SandboxProvisioner = {
-    async ensureSessionSandbox(sessionId, env) {
-      ensure("session", sessionId, env);
+    async ensureSessionSandbox(sessionId, facts) {
+      ensure("session", sessionId, facts);
     },
     async deprovisionSessionSandbox(sessionId) {
       deprovision("session", sessionId);
     },
-    async createConnectSandbox(connectRequestId, env) {
-      ensure("connect", connectRequestId, env);
+    async createConnectSandbox(connectRequestId, facts) {
+      ensure("connect", connectRequestId, facts);
       return connectRequestId;
     },
     async deprovisionConnectSandbox(sandboxId) {

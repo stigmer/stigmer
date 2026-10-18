@@ -48,7 +48,7 @@ import { SERVER_RELEASE_ENV } from "./runner-launch.js";
  * never travels here. Endpoints, images and resource shapes are driver
  * configuration, not per-sandbox state.
  */
-export interface SandboxEnvironment {
+export interface SandboxFacts {
   /** The Temporal task queue the sandboxed runner polls (session:{id} / mcpconnect:{id}). */
   readonly taskQueue: string;
   /**
@@ -110,7 +110,7 @@ export interface SandboxProvisioner {
    */
   ensureSessionSandbox(
     sessionId: string,
-    env: SandboxEnvironment,
+    facts: SandboxFacts,
   ): Promise<void>;
   /** Tears down the session sandbox; missing is success (idempotent). */
   deprovisionSessionSandbox(sessionId: string): Promise<void>;
@@ -121,7 +121,7 @@ export interface SandboxProvisioner {
    */
   createConnectSandbox(
     connectRequestId: string,
-    env: SandboxEnvironment,
+    facts: SandboxFacts,
   ): Promise<string>;
   /** Tears down a connect sandbox by provider id; missing is success. */
   deprovisionConnectSandbox(sandboxId: string): Promise<void>;
