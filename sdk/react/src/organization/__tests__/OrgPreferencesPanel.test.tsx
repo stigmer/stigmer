@@ -5,6 +5,8 @@ import {
   OrganizationSchema,
   type Organization,
 } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import { EnvironmentSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+import { EnvironmentListSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/io_pb";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
@@ -35,6 +37,7 @@ let serverInfo: UseServerInfoReturn = SIGN_IN_SERVER;
 
 vi.mock("../../server-info.js", () => ({
   useServerInfo: () => serverInfo,
+  useEnvironmentAvailability: () => serverInfo.serverInfo?.environments,
 }));
 
 // The id differs from the slug, as for every organization made today; an
@@ -50,15 +53,24 @@ const ORG: Organization = create(OrganizationSchema, {
   },
 });
 
+const ENVIRONMENTS = create(EnvironmentListSchema, {
+  entries: [
+    create(EnvironmentSchema, { metadata: { id: "env_bt", org: ACME_ID, slug: "base-tools", name: "Base tools" } }),
+  ],
+  nextPageToken: "",
+});
+
 function createMockStigmer(overrides?: {
   update?: ReturnType<typeof vi.fn>;
   canEdit?: boolean;
+  organization?: Organization;
 }) {
   return {
     organization: {
-      get: vi.fn(async () => ORG),
+      get: vi.fn(async () => overrides?.organization ?? ORG),
       update: overrides?.update ?? vi.fn(async () => ORG),
     },
+    environment: { list: vi.fn(async () => ENVIRONMENTS) },
     grant: {
       checkMyPermission: vi.fn(async () => ({
         isAuthorized: overrides?.canEdit ?? true,
@@ -237,6 +249,64 @@ describe("OrgPreferencesPanel", () => {
 
       expect(screen.getByText(SWITCH_ALONE_DECIDES)).toBeTruthy();
       expect(screen.queryByText(MEMBERS_ALSO_CONSENT)).toBeNull();
+    });
+  });
+
+  describe("the default environment", () => {
+    const DEFAULTED = create(OrganizationSchema, {
+      metadata: { id: ACME_ID, name: "Acme Corp", slug: "acme", etag: "e1" },
+      spec: { preferences: { defaultEnvironmentRef: { org: ACME_ID, slug: "base-tools", id: "env_bt" } } },
+    });
+
+    it("saves the picked Environment instantly, naming the default alone", async () => {
+      const update = vi.fn(async (_resource: Organization, _paths: string[]) => ORG);
+      renderPanel(createMockStigmer({ update }));
+      const select = await screen.findByRole("combobox", { name: "Default environment" });
+      await screen.findByRole("option", { name: "Base tools" });
+      expect(screen.getByRole("option", { name: "None" })).toBeTruthy();
+
+      fireEvent.change(select, { target: { value: "base-tools" } });
+
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      const sent = sentUpdate<Organization>(update);
+      expect(sent.paths).toEqual(["spec.preferences.default_environment_ref"]);
+      expect(sent.resource.spec?.preferences?.defaultEnvironmentRef).toMatchObject({ org: ACME_ID, slug: "base-tools" });
+      expect(sent.id).toBe(ACME_ID);
+    });
+
+    it("clears it when None is picked, naming the path with no value", async () => {
+      const update = vi.fn(async (_resource: Organization, _paths: string[]) => ORG);
+      renderPanel(createMockStigmer({ update, organization: DEFAULTED }));
+      const select = await screen.findByRole("combobox", { name: "Default environment" });
+      await waitFor(() => expect(select).toHaveProperty("value", "base-tools"));
+
+      fireEvent.change(select, { target: { value: "" } });
+
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      const sent = sentUpdate<Organization>(update);
+      expect(sent.paths).toEqual(["spec.preferences.default_environment_ref"]);
+      expect(sent.resource.spec?.preferences?.defaultEnvironmentRef).toBeUndefined();
+      expect(sent.etag).toBe("e1");
+    });
+
+    it("is read-only without can_edit, naming the default", async () => {
+      renderPanel(createMockStigmer({ canEdit: false, organization: DEFAULTED }));
+      expect(await screen.findByText("Base tools")).toBeTruthy();
+      expect(screen.queryByRole("combobox", { name: "Default environment" })).toBeNull();
+    });
+
+    it("says where the default applies, and that Environments don't apply on a server that starts no sandbox", async () => {
+      renderPanel(createMockStigmer());
+      expect(await screen.findByText(/Conversations on a person's own machine ignore it\./)).toBeTruthy();
+      cleanup();
+      serverInfo = {
+        ...SIGN_IN_SERVER,
+        serverInfo: { ...SIGN_IN_SERVER.serverInfo!, environments: { applies: false, limitedNetworking: false, packages: false } },
+      };
+      renderPanel(createMockStigmer());
+      expect(
+        await screen.findByText("Environments don't apply here: conversations on this server don't run in sandboxes it starts"),
+      ).toBeTruthy();
     });
   });
 
