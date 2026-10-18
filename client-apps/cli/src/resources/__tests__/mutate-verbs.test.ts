@@ -296,6 +296,7 @@ describe("delete (standard kinds)", () => {
     const message = String(err.message);
     for (const wired of [
       "vault",
+      "environment",
       "channel",
       "channelapp",
       "routine",
@@ -308,7 +309,6 @@ describe("delete (standard kinds)", () => {
     expect(message).not.toContain("oauthapp");
     expect(message).not.toContain("agentinstance");
     expect(message).not.toContain("workflowinstance");
-    expect(message).not.toContain("environment");
   });
 
   it("rejects a narrowed kind at the verb gate with a usage error", async () => {

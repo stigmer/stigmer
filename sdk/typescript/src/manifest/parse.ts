@@ -74,12 +74,33 @@ export function subagentsWayForward(document: unknown): string | undefined {
 }
 
 /**
+ * The way forward for an Environment manifest written when an Environment
+ * held logins and secrets (`spec.data`): an Environment now names a
+ * sandbox's packages and network access, and secrets live in vaults.
+ * Shared with the CLI's `apply`.
+ */
+export const ENVIRONMENT_DATA_WAY_FORWARD =
+  "An Environment now names a sandbox's packages and network access; logins and secrets live in vaults, which are never written as files. " +
+  "Save each key with `stigmer vault set-secret <NAME> --mine` (or `--vault <ref>` for a shared vault), and remove `data` from this file.";
+
+/**
+ * {@link ENVIRONMENT_DATA_WAY_FORWARD} when `document` is an Environment
+ * whose spec still carries `data`. Undefined for every other document.
+ */
+export function environmentDataWayForward(document: unknown): string | undefined {
+  if (!isRecord(document) || document.kind !== "Environment") return undefined;
+  const spec = document.spec;
+  return isRecord(spec) && "data" in spec ? ENVIRONMENT_DATA_WAY_FORWARD : undefined;
+}
+
+/**
  * The way forward for any retired shape a document still uses: an MCP
- * server resource or server usages ({@link mcpServerWayForward}), or
- * subagents written inside an agent ({@link subagentsWayForward}).
+ * server resource or server usages ({@link mcpServerWayForward}),
+ * subagents written inside an agent ({@link subagentsWayForward}), or an
+ * Environment holding secrets ({@link environmentDataWayForward}).
  */
 export function retiredShapeWayForward(document: unknown): string | undefined {
-  return mcpServerWayForward(document) ?? subagentsWayForward(document);
+  return mcpServerWayForward(document) ?? subagentsWayForward(document) ?? environmentDataWayForward(document);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

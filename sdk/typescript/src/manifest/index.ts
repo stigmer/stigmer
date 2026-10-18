@@ -18,6 +18,8 @@ export {
   mcpServerWayForward,
   SUBAGENTS_WAY_FORWARD,
   subagentsWayForward,
+  ENVIRONMENT_DATA_WAY_FORWARD,
+  environmentDataWayForward,
   retiredShapeWayForward,
 } from "./parse.js";
 export type { ManifestDocument, ParseManifestOptions } from "./parse.js";

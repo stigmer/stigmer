@@ -7,8 +7,10 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { parse as parseYaml } from "yaml";
 import {
+  ENVIRONMENT_DATA_WAY_FORWARD,
   MCP_SERVER_WAY_FORWARD,
   SUBAGENTS_WAY_FORWARD,
+  environmentDataWayForward,
   mcpServerWayForward,
   parseManifest,
   retiredShapeWayForward,
@@ -215,6 +217,17 @@ describe("parseManifest", () => {
     for (const document of [null, undefined, "spec: {sub_agents: []}", 42, [{ spec: { sub_agents: [] } }]]) {
       expect(subagentsWayForward(document)).toBeUndefined();
     }
+  });
+
+  it("names the Environment way forward for an Environment still holding data, never for any other document", () => {
+    expect(environmentDataWayForward({ kind: "Environment", spec: { data: {} } })).toBe(ENVIRONMENT_DATA_WAY_FORWARD);
+    expect(environmentDataWayForward({ kind: "Environment", spec: { packages: { pip: ["pandas"] } } })).toBeUndefined();
+    expect(environmentDataWayForward({ kind: "Environment" })).toBeUndefined();
+    expect(environmentDataWayForward({ kind: "Agent", spec: { data: {} } })).toBeUndefined();
+    for (const document of [null, "kind: Environment", 42, [{ kind: "Environment", spec: { data: {} } }]]) {
+      expect(environmentDataWayForward(document)).toBeUndefined();
+    }
+    expect(retiredShapeWayForward({ kind: "Environment", spec: { data: {} } })).toBe(ENVIRONMENT_DATA_WAY_FORWARD);
   });
 
   it("names the way forward for either retired shape, MCP server first", () => {

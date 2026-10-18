@@ -177,6 +177,8 @@ export {
   mcpServerWayForward,
   SUBAGENTS_WAY_FORWARD,
   subagentsWayForward,
+  ENVIRONMENT_DATA_WAY_FORWARD,
+  environmentDataWayForward,
   retiredShapeWayForward,
   REDACTED_SECRET_MARKER,
   containsRedactedSecrets,
