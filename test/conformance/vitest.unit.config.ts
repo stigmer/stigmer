@@ -22,7 +22,7 @@ export default defineConfig({
     // names exactly the executable lines a run missed.
     coverage: {
       provider: "v8",
-      include: ["src/inventory/**", "src/harness/**", "src/contract/**", "src/support/**", "src/targets/**", "src/benchmark/**"],
+      include: ["src/inventory/**", "src/harness/**", "src/contract/**", "src/support/**", "src/targets/**", "src/benchmark/**", "src/long-turn/**"],
       exclude: [...coverageConfigDefaults.exclude, "**/__test-utils__/**", "**/__fixtures__/**", "**/__mocks__/**"],
       reporter: ["json", "json-summary"],
       reportOnFailure: true,
@@ -35,6 +35,7 @@ export default defineConfig({
       "src/support/__tests__/**/*.test.ts",
       "src/targets/__tests__/**/*.test.ts",
       "src/benchmark/__tests__/**/*.test.ts",
+      "src/long-turn/__tests__/**/*.test.ts",
     ],
   },
 });

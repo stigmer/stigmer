@@ -1,0 +1,114 @@
+name: long-turn-real-clock
+
+# Plays one long turn in real time against the wire mock and keeps its
+# minute-by-minute report as an artifact
+# (test/conformance/scripts/long-turn-real-clock.ts has the mechanism;
+# src/long-turn/profile.ts the two profiles). It spends no tokens, since the
+# model is the mock, and it never blocks a merge: it reports.
+#
+# Run by hand at the verification of each change to how a long turn lives
+# (Actions > long-turn-real-clock > Run workflow): `goal` plays the turn a
+# user's long task needs and records where it dies (an hour at most);
+# `endurance` runs three hours of work that avoids every known killer, to
+# find what only hours show. There is no schedule: a weekly run would only
+# repeat the known red until the first fix turns `goal` green.
+#
+# A hosted runner, since the repository is public and the minutes cost
+# nothing. A pull request that changes the run plays the shortest slice of
+# `goal` (one bulk read) to prove the script boots the stack and writes its
+# report; GitHub dispatches a workflow only once it is on the default branch,
+# so the full profiles are first dispatched after the merge.
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "goal (the definition of done, an hour at most) or endurance (three hours)"
+        required: true
+        default: goal
+        type: choice
+        options: [goal, endurance]
+      minutes:
+        description: "endurance only: how long it runs"
+        required: false
+        default: "180"
+  pull_request:
+    paths:
+      - '.github/workflows/long-turn-real-clock.yaml'
+      - 'test/conformance/scripts/long-turn-real-clock.ts'
+      - 'test/conformance/src/long-turn/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: long-turn-real-clock-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  real-clock:
+    name: Long turn, real clock (${{ github.event_name == 'pull_request' && 'boot check' || inputs.profile }})
+    runs-on: ubuntu-latest
+    # Endurance's three hours, its 30-minute budget margin, and the stack's boot.
+    timeout-minutes: 230
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Install npm workspace dependencies
+        run: npm ci
+
+      # The execution lane's own preparation (ci.conformance-execution.yaml).
+      - name: Build proto stubs and the session-log fold
+        run: |
+          npm run build -w @stigmer/apis
+          npm run build -w @stigmer/tool-vocabulary
+          npm run build -w @stigmer/session-log
+
+      - name: Install server dependencies
+        working-directory: backend/services/stigmer-server
+        run: npm ci
+
+      - name: Install Temporal CLI
+        uses: ./.github/actions/temporal-cli
+
+      - name: Build unified runner
+        run: make build-runner
+
+      - name: Install stigmer CLI shim
+        run: |
+          make install-cli-shim
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Play the long turn
+        working-directory: test/conformance
+        env:
+          EVENT: ${{ github.event_name }}
+          PROFILE: ${{ inputs.profile }}
+          MINUTES: ${{ inputs.minutes }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            npm run long-turn:real-clock -- --profile goal --steps bulk-1 --out "$RUNNER_TEMP/long-turn"
+          else
+            npm run long-turn:real-clock -- --profile "$PROFILE" --minutes "$MINUTES" --out "$RUNNER_TEMP/long-turn"
+          fi
+
+      - name: Show the summary
+        if: always()
+        run: cat "$RUNNER_TEMP/long-turn/summary.md" >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: long-turn-real-clock-${{ github.run_id }}
+          path: ${{ runner.temp }}/long-turn
+          retention-days: 30
+          if-no-files-found: warn
