@@ -10,7 +10,8 @@
 //     three compactions, a runner killed mid-tool and a runner drained
 //     mid-tool. Today the turn dies early; the report says where.
 //   - `endurance` avoids every killer known on 2026-10-18 (stigmer#2414,
-//     #2415, #2416, #2417, #2428, #2429 and the native shell's 120 s timeout):
+//     #2415, #2416, #2417, #2428, #2429, and the native shell's 120 s
+//     timeout, #2432):
 //     two-minute commands that print every 20 s, nothing killed, for three
 //     hours, so what it finds is what only hours show. Its tool output is
 //     paced to cross the compaction trigger of its model (Claude Haiku 4.5,
@@ -143,10 +144,6 @@ export function shellCommandOf(step: LongTurnStep, files: StepFiles): string | u
       return `${start}; while [ ! -f '${files.releaseOf(step.id)}' ]; do sleep 0.2; done; ${end}`;
     case "subagent":
       return undefined;
-    default: {
-      const exhaustive: never = step;
-      throw new Error(`unknown step ${JSON.stringify(exhaustive)}`);
-    }
   }
 }
 

@@ -19,6 +19,7 @@ import { sessionIdOf } from "../support/runs";
 import { stepProgressOf, type LongTurnProfile, type StepFiles } from "./profile";
 import { transcriptCheckOf, writeLongTurnReport, type LongTurnReport, type MinuteSample } from "./report";
 
+/* v8 ignore start -- @preserve: the real-clock and live runs are hand-run scripts no vitest config collects; the unit lane tests the pure readers and the report they feed */
 const TERMINAL = new Set([RunPhase.RUN_COMPLETED, RunPhase.RUN_FAILED, RunPhase.RUN_CANCELLED, RunPhase.RUN_TERMINATED]);
 const TERMINAL_SETTLE_MS = 20_000;
 const TICK_MS = 1_000;
@@ -38,7 +39,6 @@ export interface DriveOptions {
   readonly counts?: () => { readonly modelCalls: number; readonly compactions: number };
 }
 
-/* v8 ignore start -- @preserve: the real-clock and live runs are hand-run scripts no vitest config collects; the unit lane tests the pure readers and the report they feed */
 /** Follow the run to its end and return the final report (also written to `out`). */
 export async function driveLongTurn(options: DriveOptions): Promise<LongTurnReport> {
   const { clients, runId, profile, files, out } = options;
