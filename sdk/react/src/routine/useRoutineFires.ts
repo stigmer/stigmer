@@ -39,7 +39,7 @@ export interface UseRoutineFiresReturn {
 }
 
 /**
- * Data hook that fetches a schedule's fire history, newest first — the
+ * Data hook that fetches a routine's fire history, newest first — the
  * fire ledger.
  *
  * Every fire leaves a row, INCLUDING the fires that created no run

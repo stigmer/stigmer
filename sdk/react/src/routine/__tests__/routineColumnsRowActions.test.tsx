@@ -1,3 +1,10 @@
+/**
+ * The routine list's columns and row actions: the countdown and state
+ * columns, Run now through the run dialog with its note, Run now absent for
+ * someone who may not fire (`can_fire`), one-click Resume on a paused
+ * routine, nothing on a disabled one, and no click reaching the row's
+ * navigation.
+ */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -24,6 +31,15 @@ beforeAll(() => {
 });
 
 beforeEach(() => vi.clearAllMocks());
+
+/** The self-check every gated row asks, answering `allowed` for `can_fire`. */
+function grantAnswering(allowed: boolean) {
+  return {
+    checkMyPermission: vi.fn(async (input: { relation: string }) => ({
+      isAuthorized: input.relation === "can_fire" ? allowed : true,
+    })),
+  };
+}
 afterEach(cleanup);
 
 const NOW = new Date("2026-08-04T10:00:00Z");
@@ -90,7 +106,7 @@ describe("createRoutineColumns", () => {
     expect(screen.getByText("isc/fee-reminder")).toBeTruthy();
   });
 
-  it("shows no countdown for a disabled schedule", () => {
+  it("shows no countdown for a disabled routine", () => {
     const routine = makeRoutine({ enabled: false });
     render(
       <>
@@ -119,25 +135,48 @@ describe("RoutineRowActions", () => {
       );
     }
     return render(
-      <RoutineRowActions schedule={routine} onChanged={onChanged} />,
+      <RoutineRowActions routine={routine} onChanged={onChanged} />,
       { wrapper: Wrapper },
     );
   }
 
-  it("gates Run now behind a confirmation, then triggers and notifies", async () => {
-    const trigger = vi.fn().mockResolvedValue(makeRoutine());
+  it("opens the run dialog, then fires with the note and notifies", async () => {
+    const trigger = vi.fn().mockResolvedValue({ outcome: 0, runId: "" });
     const onChanged = vi.fn();
-    renderRow(makeRoutine(), { routine: { fire: trigger } }, onChanged);
+    renderRow(
+      makeRoutine(),
+      { routine: { fire: trigger }, grant: grantAnswering(true) },
+      onChanged,
+    );
 
-    fireEvent.click(screen.getByRole("button", { name: /Run .* now/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Run .* now/ }));
     expect(trigger).not.toHaveBeenCalled();
 
+    fireEvent.change(screen.getByLabelText(/Note for this run/), {
+      target: { value: "SEN-4521 fired" },
+    });
     fireEvent.click(screen.getByText("Start run"));
-    await waitFor(() => expect(trigger).toHaveBeenCalledWith(expect.objectContaining({ id: "sch_01example" })));
+    await waitFor(() =>
+      expect(trigger).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "sch_01example", text: "SEN-4521 fired" }),
+      ),
+    );
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
   });
 
-  it("offers Resume on a paused schedule, one click", async () => {
+  it("offers no Run now to someone who may not fire the routine", async () => {
+    const grant = grantAnswering(false);
+    renderRow(makeRoutine(), { routine: { fire: vi.fn() }, grant });
+
+    await waitFor(() => expect(grant.checkMyPermission).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByRole("button", { name: /Run .* now/ })).toBeNull());
+    expect(grant.checkMyPermission.mock.calls[0]![0]).toMatchObject({
+      relation: "can_fire",
+      resource: { kind: "routine", id: "sch_01example" },
+    });
+  });
+
+  it("offers Resume on a paused routine, one click", async () => {
     const resume = vi.fn().mockResolvedValue(makeRoutine());
     const onChanged = vi.fn();
     renderRow(
@@ -151,23 +190,25 @@ describe("RoutineRowActions", () => {
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
   });
 
-  it("renders nothing for an owner-disabled schedule", () => {
+  it("renders nothing for an owner-disabled routine", () => {
     const { container } = renderRow(makeRoutine({ enabled: false }), {});
     expect(container.textContent).toBe("");
   });
 
-  it("never bubbles clicks into the row's navigation handler", () => {
+  it("never bubbles clicks into the row's navigation handler", async () => {
     const onRowClick = vi.fn();
     const trigger = vi.fn();
     render(
-      <StigmerContext.Provider value={{ routine: { fire: trigger } } as never}>
+      <StigmerContext.Provider
+        value={{ routine: { fire: trigger }, grant: grantAnswering(true) } as never}
+      >
         <div onClick={onRowClick}>
-          <RoutineRowActions schedule={makeRoutine()} />
+          <RoutineRowActions routine={makeRoutine()} />
         </div>
       </StigmerContext.Provider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Run .* now/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Run .* now/ }));
     expect(onRowClick).not.toHaveBeenCalled();
   });
 });

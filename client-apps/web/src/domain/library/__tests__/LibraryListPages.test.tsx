@@ -32,6 +32,7 @@ interface WorkbenchProps {
   renderItemAction?: (item: Row) => ReactNode;
   headerAction?: ReactNode;
   emptyAction?: ReactNode;
+  onItemClick?: (item: { metadata: { org: string; slug: string } }) => void;
 }
 
 const ROW: Row = { id: "agt_1", org: "org_acme", slug: "kit", name: "Kit" };
@@ -141,7 +142,8 @@ vi.mock("@/domain/library/library-navigation", () => ({
 
 import { AgentListPage } from "../agents/AgentListPage";
 import { PluginListPage } from "../plugins/PluginListPage";
-import { ScheduleListPage } from "../schedules/ScheduleListPage";
+import { RoutineListPage } from "../routines/RoutineListPage";
+import RoutinesPage from "@/app/library/routines/page";
 import { SkillListPage } from "../skills/SkillListPage";
 import { AGENT_DELETE_DESCRIPTION } from "../agents/agent-delete-confirmation";
 
@@ -234,11 +236,18 @@ describe("web PluginListPage Add MCP server", () => {
   });
 });
 
-describe("web ScheduleListPage", () => {
+describe("web RoutineListPage", () => {
   it("lists the active org by its id", () => {
-    render(<ScheduleListPage />);
+    render(<RoutineListPage />);
 
     expect(page.workbench.at(-1)?.org).toBe("org_acme");
+  });
+
+  it("is the page /library/routines serves, and a row opens its routine", () => {
+    render(<RoutinesPage />);
+
+    page.workbench.at(-1)?.onItemClick?.({ metadata: { org: "org_acme", slug: "nightly" } });
+    expect(page.detail).toEqual([{ type: "routines", org: "org_acme", slug: "nightly" }]);
   });
 });
 

@@ -14,12 +14,12 @@ export interface UseRoutineCountOptions {
 /** Return value of {@link useRoutineCount}. */
 export interface UseRoutineCountReturn {
   /**
-   * The schedules a first page holds, up to 100. `undefined` until the
+   * The routines a first page holds, up to 100. `undefined` until the
    * first successful fetch completes.
    */
   readonly count: number | undefined;
   /**
-   * `true` when more schedules follow that page: a card reads "100+"
+   * `true` when more routines follow that page: a card reads "100+"
    * rather than a total the list does not carry.
    */
   readonly isLowerBound: boolean;
@@ -37,14 +37,14 @@ interface RoutineCount {
 }
 
 /**
- * Data hook that counts an organization's schedules, for the Library
+ * Data hook that counts an organization's routines, for the Library
  * landing card and dashboard widgets.
  *
- * Schedules are not in search, so no per-kind count exists for them: the
+ * Routines are not in search, so no per-kind count exists for them: the
  * hook reads the list's largest page and counts it, with `isLowerBound`
- * set when more follow. There is no scope option: schedules are org-only.
+ * set when more follow. There is no scope option: routines are org-only.
  *
- * For the schedules themselves, use {@link useRoutineList} instead.
+ * For the routines themselves, use {@link useRoutineList} instead.
  *
  * Pass `null` as `org` to skip fetching (stable no-op).
  *

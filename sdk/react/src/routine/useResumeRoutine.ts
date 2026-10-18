@@ -11,7 +11,7 @@ import { toError } from "../internal/toError.js";
 export interface UseResumeRoutineReturn {
   /**
    * Clear the platform's failure-streak pause and let the schedule fire
-   * again. Resolves with the post-resume schedule; the caller refetches
+   * again. Resolves with the post-resume routine; the caller refetches
    * or replaces its local copy from it.
    */
   readonly resumeRoutine: (routineId: string) => Promise<Routine>;
@@ -22,13 +22,13 @@ export interface UseResumeRoutineReturn {
 }
 
 /**
- * Behavior hook that resumes a platform-paused schedule.
+ * Behavior hook that resumes a platform-paused routine.
  *
  * Resume is the ONE path that clears `status.paused_reason` (and the
  * failure streak with it) — re-applying the manifest deliberately does
  * not, so a routine GitOps apply can never silently un-pause a failing
- * schedule. Resuming a schedule that is not paused is a server-side
- * no-op; resuming a disabled schedule clears the pause but the schedule
+ * routine. Resuming a routine that is not paused is a server-side
+ * no-op; resuming a disabled routine clears the pause but the routine
  * stays disabled (the owner's lever is separate — see
  * {@link useSetRoutineEnabled}).
  *
@@ -46,7 +46,7 @@ export function useResumeRoutine(): UseResumeRoutineReturn {
       setError(null);
       try {
         const resumed = await stigmer.routine.resume(routineId);
-        toast.success("Schedule resumed");
+        toast.success("Routine resumed");
         return resumed;
       } catch (err) {
         const wrapped = toError(err);

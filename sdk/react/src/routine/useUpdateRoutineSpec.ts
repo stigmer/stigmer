@@ -15,8 +15,8 @@ import { saveErrorMessage } from "../internal/maskedEdit.js";
 /** Return value of {@link useUpdateRoutineSpec}. */
 export interface UseUpdateRoutineSpecReturn {
   /**
-   * Apply one spec mutation to the schedule as loaded. Resolves with the
-   * updated schedule (the loaded one when the mutation changed nothing);
+   * Apply one spec mutation to the routine as loaded. Resolves with the
+   * updated routine (the loaded one when the mutation changed nothing);
    * the caller refetches or replaces its local copy from it.
    */
   readonly updateSpec: (
@@ -30,12 +30,12 @@ export interface UseUpdateRoutineSpecReturn {
 }
 
 /**
- * Behavior hook behind the schedule detail view's inline editing: one
+ * Behavior hook behind the routine detail view's inline editing: one
  * spec mutation, saved as an update that names exactly the spec fields it
- * changed ({@link changedSpecPaths}), on the schedule as loaded (its id
+ * changed ({@link changedSpecPaths}), on the routine as loaded (its id
  * and the etag it was read at). Every field the mutation leaves alone
  * keeps its stored value, so a teammate's change to another field
- * survives, and a schedule changed since it was loaded refuses the save.
+ * survives, and a routine changed since it was loaded refuses the save.
  * An edit never clears a platform pause (Resume is the one clearing
  * path — see `useResumeRoutine`).
  *
@@ -47,7 +47,7 @@ export interface UseUpdateRoutineSpecReturn {
  * ```tsx
  * const { updateSpec, isUpdating } = useUpdateRoutineSpec();
  *
- * await updateSpec(schedule, (spec) => {
+ * await updateSpec(routine, (spec) => {
  *   spec.cron = "0 9 * * 1-5";
  *   spec.timeZone = "Asia/Kolkata";
  * });
@@ -65,7 +65,7 @@ export function useUpdateRoutineSpec(): UseUpdateRoutineSpecReturn {
     ): Promise<Routine> => {
       if (!routine.spec) {
         throw new Error(
-          "Cannot edit this schedule: it has no spec. Pass a schedule " +
+          "Cannot edit this routine: it has no spec. Pass a routine " +
             "as returned by the server (get/getByReference).",
         );
       }
@@ -87,12 +87,12 @@ export function useUpdateRoutineSpec(): UseUpdateRoutineSpecReturn {
           },
           paths,
         );
-        toast.success("Schedule updated");
+        toast.success("Routine updated");
         return updated;
       } catch (err) {
         // Rethrow with the user-facing message: the inline editors render
         // `message` verbatim next to the edited field.
-        const wrapped = new Error(saveErrorMessage(err, "schedule"));
+        const wrapped = new Error(saveErrorMessage(err, "routine"));
         setError(wrapped);
         throw wrapped;
       } finally {

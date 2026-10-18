@@ -10,7 +10,7 @@ import { LibraryBreadcrumb } from "@/domain/library/LibraryBreadcrumb";
 import { LibraryBreadcrumbProvider } from "@stigmer/react-sdk";
 import { AgentDetailPageInner } from "@/domain/library/agents/AgentDetailPage";
 import { SkillDetailPageInner } from "@/domain/library/skills/SkillDetailPage";
-import { ScheduleDetailPageInner } from "@/domain/library/schedules/ScheduleDetailPage";
+import { RoutineDetailPageInner } from "@/domain/library/routines/RoutineDetailPage";
 import { PluginDetailPageInner } from "@/domain/library/plugins/PluginDetailPage";
 
 export default function LibraryLayout({
@@ -72,8 +72,8 @@ function LibraryDetailContent({ detail }: { detail: ActiveDetail }) {
       return <AgentDetailPageInner org={detail.org} slug={detail.slug} />;
     case "skills":
       return <SkillDetailPageInner org={detail.org} slug={detail.slug} />;
-    case "schedules":
-      return <ScheduleDetailPageInner org={detail.org} slug={detail.slug} />;
+    case "routines":
+      return <RoutineDetailPageInner org={detail.org} slug={detail.slug} />;
     case "plugins":
       return <PluginDetailPageInner org={detail.org} slug={detail.slug} />;
   }

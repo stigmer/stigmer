@@ -47,7 +47,7 @@ vi.mock("next/navigation", () => ({
 
 import { AgentNewPage } from "../agents/AgentNewPage";
 import { PluginUploadPage } from "../plugins/PluginUploadPage";
-import { ScheduleNewPage } from "../schedules/ScheduleNewPage";
+import { RoutineNewPage } from "../routines/RoutineNewPage";
 import { SkillNewPage } from "../skills/SkillNewPage";
 
 function propsOf(name: string): Props {
@@ -91,12 +91,19 @@ describe("web library create pages", () => {
     expect(page.pushed).toEqual(["/library/plugins/acme/made"]);
   });
 
-  it("ScheduleNewPage creates in the active org id and opens the schedule under the org slug", () => {
-    render(<ScheduleNewPage />);
+  it("RoutineNewPage creates in the active org id and opens the routine under the org slug", () => {
+    render(<RoutineNewPage />);
 
     expect(propsOf("RoutineForm").org).toBe("org_acme");
     call("RoutineForm", "onComplete", CREATED);
-    expect(page.pushed).toEqual(["/library/schedules/acme/made"]);
+    expect(page.pushed).toEqual(["/library/routines/acme/made"]);
+  });
+
+  it("RoutineNewPage returns to the routine list on cancel", () => {
+    render(<RoutineNewPage />);
+
+    call("RoutineForm", "onCancel", undefined);
+    expect(page.pushed).toEqual(["/library/routines"]);
   });
 
   it("SkillNewPage uploads into the active org id and opens the skill under the org slug", () => {

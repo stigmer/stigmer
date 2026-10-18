@@ -7,15 +7,15 @@ import { listRoutinesPage } from "./routineListFn.js";
 
 /** Options for {@link useRoutineList}. */
 export interface UseRoutineListOptions {
-  /** Maximum schedules per page, the first and each `loadMore`. @default 20 */
+  /** Maximum routines per page, the first and each `loadMore`. @default 20 */
   readonly pageSize?: number;
 }
 
 /** Return value of {@link useRoutineList}. */
 export interface UseRoutineListReturn {
-  /** Full `Schedule` protos (spec + status), the first page then each page loaded since. */
+  /** Full `Routine` protos (spec + status), the first page then each page loaded since. */
   readonly routines: readonly Routine[];
-  /** `true` while the server holds schedules beyond those loaded. */
+  /** `true` while the server holds routines beyond those loaded. */
   readonly hasMore: boolean;
   /** Load the next page. No-op while one is loading or when nothing follows. */
   readonly loadMore: () => void;
@@ -34,20 +34,20 @@ export interface UseRoutineListReturn {
 }
 
 /**
- * Data hook that lists an organization's schedules, newest first, a page at
+ * Data hook that lists an organization's routines, newest first, a page at
  * a time (`hasMore` / `loadMore`; a list carries no total).
  *
  * Backed by the direct `listRoutines` query — not the search service —
- * so each entry is a full `Schedule` proto with the operational status
- * fields a schedule list exists to show (`next_fire_at`, enabled/paused
+ * so each entry is a full `Routine` proto with the operational status
+ * fields a routine list exists to show (`next_fire_at`, enabled/paused
  * state, `last_fire_at`). There is no text query or visibility scope:
- * schedules are org-only and have no server-side search.
+ * routines are org-only and have no server-side search.
  *
  * Pass `null` as `org` to skip fetching (stable no-op).
  *
  * @example
  * ```tsx
- * const { schedules, hasMore, loadMore, isLoading } = useRoutineList("isc", {
+ * const { routines, hasMore, loadMore, isLoading } = useRoutineList("isc", {
  *   pageSize: 20,
  * });
  * ```

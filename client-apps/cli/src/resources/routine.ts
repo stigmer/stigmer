@@ -1,5 +1,7 @@
-// `routine resume` and `routine fire` dispatch. Resume clears a platform
-// auto-pause from a routine and reports what was cleared.
+// `routine resume`, `routine fire` and `routine fires` dispatch. Resume
+// clears a platform auto-pause from a routine and reports what was cleared;
+// fire starts it now, with an optional note for that run; fires lists its
+// fire history.
 //
 // "Paused" is the platform's latch (status.paused_reason, written after
 // repeated failed runs), distinct from "disabled", the owner's switch
@@ -13,16 +15,39 @@
 // versus "was not paused" can only be told apart by looking first. The
 // resume call is made either way — on the no-op path it doubles as a
 // harmless re-arm of the routine's schedule.
+//
+// The fire history's table shows one row per fire, newest first: when it
+// was recorded, whether the schedule or a caller started it, who that
+// caller was (a person, or a service account whose key another system
+// holds), the outcome, the run and the reason. The caller's name and the
+// reason are text from outside the CLI (a profile, a launch gate's copy),
+// so each passes through the one-line cleaning `runs scores` uses. yaml and
+// json print the ledger rows as the server returned them.
 
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
-import { FireRoutineInputSchema, RoutineFireOutcome } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
+import {
+  FireRoutineInputSchema,
+  ListRoutineFiresRequestSchema,
+  RoutineFireOrigin,
+  RoutineFireOutcome,
+  RoutineFireSchema,
+} from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
+import type { RoutineFire } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer } from "@stigmer/client";
 import { UsageError } from "../errors/index.js";
-import { CommandResult } from "../output/index.js";
+import {
+  CommandResult,
+  renderEmpty,
+  renderProtoListJson,
+  renderProtoListYaml,
+  renderTable,
+} from "../output/index.js";
+import { readCursorPages } from "./cursor-pages.js";
 import { idPrefixesFor, parseReference } from "./reference.js";
+import { oneLine } from "./run-scores.js";
 import { requireOrganization } from "../client/single-org.js";
 
 /** The routine kind's id prefixes (proto kind_meta): `rtn`, and `sch` for one stored while the kind was Schedule. */
@@ -54,14 +79,15 @@ async function loadRoutine(stigmer: Stigmer, ref: string, org: string): Promise<
   }
   await requireOrganization(stigmer, parsed.org, [
     "stigmer config context set --org <org>",
-    "stigmer routine resume --org <org> ...",
+    "stigmer routine <command> --org <org> ...",
   ]);
   return stigmer.routine.getByReference({ org: parsed.org, slug: parsed.slug });
 }
 
 /**
  * Resolve `ref` (an `rtn_…` or `sch_…` id, `org/slug`, or bare slug
- * against `org`) and fire it once, immediately.
+ * against `org`) and fire it once, immediately, with `text` as the run's
+ * note when one is given.
  *
  * The fire is SYNCHRONOUS: the RPC runs the full run create pipeline
  * and the result names the run's real outcome — the created run's
@@ -72,14 +98,21 @@ async function loadRoutine(stigmer: Stigmer, ref: string, org: string): Promise<
  * teaching copy; the CLI relays the server's message verbatim (never
  * pattern-match refusal text).
  */
-export async function fireRoutine(stigmer: Stigmer, ref: string, org: string): Promise<CommandResult> {
+export async function fireRoutine(
+  stigmer: Stigmer,
+  ref: string,
+  org: string,
+  text?: string,
+): Promise<CommandResult> {
   const before = await loadRoutine(stigmer, ref, org);
   const id = before.metadata?.id ?? "";
   if (id === "") {
     throw new UsageError(`Routine '${ref}' has no id — cannot fire`);
   }
 
-  const fired = await stigmer.routine.fire(create(FireRoutineInputSchema, { id }));
+  const fired = await stigmer.routine.fire(
+    create(FireRoutineInputSchema, text === undefined ? { id } : { id, text }),
+  );
   const routine = fired.routine ?? before;
   const slug = routine.metadata?.slug ?? "";
   const name = routine.metadata?.name || slug;
@@ -88,6 +121,7 @@ export async function fireRoutine(stigmer: Stigmer, ref: string, org: string): P
     const result = CommandResult.success(`Routine '${name}' fired — run started`);
     const section = result.addSection();
     section.field("Run", fired.runId);
+    section.field("Fire", fired.fireId);
     section.field("Watch it", `stigmer get run ${fired.runId}`);
     if (routine.status?.nextFireAt !== undefined) {
       section.field("Next scheduled fire", timestampDate(routine.status.nextFireAt).toISOString());
@@ -104,7 +138,9 @@ export async function fireRoutine(stigmer: Stigmer, ref: string, org: string): P
   const result = CommandResult.error(`Routine '${name}' fired, but ${what}`);
   const section = result.addSection();
   section.field("Reason", fired.refusalReason);
-  result.hint("The fire is recorded in the routine's fire history; fix the cause and fire it again.");
+  result.hint(
+    `The fire is recorded in the routine's fire history (stigmer routine fires ${ref}); fix the cause and fire it again.`,
+  );
   return result;
 }
 
@@ -131,4 +167,100 @@ function describeOutcome(routine: Routine, wasPausedReason: string, wasFailures:
   }
 
   return result;
+}
+
+/** Output format for a fire history: a table, or the ledger rows as the server returned them. */
+export type FiresFormat = "table" | "yaml" | "json";
+
+export interface FiresStreams {
+  write(text: string): void;
+}
+
+const FIRES_HEADERS = ["FIRED", "ORIGIN", "STARTED BY", "OUTCOME", "RUN", "REASON"] as const;
+
+/**
+ * Resolve `ref` and render its newest `limit` fires (0 reads every page).
+ */
+export async function showRoutineFires(
+  stigmer: Stigmer,
+  ref: string,
+  org: string,
+  limit: number,
+  format: FiresFormat,
+  streams: FiresStreams = defaultStreams(),
+): Promise<void> {
+  const routine = await loadRoutine(stigmer, ref, org);
+  const routineId = routine.metadata?.id ?? "";
+  if (routineId === "") {
+    throw new UsageError(`Routine '${ref}' has no id — cannot list its fires`);
+  }
+  const fires = await readCursorPages(limit, (pageSize, pageToken) =>
+    stigmer.routine.listFires(create(ListRoutineFiresRequestSchema, { routineId, pageSize, pageToken })),
+  );
+  if (format === "yaml") {
+    streams.write(renderProtoListYaml(RoutineFireSchema, fires));
+    return;
+  }
+  if (format === "json") {
+    streams.write(renderProtoListJson(RoutineFireSchema, fires));
+    return;
+  }
+  streams.write(renderFiresTable(fires));
+}
+
+/** The table view of a fire history; a routine never fired says so. */
+export function renderFiresTable(fires: readonly RoutineFire[]): string {
+  if (fires.length === 0) {
+    return renderEmpty("fires");
+  }
+  return `\n${renderTable(FIRES_HEADERS, fires.map(fireRow))}\n`;
+}
+
+function fireRow(fire: RoutineFire): string[] {
+  return [
+    fire.recordedAt === undefined ? "" : timestampDate(fire.recordedAt).toISOString(),
+    ORIGIN_LABELS[fire.origin],
+    startedBy(fire),
+    OUTCOME_LABELS[fire.outcome],
+    fire.runId,
+    oneLine(fire.reason),
+  ];
+}
+
+/** How a fire began, in words; keyed by every origin, so it stays exhaustive. */
+const ORIGIN_LABELS: Readonly<Record<RoutineFireOrigin, string>> = {
+  [RoutineFireOrigin.UNSPECIFIED]: "",
+  [RoutineFireOrigin.SCHEDULE]: "Scheduled",
+  [RoutineFireOrigin.MANUAL]: "Manual",
+};
+
+/** What a fire produced, in words; keyed by every outcome, so it stays exhaustive. */
+const OUTCOME_LABELS: Readonly<Record<RoutineFireOutcome, string>> = {
+  [RoutineFireOutcome.UNSPECIFIED]: "",
+  [RoutineFireOutcome.STARTED]: "started",
+  [RoutineFireOutcome.REFUSED]: "refused",
+  [RoutineFireOutcome.TARGET_MISSING]: "agent missing",
+  [RoutineFireOutcome.SKIPPED]: "skipped",
+  [RoutineFireOutcome.COMPLETED]: "completed",
+  [RoutineFireOutcome.FAILED]: "failed",
+  [RoutineFireOutcome.TIMED_OUT]: "timed out",
+};
+
+/**
+ * Who started a fire: the caller's name, else email, else id, and the id
+ * of the service account whose key minted an app user's token when there
+ * is one. A schedule fire has no caller; its origin already says so.
+ */
+function startedBy(fire: RoutineFire): string {
+  const actor = fire.firedBy;
+  const who = oneLine(actor?.displayName || actor?.email || actor?.id || "");
+  if (who === "") {
+    return "—";
+  }
+  const mintedBy = oneLine(actor?.mintedBy ?? "");
+  return mintedBy === "" ? who : `${who} (through service account ${mintedBy})`;
+}
+
+function defaultStreams(): FiresStreams {
+  return { write: (text: string) => void process.stdout.write(text) };
 }

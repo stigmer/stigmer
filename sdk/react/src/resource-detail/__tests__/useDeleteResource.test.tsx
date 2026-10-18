@@ -2,7 +2,8 @@
  * A failed delete says why. Pins: the error toast carries the server's
  * sentence as its description, so a plugin whose removal is refused names
  * what still uses it and what to undo; the hook rejects with the error and
- * holds it; a successful delete toasts the resource's name.
+ * holds it; a successful delete toasts the resource's name; a routine is
+ * named a routine in the toast.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook } from "@testing-library/react";
@@ -47,5 +48,15 @@ describe("useDeleteResource", () => {
     });
     expect(toastMock.success).toHaveBeenCalledWith("hookify deleted");
     expect(toastMock.error).not.toHaveBeenCalled();
+  });
+
+  it("names a routine a routine when its delete is refused", async () => {
+    const client = { routine: { delete: vi.fn(async () => { throw new ConnectError("no", Code.PermissionDenied); }) } };
+    const wrapper = ({ children }: { children: ReactNode }) => <StigmerContext.Provider value={client as never}>{children}</StigmerContext.Provider>;
+    const hook = renderHook(() => useDeleteResource("routine", "rtn_1", "Triage"), { wrapper });
+    await act(async () => {
+      await expect(hook.result.current.deleteResource()).rejects.toThrow();
+    });
+    expect(toastMock.error).toHaveBeenCalledWith("Failed to delete routine", expect.anything());
   });
 });

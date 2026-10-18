@@ -1,9 +1,9 @@
-// Schedule list fetching — the direct-query core plus the workbench adapter.
+// Routine list fetching — the direct-query core plus the workbench adapter.
 //
-// Schedules are the one Library kind NOT backed by the search service: the
+// Routines are the one Library kind NOT backed by the search service: the
 // generic `SearchResult` summary cannot carry the operational fields a
-// schedule list exists to show (`next_fire_at`, enabled/paused state, last
-// run), while the direct `list` query returns full `Schedule` protos and was
+// routine list exists to show (`next_fire_at`, enabled/paused state, last
+// run), while the direct `list` query returns full `Routine` protos and was
 // explicitly shaped for "the org-context view a console tab needs". Both
 // consoles consume this single implementation, so the paging lives once.
 
@@ -23,18 +23,18 @@ export interface RoutineListClient {
   };
 }
 
-/** One page of schedules, newest first. */
+/** One page of routines, newest first. */
 export interface RoutinePage {
-  /** Full `Schedule` protos (spec + status) for the page. */
+  /** Full `Routine` protos (spec + status) for the page. */
   readonly entries: readonly Routine[];
-  /** Set when more schedules follow; `""` on the last page. */
+  /** Set when more routines follow; `""` on the last page. */
   readonly nextPageToken: string;
 }
 
 const DEFAULT_PAGE_SIZE = 20;
 
 /**
- * Fetch one page of an organization's schedules via the direct query:
+ * Fetch one page of an organization's routines via the direct query:
  * the page `pageToken` names (`""` for the first), at most `pageSize`.
  */
 export async function listRoutinesPage(
@@ -53,11 +53,11 @@ export async function listRoutinesPage(
 }
 
 /**
- * Build a `ResourceWorkbench` data source over the direct schedule query.
- * Consumers type their workbench as `ResourceWorkbench<Schedule>` and pass
+ * Build a `ResourceWorkbench` data source over the direct routine query.
+ * Consumers type their workbench as `ResourceWorkbench<Routine>` and pass
  * `getItemId={(s) => s.metadata?.id}`.
  *
- * `request.query` is ignored: schedules have no server-side text search
+ * `request.query` is ignored: routines have no server-side text search
  * (render the workbench with `searchable={false}`).
  */
 export function createRoutineListFn(

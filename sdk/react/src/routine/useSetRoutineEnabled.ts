@@ -10,8 +10,8 @@ import { toError } from "../internal/toError.js";
 /** Return value of {@link useSetRoutineEnabled}. */
 export interface UseSetRoutineEnabledReturn {
   /**
-   * Flip the owner's `spec.enabled` switch on the schedule as loaded.
-   * Resolves with the updated schedule; the caller refetches or replaces
+   * Flip the owner's `spec.enabled` switch on the routine as loaded.
+   * Resolves with the updated routine; the caller refetches or replaces
    * its local copy from it.
    */
   readonly setEnabled: (routine: Routine, enabled: boolean) => Promise<Routine>;
@@ -22,12 +22,12 @@ export interface UseSetRoutineEnabledReturn {
 }
 
 /**
- * Behavior hook that flips a schedule's owner-controlled `enabled` flag.
+ * Behavior hook that flips a routine's owner-controlled `enabled` flag.
  *
- * The update names `spec.enabled` alone, on the schedule as loaded (its
+ * The update names `spec.enabled` alone, on the routine as loaded (its
  * id, and the etag it was read at): every other field keeps its stored
  * value, so a teammate's edit to the cron or the target survives the
- * flip, and a schedule changed since it was loaded refuses it (the toast
+ * flip, and a routine changed since it was loaded refuses it (the toast
  * says to reload). Flipping never clears a platform pause (Resume is the
  * one clearing path — see {@link useResumeRoutine}).
  */
@@ -48,12 +48,12 @@ export function useSetRoutineEnabled(): UseSetRoutineEnabledReturn {
           },
           ["spec.enabled"],
         );
-        toast.success(enabled ? "Schedule enabled" : "Schedule disabled");
+        toast.success(enabled ? "Routine enabled" : "Routine disabled");
         return updated;
       } catch (err) {
         const wrapped = toError(err);
         setError(wrapped);
-        toast.error(saveErrorMessage(err, "schedule"));
+        toast.error(saveErrorMessage(err, "routine"));
         throw wrapped;
       } finally {
         setIsPending(false);

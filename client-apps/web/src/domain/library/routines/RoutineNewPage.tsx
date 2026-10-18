@@ -10,20 +10,20 @@ import {
 } from "@stigmer/react-sdk";
 
 /**
- * Console page for creating a new schedule.
+ * Console page for creating a new routine.
  *
- * Mounted at `/library/schedules/new`. Renders the SDK's
+ * Mounted at `/library/routines/new`. Renders the SDK's
  * `RoutineForm` component and handles routing on
  * completion (navigate to detail) and cancellation (navigate to list).
  */
-export function ScheduleNewPage() {
+export function RoutineNewPage() {
   const org = useActiveOrgId();
   const slugForOrg = useOrgSlugForId();
   const router = useRouter();
   const { setLabel } = useBreadcrumbOverride();
 
   useEffect(() => {
-    setLabel("New schedule");
+    setLabel("New routine");
   }, [setLabel]);
 
   if (!org) return null;
@@ -33,10 +33,10 @@ export function ScheduleNewPage() {
       org={org}
       onComplete={(routine) =>
         router.push(
-          `/library/schedules/${slugForOrg(routine.metadata?.org ?? "")}/${routine.metadata?.slug}`,
+          `/library/routines/${slugForOrg(routine.metadata?.org ?? "")}/${routine.metadata?.slug}`,
         )
       }
-      onCancel={() => router.push("/library/schedules")}
+      onCancel={() => router.push("/library/routines")}
     />
   );
 }

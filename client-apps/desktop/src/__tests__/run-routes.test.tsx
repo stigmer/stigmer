@@ -1,6 +1,7 @@
 /**
  * Pins the desktop router's run address: /runs/<id> (where the dashboard
- * and a schedule's runs send a person) renders the run page. The page loads
+ * and a routine's runs send a person) renders the run page, and the
+ * Library's routine addresses (list, new, detail) render their pages. The page loads
  * lazily, so the test renders the matched route's element and waits for
  * the page; the page itself is stubbed and pinned by its own suite. The
  * route saved at the last launch is reopened only while the app still
@@ -27,6 +28,9 @@ vi.mock("@tauri-apps/plugin-updater", () => ({ check: vi.fn().mockResolvedValue(
 vi.mock("../pages/runs/RunPage", () => ({
   default: () => <p>run page</p>,
 }));
+vi.mock("../pages/library/RoutineListPage", () => ({ default: () => <p>routine list page</p> }));
+vi.mock("../pages/library/RoutineNewPage", () => ({ default: () => <p>routine new page</p> }));
+vi.mock("../pages/library/RoutineDetailPage", () => ({ default: () => <p>routine detail page</p> }));
 
 import { restorableRoute, router } from "../routes";
 
@@ -41,6 +45,17 @@ describe("desktop routes — the run address", () => {
     renderRoute("/runs/aex_1");
 
     expect(await screen.findByText("run page")).toBeTruthy();
+  });
+});
+
+describe("desktop routes — routines in the Library", () => {
+  it("renders the routine list, new and detail pages at their addresses", async () => {
+    renderRoute("/library/routines");
+    expect(await screen.findByText("routine list page")).toBeTruthy();
+    renderRoute("/library/routines/new");
+    expect(await screen.findByText("routine new page")).toBeTruthy();
+    renderRoute("/library/routines/acme/nightly");
+    expect(await screen.findByText("routine detail page")).toBeTruthy();
   });
 });
 

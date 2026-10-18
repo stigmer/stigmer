@@ -4,32 +4,36 @@ import { test, expect } from "../../fixtures";
 import { ensureOrg } from "../../fixtures/seed-helpers";
 
 /** The organization these journeys seed into and point the console at. */
-const ROUTINES_ORG = "e2e-schedules";
+const ROUTINES_ORG = "e2e-routines";
 
 /**
- * Schedule Library journeys (stigmer/stigmer#352) against the live OSS
+ * Routine Library journeys (stigmer/stigmer#352) against the live OSS
  * stack.
  *
  * The load-bearing behaviors:
  * - The list is direct-query backed: full protos render the operational
  *   columns (state, cadence, next fire) and there is deliberately NO
- *   text-search box (schedules have no server-side search).
+ *   text-search box (routines have no server-side search).
  * - The disabled-vs-paused distinction renders as two levers with two
  *   remedies; the owner's Enable action re-applies the FULL proto
  *   through the manifest engine (lossless — verified end-to-end here by
- *   round-tripping a schedule that carries tags).
+ *   round-tripping a routine that carries tags).
+ * - Run now takes a note, and the fire it makes is in the History tab
+ *   as a Manual row whatever the run did next.
+ * - The API tab shows the one call that starts the routine, with no key
+ *   line on a stack that trusts every request (sign-in off here).
  */
 
-/** Makes the schedules organization the console's active one (stored by id) before the first page loads. */
+/** Makes the routines organization the console's active one (stored by id) before the first page loads. */
 async function pinActiveOrg(page: Page, stigmerClient: Stigmer): Promise<void> {
-  const id = await ensureOrg(stigmerClient, ROUTINES_ORG, "E2E schedules");
+  const id = await ensureOrg(stigmerClient, ROUTINES_ORG, "E2E routines");
   await page.addInitScript((org) => {
     localStorage.setItem("stigmer:activeOrg", org);
   }, id);
 }
 
 /**
- * Seed an agent + a schedule targeting it; returns slugs and a cleanup.
+ * Seed an agent + a routine targeting it; returns slugs and a cleanup.
  * Seeds the organization too, so a case that calls it never depends on a
  * sibling case having run first.
  */
@@ -37,12 +41,12 @@ async function createTestRoutine(
   stigmerClient: Stigmer,
   options?: { enabled?: boolean },
 ) {
-  await ensureOrg(stigmerClient, ROUTINES_ORG, "E2E schedules");
+  await ensureOrg(stigmerClient, ROUTINES_ORG, "E2E routines");
   // Cases run on parallel workers in one organization, so the millisecond
   // alone can repeat; the random suffix keeps two seeds' slugs apart.
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   const agent = await stigmerClient.agent.create({
-    name: `e2e-sched-agent-${stamp}`,
+    name: `e2e-routine-agent-${stamp}`,
     org: ROUTINES_ORG,
     instructions: "You send short reminder messages. Keep responses brief.",
   });
@@ -50,7 +54,7 @@ async function createTestRoutine(
   const agentId = agent.metadata!.id!;
 
   const routine = await stigmerClient.routine.create({
-    name: `e2e-sched-${stamp}`,
+    name: `e2e-routine-${stamp}`,
     org: ROUTINES_ORG,
     cron: "0 9 * * *",
     timeZone: "Asia/Kolkata",
@@ -74,7 +78,7 @@ async function createTestRoutine(
   };
 }
 
-test.describe("Schedules list page", () => {
+test.describe("Routines list page", () => {
   test.beforeEach(async ({ page, stigmerClient }) => {
     await pinActiveOrg(page, stigmerClient);
   });
@@ -83,17 +87,17 @@ test.describe("Schedules list page", () => {
     page,
     stigmerClient,
   }) => {
-    await ensureOrg(stigmerClient, ROUTINES_ORG, "E2E schedules");
-    await page.goto("/library/schedules");
+    await ensureOrg(stigmerClient, ROUTINES_ORG, "E2E routines");
+    await page.goto("/library/routines");
 
     await expect(
-      page.getByRole("heading", { level: 1, name: "Schedules" }),
+      page.getByRole("heading", { level: 1, name: "Routines" }),
     ).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByLabel("Schedule workbench")).toBeVisible();
+    await expect(page.getByLabel("Routine workbench")).toBeVisible();
     // Form-based creation is the primary path; Apply YAML stays as the
     // secondary, declarative/GitOps path.
     await expect(
-      page.getByRole("link", { name: "New schedule" }).first(),
+      page.getByRole("link", { name: "New routine" }).first(),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Apply YAML" }).first(),
@@ -101,17 +105,17 @@ test.describe("Schedules list page", () => {
     // Direct-query list: no server text search, so no search input —
     // a search box that silently matches nothing would lie.
     await expect(
-      page.getByLabel("Schedule workbench").getByRole("textbox"),
+      page.getByLabel("Routine workbench").getByRole("textbox"),
     ).not.toBeVisible();
   });
 
-  test("lists a seeded schedule with live status columns and navigates to detail", async ({
+  test("lists a seeded routine with live status columns and navigates to detail", async ({
     page,
     stigmerClient,
   }) => {
     const seeded = await createTestRoutine(stigmerClient);
     try {
-      await page.goto("/library/schedules");
+      await page.goto("/library/routines");
 
       const row = page.getByText(seeded.routineSlug).first();
       await expect(row).toBeVisible({ timeout: 15_000 });
@@ -138,16 +142,16 @@ test.describe("Schedules list page", () => {
   });
 });
 
-test.describe("Schedule creation form", () => {
+test.describe("Routine creation form", () => {
   test.beforeEach(async ({ page, stigmerClient }) => {
     await pinActiveOrg(page, stigmerClient);
   });
 
-  test("creates a schedule from the form with the Daily preset", async ({
+  test("creates a routine from the form with the Daily preset", async ({
     page,
     stigmerClient,
   }) => {
-    await ensureOrg(stigmerClient, ROUTINES_ORG, "E2E schedules");
+    await ensureOrg(stigmerClient, ROUTINES_ORG, "E2E routines");
 
     const stamp = Date.now();
     const agent = await stigmerClient.agent.create({
@@ -156,11 +160,11 @@ test.describe("Schedule creation form", () => {
       instructions: "You send short reminder messages. Keep responses brief.",
     });
     const agentSlug = agent.metadata!.slug!;
-    const routineName = `e2e-form-sched-${stamp}`;
+    const routineName = `e2e-form-routine-${stamp}`;
     let routineId: string | undefined;
 
     try {
-      await page.goto("/library/schedules/new");
+      await page.goto("/library/routines/new");
 
       await page.getByLabel("Name").fill(routineName);
 
@@ -177,7 +181,7 @@ test.describe("Schedule creation form", () => {
         "Every day at 09:00",
       );
 
-      await page.getByRole("button", { name: "Create schedule" }).click();
+      await page.getByRole("button", { name: "Create routine" }).click();
 
       // Landed on the detail page: definition renders the generated
       // cron, and the staged-disabled default shows the owner's banner.
@@ -185,7 +189,7 @@ test.describe("Schedule creation form", () => {
         page.getByRole("heading", { name: routineName }),
       ).toBeVisible({ timeout: 15_000 });
       await expect(page.getByText("0 9 * * *").first()).toBeVisible();
-      await expect(page.getByText("Schedule is disabled")).toBeVisible();
+      await expect(page.getByText("Routine is disabled")).toBeVisible();
 
       // Server-side confirmation of what the form submitted.
       const created = await stigmerClient.routine.getByReference({
@@ -207,7 +211,7 @@ test.describe("Schedule creation form", () => {
   });
 });
 
-test.describe("Schedule detail tabs and inline editing", () => {
+test.describe("Routine detail tabs and inline editing", () => {
   test.beforeEach(async ({ page, stigmerClient }) => {
     await pinActiveOrg(page, stigmerClient);
   });
@@ -219,14 +223,14 @@ test.describe("Schedule detail tabs and inline editing", () => {
     const seeded = await createTestRoutine(stigmerClient);
     try {
       // The ?tab= deep link lands directly on the History tab (the
-      // AgentDetailPage precedent, wired for schedules too).
+      // AgentDetailPage precedent, wired for routines too).
       await page.goto(
-        `/library/schedules/${ROUTINES_ORG}/${seeded.routineSlug}?tab=history`,
+        `/library/routines/${ROUTINES_ORG}/${seeded.routineSlug}?tab=history`,
       );
       await expect(
         page.getByRole("tab", { name: "Overview" }),
       ).toBeVisible({ timeout: 15_000 });
-      // A fresh schedule has an empty fire ledger — stated, not blank.
+      // A fresh routine has an empty fire ledger — stated, not blank.
       await expect(page.getByText("No fires yet.")).toBeVisible();
 
       // Overview: the cadence humanizes; the raw cron stays visible.
@@ -271,19 +275,19 @@ test.describe("Schedule detail tabs and inline editing", () => {
   });
 });
 
-test.describe("Schedule rename", () => {
+test.describe("Routine rename", () => {
   test.beforeEach(async ({ page, stigmerClient }) => {
     await pinActiveOrg(page, stigmerClient);
   });
 
-  test("renames a schedule from its detail view; the old reference still reads it, and the address follows", async ({
+  test("renames a routine from its detail view; the old reference still reads it, and the address follows", async ({
     page,
     stigmerClient,
   }) => {
     const seeded = await createTestRoutine(stigmerClient);
     const renamed = `${seeded.routineSlug}-renamed`;
     try {
-      await page.goto(`/library/schedules/${ROUTINES_ORG}/${seeded.routineSlug}`);
+      await page.goto(`/library/routines/${ROUTINES_ORG}/${seeded.routineSlug}`);
       await expect(page.getByRole("tab", { name: "Overview" })).toBeVisible({
         timeout: 15_000,
       });
@@ -291,11 +295,11 @@ test.describe("Schedule rename", () => {
       await page.getByLabel("Slug").fill(renamed);
       await page.getByRole("button", { name: "Rename" }).click();
       await expect(page).toHaveURL(
-        new RegExp(`/library/schedules/${ROUTINES_ORG}/${renamed}$`),
+        new RegExp(`/library/routines/${ROUTINES_ORG}/${renamed}$`),
         { timeout: 15_000 },
       );
 
-      // The old reference reads the same schedule, named by its new slug.
+      // The old reference reads the same routine, named by its new slug.
       const byOld = await stigmerClient.routine.getByReference({
         org: ROUTINES_ORG,
         slug: seeded.routineSlug,
@@ -304,9 +308,9 @@ test.describe("Schedule rename", () => {
       expect(byOld.metadata?.slug).toBe(renamed);
 
       // A bookmark to the old address opens it and moves to the new one.
-      await page.goto(`/library/schedules/${ROUTINES_ORG}/${seeded.routineSlug}`);
+      await page.goto(`/library/routines/${ROUTINES_ORG}/${seeded.routineSlug}`);
       await expect(page).toHaveURL(
-        new RegExp(`/library/schedules/${ROUTINES_ORG}/${renamed}$`),
+        new RegExp(`/library/routines/${ROUTINES_ORG}/${renamed}$`),
         { timeout: 15_000 },
       );
     } finally {
@@ -320,22 +324,22 @@ test.describe("Disabled-vs-paused rendering", () => {
     await pinActiveOrg(page, stigmerClient);
   });
 
-  test("owner-disabled schedule shows the banner and Enable re-applies losslessly", async ({
+  test("owner-disabled routine shows the banner and Enable re-applies losslessly", async ({
     page,
     stigmerClient,
   }) => {
     const seeded = await createTestRoutine(stigmerClient, { enabled: false });
     try {
       await page.goto(
-        `/library/schedules/${ROUTINES_ORG}/${seeded.routineSlug}`,
+        `/library/routines/${ROUTINES_ORG}/${seeded.routineSlug}`,
       );
 
       // The owner's lever renders distinctly, with its remedy inline.
-      await expect(page.getByText("Schedule is disabled")).toBeVisible({
+      await expect(page.getByText("Routine is disabled")).toBeVisible({
         timeout: 15_000,
       });
       await expect(page.getByText("Disabled").first()).toBeVisible();
-      // A disabled schedule's primary action is "Enable & run now", the
+      // A disabled routine's primary action is "Enable & run now", the
       // one-click staged-test flow, never a bare "Run now"
       // (RoutineDetailView's primaryAction).
       await expect(page.getByRole("button", { name: "Enable & run now" })).toBeEnabled();
@@ -343,9 +347,9 @@ test.describe("Disabled-vs-paused rendering", () => {
 
       // Enable through the banner: a full-proto re-apply via the
       // manifest engine (the lossless write path).
-      await page.getByRole("button", { name: "Enable schedule" }).click();
+      await page.getByRole("button", { name: "Enable routine" }).click();
 
-      await expect(page.getByText("Schedule is disabled")).not.toBeVisible({
+      await expect(page.getByText("Routine is disabled")).not.toBeVisible({
         timeout: 15_000,
       });
       await expect(page.getByText("Active").first()).toBeVisible();
@@ -358,6 +362,61 @@ test.describe("Disabled-vs-paused rendering", () => {
         slug: seeded.routineSlug,
       });
       expect(after.spec?.enabled).toBe(true);
+    } finally {
+      await seeded.cleanup();
+    }
+  });
+});
+
+test.describe("Starting a routine", () => {
+  test.beforeEach(async ({ page, stigmerClient }) => {
+    await pinActiveOrg(page, stigmerClient);
+  });
+
+  test("Run now with a note records a Manual fire in the History tab", async ({
+    page,
+    stigmerClient,
+  }) => {
+    const seeded = await createTestRoutine(stigmerClient);
+    try {
+      await page.goto(`/library/routines/${ROUTINES_ORG}/${seeded.routineSlug}`);
+      await page
+        .getByRole("button", { name: "Run now", exact: true })
+        .click({ timeout: 15_000 });
+
+      const dialog = page.getByRole("dialog");
+      await expect(dialog.getByText("Run this routine now?")).toBeVisible();
+      await dialog.getByLabel(/Note for this run/).fill("SEN-4521 fired");
+      await dialog.getByRole("button", { name: "Start run" }).click();
+      // A started run opens the run page; a refused one stays. Either way
+      // the fire is a row in the ledger, which is what is asserted.
+      await expect(dialog).toBeHidden({ timeout: 15_000 });
+
+      await page.goto(
+        `/library/routines/${ROUTINES_ORG}/${seeded.routineSlug}?tab=history`,
+      );
+      const table = page.getByRole("table", { name: "Fire history" });
+      await expect(table).toBeVisible({ timeout: 15_000 });
+      await expect(table.getByRole("columnheader", { name: "Started by" })).toBeVisible();
+      await expect(table.getByRole("cell", { name: "Manual" })).toHaveCount(1);
+    } finally {
+      await seeded.cleanup();
+    }
+  });
+
+  test("the API tab shows the call that starts the routine, with no key on a stack without sign-in", async ({
+    page,
+    stigmerClient,
+  }) => {
+    const seeded = await createTestRoutine(stigmerClient);
+    try {
+      await page.goto(
+        `/library/routines/${ROUTINES_ORG}/${seeded.routineSlug}?tab=api`,
+      );
+      const curl = page.getByText(/RoutineCommandController\/fire/);
+      await expect(curl).toBeVisible({ timeout: 15_000 });
+      await expect(curl).toContainText(`"id":"${seeded.routineId}"`);
+      await expect(curl).not.toContainText("Authorization");
     } finally {
       await seeded.cleanup();
     }

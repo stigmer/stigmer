@@ -8,16 +8,16 @@ title: routine
 
 ### useCreateRoutine
 
-Behavior hook that wraps `schedule.apply()` with loading and error
+Behavior hook that wraps `routine.apply()` with loading and error
 state.
 
-Creates a schedule from a `RoutineInput`. Uses `apply()`
+Creates a routine from a `RoutineInput`. Uses `apply()`
 (upsert) rather than `create()` so re-submissions are idempotent —
 matching the CLI's `stigmer apply` semantics and the established SDK
 mutation hook pattern (`isCreating` flag, `error` state, `clearError`
 reset, result returned from the promise, not stored in hook state).
 
-NOTE: this hook is for CREATION. Editing an existing schedule must
+NOTE: this hook is for CREATION. Editing an existing routine must
 NOT go through `RoutineInput` — the input type cannot express every
 metadata field (tags, description), and the server replaces spec and
 mutable metadata wholesale on update, so a down-converting edit would
@@ -35,7 +35,7 @@ function useCreateRoutine(): UseCreateRoutineReturn
 <TypeTable
   type={{
     clearError: { type: "() => void", description: "Reset `error` to `null`." },
-    create: { type: "(input: RoutineInput) => Promise<Routine>", description: "Submit a RoutineInput to create (or upsert) a schedule.  Uses `stigmer.routine.apply()` — the idempotent upsert operation. Resolves with the server-created `Schedule` proto including populated metadata (id, slug, audit timestamps) and the platform-computed `status.next_fire_at`." },
+    create: { type: "(input: RoutineInput) => Promise<Routine>", description: "Submit a RoutineInput to create (or upsert) a routine.  Uses `stigmer.routine.apply()` — the idempotent upsert operation. Resolves with the server-created `Routine` proto including populated metadata (id, slug, audit timestamps) and the platform-computed `status.next_fire_at`." },
     error: { type: "Error | null", description: "Error from the last failed create, or `null` when healthy." },
     isCreating: { type: "boolean", description: "`true` while the apply request is in flight." },
   }}
@@ -44,7 +44,7 @@ function useCreateRoutine(): UseCreateRoutineReturn
 ```tsx
 const { create, isCreating, error, clearError } = useCreateRoutine();
 
-const schedule = await create({
+const routine = await create({
   name: "daily-fee-reminders",
   org: "acme",
   cron: "0 9 * * *",
@@ -55,7 +55,7 @@ const schedule = await create({
     message: "Send today's fee reminders.",
   },
 });
-// schedule.metadata?.slug → "daily-fee-reminders"
+// routine.metadata?.slug → "daily-fee-reminders"
 ```
 
 
@@ -101,13 +101,13 @@ function useFireRoutine(): UseFireRoutineReturn
 
 ### useResumeRoutine
 
-Behavior hook that resumes a platform-paused schedule.
+Behavior hook that resumes a platform-paused routine.
 
 Resume is the ONE path that clears `status.paused_reason` (and the
 failure streak with it) — re-applying the manifest deliberately does
 not, so a routine GitOps apply can never silently un-pause a failing
-schedule. Resuming a schedule that is not paused is a server-side
-no-op; resuming a disabled schedule clears the pause but the schedule
+routine. Resuming a routine that is not paused is a server-side
+no-op; resuming a disabled routine clears the pause but the routine
 stays disabled (the owner's lever is separate — see
 [`useSetRoutineEnabled`](#usesetroutineenabled)).
 
@@ -126,14 +126,14 @@ function useResumeRoutine(): UseResumeRoutineReturn
   type={{
     error: { type: "Error | null", description: "Error from the last failed resume, or `null` when healthy." },
     isResuming: { type: "boolean", description: "`true` while the resume request is in flight." },
-    resumeRoutine: { type: "(routineId: string) => Promise<Routine>", description: "Clear the platform's failure-streak pause and let the schedule fire again. Resolves with the post-resume schedule; the caller refetches or replaces its local copy from it." },
+    resumeRoutine: { type: "(routineId: string) => Promise<Routine>", description: "Clear the platform's failure-streak pause and let the schedule fire again. Resolves with the post-resume routine; the caller refetches or replaces its local copy from it." },
   }}
 />
 
 
 ### useRoutine
 
-Data hook that fetches a single Schedule by organization and slug.
+Data hook that fetches a single Routine by organization and slug.
 
 Wraps `stigmer.routine.getByReference()` with loading, error, and
 not-found state management. The loaded resource carries the spec
@@ -146,8 +146,8 @@ renders, including the disabled-vs-paused distinction (see
 Pass `null` for either `org` or `slug` to skip fetching (stable
 no-op).
 
-**Not-found handling:** a NOT_FOUND response sets `schedule` to
-`null` without raising an error; `schedule === null && !isLoading
+**Not-found handling:** a NOT_FOUND response sets `routine` to
+`null` without raising an error; `routine === null && !isLoading
 && !error` means the resource does not exist.
 
 **Signature**
@@ -170,26 +170,26 @@ function useRoutine(org: string | null, slug: string | null): UseRoutineReturn
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
     isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight." },
-    refetch: { type: "() => void", description: "Discard cached data and re-fetch the schedule from the server." },
-    schedule: { type: "Routine | null", description: "The resolved schedule, or `null` while loading, on error, or when not found." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the routine from the server." },
+    routine: { type: "Routine | null", description: "The resolved routine, or `null` while loading, on error, or when not found." },
   }}
 />
 
 ```tsx
-const { schedule, isLoading, error, refetch } = useRoutine("isc", "daily-fee-reminders");
+const { routine, isLoading, error, refetch } = useRoutine("isc", "daily-fee-reminders");
 ```
 
 
 ### useRoutineCount
 
-Data hook that counts an organization's schedules, for the Library
+Data hook that counts an organization's routines, for the Library
 landing card and dashboard widgets.
 
-Schedules are not in search, so no per-kind count exists for them: the
+Routines are not in search, so no per-kind count exists for them: the
 hook reads the list's largest page and counts it, with `isLowerBound`
-set when more follow. There is no scope option: schedules are org-only.
+set when more follow. There is no scope option: routines are org-only.
 
-For the schedules themselves, use [`useRoutineList`](#useroutinelist) instead.
+For the routines themselves, use [`useRoutineList`](#useroutinelist) instead.
 
 Pass `null` as `org` to skip fetching (stable no-op).
 
@@ -210,10 +210,10 @@ function useRoutineCount(org: string | null, options?: UseRoutineCountOptions): 
 
 <TypeTable
   type={{
-    count: { type: "number | undefined", description: "The schedules a first page holds, up to 100. `undefined` until the first successful fetch completes." },
+    count: { type: "number | undefined", description: "The routines a first page holds, up to 100. `undefined` until the first successful fetch completes." },
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the count fetch is in flight." },
-    isLowerBound: { type: "boolean", description: "`true` when more schedules follow that page: a card reads \"100+\" rather than a total the list does not carry." },
+    isLowerBound: { type: "boolean", description: "`true` when more routines follow that page: a card reads \"100+\" rather than a total the list does not carry." },
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the count from the server." },
   }}
 />
@@ -225,14 +225,14 @@ const { count, isLowerBound, isLoading } = useRoutineCount("isc");
 
 ### useRoutineList
 
-Data hook that lists an organization's schedules, newest first, a page at
+Data hook that lists an organization's routines, newest first, a page at
 a time (`hasMore` / `loadMore`; a list carries no total).
 
 Backed by the direct `listRoutines` query — not the search service —
-so each entry is a full `Schedule` proto with the operational status
-fields a schedule list exists to show (`next_fire_at`, enabled/paused
+so each entry is a full `Routine` proto with the operational status
+fields a routine list exists to show (`next_fire_at`, enabled/paused
 state, `last_fire_at`). There is no text query or visibility scope:
-schedules are org-only and have no server-side search.
+routines are org-only and have no server-side search.
 
 Pass `null` as `org` to skip fetching (stable no-op).
 
@@ -254,19 +254,19 @@ function useRoutineList(org: string | null, options?: UseRoutineListOptions): Us
 <TypeTable
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
-    hasMore: { type: "boolean", description: "`true` while the server holds schedules beyond those loaded." },
+    hasMore: { type: "boolean", description: "`true` while the server holds routines beyond those loaded." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
     isLoadingMore: { type: "boolean", description: "`true` while a `loadMore` read is in flight." },
     isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight." },
     loadMore: { type: "() => void", description: "Load the next page. No-op while one is loading or when nothing follows." },
     loadMoreError: { type: "Error | null", description: "Error from the last failed `loadMore`, or `null`." },
     refetch: { type: "() => void", description: "Re-read the first page; pages loaded since stay." },
-    routines: { type: "readonly Routine[]", description: "Full `Schedule` protos (spec + status), the first page then each page loaded since." },
+    routines: { type: "readonly Routine[]", description: "Full `Routine` protos (spec + status), the first page then each page loaded since." },
   }}
 />
 
 ```tsx
-const { schedules, hasMore, loadMore, isLoading } = useRoutineList("isc", {
+const { routines, hasMore, loadMore, isLoading } = useRoutineList("isc", {
   pageSize: 20,
 });
 ```
@@ -274,12 +274,12 @@ const { schedules, hasMore, loadMore, isLoading } = useRoutineList("isc", {
 
 ### useSetRoutineEnabled
 
-Behavior hook that flips a schedule's owner-controlled `enabled` flag.
+Behavior hook that flips a routine's owner-controlled `enabled` flag.
 
-The update names `spec.enabled` alone, on the schedule as loaded (its
+The update names `spec.enabled` alone, on the routine as loaded (its
 id, and the etag it was read at): every other field keeps its stored
 value, so a teammate's edit to the cron or the target survives the
-flip, and a schedule changed since it was loaded refuses it (the toast
+flip, and a routine changed since it was loaded refuses it (the toast
 says to reload). Flipping never clears a platform pause (Resume is the
 one clearing path — see [`useResumeRoutine`](#useresumeroutine)).
 
@@ -295,19 +295,19 @@ function useSetRoutineEnabled(): UseSetRoutineEnabledReturn
   type={{
     error: { type: "Error | null", description: "Error from the last failed update, or `null` when healthy." },
     isPending: { type: "boolean", description: "`true` while the update is in flight." },
-    setEnabled: { type: "(routine: Routine, enabled: boolean) => Promise<Routine>", description: "Flip the owner's `spec.enabled` switch on the schedule as loaded. Resolves with the updated schedule; the caller refetches or replaces its local copy from it." },
+    setEnabled: { type: "(routine: Routine, enabled: boolean) => Promise<Routine>", description: "Flip the owner's `spec.enabled` switch on the routine as loaded. Resolves with the updated routine; the caller refetches or replaces its local copy from it." },
   }}
 />
 
 
 ### useUpdateRoutineSpec
 
-Behavior hook behind the schedule detail view's inline editing: one
+Behavior hook behind the routine detail view's inline editing: one
 spec mutation, saved as an update that names exactly the spec fields it
-changed (`changedSpecPaths`), on the schedule as loaded (its id
+changed (`changedSpecPaths`), on the routine as loaded (its id
 and the etag it was read at). Every field the mutation leaves alone
 keeps its stored value, so a teammate's change to another field
-survives, and a schedule changed since it was loaded refuses the save.
+survives, and a routine changed since it was loaded refuses the save.
 An edit never clears a platform pause (Resume is the one clearing
 path — see `useResumeRoutine`).
 
@@ -327,14 +327,14 @@ function useUpdateRoutineSpec(): UseUpdateRoutineSpecReturn
   type={{
     error: { type: "Error | null", description: "Error from the last failed update, or `null` when healthy." },
     isUpdating: { type: "boolean", description: "`true` while the update is in flight." },
-    updateSpec: { type: "(routine: Routine, mutate: (spec: RoutineSpec) => void) => Promise<Routine>", description: "Apply one spec mutation to the schedule as loaded. Resolves with the updated schedule (the loaded one when the mutation changed nothing); the caller refetches or replaces its local copy from it." },
+    updateSpec: { type: "(routine: Routine, mutate: (spec: RoutineSpec) => void) => Promise<Routine>", description: "Apply one spec mutation to the routine as loaded. Resolves with the updated routine (the loaded one when the mutation changed nothing); the caller refetches or replaces its local copy from it." },
   }}
 />
 
 ```tsx
 const { updateSpec, isUpdating } = useUpdateRoutineSpec();
 
-await updateSpec(schedule, (spec) => {
+await updateSpec(routine, (spec) => {
   spec.cron = "0 9 * * 1-5";
   spec.timeZone = "Asia/Kolkata";
 });
@@ -373,11 +373,54 @@ string with [`cadenceToCron`](#cadencetocron) at submit time.
 />
 
 
+### RoutineApiPanel
+
+How another system starts this routine: the one HTTP call, what it
+answers, and, where the edition shares a routine with a service account,
+the three steps that set a caller up.
+
+The setup is three existing acts by up to two people, never one wizard:
+an organization admin creates the service account and its key (offered
+here, with Viewer preset, to someone who may), the routine's creator
+grants it Participant (Manage access), and the caller sends the key. The
+key's reach beyond this routine is stated, since a key acts with its
+account's whole organization role.
+
+What shows follows the server:
+- on open source (the server's reported edition), which grants roles on
+  organizations only, so only a routine's creator may start it: use the
+  creator's key;
+- where an edition shares a routine with people and service accounts:
+  the setup steps to someone who may grant on it (`can_grant_access`),
+  "send your own key" to someone who may start it (`can_fire`), and to
+  anyone else that starting it takes Participant from its creator. A
+  permission answers for the person, never for the edition, so the
+  edition is read from the server, not inferred from a refusal;
+- the Authorization line unless the server trusts every request;
+- the shared unknown-address notice when the server's public address
+  cannot be known.
+
+Zero Console dependencies; all visual properties flow through `--stgm-*`
+design tokens.
+
+**Props** — `RoutineApiPanelProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    onManageAccess: { type: "() => void", description: "Opens the routine's Manage access, where its creator grants Participant. When omitted, the step names the grant without a button." },
+    routine: { type: "Routine", description: "The routine another system will start.", required: true },
+    serviceAccountsHref: { type: "string", description: "Where the panel links to manage service accounts, for someone who may not create one (a hash route in the desktop app)." },
+  }}
+/>
+
+
 ### RoutineDetailView
 
-Self-contained detail view for a Schedule (stigmer/stigmer#352),
-split into an Overview tab (definition + status + recent fires) and a
-History tab (the full paginated fire ledger).
+Self-contained detail view for a Routine (stigmer/stigmer#352),
+split into an Overview tab (definition + status + recent fires), a
+History tab (the full paginated fire ledger, with who started each
+fire) and an API tab (how another system starts it).
 
 The view's one non-negotiable is rendering the two stop-levers
 distinctly, each with its inline remedy:
@@ -388,11 +431,12 @@ distinctly, each with its inline remedy:
   `status.paused_reason`) — banner showing the reason with a Resume
   action (the one path that clears the pause).
 
-Trigger ("Run now") starts a real, billable run and is gated
-behind a confirmation; it is disabled while the schedule cannot fire
-(the banner names the remedy). With `editable`, the mutable spec
-fields edit inline; Edit YAML, Export, and Delete round out the
-action set.
+Run now starts a real, billable run from a dialog that takes an
+optional note for the agent. It shows only to those who may fire the
+routine (`can_fire`, its creator and its Participants); an
+organization admin who is neither sees the routine without it. With
+`editable`, the mutable spec fields edit inline; Manage access, Edit
+YAML, Export, and Delete round out the action set.
 
 Handles loading, error, and not-found states automatically.
 Zero Console dependencies — safe for platform builder embedding.
@@ -406,31 +450,33 @@ All visual properties flow through `--stgm-*` design tokens.
     additionalTabs: { type: "readonly AdditionalTab[]", description: "Consumer-provided extension tabs, appended after the built-ins." },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     defaultTab: { type: "string", description: "Initial tab in uncontrolled mode." },
-    editable: { type: "boolean", description: "Enable inline editing of the schedule's mutable spec fields (cadence, message, vaults, engine & model, budget). Each field saves independently via a lossless full-resource re-apply (useUpdateRoutineSpec). The slug is renamed on its own, from the Overview's slug field, by whoever may delete the schedule (the old slug keeps leading to it for 30 days). The server-immutable fields — target agent, target type — never gain an edit affordance; workspace edits go through Edit YAML for now." },
+    editable: { type: "boolean", description: "Enable inline editing of the routine's mutable spec fields (cadence, message, vaults, engine & model, budget). Each field saves independently via a lossless full-resource re-apply (useUpdateRoutineSpec). The slug is renamed on its own, from the Overview's slug field, by whoever may delete the routine (the old slug keeps leading to it for 30 days). The server-immutable fields — target agent, target type — never gain an edit affordance; workspace edits go through Edit YAML for now." },
     now: { type: "Date", description: "The instant \"next fire\" countdowns and run timestamps are computed against. Injectable for deterministic tests and Scenar fixtures." },
     onDeleted: { type: "() => void", description: "Called after a successful delete (navigate back to the list)." },
     onNavigateToAgent: { type: "(org: string, slug: string) => void", description: "Called when the user activates the target-agent reference. Navigation is the consumer's concern — the Console pushes a Library route; an embedding host does whatever fits." },
     onNavigateToRun: { type: "(executionId: string) => void", description: "Called when the user activates a run reference (`run_…`), from the status row or a run-history row. When omitted, ids render as plain text." },
-    onRenamed: { type: "(routine: Routine) => void", description: "Fired with the renamed schedule after a rename from the slug field. A host whose address names the slug moves it to the new one." },
-    onResourceLoad: { type: "(routine: Routine) => void", description: "Called when the schedule loads or reloads (e.g. breadcrumb label sync)." },
+    onRenamed: { type: "(routine: Routine) => void", description: "Fired with the renamed routine after a rename from the slug field. A host whose address names the slug moves it to the new one." },
+    onResourceLoad: { type: "(routine: Routine) => void", description: "Called when the routine loads or reloads (e.g. breadcrumb label sync)." },
     onTabChange: { type: "(tabId: string) => void", description: "Controlled tab change handler (pair with `activeTab`)." },
     org: { type: "string", description: "Organization id (a slug is also accepted).", required: true },
-    slug: { type: "string", description: "Schedule slug.", required: true },
+    serviceAccountsHref: { type: "string", description: "Where the API tab links to manage service accounts, for someone who may not create one (a hash route in the desktop app)." },
+    slug: { type: "string", description: "Routine slug.", required: true },
   }}
 />
 
 
 ### RoutineFiresTable
 
-Paginated fire-history table for a schedule — the fire ledger,
+Paginated fire-history table for a routine — the fire ledger,
 rendered in full.
 
 Every fire leaves a row, INCLUDING fires that created no run (a
 refused launch gate, a missing target agent), carrying the refusing
-gate's copy verbatim. Columns: outcome, origin, fired time (relative,
-with the absolute instant on hover), duration (recorded → completed;
-"—" while a run is in flight or when no run was created), and the
-run reference.
+gate's copy verbatim. Columns: outcome, origin, who started it (the
+caller of a hand or API fire, "—" for a schedule fire), fired time
+(relative, with the absolute instant on hover), duration (recorded →
+completed; "—" while a run is in flight or when no run was created),
+and the run reference.
 
 Owns its data: give it a `routineId` and it fetches via
 `useRoutineFires` with internal page state. To force a refresh
@@ -450,7 +496,7 @@ All visual properties flow through `--stgm-*` design tokens.
     now: { type: "Date", description: "The instant relative timestamps are computed against. Injectable for deterministic tests and Scenar fixtures." },
     onNavigateToRun: { type: "(executionId: string) => void", description: "Called when the user activates a fire's run reference (`run_…`). When omitted, the id renders as plain text." },
     pageSize: { type: "number", description: "Fires per page." },
-    routineId: { type: "string", description: "ID of the schedule whose fire history to show.", required: true },
+    routineId: { type: "string", description: "ID of the routine whose fire history to show.", required: true },
   }}
 />
 
@@ -466,7 +512,7 @@ All visual properties flow through `--stgm-*` design tokens.
 
 Single-page form for creating a `Routine`.
 
-The form speaks the composer's vocabulary: a schedule is
+The form speaks the composer's vocabulary: a routine is
 a saved run — which agent, what message, what workspace, which
 engine and model, what budget — plus a cadence. It reuses the
 composer's own pickers ([`ModelSelector`](/docs/sdk/react/models#modelselector), [`WorkspaceEditor`](/docs/sdk/react/workspace#workspaceeditor))
@@ -479,10 +525,10 @@ default (an omitted `enabled` is false) and the platform's
 recommended practice — create staged-disabled, validate with
 "Run now" on the detail page, then enable.
 
-Creation only. Editing an existing schedule must not flow through
+Creation only. Editing an existing routine must not flow through
 this form's curated input — see the note on [`useCreateRoutine`](#usecreateroutine).
 
-The created schedule names its organization by id; the console URL
+The created routine names its organization by id; the console URL
 carries the slug.
 
 **Props** — `RoutineFormProps`
@@ -491,8 +537,8 @@ carries the slug.
   type={{
     className: { type: "string", description: "Additional CSS class names for the root form element." },
     onCancel: { type: "() => void", description: "Fired when the user cancels." },
-    onComplete: { type: "(routine: Routine) => void", description: "Fired with the created schedule after a successful submit." },
-    org: { type: "string", description: "Organization id (a slug is also accepted). Schedules are org-local: the server requires the target agent to live in this same org, which is the org the agent picker searches.", required: true },
+    onComplete: { type: "(routine: Routine) => void", description: "Fired with the created routine after a successful submit." },
+    org: { type: "string", description: "Organization id (a slug is also accepted). Routines are org-local: the server requires the target agent to live in this same org, which is the org the agent picker searches.", required: true },
   }}
 />
 
@@ -502,27 +548,32 @@ const slugForOrg = useOrgSlugForId();
 <RoutineForm
   org="acme"
   onComplete={(s) =>
-    navigate(`/library/schedules/${slugForOrg(s.metadata?.org ?? "")}/${s.metadata?.slug}`)
+    navigate(`/library/routines/${slugForOrg(s.metadata?.org ?? "")}/${s.metadata?.slug}`)
   }
-  onCancel={() => navigate("/library/schedules")}
+  onCancel={() => navigate("/library/routines")}
 />
 ```
 
 
 ### RoutineIcon
 
-Clock-with-arrow icon shared by the schedule views.
+Clock-with-arrow icon shared by the routine views.
 
 
 ### RoutineRowActions
 
-Compact per-row actions for a schedule list: **Run now** on an active
-schedule (confirmation-gated — it starts a real, billable run)
-and **Resume** on a platform-paused one. Exactly one action renders
-at a time — the one that is currently meaningful; an owner-disabled
-schedule renders neither (its remedy lives on the detail page).
+Compact per-row actions for a routine list: **Run now** on an active
+routine (through [`RunRoutineDialog`](#runroutinedialog), with an optional note — it
+starts a real, billable run) and **Resume** on a platform-paused one.
+Exactly one action renders at a time — the one that is currently
+meaningful; an owner-disabled routine renders neither (its remedy lives
+on the detail page).
 
-Shared by every console's schedule workbench via `renderItemAction`
+Run now shows only to those who may fire the routine (`can_fire`), as on
+the detail page: one cached check per active row, nothing rendered while
+it is in flight, and the hook's fail-open answer after that.
+
+Shared by every console's routine workbench via `renderItemAction`
 so row behavior never diverges between apps.
 
 **Props** — `RoutineRowActionsProps`
@@ -530,12 +581,69 @@ so row behavior never diverges between apps.
 <TypeTable
   type={{
     onChanged: { type: "() => void", description: "Called after a successful action so the list can refetch." },
-    schedule: { type: "Routine", description: "The schedule this row represents.", required: true },
+    routine: { type: "Routine", description: "The routine this row represents.", required: true },
+  }}
+/>
+
+
+### RunRoutineDialog
+
+Run now for a routine: a real run, started immediately, with an optional
+note for the agent ("Sentry alert SEN-4521 fired, see the link").
+
+The note is what another system sends over the API, offered to a person
+too: the server places it after the routine's saved message, fenced as
+information from whoever started the run, never as instructions. A
+blank note sends none, so the run gets the routine's message alone.
+
+Every console surface that starts a routine (the detail header, the
+disabled banner's Enable & run, the list row) opens this one dialog, so
+starting a routine reads the same everywhere. Hosts gate it on
+`can_fire`; the server re-checks.
+
+**Props** — `RunRoutineDialogProps`
+
+<TypeTable
+  type={{
+    enableFirst: { type: "boolean", description: "The routine is disabled: starting it also switches it back on, and the copy says so." },
+    modal: { type: "boolean", description: "When `false`, renders as an in-flow open dialog instead of a top-layer modal (documentation demos, visual tests)." },
+    onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog requests an open-state change.", required: true },
+    onStart: { type: "(text: string | undefined) => Promise<void>", description: "Starts the run with the note, or with none when the field is blank. The dialog closes when the promise resolves and stays open, keeping the note, when it rejects (the fire hook has already said why).", required: true },
+    open: { type: "boolean", description: "Whether the dialog is open.", required: true },
+    routineName: { type: "string", description: "The routine's display name, shown under the title.", required: true },
   }}
 />
 
 
 ## Types
+
+### buildRoutineFireCurl
+
+The one `curl` that starts a routine from another system: a POST to the
+fire RPC's Connect path with the routine's id and a note. The path comes
+from the generated service descriptor, so it cannot drift from the wire;
+the key is read from `$STIGMER_API_KEY`, so the copied command never
+holds a secret. The JSON body is single-quoted for the shell, with any
+quote in it closed and reopened, so the line stays one argument whatever
+the id holds.
+
+```tsx
+function buildRoutineFireCurl(options: BuildRoutineFireCurlArgs): string
+```
+
+
+### BuildRoutineFireCurlArgs
+
+Arguments for [`buildRoutineFireCurl`](#buildroutinefirecurl).
+
+<TypeTable
+  type={{
+    baseUrl: { type: "string", description: "The server's public base URL, as `usePublicBaseUrl` answers it.", required: true },
+    routineId: { type: "string", description: "The routine's id (`rtn_…`).", required: true },
+    withKey: { type: "boolean", description: "Whether the call carries a bearer key. `false` only for a server that trusts every request (`authenticationRequired === false`).", required: true },
+  }}
+/>
+
 
 ### CadenceKind
 
@@ -562,11 +670,11 @@ function cadenceToCron(preset: CadencePreset): string
 
 ### createRoutineColumns
 
-Column set for a schedule workbench — shared by every console so the
+Column set for a routine workbench — shared by every console so the
 list renders identically everywhere.
 
-The columns exist because schedules are listed via the direct query:
-each row is a full `Schedule` proto, so the operational fields the
+The columns exist because routines are listed via the direct query:
+each row is a full `Routine` proto, so the operational fields the
 issue calls for (next fire, last run, enabled/paused state) render
 straight from the row — no generic `SearchResult` limitations.
 
@@ -581,11 +689,11 @@ function createRoutineColumns(options?: RoutineColumnsOptions): WorkbenchColumnD
 
 ### createRoutineListFn
 
-Build a `ResourceWorkbench` data source over the direct schedule query.
-Consumers type their workbench as `ResourceWorkbench<Schedule>` and pass
+Build a `ResourceWorkbench` data source over the direct routine query.
+Consumers type their workbench as `ResourceWorkbench<Routine>` and pass
 `getItemId={(s) => s.metadata?.id}`.
 
-`request.query` is ignored: schedules have no server-side text search
+`request.query` is ignored: routines have no server-side text search
 (render the workbench with `searchable={false}`).
 
 ```tsx
@@ -610,7 +718,7 @@ function cronToCadence(cron: string): CadencePreset
 
 ### deriveRoutineState
 
-Derive a schedule's display state from its spec and status.
+Derive a routine's display state from its spec and status.
 
 A missing spec derives as "disabled" — the same fail-closed reading the
 server applies to a manifest that omits `enabled`.
@@ -634,13 +742,20 @@ function describeCadence(preset: CadencePreset, timeZone?: string): string
 ```
 
 
+### FIRE_TEXT_MAX_LEN
+
+The contract's bound on a fire's note: io.proto pins
+`FireRoutineInput.text` to 65,536 characters. The field stops there; the
+server's bound stays the rule and answers in its own words.
+
+
 ### formatNextFire
 
-Compact future-instant formatter for a schedule's next fire time:
+Compact future-instant formatter for a routine's next fire time:
 `now`, `in 5m`, `in 3h`, `in 6d`, then a short date once "days from
 now" stops being how people think about it.
 
-The schedule-local sibling of the activity module's past-only
+The routine-local sibling of the activity module's past-only
 `formatRelativeTime` (same compact units, same date tail) — kept
 separate because that util's contract is deliberately past-only.
 A fire time slightly in the past (a tick mid-flight, clock skew)
@@ -656,7 +771,7 @@ function formatNextFire(date: Date, now: Date): string
 
 ### listRoutinesPage
 
-Fetch one page of an organization's schedules via the direct query:
+Fetch one page of an organization's routines via the direct query:
 the page `pageToken` names (`""` for the first), at most `pageSize`.
 
 ```tsx
@@ -688,19 +803,19 @@ The slice of the Stigmer client this module needs (mockable in tests).
 
 ### RoutinePage
 
-One page of schedules, newest first.
+One page of routines, newest first.
 
 <TypeTable
   type={{
-    entries: { type: "readonly Routine[]", description: "Full `Schedule` protos (spec + status) for the page.", required: true },
-    nextPageToken: { type: "string", description: "Set when more schedules follow; `\"\"` on the last page.", required: true },
+    entries: { type: "readonly Routine[]", description: "Full `Routine` protos (spec + status) for the page.", required: true },
+    nextPageToken: { type: "string", description: "Set when more routines follow; `\"\"` on the last page.", required: true },
   }}
 />
 
 
 ### RoutineState
 
-The three mutually-exclusive display states of a schedule.
+The three mutually-exclusive display states of a routine.
 
 
 ### RoutineStateInfo
@@ -709,7 +824,7 @@ Derived display state: the tri-state plus its shared-badge rendering.
 
 <TypeTable
   type={{
-    isPaused: { type: "boolean", description: "`true` when the platform pause latch is set — independent of the display state, so a disabled-AND-paused schedule can still surface its `status.pausedReason`.", required: true },
+    isPaused: { type: "boolean", description: "`true` when the platform pause latch is set — independent of the display state, so a disabled-AND-paused routine can still surface its `status.pausedReason`.", required: true },
     label: { type: "string", description: "Human-readable badge label.", required: true },
     phase: { type: "StatusPhase", description: "`StatusPhase` for the shared `StatusBadge` (`--stgm-status-*` tokens).", required: true, typeDescriptionLink: "/docs/sdk/react/resource-workbench#statusphase" },
     state: { type: "RoutineState", description: "The display state (\"disabled\" wins when both levers are set).", required: true, typeDescriptionLink: "#routinestate" },
@@ -734,7 +849,7 @@ Options for [`useRoutineList`](#useroutinelist).
 
 <TypeTable
   type={{
-    pageSize: { type: "number", description: "Maximum schedules per page, the first and each `loadMore`." },
+    pageSize: { type: "number", description: "Maximum routines per page, the first and each `loadMore`." },
   }}
 />
 

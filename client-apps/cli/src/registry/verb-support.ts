@@ -88,7 +88,10 @@ export const VERB_SUPPORT: ReadonlyMap<
   // generic verbs cover the declarative path, and get/list surface the state
   // the dedicated `stigmer routine` commands act on — spec.enabled (the
   // owner's switch) versus status.paused_reason (the platform's failure
-  // latch).
+  // latch). The kind's own acts are that group's subcommands, not verbs
+  // here: `routine fire` starts it now with an optional note, `routine
+  // fires` lists who started each run and how it went, and `routine resume`
+  // clears the platform's pause.
   [
     ApiResourceKind.routine,
     new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),

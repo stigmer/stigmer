@@ -47,8 +47,8 @@ vi.mock("@/domain/library/agents/AgentDetailPage", async () => {
 vi.mock("@/domain/library/skills/SkillDetailPage", () => ({
   SkillDetailPageInner: () => <div data-testid="skill-detail" />,
 }));
-vi.mock("@/domain/library/schedules/ScheduleDetailPage", () => ({
-  ScheduleDetailPageInner: () => <div data-testid="schedule-detail" />,
+vi.mock("@/domain/library/routines/RoutineDetailPage", () => ({
+  RoutineDetailPageInner: () => <div data-testid="routine-detail" />,
 }));
 
 // The organizations the person belongs to, as the SDK's OrgProvider would
@@ -168,6 +168,14 @@ describe("LibraryLayout route-children mounting", () => {
     // same page — must render nothing (oss#621's double-mount).
     expect(screen.getAllByTestId("agent-detail")).toHaveLength(1);
     expect(screen.queryByTestId("route-detail-copy")).toBeNull();
+  });
+});
+
+describe("LibraryLayout routine detail", () => {
+  it("renders a deep-loaded routine's detail", () => {
+    setRoute("/library/routines/acme/nightly");
+    render(<LibraryLayout>{null}</LibraryLayout>);
+    expect(screen.getByTestId("routine-detail")).toBeTruthy();
   });
 });
 

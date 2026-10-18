@@ -9,10 +9,10 @@ import { toError } from "../internal/toError.js";
 /** Return value of {@link useCreateRoutine}. */
 export interface UseCreateRoutineReturn {
   /**
-   * Submit a {@link RoutineInput} to create (or upsert) a schedule.
+   * Submit a {@link RoutineInput} to create (or upsert) a routine.
    *
    * Uses `stigmer.routine.apply()` — the idempotent upsert operation.
-   * Resolves with the server-created `Schedule` proto including
+   * Resolves with the server-created `Routine` proto including
    * populated metadata (id, slug, audit timestamps) and the
    * platform-computed `status.next_fire_at`.
    */
@@ -26,16 +26,16 @@ export interface UseCreateRoutineReturn {
 }
 
 /**
- * Behavior hook that wraps `schedule.apply()` with loading and error
+ * Behavior hook that wraps `routine.apply()` with loading and error
  * state.
  *
- * Creates a schedule from a {@link RoutineInput}. Uses `apply()`
+ * Creates a routine from a {@link RoutineInput}. Uses `apply()`
  * (upsert) rather than `create()` so re-submissions are idempotent —
  * matching the CLI's `stigmer apply` semantics and the established SDK
  * mutation hook pattern (`isCreating` flag, `error` state, `clearError`
  * reset, result returned from the promise, not stored in hook state).
  *
- * NOTE: this hook is for CREATION. Editing an existing schedule must
+ * NOTE: this hook is for CREATION. Editing an existing routine must
  * NOT go through `RoutineInput` — the input type cannot express every
  * metadata field (tags, description), and the server replaces spec and
  * mutable metadata wholesale on update, so a down-converting edit would
@@ -46,7 +46,7 @@ export interface UseCreateRoutineReturn {
  * ```tsx
  * const { create, isCreating, error, clearError } = useCreateRoutine();
  *
- * const schedule = await create({
+ * const routine = await create({
  *   name: "daily-fee-reminders",
  *   org: "acme",
  *   cron: "0 9 * * *",
@@ -57,7 +57,7 @@ export interface UseCreateRoutineReturn {
  *     message: "Send today's fee reminders.",
  *   },
  * });
- * // schedule.metadata?.slug → "daily-fee-reminders"
+ * // routine.metadata?.slug → "daily-fee-reminders"
  * ```
  */
 export function useCreateRoutine(): UseCreateRoutineReturn {

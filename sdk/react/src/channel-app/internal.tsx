@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { UnknownPublicAddressNotice } from "../internal/UnknownPublicAddressNotice.js";
-import { useCopyFeedback } from "../internal/useCopyFeedback.js";
+import { CopyButton, useCopy } from "../internal/CopyBlock.js";
 
 /**
  * Internal building blocks shared by the channel-app forms and panels.
@@ -108,73 +107,4 @@ export function UnknownAddressRow({
       <UnknownPublicAddressNotice subject={subject} />
     </div>
   );
-}
-
-/** A multi-line copyable value (the app manifest) in a scrollable block. */
-export function CopyBlock({
-  label,
-  value,
-  copyTargetId,
-}: {
-  label: string;
-  value: string;
-  copyTargetId?: string;
-}) {
-  const { copied, copy } = useCopy(value);
-
-  return (
-    <div className="stg:space-y-1">
-      <div className="stg:flex stg:items-center stg:justify-between">
-        <p className="stg:text-[0.65rem] stg:font-medium stg:text-muted-foreground">
-          {label}
-        </p>
-        <CopyButton copied={copied} onCopy={copy} copyTargetId={copyTargetId} />
-      </div>
-      <pre
-        className={cn(
-          "stg:max-h-40 stg:overflow-auto stg:rounded-md stg:border stg:border-border stg:bg-muted-subtle",
-          "stg:px-2.5 stg:py-2 stg:font-mono stg:text-[0.65rem] stg:leading-relaxed stg:text-foreground",
-        )}
-      >
-        {value}
-      </pre>
-    </div>
-  );
-}
-
-function CopyButton({
-  copied,
-  onCopy,
-  copyTargetId,
-}: {
-  copied: boolean;
-  onCopy: () => void;
-  copyTargetId?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onCopy}
-      data-cursor-target={copyTargetId}
-      className={cn(
-        "stg:shrink-0 stg:rounded-md stg:border stg:border-border stg:px-2 stg:py-1 stg:text-[0.65rem] stg:font-medium stg:transition-colors",
-        copied
-          ? "stg:text-success"
-          : "stg:text-muted-foreground stg:hover:text-foreground stg:hover:bg-accent-hover",
-      )}
-      aria-live="polite"
-    >
-      {copied ? "Copied" : "Copy"}
-    </button>
-  );
-}
-
-function useCopy(value: string) {
-  const { copy: copyText, copied } = useCopyFeedback();
-
-  const copy = useCallback(() => {
-    void copyText(value);
-  }, [copyText, value]);
-
-  return { copied, copy };
 }

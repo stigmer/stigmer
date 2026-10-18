@@ -110,9 +110,8 @@ function kindLabel(kind: DeletableResourceKind): string {
       return "agent";
     case "skill":
       return "skill";
-    // The console still calls a routine a schedule on its pages.
     case "routine":
-      return "schedule";
+      return "routine";
     case "plugin":
       return "plugin";
   }

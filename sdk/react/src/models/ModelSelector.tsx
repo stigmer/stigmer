@@ -76,7 +76,7 @@ export interface ModelSelectorProps {
    * Trigger label shown while `value` is empty, instead of falling back
    * to the registry's default model. Lets a form distinguish "nothing
    * pinned — the platform default applies" from an actual selection
-   * (the schedule form's contract: an unset model inherits the
+   * (the routine form's contract: an unset model inherits the
    * surface's platform default). The harness prefix is hidden while
    * the placeholder shows, since no engine is pinned either.
    */

@@ -25,7 +25,7 @@ function initialTabFromUrl(): string | undefined {
   return new URLSearchParams(window.location.search).get("tab") ?? undefined;
 }
 
-interface ScheduleDetailPageInnerProps {
+interface RoutineDetailPageInnerProps {
   readonly org: string;
   readonly slug: string;
 }
@@ -36,10 +36,10 @@ interface ScheduleDetailPageInnerProps {
  * delete): the page contributes only breadcrumb label sync, tab
  * deep-linking, and the navigation seams.
  */
-export function ScheduleDetailPageInner({
+export function RoutineDetailPageInner({
   org,
   slug,
-}: ScheduleDetailPageInnerProps) {
+}: RoutineDetailPageInnerProps) {
   const router = useRouter();
   const { setLabel } = useBreadcrumbOverride();
   const { navigateToDetail, canonicalSlug } = useLibraryNavigation();
@@ -55,8 +55,8 @@ export function ScheduleDetailPageInner({
 
   const handleResourceLoad = useCallback(
     (loaded: Routine) => {
-      setLabel(loaded.metadata?.name || loaded.metadata?.slug || "Schedule");
-      // The read answers the schedule's current slug: a URL naming one it
+      setLabel(loaded.metadata?.name || loaded.metadata?.slug || "Routine");
+      // The read answers the routine's current slug: a URL naming one it
       // was renamed away from (which still leads to it) moves to it in place.
       if (loaded.metadata?.slug) canonicalSlug(loaded.metadata.slug);
     },
@@ -75,7 +75,7 @@ export function ScheduleDetailPageInner({
         navigateToDetail("agents", agentOrg, agentSlug)
       }
       onNavigateToRun={navigateToRun}
-      onDeleted={() => router.push("/library/schedules")}
+      onDeleted={() => router.push("/library/routines")}
       onRenamed={(renamed) => {
         if (renamed.metadata?.slug) canonicalSlug(renamed.metadata.slug);
       }}
@@ -83,7 +83,7 @@ export function ScheduleDetailPageInner({
   );
 }
 
-export function ScheduleDetailPage() {
+export function RoutineDetailPage() {
   // The zone overlay owns detail rendering while it is active (oss#621).
   const yieldsToOverlay = useRouteDetailYieldsToOverlay();
   const org = useStaticRouteParam("org", 2);
@@ -91,5 +91,5 @@ export function ScheduleDetailPage() {
 
   if (yieldsToOverlay || !org || !slug) return null;
 
-  return <ScheduleDetailPageInner org={org} slug={slug} />;
+  return <RoutineDetailPageInner org={org} slug={slug} />;
 }

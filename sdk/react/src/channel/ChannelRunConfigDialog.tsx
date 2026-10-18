@@ -49,7 +49,7 @@ export interface ChannelRunConfigDialogProps {
  * the Edit-YAML detour for the model pin the write-time validation guards
  * (stigmer/stigmer#774).
  *
- * Speaks the schedule form's vocabulary: the model pin uses
+ * Speaks the routine form's vocabulary: the model pin uses
  * the composer's own {@link ModelSelector} (with the fast-tier and
  * thinking switches, #357/#772) and the budget is the one run bound a
  * user owns; `max_tool_rounds` is an operator knob, API-reachable only —
@@ -193,7 +193,7 @@ function ChannelRunConfigDialogBody({
 
       <div className="stg:space-y-4 stg:px-5 stg:py-4">
         {/* Engine & model — the composer's own picker, the
-            same shape as the schedule form's. Nothing is pinned until a
+            same shape as the routine form's. Nothing is pinned until a
             model is picked. */}
         <div className="stg:space-y-1">
           <span className={labelClasses}>
@@ -300,9 +300,9 @@ function ChannelRunConfigDialogBody({
 }
 
 /**
- * Assemble the run_config the save writes. The schedule form's
+ * Assemble the run_config the save writes. The routine form's
  * `buildRunConfig` contract (#357/#772) plus the edit-surface rules of
- * the schedule detail view's `applyEngineModel`: fields this editor
+ * the routine detail view's `applyEngineModel`: fields this editor
  * does not own (`max_tool_rounds`, `max_tool_result_chars`) are
  * preserved verbatim, a stored tier or thinking mode survives a save
  * that leaves it alone (same model, the switch showing what was

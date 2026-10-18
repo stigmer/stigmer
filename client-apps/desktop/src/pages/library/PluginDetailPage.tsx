@@ -35,7 +35,7 @@ export default function PluginDetailPage() {
   const { deleteResource, isDeleting } = useDeleteResource("plugin", resourceId, resourceName);
 
   // An eval's try is a run (run_…); on desktop it is viewed through its
-  // parent session, the resolve-then-navigate pattern of the schedule page.
+  // parent session, the resolve-then-navigate pattern of the routine page.
   const [pendingRunId, setPendingRunId] = useState<string | null>(null);
   const { sessionId } = useResolveRunSession(pendingRunId);
 

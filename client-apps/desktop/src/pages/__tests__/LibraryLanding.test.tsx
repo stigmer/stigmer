@@ -80,7 +80,7 @@ describe("desktop LibraryLanding", () => {
     expect([...page.cards].map(([label, card]) => [label, card.count])).toEqual([
       ["Agents", 3],
       ["Skills", 5],
-      ["Schedules", 4],
+      ["Routines", 4],
       ["Plugins", 0],
     ]);
   });
@@ -90,8 +90,8 @@ describe("desktop LibraryLanding", () => {
 
     act(() => page.cards.get("Plugins")?.onClick());
     expect(screen.getByTestId("location").textContent).toBe("/library/plugins");
-    act(() => page.cards.get("Schedules")?.onClick());
-    expect(screen.getByTestId("location").textContent).toBe("/library/schedules");
+    act(() => page.cards.get("Routines")?.onClick());
+    expect(screen.getByTestId("location").textContent).toBe("/library/routines");
   });
 
   it("opens Apply YAML in the active org, and an apply recounts every card", () => {

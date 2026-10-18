@@ -25,7 +25,7 @@ const LIST_ID = "stgm-timezone-list";
 const MAX_VISIBLE = 100;
 
 /**
- * Searchable IANA time zone selector for the schedule form.
+ * Searchable IANA time zone selector for the routine form.
  *
  * The IANA database has ~400 zones — far too many for a plain
  * `<select>` — so this follows the SDK's searchable-picker idiom
@@ -37,7 +37,7 @@ const MAX_VISIBLE = 100;
  * checks against — the offered choices and the accepted choices cannot
  * drift.
  *
- * Internal to the schedule folder by design: public API surface is a
+ * Internal to the routine folder by design: public API surface is a
  * contract, and this earns a barrel export only when a second consumer
  * appears.
  */

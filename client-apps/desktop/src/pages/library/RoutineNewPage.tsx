@@ -7,14 +7,14 @@ import {
   useOrgSlugForId,
 } from "@stigmer/react-sdk";
 
-export default function ScheduleNewPage() {
+export default function RoutineNewPage() {
   const org = useActiveOrgId();
   const slugForOrg = useOrgSlugForId();
   const navigate = useNavigate();
   const { setLabel } = useBreadcrumbOverride();
 
   useEffect(() => {
-    setLabel("New schedule");
+    setLabel("New routine");
     return () => setLabel(null);
   }, [setLabel]);
 
@@ -25,10 +25,10 @@ export default function ScheduleNewPage() {
       org={org}
       onComplete={(routine) =>
         navigate(
-          `/library/schedules/${slugForOrg(routine.metadata?.org ?? "")}/${routine.metadata?.slug}`,
+          `/library/routines/${slugForOrg(routine.metadata?.org ?? "")}/${routine.metadata?.slug}`,
         )
       }
-      onCancel={() => navigate("/library/schedules")}
+      onCancel={() => navigate("/library/routines")}
     />
   );
 }

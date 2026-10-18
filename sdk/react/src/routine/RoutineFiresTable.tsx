@@ -16,7 +16,7 @@ import { useRoutineFires } from "./useRoutineFires.js";
 
 /** Props for {@link RoutineFiresTable}. */
 export interface RoutineFiresTableProps {
-  /** ID of the schedule whose fire history to show. */
+  /** ID of the routine whose fire history to show. */
   readonly routineId: string;
   /**
    * Called when the user activates a fire's run reference
@@ -36,15 +36,16 @@ export interface RoutineFiresTableProps {
 }
 
 /**
- * Paginated fire-history table for a schedule — the fire ledger,
+ * Paginated fire-history table for a routine — the fire ledger,
  * rendered in full.
  *
  * Every fire leaves a row, INCLUDING fires that created no run (a
  * refused launch gate, a missing target agent), carrying the refusing
- * gate's copy verbatim. Columns: outcome, origin, fired time (relative,
- * with the absolute instant on hover), duration (recorded → completed;
- * "—" while a run is in flight or when no run was created), and the
- * run reference.
+ * gate's copy verbatim. Columns: outcome, origin, who started it (the
+ * caller of a hand or API fire, "—" for a schedule fire), fired time
+ * (relative, with the absolute instant on hover), duration (recorded →
+ * completed; "—" while a run is in flight or when no run was created),
+ * and the run reference.
  *
  * Owns its data: give it a `routineId` and it fetches via
  * {@link useRoutineFires} with internal page state. To force a refresh
@@ -114,6 +115,9 @@ export function RoutineFiresTable({
           <span role="columnheader" className="stg:hidden stg:sm:block">
             Origin
           </span>
+          <span role="columnheader" className="stg:hidden stg:sm:block">
+            Started by
+          </span>
           <span role="columnheader">Fired</span>
           <span role="columnheader" className="stg:hidden stg:sm:block">
             Duration
@@ -148,9 +152,9 @@ export function RoutineFiresTable({
 }
 
 // Mobile keeps the three load-bearing columns (outcome, fired,
-// run); origin and duration join at the sm breakpoint.
+// run); origin, who started it and duration join at the sm breakpoint.
 const rowGridClasses =
-  "stg:grid stg:grid-cols-[7rem_1fr_auto] stg:items-center stg:gap-x-4 stg:sm:grid-cols-[7rem_5.5rem_1fr_5rem_minmax(0,12rem)]";
+  "stg:grid stg:grid-cols-[7rem_1fr_auto] stg:items-center stg:gap-x-4 stg:sm:grid-cols-[7rem_5.5rem_minmax(0,9rem)_1fr_5rem_minmax(0,12rem)]";
 
 function FireTableRow({
   fire,
@@ -165,6 +169,7 @@ function FireTableRow({
     ? timestampDate(fire.nominalFireTime)
     : null;
   const badge = fireOutcomeBadge(fire.outcome);
+  const startedBy = fireStartedBy(fire);
 
   return (
     <div
@@ -186,6 +191,12 @@ function FireTableRow({
       </span>
       <span role="cell" className="stg:hidden stg:text-xs stg:text-muted-foreground stg:sm:block">
         {fireOriginLabel(fire.origin)}
+      </span>
+      <span
+        role="cell"
+        className="stg:hidden stg:truncate stg:text-xs stg:text-muted-foreground stg:sm:block"
+      >
+        {startedBy ? <StartedByLabel startedBy={startedBy} /> : "—"}
       </span>
       <span role="cell" className="stg:text-xs stg:text-muted-foreground">
         {fireDate ? (
@@ -244,8 +255,8 @@ function FireTableRow({
 // ---------------------------------------------------------------------------
 
 /**
- * Compact fire list: badge, origin, relative time, refusal reason, and
- * run link per row — the at-a-glance form used by the detail
+ * Compact fire list: badge, origin, who started it, relative time,
+ * refusal reason, and run link per row — the at-a-glance form used by the detail
  * view's Overview tab. Presentational: fires come in as props (the
  * caller owns the fetch, so one hook can also feed the History tab badge).
  *
@@ -301,6 +312,7 @@ function CompactFireRow({
     ? timestampDate(fire.nominalFireTime)
     : null;
   const badge = fireOutcomeBadge(fire.outcome);
+  const startedBy = fireStartedBy(fire);
 
   return (
     <li className="stg:flex stg:flex-col stg:gap-1 stg:px-4 stg:py-2.5">
@@ -316,6 +328,11 @@ function CompactFireRow({
         <span className="stg:text-xs stg:text-muted-foreground">
           {fireOriginLabel(fire.origin)}
         </span>
+        {startedBy && (
+          <span className="stg:min-w-0 stg:truncate stg:text-xs stg:text-muted-foreground">
+            by <StartedByLabel startedBy={startedBy} />
+          </span>
+        )}
         <span className="stg:text-xs stg:text-muted-foreground-subtle">·</span>
         <span className="stg:text-xs stg:text-muted-foreground">
           {fireDate ? (
@@ -363,8 +380,8 @@ function CompactFireRow({
 function EmptyFires() {
   return (
     <p className="stg:px-4 stg:py-6 stg:text-center stg:text-xs stg:text-muted-foreground">
-      No fires yet. Use &ldquo;Run now&rdquo; to fire the schedule — every fire,
-      including a refused one, is recorded here.
+      No fires yet. Every fire, on its schedule, by hand or over the API,
+      is recorded here, a refused one included.
     </p>
   );
 }
@@ -382,6 +399,40 @@ function fireKey(fire: RoutineFire, index: number): string {
 
 function fireOriginLabel(origin: RoutineFireOrigin): string {
   return origin === RoutineFireOrigin.MANUAL ? "Manual" : "Scheduled";
+}
+
+/** Who started a fire, as {@link fireStartedBy} reads it. */
+export interface FireStartedBy {
+  /** The caller's display name, else email, else id. */
+  readonly label: string;
+  /** The service account whose key minted the caller's token, said in words. */
+  readonly detail?: string;
+}
+
+/**
+ * Who started a fire: the caller's display name, else email, else id (the
+ * actor message's own fallback order), with the service account whose key
+ * minted the caller's token as its detail. `null` for a schedule fire,
+ * which records no caller; its origin already says "Scheduled".
+ */
+export function fireStartedBy(fire: RoutineFire): FireStartedBy | null {
+  const actor = fire.firedBy;
+  const label = actor?.displayName || actor?.email || actor?.id || "";
+  if (label === "") return null;
+  return actor?.mintedBy
+    ? { label, detail: `through service account ${actor.mintedBy}` }
+    : { label };
+}
+
+/** The caller's label, with its minting service account on hover or focus. */
+function StartedByLabel({ startedBy }: { readonly startedBy: FireStartedBy }) {
+  if (!startedBy.detail) return <>{startedBy.label}</>;
+  return (
+    <Tooltip>
+      <TooltipTrigger render={<span />}>{startedBy.label}</TooltipTrigger>
+      <TooltipContent side="top">{startedBy.detail}</TooltipContent>
+    </Tooltip>
+  );
 }
 
 /** Verbatim-label badges for a fire's outcome, colored by health. */
@@ -411,7 +462,7 @@ export function fireOutcomeBadge(outcome: RoutineFireOutcome): {
 
 /**
  * Wall-clock duration of a fire's run, `recorded_at` → `completed_at`, in the
- * compact unit style the schedule views use elsewhere (`42s`, `5m 12s`,
+ * compact unit style the routine views use elsewhere (`42s`, `5m 12s`,
  * `2h 3m`). `null` while the run is in flight or when the fire created
  * no run at all — the caller renders the em-dash.
  */

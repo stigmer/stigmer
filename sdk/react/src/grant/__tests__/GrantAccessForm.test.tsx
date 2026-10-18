@@ -5,7 +5,9 @@
  *     person to a team clears a role the team cannot hold, so the form
  *     never submits a grant the server's role check would refuse;
  *   - a team is granted as `team:<id>#member`, the only spelling the
- *     server accepts for a team.
+ *     server accepts for a team;
+ *   - choosing Participant on a routine shows what the grant lends (every
+ *     run acts as the routine's creator), and Viewer shows nothing.
  *
  * The picker is stubbed with two buttons that choose a person or a team;
  * the role selector is the real one, reading the generated role tables
@@ -58,12 +60,16 @@ vi.mock("../PrincipalPicker.js", () => ({
 
 import { GrantAccessForm } from "../GrantAccessForm";
 
-function renderForm() {
+function renderForm(
+  kind: ApiResourceKind = ApiResourceKind.agent,
+  kindString = "agent",
+  id = "agt_1",
+) {
   return render(
     <GrantAccessForm
-      resourceKind={ApiResourceKind.agent}
-      resourceKindString="agent"
-      resourceId="agt_1"
+      resourceKind={kind}
+      resourceKindString={kindString}
+      resourceId={id}
       org="acme"
       includeTeams
     />,
@@ -110,5 +116,22 @@ describe("GrantAccessForm", () => {
       "member",
     ]);
     expect([spec.resource?.kind, spec.resource?.id, spec.relation]).toEqual(["agent", "agt_1", "viewer"]);
+  });
+
+  it("says what Participant on a conversation means", () => {
+    renderForm(ApiResourceKind.session, "session", "ses_1");
+    fireEvent.click(screen.getByText("choose person"));
+    fireEvent.click(screen.getByLabelText(/Participant/));
+    expect(screen.getByText(/Participants send messages/)).toBeTruthy();
+  });
+
+  it("says what Participant on a routine lends, and nothing for Viewer", () => {
+    renderForm(ApiResourceKind.routine, "routine", "rtn_1");
+    fireEvent.click(screen.getByText("choose person"));
+    fireEvent.click(screen.getByLabelText(/Participant/));
+    expect(screen.getByText(/Every run acts as the person who created it/)).toBeTruthy();
+
+    fireEvent.click(screen.getByLabelText(/Viewer/));
+    expect(screen.queryByText(/Every run acts as the person who created it/)).toBeNull();
   });
 });

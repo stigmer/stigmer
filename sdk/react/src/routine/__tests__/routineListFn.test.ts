@@ -69,7 +69,7 @@ describe("createRoutineListFn", () => {
 
     const result = await listFn({
       org: "acme",
-      // No server-side text search for schedules — ignored by contract.
+      // No server-side text search for routines — ignored by contract.
       query: "ignored",
       pageSize: 20,
       pageToken: "",

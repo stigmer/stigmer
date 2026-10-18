@@ -1,8 +1,11 @@
-Operate on routines: fire one immediately, or clear a platform pause.
+Operate on routines: start one now with an optional note, see who started each
+of its runs, or clear a platform pause.
 
 A routine is a saved agent invocation: the agent and message each run starts
-from, an optional cron schedule, and whether it is enabled. Every run acts as
-the routine's owner, the account that created it. A routine can stop running on
+from, an optional cron schedule, and whether it is enabled. It starts on its
+schedule, by hand, or from another system's API call. Every run acts as the
+routine's owner, the person or service account that created it. A routine can
+stop running on
 its schedule for two different reasons with two different remedies.
 **Disabled** is the owner's switch (`spec.enabled: false` in the manifest) —
 re-apply with `enabled: true` to turn it back on. **Paused** is the platform's
@@ -23,6 +26,15 @@ schedule. Deleting a routine's agent deletes the routine too.
 ```bash
 # Fire a routine once, right now — the fastest way to validate one
 stigmer routine fire my-org/daily-fee-reminders
+
+# Start it with a note for this run, such as the alert that prompted it
+stigmer routine fire triage --text "Sentry alert SEN-4521 fired"
+
+# Send a longer note from a file or a pipe through the shell
+stigmer routine fire triage --text "$(cat alert.txt)"
+
+# See who started each run, and how it went
+stigmer routine fires triage
 
 # See why a routine stopped running on its schedule
 stigmer get routine my-org/daily-fee-reminders
@@ -50,11 +62,24 @@ resuming it without fixing the failure only restarts the streak.
 ### Fire semantics
 
 `stigmer routine fire` runs the routine once, now, and answers with the run it
-started or the reason a launch gate refused it. Each fire is its own run. A
-disabled routine refuses to fire; a paused one still fires, which is how you
-test a fix before resuming it. A fire does not count toward the failure streak.
-Its owner and the people, teams or service accounts the owner grants Participant
-may fire a routine.
+started and the fire's id, or the reason a launch gate refused it. Each fire is
+its own run. A disabled routine refuses to fire; a paused one still fires, which
+is how you test a fix before resuming it. A fire does not count toward the
+failure streak. Its owner and the people, teams or service accounts the owner
+grants Participant may fire a routine. By default a routine starts at most 30
+times an hour by hand; past that, a fire is refused until the hour moves on.
+
+`--text` gives the run a note. The agent receives it after the routine's
+message, marked as information from whoever started the run, not instructions:
+it can tell the agent what happened, but it cannot change what the routine asks
+the agent to do. The server accepts up to 65,536 characters.
+
+`stigmer routine fires` lists the routine's fires, newest first: when each was
+recorded, whether the schedule or a caller started it, who that caller was, the
+outcome, the run and the reason a run did not start. A caller acting through a
+service account's key is shown with that account's id. `--limit` sets how many
+fires to list (50 by default, 0 for all); `-o yaml` and `-o json` print the full
+rows.
 
 ### Who a routine's run runs as
 
@@ -68,12 +93,14 @@ account.
 
 ## Related commands
 
-| Command                              | Description                                                  |
-| ------------------------------------ | ------------------------------------------------------------ |
-| [`stigmer apply`](./apply)           | Create or update a routine from a manifest                   |
-| [`stigmer get routine`](./get)       | Inspect a routine, including pause reason and failure streak |
-| [`stigmer list routines`](./list)    | List routines with their enabled/paused state                |
-| [`stigmer delete routine`](./delete) | Delete a routine and tear down its schedule                  |
+| Command                                                         | Description                                                  |
+| --------------------------------------------------------------- | ------------------------------------------------------------ |
+| [`stigmer apply`](./apply)                                      | Create or update a routine from a manifest                   |
+| [`stigmer get routine`](./get)                                  | Inspect a routine, including pause reason and failure streak |
+| [`stigmer list routines`](./list)                               | List routines with their enabled/paused state                |
+| [`stigmer delete routine`](./delete)                            | Delete a routine and tear down its schedule                  |
+| [`stigmer get run`](./get)                                      | Follow a run a fire started                                  |
+| [`stigmer service-account create`](./service-account)           | Create a service account whose key another system fires with |
 
 ## See also
 
