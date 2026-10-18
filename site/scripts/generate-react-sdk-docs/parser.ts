@@ -87,7 +87,7 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
   environment: {
     title: "Environment",
     description:
-      "Hooks and components for Environments, the packages and network access a conversation's sandbox gets: which one applies and why, the picker, the fields, the form and the detail view.",
+      "Hooks and components for Environments, the packages and network access a conversation's sandbox gets, with which one applies and why, the picker, the fields, the form and the detail view.",
   },
   "connect-link": {
     title: "Connect link",
