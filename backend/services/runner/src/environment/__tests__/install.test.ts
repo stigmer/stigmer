@@ -452,6 +452,16 @@ describe("installEnvironment", () => {
     expect(existsSync(prefix)).toBe(false);
   });
 
+  it("logs to the console when given no log", async () => {
+    const consoleLog = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      await installEnvironment(environment({ npm: ["express"] }), { identity: null, prefix, env: { PATH: programs }, run: recordingRunner().run });
+      expect(consoleLog).toHaveBeenCalledWith(expect.stringMatching(/^\[environment\] npm: 1 package\(s\) installed in \d+ ms$/));
+    } finally {
+      consoleLog.mockRestore();
+    }
+  });
+
   it("logs each manager's time, and an install it skipped", async () => {
     const lines: string[] = [];
     const deps = { identity: null, prefix, env: { PATH: programs }, run: recordingRunner().run, log: (line: string) => lines.push(line) };
