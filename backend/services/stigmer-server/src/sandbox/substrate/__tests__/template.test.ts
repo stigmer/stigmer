@@ -7,6 +7,9 @@
  *     set; the start script refuses one that is not root), mounts
  *     the workspace and the actor's own name, and
  *     snapshots FULL on pause, DATA on commit, golden on resume;
+ *   - it adds the runner's five capabilities to Substrate's default set and
+ *     drops none, so the runner can run the agent as its own user and the
+ *     waiter keeps port 80 (#2339);
  *   - HTTPS egress adds the gateway's trust bundle and points every tool's
  *     trust variable at it; off, neither is there;
  *   - its name is its content: the same input the same name, a new image a
@@ -25,6 +28,7 @@ import { describe, expect, it } from "vitest";
 import { createLogger } from "../../../boot/logger.js";
 import type { SandboxDriverConfig } from "../../provisioner.js";
 import {
+  RUNNER_CAPABILITIES,
   RUNNER_HOME,
   SERVER_RELEASE_ENV,
   waiterCommand,
@@ -100,6 +104,10 @@ describe("the template", () => {
       path: "/readyz",
       port: 80,
     });
+    expect(container?.securityContext?.capabilities?.add).toEqual([
+      ...RUNNER_CAPABILITIES,
+    ]);
+    expect(container?.securityContext?.capabilities?.drop).toEqual([]);
     const env = envOf(template);
     expect(env).toMatchObject({
       MODE: "local",

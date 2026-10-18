@@ -10,8 +10,11 @@
  *    present, and an id another account holds is refused;
  *  - the agent's state lives under the agent's home when the runner
  *    separates, else under this process's `HOME`;
- *  - a separating runner is ready only when the user, its home and a
- *    `setpriv` drop all work, and each failure is one line naming its fix.
+ *  - a separating runner is ready only when the user, its home, a root
+ *    directory the agent can traverse and a `setpriv` drop all work, and
+ *    each failure is one line naming its fix;
+ *  - a root directory closed to other users (an Agent Substrate actor's is
+ *    `0700`) is opened to `0755`, and an open one is left alone.
  */
 
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -26,6 +29,7 @@ import {
   agentIdentity,
   agentStateHome,
   ensureAgentUser,
+  openRootDirectory,
   prepareAgentSeparation,
   setprivArgs,
 } from "../agent-identity.js";
@@ -94,9 +98,9 @@ describe("the agent's state and the drop to it", () => {
 
   it("is ready only when the user, its home and a setpriv drop all work", () => {
     const steps: string[] = [];
-    const ok = { processStatus: () => ALL_FOUR, ensureUser: () => void steps.push("user"), makeHome: () => void steps.push("home"), probe: (args: readonly string[]) => (steps.push(args.join(" ")), { status: 0, stderr: "" }) };
+    const ok = { processStatus: () => ALL_FOUR, ensureUser: () => void steps.push("user"), makeHome: () => void steps.push("home"), openRoot: () => void steps.push("root"), probe: (args: readonly string[]) => (steps.push(args.join(" ")), { status: 0, stderr: "" }) };
     expect(prepareAgentSeparation(identity, ok)).toBeNull();
-    expect(steps).toEqual(["user", "home", "--reuid=10001 --regid=10001 --clear-groups --inh-caps=-all --no-new-privs -- true"]);
+    expect(steps).toEqual(["user", "home", "root", "--reuid=10001 --regid=10001 --clear-groups --inh-caps=-all --no-new-privs -- true"]);
   });
 
   it("refuses, with its one line, on a process that is not a root runner holding the four capabilities", () => {
@@ -121,7 +125,7 @@ describe("the agent's state and the drop to it", () => {
   });
 
   it("names the fix for each way it cannot drop", () => {
-    const fine = { processStatus: () => ALL_FOUR, ensureUser: () => {}, makeHome: () => {} };
+    const fine = { processStatus: () => ALL_FOUR, ensureUser: () => {}, makeHome: () => {}, openRoot: () => {} };
     expect(prepareAgentSeparation(identity, { ...fine, processStatus: () => "Name:\tnode\nCapEff:\t00000000000000c3\n" })).toMatch(
       /^the runner lacks the KILL capability it needs to run the agent as its own user \(SETUID, SETGID, CHOWN, KILL and DAC_OVERRIDE\); see /,
     );
@@ -140,5 +144,25 @@ describe("the agent's state and the drop to it", () => {
         },
       }),
     ).toMatch(/^the runner cannot prepare the agent user stigmer-agent: \/etc\/passwd already gives id 10001 to someone; see /);
+    expect(
+      prepareAgentSeparation(identity, {
+        ...fine,
+        openRoot: () => {
+          throw new Error("EROFS: read-only file system, chmod '/'");
+        },
+      }),
+    ).toMatch(/^the runner cannot open the root directory to the agent user: EROFS: read-only file system, chmod '\/'; see /);
+  });
+
+  it("opens a root directory closed to other users, as an Agent Substrate actor's is, and leaves an open one alone", () => {
+    const chmods: number[] = [];
+    const root = (mode: number) => ({ mode: () => mode, chmod: (next: number) => void chmods.push(next) });
+    openRootDirectory(root(0o40700));
+    expect(chmods.map((m) => m.toString(8))).toEqual(["755"]);
+    openRootDirectory(root(0o40755));
+    openRootDirectory(root(0o41777));
+    expect(chmods, "a root that other users can already read and search is not touched").toHaveLength(1);
+    openRootDirectory(root(0o40711));
+    expect(chmods.map((m) => m.toString(8))).toEqual(["755", "755"]);
   });
 });
