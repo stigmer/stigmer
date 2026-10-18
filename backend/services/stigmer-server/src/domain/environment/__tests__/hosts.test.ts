@@ -8,7 +8,8 @@
  *     normalizeHosts also removes duplicates, keeping the first spelling's
  *     order;
  *   - hostRefusal refuses, naming the host and the rule: an IPv4 or IPv6
- *     address, a single label and localhost, a `*.svc`-style wildcard over
+ *     address, the shorthand and hex IPv4 forms included (a name whose
+ *     top-level label is a number; a number elsewhere is admitted), a single label and localhost, a `*.svc`-style wildcard over
  *     one label, every private suffix (.svc, .cluster.local, .local,
  *     .internal, .localhost, .home.arpa), the cloud metadata name, any
  *     `ate-system` label, and a wildcard that is not the whole first label;
@@ -48,11 +49,23 @@ describe("hostRefusal", () => {
     ["*.10.0.0.1", "is an IP address"],
     ["::1", "is an IP address"],
     ["fd00::1", "is an IP address"],
+    ["127.1", "is an IP address"],
+    ["10.1", "is an IP address"],
+    ["169.254.43518", "is an IP address"],
+    ["0x7f.0.0.1", "is an IP address"],
+    ["10.0.0.0x1", "is an IP address"],
   ])("refuses the address %s", (host, rule) => {
     const refusal = hostRefusal(host);
     expect(refusal).toContain(`'${host}'`);
     expect(refusal).toContain(rule);
   });
+
+  it.each(["cafe.beef", "1password.com", "*.0x1.example.com", "api.123.example.com"])(
+    "admits %s: a label may look like a number, the top-level one may not",
+    (host) => {
+      expect(hostRefusal(host)).toBeUndefined();
+    },
+  );
 
   it.each(["localhost", "intranet", "*.svc", "*.internal", "*.local"])(
     "refuses the single label %s",

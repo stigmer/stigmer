@@ -13,7 +13,9 @@
  * That is narrower than Claude Managed Agents' any-depth wildcard, so a
  * list written for that standard admits less here, never more.
  *
- * Refused at write, naming the rule: an IP address, a single label and
+ * Refused at write, naming the rule: an IP address (any name whose
+ * top-level label is a number, which covers the shorthand and hex forms a
+ * resolver reads as IPv4), a single label and
  * localhost, the cluster and private suffixes, the cloud metadata name, and
  * any `ate-system` label (Substrate's own services). The proto pattern has
  * already refused a scheme, a port, a path and a pattern anywhere but the
@@ -52,7 +54,10 @@ export function normalizeHosts(raw: readonly string[]): string[] {
  */
 export function hostRefusal(host: string): string | undefined {
   const name = host.startsWith("*.") ? host.slice(2) : host;
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(name) || name.includes(":")) {
+  // No top-level label is a number: a name ending in one is an address in
+  // one of the forms a resolver reads as IPv4 (127.1, 0x7f.0.0.1).
+  const top = name.slice(name.lastIndexOf(".") + 1);
+  if (/^(\d+|0x[0-9a-f]*)$/.test(top) || name.includes(":")) {
     return `allowed host '${host}' is an IP address; list the host's DNS name`;
   }
   if (name.includes("*")) {

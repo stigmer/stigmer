@@ -47,7 +47,6 @@ import type { HarnessAdapter } from "../../harness/types.js";
 import { RUNNER_ENTRY_URL } from "../../runner-entry.js";
 import { Peer, loopbackChannels } from "../channel.js";
 import { agentFs, installAgentFs, localAgentFs } from "../../shared/agent-fs.js";
-import { programOnPath } from "../../shared/agent-identity.js";
 import { serveAgentHost } from "../host.js";
 import { handOver, hostHarnesses, logCursorWarmup, writeTrustedCertificates } from "../hosting.js";
 import { AGENT_HOST_MODE_ARG, AGENT_HOST_PROTOCOL_VERSION, type HostCalls, type HostNotices, type RunnerCalls, type RunnerNotices } from "../protocol.js";
@@ -294,10 +293,26 @@ describe("the production starter", () => {
     }
   });
 
+  it("refuses to start the host as the agent when the runner's PATH has no setpriv, never by a bare name", () => {
+    const identity = { name: "stigmer-agent", uid: 10001, gid: 10001, home: "/data/agent" };
+    expect(() => agentHostCommand(process.versions, identity, "/nonexistent")).toThrow(
+      "the runner's PATH has no setpriv, so the agent host cannot start as the agent",
+    );
+  });
+
   it("starts the host as the agent user through setpriv, with the agent's home, on a separating runner", () => {
     const identity = { name: "stigmer-agent", uid: 10001, gid: 10001, home: "/data/agent" };
-    const { command, args, env } = agentHostCommand(process.versions, identity);
-    expect(command).toBe(programOnPath("setpriv") ?? "setpriv");
+    const dir = mkdtempSync(join(tmpdir(), "setpriv-path-"));
+    writeFileSync(join(dir, "setpriv"), "#!/bin/sh\nexit 0\n");
+    chmodSync(join(dir, "setpriv"), 0o755);
+    let started: ReturnType<typeof agentHostCommand>;
+    try {
+      started = agentHostCommand(process.versions, identity, dir);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+    const { command, args, env } = started;
+    expect(command).toBe(join(dir, "setpriv"));
     expect(args).toEqual([
       "--reuid=10001",
       "--regid=10001",
