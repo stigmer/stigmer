@@ -67,7 +67,9 @@ const createExecution = vi.fn(async (_input: Record<string, unknown>) => ({
   spec: { target: { case: "sessionId", value: "ses_1" } },
 }));
 
-const client = { run: { create: createExecution } };
+// Server info answers the composer's Environment entry, never offered to a
+// visitor: a server that predates the field.
+const client = { run: { create: createExecution }, platform: { getServerInfo: async () => ({}) } };
 
 function Providers({ children }: { children: ReactNode }) {
   return (

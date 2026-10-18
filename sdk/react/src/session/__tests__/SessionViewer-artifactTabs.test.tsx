@@ -161,6 +161,8 @@ vi.mock("../useSessionAccess", () => ({
 
 vi.mock("../../hooks", () => ({
   useStigmer: () => ({
+    // Server info answers the Environment row: a server that predates the field.
+    platform: { getServerInfo: async () => ({}) },
     run: {
       uploadAttachment: vi.fn(),
       getArtifactContent: vi.fn(),
