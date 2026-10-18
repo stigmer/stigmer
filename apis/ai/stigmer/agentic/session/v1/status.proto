@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.session.v1;
 
+import "ai/stigmer/agentic/session/v1/enum.proto";
+import "ai/stigmer/commons/apiresource/field_options.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
 
 // SessionStatus contains system-managed state for a session.
@@ -99,4 +102,17 @@ message SessionStatus {
   // shows the run to the routine's viewers is derived from a fact no client
   // can write. A label would not do: labels carry no authorization.
   string routine_id = 7;
+
+  // The Environment this conversation runs in, whichever named it; unset
+  // when none applies.
+  //
+  // @internal
+  // Server-owned: resolved at session create in the order spec, routine,
+  // agent, organization (environment_source), re-resolved on update until
+  // the first turn, then kept. Only a conversation whose sandbox this server
+  // starts takes a default. Each sandbox start reads its current contents.
+  ai.stigmer.commons.apiresource.ApiResourceReference environment = 8 [(ai.stigmer.commons.apiresource.reference_kind) = environment];
+
+  // Which choice environment came from.
+  EnvironmentSource environment_source = 9;
 }

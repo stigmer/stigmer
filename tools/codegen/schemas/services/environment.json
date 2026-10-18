@@ -1,0 +1,593 @@
+{
+  "resource": "environment",
+  "package": "ai.stigmer.agentic.environment.v1",
+  "goImportPath": "environmentv1",
+  "services": [
+    {
+      "name": "EnvironmentCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/agentic/environment/v1/command.proto",
+      "methods": [
+        {
+          "name": "Apply",
+          "inputType": "Environment",
+          "inputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "outputType": "Environment",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "description": "Create or update an Environment.\n\n A request that carries metadata.id of an Environment in its organization\n updates that Environment, and its slug changes only through rename. A\n slug the Environment was renamed away from, named without its id, is\n refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"), because a write by a name that stops resolving\n after 30 days would later make a second Environment:\n\n   - SLUG_RENAMED — the slug was renamed: it still leads to the same\n     Environment for reading, but a write names its current slug.\n     Metadata: slug (the one the request named)."
+        },
+        {
+          "name": "Create",
+          "inputType": "Environment",
+          "inputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "outputType": "Environment",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "description": "Create an Environment.\n\n It starts visible to every member of the organization, who may then\n name it for a conversation, unless it is created private\n (metadata.visibility). Limited networking, or packages, on a server\n whose sandboxes cannot enforce or install them is refused with\n FAILED_PRECONDITION saying so.\n\n A slug another Environment of the organization holds is refused with\n ALREADY_EXISTS. A slug another Environment was renamed away from, which\n still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"):\n\n   - SLUG_RESERVED — another Environment held the slug until a recent\n     rename, and it still leads there. Metadata: slug."
+        },
+        {
+          "name": "Update",
+          "inputType": "UpdateEnvironmentInput",
+          "inputFullType": "ai.stigmer.agentic.environment.v1.UpdateEnvironmentInput",
+          "outputType": "Environment",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "description": "Update an Environment: the fields update_mask names change, every other\n field keeps its stored value.\n\n A conversation using the Environment gets new packages at its sandbox's\n next start and new network access at its next turn.\n\n resource.metadata.id names the Environment; apply finds one by slug.\n The slug changes only through rename, and a mask naming a path the\n Environment does not have is refused with INVALID_ARGUMENT naming the\n path.\n\n An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ETAG_MISMATCH — resource.metadata.etag is set and the Environment\n     changed since that etag was read: read it again and make the change\n     again. No metadata.\n   - WRITE_CONFLICT — the Environment kept changing while the update was\n     being saved: try again. No metadata."
+        },
+        {
+          "name": "UpdateVisibility",
+          "inputType": "UpdateVisibilityInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+          "outputType": "Environment",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "description": "Update the visibility of an Environment.\n\n Setting org lets every member of the organization see it and name it\n for a conversation; child_orgs also lets the organization's child\n organizations name it."
+        },
+        {
+          "name": "Rename",
+          "inputType": "RenameInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.RenameInput",
+          "outputType": "Environment",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "description": "Rename an Environment: change its slug, the name people type.\n\n The Environment keeps its id, so everything that names it keeps\n working, and every answer names it by the new slug. The old slug keeps\n leading to the Environment for reading for 30 days, during which no\n other Environment of the organization can take it and this one can take\n it back; then it is released. A write that names the old slug is\n refused with SLUG_RENAMED (see apply). A slug another Environment holds\n is refused with ALREADY_EXISTS, and one another Environment was recently\n renamed away from with SLUG_RESERVED (see create)."
+        },
+        {
+          "name": "Delete",
+          "inputType": "EnvironmentId",
+          "inputFullType": "ai.stigmer.agentic.environment.v1.EnvironmentId",
+          "outputType": "Environment",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "description": "Delete an Environment.\n\n Refused with FAILED_PRECONDITION while an agent or a routine of its\n organization names it, or while it is the organization's default,\n naming each. A conversation that used it refuses its next message,\n saying the Environment was deleted."
+        }
+      ]
+    },
+    {
+      "name": "EnvironmentQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/agentic/environment/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "EnvironmentId",
+          "inputFullType": "ai.stigmer.agentic.environment.v1.EnvironmentId",
+          "outputType": "Environment",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "description": "Get a single Environment by ID."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "Environment",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "description": "Get an Environment by its organization-scoped reference (org/slug)."
+        },
+        {
+          "name": "List",
+          "inputType": "ListEnvironmentsRequest",
+          "inputFullType": "ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest",
+          "outputType": "EnvironmentList",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.EnvironmentList",
+          "description": "List an organization's Environments, newest first.\n\n Returns the Environments of the input org that the caller may view, one\n page at a time."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "UpdateEnvironmentInput",
+      "description": "Input for updating an Environment: the Environment and the paths that\n change.",
+      "protoType": "ai.stigmer.agentic.environment.v1.UpdateEnvironmentInput",
+      "protoFile": "apis/ai/stigmer/agentic/environment/v1/io.proto",
+      "fields": [
+        {
+          "name": "Resource",
+          "jsonName": "resource",
+          "protoField": "resource",
+          "type": {
+            "kind": "message",
+            "messageType": "Environment"
+          },
+          "description": "The Environment carrying the new values, named by metadata.id. Only the\n fields update_mask names are read, so the others may be left empty; the\n result is validated as a whole.",
+          "required": false
+        },
+        {
+          "name": "UpdateMask",
+          "jsonName": "updateMask",
+          "protoField": "update_mask",
+          "type": {
+            "kind": "message",
+            "messageType": "FieldMask"
+          },
+          "description": "The paths the update changes, as proto field names (spec.networking,\n metadata.labels). A list or map at a named path is replaced whole; \"*\"\n names every path an update may change.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "UpdateVisibilityInput",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode. Each\n level maps to exactly one tuple shape; on a transition the tuple for the\n old level is removed and the tuple for the new level is created:\n - PRIVATE:  no visibility tuple (owner + explicit grants only)\n - ORG:      resource#viewer@organization:\u003corg\u003e#viewer\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n\n Not all resources support all visibility levels — the supported set is\n declared per kind via VisibilityConfig in kind_meta:\n - Blueprints (agent, skill, plugin):\n     PRIVATE, ORG, or CHILD_ORGS\n - Org-only kinds (vault):\n     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)\n\n visibility_public is refused for every kind (INVALID_ARGUMENT naming the\n supported levels); the level is retired.",
+      "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the resource whose visibility is being updated.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Visibility",
+          "jsonName": "visibility",
+          "protoField": "visibility",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+            "enumValues": [
+              "visibility_private",
+              "visibility_public",
+              "visibility_org",
+              "visibility_child_orgs"
+            ]
+          },
+          "description": "The new visibility setting for the resource.\n Must not be unspecified (0). Valid values depend on resource kind —\n see the VisibilityConfig in the kind's kind_meta.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "RenameInput",
+      "description": "Input for renaming any API resource: changing its slug.\n\n Used by resource-specific command controllers whose kind lets a slug\n change. Each controller's rename RPC accepts this shared input and returns\n the full updated resource. A resource's slug never changes through update\n or apply; rename is its only writer.",
+      "protoType": "ai.stigmer.commons.apiresource.RenameInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the resource being renamed.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The new slug. Same format as metadata.slug, at most 63 characters: the\n longest a reference's org takes.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceReference",
+      "description": "Generic reference to any API resource.\n Used across resources to reference other resources (e.g., Vault, Agent, Skill).\n Canonical written format: \"org/slug\" (e.g., \"acme/web-search\", \"acme/my-agent\").\n\n A reference has three forms:\n - Written: by name (org and slug), by id, or by both. A write that carries\n   both must have them agree, or it is refused naming both. A name is\n   resolved to its resource's id when the referring resource is written.\n - Stored: org (the organization's id), kind, id and version. The slug is\n   not stored, so a reference keeps pointing at the resource it meant when\n   that resource is renamed, and never at a new resource that takes its old\n   name after it is deleted.\n - Returned: as stored, with slug filled with the resource's current name.\n   A reference whose resource was deleted is returned with an empty slug.\n\n The kind a reference names is the kind its field declares\n (reference_kind); a reference that carries another kind is refused.\n\n Every reference in a resource's spec is checked when the resource is\n written: the target must exist, and a target in another organization\n must be one the writing organization's parent shares with its child\n organizations (visibility_child_orgs) to be referenced at all. A blueprint may not be\n more visible than the skills, plugins and agents it references, so\n what a person can run they can also read. A reference that fails the\n check is refused at write, never at run.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the referenced resource, by slug or id.\n\n When non-empty: an organization slug (lowercase alphanumeric with hyphens,\n starts with a letter, 2-63 characters; e.g. \"stigmer\", \"acme-corp\") or an\n organization id (org_\u003culid\u003e). The server stores the id, so a stored\n reference keeps pointing at its organization across a rename.\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form, the id).\n\n Use empty org for same-org references (the common case).\n An explicit other org is accepted only when that organization is your\n organization's parent and shares the resource with its children\n (visibility_child_orgs).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$|^org_[0-9a-z]{26}$"
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+            "enumValues": [
+              "api_resource_version",
+              "grant",
+              "identity_account",
+              "api_key",
+              "invitation",
+              "federation_issuer",
+              "oauth_app",
+              "team",
+              "organization",
+              "platform",
+              "agent",
+              "run",
+              "session",
+              "skill",
+              "channel",
+              "channel_app",
+              "routine",
+              "memory",
+              "plugin",
+              "vault",
+              "score",
+              "scoring_rule",
+              "eval_run",
+              "eval",
+              "environment",
+              "plan",
+              "subscription",
+              "license"
+            ]
+          },
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, PLUGIN).",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter\n and end with a letter or digit (e.g., \"web-search\", \"code-reviewer\").\n Length: 2-63 characters.\n\n Written to name the resource; never stored; returned filled with the\n resource's current name, empty when the resource was deleted.",
+          "required": false,
+          "validation": {
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Version",
+          "jsonName": "version",
+          "protoField": "version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The version of a skill, a plugin or a subagent the reference asks for;\n every other kind ignores it.\n\n Formats:\n - empty or \"latest\": the latest version;\n - a tag (e.g. \"stable\", \"v1.0\"): the version the tag names;\n - a 64-character hash: that exact version, which never changes.\n\n When it is read: a skill or plugin reference is resolved at the start\n of each turn, so a reference without a hash follows each new push, and\n the run records the version it loaded (RunStatus.loaded_versions). A\n subagent reference is resolved once, when the agent that lists it is\n saved, and the saved reference carries the hash it resolved to.",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
+          }
+        },
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The referenced resource's id: what a stored reference holds. Optional\n on write, where the slug may name the resource instead; an id no\n resource of the kind holds answers as a missing resource. At most 64\n characters.",
+          "required": false,
+          "validation": {
+            "maxLength": 64
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListEnvironmentsRequest",
+      "description": "Input for listing an organization's Environments, newest first.",
+      "protoType": "ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest",
+      "protoFile": "apis/ai/stigmer/agentic/environment/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization whose Environments to list, by id or slug.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
+        },
+        {
+          "name": "Labels",
+          "jsonName": "labels",
+          "protoField": "labels",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Only resources carrying every label given, each matched exactly (AND).\n A selective filter may answer short pages, even empty ones, that still\n carry a token.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "EnvironmentList",
+      "description": "One page of an organization's Environments.",
+      "protoType": "ai.stigmer.agentic.environment.v1.EnvironmentList",
+      "protoFile": "apis/ai/stigmer/agentic/environment/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "Environment"
+            }
+          },
+          "description": "The Environments in this page, newest first.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more entries may follow: pass it as page_token to continue.\n A page may be short, even empty, and still carry a token.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines which\n users, inside that organization or in its child organizations, can read\n the resource. No level reaches every\n account on the server.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n   (everyone in every child organization of the owning organization)\n - PUBLIC: retired; see the value's own comment.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, channel,\n skill, plugin), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Retired. This level made a resource readable to every account on the\n server; it is refused at create and at updateVisibility for every kind,\n and every stored row that held it has been moved to visibility_org.\n Sharing across organizations happens through plugins (a copy is\n installed and owned) or, from a parent organization to its children,\n through visibility_child_orgs."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role just-in-time provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_run_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
+        },
+        {
+          "name": "visibility_child_orgs",
+          "number": 4,
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and vaults are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "grant",
+          "number": 10,
+          "description": "One role given to one principal on one resource. Who holds what on a\n resource is the set of its grants."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "federation_issuer",
+          "number": 21,
+          "description": "An outside issuer whose tokens Stigmer accepts for its own users\n (identity federation): its keys, its audience, and what its tokens get."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "team",
+          "number": 24,
+          "description": "Named group of an organization's people that access is shared with as one."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "The boundary that holds people, Agents, Sessions and secrets\n together; nothing outside it sees them.\n\n Its id is a minted org_\u003culid\u003e that never changes; every organization-scoped\n resource names it by that id (metadata.org). Its slug is unique across the\n server and may change through rename; requests may name the organization\n by either."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "run",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "channel",
+          "number": 47,
+          "description": "A way people reach an agent: a chat link or website widget, a Slack\n workspace, or a WhatsApp number."
+        },
+        {
+          "name": "channel_app",
+          "number": 48,
+          "description": "Customer-owned messaging-platform app (e.g. a Slack app) that\n channels can install through instead of the shared platform app."
+        },
+        {
+          "name": "routine",
+          "number": 56,
+          "description": "A saved agent invocation, run on an optional schedule or fired by Run now\n or over the API, acting as its owner."
+        },
+        {
+          "name": "memory",
+          "number": 57,
+          "description": "Agent-proposed, user-confirmed fact the platform remembers about a person."
+        },
+        {
+          "name": "plugin",
+          "number": 58,
+          "description": "An installed Agent Plugins package: one thing holding skills, agents,\n hooks and MCP servers, which agents and conversations list whole."
+        },
+        {
+          "name": "vault",
+          "number": 59,
+          "description": "A person's or an organization's box of logins (matched by a tool's\n address) and secrets (matched by name) that runs use."
+        },
+        {
+          "name": "score",
+          "number": 61,
+          "description": "One grade of a finished run: a person's thumbs or a free run-health\n check."
+        },
+        {
+          "name": "scoring_rule",
+          "number": 62,
+          "description": "AI grading switched on for one agent: its sample rate, monthly spending\n limit and judge model."
+        },
+        {
+          "name": "eval_run",
+          "number": 65,
+          "description": "One run of test cases on an agent, or on a plugin on the built-in\n assistant, optionally with and without a plugin."
+        },
+        {
+          "name": "eval",
+          "number": 66,
+          "description": "A set of test cases for an agent: an evals/ folder in Claude Code's\n plugin-eval format, pushed whole."
+        },
+        {
+          "name": "environment",
+          "number": 67,
+          "description": "A named sandbox setup: the packages installed in every sandbox a\n conversation using it runs in, and the hosts it may reach."
+        },
+        {
+          "name": "plan",
+          "number": 70,
+          "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."
+        },
+        {
+          "name": "subscription",
+          "number": 71,
+          "description": "An organization's binding to a Plan; at most one active per organization.\n\n System-created: the payment system drives its lifecycle, so it has no\n owner and grants no roles. Its reads and writes authorize on the\n organization through the billing permissions."
+        },
+        {
+          "name": "license",
+          "number": 72,
+          "description": "A signed grant of entitlements to a self-hosting customer for a term.\n\n Platform-level: issued by the cloud's operators and verified offline by\n the Enterprise server, so the customer is a value inside the license\n (which may or may not name a cloud organization) and the kind has no\n authorization scope and no owner. Claims are immutable once signed; a\n renewal is a new License."
+        }
+      ]
+    },
+    {
+      "name": "NetworkingType",
+      "description": "NetworkingType is how much of the network a sandbox may reach.",
+      "protoType": "ai.stigmer.agentic.environment.v1.NetworkingType",
+      "values": [
+        {
+          "name": "unrestricted",
+          "number": 1,
+          "description": "Any host."
+        },
+        {
+          "name": "limited",
+          "number": 2,
+          "description": "Only allowed_hosts, plus the package registries and the agent's MCP\n servers where allowed."
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "Environment is a named sandbox setup: the packages installed in every\n sandbox a conversation using it runs in, and the websites it may reach.\n\n A conversation uses the Environment it names, else the one a routine\n names for its runs, else its agent's default, else its organization's\n default. It holds no secret, no variable and no image."
+}

@@ -198,6 +198,7 @@ class AgentInvocationInput:
     workspace_entries: list[WorkspaceEntryInput] = field(default_factory=list)
     vaults: list[ResourceRef] = field(default_factory=list)
     run_config: RunConfigInput | None = None
+    environment_ref: ResourceRef | None = None
 
     def _to_proto(self) -> run_invocation_pb2.AgentInvocation:
         msg = run_invocation_pb2.AgentInvocation(
@@ -216,6 +217,10 @@ class AgentInvocationInput:
             msg.vaults.append(_ref)
         if self.run_config is not None:
             msg.run_config.CopyFrom(self.run_config._to_proto())
+        if self.environment_ref is not None and (self.environment_ref.org or self.environment_ref.slug):
+            _ref = self.environment_ref._to_proto()
+            _ref.kind = 67
+            msg.environment_ref.CopyFrom(_ref)
         return msg
 
 

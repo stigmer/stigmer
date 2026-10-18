@@ -1,0 +1,104 @@
+{
+  "name": "EnvironmentPackages",
+  "description": "EnvironmentPackages lists packages by the manager that installs them.\n\n Each entry is a registry package name with its manager's own version pin\n (hyperfine@1.18.0, rails:7.1.0, goimports' module@latest, express@4.18.0,\n sqlalchemy==2.0.30, or poppler-utils=22.02.0-2), never a URL, a git\n source or a path. Managers run in the order apt, cargo, gem, go, npm,\n pip; a manager the sandbox's image lacks fails the install, naming what\n to add.",
+  "protoType": "ai.stigmer.agentic.environment.v1.EnvironmentPackages",
+  "protoFile": "apis/ai/stigmer/agentic/environment/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Apt",
+      "jsonName": "apt",
+      "protoField": "apt",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Debian packages, as name or name=version.",
+      "required": false,
+      "validation": {
+        "maxItems": 32
+      }
+    },
+    {
+      "name": "Cargo",
+      "jsonName": "cargo",
+      "protoField": "cargo",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Rust crates installed with cargo install, as name or name@version.",
+      "required": false,
+      "validation": {
+        "maxItems": 32
+      }
+    },
+    {
+      "name": "Gem",
+      "jsonName": "gem",
+      "protoField": "gem",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Ruby gems, as name or name:version.",
+      "required": false,
+      "validation": {
+        "maxItems": 32
+      }
+    },
+    {
+      "name": "Go",
+      "jsonName": "go",
+      "protoField": "go",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Go programs installed with go install, as module/path@version\n (@latest included).",
+      "required": false,
+      "validation": {
+        "maxItems": 32
+      }
+    },
+    {
+      "name": "Npm",
+      "jsonName": "npm",
+      "protoField": "npm",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "npm packages installed globally, as name, @scope/name, or either with\n @version or @range.",
+      "required": false,
+      "validation": {
+        "maxItems": 32
+      }
+    },
+    {
+      "name": "Pip",
+      "jsonName": "pip",
+      "protoField": "pip",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Python packages, as name, name[extras], or either with version\n specifiers such as ==2.0.30 or \u003e=2,\u003c3.",
+      "required": false,
+      "validation": {
+        "maxItems": 32
+      }
+    }
+  ]
+}

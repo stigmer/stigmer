@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.environment.v1;
+
+import "ai/stigmer/commons/apiresource/status.proto";
+
+// EnvironmentStatus contains system-managed state for an Environment.
+message EnvironmentStatus {
+  // Standard audit information (created_at, updated_at, created_by, etc.)
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+}

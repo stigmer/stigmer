@@ -43,4 +43,49 @@ public interface OrganizationPreferencesOrBuilder extends
    * @return The memoryEnabled.
    */
   boolean getMemoryEnabled();
+
+  /**
+   * <pre>
+   * The Environment a conversation in this organization runs in when
+   * neither the conversation, its routine nor its agent names one: the
+   * packages its sandboxes get and the websites they may reach.
+   *
+   * A default, not a bound: a member may name any Environment they can
+   * see for a conversation. A conversation on the person's own machine (the
+   * desktop app, the CLI) ignores it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference default_environment_ref = 3 [json_name = "defaultEnvironmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   * @return Whether the defaultEnvironmentRef field is set.
+   */
+  boolean hasDefaultEnvironmentRef();
+  /**
+   * <pre>
+   * The Environment a conversation in this organization runs in when
+   * neither the conversation, its routine nor its agent names one: the
+   * packages its sandboxes get and the websites they may reach.
+   *
+   * A default, not a bound: a member may name any Environment they can
+   * see for a conversation. A conversation on the person's own machine (the
+   * desktop app, the CLI) ignores it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference default_environment_ref = 3 [json_name = "defaultEnvironmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   * @return The defaultEnvironmentRef.
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReference getDefaultEnvironmentRef();
+  /**
+   * <pre>
+   * The Environment a conversation in this organization runs in when
+   * neither the conversation, its routine nor its agent names one: the
+   * packages its sandboxes get and the websites they may reach.
+   *
+   * A default, not a bound: a member may name any Environment they can
+   * see for a conversation. A conversation on the person's own machine (the
+   * desktop app, the CLI) ignores it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference default_environment_ref = 3 [json_name = "defaultEnvironmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getDefaultEnvironmentRefOrBuilder();
 }

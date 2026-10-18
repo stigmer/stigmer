@@ -678,13 +678,14 @@ enum ApiResourceKind {
   reserved 52;
   reserved "workflow_run";
 
-  // Agentic - Retired run kinds (Environment, ExecutionContext, Artifact)
+  // Agentic - Retired run kinds (the old Environment, ExecutionContext, Artifact)
 
-  // Value 53 held the Environment kind (id prefix "env": a named set of
+  // Value 53 held the old Environment kind (id prefix "env": a named set of
   // variables and secrets for a run) until vaults replaced it. Reserved so
-  // the number is never reused for a different kind.
+  // the number is never reused for a different kind; the name is today's
+  // Environment's, at 67, whose ids reuse the prefix (the old kind's rows
+  // were removed by the store migration that retired it).
   reserved 53;
-  reserved "environment";
 
   // Value 54 held the ExecutionContext kind (id prefix "ectx": a sealed copy
   // of the values one run or tool connect used) until a run's values were
@@ -1037,6 +1038,47 @@ enum ApiResourceKind {
         {
           role: viewer
           description: "See its cases and download any version; cannot change it"
+        }
+      ]
+    }
+  }];
+
+  // Agentic - Environments (the packages and network access a sandbox gets)
+
+  // A named sandbox setup: the packages installed in every sandbox a
+  // conversation using it runs in, and the hosts it may reach.
+  environment = 67 [(kind_meta) = {
+    group: agentic
+    version: v1
+    name: "Environment"
+    display_name: "Environment"
+    id_prefix: "env"
+    is_versioned: false
+    // Not searchable by design: an organization holds a handful, picked
+    // from a list.
+    not_search_indexed: true
+    tier: open_source
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      visibility: {
+        supports_org: true
+        supports_child_orgs: true
+        defaults_to_org_visibility: true
+      }
+      grantable_roles: [
+        owner,
+        viewer
+      ]
+      team_grantable_roles: [viewer]
+      role_descriptions: [
+        {
+          role: owner
+          description: "Everything, including deleting it and deciding who has access"
+        },
+        {
+          role: viewer
+          description: "Use it for a conversation and see what it contains; cannot change it"
         }
       ]
     }

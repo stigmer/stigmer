@@ -123,6 +123,17 @@ message AgentInvocation {
   // agent's defaults, then to the lane's operator profile (RunConfig has the
   // rule).
   RunConfig run_config = 6;
+
+  // The Environment the conversations this invocation starts run in: the
+  // packages their sandboxes get and the websites they may reach. Unset:
+  // the agent's default, else the organization's.
+  //
+  // @internal
+  // Copied into each fired session's spec.environment_ref beside the
+  // harness, so the session records it with source routine. Naming it
+  // needs can_view on the Environment; each turn asks the routine's owner
+  // again, as a vault the routine names is asked again.
+  ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 8 [(ai.stigmer.commons.apiresource.reference_kind) = environment];
 }
 
 // RunConfig is the settings message for every run: a model, a speed tier,

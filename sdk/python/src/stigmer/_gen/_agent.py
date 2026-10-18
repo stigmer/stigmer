@@ -157,6 +157,7 @@ class AgentInput:
     plugins: list[ResourceRef] = field(default_factory=list)
     subagents: list[ResourceRef] = field(default_factory=list)
     mcp_servers: list[AgentMcpServerInput] = field(default_factory=list)
+    environment_ref: ResourceRef | None = None
 
     def _to_proto(self) -> api_pb2.Agent:
         spec = spec_pb2.AgentSpec(
@@ -189,6 +190,10 @@ class AgentInput:
             spec.subagents.append(_ref)
         for item in self.mcp_servers:
             spec.mcp_servers.append(item._to_proto())
+        if self.environment_ref is not None and (self.environment_ref.org or self.environment_ref.slug):
+            _ref = self.environment_ref._to_proto()
+            _ref.kind = 67
+            spec.environment_ref.CopyFrom(_ref)
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,

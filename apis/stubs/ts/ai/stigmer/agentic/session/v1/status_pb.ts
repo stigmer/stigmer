@@ -4,6 +4,11 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { EnvironmentSource } from "./enum_pb.js";
+import { file_ai_stigmer_agentic_session_v1_enum } from "./enum_pb.js";
+import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
+import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
+import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import type { ApiResourceAudit } from "../../../commons/apiresource/status_pb.js";
 import { file_ai_stigmer_commons_apiresource_status } from "../../../commons/apiresource/status_pb.js";
 import type { Message } from "@bufbuild/protobuf";
@@ -12,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zdGF0dXMucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIu8CCg1TZXNzaW9uU3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSEAoIYWdlbnRfaWQYASABKAkSGgoSYWdlbnRfdmVyc2lvbl9oYXNoGAIgASgJElkKD3ZhdWx0X2F0dGFjaGVycxgDIAMoCzJALmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TdGF0dXMuVmF1bHRBdHRhY2hlcnNFbnRyeRINCgVzdGF0ZRgEIAEoCRIYChBoYXJuZXNzX3N0YXRlX2lkGAUgASgJEiAKGGhhcm5lc3Nfc3RhdGVfaWRfaGlzdG9yeRgGIAMoCRISCgpyb3V0aW5lX2lkGAcgASgJGjUKE1ZhdWx0QXR0YWNoZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_status]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zdGF0dXMucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIo4ECg1TZXNzaW9uU3RhdHVzEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXQSEAoIYWdlbnRfaWQYASABKAkSGgoSYWdlbnRfdmVyc2lvbl9oYXNoGAIgASgJElkKD3ZhdWx0X2F0dGFjaGVycxgDIAMoCzJALmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TdGF0dXMuVmF1bHRBdHRhY2hlcnNFbnRyeRINCgVzdGF0ZRgEIAEoCRIYChBoYXJuZXNzX3N0YXRlX2lkGAUgASgJEiAKGGhhcm5lc3Nfc3RhdGVfaWRfaGlzdG9yeRgGIAMoCRISCgpyb3V0aW5lX2lkGAcgASgJEk8KC2Vudmlyb25tZW50GAggASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSxDEkwKEmVudmlyb25tZW50X3NvdXJjZRgJIAEoDjIwLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkVudmlyb25tZW50U291cmNlGjUKE1ZhdWx0QXR0YWNoZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AWIGcHJvdG8z", [file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_status]);
 
 /**
  * SessionStatus contains system-managed state for a session.
@@ -102,6 +107,21 @@ export type SessionStatus = Message<"ai.stigmer.agentic.session.v1.SessionStatus
    * @generated from field: string routine_id = 7;
    */
   routineId: string;
+
+  /**
+   * The Environment this conversation runs in, whichever named it; unset
+   * when none applies.
+   *
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference environment = 8;
+   */
+  environment?: ApiResourceReference;
+
+  /**
+   * Which choice environment came from.
+   *
+   * @generated from field: ai.stigmer.agentic.session.v1.EnvironmentSource environment_source = 9;
+   */
+  environmentSource: EnvironmentSource;
 };
 
 /**

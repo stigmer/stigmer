@@ -1,0 +1,59 @@
+{
+  "name": "EnvironmentNetworking",
+  "description": "EnvironmentNetworking says which websites a sandbox may reach.",
+  "protoType": "ai.stigmer.agentic.environment.v1.EnvironmentNetworking",
+  "protoFile": "apis/ai/stigmer/agentic/environment/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Type",
+      "jsonName": "type",
+      "protoField": "type",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.environment.v1.NetworkingType",
+        "enumValues": [
+          "unrestricted",
+          "limited"
+        ]
+      },
+      "description": "Whether network access is unrestricted or limited to listed hosts.",
+      "required": false
+    },
+    {
+      "name": "AllowedHosts",
+      "jsonName": "allowedHosts",
+      "protoField": "allowed_hosts",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "The hosts a limited sandbox may reach over HTTPS, each a bare domain\n name such as api.github.com, or *. and a domain name, which matches\n exactly one more label: *.example.com matches api.example.com, not\n example.com and not a.b.example.com. No scheme, port or path.\n\n A request to any other host is refused: an HTTPS connection is closed\n during its handshake, and plain HTTP answers 403 egress denied.",
+      "required": false,
+      "validation": {
+        "maxItems": 100
+      }
+    },
+    {
+      "name": "AllowPackageManagers",
+      "jsonName": "allowPackageManagers",
+      "protoField": "allow_package_managers",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether a limited sandbox may also reach the public package registries\n (npm, PyPI, crates.io, the Go module proxy, RubyGems, Maven, Packagist,\n the Debian and Ubuntu archives, the common code hosts and container\n registries).",
+      "required": false
+    },
+    {
+      "name": "AllowMcpServers",
+      "jsonName": "allowMcpServers",
+      "protoField": "allow_mcp_servers",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether a limited sandbox may also reach the MCP servers of its\n conversation's agent and subagents, by their addresses.",
+      "required": false
+    }
+  ]
+}

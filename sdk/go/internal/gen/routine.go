@@ -219,6 +219,7 @@ type AgentInvocationInput struct {
 	WorkspaceEntries []*WorkspaceEntryInput
 	Vaults           []ResourceRef
 	RunConfig        *RunConfigInput
+	EnvironmentRef   ResourceRef
 }
 
 // WorkspaceEntryInput is the SDK input type for WorkspaceEntry.
@@ -309,6 +310,11 @@ func (i *AgentInvocationInput) toProto() (*runv1.AgentInvocation, error) {
 		}
 		p.RunConfig = v
 	}
+	if i.EnvironmentRef.Org != "" || i.EnvironmentRef.Slug != "" {
+		ref := i.EnvironmentRef.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_environment
+		p.EnvironmentRef = ref
+	}
 	return p, nil
 }
 
@@ -386,6 +392,7 @@ func agentInvocationInputFromProto(p *runv1.AgentInvocation) *AgentInvocationInp
 		input.Vaults = append(input.Vaults, resourceRefFromProto(r))
 	}
 	input.RunConfig = runConfigInputFromProto(p.GetRunConfig())
+	input.EnvironmentRef = resourceRefFromProto(p.GetEnvironmentRef())
 	return input
 }
 

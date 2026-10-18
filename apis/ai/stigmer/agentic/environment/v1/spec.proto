@@ -1,0 +1,181 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.environment.v1;
+
+import "buf/validate/validate.proto";
+
+// EnvironmentSpec is what a sandbox using the Environment gets: its packages
+// and its network access.
+//
+// @internal
+// Shaped so its JSON is Claude Managed Agents' environment config field for
+// field (`networking.type`, `allowed_hosts`, `allow_package_managers`,
+// `allow_mcp_servers`, `packages.<manager>`). The server adds what that
+// standard leaves to the hosting product: the host grammar the enforcing
+// gateway can match (a wildcard is one label), and a refusal when this
+// server's sandboxes cannot install packages or limit networking.
+message EnvironmentSpec {
+  option (buf.validate.message).cel = {
+    id: "environment_spec.packages_need_package_managers"
+    message: "packages under limited networking need networking.allow_package_managers, so the package managers can reach their registries"
+    expression: "!has(this.networking) || this.networking.type != 2 || this.networking.allow_package_managers || !has(this.packages) || this.packages.apt.size() + this.packages.cargo.size() + this.packages.gem.size() + this.packages.go.size() + this.packages.npm.size() + this.packages.pip.size() == 0"
+  };
+
+  // Human-readable description shown in listings.
+  string description = 1 [(buf.validate.field).string.max_len = 500];
+
+  // The websites a sandbox may reach. Unset means unrestricted.
+  EnvironmentNetworking networking = 2;
+
+  // The packages installed in every sandbox before its first turn runs.
+  EnvironmentPackages packages = 3;
+}
+
+// EnvironmentNetworking says which websites a sandbox may reach.
+message EnvironmentNetworking {
+  option (buf.validate.message).cel = {
+    id: "environment_networking.limited_only"
+    message: "allowed_hosts, allow_package_managers and allow_mcp_servers apply only when type is limited"
+    expression: "this.type == 2 || (this.allowed_hosts.size() == 0 && !this.allow_package_managers && !this.allow_mcp_servers)"
+  };
+
+  // Whether network access is unrestricted or limited to listed hosts.
+  NetworkingType type = 1;
+
+  // The hosts a limited sandbox may reach over HTTPS, each a bare domain
+  // name such as api.github.com, or *. and a domain name, which matches
+  // exactly one more label: *.example.com matches api.example.com, not
+  // example.com and not a.b.example.com. No scheme, port or path.
+  //
+  // A request to any other host is refused: an HTTPS connection is closed
+  // during its handshake, and plain HTTP answers 403 egress denied.
+  //
+  // @internal
+  // The one-label wildcard is the enforcing gateway's own meaning (Agent
+  // Substrate's HTTPS rule), narrower than Managed Agents' any-depth one, so
+  // a list written for that standard admits less here, never more. The
+  // pattern admits the syntax; the server normalizes (lower case, no
+  // trailing dot, duplicates removed) and then refuses an IP address, a
+  // single label, localhost, and the cluster-internal and metadata names
+  // (domain/environment/hosts.ts).
+  repeated string allowed_hosts = 2 [(buf.validate.field).repeated = {
+    max_items: 100
+    items: {
+      string: {
+        max_len: 253
+        pattern: "^(\\*\\.)?([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.?$"
+      }
+    }
+  }];
+
+  // Whether a limited sandbox may also reach the public package registries
+  // (npm, PyPI, crates.io, the Go module proxy, RubyGems, Maven, Packagist,
+  // the Debian and Ubuntu archives, the common code hosts and container
+  // registries).
+  bool allow_package_managers = 3;
+
+  // Whether a limited sandbox may also reach the MCP servers of its
+  // conversation's agent and subagents, by their addresses.
+  bool allow_mcp_servers = 4;
+}
+
+// NetworkingType is how much of the network a sandbox may reach.
+enum NetworkingType {
+  // Not set: read as unrestricted.
+  networking_type_unspecified = 0;
+
+  // Any host.
+  unrestricted = 1;
+
+  // Only allowed_hosts, plus the package registries and the agent's MCP
+  // servers where allowed.
+  limited = 2;
+}
+
+// EnvironmentPackages lists packages by the manager that installs them.
+//
+// Each entry is a registry package name with its manager's own version pin
+// (hyperfine@1.18.0, rails:7.1.0, goimports' module@latest, express@4.18.0,
+// sqlalchemy==2.0.30, or poppler-utils=22.02.0-2), never a URL, a git
+// source or a path. Managers run in the order apt, cargo, gem, go, npm,
+// pip; a manager the sandbox's image lacks fails the install, naming what
+// to add.
+//
+// @internal
+// apt installs as root; the other managers install as the agent's own user
+// into a folder on the agent's PATH, so a package's install script runs
+// with the agent's rights. Entries reach the runner as argv, never through
+// a shell, so the grammar refuses only what would change where a package
+// comes from or what installs: an option, whitespace, a URL, git+, file:
+// or a path. 32 entries of at most 214 characters per manager keep the
+// whole set inside one environment variable.
+message EnvironmentPackages {
+  // Debian packages, as name or name=version.
+  repeated string apt = 1 [(buf.validate.field).repeated = {
+    max_items: 32
+    items: {
+      string: {
+        max_len: 214
+        pattern: "^[a-z0-9][a-z0-9+.-]+(=[A-Za-z0-9.+~:-]+)?$"
+      }
+    }
+  }];
+
+  // Rust crates installed with cargo install, as name or name@version.
+  repeated string cargo = 2 [(buf.validate.field).repeated = {
+    max_items: 32
+    items: {
+      string: {
+        max_len: 214
+        pattern: "^[A-Za-z0-9][A-Za-z0-9_-]*(@[0-9A-Za-z.+-]+)?$"
+      }
+    }
+  }];
+
+  // Ruby gems, as name or name:version.
+  repeated string gem = 3 [(buf.validate.field).repeated = {
+    max_items: 32
+    items: {
+      string: {
+        max_len: 214
+        pattern: "^[A-Za-z0-9][A-Za-z0-9._-]*(:[0-9A-Za-z.]+)?$"
+      }
+    }
+  }];
+
+  // Go programs installed with go install, as module/path@version
+  // (@latest included).
+  repeated string go = 4 [(buf.validate.field).repeated = {
+    max_items: 32
+    items: {
+      string: {
+        max_len: 214
+        pattern: "^[A-Za-z0-9][A-Za-z0-9._~/-]*@[A-Za-z0-9._+-]+$"
+      }
+    }
+  }];
+
+  // npm packages installed globally, as name, @scope/name, or either with
+  // @version or @range.
+  repeated string npm = 5 [(buf.validate.field).repeated = {
+    max_items: 32
+    items: {
+      string: {
+        max_len: 214
+        pattern: "^(@[A-Za-z0-9][A-Za-z0-9._~-]*/)?[A-Za-z0-9][A-Za-z0-9._~-]*(@[A-Za-z0-9.^~<>=*+_-]+)?$"
+      }
+    }
+  }];
+
+  // Python packages, as name, name[extras], or either with version
+  // specifiers such as ==2.0.30 or >=2,<3.
+  repeated string pip = 6 [(buf.validate.field).repeated = {
+    max_items: 32
+    items: {
+      string: {
+        max_len: 214
+        pattern: "^[A-Za-z0-9]([A-Za-z0-9._-]*[A-Za-z0-9])?(\\[[A-Za-z0-9._-]+(,[A-Za-z0-9._-]+)*\\])?((===|==|!=|~=|>=|<=|>|<)[A-Za-z0-9.*+!_-]+(,(===|==|!=|~=|>=|<=|>|<)[A-Za-z0-9.*+!_-]+)*)?$"
+      }
+    }
+  }];
+}

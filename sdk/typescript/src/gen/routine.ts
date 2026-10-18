@@ -172,6 +172,7 @@ export interface AgentInvocationInput {
   workspaceEntries?: WorkspaceEntryInput[];
   vaults?: ResourceRef[];
   runConfig?: RunConfigInput;
+  environmentRef?: ResourceRef;
 }
 
 /** SDK input type for WorkspaceEntry. */
@@ -264,6 +265,7 @@ function buildAgentInvocationProto(input: AgentInvocationInput) {
   if (input.workspaceEntries) msg.workspaceEntries = input.workspaceEntries.map(buildWorkspaceEntryProto);
   if (input.vaults) msg.vaults = input.vaults.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 59 }));
   if (input.runConfig) msg.runConfig = buildRunConfigProto(input.runConfig);
+  if (input.environmentRef?.slug || input.environmentRef?.org || input.environmentRef?.id) msg.environmentRef = create(ApiResourceReferenceSchema, { ...input.environmentRef, kind: 67 });
   return msg;
 }
 
@@ -339,6 +341,7 @@ function toAgentInvocationInput(msg: AgentInvocation): AgentInvocationInput {
     workspaceEntries: msg.workspaceEntries?.length ? msg.workspaceEntries.map(toWorkspaceEntryInput) : undefined,
     vaults: toResourceRefInputs(msg.vaults),
     runConfig: msg.runConfig ? toRunConfigInput(msg.runConfig) : undefined,
+    environmentRef: toResourceRefInput(msg.environmentRef),
   };
 }
 

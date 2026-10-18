@@ -41,12 +41,14 @@ class OrganizationEmbedding(_message.Message):
     def __init__(self, allowed_origins: _Optional[_Iterable[str]] = ..., create_accounts_on_sign_in: bool = ..., sign_in_role: _Optional[_Union[_enum_pb2.IamRole, str]] = ..., vaults: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ...) -> None: ...
 
 class OrganizationPreferences(_message.Message):
-    __slots__ = ("standing_context", "memory_enabled")
+    __slots__ = ("standing_context", "memory_enabled", "default_environment_ref")
     STANDING_CONTEXT_FIELD_NUMBER: _ClassVar[int]
     MEMORY_ENABLED_FIELD_NUMBER: _ClassVar[int]
+    DEFAULT_ENVIRONMENT_REF_FIELD_NUMBER: _ClassVar[int]
     standing_context: str
     memory_enabled: bool
-    def __init__(self, standing_context: _Optional[str] = ..., memory_enabled: bool = ...) -> None: ...
+    default_environment_ref: _io_pb2.ApiResourceReference
+    def __init__(self, standing_context: _Optional[str] = ..., memory_enabled: bool = ..., default_environment_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ...) -> None: ...
 
 class OrganizationPolicies(_message.Message):
     __slots__ = ("members_can_create_agents",)

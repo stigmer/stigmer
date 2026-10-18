@@ -29,3 +29,15 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request made before launch gives the retired names environment
+  # (an ApiResourceKind value, 53 kept reserved) and can_create_environment
+  # (an IamPermission value, 12 kept reserved) to the new Environment kind
+  # at 67 and its create permission at 60: no number is reused, and no stored
+  # row of the old kind remains. This block exists for that one pull request.
+  # While it stays, buf breaking does not report this rule on the listed
+  # files, so the pull request that removes it lands straight after the
+  # merge.
+  ignore_only:
+    RESERVED_ENUM_NO_DELETE:
+      - ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto
+      - ai/stigmer/iam/v1/enum.proto

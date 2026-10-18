@@ -741,6 +741,7 @@ AgentInvocation is what a caller may ask an agent to do.
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace the run's session operates on.", typeDescriptionLink: "#workspaceentryinput" },
     vaults: { type: "ResourceRef[]", description: "Vaults whose logins and secrets the runs this invocation creates use, in order: the first vault holding a match wins.", typeDescriptionLink: "#resourceref" },
     runConfig: { type: "RunConfigInput", description: "Per-invocation model choice and run bounds.", typeDescriptionLink: "#runconfiginput" },
+    environmentRef: { type: "ResourceRef", description: "The Environment the conversations this invocation starts run in: the packages their sandboxes get and the websites they may reach.", typeDescriptionLink: "#resourceref" },
   }}
 />
 

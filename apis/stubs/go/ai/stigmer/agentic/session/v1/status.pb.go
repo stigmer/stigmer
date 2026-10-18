@@ -67,9 +67,14 @@ type SessionStatus struct {
 	HarnessStateIdHistory []string `protobuf:"bytes,6,rep,name=harness_state_id_history,json=harnessStateIdHistory,proto3" json:"harness_state_id_history,omitempty"`
 	// The routine whose fire started this conversation; empty for every other
 	// conversation.
-	RoutineId     string `protobuf:"bytes,7,opt,name=routine_id,json=routineId,proto3" json:"routine_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	RoutineId string `protobuf:"bytes,7,opt,name=routine_id,json=routineId,proto3" json:"routine_id,omitempty"`
+	// The Environment this conversation runs in, whichever named it; unset
+	// when none applies.
+	Environment *apiresource.ApiResourceReference `protobuf:"bytes,8,opt,name=environment,proto3" json:"environment,omitempty"`
+	// Which choice environment came from.
+	EnvironmentSource EnvironmentSource `protobuf:"varint,9,opt,name=environment_source,json=environmentSource,proto3,enum=ai.stigmer.agentic.session.v1.EnvironmentSource" json:"environment_source,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *SessionStatus) Reset() {
@@ -158,11 +163,25 @@ func (x *SessionStatus) GetRoutineId() string {
 	return ""
 }
 
+func (x *SessionStatus) GetEnvironment() *apiresource.ApiResourceReference {
+	if x != nil {
+		return x.Environment
+	}
+	return nil
+}
+
+func (x *SessionStatus) GetEnvironmentSource() EnvironmentSource {
+	if x != nil {
+		return x.EnvironmentSource
+	}
+	return EnvironmentSource_ENVIRONMENT_SOURCE_UNSPECIFIED
+}
+
 var File_ai_stigmer_agentic_session_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/session/v1/status.proto\x12\x1dai.stigmer.agentic.session.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xe6\x03\n" +
+	"*ai/stigmer/agentic/session/v1/status.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\xa5\x05\n" +
 	"\rSessionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12,\n" +
@@ -172,7 +191,9 @@ const file_ai_stigmer_agentic_session_v1_status_proto_rawDesc = "" +
 	"\x10harness_state_id\x18\x05 \x01(\tR\x0eharnessStateId\x127\n" +
 	"\x18harness_state_id_history\x18\x06 \x03(\tR\x15harnessStateIdHistory\x12\x1d\n" +
 	"\n" +
-	"routine_id\x18\a \x01(\tR\troutineId\x1aA\n" +
+	"routine_id\x18\a \x01(\tR\troutineId\x12\\\n" +
+	"\venvironment\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,CR\venvironment\x12_\n" +
+	"\x12environment_source\x18\t \x01(\x0e20.ai.stigmer.agentic.session.v1.EnvironmentSourceR\x11environmentSource\x1aA\n" +
 	"\x13VaultAttachersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x9b\x02\n" +
@@ -192,18 +213,22 @@ func file_ai_stigmer_agentic_session_v1_status_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_session_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_agentic_session_v1_status_proto_goTypes = []any{
-	(*SessionStatus)(nil),                // 0: ai.stigmer.agentic.session.v1.SessionStatus
-	nil,                                  // 1: ai.stigmer.agentic.session.v1.SessionStatus.VaultAttachersEntry
-	(*apiresource.ApiResourceAudit)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(*SessionStatus)(nil),                    // 0: ai.stigmer.agentic.session.v1.SessionStatus
+	nil,                                      // 1: ai.stigmer.agentic.session.v1.SessionStatus.VaultAttachersEntry
+	(*apiresource.ApiResourceAudit)(nil),     // 2: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(*apiresource.ApiResourceReference)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceReference
+	(EnvironmentSource)(0),                   // 4: ai.stigmer.agentic.session.v1.EnvironmentSource
 }
 var file_ai_stigmer_agentic_session_v1_status_proto_depIdxs = []int32{
 	2, // 0: ai.stigmer.agentic.session.v1.SessionStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
 	1, // 1: ai.stigmer.agentic.session.v1.SessionStatus.vault_attachers:type_name -> ai.stigmer.agentic.session.v1.SessionStatus.VaultAttachersEntry
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	3, // 2: ai.stigmer.agentic.session.v1.SessionStatus.environment:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	4, // 3: ai.stigmer.agentic.session.v1.SessionStatus.environment_source:type_name -> ai.stigmer.agentic.session.v1.EnvironmentSource
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_status_proto_init() }
@@ -211,6 +236,7 @@ func file_ai_stigmer_agentic_session_v1_status_proto_init() {
 	if File_ai_stigmer_agentic_session_v1_status_proto != nil {
 		return
 	}
+	file_ai_stigmer_agentic_session_v1_enum_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

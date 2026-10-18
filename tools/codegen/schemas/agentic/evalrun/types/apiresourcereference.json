@@ -50,6 +50,7 @@
           "scoring_rule",
           "eval_run",
           "eval",
+          "environment",
           "plan",
           "subscription",
           "license"

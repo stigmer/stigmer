@@ -1084,6 +1084,7 @@ SessionSpec defines the configurable properties of a session.
     includeMyVault: { type: "boolean", description: "Whether each turn also uses its sender's own My vault, first, ahead of the listed vaults." },
     plugins: { type: "ResourceRef[]", description: "Plugins this conversation uses, each whole, besides its agent's: their skills, agents, hooks and MCP servers.", typeDescriptionLink: "#resourceref" },
     fileReview: { type: "boolean", description: "Whether each turn's file edits are offered for review, Keep or Undo, after the turn." },
+    environmentRef: { type: "ResourceRef", description: "The Environment this conversation runs in: the packages its sandboxes get and the websites they may reach.", typeDescriptionLink: "#resourceref" },
   }}
 />
 

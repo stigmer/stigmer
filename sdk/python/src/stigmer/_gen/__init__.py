@@ -6,6 +6,7 @@ from ._agent import AgentClient, AgentInput, EnvVarDeclarationInput, HookSourceI
 from ._apikey import ApiKeyClient, ApiKeyInput
 from ._channel import ChannelClient, ChannelInput, WebChannelConfigInput, WebChannelMessagesInput, SlackChannelConfigInput, WhatsAppChannelConfigInput
 from ._channelapp import ChannelAppClient, ChannelAppInput, SlackChannelAppConfigInput, WhatsAppChannelAppConfigInput
+from ._environment import EnvironmentClient, EnvironmentInput, EnvironmentNetworkingInput, EnvironmentPackagesInput
 from ._eval import EvalClient, EvalInput
 from ._evalrun import EvalRunClient, EvalRunInput, EvalRunCaseSourceInput, EvalRunTargetInput
 from ._federationissuer import FederationIssuerClient, FederationIssuerInput
@@ -66,6 +67,10 @@ __all__ = [
     "ChannelAppInput",
     "SlackChannelAppConfigInput",
     "WhatsAppChannelAppConfigInput",
+    "EnvironmentClient",
+    "EnvironmentInput",
+    "EnvironmentNetworkingInput",
+    "EnvironmentPackagesInput",
     "EvalClient",
     "EvalInput",
     "EvalRunClient",

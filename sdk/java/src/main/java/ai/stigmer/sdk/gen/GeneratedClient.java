@@ -10,6 +10,7 @@ public class GeneratedClient {
     public final ApiKeyClient apiKey;
     public final ChannelClient channel;
     public final ChannelAppClient channelapp;
+    public final EnvironmentClient environment;
     public final EvalClient eval;
     public final EvalRunClient evalrun;
     public final FederationIssuerClient federationIssuer;
@@ -38,6 +39,7 @@ public class GeneratedClient {
         this.apiKey = new ApiKeyClient(channel);
         this.channel = new ChannelClient(channel);
         this.channelapp = new ChannelAppClient(channel);
+        this.environment = new EnvironmentClient(channel);
         this.eval = new EvalClient(channel);
         this.evalrun = new EvalRunClient(channel);
         this.federationIssuer = new FederationIssuerClient(channel);

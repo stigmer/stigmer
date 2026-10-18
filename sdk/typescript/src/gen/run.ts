@@ -222,6 +222,7 @@ export interface SessionSpecInput {
   includeMyVault?: boolean;
   plugins?: ResourceRef[];
   fileReview?: boolean;
+  environmentRef?: ResourceRef;
 }
 
 /** SDK input type for WorkspaceEntry. */
@@ -377,6 +378,7 @@ function buildSessionSpecProto(input: SessionSpecInput) {
   if (input.includeMyVault !== undefined) msg.includeMyVault = input.includeMyVault;
   if (input.plugins) msg.plugins = input.plugins.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 58 }));
   if (input.fileReview !== undefined) msg.fileReview = input.fileReview;
+  if (input.environmentRef?.slug || input.environmentRef?.org || input.environmentRef?.id) msg.environmentRef = create(ApiResourceReferenceSchema, { ...input.environmentRef, kind: 67 });
   return msg;
 }
 
@@ -557,6 +559,7 @@ function toSessionSpecInput(msg: SessionSpec): SessionSpecInput {
     includeMyVault: msg.includeMyVault || undefined,
     plugins: toResourceRefInputs(msg.plugins),
     fileReview: msg.fileReview || undefined,
+    environmentRef: toResourceRefInput(msg.environmentRef),
   };
 }
 

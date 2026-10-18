@@ -41,16 +41,21 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "PECIFIED\020\000\022 \n\034GIT_WRITE_BACK_BRANCH_AND_" +
       "PR\020\001*J\n\007Harness\022\027\n\023HARNESS_UNSPECIFIED\020\000" +
       "\022\022\n\016HARNESS_NATIVE\020\001\022\022\n\016HARNESS_CURSOR\020\002" +
-      "*k\n\017ExecutionTarget\022 \n\034EXECUTION_TARGET_" +
-      "UNSPECIFIED\020\000\022\032\n\026EXECUTION_TARGET_LOCAL\020" +
-      "\001\022\032\n\026EXECUTION_TARGET_CLOUD\020\002*W\n\nCursorM" +
-      "ode\022\033\n\027CURSOR_MODE_UNSPECIFIED\020\000\022\025\n\021CURS" +
-      "OR_MODE_LOCAL\020\001\022\025\n\021CURSOR_MODE_CLOUD\020\002B\244" +
-      "\001B\tEnumProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agent" +
-      "ic.Session.V1\312\002\035Ai\\Stigmer\\Agentic\\Sessi" +
-      "on\\V1\342\002)Ai\\Stigmer\\Agentic\\Session\\V1\\GP" +
-      "BMetadata\352\002!Ai::Stigmer::Agentic::Sessio" +
-      "n::V1b\006proto3"
+      "*\272\001\n\021EnvironmentSource\022\"\n\036ENVIRONMENT_SO" +
+      "URCE_UNSPECIFIED\020\000\022\036\n\032ENVIRONMENT_SOURCE" +
+      "_SESSION\020\001\022\036\n\032ENVIRONMENT_SOURCE_ROUTINE" +
+      "\020\002\022\034\n\030ENVIRONMENT_SOURCE_AGENT\020\003\022#\n\037ENVI" +
+      "RONMENT_SOURCE_ORGANIZATION\020\004*k\n\017Executi" +
+      "onTarget\022 \n\034EXECUTION_TARGET_UNSPECIFIED" +
+      "\020\000\022\032\n\026EXECUTION_TARGET_LOCAL\020\001\022\032\n\026EXECUT" +
+      "ION_TARGET_CLOUD\020\002*W\n\nCursorMode\022\033\n\027CURS" +
+      "OR_MODE_UNSPECIFIED\020\000\022\025\n\021CURSOR_MODE_LOC" +
+      "AL\020\001\022\025\n\021CURSOR_MODE_CLOUD\020\002B\244\001B\tEnumProt" +
+      "oP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Session." +
+      "V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002)Ai\\" +
+      "Stigmer\\Agentic\\Session\\V1\\GPBMetadata\352\002" +
+      "!Ai::Stigmer::Agentic::Session::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

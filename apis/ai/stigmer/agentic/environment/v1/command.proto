@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.environment.v1;
+
+import "ai/stigmer/agentic/environment/v1/api.proto";
+import "ai/stigmer/agentic/environment/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// EnvironmentCommandController handles write operations for Environments.
+service EnvironmentCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = environment;
+
+  // Create or update an Environment.
+  //
+  // A request that carries metadata.id of an Environment in its organization
+  // updates that Environment, and its slug changes only through rename. A
+  // slug the Environment was renamed away from, named without its id, is
+  // refused with FAILED_PRECONDITION carrying a google.rpc.ErrorInfo detail
+  // (domain "stigmer.ai"), because a write by a name that stops resolving
+  // after 30 days would later make a second Environment:
+  //
+  //   - SLUG_RENAMED — the slug was renamed: it still leads to the same
+  //     Environment for reading, but a write names its current slug.
+  //     Metadata: slug (the one the request named).
+  //
+  // @internal
+  // The authorization and state-operation are determined depending on
+  // whether the Environment is going to be created or updated, resolved as
+  // part of request execution.
+  rpc apply(Environment) returns (Environment);
+
+  // Create an Environment.
+  //
+  // It starts visible to every member of the organization, who may then
+  // name it for a conversation, unless it is created private
+  // (metadata.visibility). Limited networking, or packages, on a server
+  // whose sandboxes cannot enforce or install them is refused with
+  // FAILED_PRECONDITION saying so.
+  //
+  // A slug another Environment of the organization holds is refused with
+  // ALREADY_EXISTS. A slug another Environment was renamed away from, which
+  // still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
+  // google.rpc.ErrorInfo detail (domain "stigmer.ai"):
+  //
+  //   - SLUG_RESERVED — another Environment held the slug until a recent
+  //     rename, and it still leads there. Metadata: slug.
+  //
+  // @internal
+  // Authorization: can_create_environment on the organization (admins), as
+  // for plugins, skills and shared vaults: an Environment decides what an
+  // agent can reach and install.
+  rpc create(Environment) returns (Environment) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_environment;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to create an environment in this organization";
+  }
+
+  // Update an Environment: the fields update_mask names change, every other
+  // field keeps its stored value.
+  //
+  // A conversation using the Environment gets new packages at its sandbox's
+  // next start and new network access at its next turn.
+  //
+  // resource.metadata.id names the Environment; apply finds one by slug.
+  // The slug changes only through rename, and a mask naming a path the
+  // Environment does not have is refused with INVALID_ARGUMENT naming the
+  // path.
+  //
+  // An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail
+  // (domain "stigmer.ai"):
+  //
+  //   - ETAG_MISMATCH — resource.metadata.etag is set and the Environment
+  //     changed since that etag was read: read it again and make the change
+  //     again. No metadata.
+  //   - WRITE_CONFLICT — the Environment kept changing while the update was
+  //     being saved: try again. No metadata.
+  rpc update(UpdateEnvironmentInput) returns (Environment) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = environment;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource.metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update environment";
+  }
+
+  // Update the visibility of an Environment.
+  //
+  // Setting org lets every member of the organization see it and name it
+  // for a conversation; child_orgs also lets the organization's child
+  // organizations name it.
+  //
+  // @internal
+  // Authorization: can_manage_audience on the Environment for every
+  // transition. The level is checked against the kind's VisibilityConfig
+  // (visibility_public is refused for every kind).
+  rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (Environment) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = environment;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_audience;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update environment visibility";
+  }
+
+  // Rename an Environment: change its slug, the name people type.
+  //
+  // The Environment keeps its id, so everything that names it keeps
+  // working, and every answer names it by the new slug. The old slug keeps
+  // leading to the Environment for reading for 30 days, during which no
+  // other Environment of the organization can take it and this one can take
+  // it back; then it is released. A write that names the old slug is
+  // refused with SLUG_RENAMED (see apply). A slug another Environment holds
+  // is refused with ALREADY_EXISTS, and one another Environment was recently
+  // renamed away from with SLUG_RESERVED (see create).
+  //
+  // @internal
+  // Authorization: Requires can_delete permission on the Environment:
+  // whoever may delete it may rename it.
+  rpc rename(ai.stigmer.commons.apiresource.RenameInput) returns (Environment) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = environment;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to rename environment";
+  }
+
+  // Delete an Environment.
+  //
+  // Refused with FAILED_PRECONDITION while an agent or a routine of its
+  // organization names it, or while it is the organization's default,
+  // naming each. A conversation that used it refuses its next message,
+  // saying the Environment was deleted.
+  //
+  // @internal
+  // Authorization: can_delete on the Environment. The guard scans the
+  // organization's agent and routine rows and reads the organization's
+  // preferences; conversations do not hold it, as they keep their own
+  // resolved reference and are refused at their next turn instead.
+  // Organization purge skips the guard.
+  rpc delete(EnvironmentId) returns (Environment) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = environment;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete environment";
+  }
+}

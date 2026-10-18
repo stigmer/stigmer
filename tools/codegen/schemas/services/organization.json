@@ -487,48 +487,6 @@
       ]
     },
     {
-      "name": "IamRole",
-      "description": "IamRole defines the roles that can be assigned to principals on resources\n via Grants.\n\n Roles are human-assigned and represent a principal's relationship to a\n resource. They are distinct from permissions (which are computed from roles\n and checked by the authorization interceptor) and structural relations\n (which are internal FGA wiring like organization or session links).\n\n Each ApiResourceKind declares which of these roles are grantable via\n the grantable_roles field in its AuthorizationConfig, and what each one\n means there in role_descriptions.",
-      "protoType": "ai.stigmer.iam.v1.IamRole",
-      "values": [
-        {
-          "name": "owner",
-          "number": 1,
-          "description": "Full control of the resource, including deleting it and deciding who\n has access. Typically assigned to the creator."
-        },
-        {
-          "name": "admin",
-          "number": 2,
-          "description": "Administers an organization: its people, settings and resources, short\n of its owners, its deletion and its private conversations."
-        },
-        {
-          "name": "member",
-          "number": 3,
-          "description": "Belongs to an organization or a team. In an organization, a member\n starts conversations with what is shared with them and creates agents\n while the organization allows it; in a team, a member holds what the\n team is given."
-        },
-        {
-          "name": "viewer",
-          "number": 4,
-          "description": "Sees the resource and changes nothing. What seeing allows is the kind's\n own (role_descriptions): an agent's viewer runs it in the conversations\n they may start, a conversation's viewer sends no message, and an\n organization's viewer starts no conversation, since starting one needs\n the organization's member role or higher."
-        },
-        {
-          "name": "participant",
-          "number": 5,
-          "description": "A person who takes part in a conversation: reads it and sends messages.\n On a conversation (session), a participant's messages run in the\n conversation's own workspace, as its creator, using only the vaults the\n conversation names; stopping and approving stay with its owners. On a\n channel, a participant reads the channel's conversations and\n speaks to its customers as the business (reply, take over, hand back,\n clear attention), and is not a channel configurator."
-        },
-        {
-          "name": "editor",
-          "number": 6,
-          "description": "Editor of a blueprint (an agent): may change\n its definition and do whatever a viewer can, and may not delete it,\n change its visibility, give it a chat link or another channel, or decide\n who else has access."
-        },
-        {
-          "name": "user",
-          "number": 7,
-          "description": "May use a shared vault: the runs of a person who holds it use the\n vault's logins and secrets. Shown as \"Can use\"."
-        }
-      ]
-    },
-    {
       "name": "ApiResourceKind",
       "description": "API resource kinds for Stigmer.",
       "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
@@ -654,6 +612,11 @@
           "description": "A set of test cases for an agent: an evals/ folder in Claude Code's\n plugin-eval format, pushed whole."
         },
         {
+          "name": "environment",
+          "number": 67,
+          "description": "A named sandbox setup: the packages installed in every sandbox a\n conversation using it runs in, and the hosts it may reach."
+        },
+        {
           "name": "plan",
           "number": 70,
           "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."
@@ -667,6 +630,48 @@
           "name": "license",
           "number": 72,
           "description": "A signed grant of entitlements to a self-hosting customer for a term.\n\n Platform-level: issued by the cloud's operators and verified offline by\n the Enterprise server, so the customer is a value inside the license\n (which may or may not name a cloud organization) and the kind has no\n authorization scope and no owner. Claims are immutable once signed; a\n renewal is a new License."
+        }
+      ]
+    },
+    {
+      "name": "IamRole",
+      "description": "IamRole defines the roles that can be assigned to principals on resources\n via Grants.\n\n Roles are human-assigned and represent a principal's relationship to a\n resource. They are distinct from permissions (which are computed from roles\n and checked by the authorization interceptor) and structural relations\n (which are internal FGA wiring like organization or session links).\n\n Each ApiResourceKind declares which of these roles are grantable via\n the grantable_roles field in its AuthorizationConfig, and what each one\n means there in role_descriptions.",
+      "protoType": "ai.stigmer.iam.v1.IamRole",
+      "values": [
+        {
+          "name": "owner",
+          "number": 1,
+          "description": "Full control of the resource, including deleting it and deciding who\n has access. Typically assigned to the creator."
+        },
+        {
+          "name": "admin",
+          "number": 2,
+          "description": "Administers an organization: its people, settings and resources, short\n of its owners, its deletion and its private conversations."
+        },
+        {
+          "name": "member",
+          "number": 3,
+          "description": "Belongs to an organization or a team. In an organization, a member\n starts conversations with what is shared with them and creates agents\n while the organization allows it; in a team, a member holds what the\n team is given."
+        },
+        {
+          "name": "viewer",
+          "number": 4,
+          "description": "Sees the resource and changes nothing. What seeing allows is the kind's\n own (role_descriptions): an agent's viewer runs it in the conversations\n they may start, a conversation's viewer sends no message, and an\n organization's viewer starts no conversation, since starting one needs\n the organization's member role or higher."
+        },
+        {
+          "name": "participant",
+          "number": 5,
+          "description": "A person who takes part in a conversation: reads it and sends messages.\n On a conversation (session), a participant's messages run in the\n conversation's own workspace, as its creator, using only the vaults the\n conversation names; stopping and approving stay with its owners. On a\n channel, a participant reads the channel's conversations and\n speaks to its customers as the business (reply, take over, hand back,\n clear attention), and is not a channel configurator."
+        },
+        {
+          "name": "editor",
+          "number": 6,
+          "description": "Editor of a blueprint (an agent): may change\n its definition and do whatever a viewer can, and may not delete it,\n change its visibility, give it a chat link or another channel, or decide\n who else has access."
+        },
+        {
+          "name": "user",
+          "number": 7,
+          "description": "May use a shared vault: the runs of a person who holds it use the\n vault's logins and secrets. Shown as \"Can use\"."
         }
       ]
     }

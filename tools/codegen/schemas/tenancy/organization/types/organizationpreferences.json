@@ -26,6 +26,18 @@
       },
       "description": "Whether agents may retain learned facts about members of this\n organization. Off by default: when off, the remember tool is never\n offered and nothing is recalled, regardless of member opt-in.",
       "required": false
+    },
+    {
+      "name": "DefaultEnvironmentRef",
+      "jsonName": "defaultEnvironmentRef",
+      "protoField": "default_environment_ref",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceReference"
+      },
+      "description": "The Environment a conversation in this organization runs in when\n neither the conversation, its routine nor its agent names one: the\n packages its sandboxes get and the websites they may reach.\n\n A default, not a bound: a member may name any Environment they can\n see for a conversation. A conversation on the person's own machine (the\n desktop app, the CLI) ignores it.",
+      "required": false,
+      "referenceKind": 67
     }
   ]
 }

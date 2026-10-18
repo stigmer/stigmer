@@ -219,6 +219,22 @@ message AgentSpec {
   // tool reads, that key is the server's alone: the agent's own env
   // declaring it gives the shell nothing.
   repeated AgentMcpServer mcp_servers = 18 [(buf.validate.field).repeated.max_items = 20];
+
+  // The Environment a new conversation on this agent runs in when neither
+  // the conversation nor its routine names one: the packages its sandboxes
+  // get and the websites they may reach. Unset: the organization's default
+  // Environment, if any.
+  //
+  // A conversation keeps the Environment it started with; changing this
+  // changes only new conversations. A conversation on the person's own
+  // machine (the desktop app, the CLI) ignores it.
+  //
+  // @internal
+  // Resolved once, at session create, into SessionStatus.environment with
+  // source agent, after the agent's pinned version is read (as harness
+  // is). Naming it needs can_view on the Environment (the reference rule's
+  // writer clause); the saver vouches for it, so a turn does not ask again.
+  ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 19 [(ai.stigmer.commons.apiresource.reference_kind) = environment];
 }
 
 // AgentMcpServer is an MCP server written in an agent, reached over HTTP.

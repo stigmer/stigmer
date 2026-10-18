@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.environment.v1;
+
+import "ai/stigmer/agentic/environment/v1/api.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/field_mask.proto";
+
+// EnvironmentId wraps an Environment identifier.
+message EnvironmentId {
+  // Unique identifier of the Environment.
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// Input for updating an Environment: the Environment and the paths that
+// change.
+message UpdateEnvironmentInput {
+  option (buf.validate.message).cel = {
+    id: "update_names_its_target"
+    message: "resource.metadata.id is required: an update names the environment by its id"
+    expression: "has(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''"
+  };
+
+  // The Environment carrying the new values, named by metadata.id. Only the
+  // fields update_mask names are read, so the others may be left empty; the
+  // result is validated as a whole.
+  Environment resource = 1 [(buf.validate.field).ignore = IGNORE_ALWAYS];
+
+  // The paths the update changes, as proto field names (spec.networking,
+  // metadata.labels). A list or map at a named path is replaced whole; "*"
+  // names every path an update may change.
+  google.protobuf.FieldMask update_mask = 2 [(buf.validate.field).required = true];
+}
+
+// Input for listing an organization's Environments, newest first.
+message ListEnvironmentsRequest {
+  // Organization whose Environments to list, by id or slug.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 2 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+
+  // Only resources carrying every label given, each matched exactly (AND).
+  // A selective filter may answer short pages, even empty ones, that still
+  // carry a token.
+  map<string, string> labels = 4;
+}
+
+// One page of an organization's Environments.
+message EnvironmentList {
+  // The Environments in this page, newest first.
+  repeated Environment entries = 1;
+
+  // Set when more entries may follow: pass it as page_token to continue.
+  // A page may be short, even empty, and still carry a token.
+  string next_page_token = 2;
+}

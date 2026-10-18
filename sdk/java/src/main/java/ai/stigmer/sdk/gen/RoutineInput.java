@@ -124,6 +124,7 @@ public final class RoutineInput {
         private final java.util.List<WorkspaceEntryInput> workspaceEntries;
         private final java.util.List<ResourceRef> vaults;
         private final RunConfigInput runConfig;
+        private final ResourceRef environmentRef;
 
         private AgentInvocationInput(Builder builder) {
             this.agentRef = builder.agentRef;
@@ -132,6 +133,7 @@ public final class RoutineInput {
             this.workspaceEntries = builder.workspaceEntries;
             this.vaults = builder.vaults;
             this.runConfig = builder.runConfig;
+            this.environmentRef = builder.environmentRef;
         }
 
         AgentInvocation toProto() {
@@ -160,6 +162,10 @@ public final class RoutineInput {
             if (this.runConfig != null) {
                 builder.setRunConfig(this.runConfig.toProto());
             }
+            if (this.environmentRef != null && this.environmentRef.hasIdentifier()) {
+                builder.setEnvironmentRef(this.environmentRef.toProto().toBuilder()
+                    .setKind(ApiResourceKind.environment).build());
+            }
             return builder.build();
         }
 
@@ -172,6 +178,7 @@ public final class RoutineInput {
             private java.util.List<WorkspaceEntryInput> workspaceEntries;
             private java.util.List<ResourceRef> vaults;
             private RunConfigInput runConfig;
+            private ResourceRef environmentRef;
 
             private Builder() {}
 
@@ -181,6 +188,7 @@ public final class RoutineInput {
             public Builder workspaceEntries(java.util.List<WorkspaceEntryInput> workspaceEntries) { this.workspaceEntries = workspaceEntries; return this; }
             public Builder vaults(java.util.List<ResourceRef> vaults) { this.vaults = vaults; return this; }
             public Builder runConfig(RunConfigInput runConfig) { this.runConfig = runConfig; return this; }
+            public Builder environmentRef(ResourceRef environmentRef) { this.environmentRef = environmentRef; return this; }
 
             public AgentInvocationInput build() { return new AgentInvocationInput(this); }
         }

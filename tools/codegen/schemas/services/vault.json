@@ -993,6 +993,7 @@
               "scoring_rule",
               "eval_run",
               "eval",
+              "environment",
               "plan",
               "subscription",
               "license"
@@ -1467,6 +1468,11 @@
           "name": "eval",
           "number": 66,
           "description": "A set of test cases for an agent: an evals/ folder in Claude Code's\n plugin-eval format, pushed whole."
+        },
+        {
+          "name": "environment",
+          "number": 67,
+          "description": "A named sandbox setup: the packages installed in every sandbox a\n conversation using it runs in, and the hosts it may reach."
         },
         {
           "name": "plan",

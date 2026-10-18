@@ -177,12 +177,17 @@ class OrganizationPreferencesInput:
 
     standing_context: str = ""
     memory_enabled: bool = False
+    default_environment_ref: ResourceRef | None = None
 
     def _to_proto(self) -> spec_pb2.OrganizationPreferences:
         msg = spec_pb2.OrganizationPreferences(
             standing_context=self.standing_context,
             memory_enabled=self.memory_enabled,
         )
+        if self.default_environment_ref is not None and (self.default_environment_ref.org or self.default_environment_ref.slug):
+            _ref = self.default_environment_ref._to_proto()
+            _ref.kind = 67
+            msg.default_environment_ref.CopyFrom(_ref)
         return msg
 
 

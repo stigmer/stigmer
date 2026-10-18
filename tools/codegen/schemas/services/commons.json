@@ -453,6 +453,11 @@
           "description": "A set of test cases for an agent: an evals/ folder in Claude Code's\n plugin-eval format, pushed whole."
         },
         {
+          "name": "environment",
+          "number": 67,
+          "description": "A named sandbox setup: the packages installed in every sandbox a\n conversation using it runs in, and the hosts it may reach."
+        },
+        {
           "name": "plan",
           "number": 70,
           "description": "Catalog entry naming a bundle of entitlements and the terms that buy it.\n\n Platform-level: a plan belongs to no organization, so it carries no\n authorization scope and no owner. Immutable once created; a change of\n terms is a new Plan and the old one retires."

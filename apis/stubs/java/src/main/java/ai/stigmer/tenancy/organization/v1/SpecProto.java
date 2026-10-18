@@ -95,17 +95,20 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "g.sign_in_role_not_owner\022Psign_in_role c" +
       "annot be owner; organization ownership m" +
       "ust be assigned explicitly\032\026this.sign_in" +
-      "_role != 1\"u\n\027OrganizationPreferences\0223\n" +
-      "\020standing_context\030\001 \001(\tB\010\272H\005r\003\030\320\017R\017stand" +
-      "ingContext\022%\n\016memory_enabled\030\002 \001(\010R\rmemo" +
-      "ryEnabled\"Q\n\024OrganizationPolicies\0229\n\031mem" +
-      "bers_can_create_agents\030\001 \001(\010R\026membersCan" +
-      "CreateAgentsB\270\001B\tSpecProtoP\001\242\002\004ASTO\252\002\"Ai" +
-      ".Stigmer.Tenancy.Organization.V1\312\002\"Ai\\St" +
-      "igmer\\Tenancy\\Organization\\V1\342\002.Ai\\Stigm" +
-      "er\\Tenancy\\Organization\\V1\\GPBMetadata\352\002" +
-      "&Ai::Stigmer::Tenancy::Organization::V1b" +
-      "\006proto3"
+      "_role != 1\"\351\001\n\027OrganizationPreferences\0223" +
+      "\n\020standing_context\030\001 \001(\tB\010\272H\005r\003\030\320\017R\017stan" +
+      "dingContext\022%\n\016memory_enabled\030\002 \001(\010R\rmem" +
+      "oryEnabled\022r\n\027default_environment_ref\030\003 " +
+      "\001(\01324.ai.stigmer.commons.apiresource.Api" +
+      "ResourceReferenceB\004\340\205,CR\025defaultEnvironm" +
+      "entRef\"Q\n\024OrganizationPolicies\0229\n\031member" +
+      "s_can_create_agents\030\001 \001(\010R\026membersCanCre" +
+      "ateAgentsB\270\001B\tSpecProtoP\001\242\002\004ASTO\252\002\"Ai.St" +
+      "igmer.Tenancy.Organization.V1\312\002\"Ai\\Stigm" +
+      "er\\Tenancy\\Organization\\V1\342\002.Ai\\Stigmer\\" +
+      "Tenancy\\Organization\\V1\\GPBMetadata\352\002&Ai" +
+      "::Stigmer::Tenancy::Organization::V1b\006pr" +
+      "oto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -132,7 +135,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPreferences_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPreferences_descriptor,
-        new java.lang.String[] { "StandingContext", "MemoryEnabled", });
+        new java.lang.String[] { "StandingContext", "MemoryEnabled", "DefaultEnvironmentRef", });
     internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPolicies_descriptor =
       getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_tenancy_organization_v1_OrganizationPolicies_fieldAccessorTable = new

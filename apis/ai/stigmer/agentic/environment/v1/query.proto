@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.environment.v1;
+
+import "ai/stigmer/agentic/environment/v1/api.proto";
+import "ai/stigmer/agentic/environment/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// EnvironmentQueryController handles read operations for Environments.
+service EnvironmentQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = environment;
+
+  // Get a single Environment by ID.
+  rpc get(EnvironmentId) returns (Environment) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = environment;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get environment";
+  }
+
+  // Get an Environment by its organization-scoped reference (org/slug).
+  //
+  // @internal
+  // Custom authorization in handler — checks both direct resource access
+  // and organization-level visibility permissions.
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Environment) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // List an organization's Environments, newest first.
+  //
+  // Returns the Environments of the input org that the caller may view, one
+  // page at a time.
+  //
+  // @internal
+  // Authorization in-handler: the list read scope keeps the Environments
+  // the caller could get by id, as every organization list does.
+  rpc list(ListEnvironmentsRequest) returns (EnvironmentList) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+}

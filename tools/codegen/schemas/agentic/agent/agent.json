@@ -184,6 +184,18 @@
       "validation": {
         "maxItems": 20
       }
+    },
+    {
+      "name": "EnvironmentRef",
+      "jsonName": "environmentRef",
+      "protoField": "environment_ref",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceReference"
+      },
+      "description": "The Environment a new conversation on this agent runs in when neither\n the conversation nor its routine names one: the packages its sandboxes\n get and the websites they may reach. Unset: the organization's default\n Environment, if any.\n\n A conversation keeps the Environment it started with; changing this\n changes only new conversations. A conversation on the person's own\n machine (the desktop app, the CLI) ignores it.",
+      "required": false,
+      "referenceKind": 67
     }
   ]
 }

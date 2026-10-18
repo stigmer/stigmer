@@ -86,10 +86,11 @@ enum IamPermission {
   can_execute = 15;
 
   // Values 12 and 16 held can_create_environment and can_read_secrets,
-  // removed with the Environment kind when vaults replaced it: no read
-  // returns a saved value, so there is nothing to reveal.
+  // removed with the old Environment kind when vaults replaced it: no read
+  // returns a saved value, so there is nothing to reveal. The name
+  // can_create_environment is today's Environment's, at 60.
   reserved 12, 16;
-  reserved "can_create_environment", "can_read_secrets";
+  reserved "can_read_secrets";
 
   // Platform-level permissions.
   can_bootstrap_iam = 17;
@@ -332,6 +333,11 @@ enum IamPermission {
   // it off, rename or delete it) but do not act as its owner: the run acts
   // as the routine's owner, and the fire's text reaches it.
   can_fire = 59;
+
+  // Whether the caller may create an Environment in an organization: the
+  // packages and network access a conversation's sandbox gets. The
+  // organization's admins.
+  can_create_environment = 60;
 }
 
 // Display metadata for an IamRole value: the one place a role's name lives,

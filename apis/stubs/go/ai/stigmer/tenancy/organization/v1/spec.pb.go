@@ -265,8 +265,16 @@ type OrganizationPreferences struct {
 	// organization. Off by default: when off, the remember tool is never
 	// offered and nothing is recalled, regardless of member opt-in.
 	MemoryEnabled bool `protobuf:"varint,2,opt,name=memory_enabled,json=memoryEnabled,proto3" json:"memory_enabled,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// The Environment a conversation in this organization runs in when
+	// neither the conversation, its routine nor its agent names one: the
+	// packages its sandboxes get and the websites they may reach.
+	//
+	// A default, not a bound: a member may name any Environment they can
+	// see for a conversation. A conversation on the person's own machine (the
+	// desktop app, the CLI) ignores it.
+	DefaultEnvironmentRef *apiresource.ApiResourceReference `protobuf:"bytes,3,opt,name=default_environment_ref,json=defaultEnvironmentRef,proto3" json:"default_environment_ref,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *OrganizationPreferences) Reset() {
@@ -311,6 +319,13 @@ func (x *OrganizationPreferences) GetMemoryEnabled() bool {
 		return x.MemoryEnabled
 	}
 	return false
+}
+
+func (x *OrganizationPreferences) GetDefaultEnvironmentRef() *apiresource.ApiResourceReference {
+	if x != nil {
+		return x.DefaultEnvironmentRef
+	}
+	return nil
 }
 
 // OrganizationPolicies holds what an organization lets its members do.
@@ -389,10 +404,11 @@ const file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc = "" +
 	"signInRole\x12Z\n" +
 	"\x06vaults\x18\x04 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\f\xbaH\x05\x92\x01\x02\x10\x14\xe0\x85,;R\x06vaults:\x86\x03\xbaH\x82\x03\x1a\xe3\x01\n" +
 	"=organization_embedding.sign_in_role_requires_account_creation\x12gsign_in_role requires create_accounts_on_sign_in: only an account the sign-in creates receives the role\x1a9this.sign_in_role == 0 || this.create_accounts_on_sign_in\x1a\x99\x01\n" +
-	"-organization_embedding.sign_in_role_not_owner\x12Psign_in_role cannot be owner; organization ownership must be assigned explicitly\x1a\x16this.sign_in_role != 1\"u\n" +
+	"-organization_embedding.sign_in_role_not_owner\x12Psign_in_role cannot be owner; organization ownership must be assigned explicitly\x1a\x16this.sign_in_role != 1\"\xe9\x01\n" +
 	"\x17OrganizationPreferences\x123\n" +
 	"\x10standing_context\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xd0\x0fR\x0fstandingContext\x12%\n" +
-	"\x0ememory_enabled\x18\x02 \x01(\bR\rmemoryEnabled\"Q\n" +
+	"\x0ememory_enabled\x18\x02 \x01(\bR\rmemoryEnabled\x12r\n" +
+	"\x17default_environment_ref\x18\x03 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,CR\x15defaultEnvironmentRef\"Q\n" +
 	"\x14OrganizationPolicies\x129\n" +
 	"\x19members_can_create_agents\x18\x01 \x01(\bR\x16membersCanCreateAgentsB\xbc\x02\n" +
 	"&com.ai.stigmer.tenancy.organization.v1B\tSpecProtoP\x01ZZgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
@@ -424,11 +440,12 @@ var file_ai_stigmer_tenancy_organization_v1_spec_proto_depIdxs = []int32{
 	1, // 2: ai.stigmer.tenancy.organization.v1.OrganizationSpec.embedding:type_name -> ai.stigmer.tenancy.organization.v1.OrganizationEmbedding
 	4, // 3: ai.stigmer.tenancy.organization.v1.OrganizationEmbedding.sign_in_role:type_name -> ai.stigmer.iam.v1.IamRole
 	5, // 4: ai.stigmer.tenancy.organization.v1.OrganizationEmbedding.vaults:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	5, // 5: ai.stigmer.tenancy.organization.v1.OrganizationPreferences.default_environment_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_tenancy_organization_v1_spec_proto_init() }

@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/session/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9lbnVtLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSpZChBHaXRXcml0ZUJhY2tNb2RlEiMKH0dJVF9XUklURV9CQUNLX01PREVfVU5TUEVDSUZJRUQQABIgChxHSVRfV1JJVEVfQkFDS19CUkFOQ0hfQU5EX1BSEAEqSgoHSGFybmVzcxIXChNIQVJORVNTX1VOU1BFQ0lGSUVEEAASEgoOSEFSTkVTU19OQVRJVkUQARISCg5IQVJORVNTX0NVUlNPUhACKmsKD0V4ZWN1dGlvblRhcmdldBIgChxFWEVDVVRJT05fVEFSR0VUX1VOU1BFQ0lGSUVEEAASGgoWRVhFQ1VUSU9OX1RBUkdFVF9MT0NBTBABEhoKFkVYRUNVVElPTl9UQVJHRVRfQ0xPVUQQAipXCgpDdXJzb3JNb2RlEhsKF0NVUlNPUl9NT0RFX1VOU1BFQ0lGSUVEEAASFQoRQ1VSU09SX01PREVfTE9DQUwQARIVChFDVVJTT1JfTU9ERV9DTE9VRBACYgZwcm90bzM");
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9lbnVtLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSpZChBHaXRXcml0ZUJhY2tNb2RlEiMKH0dJVF9XUklURV9CQUNLX01PREVfVU5TUEVDSUZJRUQQABIgChxHSVRfV1JJVEVfQkFDS19CUkFOQ0hfQU5EX1BSEAEqSgoHSGFybmVzcxIXChNIQVJORVNTX1VOU1BFQ0lGSUVEEAASEgoOSEFSTkVTU19OQVRJVkUQARISCg5IQVJORVNTX0NVUlNPUhACKroBChFFbnZpcm9ubWVudFNvdXJjZRIiCh5FTlZJUk9OTUVOVF9TT1VSQ0VfVU5TUEVDSUZJRUQQABIeChpFTlZJUk9OTUVOVF9TT1VSQ0VfU0VTU0lPThABEh4KGkVOVklST05NRU5UX1NPVVJDRV9ST1VUSU5FEAISHAoYRU5WSVJPTk1FTlRfU09VUkNFX0FHRU5UEAMSIwofRU5WSVJPTk1FTlRfU09VUkNFX09SR0FOSVpBVElPThAEKmsKD0V4ZWN1dGlvblRhcmdldBIgChxFWEVDVVRJT05fVEFSR0VUX1VOU1BFQ0lGSUVEEAASGgoWRVhFQ1VUSU9OX1RBUkdFVF9MT0NBTBABEhoKFkVYRUNVVElPTl9UQVJHRVRfQ0xPVUQQAipXCgpDdXJzb3JNb2RlEhsKF0NVUlNPUl9NT0RFX1VOU1BFQ0lGSUVEEAASFQoRQ1VSU09SX01PREVfTE9DQUwQARIVChFDVVJTT1JfTU9ERV9DTE9VRBACYgZwcm90bzM");
 
 /**
  * GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.
@@ -89,6 +89,54 @@ export const HarnessSchema: GenEnum<Harness> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_session_v1_enum, 1);
 
 /**
+ * EnvironmentSource names whose choice a conversation's Environment was.
+ *
+ * @generated from enum ai.stigmer.agentic.session.v1.EnvironmentSource
+ */
+export enum EnvironmentSource {
+  /**
+   * No Environment applies.
+   *
+   * @generated from enum value: ENVIRONMENT_SOURCE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * The conversation named it.
+   *
+   * @generated from enum value: ENVIRONMENT_SOURCE_SESSION = 1;
+   */
+  SESSION = 1,
+
+  /**
+   * The routine whose run started the conversation named it.
+   *
+   * @generated from enum value: ENVIRONMENT_SOURCE_ROUTINE = 2;
+   */
+  ROUTINE = 2,
+
+  /**
+   * The conversation's agent names it as its default.
+   *
+   * @generated from enum value: ENVIRONMENT_SOURCE_AGENT = 3;
+   */
+  AGENT = 3,
+
+  /**
+   * The organization names it as its default.
+   *
+   * @generated from enum value: ENVIRONMENT_SOURCE_ORGANIZATION = 4;
+   */
+  ORGANIZATION = 4,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.session.v1.EnvironmentSource.
+ */
+export const EnvironmentSourceSchema: GenEnum<EnvironmentSource> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_session_v1_enum, 2);
+
+/**
  * ExecutionTarget specifies where session activities are executed.
  *
  * Determines whether the runner that processes agent activities lives on the
@@ -131,7 +179,7 @@ export enum ExecutionTarget {
  * Describes the enum ai.stigmer.agentic.session.v1.ExecutionTarget.
  */
 export const ExecutionTargetSchema: GenEnum<ExecutionTarget> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_session_v1_enum, 2);
+  enumDesc(file_ai_stigmer_agentic_session_v1_enum, 3);
 
 /**
  * CursorMode selects the Cursor SDK agent type for sessions using
@@ -183,5 +231,5 @@ export enum CursorMode {
  * Describes the enum ai.stigmer.agentic.session.v1.CursorMode.
  */
 export const CursorModeSchema: GenEnum<CursorMode> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_session_v1_enum, 3);
+  enumDesc(file_ai_stigmer_agentic_session_v1_enum, 4);
 
