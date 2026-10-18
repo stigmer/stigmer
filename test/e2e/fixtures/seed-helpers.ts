@@ -114,6 +114,55 @@ export async function createTestAgent(
 }
 
 // ---------------------------------------------------------------------------
+// Environment seeding
+// ---------------------------------------------------------------------------
+
+export interface TestEnvironmentResult {
+  id: string;
+  slug: string;
+  org: string;
+  cleanup: () => Promise<void>;
+}
+
+export interface CreateTestEnvironmentOpts {
+  name?: string;
+  org?: string;
+  description?: string;
+}
+
+/**
+ * Seeds an unrestricted Environment with no packages: the one every server
+ * accepts, a stack that starts no sandboxes included (it refuses limited
+ * networking and packages at save). Cleanup tolerates an Environment a case
+ * already deleted, or one something still names.
+ */
+export async function createTestEnvironment(
+  client: Stigmer,
+  opts?: CreateTestEnvironmentOpts,
+): Promise<TestEnvironmentResult> {
+  const name = opts?.name ?? `e2e-env-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const org = opts?.org ?? DEFAULT_ORG;
+
+  const environment = await client.environment.create({
+    name,
+    org,
+    ...(opts?.description !== undefined ? { description: opts.description } : {}),
+  });
+
+  const id = environment.metadata!.id;
+  const slug = environment.metadata!.slug;
+
+  return {
+    id,
+    slug,
+    org,
+    cleanup: async () => {
+      await client.environment.delete(id).catch(() => {});
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Skill seeding (content-addressed version history)
 // ---------------------------------------------------------------------------
 
