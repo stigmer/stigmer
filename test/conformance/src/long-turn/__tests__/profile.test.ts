@@ -9,7 +9,10 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   BULK_BYTES,
+  ENDURANCE_EVERY_SECONDS,
+  ENDURANCE_STEP_SECONDS,
   LONG_TURN_MODEL,
+  NATIVE_SHELL_TIMEOUT_SECONDS,
   bulkReadsFor,
   enduranceProfile,
   goalProfile,
@@ -47,10 +50,13 @@ describe("the profiles", () => {
     expect(bulkReadsFor(3)).toBeGreaterThan(bulkReadsFor(1) * 2);
   });
 
-  it("endurance fills its minutes with two-minute commands that print every 20 s and carry three compactions' bytes", () => {
+  it("endurance fills its minutes with commands that print every 20 s, end inside the shell's own timeout, and carry three compactions' bytes", () => {
     const endurance = enduranceProfile(180);
     expect(endurance.steps.length).toBeGreaterThan(80);
-    for (const step of endurance.steps) expect(step).toMatchObject({ kind: "streamed", seconds: 110, everySeconds: 20 });
+    for (const step of endurance.steps) expect(step).toMatchObject({ kind: "streamed", seconds: ENDURANCE_STEP_SECONDS, everySeconds: ENDURANCE_EVERY_SECONDS });
+    // The shell's own sleeps (lines × every) end well inside its 120 s limit.
+    const lines = Math.round(ENDURANCE_STEP_SECONDS / ENDURANCE_EVERY_SECONDS);
+    expect(lines * ENDURANCE_EVERY_SECONDS).toBeLessThanOrEqual(NATIVE_SHELL_TIMEOUT_SECONDS - 15);
     const bytes = endurance.steps.reduce((sum, s) => sum + (s.kind === "streamed" ? s.bytesPerLine * (s.seconds / s.everySeconds) : 0), 0);
     expect(bytes).toBeGreaterThan(bulkReadsFor(3) * BULK_BYTES);
     expect(endurance.budgetMs).toBe(210 * 60_000);

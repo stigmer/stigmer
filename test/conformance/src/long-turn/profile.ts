@@ -12,7 +12,7 @@
 //   - `endurance` avoids every killer known on 2026-10-18 (stigmer#2414,
 //     #2415, #2416, #2417, #2428, #2429, and the native shell's 120 s
 //     timeout, #2432):
-//     two-minute commands that print every 20 s, nothing killed, for three
+//     100-second commands that print every 20 s, nothing killed, for three
 //     hours, so what it finds is what only hours show. Its tool output is
 //     paced to cross the compaction trigger of its model (Claude Haiku 4.5,
 //     whose library profile puts it at 170,000 tokens) three times or more.
@@ -83,11 +83,19 @@ export function goalProfile(): LongTurnProfile {
   };
 }
 
-/** Each endurance command's length, and how often it prints: under every stall window known today. */
-const ENDURANCE_STEP_SECONDS = 110;
-const ENDURANCE_EVERY_SECONDS = 20;
+/**
+ * Each endurance command's length, and how often it prints: under every
+ * stall window known today, and under the native shell's own 120 s timeout
+ * with room to spare (#2432; a first endurance run at 6 × 20 s was cut off
+ * there, every step, on 2026-10-18).
+ */
+export const ENDURANCE_STEP_SECONDS = 100;
+export const ENDURANCE_EVERY_SECONDS = 20;
 
-/** The `endurance` profile: `minutes` of two-minute commands that print, paced for three compactions or more. */
+/** The native shell's own time limit (deepagents' default; the runner passes none, #2432). */
+export const NATIVE_SHELL_TIMEOUT_SECONDS = 120;
+
+/** The `endurance` profile: `minutes` of 100-second commands that print, paced for three compactions or more. */
 export function enduranceProfile(minutes: number): LongTurnProfile {
   const count = Math.max(1, Math.floor((minutes * 60) / (ENDURANCE_STEP_SECONDS + 5)));
   const lines = ENDURANCE_STEP_SECONDS / ENDURANCE_EVERY_SECONDS;
