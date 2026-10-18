@@ -1618,7 +1618,7 @@ RunStatus contains all run results and state.
     loadedVersions: { type: "LoadedVersions", description: "Every skill and plugin a turn of this run loaded, for the agent and its subagents, at the version it loaded.", typeDescriptionLink: "#loadedversions" },
     declaredPreferences: { type: "DeclaredPreferences", description: "Standing preferences declared by the organization and the calling user, snapshotted into this run at create time.", typeDescriptionLink: "#declaredpreferences" },
     recalledMemories: { type: "RecalledMemories", description: "The caller's confirmed memories, snapshotted into this run at create time: the candidate set the prompt was built from.", typeDescriptionLink: "#recalledmemories" },
-    runConfig: { type: "RunConfig", description: "The settings this turn runs with: spec.run_config (or the saved settings of the schedule or channel it came through), the defaults of the agent version the turn runs, and the lane's operator profile, resolved by RunConfig's rule.", typeDescriptionLink: "#runconfig" },
+    runConfig: { type: "RunConfig", description: "The settings this turn runs with: spec.run_config (or the saved settings of the routine or channel it came through), the defaults of the agent version the turn runs, and the lane's operator profile, resolved by RunConfig's rule.", typeDescriptionLink: "#runconfig" },
     approvalMode: { type: "ApprovalMode", description: "How this turn resolves approval gates: INTERACTIVE or UNATTENDED, never UNSPECIFIED.", typeDescriptionLink: "#approvalmode" },
     credentials: { type: "RunCredentials", description: "Whose logins and secrets this turn uses: decided once when the turn is created, and kept when it is recovered.", typeDescriptionLink: "#runcredentials" },
     evalFiles: { type: "EvalFiles", description: "The files an eval case's graders read, as the try's turn left them.", typeDescriptionLink: "#evalfiles" },
@@ -2019,7 +2019,7 @@ ApprovalMode controls how a run resolves HITL approval gates.
 | Value | Description |
 |-------|-------------|
 | `APPROVAL_MODE_INTERACTIVE` | Interactive approval (today's behavior): a gated tool pauses the run (RUN_WAITING_FOR_APPROVAL) until a person answers it through SessionCommandController.confirmToolUse or grantPermission. |
-| `APPROVAL_MODE_UNATTENDED` | Unattended: no approver exists where the run came from (a schedule, a channel). |
+| `APPROVAL_MODE_UNATTENDED` | Unattended: no approver exists where the run came from (a routine, a channel). |
 
 ### FileChangeKind
 
@@ -2112,7 +2112,7 @@ Where a value a turn uses lives.
 | `RUN_VALUE_ORIGIN_REPOSITORY_TOKEN` | The conversation's own token for the repository. |
 | `RUN_VALUE_ORIGIN_MY_VAULT` | The turn's person's My vault. |
 | `RUN_VALUE_ORIGIN_VAULT` | A vault the conversation lists. |
-| `RUN_VALUE_ORIGIN_SURFACE_VAULT` | A vault of the schedule, channel or embedding settings a turn with no person came through. |
+| `RUN_VALUE_ORIGIN_SURFACE_VAULT` | A vault of the routine, channel or embedding settings a turn with no person came through. |
 | `RUN_VALUE_ORIGIN_DECLARATION` | The declaration's own plain default. |
 
 ### SnapshotKind

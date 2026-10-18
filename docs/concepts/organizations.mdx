@@ -193,11 +193,11 @@ An owner deletes an Organization from the CLI with
 Organization owned, in three steps:
 
 1. **At once.** The delete answers, and from that moment the Organization does
-   not exist for anyone. Its members, its API keys, its Schedules and its
+   not exist for anyone. Its members, its API keys, its routines and its
    channels (chat links among them) all get "not found", and nothing new can
    start inside it. Every role anyone held in it is gone.
 2. **Within minutes.** In the background, Stigmer stops anything still running
-   (Schedules, runs, sandboxes), then removes every Agent, Session, file, Skill,
+   (routines, runs, sandboxes), then removes every Agent, Session, file, Skill,
    Plugin, Vault and secret, Channel and its conversations, and every permission
    that named the Organization. Where an edition seals secrets with a key per
    Organization (Stigmer Cloud), that key is destroyed too, so a copy of a

@@ -1,0 +1,167 @@
+---
+title: Routines
+description:
+  A routine is a saved Agent invocation that starts on its schedule, when
+  someone runs it, or when another system calls it with a note. Learn what every
+  routine has, who it acts as, who may start it, and how it compares with Claude
+  Code's routines.
+---
+
+A routine is a saved Agent invocation: which Agent to run, what to tell it, and
+the workspace and vaults its runs use. It starts in three ways:
+
+- **On its schedule.** A routine with a schedule runs on its own, for example
+  every weekday at nine in the morning.
+- **When someone runs it.** **Run now** on the routine's page, or
+  `stigmer routine fire`, starts it at once.
+- **When another system calls it.** Your alerting tool, a deploy pipeline or a
+  script starts it with one HTTP request, and can pass a note describing what
+  happened.
+
+Two examples show the range. A workshop's support Agent sends fee reminders
+every morning: a routine with a schedule and a message, "Send fee reminders to
+members whose dues fall in the next 3 days", that nobody touches after it is
+made. An engineering team's triage Agent has no schedule at all: their alerting
+tool starts it whenever an alert fires, and passes the alert's text as the note,
+so the Agent investigates that alert.
+
+If you want to make one now,
+[Run an Agent on a schedule](/docs/guides/routines/run-an-agent-on-a-schedule)
+and
+[Start a routine from another system](/docs/guides/routines/start-a-routine-from-another-system)
+walk through it. This page explains what a routine is and why it is shaped this
+way.
+
+## What every routine has
+
+- **Its Agent and message.** A routine runs exactly one Agent, in the same
+  Organization, and every run starts from the same message. Deleting the Agent
+  deletes its routines.
+- **An optional schedule.** A cron expression, such as `0 9 * * 1-5`, kept in
+  the routine's time zone. Without one, the routine runs only when someone or
+  something starts it.
+- **A switch.** Turning a routine off stops it from running on its schedule and
+  refuses every start, and keeps its settings and history. Turning it back on
+  resumes it. Deleting it removes it for good and leaves its past runs alone.
+- **The vaults its runs use.** No one is signed in when a routine runs, so its
+  tools use the [vaults](/docs/concepts/vaults) the routine names.
+- **Its history.** Every start is recorded: when it happened, whether the
+  schedule or a person or system started it, who that was, and the run it began
+  or the reason it did not begin.
+
+Each run is a new [Session](/docs/concepts/sessions) of its Agent, told the date
+and time in the routine's time zone, so it reads, scores and costs like any
+other conversation.
+
+## A note from whoever starts it
+
+A start by hand or from another system can carry a note of up to 65,536
+characters: an alert body, a failing log, a customer's ticket. The Agent
+receives it after the routine's message, inside a block marked as information
+from whoever started the run, not instructions. So the routine's own message
+decides what the Agent does with it, as in "Investigate the alert in the note".
+A note can tell the Agent what happened; it cannot change what the routine asks
+the Agent to do. That matters because a note can come from a script holding a
+key, not from the person who wrote the routine.
+
+## Who a routine acts as
+
+Every run acts as the routine's owner: the person or service account that
+created it. It runs with the owner's access, uses the owner's place in the
+Organization, and its conversation is the owner's. That holds whoever started
+the run: a teammate pressing **Run now** or an alerting tool calling it does not
+change who the run acts as.
+
+A routine's owner is only the account that created it. No one else can be made
+its owner, and an Organization's admins do not become its owner by being admins.
+Only the owner changes what a routine runs: its message, its schedule, its
+workspace, its vaults. Anyone else who manages it can switch it off, but not
+change the words and credentials that run in the owner's name.
+
+A routine that must keep running when a person leaves is created by a
+[service account](/docs/guides/authentication/service-accounts), so it acts as
+that account rather than as a teammate.
+
+## Who may start it and read its conversations
+
+The owner always may. Others need a role on the routine, which only the owner
+grants, to people, Teams or service accounts:
+
+- A **Participant** starts it, with or without a note, and reads its
+  conversations. A service account that is a Participant is how another system
+  starts a routine.
+- A **Viewer** reads the routine, its history and its conversations, and starts
+  nothing.
+
+An Organization's admins see every routine, its history and who has access, and
+may switch it off, rename, relabel, resume or delete it, and remove someone's
+access. They do not start it or read its conversations: the run speaks with the
+owner's authority, and its conversation is the owner's.
+
+Granting a role on one routine is part of the Enterprise and Cloud editions. On
+open source, only a routine's owner starts it, by hand or with the owner's own
+key; a routine meant for automation there is created with a service account's
+key, and that key starts it. On a laptop, routines run while `stigmer up` is
+running.
+
+By default a routine starts by hand at most 30 times an hour, counting **Run
+now** and calls from other systems together; past that, a start is refused until
+the hour moves on. Starts on its schedule are not counted.
+
+## Off and paused
+
+A routine can stop running on its schedule for two reasons, with two remedies:
+
+- **Off** (disabled) is its owner's choice. The owner turns it back on.
+- **Paused** is the platform's: after repeated failed runs on its schedule, it
+  stops the routine and records why. Fix the cause, then resume it from the
+  routine's page or with `stigmer routine resume`.
+
+A routine that is off refuses every start. A paused routine can still be started
+by hand, which is how you test a fix before resuming it.
+
+## How it compares
+
+Claude Code's routines
+([Automate work with routines](https://code.claude.com/docs/en/routines)) are
+the closest idea, and Stigmer uses their words: a saved configuration that runs
+on a schedule, through **Run now**, or from an API call with a `text` note.
+
+| On Stigmer                                          | What you already know from Claude Code                 |
+| --------------------------------------------------- | ------------------------------------------------------ |
+| A routine: an Agent, a message, a workspace, vaults | A routine: a prompt, repositories, connectors          |
+| Its schedule, **Run now**, another system's call    | Its schedule, API and GitHub triggers, and **Run now** |
+| The note, marked as information, not instructions   | The `text`, marked as data, not instructions           |
+| Every run acts as the routine's owner               | Runs act as you                                        |
+| At most 30 starts by hand an hour                   | 30 Run now and API fires an hour, per routine          |
+
+Claude Managed Agents' scheduled deployments
+([Scheduled deployments](https://platform.claude.com/docs/en/managed-agents/scheduled-deployments))
+share two more choices: a manual run is allowed while the deployment is paused,
+and every attempt is recorded with whether the schedule or a manual call started
+it.
+
+## Where Stigmer differs, and why
+
+- **A service account holds the key, not the routine.** Claude Code gives each
+  routine its own bearer token. Stigmer has one access model: a service account
+  with a key, granted Participant on the routine, so a key is revoked, rotated
+  and audited like any other. The key also carries its account's Organization
+  role, at least Viewer, so it reaches what that role reaches; the routine's
+  **API** tab says so before you create one.
+- **Two switches, two writers.** The owner's on and off switch lives in the
+  routine's settings, and the platform's pause after repeated failures lives
+  beside it in what the platform observes, so applying a manifest never clears a
+  pause and a pause never looks like the owner's choice.
+- **No minimum interval.** Claude Code refuses a schedule that runs more often
+  than hourly. A Stigmer routine may run every minute; the hourly limit applies
+  to starts by hand, and a schedule never starts a run while its last one is
+  still going.
+
+## What's next
+
+A routine runs a conversation for you, unattended, as you. To see what one did,
+and to share that with your team, [Sessions](/docs/concepts/sessions) explains
+how a conversation remembers what was said and who may read it, and
+[Sharing and access](/docs/concepts/sharing-and-access) explains the roles a
+routine's Participants and Viewers hold.

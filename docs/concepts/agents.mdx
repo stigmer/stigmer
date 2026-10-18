@@ -112,10 +112,10 @@ The Agent's `env` map declares the keys it needs, never a person's values.
 Values reach a run when it starts, from [vaults](/docs/concepts/vaults): the My
 vault of the person sending the message, when the conversation includes it, then
 the vaults the conversation lists. An Agent carries no vaults: it is a
-blueprint, and each conversation names its own. A run no person sent (a Schedule
-or a channel) uses only the vaults its conversation and that Schedule or channel
-name. The same Agent runs with test credentials from one Schedule and production
-credentials from another, and its definition never changes.
+blueprint, and each conversation names its own. A run no person sent (a
+routine's or a channel's) uses only the vaults its conversation and that routine
+or channel name. The same Agent runs with test credentials from one routine and
+production credentials from another, and its definition never changes.
 
 ### Sessions and runs
 
@@ -176,7 +176,7 @@ saved; until then its runs record only the Agent and run it as it is.
 A [Session](/docs/concepts/sessions#which-version-a-session-runs) runs the
 version it started on, so an author's later saves never change a conversation
 under the people in it; they reach an open conversation when someone updates it
-to the current version. Schedules and channels start each conversation on the
+to the current version. Routines and channels start each conversation on the
 version their reference names, or on the current version when it names none.
 
 ## Subagents
@@ -280,7 +280,7 @@ message starts a fresh count.
 A message's settings are worked out once, when it is sent, from three layers,
 most specific first:
 
-1. **The message**, or the saved `run_config` of the Schedule or channel it came
+1. **The message**, or the saved `run_config` of the routine or channel it came
    through.
 2. **The Agent**: its `run_config`.
 3. **The operator**: the defaults the operator set for that kind of run.
@@ -312,7 +312,7 @@ thinking off for it, without changing the Agent.
 - Run settings are versioned with the Agent. A conversation runs the version it
   started on, so it keeps that version's model after the author picks another.
 - A new conversation on the Agent starts on the Agent's `harness`, unless the
-  person, Schedule or channel starting it names another. A message, Schedule or
+  person, routine or channel starting it names another. A message, routine or
   channel that names a model but no Harness starts on native, the Harness that
   model was checked against. On the other Harness the Agent's model, tier and
   thinking are left out, since each Harness lists its own models, and only its
@@ -320,7 +320,7 @@ thinking off for it, without changing the Agent.
 - Stigmer checks the settings when the Agent is saved: a model needs a
   `harness`, the model must be one that Harness lists, and a fast tier or
   thinking needs a model that supports it there.
-- Saved settings stand on their own. An Agent, Schedule or channel that sets a
+- Saved settings stand on their own. An Agent, routine or channel that sets a
   fast tier or thinking also names the model it is for. Only a message may set
   them alone, to adjust the model it is given.
 
@@ -341,9 +341,8 @@ Stigmer appears when you create Agents tailored to your domain, and a
 conversation can pick one up at any point: choosing an Agent binds the Session
 to it, and removing the Agent returns the Session to the assistant.
 
-Schedules and channels always name an Agent; they never fall back to the
-built-in assistant. The built-in assistant is for a person opening a
-conversation.
+Routines and channels always name an Agent; they never fall back to the built-in
+assistant. The built-in assistant is for a person opening a conversation.
 
 ## Instructions matter
 

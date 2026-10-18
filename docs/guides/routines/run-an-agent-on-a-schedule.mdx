@@ -1,0 +1,124 @@
+---
+title: Run an Agent on a schedule
+description:
+  Make a routine that runs an Agent on a schedule, from the console or a
+  manifest, test it with Run now, read who started each run, and turn it off or
+  resume it.
+---
+
+A routine runs your Agent on a schedule: every weekday at nine, every hour, the
+first of each month. Each run starts a new conversation from the routine's
+message and acts as you, the person who created it. This guide makes a routine
+that sends fee reminders every morning, tests it before it goes live, and shows
+how to read its history, turn it off and resume it after a failure.
+[Routines](/docs/concepts/routines) explains what a routine is and who may start
+it.
+
+You need an Agent you can edit in the Organization the routine will live in.
+
+## Create a routine in the console
+
+1. Open **Library → Routines** in the web console and click **New routine**.
+2. Give it a **Name**, such as `daily-fee-reminders`, and choose its Agent.
+3. Write the **Message** every run starts from. No one is there to answer
+   questions when it runs, so say exactly what to do and what done looks like:
+   "Send fee reminders to members whose dues fall in the next 3 days."
+4. Choose when it runs, such as every day at 09:00, and its **Time zone**. The
+   form reads the schedule back in words, and the routine's page shows it as a
+   cron expression too (`0 9 * * *`).
+5. Leave **Enabled** off and click **Create routine**.
+
+A new routine starts switched off, so it runs nothing until you have seen one
+run work. The console form needs a schedule; a routine that runs only when
+started is made from a manifest
+([#2403](https://github.com/stigmer/stigmer/issues/2403)).
+
+## Or apply a manifest
+
+The same routine as a file, applied with `stigmer apply -f routine.yaml`:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Routine
+metadata:
+  name: daily-fee-reminders
+  org: workshop
+spec:
+  cron: "0 9 * * *"
+  time_zone: Asia/Kolkata
+  enabled: false
+  agent:
+    agent_ref:
+      kind: agent
+      org: workshop
+      slug: support-agent
+    message: Send fee reminders to members whose dues fall in the next 3 days.
+```
+
+`cron` takes the classic 5-field form or a shorthand such as `@daily`, and
+`time_zone` is required beside it. Leave `cron` out and the routine runs only
+when someone starts it. `enabled` is off unless the file says `true`.
+
+## Test it with Run now
+
+1. Open the routine. A switched-off routine shows **Routine is disabled** and an
+   **Enable & run now** button.
+2. Click **Enable & run now**. In **Enable and run this routine now?** you can
+   add a **Note for this run**; leave it empty for a plain run.
+3. Click **Enable & run**.
+
+The routine is now on, and its first run is a conversation you can open from its
+history. From the CLI, `stigmer routine fire daily-fee-reminders` starts a run
+of a routine that is already on.
+
+## Read its history
+
+The routine's **History** tab lists every start, newest first: when it happened,
+whether its schedule or a person started it (**Manual**), who that was under
+**Started by**, how it went, and the run it began. A person's start can show
+their account ID instead of their name when their sign-in carried neither a name
+nor an email ([#2404](https://github.com/stigmer/stigmer/issues/2404)).
+
+The same list from the CLI:
+
+```bash
+stigmer routine fires daily-fee-reminders
+```
+
+## Turn it off, and resume it
+
+To stop a routine without deleting it, choose **Disable routine** from the
+routine's actions, or apply its manifest with `enabled: false`. It keeps its
+settings and history, and refuses every start until it is enabled again. Only
+the person who created it can switch it back on.
+
+If its runs keep failing on its schedule, the platform pauses it and shows why
+on the routine's page. Fix the cause, test with **Run now** (a paused routine
+can still be started by hand), then choose **Resume routine**, or run:
+
+```bash
+stigmer routine resume daily-fee-reminders
+```
+
+## When others edit the Agent
+
+Every run acts as you and uses the routine's vaults, which can include your own
+My vault. Only you change what the routine runs, but its Agent stays its
+editors' to change: a routine that follows the Agent's latest version runs
+whatever that version asks for, with your keys. When someone else edits the
+Agent, pin a version on the routine (`agent_ref.version`, a tag), so a change to
+the Agent reaches your routine only when you move the pin.
+[Vaults](/docs/concepts/vaults) explains which keys a routine's run uses.
+
+## On a laptop
+
+On a laptop, routines run while `stigmer up` is running. After a reboot, nothing
+runs until you start it again. A run missed while it was down starts within an
+hour of it coming back, and is skipped after that.
+
+## What's next
+
+Your routine runs on its own, as you. To have another system start it instead,
+such as an alerting tool that passes the alert along,
+[Start a routine from another system](/docs/guides/routines/start-a-routine-from-another-system)
+sets up a service account to call it.

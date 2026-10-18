@@ -18,7 +18,7 @@ status but does not feed the failure streak; a disabled routine refuses, and
 a platform-paused routine may still be fired, which is how its owner tests a
 fix before `resume`.
 
-In the open-source edition, schedules fire while `stigmer up` is running.
+In the open-source edition, routines fire while `stigmer up` is running.
 The daemon is user-session scoped: after a reboot, nothing fires until you
 run `stigmer up` again. A fire missed while the daemon (or your laptop) was
 down lands within the 60-minute catch-up window once it returns, and is

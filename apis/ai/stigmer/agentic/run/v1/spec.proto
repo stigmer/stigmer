@@ -40,7 +40,7 @@ message RunSpec {
 
   // Field 4 held a retired config message that mixed this message's settings with
   // its per-message intents and the lane's approval mode. The settings are
-  // run_config (a RunConfig, the message schedules and channels save), the intents
+  // run_config (a RunConfig, the message routines and channels save), the intents
   // are interaction_mode, build_from_plan and structured_output_schema, and
   // the approval mode is the server's (RunStatus.approval_mode).
   reserved 4;
@@ -108,12 +108,12 @@ message RunSpec {
   // tightest one any layer sets, so a message can lower an agent's cap but
   // never raise it. RunConfig's own comment has the full rule.
   //
-  // Unlike a schedule's or channel's saved settings, a message may set service_tier or
+  // Unlike a routine's or channel's saved settings, a message may set service_tier or
   // thinking_mode without a model: it then adjusts the model a less
   // specific layer chose (for example, thinking off for one message on an
   // agent whose default turns it on).
   //
-  // A lane that composes the turn for a schedule or a channel writes its
+  // A lane that composes the turn for a routine or a channel writes its
   // saved settings here. On a lane where the caller is a visitor (the
   // hosted edition's chat-link guests and Slack and WhatsApp senders), the
   // channel's saved settings replace this field; the

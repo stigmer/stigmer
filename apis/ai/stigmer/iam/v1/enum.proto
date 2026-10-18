@@ -284,7 +284,7 @@ enum IamPermission {
   // Whether a person's runs may use a vault's logins and secrets.
   //
   // @internal
-  // Asked at save, when a session, schedule, channel, agent or
+  // Asked at save, when a session, routine, channel, agent or
   // organization's embedding settings name a vault, and again when each run
   // starts: of the run's person, or of the account that attached the vault
   // when the run has no person.

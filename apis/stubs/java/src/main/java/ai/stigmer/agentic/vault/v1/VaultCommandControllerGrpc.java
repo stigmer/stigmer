@@ -534,7 +534,7 @@ public final class VaultCommandControllerGrpc {
     /**
      * <pre>
      * Delete a vault and every value it holds.
-     * Sessions, schedules, channels and embedding settings that name
+     * Sessions, routines, channels and embedding settings that name
      * the vault are refused at their next run, naming it.
      * </pre>
      */
@@ -752,7 +752,7 @@ public final class VaultCommandControllerGrpc {
     /**
      * <pre>
      * Delete a vault and every value it holds.
-     * Sessions, schedules, channels and embedding settings that name
+     * Sessions, routines, channels and embedding settings that name
      * the vault are refused at their next run, naming it.
      * </pre>
      */
@@ -960,7 +960,7 @@ public final class VaultCommandControllerGrpc {
     /**
      * <pre>
      * Delete a vault and every value it holds.
-     * Sessions, schedules, channels and embedding settings that name
+     * Sessions, routines, channels and embedding settings that name
      * the vault are refused at their next run, naming it.
      * </pre>
      */
@@ -1160,7 +1160,7 @@ public final class VaultCommandControllerGrpc {
     /**
      * <pre>
      * Delete a vault and every value it holds.
-     * Sessions, schedules, channels and embedding settings that name
+     * Sessions, routines, channels and embedding settings that name
      * the vault are refused at their next run, naming it.
      * </pre>
      */
@@ -1364,7 +1364,7 @@ public final class VaultCommandControllerGrpc {
     /**
      * <pre>
      * Delete a vault and every value it holds.
-     * Sessions, schedules, channels and embedding settings that name
+     * Sessions, routines, channels and embedding settings that name
      * the vault are refused at their next run, naming it.
      * </pre>
      */

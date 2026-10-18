@@ -290,7 +290,7 @@ From the boot that read the issuer, every request needs a credential:
 - **If authentication was already on before 3.16.0, roles were assigned at the
   first start of that release.** People who signed in under an earlier release
   keep what they had: whoever created an Organization owns it, whoever created
-  an Agent, Skill, MCP server, Environment or Schedule in it is an admin there,
+  an Agent, Skill, MCP server, Environment or Routine in it is an admin there,
   the operator email's holder is an admin everywhere, and everyone else is a
   member. This happens once; from then on roles change only when an owner or
   admin changes them.
@@ -334,7 +334,7 @@ From the boot that read the issuer, every request needs a credential:
 - A script that presents an access token but has never signed in through the
   console or run `stigmer auth whoami` has no Identity Account yet, and cannot
   create anything until it does.
-- Schedules you created before turning authentication on belong to no signed-in
+- Routines you created before turning authentication on belong to no signed-in
   person. Each pauses at its next run and says why; recreate it while signed in.
 - Memories recorded before you turned authentication on belong to no signed-in
   person either, and stay hidden.

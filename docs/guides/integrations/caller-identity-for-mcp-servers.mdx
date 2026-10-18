@@ -17,51 +17,49 @@ change it.
 
 ## The reserved keys
 
-| Key                             | Value                                                                                                                                                                                                      |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `STIGMER_CALLER_IDENTITY_KIND`  | What kind of identity this is: `whatsapp_phone`, `slack_user_id`, `stigmer_user` (a console or CLI Session, a scheduled run on stigmer.ai, or a self-hosted backend's configured operator), or `anonymous` |
-| `STIGMER_CALLER_IDENTITY_VALUE` | The identity itself: the WhatsApp wa_id, the Slack user ID, or the Stigmer user's email. Empty for `anonymous`                                                                                             |
-| `STIGMER_SESSION_ID`            | The Session the identity was resolved for. Empty outside a Session                                                                                                                                         |
+| Key                             | Value                                                                                                                                                                                            |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `STIGMER_CALLER_IDENTITY_KIND`  | What kind of identity this is: `whatsapp_phone`, `slack_user_id`, `stigmer_user` (a signed-in person, a routine's owner, or the configured operator of a server without sign-in), or `anonymous` |
+| `STIGMER_CALLER_IDENTITY_VALUE` | The identity itself: the WhatsApp `wa_id`, the Slack user ID, the Stigmer user's email, or a service account's ID (`ida_…`) when a service account owns the conversation. Empty for `anonymous`  |
+| `STIGMER_SESSION_ID`            | The Session the identity was resolved for. Empty outside a Session                                                                                                                               |
 
 The identity comes from the strongest source available: the channel-verified
-sender for channel Sessions, the logged-in Stigmer user for console and CLI
-Sessions on stigmer.ai, the configured operator identity on a self-hosted
-backend, and `anonymous` when none exists.
+sender for channel Sessions, the signed-in person for console and CLI Sessions
+on a server with sign-in (stigmer.ai, or a self-hosted server you set sign-in up
+on), the routine's owner for a routine's runs, the configured operator identity
+on a server without sign-in, and `anonymous` when none exists.
 
-## Scheduled runs
+## Routines
 
-A [Routine](/docs/cli/commands/routine) fire carries an identity too — but not
-its creator's. A scheduled run is unattended automation: the person who created
-the schedule may change roles or leave the Organization while the cron keeps
-firing, so the platform attributes every fire to a per-org system account by
-design instead of impersonating a person. If your server gates tools on
-identity, scheduled runs stay unprivileged until you grant that account —
-explicitly, the same way you grant any caller.
+A [routine](/docs/concepts/routines)'s run presents its owner: the person or
+service account that created the routine. That holds in every edition with
+sign-in, on its schedule or started by hand, and whoever started it: a
+Participant pressing **Run now**, or an alerting tool calling it with a note,
+does not change the identity your server sees. The run is the owner's
+conversation, acting with the owner's access, as Claude Code's routines run as
+the person who made them.
 
-On stigmer.ai, a scheduled run presents kind `stigmer_user` with the org's
-schedule-account email as the value:
+- **A routine a person created** presents kind `stigmer_user` with that person's
+  email, the same value their own console and CLI Sessions present. A grant you
+  already hold for that email covers their routines too.
+- **A routine a service account created** presents kind `stigmer_user` with the
+  service account's ID, such as `ida_01j9z3k8f2q4m6n7p8r9s0t1v2`, because a
+  service account has no email. `stigmer service-account list` prints the ID.
+  Grant it in your server's access model the way you grant an email.
 
-```text
-schedule+{org-slug}@schedule.stigmer.internal
-```
+So a grant decides which people's and which service accounts' routines may call
+a privileged tool, routine by owner. A routine meant to keep calling a tool
+after a person leaves is created by a service account, and your server grants
+that account's ID.
 
-To let scheduled runs call privileged tools, grant that email in your server's
-own access model, compared case-insensitively like any email. The grant covers
-the Organization's scheduled automation as a whole: every schedule in the org
-presents the same identity, whoever created it.
+## Servers without sign-in
 
-<Callout type="info">
-  The per-org schedule account requires Stigmer Cloud. On a self-hosted backend,
-  scheduled runs present the configured operator identity (next section), or
-  `anonymous` when none is configured — anonymous runs can list tools but cannot
-  pass an identity-gated call.
-</Callout>
-
-## Self-hosted backends
-
-A self-hosted server has no login, so it cannot resolve a per-caller identity.
-By default every Session presents `anonymous`: tools list, identity-gated calls
-refuse, deny by default.
+A server that signs nobody in, such as `stigmer up` on a laptop or the
+all-in-one container, cannot resolve a per-caller identity. By default every
+Session presents `anonymous`: tools list, identity-gated calls refuse, deny by
+default. A self-hosted server with
+[sign-in](/docs/guides/self-hosting/authentication) presents each person, as
+stigmer.ai does, and this section does not apply to it.
 
 To present a real identity, persist it once with `stigmer setup` — the
 recommended path, because it survives shell changes and daemon restarts:
@@ -85,10 +83,10 @@ as the value — grant it in your server's access model like any other caller,
 compared case-insensitively. Sessions created before the identity was configured
 keep their original attribution and continue to present `anonymous`.
 
-A self-hosted install is a single-operator trust domain, so the identity covers
-everything the install does — console and CLI Sessions and locally scheduled
-runs alike. A grant for the operator email therefore also covers your unattended
-automation; keep that in mind when gating destructive tools.
+A server without sign-in is a single-operator trust domain, so the identity
+covers everything the server does — console and CLI Sessions and routines alike.
+A grant for the operator email therefore also covers your unattended automation;
+keep that in mind when gating destructive tools.
 
 A malformed email (no `@`) is refused at `stigmer setup` time, and a malformed
 `STIGMER_OPERATOR_EMAIL` fails the server boot rather than silently stamping a

@@ -84,21 +84,21 @@ type AgentSpec struct {
 	// run there.
 	Hooks []*HookSource `protobuf:"bytes,12,rep,name=hooks,proto3" json:"hooks,omitempty"`
 	// The author's run defaults: the model, speed tier, thinking and run
-	// bounds a turn on this agent uses unless the message, or the schedule or
+	// bounds a turn on this agent uses unless the message, or the routine or
 	// channel it came through, sets its own (RunConfig has the rule). Versioned with the
 	// agent, so a conversation pinned to a version keeps that version's
 	// defaults.
 	//
 	// A choice here (model_name, service_tier, thinking_mode) applies only on
 	// the engine named in harness; on a conversation running the other engine
-	// only the bounds apply. A bound here is a cap: a message, a schedule or a
+	// only the bounds apply. A bound here is a cap: a message, a routine or a
 	// channel can lower it, never raise it. A model must be named together with harness,
 	// and must be one that engine lists; service_tier FAST and thinking_mode
 	// ENABLED need a model that engine prices or marks capable. Checked when
 	// the agent is saved.
 	RunConfig *v11.RunConfig `protobuf:"bytes,13,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
 	// The engine this agent's run defaults were chosen for, and the engine a
-	// new conversation on this agent starts on when the person, schedule or
+	// new conversation on this agent starts on when the person, routine or
 	// channel starting it names neither an engine nor a model (a turn that names a
 	// model but no engine starts on native, the engine its name was checked
 	// against). Unspecified: the platform's default engine (native).

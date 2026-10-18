@@ -58,7 +58,7 @@ message EvalRunStatus {
   // person.
   //
   // @internal
-  // Server-owned, written at create (the schedule's reference rule).
+  // Server-owned, written at create (the routine's reference rule).
   map<string, string> vault_attachers = 12;
 
   // Every Eval whose cases run, in the order the spec names them: the

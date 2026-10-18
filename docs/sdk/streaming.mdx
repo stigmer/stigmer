@@ -218,7 +218,7 @@ event the server writes.
 | `stigmer.file_review.changes` | The files a turn changed, offered to keep or undo. Only in a Session with file review on. | Their format has no Keep and Undo after an agent's edits, as Cursor and Copilot offer. Review is off by default and never makes a turn wait. | Runner |
 | `stigmer.file_review.decided` | A person kept or undid a turn's changes, or one of its files. | The same review. | Server |
 | `stigmer.file_review.reconciled` | The undone files were put back. | The same review. | Runner |
-| `stigmer.run.status` | A run changed phase: it started, waits, paused, or ended and how. | Stigmer keeps each turn as a run, which billing, Schedules and channels key on. The Session's status speaks for the whole Session and says nothing when one run ends while another still works. | Server |
+| `stigmer.run.status` | A run changed phase: it started, waits, paused, or ended and how. | Stigmer keeps each turn as a run, which billing, routines and channels key on. The Session's status speaks for the whole Session and says nothing when one run ends while another still works. | Server |
 | `stigmer.tool_result.full_output` | Where the whole output of a tool result too large to keep inline is stored. The result holds its head. | A field can't be added to their `agent.tool_result`. | Runner |
 | `stigmer.tool_output_delta` (preview) | A piece of a running tool's output. Streamed when you name it in `event_deltas`, and never stored. | They preview only the Agent's message and thinking. This shows a long command's output as it runs. | Runner |
 

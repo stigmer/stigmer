@@ -30,10 +30,10 @@ export const TICK_WORKFLOW_TYPE = "schedule/tick";
 export const TICK_ID_PREFIX = `${TICK_WORKFLOW_TYPE}/`;
 
 /**
- * The cloud write-path's throwaway fire-time probes (Go probeIDPrefix).
- * OSS never creates probes (it has no pre-persist probe), but the
- * reconciler skips the prefix defensively so a shared/dev namespace never
- * gets its probes treated as tick orphans.
+ * The prefix of the throwaway fire-time probes the retired Java write path
+ * created (Go probeIDPrefix). No edition creates probes now; the reconciler
+ * still skips the prefix so a leftover probe in a long-lived namespace is
+ * never treated as a tick orphan.
  */
 export const PROBE_ID_PREFIX = "schedule/probe/";
 

@@ -205,7 +205,7 @@ At runtime, the Agent does not connect to MCP servers directly. The flow is:
    vaults: a server's login by a sign-in at the server's address, other keys by
    secret name. The sender's My vault comes first when the conversation includes
    it, then the vaults the conversation lists; a run no person sent uses only
-   the vaults its conversation and its schedule, share, channel or platform
+   the vaults its conversation and its routine, share, channel or platform
    client name. A header may name a variable as `${NAME}`. The platform fills
    four optional variables itself: `STIGMER_CALLER_IDENTITY_KIND`,
    `STIGMER_CALLER_IDENTITY_VALUE`, `STIGMER_SESSION_ID` and
@@ -225,5 +225,5 @@ naming it: a person signs in once, from the plugin's page or with
 `stigmer connect plugin`, and the login is kept in their vault.
 
 This separation means the Agent YAML is portable and contains no secrets.
-Different schedules can attach different vaults to the same Agent (e.g., staging
+Different routines can attach different vaults to the same Agent (e.g., staging
 vs production credentials).

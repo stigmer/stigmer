@@ -9,7 +9,7 @@ first; a plugin server's tools are `mcp__plugin_<plugin>_<server>__<tool>`, its
 own server's `mcp__<server>__<tool>`). Hooks, a listed plugin's or a block
 written in the agent's `hooks`, can refuse a tool call, ask a person first, or
 let it run. Its `run_config` and `harness` are the run defaults a conversation
-on it starts with: the model and thinking a message, schedule or channel may replace,
+on it starts with: the model and thinking a message, routine or channel may replace,
 and limits it may lower but never raise.
 
 ```yaml

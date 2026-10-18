@@ -95,7 +95,7 @@ const (
 	// The send came from a run created by an inbound channel
 	// message; the recipient must be a known sender on the channel.
 	ChannelOutboundOrigin_channel_conversation ChannelOutboundOrigin = 1
-	// The send was authored by an operator (console, CLI, SDK, scheduled
+	// The send was authored by an operator (console, CLI, SDK, a routine's
 	// run); any recipient, bounded by caps.
 	ChannelOutboundOrigin_operator ChannelOutboundOrigin = 2
 	// Platform-authored conversation-context copy (e.g. the takeover

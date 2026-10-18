@@ -249,8 +249,8 @@ type GitRepoSource struct {
 	//
 	// Used only when the URL is an https://github.com repository; a session
 	// write carrying a token for any other repository is refused. Sealed for
-	// the conversation's life and never returned by a read. A schedule's
-	// repositories refuse it: save the token in a vault the schedule names.
+	// the conversation's life and never returned by a read. A routine's
+	// repositories refuse it: save the token in a vault the routine names.
 	Token         string `protobuf:"bytes,6,opt,name=token,proto3" json:"token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

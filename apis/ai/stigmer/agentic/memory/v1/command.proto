@@ -89,7 +89,7 @@ service MemoryCommandController {
   // Authorization: requires can_edit on the memory (FGA: subject-only).
   // Immutability of spec.subject_identity_account_id
   // and spec.provenance is enforced by a validate step with
-  // FAILED_PRECONDITION (the Schedule agent_ref pattern): an editable
+  // FAILED_PRECONDITION (the Routine agent_ref pattern): an editable
   // subject would re-aim a record at another person, and editable
   // provenance is no provenance at all. Status preserved verbatim.
   rpc update(UpdateMemoryInput) returns (Memory) {

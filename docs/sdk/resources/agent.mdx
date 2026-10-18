@@ -15,7 +15,7 @@ first; a plugin server's tools are `mcp__plugin_<plugin>_<server>__<tool>`, its
 own server's `mcp__<server>__<tool>`). Hooks, a listed plugin's or a block
 written in the agent's `hooks`, can refuse a tool call, ask a person first, or
 let it run. Its `run_config` and `harness` are the run defaults a conversation
-on it starts with: the model and thinking a message, schedule or channel may replace,
+on it starts with: the model and thinking a message, routine or channel may replace,
 and limits it may lower but never raise.
 
 ```yaml
@@ -695,7 +695,7 @@ Rename an agent: change its slug, the name people type.
 
 The agent keeps its id, so everything that names it keeps working, and every answer names it by the new slug. The old slug keeps leading to the agent for reading for 30 days, during which no other agent of the organization can take it and this one can take it back; then it is released. A write that names the old slug is refused with SLUG_RENAMED (see apply). A slug another agent holds is refused with ALREADY_EXISTS, and one another agent was recently renamed away from with SLUG_RESERVED (see create).
 
-Its schedules, channels, conversations and the agents that hand work to it name it by id; a parent agent's turns call it by its new slug.
+Its routines, channels, conversations and the agents that hand work to it name it by id; a parent agent's turns call it by its new slug.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -805,8 +805,8 @@ Input for creating or updating an Agent.
     tools: { type: "string[]", description: "Tools this agent may use; empty means every tool it has." },
     disallowedTools: { type: "string[]", description: "Tools this agent may never use, in the same names as tools." },
     hooks: { type: "HookSourceInput[]", description: "Hooks written in this agent itself, run around its tool calls and its subagents' calls, after the hooks of the plugins it lists.", typeDescriptionLink: "#hooksourceinput" },
-    runConfig: { type: "RunConfigInput", description: "The author's run defaults: the model, speed tier, thinking and run bounds a turn on this agent uses unless the message, or the schedule or channel it came through, sets its own (RunConfig has the rule).", typeDescriptionLink: "#runconfiginput" },
-    harness: { type: "Harness", description: "The engine this agent's run defaults were chosen for, and the engine a new conversation on this agent starts on when the person, schedule or channel starting it names neither an engine nor a model (a turn that names a model but no engine starts on native, the engine its name was checked against).", typeDescriptionLink: "#harness" },
+    runConfig: { type: "RunConfigInput", description: "The author's run defaults: the model, speed tier, thinking and run bounds a turn on this agent uses unless the message, or the routine or channel it came through, sets its own (RunConfig has the rule).", typeDescriptionLink: "#runconfiginput" },
+    harness: { type: "Harness", description: "The engine this agent's run defaults were chosen for, and the engine a new conversation on this agent starts on when the person, routine or channel starting it names neither an engine nor a model (a turn that names a model but no engine starts on native, the engine its name was checked against).", typeDescriptionLink: "#harness" },
     plugins: { type: "ResourceRef[]", description: "Plugins this agent uses, each whole: its skills, agents, hooks and MCP servers.", typeDescriptionLink: "#resourceref" },
     subagents: { type: "ResourceRef[]", description: "Saved agents this agent may hand work to, each running its own instructions, model, tools, plugins, skills, hooks and values.", typeDescriptionLink: "#resourceref" },
     mcpServers: { type: "AgentMcpServerInput[]", description: "MCP servers written in this agent itself, reached over HTTP, beside the servers of the plugins it lists.", typeDescriptionLink: "#agentmcpserverinput" },

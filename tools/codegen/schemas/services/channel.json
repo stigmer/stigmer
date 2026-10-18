@@ -2085,7 +2085,7 @@
         {
           "name": "operator",
           "number": 2,
-          "description": "The send was authored by an operator (console, CLI, SDK, scheduled\n run); any recipient, bounded by caps."
+          "description": "The send was authored by an operator (console, CLI, SDK, a routine's\n run); any recipient, bounded by caps."
         },
         {
           "name": "platform",
