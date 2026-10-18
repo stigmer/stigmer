@@ -244,6 +244,13 @@ export {
   type SlackChannelAppConfigInput,
 } from "./gen/channelapp.js";
 export {
+  EnvironmentClient,
+  buildEnvironmentProto,
+  type EnvironmentInput,
+  type EnvironmentNetworkingInput,
+  type EnvironmentPackagesInput,
+} from "./gen/environment.js";
+export {
   GrantClient,
   type GrantInput,
   type ApiResourceRefInput,
@@ -508,6 +515,7 @@ export { toAgentInput } from "./gen/agent.js";
 export { toChannelInput } from "./gen/channel.js";
 export { toApiKeyInput } from "./gen/apikey.js";
 export { toChannelAppInput } from "./gen/channelapp.js";
+export { toEnvironmentInput } from "./gen/environment.js";
 export { toScoringRuleInput } from "./gen/scoringrule.js";
 export { toIdentityAccountInput } from "./gen/identityaccount.js";
 export { toFederationIssuerInput } from "./gen/federationissuer.js";
