@@ -84,6 +84,11 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Hooks and components for My vault and shared vaults, their secrets and logins, the vault picker, and the session value pool.",
   },
+  environment: {
+    title: "Environment",
+    description:
+      "Hooks and components for Environments, the packages and network access a conversation's sandbox gets: which one applies and why, the picker, the fields, the form and the detail view.",
+  },
   "connect-link": {
     title: "Connect link",
     description:

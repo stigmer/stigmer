@@ -48,7 +48,9 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
   },
   {
     label: "Vaults & Config",
-    slugs: ["vault", "connect-link", "workspace", "models"],
+    // environment sits beside the vault: both are what a conversation's
+    // sandbox is given, and neither is a tool the agent calls.
+    slugs: ["vault", "environment", "connect-link", "workspace", "models"],
   },
   {
     label: "Identity & Access",
