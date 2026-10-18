@@ -32,3 +32,9 @@ swap:
   '\bAgent Channels\b': channels
   '\bshare link\b': chat link
   '\bshare links\b': chat links
+  # A routine's former name. "Temporal Schedule" is the engine's artifact that
+  # backs a routine's schedule, and keeps its word, so the rule skips it.
+  # Lowercase "schedule" gets no rule: it is a routine's own timing and the
+  # verb ("run on a schedule").
+  '(?<!Temporal )\bSchedule\b': Routine
+  '(?<!Temporal )\bSchedules\b': Routines
