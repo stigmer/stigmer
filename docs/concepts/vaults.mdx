@@ -12,7 +12,9 @@ token that lets a private repository clone. Those keys belong to people and
 teams, never to the definition of an Agent or a plugin. The same `support-agent`
 should use Ana's Linear sign-in when Ana chats with it and Ben's when Ben does.
 
-A **Vault** holds them. It holds two kinds of entry:
+A **Vault** holds them. An [Environment](/docs/concepts/environments), which
+sets up the sandbox an Agent runs in, never does. A vault holds two kinds of
+entry:
 
 - **Secrets**, matched by name: `OPENAI_API_KEY`, `ZENDESK_API_KEY`.
 - **Connections** (logins), matched by the address of the tool or Git host they
