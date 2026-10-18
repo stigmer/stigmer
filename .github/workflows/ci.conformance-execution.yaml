@@ -9,14 +9,18 @@
 # dependency-light CRUD signal stays fast. It needs the `temporal`
 # CLI and a runner build that the CRUD job does not.
 #
-# Each target runs as three shards (`--shard=<index>/3`). The suite's files
+# Each target runs as four shards (`--shard=<index>/4`). The suite's files
 # run one at a time, because each boots its own Temporal, server and runner
 # (vitest.execution.config.ts), so a single job runs for 9 to 13 minutes and
 # holds the whole gate to that. vitest splits the files by a hash of their path, in
-# equal counts; three is where the split stops paying, since the file that
-# exercises provider errors (about two minutes alone) lands in one shard
-# whatever the count. scripts/ci-shards.test.mjs holds every shard matrix to
-# the indices 1 to 3, so no shard can be dropped without the suite failing.
+# equal counts, and a long file lands in one shard whatever the count: the
+# provider-error file (about two minutes alone), and since 2026-10-18 the
+# long-turn file (about three, two of them the workflow's fixed heartbeat
+# timeout before a killed runner is noticed). Four keeps the shard holding the
+# long-turn file near the others: by that day's per-file times, the slowest
+# shard's tests take about 500 s at four against about 590 s at three.
+# scripts/ci-shards.test.mjs holds every shard matrix to the indices 1 to the
+# count, so no shard can be dropped without the suite failing.
 # =============================================================================
 
 name: ci.conformance-execution
@@ -38,7 +42,7 @@ env:
 
 jobs:
   conformance-execution-local:
-    name: Conformance Execution (local-execution, ${{ matrix.shard }}/3)
+    name: Conformance Execution (local-execution, ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     # About 3x a shard's time: without it a hung shard would hold a runner for
     # GitHub's six-hour default.
@@ -46,7 +50,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -110,7 +114,7 @@ jobs:
       - name: Run execution conformance suite (local-execution)
         env:
           CONFORMANCE_TARGET: local-execution
-        run: npm run test:execution -w @stigmer/conformance -- --shard=${{ matrix.shard }}/3
+        run: npm run test:execution -w @stigmer/conformance -- --shard=${{ matrix.shard }}/4
 
   # The same execution roster on the Postgres Store driver: the execution
   # suites hammer exactly the surfaces where a
@@ -119,13 +123,13 @@ jobs:
   # dedupe under real concurrency. A Postgres gate that skipped them would
   # certify the driver everywhere except where it is most at risk.
   conformance-execution-local-postgres:
-    name: Conformance Execution (local-postgres-execution, ${{ matrix.shard }}/3)
+    name: Conformance Execution (local-postgres-execution, ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
     services:
       postgres:
         image: postgres:16
@@ -177,4 +181,4 @@ jobs:
         env:
           CONFORMANCE_TARGET: local-postgres-execution
           CONFORMANCE_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
-        run: npm run test:execution -w @stigmer/conformance -- --shard=${{ matrix.shard }}/3
+        run: npm run test:execution -w @stigmer/conformance -- --shard=${{ matrix.shard }}/4
