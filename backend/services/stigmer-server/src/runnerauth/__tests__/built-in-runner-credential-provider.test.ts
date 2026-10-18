@@ -27,7 +27,7 @@
  *     arm mints the RUN credential (no `exp`, expiresInSeconds 0) for
  *     the run's own person and nobody else — a missing row is NOT_FOUND
  *     with the load-first copy, any other caller (a run stamped by nobody
- *     included) is PERMISSION_DENIED with one sentence; pool-claim,
+ *     included) is PERMISSION_DENIED with one sentence;
  *     renewal and unset answer
  *     not-minted; so does keyless. Under trusted-local the controller's
  *     own arms mint for anyone, and this capability does not exist. A
@@ -347,7 +347,6 @@ describe("exchangeScopedToken — the mint gate", () => {
   });
 
   it.each([
-    ["pool-claim", { arm: "pool-claim", sessionId: "ses_x" } as const],
     ["renewal", { arm: "renewal" } as const],
     ["unset", { arm: "unset" } as const],
     [

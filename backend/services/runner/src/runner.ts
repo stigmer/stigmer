@@ -377,8 +377,8 @@ async function buildStigmerRunner(
       // The boot timeline ends here: the worker is about to poll, so the
       // sandbox can now receive its first activity. The final mark closes the
       // worker_created → about-to-poll span — without it, total_ms would stop
-      // at worker_created and understate the boot time the warm-pool go/no-go
-      // decision reads.
+      // at worker_created and understate the boot time a sandbox's first turn
+      // waits on.
       markBoot("worker_polling");
       emitRunnerBootTiming({ task_queue: config.taskQueue, mode: config.mode });
       // Released however the worker ended, so a run that fails leaves no
@@ -547,13 +547,11 @@ async function createAllActivities(config: Config, harnessRows: readonly Harness
     { createEnsureThreadActivities },
     { createGenerateSessionSubjectActivities },
     { createListPluginToolsActivities },
-    { createAttachSessionActivities },
   ] = await Promise.all([
     import("./harness/registry.js"),
     import("./activities/ensure-thread.js"),
     import("./activities/generate-session-subject.js"),
     import("./activities/list-plugin-tools.js"),
-    import("./activities/attach-session.js"),
   ]);
 
   return {
@@ -561,7 +559,6 @@ async function createAllActivities(config: Config, harnessRows: readonly Harness
     ...createEnsureThreadActivities(),
     ...createGenerateSessionSubjectActivities(config),
     ...createListPluginToolsActivities(config),
-    ...createAttachSessionActivities(config),
   };
 }
 

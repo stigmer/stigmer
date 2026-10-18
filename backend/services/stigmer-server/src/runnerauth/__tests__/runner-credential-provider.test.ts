@@ -48,8 +48,8 @@ describe("execution-scoped provider over a keyed service", () => {
   });
 
   it("mint on an unprovided lane fails loud, naming the lane", () => {
-    expect(() => provider.mint("pool_claim", "aex_x", 0)).toThrowError(
-      /runner credential lane 'pool_claim' is not provided by this implementation \(provides 'execution_scoped'\)/,
+    expect(() => provider.mint("session_scoped", "aex_x", 0)).toThrowError(
+      /runner credential lane 'session_scoped' is not provided by this implementation \(provides 'execution_scoped'\)/,
     );
   });
 

@@ -68,7 +68,7 @@
  *     not a run. Liveness is NOT judged at mint — both lanes that
  *     accept the token judge it, by one rule (bound-execution.ts), and a
  *     third judge here would be a divergence waiting to happen. The
- *     pool-claim, renewal and unset arms answer not-minted, the
+ *     renewal and unset arms answer not-minted, the
  *     controller's arms verbatim; keyless answers not-minted too.
  *
  * Deliberately UNDEFINED here: `bootstrapCredentials`,
@@ -215,7 +215,6 @@ export function newBuiltInRunnerCredentialProvider(
             expiresInSeconds: 0,
           };
         }
-        case "pool-claim":
         case "renewal":
         case "unset":
           return { minted: false };

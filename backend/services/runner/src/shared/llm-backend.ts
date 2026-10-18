@@ -440,7 +440,7 @@ export interface LlmBackendPreflight {
  *
  * Called by the runner factories (`createStigmerRunner` /
  * `createStigmerRunnerManager`) — the construction boundary every entry
- * path shares (static, pool, and manager modes in main.ts, plus in-process
+ * path shares (static and manager modes in main.ts, plus in-process
  * embedders of `@stigmer/runner`) — so a misconfigured deployment refuses
  * to accept work instead of failing every execution mid-flight. Mirrors the
  * `preflightNodeRuntime` pattern: pure check in, operator message out.

@@ -236,7 +236,6 @@ Rows read `| \`Message.field\` | class |`.
 |---|---|
 | `ai.stigmer.platform.v1.GetRunnerScopedTokenInput.run_id` | stamped id |
 | `ai.stigmer.platform.v1.LicenseClaims.license_id` | stamped id |
-| `ai.stigmer.platform.v1.PoolClaim.session_id` | stamped id |
 
 ## `ai.stigmer.search.v1`
 

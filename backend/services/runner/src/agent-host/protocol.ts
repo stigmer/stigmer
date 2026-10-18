@@ -51,7 +51,7 @@ import type { TimingRecorderWire } from "../shared/cold-start-timing.js";
 import type { TelemetrySettings } from "../otel-export.js";
 import type { RuntimeFieldsWire, WireOffload, WireProjection, WireTurnInput } from "./codec.js";
 
-export const AGENT_HOST_PROTOCOL_VERSION = 8;
+export const AGENT_HOST_PROTOCOL_VERSION = 9;
 
 /**
  * The largest single message either side sends or accepts. A turn's input
@@ -196,11 +196,6 @@ export interface HostCalls {
   readonly fs: { readonly args: FsRequest; readonly result: FsReply };
   /** One process, run by the host with the agent's rights and the host's environment plus `env`. */
   readonly exec: { readonly args: ExecRequest; readonly result: ExecReply };
-  /** Pay the Cursor SDK's per-process store set-up now, on an idle pool member (`activities/execute-cursor/sdk-warmup.ts`). */
-  readonly warmCursorSdk: {
-    readonly args: Record<string, never>;
-    readonly result: { readonly warmed: boolean; readonly durationMs: number; readonly error: string | null };
-  };
 }
 
 // ─── The agent's file and process operations ───────────────────────────────

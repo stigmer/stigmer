@@ -42,7 +42,6 @@ vi.mock("../../otel-metrics.js", () => ({
     return {
       runnerBootDuration: capture("runner_boot"),
       executionSetupDuration: capture("execution_setup"),
-      poolAttachDuration: capture("pool_attach"),
     };
   },
 }));
@@ -202,20 +201,15 @@ describe("timing metrics mirror", () => {
   it("mirrors each mapped timeline onto its histogram with whitelisted attrs only", async () => {
     recordTimingMetric("runner_boot", {
       mode: "cloud",
-      pool_member_id: "pm_secret",
-      task_queue: "sandbox:pm_secret",
+      task_queue: "session:ses_secret",
     }, 6200);
     recordTimingMetric("execution_setup", {
       harness: "cursor",
       execution_id: "exe_123",
       session_id: "ses_456",
     }, 3000);
-    recordTimingMetric("pool_attach", {
-      pool_member_id: "pm_secret",
-      session_id: "ses_456",
-    }, 400);
 
-    await vi.waitFor(() => expect(metricsMock.recorded).toHaveLength(3));
+    await vi.waitFor(() => expect(metricsMock.recorded).toHaveLength(2));
 
     const byInstrument = Object.fromEntries(
       metricsMock.recorded.map((r) => [r.instrument, r]),
@@ -225,8 +219,6 @@ describe("timing metrics mirror", () => {
     expect(byInstrument.runner_boot!.attrs).toEqual({ mode: "cloud" });
     expect(byInstrument.execution_setup!.value).toBe(3000);
     expect(byInstrument.execution_setup!.attrs).toEqual({ harness: "cursor" });
-    expect(byInstrument.pool_attach!.value).toBe(400);
-    expect(byInstrument.pool_attach!.attrs).toBeUndefined();
   });
 
   it("emitTimingLog drives the mirror, so call sites need no metric code", async () => {
@@ -243,12 +235,12 @@ describe("timing metrics mirror", () => {
 
   it("records nothing for unmapped events (control-plane timelines)", async () => {
     recordTimingMetric("execution_create", { org: "acme" }, 500);
-    recordTimingMetric("pool_attach", {}, 1);
+    recordTimingMetric("runner_boot", {}, 1);
 
     // The mapped event landing proves the unmapped one was skipped, without
     // relying on an arbitrary sleep.
     await vi.waitFor(() => expect(metricsMock.recorded).toHaveLength(1));
-    expect(metricsMock.recorded[0]!.instrument).toBe("pool_attach");
+    expect(metricsMock.recorded[0]!.instrument).toBe("runner_boot");
   });
 
   it("survives a broken instrument registry without throwing or logging", async () => {

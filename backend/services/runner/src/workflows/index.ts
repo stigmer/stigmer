@@ -6,7 +6,7 @@
  * names that the server uses to start them. The Temporal TS SDK derives
  * the workflow type from the export name of the module passed to
  * `workflowsPath`, so every export here is a registered type on every
- * worker root: the static worker, the manager and pool workers, and the
+ * worker root: the static worker, the manager's workers, and the
  * pre-built bundle (`scripts/bundle-slim.mjs`).
  *
  * THE RULE: every export is a type the server starts, and each takes ids

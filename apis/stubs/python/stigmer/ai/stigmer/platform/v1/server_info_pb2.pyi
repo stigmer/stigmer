@@ -82,20 +82,12 @@ class GetRunnerBootstrapConfigOutput(_message.Message):
     def __init__(self, temporal_address: _Optional[str] = ..., temporal_namespace: _Optional[str] = ..., runner_access_token: _Optional[str] = ..., token_type: _Optional[str] = ..., runner_access_token_expires_in_seconds: _Optional[int] = ..., payload_encryption_key: _Optional[str] = ..., payload_encryption_key_id: _Optional[str] = ..., payload_encryption_secondary_key: _Optional[str] = ..., payload_encryption_secondary_key_id: _Optional[str] = ...) -> None: ...
 
 class GetRunnerScopedTokenInput(_message.Message):
-    __slots__ = ("run_id", "pool_claim", "renewal")
+    __slots__ = ("run_id", "renewal")
     RUN_ID_FIELD_NUMBER: _ClassVar[int]
-    POOL_CLAIM_FIELD_NUMBER: _ClassVar[int]
     RENEWAL_FIELD_NUMBER: _ClassVar[int]
     run_id: str
-    pool_claim: PoolClaim
     renewal: TokenRenewal
-    def __init__(self, run_id: _Optional[str] = ..., pool_claim: _Optional[_Union[PoolClaim, _Mapping]] = ..., renewal: _Optional[_Union[TokenRenewal, _Mapping]] = ...) -> None: ...
-
-class PoolClaim(_message.Message):
-    __slots__ = ("session_id",)
-    SESSION_ID_FIELD_NUMBER: _ClassVar[int]
-    session_id: str
-    def __init__(self, session_id: _Optional[str] = ...) -> None: ...
+    def __init__(self, run_id: _Optional[str] = ..., renewal: _Optional[_Union[TokenRenewal, _Mapping]] = ...) -> None: ...
 
 class TokenRenewal(_message.Message):
     __slots__ = ()

@@ -1,3 +1,10 @@
+/**
+ * Pins the cloud sandbox's credential self-renewal (sandbox-token-renewal.ts):
+ * which token classes renew, renewal at 80% of the issued lifetime, retry
+ * after a failed or empty mint, an immediate attempt for a token already past
+ * its renewal point, parking (never spinning) on a credential the loop does
+ * not own, and stop().
+ */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   isRenewableSandboxToken,
@@ -28,7 +35,6 @@ describe("isRenewableSandboxToken", () => {
 
   it("rejects every non-sandbox credential class", () => {
     expect(isRenewableSandboxToken(sandboxToken(3600, "embedded_runner"))).toBe(false);
-    expect(isRenewableSandboxToken(sandboxToken(3600, "pool_sandbox"))).toBe(false);
     // The retired workflow sandbox's class: no lane renews it any more.
     expect(isRenewableSandboxToken(sandboxToken(3600, "workflow_sandbox"))).toBe(false);
     expect(isRenewableSandboxToken(fakeJwt({ iat: 1, exp: 2 }))).toBe(false);
@@ -93,8 +99,8 @@ describe("startSandboxTokenRenewal", () => {
     expect(renew).not.toHaveBeenCalled();
   });
 
-  it("parks on a non-renewable credential and picks up a renewable swap (pool claim)", async () => {
-    let current = sandboxToken(86_400, "pool_sandbox");
+  it("parks on a non-renewable credential and picks up a renewable one the host swaps in", async () => {
+    let current = sandboxToken(86_400, "embedded_runner");
     const renew = vi.fn().mockResolvedValue({ token: sandboxToken(1000) });
     const applyToken = vi.fn();
 
@@ -102,11 +108,11 @@ describe("startSandboxTokenRenewal", () => {
       getToken: () => current, renew, applyToken, log: silentLog,
     });
 
-    // Parked: rechecks but never renews the pool credential.
+    // Parked: rechecks but never renews a credential class it does not own.
     await vi.advanceTimersByTimeAsync(300_000);
     expect(renew).not.toHaveBeenCalled();
 
-    // The claim swaps in a session token (attach-session's updateToken).
+    // The host replaces the credential with a session sandbox token.
     current = sandboxToken(1000);
 
     // Next recheck sees the renewable class and schedules from its lifetime.

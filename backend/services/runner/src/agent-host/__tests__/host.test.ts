@@ -11,13 +11,12 @@
  *  - the host's artifact store uploads through the runner and refuses
  *    reads: the engines only upload, and a read would be a path into the
  *    runner's whole store;
- *  - the Cursor SDK's warm-up runs in the host, and its result crosses whole;
  *  - an adapter reads its run's events through the runner, each crossing
  *    whole.
  */
 
 import { create } from "@bufbuild/protobuf";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
@@ -39,10 +38,6 @@ const STORE: ArtifactStorage = {
   download: async () => Buffer.alloc(0),
   exists: async () => false,
 };
-
-vi.mock("../../activities/execute-cursor/sdk-warmup.js", () => ({
-  warmCursorSdkStateStores: async () => ({ warmed: false, durationMs: 1.5, error: "no SDK in this test" }),
-}));
 
 function served(runTurn: HarnessAdapter["runTurn"]) {
   const [runnerEnd, hostEnd] = loopbackChannels();
@@ -73,11 +68,6 @@ function served(runTurn: HarnessAdapter["runTurn"]) {
 }
 
 describe("the agent host's server", () => {
-  it("warms the Cursor SDK in the host and answers with the result", async () => {
-    const { runner } = served(async () => ({ kind: "completed" }));
-    expect(await runner.call("warmCursorSdk", {})).toEqual({ warmed: false, durationMs: 1.5, error: "no SDK in this test" });
-  });
-
   it("answers a CAS read for a turn with no bound reader with an error", async () => {
     const { runner } = served(async () => ({ kind: "completed" }));
     await expect(runner.call("readCasObservations", { turnId: "t-none" })).rejects.toThrow("agent host: no CAS observations bound for turn t-none");

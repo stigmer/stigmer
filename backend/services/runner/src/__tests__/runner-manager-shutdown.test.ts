@@ -3,8 +3,8 @@
  * queue's worker-shutdown signal is aborted BEFORE any worker drains, so an
  * activity the drain cancels classifies itself as a worker shutdown and
  * persists RUN_FAILED with the shutdown copy, never the orchestrator stop a
- * user's pause is (#776). Then every worker (session, pool control) drains,
- * the harnesses release what they hold, and the Temporal connection closes.
+ * user's pause is (#776). Then every session worker drains, the harnesses
+ * release what they hold, and the Temporal connection closes.
  * A manager whose boot fails once the agent host is up releases the
  * harnesses before the error reaches its caller.
  *
@@ -128,18 +128,10 @@ describe("StigmerRunnerManager.shutdown", () => {
     });
 
     await manager.addSession("ses_1");
-    const warned = vi.mocked(console.warn);
-    await manager.addPoolControl("member_1");
-    // The idle pool member asks its agent host to warm the Cursor SDK; this
-    // table boots no Cursor harness, so the answer is that there is none.
-    await vi.waitFor(() =>
-      expect(warned.mock.calls.map((c) => String(c[0]))).toContain(
-        "[pool-member] Cursor SDK warm-up skipped (non-fatal): the Cursor harness is not booted (0ms)",
-      ),
-    );
+    await manager.addSession("ses_2");
     expect(fakes.workers.map((w) => w.taskQueue)).toEqual([
       "session:ses_1",
-      "sandbox:member_1",
+      "session:ses_2",
     ]);
 
     await manager.shutdown();
@@ -153,7 +145,7 @@ describe("StigmerRunnerManager.shutdown", () => {
     expect(fakes.shutdownHarnesses.calls).toBe(1);
     expect(fakes.connectionClose.calls).toBe(1);
     expect(manager.activeSessions()).toEqual([]);
-    await expect(manager.addSession("ses_2")).rejects.toThrow(
+    await expect(manager.addSession("ses_3")).rejects.toThrow(
       "RunnerManager is shutting down",
     );
   });

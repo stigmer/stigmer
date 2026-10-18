@@ -29,8 +29,8 @@
  *
  * The bearer credential is a shared ref read on EVERY request, never a
  * header frozen at construction: a saver lives for a whole turn, and the
- * runner's control-plane credential rotates underneath it (a pool member
- * claimed for a session, a sandbox token renewed in place). A frozen header
+ * runner's control-plane credential rotates underneath it (a sandbox token
+ * renewed in place, a host's refreshed token). A frozen header
  * kept presenting the boot credential and every read after the rotation
  * was refused (config.ts header; ProxyArtifactStorage holds its credential
  * the same way).

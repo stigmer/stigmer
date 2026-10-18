@@ -32,8 +32,8 @@
 //      staged runner, and (not on Windows, where neither runs) a cloud-mode
 //      boot and the attach waiter's boot. With --temporal it boots static
 //      mode and runs the full ready → sessionAdded → shutdownComplete
-//      lifecycle too (and, not on Windows, a warm-pool member), which needs a
-//      reachable Temporal server (TEMPORAL_SERVICE_ADDRESS, default
+//      lifecycle too, its authenticated run with an OTLP endpoint set, which
+//      needs a reachable Temporal server (TEMPORAL_SERVICE_ADDRESS, default
 //      localhost:7233).
 //
 // Usage:
