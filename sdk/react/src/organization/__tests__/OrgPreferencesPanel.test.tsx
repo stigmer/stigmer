@@ -22,6 +22,7 @@ function answering(authenticationRequired: boolean): UseServerInfoReturn {
       version: "dev",
       authenticationRequired,
       singleOrg: undefined,
+      environments: undefined,
     },
     isLoading: false,
     error: null,

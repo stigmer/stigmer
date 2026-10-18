@@ -1,6 +1,6 @@
 "use client";
 
-import type { ServerInfo } from "@stigmer/client";
+import type { EnvironmentAvailability, ServerInfo } from "@stigmer/client";
 import { useStigmer } from "./hooks.js";
 import { useFetch } from "./internal/useFetch.js";
 
@@ -80,4 +80,28 @@ export function useSingleOrg(): boolean | undefined {
     return undefined;
   }
   return serverInfo?.singleOrg === true;
+}
+
+/**
+ * What an Environment does on the connected server
+ * (`serverInfo.environments`): whether one governs the conversations a
+ * console, the CLI, a routine, a channel or a chat link starts, and what
+ * the server's sandboxes can do with one. Each answer is the one the
+ * server's own refusals give, so a surface that says "this server's
+ * sandboxes can't limit networking" before anyone tries says what saving
+ * would have said.
+ *
+ * `undefined` while the answer is loading, when it failed, and on a server
+ * that predates the field: a surface then offers Environments and lets the
+ * server's refusals speak, as it always did.
+ *
+ * @example
+ * ```tsx
+ * const environments = useEnvironmentAvailability();
+ * const limitedDisabled = environments?.limitedNetworking === false;
+ * ```
+ */
+export function useEnvironmentAvailability(): EnvironmentAvailability | undefined {
+  const { serverInfo } = useServerInfo();
+  return serverInfo?.environments;
 }
