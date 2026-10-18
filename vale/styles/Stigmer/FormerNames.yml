@@ -36,5 +36,5 @@ swap:
   # backs a routine's schedule, and keeps its word, so the rule skips it.
   # Lowercase "schedule" gets no rule: it is a routine's own timing and the
   # verb ("run on a schedule").
-  '(?<!Temporal )\bSchedule\b': Routine
-  '(?<!Temporal )\bSchedules\b': Routines
+  '(?<!Temporal\s)\bSchedule\b': Routine
+  '(?<!Temporal\s)\bSchedules\b': Routines

@@ -20,7 +20,7 @@ change it.
 | Key                             | Value                                                                                                                                                                                            |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `STIGMER_CALLER_IDENTITY_KIND`  | What kind of identity this is: `whatsapp_phone`, `slack_user_id`, `stigmer_user` (a signed-in person, a routine's owner, or the configured operator of a server without sign-in), or `anonymous` |
-| `STIGMER_CALLER_IDENTITY_VALUE` | The identity itself: the WhatsApp wa*id, the Slack user ID, the Stigmer user's email, or a service account's ID (`ida*…`) when a service account owns the conversation. Empty for `anonymous`    |
+| `STIGMER_CALLER_IDENTITY_VALUE` | The identity itself: the WhatsApp `wa_id`, the Slack user ID, the Stigmer user's email, or a service account's ID (`ida_…`) when a service account owns the conversation. Empty for `anonymous`  |
 | `STIGMER_SESSION_ID`            | The Session the identity was resolved for. Empty outside a Session                                                                                                                               |
 
 The identity comes from the strongest source available: the channel-verified

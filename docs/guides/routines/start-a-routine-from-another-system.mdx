@@ -101,12 +101,13 @@ A paused routine still accepts calls: the pause stops only its schedule.
 ## On open source
 
 Open source grants roles on an Organization, not on one routine, so only a
-routine's owner starts it. Create a service account with the **Member** role
-(making a routine takes edit access to its Agent) and apply the routine's
-manifest with its key (`stigmer apply -f routine.yaml --api-key <key>`), so the
-service account is its owner. The same key then starts it. The **API** tab says
-which key to use. A server that signs nobody in, such as `stigmer up` on a
-laptop, checks no keys: call it without the `Authorization` line.
+routine's owner starts it. Create a service account that may edit the routine's
+Agent (on open source, one that created the Agent itself, or one with the
+**Admin** role), and apply the routine's manifest with its key
+(`stigmer apply -f routine.yaml --api-key <key>`), so the service account is its
+owner. The same key then starts it. The **API** tab says which key to use. A
+server that signs nobody in, such as `stigmer up` on a laptop, checks no keys:
+call it without the `Authorization` line.
 
 ## What's next
 

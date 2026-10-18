@@ -63,9 +63,9 @@ when someone starts it. `enabled` is off unless the file says `true`.
 
 1. Open the routine. A switched-off routine shows **Routine is disabled** and an
    **Enable & run now** button.
-2. Click **Enable & run now**. In **Run this routine now?** you can add a **Note
-   for this run**; leave it empty for a plain run.
-3. Click **Start run**.
+2. Click **Enable & run now**. In **Enable and run this routine now?** you can
+   add a **Note for this run**; leave it empty for a plain run.
+3. Click **Enable & run**.
 
 The routine is now on, and its first run is a conversation you can open from its
 history. From the CLI, `stigmer routine fire daily-fee-reminders` starts a run
@@ -110,11 +110,11 @@ Agent, pin a version on the routine (`agent_ref.version`, a tag), so a change to
 the Agent reaches your routine only when you move the pin.
 [Vaults](/docs/concepts/vaults) explains which keys a routine's run uses.
 
-## On open source
+## On a laptop
 
-On a laptop or a server of your own, routines run while `stigmer up` is running.
-After a reboot, nothing runs until you start it again. A run missed while it was
-down starts within an hour of it coming back, and is skipped after that.
+On a laptop, routines run while `stigmer up` is running. After a reboot, nothing
+runs until you start it again. A run missed while it was down starts within an
+hour of it coming back, and is skipped after that.
 
 ## What's next
 
