@@ -15,11 +15,15 @@
  *     it once rather than every member meeting it at every conversation an
  *     organization default reaches (facts.ts unservableReason).
  *   - GuardEnvironmentUnreferenced: a delete is refused while an agent or a
- *     routine of the Environment's organization names it, or while it is the
- *     organization's default, naming each. Conversations do not hold it:
- *     each keeps its own resolved reference and is refused at its next turn
- *     instead. The scan is guard-unlisted.ts's, over the target's own
- *     organization; organization purge skips this step.
+ *     routine names it, or while it is an organization's default, naming
+ *     each: in the Environment's own organization, and in each of its child
+ *     organizations, which may name a parent's Environment shared with them
+ *     (the reference rule's clause iii). A child's referrer is named with
+ *     its organization. The children are read whatever the Environment's
+ *     visibility is now: a reference made while it was shared outlives a
+ *     narrowing. Conversations do not hold it: each keeps its own resolved
+ *     reference and is refused at its next turn instead. The scan is
+ *     guard-unlisted.ts's; organization purge skips this step.
  */
 import { create, fromBinary } from "@bufbuild/protobuf";
 
@@ -46,6 +50,7 @@ import {
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
+import { childrenOf } from "../organization/children.js";
 import { unservableReason } from "./facts.js";
 import { hostRefusal, normalizeHosts } from "./hosts.js";
 
@@ -121,24 +126,38 @@ export function newGuardEnvironmentUnreferencedStep(store: Store): PipelineStep<
       const { org, slug, id } = chainResult<NonNullable<Environment["metadata"]>>(existing?.metadata, "the loaded Environment");
       const referrers: string[] = [];
       try {
+        const children = await childrenOf(store, org);
+        // Where a referrer lives, as its name ends: "" for the Environment's
+        // own organization, the child's slug otherwise; undefined for any
+        // other organization, which cannot name it.
+        const suffixes = new Map<string, string>([[org, ""]]);
+        for (const child of children) {
+          suffixes.set(child.metadata?.id ?? "", ` of organization '${child.metadata?.slug ?? ""}'`);
+        }
         const agents: string[] = [];
         for (const raw of await store.listResources(ApiResourceKind.agent)) {
           const agent = fromBinary(AgentSchema, raw);
-          if (agent.metadata?.org === org && agent.spec?.environmentRef?.id === id) {
-            agents.push(`agent '${agent.metadata.slug}'`);
+          const suffix = suffixes.get(agent.metadata?.org ?? "");
+          if (suffix !== undefined && agent.spec?.environmentRef?.id === id) {
+            agents.push(`agent '${agent.metadata?.slug ?? ""}'${suffix}`);
           }
         }
         const routines: string[] = [];
         for (const raw of await store.listResources(ApiResourceKind.routine)) {
           const routine = fromBinary(RoutineSchema, raw);
-          if (routine.metadata?.org === org && routine.spec?.agent?.environmentRef?.id === id) {
-            routines.push(`routine '${routine.metadata.slug}'`);
+          const suffix = suffixes.get(routine.metadata?.org ?? "");
+          if (suffix !== undefined && routine.spec?.agent?.environmentRef?.id === id) {
+            routines.push(`routine '${routine.metadata?.slug ?? ""}'${suffix}`);
           }
         }
         referrers.push(...agents.sort(), ...routines.sort());
         if (await isOrganizationDefault(store, org, id)) {
           referrers.push("the organization's default");
         }
+        const defaults = children
+          .filter((child) => child.spec?.preferences?.defaultEnvironmentRef?.id === id)
+          .map((child) => `the default of organization '${child.metadata?.slug ?? ""}'`);
+        referrers.push(...defaults.sort());
       } catch (error) {
         throw internalError(error, "failed to read what names the environment");
       }

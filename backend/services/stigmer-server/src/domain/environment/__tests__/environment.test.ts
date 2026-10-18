@@ -16,8 +16,9 @@
  *     names it as environment_ref, while a routine's
  *     spec.agent.environment_ref names it, and while it is the
  *     organization's preferences.default_environment_ref, each refusal
- *     naming that referrer; another organization's agent naming the same
- *     id does not hold it; once unreferenced the delete succeeds and the
+ *     naming that referrer; a child organization's agent, routine and
+ *     default hold it too, each named with the child; another
+ *     organization's agent naming the same id does not hold it; once unreferenced the delete succeeds and the
  *     Environment is gone;
  *   - apply creates by slug, then updates the same Environment; rename
  *     changes the slug getByReference finds it by; updateVisibility narrows
@@ -68,7 +69,7 @@ import {
   transportFor,
 } from "../../../extensions/__tests__/composed-support.js";
 import { errorOf } from "../../../pipeline/__tests__/support.js";
-import { organizationId, seedOrganizations } from "../../organization/__tests__/support.js";
+import { organizationId, organizationInput, seedOrganizations } from "../../organization/__tests__/support.js";
 import { stillNamedMessage } from "../steps.js";
 import { FAKE_SANDBOX_DRIVER, environmentInput, sandboxUnit } from "./support.js";
 
@@ -80,10 +81,12 @@ function withSpec(environment: Environment, spec: MessageInitShape<typeof Enviro
 describe("the Environment controller on a lane whose driver states no support (trusted-local, composed server)", () => {
   const ORG = "env-acme";
   const OTHER_ORG = "env-globex";
+  const CHILD_ORG = "env-acme-kids";
   let dir: string;
   let server: ComposedServer;
   let orgId: string;
   let otherOrgId: string;
+  let childOrgId: string;
   let command: Client<typeof EnvironmentCommandController>;
   let query: Client<typeof EnvironmentQueryController>;
 
@@ -102,6 +105,11 @@ describe("the Environment controller on a lane whose driver states no support (t
     const organizations = await seedOrganizations(transport, [ORG, OTHER_ORG]);
     orgId = organizationId(organizations, ORG);
     otherOrgId = organizationId(organizations, OTHER_ORG);
+    const child = await createClient(OrganizationCommandController, transport).create({
+      ...organizationInput(CHILD_ORG),
+      spec: { description: CHILD_ORG, parentOrg: orgId },
+    });
+    childOrgId = child.metadata!.id;
     command = createClient(EnvironmentCommandController, transport);
     query = createClient(EnvironmentQueryController, transport);
   });
@@ -254,13 +262,13 @@ describe("the Environment controller on a lane whose driver states no support (t
       );
     }
 
-    async function saveRoutine(id: string, slug: string, environmentId: string): Promise<void> {
+    async function saveRoutine(id: string, slug: string, environmentId: string, org = orgId): Promise<void> {
       await server.store.saveResource(
         ApiResourceKind.routine,
         id,
         RoutineSchema,
         create(RoutineSchema, {
-          metadata: { id, org: orgId, slug, name: slug },
+          metadata: { id, org, slug, name: slug },
           spec: {
             cron: "0 9 * * *",
             agent: {
@@ -273,14 +281,14 @@ describe("the Environment controller on a lane whose driver states no support (t
       );
     }
 
-    async function setOrganizationDefault(environmentId: string): Promise<void> {
-      const organization = await server.store.getResource(ApiResourceKind.organization, orgId, OrganizationSchema);
+    async function setOrganizationDefault(environmentId: string, org = orgId): Promise<void> {
+      const organization = await server.store.getResource(ApiResourceKind.organization, org, OrganizationSchema);
       const preferences = (organization.spec!.preferences ??= create(OrganizationPreferencesSchema));
       preferences.defaultEnvironmentRef =
         environmentId === ""
           ? undefined
           : create(ApiResourceReferenceSchema, { kind: ApiResourceKind.environment, org: orgId, id: environmentId });
-      await server.store.saveResource(ApiResourceKind.organization, orgId, OrganizationSchema, organization);
+      await server.store.saveResource(ApiResourceKind.organization, org, OrganizationSchema, organization);
     }
 
     let guarded: Environment;
@@ -317,6 +325,25 @@ describe("the Environment controller on a lane whose driver states no support (t
       expect(refused.rawMessage).toBe(stillNamedMessage("guarded", ["the organization's default"]));
       expect(refused.rawMessage).toContain("remove it from them first");
       await setOrganizationDefault("");
+    });
+
+    it("is refused while a child organization names the Environment it shares, naming each referrer and its organization", async () => {
+      const id = guarded.metadata!.id;
+      await saveAgent("agt_01kidagent", childOrgId, "kid-agent", id);
+      await saveRoutine("rtn_01kidrounds", "kid-rounds", id, childOrgId);
+      await setOrganizationDefault(id, childOrgId);
+      const refused = await errorOf(() => command.delete({ value: id }));
+      expect(refused.code).toBe(Code.FailedPrecondition);
+      expect(refused.rawMessage).toBe(
+        stillNamedMessage("guarded", [
+          `agent 'kid-agent' of organization '${CHILD_ORG}'`,
+          `routine 'kid-rounds' of organization '${CHILD_ORG}'`,
+          `the default of organization '${CHILD_ORG}'`,
+        ]),
+      );
+      await server.store.deleteResource(ApiResourceKind.agent, "agt_01kidagent");
+      await server.store.deleteResource(ApiResourceKind.routine, "rtn_01kidrounds");
+      await setOrganizationDefault("", childOrgId);
     });
 
     it("names every referrer at once, agents then routines then the default", async () => {

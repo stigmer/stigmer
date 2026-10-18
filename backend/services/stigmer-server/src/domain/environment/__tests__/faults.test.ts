@@ -5,9 +5,9 @@
  *   - `chainResult` hands back what a chain left, and answers INTERNAL,
  *     naming what was missing, when the chain left nothing;
  *   - GuardEnvironmentUnreferenced answers INTERNAL when run without a
- *     loaded target, and when the store cannot list what names the
- *     Environment or read its organization; an organization that no longer
- *     exists holds nothing;
+ *     loaded target, and when the store cannot read the organization's
+ *     children, list what names the Environment or read its organization;
+ *     an organization that no longer exists holds nothing;
  *   - the visibility update's load answers NOT_FOUND for a missing row and
  *     INTERNAL for a store fault, and its persist the same for a row gone
  *     since the load and for a failed write.
@@ -32,7 +32,7 @@ import { chainResult, newGuardEnvironmentUnreferencedStep } from "../steps.js";
 const ENVIRONMENT = create(EnvironmentSchema, { metadata: { id: "env_01box", org: "org_acme", slug: "box" } });
 
 /** A store answering only what a test names; anything else is a test mistake. */
-function storeWith(methods: Partial<Record<"listResources" | "getResource" | "updateResource", (...args: unknown[]) => Promise<unknown>>>): Store {
+function storeWith(methods: Partial<Record<"listResources" | "queryResources" | "getResource" | "updateResource", (...args: unknown[]) => Promise<unknown>>>): Store {
   return methods as unknown as Store;
 }
 
@@ -88,8 +88,15 @@ describe("GuardEnvironmentUnreferenced", () => {
     expect(refused.rawMessage).toBe("the loaded Environment not found in context");
   });
 
+  it("answers INTERNAL when the store cannot read the organization's children", async () => {
+    const store = storeWith({ queryResources: async () => Promise.reject(new Error("index unreadable")) });
+    const refused = await codeOf(newGuardEnvironmentUnreferencedStep(store).execute(deleteContext(true)));
+    expect(refused.code).toBe(Code.Internal);
+    expect(refused.rawMessage).toBe("failed to read what names the environment");
+  });
+
   it("answers INTERNAL when the store cannot list what names the Environment", async () => {
-    const store = storeWith({ listResources: async () => Promise.reject(new Error("disk unreadable")) });
+    const store = storeWith({ queryResources: async () => [], listResources: async () => Promise.reject(new Error("disk unreadable")) });
     const refused = await codeOf(newGuardEnvironmentUnreferencedStep(store).execute(deleteContext(true)));
     expect(refused.code).toBe(Code.Internal);
     expect(refused.rawMessage).toBe("failed to read what names the environment");
@@ -97,6 +104,7 @@ describe("GuardEnvironmentUnreferenced", () => {
 
   it("holds nothing for an organization that no longer exists", async () => {
     const store = storeWith({
+      queryResources: async () => [],
       listResources: async () => [],
       getResource: async () => Promise.reject(new ResourceNotFoundError("organization org_acme")),
     });
@@ -105,6 +113,7 @@ describe("GuardEnvironmentUnreferenced", () => {
 
   it("answers INTERNAL when the store cannot read the organization", async () => {
     const store = storeWith({
+      queryResources: async () => [],
       listResources: async () => [],
       getResource: async () => Promise.reject(new Error("disk unreadable")),
     });
