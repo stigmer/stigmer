@@ -40,7 +40,7 @@ import type { Config } from "../config.js";
 import type { HarnessName } from "../harness/registry.js";
 import { telemetrySettings } from "../otel-export.js";
 import { RUNNER_ENTRY_URL } from "../runner-entry.js";
-import { agentIdentity, setprivArgs, type AgentIdentity } from "../shared/agent-identity.js";
+import { agentIdentity, programOnPath, setprivArgs, type AgentIdentity } from "../shared/agent-identity.js";
 import { Peer, streamChannel, type LineChannel } from "./channel.js";
 import {
   AGENT_HOST_CHANNEL_FD,
@@ -374,7 +374,10 @@ export function agentHostCommand(
   const node = [process.execPath, ...loader, entry, AGENT_HOST_MODE_ARG];
   const runtime: Readonly<Record<string, string>> = versions.electron === undefined ? {} : { ELECTRON_RUN_AS_NODE: "1" };
   if (identity === null) return { command: node[0]!, args: node.slice(1), env: runtime };
-  return { command: "setpriv", args: [...setprivArgs(identity), "--", ...node], env: { ...runtime, HOME: identity.home } };
+  // By its absolute path on the runner's own PATH: the host's environment
+  // may lead with the agent's install folders (agent-host/environment.ts),
+  // and the spawn would resolve a bare name through it.
+  return { command: programOnPath("setpriv") ?? "setpriv", args: [...setprivArgs(identity), "--", ...node], env: { ...runtime, HOME: identity.home } };
 }
 
 function relayLines(stream: Readable, write: (line: string) => void): void {

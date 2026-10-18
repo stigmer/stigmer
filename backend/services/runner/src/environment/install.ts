@@ -47,7 +47,7 @@ import { trace } from "@opentelemetry/api";
 
 import { agentHostEnvironment } from "../agent-host/environment.js";
 import { TRACER_NAME } from "../gen-ai-conventions.js";
-import { agentIdentity, setprivArgs, type AgentIdentity } from "../shared/agent-identity.js";
+import { agentIdentity, programOnPath, setprivArgs, type AgentIdentity } from "../shared/agent-identity.js";
 import { environmentPathEntries, environmentPrefix } from "./prefix.js";
 import { hasPackages, MANAGERS, type Manager, type PackageSet, type SandboxEnvironment } from "./spec.js";
 
@@ -164,18 +164,6 @@ export function installCommands(packages: PackageSet, prefix: string): InstallCo
 }
 
 /** Whether `program` is an executable on `path`. */
-function onPath(program: string, path: string): boolean {
-  return path.split(delimiter).some((dir) => {
-    if (dir === "") return false;
-    try {
-      const stat = statSync(join(dir, program));
-      return stat.isFile() && (stat.mode & 0o111) !== 0;
-    } catch {
-      return false;
-    }
-  });
-}
-
 /** The environment one command runs with (the module header). */
 export function commandEnvironment(
   command: InstallCommand,
@@ -191,7 +179,11 @@ export function commandEnvironment(
     for (const name of APT_NAMES) if (source[name] !== undefined) env[name] = source[name];
   }
   for (const name of TRUST_VARIABLES) if (source[name] !== undefined) env[name] = source[name];
-  env["PATH"] = [...environmentPathEntries(prefix), source["PATH"] ?? ""].join(delimiter);
+  // The prefix is the agent's to write: only a command that runs as the
+  // agent finds programs there. A root command keeps the system's PATH, so
+  // neither apt nor a maintainer script it runs can pick up a binary the
+  // agent planted.
+  env["PATH"] = command.asAgent ? [...environmentPathEntries(prefix), source["PATH"] ?? ""].join(delimiter) : (source["PATH"] ?? "");
   return { ...env, ...command.env };
 }
 
@@ -266,7 +258,7 @@ export async function installEnvironment(environment: SandboxEnvironment, deps: 
     const own = commands.filter((command) => command.manager === manager);
     if (own.length === 0) continue;
     const { program, remedy } = PROGRAMS[manager];
-    if (!onPath(program, env["PATH"] ?? "")) {
+    if (programOnPath(program, env["PATH"] ?? "") === undefined) {
       throw new EnvironmentInstallError(manager, `this sandbox's image has no ${program}; ${remedy}`, "");
     }
     if (manager === "apt" && identity === null && process.getuid?.() !== 0) {
@@ -280,7 +272,10 @@ export async function installEnvironment(environment: SandboxEnvironment, deps: 
         if (left <= 0) {
           throw new EnvironmentInstallError(manager, `the install passed its ${Math.round((deps.deadlineMs ?? ENVIRONMENT_INSTALL_DEADLINE_MS) / 60_000)}-minute deadline`, "");
         }
-        const argv = command.asAgent && identity !== null ? ["setpriv", ...setprivArgs(identity), "--", ...command.argv] : command.argv;
+        // Root starts every program by the absolute path its own PATH gives
+        // (setpriv, or apt's): never through the PATH it hands the child,
+        // which for an agent command leads with the agent's own folders.
+        const argv = rootArgv(command, identity, env["PATH"] ?? "");
         const result = await run(argv, commandEnvironment(command, env, identity, prefix), Math.min(COMMAND_DEADLINE_MS, left));
         if (result.timedOut) {
           throw new EnvironmentInstallError(manager, `\`${command.argv.slice(0, 2).join(" ")}\` was killed at its deadline`, result.output);
@@ -299,6 +294,24 @@ export async function installEnvironment(environment: SandboxEnvironment, deps: 
   }
   writeFileSync(digestFile, `${digest}\n`);
   return "installed";
+}
+
+/** What root runs for one command: setpriv by its absolute path before an agent's command, a root command's program by its own. */
+export function rootArgv(command: InstallCommand, identity: AgentIdentity | null, rootPath: string): readonly string[] {
+  if (command.asAgent && identity !== null) {
+    const setpriv = programOnPath("setpriv", rootPath);
+    if (setpriv === undefined) {
+      throw new EnvironmentInstallError(command.manager, "this sandbox's image has no setpriv to start the install as the agent", "");
+    }
+    return [setpriv, ...setprivArgs(identity), "--", ...command.argv];
+  }
+  if (command.asAgent) return command.argv;
+  const [program, ...args] = command.argv;
+  const resolved = program === undefined ? undefined : programOnPath(program, rootPath);
+  if (resolved === undefined) {
+    throw new EnvironmentInstallError(command.manager, `this sandbox's image has no ${program ?? "program"}`, "");
+  }
+  return [resolved, ...args];
 }
 
 /** The install this runner started at boot; `undefined` until then, and when the sandbox has no Environment. */

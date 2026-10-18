@@ -17,6 +17,8 @@
  *    so a runner without one still refuses a Cursor turn up front;
  *  - harnesses booted at the same moment, while the host is still starting,
  *    are each booted in it once;
+ *  - a separating runner starts setpriv by its absolute path on its own
+ *    PATH, never by a name the host's PATH could resolve;
  *  - the production starter runs this build's entry in its agent-host mode
  *    under the runner's own Node (as Node, under an Electron embedder), from
  *    source under tsx; a host that cannot
@@ -33,9 +35,9 @@
  *    readable by another user, and is removed with the proxy.
  */
 
-import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -45,6 +47,7 @@ import type { HarnessAdapter } from "../../harness/types.js";
 import { RUNNER_ENTRY_URL } from "../../runner-entry.js";
 import { Peer, loopbackChannels } from "../channel.js";
 import { agentFs, installAgentFs, localAgentFs } from "../../shared/agent-fs.js";
+import { programOnPath } from "../../shared/agent-identity.js";
 import { serveAgentHost } from "../host.js";
 import { handOver, hostHarnesses, logCursorWarmup, writeTrustedCertificates } from "../hosting.js";
 import { AGENT_HOST_MODE_ARG, AGENT_HOST_PROTOCOL_VERSION, type HostCalls, type HostNotices, type RunnerCalls, type RunnerNotices } from "../protocol.js";
@@ -276,10 +279,25 @@ describe("the production starter", () => {
     expect(fileURLToPath(RUNNER_ENTRY_URL).endsWith("main.ts")).toBe(true);
   });
 
+  it("starts setpriv by its absolute path on the runner's own PATH, so a folder the agent writes leading the host's PATH cannot stand in for it", () => {
+    const dir = mkdtempSync(join(tmpdir(), "setpriv-path-"));
+    writeFileSync(join(dir, "setpriv"), "#!/bin/sh\nexit 0\n");
+    chmodSync(join(dir, "setpriv"), 0o755);
+    const saved = process.env.PATH;
+    process.env.PATH = `${dir}${delimiter}${saved ?? ""}`;
+    try {
+      const identity = { name: "stigmer-agent", uid: 10001, gid: 10001, home: "/data/agent" };
+      expect(agentHostCommand(process.versions, identity).command).toBe(join(dir, "setpriv"));
+    } finally {
+      process.env.PATH = saved;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("starts the host as the agent user through setpriv, with the agent's home, on a separating runner", () => {
     const identity = { name: "stigmer-agent", uid: 10001, gid: 10001, home: "/data/agent" };
     const { command, args, env } = agentHostCommand(process.versions, identity);
-    expect(command).toBe("setpriv");
+    expect(command).toBe(programOnPath("setpriv") ?? "setpriv");
     expect(args).toEqual([
       "--reuid=10001",
       "--regid=10001",

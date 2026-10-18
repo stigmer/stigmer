@@ -14,7 +14,9 @@
  *     proxies, the CA variables and DEBIAN_FRONTEND;
  *   - `installEnvironment`, with a stand-in command runner and a temporary
  *     prefix: an agent command runs through `setpriv` with the agent's
- *     arguments; a clean install writes its digest beside the prefix, never in it, and the same set is then
+ *     arguments, root starts every program by the absolute path its own
+ *     PATH gives, never one the agent planted in the prefix, and root's
+ *     commands never see the prefix on their PATH; a clean install writes its digest beside the prefix, never in it, and the same set is then
  *     skipped, running nothing, while a changed set installs again; a
  *     non-zero exit, a command killed at its deadline, a deadline already
  *     passed and a missing program each fail naming the manager and why; an
@@ -171,10 +173,10 @@ describe("commandEnvironment", () => {
     expect(commandEnvironment(npm, source, null, PREFIX)["HOME"]).toBe("/root");
   });
 
-  it("gives apt only the PATH, the proxies, the CA variables and DEBIAN_FRONTEND", () => {
+  it("gives apt only the system's PATH, the proxies, the CA variables and DEBIAN_FRONTEND: never the agent's folders", () => {
     const env = commandEnvironment(apt, source, ownIdentity(), PREFIX);
     expect(env).toEqual({
-      PATH: [`${PREFIX}/python/bin`, `${PREFIX}/bin`, "/usr/bin:/bin"].join(delimiter),
+      PATH: "/usr/bin:/bin",
       HTTPS_PROXY: "http://proxy:3128",
       no_proxy: "localhost",
       SSL_CERT_FILE: "/etc/ssl/gateway.pem",
@@ -207,7 +209,7 @@ describe("installEnvironment", () => {
     programs = join(dir, "programs");
     mkdirSync(programs);
     // The programs the managers need, as executables on the install's PATH; the stand-in runner never starts them.
-    for (const program of ["apt-get", "cargo", "gem", "go", "npm", "python3"]) {
+    for (const program of ["apt-get", "cargo", "gem", "go", "npm", "python3", "setpriv"]) {
       writeFileSync(join(programs, program), "#!/bin/sh\nexit 0\n");
       chmodSync(join(programs, program), 0o755);
     }
@@ -219,16 +221,16 @@ describe("installEnvironment", () => {
 
   const log = (): void => {};
 
-  it("runs agent commands through setpriv with the agent's arguments, and apt as itself", async () => {
+  it("runs agent commands through setpriv with the agent's arguments, and apt as itself, each root program by its absolute path", async () => {
     const { run, calls } = recordingRunner();
     const identity = ownIdentity();
     const set = environment({ apt: ["jq"], npm: ["express"] });
     expect(await installEnvironment(set, { identity, prefix, env: { PATH: programs }, run, log })).toBe("installed");
     expect(calls.map((call) => call.argv)).toEqual([
-      ["apt-get", "update"],
-      ["apt-get", "install", "-y", "--no-install-recommends", "--", "jq"],
+      [join(programs, "apt-get"), "update"],
+      [join(programs, "apt-get"), "install", "-y", "--no-install-recommends", "--", "jq"],
       [
-        "setpriv",
+        join(programs, "setpriv"),
         `--reuid=${identity.uid}`,
         `--regid=${identity.gid}`,
         "--clear-groups",
@@ -247,7 +249,25 @@ describe("installEnvironment", () => {
       ],
     ]);
     expect(calls[2]!.env["HOME"]).toBe(identity.home);
+    // Root's own commands never see the agent's folders on their PATH.
+    expect(calls[0]!.env["PATH"]).toBe(programs);
     expect(calls.every((call) => call.deadlineMs <= COMMAND_DEADLINE_MS)).toBe(true);
+  });
+
+  it("never runs, as root, a program the agent planted in its own folders", async () => {
+    const { run, calls } = recordingRunner();
+    const identity = ownIdentity();
+    const planted = join(prefix, "bin");
+    mkdirSync(planted, { recursive: true });
+    for (const program of ["apt-get", "setpriv"]) {
+      writeFileSync(join(planted, program), "#!/bin/sh\nexit 0\n");
+      chmodSync(join(planted, program), 0o755);
+    }
+    await installEnvironment(environment({ apt: ["jq"], npm: ["express"] }), { identity, prefix, env: { PATH: programs }, run, log });
+    const started = calls.map((call) => call.argv[0]!);
+    expect(started).toEqual([join(programs, "apt-get"), join(programs, "apt-get"), join(programs, "setpriv")]);
+    expect(started.some((program) => program.startsWith(prefix))).toBe(false);
+    expect(calls[0]!.env["PATH"]!.split(delimiter)).not.toContain(planted);
   });
 
   it("runs commands as they are when the runner does not separate", async () => {
