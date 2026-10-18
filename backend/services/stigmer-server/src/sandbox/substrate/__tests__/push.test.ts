@@ -1,12 +1,15 @@
 /**
  * Pins the attach push (push.ts): one POST through the router addressed by
- * `ate-target-actor`, carrying the queue and the secrets; a router that is
+ * `ate-target-actor`, carrying the queue and the secrets, and the
+ * session's Environment (the runner's half) as `environment` only when it
+ * has one; a router that is
  * not ready yet (502, 503, 504, or no connection) retried within its
  * window; a waiter refusal returned at once with its code; a router that
  * never answers an error naming the actor.
  */
 import { describe, expect, it } from "vitest";
 
+import type { RunnerEnvironment } from "../../environment.js";
 import { pushAttach } from "../push.js";
 
 const request = {
@@ -44,6 +47,29 @@ describe("pushAttach", () => {
       taskQueue: "session:ses_1",
       secrets: { STIGMER_TOKEN: "tok" },
     });
+  });
+
+  it("carries the runner's half of the Environment when given, and no environment field otherwise", async () => {
+    const bodies: unknown[] = [];
+    const recording = (async (_url: string, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return new Response(JSON.stringify({ started: true }), { status: 200 });
+    }) as typeof fetch;
+    const environment: RunnerEnvironment = {
+      network: "limited",
+      packages: { apt: ["ripgrep"], cargo: [], gem: [], go: [], npm: [], pip: [] },
+    };
+    await pushAttach({ ...request, environment }, { ...clock(), fetch: recording });
+    await pushAttach(request, { ...clock(), fetch: recording });
+    expect(bodies).toEqual([
+      {
+        taskQueue: "session:ses_1",
+        secrets: { STIGMER_TOKEN: "tok" },
+        environment,
+      },
+      { taskQueue: "session:ses_1", secrets: { STIGMER_TOKEN: "tok" } },
+    ]);
+    expect(Object.keys(bodies[1] as object)).not.toContain("environment");
   });
 
   it("retries a router that is not ready, then succeeds", async () => {

@@ -38,20 +38,33 @@
  *     any gateway call, left for an operator), and with a guard asks it inside the actor's queue from a
  *     fresh read, so a sandbox a turn woke while the delete waited is
  *     skipped, never deleted; `prepare` readies the template and never
- *     rejects.
+ *     rejects;
+ *   - a session's Environment: the driver can limit networking only while
+ *     HTTPS egress is `all` and installs packages either way; an ensure
+ *     with a limited Environment writes a policy without the HTTPS
+ *     wildcard and with its hosts; a running sandbox's next ensure with the
+ *     same facts writes no policy, and one with a changed host list
+ *     replaces it at that ensure; a wake from storage always reconciles;
+ *     the attach push carries the runner's half (network and packages,
+ *     never the hosts), and a push without an Environment carries none.
  */
 import { describe, expect, it } from "vitest";
 
 import { createLogger, type LogEntry } from "../../../boot/logger.js";
 import { sandboxBaseName } from "../../naming.js";
-import type { SandboxDriverConfig, SandboxFacts } from "../../provisioner.js";
+import { runnerEnvironmentOf } from "../../environment.js";
+import type {
+  EnvironmentFacts,
+  SandboxDriverConfig,
+  SandboxFacts,
+} from "../../provisioner.js";
 import { FakeSubstrate, fakeRouter } from "../__test-utils__/fake-gateway.js";
 import type { SubstrateDriverSettings } from "../config.js";
 import {
   newSubstrateSandboxDriverOverGateway,
   validateSubstrateDriverConfig,
 } from "../driver.js";
-import { ActorState } from "../gen/ateapipb/ateapi_pb.js";
+import { ActorState, type EgressRule } from "../gen/ateapipb/ateapi_pb.js";
 import { SubstrateAbortedError, SubstrateNoWorkerError } from "../gateway.js";
 import {
   CLOCK_SKEW_ALLOWANCE_MS,
@@ -1253,6 +1266,110 @@ describe("the egress policy of an existing sandbox", () => {
     expect(
       h.substrate.calls.filter((c) => c === `ensureEgressPolicy ${ACTOR}`),
     ).toHaveLength(2);
+  });
+});
+
+describe("a session's Environment", () => {
+  function limitedTo(...hosts: string[]): EnvironmentFacts {
+    return {
+      id: "env_1",
+      network: {
+        mode: "limited",
+        hosts: hosts.map((host) => ({ host, cleartext: false })),
+      },
+      packages: { apt: ["ripgrep"], cargo: [], gem: [], go: [], npm: [], pip: [] },
+    };
+  }
+
+  function httpsHostsOf(policy: readonly EgressRule[] | undefined): string[] {
+    return (policy ?? []).flatMap((rule) => rule.https?.hostnames ?? []);
+  }
+
+  function policyWrites(h: ReturnType<typeof harness>): number {
+    return h.substrate.calls.filter((c) => c === `ensureEgressPolicy ${ACTOR}`)
+      .length;
+  }
+
+  it("can be limited only while HTTPS egress is on, and its packages installed either way", () => {
+    expect(harness().driver.provisioner.environmentSupport).toEqual({
+      limitedNetworking: true,
+      packages: true,
+    });
+    const closed = newSubstrateSandboxDriverOverGateway({
+      config,
+      settings: { ...settings, httpsEgress: "none" },
+      logger: silentLogger,
+      gateway: new FakeSubstrate(),
+    });
+    expect(closed.provisioner.environmentSupport).toEqual({
+      limitedNetworking: false,
+      packages: true,
+    });
+  });
+
+  it("limited: the policy written has no HTTPS wildcard and names its hosts", async () => {
+    const h = harness();
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, {
+      ...facts,
+      environment: limitedTo("example.com", "pypi.org"),
+    });
+    const https = httpsHostsOf(h.substrate.actors.get(ACTOR)?.policy);
+    expect(https).not.toContain("*");
+    expect(https).toEqual(expect.arrayContaining(["example.com", "pypi.org"]));
+  });
+
+  it("a running sandbox's next ensure with the same facts writes no policy; a changed host list replaces it at that ensure", async () => {
+    const h = harness();
+    h.substrate.put({
+      name: ACTOR,
+      state: ActorState.RUNNING,
+      template: "stigmer-runner-old",
+    });
+    const first = { ...facts, environment: limitedTo("example.com") };
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, first);
+    expect(policyWrites(h)).toBe(1);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, first);
+    expect(policyWrites(h)).toBe(1);
+
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, {
+      ...facts,
+      environment: limitedTo("example.org"),
+    });
+    expect(policyWrites(h)).toBe(2);
+    const https = httpsHostsOf(h.substrate.actors.get(ACTOR)?.policy);
+    expect(https).toContain("example.org");
+    expect(https).not.toContain("example.com");
+  });
+
+  it("a wake from storage always reconciles, even with facts this process already wrote", async () => {
+    const h = harness();
+    const limited = { ...facts, environment: limitedTo("example.com") };
+    h.substrate.put({
+      name: ACTOR,
+      state: ActorState.SUSPENDED,
+      template: "stigmer-runner-old",
+    });
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, limited);
+    await h.driver.lifecycle.suspend("session", SESSION);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, limited);
+    expect(policyWrites(h)).toBe(2);
+  });
+
+  it("the attach push carries the runner's half, never the hosts; a push without an Environment carries none", async () => {
+    const h = harness();
+    const environment = limitedTo("example.com");
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, {
+      ...facts,
+      environment,
+    });
+    expect(h.router.pushes[0]?.environment).toEqual(
+      runnerEnvironmentOf(environment),
+    );
+    expect(JSON.stringify(h.router.pushes[0])).not.toContain("example.com");
+
+    const bare = harness();
+    await bare.driver.provisioner.ensureSessionSandbox(SESSION, facts);
+    expect(bare.router.pushes[0]).not.toHaveProperty("environment");
   });
 });
 

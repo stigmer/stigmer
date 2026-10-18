@@ -48,22 +48,23 @@ function httpsHost(raw: string | undefined): string | undefined {
 export function runnerPlatformHosts(config: Pick<SandboxDriverConfig, "runnerEnv" | "runnerSecretEnv" | "mcpPublicEndpoint">): string[] {
   const env = config.runnerEnv;
   const secrets = config.runnerSecretEnv;
-  const has = (name: string): boolean => (env[name] ?? secrets[name] ?? "").trim() !== "";
+  const value = (name: string): string => env[name] ?? secrets[name] ?? "";
+  const has = (name: string): boolean => value(name).trim() !== "";
   const hosts: (string | undefined)[] = [];
   if (has("ANTHROPIC_BASE_URL")) {
-    hosts.push(httpsHost(env["ANTHROPIC_BASE_URL"] ?? secrets["ANTHROPIC_BASE_URL"]));
+    hosts.push(httpsHost(value("ANTHROPIC_BASE_URL")));
   } else if (has("ANTHROPIC_API_KEY")) {
     hosts.push(httpsHost(ANTHROPIC_DEFAULT_ROOT));
   }
   if (has("OPENAI_BASE_URL")) {
-    hosts.push(httpsHost(env["OPENAI_BASE_URL"] ?? secrets["OPENAI_BASE_URL"]));
+    hosts.push(httpsHost(value("OPENAI_BASE_URL")));
   } else if (has("OPENAI_API_KEY")) {
     hosts.push(httpsHost(OPENAI_DEFAULT_ROOT));
   }
   if (has("ANTHROPIC_BEDROCK_BASE_URL")) {
-    hosts.push(httpsHost(env["ANTHROPIC_BEDROCK_BASE_URL"]));
+    hosts.push(httpsHost(value("ANTHROPIC_BEDROCK_BASE_URL")));
   } else if (has("AWS_REGION") && (has("AWS_BEARER_TOKEN_BEDROCK") || has("AWS_ACCESS_KEY_ID"))) {
-    hosts.push(`bedrock-runtime.${(env["AWS_REGION"] ?? "").trim()}.amazonaws.com`);
+    hosts.push(`bedrock-runtime.${value("AWS_REGION").trim()}.amazonaws.com`);
   }
   if (has("CURSOR_API_KEY")) {
     hosts.push(...CURSOR_HOSTS);

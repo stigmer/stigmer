@@ -23,12 +23,21 @@
  *     deleted or already Suspended without asking; a suspend and an ensure
  *     of one Sandbox take turns in its queue, neither starting before the
  *     other ends; the driver remembers its last ensure of each Sandbox
- *     until it deprovisions it.
+ *     until it deprovisions it;
+ *   - a session's Environment: the driver installs its packages but cannot
+ *     limit a pod's network, and the pod a wake writes carries
+ *     STIGMER_SANDBOX_ENVIRONMENT with the runner's half as JSON.
  */
 import { describe, expect, it } from "vitest";
 
+import { runnerEnvironmentOf } from "../../environment.js";
 import { sandboxBaseName } from "../../naming.js";
-import type { SandboxDriverConfig, SandboxFacts } from "../../provisioner.js";
+import type {
+  EnvironmentFacts,
+  SandboxDriverConfig,
+  SandboxFacts,
+} from "../../provisioner.js";
+import { SANDBOX_ENVIRONMENT_ENV } from "../../runner-launch.js";
 import { FakeAgentSandboxCluster } from "../__test-utils__/fake-gateway.js";
 import {
   newAgentSandboxDriverOverGateway,
@@ -335,6 +344,34 @@ describe("the ensure", () => {
       `get:${name}`,
       `secret:${name}-env`,
     ]);
+  });
+});
+
+describe("a session's Environment", () => {
+  it("installs packages but cannot limit a pod's network", () => {
+    expect(driverOver(new FakeAgentSandboxCluster()).environmentSupport).toEqual({
+      limitedNetworking: false,
+      packages: true,
+    });
+  });
+
+  it("reaches the runner in the pod the wake writes, as the runner's half in JSON", async () => {
+    const environment: EnvironmentFacts = {
+      id: "env_1",
+      network: { mode: "unrestricted" },
+      packages: { apt: ["ripgrep"], cargo: [], gem: [], go: [], npm: [], pip: [] },
+    };
+    const cluster = new FakeAgentSandboxCluster();
+    await driverOver(cluster).ensureSessionSandbox("ses_1", {
+      ...facts,
+      environment,
+    });
+    const value = cluster.sandboxes
+      .get(name)
+      ?.podTemplate.spec.containers[0]?.env?.find(
+        (entry) => entry.name === SANDBOX_ENVIRONMENT_ENV,
+      )?.value;
+    expect(JSON.parse(value ?? "")).toEqual(runnerEnvironmentOf(environment));
   });
 });
 

@@ -16,6 +16,7 @@ import {
   type ActorTemplate,
   type EgressRule,
 } from "../gen/ateapipb/ateapi_pb.js";
+import type { RunnerEnvironment } from "../../environment.js";
 import type {
   SubstrateActorView,
   SubstrateGateway,
@@ -304,6 +305,14 @@ function templateView(template: FakeTemplate): SubstrateTemplateView {
   };
 }
 
+/** One push as the router stand-in recorded it; `environment` only when the push carried one. */
+export interface FakePush {
+  actor: string;
+  taskQueue: string;
+  secrets: Record<string, string>;
+  environment?: RunnerEnvironment;
+}
+
 /** A router stand-in: answers each push with what `answer` returns and records the bodies. */
 export function fakeRouter(
   answer: (
@@ -315,17 +324,9 @@ export function fakeRouter(
   } = () => ({ status: 200, body: { started: true } }),
 ): {
   fetch: typeof fetch;
-  pushes: Array<{
-    actor: string;
-    taskQueue: string;
-    secrets: Record<string, string>;
-  }>;
+  pushes: FakePush[];
 } {
-  const pushes: Array<{
-    actor: string;
-    taskQueue: string;
-    secrets: Record<string, string>;
-  }> = [];
+  const pushes: FakePush[] = [];
   const fetchImpl = (async (
     _url: string | URL | Request,
     init?: RequestInit,
@@ -333,10 +334,7 @@ export function fakeRouter(
     const headers = new Headers(init?.headers);
     const target = headers.get("ate-target-actor") ?? "";
     const actor = target.slice(target.indexOf("/") + 1);
-    const body = JSON.parse(String(init?.body)) as {
-      taskQueue: string;
-      secrets: Record<string, string>;
-    };
+    const body = JSON.parse(String(init?.body)) as Omit<FakePush, "actor">;
     pushes.push({ actor, ...body });
     const reply = answer(actor, body);
     return new Response(JSON.stringify(reply.body ?? {}), {

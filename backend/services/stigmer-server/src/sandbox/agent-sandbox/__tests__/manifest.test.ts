@@ -13,7 +13,9 @@
  *     period, the resource shape, no service-account token;
  *   - the environment contract: MODE=local, the queue, the endpoints, the
  *     public address and the server's release only when set, the
- *     operator's plain settings as values;
+ *     operator's plain settings as values, and STIGMER_SANDBOX_ENVIRONMENT
+ *     (the runner's half of the session's Environment, as JSON) only when
+ *     the sandbox has one;
  *   - every credential (the token, the Temporal connection settings, the
  *     operator's runner secrets) lives in the Secret and is only named by
  *     the pod template, optionally, so a key the server stops setting never
@@ -22,10 +24,16 @@
 import { describe, expect, it } from "vitest";
 
 import { sandboxBaseName } from "../../naming.js";
-import type { SandboxDriverConfig } from "../../provisioner.js";
+import { runnerEnvironmentOf } from "../../environment.js";
+import type {
+  EnvironmentFacts,
+  SandboxDriverConfig,
+  SandboxFacts,
+} from "../../provisioner.js";
 import {
   RUNNER_HOME,
   RUNNER_UID,
+  SANDBOX_ENVIRONMENT_ENV,
   SERVER_RELEASE_ENV,
   runnerCommand,
 } from "../../runner-launch.js";
@@ -175,6 +183,26 @@ describe("the runner container", () => {
     });
     expect((containerOf()?.env ?? []).map((entry) => entry.name)).not.toContain(
       SERVER_RELEASE_ENV,
+    );
+  });
+
+  it("a sandbox with an Environment hands the runner its half as JSON; one without hands none", () => {
+    const environment: EnvironmentFacts = {
+      id: "env_1",
+      network: { mode: "unrestricted" },
+      packages: { apt: [], cargo: [], gem: [], go: [], npm: [], pip: ["requests"] },
+    };
+    const facts: SandboxFacts = { ...env, environment };
+    const entry = (
+      buildAgentSandboxPodTemplate("session", "ses_1", facts, config).spec
+        .containers[0]?.env ?? []
+    ).find((e) => e.name === SANDBOX_ENVIRONMENT_ENV);
+    expect(entry?.valueFrom).toBeUndefined();
+    expect(JSON.parse(entry?.value ?? "")).toEqual(
+      runnerEnvironmentOf(environment),
+    );
+    expect((containerOf()?.env ?? []).map((e) => e.name)).not.toContain(
+      SANDBOX_ENVIRONMENT_ENV,
     );
   });
 
