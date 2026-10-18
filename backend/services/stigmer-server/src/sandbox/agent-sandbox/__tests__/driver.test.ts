@@ -28,10 +28,7 @@
 import { describe, expect, it } from "vitest";
 
 import { sandboxBaseName } from "../../naming.js";
-import type {
-  SandboxDriverConfig,
-  SandboxFacts,
-} from "../../provisioner.js";
+import type { SandboxDriverConfig, SandboxFacts } from "../../provisioner.js";
 import { FakeAgentSandboxCluster } from "../__test-utils__/fake-gateway.js";
 import {
   newAgentSandboxDriverOverGateway,
@@ -393,7 +390,10 @@ describe("the sweep's suspend and the ensure record", () => {
   it("suspends a Running Sandbox once the guard agrees, and skips it when it does not", async () => {
     const cluster = new FakeAgentSandboxCluster();
     const { internals } = driverWithInternals(cluster);
-    cluster.seed(buildAgentSandbox("session", "ses_1", facts, config), "Running");
+    cluster.seed(
+      buildAgentSandbox("session", "ses_1", facts, config),
+      "Running",
+    );
     expect(await internals.suspend(name, async () => false)).toBe("skipped");
     expect(cluster.sandboxes.get(name)?.operatingMode).toBe("Running");
     expect(await internals.suspend(name, async () => true)).toBe("done");
@@ -427,7 +427,10 @@ describe("the sweep's suspend and the ensure record", () => {
   it("a suspend waits behind an ensure of the same Sandbox, and an ensure behind a suspend", async () => {
     const cluster = new FakeAgentSandboxCluster();
     const { provisioner, internals } = driverWithInternals(cluster);
-    cluster.seed(buildAgentSandbox("session", "ses_1", facts, config), "Running");
+    cluster.seed(
+      buildAgentSandbox("session", "ses_1", facts, config),
+      "Running",
+    );
     let release: () => void = () => {};
     const applySecret = cluster.applySecret.bind(cluster);
     cluster.applySecret = async (secret) => {

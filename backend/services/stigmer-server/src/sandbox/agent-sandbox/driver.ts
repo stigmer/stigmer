@@ -232,7 +232,8 @@ export function newAgentSandboxDriverOverGateway(
   const provisioner: SandboxProvisioner = {
     // Its runner installs packages; a pod's network is not limited per host.
     environmentSupport: { limitedNetworking: false, packages: true },
-    ensureSessionSandbox: (sessionId, facts) => ensure("session", sessionId, facts),
+    ensureSessionSandbox: (sessionId, facts) =>
+      ensure("session", sessionId, facts),
     deprovisionSessionSandbox: (sessionId) => deprovision("session", sessionId),
     async createConnectSandbox(connectRequestId, facts) {
       await ensure("connect", connectRequestId, facts);

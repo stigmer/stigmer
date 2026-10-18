@@ -233,11 +233,7 @@ export interface SubstrateSandboxLifecycle {
     guard?: SubstrateSleepGuard,
   ): Promise<SubstrateSleepOutcome>;
   /** The ensure: wakes (or creates) the sandbox and pushes its attachment. */
-  resume(
-    scope: SandboxScope,
-    id: string,
-    facts: SandboxFacts,
-  ): Promise<void>;
+  resume(scope: SandboxScope, id: string, facts: SandboxFacts): Promise<void>;
   delete(scope: SandboxScope, id: string): Promise<void>;
   /**
    * Deletes a sandbox known only by its listed name (list()): a
@@ -429,7 +425,11 @@ export function newSubstrateSandboxDriverOverGateway(
    */
   const startedHere = new Set<string>();
 
-  async function reconcileEgress(name: string, facts: SandboxFacts, always = false): Promise<void> {
+  async function reconcileEgress(
+    name: string,
+    facts: SandboxFacts,
+    always = false,
+  ): Promise<void> {
     const rules = buildEgressRules(config, settings, facts.environment);
     const digest = egressDigest(rules);
     if (!always && egressWritten.get(name) === digest) return;
@@ -462,14 +462,13 @@ export function newSubstrateSandboxDriverOverGateway(
   function secretsFor(facts: SandboxFacts): Record<string, string> {
     return {
       ...config.runnerSecretEnv,
-      ...(facts.stigmerToken !== "" ? { STIGMER_TOKEN: facts.stigmerToken } : {}),
+      ...(facts.stigmerToken !== ""
+        ? { STIGMER_TOKEN: facts.stigmerToken }
+        : {}),
     };
   }
 
-  async function push(
-    name: string,
-    facts: SandboxFacts,
-  ): Promise<PushResult> {
+  async function push(name: string, facts: SandboxFacts): Promise<PushResult> {
     return pushAttach(
       {
         routerUrl: settings.routerUrl,
@@ -477,7 +476,9 @@ export function newSubstrateSandboxDriverOverGateway(
         actor: name,
         taskQueue: facts.taskQueue,
         secrets: secretsFor(facts),
-        ...(facts.environment !== undefined ? { environment: runnerEnvironmentOf(facts.environment) } : {}),
+        ...(facts.environment !== undefined
+          ? { environment: runnerEnvironmentOf(facts.environment) }
+          : {}),
       },
       { ...(options.fetch ? { fetch: options.fetch } : {}), sleep: wait, now },
     );
@@ -722,8 +723,12 @@ export function newSubstrateSandboxDriverOverGateway(
     runnerMode: options.runnerMode ?? "local",
     // A host list is enforced by the egress gateway whenever HTTPS egress
     // is on; under the operator's `none` an Environment may not open one.
-    environmentSupport: { limitedNetworking: settings.httpsEgress === "all", packages: true },
-    ensureSessionSandbox: (sessionId, facts) => ensure("session", sessionId, facts),
+    environmentSupport: {
+      limitedNetworking: settings.httpsEgress === "all",
+      packages: true,
+    },
+    ensureSessionSandbox: (sessionId, facts) =>
+      ensure("session", sessionId, facts),
     deprovisionSessionSandbox: (sessionId) => deprovision("session", sessionId),
     async createConnectSandbox(connectRequestId, facts) {
       await ensure("connect", connectRequestId, facts);
@@ -817,8 +822,7 @@ export function newSubstrateSandboxDriverOverGateway(
       let moved = 0;
       for (const actor of listed) {
         // A shutdown waits for the sandbox in hand, never for the whole pass.
-        if (stopping())
-          return { redeleted, moved, retired: 0 };
+        if (stopping()) return { redeleted, moved, retired: 0 };
         try {
           switch (actor.state) {
             case "deleting":
@@ -858,8 +862,7 @@ export function newSubstrateSandboxDriverOverGateway(
           });
         }
       }
-      if (stopping())
-        return { redeleted, moved, retired: 0 };
+      if (stopping()) return { redeleted, moved, retired: 0 };
       const retired = await lifecycle.retireTemplates();
       return { redeleted, moved, retired };
     },

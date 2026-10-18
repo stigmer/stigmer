@@ -37,7 +37,10 @@
  */
 import type { Logger } from "../boot/logger.js";
 import type { CallerClass } from "../extensions/identity.js";
-import { SANDBOX_ENVIRONMENT_ENV, SERVER_RELEASE_ENV } from "./runner-launch.js";
+import {
+  SANDBOX_ENVIRONMENT_ENV,
+  SERVER_RELEASE_ENV,
+} from "./runner-launch.js";
 
 /**
  * What is TRUE about one provisioning request, handed to a driver: which
@@ -171,10 +174,7 @@ export interface SandboxProvisioner {
    * stopped → start; running → fast path. Idempotent; safe to invoke on
    * every execution create/recover for the session.
    */
-  ensureSessionSandbox(
-    sessionId: string,
-    facts: SandboxFacts,
-  ): Promise<void>;
+  ensureSessionSandbox(sessionId: string, facts: SandboxFacts): Promise<void>;
   /** Tears down the session sandbox; missing is success (idempotent). */
   deprovisionSessionSandbox(sessionId: string): Promise<void>;
   /**

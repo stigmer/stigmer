@@ -3,7 +3,8 @@
  * Docker daemon: a fake `docker` on PATH answers `inspect` with the state
  * the case sets and records every call. A running container is the fast
  * path (nothing started), a stopped one is restarted as-is with its
- * original env, and an absent one is created, with the operator's runner
+ * original env, and an absent one is created (a connect sandbox on its
+ * own queue), with the operator's runner
  * secrets beside the token, never on the command line. The real CLI and
  * image are the opt-in smoke's (docker.test.ts).
  */
@@ -119,6 +120,21 @@ describe("docker driver ensure", () => {
     expect(infos).toEqual([
       ["Docker sandbox restarted", { scope: "session", id: "ses_ensure", container: name }],
     ]);
+  });
+
+  it("creates a connect sandbox on its connect queue and answers its id", async () => {
+    setState("absent");
+    const { logger } = capturingLogger();
+    const id = await newDockerSandboxProvisioner({ config: CONFIG, logger }).createConnectSandbox("mcr_ensure", {
+      taskQueue: "mcpconnect:mcr_ensure",
+      stigmerToken: "",
+      callerClass: "user",
+    });
+
+    expect(id).toBe("mcr_ensure");
+    const made = calls();
+    expect(made[1]?.startsWith(`run --detach --name ${sandboxBaseName("connect", "mcr_ensure")} `)).toBe(true);
+    expect(made[1]).toContain("--env STIGMER_TASK_QUEUE=mcpconnect:mcr_ensure");
   });
 
   it("creates the container when none exists", async () => {

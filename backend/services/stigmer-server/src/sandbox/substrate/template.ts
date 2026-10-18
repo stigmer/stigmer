@@ -35,6 +35,13 @@
  * Its user is not: Substrate's container carries no user or working
  * directory, so the base image's own USER decides, and the layer's start
  * script refuses one that is not root.
+ *
+ * Its capabilities are added to Substrate's default set, never replaced:
+ * the gVisor sandbox class gives root only KILL, NET_BIND_SERVICE and
+ * AUDIT_WRITE, so the runner could not run the agent as its own user and
+ * exited at start (#2339). The template adds the five every container
+ * driver grants (runner-launch.ts); it drops nothing, because the waiter
+ * binds port 80 under the default NET_BIND_SERVICE.
  */
 import { createHash } from "node:crypto";
 
@@ -42,6 +49,7 @@ import { create, toBinary } from "@bufbuild/protobuf";
 
 import type { SandboxDriverConfig } from "../provisioner.js";
 import {
+  RUNNER_CAPABILITIES,
   RUNNER_HOME,
   SERVER_RELEASE_ENV,
   waiterCommand,
@@ -150,6 +158,7 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
         env: Object.keys(env)
           .sort()
           .map((name) => ({ name, value: env[name] ?? "" })),
+        securityContext: { capabilities: { add: [...RUNNER_CAPABILITIES] } },
         wakeupProbe: { httpGet: { path: "/readyz", port: WAITER_PORT } },
         volumeMounts: [
           { name: "workspace", mountPath: WORKSPACE_MOUNT_PATH },
