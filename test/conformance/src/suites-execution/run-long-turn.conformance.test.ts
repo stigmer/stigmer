@@ -261,7 +261,9 @@ describe("a long turn on a real runner", () => {
       await new Promise((resolve) => setTimeout(resolve, 2_000));
       step.release();
       await draining;
-      const { phases, run: settled } = await followToTheEnd(run.id, ARM_TIMEOUT_MS - 30_000, 45_000);
+      // Recovery lands within the workflow's 5 s backoff and a fresh turn; a
+      // FAILED that holds 20 s is the run's last word.
+      const { phases, run: settled } = await followToTheEnd(run.id, ARM_TIMEOUT_MS - 30_000, 20_000);
       console.log(`[long turn] drain: phases ${phases.map((p) => RunPhase[p]).join(" > ")}, the step began ${step.started()} time(s)`);
 
       await expectKnownGap(
