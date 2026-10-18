@@ -69,6 +69,9 @@ import {
   type SessionArtifactEntry,
 } from "./useSessionArtifacts.js";
 import type { SetupTabProps } from "./facets/SetupTab.js";
+import { conversationEnvironment } from "./conversation-environment.js";
+import { environmentsNotApplying } from "../environment/resolve.js";
+import { useEnvironmentAvailability } from "../server-info.js";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { SessionAudience, SessionPanelMode } from "./audience.js";
@@ -1462,6 +1465,22 @@ function SessionPanelRegion({
     [flow.skillRefs, flow.setSkillRefs, sameRef],
   );
 
+  // The Environment the conversation got, from its own record; where it has
+  // none, why none applies here. Nothing until the conversation is read.
+  const environmentAvailability = useEnvironmentAvailability();
+  const recordedEnvironment = flow.conv.session?.status?.environment;
+  const recordedEnvironmentSource = flow.conv.session?.status?.environmentSource;
+  const environment = useMemo(
+    () =>
+      recordedEnvironmentSource === undefined
+        ? undefined
+        : conversationEnvironment(
+            { environment: recordedEnvironment, environmentSource: recordedEnvironmentSource },
+            environmentsNotApplying(environmentAvailability, flow.executionTarget),
+          ),
+    [recordedEnvironment, recordedEnvironmentSource, environmentAvailability, flow.executionTarget],
+  );
+
   const sessionConfig = useMemo<SetupTabProps>(
     () => ({
       agentRef: flow.agentRef,
@@ -1469,6 +1488,7 @@ function SessionPanelRegion({
       skillRefs: flow.skillRefs,
       harness: flow.harness,
       executionTarget: flow.executionTarget,
+      environment,
       // What the next message runs when the person picks nothing: their
       // last pick, else the agent's default model for this engine.
       modelId: flow.model[0] ?? flow.agentRunDefaults?.modelName,
@@ -1498,7 +1518,7 @@ function SessionPanelRegion({
     [
       flow.agentRef, flow.pluginRefs, flow.skillRefs,
       flow.harness, flow.executionTarget, flow.model,
-      flow.agentRunDefaults,
+      flow.agentRunDefaults, environment,
       flow.autoApproveAll, flow.setAutoApproveAll, isObserver, exportSessionId,
       isCurated, handleRemoveAgent, handleRemovePlugin, handleRemoveSkill,
       accessSlot,
