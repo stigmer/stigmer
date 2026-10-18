@@ -28,16 +28,28 @@ class GetServerInfoInput(_message.Message):
     def __init__(self) -> None: ...
 
 class GetServerInfoOutput(_message.Message):
-    __slots__ = ("edition", "version", "authentication_required", "single_org")
+    __slots__ = ("edition", "version", "authentication_required", "single_org", "environments")
     EDITION_FIELD_NUMBER: _ClassVar[int]
     VERSION_FIELD_NUMBER: _ClassVar[int]
     AUTHENTICATION_REQUIRED_FIELD_NUMBER: _ClassVar[int]
     SINGLE_ORG_FIELD_NUMBER: _ClassVar[int]
+    ENVIRONMENTS_FIELD_NUMBER: _ClassVar[int]
     edition: ServerEdition
     version: str
     authentication_required: bool
     single_org: bool
-    def __init__(self, edition: _Optional[_Union[ServerEdition, str]] = ..., version: _Optional[str] = ..., authentication_required: bool = ..., single_org: bool = ...) -> None: ...
+    environments: EnvironmentAvailability
+    def __init__(self, edition: _Optional[_Union[ServerEdition, str]] = ..., version: _Optional[str] = ..., authentication_required: bool = ..., single_org: bool = ..., environments: _Optional[_Union[EnvironmentAvailability, _Mapping]] = ...) -> None: ...
+
+class EnvironmentAvailability(_message.Message):
+    __slots__ = ("applies", "limited_networking", "packages")
+    APPLIES_FIELD_NUMBER: _ClassVar[int]
+    LIMITED_NETWORKING_FIELD_NUMBER: _ClassVar[int]
+    PACKAGES_FIELD_NUMBER: _ClassVar[int]
+    applies: bool
+    limited_networking: bool
+    packages: bool
+    def __init__(self, applies: bool = ..., limited_networking: bool = ..., packages: bool = ...) -> None: ...
 
 class GetLicenseStatusInput(_message.Message):
     __slots__ = ()

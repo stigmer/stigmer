@@ -305,6 +305,12 @@ async function createOrganization(
     .addStep(newClearEmbeddingStep())
     .addStep(newCheckOrgDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
+    // The organization's references (its default Environment; create
+    // clears the embedding) are judged once its own id, the organization
+    // they are judged in, exists: BuildNewState mints it
+    // (pipeline/steps/references.ts, the module header).
+    .addStep(newNormalizeReferencesStep(deps.store))
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateChildOrganizationStep(deps.store, deps.authorizer));
   // The composition's organization count, at the slot's seat and before its
@@ -411,6 +417,13 @@ async function update(
       .addStep(newPreserveChildLinkStep())
       .addStep(newPreservePoliciesStep())
       .addStep(newPreserveEmbeddingStep())
+      // The references are resolved and judged on the row as it will be
+      // stored, after the embedding (another chain's to write) is put
+      // back, and only those this write introduces are judged: an edit of
+      // the preferences never re-judges the embedding's vaults, which their
+      // own chain judged (pipeline/steps/references.ts, the module header).
+      .addStep(newNormalizeReferencesStep(deps.store))
+      .addStep(newValidateReferencesStep(deps.store, deps.authorizer, { judge: "introduced" }))
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newPersistStep(deps.store, deps.credentialBinding))
       .addStep(
