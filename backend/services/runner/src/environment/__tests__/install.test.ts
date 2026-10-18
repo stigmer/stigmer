@@ -18,9 +18,11 @@
  *     PATH gives, never one the agent planted in the prefix, and root's
  *     commands never see the prefix on their PATH; a clean install writes its digest beside the prefix, never in it, and the same set is then
  *     skipped, running nothing, while a changed set installs again; a
- *     non-zero exit, a command killed at its deadline, a deadline already
- *     passed and a missing program each fail naming the manager and why; an
- *     empty set installs nothing;
+ *     command that exits non-zero runs once more after a pause, and a
+ *     second failure fails with both outputs, while a command killed at its
+ *     deadline, or one with no time left for a retry, is not retried; a
+ *     deadline already passed and a missing program each fail naming the
+ *     manager and why; an empty set installs nothing;
  *   - `spawnCommand`, over a real `sh`: a command past its deadline is
  *     killed and reported so, and the output it keeps is its tail, bounded;
  *   - the boot's install: started once, awaited by every turn, a failure
@@ -42,6 +44,7 @@ import {
   installEnvironment,
   OUTPUT_TAIL_BYTES,
   packageDigest,
+  RETRY_PAUSE_MS,
   resetEnvironmentInstallForTests,
   spawnCommand,
   startEnvironmentInstall,
@@ -220,6 +223,7 @@ describe("installEnvironment", () => {
   });
 
   const log = (): void => {};
+  const sleep = async (): Promise<void> => {};
 
   it("runs agent commands through setpriv with the agent's arguments, and apt as itself, each root program by its absolute path", async () => {
     const { run, calls } = recordingRunner();
@@ -296,33 +300,77 @@ describe("installEnvironment", () => {
     expect(readFileSync(`${prefix}.digest`, "utf8").trim()).toBe(packageDigest(changed.packages));
   });
 
-  it("fails on a non-zero exit, naming the manager with its output's tail, and writes no digest", async () => {
+  it("retries a command that exits non-zero once, after a pause, and installs when the retry succeeds", async () => {
+    let npmRuns = 0;
     const { run, calls } = recordingRunner((argv) =>
-      argv[0] === "npm" ? { exitCode: 1, timedOut: false, output: "npm ERR! 404 Not Found - express-nope" } : { exitCode: 0, timedOut: false, output: "" },
+      argv[0] === "npm" && npmRuns++ === 0 ? { exitCode: 1, timedOut: false, output: "npm ERR! 403 Forbidden" } : { exitCode: 0, timedOut: false, output: "" },
     );
-    const failing = installEnvironment(environment({ cargo: ["ripgrep"], npm: ["express-nope"], pip: ["sqlalchemy"] }), { identity: null, prefix, env: { PATH: programs }, run, log });
+    const pauses: number[] = [];
+    const lines: string[] = [];
+    const result = await installEnvironment(environment({ npm: ["express"] }), {
+      identity: null,
+      prefix,
+      env: { PATH: programs },
+      run,
+      log: (line) => lines.push(line),
+      sleep: async (ms) => {
+        pauses.push(ms);
+      },
+    });
+    expect(result).toBe("installed");
+    expect(calls.map((call) => call.argv[0])).toEqual(["npm", "npm"]);
+    expect(calls[1]!.argv).toEqual(calls[0]!.argv);
+    expect(calls[1]!.env).toEqual(calls[0]!.env);
+    expect(pauses).toEqual([RETRY_PAUSE_MS]);
+    expect(lines[0]).toBe("[environment] `npm install` exited 1; retrying once");
+    expect(readFileSync(`${prefix}.digest`, "utf8").trim()).toBe(packageDigest(packages({ npm: ["express"] })));
+  });
+
+  it("fails when the retry fails too, naming the manager with both outputs' tails, and writes no digest", async () => {
+    let npmRuns = 0;
+    const { run, calls } = recordingRunner((argv) =>
+      argv[0] === "npm" ? { exitCode: 1, timedOut: false, output: `npm ERR! 404 Not Found - express-nope (${++npmRuns})` } : { exitCode: 0, timedOut: false, output: "" },
+    );
+    const failing = installEnvironment(environment({ cargo: ["ripgrep"], npm: ["express-nope"], pip: ["sqlalchemy"] }), { identity: null, prefix, env: { PATH: programs }, run, log, sleep });
     await expect(failing).rejects.toBeInstanceOf(EnvironmentInstallError);
     await expect(failing).rejects.toMatchObject({
       manager: "npm",
-      message: "the environment's npm packages did not install: `npm install` exited 1\nnpm ERR! 404 Not Found - express-nope",
+      message:
+        "the environment's npm packages did not install: `npm install` exited 1, then 1 on its retry\n" +
+        "npm ERR! 404 Not Found - express-nope (1)\n--- the retry ---\nnpm ERR! 404 Not Found - express-nope (2)",
     });
-    expect(calls.map((call) => call.argv[0]), "the managers after it never run").toEqual(["cargo", "npm"]);
+    expect(calls.map((call) => call.argv[0]), "the managers after it never run").toEqual(["cargo", "npm", "npm"]);
     expect(existsSync(`${prefix}.digest`)).toBe(false);
   });
 
   it("names a command killed by its signal", async () => {
     const { run } = recordingRunner(() => ({ exitCode: null, timedOut: false, output: "" }));
-    await expect(installEnvironment(environment({ gem: ["rails"] }), { identity: null, prefix, env: { PATH: programs }, run, log })).rejects.toThrow(
-      "the environment's gem packages did not install: `gem install` exited on a signal",
+    await expect(installEnvironment(environment({ gem: ["rails"] }), { identity: null, prefix, env: { PATH: programs }, run, log, sleep })).rejects.toThrow(
+      "the environment's gem packages did not install: `gem install` exited on a signal, then on a signal on its retry",
     );
   });
 
-  it("fails a command killed at its deadline, saying so", async () => {
-    const { run } = recordingRunner(() => ({ exitCode: null, timedOut: true, output: "Compiling ripgrep v14.1.0" }));
-    await expect(installEnvironment(environment({ cargo: ["ripgrep"] }), { identity: null, prefix, env: { PATH: programs }, run, log })).rejects.toMatchObject({
+  it("fails a command killed at its deadline, saying so, and never retries it", async () => {
+    const { run, calls } = recordingRunner(() => ({ exitCode: null, timedOut: true, output: "Compiling ripgrep v14.1.0" }));
+    await expect(installEnvironment(environment({ cargo: ["ripgrep"] }), { identity: null, prefix, env: { PATH: programs }, run, log, sleep })).rejects.toMatchObject({
       manager: "cargo",
       message: "the environment's cargo packages did not install: `cargo install` was killed at its deadline\nCompiling ripgrep v14.1.0",
     });
+    expect(calls).toHaveLength(1);
+  });
+
+  it("does not retry when the install has no time left for the pause, and names the one failure", async () => {
+    const { run, calls } = recordingRunner(() => ({ exitCode: 1, timedOut: false, output: "npm ERR! network request failed" }));
+    // The install has 5 s; after the command fails, 1 s is left: less than the pause.
+    let readings = 0;
+    const now = (): number => (readings++ < 2 ? 0 : 4_000);
+    await expect(
+      installEnvironment(environment({ npm: ["express"] }), { identity: null, prefix, env: { PATH: programs }, run, now, deadlineMs: 5_000, log, sleep }),
+    ).rejects.toMatchObject({
+      manager: "npm",
+      message: "the environment's npm packages did not install: `npm install` exited 1\nnpm ERR! network request failed",
+    });
+    expect(calls).toHaveLength(1);
   });
 
   it("fails before running a command once the install's deadline has passed", async () => {
@@ -433,7 +481,7 @@ describe("the boot's install", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  const deps = (run: CommandRunner) => ({ identity: null, prefix: join(dir, "prefix"), env: { PATH: programs }, run, log: () => {} });
+  const deps = (run: CommandRunner) => ({ identity: null, prefix: join(dir, "prefix"), env: { PATH: programs }, run, log: () => {}, sleep: async () => {} });
   const failingRun: CommandRunner = async () => ({ exitCode: 1, timedOut: false, output: "E404" });
 
   it("resolves at once when no install started", async () => {
@@ -455,7 +503,9 @@ describe("the boot's install", () => {
   it("keeps a failure for every turn that awaits it", async () => {
     startEnvironmentInstall(environment({ npm: ["express"] }), deps(failingRun));
     await expect(environmentInstalled()).rejects.toBeInstanceOf(EnvironmentInstallError);
-    await expect(environmentInstalled()).rejects.toThrow("the environment's npm packages did not install: `npm install` exited 1\nE404");
+    await expect(environmentInstalled()).rejects.toThrow(
+      "the environment's npm packages did not install: `npm install` exited 1, then 1 on its retry\nE404\n--- the retry ---\nE404",
+    );
     expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("[environment] the environment's npm packages did not install"));
   });
 

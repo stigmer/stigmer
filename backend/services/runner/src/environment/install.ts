@@ -26,6 +26,12 @@
  * install another; past either it is killed and the install fails, saying
  * so, as `run-turn.ts` requires of every wait under its heartbeat.
  *
+ * A command that exits non-zero runs once more after a short pause, while
+ * the install has time left for it: a registry can fail one fetch, and
+ * Agent Substrate's gateway can refuse an allowed host in a sandbox's first
+ * seconds (stigmer#2413). A second failure fails the install with both
+ * outputs' tails. A command killed at its deadline is not retried.
+ *
  * It runs once per package set: after a clean install the set's digest is
  * written beside the prefix, in its parent (`/opt/stigmer`, root's), never
  * inside it: the prefix is the agent's, so a file the root runner wrote
@@ -57,6 +63,8 @@ export { ENVIRONMENT_PREFIX, environmentPathEntries, environmentPrefix } from ".
 export const ENVIRONMENT_INSTALL_DEADLINE_MS = 15 * 60_000;
 /** One command's deadline. */
 export const COMMAND_DEADLINE_MS = 10 * 60_000;
+/** The pause before a failed command's one retry. */
+export const RETRY_PAUSE_MS = 2_000;
 /** How much of a failed command's output the failure carries. */
 export const OUTPUT_TAIL_BYTES = 4096;
 /** The file beside the prefix that names the set installed in it. */
@@ -163,7 +171,6 @@ export function installCommands(packages: PackageSet, prefix: string): InstallCo
   return commands;
 }
 
-/** Whether `program` is an executable on `path`. */
 /** The environment one command runs with (the module header). */
 export function commandEnvironment(
   command: InstallCommand,
@@ -187,12 +194,15 @@ export function commandEnvironment(
   return { ...env, ...command.env };
 }
 
+/** How one command ended. */
+export interface CommandResult {
+  readonly exitCode: number | null;
+  readonly timedOut: boolean;
+  readonly output: string;
+}
+
 /** What runs one command; the tests stand one in. */
-export type CommandRunner = (
-  argv: readonly string[],
-  env: NodeJS.ProcessEnv,
-  deadlineMs: number,
-) => Promise<{ readonly exitCode: number | null; readonly timedOut: boolean; readonly output: string }>;
+export type CommandRunner = (argv: readonly string[], env: NodeJS.ProcessEnv, deadlineMs: number) => Promise<CommandResult>;
 
 /** Runs a command in a process group of its own, killed whole at its deadline; keeps its output's tail. */
 export const spawnCommand: CommandRunner = (argv, env, deadlineMs) =>
@@ -230,6 +240,12 @@ export interface InstallDeps {
   readonly now?: () => number;
   readonly deadlineMs?: number;
   readonly log?: (line: string) => void;
+  readonly sleep?: (ms: number) => Promise<void>;
+}
+
+/** How a command's exit reads in a sentence. */
+function exitOf(result: CommandResult): string {
+  return result.exitCode === null ? "on a signal" : String(result.exitCode);
 }
 
 /** Installs the set, or skips one already installed in the prefix; throws EnvironmentInstallError. */
@@ -242,6 +258,7 @@ export async function installEnvironment(environment: SandboxEnvironment, deps: 
   const run = deps.run ?? spawnCommand;
   const now = deps.now ?? Date.now;
   const log = deps.log ?? ((line: string) => console.log(line));
+  const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   const deadline = now() + (deps.deadlineMs ?? ENVIRONMENT_INSTALL_DEADLINE_MS);
   const digest = packageDigest(packages);
   const digestFile = `${prefix}${DIGEST_SUFFIX}`;
@@ -268,20 +285,32 @@ export async function installEnvironment(environment: SandboxEnvironment, deps: 
     const started = now();
     try {
       for (const command of own) {
-        const left = deadline - now();
-        if (left <= 0) {
-          throw new EnvironmentInstallError(manager, `the install passed its ${Math.round((deps.deadlineMs ?? ENVIRONMENT_INSTALL_DEADLINE_MS) / 60_000)}-minute deadline`, "");
-        }
+        const label = `\`${command.argv.slice(0, 2).join(" ")}\``;
         // Root starts every program by the absolute path its own PATH gives
         // (setpriv, or apt's): never through the PATH it hands the child,
         // which for an agent command leads with the agent's own folders.
         const argv = rootArgv(command, identity, env["PATH"] ?? "");
-        const result = await run(argv, commandEnvironment(command, env, identity, prefix), Math.min(COMMAND_DEADLINE_MS, left));
-        if (result.timedOut) {
-          throw new EnvironmentInstallError(manager, `\`${command.argv.slice(0, 2).join(" ")}\` was killed at its deadline`, result.output);
-        }
-        if (result.exitCode !== 0) {
-          throw new EnvironmentInstallError(manager, `\`${command.argv.slice(0, 2).join(" ")}\` exited ${result.exitCode ?? "on a signal"}`, result.output);
+        const commandEnv = commandEnvironment(command, env, identity, prefix);
+        let failed: CommandResult | undefined;
+        for (;;) {
+          const left = deadline - now();
+          if (left <= 0) {
+            throw new EnvironmentInstallError(manager, `the install passed its ${Math.round((deps.deadlineMs ?? ENVIRONMENT_INSTALL_DEADLINE_MS) / 60_000)}-minute deadline`, "");
+          }
+          const result = await run(argv, commandEnv, Math.min(COMMAND_DEADLINE_MS, left));
+          if (result.timedOut) {
+            throw new EnvironmentInstallError(manager, `${label} was killed at its deadline`, result.output);
+          }
+          if (result.exitCode === 0) break;
+          if (failed !== undefined) {
+            throw new EnvironmentInstallError(manager, `${label} exited ${exitOf(failed)}, then ${exitOf(result)} on its retry`, `${failed.output}\n--- the retry ---\n${result.output}`);
+          }
+          if (deadline - now() <= RETRY_PAUSE_MS) {
+            throw new EnvironmentInstallError(manager, `${label} exited ${exitOf(result)}`, result.output);
+          }
+          log(`[environment] ${label} exited ${exitOf(result)}; retrying once`);
+          failed = result;
+          await sleep(RETRY_PAUSE_MS);
         }
       }
     } catch (err) {
