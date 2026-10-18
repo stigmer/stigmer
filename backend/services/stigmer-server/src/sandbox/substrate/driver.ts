@@ -228,11 +228,7 @@ export interface SubstrateSandboxLifecycle {
     guard?: SubstrateSleepGuard,
   ): Promise<SubstrateSleepOutcome>;
   /** The ensure: wakes (or creates) the sandbox and pushes its attachment. */
-  resume(
-    scope: SandboxScope,
-    id: string,
-    facts: SandboxFacts,
-  ): Promise<void>;
+  resume(scope: SandboxScope, id: string, facts: SandboxFacts): Promise<void>;
   delete(scope: SandboxScope, id: string): Promise<void>;
   /**
    * Deletes a sandbox known only by its listed name (list()): a
@@ -453,14 +449,13 @@ export function newSubstrateSandboxDriverOverGateway(
   function secretsFor(facts: SandboxFacts): Record<string, string> {
     return {
       ...config.runnerSecretEnv,
-      ...(facts.stigmerToken !== "" ? { STIGMER_TOKEN: facts.stigmerToken } : {}),
+      ...(facts.stigmerToken !== ""
+        ? { STIGMER_TOKEN: facts.stigmerToken }
+        : {}),
     };
   }
 
-  async function push(
-    name: string,
-    facts: SandboxFacts,
-  ): Promise<PushResult> {
+  async function push(name: string, facts: SandboxFacts): Promise<PushResult> {
     return pushAttach(
       {
         routerUrl: settings.routerUrl,
@@ -710,7 +705,8 @@ export function newSubstrateSandboxDriverOverGateway(
 
   const provisioner: SandboxProvisioner = {
     runnerMode: options.runnerMode ?? "local",
-    ensureSessionSandbox: (sessionId, facts) => ensure("session", sessionId, facts),
+    ensureSessionSandbox: (sessionId, facts) =>
+      ensure("session", sessionId, facts),
     deprovisionSessionSandbox: (sessionId) => deprovision("session", sessionId),
     async createConnectSandbox(connectRequestId, facts) {
       await ensure("connect", connectRequestId, facts);

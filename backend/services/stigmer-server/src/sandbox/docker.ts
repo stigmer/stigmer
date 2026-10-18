@@ -130,7 +130,8 @@ export function buildDockerRun(
     ...config.runnerSecretEnv,
     ...config.temporalConnectionEnv,
   };
-  if (facts.stigmerToken !== "") secretEnv["STIGMER_TOKEN"] = facts.stigmerToken;
+  if (facts.stigmerToken !== "")
+    secretEnv["STIGMER_TOKEN"] = facts.stigmerToken;
   for (const name of Object.keys(secretEnv)) args.push("--env", name);
   // The driver sets the command, exactly as the Kubernetes pod spec's
   // `command` does: the start script replaces the image's ENTRYPOINT (a base
@@ -235,7 +236,8 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
   }
 
   const provisioner: SandboxProvisioner = {
-    ensureSessionSandbox: (sessionId, facts) => ensure("session", sessionId, facts),
+    ensureSessionSandbox: (sessionId, facts) =>
+      ensure("session", sessionId, facts),
     deprovisionSessionSandbox: (sessionId) => deprovision("session", sessionId),
     async createConnectSandbox(connectRequestId, facts) {
       await ensure("connect", connectRequestId, facts);

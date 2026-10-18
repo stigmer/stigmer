@@ -230,7 +230,8 @@ export function newAgentSandboxDriverOverGateway(
   };
 
   const provisioner: SandboxProvisioner = {
-    ensureSessionSandbox: (sessionId, facts) => ensure("session", sessionId, facts),
+    ensureSessionSandbox: (sessionId, facts) =>
+      ensure("session", sessionId, facts),
     deprovisionSessionSandbox: (sessionId) => deprovision("session", sessionId),
     async createConnectSandbox(connectRequestId, facts) {
       await ensure("connect", connectRequestId, facts);

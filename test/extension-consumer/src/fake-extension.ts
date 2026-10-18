@@ -849,11 +849,11 @@ const consumerSandboxDriver: SandboxProvisionerFactory = ({
   void releaseEnv;
   void logger;
   return {
-    ensureSessionSandbox: (sessionId, env) => {
+    ensureSessionSandbox: (sessionId, facts) => {
       void sessionId;
-      void env.taskQueue;
-      void env.stigmerToken;
-      void env.callerClass;
+      void facts.taskQueue;
+      void facts.stigmerToken;
+      void facts.callerClass;
       return Promise.resolve();
     },
     deprovisionSessionSandbox: () => Promise.resolve(),

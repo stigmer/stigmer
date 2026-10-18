@@ -44,10 +44,7 @@ import { describe, expect, it } from "vitest";
 
 import { createLogger, type LogEntry } from "../../../boot/logger.js";
 import { sandboxBaseName } from "../../naming.js";
-import type {
-  SandboxDriverConfig,
-  SandboxFacts,
-} from "../../provisioner.js";
+import type { SandboxDriverConfig, SandboxFacts } from "../../provisioner.js";
 import { FakeSubstrate, fakeRouter } from "../__test-utils__/fake-gateway.js";
 import type { SubstrateDriverSettings } from "../config.js";
 import {
@@ -712,7 +709,9 @@ describe("deprovision, probe, lifecycle", () => {
   it("reattach pushes to a running sandbox and touches no lifecycle", async () => {
     const h = harness();
     h.substrate.put({ name: ACTOR, state: ActorState.RUNNING, template: "t" });
-    expect(await h.driver.lifecycle.reattach("session", SESSION, facts)).toEqual({
+    expect(
+      await h.driver.lifecycle.reattach("session", SESSION, facts),
+    ).toEqual({
       pushed: true,
       result: { ok: true, started: true },
     });
@@ -721,12 +720,16 @@ describe("deprovision, probe, lifecycle", () => {
 
   it("reattach leaves a sandbox that is not running alone, so the router never wakes it", async () => {
     const h = harness();
-    expect(await h.driver.lifecycle.reattach("session", SESSION, facts)).toEqual({
+    expect(
+      await h.driver.lifecycle.reattach("session", SESSION, facts),
+    ).toEqual({
       pushed: false,
       state: "absent",
     });
     h.substrate.put({ name: ACTOR, state: ActorState.PAUSED, template: "t" });
-    expect(await h.driver.lifecycle.reattach("session", SESSION, facts)).toEqual({
+    expect(
+      await h.driver.lifecycle.reattach("session", SESSION, facts),
+    ).toEqual({
       pushed: false,
       state: "paused",
     });

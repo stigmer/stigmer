@@ -108,10 +108,7 @@ export interface SandboxProvisioner {
    * stopped → start; running → fast path. Idempotent; safe to invoke on
    * every execution create/recover for the session.
    */
-  ensureSessionSandbox(
-    sessionId: string,
-    facts: SandboxFacts,
-  ): Promise<void>;
+  ensureSessionSandbox(sessionId: string, facts: SandboxFacts): Promise<void>;
   /** Tears down the session sandbox; missing is success (idempotent). */
   deprovisionSessionSandbox(sessionId: string): Promise<void>;
   /**
