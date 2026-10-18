@@ -216,6 +216,21 @@ function createClient(overrides?: {
     agent: {
       list:
         overrides?.list ?? vi.fn().mockResolvedValue({ entries: [AGENT], nextPageToken: "" }),
+      // The Environment field names the picked agent's default.
+      getByReference: vi.fn().mockResolvedValue({
+        metadata: { id: "agt_fee", org: "isc", slug: "fee-reminder" },
+        spec: { environmentRef: { org: "isc", slug: "data-science" } },
+      }),
+    },
+    organization: { get: vi.fn().mockResolvedValue({ metadata: { id: "isc" }, spec: {} }) },
+    environment: {
+      list: vi.fn().mockResolvedValue({
+        entries: [
+          { metadata: { id: "env_ds", org: "isc", slug: "data-science", name: "Data science" } },
+          { metadata: { id: "env_gpu", org: "isc", slug: "gpu-box", name: "GPU box" } },
+        ],
+        nextPageToken: "",
+      }),
     },
     ...(overrides?.vault ? { vault: overrides.vault } : {}),
   };
@@ -559,6 +574,38 @@ describe("RoutineForm", () => {
     expect(apply.mock.calls[0][0].agent.vaults).toEqual([
       { org: "isc", slug: "my-vault-0a1b2c" },
     ]);
+  });
+
+  it("names the agent's default Environment as its first row, and sends the one picked", async () => {
+    const apply = vi.fn().mockResolvedValue(CREATED);
+    const onComplete = vi.fn();
+    render(<RoutineForm org="isc" onComplete={onComplete} />, { wrapper: wrapper(createClient({ apply })) });
+
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "nightly-training" } });
+    fireEvent.change(screen.getByLabelText("Message"), { target: { value: "Train tonight's model." } });
+    await pickAgent();
+    const environment = screen.getByRole("combobox", { name: "Environment" });
+    await screen.findByRole("option", { name: "Default: Data science (the agent's default)" });
+    await screen.findByRole("option", { name: "GPU box" });
+    fireEvent.change(environment, { target: { value: "gpu-box" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create routine" }));
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
+    expect(apply.mock.calls[0][0].agent.environmentRef).toEqual({ org: "isc", slug: "gpu-box" });
+  });
+
+  it("sends no Environment when it is left to the defaults", async () => {
+    const apply = vi.fn().mockResolvedValue(CREATED);
+    const onComplete = vi.fn();
+    render(<RoutineForm org="isc" onComplete={onComplete} />, { wrapper: wrapper(createClient({ apply })) });
+
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "nightly-training" } });
+    fireEvent.change(screen.getByLabelText("Message"), { target: { value: "Train tonight's model." } });
+    await pickAgent();
+    fireEvent.click(screen.getByRole("button", { name: "Create routine" }));
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
+    expect(apply.mock.calls[0][0].agent).not.toHaveProperty("environmentRef");
   });
 
   it("offers My vault in its picker, and a picker elsewhere does not", async () => {

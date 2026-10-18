@@ -9,7 +9,9 @@
  * and a stored tier or thinking (an explicit standard or disabled among
  * them) survives any save that leaves it alone. The vaults editor offers
  * My vault only to the routine's creator, the one person the server
- * accepts it from.
+ * accepts it from. The Environment row says which applies and why (the
+ * routine's own, else its agent's default), and its editor saves the
+ * picked one with the environment kind stamped.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
@@ -26,6 +28,7 @@ import {
   RoutineFireOrigin,
 } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerContext } from "../../context";
@@ -130,6 +133,11 @@ interface MockClient {
   // My vault only when the viewer is the routine's creator.
   vault: { list: ReturnType<typeof vi.fn> };
   identityAccount: { whoAmI: ReturnType<typeof vi.fn> };
+  // The Environment row reads the routine's agent, the organization's
+  // default and the organization's Environments.
+  agent: { getByReference: ReturnType<typeof vi.fn> };
+  organization: { get: ReturnType<typeof vi.fn> };
+  environment: { list: ReturnType<typeof vi.fn> };
 }
 
 /** The identity every test views the routine as. */
@@ -181,6 +189,22 @@ function makeClient(routine: Routine): MockClient {
     },
     identityAccount: {
       whoAmI: vi.fn().mockResolvedValue({ metadata: { id: VIEWER_ID } }),
+    },
+    agent: {
+      getByReference: vi.fn().mockResolvedValue({
+        metadata: { id: "agt_fee", org: "isc", slug: "fee-reminder" },
+        spec: { environmentRef: { org: "isc", slug: "data-science" } },
+      }),
+    },
+    organization: { get: vi.fn().mockResolvedValue({ metadata: { id: "isc" }, spec: {} }) },
+    environment: {
+      list: vi.fn().mockResolvedValue({
+        entries: [
+          { metadata: { id: "env_ds", org: "isc", slug: "data-science", name: "Data science" } },
+          { metadata: { id: "env_gpu", org: "isc", slug: "gpu-box", name: "GPU box" } },
+        ],
+        nextPageToken: "",
+      }),
     },
   };
 }
@@ -906,6 +930,40 @@ describe("RoutineDetailView", () => {
     expect(target?.vaults).toHaveLength(1);
     expect(target?.vaults?.[0].slug).toBe("isc-mcp-credentials");
     expect(target?.vaults?.[0].kind).toBe(ApiResourceKind.vault);
+  });
+
+  it("says the agent's default Environment applies, and saves the one picked with the environment kind", async () => {
+    const routine = makeRoutine();
+    const client = makeClient(routine);
+    renderView(client, { editable: true });
+
+    expect(await screen.findByText("Data science · the agent's default")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Edit environment" }));
+    const select = await screen.findByRole("combobox", { name: "Environment" });
+    await screen.findByRole("option", { name: "Default: Data science (the agent's default)" });
+    await screen.findByRole("option", { name: "GPU box" });
+    fireEvent.change(select, { target: { value: "gpu-box" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(client.routine.update).toHaveBeenCalledOnce());
+    const sent = sentUpdate<Routine>(client.routine.update);
+    expect(sent.paths).toEqual(["spec.agent"]);
+    expect(sent.resource.spec?.agent?.environmentRef).toMatchObject({
+      org: "isc",
+      slug: "gpu-box",
+      kind: ApiResourceKind.environment,
+    });
+  });
+
+  it("names a routine's own Environment as set by the routine", async () => {
+    const routine = makeRoutine();
+    routine.spec!.agent!.environmentRef = create(ApiResourceReferenceSchema, {
+      kind: ApiResourceKind.environment,
+      org: "isc",
+      slug: "gpu-box",
+    });
+    renderView(makeClient(routine));
+    expect(await screen.findByText("GPU box · set by the routine")).toBeTruthy();
   });
 
   it("offers My vault in the vaults editor to the routine's creator only", async () => {
