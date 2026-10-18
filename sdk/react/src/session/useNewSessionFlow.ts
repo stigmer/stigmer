@@ -23,6 +23,9 @@ import {
   type AgentRunDefaults,
 } from "../agent/run-defaults.js";
 import { useRunAgentSpec } from "../agent/useRunAgentSpec.js";
+import { environmentsNotApplying, type EnvironmentReference } from "../environment/resolve.js";
+import { useOrganization } from "../organization/useOrganization.js";
+import { useEnvironmentAvailability } from "../server-info.js";
 import { toError } from "../internal/toError.js";
 import { readRememberedPluginPicks, rememberPluginPicks } from "../plugin/rememberedPluginPicks.js";
 
@@ -242,6 +245,22 @@ export interface UseNewSessionFlowReturn {
    * while the agent loads.
    */
   readonly agentRunDefaults: AgentRunDefaults | undefined;
+  /**
+   * Whether the new conversation may pick its Environment: `false` for a
+   * guest, for a conversation on the person's own machine, and on a server
+   * whose conversations no Environment governs. Pass it to the composer's
+   * `enableEnvironmentPicker`.
+   */
+  readonly offersEnvironment: boolean;
+  /**
+   * What applies when the person picks no Environment: the selected
+   * agent's default and the organization's. Pass it to the composer's
+   * `environmentDefaults`.
+   */
+  readonly environmentDefaults: {
+    readonly agent?: EnvironmentReference;
+    readonly organization?: EnvironmentReference;
+  };
   /** Update the selected model. Automatically persists to localStorage. */
   readonly setModelId: (id: string) => void;
   /**
@@ -461,6 +480,22 @@ export function useNewSessionFlow(
     harness,
   );
 
+  // The Environment the conversation runs in: picked in the composer, or
+  // the agent's default, else the organization's, which the server
+  // resolves in that order. A guest picks none (a chat link's conversation
+  // takes its agent's), and none applies on the person's own machine or on
+  // a server whose conversations run in no sandbox it starts.
+  const environmentAvailability = useEnvironmentAvailability();
+  const offersEnvironment =
+    !isGuest && environmentsNotApplying(environmentAvailability, executionTarget) === undefined;
+  const { organization } = useOrganization(offersEnvironment ? org : null);
+  const agentEnvironment = agentSpec?.environmentRef;
+  const organizationEnvironment = organization?.spec?.preferences?.defaultEnvironmentRef;
+  const environmentDefaults = useMemo(
+    () => ({ agent: agentEnvironment, organization: organizationEnvironment }),
+    [agentEnvironment, organizationEnvironment],
+  );
+
   const { getModel, isLoading: isModelsLoading } = useModelRegistry({ harness });
   const { create: createExecution } = useCreateRun();
   const workspace = useWorkspaceEntries();
@@ -646,6 +681,9 @@ export function useNewSessionFlow(
           vaults: vaults?.length ? [...vaults] : undefined,
           // Only an included My vault travels; off is the wire default.
           includeMyVault: includeMyVault || undefined,
+          // The person's pick only; left empty, the server resolves the
+          // agent's default, else the organization's.
+          environmentRef: offersEnvironment ? pick?.environmentRef : undefined,
           // The console offers each turn's edits for Keep and Undo after
           // the turn; every other client leaves review off.
           fileReview: true,
@@ -741,6 +779,7 @@ export function useNewSessionFlow(
       isGuest,
       harness,
       executionTarget,
+      offersEnvironment,
       autoApproveAll,
       adapter,
       includeMyVaultOption,
@@ -771,6 +810,8 @@ export function useNewSessionFlow(
     setModelId,
     clearModelPick,
     agentRunDefaults,
+    offersEnvironment,
+    environmentDefaults,
     agentRef,
     setAgentRef,
     resolution,

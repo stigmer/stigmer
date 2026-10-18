@@ -188,6 +188,27 @@ export function SecretsIcon() {
   );
 }
 
+/** A box with an opening at its top: the sandbox a conversation runs in, its packages and network. */
+export function EnvironmentIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2.5 5.5 8 2.5l5.5 3v5L8 13.5l-5.5-3z" />
+      <path d="M2.5 5.5 8 8.5l5.5-3" />
+      <path d="M8 8.5v5" />
+    </svg>
+  );
+}
+
 /** Horizontal sliders icon -- signals "configuration" without conflating with "add content." */
 export function ConfigureIcon() {
   return (
