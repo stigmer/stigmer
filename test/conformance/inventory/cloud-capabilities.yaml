@@ -1890,16 +1890,14 @@ metrics:
       Watched the default speed variant of Stigmer's own Cursor team accounts. Cursor runs on the organization's own Cursor key, billed by Cursor to that organization, so there is no platform account to audit; the gauge, its sync and its alert retired with the pool.
   - name: stigmer.sandbox.pool.target
     surface: platform
-    disposition: ported
-    alerts: [sandbox-pool-below-target]
+    disposition: dropped
     note: >-
-      The warm sandbox pool's effective target: the configured size while the pool is enabled, 0 while it is not, observed as a gauge by the composition's sandbox/pool-metrics.ts. The below-target rule subtracts READY members from this, so a deliberate disable or drain reads as a target of 0 and never fires. Polled every 60 s on the instrument's own loop, deliberately not a census handed over by the pool sweep: a sweep that stopped would freeze a sweep-fed gauge at its last healthy reading, whereas an independent poll shows a dead sweep as members that never move. Nothing is observed before the first successful poll (no fake zero that would read as an empty, healthy pool); a failed poll keeps the last census.
+      The warm sandbox pool's effective target. The hosted edition runs its conversations on Agent Substrate and keeps no pool of pre-started sandboxes, so there is no target to report; the gauge and its below-target alert retired with the pool.
   - name: stigmer.sandbox.pool.members
     surface: platform
-    disposition: ported
-    alerts: [sandbox-pool-below-target]
+    disposition: dropped
     note: >-
-      Pool members by status, one series per status the pool model knows (provisioning, ready, claimed), the label lowercased as Java emitted it and as the rule filters (status = ready). Same poll as the target. Every status is observed on every poll, zero included, so a status with no members reads 0 rather than vanishing from the series: an absent series cannot be alerted on.
+      Pool members by status (provisioning, ready, claimed). With no warm pool there are no members to count; the gauge retired with the pool, alongside the target.
   - name: stigmer.proxy.cursor.execution_authority_lookups
     surface: proxy
     disposition: dropped
