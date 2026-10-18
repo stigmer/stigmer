@@ -19,7 +19,14 @@ import {
 import { serializeManifest } from "../manifest/serialize";
 import { manifestDocumentForResource } from "../manifest/document";
 import { manifestKinds, manifestHandlerForYamlKind, type ServiceClientFn } from "../manifest/registry";
-import { ApiResourceReferenceSchema, RenameInputSchema, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import {
+  ApiResourceReferenceSchema,
+  RenameInputSchema,
+  UpdateVisibilityInputSchema,
+  type RenameInput,
+  type UpdateVisibilityInput,
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 
 /**
  * Manifest engine contract tests.
@@ -507,6 +514,23 @@ describe("manifest registry", () => {
 
     expect(renamable.map((h) => h.yamlKind).sort()).toEqual(["Agent", "Channel", "ChannelApp", "Environment", "FederationIssuer", "OAuthApp", "Routine"]);
     expect(services).toEqual(renamable.map((h) => h.schema.typeName.replace(/\.([A-Za-z]+)$/, ".$1CommandController")));
+  });
+
+  it("binds updateVisibility on every manifest kind whose service has one, each through its own command service", async () => {
+    const services: string[] = [];
+    const recording = ((service: { readonly typeName: string }) => {
+      services.push(service.typeName);
+      return { updateVisibility: (input: UpdateVisibilityInput) => Promise.resolve(input) };
+    }) as unknown as ServiceClientFn;
+    const input = create(UpdateVisibilityInputSchema, { resourceId: "id-1", visibility: ApiResourceVisibility.visibility_private });
+
+    const withVisibility = manifestKinds().filter((h) => h.updateVisibility !== undefined);
+    for (const handler of withVisibility) {
+      expect(await handler.updateVisibility?.(recording, input)).toBe(input);
+    }
+
+    expect(withVisibility.map((h) => h.yamlKind).sort()).toEqual(["Agent", "Environment"]);
+    expect(services).toEqual(withVisibility.map((h) => h.schema.typeName.replace(/\.([A-Za-z]+)$/, ".$1CommandController")));
   });
 
   it("binds apply and getByReference on every manifest kind, each through its own command and query service", async () => {

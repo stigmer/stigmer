@@ -29,6 +29,9 @@ import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { RoutineCommandController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/command_pb";
 import { RoutineQueryController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/query_pb";
+import { EnvironmentSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+import { EnvironmentCommandController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/command_pb";
+import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/query_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -68,6 +71,10 @@ const knownRoutine = create(RoutineSchema, {
   metadata: { name: "daily-fee-reminders", slug: "daily-fee-reminders", org: "acme", id: "rtn_1" },
 });
 
+const knownEnvironment = create(EnvironmentSchema, {
+  metadata: { name: "data-science", slug: "data-science", org: "acme", id: "env_1" },
+});
+
 const knownPlugin = create(PluginSchema, {
   metadata: { name: "clinic-tools", slug: "clinic-tools", org: "acme", id: "plg_1" },
 });
@@ -97,10 +104,11 @@ let agentTagCalls: { agentId: string; versionHash: string; tag: string }[] = [];
 // Force-carrying deletes record what actually rode the RPC.
 let vaultDeletes: { resourceId: string; force: boolean }[] = [];
 let channelAppDeletes: { resourceId: string; force: boolean }[] = [];
-// channel and routine delete by typed ID — no force field exists on
-// their wire contracts.
+// channel, routine and environment delete by typed ID — no force field
+// exists on their wire contracts.
 let channelDeleteIds: string[] = [];
 let routineDeleteIds: string[] = [];
+let environmentDeleteIds: string[] = [];
 
 beforeEach(() => {
   cancelCalls = [];
@@ -109,6 +117,7 @@ beforeEach(() => {
   channelAppDeletes = [];
   channelDeleteIds = [];
   routineDeleteIds = [];
+  environmentDeleteIds = [];
   organizationDeleteIds = [];
 });
 
@@ -181,6 +190,19 @@ beforeAll(async () => {
       delete: (req) => {
         routineDeleteIds.push(req.value);
         return knownRoutine;
+      },
+    });
+
+    router.service(EnvironmentQueryController, {
+      getByReference: (req) => {
+        if (req.slug !== "data-science") throw new ConnectError("environment not found", Code.NotFound);
+        return knownEnvironment;
+      },
+    });
+    router.service(EnvironmentCommandController, {
+      delete: (req) => {
+        environmentDeleteIds.push(req.value);
+        return knownEnvironment;
       },
     });
 
@@ -280,6 +302,14 @@ describe("delete (standard kinds)", () => {
     expect(result.status).toBe("success");
     expect(result.message).toBe("Routine deleted successfully");
     expect(routineDeleteIds).toEqual(["rtn_1"]);
+  });
+
+  it("deletes an environment via its typed ID", async () => {
+    const plan = await planDelete(client, "environment", "data-science", "acme");
+    const result = await plan.perform();
+    expect(result.status).toBe("success");
+    expect(result.message).toBe("Environment deleted successfully");
+    expect(environmentDeleteIds).toEqual(["env_1"]);
   });
 
   it("refuses workflow-instance as a type the CLI does not know", async () => {
