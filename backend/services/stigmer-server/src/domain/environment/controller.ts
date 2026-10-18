@@ -195,10 +195,11 @@ async function createEnvironment(
     .addStep(newValidateProtoStep())
     .addStep(newValidateVisibilityStep())
     .addStep(newRefuseChildOrgsVisibilityInChildStep(deps.store))
+    // The slug first, so a refusal below names the Environment.
+    .addStep(newResolveSlugStep())
     .addStep(newNormalizeEnvironmentStep())
     .addStep(newValidateEnvironmentHostsStep())
     .addStep(newRefuseUnservableEnvironmentStep(deps.environmentSupport))
-    .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))

@@ -27,6 +27,7 @@ import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Environment, EnvironmentSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
 import {
   EnvironmentNetworkingSchema,
+  EnvironmentSpecSchema,
   NetworkingType,
 } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/spec_pb";
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
@@ -55,10 +56,7 @@ export function newNormalizeEnvironmentStep(): PipelineStep<EnvironmentDesc> {
   return {
     name: "NormalizeEnvironment",
     execute(ctx: RequestContext<EnvironmentDesc>): void {
-      const spec = ctx.newState.spec;
-      if (spec === undefined) {
-        return;
-      }
+      const spec = (ctx.newState.spec ??= create(EnvironmentSpecSchema));
       const networking = (spec.networking ??= create(EnvironmentNetworkingSchema));
       if (networking.type === NetworkingType.networking_type_unspecified) {
         networking.type = NetworkingType.unrestricted;
