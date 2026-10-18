@@ -18,13 +18,17 @@
  *     PATH gives, never one the agent planted in the prefix, and root's
  *     commands never see the prefix on their PATH; a clean install writes its digest beside the prefix, never in it, and the same set is then
  *     skipped, running nothing, while a changed set installs again; a
- *     command that exits non-zero runs once more after a pause, and a
+ *     command that exits non-zero runs once more after a pause (by default
+ *     RETRY_PAUSE_MS on the install's own timer), and a
  *     second failure fails with both outputs, while a command killed at its
  *     deadline, or one with no time left for a retry, is not retried; a
  *     deadline already passed and a missing program each fail naming the
  *     manager and why; an empty set installs nothing;
- *   - `spawnCommand`, over a real `sh`: a command past its deadline is
- *     killed and reported so, and the output it keeps is its tail, bounded;
+ *   - `rootArgv`: root refuses an agent command without `setpriv` and a root
+ *     command whose program its PATH lacks;
+ *   - `spawnCommand`, over a real `sh`: a program that cannot start is
+ *     reported in the output; a command past its deadline is killed and
+ *     reported so, and the output it keeps is its tail, bounded;
  *   - the boot's install: started once, awaited by every turn, a failure
  *     kept for them and never an unhandled rejection.
  */
@@ -45,6 +49,7 @@ import {
   OUTPUT_TAIL_BYTES,
   packageDigest,
   RETRY_PAUSE_MS,
+  rootArgv,
   resetEnvironmentInstallForTests,
   spawnCommand,
   startEnvironmentInstall,
@@ -359,6 +364,22 @@ describe("installEnvironment", () => {
     expect(calls).toHaveLength(1);
   });
 
+  it("pauses RETRY_PAUSE_MS on its own clock before the retry", async () => {
+    vi.useFakeTimers();
+    try {
+      let npmRuns = 0;
+      const { run, calls } = recordingRunner(() => (npmRuns++ === 0 ? { exitCode: 1, timedOut: false, output: "" } : { exitCode: 0, timedOut: false, output: "" }));
+      const installing = installEnvironment(environment({ npm: ["express"] }), { identity: null, prefix, env: { PATH: programs }, run, now: () => 0, log });
+      await vi.advanceTimersByTimeAsync(RETRY_PAUSE_MS - 1);
+      expect(calls, "not yet retried").toHaveLength(1);
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(installing).resolves.toBe("installed");
+      expect(calls).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("does not retry when the install has no time left for the pause, and names the one failure", async () => {
     const { run, calls } = recordingRunner(() => ({ exitCode: 1, timedOut: false, output: "npm ERR! network request failed" }));
     // The install has 5 s; after the command fails, 1 s is left: less than the pause.
@@ -441,8 +462,33 @@ describe("installEnvironment", () => {
   });
 });
 
+describe("rootArgv", () => {
+  const agentCommand: InstallCommand = { manager: "npm", argv: ["npm", "install"], asAgent: true, env: {} };
+  const rootCommand: InstallCommand = { manager: "apt", argv: ["apt-get", "update"], asAgent: false, env: {} };
+
+  it("refuses an agent command when root's PATH has no setpriv", () => {
+    expect(() => rootArgv(agentCommand, ownIdentity(), "/nonexistent")).toThrow(
+      "the environment's npm packages did not install: this sandbox's image has no setpriv to start the install as the agent",
+    );
+  });
+
+  it("refuses a root command whose program root's PATH lacks", () => {
+    expect(() => rootArgv(rootCommand, null, "/nonexistent")).toThrow("the environment's apt packages did not install: this sandbox's image has no apt-get");
+  });
+
+  it("runs an agent command as it is when the runner does not separate", () => {
+    expect(rootArgv(agentCommand, null, "/nonexistent")).toEqual(["npm", "install"]);
+  });
+});
+
 describe("spawnCommand", () => {
   const env = { PATH: process.env["PATH"] ?? "/usr/bin:/bin" };
+
+  it("reports a program that cannot start, in its output", async () => {
+    const result = await spawnCommand(["/nonexistent/stigmer-no-such-program"], env, 10_000);
+    expect(result.exitCode).not.toBe(0);
+    expect(result.output).toContain("ENOENT");
+  });
 
   it("reports a command's exit and its output", async () => {
     expect(await spawnCommand(["sh", "-c", "echo out; echo err >&2; exit 3"], env, 10_000)).toEqual({ exitCode: 3, timedOut: false, output: "out\nerr\n" });

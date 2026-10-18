@@ -221,7 +221,7 @@ export const spawnCommand: CommandRunner = (argv, env, deadlineMs) =>
       try {
         if (child.pid !== undefined) process.kill(-child.pid, "SIGKILL");
       } catch {
-        child.kill("SIGKILL");
+        // The group already exited; its close is on its way.
       }
     }, deadlineMs);
     child.on("error", (err) => keep(Buffer.from(err.message)));
