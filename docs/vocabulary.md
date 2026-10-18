@@ -527,8 +527,8 @@ system calls it with a note.
   started), `time_zone` (IANA name, required with a `cron`), `enabled`, and
   `agent` (`agent_ref`, `message`, `vaults`, the workspace and run settings).
   Firing observations (`next_fire_at`, `last_fire_at`, `last_run_id`,
-  `paused_reason`) live in `status`, written only by the platform---applying a
-  manifest never touches them.
+  `consecutive_failures`, `paused_reason`) live in `status`, written only by the
+  platform---applying a manifest never touches them.
 - **Starting it**: say "start" and **Run now** in how-to docs; reference docs
   say `fire` (`FireRoutineInput`), and each start is a `RoutineFire` with an
   origin, `schedule` or `manual`, and `fired_by` for whoever started it. A start
