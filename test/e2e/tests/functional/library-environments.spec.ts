@@ -141,11 +141,11 @@ test.describe("An Environment's page", () => {
     const agent = await createTestAgent(stigmerClient, { org: ENVIRONMENTS_ORG, name: uniqueName("e2e-env-agent-a") });
     try {
       await page.goto(`/library/agents/${ENVIRONMENTS_ORG}/${agent.slug}`);
-      await expect(page.getByRole("button", { name: "Edit environment" })).toBeVisible({ timeout: 15_000 });
-      await page.getByRole("button", { name: "Edit environment" }).click();
-      await page.getByRole("combobox", { name: "Environment" }).selectOption(environment.slug);
+      await expect(page.getByRole("button", { name: "Edit environment", exact: true })).toBeVisible({ timeout: 15_000 });
+      await page.getByRole("button", { name: "Edit environment", exact: true }).click();
+      await page.getByRole("combobox", { name: "Environment", exact: true }).selectOption(environment.slug);
       await page.getByRole("button", { name: "Save" }).click();
-      await expect(page.getByRole("combobox", { name: "Environment" })).toBeHidden({ timeout: 15_000 });
+      await expect(page.getByRole("combobox", { name: "Environment", exact: true })).toBeHidden({ timeout: 15_000 });
 
       const saved = await stigmerClient.agent.get(agent.id);
       expect(saved.spec?.environmentRef?.id).toBe(environment.id);
