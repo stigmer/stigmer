@@ -476,7 +476,7 @@ describe("manifest registry", () => {
       .filter((h) => h.updateVisibility !== undefined)
       .map((h) => h.yamlKind)
       .sort();
-    expect(withBinding).toEqual(["Agent"]);
+    expect(withBinding).toEqual(["Agent", "Environment"]);
   });
 
   it("binds rename on every manifest kind whose service has one, each through its own command service", async () => {
@@ -492,7 +492,7 @@ describe("manifest registry", () => {
       expect(await handler.rename?.(recording, input)).toBe(input);
     }
 
-    expect(renamable.map((h) => h.yamlKind).sort()).toEqual(["Agent", "Channel", "ChannelApp", "FederationIssuer", "OAuthApp", "Routine"]);
+    expect(renamable.map((h) => h.yamlKind).sort()).toEqual(["Agent", "Channel", "ChannelApp", "Environment", "FederationIssuer", "OAuthApp", "Routine"]);
     expect(services).toEqual(renamable.map((h) => h.schema.typeName.replace(/\.([A-Za-z]+)$/, ".$1CommandController")));
   });
 
