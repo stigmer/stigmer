@@ -218,6 +218,40 @@ function isTitleGenerationRequest(body: unknown): boolean {
   return text.toLowerCase().includes(TITLE_GENERATION_SIGNATURE);
 }
 
+// How deepagents' summary prompt opens (DEFAULT_SUMMARY_PROMPT, deepagents
+// 1.14.1; the runner's ScriptedModel recognizes the same opening and a test
+// there provokes a real compaction, so a library that rewords it is caught).
+// The summarization middleware sends it as the request's ONE user message,
+// with no system prompt and no tools.
+const SUMMARY_PROMPT_OPENING = "You are a conversation summarizer.";
+
+// The canned summary every out-of-band summary call receives.
+export const MOCK_CONVERSATION_SUMMARY = "Summary (mock): the conversation so far, condensed.";
+
+// True when an Anthropic messages payload is native compaction's summary
+// call rather than an agent-loop turn: exactly one user message whose text
+// opens with the summary prompt. A content array is folded to its text.
+function isSummaryRequest(body: unknown): boolean {
+  if (typeof body !== "object" || body === null) {
+    return false;
+  }
+  const messages = (body as { messages?: unknown }).messages;
+  if (!Array.isArray(messages) || messages.length !== 1) {
+    return false;
+  }
+  const only = messages[0] as { role?: unknown; content?: unknown } | null;
+  if (only === null || typeof only !== "object" || only.role !== "user") {
+    return false;
+  }
+  const text =
+    typeof only.content === "string"
+      ? only.content
+      : Array.isArray(only.content)
+        ? only.content.map((block) => (typeof block === "object" && block !== null ? String((block as { text?: unknown }).text ?? "") : "")).join("")
+        : "";
+  return text.trimStart().startsWith(SUMMARY_PROMPT_OPENING);
+}
+
 export class MockLlmProxy {
   private readonly onCapture: ((request: CapturedLlmRequest) => void) | undefined;
 
@@ -235,6 +269,9 @@ export class MockLlmProxy {
   // Background titling calls answered out-of-band (#690/#715) — an observation
   // point, deliberately NOT part of consumed()/remaining() queue accounting.
   private titleRequestCount = 0;
+  // Native compaction's summary calls, answered out of band the same way and
+  // for the same reason: a summary claiming a turn would derail the script.
+  private summaryRequestCount = 0;
   // Whether the embeddings path is answered (by computation) or fenced (the
   // default, the no-embedder posture). A per-file posture, so reset() leaves it.
   private embeddingsServed = false;
@@ -369,6 +406,7 @@ export class MockLlmProxy {
     this.captured.length = 0;
     this.embeddingsCaptured.length = 0;
     this.titleRequestCount = 0;
+    this.summaryRequestCount = 0;
     this.persistentError = undefined;
     this.releaseHolds();
     this.draining = false;
@@ -434,6 +472,12 @@ export class MockLlmProxy {
   // Background titling calls served out-of-band so far.
   titleRequests(): number {
     return this.titleRequestCount;
+  }
+
+  // Native compaction's summary calls served out-of-band so far: the number
+  // of times the runner's engine compacted its conversation.
+  summaryRequests(): number {
+    return this.summaryRequestCount;
   }
 
   async close(): Promise<void> {
@@ -513,6 +557,18 @@ export class MockLlmProxy {
       this.capture({ path, body: parsedBody, disposition: "out-of-band", receivedAt });
       this.titleRequestCount += 1;
       const body = anthropicText(MOCK_SESSION_TITLE);
+      if (streaming) {
+        writeAnthropicSse(res, body);
+      } else {
+        writeJson(res, 200, body);
+      }
+      return;
+    }
+
+    if (isSummaryRequest(parsedBody)) {
+      this.capture({ path, body: parsedBody, disposition: "out-of-band", receivedAt });
+      this.summaryRequestCount += 1;
+      const body = anthropicText(MOCK_CONVERSATION_SUMMARY);
       if (streaming) {
         writeAnthropicSse(res, body);
       } else {

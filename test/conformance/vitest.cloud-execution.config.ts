@@ -22,6 +22,9 @@
 //   a missing capability, so it is neither a CapabilityFlag nor a second set
 //   of goldens here; a cloud record that wants the cloud photograph takes it
 //   with its composition in front of it.
+// - run-long-turn is EXCLUDED: it ends the target's runner and boots a
+//   replacement on the same state directories (TargetProfile.restartRunner),
+//   and the cloud's runner is the composition's, with no such door.
 // - plugin-tools runs here like every other Class B suite: the
 //   provisioner boots the composition with STIGMER_OAUTH_REDIRECT_URI set to
 //   the suite's pinned constant.
@@ -34,6 +37,7 @@ export default defineConfig({
       "src/suites-execution/routine-firing.conformance.test.ts",
       "src/suites-execution/open-computer-use.conformance.test.ts",
       "src/suites-execution/run-request-shape.conformance.test.ts",
+      "src/suites-execution/run-long-turn.conformance.test.ts",
     ],
     globalSetup: ["./src/harness/global-setup-cloud-execution.ts"],
     // Judges every test on the RPCs it sent: a `[rpc:...]` tag it never sent

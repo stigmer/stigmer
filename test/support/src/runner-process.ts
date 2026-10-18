@@ -199,6 +199,28 @@ export interface RunnerOptions {
   // suite reads a finished run's trace without waiting the SDK's 5 s.
   // Omitted, the runner exports nothing.
   telemetry?: { readonly endpoint: string; readonly login: string };
+  // The runner's HOME and workspace root, owned by the caller: stop() and
+  // kill() never remove them. A runner spawned on the directories another
+  // left behind sees what that one wrote (its sqlite checkpoints and
+  // workspace locks under HOME, the sessions' trees under the workspace
+  // root), as a pod restarted on a durable volume does. Omitted, the runner
+  // gets fresh directories of its own, removed with it.
+  dirs?: RunnerDirs;
+}
+
+// A runner's two state directories (RunnerOptions.dirs).
+export interface RunnerDirs {
+  readonly homeDir: string;
+  readonly workspaceDir: string;
+}
+
+// Fresh state directories a caller owns for a runner and its replacements
+// (RunnerOptions.dirs); the caller removes them.
+export async function makeRunnerDirs(): Promise<RunnerDirs> {
+  return {
+    homeDir: await mkdtemp(join(tmpdir(), "stigmer-conformance-runner-home-")),
+    workspaceDir: await mkdtemp(join(tmpdir(), "stigmer-conformance-runner-")),
+  };
 }
 
 export interface RunningRunner {
@@ -217,7 +239,16 @@ export interface RunningRunner {
   // (STIGMER_MCP_PUBLIC_ENDPOINT): what it fills a declared but unsaved
   // STIGMER_SERVER_ADDRESS from, so a suite can name the value a fill delivers.
   publicEndpoint: string;
+  // The state directories this runner runs on; the caller's when it passed
+  // `dirs`, else the runner's own, removed with it.
+  dirs: RunnerDirs;
   stop(): Promise<void>;
+  // Ends the runner by `signal` and resolves once it has exited: SIGKILL is
+  // a crash (nothing drains, nothing is written), SIGTERM a drain (the
+  // runner's own graceful shutdown, then SIGKILL after the grace). The
+  // output tee is closed and the runner's own directories are removed, as
+  // stop() does; caller-owned `dirs` are kept for a replacement.
+  kill(signal: "SIGKILL" | "SIGTERM"): Promise<void>;
 }
 
 export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
@@ -236,10 +267,11 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
       throw new Error("spawnRunner: artifactStore \"none\" excludes artifactDir and artifactProxy");
     }
   }
-  const workspaceDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-runner-"));
   // The runner's home for this run: its `~/.stigmer` (session checkpoints,
-  // platform dirs, workspace locks) lands here and is removed with it.
-  const homeDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-runner-home-"));
+  // platform dirs, workspace locks) lands here and, unless the caller owns
+  // it (`dirs`), is removed with it.
+  const ownsDirs = opts.dirs === undefined;
+  const { homeDir, workspaceDir } = opts.dirs ?? (await makeRunnerDirs());
   // Share the server's artifact store when given (#285); otherwise mint a
   // throwaway one. Only a dir we minted here is ours to remove on stop — the
   // server owns and cleans its own.
@@ -342,30 +374,33 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
     exit = { code, signal };
   });
 
-  const stop = async (): Promise<void> => {
-    // SIGTERM triggers the runner's graceful shutdown (drains the worker).
-    // The order is the discipline child-process.ts documents: exit first,
-    // then the tee (its sink ends only once stdio has closed — the runner's
-    // shutdown lines land in the file instead of throwing write-after-end),
-    // then the directories the runner was still using.
+  // The order is the discipline child-process.ts documents: exit first,
+  // then the tee (its sink ends only once stdio has closed — the runner's
+  // shutdown lines land in the file instead of throwing write-after-end),
+  // then the directories the runner was still using.
+  const end = async (signal: "SIGKILL" | "SIGTERM"): Promise<void> => {
     const outcome = await stopChild(child, {
-      signal: "SIGTERM",
+      signal,
       graceMs: SHUTDOWN_GRACE_MS,
       onForceKill: () => console.error(describeRunnerForceKill(output.tail())),
     });
-    // A forced kill already spoke, above; this line is for the exit that
+    // A forced kill already spoke, above; this line is for the drain that
     // stayed inside the grace but should not have taken that long.
-    if (!outcome.forced && outcome.exitedAfterMs > PROMPT_EXIT_MS) {
+    if (signal === "SIGTERM" && !outcome.forced && outcome.exitedAfterMs > PROMPT_EXIT_MS) {
       console.error(describeRunnerSlowExit(outcome.exitedAfterMs));
     }
     await output.close();
-    await rm(workspaceDir, { recursive: true, force: true });
-    await rm(homeDir, { recursive: true, force: true });
+    if (ownsDirs) {
+      await rm(workspaceDir, { recursive: true, force: true });
+      await rm(homeDir, { recursive: true, force: true });
+    }
     // Only remove a store we minted; a server-shared dir is the server's to clean.
     if (ownedArtifactDir !== undefined) {
       await rm(ownedArtifactDir, { recursive: true, force: true });
     }
   };
+  // SIGTERM triggers the runner's graceful shutdown (drains the worker).
+  const stop = (): Promise<void> => end("SIGTERM");
 
   try {
     await waitForReady(
@@ -383,7 +418,9 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
     logFile: teeFile,
     homeDir,
     publicEndpoint: opts.backendEndpoint,
+    dirs: { homeDir, workspaceDir },
     stop,
+    kill: end,
   };
 }
 
