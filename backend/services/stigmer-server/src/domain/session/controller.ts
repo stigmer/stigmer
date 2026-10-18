@@ -133,7 +133,6 @@ import {
   newResolveSessionEnvironmentStep,
   newValidateEnvironmentImmutabilityStep,
 } from "./resolve-session-environment.js";
-import { newEnvironmentPolicy } from "../run/environment-admission.js";
 import type { EnvironmentPolicy } from "../run/environment-admission.js";
 import { newRefuseLocalProgramsStep } from "./refuse-local-programs.js";
 import { newLocalProgramPolicy } from "../run/local-programs.js";
@@ -208,6 +207,12 @@ export interface SessionControllerDeps {
    */
   readonly sandboxLane: SandboxLane;
   /**
+   * The deployment's Environment rule (domain/run/environment-admission.ts),
+   * the one object compose hands every reader of it: the create and update
+   * chains resolve and admit a conversation's Environment through it.
+   */
+  readonly environmentPolicy: EnvironmentPolicy;
+  /**
    * The composed list read scope — the three list lanes narrow to the
    * caller's authorized sessions through it; undefined = the OSS full
    * scan (the guest rule rides the driver, the
@@ -279,11 +284,6 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
   return ctx.values.get(apiResourceKindKey);
 }
 
-/** The deployment's Environment rule (domain/run/environment-admission.ts). */
-function environmentPolicyOf(deps: SessionControllerDeps): EnvironmentPolicy {
-  return newEnvironmentPolicy(deps.sandboxLane, deps.temporalConfig);
-}
-
 /**
  * Create — chain per Go buildCreatePipeline, then the pin: the reference
  * rule judges spec.agent_ref (and records the agent it found),
@@ -335,7 +335,7 @@ async function createSession(
     .addStep(
       newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
     )
-    .addStep(newResolveSessionEnvironmentStep(deps.store, environmentPolicyOf(deps)))
+    .addStep(newResolveSessionEnvironmentStep(deps.store, deps.environmentPolicy))
     .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
     .addStep(
       newRefuseLocalProgramsStep(
@@ -343,7 +343,7 @@ async function createSession(
         newLocalProgramPolicy(deps.sandboxLane, deps.temporalConfig),
       ),
     )
-    .addStep(newAdmitSessionEnvironmentStep(deps.store, environmentPolicyOf(deps)));
+    .addStep(newAdmitSessionEnvironmentStep(deps.store, deps.environmentPolicy));
   // The pre-side-effect gate slot (see the create doc comment). Empty in
   // OSS.
   for (const step of stepsForSlot<typeof SessionSchema>(
@@ -422,7 +422,7 @@ async function update(
       .addStep(
         newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
       )
-      .addStep(newResolveSessionEnvironmentStep(deps.store, environmentPolicyOf(deps)))
+      .addStep(newResolveSessionEnvironmentStep(deps.store, deps.environmentPolicy))
       .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
       .addStep(newSealSessionValuesStep(deps.secretService, deps.logger))
       .addStep(newPersistStep(deps.store, deps.credentialBinding))

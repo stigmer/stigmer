@@ -67,6 +67,8 @@ vi.mock("../../composer", async (importOriginal) => {
 });
 
 const client = vi.hoisted(() => ({
+  // Server info answers the Environment row: a server that predates the field.
+  platform: { getServerInfo: async () => ({}) },
   run: {
     uploadAttachment: vi.fn(),
     getArtifactContent: vi.fn(),

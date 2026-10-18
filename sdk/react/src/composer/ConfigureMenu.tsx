@@ -11,6 +11,8 @@ export interface ConfigureMenuItem {
   readonly icon: React.ReactNode;
   readonly label: string;
   readonly count: number;
+  /** A second line under the label saying what the item holds now (e.g., which environment applies and why). */
+  readonly detail?: string;
   /** Show a warning indicator (e.g., MCP server needs setup). */
   readonly hasWarning?: boolean;
 }
@@ -156,7 +158,12 @@ function MenuList({
           )}
         >
           <span className="stg:shrink-0 stg:text-muted-foreground">{item.icon}</span>
-          <span className="stg:flex-1 stg:text-left">{item.label}</span>
+          <span className="stg:flex stg:min-w-0 stg:flex-1 stg:flex-col stg:text-left">
+            <span>{item.label}</span>
+            {item.detail && (
+              <span className="stg:truncate stg:text-xs stg:text-muted-foreground">{item.detail}</span>
+            )}
+          </span>
           {item.hasWarning && (
             <span
               className="stg:inline-block stg:h-1.5 stg:w-1.5 stg:shrink-0 stg:rounded-full stg:bg-warning"

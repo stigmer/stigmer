@@ -226,6 +226,56 @@ private static final long serialVersionUID = 0L;
     return singleOrg_;
   }
 
+  public static final int ENVIRONMENTS_FIELD_NUMBER = 5;
+  private ai.stigmer.platform.v1.EnvironmentAvailability environments_;
+  /**
+   * <pre>
+   * What an Environment does on this server.
+   *
+   * Every server that knows the field sets it. Absent means the server
+   * predates it: a client offers Environments and lets the server's own
+   * refusals speak.
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.EnvironmentAvailability environments = 5 [json_name = "environments"];</code>
+   * @return Whether the environments field is set.
+   */
+  @java.lang.Override
+  public boolean hasEnvironments() {
+    return ((bitField0_ & 0x00000004) != 0);
+  }
+  /**
+   * <pre>
+   * What an Environment does on this server.
+   *
+   * Every server that knows the field sets it. Absent means the server
+   * predates it: a client offers Environments and lets the server's own
+   * refusals speak.
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.EnvironmentAvailability environments = 5 [json_name = "environments"];</code>
+   * @return The environments.
+   */
+  @java.lang.Override
+  public ai.stigmer.platform.v1.EnvironmentAvailability getEnvironments() {
+    return environments_ == null ? ai.stigmer.platform.v1.EnvironmentAvailability.getDefaultInstance() : environments_;
+  }
+  /**
+   * <pre>
+   * What an Environment does on this server.
+   *
+   * Every server that knows the field sets it. Absent means the server
+   * predates it: a client offers Environments and lets the server's own
+   * refusals speak.
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.EnvironmentAvailability environments = 5 [json_name = "environments"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.platform.v1.EnvironmentAvailabilityOrBuilder getEnvironmentsOrBuilder() {
+    return environments_ == null ? ai.stigmer.platform.v1.EnvironmentAvailability.getDefaultInstance() : environments_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -252,6 +302,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeBool(4, singleOrg_);
     }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      output.writeMessage(5, getEnvironments());
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -275,6 +328,10 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(4, singleOrg_);
+    }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(5, getEnvironments());
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -304,6 +361,11 @@ private static final long serialVersionUID = 0L;
       if (getSingleOrg()
           != other.getSingleOrg()) return false;
     }
+    if (hasEnvironments() != other.hasEnvironments()) return false;
+    if (hasEnvironments()) {
+      if (!getEnvironments()
+          .equals(other.getEnvironments())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -328,6 +390,10 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + SINGLE_ORG_FIELD_NUMBER;
       hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
           getSingleOrg());
+    }
+    if (hasEnvironments()) {
+      hash = (37 * hash) + ENVIRONMENTS_FIELD_NUMBER;
+      hash = (53 * hash) + getEnvironments().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -452,13 +518,19 @@ private static final long serialVersionUID = 0L;
 
     // Construct using ai.stigmer.platform.v1.GetServerInfoOutput.newBuilder()
     private Builder() {
-
+      maybeForceBuilderInitialization();
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       super(parent);
-
+      maybeForceBuilderInitialization();
+    }
+    private void maybeForceBuilderInitialization() {
+      if (com.google.protobuf.GeneratedMessage
+              .alwaysUseFieldBuilders) {
+        internalGetEnvironmentsFieldBuilder();
+      }
     }
     @java.lang.Override
     public Builder clear() {
@@ -468,6 +540,11 @@ private static final long serialVersionUID = 0L;
       version_ = "";
       authenticationRequired_ = false;
       singleOrg_ = false;
+      environments_ = null;
+      if (environmentsBuilder_ != null) {
+        environmentsBuilder_.dispose();
+        environmentsBuilder_ = null;
+      }
       return this;
     }
 
@@ -516,6 +593,12 @@ private static final long serialVersionUID = 0L;
         result.singleOrg_ = singleOrg_;
         to_bitField0_ |= 0x00000002;
       }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.environments_ = environmentsBuilder_ == null
+            ? environments_
+            : environmentsBuilder_.build();
+        to_bitField0_ |= 0x00000004;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -544,6 +627,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasSingleOrg()) {
         setSingleOrg(other.getSingleOrg());
+      }
+      if (other.hasEnvironments()) {
+        mergeEnvironments(other.getEnvironments());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -591,6 +677,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 32
+            case 42: {
+              input.readMessage(
+                  internalGetEnvironmentsFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 42
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -970,6 +1063,199 @@ private static final long serialVersionUID = 0L;
       singleOrg_ = false;
       onChanged();
       return this;
+    }
+
+    private ai.stigmer.platform.v1.EnvironmentAvailability environments_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.platform.v1.EnvironmentAvailability, ai.stigmer.platform.v1.EnvironmentAvailability.Builder, ai.stigmer.platform.v1.EnvironmentAvailabilityOrBuilder> environmentsBuilder_;
+    /**
+     * <pre>
+     * What an Environment does on this server.
+     *
+     * Every server that knows the field sets it. Absent means the server
+     * predates it: a client offers Environments and lets the server's own
+     * refusals speak.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.EnvironmentAvailability environments = 5 [json_name = "environments"];</code>
+     * @return Whether the environments field is set.
+     */
+    public boolean hasEnvironments() {
+      return ((bitField0_ & 0x00000010) != 0);
+    }
+    /**
+     * <pre>
+     * What an Environment does on this server.
+     *
+     * Every server that knows the field sets it. Absent means the server
+     * predates it: a client offers Environments and lets the server's own
+     * refusals speak.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.EnvironmentAvailability environments = 5 [json_name = "environments"];</code>
+     * @return The environments.
+     */
+    public ai.stigmer.platform.v1.EnvironmentAvailability getEnvironments() {
+      if (environmentsBuilder_ == null) {
+        return environments_ == null ? ai.stigmer.platform.v1.EnvironmentAvailability.getDefaultInstance() : environments_;
+      } else {
+        return environmentsBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * What an Environment does on this server.
+     *
+     * Every server that knows the field sets it. Absent means the server
+     * predates it: a client offers Environments and lets the server's own
+     * refusals speak.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.EnvironmentAvailability environments = 5 [json_name = "environments"];</code>
+     */
+    public Builder setEnvironments(ai.stigmer.platform.v1.EnvironmentAvailability value) {
+      if (environmentsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        environments_ = value;
+      } else {
+        environmentsBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * What an Environment does on this server.
+     *
+     * Every server that knows the field sets it. Absent means the server
+     * predates it: a client offers Environments and lets the server's own
+     * refusals speak.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.EnvironmentAvailability environments = 5 [json_name = "environments"];</code>
+     */
+    public Builder setEnvironments(
+        ai.stigmer.platform.v1.EnvironmentAvailability.Builder builderForValue) {
+      if (environmentsBuilder_ == null) {
+        environments_ = builderForValue.build();
+      } else {
+        environmentsBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * What an Environment does on this server.
+     *
+     * Every server that knows the field sets it. Absent means the server
+     * predates it: a client offers Environments and lets the server's own
+     * refusals speak.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.EnvironmentAvailability environments = 5 [json_name = "environments"];</code>
+     */
+    public Builder mergeEnvironments(ai.stigmer.platform.v1.EnvironmentAvailability value) {
+      if (environmentsBuilder_ == null) {
+        if (((bitField0_ & 0x00000010) != 0) &&
+          environments_ != null &&
+          environments_ != ai.stigmer.platform.v1.EnvironmentAvailability.getDefaultInstance()) {
+          getEnvironmentsBuilder().mergeFrom(value);
+        } else {
+          environments_ = value;
+        }
+      } else {
+        environmentsBuilder_.mergeFrom(value);
+      }
+      if (environments_ != null) {
+        bitField0_ |= 0x00000010;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What an Environment does on this server.
+     *
+     * Every server that knows the field sets it. Absent means the server
+     * predates it: a client offers Environments and lets the server's own
+     * refusals speak.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.EnvironmentAvailability environments = 5 [json_name = "environments"];</code>
+     */
+    public Builder clearEnvironments() {
+      bitField0_ = (bitField0_ & ~0x00000010);
+      environments_ = null;
+      if (environmentsBuilder_ != null) {
+        environmentsBuilder_.dispose();
+        environmentsBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * What an Environment does on this server.
+     *
+     * Every server that knows the field sets it. Absent means the server
+     * predates it: a client offers Environments and lets the server's own
+     * refusals speak.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.EnvironmentAvailability environments = 5 [json_name = "environments"];</code>
+     */
+    public ai.stigmer.platform.v1.EnvironmentAvailability.Builder getEnvironmentsBuilder() {
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return internalGetEnvironmentsFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * What an Environment does on this server.
+     *
+     * Every server that knows the field sets it. Absent means the server
+     * predates it: a client offers Environments and lets the server's own
+     * refusals speak.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.EnvironmentAvailability environments = 5 [json_name = "environments"];</code>
+     */
+    public ai.stigmer.platform.v1.EnvironmentAvailabilityOrBuilder getEnvironmentsOrBuilder() {
+      if (environmentsBuilder_ != null) {
+        return environmentsBuilder_.getMessageOrBuilder();
+      } else {
+        return environments_ == null ?
+            ai.stigmer.platform.v1.EnvironmentAvailability.getDefaultInstance() : environments_;
+      }
+    }
+    /**
+     * <pre>
+     * What an Environment does on this server.
+     *
+     * Every server that knows the field sets it. Absent means the server
+     * predates it: a client offers Environments and lets the server's own
+     * refusals speak.
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.EnvironmentAvailability environments = 5 [json_name = "environments"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.platform.v1.EnvironmentAvailability, ai.stigmer.platform.v1.EnvironmentAvailability.Builder, ai.stigmer.platform.v1.EnvironmentAvailabilityOrBuilder> 
+        internalGetEnvironmentsFieldBuilder() {
+      if (environmentsBuilder_ == null) {
+        environmentsBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.platform.v1.EnvironmentAvailability, ai.stigmer.platform.v1.EnvironmentAvailability.Builder, ai.stigmer.platform.v1.EnvironmentAvailabilityOrBuilder>(
+                getEnvironments(),
+                getParentForChildren(),
+                isClean());
+        environments_ = null;
+      }
+      return environmentsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.platform.v1.GetServerInfoOutput)

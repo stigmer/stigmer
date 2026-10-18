@@ -199,6 +199,36 @@ message GetServerInfoOutput {
   // Every server that knows the field sets it. Absent means the server
   // predates it: a client shows organizations.
   optional bool single_org = 4;
+
+  // What an Environment does on this server.
+  //
+  // Every server that knows the field sets it. Absent means the server
+  // predates it: a client offers Environments and lets the server's own
+  // refusals speak.
+  EnvironmentAvailability environments = 5;
+}
+
+// EnvironmentAvailability says whether an Environment governs this server's
+// conversations, and what its sandboxes can do with one.
+//
+// Each answer is the one the server's own refusals give: saving an
+// Environment the sandboxes cannot honour, and naming one on a conversation
+// none governs, are refused with a sentence that says why.
+message EnvironmentAvailability {
+  // Whether a conversation that names no execution target runs in a sandbox
+  // this server starts, so an Environment governs it: every conversation a
+  // console, the CLI, a routine, a channel or a chat link starts.
+  //
+  // False where such conversations run on the person's own machine or an
+  // operator's runner, and no Environment applies to them.
+  bool applies = 1;
+
+  // Whether this server's sandboxes can hold a conversation to the hosts an
+  // Environment lists.
+  bool limited_networking = 2;
+
+  // Whether this server's sandboxes can install an Environment's packages.
+  bool packages = 3;
 }
 
 // Empty request — the server reports on the one license it holds.

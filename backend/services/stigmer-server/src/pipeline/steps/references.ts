@@ -170,7 +170,7 @@ import type { RequestContext } from "../request-context.js";
 import { kindEnumName } from "../apiresource-meta.js";
 import { evaluateAuthorizer } from "./authorize.js";
 import { EXISTING_RESOURCE_KEY } from "./load-existing.js";
-import { messageFieldByName, metadataOf, owningOrgOf } from "./shapes.js";
+import { messageFieldByName, metadataOf, ownParentOrgOf, owningOrgOf } from "./shapes.js";
 import { findResourceByName, resolveName } from "./names.js";
 
 const API_RESOURCE_REFERENCE_TYPE =
@@ -339,12 +339,15 @@ interface IndexedTarget {
  * reads only the targets it judges. A row of another organization than the
  * reference names is no target of it. A reference whose kind is not in the
  * table is a contract the pin test has not admitted yet and is an internal
- * fault.
+ * fault. The writing organization's parent is read from its row when a
+ * reference crosses organizations, unless the caller already holds it
+ * (`ownParentOrgOf`: an organization judging its own settings).
  */
 export async function loadReferenceTargets(
   store: Store,
   refs: ReadonlyArray<SpecReference>,
   writerOrg: string,
+  knownWriterParentOrg?: string,
 ): Promise<ReferenceTargets> {
   const found = new Map<string, IndexedTarget | undefined>();
   for (const ref of refs) {
@@ -386,7 +389,7 @@ export async function loadReferenceTargets(
   const crosses = refs.some((ref) => ref.org !== "" && ref.org !== writerOrg);
   const writerParentOrg =
     crosses && writerOrg !== ""
-      ? await parentOrgOfOrganization(store, writerOrg)
+      ? (knownWriterParentOrg ?? (await parentOrgOfOrganization(store, writerOrg)))
       : "";
   return {
     writerParentOrg,
@@ -1111,7 +1114,12 @@ export function newValidateReferencesStep<Desc extends DescMessage>(
             )
           : refs;
       if (judged.length > 0) {
-        const targets = await loadReferenceTargets(store, judged, parent.org);
+        const targets = await loadReferenceTargets(
+          store,
+          judged,
+          parent.org,
+          ownParentOrgOf(ctx.schema, ctx.newState),
+        );
         const refusal = await judgeReferences(targets, store, parent, judged, {
           authorizer,
           caller: ctx.callerIdentity,

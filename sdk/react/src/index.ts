@@ -24,7 +24,7 @@ export type { ColorMode, ResolvedColorMode } from "./color-mode.js";
 export { useStigmerPortalContainer } from "./portal-container.js";
 
 // Server identity: edition, version and authentication posture
-export { useServerInfo, useSingleOrg } from "./server-info.js";
+export { useEnvironmentAvailability, useServerInfo, useSingleOrg } from "./server-info.js";
 export type { UseServerInfoReturn } from "./server-info.js";
 
 // Deployment mode and resource availability
@@ -934,6 +934,83 @@ export type {
   BuildRoutineFireCurlArgs,
   UseUpdateRoutineSpecReturn,
 } from "./routine/index.js";
+
+// Environment — the packages and network a conversation's sandbox gets:
+// which one applies and why (the server's order, previewed), the words for
+// it, the list, the picker, and whether Environments apply here at all
+export {
+  ENVIRONMENT_SOURCE_ORDER,
+  environmentChoiceOfStatus,
+  environmentSourceName,
+  environmentsNotApplying,
+  resolveEnvironmentChoice,
+  describeEnvironmentChoice,
+  ENVIRONMENT_SOURCE_COPY,
+  ENVIRONMENTS_NOT_APPLYING_COPY,
+  ENVIRONMENTS_NOT_ON_SERVER_BANNER,
+  inheritedRowLabel,
+  LIMITED_NETWORKING_UNAVAILABLE_COPY,
+  NO_ENVIRONMENT_COPY,
+  PACKAGES_UNAVAILABLE_COPY,
+  environmentName,
+  useEnvironmentList,
+  useEnvironmentsNotApplying,
+  EnvironmentPicker,
+  createEnvironmentListFn,
+  listEnvironmentsPage,
+  useEnvironmentCount,
+  useEnvironment,
+  useCreateEnvironment,
+  useUpdateEnvironment,
+  useCanCreateEnvironment,
+  createEnvironmentColumns,
+  describeNetworkShort,
+  describePackagesShort,
+  EMPTY_PACKAGES_DRAFT,
+  linesOf,
+  NetworkingFields,
+  networkingDraftOf,
+  networkingInputOf,
+  PACKAGE_MANAGER_HINTS,
+  PACKAGE_MANAGERS,
+  packageCountOf,
+  PackagesFields,
+  packagesDraftOf,
+  packagesInputOf,
+  EnvironmentForm,
+  startingNetworkOf,
+  EnvironmentDetailView,
+  EnvironmentIcon,
+  EnvironmentsNotOnServerNotice,
+  EnvironmentCreationDenied,
+} from "./environment/index.js";
+export type {
+  EnvironmentChoice,
+  EnvironmentChoiceInputs,
+  EnvironmentReference,
+  EnvironmentSourceName,
+  EnvironmentsNotApplying,
+  UseEnvironmentListReturn,
+  EnvironmentPickerProps,
+  EnvironmentListClient,
+  EnvironmentPage,
+  UseEnvironmentCountOptions,
+  UseEnvironmentCountReturn,
+  UseEnvironmentReturn,
+  UseCreateEnvironmentReturn,
+  EnvironmentEdit,
+  UseUpdateEnvironmentReturn,
+  UseCanCreateEnvironmentReturn,
+  NetworkingDraft,
+  NetworkingFieldsProps,
+  PackageManager,
+  PackagesDraft,
+  PackagesFieldsProps,
+  EnvironmentFormProps,
+  EnvironmentDetailViewProps,
+  EnvironmentsNotOnServerNoticeProps,
+  EnvironmentCreationDeniedProps,
+} from "./environment/index.js";
 
 // Vault — My vault and shared vaults (entry names only; values are write-only), the vault picker, the credential form, the session value pool, the platform-filled key set, and the address rule
 export {

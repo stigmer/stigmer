@@ -31,6 +31,7 @@ import { AgentHooksSection } from "./AgentHooksSection.js";
 import { AgentSubagentsSection } from "./AgentSubagentsSection.js";
 import { AgentMcpServersSection } from "./AgentMcpServersSection.js";
 import { AgentRunDefaultsSection, type AgentRunDefaultsSave } from "./AgentRunDefaultsSection.js";
+import { AgentEnvironmentSection } from "./AgentEnvironmentSection.js";
 import type { DependencyNode } from "../dependency-graph/types.js";
 import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea.js";
 import { InlineEditImage } from "../inline-edit/InlineEditImage.js";
@@ -780,6 +781,16 @@ function AgentOverview({
         isSaving={!!isSaving}
         error={errorFor("runConfig")}
         onSave={(save) => saveRunDefaults?.(save) ?? Promise.resolve(false)}
+        onEditStart={clearSaveError}
+      />
+
+      <AgentEnvironmentSection
+        spec={spec}
+        agentOrg={agentOrg}
+        editable={!!editable && saveField !== undefined}
+        isSaving={!!isSaving}
+        error={errorFor("environmentRef")}
+        onSave={(environmentRef) => saveField?.("environmentRef", environmentRef) ?? Promise.resolve(false)}
         onEditStart={clearSaveError}
       />
 

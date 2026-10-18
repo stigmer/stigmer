@@ -24,6 +24,11 @@
  *     library consumer states through ComposeOptions.version otherwise
  *     (stigmer#1168: unbundled, the stamp is always "dev"), and a
  *     trusted-local server's posture as an explicit false;
+ *   - getServerInfo's `environments` is set on every server, and copies
+ *     the composed Environment policy: whether it governs a conversation
+ *     that names no target, and what its sandboxes can do; the default
+ *     open-source composition starts no sandbox, so it answers false
+ *     three times;
  *   - getLicenseStatus answers `absent` with no claims and no key when no
  *     provider is composed, and the composed provider's report verbatim
  *     when one is — both stamped with the ONE instant the controller
@@ -52,6 +57,7 @@ import {
   LicenseState,
   LicenseTerm,
 } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
+import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import {
   GetRunnerScopedTokenInputSchema,
   PlatformQueryController,
@@ -74,6 +80,14 @@ import {
   RunnerAuthService,
 } from "../../../runnerauth/runnerauth.js";
 import { registerPlatformServices } from "../controller.js";
+import type { EnvironmentPolicy } from "../../run/environment-admission.js";
+import { NO_ENVIRONMENT_SUPPORT } from "../../environment/facts.js";
+
+/** The default posture's policy: no sandbox lane, so nothing is governed. */
+const NO_SANDBOX_POLICY: EnvironmentPolicy = {
+  governs: () => false,
+  support: NO_ENVIRONMENT_SUPPORT,
+};
 
 const silentLogger = createLogger({
   level: "error",
@@ -148,6 +162,12 @@ describe("platform domain (composed server)", () => {
     // A server that trusts every request says so on the wire: an explicit
     // false, never an absent field a console would read as "unknown".
     expect(first.authenticationRequired).toBe(false);
+    // The default posture starts no sandbox (SANDBOX_PROVISIONER_TYPE
+    // unset): no Environment governs a conversation here, and the field is
+    // still present, so a console never reads it as an older server.
+    expect(first.environments).toEqual(
+      expect.objectContaining({ applies: false, limitedNetworking: false, packages: false }),
+    );
 
     const second = await client.getServerInfo({});
     expect(second.edition).toBe(first.edition);
@@ -383,6 +403,7 @@ describe("platform domain (keyless runner-token service)", () => {
         authenticationRequired: false,
         singleOrganization: undefined,
         licenseStatus: ABSENT_LICENSE_STATUS,
+        environmentPolicy: NO_SANDBOX_POLICY,
         now: () => new Date(),
         logger: silentLogger,
       });
@@ -395,6 +416,66 @@ describe("platform domain (keyless runner-token service)", () => {
     expect(out.runnerScopedToken).toBe("");
     expect(out.tokenType).toBe("");
     expect(out.expiresInSeconds).toBe(0);
+  });
+});
+
+/**
+ * getServerInfo's `environments` on an in-process router, one composed
+ * policy per case: `applies` asks the policy about a conversation that names
+ * no target, and the other two answers are its sandboxes' support, copied.
+ */
+describe("platform domain (environment availability)", () => {
+  function serverInfoWith(policy: EnvironmentPolicy) {
+    const transport = createRouterTransport((router) => {
+      registerPlatformServices(router, {
+        runnerBootstrapTemporalAddress: "localhost:7233",
+        temporalNamespace: "default",
+        runnerAuthService: newExecutionScopedRunnerCredentialProvider(
+          RunnerAuthService.create(undefined),
+        ),
+        edition: ServerEdition.oss,
+        version: "dev",
+        authenticationRequired: false,
+        singleOrganization: undefined,
+        licenseStatus: ABSENT_LICENSE_STATUS,
+        environmentPolicy: policy,
+        now: () => new Date(),
+        logger: silentLogger,
+      });
+    });
+    return createClient(PlatformQueryController, transport).getServerInfo({});
+  }
+
+  it("asks the policy about a conversation that names no target", async () => {
+    const asked: ExecutionTarget[] = [];
+    const info = await serverInfoWith({
+      governs: (target) => {
+        asked.push(target);
+        return true;
+      },
+      support: { limitedNetworking: false, packages: true },
+    });
+    expect(asked).toEqual([ExecutionTarget.UNSPECIFIED]);
+    expect(info.environments).toEqual(
+      expect.objectContaining({ applies: true, limitedNetworking: false, packages: true }),
+    );
+  });
+
+  it("copies each support answer as the sandboxes state it", async () => {
+    const info = await serverInfoWith({
+      governs: () => true,
+      support: { limitedNetworking: true, packages: false },
+    });
+    expect(info.environments).toEqual(
+      expect.objectContaining({ applies: true, limitedNetworking: true, packages: false }),
+    );
+  });
+
+  it("a policy that governs nothing says so, and the field is still set", async () => {
+    const info = await serverInfoWith(NO_SANDBOX_POLICY);
+    expect(info.environments).toEqual(
+      expect.objectContaining({ applies: false, limitedNetworking: false, packages: false }),
+    );
   });
 });
 
@@ -420,6 +501,7 @@ describe("platform domain (license status)", () => {
         authenticationRequired: false,
         singleOrganization: undefined,
         licenseStatus: provider,
+        environmentPolicy: NO_SANDBOX_POLICY,
         now: () => instant,
         logger: silentLogger,
       });

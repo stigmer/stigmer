@@ -1,6 +1,7 @@
 // Unit tests for run-path resource creation: full-proto field mapping, the
 // message default, run_config presence/contents, the top-level mode, the vault
 // choice on the new session (always sent: include_my_vault is off when unset),
+// the Environment the new session names (none when no flag named one),
 // the one-call session_spec bootstrap, and the turn's target (an existing
 // session by id alone, or a new conversation naming its agent by reference).
 // The controller is faked to capture the exact proto sent to
@@ -49,7 +50,41 @@ function fakeController(): { fn: ControllerFn; last: () => unknown } {
   return { fn, last: () => captured };
 }
 
+const ENVIRONMENT_REF = create(ApiResourceReferenceSchema, {
+  kind: ApiResourceKind.environment,
+  org: "acme",
+  slug: "data-science",
+});
+
 describe("createAgentRun", () => {
+  it.each([
+    [ENVIRONMENT_REF, "acme/data-science"],
+    [undefined, undefined],
+  ] as const)("names the new session's environment as given (%o), and none when none is", async (environment, sent) => {
+    const { fn } = fakeController();
+    const exec = await createAgentRun(fn, {
+      agentRef: AGENT_REF,
+      orgId: "acme",
+      message: "hi",
+      vaults: [],
+      includeMyVault: true,
+      plugins: [],
+      ...(environment === undefined ? {} : { environment }),
+      attachments: [],
+      workspaceFileRefs: [],
+      workspaceEntries: [],
+      model: "",
+      mode: "",
+      serviceTier: "",
+      thinking: "",
+      autoApproveAll: false,
+      harness: "",
+    });
+    const ref = sessionSpecOf(exec)?.environmentRef;
+    expect(ref === undefined ? undefined : `${ref.org}/${ref.slug}`).toBe(sent);
+    if (ref !== undefined) expect(ref.kind).toBe(ApiResourceKind.environment);
+  });
+
   it("maps the full spec and defaults an empty message to 'execute'", async () => {
     const { fn } = fakeController();
     const exec = await createAgentRun(fn, {

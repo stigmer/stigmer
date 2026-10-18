@@ -484,6 +484,10 @@ export function NewSessionViewer({
           enableVaultPicker={!isGuest && !isCurated}
           initialIncludeMyVault={includesMyVault}
           initialVaultRefs={vaults}
+          // The Environment is the new conversation's to pick, beside its
+          // vaults; the flow says where it applies at all.
+          enableEnvironmentPicker={flow.offersEnvironment && !isCurated}
+          environmentDefaults={flow.environmentDefaults}
           initialAttachments={isGuest ? undefined : initialAttachments}
           lockAgent={isCurated && initialAgentRef != null}
           pluginRefs={isCurated ? undefined : flow.pluginRefs}

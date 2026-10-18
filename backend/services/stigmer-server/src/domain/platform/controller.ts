@@ -9,6 +9,12 @@
  * and __tests__/platform.test.ts (the fail-soft mint matrix, the license
  * status arms, the stated-version arm, over a composed server).
  *
+ * getServerInfo's `environments` is read from the deployment's one
+ * Environment policy (domain/run/environment-admission.ts), the object the
+ * Environment save's refusal and the session's admission read too, so what
+ * the server advertises and what it refuses cannot disagree;
+ * environment.conformance.test.ts holds each answer to its refusal.
+ *
  * getLicenseStatus is the one arm every edition answers from a driver
  * point: a server's license is a fact about the server, like its edition,
  * and the provider behind `deps.licenseStatus` is the one place that
@@ -51,7 +57,9 @@ import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 
 import { LicenseState } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
+import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import {
+  EnvironmentAvailabilitySchema,
   GetLicenseStatusOutputSchema,
   GetRunnerBootstrapConfigOutputSchema,
   GetRunnerScopedTokenOutputSchema,
@@ -70,6 +78,7 @@ import type {
 import type { SingleOrganization } from "../../pipeline/interceptors/single-organization.js";
 import type { Logger } from "../../boot/logger.js";
 import type { LicenseStatusProvider } from "../../extensions/license-status.js";
+import type { EnvironmentPolicy } from "../run/environment-admission.js";
 import { isServiceAccountCaller } from "../../extensions/identity.js";
 import {
   callerIdentityKey,
@@ -141,6 +150,13 @@ export interface PlatformControllerDeps {
    */
   readonly licenseStatus: LicenseStatusProvider;
   /**
+   * The deployment's Environment policy, the one the session and run
+   * services and the Environment controller hold: `environments.applies`
+   * is whether it governs a conversation that names no target, and the
+   * other two answers are what its sandboxes can do.
+   */
+  readonly environmentPolicy: EnvironmentPolicy;
+  /**
    * The clock getLicenseStatus evaluates against — injected so a test can
    * pin that the provider's instant and checked_at are the same one.
    */
@@ -163,13 +179,18 @@ export function registerPlatformServices(
   });
 }
 
-/** Go GetServerInfo: the server edition, release version, authentication posture and whether it fills one organization. */
+/** Go GetServerInfo: the server edition, release version, authentication posture, whether it fills one organization, and what an Environment does here. */
 function getServerInfo(deps: PlatformControllerDeps): GetServerInfoOutput {
   return create(GetServerInfoOutputSchema, {
     edition: deps.edition,
     version: deps.version,
     authenticationRequired: deps.authenticationRequired,
     singleOrg: deps.singleOrganization?.current() !== undefined,
+    environments: create(EnvironmentAvailabilitySchema, {
+      applies: deps.environmentPolicy.governs(ExecutionTarget.UNSPECIFIED),
+      limitedNetworking: deps.environmentPolicy.support.limitedNetworking,
+      packages: deps.environmentPolicy.support.packages,
+    }),
   });
 }
 

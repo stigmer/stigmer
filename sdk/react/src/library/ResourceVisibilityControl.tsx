@@ -26,6 +26,7 @@ const FGA_KIND: Record<VisibilityResourceKind, string> = {
   plugin: "plugin",
   skill: "skill",
   vault: "vault",
+  environment: "environment",
 };
 
 /** Props for {@link ResourceVisibilityControl}. */

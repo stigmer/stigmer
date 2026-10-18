@@ -85,6 +85,8 @@ import { LoadingRegion } from "../internal/LoadingRegion.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 import { keptReference } from "../internal/kept-reference.js";
 import { ResourceSlugField } from "../resource-detail/RenameSlugField.js";
+import { describeEnvironmentChoice } from "../environment/copy.js";
+import { RoutineEnvironmentField, useRoutineEnvironmentDefault } from "./RoutineEnvironmentField.js";
 
 /** Props for {@link RoutineDetailView}. */
 export interface RoutineDetailViewProps {
@@ -115,7 +117,7 @@ export interface RoutineDetailViewProps {
   readonly onRenamed?: (routine: Routine) => void;
   /**
    * Enable inline editing of the routine's mutable spec fields
-   * (cadence, message, vaults, engine & model, budget). Each
+   * (cadence, message, vaults, environment, engine & model, budget). Each
    * field saves independently via a lossless full-resource re-apply
    * ({@link useUpdateRoutineSpec}). The slug is renamed on its own,
    * from the Overview's slug field, by whoever may delete the routine
@@ -656,6 +658,26 @@ export function RoutineDetailView({
               />
             )}
           </DetailRow>
+          <DetailRow label="Environment">
+            <RoutineEnvironmentRow
+              org={routineOrg}
+              agentRef={target?.agentRef && !isDeletedReference(target.agentRef) ? { org: target.agentRef.org, slug: target.agentRef.slug } : null}
+              environmentRef={target?.environmentRef}
+              editable={!!editable && target !== undefined}
+              onSave={(ref) =>
+                saveSpecField(routine, "environment", (s) => {
+                  if (s.agent !== undefined) {
+                    s.agent.environmentRef =
+                      ref === undefined
+                        ? undefined
+                        : create(ApiResourceReferenceSchema, { ...keptReference(ref), kind: ApiResourceKind.environment });
+                  }
+                })
+              }
+              isSaving={isUpdating}
+              error={saveError?.field === "environment" ? saveError.message : undefined}
+            />
+          </DetailRow>
           {/* Workspace is authored in the creation form (or YAML); an
               inline workspace editor is deliberately deferred — the
               read view keeps every stored entry visible. */}
@@ -1075,6 +1097,78 @@ function VaultsInlineEditor({
       <p className="stg:text-[0.65rem] stg:text-muted-foreground">
         The keys and logins every fire uses. Without them, an agent whose
         tools need credentials is refused every run, naming the key.
+      </p>
+      <InlineEditActions
+        onCancel={() => setIsEditing(false)}
+        onSave={async () => {
+          const ok = await onSave(draft);
+          if (ok) setIsEditing(false);
+        }}
+        isSaving={isSaving}
+        canSave
+        error={error}
+      />
+    </div>
+  );
+}
+
+/**
+ * The routine's Environment: its own choice, else its agent's default,
+ * else the organization's, said as every surface says it
+ * ("data-science · the agent's default"). The editor's first row is what
+ * applies without the routine's own; choosing it clears the field.
+ */
+function RoutineEnvironmentRow({
+  org,
+  agentRef,
+  environmentRef,
+  editable,
+  onSave,
+  isSaving,
+  error,
+}: {
+  readonly org: string;
+  readonly agentRef: ResourceRef | null;
+  readonly environmentRef: { org: string; slug: string; id?: string } | undefined;
+  readonly editable: boolean;
+  readonly onSave: (ref: ResourceRef | undefined) => Promise<boolean>;
+  readonly isSaving: boolean;
+  readonly error?: string;
+}) {
+  const { inherited, nameOf } = useRoutineEnvironmentDefault(org, agentRef);
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState<ResourceRef | undefined>(undefined);
+  const own = environmentRef !== undefined && environmentRef.slug !== "" ? environmentRef : undefined;
+  const summary = (
+    <span className="stg:text-sm stg:text-foreground">
+      {describeEnvironmentChoice(
+        own !== undefined ? { kind: "chosen", environment: own, source: "routine" } : inherited,
+        nameOf,
+      )}
+    </span>
+  );
+
+  if (!editable) return summary;
+
+  if (!isEditing) {
+    return (
+      <InlineReadButton
+        onEdit={() => {
+          setDraft(own !== undefined ? { org: own.org || org, slug: own.slug } : undefined);
+          setIsEditing(true);
+        }}
+        ariaLabel="Edit environment"
+      >
+        {summary}
+      </InlineReadButton>
+    );
+  }
+
+  return (
+    <div className="stg:flex stg:flex-col stg:gap-2">
+      <RoutineEnvironmentField org={org} agentRef={agentRef} value={draft} onChange={setDraft} disabled={isSaving} />
+      <p className="stg:text-[0.65rem] stg:text-muted-foreground">
+        The packages and network every fire&rsquo;s sandbox gets.
       </p>
       <InlineEditActions
         onCancel={() => setIsEditing(false)}

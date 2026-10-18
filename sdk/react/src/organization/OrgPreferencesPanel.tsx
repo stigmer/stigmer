@@ -10,6 +10,7 @@ import { useUpdateOrganization } from "./useUpdateOrganization.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
 import { useServerInfo } from "../server-info.js";
 import { MemoryEnabledRow } from "../internal/MemoryEnabledRow.js";
+import { DefaultEnvironmentRow } from "./DefaultEnvironmentRow.js";
 import { StandingContextField } from "../internal/StandingContextField.js";
 import { SpinnerIcon } from "../internal/SpinnerIcon.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
@@ -34,7 +35,8 @@ export interface OrgPreferencesPanelProps {
 
 /**
  * Self-contained editor for an {@link Organization}'s declared
- * preferences (`spec.preferences.standing_context`).
+ * preferences (`spec.preferences.standing_context`, `memory_enabled` and
+ * `default_environment_ref`).
  *
  * The declared text is snapshotted into every eligible run
  * run by the organization's members (first-party human operators only)
@@ -171,6 +173,16 @@ export function OrgPreferencesPanel({
     [organization, updateMemoryFlag, refetch, onUpdated],
   );
 
+  // The default Environment saves the moment it is picked, like the
+  // memory switch, through the row's own update.
+  const handleDefaultEnvironmentSaved = useCallback(
+    (updated: Organization) => {
+      refetch();
+      onUpdated?.(updated);
+    },
+    [refetch, onUpdated],
+  );
+
   // -----------------------------------------------------------------------
   // Loading state
   // -----------------------------------------------------------------------
@@ -239,6 +251,13 @@ export function OrgPreferencesPanel({
         readOnly={!canEdit}
         error={memoryFlagError}
         helperText={memoryHelperText}
+      />
+
+      <DefaultEnvironmentRow
+        id={`${baseId}-default-environment`}
+        organization={organization}
+        readOnly={!canEdit}
+        onSaved={handleDefaultEnvironmentSaved}
       />
 
       {!canEdit && (

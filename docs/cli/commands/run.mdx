@@ -49,6 +49,7 @@ stigmer run my-agent -m "Summarize the Q4 earnings report"
 | `--commit`          | `string` |         | git commit SHA to checkout (single git workspace only)                                                                                                                                                  |
 | `--detach`          | `bool`   |         | start the run and return immediately without streaming                                                                                                                                                  |
 | `--download`        | `string` |         | download artifacts to directory when complete                                                                                                                                                           |
+| `--environment`     | `string` |         | the environment the conversation's sandbox runs in, by id, org/slug or slug: its packages and network access, in place of the agent's or the organization's default                                     |
 | `--harness`         | `string` |         | execution harness for the new session: "native" or "cursor"; unset, the agent's engine, else your account default, else native                                                                          |
 | `--json`            | `bool`   |         | stream events as newline-delimited JSON                                                                                                                                                                 |
 | `--message`, `-m`   | `string` |         | initial message/prompt for the run                                                                                                                                                                      |
@@ -107,6 +108,26 @@ stigmer run --plugin linear -m "What's on my plate this week?"
 
 # An agent with two more plugins
 stigmer run my-agent --plugin linear --plugin platform/github
+```
+
+### Environment this conversation runs in
+
+`--environment REF` names the environment the conversation's sandbox runs in, by
+id, `org/slug` or slug: the packages it installs and the websites it may reach.
+Without it, the conversation runs in its agent's default environment, else its
+organization's, else the server's standard sandbox. Like the vaults, the
+conversation keeps the environment it was started with.
+
+An environment applies only to a conversation in a sandbox the server starts.
+Where the conversation runs on your own machine, or the server starts no
+sandboxes, the server refuses an environment you name, and says so.
+
+```bash
+# Run in the data-science environment
+stigmer run my-agent --environment data-science -m "Plot last week's signups"
+
+# An environment your organization's parent shares with it
+stigmer run my-agent --environment platform/base-tools
 ```
 
 ### Workspaces

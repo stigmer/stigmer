@@ -26,6 +26,13 @@ export interface SharedSessionFields {
   /** Skill references to enable for runs in this session. */
   readonly skillRefs?: ResourceRef[];
   /**
+   * The Environment the conversation runs in: the packages and network its
+   * sandbox gets. Omit to take the agent's default, else the
+   * organization's. A conversation on the person's own machine refuses
+   * one. Fixed once a turn has run.
+   */
+  readonly environmentRef?: ResourceRef;
+  /**
    * Whether each turn's file edits are offered for review, Keep or Undo,
    * after the turn. Off unless set. Review never makes a turn wait: the
    * edits are applied, and an Undo puts a file back.
@@ -158,6 +165,7 @@ export function useCreateSession(): UseCreateSessionReturn {
           workspaceEntries: input.workspaceEntries,
           plugins: input.plugins,
           skillRefs: input.skillRefs,
+          environmentRef: input.environmentRef,
           fileReview: input.fileReview,
           metadata: mergeSessionContext(input.metadata, input.sessionContext),
           agentRef: input.agentRef,

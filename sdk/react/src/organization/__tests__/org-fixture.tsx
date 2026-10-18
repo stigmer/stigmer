@@ -45,6 +45,9 @@ export function orgWrapper(
   const value = {
     ...client,
     organization: {
+      // An organization read by id answers the fixture's entry; a test that
+      // needs more (its preferences) passes its own `get`.
+      get: vi.fn(async (id: string) => orgs.find((org) => org.metadata?.id === id) ?? null),
       ...(client.organization as Record<string, unknown> | undefined),
       listMine: vi.fn().mockResolvedValue({ entries: orgs, nextPageToken: "" }),
     },

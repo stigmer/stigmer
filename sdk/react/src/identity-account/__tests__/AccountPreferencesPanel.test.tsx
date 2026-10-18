@@ -25,6 +25,7 @@ function answering(authenticationRequired: boolean | undefined): UseServerInfoRe
       version: "dev",
       authenticationRequired,
       singleOrg: undefined,
+      environments: undefined,
     },
     isLoading: false,
     error: null,

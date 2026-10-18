@@ -15,6 +15,7 @@ import type { DescField, DescMessage, Message } from "@bufbuild/protobuf";
 
 import type { ApiResourceMetadata } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
+import type { Organization } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
 
 /** Go HasMetadata: every API resource carries metadata of this one type. */
 export interface HasMetadataShape {
@@ -47,6 +48,24 @@ export function owningOrgOf(schema: DescMessage, msg: Message): string {
     return metadata?.id ?? "";
   }
   return metadata?.org ?? "";
+}
+
+/**
+ * The parent organization of the organization a row's references are judged
+ * in, when the row itself says it: an Organization judging its own settings
+ * is that organization, and the row being written is its newest word (on a
+ * create its stored row does not exist yet; `spec.parent_org` is written at
+ * create only). The request names that parent, so a chain may judge
+ * references against it only after the caller is authorized on it
+ * (organization create runs the reference steps after
+ * ValidateChildOrganization). Undefined for every other kind, whose
+ * writer's parent is read from the store.
+ */
+export function ownParentOrgOf(schema: DescMessage, msg: Message): string | undefined {
+  if (schema.typeName !== OrganizationSchema.typeName) {
+    return undefined;
+  }
+  return (msg as Organization).spec?.parentOrg ?? "";
 }
 
 /** The ID-wrapper's value ("" when absent) — Go HasValue.GetValue(). */

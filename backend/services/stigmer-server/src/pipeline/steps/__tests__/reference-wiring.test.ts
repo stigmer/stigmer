@@ -14,12 +14,24 @@
  * update chain of a kind whose spec carries references; a chain of such a
  * kind with no resolver fails, and so does a new chain that reads a
  * reference before resolving it.
+ *
+ * WRITE_CHAINS is hand-kept too, so it is held to the reference-field
+ * inventory (docs/reference-fields.md): every kind whose spec reaches a
+ * message holding a manifest reference (read through the generated
+ * schemas' field tree) is one an entry declares, and every create and
+ * update chain that entry's controller builds is listed. A new reference
+ * field on a kind with no resolving chain fails there by name, which is
+ * how an organization's default Environment once slipped: the inventory
+ * listed it while the list named only the organization's embedding chain.
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import type { DescField, DescMessage } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
+
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import {
   newPinSubagentsStep,
@@ -38,10 +50,12 @@ import {
 } from "../../../domain/routine/steps.js";
 import { newResolveSessionAgentStep } from "../../../domain/session/resolve-session-agent.js";
 import { newVaultAttachmentsStep } from "../../../domain/vault/attachments.js";
+import { RESOURCE_SCHEMAS } from "../../../store/resource-etags-stamped.js";
 import { newNormalizeReferencesStep, newValidateReferencesStep } from "../references.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.resolve(HERE, "../../..");
+const INVENTORY_DOC = path.resolve(SRC, "../docs/reference-fields.md");
 
 /** A step factory, built with placeholder dependencies only to read its frozen name. */
 type Factory = (...deps: never[]) => { readonly name: string };
@@ -68,12 +82,87 @@ const RESOLVER = "newNormalizeReferencesStep";
 const WRITE_CHAINS: Readonly<Record<string, ReadonlyArray<string>>> = {
   "domain/agent/controller.ts": ["agent-create", "agent-update"],
   "domain/channel/controller.ts": ["channel-create", "channel-update"],
-  "domain/organization/controller.ts": ["organization-update-embedding"],
+  "domain/organization/controller.ts": ["organization-create", "organization-update", "organization-update-embedding"],
   "domain/eval-run/controller.ts": ["eval-run-create"],
   "domain/run/controller.ts": ["agent-execution-create", "agent-execution-update"],
   "domain/routine/controller.ts": ["routine-create", "routine-update"],
   "domain/session/controller.ts": ["session-create", "session-update"],
 };
+
+/** The kind each WRITE_CHAINS controller writes. */
+const CONTROLLER_KINDS: Readonly<Record<string, ApiResourceKind>> = {
+  "domain/agent/controller.ts": ApiResourceKind.agent,
+  "domain/channel/controller.ts": ApiResourceKind.channel,
+  "domain/organization/controller.ts": ApiResourceKind.organization,
+  "domain/eval-run/controller.ts": ApiResourceKind.eval_run,
+  "domain/run/controller.ts": ApiResourceKind.run,
+  "domain/routine/controller.ts": ApiResourceKind.routine,
+  "domain/session/controller.ts": ApiResourceKind.session,
+};
+
+/** A chain that creates or updates a row a person writes: `<kind>-create` or `<kind>-update`. */
+const WRITE_CHAIN_NAME = /-(create|update)$/;
+
+/** The message a field holds, when it holds one. */
+function childOf(field: DescField): DescMessage | undefined {
+  if (field.fieldKind === "message" || (field.fieldKind === "list" && field.listKind === "message")) {
+    return field.message;
+  }
+  if (field.fieldKind === "map" && field.mapKind === "message") {
+    return field.message;
+  }
+  return undefined;
+}
+
+/** Every message a kind's spec reaches, by type name, read transitively. */
+function specMessagesOf(resource: DescMessage): Set<string> {
+  const seen = new Set<string>();
+  const visit = (message: DescMessage): void => {
+    if (seen.has(message.typeName)) {
+      return;
+    }
+    seen.add(message.typeName);
+    for (const field of message.fields) {
+      const child = childOf(field);
+      if (child !== undefined) {
+        visit(child);
+      }
+    }
+  };
+  const spec = resource.fields.find((field) => field.name === "spec");
+  const message = spec === undefined ? undefined : childOf(spec);
+  if (message !== undefined) {
+    visit(message);
+  }
+  return seen;
+}
+
+/** The inventory's manifest references: `Message.field` rows classed `manifest reference`. */
+function manifestReferences(): string[] {
+  const rows: string[] = [];
+  for (const line of readFileSync(INVENTORY_DOC, "utf8").split("\n")) {
+    const m = /^\| `([A-Za-z0-9_.]+)` \| manifest reference \|$/.exec(line);
+    if (m !== null) {
+      rows.push(m[1]!);
+    }
+  }
+  return rows;
+}
+
+/** Every kind whose spec reaches a message holding a manifest reference, with the fields that put it there. */
+function kindsCarryingReferences(): Map<ApiResourceKind, string[]> {
+  const out = new Map<ApiResourceKind, string[]>();
+  const reach = [...RESOURCE_SCHEMAS].map(([kind, schema]) => [kind, specMessagesOf(schema)] as const);
+  for (const field of manifestReferences()) {
+    const message = field.slice(0, field.lastIndexOf("."));
+    for (const [kind, messages] of reach) {
+      if (messages.has(message)) {
+        out.set(kind, [...(out.get(kind) ?? []), field]);
+      }
+    }
+  }
+  return out;
+}
 
 /** One chain as its source writes it: its name and the step factories it adds, in order. */
 interface Chain {
@@ -147,6 +236,34 @@ describe("every write chain resolves references before any step reads one", () =
     for (const [file, chains] of controllerChains()) {
       for (const chain of chains) {
         faults.push(...orderFaults(file, chain));
+      }
+    }
+    expect(faults).toEqual([]);
+  });
+
+  it("every kind the inventory gives a manifest reference has its create and update chains listed", () => {
+    const carrying = kindsCarryingReferences();
+    // The walk finds what the inventory names: a sanity floor, so an
+    // unreadable doc or an empty schema map cannot pass by finding nothing.
+    expect(carrying.get(ApiResourceKind.organization)).toContain(
+      "ai.stigmer.tenancy.organization.v1.OrganizationPreferences.default_environment_ref",
+    );
+    const declared = new Map(Object.entries(CONTROLLER_KINDS).map(([file, kind]) => [kind, file]));
+    expect(Object.keys(CONTROLLER_KINDS).sort()).toEqual(Object.keys(WRITE_CHAINS).sort());
+    const faults: string[] = [];
+    for (const [kind, fields] of carrying) {
+      const file = declared.get(kind);
+      if (file === undefined) {
+        faults.push(`${ApiResourceKind[kind]} carries ${fields.join(", ")} and no WRITE_CHAINS entry writes it`);
+        continue;
+      }
+      const built = chainsOf(readFileSync(path.join(SRC, file), "utf8"))
+        .map((chain) => chain.name)
+        .filter((name) => WRITE_CHAIN_NAME.test(name));
+      for (const name of built) {
+        if (!WRITE_CHAINS[file]!.includes(name)) {
+          faults.push(`${file} ${name} writes ${ApiResourceKind[kind]} rows, which carry ${fields.join(", ")}: list it in WRITE_CHAINS`);
+        }
       }
     }
     expect(faults).toEqual([]);

@@ -46,6 +46,7 @@ export async function executeResolvedAgent(input: ResolvedAgentExecInput): Promi
     vaults: prepared.vaults,
     includeMyVault: prepared.includeMyVault,
     plugins: prepared.plugins,
+    ...(prepared.environment === undefined ? {} : { environment: prepared.environment }),
     attachments: prepared.attachments,
     workspaceFileRefs: prepared.workspaceFileRefs,
     workspaceEntries: prepared.workspaceEntries,

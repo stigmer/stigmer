@@ -11,6 +11,7 @@ import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb
 import { Popover } from "@base-ui/react/popover";
 import { AgentPicker } from "../agent/AgentPicker.js";
 import { VaultPicker } from "../vault/VaultPicker.js";
+import { RoutineEnvironmentField } from "./RoutineEnvironmentField.js";
 import { useMyVault } from "../vault/useMyVault.js";
 import { useGitHubConnection } from "../github/useGitHubConnection.js";
 import { ModelSelector } from "../models/ModelSelector.js";
@@ -120,6 +121,9 @@ export function RoutineForm({
     () => vaultPick ?? (myVaultSlug !== "" ? [{ org, slug: myVaultSlug }] : []),
     [vaultPick, myVaultSlug, org],
   );
+  // The routine's own Environment; left empty, each fire takes the
+  // agent's default, else the organization's.
+  const [environmentRef, setEnvironmentRef] = useState<ResourceRef | undefined>(undefined);
 
   // Engine & model are one atomic choice: picking a model pins BOTH the
   // harness and the model (the registry scopes models per harness, so a
@@ -193,6 +197,7 @@ export function RoutineForm({
               ? { workspaceEntries: workspace.toInput() }
               : {}),
             ...(vaults.length > 0 ? { vaults } : {}),
+            ...(environmentRef ? { environmentRef } : {}),
             ...(runConfig ? { runConfig } : {}),
           },
         });
@@ -213,6 +218,7 @@ export function RoutineForm({
       enabled,
       trimmedMessage,
       vaults,
+      environmentRef,
       modelName,
       modelHarness,
       serviceTier,
@@ -351,6 +357,24 @@ export function RoutineForm({
           The keys and logins every fire uses (your own My vault is named by
           default). Without them, an agent whose tools need credentials is
           refused every run, naming the key.
+        </p>
+      </div>
+
+      {/* Environment — the packages and network every fire's sandbox
+          gets. Empty takes the agent's default, else the organization's. */}
+      <div className="stg:space-y-1">
+        <span className={labelClasses}>
+          Environment <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
+        </span>
+        <RoutineEnvironmentField
+          org={org}
+          agentRef={agentRef}
+          value={environmentRef}
+          onChange={setEnvironmentRef}
+          disabled={isCreating}
+        />
+        <p className={hintClasses}>
+          The packages and network every run&rsquo;s sandbox gets.
         </p>
       </div>
 

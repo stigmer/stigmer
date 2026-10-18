@@ -98,7 +98,9 @@ export const VERB_SUPPORT: ReadonlyMap<
   ],
   // An Environment is a manifest like an agent: applied, read, listed and
   // deleted by the generic verbs (a delete is refused while an agent, a
-  // routine or the organization's default names it).
+  // routine or the organization's default names it). It has no act of its
+  // own, so no `stigmer environment` group: its only other door is
+  // `run --environment`, which names one for a new conversation.
   [
     ApiResourceKind.environment,
     new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),

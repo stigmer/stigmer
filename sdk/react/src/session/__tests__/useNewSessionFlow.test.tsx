@@ -33,8 +33,15 @@ import type { RunnerAdapter } from "../../runner-adapter";
 const mockGetByReference = vi.fn();
 // One client for every render, as the provider gives: a fresh object per
 // call would change the agent read's inputs on each render.
+// The server's facts and the organization are read for the Environment
+// entry (useNewSessionFlow.environment.test.tsx pins it); here the server
+// predates the field and the organization names no default.
 vi.mock("../../hooks", () => {
-  const stigmer = { agent: { getByReference: (...args: unknown[]) => mockGetByReference(...args) } };
+  const stigmer = {
+    agent: { getByReference: (...args: unknown[]) => mockGetByReference(...args) },
+    platform: { getServerInfo: async () => ({ environments: undefined }) },
+    organization: { get: async () => ({ spec: {} }) },
+  };
   return { useStigmer: () => stigmer };
 });
 

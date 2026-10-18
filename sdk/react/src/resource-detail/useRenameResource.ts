@@ -24,6 +24,7 @@ export type RenamableResourceKind =
   | "agent"
   | "vault"
   | "routine"
+  | "environment"
   | "channel_app"
   | "oauth_app"
   | "team"
@@ -109,6 +110,8 @@ function renameOf(
       return stigmer.vault.rename(input);
     case "routine":
       return stigmer.routine.rename(input);
+    case "environment":
+      return stigmer.environment.rename(input);
     case "channel_app":
       return stigmer.channelapp.rename(input);
     case "oauth_app":

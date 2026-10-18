@@ -123,7 +123,6 @@ import {
 } from "../artifactstorage/file-server.js";
 import { registerChannelAppServices } from "../domain/channelapp/controller.js";
 import { registerEnvironmentServices } from "../domain/environment/controller.js";
-import { environmentSupportOf } from "../domain/environment/facts.js";
 import { newEnvironmentPolicy } from "../domain/run/environment-admission.js";
 import { registerVaultServices } from "../domain/vault/controller.js";
 import { newVaultResolver } from "../domain/vault/resolve.js";
@@ -1043,6 +1042,11 @@ export async function composeServer(
     );
   }
   const sandboxLane = newSandboxLane(sandboxProvisioner, runnerCredentials);
+  // The deployment's one Environment rule: the Environment save's refusal,
+  // the session's resolution and admission, the turn's admission and
+  // server info's advertisement all read this object, so none of them can
+  // disagree with another (domain/run/environment-admission.ts).
+  const environmentPolicy = newEnvironmentPolicy(sandboxLane, temporalConfig);
   if (sandboxLane.enabled) {
     logger.info("sandbox provisioner composed", {
       type: config.sandboxProvisionerType,
@@ -1881,6 +1885,7 @@ export async function composeServer(
       temporalConfig,
       gateSteps: extensions.gateSteps,
       sandboxLane,
+      environmentPolicy,
       authorizationLifecycle,
       listReadScope,
       secretService,
@@ -1940,7 +1945,7 @@ export async function composeServer(
       credentialBinding,
       authorizationLifecycle,
       listReadScope,
-      environmentSupport: environmentSupportOf(sandboxLane),
+      environmentSupport: environmentPolicy.support,
     });
     // Routine registers between channelapp and memory (Go server.go
     // 417 → 426 → 436). The clock and runner ride constant providers —
@@ -2028,7 +2033,7 @@ export async function composeServer(
         sessionLoader: () => requireInProcess().executionSessionLoader,
         vaultResolver,
         localPrograms: newLocalProgramPolicy(sandboxLane, temporalConfig),
-        environments: { policy: newEnvironmentPolicy(sandboxLane, temporalConfig), authorizer },
+        environments: { policy: environmentPolicy, authorizer },
       },
     });
     registerSkillServices(router, {
@@ -2113,6 +2118,7 @@ export async function composeServer(
       // no unit registered a license-status provider: open source and the
       // cloud hold no key, and only an Enterprise unit ever has one.
       licenseStatus: extensions.drivers.licenseStatus ?? ABSENT_LICENSE_STATUS,
+      environmentPolicy,
       now: () => new Date(),
       logger,
     });

@@ -42,12 +42,17 @@ import { VaultPicker } from "../vault/VaultPicker.js";
 import type { ConversationVaults } from "../vault/conversationVaults.js";
 import { SYSTEM_ENV_VAR_KEYS } from "../vault/systemEnvVars.js";
 import { useWhoAmI } from "../grant/useWhoAmI.js";
+import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
+import { describeEnvironmentChoice, inheritedRowLabel } from "../environment/copy.js";
+import { resolveEnvironmentChoice, type EnvironmentReference } from "../environment/resolve.js";
+import { environmentName, useEnvironmentList } from "../environment/useEnvironmentList.js";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import {
   AgentIcon,
   SkillIcon,
   SecretsIcon,
+  EnvironmentIcon,
   AlertTriangleIcon,
   ChipSpinner,
   ResolveSpinner,
@@ -136,6 +141,14 @@ export interface SessionComposerSubmitContext {
    * not touched. Set together with {@link vaults}.
    */
   readonly includeMyVault?: boolean;
+  /**
+   * The Environment the person picked for this conversation, or
+   * `undefined` when they left it to the default (the agent's, else the
+   * organization's). The consumer writes it onto the new conversation
+   * (`session_spec.environment_ref`); the server fixes it once a turn has
+   * run, so only a first message carries it.
+   */
+  readonly environmentRef?: ResourceRef;
   /**
    * Pre-uploaded file attachments for the run.
    *
@@ -481,6 +494,30 @@ export interface SessionComposerProps {
   readonly vaultPickCreatorId?: string;
 
   /**
+   * Offer an Environment entry in the Configure menu, where the person
+   * picks the Environment a new conversation runs in (its sandbox's
+   * packages and network). The entry says which one applies and why
+   * ("data-science · the agent's default"). Only for a conversation's
+   * first message, which fixes it; never for a guest, a conversation on
+   * the person's own machine, or a server whose conversations no
+   * Environment governs (`useEnvironmentsNotApplying`).
+   *
+   * @default false
+   */
+  readonly enableEnvironmentPicker?: boolean;
+
+  /**
+   * What applies when the person picks no Environment: the agent's
+   * default, else the organization's. Read by the entry's preview and the
+   * picker's first row; the server resolves the same order when the
+   * conversation is created.
+   */
+  readonly environmentDefaults?: {
+    readonly agent?: EnvironmentReference;
+    readonly organization?: EnvironmentReference;
+  };
+
+  /**
    * The conversation this composer adds turns to, when it continues one.
    * A host that keeps the composer mounted across conversations (the
    * desktop app does) passes it, so a vault pick made for one conversation
@@ -601,7 +638,7 @@ export interface SessionComposerProps {
  *
  * The toolbar uses a two-group layout:
  * - **Left (primary state):** Interaction Mode, Model Selector
- * - **Right (secondary actions, icon-only):** Workspace, Attach, Configure (Agent, Plugins, Skills, Vaults), Send
+ * - **Right (secondary actions, icon-only):** Workspace, Attach, Configure (Agent, Plugins, Skills, Vaults, Environment), Send
  *
  * Selected items render as removable chips between the textarea and toolbar.
  *
@@ -692,6 +729,8 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   initialVaultRefs,
   initialIncludeMyVault = true,
   vaultPickCreatorId,
+  enableEnvironmentPicker = false,
+  environmentDefaults,
   sessionId,
   lockAgent = false,
   pluginRefs,
@@ -831,6 +870,39 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   );
   const shownVaults = vaultPick ?? initialChoice;
   const showVaults = enableVaultPicker && org != null;
+
+  // The Environment the person picked for the new conversation:
+  // `undefined` while it is left to the default. A pick belongs to the
+  // conversation it was made in, as the vault pick does.
+  const [environmentPick, setEnvironmentPick] = useState<ResourceRef | undefined>(undefined);
+  const [environmentPickSessionId, setEnvironmentPickSessionId] = useState(sessionId);
+  if (environmentPickSessionId !== sessionId) {
+    setEnvironmentPickSessionId(sessionId);
+    setEnvironmentPick(undefined);
+  }
+  const showEnvironment = enableEnvironmentPicker && org != null;
+  const { environments } = useEnvironmentList(showEnvironment ? org : null);
+  const environmentNameOf = useCallback(
+    (ref: { readonly slug: string }) => {
+      const found = environments.find((environment) => environment.metadata?.slug === ref.slug);
+      return found ? environmentName(found) : ref.slug;
+    },
+    [environments],
+  );
+  const agentEnvironment = environmentDefaults?.agent;
+  const organizationEnvironment = environmentDefaults?.organization;
+  const inheritedEnvironment = useMemo(
+    () => resolveEnvironmentChoice({ agent: agentEnvironment, organization: organizationEnvironment }),
+    [agentEnvironment, organizationEnvironment],
+  );
+  const environmentPreview = useMemo(
+    () =>
+      describeEnvironmentChoice(
+        resolveEnvironmentChoice({ own: environmentPick, agent: agentEnvironment, organization: organizationEnvironment }),
+        environmentNameOf,
+      ),
+    [environmentPick, agentEnvironment, organizationEnvironment, environmentNameOf],
+  );
 
   // Only a conversation's creator may change which vaults it uses: the
   // server refuses anyone else's session update, so the picker is
@@ -1238,9 +1310,11 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       const context: SessionComposerSubmitContext | undefined =
         hasAttachments || effectiveMode || hasFileRefs || buildFromPlan
         || submitServiceTier || submitThinkingMode || vaultPick !== undefined
+        || (showEnvironment && environmentPick !== undefined)
           ? {
               vaults: vaultPick ? [...vaultPick.vaults] : undefined,
               includeMyVault: vaultPick?.includeMyVault,
+              environmentRef: showEnvironment ? environmentPick : undefined,
               attachments: hasAttachments ? attachmentInputs : undefined,
               interactionMode: effectiveMode,
               serviceTier: submitServiceTier,
@@ -1265,7 +1339,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         fileRefs.clear();
       }
     },
-    [onSubmit, effective, serviceTierPick, thinkingModePick, enableAttachments, attachments, showInteractionModePicker, interactionMode, vaultPick],
+    [onSubmit, effective, serviceTierPick, thinkingModePick, enableAttachments, attachments, showInteractionModePicker, interactionMode, vaultPick, showEnvironment, environmentPick],
   );
 
   const composer = useComposer({
@@ -1628,8 +1702,17 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         count: vaultCount,
       });
     }
+    if (showEnvironment) {
+      items.push({
+        id: "environment",
+        icon: <EnvironmentIcon />,
+        label: "Environment",
+        count: environmentPick !== undefined ? 1 : 0,
+        detail: environmentPreview,
+      });
+    }
     return items;
-  }, [showAgent, lockAgent, agentRef, agentSetup.state, showPlugins, pluginCount, showSkills, skillCount, showVaults, vaultCount]);
+  }, [showAgent, lockAgent, agentRef, agentSetup.state, showPlugins, pluginCount, showSkills, skillCount, showVaults, vaultCount, showEnvironment, environmentPick, environmentPreview]);
 
   const renderConfigPanel = useCallback(
     (panelId: string): React.ReactNode => {
@@ -1753,11 +1836,30 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
             </div>
           );
 
+        case "environment":
+          return (
+            <div className="stg:flex stg:flex-col stg:gap-2">
+              <p className="stg:text-xs stg:text-muted-foreground">
+                The packages and network this conversation&apos;s sandbox gets. It is fixed once the first message runs.
+              </p>
+              <EnvironmentPicker
+                org={org!}
+                value={environmentPick}
+                onChange={setEnvironmentPick}
+                defaultLabel={inheritedRowLabel(inheritedEnvironment, environmentNameOf)}
+                disabled={isDisabled}
+              />
+            </div>
+          );
+
         default:
           return null;
       }
     },
     [
+      environmentPick,
+      inheritedEnvironment,
+      environmentNameOf,
       showEnvForm,
       agentSetup,
       isAgentBusy,

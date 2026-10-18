@@ -18,7 +18,7 @@ import { useLocation, useNavigate } from "react-router-dom";
  * console's library navigation does the same for both.
  */
 export function useCanonicalDetailSlug(
-  kind: "agents" | "routines",
+  kind: "agents" | "routines" | "environments",
   org: string | undefined,
   routeSlug: string | undefined,
   currentSlug: string | undefined,

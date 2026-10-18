@@ -44,13 +44,14 @@ export async function resolveRunReferences(
 ): Promise<ApiResourceReference[]> {
   const resolved: ApiResourceReference[] = [];
   const seen = new Set<string>();
+  const aNoun = `${/^[aeiou]/.test(of.noun) ? "an" : "a"} ${of.noun}`;
   for (const raw of refs) {
     if (raw.trim() === "") {
-      throw new UsageError(`invalid ${of.flag} value: empty; name a ${of.noun} by id, org/slug or slug`);
+      throw new UsageError(`invalid ${of.flag} value: empty; name ${aNoun} by id, org/slug or slug`);
     }
     const parts = raw.trim().split("/");
     if (parts.length > 2 || parts.some((part) => part === "")) {
-      throw new UsageError(`invalid ${of.flag} value '${raw}': name a ${of.noun} by id, org/slug or slug`);
+      throw new UsageError(`invalid ${of.flag} value '${raw}': name ${aNoun} by id, org/slug or slug`);
     }
     const parsed = parseReference(raw, org, idPrefixesFor(of.kind));
     let refOrg: string;
@@ -61,7 +62,7 @@ export async function resolveRunReferences(
       slug = found.metadata?.slug ?? "";
       if (slug === "") {
         throw new UsageError(
-          `${of.noun} '${raw}' has no slug: a conversation names a ${of.noun} by its organization and slug`,
+          `${of.noun} '${raw}' has no slug: a conversation names ${aNoun} by its organization and slug`,
         );
       }
     } else {

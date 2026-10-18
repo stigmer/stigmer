@@ -12,6 +12,7 @@ import { AgentDetailPageInner } from "@/domain/library/agents/AgentDetailPage";
 import { SkillDetailPageInner } from "@/domain/library/skills/SkillDetailPage";
 import { RoutineDetailPageInner } from "@/domain/library/routines/RoutineDetailPage";
 import { PluginDetailPageInner } from "@/domain/library/plugins/PluginDetailPage";
+import { EnvironmentDetailPageInner } from "@/domain/library/environments/EnvironmentDetailPage";
 
 export default function LibraryLayout({
   children,
@@ -76,5 +77,7 @@ function LibraryDetailContent({ detail }: { detail: ActiveDetail }) {
       return <RoutineDetailPageInner org={detail.org} slug={detail.slug} />;
     case "plugins":
       return <PluginDetailPageInner org={detail.org} slug={detail.slug} />;
+    case "environments":
+      return <EnvironmentDetailPageInner org={detail.org} slug={detail.slug} />;
   }
 }

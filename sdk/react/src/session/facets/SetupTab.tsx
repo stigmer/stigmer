@@ -13,6 +13,8 @@ import type { HarnessOption } from "../../models/harness.js";
 import { HARNESS_META } from "../../models/harness.js";
 import { Switch } from "../../switch/Switch.js";
 import type { ExecutionTargetOption } from "../execution-target.js";
+import { describeEnvironmentChoice } from "../../environment/copy.js";
+import type { EnvironmentChoice } from "../../environment/resolve.js";
 import { useExportTranscript } from "../useExportTranscript.js";
 import {
   FACET_ROW_BUTTON,
@@ -62,6 +64,12 @@ export interface SetupTabProps {
   readonly executionTarget: ExecutionTargetOption | undefined;
   readonly modelId: string | undefined;
   /**
+   * The Environment the conversation runs in and why
+   * (`conversationEnvironment`), shown after the target. Omit where no
+   * conversation exists yet: the server resolves it at creation.
+   */
+  readonly environment?: EnvironmentChoice;
+  /**
    * Session-level auto-approve switch in the Run Config section. When
    * provided, the switch renders and is interactive at all times — including
    * mid-run, where flipping it ON releases the in-flight run's pending
@@ -95,7 +103,7 @@ export interface SetupTabProps {
 
 /**
  * Persistent session configuration panel (Config facet) — shows run config
- * (harness, model, target, and the session-level auto-approve switch), agent,
+ * (harness, model, target, environment, and the session-level auto-approve switch), agent,
  * plugins, skills, transcript export, and the host's
  * access management control (via `accessSlot`).
  *
@@ -116,6 +124,7 @@ export function SetupTab({
   harness,
   executionTarget,
   modelId,
+  environment,
   autoApprove,
   sessionId,
   mutations,
@@ -127,6 +136,7 @@ export function SetupTab({
         harness={harness}
         executionTarget={executionTarget}
         modelId={modelId}
+        environment={environment}
         autoApprove={autoApprove}
       />
 
@@ -157,11 +167,13 @@ function RunConfigSection({
   harness,
   executionTarget,
   modelId,
+  environment,
   autoApprove,
 }: {
   harness: HarnessOption;
   executionTarget: ExecutionTargetOption | undefined;
   modelId: string | undefined;
+  environment: EnvironmentChoice | undefined;
   autoApprove: SetupTabAutoApprove | undefined;
 }) {
   const autoApproveLabelId = useId();
@@ -177,6 +189,11 @@ function RunConfigSection({
       {executionTarget && (
         <FacetKeyValueRow label="Target">
           {executionTarget === "local" ? "Local" : "Cloud"}
+        </FacetKeyValueRow>
+      )}
+      {environment && (
+        <FacetKeyValueRow label="Environment">
+          {describeEnvironmentChoice(environment)}
         </FacetKeyValueRow>
       )}
       {autoApprove && (

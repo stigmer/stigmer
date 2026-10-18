@@ -306,7 +306,16 @@ async function createOrganization(
     .addStep(newCheckOrgDuplicateStep(deps.store))
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
-    .addStep(newValidateChildOrganizationStep(deps.store, deps.authorizer));
+    .addStep(newValidateChildOrganizationStep(deps.store, deps.authorizer))
+    // The organization's references (its default Environment; create
+    // clears the embedding) are judged once its own id, the organization
+    // they are judged in, exists (BuildNewState mints it), and only after
+    // ValidateChildOrganization has authorized the parent it names: the
+    // cross-organization clause trusts that parent, so judging first would
+    // answer a caller with no standing on it whether it shares a given
+    // Environment (pipeline/steps/references.ts, the module header).
+    .addStep(newNormalizeReferencesStep(deps.store))
+    .addStep(newValidateReferencesStep(deps.store, deps.authorizer));
   // The composition's organization count, at the slot's seat and before its
   // steps: the chain's own rule, not a unit's (limit.ts).
   if (deps.orgLimit !== undefined) {
@@ -411,6 +420,13 @@ async function update(
       .addStep(newPreserveChildLinkStep())
       .addStep(newPreservePoliciesStep())
       .addStep(newPreserveEmbeddingStep())
+      // The references are resolved and judged on the row as it will be
+      // stored, after the embedding (another chain's to write) is put
+      // back, and only those this write introduces are judged: an edit of
+      // the preferences never re-judges the embedding's vaults, which their
+      // own chain judged (pipeline/steps/references.ts, the module header).
+      .addStep(newNormalizeReferencesStep(deps.store))
+      .addStep(newValidateReferencesStep(deps.store, deps.authorizer, { judge: "introduced" }))
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newPersistStep(deps.store, deps.credentialBinding))
       .addStep(

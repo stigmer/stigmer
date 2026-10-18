@@ -156,6 +156,33 @@ describe("useCreateRun — one-call session bootstrap (sessionSpec)", () => {
     expect(mockCreate.mock.calls[1][0].sessionSpec.fileReview).toBeUndefined();
   });
 
+  it("forwards the conversation's Environment, and names none when none was picked", async () => {
+    const { result } = renderHook(() => useCreateRun(), {
+      wrapper: createWrapper(makeMockClient()),
+    });
+
+    await act(async () => {
+      await result.current.create({
+        org: "acme",
+        message: "Train the model",
+        sessionSpec: {
+          agentRef: { org: "acme", slug: "analyst" },
+          environmentRef: { org: "acme", slug: "data-science" },
+        },
+      });
+    });
+    await act(async () => {
+      await result.current.create({
+        org: "acme",
+        message: "Train the model",
+        sessionSpec: { agentRef: { org: "acme", slug: "analyst" } },
+      });
+    });
+
+    expect(mockCreate.mock.calls[0][0].sessionSpec.environmentRef).toEqual({ org: "acme", slug: "data-science" });
+    expect(mockCreate.mock.calls[1][0].sessionSpec.environmentRef).toBeUndefined();
+  });
+
   it("leaves harness and executionTarget undefined when not chosen (server decides)", async () => {
     const { result } = renderHook(() => useCreateRun(), {
       wrapper: createWrapper(makeMockClient()),

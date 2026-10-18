@@ -1,11 +1,12 @@
 import { useReducer, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Blocks, Bot, CalendarClock, FileCode2, Sparkles } from "lucide-react";
+import { Blocks, Bot, Box, CalendarClock, FileCode2, Sparkles } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import {
   ApplyManifestDialog,
   useAgentCount,
   useRoutineCount,
+  useEnvironmentCount,
   useSkillCount,
   usePluginCount,
   ResourceCountCard,
@@ -21,12 +22,13 @@ export default function LibraryLanding() {
   const skills = useSkillCount(org, { refetchToken });
   const routines = useRoutineCount(org, { refetchToken });
   const plugins = usePluginCount(org, { refetchToken });
+  const environments = useEnvironmentCount(org, { refetchToken });
   const [applyYamlOpen, setApplyYamlOpen] = useState(false);
 
   return (
     <div className="space-y-6">
       <h1 className="text-lg font-semibold">Library</h1>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <ResourceCountCard
           icon={<Bot className="size-5" aria-hidden="true" />}
           label="Agents"
@@ -55,6 +57,14 @@ export default function LibraryLanding() {
           count={plugins.count}
           isLoading={plugins.isLoading}
           onClick={() => navigate("/library/plugins")}
+        />
+        <ResourceCountCard
+          icon={<Box className="size-5" aria-hidden="true" />}
+          label="Environments"
+          count={environments.count}
+          countIsLowerBound={environments.isLowerBound}
+          isLoading={environments.isLoading}
+          onClick={() => navigate("/library/environments")}
         />
       </div>
 

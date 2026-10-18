@@ -24,6 +24,7 @@
     "memory",
     "---Vaults & Config---",
     "vault",
+    "environment",
     "connect-link",
     "workspace",
     "models",

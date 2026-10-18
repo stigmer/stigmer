@@ -50,6 +50,13 @@ export interface BootstrapSessionSpec {
    */
   readonly includeMyVault?: boolean;
   /**
+   * The Environment the conversation runs in: the packages and network its
+   * sandbox gets. Omit to take the agent's default, else the
+   * organization's. A conversation on the person's own machine refuses
+   * one. Fixed once a turn has run.
+   */
+  readonly environmentRef?: ResourceRef;
+  /**
    * Whether each turn's file edits are offered for review, Keep or Undo,
    * after the turn. Off unless set. Review never makes a turn wait: the
    * edits are applied, and an Undo puts a file back.
@@ -360,6 +367,7 @@ export function useCreateRun(): UseCreateRunReturn {
               skillRefs: input.sessionSpec.skillRefs,
               vaults: input.sessionSpec.vaults,
               includeMyVault: input.sessionSpec.includeMyVault,
+              environmentRef: input.sessionSpec.environmentRef,
               fileReview: input.sessionSpec.fileReview,
               metadata: mergeSessionContext(
                 input.sessionSpec.metadata,

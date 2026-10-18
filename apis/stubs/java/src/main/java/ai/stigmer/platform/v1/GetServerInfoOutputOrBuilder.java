@@ -130,4 +130,43 @@ public interface GetServerInfoOutputOrBuilder extends
    * @return The singleOrg.
    */
   boolean getSingleOrg();
+
+  /**
+   * <pre>
+   * What an Environment does on this server.
+   *
+   * Every server that knows the field sets it. Absent means the server
+   * predates it: a client offers Environments and lets the server's own
+   * refusals speak.
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.EnvironmentAvailability environments = 5 [json_name = "environments"];</code>
+   * @return Whether the environments field is set.
+   */
+  boolean hasEnvironments();
+  /**
+   * <pre>
+   * What an Environment does on this server.
+   *
+   * Every server that knows the field sets it. Absent means the server
+   * predates it: a client offers Environments and lets the server's own
+   * refusals speak.
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.EnvironmentAvailability environments = 5 [json_name = "environments"];</code>
+   * @return The environments.
+   */
+  ai.stigmer.platform.v1.EnvironmentAvailability getEnvironments();
+  /**
+   * <pre>
+   * What an Environment does on this server.
+   *
+   * Every server that knows the field sets it. Absent means the server
+   * predates it: a client offers Environments and lets the server's own
+   * refusals speak.
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.EnvironmentAvailability environments = 5 [json_name = "environments"];</code>
+   */
+  ai.stigmer.platform.v1.EnvironmentAvailabilityOrBuilder getEnvironmentsOrBuilder();
 }
