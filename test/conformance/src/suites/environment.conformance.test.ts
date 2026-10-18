@@ -11,8 +11,8 @@
 //     the organization's default visibility, get / getByReference / list,
 //     a masked update, apply by slug, updateVisibility, delete;
 //   - the grammar, judged before the driver is asked: a host that names the
-//     cluster, a metadata service, an address or a single label is refused
-//     INVALID_ARGUMENT naming it, and hosts or flags under unrestricted
+//     cluster, a metadata service or an address is refused INVALID_ARGUMENT
+//     naming it, a single label by the contract's pattern naming the field, and hosts or flags under unrestricted
 //     networking are refused by the contract itself;
 //   - the delete guard: an Environment an agent names as its default is not
 //     deleted, the refusal names the agent, and removing the default frees it.
@@ -133,19 +133,21 @@ describe("Environment conformance — CRUD & identity", () => {
 });
 
 describe("Environment conformance — the grammar", () => {
+  // The server's own refusals name the host; a single label fails the
+  // contract's pattern first, whose refusal names the field.
   it.each([
-    ["the cluster's own names", "api.default.svc"],
-    ["a metadata service", "metadata.google.internal"],
-    ["an address", "10.0.0.1"],
-    ["a single label", "router"],
-  ])("[rpc:EnvironmentCommandController.create] a host that is %s is refused, named", async (_what, host) => {
+    ["the cluster's own names", "api.default.svc", "api.default.svc"],
+    ["a metadata service", "metadata.google.internal", "metadata.google.internal"],
+    ["an address", "10.0.0.1", "10.0.0.1"],
+    ["a single label", "router", "allowed_hosts"],
+  ])("[rpc:EnvironmentCommandController.create] a host that is %s is refused, naming it", async (_what, host, named) => {
     const { org } = await target.provisionTenancy();
     const error = await expectGrpcCode(
       () => clients.environmentCommand.create(makeLimitedEnvironment(org, uniqueName("env"), [host])),
       Code.InvalidArgument,
       `the host ${host}`,
     );
-    expect(error.rawMessage).toContain(host);
+    expect(error.rawMessage).toContain(named);
   });
 
   it("[rpc:EnvironmentCommandController.create] hosts under unrestricted networking are refused by the contract", async () => {

@@ -27,8 +27,11 @@
  * so, as `run-turn.ts` requires of every wait under its heartbeat.
  *
  * It runs once per package set: after a clean install the set's digest is
- * written in the prefix, and a runner that starts again over the same
- * files (a docker restart, a Substrate thaw) skips a matching set.
+ * written beside the prefix, in its parent (`/opt/stigmer`, root's), never
+ * inside it: the prefix is the agent's, so a file the root runner wrote
+ * there could be a link the agent planted at any file root may write. A
+ * runner that starts again over the same files (a docker restart, a
+ * Substrate thaw) skips a matching set.
  *
  * Times go to the log and to an `environment.install` span per manager.
  *
@@ -56,8 +59,8 @@ export const ENVIRONMENT_INSTALL_DEADLINE_MS = 15 * 60_000;
 export const COMMAND_DEADLINE_MS = 10 * 60_000;
 /** How much of a failed command's output the failure carries. */
 export const OUTPUT_TAIL_BYTES = 4096;
-/** The file in the prefix that names the set installed there. */
-const DIGEST_FILE = ".stigmer-environment";
+/** The file beside the prefix that names the set installed in it. */
+const DIGEST_SUFFIX = ".digest";
 
 /** The CA variables a sandbox's tools trust its gateway by; outside the host's allow-list, added for the install alone. */
 const TRUST_VARIABLES = ["SSL_CERT_FILE", "NODE_EXTRA_CA_CERTS", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE", "GIT_SSL_CAINFO"] as const;
@@ -249,7 +252,7 @@ export async function installEnvironment(environment: SandboxEnvironment, deps: 
   const log = deps.log ?? ((line: string) => console.log(line));
   const deadline = now() + (deps.deadlineMs ?? ENVIRONMENT_INSTALL_DEADLINE_MS);
   const digest = packageDigest(packages);
-  const digestFile = join(prefix, DIGEST_FILE);
+  const digestFile = `${prefix}${DIGEST_SUFFIX}`;
   if (existsSync(digestFile) && readFileSync(digestFile, "utf8").trim() === digest) {
     log(`[environment] packages already installed (${digest.slice(0, 12)})`);
     return "already-installed";
@@ -294,8 +297,6 @@ export async function installEnvironment(environment: SandboxEnvironment, deps: 
     }
     log(`[environment] ${manager}: ${packages[manager].length} package(s) installed in ${now() - started} ms`);
   }
-  // In the agent's own prefix: a digest the agent forges only skips
-  // installs into its own folder, which it can change anyway.
   writeFileSync(digestFile, `${digest}\n`);
   return "installed";
 }

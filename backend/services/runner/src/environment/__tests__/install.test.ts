@@ -14,7 +14,7 @@
  *     proxies, the CA variables and DEBIAN_FRONTEND;
  *   - `installEnvironment`, with a stand-in command runner and a temporary
  *     prefix: an agent command runs through `setpriv` with the agent's
- *     arguments; a clean install writes its digest and the same set is then
+ *     arguments; a clean install writes its digest beside the prefix, never in it, and the same set is then
  *     skipped, running nothing, while a changed set installs again; a
  *     non-zero exit, a command killed at its deadline, a deadline already
  *     passed and a missing program each fail naming the manager and why; an
@@ -24,7 +24,7 @@
  *   - the boot's install: started once, awaited by every turn, a failure
  *     kept for them and never an unhandled rejection.
  */
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -261,7 +261,9 @@ describe("installEnvironment", () => {
     const deps = { identity: null, prefix, env: { PATH: programs }, run, log };
     const first = environment({ npm: ["express"], pip: ["sqlalchemy"] });
     expect(await installEnvironment(first, deps)).toBe("installed");
-    expect(readFileSync(join(prefix, ".stigmer-environment"), "utf8")).toBe(`${packageDigest(first.packages)}\n`);
+    // Beside the prefix, in its parent: never inside the agent's own folder.
+    expect(readFileSync(`${prefix}.digest`, "utf8")).toBe(`${packageDigest(first.packages)}\n`);
+    expect(readdirSync(prefix)).not.toContain(".digest");
     const ran = calls.length;
     expect(ran).toBe(3);
 
@@ -271,7 +273,7 @@ describe("installEnvironment", () => {
     const changed = environment({ npm: ["express", "typescript"], pip: ["sqlalchemy"] });
     expect(await installEnvironment(changed, deps)).toBe("installed");
     expect(calls.length).toBeGreaterThan(ran);
-    expect(readFileSync(join(prefix, ".stigmer-environment"), "utf8").trim()).toBe(packageDigest(changed.packages));
+    expect(readFileSync(`${prefix}.digest`, "utf8").trim()).toBe(packageDigest(changed.packages));
   });
 
   it("fails on a non-zero exit, naming the manager with its output's tail, and writes no digest", async () => {
@@ -285,7 +287,7 @@ describe("installEnvironment", () => {
       message: "the environment's npm packages did not install: `npm install` exited 1\nnpm ERR! 404 Not Found - express-nope",
     });
     expect(calls.map((call) => call.argv[0]), "the managers after it never run").toEqual(["cargo", "npm"]);
-    expect(existsSync(join(prefix, ".stigmer-environment"))).toBe(false);
+    expect(existsSync(`${prefix}.digest`)).toBe(false);
   });
 
   it("names a command killed by its signal", async () => {

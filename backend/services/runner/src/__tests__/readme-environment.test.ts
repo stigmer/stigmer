@@ -122,6 +122,10 @@ const COMPUTED_READS_ALLOWED: ReadonlyMap<string, string> = new Map([
   ],
   [`${join("shared", "runner-credential-store.ts")}#getRunnerSecret`, "its callers name the setting, and rule 3 reads it there"],
   [`${join("shared", "llm-backend.ts")}#preflightLlmBackends`, "loops over two constants the same file reads directly (rule 2)"],
+  [
+    `${join("environment", "install.ts")}#commandEnvironment`,
+    "copies the PATH, proxy and CA names it lists into one install command's environment; each is a sandbox setting the README's rows name",
+  ],
   ["otel-export.ts#protocolOf", "reads the standard's per-signal form of OTEL_EXPORTER_OTLP_PROTOCOL (`..._TRACES_PROTOCOL`, `..._METRICS_PROTOCOL`), which the README's row names"],
   ["otel-export.ts#signalEndpointSet", "reads the standard's per-signal endpoints (`..._TRACES_ENDPOINT`, `..._METRICS_ENDPOINT`), which the README's OTEL_EXPORTER_OTLP_ENDPOINT row names"],
   ["otel-export.ts#collectorHeaders", "reads the per-signal headers (`..._TRACES_HEADERS`, `..._METRICS_HEADERS`) from custody, which the README's OTEL_EXPORTER_OTLP_HEADERS row names"],
