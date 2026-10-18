@@ -137,6 +137,7 @@ import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
 
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { EnvironmentSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
 import { EvalSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
@@ -237,6 +238,18 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     label: "vault(s)",
     listHint: "stigmer list vaults",
     writerMust: IamPermission.can_use,
+  },
+  {
+    // A session, an agent's default, a routine's invocation or an
+    // organization's default names an Environment; the server resolves it
+    // for the sandbox driver, so no run reads it as the person. Whoever
+    // writes the reference vouches for it: they must be able to view it.
+    kind: ApiResourceKind.environment,
+    schema: EnvironmentSchema,
+    readByRun: false,
+    label: "environment(s)",
+    listHint: "stigmer list environments",
+    writerMust: IamPermission.can_view,
   },
   {
     kind: ApiResourceKind.channel_app,
