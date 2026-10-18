@@ -75,7 +75,7 @@ export async function brandSvg({
   return frame(source.replaceAll(BRAND_DARK, color), framing);
 }
 
-/** The shaded mark for 48 px and up, lit for the background it sits on. */
+/** The default mark, lit for its background; flat artwork is reserved for tiny or single-ink uses. */
 export async function brandShadedSvg({
   on = "light",
   ...framing
@@ -98,11 +98,15 @@ export async function brandShadedSvg({
 export async function brandLockupSvg({
   width = 1536,
   color = BRAND_DARK,
+  flat = false,
 }: {
   width?: number;
   color?: string;
+  flat?: boolean;
 } = {}): Promise<string> {
-  const mark = await brandSvg({ size: 96, color });
+  const mark = flat
+    ? await brandSvg({ size: 96, color })
+    : await brandShadedSvg({ size: 96, on: color === BRAND_LIGHT ? "dark" : "light" });
   const wordmark = await readFile(
     new URL("./source/wordmark.svg", import.meta.url),
     "utf8",

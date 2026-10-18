@@ -19,7 +19,7 @@ describe("refined brand mark", () => {
       ),
     );
     expect(markup.match(/<svg\b/g)).toHaveLength(2);
-    expect(markup.match(/<path\b/g)).toHaveLength(2);
+    expect(markup.match(/<path\b/g)).toHaveLength(14);
     expect(markup).not.toMatch(/<(?:defs|mask)\b|url\(#/);
   });
 
@@ -35,7 +35,7 @@ describe("refined brand mark", () => {
       await readFile(
         resolve(
           dirname(fileURLToPath(import.meta.url)),
-          "../../../../../brand/logo.svg",
+          "../../../../../brand/logo-shaded-white.svg",
         ),
         "utf8",
       )

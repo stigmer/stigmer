@@ -111,7 +111,7 @@ test("horizontal exports preserve the symbol, include outlined lettering, and ma
       .ensureAlpha()
       .raw()
       .toBuffer();
-    const expected = await sharp(Buffer.from(source))
+    const expected = await sharp(await readFile(join(directory, "brand/logo-shaded.svg")))
       .resize(96, 96)
       .ensureAlpha()
       .raw()

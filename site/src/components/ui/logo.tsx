@@ -1,3 +1,4 @@
+/** Use the shaded brand mark for reusable website branding at every navigation size. */
 import * as React from "react";
 import Link from "next/link";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -50,7 +51,7 @@ const Logo = React.forwardRef<HTMLAnchorElement, LogoProps>(
       <>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/logo-white.svg"
+          src="/logo-shaded-white.svg"
           alt=""
           aria-hidden="true"
           className={cn(logoMarkSizeMap[resolvedSize])}

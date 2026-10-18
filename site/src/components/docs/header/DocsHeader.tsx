@@ -60,7 +60,7 @@ export function DocsHeader({ tabs }: { tabs: Option[] }) {
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fd-ring",
           )}
         >
-          <StigmerIcon size={28} />
+          <StigmerIcon size={32} />
         </Link>
 
         <nav
