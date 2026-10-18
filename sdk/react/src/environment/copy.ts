@@ -44,19 +44,14 @@ export function describeEnvironmentChoice(
   nameOf: (environment: { readonly org: string; readonly slug: string; readonly id?: string }) => string = (e) =>
     e.slug,
 ): string {
-  switch (choice.kind) {
-    case "chosen":
-      return `${nameOf(choice.environment)} · ${ENVIRONMENT_SOURCE_COPY[choice.source]}`;
-    case "none":
-      return NO_ENVIRONMENT_COPY;
-    case "own-machine":
-    case "not-on-server":
-      return ENVIRONMENTS_NOT_APPLYING_COPY[choice.kind];
-    default: {
-      const exhaustive: never = choice;
-      return exhaustive;
-    }
+  if (choice.kind === "chosen") {
+    return `${nameOf(choice.environment)} · ${ENVIRONMENT_SOURCE_COPY[choice.source]}`;
   }
+  if (choice.kind === "none") {
+    return NO_ENVIRONMENT_COPY;
+  }
+  // The two kinds left are why none applies, each a key of the table.
+  return ENVIRONMENTS_NOT_APPLYING_COPY[choice.kind];
 }
 
 /**

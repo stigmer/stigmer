@@ -120,6 +120,20 @@ describe("AgentDetailView environment", () => {
     expect(sent.resource.spec?.environmentRef).toMatchObject({ slug: "data-science", kind: ApiResourceKind.environment });
   });
 
+  it("cancels without a save, back to the read view", async () => {
+    const agent = agentWith({});
+    const update = vi.fn(async () => agent);
+    renderAgent(agent, { update });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit environment" }));
+    await screen.findByRole("combobox", { name: "Environment" });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("combobox", { name: "Environment" })).toBeNull();
+    expect(await screen.findByRole("button", { name: "Edit environment" })).toBeTruthy();
+    expect(update).not.toHaveBeenCalled();
+  });
+
   it("clears the agent's own when the inherited row is saved", async () => {
     const agent = agentWith({ environmentRef: { kind: ApiResourceKind.environment, org: ACME_ID, slug: "data-science" } });
     const update = vi.fn(async (resource: Agent, paths: string[]) => {

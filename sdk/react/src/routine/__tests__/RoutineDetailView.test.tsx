@@ -955,6 +955,20 @@ describe("RoutineDetailView", () => {
     });
   });
 
+  it("cancels the Environment editor without a save", async () => {
+    const routine = makeRoutine();
+    const client = makeClient(routine);
+    renderView(client, { editable: true });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit environment" }));
+    await screen.findByRole("combobox", { name: "Environment" });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("combobox", { name: "Environment" })).toBeNull();
+    expect(await screen.findByText("Data science · the agent's default")).toBeTruthy();
+    expect(client.routine.update).not.toHaveBeenCalled();
+  });
+
   it("names a routine's own Environment as set by the routine", async () => {
     const routine = makeRoutine();
     routine.spec!.agent!.environmentRef = create(ApiResourceReferenceSchema, {

@@ -134,24 +134,18 @@ export function resolveEnvironmentChoice(inputs: EnvironmentChoiceInputs): Envir
   return { kind: "none" };
 }
 
+/** Each wire source's name, keyed by the enum so a new value fails to compile until it is named here. */
+const SOURCE_NAMES: Readonly<Record<EnvironmentSource, EnvironmentSourceName | undefined>> = {
+  [EnvironmentSource.UNSPECIFIED]: undefined,
+  [EnvironmentSource.SESSION]: "session",
+  [EnvironmentSource.ROUTINE]: "routine",
+  [EnvironmentSource.AGENT]: "agent",
+  [EnvironmentSource.ORGANIZATION]: "organization",
+};
+
 /** The wire's source as a name; undefined for UNSPECIFIED (none applied). */
 export function environmentSourceName(source: EnvironmentSource): EnvironmentSourceName | undefined {
-  switch (source) {
-    case EnvironmentSource.SESSION:
-      return "session";
-    case EnvironmentSource.ROUTINE:
-      return "routine";
-    case EnvironmentSource.AGENT:
-      return "agent";
-    case EnvironmentSource.ORGANIZATION:
-      return "organization";
-    case EnvironmentSource.UNSPECIFIED:
-      return undefined;
-    default: {
-      const exhaustive: never = source;
-      return exhaustive;
-    }
-  }
+  return SOURCE_NAMES[source];
 }
 
 /**
