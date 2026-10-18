@@ -17,6 +17,13 @@
  * A Claude Code matcher is tested against Claude's names (`WebFetch`,
  * `WebSearch`, `Agent`), a Cursor one against Cursor's (`WebFetch` and the
  * SDK's `Fetch`, `WebSearch`, `Task`).
+ *
+ * For the same reason, web fetch and web search are hidden in a sandbox
+ * whose Environment limits networking (`environment/spec.ts`): their
+ * traffic leaves from Cursor's side, where no host list reaches, so the
+ * honest form of "only these hosts" is that they are absent. The agent's
+ * shell, and the native engine's own web fetch, stay under the sandbox's
+ * network policy.
  */
 
 import { cursorMatches } from "../../shared/hooks/formats/cursor.js";
@@ -44,6 +51,14 @@ const HIDEABLE: readonly Hideable[] = [
 
 function takes(entry: HookEntry, name: string): boolean {
   return entry.format === "cursor" ? cursorMatches(entry.matcher, name) : matcherMatches(entry.matcher, name);
+}
+
+/** The SDK tools a limited network hides: the ones whose traffic leaves outside the sandbox. */
+export const LIMITED_NETWORK_HIDDEN_TOOLS: readonly string[] = HIDEABLE.filter((tool) => tool.byMatchAll).map((tool) => tool.sdkName);
+
+/** The SDK tool names the sandbox's network mode hides this turn. */
+export function toolsHiddenByNetwork(network: "unrestricted" | "limited" | undefined): readonly string[] {
+  return network === "limited" ? LIMITED_NETWORK_HIDDEN_TOOLS : [];
 }
 
 /** The SDK tool names to hide this turn, in a stable order. */

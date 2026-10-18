@@ -31,7 +31,11 @@
  * environment lists them in `STIGMER_AGENT_ENV_PASSTHROUGH`, comma-separated.
  */
 
-import { agentIdentity } from "../shared/agent-identity.js";
+import { delimiter } from "node:path";
+
+import { environmentPathEntries, environmentPrefix } from "../environment/prefix.js";
+import { hasPackages, type SandboxEnvironment } from "../environment/spec.js";
+import { agentIdentity, type AgentIdentity } from "../shared/agent-identity.js";
 import { RUNNER_SECRET_ENV_KEYS } from "../shared/runner-credential-keys.js";
 
 const RUNNER_SECRETS: ReadonlySet<string> = new Set(RUNNER_SECRET_ENV_KEYS);
@@ -73,4 +77,21 @@ export function agentHostEnvironment(env: NodeJS.ProcessEnv = process.env, separ
     out[name] = value;
   }
   return out;
+}
+
+/**
+ * The host's environment with the Environment's install folders first on
+ * its PATH, when the sandbox has packages: the agent's shell and the
+ * commands Cursor starts both inherit the host's PATH, so both find them.
+ * No NODE_PATH: npm packages install as `npm i -g` does, their commands on
+ * the PATH, and a NODE_PATH would reach the host's own module lookups.
+ */
+export function withEnvironmentPath(
+  env: NodeJS.ProcessEnv,
+  environment: SandboxEnvironment | undefined,
+  identity: AgentIdentity | null,
+): NodeJS.ProcessEnv {
+  if (environment === undefined || !hasPackages(environment.packages)) return env;
+  const entries = environmentPathEntries(environmentPrefix(identity));
+  return { ...env, PATH: [...entries, env["PATH"] ?? ""].join(delimiter) };
 }
