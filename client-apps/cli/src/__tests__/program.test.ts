@@ -331,6 +331,51 @@ describe("buildProgram", () => {
     },
   );
 
+  it.each([
+    [[] as string[], undefined],
+    [["--environment", "data-science"], "acme/data-science"],
+    [["--environment", "platform/base-tools"], "platform/base-tools"],
+  ])("sends the environment the run's flags parse to (%j), through commander to the wire", async (flags, environment) => {
+    const program = buildProgram();
+    const run = program.commands.find((command) => command.name() === "run");
+    let parsed: AgentExecOptions | undefined;
+    run?.action((_agent: string | undefined, options: AgentExecOptions) => {
+      parsed = options;
+    });
+    await program.parseAsync(["run", "-m", "hi", ...flags], { from: "user" });
+    if (parsed === undefined) throw new Error("run's action did not run");
+
+    const prepared = await prepareAgentExec(toAgentExecFlags(parsed), STUB_CLIENT, undefined, { org: "acme" });
+    let sent: Run | undefined;
+    const controller = (() => ({
+      create: (run: Run) => {
+        sent = run;
+        return Promise.resolve(run);
+      },
+    })) as unknown as ControllerFn;
+    await createAgentRun(controller, {
+      orgId: "acme",
+      message: prepared.message,
+      vaults: prepared.vaults,
+      includeMyVault: prepared.includeMyVault,
+      plugins: prepared.plugins,
+      ...(prepared.environment === undefined ? {} : { environment: prepared.environment }),
+      attachments: [],
+      workspaceFileRefs: [],
+      workspaceEntries: [],
+      model: "",
+      mode: "",
+      serviceTier: "",
+      thinking: "",
+      autoApproveAll: false,
+      harness: "",
+    });
+    const target = sent?.spec?.target;
+    const ref = target?.case === "sessionSpec" ? target.value.environmentRef : undefined;
+    expect(ref === undefined ? undefined : `${ref.org}/${ref.slug}`).toBe(environment);
+    if (ref !== undefined) expect(ref.kind).toBe(ApiResourceKind.environment);
+  });
+
   it("reports a semver-shaped version", () => {
     expect(VERSION).toMatch(/^\d+\.\d+\.\d+/);
   });

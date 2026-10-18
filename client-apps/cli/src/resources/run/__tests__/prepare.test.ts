@@ -8,6 +8,7 @@ import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer } from "@stigmer/client";
 import { type AgentExecFlags, prepareAgentExec, validateHarness, validateMode, validateServiceTier, validateThinking } from "../prepare.js";
 
@@ -77,6 +78,7 @@ const BASE_FLAGS: AgentExecFlags = {
   vault: [],
   myVault: true,
   plugin: [],
+  environment: "",
   model: "",
   autoApprove: false,
   mode: "",
@@ -162,6 +164,28 @@ describe("prepareAgentExec vaults", () => {
       "acme/support-tools",
       "platform/shared-keys",
     ]);
+  });
+
+  it("names no environment by default", async () => {
+    const prepared = await prepareAgentExec(BASE_FLAGS, STUB_CLIENT);
+    expect(prepared.environment).toBeUndefined();
+  });
+
+  it("resolves --environment, a slug in the run's organization", async () => {
+    const prepared = await prepareAgentExec({ ...BASE_FLAGS, environment: "data-science" }, STUB_CLIENT, undefined, {
+      org: "acme",
+    });
+    expect([prepared.environment?.kind, prepared.environment?.org, prepared.environment?.slug]).toEqual([
+      ApiResourceKind.environment,
+      "acme",
+      "data-science",
+    ]);
+  });
+
+  it("refuses a malformed --environment before anything is uploaded", async () => {
+    await expect(prepareAgentExec({ ...BASE_FLAGS, environment: "a/b/c" }, STUB_CLIENT)).rejects.toThrow(
+      "invalid --environment value 'a/b/c'",
+    );
   });
 
   it("carries through scalar flags", async () => {
