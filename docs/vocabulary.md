@@ -84,7 +84,7 @@ definitions, API names, and examples follow below.
 | **Subagent**           | ---                        | ---                                    | subagent            | subagent, `subagents`, `<plugin>:<agent>`           | subagent           |
 | **Channel**            | chat link, Slack, WhatsApp | chat link                              | channel, Channel    | Channel, `kind: Channel`                            | Channel            |
 | **Channel App**        | ---                        | ---                                    | Channel App         | ChannelApp, `kind: ChannelApp`                      | Channel App        |
-| **Schedule**           | ---                        | ---                                    | schedule, Schedule  | Schedule, `kind: Schedule`                          | Schedule           |
+| **Routine**            | run on a schedule          | routine                                | routine, Routine    | Routine, `kind: Routine`                            | Routine            |
 | **Label**              | ---                        | label                                  | label               | `metadata.labels`, `labels` filter                  | label              |
 | **Tag**                | ---                        | tag                                    | tag                 | `metadata.tags`                                     | tag                |
 
@@ -123,7 +123,7 @@ A reusable definition of what an AI assistant knows and can do.
   `spec.subagents` (saved Agents it may hand work to, each pinned to a version
   when this Agent is saved, one level deep), and `spec.run_config` with
   `spec.harness`: the model and engine a conversation on the Agent starts on, a
-  default that a message, a channel or a schedule may override (see
+  default that a message, a channel or a routine may override (see
   [Run settings](/docs/concepts/agents#run-settings)).
 
 **Good examples**:
@@ -503,6 +503,93 @@ number. Each Channel has one type, and an Agent can have several.
 | ------- | ------------------------------ | -------------------------------------------------------------------------- |
 | How-to  | "Create a share of the Agent." | A chat link is a channel; "share" means giving people access to something. |
 | Any     | "Shared Agent"                 | Say "an Agent's chat link"; sharing an Agent is granting a role on it.     |
+
+---
+
+#### Routine
+
+A saved Agent invocation (which Agent, what to tell it, its workspace and
+vaults) that starts on its schedule, when someone runs it, or when another
+system calls it with a note.
+
+- **User-facing alternative**: "run your Agent on a schedule" on the sales site
+  and on first use in how-to docs; "routine" after that.
+- **Capitalize**: Yes, when referring to the Stigmer resource ("the Routine
+  kind"). Lowercase "routine" is fine in prose once the concept is established
+  ("run the routine", "the routine's history").
+- **API surface**: `kind: Routine`, prefix `rtn`; a routine made while the kind
+  was called `Schedule` keeps its `sch_` id, and that id keeps working. proto:
+  `routine/v1/spec.proto`, `routine/v1/api.proto`. CLI: the unified verbs
+  (`stigmer apply`, `stigmer get routine`, `stigmer list routines`,
+  `stigmer delete routine`) and `stigmer routine fire|fires|resume`.
+- **Key fields**: `cron` (optional: the classic 5-field form or an `@daily`
+  shorthand, evaluated in `time_zone`; absent, the routine runs only when
+  started), `time_zone` (IANA name, required with a `cron`), `enabled`, and
+  `agent` (`agent_ref`, `message`, `vaults`, the workspace and run settings).
+  Firing observations (`next_fire_at`, `last_fire_at`, `last_run_id`,
+  `paused_reason`) live in `status`, written only by the platform---applying a
+  manifest never touches them.
+- **Starting it**: say "start" and **Run now** in how-to docs; reference docs
+  say `fire` (`FireRoutineInput`), and each start is a `RoutineFire` with an
+  origin, `schedule` or `manual`, and `fired_by` for whoever started it. A start
+  may carry a note of up to 65,536 characters, which reaches the Agent after the
+  routine's message as information from whoever started the run, never as
+  instructions. By default a routine starts by hand at most 30 times an hour.
+- **Who it acts as**: every run, on its schedule or started by anyone, acts as
+  the routine's owner: the person or service account that created it. On a
+  routine the Owner role is only that account, never granted and never
+  inherited by an Organization's admins, so say "the person who created it" on
+  first use and never call an admin a routine's owner. A routine meant to
+  outlive a person is created by a service account.
+- **Roles**: only the person who created it grants a role on it, to people,
+  Teams or service accounts. A **Participant** starts it, with or without a
+  note, and reads its conversations; a **Viewer** reads it, its history and its
+  conversations, and starts nothing. Only its owner changes what it runs. An
+  Organization's admins see it, its history and who has access, and may switch
+  it off, rename, relabel, resume or delete it, and remove access; they neither
+  start it, nor change what it runs, nor read its conversations. Granting a
+  role on one routine is Enterprise and Cloud; on open source only its owner
+  starts it.
+- **Disabled vs. paused**: two words, two levers, two writers. A routine is
+  **disabled** when its owner sets `enabled: false` in the spec---the owner's
+  switch, cleared by the owner editing the spec. A routine is **paused** when
+  the platform stops it after repeated failed runs on its schedule and records
+  why in `status.paused_reason`---the platform's latch, cleared only by the
+  resume command (`stigmer routine resume`). A disabled routine refuses to
+  start; a paused one may still be started, which is how its owner tests a fix.
+  Never use "paused" for the owner's switch or "disabled" for the platform's
+  latch.
+- **Note**: Do not confuse with a Temporal Schedule, the engine artifact the
+  platform manages internally to do the firing. Docs and code comments say
+  "Temporal Schedule" for the engine artifact; one Routine with a `cron` is
+  backed by one Temporal Schedule. Lowercase "schedule" stays: it is the
+  routine's own timing ("the routine's schedule") and the verb.
+- **Former names**: `Schedule` (`kind: Schedule`), its fire record
+  `ScheduleFire`, `trigger` for starting one, and the hosted edition's per-org
+  schedule account that runs once acted as. Do not use them in new writing.
+  `stigmer apply` on an old `kind: Schedule` file answers with the fix: rewrite
+  it as `kind: Routine`. See [Routines](/docs/concepts/routines).
+
+**Good examples**:
+
+| Context    | Copy                                                                                                     |
+| ---------- | -------------------------------------------------------------------------------------------------------- |
+| Sales site | "Run your Agent on a schedule, or let your alerting tool start it."                                      |
+| How-to     | "Open the routine and click **Run now**. Add a note if the run needs to know what happened."             |
+| Concepts   | "Every run of a routine acts as the person who created it, so its conversations are theirs."             |
+| Reference  | "`Routine`---a saved Agent invocation; `spec.cron` optional, started by `fire` with an optional `text`." |
+
+<!-- vale Stigmer.FormerNames = NO -->
+
+**Bad examples**:
+
+| Context | Copy                                                       | Problem                                                                                         |
+| ------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Any     | "Create a Schedule for the Agent."                         | The kind is Routine; "Schedule" is its former name.                                             |
+| Any     | "The run acts as the organization's schedule account."     | No such account exists: every run acts as the routine's owner.                                  |
+| How-to  | "Ask an admin, the routine's owner, to change the message." | An admin is not a routine's owner and cannot change what it runs; only the person who created it can. |
+
+<!-- vale Stigmer.FormerNames = YES -->
 
 ---
 
@@ -943,12 +1030,12 @@ and decide who may use them.
   names vaults holds them in an ordered `vaults` list; a Session also sets
   `include_my_vault` to use each sender's own My vault first. An Agent names no
   vaults.
-- **Where vaults are named**: a Session, a Schedule (`agent.vaults`), a Channel
+- **Where vaults are named**: a Session, a Routine (`agent.vaults`), a Channel
   (a chat link only when its audience is public: members' runs use their own)
   and an Organization's embedding settings each carry `vaults`. A run with no
-  person (a schedule fire, a Slack, WhatsApp or chat-link guest message) and an
-  app user's turn use the vaults of that Schedule, channel or embedding setting
-  after the conversation's.
+  person sending (a routine's run, a Slack, WhatsApp or chat-link guest message)
+  and an app user's turn use the vaults of that Routine, channel or embedding
+  setting after the conversation's.
 - **Related terms**: a **secret** is a vault entry matched by its name
   (`OPENAI_API_KEY`). A **connection** (in the console, a **login**) is a vault
   entry matched by the address of the tool or Git host it is for
@@ -1252,7 +1339,8 @@ Organization.
 - **The words**: **Viewer** sees it and changes nothing; **Editor** changes it
   and never deletes it or decides who has access; **Owner** does everything. Two
   kinds keep their own word: **Participant** on a Session or a Channel (reads
-  and sends messages) and **Can use** on a shared vault (its logins and secrets
+  and sends messages) or on a Routine (starts it, with a note, and reads its
+  conversations), and **Can use** on a shared vault (its logins and secrets
   reach the person's runs). An Organization's roles are Owner, Admin, Member and
   Viewer.
 - **Capitalize**: Yes, when naming a role ("grant Viewer", "an Organization
@@ -1372,7 +1460,7 @@ engine.
 #### Run
 
 One run of an Agent from start to finish: what a user starts when they send a
-message, fire a schedule or open a chat link.
+message, start a routine or open a chat link.
 
 - **Capitalize**: As the resource name in labels and reference pages
   (`kind: Run`, the console's "Run" page). In prose say "run" in lower case: the
@@ -1428,39 +1516,6 @@ with WhatsApp Business access) that Slack and WhatsApp channels install through.
   Agent per app, so registering additional Channel Apps is also how several
   Agents serve the same workspace. For WhatsApp, a phone number serves one Agent
   per app.
-
----
-
-#### Schedule
-
-A recurring trigger that runs an Agent on a cron schedule---for example, sending
-fee reminders every morning at nine.
-
-- **Capitalize**: Yes, when referring to the Stigmer resource. Lowercase
-  "schedule" is fine in prose once the concept is established ("the schedule
-  fires," "disable the schedule").
-- **API surface**: `kind: Schedule`, prefix `sch`. proto:
-  `agentic/schedule/v1/spec.proto`. CLI: `stigmer get schedule`,
-  `stigmer list schedule`.
-- **Key fields**: `cron` (classic 5-field form, evaluated in `time_zone`),
-  `time_zone` (IANA name), `enabled`, and the target (`agent` with `agent_ref`,
-  `message` and `vaults`). Firing observations (`next_fire_at`,
-  `consecutive_failures`, `paused_reason`) live in `status`, written only by the
-  platform---applying a manifest never touches them.
-- **Disabled vs. paused**: two words, two levers, two writers. A schedule is
-  **disabled** when its owner sets `enabled: false` in the spec---the owner's
-  switch, cleared by the owner editing the spec. A schedule is **paused** when
-  the platform stops it after repeated failed runs and records why in
-  `status.paused_reason`---the platform's latch, cleared only by the resume
-  command (`stigmer schedule resume`). Never use "paused" for the owner's switch
-  or "disabled" for the platform's latch.
-- **Context rule**: How-to and reference only. In how-to docs, introduce as "run
-  your Agent on a schedule," then use "schedule."
-- **Note**: Do not confuse with a Temporal Schedule, the engine artifact the
-  platform manages internally to do the firing. Docs and code comments always
-  say "Temporal Schedule" for the engine artifact and "Schedule" (or
-  `kind: Schedule`) for the user-facing resource; one Schedule resource is
-  backed by one Temporal Schedule.
 
 ---
 
@@ -1787,7 +1842,7 @@ Organization, and it can be renamed.
 #### Reference
 
 How one resource names another: an Agent's Skills, Plugins and subagents, a
-Schedule's Agent. A person writes a reference by slug, by ID or both; the server
+Routine's Agent. A person writes a reference by slug, by ID or both; the server
 stores the ID; every answer names it by the target's current slug.
 
 - **Capitalize**: No.
@@ -2015,7 +2070,7 @@ Agent bound to its own settings, and a Session named an instance rather than its
 Agent; every Agent carried a default one. The kind and its CLI verbs were
 removed: a Session names its Agent directly (`agent_ref`) and runs the version
 it started on, and a run's keys come from vaults (the conversation's, those of
-the Schedule or channel that started it, or the sending person's own).
+the Routine or channel that started it, or the sending person's own).
 
 - **Capitalize**: Yes, when naming the retired kind in an upgrade note.
 - **Context rule**: Do not use in new writing. A reader still meets the word in
@@ -2197,5 +2252,29 @@ word has a replacement, defined in its entry:
 - `Agent Channel` for Slack or WhatsApp: a **channel** (Channel).
 - `share` for anything but giving access: "share" means giving access only
   (Share (the word)).
-- `surface` for what started a run: name it, a Session, a Schedule or a channel
+- `surface` for what started a run: name it, a Session, a Routine or a channel
   (Vault).
+
+---
+
+### 9. Schedule and routine words---RESOLVED
+
+**What**: Scheduled work was a `Schedule` (`kind: Schedule`, prefix `sch`): a
+cron trigger only, started by hand as a `trigger`, and on the hosted edition
+every run acted as one hidden schedule account per Organization. "Owner" could
+mean the person who created it or anyone who inherited the Owner role, and
+"schedule" named both the resource and its timing.
+
+**Resolution**: The `Routine` kind replaced it, shaped after Claude Code's
+routines: an optional schedule, a start with an optional note, Participant to
+start it, and every run acting as the person or service account that created
+it, in every edition. Each retired word has a replacement, defined in its entry:
+
+- `Schedule` and `kind: Schedule` for the resource: a **Routine** (Routine).
+- `trigger` and `ScheduleFire` for starting one by hand: **start** and **Run
+  now** in how-to docs, `fire` and `RoutineFire` in reference (Routine).
+- the hosted edition's schedule account: the routine's **owner**, the account
+  that created it; no other account acts for a routine (Routine).
+- "schedule" for the resource in prose: "routine". Lowercase "schedule" keeps
+  its sense of timing and the verb, and "Temporal Schedule" stays the engine's
+  artifact (Routine).
