@@ -383,7 +383,7 @@ public final class AgentCommandControllerGrpc {
      * apply). A slug another agent holds is refused with ALREADY_EXISTS, and one
      * another agent was recently renamed away from with SLUG_RESERVED (see
      * create).
-     * Its schedules, channels, conversations and the agents that hand work to it
+     * Its routines, channels, conversations and the agents that hand work to it
      * name it by id; a parent agent's turns call it by its new slug.
      * </pre>
      */
@@ -547,7 +547,7 @@ public final class AgentCommandControllerGrpc {
      * apply). A slug another agent holds is refused with ALREADY_EXISTS, and one
      * another agent was recently renamed away from with SLUG_RESERVED (see
      * create).
-     * Its schedules, channels, conversations and the agents that hand work to it
+     * Its routines, channels, conversations and the agents that hand work to it
      * name it by id; a parent agent's turns call it by its new slug.
      * </pre>
      */
@@ -696,7 +696,7 @@ public final class AgentCommandControllerGrpc {
      * apply). A slug another agent holds is refused with ALREADY_EXISTS, and one
      * another agent was recently renamed away from with SLUG_RESERVED (see
      * create).
-     * Its schedules, channels, conversations and the agents that hand work to it
+     * Its routines, channels, conversations and the agents that hand work to it
      * name it by id; a parent agent's turns call it by its new slug.
      * </pre>
      */
@@ -842,7 +842,7 @@ public final class AgentCommandControllerGrpc {
      * apply). A slug another agent holds is refused with ALREADY_EXISTS, and one
      * another agent was recently renamed away from with SLUG_RESERVED (see
      * create).
-     * Its schedules, channels, conversations and the agents that hand work to it
+     * Its routines, channels, conversations and the agents that hand work to it
      * name it by id; a parent agent's turns call it by its new slug.
      * </pre>
      */
@@ -992,7 +992,7 @@ public final class AgentCommandControllerGrpc {
      * apply). A slug another agent holds is refused with ALREADY_EXISTS, and one
      * another agent was recently renamed away from with SLUG_RESERVED (see
      * create).
-     * Its schedules, channels, conversations and the agents that hand work to it
+     * Its routines, channels, conversations and the agents that hand work to it
      * name it by id; a parent agent's turns call it by its new slug.
      * </pre>
      */

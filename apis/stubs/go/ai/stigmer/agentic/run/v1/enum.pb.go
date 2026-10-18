@@ -377,7 +377,7 @@ func (InteractionMode) EnumDescriptor() ([]byte, []int) {
 // The approval default (shell commands, file writes and deletes, and MCP tools
 // their server marks destructive) decides WHICH tools are gated; this mode
 // decides WHAT HAPPENS when a gate fires. It exists for lanes where no
-// approver is present at the conversation — a schedule's fire, Slack and
+// approver is present at the conversation — a routine's fire, Slack and
 // WhatsApp channels, and chat links' guests — where an interactive pause
 // would park the run in RUN_WAITING_FOR_APPROVAL forever.
 //
@@ -403,7 +403,7 @@ const (
 	// SessionCommandController.confirmToolUse or grantPermission. No timeout — the run waits
 	// indefinitely.
 	ApprovalMode_APPROVAL_MODE_INTERACTIVE ApprovalMode = 1
-	// Unattended: no approver exists where the run came from (a schedule, a
+	// Unattended: no approver exists where the run came from (a routine, a
 	// channel). A gated tool is
 	// resolved as an automatic SKIP — the tool does NOT run, the model is told
 	// the action requires an approval that is not available in this
@@ -1021,7 +1021,7 @@ const (
 	RunValueOrigin_RUN_VALUE_ORIGIN_MY_VAULT RunValueOrigin = 2
 	// A vault the conversation lists.
 	RunValueOrigin_RUN_VALUE_ORIGIN_VAULT RunValueOrigin = 3
-	// A vault of the schedule, channel or embedding settings a turn with no
+	// A vault of the routine, channel or embedding settings a turn with no
 	// person came through. The value's name is older than this wording and
 	// stays: an enum value is a wire identifier.
 	RunValueOrigin_RUN_VALUE_ORIGIN_SURFACE_VAULT RunValueOrigin = 4

@@ -4,7 +4,7 @@ visibility: org
 description: >
   Answer questions about Stigmer from the official documentation at
   stigmer.ai/docs. Use this skill whenever someone asks what Stigmer is, how
-  a concept works (Agent, Skill, MCP Server, Session, Schedule,
+  a concept works (Agent, Skill, MCP Server, Session, Routine,
   Vault, Organization, approval flows), or how to do something with
   the product, CLI, or SDKs. It carries the map of the documentation and the
   answering methodology; the content itself is read live from the published

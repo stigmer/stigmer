@@ -12,8 +12,8 @@ package ai.stigmer.agentic.run.v1;
  * It is the owner-settable subset of a run — the interactive
  * composer's vocabulary (agent, message, harness, workspace,
  * vaults, run bounds) minus what an unattended run makes structurally
- * impossible. A schedule or a channel that starts an agent on someone's
- * behalf embeds this shape instead of re-deriving it: a schedule embeds
+ * impossible. A routine or a channel that starts an agent on someone's
+ * behalf embeds this shape instead of re-deriving it: a routine embeds
  * it whole; a channel embeds RunConfig.
  * </pre>
  *
@@ -620,8 +620,8 @@ private static final long serialVersionUID = 0L;
    * It is the owner-settable subset of a run — the interactive
    * composer's vocabulary (agent, message, harness, workspace,
    * vaults, run bounds) minus what an unattended run makes structurally
-   * impossible. A schedule or a channel that starts an agent on someone's
-   * behalf embeds this shape instead of re-deriving it: a schedule embeds
+   * impossible. A routine or a channel that starts an agent on someone's
+   * behalf embeds this shape instead of re-deriving it: a routine embeds
    * it whole; a channel embeds RunConfig.
    * </pre>
    *

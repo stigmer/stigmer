@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.RenameInput",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Rename an agent: change its slug, the name people type.\n\n The agent keeps its id, so everything that names it keeps working, and\n every answer names it by the new slug. The old slug keeps leading to the\n agent for reading for 30 days, during which no other agent of the\n organization can take it and this one can take it back; then it is\n released. A write that names the old slug is refused with SLUG_RENAMED (see\n apply). A slug another agent holds is refused with ALREADY_EXISTS, and one\n another agent was recently renamed away from with SLUG_RESERVED (see\n create).\n\n Its schedules, channels, conversations and the agents that hand work to it\n name it by id; a parent agent's turns call it by its new slug."
+          "description": "Rename an agent: change its slug, the name people type.\n\n The agent keeps its id, so everything that names it keeps working, and\n every answer names it by the new slug. The old slug keeps leading to the\n agent for reading for 30 days, during which no other agent of the\n organization can take it and this one can take it back; then it is\n released. A write that names the old slug is refused with SLUG_RENAMED (see\n apply). A slug another agent holds is refused with ALREADY_EXISTS, and one\n another agent was recently renamed away from with SLUG_RESERVED (see\n create).\n\n Its routines, channels, conversations and the agents that hand work to it\n name it by id; a parent agent's turns call it by its new slug."
         },
         {
           "name": "Delete",

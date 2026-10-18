@@ -19,7 +19,7 @@ All Stigmer term definitions, capitalization rules, and context-specific usage
 guidance live in [`docs/vocabulary.md`](vocabulary.md). That file is the single
 source of truth.
 
-**Short version**: capitalize Stigmer domain terms (Agent, Skill, Schedule,
+**Short version**: capitalize Stigmer domain terms (Agent, Skill, Routine,
 Session, etc.) when they refer to the platform concept. Lowercase when used
 generically. Use the canonical forms (gRPC, ID, IDs). Vale enforces these
 automatically via `vale/styles/Stigmer/terms.yml`.

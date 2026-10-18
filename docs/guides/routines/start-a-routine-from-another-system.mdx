@@ -1,0 +1,117 @@
+---
+title: Start a routine from another system
+description:
+  Let an alerting tool, a deploy pipeline or a script start a routine with one
+  HTTP call and a note, through a service account that holds Participant on it.
+---
+
+A routine can be started by another system: your alerting tool when an alert
+fires, a deploy pipeline after each release, a script of your own. Each call
+starts one run, and can pass a note, such as the alert's text, that the Agent
+receives with the routine's message. This guide sets up an alerting tool to
+start a triage routine: a service account for the tool, Participant on the
+routine for that account, and the call itself.
+
+The run acts as the routine's owner, the person who created it, whoever calls
+it. [Routines](/docs/concepts/routines) explains why, and what a note can and
+cannot change.
+
+You need a routine to start. A routine meant only for calls like this needs no
+schedule: make it from a manifest with no `cron`, as
+[Run an Agent on a schedule](/docs/guides/routines/run-an-agent-on-a-schedule)
+shows, since the console's form needs a schedule today
+([#2403](https://github.com/stigmer/stigmer/issues/2403)). Write its message to
+use the note, for example "Investigate the alert in the note and post what you
+find in #on-call."
+
+Every routine's **API** tab shows the call below with the routine's own address
+and ID, and the setup steps your role allows.
+
+## Create a service account for the caller
+
+An Organization admin does this. A service account gives the tool an account of
+its own, so the setup keeps working when the person who made it leaves.
+
+From the routine's **API** tab, click **Create a service account**, name it
+`alerting`, keep **Viewer**, and copy the key it shows once. Or, from the CLI:
+
+```bash
+stigmer service-account create alerting --role viewer
+stigmer apikey create --service-account alerting --name alerting-tool
+```
+
+Viewer is the least Organization role an account can hold, and the role matters:
+the key can also read and run whatever that role allows, beyond this routine.
+[Service accounts](/docs/guides/authentication/service-accounts) explains the
+roles and how to rotate or revoke a key.
+
+## Give it Participant on the routine
+
+Only the person who created the routine can do this, because a Participant's
+starts act as them. On the routine, open **Manage access** (or **Give it
+Participant** on the **API** tab), choose the `alerting` service account, and
+give it **Participant**.
+
+A Participant starts the routine and reads its conversations, and changes
+nothing about it.
+
+## Call it
+
+Store the key in your tool's secret store as `STIGMER_API_KEY`, and have the
+tool send:
+
+```bash
+curl -X POST https://api.stigmer.ai/ai.stigmer.agentic.routine.v1.RoutineCommandController/fire \
+  -H "Authorization: Bearer $STIGMER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"rtn_01j9z3k8f2q4m6n7p8r9s0t1v2","text":"Sentry alert SEN-4521 fired"}'
+```
+
+`id` is the routine's ID (**Copy ID** in its actions). `text` is the note: up to
+65,536 characters, sent as it is, so a JSON alert body arrives as text. Leave it
+out for a plain run. On your own server, the **API** tab prints that server's
+address in place of `api.stigmer.ai`.
+
+The answer names the run it started and the start's ID in the routine's history,
+or the reason no run started.
+
+## Check what it did
+
+The routine's **History** tab lists the call as **Manual**, started by
+`alerting`. From the CLI:
+
+```bash
+stigmer routine fires triage-new-alerts
+```
+
+Open the run from the history to read the conversation.
+
+## When a call is refused
+
+- **The routine is off.** A disabled routine refuses every start; its owner
+  switches it back on.
+- **Too many starts.** By default a routine starts by hand at most 30 times an
+  hour, counting **Run now** and calls together; past that, a call is refused
+  until the hour moves on. A tool that retries on failure counts each retry.
+- **No Participant.** A key whose account is not a Participant on the routine is
+  refused.
+
+A paused routine still accepts calls: the pause stops only its schedule.
+
+## On open source
+
+Open source grants roles on an Organization, not on one routine, so only a
+routine's owner starts it. Create a service account that may edit the routine's
+Agent (on open source, one that created the Agent itself, or one with the
+**Admin** role), and apply the routine's manifest with its key
+(`stigmer apply -f routine.yaml --api-key <key>`), so the service account is its
+owner. The same key then starts it. The **API** tab says which key to use. A
+server that signs nobody in, such as `stigmer up` on a laptop, checks no keys:
+call it without the `Authorization` line.
+
+## What's next
+
+Your tool starts the routine and the Agent works as its owner. If that Agent
+calls MCP servers of your own, they see each run as the routine's owner:
+[Caller identity for MCP servers](/docs/guides/integrations/caller-identity-for-mcp-servers)
+shows what a server receives and how to trust it.

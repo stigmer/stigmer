@@ -163,12 +163,12 @@ public interface RunSpecOrBuilder extends
    * tightest one any layer sets, so a message can lower an agent's cap but
    * never raise it. RunConfig's own comment has the full rule.
    *
-   * Unlike a schedule's or channel's saved settings, a message may set service_tier or
+   * Unlike a routine's or channel's saved settings, a message may set service_tier or
    * thinking_mode without a model: it then adjusts the model a less
    * specific layer chose (for example, thinking off for one message on an
    * agent whose default turns it on).
    *
-   * A lane that composes the turn for a schedule or a channel writes its
+   * A lane that composes the turn for a routine or a channel writes its
    * saved settings here. On a lane where the caller is a visitor (the
    * hosted edition's chat-link guests and Slack and WhatsApp senders), the
    * channel's saved settings replace this field; the
@@ -193,12 +193,12 @@ public interface RunSpecOrBuilder extends
    * tightest one any layer sets, so a message can lower an agent's cap but
    * never raise it. RunConfig's own comment has the full rule.
    *
-   * Unlike a schedule's or channel's saved settings, a message may set service_tier or
+   * Unlike a routine's or channel's saved settings, a message may set service_tier or
    * thinking_mode without a model: it then adjusts the model a less
    * specific layer chose (for example, thinking off for one message on an
    * agent whose default turns it on).
    *
-   * A lane that composes the turn for a schedule or a channel writes its
+   * A lane that composes the turn for a routine or a channel writes its
    * saved settings here. On a lane where the caller is a visitor (the
    * hosted edition's chat-link guests and Slack and WhatsApp senders), the
    * channel's saved settings replace this field; the
@@ -223,12 +223,12 @@ public interface RunSpecOrBuilder extends
    * tightest one any layer sets, so a message can lower an agent's cap but
    * never raise it. RunConfig's own comment has the full rule.
    *
-   * Unlike a schedule's or channel's saved settings, a message may set service_tier or
+   * Unlike a routine's or channel's saved settings, a message may set service_tier or
    * thinking_mode without a model: it then adjusts the model a less
    * specific layer chose (for example, thinking off for one message on an
    * agent whose default turns it on).
    *
-   * A lane that composes the turn for a schedule or a channel writes its
+   * A lane that composes the turn for a routine or a channel writes its
    * saved settings here. On a lane where the caller is a visitor (the
    * hosted edition's chat-link guests and Slack and WhatsApp senders), the
    * channel's saved settings replace this field; the

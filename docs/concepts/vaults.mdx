@@ -111,46 +111,47 @@ Organization's Agent or conversation uses, such as a plugin a parent
 Organization shares with its child Organizations, still takes keys from your My
 vault, but only the keys that plugin itself declares.
 
-A run that no person sent uses only the vaults its conversation and the Schedule
+A run that no person sent uses only the vaults its conversation and the routine
 or channel that started it name. The one personal vault such a run can use is a
-Schedule owner's own My vault, named on the owner's own Schedule; nothing else
-can name a My vault (below):
+routine owner's own My vault, named on the owner's own routine; nothing else can
+name a My vault (below):
 
-| Started by                                                                                                   | Uses                                                                             |
-| ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| A [Routine](/docs/sdk/resources/routine)                                                                     | The vaults on the schedule (the console names its creator's My vault by default) |
-| A [public chat link](/docs/guides/channels/create-a-chat-link)                                               | The vaults on the chat link                                                      |
-| A [Slack](/docs/guides/channels/connect-slack) or [WhatsApp](/docs/guides/channels/connect-whatsapp) channel | The vaults on the channel                                                        |
-| A user signed in from an integrator's product                                                                | The vaults in the Organization's embedding settings                              |
+| Started by                                                                                                   | Uses                                                                            |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| A [routine](/docs/concepts/routines)                                                                         | The vaults on the routine (the console names its creator's My vault by default) |
+| A [public chat link](/docs/guides/channels/create-a-chat-link)                                               | The vaults on the chat link                                                     |
+| A [Slack](/docs/guides/channels/connect-slack) or [WhatsApp](/docs/guides/channels/connect-whatsapp) channel | The vaults on the channel                                                       |
+| A user signed in from an integrator's product                                                                | The vaults in the Organization's embedding settings                             |
 
 A visitor on a chat link brings no keys of their own: anything a visitor's
 request names is dropped, so the chat link's vaults are what its runs use. Each
 time such a run starts, Stigmer checks again that the person who attached each
-vault may still use it, so taking away someone's access stops every Schedule and
+vault may still use it, so taking away someone's access stops every routine and
 channel they attached the vault to.
 
-A My vault can be attached only to its owner's own Schedule, which the owner
-sets up for their own work. A conversation, a channel and an Organization's
-embedding settings refuse it, because a conversation can have several people and
-each person's own vault serves only their own messages: a conversation includes
-My vault instead, and each sender then uses their own.
+A My vault can be attached only to its owner's own routine, which the owner sets
+up for their own work. A conversation, a channel and an Organization's embedding
+settings refuse it, because a conversation can have several people and each
+person's own vault serves only their own messages: a conversation includes My
+vault instead, and each sender then uses their own.
 
-While a Schedule names its owner's My vault, only the owner who created it may
-change what it runs, because its runs use that person's credentials. Anyone else
-who may edit the Schedule, an Organization admin included, can still switch it
-off, rename it, relabel it or delete it, but switching it back on or any other
-change to what it runs is refused unless the same update removes that My vault.
-The Agent it runs is still its editors' to change: a Schedule that follows the
-Agent's latest version fills whatever keys that version declares from the
-owner's My vault. Pin the Agent's version on the Schedule when someone else
-edits that Agent.
+Every run of a routine acts as the person who created it, so only that person
+changes what it runs: its message, its schedule, its workspace, its vaults.
+Anyone else who may manage the routine, an Organization admin included, can
+switch it off, rename it, relabel it, resume it or delete it; switching it back
+on, or any other change to what it runs, is refused with "only the person who
+created this routine may change what it runs". That matters most while the
+routine names its owner's My vault, because its runs then use that person's own
+credentials. The Agent it runs is still its editors' to change: a routine that
+follows the Agent's latest version fills whatever keys that version declares
+from the owner's My vault. Pin the Agent's version on the routine when someone
+else edits that Agent.
 
-A shared vault a Schedule keeps stays attached in the name of whoever attached
-it: an editor's change to the Schedule leaves that record alone, and each fire
-checks that this person may still use the vault, so taking away their use stops
-the Schedule's fires. A change of the Agent the Schedule runs is the exception:
-it checks every vault on the Schedule against the editor making the change, and
-records that editor as having attached each one.
+A shared vault a routine keeps stays attached in the name of whoever attached
+it, and each run checks that this person may still use the vault, so taking away
+their use stops the routine's runs. A change of the Agent the routine runs is
+the exception: it checks every vault on the routine against the person making
+the change, and records them as having attached each one.
 
 ### How a key is matched
 
@@ -192,8 +193,8 @@ starts, naming the key, what needs it, and what the conversation lacks: "linear
 needs LINEAR_API_KEY: add LINEAR_API_KEY to My vault" when the conversation
 includes My vault; "add LINEAR_API_KEY to one of this conversation's vaults, or
 include My vault in this conversation" when it lists vaults but leaves My vault
-out; or, for a scheduled run, "linear needs LINEAR_API_KEY: ask the owner of
-schedule 'nightly' to attach a vault that holds LINEAR_API_KEY". An optional key
+out; or, for a routine's run, "linear needs LINEAR_API_KEY: ask the owner of
+routine 'nightly' to attach a vault that holds LINEAR_API_KEY". An optional key
 that nobody holds is simply absent.
 
 ### When the values are read

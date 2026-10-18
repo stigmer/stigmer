@@ -64,11 +64,11 @@ Defined in `ai/stigmer/agentic/run/v1/spec.proto`.
 |---|---|---|
 | `run_config` | `RunConfig` | What this message asks for: model, speed tier, thinking, and run limits. Every field is optional; an unset field falls to the agent's defaults, then to the operator's profile for the lane. See [RunConfig Fields](#runconfig-fields) for the fields and the rule. |
 
-Unlike a schedule's or channel's saved settings, a message may set `service_tier` or `thinking_mode` without a model, to adjust the model a less specific layer chose (for example, thinking off for one message on an agent whose default turns it on). A lane that composes the turn for a schedule writes its saved `run_config` here; on a lane whose caller is a visitor (the hosted edition's chat-link guests and Slack and WhatsApp senders), the channel's saved settings replace this field.
+Unlike a routine's or channel's saved settings, a message may set `service_tier` or `thinking_mode` without a model, to adjust the model a less specific layer chose (for example, thinking off for one message on an agent whose default turns it on). A lane that composes the turn for a routine writes its saved `run_config` here; on a lane whose caller is a visitor (the hosted edition's chat-link guests and Slack and WhatsApp senders), the channel's saved settings replace this field.
 
 ### Per-Message Intents
 
-These apply to this message only and never carry over to the next one in the session. They are not settings, so no schedule, channel or agent saves them.
+These apply to this message only and never carry over to the next one in the session. They are not settings, so no routine, channel or agent saves them.
 
 | Field | Type | Description |
 |---|---|---|
@@ -76,7 +76,7 @@ These apply to this message only and never carry over to the next one in the ses
 | `build_from_plan` | `bool` | Marks a "Build from plan" turn: the person approved a plan from an earlier Plan-mode turn and asked the agent to implement it. The runner injects the implement-plan directive, so `message` stays a short label. |
 | `structured_output_schema` | `google.protobuf.Struct` | JSON Schema the agent's output must conform to. The validated data is the session's `stigmer.agent.structured_output` event. |
 
-No request sets an approval mode: it is a fact of the lane the turn came through, recorded on `status.approval_mode`. See [hitl-approvals.md](hitl-approvals.md#unattended-runs-schedules-channels-and-chat-links).
+No request sets an approval mode: it is a fact of the lane the turn came through, recorded on `status.approval_mode`. See [hitl-approvals.md](hitl-approvals.md#unattended-runs-routines-channels-and-chat-links).
 
 ### The Vaults a Turn Uses
 
@@ -116,7 +116,7 @@ Files must be pre-uploaded via `uploadAttachment` RPC before creating the run. T
 
 ## RunConfig Fields
 
-Defined in `ai/stigmer/agentic/run/v1/invocation.proto`. The same message is a message's request (`spec.run_config`), the saved settings of a schedule (its invocation) or a channel, an agent's defaults (`Agent.spec.run_config`, versioned with the agent), and the settings a turn ran with (`status.run_config`). Zero or empty means "not set at this layer".
+Defined in `ai/stigmer/agentic/run/v1/invocation.proto`. The same message is a message's request (`spec.run_config`), the saved settings of a routine (its invocation) or a channel, an agent's defaults (`Agent.spec.run_config`, versioned with the agent), and the settings a turn ran with (`status.run_config`). Zero or empty means "not set at this layer".
 
 | Field | Type | Description |
 |---|---|---|
@@ -127,12 +127,12 @@ Defined in `ai/stigmer/agentic/run/v1/invocation.proto`. The same message is a m
 | `thinking_mode` | `ThinkingMode` | `THINKING_MODE_DISABLED` (the default when no layer sets it) or `THINKING_MODE_ENABLED`, valid only for a model the registry marks thinking-capable on its engine. |
 | `max_tool_result_chars` | `int32` | Truncate a single tool result longer than this many characters, with a marker asking the agent to request specific sections. 30,000 when no layer sets it. |
 
-**How a turn's settings are resolved.** Once, at create, from three layers, most specific first: the message (or the schedule or channel it came through), the defaults of the agent version the turn runs, and the lane's operator profile.
+**How a turn's settings are resolved.** Once, at create, from three layers, most specific first: the message (or the routine or channel it came through), the defaults of the agent version the turn runs, and the lane's operator profile.
 
 - **Choices** (`model_name`, `service_tier`, `thinking_mode`) come from the most specific layer that sets them. Tier and thinking come only from the model's layer or a more specific one, never from a layer whose model was replaced. With no model in any layer the engine decides (native: the registry default; Cursor: Auto).
-- **Limits** (`max_cost_usd`, `max_tool_rounds`, `max_tool_result_chars`) take the smallest value any layer sets: a message, schedule or channel can lower an agent's cap, never raise it.
+- **Limits** (`max_cost_usd`, `max_tool_rounds`, `max_tool_result_chars`) take the smallest value any layer sets: a message, routine or channel can lower an agent's cap, never raise it.
 - The agent's choices apply only on the engine its `harness` names; on a conversation running the other engine, the agent layer gives its limits alone.
-- Saved settings are self-contained: a schedule, channel or agent that sets `SERVICE_TIER_FAST` or `THINKING_MODE_ENABLED` names its model. Only a message may set them alone.
+- Saved settings are self-contained: a routine, channel or agent that sets `SERVICE_TIER_FAST` or `THINKING_MODE_ENABLED` names its model. Only a message may set them alone.
 
 The proto comment on `RunConfig` is the normative rule. The user-facing explanation, with an agent example, is [Agents: Run settings](https://stigmer.ai/docs/concepts/agents#run-settings).
 
@@ -154,8 +154,8 @@ Defined in `ai/stigmer/agentic/run/v1/api.proto`. All fields are system-managed.
 | `agent_version_hash` | `string` | The agent version this turn ran, from its session. |
 | `declared_preferences` | `DeclaredPreferences` | The organization's and the person's standing context, snapshotted when the turn was created. |
 | `recalled_memories` | `RecalledMemories` | The confirmed memories recalled into this turn, snapshotted when it was created. |
-| `run_config` | `RunConfig` | The settings this turn runs with, resolved once at create from `spec.run_config` (or the schedule's or channel's saved settings), the agent version's defaults and the lane's operator profile. An empty `model_name` means no layer named one and the engine chose. Server-only. |
-| `approval_mode` | `ApprovalMode` | `APPROVAL_MODE_INTERACTIVE` or `APPROVAL_MODE_UNATTENDED`, a fact of the lane: schedule fires and the hosted edition's shared-agent guest and channel turns are unattended; every other turn is interactive. Server-only. |
+| `run_config` | `RunConfig` | The settings this turn runs with, resolved once at create from `spec.run_config` (or the routine's or channel's saved settings), the agent version's defaults and the lane's operator profile. An empty `model_name` means no layer named one and the engine chose. Server-only. |
+| `approval_mode` | `ApprovalMode` | `APPROVAL_MODE_INTERACTIVE` or `APPROVAL_MODE_UNATTENDED`, a fact of the lane: routine fires and the hosted edition's shared-agent guest and channel turns are unattended; every other turn is interactive. Server-only. |
 | `stop_cause` | `string` | Why the turn stopped, as one word (`budget_reached`, `timeout`, `infrastructure`, `platform_stop`, `user`, `model_error`, `failed`, `eval_stopped`, `review_resolved`). Empty while the turn works and when it ended on its own. See [run-lifecycle.md](run-lifecycle.md). |
 
 ### The Conversation

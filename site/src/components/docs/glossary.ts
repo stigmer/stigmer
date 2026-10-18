@@ -14,7 +14,7 @@ export const glossary: Record<string, string> = {
   Agent:
     "A reusable definition of what an AI assistant knows and can do. Think of it as a recipe that describes the assistant's personality, tools, and knowledge.",
   Run:
-    "One run of an Agent from start to finish: what a user starts when they send a message, fire a schedule or open a chat link.",
+    "One run of an Agent from start to finish: what a user starts when they send a message, start a routine or open a chat link.",
   Score:
     "One grade of a finished run: a person's thumbs up or down on the final answer, the free run-health checks Stigmer runs on every completed run, an AI judge's verdict, or an eval run's checks on one try.",
   "Scoring Rule":
@@ -39,6 +39,8 @@ export const glossary: Record<string, string> = {
     "Reserved. Stigmer once had an Environment resource holding variables and secrets; vaults replaced it. The word now names only the sandbox a run executes in.",
   Channel:
     "A way people reach an Agent: a hosted chat link, a Slack workspace or a WhatsApp number. Each Channel has one type, and an Agent can have several.",
+  Routine:
+    "A saved Agent invocation (which Agent, what to tell it, its workspace and vaults) that starts on its schedule, when someone runs it, or when another system calls it with a note.",
   "Channel App":
     "A customer-owned messaging-platform app (your own Slack app, or your Meta app with WhatsApp Business access) that Slack and WhatsApp channels install through.",
 };

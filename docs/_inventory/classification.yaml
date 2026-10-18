@@ -351,6 +351,26 @@ pages:
       connect-guide precedent); the page ships prose-only until the stills are
       rendered.
 
+  guides/routines/run-an-agent-on-a-schedule:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Make a routine that runs an Agent on a schedule, from the console or a
+      manifest; test it with Run now, read who started each run, turn it off,
+      resume it after a pause, and pin the Agent's version.
+    medium: screenshot-journey
+    why:
+      A console procedure from the routine list to the routine's history.
+
+  guides/routines/start-a-routine-from-another-system:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Let another system start a routine with one HTTP call and a note, through
+      a service account holding Participant on it; what the key reaches, the
+      hourly limit, and the open-source path with the owner's own key.
+    medium: none
+
   # ── Tools & MCP ────────────────────────────────────────────────────────
   guides/integrations/overview:
     fate: keep
@@ -553,6 +573,17 @@ pages:
       WhatsApp); what every channel carries, who creates one and who reads its
       conversations, why a channel is not sharing, and how it compares with
       Azure Bot Service.
+    medium: none
+
+  concepts/routines:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      A routine is a saved Agent invocation that starts on its schedule, by Run
+      now or from another system's call with a note; who it acts as, who may
+      start it and read its conversations by edition, off versus paused, and how
+      it compares with Claude Code's routines and Managed Agents' scheduled
+      deployments.
     medium: none
 
   concepts/identity:

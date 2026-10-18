@@ -194,7 +194,7 @@ message EvalRunSpec {
   // hook's or server's output can show what a key unlocked.
   //
   // @internal
-  // The schedule's rule: the credential resolver finds the eval run from
+  // The routine's rule: the credential resolver finds the eval run from
   // the run's stigmer.ai/eval-run label and asks can_use again of the
   // account recorded in status.vault_attachers.
   repeated ai.stigmer.commons.apiresource.ApiResourceReference vaults = 18 [

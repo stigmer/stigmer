@@ -15,7 +15,7 @@
  * Config lives with the clock, not the domain: every reader is clock-side
  * — the agentexecution
  * precedent of a domain-local config was driven by a domain-step consumer
- * (oss#397) that schedule does not have.
+ * (oss#397) that the routine domain does not have.
  */
 import { create } from "@bufbuild/protobuf";
 

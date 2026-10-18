@@ -61,9 +61,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The person whose turn this is, by identity account id. Absent for a
-   * turn no person sent: a schedule's, a channel's (a chat-link guest's
+   * turn no person sent: a routine's, a channel's (a chat-link guest's
    * included), an app user's or a machine account's, which use only the
-   * vaults their session and their schedule, channel or embedding settings
+   * vaults their session and their routine, channel or embedding settings
    * name.
    * </pre>
    *
@@ -77,9 +77,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The person whose turn this is, by identity account id. Absent for a
-   * turn no person sent: a schedule's, a channel's (a chat-link guest's
+   * turn no person sent: a routine's, a channel's (a chat-link guest's
    * included), an app user's or a machine account's, which use only the
-   * vaults their session and their schedule, channel or embedding settings
+   * vaults their session and their routine, channel or embedding settings
    * name.
    * </pre>
    *
@@ -102,9 +102,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * The person whose turn this is, by identity account id. Absent for a
-   * turn no person sent: a schedule's, a channel's (a chat-link guest's
+   * turn no person sent: a routine's, a channel's (a chat-link guest's
    * included), an app user's or a machine account's, which use only the
-   * vaults their session and their schedule, channel or embedding settings
+   * vaults their session and their routine, channel or embedding settings
    * name.
    * </pre>
    *
@@ -594,9 +594,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The person whose turn this is, by identity account id. Absent for a
-     * turn no person sent: a schedule's, a channel's (a chat-link guest's
+     * turn no person sent: a routine's, a channel's (a chat-link guest's
      * included), an app user's or a machine account's, which use only the
-     * vaults their session and their schedule, channel or embedding settings
+     * vaults their session and their routine, channel or embedding settings
      * name.
      * </pre>
      *
@@ -609,9 +609,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The person whose turn this is, by identity account id. Absent for a
-     * turn no person sent: a schedule's, a channel's (a chat-link guest's
+     * turn no person sent: a routine's, a channel's (a chat-link guest's
      * included), an app user's or a machine account's, which use only the
-     * vaults their session and their schedule, channel or embedding settings
+     * vaults their session and their routine, channel or embedding settings
      * name.
      * </pre>
      *
@@ -633,9 +633,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The person whose turn this is, by identity account id. Absent for a
-     * turn no person sent: a schedule's, a channel's (a chat-link guest's
+     * turn no person sent: a routine's, a channel's (a chat-link guest's
      * included), an app user's or a machine account's, which use only the
-     * vaults their session and their schedule, channel or embedding settings
+     * vaults their session and their routine, channel or embedding settings
      * name.
      * </pre>
      *
@@ -658,9 +658,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The person whose turn this is, by identity account id. Absent for a
-     * turn no person sent: a schedule's, a channel's (a chat-link guest's
+     * turn no person sent: a routine's, a channel's (a chat-link guest's
      * included), an app user's or a machine account's, which use only the
-     * vaults their session and their schedule, channel or embedding settings
+     * vaults their session and their routine, channel or embedding settings
      * name.
      * </pre>
      *
@@ -679,9 +679,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The person whose turn this is, by identity account id. Absent for a
-     * turn no person sent: a schedule's, a channel's (a chat-link guest's
+     * turn no person sent: a routine's, a channel's (a chat-link guest's
      * included), an app user's or a machine account's, which use only the
-     * vaults their session and their schedule, channel or embedding settings
+     * vaults their session and their routine, channel or embedding settings
      * name.
      * </pre>
      *
@@ -697,9 +697,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * The person whose turn this is, by identity account id. Absent for a
-     * turn no person sent: a schedule's, a channel's (a chat-link guest's
+     * turn no person sent: a routine's, a channel's (a chat-link guest's
      * included), an app user's or a machine account's, which use only the
-     * vaults their session and their schedule, channel or embedding settings
+     * vaults their session and their routine, channel or embedding settings
      * name.
      * </pre>
      *

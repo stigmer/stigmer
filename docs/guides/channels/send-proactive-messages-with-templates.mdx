@@ -93,7 +93,7 @@ leaves them out so it never composes against one.
 ## Ask the Agent to send
 
 With the flag on and a template approved, tell the Agent what to do — in a
-console test Session, or on a schedule:
+console test Session, or from a routine:
 
 > Find members with fees due in the next 3 days and send each one a
 > fee_reminder.
@@ -116,7 +116,7 @@ The rules depend on how the run started:
 - A run that a **channel conversation** started can only message people who have
   already written to that channel — it replies proactively, but never
   cold-messages.
-- A run an **operator** started (a console Session, or a schedule) can message
+- A run an **operator** started (a console Session, or a routine) can message
   any recipient, within the platform's rolling send caps.
 
 Recipients are always phone-number IDs on the channel's provider, and every send
