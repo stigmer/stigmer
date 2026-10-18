@@ -116,7 +116,7 @@ import {
 import { RUNNER_SECRET_NAMES } from "../runner-secret-names.js";
 import type {
   SandboxDriverConfig,
-  SandboxEnvironment,
+  SandboxFacts,
   SandboxProbeState,
   SandboxProvisioner,
   SandboxScope,
@@ -228,11 +228,7 @@ export interface SubstrateSandboxLifecycle {
     guard?: SubstrateSleepGuard,
   ): Promise<SubstrateSleepOutcome>;
   /** The ensure: wakes (or creates) the sandbox and pushes its attachment. */
-  resume(
-    scope: SandboxScope,
-    id: string,
-    env: SandboxEnvironment,
-  ): Promise<void>;
+  resume(scope: SandboxScope, id: string, facts: SandboxFacts): Promise<void>;
   delete(scope: SandboxScope, id: string): Promise<void>;
   /**
    * Deletes a sandbox known only by its listed name (list()): a
@@ -254,7 +250,7 @@ export interface SubstrateSandboxLifecycle {
   reattach(
     scope: SandboxScope,
     id: string,
-    env: SandboxEnvironment,
+    facts: SandboxFacts,
   ): Promise<SubstrateReattachResult>;
   list(): Promise<SubstrateActorSummary[]>;
   /**
@@ -450,24 +446,23 @@ export function newSubstrateSandboxDriverOverGateway(
     }
   }
 
-  function secretsFor(env: SandboxEnvironment): Record<string, string> {
+  function secretsFor(facts: SandboxFacts): Record<string, string> {
     return {
       ...config.runnerSecretEnv,
-      ...(env.stigmerToken !== "" ? { STIGMER_TOKEN: env.stigmerToken } : {}),
+      ...(facts.stigmerToken !== ""
+        ? { STIGMER_TOKEN: facts.stigmerToken }
+        : {}),
     };
   }
 
-  async function push(
-    name: string,
-    env: SandboxEnvironment,
-  ): Promise<PushResult> {
+  async function push(name: string, facts: SandboxFacts): Promise<PushResult> {
     return pushAttach(
       {
         routerUrl: settings.routerUrl,
         atespace: settings.atespace,
         actor: name,
-        taskQueue: env.taskQueue,
-        secrets: secretsFor(env),
+        taskQueue: facts.taskQueue,
+        secrets: secretsFor(facts),
       },
       { ...(options.fetch ? { fetch: options.fetch } : {}), sleep: wait, now },
     );
@@ -512,9 +507,9 @@ export function newSubstrateSandboxDriverOverGateway(
   async function ensure(
     scope: SandboxScope,
     id: string,
-    env: SandboxEnvironment,
+    facts: SandboxFacts,
   ): Promise<void> {
-    assertQueue(scope, id, env.taskQueue);
+    assertQueue(scope, id, facts.taskQueue);
     const name = sandboxBaseName(scope, id);
     ensuredAt.set(name, now());
     if (scope === "session") sessionByActor.set(name, id);
@@ -567,7 +562,7 @@ export function newSubstrateSandboxDriverOverGateway(
               await reconcileEgress(name, true);
               startedHere.add(name);
               await gateway.resumeActor(name);
-              await attach(scope, name, env);
+              await attach(scope, name, facts);
               ensured();
               return;
             }
@@ -585,14 +580,14 @@ export function newSubstrateSandboxDriverOverGateway(
               path ??= "paused";
               await reconcileEgress(name);
               await gateway.resumeActor(name);
-              await attach(scope, name, env);
+              await attach(scope, name, facts);
               ensured();
               return;
             }
             case ActorState.RUNNING: {
               path ??= "running";
               await reconcileEgress(name);
-              await attach(scope, name, env);
+              await attach(scope, name, facts);
               ensured();
               return;
             }
@@ -634,9 +629,9 @@ export function newSubstrateSandboxDriverOverGateway(
   async function attach(
     scope: SandboxScope,
     name: string,
-    env: SandboxEnvironment,
+    facts: SandboxFacts,
   ): Promise<void> {
-    const result = await push(name, env);
+    const result = await push(name, facts);
     if (result.ok) return;
     await stopForeignRunner(name, result);
     if (result.code === "secrets_changed") {
@@ -710,10 +705,11 @@ export function newSubstrateSandboxDriverOverGateway(
 
   const provisioner: SandboxProvisioner = {
     runnerMode: options.runnerMode ?? "local",
-    ensureSessionSandbox: (sessionId, env) => ensure("session", sessionId, env),
+    ensureSessionSandbox: (sessionId, facts) =>
+      ensure("session", sessionId, facts),
     deprovisionSessionSandbox: (sessionId) => deprovision("session", sessionId),
-    async createConnectSandbox(connectRequestId, env) {
-      await ensure("connect", connectRequestId, env);
+    async createConnectSandbox(connectRequestId, facts) {
+      await ensure("connect", connectRequestId, facts);
       return connectRequestId;
     },
     deprovisionConnectSandbox: (sandboxId) => deprovision("connect", sandboxId),
@@ -762,7 +758,7 @@ export function newSubstrateSandboxDriverOverGateway(
         return "done";
       });
     },
-    resume: (scope, id, env) => ensure(scope, id, env),
+    resume: (scope, id, facts) => ensure(scope, id, facts),
     delete: (scope, id) => deprovision(scope, id),
     async deleteByName(name, guard) {
       if (!isSandboxBaseName(name)) {
@@ -776,8 +772,8 @@ export function newSubstrateSandboxDriverOverGateway(
       }
       return outcome;
     },
-    reattach: (scope, id, env) => {
-      assertQueue(scope, id, env.taskQueue);
+    reattach: (scope, id, facts) => {
+      assertQueue(scope, id, facts.taskQueue);
       const name = sandboxBaseName(scope, id);
       return serialize(name, async (): Promise<SubstrateReattachResult> => {
         const actor = await gateway.getActor(name);
@@ -790,7 +786,7 @@ export function newSubstrateSandboxDriverOverGateway(
                 : (STATE_WORDS[actor.state] ?? "unknown"),
           };
         }
-        const result = await push(name, env);
+        const result = await push(name, facts);
         await stopForeignRunner(name, result);
         return { pushed: true, result };
       });

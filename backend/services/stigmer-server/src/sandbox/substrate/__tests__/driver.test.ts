@@ -44,10 +44,7 @@ import { describe, expect, it } from "vitest";
 
 import { createLogger, type LogEntry } from "../../../boot/logger.js";
 import { sandboxBaseName } from "../../naming.js";
-import type {
-  SandboxDriverConfig,
-  SandboxEnvironment,
-} from "../../provisioner.js";
+import type { SandboxDriverConfig, SandboxFacts } from "../../provisioner.js";
 import { FakeSubstrate, fakeRouter } from "../__test-utils__/fake-gateway.js";
 import type { SubstrateDriverSettings } from "../config.js";
 import {
@@ -102,7 +99,7 @@ const settings: SubstrateDriverSettings = {
 
 const SESSION = "ses_01abc";
 const ACTOR = sandboxBaseName("session", SESSION);
-const env: SandboxEnvironment = {
+const facts: SandboxFacts = {
   taskQueue: `session:${SESSION}`,
   stigmerToken: "tok-1",
   callerClass: "user",
@@ -145,7 +142,7 @@ describe("ensure, from each state", () => {
   it("absent: prepares the template, creates the actor, writes its policy, resumes it and pushes once", async () => {
     const h = harness();
     h.substrate.goldenPolls = 2;
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
 
     const template = h.driver.internals.keeper.name;
     expect(template).toMatch(/^stigmer-runner-[0-9a-f]{12}$/);
@@ -178,7 +175,7 @@ describe("ensure, from each state", () => {
   it("pushes no token when none was minted", async () => {
     const h = harness();
     await h.driver.provisioner.ensureSessionSandbox(SESSION, {
-      ...env,
+      ...facts,
       stigmerToken: "",
     });
     expect(h.router.pushes[0]?.secrets).not.toHaveProperty("STIGMER_TOKEN");
@@ -191,7 +188,7 @@ describe("ensure, from each state", () => {
       state: ActorState.RUNNING,
       template: "stigmer-runner-old",
     });
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     // Its egress policy is reconciled once in this process, then only pushes.
     expect(h.substrate.calls).toEqual([
       `getActor ${ACTOR}`,
@@ -207,7 +204,7 @@ describe("ensure, from each state", () => {
       state: ActorState.SUSPENDED,
       template: "stigmer-runner-old",
     });
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(h.substrate.calls).not.toContain(`moveActor ${ACTOR}`);
     expect(h.substrate.calls.some((c) => c.startsWith("createTemplate"))).toBe(
       false,
@@ -224,7 +221,7 @@ describe("ensure, from each state", () => {
       state: ActorState.SUSPENDED,
       template: "stigmer-runner-old",
     });
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(h.substrate.actors.get(ACTOR)?.template).toBe(
       h.driver.internals.keeper.name,
     );
@@ -243,7 +240,7 @@ describe("ensure, from each state", () => {
       state: ActorState.SUSPENDED,
       template: "stigmer-runner-old",
     });
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(h.substrate.actors.get(ACTOR)?.template).toBe("stigmer-runner-old");
     expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.RUNNING);
   });
@@ -256,7 +253,7 @@ describe("ensure, from each state", () => {
       template: "stigmer-runner-old",
       policy: undefined,
     });
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(h.substrate.actors.get(ACTOR)?.policy?.length).toBeGreaterThan(0);
     const calls = h.substrate.calls;
     expect(calls.indexOf(`ensureEgressPolicy ${ACTOR}`)).toBeLessThan(
@@ -274,7 +271,7 @@ describe("ensure, from each state", () => {
       template: "stigmer-runner-old",
     });
     h.advance(MAX_IN_PLACE_PAUSE_SECONDS * 1000 - 1);
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(h.substrate.calls).toEqual([
       `getActor ${ACTOR}`,
       `ensureEgressPolicy ${ACTOR}`,
@@ -290,7 +287,7 @@ describe("ensure, from each state", () => {
       template: "stigmer-runner-old",
     });
     h.advance(MAX_IN_PLACE_PAUSE_SECONDS * 1000 + 1);
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(h.substrate.calls).toEqual([
       `getActor ${ACTOR}`,
       `suspendActor ${ACTOR}`,
@@ -307,7 +304,7 @@ describe("ensure, from each state", () => {
       state: ActorState.CRASHED,
       template: "stigmer-runner-old",
     });
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(h.substrate.calls.slice(0, 3)).toEqual([
       `getActor ${ACTOR}`,
       `revertActor ${ACTOR}`,
@@ -330,7 +327,7 @@ describe("ensure, from each state", () => {
       if (polls === 3) actor.state = ActorState.SUSPENDED;
       return getActor(name);
     };
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.RUNNING);
   });
 
@@ -342,7 +339,7 @@ describe("ensure, from each state", () => {
       template: "stigmer-runner-old",
     });
     await expect(
-      h.driver.provisioner.ensureSessionSandbox(SESSION, env),
+      h.driver.provisioner.ensureSessionSandbox(SESSION, facts),
     ).rejects.toThrow(/stayed SUSPENDING for 60 s/);
   });
 
@@ -354,7 +351,7 @@ describe("ensure, from each state", () => {
       template: "stigmer-runner-old",
     });
     await expect(
-      h.driver.provisioner.ensureSessionSandbox(SESSION, env),
+      h.driver.provisioner.ensureSessionSandbox(SESSION, facts),
     ).rejects.toThrow(/being deleted/);
   });
 });
@@ -371,7 +368,7 @@ describe("failures", () => {
       "resumeActor",
       new SubstrateAbortedError("another operation is in progress"),
     );
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(
       h.substrate.calls.filter((c) => c === `resumeActor ${ACTOR}`),
     ).toHaveLength(2);
@@ -389,7 +386,7 @@ describe("failures", () => {
       actor.state = ActorState.CRASHED;
       return new SubstrateAbortedError(`actor ${ACTOR} crashed`);
     });
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(h.substrate.calls).toContain(`revertActor ${ACTOR}`);
     expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.RUNNING);
   });
@@ -406,7 +403,7 @@ describe("failures", () => {
       new SubstrateNoWorkerError("no free workers available"),
     );
     await expect(
-      h.driver.provisioner.ensureSessionSandbox(SESSION, env),
+      h.driver.provisioner.ensureSessionSandbox(SESSION, facts),
     ).rejects.toThrow(/no free Substrate worker/);
     expect(
       h.substrate.calls.filter((c) => c === `resumeActor ${ACTOR}`),
@@ -424,7 +421,7 @@ describe("failures", () => {
       h.substrate.fail("resumeActor", new SubstrateAbortedError("busy"));
     }
     await expect(
-      h.driver.provisioner.ensureSessionSandbox(SESSION, env),
+      h.driver.provisioner.ensureSessionSandbox(SESSION, facts),
     ).rejects.toThrow(/did not settle/);
   });
 
@@ -432,7 +429,7 @@ describe("failures", () => {
     const h = harness();
     await h.driver.internals.keeper.ready();
     h.substrate.templates.clear();
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(
       h.substrate.calls.filter((c) => c.startsWith("createTemplate")),
     ).toHaveLength(2);
@@ -444,7 +441,7 @@ describe("failures", () => {
     h.substrate.fail("createActor", new Error("boom one"));
     h.substrate.fail("createActor", new Error("boom two"));
     await expect(
-      h.driver.provisioner.ensureSessionSandbox(SESSION, env),
+      h.driver.provisioner.ensureSessionSandbox(SESSION, facts),
     ).rejects.toThrow(/boom two/);
   });
 
@@ -454,7 +451,7 @@ describe("failures", () => {
       body: { code: "binding", error: "this sandbox does not serve it" },
     }));
     await expect(
-      h.driver.provisioner.ensureSessionSandbox(SESSION, env),
+      h.driver.provisioner.ensureSessionSandbox(SESSION, facts),
     ).rejects.toThrow(/refused its attach push \(403 binding\)/);
   });
 
@@ -462,7 +459,7 @@ describe("failures", () => {
     const h = harness();
     await expect(
       h.driver.provisioner.ensureSessionSandbox(SESSION, {
-        ...env,
+        ...facts,
         taskQueue: "session:ses_other",
       }),
     ).rejects.toThrow(/serves session:ses_01abc/);
@@ -479,7 +476,7 @@ describe("a pause from before this server process", () => {
       template: "stigmer-runner-old",
       updateTime: new Date(h.now() - 1_000),
     });
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(h.substrate.calls).toEqual([
       `getActor ${ACTOR}`,
       `suspendActor ${ACTOR}`,
@@ -500,7 +497,7 @@ describe("a pause from before this server process", () => {
       state: ActorState.RUNNING,
       template: "stigmer-runner-old",
     });
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(h.router.pushes).toHaveLength(1);
     expect(h.substrate.calls).toEqual([
       `getActor ${ACTOR}`,
@@ -528,7 +525,7 @@ describe("the ensure's log line names the path it took", () => {
     h: ReturnType<typeof harness>,
     ensured: LogEntry[],
   ): Promise<unknown> {
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(ensured).toHaveLength(1);
     return ensured[0]?.fields?.["arm"];
   }
@@ -636,8 +633,8 @@ describe("one actor's operations never interleave", () => {
         return fetchFirst(...args);
       }) as typeof fetch,
     });
-    const first = slow.provisioner.ensureSessionSandbox(SESSION, env);
-    const second = slow.provisioner.ensureSessionSandbox(SESSION, env);
+    const first = slow.provisioner.ensureSessionSandbox(SESSION, facts);
+    const second = slow.provisioner.ensureSessionSandbox(SESSION, facts);
     await new Promise((r) => setImmediate(r));
     expect(
       h.substrate.calls.filter((c) => c === `getActor ${ACTOR}`),
@@ -690,7 +687,7 @@ describe("deprovision, probe, lifecycle", () => {
     const h = harness();
     expect(
       await h.driver.provisioner.createConnectSandbox("mcx_1", {
-        ...env,
+        ...facts,
         taskQueue: "mcpconnect:mcx_1",
       }),
     ).toBe("mcx_1");
@@ -704,7 +701,7 @@ describe("deprovision, probe, lifecycle", () => {
   it("lifecycle.resume is the ensure", async () => {
     const h = harness();
     h.substrate.put({ name: ACTOR, state: ActorState.PAUSED, template: "t" });
-    await h.driver.lifecycle.resume("session", SESSION, env);
+    await h.driver.lifecycle.resume("session", SESSION, facts);
     expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.RUNNING);
     expect(h.router.pushes).toHaveLength(1);
   });
@@ -712,7 +709,9 @@ describe("deprovision, probe, lifecycle", () => {
   it("reattach pushes to a running sandbox and touches no lifecycle", async () => {
     const h = harness();
     h.substrate.put({ name: ACTOR, state: ActorState.RUNNING, template: "t" });
-    expect(await h.driver.lifecycle.reattach("session", SESSION, env)).toEqual({
+    expect(
+      await h.driver.lifecycle.reattach("session", SESSION, facts),
+    ).toEqual({
       pushed: true,
       result: { ok: true, started: true },
     });
@@ -721,12 +720,16 @@ describe("deprovision, probe, lifecycle", () => {
 
   it("reattach leaves a sandbox that is not running alone, so the router never wakes it", async () => {
     const h = harness();
-    expect(await h.driver.lifecycle.reattach("session", SESSION, env)).toEqual({
+    expect(
+      await h.driver.lifecycle.reattach("session", SESSION, facts),
+    ).toEqual({
       pushed: false,
       state: "absent",
     });
     h.substrate.put({ name: ACTOR, state: ActorState.PAUSED, template: "t" });
-    expect(await h.driver.lifecycle.reattach("session", SESSION, env)).toEqual({
+    expect(
+      await h.driver.lifecycle.reattach("session", SESSION, facts),
+    ).toEqual({
       pushed: false,
       state: "paused",
     });
@@ -739,10 +742,10 @@ describe("deprovision, probe, lifecycle", () => {
       body: { started: true },
     };
     const h = harness(() => reply);
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     reply = { status: 409, body: { code: "other_queue", error: "taken" } };
     await expect(
-      h.driver.lifecycle.reattach("session", SESSION, env),
+      h.driver.lifecycle.reattach("session", SESSION, facts),
     ).rejects.toThrow(/attached by another push before this one/);
     expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.SUSPENDED);
   });
@@ -810,7 +813,7 @@ describe("a waiter another push reached first", () => {
         template: "stigmer-runner-old",
       });
       await expect(
-        h.driver.provisioner.ensureSessionSandbox(SESSION, env),
+        h.driver.provisioner.ensureSessionSandbox(SESSION, facts),
       ).rejects.toThrow(
         new RegExp(`attached by another push before this one \\(${code}\\)`),
       );
@@ -834,7 +837,7 @@ describe("a runner this process started, attached elsewhere after a cut-short wa
       });
       // The waking ensure is cut short after its resume: its push fails.
       await expect(
-        h.driver.provisioner.ensureSessionSandbox(SESSION, env),
+        h.driver.provisioner.ensureSessionSandbox(SESSION, facts),
       ).rejects.toThrow(/refused its attach push \(400 malformed\)/);
       if (later === ActorState.PAUSED) {
         h.advance(CLOCK_SKEW_ALLOWANCE_MS + 1);
@@ -846,7 +849,7 @@ describe("a runner this process started, attached elsewhere after a cut-short wa
         body: { code: "secrets_changed", error: "differs" },
       };
       await expect(
-        h.driver.provisioner.ensureSessionSandbox(SESSION, env),
+        h.driver.provisioner.ensureSessionSandbox(SESSION, facts),
       ).rejects.toThrow(/attached by another push before this one/);
       expect(h.substrate.actors.get(ACTOR)?.state).toBe(ActorState.SUSPENDED);
     }
@@ -857,7 +860,7 @@ describe("a pause close to this process's start", () => {
   it("is started fresh within the clock-skew allowance, thawed in place after it", async () => {
     const h = harness();
     h.substrate.put({ name: ACTOR, state: ActorState.PAUSED, template: "t" });
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(h.substrate.calls).toContain(`suspendActor ${ACTOR}`);
 
     const later = harness();
@@ -867,7 +870,7 @@ describe("a pause close to this process's start", () => {
       state: ActorState.PAUSED,
       template: "t",
     });
-    await later.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await later.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(later.substrate.calls).not.toContain(`suspendActor ${ACTOR}`);
   });
 });
@@ -878,7 +881,7 @@ describe("the runner's mode", () => {
     runnerMode?: "local" | "cloud",
   ): Promise<string | undefined> {
     const h = harness(undefined, runnerMode);
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     const [template] = [...h.substrate.templates.values()];
     return template?.spec.containers[0]?.env.find((e) => e.name === "MODE")
       ?.value;
@@ -1138,7 +1141,7 @@ describe("the lifecycle a composition's own sweep calls", () => {
     });
     const seen: string[] = [];
     // The wake is queued first; the delete's guard must see what it left.
-    const wake = h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    const wake = h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     const outcome = h.driver.lifecycle.deleteByName(ACTOR, {
       proceed: async (actor) => {
         seen.push(`${actor.name} ${actor.state}`);
@@ -1176,7 +1179,7 @@ describe("the lifecycle a composition's own sweep calls", () => {
 
   it("forgets a sandbox a guarded delete found already gone", async () => {
     const h = harness();
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(h.driver.internals.lastEnsuredAt(ACTOR)).toBeDefined();
     h.substrate.actors.delete(ACTOR);
     expect(
@@ -1246,9 +1249,9 @@ describe("the egress policy of an existing sandbox", () => {
       template: "stigmer-runner-old",
       policy: [],
     });
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(h.substrate.actors.get(ACTOR)?.policy?.length).toBeGreaterThan(0);
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(
       h.substrate.calls.filter((c) => c === `ensureEgressPolicy ${ACTOR}`),
     ).toHaveLength(1);
@@ -1261,9 +1264,9 @@ describe("the egress policy of an existing sandbox", () => {
       state: ActorState.SUSPENDED,
       template: "stigmer-runner-old",
     });
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     await h.driver.lifecycle.suspend("session", SESSION);
-    await h.driver.provisioner.ensureSessionSandbox(SESSION, env);
+    await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
     expect(
       h.substrate.calls.filter((c) => c === `ensureEgressPolicy ${ACTOR}`),
     ).toHaveLength(2);

@@ -1,7 +1,8 @@
 /**
  * Smoke test for the local-process driver: real child
  * processes, the full ensure → fast-path → probe → deprovision cycle,
- * and the env contract the runner reads (config.ts's variables) —
+ * a connect sandbox on its own queue, and the env contract the runner
+ * reads (config.ts's variables) —
  * proven by a stand-in script that dumps its environment where the test
  * can read it, so no real runner install is needed.
  *
@@ -157,6 +158,30 @@ describe.skipIf(process.platform === "win32")(
 
     it("deprovision of an absent sandbox is success (idempotent)", async () => {
       await driver.deprovisionSessionSandbox("ses_never_existed");
+    });
+
+    it("a connect sandbox serves its connect queue, answers its own id, and goes when deprovisioned", async () => {
+      const before = spawnCount();
+      const id = await driver.createConnectSandbox("mcr_smoke", {
+        taskQueue: "mcpconnect:mcr_smoke",
+        stigmerToken: "",
+        callerClass: "user",
+      });
+      expect(id).toBe("mcr_smoke");
+      await vi.waitFor(() => expect(spawnCount()).toBe(before + 1), {
+        timeout: CHILD_SETTLE_TIMEOUT_MS,
+      });
+      const dumpName = readFileSync(path.join(dir, "spawns.log"), "utf8").trim().split("\n")[before];
+      expect(readFileSync(path.join(dir, `env-${dumpName}.dump`), "utf8")).toContain(
+        "STIGMER_TASK_QUEUE=mcpconnect:mcr_smoke",
+      );
+      await driver.deprovisionConnectSandbox(id);
+      await vi.waitFor(
+        async () => {
+          expect(await driver.probe("connect", id)).toBe("absent");
+        },
+        { timeout: CHILD_SETTLE_TIMEOUT_MS },
+      );
     });
   },
 );

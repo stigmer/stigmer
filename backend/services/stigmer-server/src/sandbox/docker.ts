@@ -40,7 +40,7 @@ import { promisify } from "node:util";
 
 import type {
   SandboxDriverConfig,
-  SandboxEnvironment,
+  SandboxFacts,
   SandboxProbeState,
   SandboxProvisioner,
   SandboxProvisionerFactory,
@@ -78,7 +78,7 @@ const CONTAINER_WORKSPACE_DIR = "/workspace";
 export function buildDockerRun(
   scope: SandboxScope,
   id: string,
-  env: SandboxEnvironment,
+  facts: SandboxFacts,
   config: SandboxDriverConfig,
 ): { readonly args: string[]; readonly secretEnv: Record<string, string> } {
   const args = [
@@ -104,7 +104,7 @@ export function buildDockerRun(
     "--env",
     "MODE=local",
     "--env",
-    `STIGMER_TASK_QUEUE=${env.taskQueue}`,
+    `STIGMER_TASK_QUEUE=${facts.taskQueue}`,
     "--env",
     `STIGMER_BACKEND_ENDPOINT=${config.backendEndpoint}`,
     "--env",
@@ -130,7 +130,8 @@ export function buildDockerRun(
     ...config.runnerSecretEnv,
     ...config.temporalConnectionEnv,
   };
-  if (env.stigmerToken !== "") secretEnv["STIGMER_TOKEN"] = env.stigmerToken;
+  if (facts.stigmerToken !== "")
+    secretEnv["STIGMER_TOKEN"] = facts.stigmerToken;
   for (const name of Object.keys(secretEnv)) args.push("--env", name);
   // The driver sets the command, exactly as the Kubernetes pod spec's
   // `command` does: the start script replaces the image's ENTRYPOINT (a base
@@ -186,7 +187,7 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
   async function ensure(
     scope: SandboxScope,
     id: string,
-    env: SandboxEnvironment,
+    facts: SandboxFacts,
   ): Promise<void> {
     const name = sandboxBaseName(scope, id);
     const state = await inspectState(name);
@@ -201,7 +202,7 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
       logger.info("Docker sandbox restarted", { scope, id, container: name });
       return;
     }
-    const run = buildDockerRun(scope, id, env, config);
+    const run = buildDockerRun(scope, id, facts, config);
     await docker(
       run.args,
       Object.keys(run.secretEnv).length > 0
@@ -212,7 +213,7 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
       scope,
       id,
       container: name,
-      taskQueue: env.taskQueue,
+      taskQueue: facts.taskQueue,
       image: config.runnerImage,
     });
   }
@@ -235,10 +236,11 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
   }
 
   const provisioner: SandboxProvisioner = {
-    ensureSessionSandbox: (sessionId, env) => ensure("session", sessionId, env),
+    ensureSessionSandbox: (sessionId, facts) =>
+      ensure("session", sessionId, facts),
     deprovisionSessionSandbox: (sessionId) => deprovision("session", sessionId),
-    async createConnectSandbox(connectRequestId, env) {
-      await ensure("connect", connectRequestId, env);
+    async createConnectSandbox(connectRequestId, facts) {
+      await ensure("connect", connectRequestId, facts);
       return connectRequestId;
     },
     deprovisionConnectSandbox: (sandboxId) => deprovision("connect", sandboxId),

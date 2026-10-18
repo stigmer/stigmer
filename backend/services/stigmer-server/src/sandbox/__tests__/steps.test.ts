@@ -45,7 +45,7 @@ import type {
 } from "../../runnerauth/runner-credential-provider.js";
 import { SqliteStore } from "../../store/sqlite/store.js";
 import type { SandboxLane } from "../lane.js";
-import type { SandboxEnvironment, SandboxProvisioner } from "../provisioner.js";
+import type { SandboxFacts, SandboxProvisioner } from "../provisioner.js";
 import {
   deprovisionSessionSandboxBestEffort,
   ensureSessionSandboxForExecution,
@@ -81,17 +81,17 @@ function fakeProvisioner(overrides?: {
   ensureError?: Error;
   deprovisionError?: Error;
 }): SandboxProvisioner & {
-  ensured: Array<{ scope: string; id: string; env: SandboxEnvironment }>;
+  ensured: Array<{ scope: string; id: string; facts: SandboxFacts }>;
   deprovisioned: Array<{ scope: string; id: string }>;
 } {
-  const ensured: Array<{ scope: string; id: string; env: SandboxEnvironment }> =
+  const ensured: Array<{ scope: string; id: string; facts: SandboxFacts }> =
     [];
   const deprovisioned: Array<{ scope: string; id: string }> = [];
-  const ensure = async (scope: string, id: string, env: SandboxEnvironment) => {
+  const ensure = async (scope: string, id: string, facts: SandboxFacts) => {
     if (overrides?.ensureError) {
       throw overrides.ensureError;
     }
-    ensured.push({ scope, id, env });
+    ensured.push({ scope, id, facts });
   };
   const deprovision = async (scope: string, id: string) => {
     if (overrides?.deprovisionError) {
@@ -102,10 +102,10 @@ function fakeProvisioner(overrides?: {
   return {
     ensured,
     deprovisioned,
-    ensureSessionSandbox: (id, env) => ensure("session", id, env),
+    ensureSessionSandbox: (id, facts) => ensure("session", id, facts),
     deprovisionSessionSandbox: (id) => deprovision("session", id),
-    createConnectSandbox: async (id, env) => {
-      await ensure("connect", id, env);
+    createConnectSandbox: async (id, facts) => {
+      await ensure("connect", id, facts);
       return id;
     },
     deprovisionConnectSandbox: (id) => deprovision("connect", id),
@@ -241,7 +241,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
       {
         scope: "session",
         id: sessionId,
-        env: {
+        facts: {
           taskQueue: `session:${sessionId}`,
           stigmerToken: `tok-${execution.metadata?.id ?? ""}`,
           callerClass: "user",
@@ -265,8 +265,8 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
       execution,
       GUEST_CALLER,
     );
-    expect(provisioner.ensured[0]?.env.callerClass).toBe("guest");
-    expect(provisioner.ensured[0]?.env.routineId).toBeUndefined();
+    expect(provisioner.ensured[0]?.facts.callerClass).toBe("guest");
+    expect(provisioner.ensured[0]?.facts.routineId).toBeUndefined();
     expect(credentials.minted[0]?.callerIdentityId).toBe(
       GUEST_CALLER.identityId,
     );
@@ -287,8 +287,8 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
       execution,
       { ...TEST_CALLER, routineId: "rtn_oncall" },
     );
-    expect(provisioner.ensured[0]?.env.callerClass).toBe("user");
-    expect(provisioner.ensured[0]?.env.routineId).toBe("rtn_oncall");
+    expect(provisioner.ensured[0]?.facts.callerClass).toBe("user");
+    expect(provisioner.ensured[0]?.facts.routineId).toBe("rtn_oncall");
   });
 
   it("delegates the mint to the capability provider with the full provisioning context", async () => {
@@ -332,7 +332,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
         callerIdentityId: TEST_CALLER_IDENTITY_ID,
       },
     ]);
-    expect(provisioner.ensured[0]?.env.stigmerToken).toBe("cloud-tok-session");
+    expect(provisioner.ensured[0]?.facts.stigmerToken).toBe("cloud-tok-session");
   });
 
   describe("whom the runner acts as", () => {
@@ -479,7 +479,7 @@ describe("the session lane (ensureSessionSandboxForExecution)", () => {
       execution,
       TEST_CALLER,
     );
-    expect(provisioner.ensured[0]?.env.stigmerToken).toBe("");
+    expect(provisioner.ensured[0]?.facts.stigmerToken).toBe("");
   });
 
   it("a provisioning failure never throws and pre-stamps status.error", async () => {
