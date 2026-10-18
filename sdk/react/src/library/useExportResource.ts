@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { parse as parseYaml } from "yaml";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { serializeManifest } from "@stigmer/client";
 import { toast } from "../feedback/toast.js";
@@ -16,7 +17,7 @@ import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 /** Options for {@link useExportResource}. */
 export interface UseExportResourceOptions {
   /** The proto resource to export, or `null` when not yet loaded. */
-  readonly resource: Agent | Routine | null;
+  readonly resource: Agent | Routine | Environment | null;
 }
 
 /** Return value of {@link useExportResource}. */
@@ -40,7 +41,7 @@ export interface UseExportResourceReturn {
 // ---------------------------------------------------------------------------
 
 /**
- * Headless export hook for Stigmer resources (Agent, Routine).
+ * Headless export hook for Stigmer resources (Agent, Routine, Environment).
  *
  * Serializes the resource into YAML and JSON formats and provides
  * stable callbacks for copying to clipboard or triggering a file

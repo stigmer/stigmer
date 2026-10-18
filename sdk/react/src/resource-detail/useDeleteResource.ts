@@ -11,7 +11,8 @@ export type DeletableResourceKind =
   | "agent"
   | "skill"
   | "routine"
-  | "plugin";
+  | "plugin"
+  | "environment";
 
 export interface UseDeleteResourceReturn {
   /**
@@ -82,6 +83,11 @@ export function useDeleteResource(
           // The server refuses while an agent of the organization lists it.
           await stigmer.plugin.delete(resourceId);
           break;
+        case "environment":
+          // The server refuses while an agent, a routine or an
+          // organization's default names it, naming each.
+          await stigmer.environment.delete(resourceId);
+          break;
       }
       toast.success(
         resourceName
@@ -114,5 +120,7 @@ function kindLabel(kind: DeletableResourceKind): string {
       return "routine";
     case "plugin":
       return "plugin";
+    case "environment":
+      return "environment";
   }
 }

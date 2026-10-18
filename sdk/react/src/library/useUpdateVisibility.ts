@@ -12,7 +12,8 @@ export type VisibilityResourceKind =
   | "skill"
   | "agent"
   | "plugin"
-  | "vault";
+  | "vault"
+  | "environment";
 
 /** Return value of {@link useUpdateVisibility}. */
 export interface UseUpdateVisibilityReturn {
@@ -91,6 +92,9 @@ export function useUpdateVisibility(
             break;
           case "vault":
             await stigmer.vault.updateVisibility(input);
+            break;
+          case "environment":
+            await stigmer.environment.updateVisibility(input);
             break;
         }
       } catch (err) {
