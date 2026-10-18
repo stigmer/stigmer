@@ -42,6 +42,7 @@ import { makeRoutine } from "../support/routines";
 import { makeSession } from "../support/sessions";
 import { oneCaseEvalArchive } from "../support/evals";
 import { makeSharedVault } from "../support/vaults";
+import { makeEnvironment } from "../support/environments";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -221,6 +222,30 @@ const KINDS: readonly RenamableKind[] = [
         metadata: { name: slug, org, slug },
       });
     },
+  },
+  {
+    title: "[rpc:EnvironmentCommandController.rename] an environment",
+    writeTitle:
+      "[rpc:EnvironmentCommandController.rename] [rpc:EnvironmentCommandController.apply] an environment's",
+    noun: "Environment",
+    writeVerb: "apply",
+    oldSlugCreateReason: "SLUG_RESERVED",
+    create: async (org, name) => {
+      const environment = await clients.environmentCommand.create(makeEnvironment(org, name));
+      fixtures.defer(() =>
+        clients.environmentCommand.delete({ value: environment.metadata!.id }).catch(() => undefined),
+      );
+      return namedOf(environment);
+    },
+    rename: async (id, slug) =>
+      namedOf(await clients.environmentCommand.rename({ resourceId: id, slug })),
+    readByReference: async (org, slug) =>
+      namedOf(await clients.environmentQuery.getByReference({ org, slug })),
+    writeBySlug: (org, slug) =>
+      clients.environmentCommand.apply({
+        ...makeEnvironment(org, slug),
+        metadata: { name: slug, org, slug },
+      }),
   },
   {
     title: "[rpc:ChannelAppCommandController.rename] a channel app",

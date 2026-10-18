@@ -60,6 +60,7 @@ import { makeAgentExecution } from "../support/runs";
 import { type AgentRefInit, agentRefOf, makeAgent } from "../support/agents";
 import { makeApiKey } from "../support/apikeys";
 import { makeSlackChannelApp } from "../support/channelapps";
+import { makeEnvironment } from "../support/environments";
 import { makeSharedVault } from "../support/vaults";
 import { makeScoringRule } from "../support/scoring-rules";
 import {
@@ -287,6 +288,40 @@ const ROWS: readonly Row[] = [
     },
     async read(id) {
       return (await clients.channelAppQuery.get({ value: id })).metadata?.id;
+    },
+  },
+  {
+    title: "[rpc:EnvironmentCommandController.create] Environment",
+    key: "EnvironmentCommandController.create",
+    kind: ApiResourceKind.environment,
+    async send({ org }, chosenId) {
+      const name = uniqueName("mint-env");
+      const created = await clients.environmentCommand.create({
+        ...makeEnvironment(org, name),
+        metadata: { id: chosenId, name, org },
+      });
+      fixtures.defer(() => clients.environmentCommand.delete({ value: created.metadata!.id }));
+      return answerOf(this.key, created.metadata);
+    },
+    async read(id) {
+      return (await clients.environmentQuery.get({ value: id })).metadata?.id;
+    },
+  },
+  {
+    title: "[rpc:EnvironmentCommandController.apply] Environment (apply as a create)",
+    key: "EnvironmentCommandController.apply",
+    kind: ApiResourceKind.environment,
+    async send({ org }, chosenId) {
+      const name = uniqueName("mint-env");
+      const applied = await clients.environmentCommand.apply({
+        ...makeEnvironment(org, name),
+        metadata: { id: chosenId, name, org },
+      });
+      fixtures.defer(() => clients.environmentCommand.delete({ value: applied.metadata!.id }));
+      return answerOf(this.key, applied.metadata);
+    },
+    async read(id) {
+      return (await clients.environmentQuery.get({ value: id })).metadata?.id;
     },
   },
   {

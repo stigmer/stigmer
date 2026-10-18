@@ -35,6 +35,8 @@ import { SubscriptionCommandController } from "@stigmer/apis/ai/stigmer/billing/
 import { SubscriptionQueryController } from "@stigmer/apis/ai/stigmer/billing/subscription/v1/query_pb";
 import { ChannelAppCommandController } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { ChannelAppQueryController } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/query_pb";
+import { EnvironmentCommandController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/command_pb";
+import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/query_pb";
 import { MemoryCommandController } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/command_pb";
 import { MemoryQueryController } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/query_pb";
 import { RoutineCommandController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/command_pb";
@@ -98,6 +100,8 @@ export interface ConformanceClients {
   apiKeyQuery: Client<typeof ApiKeyQueryController>;
   channelAppCommand: Client<typeof ChannelAppCommandController>;
   channelAppQuery: Client<typeof ChannelAppQueryController>;
+  environmentCommand: Client<typeof EnvironmentCommandController>;
+  environmentQuery: Client<typeof EnvironmentQueryController>;
   channelCommand: Client<typeof ChannelCommandController>;
   channelConversationCommand: Client<
     typeof ChannelConversationCommandController
@@ -214,6 +218,8 @@ export function makeClients(transport: Transport): ConformanceClients {
     activityQuery: createClient(ActivityQueryController, transport),
     channelAppCommand: createClient(ChannelAppCommandController, transport),
     channelAppQuery: createClient(ChannelAppQueryController, transport),
+    environmentCommand: createClient(EnvironmentCommandController, transport),
+    environmentQuery: createClient(EnvironmentQueryController, transport),
     channelCommand: createClient(ChannelCommandController, transport),
     channelConversationCommand: createClient(
       ChannelConversationCommandController,
