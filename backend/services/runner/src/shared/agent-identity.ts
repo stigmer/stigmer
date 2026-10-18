@@ -20,7 +20,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
+import { appendFileSync, chmodSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 
 /** The agent user a separating runner starts its host as. */
@@ -104,7 +104,8 @@ export function missingCapabilities(status: string): readonly string[] {
 /**
  * Ready a separating runner to start its host as the agent: it holds the
  * capabilities that takes, the agent user exists, its home exists (the
- * handover then makes it the agent's), and `setpriv` can drop to it. Returns `null` when
+ * handover then makes it the agent's), the agent can reach the filesystem
+ * ({@link openRootDirectory}), and `setpriv` can drop to it. Returns `null` when
  * all hold, else the one line the runner exits 78 with: a container runner
  * never runs the agent's side as root.
  */
@@ -113,6 +114,7 @@ export function prepareAgentSeparation(
   io: {
     readonly ensureUser?: (identity: AgentIdentity) => void;
     readonly makeHome?: (identity: AgentIdentity) => void;
+    readonly openRoot?: () => void;
     readonly probe?: (args: readonly string[]) => { readonly status: number | null; readonly error?: Error | undefined; readonly stderr: string };
     readonly processStatus?: () => string;
   } = {},
@@ -134,6 +136,11 @@ export function prepareAgentSeparation(
   } catch (err) {
     return `the runner cannot prepare the agent user ${identity.name}: ${err instanceof Error ? err.message : String(err)}; ${guide}`;
   }
+  try {
+    (io.openRoot ?? (() => openRootDirectory()))();
+  } catch (err) {
+    return `the runner cannot open the root directory to the agent user: ${err instanceof Error ? err.message : String(err)}; ${guide}`;
+  }
   const probe = (io.probe ?? probeSetpriv)([...setprivArgs(identity), "--", "true"]);
   if (probe.error !== undefined) {
     return `the runner cannot start processes as the agent user: setpriv is missing (${probe.error.message}); add util-linux's setpriv to the base image; ${guide}`;
@@ -142,6 +149,26 @@ export function prepareAgentSeparation(
     return `the runner cannot start processes as the agent user (${probe.stderr.trim() || `setpriv exited ${probe.status}`}); check the pod's or container's security settings; ${guide}`;
   }
   return null;
+}
+
+/**
+ * Make `/` readable and searchable by every user when it is not. An Agent
+ * Substrate actor (v0.3.0, gVisor) presents its root directory as `0700`,
+ * so a process that has dropped to the agent cannot reach a single library
+ * (`libc.so.6: Permission denied`) and the drop probe fails; every image
+ * builds `/` as `0755`, which this restores (measured 2026-10-18, #2339).
+ * A root that already grants both is left untouched, and nothing below `/`
+ * is changed.
+ */
+export function openRootDirectory(): void {
+  openDirectoryToAll("/");
+}
+
+/** Gives every user read and search on `path` when it lacks either; leaves an open directory alone. */
+export function openDirectoryToAll(path: string): void {
+  const mode = statSync(path).mode & 0o7777;
+  if ((mode & 0o005) === 0o005) return;
+  chmodSync(path, mode | 0o055);
 }
 
 function makeAgentHome(identity: AgentIdentity): void {

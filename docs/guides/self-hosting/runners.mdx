@@ -413,12 +413,15 @@ you. Neither does the all-in-one container, which runs `stigmer up` as one user.
 The `agent-sandbox` and `docker` drivers set the user to root, `HOME` to `/root`
 and the working directory to `/workspace` whatever your image says. Agent
 Substrate can't set a container's user, so on the `substrate` driver your
-image's own `USER` must be root, or the runner refuses to start. The runner
-clears `NODE_OPTIONS` and `NODE_PATH` before it starts, so a monitoring library
-your image loads through them (an APM tracer, say) never loads into the runner,
-nor into the commands Agents run. To trust an extra certificate authority in
-Node, use `NODE_EXTRA_CA_CERTS`, which is kept. The server refuses to boot when
-either cleared name is on its runner lists.
+image's own `USER` must be root, or the runner refuses to start. There the
+runner also keeps Substrate's default `NET_BIND_SERVICE` and `AUDIT_WRITE` (its
+attach waiter listens on port 80), and opens the sandbox's root directory, which
+Substrate presents closed to other users, so the Agent's side can reach its
+programs. The runner clears `NODE_OPTIONS` and `NODE_PATH` before it starts, so
+a monitoring library your image loads through them (an APM tracer, say) never
+loads into the runner, nor into the commands Agents run. To trust an extra
+certificate authority in Node, use `NODE_EXTRA_CA_CERTS`, which is kept. The
+server refuses to boot when either cleared name is on its runner lists.
 
 **Stigmer's toolbox plus one tool.** To keep Stigmer's default tools and add
 one, start your base from `ghcr.io/stigmer/runner-base`, the default image
