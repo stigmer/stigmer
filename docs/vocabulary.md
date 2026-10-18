@@ -75,6 +75,7 @@ definitions, API names, and examples follow below.
 | **Team**               | teams                      | ---                                    | Team                | Team, `kind: team`                                  | Team               |
 | **Grant**              | ---                        | ---                                    | Grant               | Grant, `kind: Grant`                                | Grant              |
 | **Vault**              | vault                      | vault ("your keys and logins")         | Vault               | Vault, `kind: Vault`                                | vault              |
+| **Environment**        | ---                        | Environment ("packages and network")   | Environment         | Environment, `kind: Environment`                    | Environment        |
 | **Preference**         | preferences                | preference ("standing context")        | Preference          | `spec.preferences.standing_context`                 | Preference         |
 | **Federation Issuer**  | ---                        | identity provider (Auth0, Okta, …)     | Federation Issuer   | FederationIssuer, `kind: FederationIssuer`          | Federation Issuer  |
 | **Identity Account**   | ---                        | ---                                    | Identity Account    | IdentityAccount, `kind: identity_account`           | Identity Account   |
@@ -124,7 +125,9 @@ A reusable definition of what an AI assistant knows and can do.
   when this Agent is saved, one level deep), and `spec.run_config` with
   `spec.harness`: the model and engine a conversation on the Agent starts on, a
   default that a message, a channel or a routine may override (see
-  [Run settings](/docs/concepts/agents#run-settings)).
+  [Run settings](/docs/concepts/agents#run-settings)), and
+  `spec.environment_ref`: the [Environment](#environment) its conversations run
+  in when nothing else names one.
 
 **Good examples**:
 
@@ -377,10 +380,13 @@ An ongoing conversation with an Agent across multiple messages.
   built-in assistant), `status.agent_version_hash` (the Agent version the
   conversation runs until someone updates it), `status.harness_state_id` (the
   harness's own id for the conversation, kept across runs), `subject` (display
-  title), `workspace_entries`, `sandbox_id`, `vaults` (the vaults the
-  conversation uses, in order) and `include_my_vault` (use each sender's own My
-  vault first). Sessions can add `plugins` and `skill_refs` to the Agent's; the
-  Agent's tool lists still govern every tool.
+  title), `workspace_entries`, `environment_ref` (the
+  [Environment](#environment) the conversation names itself),
+  `status.environment` and `status.environment_source` (the Environment it runs
+  in and whose choice that was), `vaults` (the vaults the conversation uses, in
+  order) and `include_my_vault` (use each sender's own My vault first). Sessions
+  can add `plugins` and `skill_refs` to the Agent's; the Agent's tool lists
+  still govern every tool.
 - **Related terms**: A Session contains multiple runs. Each message exchange
   within a Session is one run. What happens in a Session is its event log
   (`session/v1/event.proto`): the person's messages, the Agent's messages and
@@ -508,9 +514,9 @@ number. Each Channel has one type, and an Agent can have several.
 
 #### Routine
 
-A saved Agent invocation (which Agent, what to tell it, its workspace and
-vaults) that starts on its schedule, when someone runs it, or when another
-system calls it with a note.
+A saved Agent invocation (which Agent, what to tell it, its workspace, vaults
+and Environment) that starts on its schedule, when someone runs it, or when
+another system calls it with a note.
 
 - **User-facing alternative**: "run your Agent on a schedule" on the sales site
   and on first use in how-to docs; "routine" after that.
@@ -525,10 +531,10 @@ system calls it with a note.
 - **Key fields**: `cron` (optional: the classic 5-field form or an `@daily`
   shorthand, evaluated in `time_zone`; absent, the routine runs only when
   started), `time_zone` (IANA name, required with a `cron`), `enabled`, and
-  `agent` (`agent_ref`, `message`, `vaults`, the workspace and run settings).
-  Firing observations (`next_fire_at`, `last_fire_at`, `last_run_id`,
-  `consecutive_failures`, `paused_reason`) live in `status`, written only by the
-  platform---applying a manifest never touches them.
+  `agent` (`agent_ref`, `message`, `vaults`, `environment_ref`, the workspace
+  and run settings). Firing observations (`next_fire_at`, `last_fire_at`,
+  `last_run_id`, `consecutive_failures`, `paused_reason`) live in `status`,
+  written only by the platform---applying a manifest never touches them.
 - **Starting it**: say "start" and **Run now** in how-to docs; reference docs
   say `fire` (`FireRoutineInput`), and each start is a `RoutineFire` with an
   origin, `schedule` or `manual`, and `fired_by` for whoever started it. A start
@@ -985,7 +991,9 @@ the run whose start began it.
   and the `WORKING` column).
 - **Note**: a clock, never priced, shown in every edition. On Stigmer Cloud it
   can exceed a plan's [agent hours](#agent-hour), which count only the turns
-  Stigmer's sandboxes run and never an automatic grade.
+  Stigmer's sandboxes run and never an automatic grade. Installing an
+  [Environment](#environment)'s packages happens inside a turn, so it is working
+  time, and agent hours on Stigmer Cloud.
 - **Context rule**: "working time" in usage reports; "agent hours" for what a
   plan includes and bills. Never "agent hours" for a usage report's figure.
 
@@ -1050,19 +1058,60 @@ and decide who may use them.
 
 #### Environment
 
-Reserved. Stigmer once had an Environment resource holding variables and
-secrets; vaults replaced it. The word now names only the sandbox a run executes
-in.
+A named setup for the sandboxes Agents run in: the packages installed in each
+one and the websites it may reach. A conversation uses the one it names, else
+its routine's, else its Agent's default, else its Organization's.
+
+- **User-facing alternative**: "the packages and network for your Agent's
+  sandbox" on first use in introductory copy; "Environment" after that.
 
 <!-- vale Stigmer.terms = NO -->
 
-- **Capitalize**: Lowercase when used generically ("environment variables", "the
-  run's environment").
+- **Capitalize**: Yes, when naming the Stigmer resource ("an Environment", "the
+  data-science Environment"). Lowercase in "environment variables" (an Agent's
+  `env`, the variables its tools read) and the generic "the run's environment".
+  The console's Agent page has two sections side by side, **Environment** (the
+  resource) and **Environment Variables** (`env`); keep the two words apart in
+  prose too.
 
 <!-- vale Stigmer.terms = YES -->
 
-- **Context rule**: Never name a place where keys are saved an "Environment":
-  say vault. A manifest with `kind: Environment` is an old file.
+- **API surface**: `kind: Environment`, prefix `env`. proto:
+  `environment/v1/spec.proto`, `environment/v1/api.proto`. Named by
+  `environment_ref` on a Session, an Agent and a Routine's `agent`, and by
+  `default_environment_ref` in an Organization's preferences; a Session records
+  the one it runs in as `status.environment` and whose choice that was as
+  `status.environment_source`. `GetServerInfoOutput.environments` says whether
+  Environments apply on a server and what its sandboxes can do. CLI: the unified
+  verbs (`stigmer apply`, `stigmer get environment`,
+  `stigmer list environments`, `stigmer delete environment`) and
+  `stigmer run --environment`.
+- **Key fields**: `networking` (`type: unrestricted`, or `type: limited` with
+  `allowed_hosts`, `allow_package_managers` and `allow_mcp_servers`) and
+  `packages` (`apt`, `cargo`, `gem`, `go`, `npm`, `pip`), the same shape as
+  Claude Managed Agents' environment config.
+- **Roles**: only an Organization's admins create one. It has an owner and
+  viewers, and the Organization can see it by default; naming one needs view.
+- **Context rule**: An Environment holds no secret, no variable and no image.
+  Never call a place where keys are saved an Environment: say vault. A file that
+  used `kind: Environment` for variables and secrets, from before the kind meant
+  this, now fails validation: its secrets go in a vault, its plain settings in
+  the Agent's `env`. See [Environments](/docs/concepts/environments).
+
+**Good examples**:
+
+| Context    | Copy                                                                                                        |
+| ---------- | ----------------------------------------------------------------------------------------------------------- |
+| Quickstart | "Your Agent's sandbox needs `pandas`. Ask an admin for an Environment that installs it."                    |
+| Concepts   | "A conversation keeps the Environment it started with; an edit to it reaches the next sandbox that starts." |
+| Reference  | "`EnvironmentSpec.networking`---`unrestricted`, or `limited` to `allowed_hosts`."                           |
+
+**Bad examples**:
+
+| Context | Copy                                   | Problem                                                                  |
+| ------- | -------------------------------------- | ------------------------------------------------------------------------ |
+| How-to  | "Put the API key in the Environment."  | An Environment holds no secrets; keys go in a vault.                     |
+| Any     | "Set the environment for the sandbox." | Lowercase reads as environment variables; name the Environment you mean. |
 
 ---
 
@@ -1074,9 +1123,11 @@ control exists.
 
 - **Capitalize**: Yes, when referring to the Stigmer concept.
 - **API surface**: not a resource kind — a spec message on existing kinds:
-  `OrganizationSpec.preferences` (`OrganizationPreferences`) and
-  `IdentityAccountSpec.preferences` (`IdentityAccountPreferences`), each with
-  `standing_context`. The server snapshots the texts onto
+  `OrganizationSpec.preferences` (`OrganizationPreferences`: `standing_context`,
+  `memory_enabled` and `default_environment_ref`, the
+  [Environment](#environment) its conversations run in when nothing else names
+  one) and `IdentityAccountSpec.preferences` (`IdentityAccountPreferences`),
+  each with `standing_context`. The server snapshots the texts onto
   `RunStatus.declared_preferences` when the run is created.
 - **Boundaries**: a Preference is not a **Skill** (Agent knowledge), not an
   **Vault** (logins and secrets), not a **Session** (conversation state), and
@@ -2278,3 +2329,24 @@ in every edition. Each retired word has a replacement, defined in its entry:
 - "schedule" for the resource in prose: "routine". Lowercase "schedule" keeps
   its sense of timing and the verb, and "Temporal Schedule" stays the engine's
   artifact (Routine).
+
+---
+
+### 10. Environment words---RESOLVED
+
+**What**: "Environment" was reserved: the name of a retired resource that held
+variables and secrets, which vaults replaced, kept only for "the sandbox a run
+executes in". The Session entry named a `sandbox_id` field that no Session has.
+When Environment became the kind that says which packages a sandbox installs and
+which websites it may reach, the entry contradicted the product.
+
+**Resolution**: The word names the kind again, shaped after Claude Managed
+Agents' environments, and keeps its old boundary: it never holds a secret or a
+variable. Each retired use has a replacement, defined in its entry:
+
+- "Reserved" and "the sandbox a run executes in": an **Environment**, the named
+  setup a conversation's sandbox gets (Environment).
+- `kind: Environment` with variables and secrets: a **vault** for the secrets,
+  the Agent's `env` for plain settings (Environment, Vault).
+- `sandbox_id` on a Session: `environment_ref`, `status.environment` and
+  `status.environment_source` (Session).
