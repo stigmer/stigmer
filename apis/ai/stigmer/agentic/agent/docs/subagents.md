@@ -130,7 +130,7 @@ A saved subagent runs its own definition:
 - **Its model.** Its `run_config.model_name` when its `harness` is the
   conversation's engine; otherwise the turn's model.
 - **Its tools.** Its own `tools` and `disallowed_tools`, capped by the turn's
-  lists (those a message, or the schedule or channel it came through, sets), never by the
+  lists (those a message, or the routine or channel it came through, sets), never by the
   parent agent's lists. A subagent can use a tool the parent may not.
 - **Its plugins.** Their MCP servers, skills and hooks. Their agents are not
   offered: a subagent hands work to no one.

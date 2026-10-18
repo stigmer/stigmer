@@ -5,7 +5,7 @@ organization's admins can create shared vaults for a team.
 
 A login is saved by signing in to a tool or by pasting a token, and serves
 every tool at that address. A run reads My vault only when its conversation
-includes it (`include_my_vault`), or when its owner's own Schedule names it.
+includes it (`include_my_vault`), or when a Routine its owner created names it.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1

@@ -49,7 +49,7 @@ An agent's hooks also decide which tools ask (`AgentSpec.hooks`, a plugin's hook
 | `hook` | A hook decided the call. `policy_hook` names the plugin; it is empty for the agent's own hooks block. |
 | `approval_lease` | An "approve all" grant for the call's class resolved it. |
 | `auto_approve_all` | The run approves every call (`RunSpec.auto_approve_all`). |
-| `unattended_skip` | No one can answer on this turn, so the call was skipped. See [Unattended runs](#unattended-runs-schedules-channels-and-chat-links). |
+| `unattended_skip` | No one can answer on this turn, so the call was skipped. See [Unattended runs](#unattended-runs-routines-channels-and-chat-links). |
 
 ---
 
@@ -168,11 +168,11 @@ To enforce a timeout, watch the session and call its `interrupt` (or the run's `
 
 ---
 
-## Unattended runs (schedules, channels and chat links)
+## Unattended runs (routines, channels and chat links)
 
 Some runs have **no approver present at the conversation**: a WhatsApp or Slack channel user is a customer, not an org member, and a guest visiting a public chat link is anonymous. A turn that waited for an answer there would wait forever — nobody in that conversation is authorized to decide.
 
-The server records `status.approval_mode = APPROVAL_MODE_UNATTENDED` on these turns (the hosted edition's Slack, WhatsApp and chat-link guest turns), and on every schedule fire, where nobody is present either. The mode is a fact of the lane the turn came through: no request field sets it, so neither the external user nor any other caller can choose it. Every other turn is `APPROVAL_MODE_INTERACTIVE`. In unattended mode:
+The server records `status.approval_mode = APPROVAL_MODE_UNATTENDED` on these turns (the hosted edition's Slack, WhatsApp and chat-link guest turns), and on every routine fire, where nobody is present either. The mode is a fact of the lane the turn came through: no request field sets it, so neither the external user nor any other caller can choose it. Every other turn is `APPROVAL_MODE_INTERACTIVE`. In unattended mode:
 
 - **What asks is unchanged.** The same default decides which tools ask; only the *resolution* differs.
 - A call that asks is **skipped**: the tool does not run, the model is told the action requires an approval that is not available in this conversation, and the turn continues to normal completion. The user gets a plain-language explanation — never tool or approval vocabulary.

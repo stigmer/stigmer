@@ -69,7 +69,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "A token for cloning this repository, kept for the conversation only.\n\n Used only when the URL is an https://github.com repository; a session\n write carrying a token for any other repository is refused. Sealed for\n the conversation's life and never returned by a read. A schedule's\n repositories refuse it: save the token in a vault the schedule names.",
+      "description": "A token for cloning this repository, kept for the conversation only.\n\n Used only when the URL is an https://github.com repository; a session\n write carrying a token for any other repository is refused. Sealed for\n the conversation's life and never returned by a read. A routine's\n repositories refuse it: save the token in a vault the routine names.",
       "required": false,
       "validation": {
         "maxLength": 65536

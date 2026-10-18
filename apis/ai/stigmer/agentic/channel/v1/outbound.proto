@@ -215,7 +215,7 @@ enum ChannelOutboundOrigin {
   // message; the recipient must be a known sender on the channel.
   channel_conversation = 1;
 
-  // The send was authored by an operator (console, CLI, SDK, scheduled
+  // The send was authored by an operator (console, CLI, SDK, a routine's
   // run); any recipient, bounded by caps.
   operator = 2;
 

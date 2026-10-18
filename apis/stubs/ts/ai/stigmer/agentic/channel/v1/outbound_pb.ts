@@ -280,7 +280,7 @@ export enum ChannelOutboundOrigin {
   channel_conversation = 1,
 
   /**
-   * The send was authored by an operator (console, CLI, SDK, scheduled
+   * The send was authored by an operator (console, CLI, SDK, a routine's
    * run); any recipient, bounded by caps.
    *
    * @generated from enum value: operator = 2;

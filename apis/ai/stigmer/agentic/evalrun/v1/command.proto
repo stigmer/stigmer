@@ -37,7 +37,7 @@ service EvalRunCommandController {
   //    must be an attached plugin or the compared one. On a plugin:
   //    spec.plugin_digest, when set, must be its current version, and
   //    empty is stamped with it.
-  // 4. Each vault must be usable by the caller (the schedule's rule), and
+  // 4. Each vault must be usable by the caller (the routine's rule), and
   //    none may be a My vault: every viewer of the subject reads the
   //    tries.
   // 5. The cases are read from each source's archive; more than 200 cases

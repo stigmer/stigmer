@@ -35,7 +35,7 @@ public enum ChannelOutboundOrigin
   channel_conversation(1),
   /**
    * <pre>
-   * The send was authored by an operator (console, CLI, SDK, scheduled
+   * The send was authored by an operator (console, CLI, SDK, a routine's
    * run); any recipient, bounded by caps.
    * </pre>
    *
@@ -91,7 +91,7 @@ public enum ChannelOutboundOrigin
   public static final int channel_conversation_VALUE = 1;
   /**
    * <pre>
-   * The send was authored by an operator (console, CLI, SDK, scheduled
+   * The send was authored by an operator (console, CLI, SDK, a routine's
    * run); any recipient, bounded by caps.
    * </pre>
    *
