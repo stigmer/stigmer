@@ -21,6 +21,8 @@
     "concepts/sharing-and-access",
     "concepts/channels",
     "guides/channels",
+    "concepts/routines",
+    "guides/routines",
     "---Tools & MCP---",
     "concepts/tools",
     "guides/integrations",
