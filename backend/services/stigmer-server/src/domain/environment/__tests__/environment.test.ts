@@ -18,7 +18,10 @@
  *     organization's preferences.default_environment_ref, each refusal
  *     naming that referrer; another organization's agent naming the same
  *     id does not hold it; once unreferenced the delete succeeds and the
- *     Environment is gone.
+ *     Environment is gone;
+ *   - apply creates by slug, then updates the same Environment; rename
+ *     changes the slug getByReference finds it by; updateVisibility narrows
+ *     it to private, and an id naming nothing is NOT_FOUND.
  *
  * On a server under the require-authentication posture (the built-in
  * evaluator over the compiled model) whose driver supports both limited
@@ -47,6 +50,7 @@ import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/env
 import { EnvironmentSpecSchema, NetworkingType } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/spec_pb";
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { IdentityAccountCommandController } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/command_pb";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -204,6 +208,37 @@ describe("the Environment controller on a lane whose driver states no support (t
       updateMask: { paths: ["spec"] },
     });
     expect(described.spec?.description).toBe("still unrestricted");
+  });
+
+  it("applies by slug: the first apply creates, the second updates the same Environment", async () => {
+    const first = await command.apply(environmentInput(ORG, "Applied", { description: "v1" }));
+    const second = await command.apply(environmentInput(ORG, "Applied", { description: "v2" }));
+    expect(second.metadata?.id).toBe(first.metadata?.id);
+    expect(second.spec?.description).toBe("v2");
+    expect(second.spec?.networking?.type).toBe(NetworkingType.unrestricted);
+  });
+
+  it("renames it, and getByReference finds it by its new slug", async () => {
+    const created = await command.create(environmentInput(ORG, "Before Rename"));
+    const renamed = await command.rename({ resourceId: created.metadata!.id, slug: "after-rename" });
+    expect(renamed.metadata?.slug).toBe("after-rename");
+    const found = await query.getByReference({ org: ORG, slug: "after-rename" });
+    expect(found.metadata?.id).toBe(created.metadata?.id);
+  });
+
+  it("narrows its visibility to private, and answers NOT_FOUND for an id that names nothing", async () => {
+    const created = await command.create(environmentInput(ORG, "Shared Box"));
+    expect(created.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
+    const narrowed = await command.updateVisibility({
+      resourceId: created.metadata!.id,
+      visibility: ApiResourceVisibility.visibility_private,
+    });
+    expect(narrowed.metadata?.visibility).toBe(ApiResourceVisibility.visibility_private);
+    expect((await query.get({ value: created.metadata!.id })).metadata?.visibility).toBe(ApiResourceVisibility.visibility_private);
+    const missing = await errorOf(() =>
+      command.updateVisibility({ resourceId: "env_01nothingnothingnothing00", visibility: ApiResourceVisibility.visibility_private }),
+    );
+    expect(missing.code).toBe(Code.NotFound);
   });
 
   describe("delete", () => {

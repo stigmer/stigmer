@@ -99,19 +99,26 @@ export function stillNamedMessage(slug: string, referrers: readonly string[]): s
   return `environment '${slug}' is still used by ${referrers.join(", ")}; remove it from them first`;
 }
 
+/**
+ * What a chain left in its context for a step or handler to read. A missing
+ * value is a chain built wrong (a step removed or reordered), so it fails
+ * loudly as INTERNAL rather than answering with nothing (Score's controller
+ * keeps the same rule).
+ */
+export function chainResult<T>(value: unknown, what: string): T {
+  if (value === undefined) {
+    throw internalError(new Error(`${what} not found in context`), `${what} not found in context`);
+  }
+  return value as T;
+}
+
 export function newGuardEnvironmentUnreferencedStep(store: Store): PipelineStep<DeleteDesc> {
   return {
     name: "GuardEnvironmentUnreferenced",
     async execute(ctx: RequestContext<DeleteDesc>): Promise<void> {
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as Environment | undefined;
-      const metadata = existing?.metadata;
-      if (metadata === undefined) {
-        throw internalError(
-          new Error("GuardEnvironmentUnreferenced ran without a loaded target — the step must follow the load step"),
-          "environment delete requires the loaded resource",
-        );
-      }
-      const { org, slug, id } = metadata;
+      // The load step runs first; without it the chain is built wrong.
+      const { org, slug, id } = chainResult<NonNullable<Environment["metadata"]>>(existing?.metadata, "the loaded Environment");
       const referrers: string[] = [];
       try {
         const agents: string[] = [];

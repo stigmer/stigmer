@@ -33,6 +33,7 @@
  *   - loadSessionEnvironment and sessionEnvironmentFacts read the stamped
  *     row now: none, gone (refused naming it), or its facts, the pinned
  *     agent's MCP hosts added only for a limited Environment allowing them;
+ *     a store that cannot read the row answers INTERNAL;
  *   - planRunValues (run create and recover) runs the rule with the turn's
  *     caller as the viewer, before any value is asked for: an unlisted MCP
  *     host of the conversation's plugin, a deleted Environment and a
@@ -510,6 +511,13 @@ describe("over a real store", () => {
       const gone = await refusal(sessionEnvironmentFacts(store, conversation({ environmentId: "env_01gone" })));
       expect(gone.code).toBe(Code.FailedPrecondition);
       expect(gone.rawMessage).toBe(deletedEnvironmentMessage("box"));
+    });
+
+    it("answer INTERNAL when the store cannot read the conversation's Environment", async () => {
+      const faulty = { getResource: async () => Promise.reject(new Error("disk unreadable")) } as unknown as Store;
+      const failed = await refusal(loadSessionEnvironment(faulty, conversation({ environmentId: "env_01box" })));
+      expect(failed.code).toBe(Code.Internal);
+      expect(failed.rawMessage).toBe("failed to load the conversation's environment");
     });
 
     it("add the pinned agent's MCP hosts only for a limited Environment that allows them", async () => {

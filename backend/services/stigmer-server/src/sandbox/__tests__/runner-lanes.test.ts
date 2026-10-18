@@ -10,7 +10,8 @@
  *     `bedrock-runtime.<AWS_REGION>.amazonaws.com` only beside a credential;
  *   - Cursor's three hosts when CURSOR_API_KEY is set;
  *   - an https:// public MCP address and OTLP endpoint, by host;
- *   - an http:// URL gives no host, and a host named twice appears once.
+ *   - an http:// URL, or a base URL that is not a URL, gives no host, and a
+ *     host named twice appears once.
  */
 import { describe, expect, it } from "vitest";
 
@@ -107,6 +108,10 @@ describe("runnerPlatformHosts", () => {
         "http://stigmer.stigmer.svc:7234",
       ),
     ).toEqual([]);
+  });
+
+  it("a base URL that is not a URL gives nothing", () => {
+    expect(hosts({ ANTHROPIC_BASE_URL: "::not a url::" }, { ANTHROPIC_API_KEY: "sk" })).toEqual([]);
   });
 
   it("a host named twice appears once", () => {

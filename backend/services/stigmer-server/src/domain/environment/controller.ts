@@ -126,6 +126,7 @@ import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { environmentListIndex } from "./list-index.js";
 import {
+  chainResult,
   newGuardEnvironmentUnreferencedStep,
   newNormalizeEnvironmentStep,
   newRefuseUnservableEnvironmentStep,
@@ -291,13 +292,7 @@ async function apply(
     .build()
     .execute(reqCtx);
 
-  const shouldCreate = reqCtx.get(SHOULD_CREATE_KEY);
-  if (typeof shouldCreate !== "boolean") {
-    throw internalError(
-      new Error("apply pipeline did not set shouldCreate flag"),
-      "apply operation failed to determine create vs update",
-    );
-  }
+  const shouldCreate = chainResult<boolean>(reqCtx.get(SHOULD_CREATE_KEY), "apply's create-or-update decision");
   return shouldCreate
     ? createEnvironment(deps, environment, ctx)
     : update(
@@ -337,14 +332,7 @@ async function deleteEnvironment(
     .build()
     .execute(reqCtx);
 
-  const deleted = reqCtx.get(EXISTING_RESOURCE_KEY);
-  if (deleted === undefined) {
-    throw internalError(
-      new Error("deleted Environment not found in context"),
-      "deleted Environment not found in context",
-    );
-  }
-  return deleted as Environment;
+  return chainResult<Environment>(reqCtx.get(EXISTING_RESOURCE_KEY), "deleted Environment");
 }
 
 // ─── updateVisibility ────────────────────────────────────────────────────
@@ -384,7 +372,7 @@ async function updateVisibility(
 }
 
 /** Loads the Environment by resource_id; a missing one answers NotFound, a store fault Internal. */
-function newLoadEnvironmentForVisibilityUpdateStep(store: Store): PipelineStep<UpdateVisibilityDesc> {
+export function newLoadEnvironmentForVisibilityUpdateStep(store: Store): PipelineStep<UpdateVisibilityDesc> {
   return {
     name: "LoadEnvironmentForVisibilityUpdate",
     async execute(ctx: RequestContext<UpdateVisibilityDesc>): Promise<void> {
@@ -421,7 +409,7 @@ function newSetEnvironmentVisibilityStep(): PipelineStep<UpdateVisibilityDesc> {
  * applied to the live row inside the store's atomic write, so an update
  * that landed since the load stays.
  */
-function newPersistEnvironmentVisibilityStep(store: Store): PipelineStep<UpdateVisibilityDesc> {
+export function newPersistEnvironmentVisibilityStep(store: Store): PipelineStep<UpdateVisibilityDesc> {
   return {
     name: "PersistEnvironmentForVisibilityUpdate",
     async execute(ctx: RequestContext<UpdateVisibilityDesc>): Promise<void> {
@@ -519,14 +507,7 @@ async function list(
     .build()
     .execute(reqCtx);
 
-  const result = reqCtx.get(LIST_RESULT_KEY);
-  if (result === undefined) {
-    throw internalError(
-      new Error("Environment list not found in context"),
-      "Environment list not found in context",
-    );
-  }
-  return result as EnvironmentList;
+  return chainResult<EnvironmentList>(reqCtx.get(LIST_RESULT_KEY), "Environment list");
 }
 
 /** One page of the organization's Environments through the list index, narrowed to the caller's. */

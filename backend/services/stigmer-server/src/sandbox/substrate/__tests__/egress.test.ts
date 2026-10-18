@@ -20,7 +20,8 @@
  *     runner's own (runnerPlatformHosts) and the operator's
  *     EGRESS_HTTPS_PLATFORM hosts, each host once, split into rules of at
  *     most 256 names, a cleartext host also a port-80 rule, and under
- *     HTTPS egress `none` it opens no HTTPS rule at all;
+ *     HTTPS egress `none` it opens no HTTPS rule at all; an archive host
+ *     the operator already lists on port 80 stays one rule;
  *   - egressDigest is equal for equal rules and differs for different ones.
  */
 import { describe, expect, it } from "vitest";
@@ -283,6 +284,14 @@ describe("a session's Environment", () => {
       ...APT_ARCHIVE_HOSTS.map((host) => `http ${host}:80`),
       "https *:-",
     ]);
+  });
+
+  it("an archive host the operator already lists on port 80 is one rule", () => {
+    const archive = APT_ARCHIVE_HOSTS[0]!;
+    const rules = shape(
+      buildEgressRules(config, { ...open, extraHttpEgress: [{ host: archive, port: 80 }] }, unrestricted(["ripgrep"])),
+    );
+    expect(rules.filter((rule) => rule === `http ${archive}:80`)).toHaveLength(1);
   });
 
   it("unrestricted without apt packages: no archive lane, the rules a sandbox without one gets", () => {

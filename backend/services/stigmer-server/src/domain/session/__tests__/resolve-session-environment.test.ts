@@ -35,7 +35,9 @@
  *     reference rule's writer clause);
  *   - session create refuses an agent default whose MCP server's host the
  *     limited Environment does not list;
- *   - once a turn has run, an update naming another Environment is refused.
+ *   - once a turn has run, an update naming another Environment is refused;
+ *   - a conversation with no organization takes no organization default, and
+ *     a store that cannot read the organization answers INTERNAL.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -262,6 +264,16 @@ describe("resolveSessionEnvironment and its steps, over a real store", () => {
     it("else none", async () => {
       expect(await resolveSessionEnvironment(store, GOVERNING, conversation({ org: BARE_ORG }))).toBeUndefined();
       expect(await resolveSessionEnvironment(store, GOVERNING, conversation({ org: "org_missing" }))).toBeUndefined();
+      expect(await resolveSessionEnvironment(store, GOVERNING, conversation({ org: "" }))).toBeUndefined();
+    });
+
+    it("answers INTERNAL when the store cannot read the organization's default", async () => {
+      const faulty = Object.assign(Object.create(store) as Store, {
+        getResource: async () => Promise.reject(new Error("disk unreadable")),
+      });
+      const failed = await errorOf(() => resolveSessionEnvironment(faulty, GOVERNING, conversation({})));
+      expect(failed.code).toBe(Code.Internal);
+      expect(failed.rawMessage).toBe("failed to read the organization's default environment");
     });
   });
 
