@@ -1,16 +1,16 @@
 /**
- * The exit backstop for static and pool modes: once the runner's own
+ * The exit backstop for static mode: once the runner's own
  * shutdown has finished (worker drained, harnesses released, Temporal
  * connection closed, OTel flushed), the process must end within a named
  * bound, and when it has to be MADE to end, the log names what kept it
  * alive.
  *
- * Static and pool modes end when the Node event loop drains. That is the
+ * Static mode ends when the Node event loop drains. That is the
  * normal path and it stays the normal path: a healthy runner exits in
  * milliseconds on its own. The failure it guards against is one leaked
  * handle — a timer, a socket, a child — that outlives the worker and holds
  * the process until the orchestrator's grace expires. One uncleared timer
- * in our own code did exactly that to every pool-member roll for three
+ * in our own code did exactly that to hosted sandbox rolls for three
  * months (issue #1008), and the next one may sit in a vendor SDK we do not
  * own. A hosted sandbox pod's grace is ten minutes, so the cost of a leak
  * is not bounded by anything the runner controls — until this module.

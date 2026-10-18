@@ -3,7 +3,7 @@
  *
  * Instrument names follow the platform-wide `stigmer.*` convention shared
  * with stigmer-service (SigNoz renders the dots as underscores). The
- * cold-start instruments (runner boot / execution setup / pool attach) are
+ * cold-start instruments (runner boot / execution setup) are
  * sandbox-runner-specific — they mirror the `stigmer_timing` stdout
  * timelines (see `shared/cold-start-timing.ts`) as dashboard aggregates and
  * have no counterpart in other runners.
@@ -20,7 +20,6 @@ export interface RunnerInstruments {
   readonly activityDuration: Histogram;
   readonly runnerBootDuration: Histogram;
   readonly executionSetupDuration: Histogram;
-  readonly poolAttachDuration: Histogram;
 }
 
 let instruments: RunnerInstruments | null = null;
@@ -46,10 +45,6 @@ export async function getInstruments(): Promise<RunnerInstruments> {
     executionSetupDuration: meter.createHistogram("stigmer.execution.setup.duration", {
       unit: "ms",
       description: "Per-execution setup: activity start to agent ready to stream",
-    }),
-    poolAttachDuration: meter.createHistogram("stigmer.sandbox.pool.attach.duration", {
-      unit: "ms",
-      description: "Warm-pool attach hand-off on the member: token exchange to session worker polling",
     }),
   };
 

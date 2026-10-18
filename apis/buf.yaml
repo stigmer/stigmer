@@ -29,3 +29,15 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request removes the hosted edition's warm-pool exchange: the
+  # pool_claim arm (3) of GetRunnerScopedTokenInput, kept reserved with its
+  # name, and the PoolClaim message it carried. Nothing else used either:
+  # the edition's pool of pre-started sandboxes is gone, and the runner's
+  # pool-member mode with it. This block exists for that one pull request.
+  # While it stays, buf breaking does not report these rules on the listed
+  # file, so the pull request that removes it lands straight after the merge.
+  ignore_only:
+    FIELD_NO_DELETE:
+      - ai/stigmer/platform/v1/server_info.proto
+    MESSAGE_NO_DELETE:
+      - ai/stigmer/platform/v1/server_info.proto

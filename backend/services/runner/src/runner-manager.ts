@@ -26,10 +26,6 @@ import { releasingOnFailure, type HostedBoot } from "./agent-host/failed-boot.js
 import type { Config, TokenRef } from "./config.js";
 import type { HarnessRow } from "./harness/registry.js";
 import { DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS, DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS, DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./config.js";
-// Boot marks mirror the static runner's segment names where the work is the
-// same. Inert unless a mode emits the boot timeline (pool mode does; the
-// desktop manager never calls emitRunnerBootTiming, so marks cost nothing).
-import { markBoot } from "./shared/cold-start-timing.js";
 import type { WorkerActivities } from "./worker.js";
 import {
   resolveWorkflowSource,
@@ -65,10 +61,6 @@ import {
 } from "./shared/worker-shutdown.js";
 
 const SESSION_QUEUE_PREFIX = "session:";
-// Warm-pool control queue — polled by exactly one pool member, carrying only
-// the ProbePoolMember/AttachSession claim activities (never session work).
-// Mirrors SessionDispatchService's convention: lowercase kind, colon, id.
-const POOL_CONTROL_QUEUE_PREFIX = "sandbox:";
 
 // Re-export for existing importers; the registry itself lives in
 // shared/worker-shutdown.ts so the static runner (runner.ts) and the
@@ -164,14 +156,6 @@ export interface StigmerRunnerManager {
 
   /** List currently active session IDs. */
   activeSessions(): string[];
-
-  /**
-   * Start the warm-pool control worker — a Worker polling sandbox:{memberId}
-   * for the claim activities (ProbePoolMember, AttachSession). Called once by
-   * the pool boot path; the attach flow then adds the claimed session via
-   * {@link addSession} like any other host.
-   */
-  addPoolControl(memberId: string): Promise<void>;
 
   /**
    * Push a refreshed *control-plane* auth token (the host's durable credential,
@@ -278,7 +262,7 @@ async function buildStigmerRunnerManager(
   // `__tests__/harness-boot-order.test.ts`). The hosted harnesses' engines
   // run in the agent host, one for every session worker of this manager,
   // behind their remote adapters (`agent-host/`).
-  const [{ HARNESS_ADAPTERS }, { adaptersOf, bootHarnesses, releaseHarnessSession, shutdownHarnesses }, { hostHarnesses, logCursorWarmup }] =
+  const [{ HARNESS_ADAPTERS }, { adaptersOf, bootHarnesses, releaseHarnessSession, shutdownHarnesses }, { hostHarnesses }] =
     await Promise.all([import("./harness-adapters.js"), import("./harness/registry.js"), import("./agent-host/hosting.js")]);
   const hosted = await hostHarnesses(HARNESS_ADAPTERS, baseConfig);
   boot.release = async () => {
@@ -289,7 +273,6 @@ async function buildStigmerRunnerManager(
     }
   };
   await bootHarnesses(adaptersOf(hosted.rows), baseConfig);
-  markBoot("harnesses_booted");
 
   // The token coordinator owns the proxy credential (x-stigmer-auth) and its
   // refresh lifecycle. It writes ONE sink, `runnerTokenRef`, which is read per
@@ -327,7 +310,6 @@ async function buildStigmerRunnerManager(
     temporalAddress: bootstrap.temporalAddress,
     temporalNamespace: bootstrap.temporalNamespace,
   };
-  markBoot("bootstrap_resolved");
 
   // Adopt the minted proxy token (cloud): it diverges from the control-plane
   // token from here on, and the coordinator refreshes it before expiry.
@@ -349,7 +331,6 @@ async function buildStigmerRunnerManager(
   }
 
   const activities = await createAllActivities(config, hosted.rows);
-  markBoot("activities_imported");
   // Surface the resolved artifact store at boot (see runner.ts for rationale):
   // a path/type misconfiguration is the #285 failure class, and it should be
   // visible here rather than only when a read fails mid-execution.
@@ -392,7 +373,6 @@ async function buildStigmerRunnerManager(
     address: config.temporalAddress,
     ...config.temporalConnection,
   });
-  markBoot("connection_opened");
 
   const interceptorConfig = await buildInterceptorConfig();
 
@@ -411,11 +391,8 @@ async function buildStigmerRunnerManager(
     });
     console.log("[runner-manager] Workflow code bundled successfully");
   }
-  markBoot("workflow_bundle_ready");
 
   const sessions = new Map<string, ManagedSession>();
-  // At most one per process: a pool member IS its control worker's identity.
-  let poolControl: { taskQueue: string; managed: ManagedSession } | null = null;
   let shuttingDown = false;
 
   async function createWorkerOnQueue(taskQueue: string): Promise<ManagedSession> {
@@ -559,29 +536,6 @@ async function buildStigmerRunnerManager(
       return Array.from(sessions.keys());
     },
 
-    async addPoolControl(memberId: string): Promise<void> {
-      if (shuttingDown) {
-        throw new Error("RunnerManager is shutting down");
-      }
-      if (poolControl) {
-        throw new Error(
-          `Pool control worker already polling ${poolControl.taskQueue} — ` +
-          "a process is exactly one pool member",
-        );
-      }
-      const taskQueue = POOL_CONTROL_QUEUE_PREFIX + memberId;
-      poolControl = { taskQueue, managed: await createWorkerOnQueue(taskQueue) };
-      console.log(
-        `[runner-manager] Added pool control worker (queue=${taskQueue})`,
-      );
-      // Idle-time warm-up (issue #209): pay the Cursor SDK's per-process
-      // store cost now, in the agent host where the SDK runs, while the
-      // member waits for a claim, instead of inside the claimed session's
-      // first resolve_agent. Fire-and-forget: a pool-control member only,
-      // never a claimed session's restart, which serves at once.
-      void hosted.warmCursorSdk().then(logCursorWarmup);
-    },
-
     updateToken(token: string | null): void {
       // Writes the control-plane credential. Every reader follows this one
       // write: the activity clients, the artifact store and the checkpoint
@@ -610,7 +564,7 @@ async function buildStigmerRunnerManager(
 
       // Mark every queue's shutdown signal BEFORE draining, so an in-flight
       // activity cancelled by the drain classifies it as a worker shutdown
-      // rather than a user pause (issue #776 — a SIGTERM'd pool member used
+      // rather than a user pause (issue #776 — a SIGTERM'd sandbox used
       // to persist RUN_PAUSED and let raw Temporal drain text reach
       // status.error). Aborting is classification-only: it stops nothing;
       // worker.shutdown() below still owns the drain. This is deliberately
@@ -619,27 +573,14 @@ async function buildStigmerRunnerManager(
       for (const session of sessions.values()) {
         session.shutdownController.abort();
       }
-      poolControl?.managed.shutdownController.abort();
 
-      const shutdownPromises = [
-        ...Array.from(sessions.entries()).map(
-          async ([id, session]) => {
-            session.worker.shutdown();
-            await session.runPromise;
-            console.log(`[runner-manager] Session worker ${id} stopped`);
-          },
-        ),
-      ];
-      if (poolControl) {
-        const control = poolControl;
-        shutdownPromises.push((async () => {
-          control.managed.worker.shutdown();
-          await control.managed.runPromise;
-          console.log(`[runner-manager] Pool control worker (${control.taskQueue}) stopped`);
-        })());
-      }
-
-      await Promise.all(shutdownPromises);
+      await Promise.all(
+        Array.from(sessions.entries()).map(async ([id, session]) => {
+          session.worker.shutdown();
+          await session.runPromise;
+          console.log(`[runner-manager] Session worker ${id} stopped`);
+        }),
+      );
       // Workers are drained — every harness releases what it still holds
       // (the Cursor harness: its parked session agents, whose executor leases
       // dispose and whose stdio MCP subprocesses die with them, #215). Logged,
@@ -654,7 +595,6 @@ async function buildStigmerRunnerManager(
       }
       await hosted.close();
       sessions.clear();
-      poolControl = null;
       connection.close();
       console.log("[runner-manager] All workers stopped, connection closed");
     },
@@ -750,13 +690,11 @@ async function createAllActivities(config: Config, harnessRows: readonly Harness
     { createEnsureThreadActivities },
     { createGenerateSessionSubjectActivities },
     { createListPluginToolsActivities },
-    { createAttachSessionActivities },
   ] = await Promise.all([
     import("./harness/registry.js"),
     import("./activities/ensure-thread.js"),
     import("./activities/generate-session-subject.js"),
     import("./activities/list-plugin-tools.js"),
-    import("./activities/attach-session.js"),
   ]);
 
   return {
@@ -764,7 +702,6 @@ async function createAllActivities(config: Config, harnessRows: readonly Harness
     ...createEnsureThreadActivities(),
     ...createGenerateSessionSubjectActivities(config),
     ...createListPluginToolsActivities(config),
-    ...createAttachSessionActivities(config),
   };
 }
 

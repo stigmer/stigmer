@@ -282,12 +282,11 @@ async function getRunnerBootstrapConfig(
  * Arms:
  *   - run_id: minted, bound to the run, so the token fetches that one
  *     run's values. (Cloud scopes agent tokens to the parent
- *     session for warm-pool multi-turn reuse; OSS runners exchange
+ *     session for multi-turn reuse; OSS runners exchange
  *     immediately before each read, so the tighter per-execution binding
  *     costs nothing.)
- *   - pool_claim / renewal / unset scope: the presence-based "not minted"
- *     shape — OSS has no warm pool, and per-read minting makes renewal
- *     moot.
+ *   - renewal / unset scope: the presence-based "not minted" shape —
+ *     per-read minting makes renewal moot.
  *
  * FAIL-SOFT is the contract: empty id, keyless service, or a mint error
  * all answer the empty output rather than a gRPC error — the runner's
@@ -341,10 +340,9 @@ async function getRunnerScopedToken(
     case "runId":
       executionId = input.scope.value;
       break;
-    case "poolClaim":
     case "renewal":
     case undefined:
-      // pool_claim, renewal, or an unset scope: nothing OSS mints for.
+      // renewal, or an unset scope: nothing OSS mints for.
       return create(GetRunnerScopedTokenOutputSchema);
     default: {
       const exhaustive: never = input.scope;
@@ -395,8 +393,6 @@ function exchangeRequestOf(
   switch (input.scope.case) {
     case "runId":
       return { arm: "agent-execution", executionId: input.scope.value };
-    case "poolClaim":
-      return { arm: "pool-claim", sessionId: input.scope.value.sessionId };
     case "renewal":
       return { arm: "renewal" };
     case undefined:

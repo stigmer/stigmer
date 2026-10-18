@@ -23,7 +23,7 @@
  * The credential is never held by value:
  *
  * The control-plane credential rotates while the process runs (the manager's
- * `updateToken` on a pool claim or a host refresh, the static root's
+ * `updateToken` on a host refresh, the static root's
  * sandbox-token renewal), so `Config` carries it as a shared {@link TokenRef}
  * and nothing else. Every reader resolves `ref.current` at the moment of use;
  * a client that makes many requests over its life holds the ref and reads it
@@ -32,8 +32,7 @@
  * writer and no copy to go stale. {@link loadConfig} is the environment
  * boundary and is read once, by `main.ts`: the ref it returns holds the boot
  * capture that the roots turn into the live ref (a test pins that no other
- * module imports it). The only by-value reads are the pool boot's, where the
- * credential the pod BOOTED with is the fact (`main.ts`).
+ * module imports it).
  *
  * Workspace isolation:
  *

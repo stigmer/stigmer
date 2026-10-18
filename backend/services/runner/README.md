@@ -44,19 +44,18 @@ The sandbox image (`Dockerfile.sandbox`) ships the same directory as its runner 
 
 ## Run modes
 
-The runner has three **run modes**, selected at boot by two environment variables (`src/main.ts`): `STIGMER_RUNNER_MODE=manager` selects manager mode; otherwise a set `STIGMER_POOL_MEMBER_ID` selects pool mode; otherwise the runner is static. Do not confuse the run mode (process topology) with the execution location (`MODE=local|cloud`) or the transport (`STIGMER_PROXY_ENDPOINT`) — those are independent axes covered in [Execution location vs transport](#execution-location-vs-transport).
+The runner has two **run modes**, selected at boot by one environment variable (`src/main.ts`): `STIGMER_RUNNER_MODE=manager` selects manager mode; otherwise the runner is static. Do not confuse the run mode (process topology) with the execution location (`MODE=local|cloud`) or the transport (`STIGMER_PROXY_ENDPOINT`) — those are independent axes covered in [Execution location vs transport](#execution-location-vs-transport).
 
 | Run mode | Selector | Topology | Used by |
 |----------|----------|----------|---------|
-| Static | Neither of the two below (default) | One Worker polling one task queue; blocks until shutdown | CLI daemon, cloud deployments |
+| Static | `STIGMER_RUNNER_MODE` unset or not `manager` (default) | One Worker polling one task queue; blocks until shutdown | CLI daemon, cloud deployments |
 | Manager | `STIGMER_RUNNER_MODE=manager` | Shared Temporal connection; dynamic per-session / per-execution Workers; stdin/stdout JSON IPC | Desktop app |
-| Pool | `STIGMER_POOL_MEMBER_ID` set, and `STIGMER_RUNNER_MODE` not `manager` | A warm-pool sandbox: boots the runner manager, then serves what its injected credential says — a blank member polls its `sandbox:{memberId}` control queue for a claim, a claimed member that restarted goes straight to its session's queue (`src/pool-member.ts`) | Hosted cloud sandboxes |
 
 ### Static mode
 
 Static mode creates a single Temporal Worker that polls one task queue and runs until it receives `SIGTERM` / `SIGINT`. This is the right mode when the set of work is fixed at startup (a daemon or a pod dedicated to a queue).
 
-On a signal it drains the worker, releases the harnesses, closes its Temporal connection and flushes telemetry, and the process then exits on its own, normally within milliseconds. As the CLI entry (`stigmer-runner`, and the cloud's pool members, which end the same way), a process still alive 5 s after that is made to exit, with one log line naming the resources that kept it alive (`src/exit-backstop.ts`). That line means a leaked handle to fix, not a slow shutdown to tune.
+On a signal it drains the worker, releases the harnesses, closes its Temporal connection and flushes telemetry, and the process then exits on its own, normally within milliseconds. As the CLI entry (`stigmer-runner`), a process still alive 5 s after that is made to exit, with one log line naming the resources that kept it alive (`src/exit-backstop.ts`). That line means a leaked handle to fix, not a slow shutdown to tune.
 
 As a library:
 
@@ -174,8 +173,7 @@ All configuration is environment-driven. Every variable the runner's source read
 
 | Variable | Applies to | Required | Default | Purpose |
 |----------|-----------|----------|---------|---------|
-| `STIGMER_RUNNER_MODE` | All | No | `static` | Selects the run mode. Set to `manager` for dynamic per-session/per-execution Workers; any other value (or unset) means static mode, or pool mode when `STIGMER_POOL_MEMBER_ID` is set. |
-| `STIGMER_POOL_MEMBER_ID` | Hosted sandboxes | No | _(none)_ | Selects pool mode (see [Run modes](#run-modes)): the sandbox's identity in the warm pool. Set by the hosted edition's sandbox provisioning; a self-hosted runner never sets it. |
+| `STIGMER_RUNNER_MODE` | All | No | `static` | Selects the run mode. Set to `manager` for dynamic per-session/per-execution Workers; any other value (or unset) means static mode. |
 | `STIGMER_ATTACH_PORT` | The attach entry | No | `80` | Port the attach waiter listens on (`src/attach/entry.ts`), 80 being the port a Substrate router reaches without a `CONNECT` tunnel. Not passed to the runner. |
 | `STIGMER_SANDBOX_NAME_FILE` | The attach entry | No | `/run/ate/actor-name` | File holding this sandbox's name, read on every push because each clone of a snapshot has its own (a Substrate template projects it with an actor-metadata volume). A push for a queue whose sandbox name differs is refused. Not passed to the runner. |
 | `STIGMER_SANDBOX_ENVIRONMENT` | Sandboxes | No | _(none)_ | The sandbox's Environment as JSON, `{network, packages}`, set by the `docker` and `agent-sandbox` drivers and, on Substrate, by the attach waiter from the first push (`src/environment/spec.ts`). The runner installs the packages once its agent's home is handed over (apt as root, the other managers as the agent into `/opt/stigmer/environment`, first on the agent's `PATH`); each turn waits for the install. Under `limited`, a Cursor turn hides web fetch and web search. Unset: no Environment. |

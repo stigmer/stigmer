@@ -4,7 +4,7 @@
  * has it baked in, and the slim artifact cannot resolve the module beside
  * its entry, so with an OTLP endpoint set the pre-built path must register
  * no module for bundling (stigmer/stigmer#1810: the slim runner's manager
- * and pool modes died at boot resolving it); the runtime-bundling path
+ * died at boot resolving it); the runtime-bundling path
  * still registers the resolved module.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";

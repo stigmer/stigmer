@@ -503,24 +503,23 @@ describe("StigmerClient", () => {
       expect(input.scope).toEqual({ case: "runId", value: "aex_1" });
     });
 
-    it("maps poolClaimSessionId onto the pool_claim message arm", async () => {
+    it("maps renewal onto its message arm", async () => {
       const { client, rpc } = clientWithPlatformQuery({ runnerScopedToken: "tok" });
 
-      await client.getRunnerScopedToken({ poolClaimSessionId: "ses_1" });
+      await client.getRunnerScopedToken({ renewal: true });
 
       const input = rpc.mock.calls[0]![0];
-      expect(input.scope.case).toBe("poolClaim");
-      expect(input.scope.value.sessionId).toBe("ses_1");
+      expect(input.scope.case).toBe("renewal");
     });
 
-    it("authenticates with the caller token per-call when one is supplied (pool attach)", async () => {
+    it("authenticates with the caller token per-call when one is supplied (sandbox renewal)", async () => {
       const { client, rpc } = clientWithPlatformQuery({ runnerScopedToken: "tok" });
 
-      await client.getRunnerScopedToken({ poolClaimSessionId: "ses_1" }, "pool-tok");
+      await client.getRunnerScopedToken({ renewal: true }, "sandbox-tok");
 
       expect(rpc).toHaveBeenCalledWith(
         expect.anything(),
-        { headers: { authorization: "Bearer pool-tok" } },
+        { headers: { authorization: "Bearer sandbox-tok" } },
       );
     });
 
@@ -535,7 +534,7 @@ describe("StigmerClient", () => {
     it("returns undefined when the server mints nothing (presence-based contract)", async () => {
       const { client } = clientWithPlatformQuery({ runnerScopedToken: "" });
 
-      const scoped = await client.getRunnerScopedToken({ poolClaimSessionId: "ses_1" });
+      const scoped = await client.getRunnerScopedToken({ renewal: true });
 
       expect(scoped).toBeUndefined();
     });

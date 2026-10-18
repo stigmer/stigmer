@@ -52,8 +52,6 @@ export interface HostedHarnesses {
   readonly rows: readonly HarnessRow[];
   /** Close the local proxy; after `shutdownHarnesses`, which stops the host. */
   close(): Promise<void>;
-  /** Warm the Cursor SDK in the host, for an idle pool member; never throws. */
-  warmCursorSdk(): Promise<{ readonly warmed: boolean; readonly durationMs: number; readonly error: string | null }>;
 }
 
 export interface HostHarnessesOptions {
@@ -109,8 +107,6 @@ export async function hostHarnesses(
         ? { harness: row.harness, adapter: createRemoteAdapter(row.harness, row.adapter, supervisor, proxy) }
         : row,
     ),
-    warmCursorSdk: () =>
-      supervisor.warmCursorSdk().catch((err: unknown) => ({ warmed: false, durationMs: 0, error: err instanceof Error ? err.message : String(err) })),
     close: async () => {
       restoreFs();
       // A separating runner never performs them itself: after the host, they fail.
@@ -139,12 +135,6 @@ export function handOver(
   } catch (err) {
     return `the runner cannot hand the agent user its files: ${err instanceof Error ? err.message : String(err)}`;
   }
-}
-
-/** The pool member's log line for a warm-up's result. */
-export function logCursorWarmup(result: { readonly warmed: boolean; readonly durationMs: number; readonly error: string | null }): void {
-  if (result.warmed) console.log(`[pool-member] Cursor SDK state stores warmed in ${result.durationMs}ms`);
-  else console.warn(`[pool-member] Cursor SDK warm-up skipped (non-fatal): ${result.error} (${result.durationMs}ms)`);
 }
 
 /**

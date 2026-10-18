@@ -18,16 +18,16 @@
  * module keeps that control-plane token itself fresh, so the two form one
  * chain with no expiring root. They stay separate modules because their
  * hosts differ — every proxy-mode runner has a coordinator, but only
- * in-cluster sandbox runners (static cloud sandboxes and pool members) hold
- * a renewable credential; the desktop's control-plane token is the user's
- * own Auth0 token, refreshed by the host app.
+ * in-cluster cloud sandbox runners hold a renewable credential; the
+ * desktop's control-plane token is the user's own Auth0 token, refreshed by
+ * the host app.
  *
  * The loop re-reads the CURRENT token every cycle rather than binding to
- * the boot credential, because the credential's class can change under it:
- * a pool member boots with a non-renewable pool_sandbox token and swaps to
- * a renewable session token at claim time (attach-session.ts). A
+ * the boot credential, because the credential is replaced under it: every
+ * renewal applies a fresh token, and the host may write one of its own. A
  * non-renewable token parks the loop on a slow recheck instead of stopping
- * it, so the swap is picked up without any coupling to the claim path.
+ * it, so a renewable credential written later is picked up without any
+ * coupling to whoever wrote it.
  */
 
 /**
@@ -47,7 +47,7 @@ const FALLBACK_RENEW_MARGIN_MS = 10 * 60_000;
 /** Retry delay after a failed renewal — short enough to recover well before expiry. */
 const RETRY_DELAY_MS = 60_000;
 
-/** Recheck cadence while the current token is not a renewable class (pre-claim pool member). */
+/** Recheck cadence while the current token is not a renewable class. */
 const RECHECK_DELAY_MS = 60_000;
 
 /** Floor for any scheduled delay so a malformed expiry cannot spin a hot loop. */
@@ -122,8 +122,8 @@ export function startSandboxTokenRenewal(
 
     if (token === null || claims === null
         || !RENEWABLE_TOKEN_TYPES.has(claims.tokenType ?? "")) {
-      // Not (yet) a renewable credential — a pre-claim pool member, or a
-      // credential class this loop does not own. Park and look again.
+      // Not a renewable credential — a credential class this loop does not
+      // own. Park and look again.
       schedule(RECHECK_DELAY_MS);
       return;
     }

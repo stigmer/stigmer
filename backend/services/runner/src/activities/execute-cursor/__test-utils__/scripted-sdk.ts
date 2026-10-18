@@ -19,10 +19,9 @@
  * Neither the SDK nor the client is injectable into the activity (the real
  * seam arrives with the harness contract), so — exactly as the
  * native activity tests already do for their boundary modules — the modules
- * are substituted with `vi.mock`. Three existing tests each mock ONE of these
- * surfaces (`session-lifecycle.test.ts`, `service-tier.test.ts`,
- * `sdk-warmup.test.ts`); a whole-activity run needs all of them at once, which
- * is what this module is.
+ * are substituted with `vi.mock`. Existing tests each mock ONE of these
+ * surfaces (`session-lifecycle.test.ts`, `service-tier.test.ts`); a
+ * whole-activity run needs all of them at once, which is what this module is.
  *
  * `vi.mock` is hoisted and must appear in the test file, once per module id
  * (a subpath is its own module id, so `@cursor/sdk/sqlite` needs its own

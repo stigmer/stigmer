@@ -266,7 +266,7 @@ jobs:
       # built-ins and each other), against the Temporal dev server on the
       # host network: the cloud-mode boot to the Temporal dial, @cursor/sdk
       # and its platform package, the attach waiter, a worker that reaches
-      # RUNNING, the manager lifecycle, and a warm-pool member booted with an
+      # RUNNING, and the manager lifecycle, its authenticated run with an
       # OTLP endpoint set, as production sets one. A broken image or a runner
       # that dies at boot (the 2026-04 stale-image failure mode) fails here,
       # and no tag but the stage tag names it.

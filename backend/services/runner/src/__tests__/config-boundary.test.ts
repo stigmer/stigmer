@@ -4,13 +4,13 @@
  *
  * Why it matters (config.ts header): `loadConfig()` reads the environment and
  * returns a `Config` whose credential ref holds the BOOT capture. The two
- * roots turn that value into the one live ref the process rotates (a pool
- * claim, a sandbox-token renewal, a host refresh) and hand every activity a
+ * roots turn that value into the one live ref the process rotates (a
+ * sandbox-token renewal, a host refresh) and hand every activity a
  * `Config` carrying it. An activity that called `loadConfig()` itself would
  * hold a second `Config` with a second ref that no rotation ever writes —
- * the shape that kept a claimed pool member presenting its pool credential
- * to the checkpoint proxy — and a module-level client built from it would
- * freeze the boot credential for the process's life. Four activity modules
+ * the shape that kept a sandbox presenting its boot credential to the
+ * checkpoint proxy after a rotation — and a module-level client built from
+ * it would freeze the boot credential for the process's life. Four activity modules
  * did exactly that until their factories took the injected `Config`; this
  * fence is what keeps a fifth from appearing.
  *

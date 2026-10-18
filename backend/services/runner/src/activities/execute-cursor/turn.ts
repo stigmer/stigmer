@@ -77,8 +77,8 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
   // prior execution on this worker from poisoning this one's agent stream.
   closeProxySessions();
   // The module-level fallback the interceptors read when no execution
-  // context is entered (the runtime enters one around the whole activity;
-  // the SDK warm-up in main.ts has none). Deprecated; its removal is #1132.
+  // context is entered (the runtime enters one around the whole activity).
+  // Deprecated; its removal is #1132.
   setInterceptorExecutionId(executionId);
 
   if (sink.stopSignal.aborted) return { kind: "interrupted" };
