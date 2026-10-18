@@ -160,10 +160,15 @@ export function prepareAgentSeparation(
  * A root that already grants both is left untouched, and nothing below `/`
  * is changed.
  */
-export function openRootDirectory(fs: { readonly mode: () => number; readonly chmod: (mode: number) => void } = { mode: () => statSync("/").mode, chmod: (mode) => chmodSync("/", mode) }): void {
-  const mode = fs.mode() & 0o7777;
+export function openRootDirectory(): void {
+  openDirectoryToAll("/");
+}
+
+/** Gives every user read and search on `path` when it lacks either; leaves an open directory alone. */
+export function openDirectoryToAll(path: string): void {
+  const mode = statSync(path).mode & 0o7777;
   if ((mode & 0o005) === 0o005) return;
-  fs.chmod(mode | 0o055);
+  chmodSync(path, mode | 0o055);
 }
 
 function makeAgentHome(identity: AgentIdentity): void {

@@ -17,7 +17,7 @@
  *    `0700`) is opened to `0755`, and an open one is left alone.
  */
 
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -29,7 +29,7 @@ import {
   agentIdentity,
   agentStateHome,
   ensureAgentUser,
-  openRootDirectory,
+  openDirectoryToAll,
   prepareAgentSeparation,
   setprivArgs,
 } from "../agent-identity.js";
@@ -96,7 +96,7 @@ describe("the agent's state and the drop to it", () => {
     expect(setprivArgs(identity)).toEqual(["--reuid=10001", "--regid=10001", "--clear-groups", "--inh-caps=-all", "--no-new-privs"]);
   });
 
-  it("is ready only when the user, its home and a setpriv drop all work", () => {
+  it("is ready only when the user, its home, a root directory the agent can reach and a setpriv drop all work", () => {
     const steps: string[] = [];
     const ok = { processStatus: () => ALL_FOUR, ensureUser: () => void steps.push("user"), makeHome: () => void steps.push("home"), openRoot: () => void steps.push("root"), probe: (args: readonly string[]) => (steps.push(args.join(" ")), { status: 0, stderr: "" }) };
     expect(prepareAgentSeparation(identity, ok)).toBeNull();
@@ -154,15 +154,21 @@ describe("the agent's state and the drop to it", () => {
     ).toMatch(/^the runner cannot open the root directory to the agent user: EROFS: read-only file system, chmod '\/'; see /);
   });
 
-  it("opens a root directory closed to other users, as an Agent Substrate actor's is, and leaves an open one alone", () => {
-    const chmods: number[] = [];
-    const root = (mode: number) => ({ mode: () => mode, chmod: (next: number) => void chmods.push(next) });
-    openRootDirectory(root(0o40700));
-    expect(chmods.map((m) => m.toString(8))).toEqual(["755"]);
-    openRootDirectory(root(0o40755));
-    openRootDirectory(root(0o41777));
-    expect(chmods, "a root that other users can already read and search is not touched").toHaveLength(1);
-    openRootDirectory(root(0o40711));
-    expect(chmods.map((m) => m.toString(8))).toEqual(["755", "755"]);
+  it("opens a directory closed to other users, as an Agent Substrate actor's root is, and leaves an open one alone", () => {
+    const dir = (mode: number): string => {
+      const path = mkdtempSync(join(tmpdir(), "agent-root-"));
+      chmodSync(path, mode);
+      return path;
+    };
+    const modeOf = (path: string): string => (statSync(path).mode & 0o7777).toString(8);
+    const closed = dir(0o700);
+    openDirectoryToAll(closed);
+    expect(modeOf(closed)).toBe("755");
+    const searchOnly = dir(0o711);
+    openDirectoryToAll(searchOnly);
+    expect(modeOf(searchOnly)).toBe("755");
+    const open = dir(0o775);
+    openDirectoryToAll(open);
+    expect(modeOf(open), "a directory other users can already read and search keeps its mode").toBe("775");
   });
 });
