@@ -42,6 +42,13 @@
  * `harness/approval-decisions.ts`). An adapter's whole duty for a
  * non-executing decision is to not execute.
  *
+ * An `open` operation is a latch the kit releases: the row starts, the
+ * operation parks on the latch or the stop signal (never a timer), each line
+ * the kit emits is a `tool_output_delta` with an activity mark — the least a
+ * harness owes for output it streams — and the release finishes the row. The
+ * fake has no subagents and no context, so `open(…, { as: "subagent" })` and
+ * `compact()` are refused as test bugs; its registrations declare both off.
+ *
  * Scenarios are arranged PER SESSION (the engine is per session in every real
  * harness; a subject arranges that session's engine), and arranging replaces
  * what that session had not yet played. A `runTurn` with no scenario arranged
@@ -60,7 +67,7 @@ import type { HarnessAdapter, TurnInput, TurnOutcome, TurnSink } from "../../har
 import { DEEP_AGENT_VISION_PROFILE } from "../../shared/attachment-vision.js";
 import type { ProposedAction } from "../approval-contract/types.js";
 import { testConfig } from "../config-fixture.js";
-import type { EngineView, HarnessContractSubject, ScenarioStep, TurnScenario } from "./types.js";
+import type { EngineView, HarnessContractSubject, LongTurnControls, ScenarioStep, TurnScenario } from "./types.js";
 import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 export interface ScriptedHarnessOptions {
@@ -104,6 +111,13 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
    */
   private readonly settledCalls = new Map<string, Set<string>>();
   private readonly hangWaiters: Array<() => void> = [];
+  /** The operations an `open` step started and the kit has not yet released, by tool-call id. */
+  private readonly openOperations = new Map<string, OpenOperation>();
+  private readonly openWaiters = new Map<string, Array<() => void>>();
+  /** The ids the kit has released: an operation opened under one of them later finishes at once. */
+  private readonly released = new Set<string>();
+  /** Per session, every message the engine was handed as a new request. */
+  private readonly handed = new Map<string, string[]>();
   private mintCounter = 0;
   /** One `runId` per `say`, as an engine mints one per model run; the builder keys a message on it. */
   private runCounter = 0;
@@ -149,6 +163,32 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
     return this.executions.get(toolCallId) ?? 0;
   }
 
+  /** Resolves once the `open` operation behind `toolCallId` has started. Never on a timer. */
+  whenOpen(toolCallId: string): Promise<void> {
+    if (this.openOperations.has(toolCallId)) return Promise.resolve();
+    return new Promise((resolve) => this.openWaiters.set(toolCallId, [...(this.openWaiters.get(toolCallId) ?? []), resolve]));
+  }
+
+  /** The open operation prints `line`: one `tool_output_delta` and an activity mark. */
+  async emit(toolCallId: string, line: string): Promise<void> {
+    const operation = this.openOperations.get(toolCallId);
+    if (!operation) throw new Error(`${this.name}: emit(${toolCallId}) with no such operation open (kit bug)`);
+    operation.sink.transcript.apply({ kind: "tool_output_delta", callId: toolCallId, delta: `${line}\n` });
+    operation.sink.recordActivity("shell");
+  }
+
+  /** Let the operation finish; an operation opened later under the same id finishes at once. */
+  async release(toolCallId: string): Promise<void> {
+    const operation = this.openOperations.get(toolCallId);
+    this.released.add(toolCallId);
+    operation?.release();
+  }
+
+  /** How many times the session's engine was handed `message` as a new request. */
+  tasksHanded(sessionId: string, message: string): number {
+    return (this.handed.get(sessionId) ?? []).filter((m) => m === message).length;
+  }
+
   /** Drop the engine's memory of a session: the self-check's adapter that forgets what it ran. */
   forgetSettled(sessionId: string): void {
     this.settledCalls.delete(sessionId);
@@ -185,6 +225,9 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
 
     const resumed = await this.resolveEngineState(input, sink);
     if (resumed.kind !== "ok") return resumed.outcome;
+    // The fake keeps no conversation: every invocation hands it the
+    // execution's message afresh, as a new request.
+    this.handed.set(input.sessionId, [...(this.handed.get(input.sessionId) ?? []), input.execution.spec?.message ?? ""]);
 
     for (const step of turn) {
       // Stop at every step boundary — the Cursor loop's per-event isCancelled().
@@ -279,11 +322,45 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
         return { kind: "cancelled" };
       case "limit":
         return { kind: "tool_call_limit" };
+      case "open":
+        if (step.as === "subagent") throw new Error(`${this.name}: open(…, { as: "subagent" }) is not producible by this fake (it has no subagents); test bug`);
+        return this.openOperation(step.toolCallId, sink);
+      case "compact":
+        throw new Error(`${this.name}: compact() is not producible by this fake (it keeps no context); test bug`);
       default: {
         const exhaustive: never = step;
         throw new Error(`${this.name}: unknown scenario step ${JSON.stringify(exhaustive)}`);
       }
     }
+  }
+
+  /**
+   * A tool that runs until the kit releases it: the row starts with an
+   * activity mark and a persist (a real engine's tool start is a discrete
+   * event), the operation parks on the release or the stop signal, and the
+   * release finishes the row.
+   */
+  private async openOperation(toolCallId: string, sink: TurnSink): Promise<TurnOutcome | undefined> {
+    sink.transcript.apply({ kind: "tool_started", callId: toolCallId, name: "shell", input: { command: `kit operation ${toolCallId}` }, mcpServerSlug: "" });
+    sink.recordActivity("shell");
+    await sink.requestPersist();
+    let release: () => void = () => {};
+    const released = new Promise<void>((resolve) => (release = resolve));
+    this.openOperations.set(toolCallId, { sink, release });
+    if (this.released.has(toolCallId)) release();
+    for (const waiter of this.openWaiters.get(toolCallId) ?? []) waiter();
+    this.openWaiters.delete(toolCallId);
+    try {
+      await Promise.race([released, whenAborted(sink.stopSignal)]);
+    } finally {
+      this.openOperations.delete(toolCallId);
+    }
+    if (sink.stopSignal.aborted) return { kind: "interrupted" };
+    sink.transcript.apply({ kind: "tool_finished", callId: toolCallId, result: "done" });
+    this.executions.set(toolCallId, this.executionCount(toolCallId) + 1);
+    sink.recordActivity("shell");
+    await sink.requestPersist();
+    return undefined;
   }
 
   /**
@@ -377,6 +454,12 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   }
 }
 
+/** One operation an `open` step holds: the sink it reports through and the latch the kit releases. */
+interface OpenOperation {
+  readonly sink: TurnSink;
+  readonly release: () => void;
+}
+
 /** The scripted adapter as a kit subject: the adapter IS its own engine, so the seam is a thin view over it. */
 export interface ScriptedSubject extends HarnessContractSubject {
   readonly adapter: ScriptedHarnessAdapter;
@@ -400,5 +483,17 @@ export function scriptedSubject(options: ScriptedHarnessOptions): ScriptedSubjec
     arrange: (turn, view) => adapter.arrange(turn, view),
     whenHanging: () => adapter.whenHanging(),
     executionCount: (toolCallId) => adapter.executionCount(toolCallId),
+    longTurn: scriptedLongTurn(adapter),
+  };
+}
+
+/** The fake's long-turn controls; it never compacts (it keeps no context), so its count is zero. */
+function scriptedLongTurn(adapter: ScriptedHarnessAdapter): LongTurnControls {
+  return {
+    whenOpen: (toolCallId) => adapter.whenOpen(toolCallId),
+    emit: (toolCallId, line) => adapter.emit(toolCallId, line),
+    release: (toolCallId) => adapter.release(toolCallId),
+    tasksHanded: (sessionId, message) => adapter.tasksHanded(sessionId, message),
+    compactions: () => 0,
   };
 }

@@ -11,6 +11,9 @@
  * exactly as `activities/execute-cursor/__tests__/hermetic/harness-contract.test.ts`
  * registers it against the real Cursor adapter. An arm that differs between
  * the fake and the real engine is an adapter defect, not a runtime one.
+ * The long-turn arms the fake fails today (a silent operation, streamed
+ * output, a continued turn) are the runtime's gaps, marked by their issue;
+ * the fake has no subagents and no context, so those two arms are off.
  *
  * What is asserted HERE and not in the kit are the FAKE's facts: the engine
  * cadence a real engine has no reason to share. The fake's `say` awaits its
@@ -92,7 +95,11 @@ describe("run-turn: the fake adapter through the real runtime", () => {
     env.dispose();
   });
 
-  describeHarnessRuntimeContract(harness);
+  describeHarnessRuntimeContract(harness, {
+    subagentOperation: false,
+    compaction: false,
+    knownGaps: { "silent-operation": "stigmer/stigmer#2414", "streamed-output": "stigmer/stigmer#2415", "no-resent-task": "stigmer/stigmer#2417" },
+  });
 
   describe("the fake's own facts", () => {
     beforeAll(async () => {

@@ -33,6 +33,12 @@
  *     message anywhere but first, and a tool call not answered by its tool
  *     message directly after it (parallel calls answered in any order are
  *     fine). The refusal names the index, and the model call rejects with it.
+ *  8. A context window reaches deepagents' summarization middleware: on a
+ *     REAL graph whose tool results cross 0.85 of the window, the middleware
+ *     asks the same model for a summary, the double answers it out of band
+ *     (the script never sees the call, `onSummary` counts it), and the next
+ *     scripted turn reads the summary in place of the compacted messages.
+ *     Without a window the same graph never compacts (the 170,000 fallback).
  */
 
 import { describe, expect, it } from "vitest";
@@ -50,9 +56,12 @@ import { MemorySaver } from "@langchain/langgraph";
 import { createDeepAgent, StateBackend } from "deepagents";
 
 import {
+  SCRIPTED_SUMMARY,
+  SUMMARY_PROMPT_OPENING,
   ScriptedModel,
   assertProviderTranscript,
   completedToolRounds,
+  isSummaryRequest,
   type RoleScript,
   type ScriptedTurnInfo,
   type TurnPlayer,
@@ -397,6 +406,72 @@ describe("ScriptedModel — a turn's ending takes the call", () => {
     }
   });
 });
+
+describe("ScriptedModel — a context window reaches the summarization middleware", () => {
+  /** Each probe result's size in characters; about 2,000 tokens to the middleware's approximate counter. */
+  const RESULT_CHARS = 8_000;
+  const WINDOW = 30_000;
+
+  /** Run probes until the transcript shows a summary (or 40 rounds pass), then say which. */
+  async function runUntilCompacted(contextWindow: number | undefined): Promise<{ readonly said: string; readonly summaries: number; readonly rounds: number }> {
+    let summaries = 0;
+    let rounds = 0;
+    const probe = tool(async () => "x".repeat(RESULT_CHARS), {
+      name: "probe",
+      description: "probe",
+      schema: z.object({ path: z.string() }),
+    });
+    const player: TurnPlayer = (transcript) => {
+      if (transcript.some((m) => HumanMessage.isInstance(m) && m.text.includes(SCRIPTED_SUMMARY))) return { text: "compacted" };
+      if (rounds >= 40) return { text: "never compacted" };
+      rounds += 1;
+      return { toolCalls: [{ ...CALL, id: `probe-${rounds}` }] };
+    };
+    const model = new ScriptedModel(() => player, [], { contextWindow, onSummary: () => (summaries += 1) });
+    const agent = await createDeepAgent({
+      model,
+      checkpointer: new MemorySaver() as never,
+      backend: new StateBackend(),
+      tools: [probe],
+    } as unknown as Parameters<typeof createDeepAgent>[0]);
+    const result = (await agent.invoke(
+      { messages: [new HumanMessage("go")] },
+      { configurable: { thread_id: `compaction-${contextWindow ?? "none"}` }, recursionLimit: 200 },
+    )) as { messages: BaseMessage[] };
+    return { said: result.messages.at(-1)?.text ?? "", summaries, rounds };
+  }
+
+  it("profiles the window the options name, and the base model's empty profile without one", () => {
+    expect(new ScriptedModel(() => player0, [], { contextWindow: WINDOW }).profile).toEqual({ maxInputTokens: WINDOW });
+    expect(new ScriptedModel(() => player0, [], { contextWindow: WINDOW }).bindTools([]).profile, "a bound clone keeps it").toEqual({ maxInputTokens: WINDOW });
+    expect(new ScriptedModel(() => player0).profile).toEqual({});
+  });
+
+  it("answers a summary call out of band and counts it; the script is never asked", async () => {
+    let summaries = 0;
+    let asked = 0;
+    const model = new ScriptedModel(() => () => ((asked += 1), { text: "scripted" }), [], { onSummary: () => (summaries += 1) });
+    const reply = await model.invoke([new HumanMessage(`${SUMMARY_PROMPT_OPENING} Your task is to create a concise summary.`)]);
+    expect(reply.text).toBe(SCRIPTED_SUMMARY);
+    expect({ summaries, asked }).toEqual({ summaries: 1, asked: 0 });
+    expect(isSummaryRequest([new SystemMessage("sys"), new HumanMessage(SUMMARY_PROMPT_OPENING)]), "only a lone human message is a summary call").toBe(false);
+  });
+
+  it("on a REAL graph, tool results past 0.85 of the window compact the conversation once, and the next turn reads the summary", async () => {
+    const compacted = await runUntilCompacted(WINDOW);
+    expect(compacted.said, "the script saw the summary in the transcript").toBe("compacted");
+    expect(compacted.summaries, "the middleware asked for one summary").toBe(1);
+    expect(compacted.rounds * RESULT_CHARS / 4, "it took tool output past 0.85 of the window").toBeGreaterThan(WINDOW * 0.85 * 0.5);
+  });
+
+  it("the same graph with no window never compacts: the fallback trigger is far away", async () => {
+    const plain = await runUntilCompacted(undefined);
+    expect(plain).toEqual({ said: "never compacted", summaries: 0, rounds: 40 });
+  });
+});
+
+/** A player that is never asked; for the profile checks. */
+const player0: TurnPlayer = () => ({ text: "unused" });
 
 /** Poll a predicate on the microtask/macrotask boundary — never a fixed sleep. */
 async function waitUntil(ready: () => boolean, budgetMs = 5_000): Promise<void> {

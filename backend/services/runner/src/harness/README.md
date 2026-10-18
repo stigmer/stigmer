@@ -320,6 +320,18 @@ runs the kit, every fence, the boot-order test and this file's own test.
   template, one arm per row of the terminal table, and the template's own
   timing, not any engine's.
 
+The "long turn" arms in `__test-utils__/harness-contract/runtime-contract.ts`
+state what a turn that works for hours owes the user: a silent operation and a
+working subagent outlive the stall window, a running command's output reaches
+the session as it prints, a turn completes through three compactions, and a
+turn continued after a drain never hands the engine the task again. They drive
+the `open` and `compact` steps of `__test-utils__/harness-contract/types.ts`
+through the subject's `longTurn` controls, timed on the scripted clock. An arm
+that is not true on a harness today is a known gap: its registration names the
+open issue (`knownGaps`), and the arm passes while the gap's own outcome holds
+and fails the day it closes (`__test-utils__/known-gap.ts`), so the fix's pull
+request is where the mark comes off.
+
 The hermetic goldens in each adapter's goldens folder (named above) are the
 second net: they pin a turn's persisted status byte for byte.
 

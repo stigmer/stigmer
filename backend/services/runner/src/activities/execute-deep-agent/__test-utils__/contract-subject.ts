@@ -78,21 +78,53 @@
  *                       graph's recursion limit stops the run.
  *  - `cancelled`      → refused: this harness has no engine-side cancel (the
  *                       runtime arm is declared off for it).
+ *  - `open(id)`       → a REAL `execute` of a shell that reads a control
+ *                       FIFO the subject opened: the subject's open of the
+ *                       FIFO's write end completes when the shell opens its
+ *                       read end, which is `whenOpen` (no timer, no poll);
+ *                       each emitted line is written to the FIFO and the
+ *                       shell prints it; the release line ends the shell.
+ *                       The product's own `execute` under the record's
+ *                       whole-run trust (`autoApproveAll`), because a shell
+ *                       is gated in every other posture. A streamed open is
+ *                       the same shell; whether its lines reach anyone is
+ *                       the adapter's business, which is the arm's point.
+ *  - `open(id, subagent)` → `task` to the kit's helper (the record lists it);
+ *                       the helper's model call holds on the kit's latch
+ *                       (`ScriptedTurn.waitsFor`), then answers. Told apart
+ *                       from the root by its instructions in its prompt.
+ *  - `compact`        → real compaction: an engine whose plan compacts
+ *                       reports a context window, sized at its first
+ *                       compaction from what the runner really sends
+ *                       (`countTokensApproximately` over the transcript and
+ *                       the bound tools, the middleware's own counter), and
+ *                       the step reads a seeded bulk file until deepagents'
+ *                       summarization middleware has compacted once more.
+ *                       The double answers the summary call out of band and
+ *                       counts it (`scripted-model.ts`). A step before a
+ *                       compaction the engine already did is done: the
+ *                       conversation that held it is now the summary.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { closeSync, constants, existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { open, type FileHandle } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { isAIMessage, isHumanMessage, isToolMessage, type BaseMessage } from "@langchain/core/messages";
+import { HumanMessage, isAIMessage, isHumanMessage, isToolMessage, type BaseMessage } from "@langchain/core/messages";
+import { countTokensApproximately } from "langchain";
 
 import type { Config } from "../../../config.js";
 import type { HarnessAdapter } from "../../../harness/types.js";
 import type { ProposedAction } from "../../../__test-utils__/approval-contract/types.js";
-import type {
-  EngineView,
-  HarnessContractSubject,
-  ScenarioStep,
-  SubjectInputOverrides,
-  TurnScenario,
+import {
+  KIT_SUBAGENT_INSTRUCTIONS,
+  KIT_SUBAGENT_SLUG,
+  type EngineView,
+  type HarnessContractSubject,
+  type LongTurnControls,
+  type ScenarioStep,
+  type SubjectInputOverrides,
+  type TurnScenario,
 } from "../../../__test-utils__/harness-contract/types.js";
 import type { HermeticEnvironment } from "../../../__test-utils__/hermetic-activity.js";
 import { resolveWorkspacePath } from "../../../shared/file-change.js";
@@ -111,6 +143,24 @@ const WRITE_LEDGER_MARK = "KIT-LEDGER";
 
 /** What a seeded `read` target contains; the content is never asserted, the completed row is. */
 const READ_FILE_CONTENT = "seeded by the harness contract kit\n";
+
+/**
+ * The file a `compact` step reads until the middleware compacts: 10 lines of
+ * 160 characters, about 400 tokens a read. Small on purpose: the window is
+ * sized from the read, and every write of the turn carries the transcript,
+ * so a read five times larger cost the arm eight seconds instead of one.
+ */
+const BULK_FILE = "/kit-bulk.txt";
+const BULK_CONTENT = `${"bulk ".repeat(32)}\n`.repeat(10);
+
+/** How many bulk reads past the first request fill 0.85 of a sized window. */
+const BULK_READS_PER_COMPACTION = 3;
+
+/** The window an engine whose plan compacts reports until its first compaction sizes it: present (so the middleware takes fraction-based defaults), never reached. */
+const UNSIZED_WINDOW = 1_000_000_000;
+
+/** What the kit's helper answers once its latch is released. */
+const SUBAGENT_ANSWER = "The delegated work is done.";
 
 export interface DeepAgentContractSubject extends HarnessContractSubject {
   readonly adapter: HarnessAdapter;
@@ -139,6 +189,8 @@ type LedgerRef = { readonly kind: "write"; readonly file: string } | { readonly 
 interface ArrangedTurn {
   readonly steps: TurnScenario;
   readonly view: EngineView;
+  /** The engine's summary count when the turn was arranged; the plan's compactions are the ones after it. */
+  readonly summariesAtArrange: number;
 }
 
 class DeepAgentSubject implements DeepAgentContractSubject {
@@ -152,10 +204,30 @@ class DeepAgentSubject implements DeepAgentContractSubject {
   private readonly lastTranscripts = new Map<string, readonly BaseMessage[]>();
   private readonly ledgers = new Map<string, LedgerRef>();
   private readonly hangWaiters: Array<() => void> = [];
+  private readonly operations: KitOperations;
+  /** Per execution, the context window its engine reports (only an engine whose plan compacts reports one). */
+  private readonly windows = new Map<string, number>();
+  private readonly summaries = new Map<string, number>();
+  /** Per execution, the `task` call the root is waiting on: the helper's turn holds on its latch. */
+  private readonly delegations = new Map<string, string>();
+  private readonly executionsBySession = new Map<string, string>();
   private mintCounter = 0;
+  readonly longTurn: LongTurnControls;
 
   constructor(private readonly env: HermeticEnvironment) {
     this.config = hermeticDeepAgentConfig(env, "sqlite");
+    this.operations = new KitOperations(join(env.workspaceRootDir, "kit-operations"));
+    this.longTurn = {
+      whenOpen: (toolCallId) => this.operations.whenOpen(toolCallId),
+      emit: (toolCallId, line) => this.operations.emit(toolCallId, line),
+      release: (toolCallId) => this.operations.release(toolCallId),
+      tasksHanded: (sessionId, message) => {
+        const executionId = this.executionsBySession.get(sessionId);
+        const transcript = executionId ? this.lastTranscripts.get(executionId) : undefined;
+        return (transcript ?? []).filter((m) => isHumanMessage(m) && !isSummaryMessage(m) && m.text.includes(message)).length;
+      },
+      compactions: (sessionId) => this.summaries.get(this.executionsBySession.get(sessionId) ?? "") ?? 0,
+    };
     // The production path: the remote adapter in front, the real one in an
     // agent host behind the pipe (`__test-utils__/loopback-host.ts`).
     this.adapter = loopbackHostedRow({ harness: "deep-agent", adapter: createDeepAgentAdapter() }).adapter;
@@ -178,7 +250,9 @@ class DeepAgentSubject implements DeepAgentContractSubject {
     for (const step of turn) this.refuseUnproducible(step);
     mkdirSync(this.workspaceDirOf(view.sessionId), { recursive: true });
     for (const step of turn) this.seedFor(step, view);
-    this.arranged.set(view.executionId, { steps: turn, view });
+    this.arranged.set(view.executionId, { steps: turn, view, summariesAtArrange: this.summaries.get(view.executionId) ?? 0 });
+    this.executionsBySession.set(view.sessionId, view.executionId);
+    if (turn.some((step) => step.kind === "compact") && !this.windows.has(view.executionId)) this.windows.set(view.executionId, UNSIZED_WINDOW);
     if (!this.engines.has(view.executionId)) this.engines.set(view.executionId, this.mintEngine(view.executionId));
   }
 
@@ -218,11 +292,27 @@ class DeepAgentSubject implements DeepAgentContractSubject {
   // ── The engine ────────────────────────────────────────────────────────────
 
   private mintEngine(executionId: string): ScriptedModel {
-    return new ScriptedModel(() => (transcript) => this.play(executionId, transcript), [], {
-      onPark: () => {
-        for (const waiter of this.hangWaiters.splice(0)) waiter();
+    return new ScriptedModel(
+      (_tools, context) =>
+        context.systemPrompt.includes(KIT_SUBAGENT_INSTRUCTIONS)
+          ? () => this.playHelper(executionId)
+          : (transcript) => this.play(executionId, transcript),
+      [],
+      {
+        onPark: () => {
+          for (const waiter of this.hangWaiters.splice(0)) waiter();
+        },
+        contextWindow: () => this.windows.get(executionId),
+        onSummary: () => this.summaries.set(executionId, (this.summaries.get(executionId) ?? 0) + 1),
       },
-    });
+    );
+  }
+
+  /** The kit's helper: its one turn holds on the delegating call's latch, then answers. */
+  private playHelper(executionId: string): ScriptedTurn {
+    const toolCallId = this.delegations.get(executionId);
+    if (!toolCallId) throw new Error(`${this.name}: the kit's helper was asked for execution '${executionId}' with no delegation open (kit bug)`);
+    return { waitsFor: this.operations.hold(toolCallId), text: SUBAGENT_ANSWER };
   }
 
   /** The words this subject has no honest translation for (see the header); each is a kit-file bug, named. */
@@ -240,11 +330,17 @@ class DeepAgentSubject implements DeepAgentContractSubject {
         return;
       case "cancelled":
         throw new Error(`${this.name}: cancelled() is not producible by this subject (this harness has no engine-side cancel; the runtime arm is declared off for it); test bug`);
+      case "open":
+        if (step.as === "subagent" && step.streams) {
+          throw new Error(`${this.name}: open(…, { as: "subagent", streams: true }) is not translated by this subject (a helper's turn prints nothing); test bug`);
+        }
+        return;
       case "say":
       case "read":
       case "usage":
       case "hang":
       case "limit":
+      case "compact":
         return;
       default: {
         const exhaustive: never = step;
@@ -271,6 +367,8 @@ class DeepAgentSubject implements DeepAgentContractSubject {
       this.ledgers.set(step.toolCallId, { kind: "shell", file });
     } else if (step.kind === "read") {
       seedFile(resolveWorkspacePath(step.path, workspaceDir, true).absolutePath, READ_FILE_CONTENT);
+    } else if (step.kind === "compact") {
+      seedFile(resolveWorkspacePath(BULK_FILE, workspaceDir, true).absolutePath, BULK_CONTENT);
     }
   }
 
@@ -288,12 +386,22 @@ class DeepAgentSubject implements DeepAgentContractSubject {
     const segment = messagesOfThisTurn(transcript);
     const spoken = new Set(segment.filter((m) => isAIMessage(m)).map((m) => m.text));
     const firstCallOfTurn = !segment.some((m) => isAIMessage(m));
+    const compacted = (this.summaries.get(executionId) ?? 0) - plan.summariesAtArrange;
+    let compactsSeen = 0;
 
     let text: string | undefined;
     let usage: ScriptedUsage | undefined;
     const close = (rest: Partial<ScriptedTurn>): ScriptedTurn => ({ text, usage, ...rest });
 
     for (const step of plan.steps) {
+      if (step.kind === "compact") {
+        compactsSeen += 1;
+        if (compactsSeen <= compacted) continue;
+        this.sizeWindow(executionId, transcript);
+        return close({ toolCalls: [{ id: `kit-compact-${++this.mintCounter}`, name: "read_file", args: { file_path: BULK_FILE } }] });
+      }
+      // A step before a compaction the engine already did is done (the header).
+      if (compactsSeen < compacted) continue;
       switch (step.kind) {
         case "say":
           if (spoken.has(step.text)) break;
@@ -316,6 +424,13 @@ class DeepAgentSubject implements DeepAgentContractSubject {
           return close({ ends: { kind: "fail", error: new Error(step.message) } });
         case "limit":
           return close({ toolCalls: [this.neutralCall("limit")] });
+        case "open":
+          if (settled.has(step.toolCallId)) break;
+          if (step.as === "subagent") {
+            this.delegations.set(executionId, step.toolCallId);
+            return close({ toolCalls: [{ id: step.toolCallId, name: "task", args: { description: "The kit's delegated work.", subagent_type: KIT_SUBAGENT_SLUG } }] });
+          }
+          return close({ toolCalls: [{ id: step.toolCallId, name: ENGINE_TOOL.execute, args: { command: this.operations.shellCommand(step.toolCallId) } }] });
         case "cancelled":
           // Refused at `arrange`; unreachable in a plan that got this far.
           throw new Error(`${this.name}: cancelled() reached the engine (arrange should have refused it)`);
@@ -326,6 +441,20 @@ class DeepAgentSubject implements DeepAgentContractSubject {
       }
     }
     return close({});
+  }
+
+  /**
+   * Size the window of an engine whose plan compacts, once, from the request
+   * the runner really sends: 0.85 of it is that request plus a few bulk
+   * reads, so a compaction lands after those reads and again after as many.
+   */
+  private sizeWindow(executionId: string, transcript: readonly BaseMessage[]): void {
+    if (this.windows.get(executionId) !== UNSIZED_WINDOW) return;
+    const engine = this.engines.get(executionId);
+    const tools = (engine?.boundTools ?? []) as Parameters<typeof countTokensApproximately>[1];
+    const request = countTokensApproximately([...transcript], tools);
+    const read = countTokensApproximately([new HumanMessage(BULK_CONTENT)]);
+    this.windows.set(executionId, Math.ceil((request + BULK_READS_PER_COMPACTION * read) / 0.85));
   }
 
   /** An ungated, effect-free tool call: the step boundary a LangGraph agent needs between two texts, and the loop a `limit` spins. */
@@ -373,13 +502,18 @@ function settledToolCallIds(transcript: readonly BaseMessage[]): ReadonlySet<str
   return ids;
 }
 
-/** The messages after the last human message: what this kit turn has said and done so far. */
+/** The messages after the last human message: what this kit turn has said and done so far. A compaction's summary is not a human turn. */
 function messagesOfThisTurn(transcript: readonly BaseMessage[]): readonly BaseMessage[] {
   let start = 0;
   transcript.forEach((m, i) => {
-    if (isHumanMessage(m)) start = i + 1;
+    if (isHumanMessage(m) && !isSummaryMessage(m)) start = i + 1;
   });
   return transcript.slice(start);
+}
+
+/** deepagents' summary message: a human message the summarization middleware marks as its own. */
+function isSummaryMessage(message: BaseMessage): boolean {
+  return message.additional_kwargs?.lc_source === "summarization";
 }
 
 function addUsage(total: ScriptedUsage | undefined, delta: { inputTokens?: number; outputTokens?: number; cacheReadTokens?: number; cacheWriteTokens?: number }): ScriptedUsage {
@@ -401,4 +535,111 @@ function seedFile(file: string, content: string): void {
   if (existsSync(file)) return;
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, content);
+}
+
+// ── Open operations ─────────────────────────────────────────────────────────
+
+/** The line that ends a kit shell; never a line the kit emits. */
+const RELEASE_LINE = "__kit_release__";
+
+/** A shell the kit drives through its control FIFO, or a latch a helper's turn holds on. */
+type KitOperation =
+  | { readonly kind: "shell"; readonly ctl: string; readonly command: string; readonly writer: Promise<FileHandle>; running: boolean; done: boolean }
+  | { readonly kind: "latch"; readonly latch: Promise<void>; readonly open: () => void; done: boolean };
+
+/**
+ * The operations `open` steps start, by tool-call id. A shell is opened
+ * through a FIFO: the subject's open of the write end completes exactly when
+ * the shell opens the read end, so "running" is the kernel's rendezvous,
+ * never a poll. A release covers later openings of the same id too (a
+ * reinvocation that re-runs the call), and is safe on one that never ran.
+ */
+class KitOperations {
+  private readonly operations = new Map<string, KitOperation>();
+  private readonly waiters = new Map<string, Array<() => void>>();
+  private readonly released = new Set<string>();
+  private counter = 0;
+
+  constructor(private readonly dir: string) {}
+
+  /** The command for `toolCallId`'s shell, starting a new one unless one is still live. */
+  shellCommand(toolCallId: string): string {
+    const live = this.operations.get(toolCallId);
+    if (live?.kind === "shell" && !live.done) return live.command;
+    mkdirSync(this.dir, { recursive: true });
+    const ctl = join(this.dir, `op-${++this.counter}.ctl`);
+    execFileSync("mkfifo", [ctl]);
+    const command =
+      `exec 3<'${ctl}'; ` +
+      `while IFS= read -r line <&3; do [ "$line" = '${RELEASE_LINE}' ] && break; printf '%s\\n' "$line"; done; ` +
+      `echo 'kit operation finished'`;
+    const operation: KitOperation = { kind: "shell", ctl, command, writer: open(ctl, "w"), running: false, done: false };
+    this.operations.set(toolCallId, operation);
+    void operation.writer.then(
+      () => {
+        operation.running = true;
+        this.wake(toolCallId);
+        if (this.released.has(toolCallId)) void this.finish(operation);
+      },
+      () => {},
+    );
+    return command;
+  }
+
+  /** A latch for `toolCallId`, running at once: what a helper's turn holds on. */
+  hold(toolCallId: string): Promise<void> {
+    const live = this.operations.get(toolCallId);
+    if (live?.kind === "latch" && !live.done) return live.latch;
+    let openLatch: () => void = () => {};
+    const latch = new Promise<void>((resolve) => (openLatch = resolve));
+    const operation: KitOperation = { kind: "latch", latch, open: openLatch, done: false };
+    this.operations.set(toolCallId, operation);
+    this.wake(toolCallId);
+    if (this.released.has(toolCallId)) void this.finish(operation);
+    return latch;
+  }
+
+  whenOpen(toolCallId: string): Promise<void> {
+    const operation = this.operations.get(toolCallId);
+    if (operation && (operation.kind === "latch" || operation.running)) return Promise.resolve();
+    return new Promise((resolve) => this.waiters.set(toolCallId, [...(this.waiters.get(toolCallId) ?? []), resolve]));
+  }
+
+  async emit(toolCallId: string, line: string): Promise<void> {
+    const operation = this.operations.get(toolCallId);
+    if (operation?.kind !== "shell" || operation.done) throw new Error(`deep-agent: emit(${toolCallId}) with no shell open (kit bug)`);
+    await (await operation.writer).write(`${line}\n`);
+  }
+
+  async release(toolCallId: string): Promise<void> {
+    this.released.add(toolCallId);
+    const operation = this.operations.get(toolCallId);
+    if (operation && !operation.done) await this.finish(operation);
+  }
+
+  private wake(toolCallId: string): void {
+    for (const waiter of this.waiters.get(toolCallId) ?? []) waiter();
+    this.waiters.delete(toolCallId);
+  }
+
+  /** End an operation: open a latch; tell a shell to finish, first completing a write end still waiting for a reader that never came. */
+  private async finish(operation: KitOperation): Promise<void> {
+    if (operation.done) return;
+    operation.done = true;
+    if (operation.kind === "latch") {
+      operation.open();
+      return;
+    }
+    const reader = operation.running ? undefined : openSync(operation.ctl, constants.O_RDONLY | constants.O_NONBLOCK);
+    const handle = await operation.writer;
+    try {
+      await handle.write(`${RELEASE_LINE}\n`);
+    } catch {
+      // The shell is gone (its run was torn down): nothing is left to tell.
+    } finally {
+      await handle.close();
+      if (reader !== undefined) closeSync(reader);
+      rmSync(operation.ctl, { force: true });
+    }
+  }
 }
