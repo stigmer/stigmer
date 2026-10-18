@@ -93,6 +93,7 @@ import {
 import { TranscriptBuilder } from "./transcript/builder.js";
 import { resolveTurnContext, type ResolutionDeps, type TurnFrame, type TurnSettlement } from "./turn-context.js";
 import { TurnTimeline } from "./turn-timeline.js";
+import { environmentInstalled } from "../environment/install.js";
 import { withRunSpan, type RunSpan } from "./run-span.js";
 import type { HarnessAdapter, TurnInput, TurnSink } from "./types.js";
 import { CostCapWatch } from "./cost-cap-watch.js";
@@ -823,6 +824,13 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
       identifyRun: (facts) => runSpan.identify(facts),
       recordReconciled: (outcomes) => events.writeReconciled(outcomes),
     };
+    // The sandbox's Environment packages, installing since the runner
+    // booted (environment/install.ts): bounded by the install's own
+    // deadline, so the wait is safe under the periodic heartbeat. A failed
+    // install fails the turn through the catch below, naming the manager.
+    heartbeatPhase = "environment";
+    await environmentInstalled();
+    heartbeatPhase = "setup";
     const resolution = await resolveTurnContext(resolutionDeps, adapter.capabilities, frame, () => chokepoint.write());
     if (resolution.kind === "settled") {
       settled = await settleResolution(resolution.settlement);

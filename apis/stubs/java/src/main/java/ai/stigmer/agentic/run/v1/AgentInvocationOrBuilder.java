@@ -234,4 +234,37 @@ public interface AgentInvocationOrBuilder extends
    * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 6 [json_name = "runConfig"];</code>
    */
   ai.stigmer.agentic.run.v1.RunConfigOrBuilder getRunConfigOrBuilder();
+
+  /**
+   * <pre>
+   * The Environment the conversations this invocation starts run in: the
+   * packages their sandboxes get and the websites they may reach. Unset:
+   * the agent's default, else the organization's.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 8 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   * @return Whether the environmentRef field is set.
+   */
+  boolean hasEnvironmentRef();
+  /**
+   * <pre>
+   * The Environment the conversations this invocation starts run in: the
+   * packages their sandboxes get and the websites they may reach. Unset:
+   * the agent's default, else the organization's.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 8 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   * @return The environmentRef.
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRef();
+  /**
+   * <pre>
+   * The Environment the conversations this invocation starts run in: the
+   * packages their sandboxes get and the websites they may reach. Unset:
+   * the agent's default, else the organization's.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 8 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefOrBuilder();
 }

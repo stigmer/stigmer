@@ -53,7 +53,7 @@ public final class InvocationProto extends com.google.protobuf.GeneratedFile {
       "ai/stigmer/commons/apiresource/field_opt" +
       "ions.proto\032\'ai/stigmer/commons/apiresour" +
       "ce/io.proto\032\033buf/validate/validate.proto" +
-      "\"\275\005\n\017AgentInvocation\022]\n\tagent_ref\030\001 \001(\0132" +
+      "\"\242\006\n\017AgentInvocation\022]\n\tagent_ref\030\001 \001(\0132" +
       "4.ai.stigmer.commons.apiresource.ApiReso" +
       "urceReferenceB\n\272H\003\310\001\001\340\205,(R\010agentRef\022$\n\007m" +
       "essage\030\002 \001(\tB\n\272H\007r\005\020\001\030\200@R\007message\022@\n\007har" +
@@ -70,21 +70,23 @@ public final class InvocationProto extends com.google.protobuf.GeneratedFile {
       "resource.ApiResourceReferenceB\014\272H\005\222\001\002\020\024\340" +
       "\205,;R\006vaults\022C\n\nrun_config\030\006 \001(\0132$.ai.sti" +
       "gmer.agentic.run.v1.RunConfigR\trunConfig" +
-      "J\004\010\005\020\006R\020environment_refs\"\366\002\n\tRunConfig\022\035" +
-      "\n\nmodel_name\030\001 \001(\tR\tmodelName\0220\n\014max_cos" +
-      "t_usd\030\002 \001(\001B\016\272H\013\022\t)\000\000\000\000\000\000\000\000R\nmaxCostUsd\022" +
-      "/\n\017max_tool_rounds\030\003 \001(\005B\007\272H\004\032\002(\000R\rmaxTo" +
-      "olRounds\022S\n\014service_tier\030\004 \001(\0162&.ai.stig" +
-      "mer.agentic.run.v1.ServiceTierB\010\272H\005\202\001\002\020\001" +
-      "R\013serviceTier\022V\n\rthinking_mode\030\005 \001(\0162\'.a" +
-      "i.stigmer.agentic.run.v1.ThinkingModeB\010\272" +
-      "H\005\202\001\002\020\001R\014thinkingMode\022:\n\025max_tool_result" +
-      "_chars\030\006 \001(\005B\007\272H\004\032\002(\000R\022maxToolResultChar" +
-      "sB\232\001B\017InvocationProtoP\001\242\002\004ASAR\252\002\031Ai.Stig" +
-      "mer.Agentic.Run.V1\312\002\031Ai\\Stigmer\\Agentic\\" +
-      "Run\\V1\342\002%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMe" +
-      "tadata\352\002\035Ai::Stigmer::Agentic::Run::V1b\006" +
-      "proto3"
+      "\022c\n\017environment_ref\030\010 \001(\01324.ai.stigmer.c" +
+      "ommons.apiresource.ApiResourceReferenceB" +
+      "\004\340\205,CR\016environmentRefJ\004\010\005\020\006R\020environment" +
+      "_refs\"\366\002\n\tRunConfig\022\035\n\nmodel_name\030\001 \001(\tR" +
+      "\tmodelName\0220\n\014max_cost_usd\030\002 \001(\001B\016\272H\013\022\t)" +
+      "\000\000\000\000\000\000\000\000R\nmaxCostUsd\022/\n\017max_tool_rounds\030" +
+      "\003 \001(\005B\007\272H\004\032\002(\000R\rmaxToolRounds\022S\n\014service" +
+      "_tier\030\004 \001(\0162&.ai.stigmer.agentic.run.v1." +
+      "ServiceTierB\010\272H\005\202\001\002\020\001R\013serviceTier\022V\n\rth" +
+      "inking_mode\030\005 \001(\0162\'.ai.stigmer.agentic.r" +
+      "un.v1.ThinkingModeB\010\272H\005\202\001\002\020\001R\014thinkingMo" +
+      "de\022:\n\025max_tool_result_chars\030\006 \001(\005B\007\272H\004\032\002" +
+      "(\000R\022maxToolResultCharsB\232\001B\017InvocationPro" +
+      "toP\001\242\002\004ASAR\252\002\031Ai.Stigmer.Agentic.Run.V1\312" +
+      "\002\031Ai\\Stigmer\\Agentic\\Run\\V1\342\002%Ai\\Stigmer" +
+      "\\Agentic\\Run\\V1\\GPBMetadata\352\002\035Ai::Stigme" +
+      "r::Agentic::Run::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -101,7 +103,7 @@ public final class InvocationProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_run_v1_AgentInvocation_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_AgentInvocation_descriptor,
-        new java.lang.String[] { "AgentRef", "Message", "Harness", "WorkspaceEntries", "Vaults", "RunConfig", });
+        new java.lang.String[] { "AgentRef", "Message", "Harness", "WorkspaceEntries", "Vaults", "RunConfig", "EnvironmentRef", });
     internal_static_ai_stigmer_agentic_run_v1_RunConfig_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_run_v1_RunConfig_fieldAccessorTable = new

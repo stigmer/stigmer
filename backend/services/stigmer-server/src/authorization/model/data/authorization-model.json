@@ -784,6 +784,7 @@
           "can_create_agent": {},
           "can_create_channel": {},
           "can_create_channel_app": {},
+          "can_create_environment": {},
           "can_create_eval": {},
           "can_create_federation_issuer": {},
           "can_create_identity_account": {},
@@ -935,6 +936,11 @@
           }
         },
         "can_create_channel_app": {
+          "computedUserset": {
+            "relation": "admin"
+          }
+        },
+        "can_create_environment": {
           "computedUserset": {
             "relation": "admin"
           }
@@ -1664,6 +1670,168 @@
         }
       },
       "type": "channel_app"
+    },
+    {
+      "metadata": {
+        "module": "agentic",
+        "relations": {
+          "can_delete": {},
+          "can_edit": {},
+          "can_grant_access": {},
+          "can_manage_audience": {},
+          "can_view": {},
+          "can_view_access": {},
+          "child_org_viewer": {
+            "directly_related_user_types": [
+              {
+                "relation": "child_org_viewer",
+                "type": "organization"
+              }
+            ]
+          },
+          "organization": {
+            "directly_related_user_types": [
+              {
+                "type": "organization"
+              }
+            ]
+          },
+          "owner": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              }
+            ]
+          },
+          "viewer": {
+            "directly_related_user_types": [
+              {
+                "type": "identity_account"
+              },
+              {
+                "relation": "viewer",
+                "type": "organization"
+              },
+              {
+                "relation": "member",
+                "type": "team"
+              }
+            ]
+          }
+        },
+        "source_info": {
+          "file": "agentic/environment.fga"
+        }
+      },
+      "relations": {
+        "can_delete": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_edit": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_grant_access": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_manage_audience": {
+          "computedUserset": {
+            "relation": "owner"
+          }
+        },
+        "can_view": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "can_view_access": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "child_org_viewer": {
+          "this": {}
+        },
+        "organization": {
+          "this": {}
+        },
+        "owner": {
+          "union": {
+            "child": [
+              {
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "computedUserset": {
+                    "relation": "admin"
+                  },
+                  "tupleset": {
+                    "relation": "organization"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "intersection": {
+                  "child": [
+                    {
+                      "this": {}
+                    },
+                    {
+                      "tupleToUserset": {
+                        "computedUserset": {
+                          "relation": "affiliated"
+                        },
+                        "tupleset": {
+                          "relation": "organization"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "owner"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "child_org_viewer"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "type": "environment"
     },
     {
       "metadata": {

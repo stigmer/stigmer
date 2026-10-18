@@ -2,8 +2,9 @@
  * Pins the attach entry's import graph: a sandbox snapshot holds this process,
  * so it must stay small and load none of the runner (waiter.ts header). Walks
  * the static imports from entry.ts and main.ts through the source tree and
- * holds them to node built-ins, the attach folder, the two leaf modules it
- * needs (the secret-name list and the claim reader), and the codecs'
+ * holds them to node built-ins, the attach folder, the three leaf modules it
+ * needs (the secret-name list, the claim reader, and the Environment's
+ * reader, which imports nothing), and the codecs'
  * dependency-free `connection` subpath. `scripts/verify-attach-boot.mjs`
  * checks the compiled entry the same way at run time.
  */
@@ -20,6 +21,7 @@ const ALLOWED_LOCAL = new Set([
   "attach/push.ts",
   "shared/runner-credential-keys.ts",
   "client/token-claims.ts",
+  "environment/spec.ts",
 ]);
 const ALLOWED_PACKAGES = new Set(["@stigmer/temporal-codecs/connection"]);
 
@@ -53,7 +55,7 @@ function walk(): { local: Set<string>; external: Set<string> } {
 }
 
 describe("the attach entry's import graph", () => {
-  it("reaches only the attach folder and its two leaf modules", () => {
+  it("reaches only the attach folder and its three leaf modules", () => {
     const { local } = walk();
     expect([...local].filter((f) => !ALLOWED_LOCAL.has(f))).toEqual([]);
   });

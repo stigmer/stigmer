@@ -620,4 +620,55 @@ java.lang.String defaultValue);
    * @return The fileReview.
    */
   boolean getFileReview();
+
+  /**
+   * <pre>
+   * The Environment this conversation runs in: the packages its sandboxes
+   * get and the websites they may reach. Unset: its routine's, else its
+   * agent's default, else its organization's (status.environment records
+   * which applied).
+   *
+   * Fixed once a turn has run. A conversation on the person's own machine
+   * (the desktop app, the CLI) refuses one, since its sandbox is that
+   * machine. Naming one needs permission to view it, and every turn asks
+   * it again.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   * @return Whether the environmentRef field is set.
+   */
+  boolean hasEnvironmentRef();
+  /**
+   * <pre>
+   * The Environment this conversation runs in: the packages its sandboxes
+   * get and the websites they may reach. Unset: its routine's, else its
+   * agent's default, else its organization's (status.environment records
+   * which applied).
+   *
+   * Fixed once a turn has run. A conversation on the person's own machine
+   * (the desktop app, the CLI) refuses one, since its sandbox is that
+   * machine. Naming one needs permission to view it, and every turn asks
+   * it again.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   * @return The environmentRef.
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRef();
+  /**
+   * <pre>
+   * The Environment this conversation runs in: the packages its sandboxes
+   * get and the websites they may reach. Unset: its routine's, else its
+   * agent's default, else its organization's (status.environment records
+   * which applied).
+   *
+   * Fixed once a turn has run. A conversation on the person's own machine
+   * (the desktop app, the CLI) refuses one, since its sandbox is that
+   * machine. Naming one needs permission to view it, and every turn asks
+   * it again.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefOrBuilder();
 }

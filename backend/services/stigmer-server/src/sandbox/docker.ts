@@ -57,9 +57,11 @@ import {
   RUNNER_HOME,
   RUNNER_CAPABILITIES,
   RUNNER_UID,
+  SANDBOX_ENVIRONMENT_ENV,
   SERVER_RELEASE_ENV,
   runnerCommand,
 } from "./runner-launch.js";
+import { runnerEnvironmentValue } from "./environment.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -126,6 +128,13 @@ export function buildDockerRun(
       `${name}=${value}`,
     ]),
   ];
+  // The Environment's runner half, set at `docker run` only: a container
+  // keeps its environment across stop and start, so an edit reaches a
+  // docker sandbox when it is created again (the development driver).
+  const environment = runnerEnvironmentValue(facts.environment);
+  if (environment !== undefined) {
+    args.push("--env", `${SANDBOX_ENVIRONMENT_ENV}=${environment}`);
+  }
   const secretEnv: Record<string, string> = {
     ...config.runnerSecretEnv,
     ...config.temporalConnectionEnv,
@@ -236,6 +245,8 @@ export const newDockerSandboxProvisioner: SandboxProvisionerFactory = ({
   }
 
   const provisioner: SandboxProvisioner = {
+    // Its runner installs packages; it cannot limit a container's network.
+    environmentSupport: { limitedNetworking: false, packages: true },
     ensureSessionSandbox: (sessionId, facts) =>
       ensure("session", sessionId, facts),
     deprovisionSessionSandbox: (sessionId) => deprovision("session", sessionId),

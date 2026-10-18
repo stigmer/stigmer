@@ -1112,6 +1112,65 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     return mcpServers_.get(index);
   }
 
+  public static final int ENVIRONMENT_REF_FIELD_NUMBER = 19;
+  private ai.stigmer.commons.apiresource.ApiResourceReference environmentRef_;
+  /**
+   * <pre>
+   * The Environment a new conversation on this agent runs in when neither
+   * the conversation nor its routine names one: the packages its sandboxes
+   * get and the websites they may reach. Unset: the organization's default
+   * Environment, if any.
+   *
+   * A conversation keeps the Environment it started with; changing this
+   * changes only new conversations. A conversation on the person's own
+   * machine (the desktop app, the CLI) ignores it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 19 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   * @return Whether the environmentRef field is set.
+   */
+  @java.lang.Override
+  public boolean hasEnvironmentRef() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * The Environment a new conversation on this agent runs in when neither
+   * the conversation nor its routine names one: the packages its sandboxes
+   * get and the websites they may reach. Unset: the organization's default
+   * Environment, if any.
+   *
+   * A conversation keeps the Environment it started with; changing this
+   * changes only new conversations. A conversation on the person's own
+   * machine (the desktop app, the CLI) ignores it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 19 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   * @return The environmentRef.
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRef() {
+    return environmentRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : environmentRef_;
+  }
+  /**
+   * <pre>
+   * The Environment a new conversation on this agent runs in when neither
+   * the conversation nor its routine names one: the packages its sandboxes
+   * get and the websites they may reach. Unset: the organization's default
+   * Environment, if any.
+   *
+   * A conversation keeps the Environment it started with; changing this
+   * changes only new conversations. A conversation on the person's own
+   * machine (the desktop app, the CLI) ignores it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 19 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefOrBuilder() {
+    return environmentRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : environmentRef_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1167,6 +1226,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     }
     for (int i = 0; i < mcpServers_.size(); i++) {
       output.writeMessage(18, mcpServers_.get(i));
+    }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(19, getEnvironmentRef());
     }
     getUnknownFields().writeTo(output);
   }
@@ -1265,6 +1327,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
           }
           size += 2 * count;
         }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(19, getEnvironmentRef());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1308,6 +1374,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         .equals(other.getSubagentsList())) return false;
     if (!getMcpServersList()
         .equals(other.getMcpServersList())) return false;
+    if (hasEnvironmentRef() != other.hasEnvironmentRef()) return false;
+    if (hasEnvironmentRef()) {
+      if (!getEnvironmentRef()
+          .equals(other.getEnvironmentRef())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1362,6 +1433,10 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
     if (getMcpServersCount() > 0) {
       hash = (37 * hash) + MCP_SERVERS_FIELD_NUMBER;
       hash = (53 * hash) + getMcpServersList().hashCode();
+    }
+    if (hasEnvironmentRef()) {
+      hash = (37 * hash) + ENVIRONMENT_REF_FIELD_NUMBER;
+      hash = (53 * hash) + getEnvironmentRef().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -1525,6 +1600,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         internalGetPluginsFieldBuilder();
         internalGetSubagentsFieldBuilder();
         internalGetMcpServersFieldBuilder();
+        internalGetEnvironmentRefFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1580,6 +1656,11 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         mcpServersBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00001000);
+      environmentRef_ = null;
+      if (environmentRefBuilder_ != null) {
+        environmentRefBuilder_.dispose();
+        environmentRefBuilder_ = null;
+      }
       return this;
     }
 
@@ -1691,6 +1772,12 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
       }
       if (((from_bitField0_ & 0x00000200) != 0)) {
         result.harness_ = harness_;
+      }
+      if (((from_bitField0_ & 0x00002000) != 0)) {
+        result.environmentRef_ = environmentRefBuilder_ == null
+            ? environmentRef_
+            : environmentRefBuilder_.build();
+        to_bitField0_ |= 0x00000002;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1881,6 +1968,9 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
           }
         }
       }
+      if (other.hasEnvironmentRef()) {
+        mergeEnvironmentRef(other.getEnvironmentRef());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -2018,6 +2108,13 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
               }
               break;
             } // case 146
+            case 154: {
+              input.readMessage(
+                  internalGetEnvironmentRefFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00002000;
+              break;
+            } // case 154
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -5544,6 +5641,226 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
         mcpServers_ = null;
       }
       return mcpServersBuilder_;
+    }
+
+    private ai.stigmer.commons.apiresource.ApiResourceReference environmentRef_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> environmentRefBuilder_;
+    /**
+     * <pre>
+     * The Environment a new conversation on this agent runs in when neither
+     * the conversation nor its routine names one: the packages its sandboxes
+     * get and the websites they may reach. Unset: the organization's default
+     * Environment, if any.
+     *
+     * A conversation keeps the Environment it started with; changing this
+     * changes only new conversations. A conversation on the person's own
+     * machine (the desktop app, the CLI) ignores it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 19 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     * @return Whether the environmentRef field is set.
+     */
+    public boolean hasEnvironmentRef() {
+      return ((bitField0_ & 0x00002000) != 0);
+    }
+    /**
+     * <pre>
+     * The Environment a new conversation on this agent runs in when neither
+     * the conversation nor its routine names one: the packages its sandboxes
+     * get and the websites they may reach. Unset: the organization's default
+     * Environment, if any.
+     *
+     * A conversation keeps the Environment it started with; changing this
+     * changes only new conversations. A conversation on the person's own
+     * machine (the desktop app, the CLI) ignores it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 19 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     * @return The environmentRef.
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRef() {
+      if (environmentRefBuilder_ == null) {
+        return environmentRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : environmentRef_;
+      } else {
+        return environmentRefBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * The Environment a new conversation on this agent runs in when neither
+     * the conversation nor its routine names one: the packages its sandboxes
+     * get and the websites they may reach. Unset: the organization's default
+     * Environment, if any.
+     *
+     * A conversation keeps the Environment it started with; changing this
+     * changes only new conversations. A conversation on the person's own
+     * machine (the desktop app, the CLI) ignores it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 19 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    public Builder setEnvironmentRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (environmentRefBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        environmentRef_ = value;
+      } else {
+        environmentRefBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00002000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The Environment a new conversation on this agent runs in when neither
+     * the conversation nor its routine names one: the packages its sandboxes
+     * get and the websites they may reach. Unset: the organization's default
+     * Environment, if any.
+     *
+     * A conversation keeps the Environment it started with; changing this
+     * changes only new conversations. A conversation on the person's own
+     * machine (the desktop app, the CLI) ignores it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 19 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    public Builder setEnvironmentRef(
+        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (environmentRefBuilder_ == null) {
+        environmentRef_ = builderForValue.build();
+      } else {
+        environmentRefBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00002000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The Environment a new conversation on this agent runs in when neither
+     * the conversation nor its routine names one: the packages its sandboxes
+     * get and the websites they may reach. Unset: the organization's default
+     * Environment, if any.
+     *
+     * A conversation keeps the Environment it started with; changing this
+     * changes only new conversations. A conversation on the person's own
+     * machine (the desktop app, the CLI) ignores it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 19 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    public Builder mergeEnvironmentRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (environmentRefBuilder_ == null) {
+        if (((bitField0_ & 0x00002000) != 0) &&
+          environmentRef_ != null &&
+          environmentRef_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
+          getEnvironmentRefBuilder().mergeFrom(value);
+        } else {
+          environmentRef_ = value;
+        }
+      } else {
+        environmentRefBuilder_.mergeFrom(value);
+      }
+      if (environmentRef_ != null) {
+        bitField0_ |= 0x00002000;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The Environment a new conversation on this agent runs in when neither
+     * the conversation nor its routine names one: the packages its sandboxes
+     * get and the websites they may reach. Unset: the organization's default
+     * Environment, if any.
+     *
+     * A conversation keeps the Environment it started with; changing this
+     * changes only new conversations. A conversation on the person's own
+     * machine (the desktop app, the CLI) ignores it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 19 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    public Builder clearEnvironmentRef() {
+      bitField0_ = (bitField0_ & ~0x00002000);
+      environmentRef_ = null;
+      if (environmentRefBuilder_ != null) {
+        environmentRefBuilder_.dispose();
+        environmentRefBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The Environment a new conversation on this agent runs in when neither
+     * the conversation nor its routine names one: the packages its sandboxes
+     * get and the websites they may reach. Unset: the organization's default
+     * Environment, if any.
+     *
+     * A conversation keeps the Environment it started with; changing this
+     * changes only new conversations. A conversation on the person's own
+     * machine (the desktop app, the CLI) ignores it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 19 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getEnvironmentRefBuilder() {
+      bitField0_ |= 0x00002000;
+      onChanged();
+      return internalGetEnvironmentRefFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The Environment a new conversation on this agent runs in when neither
+     * the conversation nor its routine names one: the packages its sandboxes
+     * get and the websites they may reach. Unset: the organization's default
+     * Environment, if any.
+     *
+     * A conversation keeps the Environment it started with; changing this
+     * changes only new conversations. A conversation on the person's own
+     * machine (the desktop app, the CLI) ignores it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 19 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefOrBuilder() {
+      if (environmentRefBuilder_ != null) {
+        return environmentRefBuilder_.getMessageOrBuilder();
+      } else {
+        return environmentRef_ == null ?
+            ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : environmentRef_;
+      }
+    }
+    /**
+     * <pre>
+     * The Environment a new conversation on this agent runs in when neither
+     * the conversation nor its routine names one: the packages its sandboxes
+     * get and the websites they may reach. Unset: the organization's default
+     * Environment, if any.
+     *
+     * A conversation keeps the Environment it started with; changing this
+     * changes only new conversations. A conversation on the person's own
+     * machine (the desktop app, the CLI) ignores it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 19 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+        internalGetEnvironmentRefFieldBuilder() {
+      if (environmentRefBuilder_ == null) {
+        environmentRefBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
+                getEnvironmentRef(),
+                getParentForChildren(),
+                isClean());
+        environmentRef_ = null;
+      }
+      return environmentRefBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agent.v1.AgentSpec)

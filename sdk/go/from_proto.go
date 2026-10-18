@@ -7,6 +7,7 @@ import (
 	agentv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/agent/v1"
 	channelv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/channel/v1"
 	channelappv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/channelapp/v1"
+	environmentv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/environment/v1"
 	evalv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/eval/v1"
 	evalrunv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/evalrun/v1"
 	memoryv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/memory/v1"
@@ -49,6 +50,11 @@ func ChannelInputFromProto(p *channelv1.Channel) *ChannelInput {
 // ChannelAppInputFromProto creates a ChannelAppInput from a proto ChannelApp resource.
 func ChannelAppInputFromProto(p *channelappv1.ChannelApp) *ChannelAppInput {
 	return gen.ChannelAppInputFromProto(p)
+}
+
+// EnvironmentInputFromProto creates a EnvironmentInput from a proto Environment resource.
+func EnvironmentInputFromProto(p *environmentv1.Environment) *EnvironmentInput {
+	return gen.EnvironmentInputFromProto(p)
 }
 
 // EvalInputFromProto creates a EvalInput from a proto Eval resource.

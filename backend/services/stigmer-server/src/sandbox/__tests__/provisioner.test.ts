@@ -15,7 +15,11 @@
  *     names exactly that queue;
  *   - a leftover sandbox of the retired workflow scope (sbx-wfx-<12 hex>)
  *     is not a name this server gives any more, so no driver deletes one
- *     by name; operators remove such leftovers by hand.
+ *     by name; operators remove such leftovers by hand;
+ *   - SANDBOX_DRIVER_OWNED_RUNNER_ENV names every variable a driver sets
+ *     itself, STIGMER_SANDBOX_ENVIRONMENT (SANDBOX_ENVIRONMENT_ENV)
+ *     included, so no operator runner setting can stand in for a
+ *     session's Environment.
  */
 import { describe, expect, it } from "vitest";
 
@@ -36,7 +40,9 @@ import type {
 import {
   BUILT_IN_SANDBOX_PROVISIONER_TYPES,
   newSandboxProvisioner,
+  SANDBOX_DRIVER_OWNED_RUNNER_ENV,
 } from "../provisioner.js";
+import { SANDBOX_ENVIRONMENT_ENV } from "../runner-launch.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -198,5 +204,24 @@ describe("SANDBOX_QUEUE_PREFIXES (the queue each scope's sandbox serves)", () =>
     expect(sandboxTaskQueue("connect", "mcx_1")).toBe(
       connectTaskQueueFor("mcx_1"),
     );
+  });
+});
+
+describe("SANDBOX_DRIVER_OWNED_RUNNER_ENV (the variables a driver sets itself)", () => {
+  it("names the queue, token, endpoints, attach waiter settings and the Environment", () => {
+    expect(SANDBOX_ENVIRONMENT_ENV).toBe("STIGMER_SANDBOX_ENVIRONMENT");
+    expect([...SANDBOX_DRIVER_OWNED_RUNNER_ENV]).toEqual([
+      "MODE",
+      "STIGMER_TASK_QUEUE",
+      "STIGMER_TOKEN",
+      "STIGMER_BACKEND_ENDPOINT",
+      "STIGMER_MCP_PUBLIC_ENDPOINT",
+      "TEMPORAL_SERVICE_ADDRESS",
+      "TEMPORAL_NAMESPACE",
+      "WORKSPACE_ROOT_DIR",
+      "STIGMER_ATTACH_PORT",
+      "STIGMER_SANDBOX_NAME_FILE",
+      "STIGMER_SANDBOX_ENVIRONMENT",
+    ]);
   });
 });

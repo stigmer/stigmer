@@ -37,6 +37,10 @@ const RUNNERS_OWN: ReadonlyMap<string, string> = new Map([
   ["shared/artifact-storage.ts", "the runner's own local artifact store, under its state directory"],
   ["shared/workspace/workspace-lock.ts", "the lock files, under the runner's own state directory"],
   ["config.ts", "creates the configured workspace root at start-up, before any agent runs"],
+  [
+    "environment/install.ts",
+    "makes the agent's install prefix and writes the set's digest beside it in root's /opt/stigmer, and starts the installs: apt as root, every other manager as the agent through setpriv",
+  ],
 ]);
 
 function importsOf(file: string): string[] {

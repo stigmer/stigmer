@@ -128,6 +128,13 @@ import type { SandboxLane } from "../../sandbox/lane.js";
 import { deprovisionSessionSandboxBestEffort } from "../../sandbox/steps.js";
 import type { RunScoreCascade } from "../score/cascade.js";
 import { newResolveSessionAgentStep } from "./resolve-session-agent.js";
+import { newAdmitSessionEnvironmentStep } from "./admit-session-environment.js";
+import {
+  newResolveSessionEnvironmentStep,
+  newValidateEnvironmentImmutabilityStep,
+} from "./resolve-session-environment.js";
+import { newEnvironmentPolicy } from "../run/environment-admission.js";
+import type { EnvironmentPolicy } from "../run/environment-admission.js";
 import { newRefuseLocalProgramsStep } from "./refuse-local-programs.js";
 import { newLocalProgramPolicy } from "../run/local-programs.js";
 import { sessionRunTarget } from "./run-target.js";
@@ -272,6 +279,11 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
   return ctx.values.get(apiResourceKindKey);
 }
 
+/** The deployment's Environment rule (domain/run/environment-admission.ts). */
+function environmentPolicyOf(deps: SessionControllerDeps): EnvironmentPolicy {
+  return newEnvironmentPolicy(deps.sandboxLane, deps.temporalConfig);
+}
+
 /**
  * Create — chain per Go buildCreatePipeline, then the pin: the reference
  * rule judges spec.agent_ref (and records the agent it found),
@@ -323,13 +335,15 @@ async function createSession(
     .addStep(
       newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
     )
+    .addStep(newResolveSessionEnvironmentStep(deps.store, environmentPolicyOf(deps)))
     .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
     .addStep(
       newRefuseLocalProgramsStep(
         deps.store,
         newLocalProgramPolicy(deps.sandboxLane, deps.temporalConfig),
       ),
-    );
+    )
+    .addStep(newAdmitSessionEnvironmentStep(deps.store, environmentPolicyOf(deps)));
   // The pre-side-effect gate slot (see the create doc comment). Empty in
   // OSS.
   for (const step of stepsForSlot<typeof SessionSchema>(
@@ -396,6 +410,7 @@ async function update(
       .addStep(newValidateHarnessImmutabilityStep())
       .addStep(newValidateExecutionTargetImmutabilityStep(deps.temporalConfig))
       .addStep(newNormalizeReferencesStep(deps.store))
+      .addStep(newValidateEnvironmentImmutabilityStep())
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(
         newValidateReferencesStep(deps.store, deps.authorizer, {
@@ -407,6 +422,7 @@ async function update(
       .addStep(
         newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
       )
+      .addStep(newResolveSessionEnvironmentStep(deps.store, environmentPolicyOf(deps)))
       .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
       .addStep(newSealSessionValuesStep(deps.secretService, deps.logger))
       .addStep(newPersistStep(deps.store, deps.credentialBinding))

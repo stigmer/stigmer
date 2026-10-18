@@ -26,14 +26,24 @@
  * failure messages reach the status verbatim, where a real engine's
  * classifier rephrases them.
  *
+ * The runtime's wait on the sandbox's Environment install
+ * (`environment/install.ts`) is pinned here too: a turn awaits the boot's
+ * install before its resolution, so a failed install fails the turn with
+ * the install's own message and nothing of the engine runs, and a clean one
+ * lets the turn run. The install is started through its own seam
+ * (`startEnvironmentInstall` with a stand-in command runner) and forgotten
+ * after each arm.
+ *
  * The hermetic environment is created at module level because the subject's
  * `config` is read at collection time; the forks pool keeps it private to
  * this file.
  */
 
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, connect, type AddressInfo } from "node:net";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 vi.mock("../../client/stigmer-client.js", async () =>
@@ -66,6 +76,7 @@ import {
 } from "../../__test-utils__/harness-contract/runtime-contract.js";
 import { captureTimingLines } from "../../__test-utils__/timing-lines.js";
 import { TERMINAL_COPY } from "../terminal-table.js";
+import { environmentInstalled, resetEnvironmentInstallForTests, startEnvironmentInstall, type CommandRunner } from "../../environment/install.js";
 import { TURN_PHASES_EVENT } from "../turn-timeline.js";
 import type { HarnessAdapter } from "../types.js";
 import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
@@ -303,6 +314,64 @@ describe("run-turn: the fake adapter through the real runtime", () => {
 
       expect(persisted).toBe("persisted");
       expect(slimOf(fromOutside.subject, invocation).phase).toBe("RUN_COMPLETED");
+    });
+  });
+
+  describe("the sandbox's Environment install", () => {
+    const NEVER_RUN = "This turn must not reach the engine.";
+    let dir: string;
+    let programs: string;
+    let consoleError: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      dir = mkdtempSync(join(tmpdir(), "run-turn-environment-"));
+      programs = join(dir, "programs");
+      mkdirSync(programs);
+      writeFileSync(join(programs, "npm"), "#!/bin/sh\nexit 0\n");
+      chmodSync(join(programs, "npm"), 0o755);
+      consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      resetEnvironmentInstallForTests();
+      consoleError.mockRestore();
+      rmSync(dir, { recursive: true, force: true });
+    });
+
+    function startInstall(run: CommandRunner): void {
+      startEnvironmentInstall(
+        { network: "unrestricted", packages: { apt: [], cargo: [], gem: [], go: [], npm: ["express"], pip: [] } },
+        { identity: null, prefix: join(dir, "prefix"), env: { PATH: programs }, run, log: () => {} },
+      );
+    }
+
+    it("a failed install fails the turn with the install's message, and the engine never runs", async () => {
+      startInstall(async () => ({ exitCode: 1, timedOut: false, output: "npm ERR! 404 express" }));
+      await environmentInstalled().catch(() => undefined);
+      clock.reset();
+      const driver = new RuntimeExecutionDriver(harness, "fake-environment-failed");
+      const invocation = await driver.turn([scenario.say(NEVER_RUN)]);
+
+      expect(slimOf(subject, invocation).phase).toBe("RUN_FAILED");
+      const final = driver.record.lastFullStatus!;
+      expect(final.error).toContain("the environment's npm packages did not install: `npm install` exited 1");
+      expect(aiMessages(driver.record.rowsOf(final))).not.toContain(NEVER_RUN);
+      expect(driver.record.harnessBinds, "the engine was never reached").toHaveLength(0);
+    });
+
+    it("a clean install lets the turn run", async () => {
+      const installs: string[][] = [];
+      startInstall(async (argv) => {
+        installs.push([...argv]);
+        return { exitCode: 0, timedOut: false, output: "" };
+      });
+      clock.reset();
+      const driver = new RuntimeExecutionDriver(harness, "fake-environment-installed");
+      const invocation = await driver.turn([scenario.say("Installed and running.")]);
+
+      expect(slimOf(subject, invocation).phase).toBe("RUN_COMPLETED");
+      expect(installs.map((argv) => argv[0])).toEqual(["npm"]);
+      expect(aiMessages(driver.record.rowsOf(driver.record.lastFullStatus!))).toContain("Installed and running.");
     });
   });
 

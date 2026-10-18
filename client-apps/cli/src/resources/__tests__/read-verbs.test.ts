@@ -25,6 +25,9 @@ import { SkillQueryController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/
 import { ChannelAppQueryController } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { RoutineQueryController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/query_pb";
+import { EnvironmentSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/query_pb";
+import { NetworkingType } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/spec_pb";
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultQueryController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/query_pb";
 import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
@@ -248,6 +251,22 @@ const orphanedRoutine = create(RoutineSchema, {
   },
 });
 
+// Networking limited to two hosts, with three packages across two managers,
+// so every ENVIRONMENT_TABLE column carries a value of its own.
+const limitedEnvironment = create(EnvironmentSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "Environment",
+  metadata: { name: "data-science", slug: "data-science", org: ACME_ID, id: "env_1" },
+  spec: {
+    networking: {
+      type: NetworkingType.limited,
+      allowedHosts: ["api.example.com", "files.example.com"],
+      allowPackageManagers: true,
+    },
+    packages: { pip: ["pandas", "numpy"], apt: ["ffmpeg"] },
+  },
+});
+
 let backend: Http2Server;
 let client: Stigmer;
 // Every value the organization get was asked for, so a test can count lookups.
@@ -365,6 +384,20 @@ beforeAll(async () => {
         if (req.org === "orphans") return { entries: [orphanedRoutine] };
         if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
         return { entries: [pausedRoutine, disabledRoutine] };
+      },
+    });
+    router.service(EnvironmentQueryController, {
+      get: (req) => {
+        if (req.value !== "env_1") throw new ConnectError("environment not found", Code.NotFound);
+        return limitedEnvironment;
+      },
+      getByReference: (req) => {
+        if (req.slug !== "data-science") throw new ConnectError("environment not found", Code.NotFound);
+        return limitedEnvironment;
+      },
+      list: (req) => {
+        if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
+        return { entries: [limitedEnvironment] };
       },
     });
     // A server that holds several organizations, so an empty org is refused.
@@ -531,6 +564,16 @@ describe("get integration", () => {
       spec: { enabled: true },
       status: { paused_reason: "5 consecutive failed runs", consecutive_failures: 5 },
     });
+  });
+
+  it("fetches an environment by org/slug and renders backend protojson", async () => {
+    const { schema, message } = await fetchResource(client, ApiResourceKind.environment, {
+      kind: "ref",
+      org: "acme",
+      slug: "data-science",
+    });
+    const rendered = JSON.parse(renderResource(schema, message, "json"));
+    expect(rendered).toEqual(toJson(EnvironmentSchema, limitedEnvironment, { useProtoFieldName: true }));
   });
 
   it("maps a NotFound backend error to ExitCode.NotFound", async () => {
@@ -758,6 +801,21 @@ describe("list integration", () => {
     const err = await listResources(client, ApiResourceKind.routine, "", 50, "table").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
     expect(String(err.message)).toContain("--org");
+  });
+
+  it("lists environments as a table naming the networking and counting hosts and packages", async () => {
+    const out = await listResources(client, ApiResourceKind.environment, "acme", 50, "table");
+    const lines = out.split("\n");
+    const header = lines.find((line) => line.includes("ID"));
+    expect(header?.split(/\s+/).filter(Boolean)).toEqual(["ID", "SLUG", "NETWORK", "HOSTS", "PACKAGES"]);
+    const row = lines.find((line) => line.includes("env_1"));
+    expect(row?.split(/\s+/).filter(Boolean)).toEqual(["env_1", "data-science", "limited", "2", "3"]);
+  });
+
+  it("refuses to list environments without an org context, before any RPC", async () => {
+    const err = await listResources(client, ApiResourceKind.environment, "", 50, "table").catch((e) => e);
+    expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
+    expect(String(err.message)).toContain("stigmer list environments --org <org>");
   });
 
   it("rejects a kind whose list is unwired with a usage error", async () => {

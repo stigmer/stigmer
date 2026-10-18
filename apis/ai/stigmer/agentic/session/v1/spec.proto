@@ -201,4 +201,19 @@ message SessionSpec {
   // Read by the runner at each turn's start. An eval run's try records
   // its edits whatever this says: its graders read them.
   bool file_review = 20;
+
+  // The Environment this conversation runs in: the packages its sandboxes
+  // get and the websites they may reach. Unset: its routine's, else its
+  // agent's default, else its organization's (status.environment records
+  // which applied).
+  //
+  // Fixed once a turn has run. A conversation on the person's own machine
+  // (the desktop app, the CLI) refuses one, since its sandbox is that
+  // machine. Naming one needs permission to view it, and every turn asks
+  // it again.
+  //
+  // @internal
+  // Refused up front where the server's sandbox driver cannot install its
+  // packages or limit its networking (domain/run/environment-admission.ts).
+  ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [(ai.stigmer.commons.apiresource.reference_kind) = environment];
 }

@@ -7,13 +7,20 @@
  * not separate, everything else the agent's tools have always seen passes
  * unchanged (the operator's settings, a local user's own environment); on a
  * separating runner only the allow-list passes, a cloud credential never,
- * and the operator's pass-through names too.
+ * and the operator's pass-through names too. With an Environment that has
+ * packages, the install's folders go first on the host's PATH (the Python
+ * venv's, then the shared bin, in the prefix the runner's identity names);
+ * without one, or with no packages, the environment is unchanged.
  */
 
+import { homedir } from "node:os";
+import { delimiter, join } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { ENVIRONMENT_PREFIX } from "../../environment/prefix.js";
+import type { SandboxEnvironment } from "../../environment/spec.js";
 import { RUNNER_SECRET_ENV_KEYS } from "../../shared/runner-credential-keys.js";
-import { agentHostEnvironment } from "../environment.js";
+import { agentHostEnvironment, withEnvironmentPath } from "../environment.js";
 
 describe("the agent host's environment", () => {
   it("carries none of the runner's secrets, whatever the runner's environment holds", () => {
@@ -69,5 +76,30 @@ describe("the agent host's environment", () => {
   it("passes a credential the operator names for the agent", () => {
     const runner = { PATH: "/usr/bin", NODE_AUTH_TOKEN: "npm-token", STIGMER_AGENT_ENV_PASSTHROUGH: "NODE_AUTH_TOKEN" };
     expect(agentHostEnvironment(runner, true)).toEqual(runner);
+  });
+});
+
+describe("the host's PATH under an Environment", () => {
+  const none = { apt: [], cargo: [], gem: [], go: [], npm: [], pip: [] };
+  const agent = { name: "stigmer-agent", uid: 10001, gid: 10001, home: "/home/stigmer-agent" };
+  const host = { PATH: "/usr/local/bin:/usr/bin", LANG: "C.UTF-8" };
+
+  it("is unchanged with no Environment, or one without packages", () => {
+    expect(withEnvironmentPath(host, undefined, agent)).toBe(host);
+    const empty: SandboxEnvironment = { network: "limited", packages: none };
+    expect(withEnvironmentPath(host, empty, agent)).toBe(host);
+  });
+
+  it("puts the prefix's Python venv, then its bin, first", () => {
+    const withPackages: SandboxEnvironment = { network: "unrestricted", packages: { ...none, npm: ["express"] } };
+    expect(withEnvironmentPath(host, withPackages, agent)).toEqual({
+      LANG: "C.UTF-8",
+      PATH: [join(ENVIRONMENT_PREFIX, "python", "bin"), join(ENVIRONMENT_PREFIX, "bin"), "/usr/local/bin:/usr/bin"].join(delimiter),
+    });
+    const local = join(homedir(), ".stigmer", "environment");
+    expect(withEnvironmentPath(host, withPackages, null)["PATH"], "a runner that does not separate installs under its user's home").toBe(
+      [join(local, "python", "bin"), join(local, "bin"), "/usr/local/bin:/usr/bin"].join(delimiter),
+    );
+    expect(host.PATH, "the given environment is not changed").toBe("/usr/local/bin:/usr/bin");
   });
 });

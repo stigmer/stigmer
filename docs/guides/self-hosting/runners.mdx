@@ -525,6 +525,15 @@ Substrate's egress gateway installed with its CA pool; every tool in the sandbox
 is pointed at that CA. SSH, database protocols, HTTP/3 and TLS that isn't HTTP
 don't pass.
 
+A conversation whose Environment limits networking reaches, over HTTPS, only its
+listed hosts and the runner's own: the model provider and Cursor hosts the
+runner's settings name, and the `https://` public MCP endpoint. List any other
+host the runner needs (a Vertex or Foundry endpoint, a proxy) in
+`STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTPS_PLATFORM`, comma-separated. With
+`STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTPS=none`, an Environment that limits
+networking is refused, since an Environment narrows your egress and never widens
+it.
+
 <Callout type="warn">
   **Two things Substrate leaves to you.** Its router reaches every actor by a
   header, and a sandbox accepts the first push it receives, so the router must

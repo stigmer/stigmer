@@ -67,7 +67,8 @@ import {
   type ApprovalGrant,
 } from "./approval-state.js";
 import { startHookServer, type HookDecisionLog } from "./hook-server.js";
-import { toolsHiddenByHooks, withToolsHidden } from "./hook-tool-hiding.js";
+import { toolsHiddenByHooks, toolsHiddenByNetwork, withToolsHidden } from "./hook-tool-hiding.js";
+import { sandboxEnvironmentFrom } from "../../environment/spec.js";
 import { CursorEngineToolViews } from "./hook-views.js";
 import { refuseLinkedGateFile, refuseOwnFolderHooks, workspaceFolders } from "./workspace-hook-files.js";
 import { readSidecarSnapshot } from "./cas-observations.js";
@@ -729,7 +730,10 @@ export async function resolveEngine(
         // The main loop's built-ins the lists exclude, hidden by the SDK
         // (`read` and `mcp` never: the hook confines those), and the tools
         // a hook would answer for that Cursor never shows one.
-        ...withToolsHidden(cursorSdkToolOptions(input.mcp.toolScope, input.mcp.servers.length > 0), hooks?.hiddenTools ?? []),
+        ...withToolsHidden(cursorSdkToolOptions(input.mcp.toolScope, input.mcp.servers.length > 0), [
+          ...(hooks?.hiddenTools ?? []),
+          ...toolsHiddenByNetwork(sandboxEnvironmentFrom()?.network),
+        ]),
       };
 
   // Agent.create/Agent.resume have no timeout of their own — a degraded

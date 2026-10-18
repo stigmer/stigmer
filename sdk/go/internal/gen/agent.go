@@ -187,6 +187,7 @@ type AgentInput struct {
 	Plugins         []ResourceRef
 	Subagents       []ResourceRef
 	McpServers      []*AgentMcpServerInput
+	EnvironmentRef  ResourceRef
 }
 
 // EnvVarDeclarationInput is the SDK input type for EnvVarDeclaration.
@@ -312,6 +313,11 @@ func (i *AgentInput) toProto() (*agentv1.Agent, error) {
 		}
 		resource.Spec.McpServers = append(resource.Spec.McpServers, v)
 	}
+	if i.EnvironmentRef.Org != "" || i.EnvironmentRef.Slug != "" {
+		ref := i.EnvironmentRef.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_environment
+		resource.Spec.EnvironmentRef = ref
+	}
 	return resource, nil
 }
 
@@ -427,6 +433,7 @@ func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 		for _, item := range s.GetMcpServers() {
 			input.McpServers = append(input.McpServers, agentMcpServerInputFromProto(item))
 		}
+		input.EnvironmentRef = resourceRefFromProto(s.GetEnvironmentRef())
 	}
 	return input
 }

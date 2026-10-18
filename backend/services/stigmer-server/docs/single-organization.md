@@ -78,6 +78,10 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | ChannelAppCommandController.create | metadata.org |
 | ChannelAppQueryController.getByReference | org |
 | ChannelAppQueryController.list | org |
+| EnvironmentCommandController.apply | metadata.org |
+| EnvironmentCommandController.create | metadata.org |
+| EnvironmentQueryController.getByReference | org |
+| EnvironmentQueryController.list | org |
 
 ## `ai.stigmer.agentic.eval.v1`
 

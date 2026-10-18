@@ -75,6 +75,7 @@ const settings: SubstrateDriverSettings = {
   sandboxConfigName: "gvisor-default",
   httpsEgress: "none",
   extraHttpEgress: [],
+  platformHttpsHosts: [],
   pauseAfterSeconds: 300,
   suspendAfterSeconds: 1800,
   sweepIntervalSeconds: 60,
@@ -234,15 +235,10 @@ describe("the ladder", () => {
         });
     };
     await h.pass();
-    // The pass's upkeep (the egress policy, once per process, for a
-    // sandbox still awake when read again) runs after the ladder, over the
-    // same listing.
     expect(h.substrate.calls.filter((c) => c.endsWith(name))).toEqual([
       `getActor ${name}`,
       `pauseActor ${name}`,
       `resumeActor ${name}`,
-      `getActor ${name}`,
-      `ensureEgressPolicy ${name}`,
     ]);
     expect(h.substrate.actors.get(name)?.state).toBe(ActorState.RUNNING);
   });
@@ -396,7 +392,7 @@ describe("sandboxes this process never ensured", () => {
 });
 
 describe("housekeeping", () => {
-  it("makes every awake sandbox's egress policy this configuration's, once per process", async () => {
+  it("writes no sandbox's egress policy: an awake one gets its own at its next ensure, which knows its Environment", async () => {
     const h = harness();
     const awake = sandboxBaseName("connect", "mcx_1");
     h.substrate.put({
@@ -414,12 +410,9 @@ describe("housekeeping", () => {
     });
     await h.pass();
     await h.pass();
-    expect(
-      h.substrate.calls.filter((c) => c === `ensureEgressPolicy ${awake}`),
-    ).toHaveLength(1);
-    expect(h.substrate.actors.get(awake)?.policy?.length).toBeGreaterThan(0);
-    // A suspended sandbox reaches nothing until it wakes, which reconciles it.
-    expect(h.substrate.calls).not.toContain(`ensureEgressPolicy ${asleep}`);
+    expect(h.substrate.calls.filter((c) => c.startsWith("ensureEgressPolicy"))).toEqual([]);
+    expect(h.substrate.actors.get(awake)?.policy).toEqual([]);
+    expect(h.substrate.actors.get(asleep)?.policy).toEqual([]);
   });
 
   it("deletes a sandbox left DELETING again", async () => {

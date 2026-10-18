@@ -42,6 +42,7 @@ public final class AgentInput {
     private final java.util.List<ResourceRef> plugins;
     private final java.util.List<ResourceRef> subagents;
     private final java.util.List<AgentMcpServerInput> mcpServers;
+    private final ResourceRef environmentRef;
 
     private AgentInput(Builder builder) {
         this.id = builder.id;
@@ -64,6 +65,7 @@ public final class AgentInput {
         this.plugins = builder.plugins;
         this.subagents = builder.subagents;
         this.mcpServers = builder.mcpServers;
+        this.environmentRef = builder.environmentRef;
     }
 
     Agent toProto() {
@@ -122,6 +124,10 @@ public final class AgentInput {
                 spec.addMcpServers(item.toProto());
             }
         }
+        if (this.environmentRef != null && this.environmentRef.hasIdentifier()) {
+            spec.setEnvironmentRef(this.environmentRef.toProto().toBuilder()
+                .setKind(ApiResourceKind.environment).build());
+        }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
         if (this.org != null) {
@@ -175,6 +181,7 @@ public final class AgentInput {
         private java.util.List<ResourceRef> plugins;
         private java.util.List<ResourceRef> subagents;
         private java.util.List<AgentMcpServerInput> mcpServers;
+        private ResourceRef environmentRef;
 
         private Builder() {}
 
@@ -203,6 +210,7 @@ public final class AgentInput {
         public Builder plugins(java.util.List<ResourceRef> plugins) { this.plugins = plugins; return this; }
         public Builder subagents(java.util.List<ResourceRef> subagents) { this.subagents = subagents; return this; }
         public Builder mcpServers(java.util.List<AgentMcpServerInput> mcpServers) { this.mcpServers = mcpServers; return this; }
+        public Builder environmentRef(ResourceRef environmentRef) { this.environmentRef = environmentRef; return this; }
 
         public AgentInput build() { return new AgentInput(this); }
     }

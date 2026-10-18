@@ -268,6 +268,7 @@ class SessionSpecInput:
     include_my_vault: bool = False
     plugins: list[ResourceRef] = field(default_factory=list)
     file_review: bool = False
+    environment_ref: ResourceRef | None = None
 
     def _to_proto(self) -> session_spec_pb2.SessionSpec:
         msg = session_spec_pb2.SessionSpec(
@@ -298,6 +299,10 @@ class SessionSpecInput:
             _ref = ref._to_proto()
             _ref.kind = 58
             msg.plugins.append(_ref)
+        if self.environment_ref is not None and (self.environment_ref.org or self.environment_ref.slug):
+            _ref = self.environment_ref._to_proto()
+            _ref.kind = 67
+            msg.environment_ref.CopyFrom(_ref)
         return msg
 
 

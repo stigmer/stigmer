@@ -10,6 +10,7 @@ type Client struct {
 	ApiKey           *ApiKeyClient
 	Channel          *ChannelClient
 	ChannelApp       *ChannelAppClient
+	Environment      *EnvironmentClient
 	Eval             *EvalClient
 	EvalRun          *EvalRunClient
 	FederationIssuer *FederationIssuerClient
@@ -41,6 +42,7 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		ApiKey:           NewApiKeyClient(conn),
 		Channel:          NewChannelClient(conn),
 		ChannelApp:       NewChannelAppClient(conn),
+		Environment:      NewEnvironmentClient(conn),
 		Eval:             NewEvalClient(conn),
 		EvalRun:          NewEvalRunClient(conn),
 		FederationIssuer: NewFederationIssuerClient(conn),

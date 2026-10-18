@@ -19,6 +19,10 @@
  * Cursor SDK trusts the lane on loopback and everything it trusted before.
  * Once configured, the host also sets `CURSOR_BACKEND_URL` to the lane for
  * its Cursor SDK (`entry.ts`); the agent's shells and hooks leave it out.
+ * When the sandbox has an Environment with packages, the folders they
+ * install into come first on the host's PATH (`environment/install.ts`),
+ * and the install starts here, once the agent's home is handed over,
+ * beside the worker: each turn awaits it (`harness/run-turn.ts`).
  *
  * THIS MODULE IS IMPORTED BEFORE THE HARNESSES BOOT, so its static graph
  * stays connect- and SDK-free like the table's
@@ -33,7 +37,9 @@ import type { Config } from "../config.js";
 import { HOSTED_HARNESSES } from "../harness-adapters.js";
 import type { HarnessRow } from "../harness/registry.js";
 import { AgentProxy } from "../agent-proxy/server.js";
-import { agentHostEnvironment } from "./environment.js";
+import { agentHostEnvironment, withEnvironmentPath } from "./environment.js";
+import { startEnvironmentInstall } from "../environment/install.js";
+import { sandboxEnvironmentFrom } from "../environment/spec.js";
 import { installAgentFs, refusingAgentFs } from "../shared/agent-fs.js";
 import { handOverToAgent, type HandoverIo } from "../shared/agent-handover.js";
 import { agentIdentity, prepareAgentSeparation, type AgentIdentity } from "../shared/agent-identity.js";
@@ -80,11 +86,15 @@ export async function hostHarnesses(
       throw new Error(refusal);
     }
   }
+  const environment = sandboxEnvironmentFrom();
+  startEnvironmentInstall(environment);
   const proxy = await AgentProxy.start(config);
   const trust = writeTrustedCertificates(proxy.cursorCertificate, process.env.NODE_EXTRA_CA_CERTS);
   const supervisor = new AgentHostSupervisor({
     proxy,
-    start: options.start ?? processHostStarter(() => ({ ...agentHostEnvironment(), NODE_EXTRA_CA_CERTS: trust.file })),
+    start:
+      options.start ??
+      processHostStarter(() => withEnvironmentPath({ ...agentHostEnvironment(), NODE_EXTRA_CA_CERTS: trust.file }, environment, identity)),
   });
   // From here on, the runtime's operations on the agent's paths are the host's.
   const restoreFs = installAgentFs(

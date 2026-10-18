@@ -797,4 +797,52 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue);
    */
   ai.stigmer.agentic.agent.v1.AgentMcpServerOrBuilder getMcpServersOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * The Environment a new conversation on this agent runs in when neither
+   * the conversation nor its routine names one: the packages its sandboxes
+   * get and the websites they may reach. Unset: the organization's default
+   * Environment, if any.
+   *
+   * A conversation keeps the Environment it started with; changing this
+   * changes only new conversations. A conversation on the person's own
+   * machine (the desktop app, the CLI) ignores it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 19 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   * @return Whether the environmentRef field is set.
+   */
+  boolean hasEnvironmentRef();
+  /**
+   * <pre>
+   * The Environment a new conversation on this agent runs in when neither
+   * the conversation nor its routine names one: the packages its sandboxes
+   * get and the websites they may reach. Unset: the organization's default
+   * Environment, if any.
+   *
+   * A conversation keeps the Environment it started with; changing this
+   * changes only new conversations. A conversation on the person's own
+   * machine (the desktop app, the CLI) ignores it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 19 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   * @return The environmentRef.
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRef();
+  /**
+   * <pre>
+   * The Environment a new conversation on this agent runs in when neither
+   * the conversation nor its routine names one: the packages its sandboxes
+   * get and the websites they may reach. Unset: the organization's default
+   * Environment, if any.
+   *
+   * A conversation keeps the Environment it started with; changing this
+   * changes only new conversations. A conversation on the person's own
+   * machine (the desktop app, the CLI) ignores it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 19 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefOrBuilder();
 }

@@ -57,9 +57,11 @@ import {
   RUNNER_HOME,
   RUNNER_CAPABILITIES,
   RUNNER_UID,
+  SANDBOX_ENVIRONMENT_ENV,
   SERVER_RELEASE_ENV,
   runnerCommand,
 } from "../runner-launch.js";
+import { runnerEnvironmentValue } from "../environment.js";
 import {
   AGENT_SANDBOX_API_VERSION,
   AGENT_SANDBOX_KIND,
@@ -131,6 +133,12 @@ function runnerEnv(
   }
   if (config.serverRelease !== "") {
     entries.push({ name: SERVER_RELEASE_ENV, value: config.serverRelease });
+  }
+  // The Environment's runner half: re-rendered at every wake, so an edit
+  // reaches the sandbox at its next start.
+  const environment = runnerEnvironmentValue(facts.environment);
+  if (environment !== undefined) {
+    entries.push({ name: SANDBOX_ENVIRONMENT_ENV, value: environment });
   }
   for (const [name, value] of Object.entries(config.runnerEnv)) {
     entries.push({ name, value });

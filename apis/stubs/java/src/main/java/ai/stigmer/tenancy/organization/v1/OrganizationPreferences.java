@@ -54,6 +54,7 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.tenancy.organization.v1.OrganizationPreferences.class, ai.stigmer.tenancy.organization.v1.OrganizationPreferences.Builder.class);
   }
 
+  private int bitField0_;
   public static final int STANDING_CONTEXT_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
   private volatile java.lang.Object standingContext_ = "";
@@ -120,6 +121,62 @@ private static final long serialVersionUID = 0L;
     return memoryEnabled_;
   }
 
+  public static final int DEFAULT_ENVIRONMENT_REF_FIELD_NUMBER = 3;
+  private ai.stigmer.commons.apiresource.ApiResourceReference defaultEnvironmentRef_;
+  /**
+   * <pre>
+   * The Environment a conversation in this organization runs in when
+   * neither the conversation, its routine nor its agent names one: the
+   * packages its sandboxes get and the websites they may reach.
+   *
+   * A default, not a bound: a member may name any Environment they can
+   * see for a conversation. A conversation on the person's own machine (the
+   * desktop app, the CLI) ignores it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference default_environment_ref = 3 [json_name = "defaultEnvironmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   * @return Whether the defaultEnvironmentRef field is set.
+   */
+  @java.lang.Override
+  public boolean hasDefaultEnvironmentRef() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <pre>
+   * The Environment a conversation in this organization runs in when
+   * neither the conversation, its routine nor its agent names one: the
+   * packages its sandboxes get and the websites they may reach.
+   *
+   * A default, not a bound: a member may name any Environment they can
+   * see for a conversation. A conversation on the person's own machine (the
+   * desktop app, the CLI) ignores it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference default_environment_ref = 3 [json_name = "defaultEnvironmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   * @return The defaultEnvironmentRef.
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReference getDefaultEnvironmentRef() {
+    return defaultEnvironmentRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : defaultEnvironmentRef_;
+  }
+  /**
+   * <pre>
+   * The Environment a conversation in this organization runs in when
+   * neither the conversation, its routine nor its agent names one: the
+   * packages its sandboxes get and the websites they may reach.
+   *
+   * A default, not a bound: a member may name any Environment they can
+   * see for a conversation. A conversation on the person's own machine (the
+   * desktop app, the CLI) ignores it.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference default_environment_ref = 3 [json_name = "defaultEnvironmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getDefaultEnvironmentRefOrBuilder() {
+    return defaultEnvironmentRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : defaultEnvironmentRef_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -140,6 +197,9 @@ private static final long serialVersionUID = 0L;
     if (memoryEnabled_ != false) {
       output.writeBool(2, memoryEnabled_);
     }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeMessage(3, getDefaultEnvironmentRef());
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -155,6 +215,10 @@ private static final long serialVersionUID = 0L;
     if (memoryEnabled_ != false) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(2, memoryEnabled_);
+    }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(3, getDefaultEnvironmentRef());
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -175,6 +239,11 @@ private static final long serialVersionUID = 0L;
         .equals(other.getStandingContext())) return false;
     if (getMemoryEnabled()
         != other.getMemoryEnabled()) return false;
+    if (hasDefaultEnvironmentRef() != other.hasDefaultEnvironmentRef()) return false;
+    if (hasDefaultEnvironmentRef()) {
+      if (!getDefaultEnvironmentRef()
+          .equals(other.getDefaultEnvironmentRef())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -191,6 +260,10 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + MEMORY_ENABLED_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getMemoryEnabled());
+    if (hasDefaultEnvironmentRef()) {
+      hash = (37 * hash) + DEFAULT_ENVIRONMENT_REF_FIELD_NUMBER;
+      hash = (53 * hash) + getDefaultEnvironmentRef().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -315,13 +388,19 @@ private static final long serialVersionUID = 0L;
 
     // Construct using ai.stigmer.tenancy.organization.v1.OrganizationPreferences.newBuilder()
     private Builder() {
-
+      maybeForceBuilderInitialization();
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       super(parent);
-
+      maybeForceBuilderInitialization();
+    }
+    private void maybeForceBuilderInitialization() {
+      if (com.google.protobuf.GeneratedMessage
+              .alwaysUseFieldBuilders) {
+        internalGetDefaultEnvironmentRefFieldBuilder();
+      }
     }
     @java.lang.Override
     public Builder clear() {
@@ -329,6 +408,11 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       standingContext_ = "";
       memoryEnabled_ = false;
+      defaultEnvironmentRef_ = null;
+      if (defaultEnvironmentRefBuilder_ != null) {
+        defaultEnvironmentRefBuilder_.dispose();
+        defaultEnvironmentRefBuilder_ = null;
+      }
       return this;
     }
 
@@ -368,6 +452,14 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.memoryEnabled_ = memoryEnabled_;
       }
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.defaultEnvironmentRef_ = defaultEnvironmentRefBuilder_ == null
+            ? defaultEnvironmentRef_
+            : defaultEnvironmentRefBuilder_.build();
+        to_bitField0_ |= 0x00000001;
+      }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -389,6 +481,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getMemoryEnabled() != false) {
         setMemoryEnabled(other.getMemoryEnabled());
+      }
+      if (other.hasDefaultEnvironmentRef()) {
+        mergeDefaultEnvironmentRef(other.getDefaultEnvironmentRef());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -426,6 +521,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 16
+            case 26: {
+              input.readMessage(
+                  internalGetDefaultEnvironmentRefFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 26
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -588,6 +690,217 @@ private static final long serialVersionUID = 0L;
       memoryEnabled_ = false;
       onChanged();
       return this;
+    }
+
+    private ai.stigmer.commons.apiresource.ApiResourceReference defaultEnvironmentRef_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> defaultEnvironmentRefBuilder_;
+    /**
+     * <pre>
+     * The Environment a conversation in this organization runs in when
+     * neither the conversation, its routine nor its agent names one: the
+     * packages its sandboxes get and the websites they may reach.
+     *
+     * A default, not a bound: a member may name any Environment they can
+     * see for a conversation. A conversation on the person's own machine (the
+     * desktop app, the CLI) ignores it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference default_environment_ref = 3 [json_name = "defaultEnvironmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     * @return Whether the defaultEnvironmentRef field is set.
+     */
+    public boolean hasDefaultEnvironmentRef() {
+      return ((bitField0_ & 0x00000004) != 0);
+    }
+    /**
+     * <pre>
+     * The Environment a conversation in this organization runs in when
+     * neither the conversation, its routine nor its agent names one: the
+     * packages its sandboxes get and the websites they may reach.
+     *
+     * A default, not a bound: a member may name any Environment they can
+     * see for a conversation. A conversation on the person's own machine (the
+     * desktop app, the CLI) ignores it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference default_environment_ref = 3 [json_name = "defaultEnvironmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     * @return The defaultEnvironmentRef.
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference getDefaultEnvironmentRef() {
+      if (defaultEnvironmentRefBuilder_ == null) {
+        return defaultEnvironmentRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : defaultEnvironmentRef_;
+      } else {
+        return defaultEnvironmentRefBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * The Environment a conversation in this organization runs in when
+     * neither the conversation, its routine nor its agent names one: the
+     * packages its sandboxes get and the websites they may reach.
+     *
+     * A default, not a bound: a member may name any Environment they can
+     * see for a conversation. A conversation on the person's own machine (the
+     * desktop app, the CLI) ignores it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference default_environment_ref = 3 [json_name = "defaultEnvironmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    public Builder setDefaultEnvironmentRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (defaultEnvironmentRefBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        defaultEnvironmentRef_ = value;
+      } else {
+        defaultEnvironmentRefBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The Environment a conversation in this organization runs in when
+     * neither the conversation, its routine nor its agent names one: the
+     * packages its sandboxes get and the websites they may reach.
+     *
+     * A default, not a bound: a member may name any Environment they can
+     * see for a conversation. A conversation on the person's own machine (the
+     * desktop app, the CLI) ignores it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference default_environment_ref = 3 [json_name = "defaultEnvironmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    public Builder setDefaultEnvironmentRef(
+        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (defaultEnvironmentRefBuilder_ == null) {
+        defaultEnvironmentRef_ = builderForValue.build();
+      } else {
+        defaultEnvironmentRefBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The Environment a conversation in this organization runs in when
+     * neither the conversation, its routine nor its agent names one: the
+     * packages its sandboxes get and the websites they may reach.
+     *
+     * A default, not a bound: a member may name any Environment they can
+     * see for a conversation. A conversation on the person's own machine (the
+     * desktop app, the CLI) ignores it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference default_environment_ref = 3 [json_name = "defaultEnvironmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    public Builder mergeDefaultEnvironmentRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (defaultEnvironmentRefBuilder_ == null) {
+        if (((bitField0_ & 0x00000004) != 0) &&
+          defaultEnvironmentRef_ != null &&
+          defaultEnvironmentRef_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
+          getDefaultEnvironmentRefBuilder().mergeFrom(value);
+        } else {
+          defaultEnvironmentRef_ = value;
+        }
+      } else {
+        defaultEnvironmentRefBuilder_.mergeFrom(value);
+      }
+      if (defaultEnvironmentRef_ != null) {
+        bitField0_ |= 0x00000004;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The Environment a conversation in this organization runs in when
+     * neither the conversation, its routine nor its agent names one: the
+     * packages its sandboxes get and the websites they may reach.
+     *
+     * A default, not a bound: a member may name any Environment they can
+     * see for a conversation. A conversation on the person's own machine (the
+     * desktop app, the CLI) ignores it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference default_environment_ref = 3 [json_name = "defaultEnvironmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    public Builder clearDefaultEnvironmentRef() {
+      bitField0_ = (bitField0_ & ~0x00000004);
+      defaultEnvironmentRef_ = null;
+      if (defaultEnvironmentRefBuilder_ != null) {
+        defaultEnvironmentRefBuilder_.dispose();
+        defaultEnvironmentRefBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The Environment a conversation in this organization runs in when
+     * neither the conversation, its routine nor its agent names one: the
+     * packages its sandboxes get and the websites they may reach.
+     *
+     * A default, not a bound: a member may name any Environment they can
+     * see for a conversation. A conversation on the person's own machine (the
+     * desktop app, the CLI) ignores it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference default_environment_ref = 3 [json_name = "defaultEnvironmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getDefaultEnvironmentRefBuilder() {
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return internalGetDefaultEnvironmentRefFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The Environment a conversation in this organization runs in when
+     * neither the conversation, its routine nor its agent names one: the
+     * packages its sandboxes get and the websites they may reach.
+     *
+     * A default, not a bound: a member may name any Environment they can
+     * see for a conversation. A conversation on the person's own machine (the
+     * desktop app, the CLI) ignores it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference default_environment_ref = 3 [json_name = "defaultEnvironmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getDefaultEnvironmentRefOrBuilder() {
+      if (defaultEnvironmentRefBuilder_ != null) {
+        return defaultEnvironmentRefBuilder_.getMessageOrBuilder();
+      } else {
+        return defaultEnvironmentRef_ == null ?
+            ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : defaultEnvironmentRef_;
+      }
+    }
+    /**
+     * <pre>
+     * The Environment a conversation in this organization runs in when
+     * neither the conversation, its routine nor its agent names one: the
+     * packages its sandboxes get and the websites they may reach.
+     *
+     * A default, not a bound: a member may name any Environment they can
+     * see for a conversation. A conversation on the person's own machine (the
+     * desktop app, the CLI) ignores it.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference default_environment_ref = 3 [json_name = "defaultEnvironmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+        internalGetDefaultEnvironmentRefFieldBuilder() {
+      if (defaultEnvironmentRefBuilder_ == null) {
+        defaultEnvironmentRefBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
+                getDefaultEnvironmentRef(),
+                getParentForChildren(),
+                isClean());
+        defaultEnvironmentRef_ = null;
+      }
+      return defaultEnvironmentRefBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.tenancy.organization.v1.OrganizationPreferences)

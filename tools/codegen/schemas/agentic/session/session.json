@@ -168,6 +168,18 @@
       },
       "description": "Whether each turn's file edits are offered for review, Keep or Undo,\n after the turn. Off unless the caller sets it. Review never makes a\n turn wait: the edits are applied as the agent makes them, each stays\n until it is undone, and whatever is undecided when the next message is\n sent is kept. A turn in a workspace that cannot record its edits asks\n before each file write instead.",
       "required": false
+    },
+    {
+      "name": "EnvironmentRef",
+      "jsonName": "environmentRef",
+      "protoField": "environment_ref",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceReference"
+      },
+      "description": "The Environment this conversation runs in: the packages its sandboxes\n get and the websites they may reach. Unset: its routine's, else its\n agent's default, else its organization's (status.environment records\n which applied).\n\n Fixed once a turn has run. A conversation on the person's own machine\n (the desktop app, the CLI) refuses one, since its sandbox is that\n machine. Naming one needs permission to view it, and every turn asks\n it again.",
+      "required": false,
+      "referenceKind": 67
     }
   ]
 }

@@ -11,8 +11,9 @@
  * name, never by a name alone) that a fire call never runs, the
  * refusal-code partition, and the run-request shape: a new conversation on
  * the routine's agent, titled by the routine, on the harness the routine
- * names. A routine with no agent is a missing target; a routine deleted
- * mid-fire keeps its run and stamps nothing; and every store or create
+ * names, in the Environment the routine names (copied into the session
+ * spec, none when it names none). A routine with no agent is a missing
+ * target; a routine deleted mid-fire keeps its run and stamps nothing; and every store or create
  * fault that is not a deterministic refusal throws, naming what it was
  * doing, so the tick activity retries under the fire's deterministic name.
  */
@@ -33,6 +34,7 @@ import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_p
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { IdentityAccountSchema } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 import type { IdentityAccount } from "@stigmer/apis/ai/stigmer/iam/identityaccount/v1/api_pb";
 
@@ -781,6 +783,33 @@ describe("RunStarter.startRun — against a real store", () => {
     await runStarter.startRun(routineWith({ harness: Harness.NATIVE }), manualFire(ROUTINE_ID, NOMINAL, ""));
     const sessionSpec = seen?.spec?.target.case === "sessionSpec" ? seen.spec.target.value : undefined;
     expect(sessionSpec?.harness).toBe(Harness.NATIVE);
+  });
+
+  it("copies the routine's Environment into the fire's session spec, and names none when the routine names none", async () => {
+    let seen: Run | undefined;
+    const runStarter = starter(async (run) => {
+      seen = run;
+      return create(RunSchema, { metadata: { id: "run_01boxed", org: "acme" } });
+    });
+    const boxed = routineWith();
+    boxed.spec!.agent!.environmentRef = create(ApiResourceReferenceSchema, {
+      kind: ApiResourceKind.environment,
+      org: "acme",
+      id: "env_01box",
+      slug: "box",
+    });
+    await runStarter.startRun(boxed, manualFire(ROUTINE_ID, NOMINAL, ""));
+    const sessionSpec = seen?.spec?.target.case === "sessionSpec" ? seen.spec.target.value : undefined;
+    expect(sessionSpec?.environmentRef).toEqual(boxed.spec!.agent!.environmentRef);
+    // A copy, not the routine's own message.
+    expect(sessionSpec?.environmentRef).not.toBe(boxed.spec!.agent!.environmentRef);
+
+    seen = undefined;
+    await runStarter.startRun(routineWith(), manualFire(ROUTINE_ID, NOMINAL, ""));
+    const plain = seen as Run | undefined;
+    const plainSpec = plain?.spec?.target.case === "sessionSpec" ? plain.spec.target.value : undefined;
+    expect(plainSpec).toBeDefined();
+    expect(plainSpec?.environmentRef).toBeUndefined();
   });
 
   it("answers targetMissing when the routine names no agent at all", async () => {

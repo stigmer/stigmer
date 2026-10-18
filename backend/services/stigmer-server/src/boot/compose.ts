@@ -122,6 +122,9 @@ import {
   warnOnLegacyArtifactLayout,
 } from "../artifactstorage/file-server.js";
 import { registerChannelAppServices } from "../domain/channelapp/controller.js";
+import { registerEnvironmentServices } from "../domain/environment/controller.js";
+import { environmentSupportOf } from "../domain/environment/facts.js";
+import { newEnvironmentPolicy } from "../domain/run/environment-admission.js";
 import { registerVaultServices } from "../domain/vault/controller.js";
 import { newVaultResolver } from "../domain/vault/resolve.js";
 import { newSignInFreshener } from "../domain/vault/sign-in/refresh.js";
@@ -1930,6 +1933,15 @@ export async function composeServer(
       authorizationLifecycle,
       listReadScope,
     });
+    registerEnvironmentServices(router, {
+      store,
+      logger,
+      authorizer,
+      credentialBinding,
+      authorizationLifecycle,
+      listReadScope,
+      environmentSupport: environmentSupportOf(sandboxLane),
+    });
     // Routine registers between channelapp and memory (Go server.go
     // 417 → 426 → 436). The clock and runner ride constant providers —
     // production wiring always has both (Go SetClock/SetRunner beside the
@@ -2016,6 +2028,7 @@ export async function composeServer(
         sessionLoader: () => requireInProcess().executionSessionLoader,
         vaultResolver,
         localPrograms: newLocalProgramPolicy(sandboxLane, temporalConfig),
+        environments: { policy: newEnvironmentPolicy(sandboxLane, temporalConfig), authorizer },
       },
     });
     registerSkillServices(router, {

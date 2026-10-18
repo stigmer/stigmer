@@ -137,10 +137,12 @@ public final class OrganizationInput {
     public static final class OrganizationPreferencesInput {
         private final String standingContext;
         private final boolean memoryEnabled;
+        private final ResourceRef defaultEnvironmentRef;
 
         private OrganizationPreferencesInput(Builder builder) {
             this.standingContext = builder.standingContext;
             this.memoryEnabled = builder.memoryEnabled;
+            this.defaultEnvironmentRef = builder.defaultEnvironmentRef;
         }
 
         OrganizationPreferences toProto() {
@@ -149,6 +151,10 @@ public final class OrganizationInput {
                 builder.setStandingContext(this.standingContext);
             }
             builder.setMemoryEnabled(this.memoryEnabled);
+            if (this.defaultEnvironmentRef != null && this.defaultEnvironmentRef.hasIdentifier()) {
+                builder.setDefaultEnvironmentRef(this.defaultEnvironmentRef.toProto().toBuilder()
+                    .setKind(ApiResourceKind.environment).build());
+            }
             return builder.build();
         }
 
@@ -157,11 +163,13 @@ public final class OrganizationInput {
         public static final class Builder {
             private String standingContext;
             private boolean memoryEnabled;
+            private ResourceRef defaultEnvironmentRef;
 
             private Builder() {}
 
             public Builder standingContext(String standingContext) { this.standingContext = standingContext; return this; }
             public Builder memoryEnabled(boolean memoryEnabled) { this.memoryEnabled = memoryEnabled; return this; }
+            public Builder defaultEnvironmentRef(ResourceRef defaultEnvironmentRef) { this.defaultEnvironmentRef = defaultEnvironmentRef; return this; }
 
             public OrganizationPreferencesInput build() { return new OrganizationPreferencesInput(this); }
         }

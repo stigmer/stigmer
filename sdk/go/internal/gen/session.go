@@ -254,6 +254,7 @@ type SessionInput struct {
 	IncludeMyVault   bool
 	Plugins          []ResourceRef
 	FileReview       bool
+	EnvironmentRef   ResourceRef
 }
 
 func (i *SessionInput) toProto() (*sessionv1.Session, error) {
@@ -304,6 +305,11 @@ func (i *SessionInput) toProto() (*sessionv1.Session, error) {
 		resource.Spec.Plugins = append(resource.Spec.Plugins, ref)
 	}
 	resource.Spec.FileReview = i.FileReview
+	if i.EnvironmentRef.Org != "" || i.EnvironmentRef.Slug != "" {
+		ref := i.EnvironmentRef.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_environment
+		resource.Spec.EnvironmentRef = ref
+	}
 	return resource, nil
 }
 
@@ -342,6 +348,7 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 			input.Plugins = append(input.Plugins, resourceRefFromProto(r))
 		}
 		input.FileReview = s.GetFileReview()
+		input.EnvironmentRef = resourceRefFromProto(s.GetEnvironmentRef())
 	}
 	return input
 }

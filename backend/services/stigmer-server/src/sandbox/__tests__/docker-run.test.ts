@@ -5,16 +5,22 @@
  * runner settings by value, the server's release only for a release
  * server (stigmer/stigmer#1831), and every credential (the token, the
  * Temporal connection settings, the operator's runner secrets) as a
- * value-less `--env NAME` whose value only the CLI's environment holds.
+ * value-less `--env NAME` whose value only the CLI's environment holds;
+ * a session's Environment as `--env STIGMER_SANDBOX_ENVIRONMENT=<json>`
+ * (the runner's half) only when it has one, and the driver installs an
+ * Environment's packages but cannot limit a container's network.
  */
 import { describe, expect, it } from "vitest";
 
-import { buildDockerRun } from "../docker.js";
+import { createLogger } from "../../boot/logger.js";
+import { buildDockerRun, newDockerSandboxProvisioner } from "../docker.js";
+import { runnerEnvironmentOf } from "../environment.js";
 import { sandboxBaseName } from "../naming.js";
-import type { SandboxDriverConfig } from "../provisioner.js";
+import type { EnvironmentFacts, SandboxDriverConfig } from "../provisioner.js";
 import {
   RUNNER_HOME,
   RUNNER_UID,
+  SANDBOX_ENVIRONMENT_ENV,
   SERVER_RELEASE_ENV,
   runnerCommand,
 } from "../runner-launch.js";
@@ -116,5 +122,43 @@ describe("buildDockerRun", () => {
     expect(args).toContain(
       "STIGMER_MCP_PUBLIC_ENDPOINT=https://api.example.com",
     );
+  });
+});
+
+describe("a session's Environment", () => {
+  const environment: EnvironmentFacts = {
+    id: "env_1",
+    network: {
+      mode: "limited",
+      hosts: [{ host: "example.com", cleartext: false }],
+    },
+    packages: { apt: ["ripgrep"], cargo: [], gem: [], go: [], npm: ["typescript"], pip: [] },
+  };
+
+  it("rides argv as the runner's half in JSON, before the image, only when the sandbox has one", () => {
+    const { args } = buildDockerRun("session", "ses_1", { ...env, environment }, config);
+    const set = args.filter((arg) => arg.startsWith(`${SANDBOX_ENVIRONMENT_ENV}=`));
+    expect(set).toHaveLength(1);
+    const [entry] = set;
+    expect(args[args.indexOf(entry ?? "") - 1]).toBe("--env");
+    expect(args.indexOf(entry ?? "")).toBeLessThan(args.indexOf(config.runnerImage));
+    expect(JSON.parse((entry ?? "").slice(SANDBOX_ENVIRONMENT_ENV.length + 1))).toEqual(
+      runnerEnvironmentOf(environment),
+    );
+    expect(args.join(" ")).not.toContain("example.com");
+
+    const none = buildDockerRun("session", "ses_1", env, config).args;
+    expect(none.filter((arg) => arg.includes(SANDBOX_ENVIRONMENT_ENV))).toEqual([]);
+  });
+
+  it("installs packages but cannot limit a container's network", () => {
+    const provisioner = newDockerSandboxProvisioner({
+      config,
+      logger: createLogger({ level: "error", pretty: false, write: () => {} }),
+    });
+    expect(provisioner.environmentSupport).toEqual({
+      limitedNetworking: false,
+      packages: true,
+    });
   });
 });

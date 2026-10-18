@@ -20,6 +20,8 @@
 import { create, type DescMessage, type Message } from "@bufbuild/protobuf";
 import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { ListChannelsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
+import { EnvironmentSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+import { ListEnvironmentsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/io_pb";
 import { ChannelAppSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ListChannelAppsInputSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/io_pb";
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
@@ -157,6 +159,24 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
         schema: RoutineSchema,
         entries,
         table: ROUTINE_TABLE,
+      };
+    },
+  ],
+  [
+    ApiResourceKind.environment,
+    async (client, org, limit, labels) => {
+      // ListEnvironmentsRequest requires an org (min_len 1), as routines' does.
+      await requireOrganization(client, org, [
+        "stigmer list environments --org <org>",
+        "stigmer config context set --org <org>",
+      ]);
+      const entries = await readCursorPages(limit, (pageSize, pageToken) =>
+        client.environment.list(create(ListEnvironmentsRequestSchema, { org, pageSize, pageToken, labels })),
+      );
+      return {
+        schema: EnvironmentSchema,
+        entries,
+        table: ENVIRONMENT_TABLE,
       };
     },
   ],
@@ -463,6 +483,33 @@ const ROUTINE_TABLE: TableShape = {
       str(spec, "time_zone"),
       bool(spec, "enabled") ? "true" : "false",
       str(obj(json, "status"), "paused_reason") === "" ? "active" : "paused",
+    ];
+  },
+};
+
+/** How many entries a protojson list field holds. */
+function count(json: JsonObject, key: string): number {
+  const value = json[key];
+  return Array.isArray(value) ? value.length : 0;
+}
+
+// NETWORK is the enum's JSON name (`limited`, `unrestricted`); HOSTS and
+// PACKAGES are counts, the lists themselves are `get`'s.
+const ENVIRONMENT_TABLE: TableShape = {
+  resourceName: "environments",
+  headers: ["ID", "SLUG", "NETWORK", "HOSTS", "PACKAGES"],
+  row: (json) => {
+    const metadata = obj(json, "metadata");
+    const spec = obj(json, "spec");
+    const networking = obj(spec, "networking");
+    const packages = obj(spec, "packages");
+    const installed = ["apt", "cargo", "gem", "go", "npm", "pip"].reduce((sum, manager) => sum + count(packages, manager), 0);
+    return [
+      str(metadata, "id"),
+      str(metadata, "slug"),
+      str(networking, "type") === "limited" ? "limited" : "unrestricted",
+      String(count(networking, "allowed_hosts")),
+      String(installed),
     ];
   },
 };

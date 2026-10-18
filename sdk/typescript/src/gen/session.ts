@@ -200,6 +200,7 @@ export interface SessionInput {
   includeMyVault?: boolean;
   plugins?: ResourceRef[];
   fileReview?: boolean;
+  environmentRef?: ResourceRef;
 }
 
 /** SDK input type for WorkspaceEntry. */
@@ -269,6 +270,7 @@ export function buildSessionProto(input: SessionInput): Session {
   const skillRefs = input.skillRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
   const vaults = input.vaults?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 59 }));
   const plugins = input.plugins?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 58 }));
+  const environmentRef = (input.environmentRef?.slug || input.environmentRef?.org || input.environmentRef?.id) ? create(ApiResourceReferenceSchema, { ...input.environmentRef, kind: 67 }) : undefined;
   return Object.assign(create(SessionSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Session",
@@ -293,6 +295,7 @@ export function buildSessionProto(input: SessionInput): Session {
       includeMyVault: input.includeMyVault,
       plugins,
       fileReview: input.fileReview,
+      environmentRef,
     })),
   }) as Session;
 }
@@ -363,5 +366,6 @@ export function toSessionInput(resource: Session): SessionInput {
     includeMyVault: spec.includeMyVault || undefined,
     plugins: toResourceRefInputs(spec.plugins),
     fileReview: spec.fileReview || undefined,
+    environmentRef: toResourceRefInput(spec.environmentRef),
   };
 }

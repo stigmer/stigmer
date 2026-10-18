@@ -58,9 +58,13 @@ type AgentInvocation struct {
 	// Per-invocation model choice and run bounds. Unset fields fall to the
 	// agent's defaults, then to the lane's operator profile (RunConfig has the
 	// rule).
-	RunConfig     *RunConfig `protobuf:"bytes,6,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	RunConfig *RunConfig `protobuf:"bytes,6,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
+	// The Environment the conversations this invocation starts run in: the
+	// packages their sandboxes get and the websites they may reach. Unset:
+	// the agent's default, else the organization's.
+	EnvironmentRef *apiresource.ApiResourceReference `protobuf:"bytes,8,opt,name=environment_ref,json=environmentRef,proto3" json:"environment_ref,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *AgentInvocation) Reset() {
@@ -131,6 +135,13 @@ func (x *AgentInvocation) GetVaults() []*apiresource.ApiResourceReference {
 func (x *AgentInvocation) GetRunConfig() *RunConfig {
 	if x != nil {
 		return x.RunConfig
+	}
+	return nil
+}
+
+func (x *AgentInvocation) GetEnvironmentRef() *apiresource.ApiResourceReference {
+	if x != nil {
+		return x.EnvironmentRef
 	}
 	return nil
 }
@@ -310,7 +321,7 @@ var File_ai_stigmer_agentic_run_v1_invocation_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_invocation_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/run/v1/invocation.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xbd\x05\n" +
+	"*ai/stigmer/agentic/run/v1/invocation.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xa2\x06\n" +
 	"\x0fAgentInvocation\x12]\n" +
 	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\n" +
 	"\xbaH\x03\xc8\x01\x01\xe0\x85,(R\bagentRef\x12$\n" +
@@ -321,7 +332,8 @@ const file_ai_stigmer_agentic_run_v1_invocation_proto_rawDesc = "" +
 	"\x1aworkspace_entries.no_token\x12_a repository here cannot carry a token: save it as a connection in a vault the invocation names\x1a>!has(this.source.git_repo) || this.source.git_repo.token == ''R\x10workspaceEntries\x12Z\n" +
 	"\x06vaults\x18\a \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\f\xbaH\x05\x92\x01\x02\x10\x14\xe0\x85,;R\x06vaults\x12C\n" +
 	"\n" +
-	"run_config\x18\x06 \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfigJ\x04\b\x05\x10\x06R\x10environment_refs\"\xf6\x02\n" +
+	"run_config\x18\x06 \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig\x12c\n" +
+	"\x0fenvironment_ref\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,CR\x0eenvironmentRefJ\x04\b\x05\x10\x06R\x10environment_refs\"\xf6\x02\n" +
 	"\tRunConfig\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x01 \x01(\tR\tmodelName\x120\n" +
@@ -361,13 +373,14 @@ var file_ai_stigmer_agentic_run_v1_invocation_proto_depIdxs = []int32{
 	4, // 2: ai.stigmer.agentic.run.v1.AgentInvocation.workspace_entries:type_name -> ai.stigmer.agentic.session.v1.WorkspaceEntry
 	2, // 3: ai.stigmer.agentic.run.v1.AgentInvocation.vaults:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	1, // 4: ai.stigmer.agentic.run.v1.AgentInvocation.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
-	5, // 5: ai.stigmer.agentic.run.v1.RunConfig.service_tier:type_name -> ai.stigmer.agentic.run.v1.ServiceTier
-	6, // 6: ai.stigmer.agentic.run.v1.RunConfig.thinking_mode:type_name -> ai.stigmer.agentic.run.v1.ThinkingMode
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	2, // 5: ai.stigmer.agentic.run.v1.AgentInvocation.environment_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	5, // 6: ai.stigmer.agentic.run.v1.RunConfig.service_tier:type_name -> ai.stigmer.agentic.run.v1.ServiceTier
+	6, // 7: ai.stigmer.agentic.run.v1.RunConfig.thinking_mode:type_name -> ai.stigmer.agentic.run.v1.ThinkingMode
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_run_v1_invocation_proto_init() }

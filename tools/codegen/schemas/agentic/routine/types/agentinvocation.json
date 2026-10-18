@@ -90,6 +90,18 @@
       },
       "description": "Per-invocation model choice and run bounds. Unset fields fall to the\n agent's defaults, then to the lane's operator profile (RunConfig has the\n rule).",
       "required": false
+    },
+    {
+      "name": "EnvironmentRef",
+      "jsonName": "environmentRef",
+      "protoField": "environment_ref",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceReference"
+      },
+      "description": "The Environment the conversations this invocation starts run in: the\n packages their sandboxes get and the websites they may reach. Unset:\n the agent's default, else the organization's.",
+      "required": false,
+      "referenceKind": 67
     }
   ]
 }

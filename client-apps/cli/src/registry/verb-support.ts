@@ -96,6 +96,13 @@ export const VERB_SUPPORT: ReadonlyMap<
     ApiResourceKind.routine,
     new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),
   ],
+  // An Environment is a manifest like an agent: applied, read, listed and
+  // deleted by the generic verbs (a delete is refused while an agent, a
+  // routine or the organization's default names it).
+  [
+    ApiResourceKind.environment,
+    new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete]),
+  ],
   // Session list is served by its dedicated query RPC (a LIST_HANDLERS
   // entry); stigmer/stigmer#469 promoted it into the matrix after it shipped
   // working-but-unadvertised through a pre-gate bypass. get/delete remain

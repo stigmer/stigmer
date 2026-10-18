@@ -3,11 +3,16 @@
  * and hands it the runner's secrets, through Substrate's router.
  *
  * The contract is the runner's attach waiter (runner src/attach/push.ts
- * and waiter.ts): `POST /attach` with `{ taskQueue, secrets }`, routed by
+ * and waiter.ts): `POST /attach` with `{ taskQueue, secrets }`, plus the
+ * session's Environment as `environment` when it has one (the runner's half,
+ * sandbox/environment.ts), routed by
  * the `ate-target-actor: <atespace>/<actor>` header to the actor's port
  * 80. The waiter accepts a queue only when the sandbox's own name is the
  * one derived from it, starts the runner on the first push, and on later
- * pushes only rotates the token the runner would restart with. Every
+ * pushes only rotates the token the runner would restart with. A later
+ * push's Environment is accepted and not applied: the running sandbox keeps
+ * what it installed, and an edit takes effect at its next fresh start, so
+ * an Environment edit never fails an ensure the way changed secrets do. Every
  * refusal carries a stable `code`, which the driver acts on; the `error`
  * text is for people.
  *
@@ -40,6 +45,7 @@ import * as http from "node:http";
 import * as https from "node:https";
 import type { Socket } from "node:net";
 
+import type { RunnerEnvironment } from "../environment.js";
 import type { SubstrateDriverSettings } from "./config.js";
 import { delay } from "./delay.js";
 
@@ -329,6 +335,8 @@ export interface PushRequest {
   readonly actor: string;
   readonly taskQueue: string;
   readonly secrets: Readonly<Record<string, string>>;
+  /** The runner's half of the session's Environment; absent for none. */
+  readonly environment?: RunnerEnvironment;
 }
 
 /** How long the router may stay unready before a push fails. */
@@ -351,6 +359,7 @@ export async function pushAttach(
   const body = JSON.stringify({
     taskQueue: request.taskQueue,
     secrets: request.secrets,
+    ...(request.environment !== undefined ? { environment: request.environment } : {}),
   });
 
   for (;;) {

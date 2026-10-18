@@ -55,6 +55,8 @@ import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb
 import { ExecutionTarget } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { Logger } from "../../boot/logger.js";
+import type { Authorizer } from "../../extensions/authorizer.js";
+import type { CallerIdentity } from "../../extensions/identity.js";
 import { goWrappedStatusError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { Store } from "../../store/interface.js";
@@ -62,7 +64,10 @@ import type { VaultResolver } from "../vault/resolve.js";
 import { runPersonOfCaller } from "../vault/resolve.js";
 
 import type { AgentLoader } from "./create-steps.js";
+import { admitEnvironment, loadSessionEnvironment } from "./environment-admission.js";
+import type { EnvironmentPolicy } from "./environment-admission.js";
 import { refuseLocalPrograms } from "./local-programs.js";
+import { runServers } from "./run-servers.js";
 import type { LocalProgramPolicy } from "./local-programs.js";
 import { loadRunPlugins, runPluginReferences } from "./run-plugins.js";
 import { runSubagents } from "./run-subagents.js";
@@ -88,6 +93,11 @@ export interface RunValuePlannerDeps {
   readonly vaultResolver: VaultResolver;
   /** Where a plugin's local program cannot start; absent refuses nothing (local-programs.ts). */
   readonly localPrograms?: LocalProgramPolicy;
+  /**
+   * The Environment rule and the authorizer its turn-time view check asks
+   * (environment-admission.ts); absent refuses nothing.
+   */
+  readonly environments?: { readonly policy: EnvironmentPolicy; readonly authorizer: Authorizer };
 }
 
 /**
@@ -133,7 +143,7 @@ export function newPlanRunValuesStep(
     name: "PlanRunValues",
     async execute(ctx) {
       const execution = ctx.newState;
-      const sources = await planRunValues(deps, execution);
+      const sources = await planRunValues(deps, execution, ctx.callerIdentity);
       (execution.status ??= create(RunStatusSchema)).credentials ??= create(RunCredentialsSchema);
       execution.status.credentials.sources = sources;
     },
@@ -148,6 +158,7 @@ export function newPlanRunValuesStep(
 export async function planRunValues(
   deps: RunValuePlannerDeps,
   execution: Run,
+  caller?: CallerIdentity,
 ): Promise<RunValueSource[]> {
   const executionId = execution.metadata?.id ?? "";
   const executionOrg = execution.metadata?.org ?? "";
@@ -178,6 +189,22 @@ export async function planRunValues(
     execution.spec?.excludedPluginIds,
   );
   refuseLocalPrograms(deps.localPrograms, session.spec?.executionTarget ?? ExecutionTarget.UNSPECIFIED, plugins);
+  if (deps.environments !== undefined) {
+    await admitEnvironment({
+      policy: deps.environments.policy,
+      session,
+      environment: await loadSessionEnvironment(deps.store, session),
+      servers: runServers({
+        agent:
+          agentSpec === undefined
+            ? undefined
+            : { id: agentId, name: agentName, version: execution.status?.agentVersionHash ?? "", spec: agentSpec },
+        subagents,
+        plugins,
+      }),
+      ...(caller !== undefined ? { viewer: { authorizer: deps.environments.authorizer, caller } } : {}),
+    });
+  }
 
   const sources = await deps.vaultResolver.planRun({
     execution,

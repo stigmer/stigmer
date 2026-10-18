@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.environment.v1;
+
+import "ai/stigmer/agentic/environment/v1/spec.proto";
+import "ai/stigmer/agentic/environment/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// Environment is a named sandbox setup: the packages installed in every
+// sandbox a conversation using it runs in, and the websites it may reach.
+//
+// A conversation uses the Environment it names, else the one a routine
+// names for its runs, else its agent's default, else its organization's
+// default. It holds no secret, no variable and no image.
+//
+// @internal
+// Organization-scoped kind (67, prefix env; number 53 and the old
+// Environment's variables-and-secrets shape stay retired). Only a sandbox
+// the server starts can honour one: the server resolves it once per
+// conversation (SessionStatus.environment), re-reads its contents at every
+// sandbox start, and each sandbox driver states whether it can install
+// packages and limit networking (SandboxProvisioner.environmentSupport), so
+// an Environment a driver cannot serve is refused when saved, at session
+// create and at each turn.
+message Environment {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Environment'];
+
+  // Resource metadata including name, organization, visibility and labels.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // The packages to install and the network access to allow.
+  EnvironmentSpec spec = 4;
+
+  // System-managed state: the audit trail.
+  EnvironmentStatus status = 5;
+}

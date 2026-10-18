@@ -216,6 +216,7 @@ describe("toAgentInput", () => {
         disallowedTools: ["mcp__plugin_github_github__delete_repo"],
         runConfig: RUN_CONFIG,
         harness: Harness.NATIVE,
+        environmentRef: { org: "acme", slug: "data-science", kind: ApiResourceKind.environment },
         mcpServers: [
           {
             name: "zendesk",
@@ -690,7 +691,10 @@ describe("toOrganizationInput (tripwire)", () => {
         logoUrl: "https://acme.example/logo.png",
         externalId: "cust-4411",
         parentOrg: "org_01jaaaaaaaaaaaaaaaaaaaaaaa",
-        preferences: { standingContext: "We deploy to us-east-1." },
+        preferences: {
+          standingContext: "We deploy to us-east-1.",
+          defaultEnvironmentRef: { org: "acme", slug: "data-science", kind: ApiResourceKind.environment },
+        },
         policies: { membersCanCreateAgents: true },
         embedding: {
           allowedOrigins: ["https://app.acme.example"],
@@ -732,6 +736,7 @@ describe("toRoutineInput", () => {
             { org: "acme", slug: "prod", kind: ApiResourceKind.vault },
           ],
           runConfig: RUN_CONFIG,
+          environmentRef: { org: "acme", slug: "data-science", kind: ApiResourceKind.environment },
         },
       },
     });
@@ -777,6 +782,7 @@ describe("toSessionInput", () => {
         vaults: [{ org: "acme", slug: "customer-1234", kind: ApiResourceKind.vault }],
         includeMyVault: true,
         fileReview: true,
+        environmentRef: { org: "acme", slug: "data-science", kind: ApiResourceKind.environment },
       },
     });
 

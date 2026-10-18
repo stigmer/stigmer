@@ -5,7 +5,10 @@
  *
  * A push carries the per-sandbox half of what a sandbox pod receives at
  * start: the queue it serves (`STIGMER_TASK_QUEUE`) and the runner's secret
- * values (`RUNNER_SECRET_ENV_KEYS`). Everything per-target and non-secret
+ * values (`RUNNER_SECRET_ENV_KEYS`), and, when the session has one, its
+ * Environment (`environment`, the runner's half: network mode and packages,
+ * `environment/spec.ts`), which reaches the runner as
+ * `STIGMER_SANDBOX_ENVIRONMENT`. Everything per-target and non-secret
  * belongs in the sandbox's own environment instead, including the Temporal
  * connection settings a pod's Secret also carries but that are not secrets
  * (the server's CA, a client certificate, the server name); and nothing
@@ -17,7 +20,8 @@
  *
  *   1. Shape. A JSON object with a string `taskQueue` and a `secrets` object
  *      of strings whose names are all in `RUNNER_SECRET_ENV_KEYS`: the push
- *      cannot set any other environment variable of the runner.
+ *      cannot set any other environment variable of the runner. An
+ *      `environment`, when present, passes `parseSandboxEnvironment`.
  *   2. Binding. The queue names one scope and one id (`session:`,
  *      `mcpconnect:`), and the sandbox serving it must be the one the server
  *      names for that scope and id: `sbx-<code>-<first 12 hex of sha256(id)>`,
@@ -44,6 +48,7 @@
 import { createHash } from "node:crypto";
 import { RUNNER_SECRET_ENV_KEYS } from "../shared/runner-credential-keys.js";
 import { expiryClaimOf, isJwtShaped } from "../client/token-claims.js";
+import { parseSandboxEnvironment, type SandboxEnvironment } from "../environment/spec.js";
 
 /** The queue kinds a sandbox serves, with the server's scope codes for each. */
 const QUEUE_KINDS = [
@@ -57,6 +62,7 @@ const SECRET_NAMES: ReadonlySet<string> = new Set(RUNNER_SECRET_ENV_KEYS);
 export interface AttachPush {
   readonly taskQueue: string;
   readonly secrets: Readonly<Record<string, string>>;
+  readonly environment?: SandboxEnvironment;
 }
 
 /**
@@ -116,7 +122,7 @@ export function verifyAttachPush(
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
     return refuse(400, "malformed", "the push must be a JSON object");
   }
-  const { taskQueue, secrets } = body as Record<string, unknown>;
+  const { taskQueue, secrets, environment } = body as Record<string, unknown>;
   if (typeof taskQueue !== "string" || taskQueue === "") {
     return refuse(400, "malformed", "taskQueue must be a non-empty string");
   }
@@ -142,6 +148,13 @@ export function verifyAttachPush(
     accepted[name] = value;
   }
 
+  let sandboxEnvironment: SandboxEnvironment | undefined;
+  if (environment !== undefined) {
+    const parsed = parseSandboxEnvironment(environment);
+    if (!parsed.ok) return refuse(400, "malformed", parsed.reason);
+    sandboxEnvironment = parsed.environment;
+  }
+
   const expected = sandboxNameForQueue(taskQueue);
   if (expected === undefined) {
     return refuse(403, "binding", `${taskQueue} is not a queue a sandbox serves`);
@@ -161,5 +174,8 @@ export function verifyAttachPush(
     }
   }
 
-  return { ok: true, push: { taskQueue, secrets: accepted } };
+  return {
+    ok: true,
+    push: { taskQueue, secrets: accepted, ...(sandboxEnvironment !== undefined ? { environment: sandboxEnvironment } : {}) },
+  };
 }

@@ -862,6 +862,68 @@ java.lang.String defaultValue) {
     return fileReview_;
   }
 
+  public static final int ENVIRONMENT_REF_FIELD_NUMBER = 21;
+  private ai.stigmer.commons.apiresource.ApiResourceReference environmentRef_;
+  /**
+   * <pre>
+   * The Environment this conversation runs in: the packages its sandboxes
+   * get and the websites they may reach. Unset: its routine's, else its
+   * agent's default, else its organization's (status.environment records
+   * which applied).
+   *
+   * Fixed once a turn has run. A conversation on the person's own machine
+   * (the desktop app, the CLI) refuses one, since its sandbox is that
+   * machine. Naming one needs permission to view it, and every turn asks
+   * it again.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   * @return Whether the environmentRef field is set.
+   */
+  @java.lang.Override
+  public boolean hasEnvironmentRef() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * The Environment this conversation runs in: the packages its sandboxes
+   * get and the websites they may reach. Unset: its routine's, else its
+   * agent's default, else its organization's (status.environment records
+   * which applied).
+   *
+   * Fixed once a turn has run. A conversation on the person's own machine
+   * (the desktop app, the CLI) refuses one, since its sandbox is that
+   * machine. Naming one needs permission to view it, and every turn asks
+   * it again.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   * @return The environmentRef.
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRef() {
+    return environmentRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : environmentRef_;
+  }
+  /**
+   * <pre>
+   * The Environment this conversation runs in: the packages its sandboxes
+   * get and the websites they may reach. Unset: its routine's, else its
+   * agent's default, else its organization's (status.environment records
+   * which applied).
+   *
+   * Fixed once a turn has run. A conversation on the person's own machine
+   * (the desktop app, the CLI) refuses one, since its sandbox is that
+   * machine. Naming one needs permission to view it, and every turn asks
+   * it again.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefOrBuilder() {
+    return environmentRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : environmentRef_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -914,6 +976,9 @@ java.lang.String defaultValue) {
     }
     if (fileReview_ != false) {
       output.writeBool(20, fileReview_);
+    }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(21, getEnvironmentRef());
     }
     getUnknownFields().writeTo(output);
   }
@@ -997,6 +1062,10 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(20, fileReview_);
     }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(21, getEnvironmentRef());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1036,6 +1105,11 @@ java.lang.String defaultValue) {
         .equals(other.getPluginsList())) return false;
     if (getFileReview()
         != other.getFileReview()) return false;
+    if (hasEnvironmentRef() != other.hasEnvironmentRef()) return false;
+    if (hasEnvironmentRef()) {
+      if (!getEnvironmentRef()
+          .equals(other.getEnvironmentRef())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1085,6 +1159,10 @@ java.lang.String defaultValue) {
     hash = (37 * hash) + FILE_REVIEW_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getFileReview());
+    if (hasEnvironmentRef()) {
+      hash = (37 * hash) + ENVIRONMENT_REF_FIELD_NUMBER;
+      hash = (53 * hash) + getEnvironmentRef().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1246,6 +1324,7 @@ java.lang.String defaultValue) {
         internalGetSkillRefsFieldBuilder();
         internalGetVaultsFieldBuilder();
         internalGetPluginsFieldBuilder();
+        internalGetEnvironmentRefFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1292,6 +1371,11 @@ java.lang.String defaultValue) {
       }
       bitField0_ = (bitField0_ & ~0x00000400);
       fileReview_ = false;
+      environmentRef_ = null;
+      if (environmentRefBuilder_ != null) {
+        environmentRefBuilder_.dispose();
+        environmentRefBuilder_ = null;
+      }
       return this;
     }
 
@@ -1393,6 +1477,12 @@ java.lang.String defaultValue) {
       }
       if (((from_bitField0_ & 0x00000800) != 0)) {
         result.fileReview_ = fileReview_;
+      }
+      if (((from_bitField0_ & 0x00001000) != 0)) {
+        result.environmentRef_ = environmentRefBuilder_ == null
+            ? environmentRef_
+            : environmentRefBuilder_.build();
+        to_bitField0_ |= 0x00000002;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1539,6 +1629,9 @@ java.lang.String defaultValue) {
       if (other.getFileReview() != false) {
         setFileReview(other.getFileReview());
       }
+      if (other.hasEnvironmentRef()) {
+        mergeEnvironmentRef(other.getEnvironmentRef());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1663,6 +1756,13 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000800;
               break;
             } // case 160
+            case 170: {
+              input.readMessage(
+                  internalGetEnvironmentRefFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00001000;
+              break;
+            } // case 170
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -4449,6 +4549,235 @@ java.lang.String defaultValue) {
       fileReview_ = false;
       onChanged();
       return this;
+    }
+
+    private ai.stigmer.commons.apiresource.ApiResourceReference environmentRef_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> environmentRefBuilder_;
+    /**
+     * <pre>
+     * The Environment this conversation runs in: the packages its sandboxes
+     * get and the websites they may reach. Unset: its routine's, else its
+     * agent's default, else its organization's (status.environment records
+     * which applied).
+     *
+     * Fixed once a turn has run. A conversation on the person's own machine
+     * (the desktop app, the CLI) refuses one, since its sandbox is that
+     * machine. Naming one needs permission to view it, and every turn asks
+     * it again.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     * @return Whether the environmentRef field is set.
+     */
+    public boolean hasEnvironmentRef() {
+      return ((bitField0_ & 0x00001000) != 0);
+    }
+    /**
+     * <pre>
+     * The Environment this conversation runs in: the packages its sandboxes
+     * get and the websites they may reach. Unset: its routine's, else its
+     * agent's default, else its organization's (status.environment records
+     * which applied).
+     *
+     * Fixed once a turn has run. A conversation on the person's own machine
+     * (the desktop app, the CLI) refuses one, since its sandbox is that
+     * machine. Naming one needs permission to view it, and every turn asks
+     * it again.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     * @return The environmentRef.
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRef() {
+      if (environmentRefBuilder_ == null) {
+        return environmentRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : environmentRef_;
+      } else {
+        return environmentRefBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * The Environment this conversation runs in: the packages its sandboxes
+     * get and the websites they may reach. Unset: its routine's, else its
+     * agent's default, else its organization's (status.environment records
+     * which applied).
+     *
+     * Fixed once a turn has run. A conversation on the person's own machine
+     * (the desktop app, the CLI) refuses one, since its sandbox is that
+     * machine. Naming one needs permission to view it, and every turn asks
+     * it again.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    public Builder setEnvironmentRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (environmentRefBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        environmentRef_ = value;
+      } else {
+        environmentRefBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The Environment this conversation runs in: the packages its sandboxes
+     * get and the websites they may reach. Unset: its routine's, else its
+     * agent's default, else its organization's (status.environment records
+     * which applied).
+     *
+     * Fixed once a turn has run. A conversation on the person's own machine
+     * (the desktop app, the CLI) refuses one, since its sandbox is that
+     * machine. Naming one needs permission to view it, and every turn asks
+     * it again.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    public Builder setEnvironmentRef(
+        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (environmentRefBuilder_ == null) {
+        environmentRef_ = builderForValue.build();
+      } else {
+        environmentRefBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The Environment this conversation runs in: the packages its sandboxes
+     * get and the websites they may reach. Unset: its routine's, else its
+     * agent's default, else its organization's (status.environment records
+     * which applied).
+     *
+     * Fixed once a turn has run. A conversation on the person's own machine
+     * (the desktop app, the CLI) refuses one, since its sandbox is that
+     * machine. Naming one needs permission to view it, and every turn asks
+     * it again.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    public Builder mergeEnvironmentRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (environmentRefBuilder_ == null) {
+        if (((bitField0_ & 0x00001000) != 0) &&
+          environmentRef_ != null &&
+          environmentRef_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
+          getEnvironmentRefBuilder().mergeFrom(value);
+        } else {
+          environmentRef_ = value;
+        }
+      } else {
+        environmentRefBuilder_.mergeFrom(value);
+      }
+      if (environmentRef_ != null) {
+        bitField0_ |= 0x00001000;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The Environment this conversation runs in: the packages its sandboxes
+     * get and the websites they may reach. Unset: its routine's, else its
+     * agent's default, else its organization's (status.environment records
+     * which applied).
+     *
+     * Fixed once a turn has run. A conversation on the person's own machine
+     * (the desktop app, the CLI) refuses one, since its sandbox is that
+     * machine. Naming one needs permission to view it, and every turn asks
+     * it again.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    public Builder clearEnvironmentRef() {
+      bitField0_ = (bitField0_ & ~0x00001000);
+      environmentRef_ = null;
+      if (environmentRefBuilder_ != null) {
+        environmentRefBuilder_.dispose();
+        environmentRefBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The Environment this conversation runs in: the packages its sandboxes
+     * get and the websites they may reach. Unset: its routine's, else its
+     * agent's default, else its organization's (status.environment records
+     * which applied).
+     *
+     * Fixed once a turn has run. A conversation on the person's own machine
+     * (the desktop app, the CLI) refuses one, since its sandbox is that
+     * machine. Naming one needs permission to view it, and every turn asks
+     * it again.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getEnvironmentRefBuilder() {
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return internalGetEnvironmentRefFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * The Environment this conversation runs in: the packages its sandboxes
+     * get and the websites they may reach. Unset: its routine's, else its
+     * agent's default, else its organization's (status.environment records
+     * which applied).
+     *
+     * Fixed once a turn has run. A conversation on the person's own machine
+     * (the desktop app, the CLI) refuses one, since its sandbox is that
+     * machine. Naming one needs permission to view it, and every turn asks
+     * it again.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefOrBuilder() {
+      if (environmentRefBuilder_ != null) {
+        return environmentRefBuilder_.getMessageOrBuilder();
+      } else {
+        return environmentRef_ == null ?
+            ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : environmentRef_;
+      }
+    }
+    /**
+     * <pre>
+     * The Environment this conversation runs in: the packages its sandboxes
+     * get and the websites they may reach. Unset: its routine's, else its
+     * agent's default, else its organization's (status.environment records
+     * which applied).
+     *
+     * Fixed once a turn has run. A conversation on the person's own machine
+     * (the desktop app, the CLI) refuses one, since its sandbox is that
+     * machine. Naming one needs permission to view it, and every turn asks
+     * it again.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+        internalGetEnvironmentRefFieldBuilder() {
+      if (environmentRefBuilder_ == null) {
+        environmentRefBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
+                getEnvironmentRef(),
+                getParentForChildren(),
+                isClean());
+        environmentRef_ = null;
+      }
+      return environmentRefBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.SessionSpec)

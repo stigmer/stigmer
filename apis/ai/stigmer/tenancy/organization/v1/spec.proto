@@ -215,6 +215,21 @@ message OrganizationPreferences {
   // OSS local mode: this flag alone governs (single user,
   // no account scope).
   bool memory_enabled = 2;
+
+  // The Environment a conversation in this organization runs in when
+  // neither the conversation, its routine nor its agent names one: the
+  // packages its sandboxes get and the websites they may reach.
+  //
+  // A default, not a bound: a member may name any Environment they can
+  // see for a conversation. A conversation on the person's own machine (the
+  // desktop app, the CLI) ignores it.
+  //
+  // @internal
+  // Resolved at session create into SessionStatus.environment with source
+  // organization, only for a conversation whose sandbox this server starts.
+  // Naming it needs can_view on the Environment; the admin who saves it
+  // vouches for it, so a turn does not ask again.
+  ai.stigmer.commons.apiresource.ApiResourceReference default_environment_ref = 3 [(ai.stigmer.commons.apiresource.reference_kind) = environment];
 }
 
 // OrganizationPolicies holds what an organization lets its members do.

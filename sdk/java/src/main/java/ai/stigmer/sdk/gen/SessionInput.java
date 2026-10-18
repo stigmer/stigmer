@@ -36,6 +36,7 @@ public final class SessionInput {
     private final boolean includeMyVault;
     private final java.util.List<ResourceRef> plugins;
     private final boolean fileReview;
+    private final ResourceRef environmentRef;
 
     private SessionInput(Builder builder) {
         this.id = builder.id;
@@ -56,6 +57,7 @@ public final class SessionInput {
         this.includeMyVault = builder.includeMyVault;
         this.plugins = builder.plugins;
         this.fileReview = builder.fileReview;
+        this.environmentRef = builder.environmentRef;
     }
 
     Session toProto() {
@@ -104,6 +106,10 @@ public final class SessionInput {
             }
         }
         spec.setFileReview(this.fileReview);
+        if (this.environmentRef != null && this.environmentRef.hasIdentifier()) {
+            spec.setEnvironmentRef(this.environmentRef.toProto().toBuilder()
+                .setKind(ApiResourceKind.environment).build());
+        }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
         if (this.org != null) {
@@ -150,6 +156,7 @@ public final class SessionInput {
         private boolean includeMyVault;
         private java.util.List<ResourceRef> plugins;
         private boolean fileReview;
+        private ResourceRef environmentRef;
 
         private Builder() {}
 
@@ -176,6 +183,7 @@ public final class SessionInput {
         public Builder includeMyVault(boolean includeMyVault) { this.includeMyVault = includeMyVault; return this; }
         public Builder plugins(java.util.List<ResourceRef> plugins) { this.plugins = plugins; return this; }
         public Builder fileReview(boolean fileReview) { this.fileReview = fileReview; return this; }
+        public Builder environmentRef(ResourceRef environmentRef) { this.environmentRef = environmentRef; return this; }
 
         public SessionInput build() { return new SessionInput(this); }
     }

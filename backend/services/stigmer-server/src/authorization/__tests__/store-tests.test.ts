@@ -55,6 +55,7 @@ const DOCUMENTS = [
   "channel-participation.fga.yaml",
   "channel-session-visibility.fga.yaml",
   "child-organizations.fga.yaml",
+  "environment-access.fga.yaml",
   "eval-access.fga.yaml",
   "eval-run-agent-access.fga.yaml",
   "eval-run-plugin-access.fga.yaml",

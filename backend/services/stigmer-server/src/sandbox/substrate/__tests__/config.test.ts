@@ -1,13 +1,18 @@
 /**
  * Pins the substrate driver's settings (config.ts): the required values,
  * the defaults, the router's CA and server name (only for an https://
- * router), the parsing of the selector and the extra destinations,
- * and the two rules the idle windows must keep (a pause before a suspend;
+ * router), the parsing of the selector and the extra destinations, the
+ * platform HTTPS hosts (EGRESS_HTTPS_PLATFORM, parseHosts: lower-cased,
+ * each once, a scheme, port, path or pattern refused), and the two rules the idle windows must keep (a pause before a suspend;
  * no pause longer than a paused runner can sleep and renew).
  */
 import { describe, expect, it } from "vitest";
 
-import { newSubstrateSettingsFromEnv, validateWindows } from "../config.js";
+import {
+  newSubstrateSettingsFromEnv,
+  parseHosts,
+  validateWindows,
+} from "../config.js";
 
 const base: NodeJS.ProcessEnv = {
   STIGMER_SANDBOX_SUBSTRATE_API_ENDPOINT: "https://api.ate-system.svc:443",
@@ -34,6 +39,7 @@ describe("newSubstrateSettingsFromEnv", () => {
       sandboxConfigName: "gvisor-default",
       httpsEgress: "all",
       extraHttpEgress: [],
+      platformHttpsHosts: [],
       pauseAfterSeconds: 300,
       suspendAfterSeconds: 330,
       sweepIntervalSeconds: 30,
@@ -153,6 +159,60 @@ describe("newSubstrateSettingsFromEnv", () => {
         STIGMER_SANDBOX_SUBSTRATE_SUSPEND_AFTER_SECONDS: "1.5",
       }),
     ).toThrow(/positive whole number/);
+  });
+});
+
+describe("the platform HTTPS hosts (EGRESS_HTTPS_PLATFORM)", () => {
+  it("are read lower-cased, each once, from the setting", () => {
+    expect(
+      newSubstrateSettingsFromEnv({
+        ...base,
+        STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTPS_PLATFORM:
+          " Vertex.Example.com, proxy.example.com,vertex.example.com., ,",
+      }).platformHttpsHosts,
+    ).toEqual(["vertex.example.com", "proxy.example.com"]);
+  });
+
+  it("refuse a scheme, a port, a path or a pattern, naming the setting", () => {
+    for (const entry of [
+      "https://vertex.example.com",
+      "vertex.example.com:443",
+      "vertex.example.com/v1",
+      "*.example.com",
+      "*",
+      "localhost",
+    ]) {
+      expect(() =>
+        newSubstrateSettingsFromEnv({
+          ...base,
+          STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTPS_PLATFORM: `ok.example.com,${entry}`,
+        }),
+      ).toThrow(
+        `STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTPS_PLATFORM entries are host names, with no scheme, port, path or pattern; got ${entry}`,
+      );
+    }
+  });
+});
+
+describe("parseHosts", () => {
+  it("lower-cases, drops a trailing dot and empty entries, and keeps each host once", () => {
+    expect(parseHosts("")).toEqual([]);
+    expect(parseHosts("A.Example.COM,b.example.com.,a.example.com")).toEqual([
+      "a.example.com",
+      "b.example.com",
+    ]);
+  });
+
+  it("refuses anything that is not a bare host name", () => {
+    for (const entry of [
+      "http://a.example.com",
+      "a.example.com:8443",
+      "a.example.com/path",
+      "*.example.com",
+      "-a.example.com",
+    ]) {
+      expect(() => parseHosts(entry)).toThrow(/no scheme, port, path or pattern/);
+    }
   });
 });
 

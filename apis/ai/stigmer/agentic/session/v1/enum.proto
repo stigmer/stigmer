@@ -55,6 +55,24 @@ enum Harness {
   HARNESS_CURSOR = 2;
 }
 
+// EnvironmentSource names whose choice a conversation's Environment was.
+enum EnvironmentSource {
+  // No Environment applies.
+  ENVIRONMENT_SOURCE_UNSPECIFIED = 0;
+
+  // The conversation named it.
+  ENVIRONMENT_SOURCE_SESSION = 1;
+
+  // The routine whose run started the conversation named it.
+  ENVIRONMENT_SOURCE_ROUTINE = 2;
+
+  // The conversation's agent names it as its default.
+  ENVIRONMENT_SOURCE_AGENT = 3;
+
+  // The organization names it as its default.
+  ENVIRONMENT_SOURCE_ORGANIZATION = 4;
+}
+
 // ExecutionTarget specifies where session activities are executed.
 //
 // Determines whether the runner that processes agent activities lives on the

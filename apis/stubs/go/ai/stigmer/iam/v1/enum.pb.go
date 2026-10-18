@@ -149,6 +149,10 @@ const (
 	// Whether the caller may fire a routine: start a run of it now, with an
 	// optional note. Its owner and the Participants the owner granted.
 	IamPermission_can_fire IamPermission = 59
+	// Whether the caller may create an Environment in an organization: the
+	// packages and network access a conversation's sandbox gets. The
+	// organization's admins.
+	IamPermission_can_create_environment IamPermission = 60
 )
 
 // Enum value maps for IamPermission.
@@ -193,6 +197,7 @@ var (
 		57: "can_mint_user_tokens",
 		58: "can_create_eval",
 		59: "can_fire",
+		60: "can_create_environment",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -234,6 +239,7 @@ var (
 		"can_mint_user_tokens":         57,
 		"can_create_eval":              58,
 		"can_fire":                     59,
+		"can_create_environment":       60,
 	}
 )
 
@@ -445,7 +451,7 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1\x1a google/protobuf/descriptor.proto\"R\n" +
 	"\vIamRoleMeta\x12!\n" +
 	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription*\xcd\v\n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription*\xd1\v\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -486,9 +492,10 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x17can_view_access_history\x108\x12\x18\n" +
 	"\x14can_mint_user_tokens\x109\x12\x13\n" +
 	"\x0fcan_create_eval\x10:\x12\f\n" +
-	"\bcan_fire\x10;\"\x04\b\x18\x10\x18\"\x04\b\x0e\x10\x0e\"\x04\b\a\x10\a\"\x04\b\f\x10\f\"\x04\b\x10\x10\x10\"\x04\b\x16\x10\x16\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b\x1e\x10\x1e\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
+	"\bcan_fire\x10;\x12\x1a\n" +
+	"\x16can_create_environment\x10<\"\x04\b\x18\x10\x18\"\x04\b\x0e\x10\x0e\"\x04\b\a\x10\a\"\x04\b\f\x10\f\"\x04\b\x10\x10\x10\"\x04\b\x16\x10\x16\"\x04\b\x12\x10\x12\"\x04\b\x14\x10\x14\"\x04\b\x19\x10\x19\"\x04\b\x1a\x10\x1a\"\x04\b\x1e\x10\x1e\"\x04\b!\x10!\"\x04\b\"\x10\"\"\x04\b\n" +
 	"\x10\n" +
-	"\"\x04\b#\x10#\"\x04\b&\x10&\"\x04\b'\x10'\"\x04\b+\x10+\"\x04\b,\x10,\"\x04\b.\x10.*\x1acan_create_platform_client*\x13can_create_instance*\x13can_create_workflow*\x16can_create_environment*\x10can_read_secrets*\vcan_connect*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x16can_create_agent_share*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x1acan_manage_cursor_accounts*\x1acan_view_provider_standing*\x19can_set_public_visibility*\x15can_create_mcp_server*\x19can_create_agent_instance*\x12can_manage_credits*\xb7\x04\n" +
+	"\"\x04\b#\x10#\"\x04\b&\x10&\"\x04\b'\x10'\"\x04\b+\x10+\"\x04\b,\x10,\"\x04\b.\x10.*\x1acan_create_platform_client*\x13can_create_instance*\x13can_create_workflow*\x10can_read_secrets*\vcan_connect*\x1ccan_manage_identity_accounts*\x14login_to_back_office*\x11can_create_runner*\x12can_delete_session*\x16can_create_agent_share*\x0fcan_use_records*\x14can_create_datastore*\x12can_create_project*\x1acan_manage_cursor_accounts*\x1acan_view_provider_standing*\x19can_set_public_visibility*\x15can_create_mcp_server*\x19can_create_agent_instance*\x12can_manage_credits*\xb7\x04\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12U\n" +
 	"\x05owner\x10\x01\x1aJ\x8a\xc4,F\n" +

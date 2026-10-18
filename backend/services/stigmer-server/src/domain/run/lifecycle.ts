@@ -765,7 +765,7 @@ function newRePlanRunValuesStep(
 
       let sources: RunValueSource[];
       try {
-        sources = await planRunValues(deps.runValuePlanner, execution);
+        sources = await planRunValues(deps.runValuePlanner, execution, ctx.callerIdentity);
       } catch (error) {
         if (error instanceof ConnectError) {
           throw new ConnectError(

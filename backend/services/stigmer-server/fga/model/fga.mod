@@ -19,6 +19,7 @@ contents:
   - agentic/agent.fga
   - agentic/channel.fga
   - agentic/channel_app.fga
+  - agentic/environment.fga
   - agentic/eval.fga
   - agentic/eval_run.fga
   - agentic/scoring_rule.fga

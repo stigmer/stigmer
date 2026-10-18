@@ -1,3 +1,6 @@
+from ai.stigmer.agentic.session.v1 import enum_pb2 as _enum_pb2
+from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
+from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from ai.stigmer.commons.apiresource import status_pb2 as _status_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
@@ -8,7 +11,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SessionStatus(_message.Message):
-    __slots__ = ("audit", "agent_id", "agent_version_hash", "vault_attachers", "state", "harness_state_id", "harness_state_id_history", "routine_id")
+    __slots__ = ("audit", "agent_id", "agent_version_hash", "vault_attachers", "state", "harness_state_id", "harness_state_id_history", "routine_id", "environment", "environment_source")
     class VaultAttachersEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -24,6 +27,8 @@ class SessionStatus(_message.Message):
     HARNESS_STATE_ID_FIELD_NUMBER: _ClassVar[int]
     HARNESS_STATE_ID_HISTORY_FIELD_NUMBER: _ClassVar[int]
     ROUTINE_ID_FIELD_NUMBER: _ClassVar[int]
+    ENVIRONMENT_FIELD_NUMBER: _ClassVar[int]
+    ENVIRONMENT_SOURCE_FIELD_NUMBER: _ClassVar[int]
     audit: _status_pb2.ApiResourceAudit
     agent_id: str
     agent_version_hash: str
@@ -32,4 +37,6 @@ class SessionStatus(_message.Message):
     harness_state_id: str
     harness_state_id_history: _containers.RepeatedScalarFieldContainer[str]
     routine_id: str
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., agent_id: _Optional[str] = ..., agent_version_hash: _Optional[str] = ..., vault_attachers: _Optional[_Mapping[str, str]] = ..., state: _Optional[str] = ..., harness_state_id: _Optional[str] = ..., harness_state_id_history: _Optional[_Iterable[str]] = ..., routine_id: _Optional[str] = ...) -> None: ...
+    environment: _io_pb2.ApiResourceReference
+    environment_source: _enum_pb2.EnvironmentSource
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., agent_id: _Optional[str] = ..., agent_version_hash: _Optional[str] = ..., vault_attachers: _Optional[_Mapping[str, str]] = ..., state: _Optional[str] = ..., harness_state_id: _Optional[str] = ..., harness_state_id_history: _Optional[_Iterable[str]] = ..., routine_id: _Optional[str] = ..., environment: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., environment_source: _Optional[_Union[_enum_pb2.EnvironmentSource, str]] = ...) -> None: ...

@@ -49,7 +49,10 @@
  *        edition's Authorizer. Vaults carry it with `can_use`: the server
  *        opens a vault for the run, and the run is a person with a shell,
  *        so attaching a vault one may not use would hand its values to
- *        whoever runs the surface. A refusal is PERMISSION_DENIED with its
+ *        whoever runs the surface. Environments carry it with `can_view`:
+ *        whoever names one for a conversation, a routine, an agent's
+ *        default or the organization's default vouches for it, and must be
+ *        able to see what it installs and reaches. A refusal is PERMISSION_DENIED with its
  *        own sentence. Judging only what a write introduces is the
  *        reserved-label guard's echo rule (guard-reserved-labels.ts): an
  *        edit that keeps an attachment someone else made passes, and the
@@ -137,6 +140,7 @@ import type { ReflectMessage } from "@bufbuild/protobuf/reflect";
 
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { EnvironmentSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
 import { EvalSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
@@ -237,6 +241,18 @@ export const REFERENCE_TARGET_KINDS: ReadonlyArray<ReferenceTargetKind> = [
     label: "vault(s)",
     listHint: "stigmer list vaults",
     writerMust: IamPermission.can_use,
+  },
+  {
+    // A session, an agent's default, a routine's invocation or an
+    // organization's default names an Environment; the server resolves it
+    // for the sandbox driver, so no run reads it as the person. Whoever
+    // writes the reference vouches for it: they must be able to view it.
+    kind: ApiResourceKind.environment,
+    schema: EnvironmentSchema,
+    readByRun: false,
+    label: "environment(s)",
+    listHint: "stigmer list environments",
+    writerMust: IamPermission.can_view,
   },
   {
     kind: ApiResourceKind.channel_app,

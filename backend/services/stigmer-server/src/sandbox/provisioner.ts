@@ -37,7 +37,10 @@
  */
 import type { Logger } from "../boot/logger.js";
 import type { CallerClass } from "../extensions/identity.js";
-import { SERVER_RELEASE_ENV } from "./runner-launch.js";
+import {
+  SANDBOX_ENVIRONMENT_ENV,
+  SERVER_RELEASE_ENV,
+} from "./runner-launch.js";
 
 /**
  * What is TRUE about one provisioning request, handed to a driver: which
@@ -80,6 +83,61 @@ export interface SandboxFacts {
    * set it.
    */
   readonly routineId?: string;
+  /**
+   * The Environment the session's conversation runs in, as this sandbox
+   * must honour it now: its packages and its network access, read from
+   * the Environment's current row at this ensure. Absent for a sandbox no
+   * Environment governs (a connect sandbox, a conversation with none). A
+   * driver whose {@link SandboxProvisioner.environmentSupport} lacks what
+   * it asks is never handed one: the server refuses the conversation first.
+   */
+  readonly environment?: EnvironmentFacts;
+}
+
+/**
+ * One Environment as a sandbox gets it (environment.ts builds it, the
+ * drivers read it).
+ */
+export interface EnvironmentFacts {
+  /** The Environment's id. */
+  readonly id: string;
+  /**
+   * `unrestricted`, or `limited` to the person-level host list already
+   * expanded: the listed hosts, the package-manager hosts when allowed and
+   * the agent tree's MCP hosts when allowed, each once. The platform's own
+   * lanes are the driver's to add.
+   */
+  readonly network:
+    | { readonly mode: "unrestricted" }
+    | { readonly mode: "limited"; readonly hosts: readonly EnvironmentHost[] };
+  /** The packages to install, per manager, in the contract's grammar. */
+  readonly packages: EnvironmentPackageSet;
+}
+
+/** One host a limited sandbox may reach. */
+export interface EnvironmentHost {
+  /** A DNS name, or `*.` and one (exactly one more label; domain/environment/hosts.ts). */
+  readonly host: string;
+  /** Plain HTTP on port 80 too, besides HTTPS (the apt archives). */
+  readonly cleartext: boolean;
+}
+
+/** An Environment's packages by manager. */
+export interface EnvironmentPackageSet {
+  readonly apt: readonly string[];
+  readonly cargo: readonly string[];
+  readonly gem: readonly string[];
+  readonly go: readonly string[];
+  readonly npm: readonly string[];
+  readonly pip: readonly string[];
+}
+
+/** What a driver's sandboxes can do with an Environment. */
+export interface EnvironmentSupport {
+  /** Enforce a `limited` host list. */
+  readonly limitedNetworking: boolean;
+  /** Install an Environment's packages. */
+  readonly packages: boolean;
 }
 
 /** One sandbox's observed live state (the live-state probe's result). */
@@ -103,6 +161,14 @@ export interface SandboxProvisioner {
    * `local`, open source's.
    */
   readonly runnerMode?: "local" | "cloud";
+  /**
+   * What this driver's sandboxes can do with an Environment. Absent means
+   * neither: an Environment that limits networking or installs packages is
+   * refused when it is saved, when a conversation using it is made, and at
+   * each of its turns (domain/run/environment-admission.ts), never
+   * silently ignored.
+   */
+  readonly environmentSupport?: EnvironmentSupport;
   /**
    * Ensure-as-state-machine for a session sandbox: absent → provision;
    * stopped → start; running → fast path. Idempotent; safe to invoke on
@@ -271,6 +337,7 @@ export const SANDBOX_DRIVER_OWNED_RUNNER_ENV: readonly string[] = [
   "WORKSPACE_ROOT_DIR",
   "STIGMER_ATTACH_PORT",
   "STIGMER_SANDBOX_NAME_FILE",
+  SANDBOX_ENVIRONMENT_ENV,
 ];
 
 /**

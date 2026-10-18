@@ -144,6 +144,9 @@ type organization
     define can_create_vault: member
     define can_create_shared_vault: admin
     define can_create_skill: admin
+    # An Environment decides what an agent can install and reach: the
+    # skill bar.
+    define can_create_environment: admin
     # A plugin install writes several resources in one act — the skill bar.
     define can_create_plugin: admin
     # An eval is an agent's tests: whoever may build agents may write them.

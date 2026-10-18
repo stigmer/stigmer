@@ -22,6 +22,7 @@
 import { spawnSync } from "node:child_process";
 import { appendFileSync, chmodSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
+import { delimiter, join } from "node:path";
 
 /** The agent user a separating runner starts its host as. */
 export interface AgentIdentity {
@@ -76,6 +77,28 @@ export function agentStateHome(facts: ProcessFacts = currentProcessFacts()): str
  */
 export function setprivArgs(identity: AgentIdentity): readonly string[] {
   return [`--reuid=${identity.uid}`, `--regid=${identity.gid}`, "--clear-groups", "--inh-caps=-all", "--no-new-privs"];
+}
+
+/**
+ * The executable `program` resolves to on `path` (this process's own PATH
+ * by default), or `undefined`. Root starts setpriv, and any program it runs
+ * itself, by this absolute path: a child's environment may lead with
+ * folders the agent writes (its Environment's install prefix), and a
+ * spawn resolves a bare name through the child's PATH, so a name alone
+ * could start a program the agent planted, as root.
+ */
+export function programOnPath(program: string, path: string = process.env.PATH ?? ""): string | undefined {
+  for (const dir of path.split(delimiter)) {
+    if (dir === "") continue;
+    const candidate = join(dir, program);
+    try {
+      const stat = statSync(candidate);
+      if (stat.isFile() && (stat.mode & 0o111) !== 0) return candidate;
+    } catch {
+      // Not in this directory.
+    }
+  }
+  return undefined;
 }
 
 /**

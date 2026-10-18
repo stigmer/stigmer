@@ -236,6 +236,7 @@ type SessionSpecInput struct {
 	IncludeMyVault   bool
 	Plugins          []ResourceRef
 	FileReview       bool
+	EnvironmentRef   ResourceRef
 }
 
 // AttachmentInput is the SDK input type for Attachment.
@@ -356,6 +357,11 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 			m.Plugins = append(m.Plugins, ref)
 		}
 		m.FileReview = i.SessionSpec.FileReview
+		if i.SessionSpec.EnvironmentRef.Org != "" || i.SessionSpec.EnvironmentRef.Slug != "" {
+			ref := i.SessionSpec.EnvironmentRef.toProto()
+			ref.Kind = apiresourcekind.ApiResourceKind_environment
+			m.EnvironmentRef = ref
+		}
 		resource.Spec.Target = &runv1.RunSpec_SessionSpec{SessionSpec: m}
 	}
 	if i.SessionId != "" {
@@ -567,6 +573,7 @@ func sessionSpecInputFromProto(p *sessionv1.SessionSpec) *SessionSpecInput {
 		input.Plugins = append(input.Plugins, resourceRefFromProto(r))
 	}
 	input.FileReview = p.GetFileReview()
+	input.EnvironmentRef = resourceRefFromProto(p.GetEnvironmentRef())
 	return input
 }
 

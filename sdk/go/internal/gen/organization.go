@@ -175,8 +175,9 @@ type OrganizationInput struct {
 
 // OrganizationPreferencesInput is the SDK input type for OrganizationPreferences.
 type OrganizationPreferencesInput struct {
-	StandingContext string
-	MemoryEnabled   bool
+	StandingContext       string
+	MemoryEnabled         bool
+	DefaultEnvironmentRef ResourceRef
 }
 
 // OrganizationPoliciesInput is the SDK input type for OrganizationPolicies.
@@ -235,10 +236,15 @@ func (i *OrganizationInput) toProto() (*organizationv1.Organization, error) {
 }
 
 func (i *OrganizationPreferencesInput) toProto() (*organizationv1.OrganizationPreferences, error) {
-	return &organizationv1.OrganizationPreferences{
-		StandingContext: i.StandingContext,
-		MemoryEnabled:   i.MemoryEnabled,
-	}, nil
+	p := &organizationv1.OrganizationPreferences{}
+	p.StandingContext = i.StandingContext
+	p.MemoryEnabled = i.MemoryEnabled
+	if i.DefaultEnvironmentRef.Org != "" || i.DefaultEnvironmentRef.Slug != "" {
+		ref := i.DefaultEnvironmentRef.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_environment
+		p.DefaultEnvironmentRef = ref
+	}
+	return p, nil
 }
 
 func (i *OrganizationPoliciesInput) toProto() (*organizationv1.OrganizationPolicies, error) {
@@ -293,6 +299,7 @@ func organizationPreferencesInputFromProto(p *organizationv1.OrganizationPrefere
 	input := &OrganizationPreferencesInput{}
 	input.StandingContext = p.GetStandingContext()
 	input.MemoryEnabled = p.GetMemoryEnabled()
+	input.DefaultEnvironmentRef = resourceRefFromProto(p.GetDefaultEnvironmentRef())
 	return input
 }
 

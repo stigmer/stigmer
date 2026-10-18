@@ -40,7 +40,7 @@ import type { Config } from "../config.js";
 import type { HarnessName } from "../harness/registry.js";
 import { telemetrySettings } from "../otel-export.js";
 import { RUNNER_ENTRY_URL } from "../runner-entry.js";
-import { agentIdentity, setprivArgs, type AgentIdentity } from "../shared/agent-identity.js";
+import { agentIdentity, programOnPath, setprivArgs, type AgentIdentity } from "../shared/agent-identity.js";
 import { Peer, streamChannel, type LineChannel } from "./channel.js";
 import {
   AGENT_HOST_CHANNEL_FD,
@@ -366,6 +366,7 @@ export function spawnHostProcess(
 export function agentHostCommand(
   versions: NodeJS.ProcessVersions = process.versions,
   identity: AgentIdentity | null = agentIdentity(),
+  runnerPath: string = process.env.PATH ?? "",
 ): { readonly command: string; readonly args: readonly string[]; readonly env: Readonly<Record<string, string>> } {
   const entry = fileURLToPath(RUNNER_ENTRY_URL);
   // Running from source (the tests' spawned hosts, `npm start`): the entry
@@ -374,7 +375,15 @@ export function agentHostCommand(
   const node = [process.execPath, ...loader, entry, AGENT_HOST_MODE_ARG];
   const runtime: Readonly<Record<string, string>> = versions.electron === undefined ? {} : { ELECTRON_RUN_AS_NODE: "1" };
   if (identity === null) return { command: node[0]!, args: node.slice(1), env: runtime };
-  return { command: "setpriv", args: [...setprivArgs(identity), "--", ...node], env: { ...runtime, HOME: identity.home } };
+  // By its absolute path on the runner's own PATH, never a bare name: the
+  // host's environment may lead with the agent's install folders
+  // (agent-host/environment.ts), and the spawn would resolve a bare name
+  // through it, starting an agent-planted program as root.
+  const setpriv = programOnPath("setpriv", runnerPath);
+  if (setpriv === undefined) {
+    throw new Error("the runner's PATH has no setpriv, so the agent host cannot start as the agent");
+  }
+  return { command: setpriv, args: [...setprivArgs(identity), "--", ...node], env: { ...runtime, HOME: identity.home } };
 }
 
 function relayLines(stream: Readable, write: (line: string) => void): void {

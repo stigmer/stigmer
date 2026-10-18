@@ -234,6 +234,15 @@ public enum ApiResourceKind
   eval(66),
   /**
    * <pre>
+   * A named sandbox setup: the packages installed in every sandbox a
+   * conversation using it runs in, and the hosts it may reach.
+   * </pre>
+   *
+   * <code>environment = 67 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  environment(67),
+  /**
+   * <pre>
    * Catalog entry naming a bundle of entitlements and the terms that buy it.
    *
    * Platform-level: a plan belongs to no organization, so it carries no
@@ -501,6 +510,15 @@ public enum ApiResourceKind
   public static final int eval_VALUE = 66;
   /**
    * <pre>
+   * A named sandbox setup: the packages installed in every sandbox a
+   * conversation using it runs in, and the hosts it may reach.
+   * </pre>
+   *
+   * <code>environment = 67 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int environment_VALUE = 67;
+  /**
+   * <pre>
    * Catalog entry naming a bundle of entitlements and the terms that buy it.
    *
    * Platform-level: a plan belongs to no organization, so it carries no
@@ -588,6 +606,7 @@ public enum ApiResourceKind
       case 62: return scoring_rule;
       case 65: return eval_run;
       case 66: return eval;
+      case 67: return environment;
       case 70: return plan;
       case 71: return subscription;
       case 72: return license;

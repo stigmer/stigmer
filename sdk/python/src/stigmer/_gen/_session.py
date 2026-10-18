@@ -192,6 +192,7 @@ class SessionInput:
     include_my_vault: bool = False
     plugins: list[ResourceRef] = field(default_factory=list)
     file_review: bool = False
+    environment_ref: ResourceRef | None = None
 
     def _to_proto(self) -> api_pb2.Session:
         spec = spec_pb2.SessionSpec(
@@ -222,6 +223,10 @@ class SessionInput:
             _ref = ref._to_proto()
             _ref.kind = 58
             spec.plugins.append(_ref)
+        if self.environment_ref is not None and (self.environment_ref.org or self.environment_ref.slug):
+            _ref = self.environment_ref._to_proto()
+            _ref.kind = 67
+            spec.environment_ref.CopyFrom(_ref)
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,

@@ -75,6 +75,15 @@ export const RUNNER_RELEASE_FILE = "/runner/RELEASE";
 export const SERVER_RELEASE_ENV = "STIGMER_SERVER_RELEASE";
 
 /**
+ * The variable a driver hands the runner its sandbox's Environment in: the
+ * runner's half, `{network, packages}` as JSON (sandbox/environment.ts
+ * writes it). The runner installs the packages and, under `limited`, hides
+ * the engine tools whose traffic leaves outside the sandbox. Unset for a
+ * sandbox no Environment governs.
+ */
+export const SANDBOX_ENVIRONMENT_ENV = "STIGMER_SANDBOX_ENVIRONMENT";
+
+/**
  * The uid (and gid) a driver runs the runner as: root, which starts the
  * agent's side as its own user, stigmer-agent (the runner's
  * `shared/agent-identity.ts`), so nothing an agent runs reads the runner's

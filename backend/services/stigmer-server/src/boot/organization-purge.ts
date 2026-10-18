@@ -39,6 +39,7 @@ import { newChannelPurge } from "../domain/channel/purge.js";
 import { newAgentExecutionPurge } from "../domain/run/purge.js";
 import { newApiKeyPurge } from "../domain/apikey/purge.js";
 import { newChannelAppPurge } from "../domain/channelapp/purge.js";
+import { newEnvironmentPurge } from "../domain/environment/purge.js";
 import { newScoringRulePurge } from "../domain/scoring-rule/purge.js";
 import { newEvalRunPurge } from "../domain/eval-run/purge.js";
 import type { EvalRunWorkflows } from "../domain/eval-run/workflows.js";
@@ -118,6 +119,9 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
       newSkillPurge(deps),
       newPluginPurge(deps),
       newEvalPurge(deps),
+      // What sessions, routines, agents and the organization's preferences
+      // name, once they are gone.
+      newEnvironmentPurge(deps),
       // What runs and blueprints read, last: a run references its vaults.
       newVaultPurge(deps),
       newOAuthAppPurge(deps),
@@ -151,6 +155,7 @@ export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.skill,
   ApiResourceKind.plugin,
   ApiResourceKind.eval,
+  ApiResourceKind.environment,
   ApiResourceKind.vault,
   ApiResourceKind.oauth_app,
   ApiResourceKind.api_key,

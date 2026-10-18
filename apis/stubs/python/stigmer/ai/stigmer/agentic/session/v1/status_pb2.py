@@ -22,10 +22,13 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from ai.stigmer.agentic.session.v1 import enum_pb2 as ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_enum__pb2
+from ai.stigmer.commons.apiresource import field_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_field__options__pb2
+from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from ai.stigmer.commons.apiresource import status_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_status__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/agentic/session/v1/status.proto\x12\x1d\x61i.stigmer.agentic.session.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xe6\x03\n\rSessionStatus\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61udit\x12\x19\n\x08\x61gent_id\x18\x01 \x01(\tR\x07\x61gentId\x12,\n\x12\x61gent_version_hash\x18\x02 \x01(\tR\x10\x61gentVersionHash\x12i\n\x0fvault_attachers\x18\x03 \x03(\x0b\x32@.ai.stigmer.agentic.session.v1.SessionStatus.VaultAttachersEntryR\x0evaultAttachers\x12\x14\n\x05state\x18\x04 \x01(\tR\x05state\x12(\n\x10harness_state_id\x18\x05 \x01(\tR\x0eharnessStateId\x12\x37\n\x18harness_state_id_history\x18\x06 \x03(\tR\x15harnessStateIdHistory\x12\x1d\n\nroutine_id\x18\x07 \x01(\tR\troutineId\x1a\x41\n\x13VaultAttachersEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x42\xc9\x01\n!com.ai.stigmer.agentic.session.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n*ai/stigmer/agentic/session/v1/status.proto\x12\x1d\x61i.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a+ai/stigmer/commons/apiresource/status.proto\"\xa5\x05\n\rSessionStatus\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61udit\x12\x19\n\x08\x61gent_id\x18\x01 \x01(\tR\x07\x61gentId\x12,\n\x12\x61gent_version_hash\x18\x02 \x01(\tR\x10\x61gentVersionHash\x12i\n\x0fvault_attachers\x18\x03 \x03(\x0b\x32@.ai.stigmer.agentic.session.v1.SessionStatus.VaultAttachersEntryR\x0evaultAttachers\x12\x14\n\x05state\x18\x04 \x01(\tR\x05state\x12(\n\x10harness_state_id\x18\x05 \x01(\tR\x0eharnessStateId\x12\x37\n\x18harness_state_id_history\x18\x06 \x03(\tR\x15harnessStateIdHistory\x12\x1d\n\nroutine_id\x18\x07 \x01(\tR\troutineId\x12\\\n\x0b\x65nvironment\x18\x08 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,CR\x0b\x65nvironment\x12_\n\x12\x65nvironment_source\x18\t \x01(\x0e\x32\x30.ai.stigmer.agentic.session.v1.EnvironmentSourceR\x11\x65nvironmentSource\x1a\x41\n\x13VaultAttachersEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x42\xc9\x01\n!com.ai.stigmer.agentic.session.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1d\x41i.Stigmer.Agentic.Session.V1\xca\x02\x1d\x41i\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,8 +38,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n!com.ai.stigmer.agentic.session.v1B\013StatusProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agentic::Session::V1'
   _globals['_SESSIONSTATUS_VAULTATTACHERSENTRY']._loaded_options = None
   _globals['_SESSIONSTATUS_VAULTATTACHERSENTRY']._serialized_options = b'8\001'
-  _globals['_SESSIONSTATUS']._serialized_start=123
-  _globals['_SESSIONSTATUS']._serialized_end=609
-  _globals['_SESSIONSTATUS_VAULTATTACHERSENTRY']._serialized_start=544
-  _globals['_SESSIONSTATUS_VAULTATTACHERSENTRY']._serialized_end=609
+  _globals['_SESSIONSTATUS'].fields_by_name['environment']._loaded_options = None
+  _globals['_SESSIONSTATUS'].fields_by_name['environment']._serialized_options = b'\340\205,C'
+  _globals['_SESSIONSTATUS']._serialized_start=258
+  _globals['_SESSIONSTATUS']._serialized_end=935
+  _globals['_SESSIONSTATUS_VAULTATTACHERSENTRY']._serialized_start=870
+  _globals['_SESSIONSTATUS_VAULTATTACHERSENTRY']._serialized_end=935
 # @@protoc_insertion_point(module_scope)

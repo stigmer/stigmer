@@ -13,6 +13,9 @@
  *   - a token must be JWT-shaped and unexpired, and an empty token (the
  *     tokenless lane) passes;
  *   - every refusal carries its stable code;
+ *   - an `environment`, when present, is checked as the runner reads it
+ *     (`environment/spec.ts`) and carried on the accepted push, and a
+ *     malformed one is refused as malformed;
  *   - the secret names a push may carry are the server's copy of them
  *     (`stigmer-server/src/sandbox/runner-secret-names.ts`), which the
  *     server checks an operator's runner lists against at boot.
@@ -152,6 +155,34 @@ describe("verifyAttachPush", () => {
   it("refuses a NUL byte in the queue or in any secret, which no process can receive", () => {
     expect(verifyAttachPush({ taskQueue: `${SESSION_QUEUE}\u0000`, secrets: {} }, SESSION_SANDBOX, NOW)).toMatchObject({ ok: false, status: 400 });
     expect(verifyAttachPush({ taskQueue: SESSION_QUEUE, secrets: { STIGMER_PAYLOAD_ENCRYPTION_KEY: "k\u0000" } }, SESSION_SANDBOX, NOW)).toMatchObject({ ok: false, status: 400 });
+  });
+
+  it("carries a valid environment on the accepted push, its managers filled in", () => {
+    const environment = { network: "limited", packages: { npm: ["express@4.18.0"], pip: ["sqlalchemy==2.0.30"] } };
+    expect(verifyAttachPush({ taskQueue: SESSION_QUEUE, secrets: {}, environment }, SESSION_SANDBOX, NOW)).toEqual({
+      ok: true,
+      push: {
+        taskQueue: SESSION_QUEUE,
+        secrets: {},
+        environment: { network: "limited", packages: { apt: [], cargo: [], gem: [], go: [], npm: ["express@4.18.0"], pip: ["sqlalchemy==2.0.30"] } },
+      },
+    });
+  });
+
+  it("refuses a malformed environment as malformed, before the binding", () => {
+    for (const environment of [
+      null,
+      "limited",
+      { network: "open", packages: {} },
+      { network: "limited", packages: { npm: ["--registry=https://evil.example"] } },
+      { network: "limited", packages: { maven: ["junit"] } },
+    ]) {
+      const verdict = verifyAttachPush({ taskQueue: SESSION_QUEUE, secrets: {}, environment }, SESSION_SANDBOX, NOW);
+      expect(verdict, JSON.stringify(environment)).toMatchObject({ ok: false, status: 400, code: "malformed" });
+    }
+    expect(
+      verifyAttachPush({ taskQueue: "session:ses_other", secrets: {}, environment: { network: "open", packages: {} } }, SESSION_SANDBOX, NOW),
+    ).toEqual({ ok: false, status: 400, code: "malformed", reason: "environment.network must be unrestricted or limited" });
   });
 
   it("refuses malformed bodies", () => {

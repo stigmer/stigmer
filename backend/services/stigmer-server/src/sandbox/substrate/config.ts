@@ -77,6 +77,13 @@ export interface SubstrateDriverSettings {
   readonly sandboxConfigName: string;
   readonly httpsEgress: SubstrateHttpsEgress;
   readonly extraHttpEgress: readonly SubstrateHttpDestination[];
+  /**
+   * HTTPS hosts a sandbox whose Environment limits networking keeps open
+   * beside the ones derived from the runner's configuration
+   * (sandbox/runner-lanes.ts): a Vertex or Foundry endpoint, a proxy.
+   * `host,host`, from EGRESS_HTTPS_PLATFORM; unused under `unrestricted`.
+   */
+  readonly platformHttpsHosts: readonly string[];
   readonly pauseAfterSeconds: number;
   readonly suspendAfterSeconds: number;
   readonly sweepIntervalSeconds: number;
@@ -158,6 +165,7 @@ export function newSubstrateSettingsFromEnv(
     sandboxConfigName: optional("SANDBOX_CONFIG", "gvisor-default"),
     httpsEgress,
     extraHttpEgress: parseDestinations(optional("EGRESS_HTTP", "")),
+    platformHttpsHosts: parseHosts(optional("EGRESS_HTTPS_PLATFORM", "")),
     pauseAfterSeconds: seconds("PAUSE_AFTER_SECONDS", 300),
     suspendAfterSeconds: seconds("SUSPEND_AFTER_SECONDS", 330),
     sweepIntervalSeconds: seconds("SWEEP_INTERVAL_SECONDS", 30),
@@ -231,6 +239,22 @@ export function parseDestinations(
     destinations.push({ host: host.toLowerCase(), port });
   }
   return destinations;
+}
+
+/** `host,host2` into lower-case hosts; a scheme, port or path is refused. */
+export function parseHosts(raw: string): readonly string[] {
+  const hosts: string[] = [];
+  for (const part of raw.split(",")) {
+    const host = part.trim().toLowerCase().replace(/\.$/, "");
+    if (host === "") continue;
+    if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(host)) {
+      throw new Error(
+        `${PREFIX}EGRESS_HTTPS_PLATFORM entries are host names, with no scheme, port, path or pattern; got ${part.trim()}`,
+      );
+    }
+    hosts.push(host);
+  }
+  return [...new Set(hosts)];
 }
 
 /** `url` without the slashes it ends with (a loop: no regular expression to backtrack). */

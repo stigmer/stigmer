@@ -342,6 +342,16 @@ public enum IamPermission
    * <code>can_fire = 59;</code>
    */
   can_fire(59),
+  /**
+   * <pre>
+   * Whether the caller may create an Environment in an organization: the
+   * packages and network access a conversation's sandbox gets. The
+   * organization's admins.
+   * </pre>
+   *
+   * <code>can_create_environment = 60;</code>
+   */
+  can_create_environment(60),
   UNRECOGNIZED(-1),
   ;
 
@@ -672,6 +682,16 @@ public enum IamPermission
    * <code>can_fire = 59;</code>
    */
   public static final int can_fire_VALUE = 59;
+  /**
+   * <pre>
+   * Whether the caller may create an Environment in an organization: the
+   * packages and network access a conversation's sandbox gets. The
+   * organization's admins.
+   * </pre>
+   *
+   * <code>can_create_environment = 60;</code>
+   */
+  public static final int can_create_environment_VALUE = 60;
 
 
   public final int getNumber() {
@@ -737,6 +757,7 @@ public enum IamPermission
       case 57: return can_mint_user_tokens;
       case 58: return can_create_eval;
       case 59: return can_fire;
+      case 60: return can_create_environment;
       default: return null;
     }
   }

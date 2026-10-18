@@ -6,6 +6,9 @@
  * proven by a stand-in script that dumps its environment where the test
  * can read it, so no real runner install is needed.
  *
+ * The driver declares no Environment support, so an Environment that
+ * limits networking or installs packages is refused before it reaches one.
+ *
  * Unix-only like the runner itself; deterministic (poll with timeout,
  * never sleep). Every poll gets an explicit budget: vitest's default
  * second is enough on an idle laptop and not under the full suite's
@@ -185,3 +188,25 @@ describe.skipIf(process.platform === "win32")(
     });
   },
 );
+
+describe("the local-process driver and an Environment", () => {
+  it("declares no Environment support", () => {
+    const provisioner = newLocalProcessSandboxProvisioner({
+      config: {
+        backendEndpoint: "http://127.0.0.1:7234",
+        mcpPublicEndpoint: "",
+        temporalAddress: "127.0.0.1:7233",
+        temporalNamespace: "default",
+        temporalConnectionEnv: {},
+        runnerImage: "unused-by-this-driver",
+        runnerCommand: "unused",
+        kubernetesNamespace: "unused-by-this-driver",
+        runnerEnv: {},
+        runnerSecretEnv: {},
+        serverRelease: "",
+      },
+      logger: silentLogger,
+    });
+    expect(provisioner.environmentSupport).toBeUndefined();
+  });
+});

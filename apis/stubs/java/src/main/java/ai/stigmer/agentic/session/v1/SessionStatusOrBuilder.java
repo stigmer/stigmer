@@ -299,4 +299,53 @@ java.lang.String defaultValue);
    */
   com.google.protobuf.ByteString
       getRoutineIdBytes();
+
+  /**
+   * <pre>
+   * The Environment this conversation runs in, whichever named it; unset
+   * when none applies.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment = 8 [json_name = "environment", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   * @return Whether the environment field is set.
+   */
+  boolean hasEnvironment();
+  /**
+   * <pre>
+   * The Environment this conversation runs in, whichever named it; unset
+   * when none applies.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment = 8 [json_name = "environment", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   * @return The environment.
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReference getEnvironment();
+  /**
+   * <pre>
+   * The Environment this conversation runs in, whichever named it; unset
+   * when none applies.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment = 8 [json_name = "environment", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentOrBuilder();
+
+  /**
+   * <pre>
+   * Which choice environment came from.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.EnvironmentSource environment_source = 9 [json_name = "environmentSource"];</code>
+   * @return The enum numeric value on the wire for environmentSource.
+   */
+  int getEnvironmentSourceValue();
+  /**
+   * <pre>
+   * Which choice environment came from.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.EnvironmentSource environment_source = 9 [json_name = "environmentSource"];</code>
+   * @return The environmentSource.
+   */
+  ai.stigmer.agentic.session.v1.EnvironmentSource getEnvironmentSource();
 }

@@ -32,7 +32,11 @@
  *     with, and every other secret must be the first push's, so a caller
  *     inside the sandbox (its agent can reach the listener over loopback)
  *     cannot swap the runner's other secrets or drop its token, nor replace
- *     it with a token of another kind or for another session. The live
+ *     it with a token of another kind or for another session. Its
+ *     Environment (`STIGMER_SANDBOX_ENVIRONMENT`) stays the first push's:
+ *     a later push's is accepted and not applied, so neither the driver's
+ *     edit nor a caller inside the sandbox changes what a running sandbox
+ *     installs or how it reaches the network. The live
  *     runner keeps renewing its own token as it does in a pod. A push for
  *     another queue is refused. Every refusal carries a stable `code`
  *     (push.ts, PushRefusalCode) beside its text, so a driver acts on the
@@ -59,6 +63,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { spawn, type ChildProcess } from "node:child_process";
 import { sessionIdClaimOf, tokenTypeOf } from "../client/token-claims.js";
 import { verifyAttachPush, type AttachPush, type PushRefusalCode } from "./push.js";
+import { SANDBOX_ENVIRONMENT_ENV, type SandboxEnvironment } from "../environment/spec.js";
 
 /** Largest push body accepted; a real push is a few kilobytes. */
 const MAX_PUSH_BYTES = 64 * 1024;
@@ -106,7 +111,13 @@ const defaultSpawner: RunnerSpawner = (entry, env) =>
 export function runnerEnvFor(baseEnv: NodeJS.ProcessEnv, push: AttachPush): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...baseEnv };
   for (const key of WAITER_ENV_KEYS) delete env[key];
-  return { ...env, STIGMER_TASK_QUEUE: push.taskQueue, ...push.secrets };
+  delete env[SANDBOX_ENVIRONMENT_ENV];
+  return {
+    ...env,
+    STIGMER_TASK_QUEUE: push.taskQueue,
+    ...push.secrets,
+    ...(push.environment !== undefined ? { [SANDBOX_ENVIRONMENT_ENV]: JSON.stringify(push.environment) } : {}),
+  };
 }
 
 /** Why a later push was refused: a stable code and a reason for people. */
@@ -204,6 +215,8 @@ export async function startAttachWaiter(options: AttachWaiterOptions): Promise<A
   // the runner (re)starts with.
   let attachedQueue: string | undefined;
   let attachedSecrets: Readonly<Record<string, string>> = {};
+  // The first push's Environment: a later push's is not applied.
+  let attachedEnvironment: SandboxEnvironment | undefined;
   let runnerEnv: NodeJS.ProcessEnv = {};
   let child: ChildProcess | undefined;
   let restartTimer: NodeJS.Timeout | undefined;
@@ -292,7 +305,10 @@ export async function startAttachWaiter(options: AttachWaiterOptions): Promise<A
         return;
       }
     }
-    const env = runnerEnvFor(options.baseEnv, push);
+    // A later push's Environment is accepted and not applied: the runner
+    // keeps what it installed, and an edit takes effect at the sandbox's
+    // next fresh start (a wake from storage starts a new waiter).
+    const env = runnerEnvFor(options.baseEnv, first ? push : { ...push, environment: attachedEnvironment });
     if (first) {
       // The attachment is recorded only once a runner has started, so a push
       // whose runner cannot start leaves the sandbox free for a corrected one.
@@ -302,6 +318,7 @@ export async function startAttachWaiter(options: AttachWaiterOptions): Promise<A
         return;
       }
       attachedSecrets = push.secrets;
+      attachedEnvironment = push.environment;
       log(`[attach] attached to ${JSON.stringify(push.taskQueue)}; the runner started`);
       attachedQueue = push.taskQueue;
       runnerEnv = env;

@@ -6,6 +6,7 @@
     "channel",
     "channel-app",
     "commons",
+    "environment",
     "eval",
     "eval-run",
     "federation-issuer",

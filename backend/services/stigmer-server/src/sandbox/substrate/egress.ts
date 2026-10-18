@@ -1,7 +1,9 @@
 /**
- * The egress policy every actor of this server gets: what a sandbox may
+ * The egress policy each actor of this server gets: what a sandbox may
  * reach. Substrate denies everything a policy does not allow, and an
- * actor without a policy reaches nothing.
+ * actor without a policy reaches nothing. The policy is per actor: the
+ * runner's lanes are every actor's, and a session's Environment
+ * (SandboxFacts.environment) decides the rest.
  *
  * Allowed: the lanes the runner needs (this server's backend endpoint and
  * Temporal), each as a cleartext rule; this server's public MCP address,
@@ -44,18 +46,44 @@
  * can reach; the operator guide states it as a requirement.
  *
  * A named destination is one host, so it may not be a pattern: Substrate
- * reads `*` as every name and `*.suffix` as every name under it (`*.svc`
- * would hold the router), and a pattern in a cleartext rule would open
+ * reads `*` as every name and `*.suffix` as every name one label under it
+ * (`*.svc` would hold a service's short name; measured on v0.3.0,
+ * 2026-10-18: one label, never the bare suffix or two labels), and a
+ * pattern in a cleartext rule would open
  * Substrate's services over plain HTTP, where no certificate check stands
  * in the way. Nor may it be a single label: the gateway resolves a name in
  * its own namespace, Substrate's, so a short name (`atenet-router`, `api`,
  * `localhost`) reaches Substrate's own services or the gateway itself, and
  * never this server. Substrate's rules name hosts, never addresses, so an
  * endpoint given as an IP address is a boot throw too.
+ *
+ * An Environment's networking, when the session has one:
+ *   - `unrestricted` is the policy above, and an Environment that installs
+ *     apt packages also reaches the Debian and Ubuntu archives over plain
+ *     HTTP: their sources are http://, and only a named cleartext host
+ *     passes the gateway, so without it apt fails even with HTTPS open.
+ *   - `limited` drops the HTTPS wildcard. Its listed hosts (already expanded
+ *     with the package-manager and MCP hosts, domain/environment/facts.ts)
+ *     become HTTPS rules, an apt archive also a cleartext one on port 80;
+ *     the runner's own HTTPS hosts are added (sandbox/runner-lanes.ts, and
+ *     the operator's EGRESS_HTTPS_PLATFORM), so a limited Environment with
+ *     no hosts still runs a turn. The listed hosts passed the host grammar
+ *     when the Environment was saved (domain/environment/hosts.ts), the
+ *     gateway's own pattern syntax.
+ *
+ * The gateway rejects two rules with the same pattern on one port, and
+ * holds at most 256 hostnames in a rule and 256 rules in a policy: every
+ * host is kept once per port, from whichever source names it first, and
+ * the HTTPS hosts are split into rules of at most 256. A person lists at
+ * most 100 hosts, so a policy stays far inside the rule cap.
  */
-import { create } from "@bufbuild/protobuf";
+import { createHash } from "node:crypto";
 
-import type { SandboxDriverConfig } from "../provisioner.js";
+import { create, toBinary } from "@bufbuild/protobuf";
+
+import { APT_ARCHIVE_HOSTS } from "../../domain/environment/package-manager-hosts.js";
+import type { EnvironmentFacts, SandboxDriverConfig } from "../provisioner.js";
+import { runnerPlatformHosts } from "../runner-lanes.js";
 import type { SubstrateDriverSettings } from "./config.js";
 import { EgressRuleSchema, type EgressRule } from "./gen/ateapipb/ateapi_pb.js";
 
@@ -74,10 +102,18 @@ interface Destination {
  */
 const SUBSTRATE_NAMESPACE_LABEL = "ate-system";
 
-/** The rules of every actor's policy; throws on a forbidden or unusable destination. */
+/** The most hostnames one gateway rule holds. */
+const MAX_HOSTNAMES_PER_RULE = 256;
+
+/**
+ * The rules of one actor's policy: the runner's lanes, then what the
+ * session's Environment allows (the module header). Throws on a forbidden
+ * or unusable runner destination, which the driver asks once at boot.
+ */
 export function buildEgressRules(
   config: SandboxDriverConfig,
   settings: SubstrateDriverSettings,
+  environment?: EnvironmentFacts,
 ): EgressRule[] {
   const mcpPublic =
     config.mcpPublicEndpoint !== ""
@@ -147,8 +183,35 @@ export function buildEgressRules(
     };
     rules.push(create(EgressRuleSchema, { http: rule }));
   }
-  if (settings.httpsEgress === "all") {
-    rules.push(create(EgressRuleSchema, { https: { hostnames: ["*"] } }));
+  const cleartext = (host: string): void => {
+    const key = `${host}:80`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    rules.push(create(EgressRuleSchema, { http: { hostnames: [host], ports: { numbers: [80] } } }));
+  };
+  if (environment?.network.mode !== "limited") {
+    if (environment !== undefined && environment.packages.apt.length > 0) {
+      for (const host of APT_ARCHIVE_HOSTS) cleartext(host);
+    }
+    if (settings.httpsEgress === "all") {
+      rules.push(create(EgressRuleSchema, { https: { hostnames: ["*"] } }));
+    }
+    return rules;
+  }
+  for (const { host, cleartext: plain } of environment.network.hosts) {
+    if (plain) cleartext(host);
+  }
+  // An Environment narrows the operator's HTTPS egress and never widens it:
+  // under `none` it opens no HTTPS host (the driver states it cannot limit
+  // networking then, so such a conversation is refused before it gets here).
+  if (settings.httpsEgress !== "all") {
+    return rules;
+  }
+  const https = new Set<string>(environment.network.hosts.map(({ host }) => host));
+  for (const host of [...runnerPlatformHosts(config), ...settings.platformHttpsHosts]) https.add(host);
+  const hostnames = [...https];
+  for (let start = 0; start < hostnames.length; start += MAX_HOSTNAMES_PER_RULE) {
+    rules.push(create(EgressRuleSchema, { https: { hostnames: hostnames.slice(start, start + MAX_HOSTNAMES_PER_RULE) } }));
   }
   return rules;
 }
@@ -178,4 +241,14 @@ function isIpAddress(host: string): boolean {
     host.includes(":") ||
     host.startsWith("[")
   );
+}
+
+/** A digest of a policy's rules, in order: what the driver compares before it writes one. */
+export function egressDigest(rules: readonly EgressRule[]): string {
+  const hash = createHash("sha256");
+  for (const rule of rules) {
+    hash.update(toBinary(EgressRuleSchema, rule));
+    hash.update("\n");
+  }
+  return hash.digest("hex");
 }

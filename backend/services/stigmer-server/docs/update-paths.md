@@ -21,6 +21,7 @@ Rows read `| Kind | refused path | written by |`, or `| Kind | none | |` for a k
 | ApiKey | `spec.bound_org` | create |
 | Channel | none | |
 | ChannelApp | none | |
+| Environment | none | |
 | IdentityAccount | none | |
 | Memory | none | |
 | OAuthApp | none | |

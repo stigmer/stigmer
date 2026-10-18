@@ -7,8 +7,10 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import { parse as parseYaml } from "yaml";
 import {
+  ENVIRONMENT_DATA_WAY_FORWARD,
   MCP_SERVER_WAY_FORWARD,
   SUBAGENTS_WAY_FORWARD,
+  environmentDataWayForward,
   mcpServerWayForward,
   parseManifest,
   retiredShapeWayForward,
@@ -17,7 +19,14 @@ import {
 import { serializeManifest } from "../manifest/serialize";
 import { manifestDocumentForResource } from "../manifest/document";
 import { manifestKinds, manifestHandlerForYamlKind, type ServiceClientFn } from "../manifest/registry";
-import { ApiResourceReferenceSchema, RenameInputSchema, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import {
+  ApiResourceReferenceSchema,
+  RenameInputSchema,
+  UpdateVisibilityInputSchema,
+  type RenameInput,
+  type UpdateVisibilityInput,
+} from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 
 /**
  * Manifest engine contract tests.
@@ -215,6 +224,17 @@ describe("parseManifest", () => {
     for (const document of [null, undefined, "spec: {sub_agents: []}", 42, [{ spec: { sub_agents: [] } }]]) {
       expect(subagentsWayForward(document)).toBeUndefined();
     }
+  });
+
+  it("names the Environment way forward for an Environment still holding data, never for any other document", () => {
+    expect(environmentDataWayForward({ kind: "Environment", spec: { data: {} } })).toBe(ENVIRONMENT_DATA_WAY_FORWARD);
+    expect(environmentDataWayForward({ kind: "Environment", spec: { packages: { pip: ["pandas"] } } })).toBeUndefined();
+    expect(environmentDataWayForward({ kind: "Environment" })).toBeUndefined();
+    expect(environmentDataWayForward({ kind: "Agent", spec: { data: {} } })).toBeUndefined();
+    for (const document of [null, "kind: Environment", 42, [{ kind: "Environment", spec: { data: {} } }]]) {
+      expect(environmentDataWayForward(document)).toBeUndefined();
+    }
+    expect(retiredShapeWayForward({ kind: "Environment", spec: { data: {} } })).toBe(ENVIRONMENT_DATA_WAY_FORWARD);
   });
 
   it("names the way forward for either retired shape, MCP server first", () => {
@@ -476,7 +496,7 @@ describe("manifest registry", () => {
       .filter((h) => h.updateVisibility !== undefined)
       .map((h) => h.yamlKind)
       .sort();
-    expect(withBinding).toEqual(["Agent"]);
+    expect(withBinding).toEqual(["Agent", "Environment"]);
   });
 
   it("binds rename on every manifest kind whose service has one, each through its own command service", async () => {
@@ -492,8 +512,25 @@ describe("manifest registry", () => {
       expect(await handler.rename?.(recording, input)).toBe(input);
     }
 
-    expect(renamable.map((h) => h.yamlKind).sort()).toEqual(["Agent", "Channel", "ChannelApp", "FederationIssuer", "OAuthApp", "Routine"]);
+    expect(renamable.map((h) => h.yamlKind).sort()).toEqual(["Agent", "Channel", "ChannelApp", "Environment", "FederationIssuer", "OAuthApp", "Routine"]);
     expect(services).toEqual(renamable.map((h) => h.schema.typeName.replace(/\.([A-Za-z]+)$/, ".$1CommandController")));
+  });
+
+  it("binds updateVisibility on every manifest kind whose service has one, each through its own command service", async () => {
+    const services: string[] = [];
+    const recording = ((service: { readonly typeName: string }) => {
+      services.push(service.typeName);
+      return { updateVisibility: (input: UpdateVisibilityInput) => Promise.resolve(input) };
+    }) as unknown as ServiceClientFn;
+    const input = create(UpdateVisibilityInputSchema, { resourceId: "id-1", visibility: ApiResourceVisibility.visibility_private });
+
+    const withVisibility = manifestKinds().filter((h) => h.updateVisibility !== undefined);
+    for (const handler of withVisibility) {
+      expect(await handler.updateVisibility?.(recording, input)).toBe(input);
+    }
+
+    expect(withVisibility.map((h) => h.yamlKind).sort()).toEqual(["Agent", "Environment"]);
+    expect(services).toEqual(withVisibility.map((h) => h.schema.typeName.replace(/\.([A-Za-z]+)$/, ".$1CommandController")));
   });
 
   it("binds apply and getByReference on every manifest kind, each through its own command and query service", async () => {
