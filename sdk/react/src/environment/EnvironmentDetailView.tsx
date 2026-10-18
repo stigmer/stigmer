@@ -16,7 +16,7 @@
  * organization's default names the Environment; the refusal's sentence,
  * which names each of them, is the toast's description.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Environment } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
@@ -383,13 +383,14 @@ function DescriptionEditor({
   readonly onCancel: () => void;
 }) {
   const [value, setValue] = useState(initial);
+  const fieldId = useId();
   return (
     <EditorFrame isSaving={isSaving} error={error} onSave={() => onSave(value.trim())} onCancel={onCancel}>
-      <label className="stg:sr-only" htmlFor="environment-description-editor">
+      <label className="stg:sr-only" htmlFor={fieldId}>
         Description
       </label>
       <textarea
-        id="environment-description-editor"
+        id={fieldId}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         rows={3}
