@@ -89,6 +89,9 @@ export const DELETE_HANDLERS: ReadonlyMap<ApiResourceKind, DeleteFn> = new Map<
   // A routine delete also tears down its Temporal Schedule artifact
   // server-side; the RPC takes a bare RoutineId, so force is ignored.
   [ApiResourceKind.routine, (c, id) => c.routine.delete(id)],
+  // Refused while an agent, a routine or the organization's default names
+  // it; the RPC takes a bare EnvironmentId, so force is ignored.
+  [ApiResourceKind.environment, (c, id) => c.environment.delete(id)],
   [ApiResourceKind.skill, (c, id) => c.skill.delete(id)],
   [ApiResourceKind.plugin, (c, id) => c.plugin.delete(id)],
   // Deleting an eval deletes every version of it.

@@ -82,6 +82,10 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
     { name: "Routine", displayName: "Routine", idPrefix: "rtn", retiredIdPrefixes: ["sch"] },
   ],
   [
+    ApiResourceKind.environment,
+    { name: "Environment", displayName: "Environment", idPrefix: "env" },
+  ],
+  [
     ApiResourceKind.session,
     { name: "Session", displayName: "Session", idPrefix: "ses" },
   ],
@@ -126,6 +130,7 @@ export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [
   ApiResourceKind.channel,
   ApiResourceKind.channel_app,
   ApiResourceKind.routine,
+  ApiResourceKind.environment,
   ApiResourceKind.session,
   ApiResourceKind.score,
   ApiResourceKind.scoring_rule,

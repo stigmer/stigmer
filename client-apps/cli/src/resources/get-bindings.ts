@@ -7,6 +7,7 @@ import type { DescMessage, Message } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { EnvironmentSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { EvalSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
@@ -62,6 +63,10 @@ export const GET_BINDINGS: ReadonlyMap<ApiResourceKind, Getter> = new Map([
   [
     ApiResourceKind.routine,
     refGetter(ApiResourceKind.routine, RoutineSchema, (c) => c.routine),
+  ],
+  [
+    ApiResourceKind.environment,
+    refGetter(ApiResourceKind.environment, EnvironmentSchema, (c) => c.environment),
   ],
   [
     ApiResourceKind.skill,

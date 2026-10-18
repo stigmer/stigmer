@@ -27,6 +27,9 @@ import { type Channel, ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/ch
 import { ChannelCommandController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/command_pb";
 import { ChannelQueryController } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/query_pb";
 import { type ChannelApp, ChannelAppSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { type Environment, EnvironmentSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+import { EnvironmentCommandController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/command_pb";
+import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/query_pb";
 import { ChannelAppCommandController } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { ChannelAppQueryController } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { type Routine, RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
@@ -97,6 +100,20 @@ const AGENTIC_V1 = "agentic.stigmer.ai/v1";
 const IAM_V1 = "iam.stigmer.ai/v1";
 
 const HANDLERS: readonly ManifestKindHandler[] = [
+  // First: an Environment references nothing, and an Agent's default and a
+  // Routine's invocation name one.
+  {
+    kind: ApiResourceKind.environment,
+    yamlKind: "Environment",
+    displayName: "Environment",
+    apiVersion: AGENTIC_V1,
+    schema: EnvironmentSchema,
+    applyOrder: 2,
+    apply: (c, m) => c(EnvironmentCommandController).apply(m as Environment),
+    getByReference: (c, ref) => c(EnvironmentQueryController).getByReference(ref),
+    updateVisibility: (c, i) => c(EnvironmentCommandController).updateVisibility(i),
+    rename: (c, i) => c(EnvironmentCommandController).rename(i),
+  },
   {
     kind: ApiResourceKind.agent,
     yamlKind: "Agent",

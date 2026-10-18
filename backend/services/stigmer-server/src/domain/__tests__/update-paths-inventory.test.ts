@@ -163,8 +163,8 @@ describe("the update-path inventory (docs/update-paths.md) is true to the served
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("serves the fourteen open-source updates, each on an Update<Kind>Input", () => {
-    expect(updates).toHaveLength(14);
+  it("serves the fifteen open-source updates, each on an Update<Kind>Input", () => {
+    expect(updates).toHaveLength(15);
   });
 
   it("the doc's rows are exactly the registry's, one per served update", () => {
