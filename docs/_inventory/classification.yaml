@@ -168,7 +168,8 @@ pages:
     teaches:
       A Session is the durable conversation context that names its Agent, runs
       the version it started on until updated, re-checks run permission on every
-      message, locks a Harness, and can override Skills and tools.
+      message, locks a Harness, and can override Skills and tools and name the
+      Environment its sandbox runs in.
     medium: diagram
     why:
       The lifecycle (Agent to Session to runs) is structure; the existing
@@ -371,6 +372,18 @@ pages:
       hourly limit, and the open-source path with the owner's own key.
     medium: none
 
+  guides/environments/set-up-an-environment:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Create an Environment from the console or a manifest, make it an Agent's
+      or the Organization's default, name one for a conversation, check which
+      one a conversation got, and fix each refusal the server gives.
+    medium: screenshot-journey
+    why:
+      A console procedure from the Environments list to a conversation's Setup
+      tab.
+
   # ── Tools & MCP ────────────────────────────────────────────────────────
   guides/integrations/overview:
     fate: keep
@@ -460,6 +473,18 @@ pages:
       shared vaults with Can use, which vaults a run uses and in what order, how
       a key is matched, the refusal at create, when the values are read, a
       repository's own token, and Connect links.
+    medium: none
+
+  concepts/environments:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      An Environment is a named setup for the sandboxes Agents run in, its
+      packages and its network; which one a conversation gets and in what order,
+      who creates and who uses one, when packages install and when an edit takes
+      effect, what a blocked website looks like, the package registries and code
+      hosts, what each kind of server can do, deleting one, and how it compares
+      with Claude Managed Agents' environments.
     medium: none
 
   concepts/runners:
@@ -562,7 +587,8 @@ pages:
       Who reaches a resource — general access, the Viewer, Editor and Owner
       roles with Participant and Can use, what an Organization's roles allow and
       how they combine with a resource's, conversations, that a chat link is a
-      channel and never a grant, service accounts, and what each edition grants.
+      channel and never a grant, service accounts, Environments among the kinds
+      with general access, and what each edition grants.
     medium: none
 
   concepts/channels:
@@ -581,9 +607,9 @@ pages:
     teaches:
       A routine is a saved Agent invocation that starts on its schedule, by Run
       now or from another system's call with a note; who it acts as, who may
-      start it and read its conversations by edition, off versus paused, and how
-      it compares with Claude Code's routines and Managed Agents' scheduled
-      deployments.
+      start it and read its conversations by edition, the Environment its runs
+      use, off versus paused, and how it compares with Claude Code's routines and
+      Managed Agents' scheduled deployments.
     medium: none
 
   concepts/identity:
@@ -810,7 +836,8 @@ pages:
       polling; where the LLM key, the shared artifact disk and the runner's own
       API key come from per shape; why the runner is one trust domain; the
       per-Session sandbox provisioner as a mechanism and its limit at the
-      current release.
+      current release; what each sandbox driver does with an Environment, where
+      and when it installs packages, and what a base image needs for them.
     medium: diagram
     why:
       The path one run takes (you, the server, the queue, the runner, your LLM

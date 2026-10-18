@@ -1,0 +1,145 @@
+---
+title: Set up an Environment
+description:
+  Create an Environment from the console or a manifest, make it an Agent's or
+  your Organization's default, name one for a single conversation, check which
+  one a conversation got, and fix a conversation the server refuses.
+---
+
+An Environment gives the sandboxes your Agents run in their packages and their
+network: what is installed before the first turn, and which websites the Agent
+may reach. This guide makes one for a data team's Agent, with pandas and
+`poppler-utils` installed and only GitHub and the team's own API reachable,
+makes it the Agent's default, and checks that a conversation got it.
+[Environments](/docs/concepts/environments) explains what an Environment is and
+which one a conversation gets.
+
+You need to be an admin of the Organization: only admins create Environments.
+And your server must run conversations in sandboxes it starts. If it doesn't,
+the **Environments** page says so in a banner, and an Environment you make there
+applies only on a server that does.
+
+## Create an Environment in the console
+
+1. Open **Library → Environments** in the web console and click **New
+   environment**.
+2. Give it a **Name**, such as `data-science`, and a description of what it is
+   for.
+3. Under **Network**, choose **Limited to listed websites**. In **Websites**,
+   list one host per line, with no scheme or path:
+
+   ```text
+   api.github.com
+   our-api.example.com
+   ```
+
+   `*.example.com` would match `api.example.com`, but not `example.com` and not
+   `a.b.example.com`.
+
+4. Leave **Also allow package registries and code hosts** ticked. The installers
+   need it to reach their registries, and a conversation with a repository needs
+   GitHub. Tick **Also allow this Agent's MCP servers** if the Agent uses MCP
+   servers at hosts you haven't listed.
+5. Under **Packages**, put `poppler-utils` in **apt (Debian packages)**, and
+   `pandas` and `sqlalchemy==2.0.30` on two lines in **pip (Python packages)**.
+6. Click **Create environment**.
+
+If **Limited to listed websites** is greyed, with "This server's sandboxes can't
+limit networking to listed websites." beside it, your server's sandboxes can't
+enforce a list; the same goes for packages. See
+[What your server can do](/docs/concepts/environments#what-your-server-can-do).
+
+## Or apply a manifest
+
+The same Environment as a file, applied with `stigmer apply -f environment.yaml`
+or pasted into **Apply YAML** on the **Environments** page:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Environment
+metadata:
+  name: Data science
+  slug: data-science
+spec:
+  description: "pandas and poppler, GitHub and our API only"
+  networking:
+    type: limited
+    allowed_hosts: [api.github.com, our-api.example.com]
+    allow_package_managers: true
+  packages:
+    apt: [poppler-utils]
+    pip: [pandas, sqlalchemy==2.0.30]
+```
+
+Leave `networking` out, or write `type: unrestricted`, for a sandbox that may
+reach any website. Packages under `limited` need `allow_package_managers: true`,
+or the server refuses the file and says why.
+
+## Make it an Agent's default
+
+Open the Agent, click the edit button on its **Environment** section, choose
+`data-science`, and click **Save**. Every conversation on the Agent now runs in
+it, unless the conversation or its routine names another.
+
+In the Agent's manifest, the same default is a reference:
+
+```yaml validate-as="Agent.spec"
+environment_ref:
+  kind: environment
+  slug: data-science
+```
+
+To give every conversation in your Organization a default instead, open
+**Settings → Preferences** and choose it under **Default environment**. An
+Agent's own default comes first.
+
+## Name one for a single conversation
+
+In the console, choose it in the **Environment** list of the new-conversation
+composer. From the CLI:
+
+```bash
+stigmer run data-analyst --environment data-science -m "Summarise last week's PDF reports"
+```
+
+A conversation keeps the Environment it started with. To use another, start a
+new conversation.
+
+## Check which one a conversation got
+
+Open the conversation and its **Setup** tab. The **Environment** row names it
+and says why, such as `data-science · the agent's default`.
+
+From the CLI, `stigmer list sessions -o json` prints each conversation's
+`status.environment` and `status.environment_source`, here
+`ENVIRONMENT_SOURCE_AGENT`. The other sources are `ENVIRONMENT_SOURCE_SESSION`
+(the conversation named it), `ENVIRONMENT_SOURCE_ROUTINE` and
+`ENVIRONMENT_SOURCE_ORGANIZATION`.
+
+The first turn installs the packages before the Agent starts, so it takes longer
+than the next ones: about half a minute to a minute for a few packages across
+`apt`, `npm`, `pip` and `go`, longer with Go programs or large packages.
+
+## If a conversation is refused
+
+The server refuses a conversation it can't honour before it runs, with one
+sentence. Each one, and what to change:
+
+| The server says                                                                                                                                                         | What to change                                                                                                |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| environment 'data-science' limits networking to listed hosts, which this server's sandboxes cannot enforce; …                                                           | Use unrestricted networking, or a server whose sandboxes can limit it.                                        |
+| environment 'data-science' installs packages, which this server's sandboxes cannot do; …                                                                                | Remove its packages, or use a server whose sandboxes install them.                                            |
+| this conversation runs on your own machine (the desktop app or the CLI), where an environment does not apply; …                                                         | Start it in a hosted sandbox, or don't name an Environment.                                                   |
+| environment 'data-science' limits networking and does not allow the agent's MCP servers, and MCP server 'linear' at 'mcp.linear.app' is not one of its allowed hosts; … | Add the host to the Environment's websites, or tick **Also allow this Agent's MCP servers**.                  |
+| a conversation's environment cannot be changed after its first turn: …                                                                                                  | Start a new conversation.                                                                                     |
+| this conversation's environment 'data-science' was deleted; …                                                                                                           | Start a new conversation.                                                                                     |
+| you may no longer use this conversation's environment 'data-science'; …                                                                                                 | Ask the Environment's owner or an admin for access to it, or start a new conversation.                        |
+| environment 'data-science' is still used by …; remove it from them first                                                                                                | Before deleting it, change the Agents, routines or Organization default the message names.                    |
+| the environment's pip packages did not install: …                                                                                                                       | Read the installer's output after it: a misspelt package, a version that doesn't exist, or a host not listed. |
+
+When an installer is missing from the sandbox's image, the install says what to
+add, such as `golang-go` in the `apt` packages for `go`, or `ruby-full` for
+`gem`. A repository-backed conversation whose first turn fails on its clone, in
+a limited Environment, needs GitHub reachable: list `github.com` and
+`api.github.com`, or tick **Also allow package registries and code hosts**
+([stigmer#2421](https://github.com/stigmer/stigmer/issues/2421)).
