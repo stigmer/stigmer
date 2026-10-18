@@ -1,7 +1,8 @@
 /**
  * useCreateSession: a session names its agent directly (`agentRef`, sent as
  * given, with no agent read first) or none (the built-in assistant), with
- * the execution target the input or the context names.
+ * the execution target the input or the context names, and the Environment
+ * the input names (none when it names none).
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
@@ -368,5 +369,22 @@ describe("useCreateSession", () => {
       const callArg = create.mock.calls[0][0];
       expect(callArg.executionTarget).toBeUndefined();
     });
+  });
+
+  it("sends the Environment the input names, and none when it names none", async () => {
+    const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-env" } });
+    const { result } = renderHook(() => useCreateSession(), {
+      wrapper: wrapper(createMockStigmer({ create })),
+    });
+
+    await act(async () => {
+      await result.current.create({ org: "acme", environmentRef: { org: "acme", slug: "data-science" } });
+    });
+    await act(async () => {
+      await result.current.create({ org: "acme" });
+    });
+
+    expect(create.mock.calls[0][0].environmentRef).toEqual({ org: "acme", slug: "data-science" });
+    expect(create.mock.calls[1][0].environmentRef).toBeUndefined();
   });
 });
