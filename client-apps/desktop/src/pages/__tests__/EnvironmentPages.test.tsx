@@ -7,12 +7,16 @@
  * Environment on completion and the list on cancel, and meets someone who
  * may not create one with the denied notice; the detail page shows the
  * Environment the route names, names the breadcrumb, moves the route to
- * the slug it answers to, and lands on the list after a delete. The SDK
- * views are pinned in @stigmer/react-sdk and stubbed here.
+ * the slug it answers to, follows a rename, lands on the list after a
+ * delete, and renders nothing for a route that names no Environment. Apply
+ * YAML opens the manifest dialog and refreshes the list once a manifest is
+ * applied; the new page waits, rendering nothing, while the server's
+ * answer is in flight. The SDK views are pinned in @stigmer/react-sdk and
+ * stubbed here.
  */
 import type { ReactNode } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
 type Props = Record<string, unknown>;
@@ -110,6 +114,23 @@ describe("desktop EnvironmentListPage", () => {
     expect(screen.queryByRole("link", { name: "New environment" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Apply YAML" })).toBeNull();
   });
+
+  it("opens Apply YAML and refreshes the list once a manifest is applied", () => {
+    renderAt("/library/environments", "/library/environments", <EnvironmentListPage />);
+    expect(propsOf("ApplyManifestDialog").open).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Apply YAML" }));
+    expect(propsOf("ApplyManifestDialog")).toMatchObject({ open: true, org: "org_acme" });
+    const before = propsOf("ResourceWorkbench").refetchToken as number;
+    call("ApplyManifestDialog", "onApplied");
+    expect(propsOf("ResourceWorkbench").refetchToken).toBe(before + 1);
+  });
+
+  it("keys each row by its Environment's id", () => {
+    renderAt("/library/environments", "/library/environments", <EnvironmentListPage />);
+    const getItemId = propsOf("ResourceWorkbench").getItemId as (item: unknown) => string;
+    expect(getItemId({ metadata: { id: "env_ds" } })).toBe("env_ds");
+    expect(getItemId({})).toBe("");
+  });
 });
 
 describe("desktop EnvironmentNewPage", () => {
@@ -126,6 +147,19 @@ describe("desktop EnvironmentNewPage", () => {
     expect(screen.getByText("only admins create environments")).toBeTruthy();
     expect(page.props.has("EnvironmentForm")).toBe(false);
   });
+
+  it("goes back to the list on cancel", () => {
+    renderAt("/library/environments/new", "/library/environments/new", <EnvironmentNewPage />);
+    call("EnvironmentForm", "onCancel");
+    expect(location()).toBe("/library/environments");
+  });
+
+  it("renders nothing while the server's answer is in flight", () => {
+    page.canCreate = { allowed: false, isLoading: true };
+    renderAt("/library/environments/new", "/library/environments/new", <EnvironmentNewPage />);
+    expect(page.props.has("EnvironmentForm")).toBe(false);
+    expect(screen.queryByText("only admins create environments")).toBeNull();
+  });
 });
 
 describe("desktop EnvironmentDetailPage", () => {
@@ -141,5 +175,16 @@ describe("desktop EnvironmentDetailPage", () => {
     renderAt("/library/environments/acme/ds", "/library/environments/:org/:slug", <EnvironmentDetailPage />);
     call("EnvironmentDetailView", "onDeleted");
     expect(location()).toBe("/library/environments");
+  });
+
+  it("moves the route to the slug a rename gave it", () => {
+    renderAt("/library/environments/acme/ds", "/library/environments/:org/:slug", <EnvironmentDetailPage />);
+    call("EnvironmentDetailView", "onRenamed", { metadata: { slug: "renamed" } });
+    expect(location()).toBe("/library/environments/acme/renamed");
+  });
+
+  it("renders nothing for a route that names no Environment", () => {
+    renderAt("/library/environments/acme", "/library/environments/:org", <EnvironmentDetailPage />);
+    expect(page.props.has("EnvironmentDetailView")).toBe(false);
   });
 });

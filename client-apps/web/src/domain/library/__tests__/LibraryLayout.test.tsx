@@ -50,6 +50,9 @@ vi.mock("@/domain/library/skills/SkillDetailPage", () => ({
 vi.mock("@/domain/library/routines/RoutineDetailPage", () => ({
   RoutineDetailPageInner: () => <div data-testid="routine-detail" />,
 }));
+vi.mock("@/domain/library/environments/EnvironmentDetailPage", () => ({
+  EnvironmentDetailPageInner: () => <div data-testid="environment-detail" />,
+}));
 
 // The organizations the person belongs to, as the SDK's OrgProvider would
 // answer for them: an id reads its slug in a URL, and a segment that is not
@@ -176,6 +179,14 @@ describe("LibraryLayout routine detail", () => {
     setRoute("/library/routines/acme/nightly");
     render(<LibraryLayout>{null}</LibraryLayout>);
     expect(screen.getByTestId("routine-detail")).toBeTruthy();
+  });
+});
+
+describe("LibraryLayout environment detail", () => {
+  it("renders a deep-loaded environment's detail", () => {
+    setRoute("/library/environments/acme/data-science");
+    render(<LibraryLayout>{null}</LibraryLayout>);
+    expect(screen.getByTestId("environment-detail")).toBeTruthy();
   });
 });
 

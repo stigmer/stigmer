@@ -7,12 +7,15 @@
  * cancel, and meets a direct visit by someone who may not create one with
  * the denied notice; the detail page shows the Environment where it lives,
  * names the breadcrumb, keeps the canonical slug, and lands on the list
- * after a delete. The views, form and workbench are pinned in
+ * after a delete. /library/environments serves the list; Apply YAML opens
+ * the manifest dialog and refreshes the list once a manifest is applied;
+ * the routed detail page reads the Environment from the address the static
+ * export serves. The views, form and workbench are pinned in
  * @stigmer/react-sdk and stubbed here to capture their props.
  */
 import type { ReactNode } from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 
 type Props = Record<string, unknown>;
 
@@ -76,7 +79,8 @@ vi.mock("@/domain/library/library-navigation", () => ({
 
 import { EnvironmentListPage } from "../EnvironmentListPage";
 import { EnvironmentNewPage } from "../EnvironmentNewPage";
-import { EnvironmentDetailPageInner } from "../EnvironmentDetailPage";
+import { EnvironmentDetailPage, EnvironmentDetailPageInner } from "../EnvironmentDetailPage";
+import EnvironmentsPage from "@/app/library/environments/page";
 
 function propsOf(name: string): Props {
   const props = page.props.get(name);
@@ -90,6 +94,10 @@ function call(name: string, prop: string, arg?: unknown): void {
 }
 
 const CREATED = { metadata: { org: "org_acme", slug: "data-science", name: "Data science" } };
+
+afterEach(() => {
+  window.history.replaceState(null, "", "/");
+});
 
 beforeEach(() => {
   page.canCreate = { allowed: true, isLoading: false };
@@ -122,6 +130,28 @@ describe("web EnvironmentListPage", () => {
     render(<EnvironmentListPage />);
     expect(screen.queryByRole("link", { name: "New environment" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Apply YAML" })).toBeNull();
+  });
+
+  it("is the page /library/environments serves", () => {
+    render(<EnvironmentsPage />);
+    expect(propsOf("ResourceWorkbench").org).toBe("org_acme");
+  });
+
+  it("opens Apply YAML and refreshes the list once a manifest is applied", () => {
+    render(<EnvironmentListPage />);
+    expect(propsOf("ApplyManifestDialog").open).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Apply YAML" }));
+    expect(propsOf("ApplyManifestDialog")).toMatchObject({ open: true, org: "org_acme" });
+    const before = propsOf("ResourceWorkbench").refetchToken as number;
+    call("ApplyManifestDialog", "onApplied");
+    expect(propsOf("ResourceWorkbench").refetchToken).toBe(before + 1);
+  });
+
+  it("keys each row by its Environment's id", () => {
+    render(<EnvironmentListPage />);
+    const getItemId = propsOf("ResourceWorkbench").getItemId as (item: unknown) => string;
+    expect(getItemId({ metadata: { id: "env_ds" } })).toBe("env_ds");
+    expect(getItemId({})).toBe("");
   });
 });
 
@@ -168,5 +198,20 @@ describe("web EnvironmentDetailPageInner", () => {
     expect(page.pushed).toEqual(["/library/environments"]);
     call("EnvironmentDetailView", "onRenamed", { metadata: { slug: "renamed" } });
     expect(page.canonical).toEqual(["renamed"]);
+  });
+});
+
+describe("web EnvironmentDetailPage", () => {
+  it("reads the Environment from the address the static export serves", () => {
+    window.history.replaceState(null, "", "/library/environments/acme/data-science");
+    render(<EnvironmentDetailPage />);
+    expect(propsOf("EnvironmentDetailView")).toMatchObject({ org: "acme", slug: "data-science" });
+  });
+
+  it("renders nothing for an address that names no Environment", () => {
+    // An address too short to name one: the placeholder page with no segments to read.
+    window.history.replaceState(null, "", "/");
+    render(<EnvironmentDetailPage />);
+    expect(page.props.has("EnvironmentDetailView")).toBe(false);
   });
 });
