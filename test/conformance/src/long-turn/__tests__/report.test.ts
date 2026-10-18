@@ -62,6 +62,7 @@ describe("the summary", () => {
     expect(md).toContain("- minute 2: SIGKILL during `killed-mid-tool`");
     expect(md).toContain("gaps 3.");
     expect(md).toContain("stalled \\| for 180s");
+    expect(renderSummary({ ...running, samples: [sample(1, { error: "C:\\path | x" })] })).toContain("C:\\\\path \\| x");
     const whole = renderSummary({ ...running, end: { phase: "RUN_COMPLETED", error: "", elapsedMinutes: 9, atStep: undefined, stepsEnded: 2, stoppedByBudget: true, transcript: transcriptCheckOf([1, 2, 3, 4]) } });
     expect(whole).toContain("stopped by the run's budget at minute 9, at step `none`");
     expect(whole).toContain("seq 1 to 4, unbroken.");

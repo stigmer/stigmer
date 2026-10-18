@@ -122,9 +122,14 @@ export function renderSummary(report: LongTurnReport): string {
   }
   lines.push("", "## Minutes", "", "| min | phase | open step | started | ended | events | model calls | compactions | error |", "|---|---|---|---|---|---|---|---|---|");
   for (const s of report.samples) {
-    lines.push(`| ${s.elapsedMinutes} | ${s.phase} | ${s.openStep ?? ""} | ${s.stepsStarted} | ${s.stepsEnded} | ${s.sessionEvents} | ${s.modelCalls ?? "n/a"} | ${s.compactions ?? "n/a"} | ${s.error.replace(/\|/g, "\\|").slice(0, 120)} |`);
+    lines.push(`| ${s.elapsedMinutes} | ${s.phase} | ${s.openStep ?? ""} | ${s.stepsStarted} | ${s.stepsEnded} | ${s.sessionEvents} | ${s.modelCalls ?? "n/a"} | ${s.compactions ?? "n/a"} | ${tableCell(s.error)} |`);
   }
   return `${lines.join("\n")}\n`;
+}
+
+/** Text as one Markdown table cell: backslashes and pipes escaped (backslashes first), cut to 120 characters. */
+function tableCell(text: string): string {
+  return text.slice(0, 120).replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
 }
 
 /** Write the report and its summary into `dir`, each whole (a temporary file, then a rename). */
