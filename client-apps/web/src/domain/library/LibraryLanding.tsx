@@ -3,7 +3,7 @@
 import { type MouseEvent, useCallback, useReducer, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Blocks, Bot, CalendarClock, FileCode2, Plus, Sparkles, Server } from "lucide-react";
+import { Blocks, Bot, Box, CalendarClock, FileCode2, Plus, Sparkles, Server } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/design-tokens";
 import { ADD_MCP_SERVER_HREF } from "@/domain/library/plugins/add-mcp-server";
@@ -11,11 +11,13 @@ import {
   ApplyManifestDialog,
   useAgentCount,
   useRoutineCount,
+  useEnvironmentCount,
   useSkillCount,
   usePluginCount,
   ResourceCountCard,
   useActiveOrgId,
   useCanCreateAgent,
+  useCanCreateEnvironment,
 } from "@stigmer/react-sdk";
 
 function isPlainClick(e: MouseEvent): boolean {
@@ -47,6 +49,12 @@ const RESOURCE_CARDS = [
     href: "/library/plugins",
     icon: <Blocks className="size-5" aria-hidden="true" />,
   },
+  {
+    key: "environments",
+    label: "Environments",
+    href: "/library/environments",
+    icon: <Box className="size-5" aria-hidden="true" />,
+  },
 ] as const;
 
 interface AddMenuItem {
@@ -56,6 +64,7 @@ interface AddMenuItem {
 }
 
 const NEW_AGENT_HREF = "/library/agents/new";
+const NEW_ENVIRONMENT_HREF = "/library/environments/new";
 
 const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
   {
@@ -83,6 +92,11 @@ const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
     icon: <Blocks className="size-4" aria-hidden="true" />,
     href: "/library/plugins/upload",
   },
+  {
+    label: "Environment",
+    icon: <Box className="size-4" aria-hidden="true" />,
+    href: NEW_ENVIRONMENT_HREF,
+  },
 ];
 
 // Cards count the organization's rows: the landing presents "your
@@ -93,12 +107,14 @@ function useResourceCounts(org: string | null, refetchToken?: unknown) {
   const skills = useSkillCount(org, { refetchToken });
   const routines = useRoutineCount(org, { refetchToken });
   const plugins = usePluginCount(org, { refetchToken });
+  const environments = useEnvironmentCount(org, { refetchToken });
 
   return {
     agents,
     skills,
     routines,
     plugins,
+    environments,
   } as const;
 }
 
@@ -124,15 +140,15 @@ export function LibraryLanding() {
     <>
       <h1 className="text-foreground mb-1 text-xl font-semibold">Library</h1>
       <p className="text-muted-foreground mb-8 text-sm">
-        Browse and manage your agents, skills, and plugins.
+        Browse and manage your agents, skills, plugins, and environments.
       </p>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {RESOURCE_CARDS.map((card) => {
           const cardCount = counts[card.key];
           const { count, isLoading } = cardCount;
-          // Routines have no search count: their card counts a first page
-          // and reads "100+" when more follow.
+          // Routines and environments have no search count: their cards
+          // count a first page and read "100+" when more follow.
           const countIsLowerBound = "isLowerBound" in cardCount && cardCount.isLowerBound;
 
           return (
@@ -187,9 +203,14 @@ function AddResourceMenu() {
   // "Agent" is offered only to someone the server lets create one: admins,
   // and members while the organization lets members create agents.
   const { allowed: canCreateAgent } = useCanCreateAgent(org || null);
-  const addMenuItems = canCreateAgent
-    ? ADD_MENU_ITEMS
-    : ADD_MENU_ITEMS.filter((item) => item.href !== NEW_AGENT_HREF);
+  // "Environment" is offered only to the organization's admins, and not
+  // until the server has said so, so a member never sees it flash.
+  const { allowed: canCreateEnvironment } = useCanCreateEnvironment(org || null);
+  const addMenuItems = ADD_MENU_ITEMS.filter(
+    (item) =>
+      (canCreateAgent || item.href !== NEW_AGENT_HREF) &&
+      (canCreateEnvironment || item.href !== NEW_ENVIRONMENT_HREF),
+  );
   const [open, setOpen] = useState(false);
 
   return (

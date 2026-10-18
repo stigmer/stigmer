@@ -31,6 +31,7 @@ export const LIBRARY_RESOURCE_TYPES = [
   "skills",
   "routines",
   "plugins",
+  "environments",
 ] as const;
 
 type LibraryResourceType = (typeof LIBRARY_RESOURCE_TYPES)[number];

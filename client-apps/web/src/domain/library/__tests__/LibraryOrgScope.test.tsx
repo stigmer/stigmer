@@ -1,8 +1,10 @@
 /**
  * Pins where the web library scopes to the viewer's active organization by
  * its id, the way the server names every org: the landing's resource
- * counts; the agent page shows the agent where it lives. The views
- * and count hooks are pinned in @stigmer/react-sdk.
+ * counts; the agent page shows the agent where it lives. The Add menu
+ * offers Agent and Environment only to someone the server lets create
+ * each, and Environment not until the server has answered. The views and
+ * count hooks are pinned in @stigmer/react-sdk.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -10,6 +12,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 const page = vi.hoisted(() => ({
   // The server's answer to "may this person create an agent here?".
   canCreate: { allowed: true, isLoading: false },
+  // The server's answer to "may this person create an environment here?".
+  canCreateEnvironment: { allowed: true, isLoading: false },
   counted: [] as Array<string | null>,
   agentView: [] as Array<Record<string, unknown>>,
 }));
@@ -34,8 +38,10 @@ vi.mock("@stigmer/react-sdk", () => {
     useRoutineCount: count,
     useSkillCount: count,
     usePluginCount: count,
+    useEnvironmentCount: count,
     useActiveOrgId: () => "org_acme",
     useCanCreateAgent: () => page.canCreate,
+    useCanCreateEnvironment: () => page.canCreateEnvironment,
     useAgent: () => ({ agent: null, refetch: () => undefined }),
     useCopyResource: () => ({
       copyId: () => undefined,
@@ -82,6 +88,7 @@ import { AgentDetailPageInner } from "../agents/AgentDetailPage";
 
 beforeEach(() => {
   page.canCreate = { allowed: true, isLoading: false };
+  page.canCreateEnvironment = { allowed: true, isLoading: false };
   page.counted.length = 0;
   page.agentView.length = 0;
 });
@@ -90,7 +97,7 @@ describe("web library org scope", () => {
   it("LibraryLanding counts every kind in the active org by its id", () => {
     render(<LibraryLanding />);
 
-    expect(page.counted).toHaveLength(4);
+    expect(page.counted).toHaveLength(5);
     expect(new Set(page.counted)).toEqual(new Set(["org_acme"]));
   });
 
@@ -119,5 +126,23 @@ describe("web library Add menu — who may create agents", () => {
     const labels = await addMenuItems();
     expect(labels.some((label) => label.includes("Agent"))).toBe(false);
     expect(labels.length).toBeGreaterThan(0);
+  });
+});
+
+describe("web library Add menu — who may create environments", () => {
+  async function addMenuItems(): Promise<string[]> {
+    render(<LibraryLanding />);
+    fireEvent.click(screen.getByRole("button", { name: "Add a new resource" }));
+    const items = await screen.findAllByRole("menuitem");
+    return items.map((item) => item.textContent ?? "");
+  }
+
+  it("offers Environment to an admin", async () => {
+    expect(await addMenuItems()).toContain("Environment");
+  });
+
+  it("leaves Environment out for someone the server would refuse (a member, or anyone before it answers)", async () => {
+    page.canCreateEnvironment = { allowed: false, isLoading: false };
+    expect(await addMenuItems()).not.toContain("Environment");
   });
 });

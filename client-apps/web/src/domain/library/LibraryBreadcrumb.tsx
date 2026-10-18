@@ -8,6 +8,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   agents: "Agents",
   skills: "Skills",
   routines: "Routines",
+  environments: "Environments",
 };
 
 export function LibraryBreadcrumb() {
