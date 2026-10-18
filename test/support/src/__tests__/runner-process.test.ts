@@ -9,8 +9,9 @@
 // exits hid in green runs.
 // Pure: a string (or a number) in, a string out. No target, no spawn.
 // Domain: test support (stack spawns).
+import { rmSync, statSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { describeRunnerForceKill, describeRunnerSlowExit, runnerArtifactEnv, runnerHomeEnv, spawnRunner } from "../runner-process.ts";
+import { describeRunnerForceKill, describeRunnerSlowExit, makeRunnerDirs, runnerArtifactEnv, runnerHomeEnv, spawnRunner } from "../runner-process.ts";
 
 // The Temporal SDK prints each worker state change as a five-line object.
 function workerStateChanged(state: string): string[] {
@@ -207,5 +208,19 @@ describe("spawnRunner's artifactStore \"none\"", () => {
     await expect(spawnRunner({ ...base, proxy, artifactStore: "none", artifactProxy: { endpoint: "http://127.0.0.1:2" } })).rejects.toThrow(
       "excludes artifactDir and artifactProxy",
     );
+  });
+});
+
+describe("makeRunnerDirs", () => {
+  it("mints a HOME and a workspace root that exist, apart, for a runner and its replacements", async () => {
+    const dirs = await makeRunnerDirs();
+    try {
+      expect(dirs.homeDir).not.toBe(dirs.workspaceDir);
+      expect(statSync(dirs.homeDir).isDirectory()).toBe(true);
+      expect(statSync(dirs.workspaceDir).isDirectory()).toBe(true);
+    } finally {
+      rmSync(dirs.homeDir, { recursive: true, force: true });
+      rmSync(dirs.workspaceDir, { recursive: true, force: true });
+    }
   });
 });

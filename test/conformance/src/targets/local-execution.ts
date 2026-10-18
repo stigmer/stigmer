@@ -8,6 +8,7 @@
 // TemporalManager's initial connect flips the engine-state provider to
 // connected), and the server before the runner (which streams status back
 // to it). teardown() reverses it.
+import { rm } from "node:fs/promises";
 import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import {
@@ -23,7 +24,7 @@ import { COLLECTOR_LOGIN, FakeOtlpCollector } from "../harness/fake-otlp-collect
 import { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { fetchModelRegistryDocument, type ModelRegistryDocument } from "../harness/model-registry";
 import { ensureRunnerBuilt } from "@stigmer/test-support/runner-build";
-import { spawnRunner, type RunningRunner } from "@stigmer/test-support/runner-process";
+import { makeRunnerDirs, spawnRunner, type RunnerDirs, type RunnerOptions, type RunningRunner } from "@stigmer/test-support/runner-process";
 import {
   ephemeralSqliteStorage,
   spawnServer,
@@ -38,6 +39,7 @@ import type {
   EngineCoordinates,
   EnforcingLane,
   PrivilegedScope,
+  RunnerRestartOptions,
   SiblingExecutionServer,
   SpawnSiblingOptions,
   TargetProfile,
@@ -129,6 +131,10 @@ export class LocalExecutionTarget implements TargetProfile {
   private server: RunningServer | undefined;
   private storage: ProvisionedStorage | undefined;
   private runner: RunningRunner | undefined;
+  // What the runner was booted with, and the state directories the target
+  // owns for it and every replacement (restartRunner); removed at teardown.
+  private runnerOptions: RunnerOptions | undefined;
+  private runnerDirs: RunnerDirs | undefined;
   private mockLlm: MockLlmProxy | undefined;
   private mcpTools: McpToolFixture | undefined;
   private otlpCollector: FakeOtlpCollector | undefined;
@@ -181,7 +187,8 @@ export class LocalExecutionTarget implements TargetProfile {
     // 4. Runner last: it dials the server's gRPC endpoint to stream status back,
     //    the same server's HTTP lane for the model registry (the OSS topology,
     //    stigmer#240), and the mock proxy for LLM calls.
-    this.runner = await spawnRunner({
+    this.runnerDirs = await makeRunnerDirs();
+    this.runnerOptions = {
       entryPath: runnerEntry,
       temporalHostPort: this.temporal.hostPort,
       backendEndpoint: this.server.baseUrl,
@@ -191,7 +198,21 @@ export class LocalExecutionTarget implements TargetProfile {
       // server wrote resolves when the runner reads it back (#285).
       artifactDir: this.server.artifactBaseDir,
       telemetry: { endpoint: this.otlpCollector.endpoint(), login: COLLECTOR_LOGIN },
-    });
+      dirs: this.runnerDirs,
+    };
+    this.runner = await spawnRunner(this.runnerOptions);
+  }
+
+  // TargetProfile.restartRunner: the replacement boots with the options the
+  // first runner had, on the same directories.
+  async restartRunner(options: RunnerRestartOptions): Promise<void> {
+    if (this.runner === undefined || this.runnerOptions === undefined) {
+      throw new Error("LocalExecutionTarget.setup() must be called before restartRunner()");
+    }
+    const ended = this.runner;
+    this.runner = undefined;
+    await ended.kill(options.signal);
+    this.runner = await spawnRunner(this.runnerOptions);
   }
 
   // The storage-driver seam (the LocalTarget shape): local-postgres-execution
@@ -417,6 +438,12 @@ export class LocalExecutionTarget implements TargetProfile {
     }
     // Reverse boot order: runner, then the LLM/MCP fixtures, then server, then Temporal.
     await this.runner?.stop();
+    if (this.runnerDirs !== undefined) {
+      await rm(this.runnerDirs.homeDir, { recursive: true, force: true });
+      await rm(this.runnerDirs.workspaceDir, { recursive: true, force: true });
+    }
+    this.runnerDirs = undefined;
+    this.runnerOptions = undefined;
     await this.mockLlm?.close();
     await this.mcpTools?.close();
     await this.otlpCollector?.close();

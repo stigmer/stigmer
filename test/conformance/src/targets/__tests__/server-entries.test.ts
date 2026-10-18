@@ -44,6 +44,7 @@ vi.mock("@stigmer/test-support/runner-build", () => ({
 }));
 
 vi.mock("@stigmer/test-support/runner-process", () => ({
+  makeRunnerDirs: async () => ({ homeDir: "/runner-home", workspaceDir: "/runner-workspace" }),
   spawnRunner: async () => ({ stop: async () => {} }),
 }));
 

@@ -18,6 +18,7 @@ import {
   deterministicEmbeddings,
   type CapturedLlmRequest,
   type EmbeddingsResponseBody,
+  MOCK_CONVERSATION_SUMMARY,
 } from "../mock-llm.ts";
 
 const mock = new MockLlmProxy();
@@ -176,6 +177,30 @@ describe("MockLlmProxy request disposition", () => {
     expect((mock.scriptedRequests()[0]!.body as { system: string }).system).toBe("You are the agent.");
     expect(mock.consumed(), "the disposition agrees with the queue accounting").toBe(1);
     expect(mock.titleRequests(), "and with the out-of-band count").toBe(1);
+  });
+
+  it("answers native compaction's summary call out of band and counts it; the queue is never touched", async () => {
+    mock.enqueue(anthropicText("the agent's turn"));
+    const summary = await post(ANTHROPIC_PATH, {
+      model: "claude-haiku-4-5-20251001",
+      messages: [{ role: "user", content: [{ type: "text", text: "You are a conversation summarizer. Your task is to create a concise summary." }] }],
+    });
+    expect(summary.status).toBe(200);
+    expect(JSON.stringify(await summary.json())).toContain(MOCK_CONVERSATION_SUMMARY);
+    expect(mock.summaryRequests()).toBe(1);
+    expect(mock.remaining(), "the agent's turn is still queued").toBe(1);
+    expect(mock.requests().map((r) => r.disposition)).toEqual(["out-of-band"]);
+
+    // A turn that merely mentions summarizing, or carries more than the one message, is the agent's.
+    await post(ANTHROPIC_PATH, {
+      model: "claude-haiku-4-5-20251001",
+      messages: [
+        { role: "user", content: "Summarize the repository." },
+        { role: "assistant", content: "You are a conversation summarizer." },
+      ],
+    });
+    expect(mock.summaryRequests()).toBe(1);
+    expect(mock.consumed()).toBe(1);
   });
 
   it("a request answered by a persistent fault after the queue drained is unscripted, not scripted", async () => {

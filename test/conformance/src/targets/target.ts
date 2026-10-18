@@ -21,6 +21,14 @@ export interface EngineCoordinates {
   serverBaseUrl: string;
 }
 
+// How TargetProfile.restartRunner ends the runner it replaces.
+export interface RunnerRestartOptions {
+  // SIGKILL is a crash (nothing drains, nothing is written; the workflow
+  // notices by the activity's missed heartbeat), SIGTERM a drain (the
+  // runner's own graceful shutdown, as a deploy's rollout sends it).
+  readonly signal: "SIGKILL" | "SIGTERM";
+}
+
 // Behaviors that legitimately differ across editions, gating assertions rather
 // than forking them. Local OSS is single-tenant and omits cloud-only lookups.
 export interface CapabilityFlags {
@@ -848,6 +856,17 @@ export interface TargetProfile {
   // discovers Temporal through the control plane, so the method is absent and
   // the manager-mode IPC smoke reports SKIPPED. Valid only after setup().
   engineCoordinates?(): EngineCoordinates;
+
+  // Ends the target's runner by `options.signal` and boots a replacement on
+  // the SAME state directories (its HOME, where the sqlite checkpoints and
+  // the workspace locks live, and its workspace root) and the same task
+  // queue, then awaits its first poll: a runner pod restarted on a durable
+  // volume. The runner stays the target's: this is the one door to it.
+  // Present only on the local execution targets, which spawn their runner;
+  // the cloud's is the composition's, and the suite that needs this is
+  // excluded from the cloud lane by name (vitest.cloud-execution.config.ts).
+  // Valid only after setup().
+  restartRunner?(options: RunnerRestartOptions): Promise<void>;
 
   // The on-disk artifact store the spawned server and runner share (the
   // server's ARTIFACT_LOCAL_BASE_PATH = the runner's LOCAL_ARTIFACT_PATH, #285).
