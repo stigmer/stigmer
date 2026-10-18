@@ -30,8 +30,8 @@
  *   - the lifecycle a composition's own sweep calls: a guarded pause asks
  *     before the call from a fresh read and thaws when the sweep says it is
  *     no longer idle afterwards, a guarded suspend asks before; `maintain`
- *     repeats a stuck delete, makes an awake sandbox's egress current once
- *     per process for a sandbox still awake, moves only a sleeping sandbox
+ *     repeats a stuck delete, writes no egress policy (an awake sandbox's
+ *     is its next ensure's), moves only a sleeping sandbox
  *     off an older template, then retires, skipping a sandbox whose upkeep fails and stopping before
  *     retirement when asked; `deleteByName` deletes only a name this driver
  *     gives (a leftover workflow-scope `sbx-wfx-` sandbox is refused before
@@ -95,6 +95,7 @@ const settings: SubstrateDriverSettings = {
   sandboxConfigName: "gvisor-default",
   httpsEgress: "all",
   extraHttpEgress: [],
+  platformHttpsHosts: [],
   pauseAfterSeconds: 300,
   suspendAfterSeconds: 1800,
   sweepIntervalSeconds: 60,
@@ -1025,7 +1026,6 @@ describe("the lifecycle a composition's own sweep calls", () => {
     const listed = await h.driver.lifecycle.list();
     expect(await h.driver.lifecycle.maintain(listed)).toEqual({
       redeleted: 1,
-      egressReconciled: 2,
       moved: 1,
       retired: 1,
     });
@@ -1036,17 +1036,13 @@ describe("the lifecycle a composition's own sweep calls", () => {
     expect(h.substrate.calls.filter((c) => c.startsWith("moveActor"))).toEqual([
       "moveActor sbx-ses-000000000002",
     ]);
-    expect(
-      h.substrate.actors.get("sbx-mcp-000000000004")?.policy?.length,
-    ).toBeGreaterThan(0);
+    // An awake sandbox's policy is its next ensure's to write: the sweep
+    // does not know its Environment, and the bare rules would widen it.
+    expect(h.substrate.actors.get("sbx-mcp-000000000004")?.policy).toEqual([]);
+    expect(h.substrate.calls.filter((c) => c.startsWith("ensureEgressPolicy"))).toEqual([]);
     expect(h.substrate.templates.has("stigmer-runner-aaaaaaaaaaaa")).toBe(
       false,
     );
-    // The egress policy is made current once per process.
-    expect(
-      (await h.driver.lifecycle.maintain(await h.driver.lifecycle.list()))
-        .egressReconciled,
-    ).toBe(0);
   });
 
   it("moves a sleeping sandbox only if it is still asleep when its turn in the queue comes", async () => {
@@ -1061,21 +1057,6 @@ describe("the lifecycle a composition's own sweep calls", () => {
     sleeping.state = ActorState.RUNNING;
     expect((await h.driver.lifecycle.maintain(listed)).moved).toBe(0);
     expect(h.substrate.calls).not.toContain(`moveActor ${ACTOR}`);
-  });
-
-  it("makes egress current only for a sandbox still awake when its turn in the queue comes", async () => {
-    const h = harness();
-    const awake = h.substrate.put({
-      name: ACTOR,
-      state: ActorState.PAUSED,
-      template: "t",
-    });
-    const listed = await h.driver.lifecycle.list();
-    awake.state = ActorState.SUSPENDED;
-    expect((await h.driver.lifecycle.maintain(listed)).egressReconciled).toBe(
-      0,
-    );
-    expect(h.substrate.calls).not.toContain(`ensureEgressPolicy ${ACTOR}`);
   });
 
   it("repeats a delete only for a sandbox still deleting when its turn in the queue comes", async () => {
@@ -1210,7 +1191,7 @@ describe("the lifecycle a composition's own sweep calls", () => {
       await h.driver.lifecycle.maintain(second, {
         stopping: () => (checks += 1) > 1,
       }),
-    ).toEqual({ redeleted: 1, egressReconciled: 0, moved: 0, retired: 0 });
+    ).toEqual({ redeleted: 1, moved: 0, retired: 0 });
     expect(h.substrate.calls.slice(before)).not.toContain("listTemplates ");
     // A shutdown before the first sandbox touches none.
     h.substrate.put({
@@ -1223,7 +1204,7 @@ describe("the lifecycle a composition's own sweep calls", () => {
       await h.driver.lifecycle.maintain(await h.driver.lifecycle.list(), {
         stopping: () => true,
       }),
-    ).toEqual({ redeleted: 0, egressReconciled: 0, moved: 0, retired: 0 });
+    ).toEqual({ redeleted: 0, moved: 0, retired: 0 });
     expect(h.substrate.calls.slice(untouched)).toEqual(["listActors "]);
   });
 

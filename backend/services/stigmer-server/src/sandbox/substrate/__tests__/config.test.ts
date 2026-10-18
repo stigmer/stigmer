@@ -34,6 +34,7 @@ describe("newSubstrateSettingsFromEnv", () => {
       sandboxConfigName: "gvisor-default",
       httpsEgress: "all",
       extraHttpEgress: [],
+      platformHttpsHosts: [],
       pauseAfterSeconds: 300,
       suspendAfterSeconds: 330,
       sweepIntervalSeconds: 30,

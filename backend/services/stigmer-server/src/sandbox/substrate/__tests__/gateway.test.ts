@@ -444,6 +444,7 @@ describe("the live client", () => {
       sandboxConfigName: "gvisor-default",
       httpsEgress: "none",
       extraHttpEgress: [],
+      platformHttpsHosts: [],
       pauseAfterSeconds: 300,
       suspendAfterSeconds: 1800,
       sweepIntervalSeconds: 60,

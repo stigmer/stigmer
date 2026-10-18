@@ -48,6 +48,7 @@ const settings: SubstrateDriverSettings = {
   sandboxConfigName: "gvisor-default",
   httpsEgress: "none",
   extraHttpEgress: [],
+  platformHttpsHosts: [],
   pauseAfterSeconds: 300,
   suspendAfterSeconds: 1800,
   sweepIntervalSeconds: 60,

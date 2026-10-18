@@ -59,14 +59,20 @@
  * logs the refusal, and takes the new secrets at its next fresh start,
  * after its next idle suspend.
  *
- * The egress policy is this configuration's on every actor the server
- * touches: created when missing (which also repairs an actor whose creator
- * died before writing it; an actor without one reaches nothing) and
- * replaced when its rules differ. It is reconciled on every wake from
- * storage and once per server process for an actor that is running or
- * paused, at its first ensure or sweep, so a changed endpoint or HTTPS
- * egress switched off reaches existing sandboxes after a restart rather
- * than only new ones. The runner's own lanes are cleartext (egress.ts says
+ * The egress policy is this configuration's and the session's
+ * Environment's (egress.ts) on every actor the server ensures: created
+ * when missing (which also repairs an actor whose creator died before
+ * writing it; an actor without one reaches nothing) and replaced when its
+ * rules differ. Every ensure, so every turn, computes the rules and writes
+ * them when their digest differs from what this process last wrote for
+ * the actor (always on a wake from storage), so a host an Environment no
+ * longer lists stops being reachable at the conversation's next turn, and
+ * a changed endpoint or HTTPS egress switched off reaches a sandbox at its
+ * next turn or wake. A running turn keeps the policy it started with until
+ * the next ensure; Substrate applies a replaced policy to a running actor
+ * at once (measured on v0.3.0, 2026-10-18). The sweep writes no policy:
+ * it does not know an awake sandbox's Environment, and the configuration's
+ * bare rules would widen a limited one. The runner's own lanes are cleartext (egress.ts says
  * why), so the server's Temporal connection settings, every one of which
  * asks for TLS, are refused at boot rather than carried to the runner.
  *
@@ -103,8 +109,8 @@
  * pause was in flight thaws the sandbox at once); a delete's guard is how
  * a composition reaping orphans never deletes a sandbox a turn woke while
  * the delete waited in the queue; `maintain` is a pass's upkeep over the
- * sweep's own listing (a delete repeated, egress made current, a sleeping
- * sandbox moved to the current template, unused templates retired); and
+ * sweep's own listing (a delete repeated, a sleeping sandbox moved to the
+ * current template, unused templates retired); and
  * `prepare` readies the template before the first turn needs it.
  */
 import type { Logger } from "../../boot/logger.js";
@@ -123,7 +129,8 @@ import type {
 } from "../provisioner.js";
 import type { SubstrateDriverSettings } from "./config.js";
 import { delay } from "./delay.js";
-import { buildEgressRules } from "./egress.js";
+import { runnerEnvironmentOf } from "../environment.js";
+import { buildEgressRules, egressDigest } from "./egress.js";
 import { ActorState, type EgressRule } from "./gen/ateapipb/ateapi_pb.js";
 import {
   SubstrateAbortedError,
@@ -201,8 +208,6 @@ type EnsurePath =
 export interface SubstrateMaintenance {
   /** Sandboxes left DELETING by a delete that failed part-way, deleted again. */
   readonly redeleted: number;
-  /** Awake sandboxes whose egress policy this pass made this configuration's. */
-  readonly egressReconciled: number;
   /** Sleeping sandboxes moved to the current template. */
   readonly moved: number;
   /** Templates no sandbox uses any more, deleted. */
@@ -259,9 +264,9 @@ export interface SubstrateSandboxLifecycle {
   list(): Promise<SubstrateActorSummary[]>;
   /**
    * One pass of upkeep over the caller's listing (list()): repeats a delete
-   * left part-way, makes an awake sandbox's egress policy this
-   * configuration's (once per process), moves a sleeping sandbox on an
-   * older template to the current one, then retires unused templates. A
+   * left part-way, moves a sleeping sandbox on an older template to the
+   * current one, then retires unused templates. It writes no egress policy:
+   * an awake sandbox gets its own at its next ensure (module header). A
    * sandbox whose upkeep fails is logged and skipped. `stopping` ends the
    * pass after the sandbox in hand, before any template is retired.
    */
@@ -385,7 +390,8 @@ export function newSubstrateSandboxDriverOverGateway(
   /** Pauses from before this instant may hold another configuration's secrets (module header). */
   const processStartedAt = now();
 
-  const egressRules: readonly EgressRule[] = buildEgressRules(config, settings);
+  // Asked once at boot: a forbidden or unusable runner destination throws here.
+  buildEgressRules(config, settings);
   const keeper = newTemplateKeeper({
     gateway,
     template: buildRunnerTemplate({
@@ -413,8 +419,8 @@ export function newSubstrateSandboxDriverOverGateway(
   const ensuredAt = new Map<string, number>();
   const sessionByActor = new Map<string, string>();
   const refusedMoves = new Set<string>();
-  /** Actors whose egress policy this process has made its own (module header). */
-  const egressReconciled = new Set<string>();
+  /** The digest of the rules this process last wrote for each actor (module header). */
+  const egressWritten = new Map<string, string>();
   /**
    * Actors whose runner this process started: woken from storage by it.
    * An entry is dropped only when the actor is deleted; a stale one (the
@@ -423,15 +429,18 @@ export function newSubstrateSandboxDriverOverGateway(
    */
   const startedHere = new Set<string>();
 
-  async function reconcileEgress(name: string, always = false): Promise<void> {
-    if (!always && egressReconciled.has(name)) return;
-    const outcome = await gateway.ensureEgressPolicy(name, egressRules);
-    egressReconciled.add(name);
+  async function reconcileEgress(name: string, facts: SandboxFacts, always = false): Promise<void> {
+    const rules = buildEgressRules(config, settings, facts.environment);
+    const digest = egressDigest(rules);
+    if (!always && egressWritten.get(name) === digest) return;
+    const outcome = await gateway.ensureEgressPolicy(name, rules);
+    egressWritten.set(name, digest);
     if (outcome === "replaced") {
       logger.info(
-        "Substrate sandbox egress policy replaced by this configuration's",
+        "Substrate sandbox egress policy replaced by this configuration's and its environment's",
         {
           actor: name,
+          environment: facts.environment?.id ?? "",
         },
       );
     }
@@ -468,6 +477,7 @@ export function newSubstrateSandboxDriverOverGateway(
         actor: name,
         taskQueue: facts.taskQueue,
         secrets: secretsFor(facts),
+        ...(facts.environment !== undefined ? { environment: runnerEnvironmentOf(facts.environment) } : {}),
       },
       { ...(options.fetch ? { fetch: options.fetch } : {}), sleep: wait, now },
     );
@@ -564,7 +574,7 @@ export function newSubstrateSandboxDriverOverGateway(
               // A wake from storage starts a fresh waiter, so this push is
               // its first: a refusal means another push won it (attach).
               await moveToCurrent(actor);
-              await reconcileEgress(name, true);
+              await reconcileEgress(name, facts, true);
               startedHere.add(name);
               await gateway.resumeActor(name);
               await attach(scope, name, facts);
@@ -583,7 +593,7 @@ export function newSubstrateSandboxDriverOverGateway(
                 continue;
               }
               path ??= "paused";
-              await reconcileEgress(name);
+              await reconcileEgress(name, facts);
               await gateway.resumeActor(name);
               await attach(scope, name, facts);
               ensured();
@@ -591,7 +601,7 @@ export function newSubstrateSandboxDriverOverGateway(
             }
             case ActorState.RUNNING: {
               path ??= "running";
-              await reconcileEgress(name);
+              await reconcileEgress(name, facts);
               await attach(scope, name, facts);
               ensured();
               return;
@@ -704,12 +714,15 @@ export function newSubstrateSandboxDriverOverGateway(
   function forget(name: string): void {
     ensuredAt.delete(name);
     sessionByActor.delete(name);
-    egressReconciled.delete(name);
+    egressWritten.delete(name);
     startedHere.delete(name);
   }
 
   const provisioner: SandboxProvisioner = {
     runnerMode: options.runnerMode ?? "local",
+    // A host list is enforced by the egress gateway whenever HTTPS egress
+    // is on; under the operator's `none` an Environment may not open one.
+    environmentSupport: { limitedNetworking: settings.httpsEgress === "all", packages: true },
     ensureSessionSandbox: (sessionId, facts) => ensure("session", sessionId, facts),
     deprovisionSessionSandbox: (sessionId) => deprovision("session", sessionId),
     async createConnectSandbox(connectRequestId, facts) {
@@ -801,12 +814,11 @@ export function newSubstrateSandboxDriverOverGateway(
     async maintain(listed, options) {
       const stopping = options?.stopping ?? (() => false);
       let redeleted = 0;
-      let reconciled = 0;
       let moved = 0;
       for (const actor of listed) {
         // A shutdown waits for the sandbox in hand, never for the whole pass.
         if (stopping())
-          return { redeleted, egressReconciled: reconciled, moved, retired: 0 };
+          return { redeleted, moved, retired: 0 };
         try {
           switch (actor.state) {
             case "deleting":
@@ -836,28 +848,6 @@ export function newSubstrateSandboxDriverOverGateway(
                 if (didMove) moved += 1;
               }
               break;
-            case "running":
-            case "paused":
-              // Any scope: a sandbox awake since before this process started
-              // gets this configuration's egress rules now, not at its next
-              // wake (module header).
-              // Re-read in the queue: an ensure may have reconciled it, or
-              // the sweep put it to sleep, since the listing was taken.
-              if (
-                await serialize(actor.name, async () => {
-                  if (egressReconciled.has(actor.name)) return false;
-                  const fresh = await gateway.getActor(actor.name);
-                  if (
-                    fresh?.state !== ActorState.RUNNING &&
-                    fresh?.state !== ActorState.PAUSED
-                  )
-                    return false;
-                  await reconcileEgress(actor.name);
-                  return true;
-                })
-              )
-                reconciled += 1;
-              break;
             default:
               break;
           }
@@ -869,9 +859,9 @@ export function newSubstrateSandboxDriverOverGateway(
         }
       }
       if (stopping())
-        return { redeleted, egressReconciled: reconciled, moved, retired: 0 };
+        return { redeleted, moved, retired: 0 };
       const retired = await lifecycle.retireTemplates();
-      return { redeleted, egressReconciled: reconciled, moved, retired };
+      return { redeleted, moved, retired };
     },
     async retireTemplates() {
       const [templates, actors] = await Promise.all([
