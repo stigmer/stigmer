@@ -117,6 +117,8 @@ import {
   newSubstrateSandboxDriver,
   newSubstrateSettingsFromEnv,
   ROUTING_SESSION,
+  runnerEnvironmentValue,
+  SANDBOX_ENVIRONMENT_ENV,
   sandboxTaskQueue,
   SERVER_RELEASE_ENV,
   SUBSTRATE_MAX_IN_PLACE_PAUSE_SECONDS,
@@ -183,6 +185,10 @@ import type {
   RunnerCredentialProvider,
   RunnerScopedTokenExchange,
   RunnerScopedTokenRequest,
+  EnvironmentFacts,
+  EnvironmentHost,
+  EnvironmentPackageSet,
+  EnvironmentSupport,
   SandboxCredentialRequest,
   SandboxProvisioner,
   SandboxProvisionerFactory,
@@ -835,7 +841,10 @@ const consumerBlobDriver: ArtifactStorageDriverFactory =
  * environment facts, the caller's class included, so a driver that
  * decides workspace durability by who asked is proven compilable here,
  * and hands the runner layer the server's release under the barrel's name
- * for it, as an image driver does.
+ * for it, as an image driver does. It states what it can do with an
+ * Environment and hands the runner its half of one, under the barrel's
+ * name and serializer, so a composition's image driver never copies the
+ * runner's contract.
  */
 const consumerSandboxDriver: SandboxProvisionerFactory = ({
   config,
@@ -848,12 +857,29 @@ const consumerSandboxDriver: SandboxProvisionerFactory = ({
       : { [SERVER_RELEASE_ENV]: config.serverRelease };
   void releaseEnv;
   void logger;
+  const environmentSupport: EnvironmentSupport = {
+    limitedNetworking: false,
+    packages: true,
+  };
   return {
+    runnerMode: "cloud",
+    environmentSupport,
     ensureSessionSandbox: (sessionId, facts) => {
       void sessionId;
       void facts.taskQueue;
       void facts.stigmerToken;
       void facts.callerClass;
+      const environment: EnvironmentFacts | undefined = facts.environment;
+      const packages: EnvironmentPackageSet | undefined =
+        environment?.packages;
+      const hosts: readonly EnvironmentHost[] =
+        environment?.network.mode === "limited" ? environment.network.hosts : [];
+      void packages;
+      void hosts;
+      const value = runnerEnvironmentValue(environment);
+      const runnerEnv: Record<string, string> =
+        value === undefined ? {} : { [SANDBOX_ENVIRONMENT_ENV]: value };
+      void runnerEnv;
       return Promise.resolve();
     },
     deprovisionSessionSandbox: () => Promise.resolve(),
