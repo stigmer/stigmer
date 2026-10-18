@@ -262,7 +262,7 @@ describe("every write chain resolves references before any step reads one", () =
         .filter((name) => WRITE_CHAIN_NAME.test(name));
       for (const name of built) {
         if (!WRITE_CHAINS[file]!.includes(name)) {
-          faults.push(`${file} ${name} writes a ${ApiResourceKind[kind]}, which carries ${fields.join(", ")}: list it in WRITE_CHAINS`);
+          faults.push(`${file} ${name} writes ${ApiResourceKind[kind]} rows, which carry ${fields.join(", ")}: list it in WRITE_CHAINS`);
         }
       }
     }
