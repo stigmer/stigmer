@@ -12,7 +12,7 @@
  * twenty minutes should come back to: a follow that rode the outage out and
  * resumed after the newest event, and one that follows again when the tab is
  * shown or the network returns — both known gaps today, marked by their
- * issue (`@stigmer/test-support/known-gap`).
+ * issue (`src/__tests__/helpers/known-gap.ts`).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
@@ -27,7 +27,7 @@ import { StigmerContext } from "../../context";
 import { ConversationStore } from "../../internal/store/index";
 import { samples } from "../../test/samples";
 import { useSessionEvents, type UseSessionEventsOptions } from "../useSessionEvents";
-import { expectKnownGap } from "@stigmer/test-support/known-gap";
+import { expectKnownGap } from "../../__tests__/helpers/known-gap";
 
 // ---------------------------------------------------------------------------
 // A controllable session.streamEvents: every call opens a stream the test

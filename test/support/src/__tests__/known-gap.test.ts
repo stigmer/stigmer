@@ -1,6 +1,6 @@
-// The known-gap mark's results (../known-gap.ts), pinned here as its twin
-// pins them in backend/services/runner/src/__test-utils__/__tests__/known-gap.test.ts:
-// a marked gap that still holds passes and says so in one line; a marked gap
+// The known-gap mark's results (../known-gap.ts), pinned here as its two
+// other copies pin them (backend/services/runner/src/__test-utils__/__tests__/known-gap.test.ts,
+// sdk/react/src/__tests__/known-gap.test.ts): a marked gap that still holds passes and says so in one line; a marked gap
 // whose desired behaviour now passes fails with the ratchet's message; and a
 // case where neither holds fails with both errors. With no gap, the desired
 // assertions are the whole test.

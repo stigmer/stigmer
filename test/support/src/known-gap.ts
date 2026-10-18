@@ -21,10 +21,13 @@
 // an ordinary case with an assertion call (the name is `expect…`), with no
 // skip to declare. A quarantine skip records no baseline at all.
 //
-// Twin: backend/services/runner/src/__test-utils__/known-gap.ts. The runner
-// sits outside this workspace and cannot import this module. Both pin the
-// same results in their own tests (__tests__/known-gap.test.ts beside each);
-// a change lands in both.
+// Three copies, each pinned by its own test of the same results, and a
+// change lands in all three: this one, for the conformance kit;
+// backend/services/runner/src/__test-utils__/known-gap.ts (the runner sits
+// outside this workspace and cannot import this module); and
+// sdk/react/src/__tests__/helpers/known-gap.ts (a published package cannot
+// take this private one as a dependency: turbo would schedule it in the
+// release build).
 
 /** A gap the test knows about: the issue that names it, and today's outcome in words with the check that it is what happened. */
 export interface KnownGap {

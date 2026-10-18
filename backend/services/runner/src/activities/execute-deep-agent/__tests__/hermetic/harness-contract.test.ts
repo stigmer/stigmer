@@ -34,6 +34,12 @@
  * turn on the stall watchdog, and a turn continued after a drain puts the
  * task on the thread a second time. Three real compactions by deepagents'
  * summarization middleware complete today; that arm is an ordinary pass.
+ * Stopping a native turn while its `execute` or its subagent runs forces the
+ * graph's abort after the stop's grace, and that abort leaves orphaned
+ * rejections (`turn-stream.ts` explains the one `@langchain/core` leaves; an
+ * aborted subagent's own failure is the other). The long-turn arms stop turns
+ * that way on purpose while their gaps hold, so this file declares exactly
+ * those (`stopOrphans`), and any other orphan still fails the arm.
  *
  * Beside the kit, the native-only observations its vocabulary cannot
  * express — the interrupt primitive's own facts: an APPROVED pending action
@@ -65,13 +71,23 @@ vi.mock("../../../../client/stigmer-client.js", async () =>
 
 import { ExecutionDriver, describeHarnessContract } from "../../../../__test-utils__/harness-contract/contract.js";
 import { describeHarnessRuntimeContract } from "../../../../__test-utils__/harness-contract/runtime-contract.js";
-import { scenario } from "../../../../__test-utils__/harness-contract/types.js";
+import { KIT_SUBAGENT_SLUG, scenario } from "../../../../__test-utils__/harness-contract/types.js";
 import { ScriptedClock, createHermeticEnvironment } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { findToolCallRow } from "../../../../__test-utils__/proto-helpers.js";
 import { getCheckpointDbPath } from "../../../../shared/workspace/platform-dir.js";
 import { createDeepAgentContractSubject } from "../../__test-utils__/contract-subject.js";
 import { ApprovalAction, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+
+/** The abort reason the native stream loop stops a graph run with (`turn-stream.ts`), as the orphan carries it. */
+const NATIVE_STOP_REASON = "stopped by the runtime";
+
+/** An orphan a native turn stopped mid-step leaves: the run's abort itself, or the aborted kit helper's failure. */
+function isNativeStopOrphan(reason: unknown): boolean {
+  if (reason === NATIVE_STOP_REASON) return true;
+  if (!(reason instanceof Error)) return false;
+  return reason.message === NATIVE_STOP_REASON || reason.message === `Subagent ${KIT_SUBAGENT_SLUG} failed`;
+}
 
 const env = createHermeticEnvironment();
 const clock = new ScriptedClock();
@@ -102,6 +118,7 @@ describe("ExecuteDeepAgent hermetic — the harness contract kit against the rea
       "subagent-operation": "stigmer/stigmer#2416",
       "no-resent-task": "stigmer/stigmer#2417",
     },
+    stopOrphans: isNativeStopOrphan,
   });
 
   describe("native-only observations", () => {

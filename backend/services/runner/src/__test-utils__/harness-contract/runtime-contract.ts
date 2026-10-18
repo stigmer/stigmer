@@ -1275,6 +1275,46 @@ export interface RuntimeContractOptions {
    * entry here.
    */
   readonly knownGaps?: Partial<Readonly<Record<LongTurnArm, string>>>;
+  /**
+   * The rejections this subject's engine leaves orphaned when a turn is
+   * stopped in the middle of a step, which the long-turn arms do on purpose
+   * while a known gap holds (the watchdog or a drain stops the turn while
+   * the operation runs). A long-turn arm collects the rejections this
+   * accepts for its own duration instead of letting them fail the file; any
+   * other unhandled rejection still fails the arm. Absent, none is expected.
+   */
+  readonly stopOrphans?: (reason: unknown) => boolean;
+}
+
+/** How long, after a long-turn arm settles, a late orphan of its stopped turn may take to surface. */
+const ORPHAN_SETTLE_MS = 250;
+
+/**
+ * Run one long-turn arm with the subject's declared stop orphans collected
+ * (see {@link RuntimeContractOptions.stopOrphans}). The test runner's own
+ * listeners are set aside for the arm and put back after, so an accepted
+ * orphan never reaches them; one the subject did not declare fails the arm.
+ */
+async function withStopOrphans(subjectName: string, accepts: ((reason: unknown) => boolean) | undefined, arm: () => Promise<unknown>): Promise<void> {
+  if (!accepts) {
+    await arm();
+    return;
+  }
+  const runnerListeners = process.listeners("unhandledRejection");
+  const strays: unknown[] = [];
+  const collect = (reason: unknown): void => {
+    if (!accepts(reason)) strays.push(reason);
+  };
+  process.removeAllListeners("unhandledRejection");
+  process.on("unhandledRejection", collect);
+  try {
+    await arm();
+    await new Promise((resolve) => setTimeout(resolve, ORPHAN_SETTLE_MS));
+  } finally {
+    process.off("unhandledRejection", collect);
+    for (const listener of runnerListeners) process.on("unhandledRejection", listener);
+  }
+  expect(strays.map(String), `${subjectName}: no unhandled rejection beyond the declared stop orphans`).toEqual([]);
 }
 
 const ALL_SURFACES: readonly FailureSurface[] = ["engine", "actionable", "internal"];
@@ -1379,25 +1419,26 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
 
     describe("long turn", () => {
       const gaps = options.knownGaps ?? {};
+      const orphans = options.stopOrphans;
       it("a silent operation outlives the stall window and the turn completes", async () => {
         clock.reset();
-        await assertSilentOperationOutlivesTheStallWindow(harness, gaps["silent-operation"]);
+        await withStopOrphans(subject.name, orphans, () => assertSilentOperationOutlivesTheStallWindow(harness, gaps["silent-operation"]));
       });
       it("output streams to the session while an operation runs, and the turn completes", async () => {
         clock.reset();
-        await assertStreamedOutputReachesTheSession(harness, gaps["streamed-output"]);
+        await withStopOrphans(subject.name, orphans, () => assertStreamedOutputReachesTheSession(harness, gaps["streamed-output"]));
       });
       it.skipIf(options.subagentOperation === false)("a subagent outlives the stall window and the parent's turn completes", async () => {
         clock.reset();
-        await assertSubagentOutlivesTheStallWindow(harness, gaps["subagent-operation"]);
+        await withStopOrphans(subject.name, orphans, () => assertSubagentOutlivesTheStallWindow(harness, gaps["subagent-operation"]));
       });
       it.skipIf(options.compaction === false)("a turn completes through three compactions", async () => {
         clock.reset();
-        await assertTurnSurvivesThreeCompactions(harness, gaps["three-compactions"]);
+        await withStopOrphans(subject.name, orphans, () => assertTurnSurvivesThreeCompactions(harness, gaps["three-compactions"]));
       });
       it("a turn continued after a drain never hands the engine the task again", async () => {
         clock.reset();
-        await assertContinuedTurnNeverResendsTheTask(harness, gaps["no-resent-task"]);
+        await withStopOrphans(subject.name, orphans, () => assertContinuedTurnNeverResendsTheTask(harness, gaps["no-resent-task"]));
       });
     });
   });
