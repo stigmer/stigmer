@@ -18,6 +18,13 @@
  * a whole-resource save here would race the runner's concurrent
  * UpdateStatus writes; load-then-save stays banned in status paths.
  *
+ * The session's Environment rides the ensure as SandboxFacts.environment,
+ * read from its current row each time (domain/run/environment-admission.ts
+ * sessionEnvironmentFacts), so an edit reaches the conversation at its
+ * sandbox's next start and its next turn. One that is gone fails the
+ * provisioning, stamped on the run like any other; run create and recover
+ * refuse the turn naming it.
+ *
  * Every step short-circuits when the lane is disabled or the execution's
  * resolved target is LOCAL — the conformance rosters run entirely on
  * those fast paths (byte-identity by construction).
@@ -60,6 +67,7 @@ import {
 import type { Store } from "../store/interface.js";
 import { mintSandboxToken, type SandboxLane } from "./lane.js";
 import { sessionIdOf } from "../domain/run/target.js";
+import { sessionEnvironmentFacts } from "../domain/run/environment-admission.js";
 
 /**
  * The pre-stamped root-cause prefix — the cloud edition's
@@ -172,6 +180,10 @@ export async function ensureSessionSandboxForExecution(
       );
       return;
     }
+    const environment = await sessionEnvironmentFacts(
+      deps.store,
+      await deps.store.getResource(ApiResourceKind.session, sessionId, SessionSchema),
+    );
     await lane.provisioner.ensureSessionSandbox(sessionId, {
       taskQueue: dispatch.taskQueue,
       stigmerToken: mintSandboxToken(
@@ -187,6 +199,7 @@ export async function ensureSessionSandboxForExecution(
       ),
       callerClass: caller.callerClass,
       ...(caller.routineId !== undefined ? { routineId: caller.routineId } : {}),
+      ...(environment !== undefined ? { environment } : {}),
     });
   } catch (error) {
     // Non-critical: never fail the launch — but never silent either

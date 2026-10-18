@@ -565,6 +565,13 @@ export class RunStarter {
     ) {
       sessionSpec.harness = invocation.harness;
     }
+    // The routine's Environment, when it names one, is the conversation's
+    // own choice: the session records it with source routine
+    // (domain/session/resolve-session-environment.ts), and each turn asks
+    // the owner the fire acts as whether they may still view it.
+    if (invocation?.environmentRef !== undefined && invocation.environmentRef.id !== "") {
+      sessionSpec.environmentRef = clone(ApiResourceReferenceSchema, invocation.environmentRef);
+    }
 
     return create(RunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",

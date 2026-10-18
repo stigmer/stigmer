@@ -124,6 +124,7 @@ import {
 import { registerChannelAppServices } from "../domain/channelapp/controller.js";
 import { registerEnvironmentServices } from "../domain/environment/controller.js";
 import { environmentSupportOf } from "../domain/environment/facts.js";
+import { newEnvironmentPolicy } from "../domain/run/environment-admission.js";
 import { registerVaultServices } from "../domain/vault/controller.js";
 import { newVaultResolver } from "../domain/vault/resolve.js";
 import { newSignInFreshener } from "../domain/vault/sign-in/refresh.js";
@@ -2027,6 +2028,7 @@ export async function composeServer(
         sessionLoader: () => requireInProcess().executionSessionLoader,
         vaultResolver,
         localPrograms: newLocalProgramPolicy(sandboxLane, temporalConfig),
+        environments: { policy: newEnvironmentPolicy(sandboxLane, temporalConfig), authorizer },
       },
     });
     registerSkillServices(router, {
