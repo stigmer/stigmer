@@ -1,11 +1,11 @@
 /**
  * The cadence model behind {@link CadenceField} — a pure, dependency-free
  * bridge between human-friendly schedule presets and the 5-field cron
- * grammar the Schedule spec stores.
+ * grammar the Routine spec stores.
  *
  * Deliberately NOT a cron parser. The platform owns no cron parsing in
  * either edition — calendar and DST semantics live in the Temporal server
- * (see stigmer-server's `domain/schedule/cron.ts`). This
+ * (see stigmer-server's `domain/routine/cron.ts`). This
  * module only:
  *
  *   1. GENERATES cron strings from presets (`cadenceToCron`) — trivial

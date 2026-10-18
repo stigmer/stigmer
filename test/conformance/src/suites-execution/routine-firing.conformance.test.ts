@@ -23,10 +23,12 @@
 //     run carries the routine label.
 //
 // NOT reachable black-box: the failure-streak auto-pause crossing. It
-// accumulates only from a schedule's own fires, and a real cron arc is
-// infeasible here (the cloud conformance environment keeps the production
-// interval floor). The pause machinery keeps its coverage at the tick level
-// and the pause copy stays byte-pinned in the server's unit tests.
+// accumulates only from a routine's own scheduled fires; five-field cron
+// fires at most once a minute, so crossing the default threshold of five
+// takes five minutes or more of real cron arc, longer than a test may wait,
+// and the suite cannot lower the threshold of the server it runs against.
+// The pause machinery keeps its coverage at the tick level and the pause
+// copy stays byte-pinned in the server's unit tests.
 //
 // Every no-LLM fire here is the model-pin refusal: an agent whose engine
 // is Cursor and which names no model, under a routine naming neither,

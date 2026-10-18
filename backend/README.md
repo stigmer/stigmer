@@ -21,7 +21,7 @@ TypeScript gRPC control plane for local Stigmer deployment.
 - gRPC/gRPC-Web/Connect command/query controllers for every API resource
   (Agent, Skill, Plugin, Session, Vault, …) on one port
 - SQLite storage via `node:sqlite` (see [Storage](#storage) below)
-- Temporal workflow orchestration for agent executions, schedules and listing
+- Temporal workflow orchestration for agent executions, routines and listing
   a plugin's MCP server tools
 - Serves platform documents such as the model registry
   (`GET /v1/proxy/model-registry`, mirrored from the cloud edition)
@@ -144,7 +144,7 @@ CREATE TABLE resources (
 Adding a new resource kind requires **no schema migration** — define the
 proto, run `make codegen`, add the controller. Purpose-built side tables
 exist where a generic row is the wrong shape (resource audit history,
-schedule runs, bootstrap state) — see
+routine fires, bootstrap state) — see
 `backend/services/stigmer-server/src/store/sqlite/` (the migration chain in
 `migrations.ts`) for the authoritative schema.
 

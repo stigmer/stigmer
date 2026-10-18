@@ -516,14 +516,14 @@ rows:
     lane: >-
       gate.visitorPreflight
     behavior: >-
-      A schedule-fired execution create in a zero-balance org is refused FAILED_PRECONDITION "The organization cannot fund a scheduled run right now." before any side effect; guest and channel callers get their own per-surface copy (GuestRefusal / ChannelLimitReason.UNAVAILABLE).
+      A routine-fired execution create in a zero-balance org is refused FAILED_PRECONDITION "The organization cannot fund a scheduled run right now." before any side effect; guest and channel callers get their own per-surface copy (GuestRefusal / ChannelLimitReason.UNAVAILABLE).
     class: carve-out
     disposition: debris
     observability: none
     caller: none
     needs: [unfunded-org]
     note: >-
-      Debris: no run draws credit, so a visitor's or a schedule's run has nothing to fund. The preflight asked only about Cursor runs, the last runs that spent credit, and went when they moved to the organization's own Cursor key. A run whose organization holds no key for its provider is refused by provider-key admission instead (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-cursor-run-refused).
+      Debris: no run draws credit, so a visitor's or a routine's run has nothing to fund. The preflight asked only about Cursor runs, the last runs that spent credit, and went when they moved to the organization's own Cursor key. A run whose organization holds no key for its provider is refused by provider-key admission instead (billing.gate.provider-key.keyless-run-refused, billing.gate.provider-key.keyless-cursor-run-refused).
   - id: billing.gate.reserve.billing-unavailable-fails-closed
     surface: billing
     lane: >-
@@ -1967,4 +1967,4 @@ metrics:
     surface: billing
     disposition: dropped
     note: >-
-      Emitted by Java's agentic-domain BOOT CHECK (a channel, schedule or guest model pin the registry no longer knows), never by billing code — it carries the billing prefix only because the registry is billing's. The composition validates model pins at write time in the surfaces that own them (channels/model-pinning.ts; the OSS schedule and channel steps) and has no boot-time sweep to attach the counter to; no alert reads it. A boot check, if one is wanted, belongs to the pin-owning surfaces, not to a billing metric.
+      Emitted by Java's agentic-domain BOOT CHECK (a channel, schedule or guest model pin the registry no longer knows), never by billing code — it carries the billing prefix only because the registry is billing's. The composition validates model pins at write time in the surfaces that own them (channels/model-pinning.ts; the OSS routine and channel steps) and has no boot-time sweep to attach the counter to; no alert reads it. A boot check, if one is wanted, belongs to the pin-owning surfaces, not to a billing metric.

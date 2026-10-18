@@ -6,7 +6,7 @@ This directory contains Protocol Buffer definitions for Stigmer's APIs.
 
 The `apis/` directory houses all `.proto` files that define:
 - Agent definitions and configurations
-- Agent runs, schedules and sessions
+- Agent runs, routines and sessions
 - Grants and permissions
 - Common types and resources
 
@@ -17,8 +17,8 @@ apis/
 ├── ai/stigmer/agentic/           # Agentic AI APIs
 │   ├── agent/                    # Agent definitions
 │   ├── plugin/                   # Installed plugins (skills, agents, hooks, MCP servers)
+│   ├── routine/                  # Routines (an Agent run on a schedule or started by hand)
 │   ├── run/                      # Run tracking
-│   ├── schedule/                 # Scheduled runs
 │   ├── session/                  # User sessions
 │   ├── skill/                    # Agent skills
 │   └── vault/                    # Vaults of logins and secrets runs use
