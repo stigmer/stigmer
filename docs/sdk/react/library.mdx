@@ -191,7 +191,7 @@ if (detection.detected) {
 
 ### useExportResource
 
-Headless export hook for Stigmer resources (Agent, Routine).
+Headless export hook for Stigmer resources (Agent, Routine, Environment).
 
 Serializes the resource into YAML and JSON formats and provides
 stable callbacks for copying to clipboard or triggering a file
@@ -789,7 +789,7 @@ Options for [`useExportResource`](#useexportresource).
 
 <TypeTable
   type={{
-    resource: { type: "Agent | Routine | null", description: "The proto resource to export, or `null` when not yet loaded.", required: true },
+    resource: { type: "Agent | Environment | Routine | null", description: "The proto resource to export, or `null` when not yet loaded.", required: true },
   }}
 />
 

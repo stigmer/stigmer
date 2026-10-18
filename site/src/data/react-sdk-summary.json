@@ -113,6 +113,13 @@
       "components": 1
     },
     {
+      "slug": "environment",
+      "title": "Environment",
+      "description": "Hooks and components for Environments, the packages and network access a conversation's sandbox gets: which one applies and why, the picker, the fields, the form and the detail view.",
+      "hooks": 7,
+      "components": 8
+    },
+    {
       "slug": "error",
       "title": "Error",
       "description": "Components for structured error display and troubleshooting guidance.",

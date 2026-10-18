@@ -2151,6 +2151,7 @@ Omit it for a conversation with the built-in assistant.
 <TypeTable
   type={{
     agentRef: { type: "ResourceRef", description: "The agent the new conversation runs. Omit for the built-in assistant." },
+    environmentRef: { type: "ResourceRef", description: "The Environment the conversation runs in: the packages and network its sandbox gets. Omit to take the agent's default, else the organization's. A conversation on the person's own machine refuses one. Fixed once a turn has run." },
     executionTarget: { type: "ExecutionTargetOption", description: "Where session activities execute. Immutable after the first run runs.", typeDescriptionLink: "/docs/sdk/react/session#executiontargetoption" },
     fileReview: { type: "boolean", description: "Whether each turn's file edits are offered for review, Keep or Undo, after the turn. Off unless set. Review never makes a turn wait: the edits are applied, and an Undo puts a file back." },
     harness: { type: "HarnessOption", description: "Run harness. Immutable after the first run runs.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },

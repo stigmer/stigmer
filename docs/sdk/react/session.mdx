@@ -128,9 +128,11 @@ function useNewSessionFlow(options: UseNewSessionFlowOptions): UseNewSessionFlow
     agentRunDefaults: { type: "AgentRunDefaults | undefined", description: "The selected agent's run defaults that apply on the active engine: pass it to the composer's `agentRunDefaults`. `undefined` with no agent, an agent that names no model for this engine, a guest, and while the agent loads." },
     autoApproveAll: { type: "boolean", description: "Pre-arm \"auto-approve tool calls\" for the session this surface will create (stigmer/stigmer#816, the walk-away scenario). Seeded from the account's `default_auto_approve` preference and the host's `StigmerProvider` `approvalDefaults` (#302) — guests inherit neither; the user's explicit flip (the Config facet switch) wins from then on. Carried into the bootstrap create as `spec.auto_approve_all` — the whole-run server-side bypass — so the first run stays covered even if the user closes the tab." },
     clearModelPick: { type: "() => void", description: "Forget the model the person picked on this surface, so the selected agent's default model applies again: pass it to the composer's `onModelPickCleared`. Picks are also forgotten when the agent changes, and a pick the engine does not list when the engine changes." },
+    environmentDefaults: { type: "{ agent?: EnvironmentReference; organization?: EnvironmentReference }", description: "What applies when the person picks no Environment: the selected agent's default and the organization's. Pass it to the composer's `environmentDefaults`." },
     harness: { type: "HarnessOption", description: "The engine the conversation will run: the person's pick on this surface, else the selected agent's engine when it names one, else the remembered and seeded choices (see `accountDefaults`). A pick is remembered in localStorage.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     isSubmitting: { type: "boolean", description: "`true` while the create session + run flow is in flight." },
     modelId: { type: "string | undefined", description: "The model an untouched send asks for. Where the selected agent names a model for the active engine, only a pick made on this surface (the agent's default applies otherwise, and this is `undefined`). Elsewhere the explicit device pick when one exists (persisted per-harness to localStorage), else the account default for the active harness; `undefined` resolves to the harness default downstream." },
+    offersEnvironment: { type: "boolean", description: "Whether the new conversation may pick its Environment: `false` for a guest, for a conversation on the person's own machine, and on a server whose conversations no Environment governs. Pass it to the composer's `enableEnvironmentPicker`." },
     pluginRefs: { type: "ResourceRef[]", description: "Plugins the new conversation uses, each whole." },
     resolution: { type: "AgentResolution | null", description: "How the selected agent's declared keys are supplied, or `null` with no agent." },
     setAgentRef: { type: "(ref: ResourceRef | null) => void", description: "Update the selected agent reference." },
@@ -1395,7 +1397,7 @@ takes opaque `ReactNode`s and never inspects them.
 ### SetupTab
 
 Persistent session configuration panel (Config facet) — shows run config
-(harness, model, target, and the session-level auto-approve switch), agent,
+(harness, model, target, environment, and the session-level auto-approve switch), agent,
 plugins, skills, transcript export, and the host's
 access management control (via `accessSlot`).
 
@@ -1416,6 +1418,7 @@ All visual properties flow through `--stgm-*` tokens.
     accessSlot: { type: "ReactNode", description: "Host-injected access management control (e.g. the Console's `ManageAccessButton`) rendered as the facet's final section. A slot keeps the SDK auth-agnostic; the injected control owns its own visibility (permission gating), so this section renders no chrome of its own — an empty heading over a denied control would read as breakage." },
     agentRef: { type: "ResourceRef | null", description: "The session's agent; `null` is the built-in assistant.", required: true },
     autoApprove: { type: "SetupTabAutoApprove", description: "Session-level auto-approve switch in the Run Config section. When provided, the switch renders and is interactive at all times — including mid-run, where flipping it ON releases the in-flight run's pending gates (the flow's standing responder). When absent (read-only audiences, demo fixtures), the section shows no approval control at all.", typeDescriptionLink: "#setuptabautoapprove" },
+    environment: { type: "EnvironmentChoice", description: "The Environment the conversation runs in and why (`conversationEnvironment`), shown after the target. Omit where no conversation exists yet: the server resolves it at creation.", typeDescriptionLink: "/docs/sdk/react/environment#environmentchoice" },
     executionTarget: { type: "ExecutionTargetOption | undefined", description: "", required: true },
     harness: { type: "HarnessOption", description: "", required: true, typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     modelId: { type: "string | undefined", description: "", required: true },
@@ -1528,6 +1531,7 @@ Input for creating a session: the agent the conversation runs, or none.
 <TypeTable
   type={{
     agentRef: { type: "ResourceRef", description: "The agent the conversation runs; omit for the built-in assistant." },
+    environmentRef: { type: "ResourceRef", description: "The Environment the conversation runs in: the packages and network its sandbox gets. Omit to take the agent's default, else the organization's. A conversation on the person's own machine refuses one. Fixed once a turn has run." },
     executionTarget: { type: "ExecutionTargetOption", description: "Where session activities are executed.  - `\"local\"` — Client's embedded runner (desktop app or CLI) polls   the session's task queue. - `\"cloud\"` — Server provisions a cloud sandbox with a runner. - `undefined` — Server decides based on deployment context   (LOCAL for OSS, CLOUD for managed).  Immutable after the first run runs.", typeDescriptionLink: "#executiontargetoption" },
     fileReview: { type: "boolean", description: "Whether each turn's file edits are offered for review, Keep or Undo, after the turn. Off unless set. Review never makes a turn wait: the edits are applied, and an Undo puts a file back." },
     harness: { type: "HarnessOption", description: "Run harness for this session.  Determines which execution engine processes agent activities. Immutable after the first run runs. Defaults to `\"native\"`.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
@@ -2007,6 +2011,7 @@ Shared fields present in both variants of [`CreateSessionInput`](#createsessioni
 
 <TypeTable
   type={{
+    environmentRef: { type: "ResourceRef", description: "The Environment the conversation runs in: the packages and network its sandbox gets. Omit to take the agent's default, else the organization's. A conversation on the person's own machine refuses one. Fixed once a turn has run." },
     executionTarget: { type: "ExecutionTargetOption", description: "Where session activities are executed.  - `\"local\"` — Client's embedded runner (desktop app or CLI) polls   the session's task queue. - `\"cloud\"` — Server provisions a cloud sandbox with a runner. - `undefined` — Server decides based on deployment context   (LOCAL for OSS, CLOUD for managed).  Immutable after the first run runs.", typeDescriptionLink: "#executiontargetoption" },
     fileReview: { type: "boolean", description: "Whether each turn's file edits are offered for review, Keep or Undo, after the turn. Off unless set. Review never makes a turn wait: the edits are applied, and an Undo puts a file back." },
     harness: { type: "HarnessOption", description: "Run harness for this session.  Determines which execution engine processes agent activities. Immutable after the first run runs. Defaults to `\"native\"`.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
