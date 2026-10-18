@@ -183,6 +183,10 @@ Stigmer never writes these Managed Agents events, so don't wait for one:
 
 - **Creating, reading, listing or deleting Sessions.** Use Stigmer's own API
   for the Session, then these calls for its events.
+- **Environments (`/v1/environments`).** A Stigmer
+  [Environment](/docs/concepts/environments) takes Managed Agents' `networking`
+  and `packages` fields as they are, and is made through Stigmer's own API, with
+  `stigmer apply` or in the console.
 - **`user.tool_result`, `user.custom_tool_result`, `user.define_outcome` and
   `system.message`.** Sending one is refused with `invalid_request_error`.
 - **Image and document blocks.** Give a run its files through Stigmer's own API.

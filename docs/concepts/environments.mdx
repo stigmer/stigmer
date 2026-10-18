@@ -1,0 +1,301 @@
+---
+title: Environments
+description:
+  An Environment is a named setup for the sandboxes your Agents run in, saying
+  which packages are installed and which websites the Agent may reach. Learn
+  which one a conversation gets, who creates one, when a change takes effect,
+  what your server can do with one, and how it compares with Claude Managed
+  Agents' environments.
+---
+
+When an Agent works on a conversation, it runs in a sandbox: a fresh computer of
+its own, where it reads files, runs commands and installs what it needs. An
+Environment is a named setup for those sandboxes. It says two things: which
+packages are installed in each one before the Agent starts, and which websites
+the Agent may reach from it.
+
+Take a data team whose Agent reads PDF reports and analyses them with pandas.
+They want every one of its conversations to start with the tools ready, and they
+want it to reach GitHub and their own API, nothing else. An admin makes one
+Environment for it:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Environment
+metadata:
+  name: Data science
+  slug: data-science
+spec:
+  description: "pandas and poppler, GitHub and our API only"
+  networking:
+    type: limited
+    allowed_hosts: [api.github.com, our-api.example.com]
+    allow_package_managers: true
+  packages:
+    apt: [poppler-utils]
+    pip: [pandas, sqlalchemy==2.0.30]
+```
+
+Every sandbox a conversation in `data-science` runs in installs `poppler-utils`
+and pandas before its first turn, and reaches only the two listed websites plus
+the package registries and code hosts the switch opens. The admin makes it the
+Agent's default, so nobody has to pick it for each conversation.
+
+If you want to make one now,
+[Set up an Environment](/docs/guides/environments/set-up-an-environment) walks
+through it. This page explains what an Environment is and why it is shaped this
+way.
+
+## What every Environment has
+
+- **Its packages.** Up to six installers, each with its own version pin if you
+  want one: `apt` (system packages, `poppler-utils=22.02.0-2`), `cargo` (Rust,
+  `hyperfine@1.18.0`), `gem` (Ruby, `rails:7.1.0`), `go` (Go modules,
+  `golang.org/x/tools/cmd/goimports@latest`), `npm` (Node.js, `express@4.18.0`)
+  and `pip` (Python, `sqlalchemy==2.0.30`). They run in that order, before the
+  sandbox's first turn. System packages install as the sandbox's administrator;
+  the other five install as the Agent's own user, into a folder first on its
+  `PATH`, so a package's install script gets exactly the rights the Agent's own
+  `npm install` would. Each entry is a package name from its registry, never a
+  web address, a git source or a file path.
+- **Its network.** Either **unrestricted** or **limited to listed websites**.
+  Limited means a list of host names, such as `api.github.com`, reached over
+  HTTPS; a host written `*.example.com` matches exactly one more label, so
+  `api.example.com`, not `example.com` and not `a.b.example.com`. Two switches
+  add more: **Also allow package registries and code hosts** (the
+  [list below](#the-package-registries-and-code-hosts)) and **Also allow this
+  Agent's MCP servers** (the addresses of the conversation's Agent's and
+  subagents' MCP servers). Of all those hosts, only the Debian and Ubuntu
+  archives are reached over plain HTTP too, because they publish their packages
+  that way.
+- **A description**, shown wherever the Environment is listed.
+
+An Environment never holds a secret, an environment variable, an image or a
+sandbox size. Secrets live in [vaults](/docs/concepts/vaults), where each
+person's own keys stay theirs. Plain settings live in the Agent's `env`. The
+image is chosen by whoever runs the server, and the packages are what you add on
+top.
+
+Two rules keep a limited Environment from failing in ways you would only find
+mid-conversation. Packages under limited networking need the package registries
+switch on, since the installers must reach their registries; saving one without
+it is refused. And with the MCP servers switch off, a conversation whose Agent
+uses an MCP server at a host the list does not admit is refused before it
+starts, naming the server and its host.
+
+## Which one a conversation gets
+
+A conversation runs in the first Environment named in this order:
+
+1. the one the conversation names itself, when it is started;
+2. its routine's, when a [routine](/docs/concepts/routines) started it;
+3. its Agent's default, set on the Agent's page;
+4. its Organization's default, set in **Settings → Preferences**.
+
+If none of them names one, it runs in the server's standard sandbox. The choice
+is fixed at the conversation's first turn: a conversation keeps the Environment
+it started with, and naming another later is refused. Start a new conversation
+to use another.
+
+The console shows the choice and the reason before you send anything, as in
+`data-science · the agent's default`, and an open conversation's **Setup** tab
+shows the Environment it runs in. Through the API, the conversation records it
+as `status.environment`, with `status.environment_source` saying whose choice it
+was.
+
+A conversation on your own machine, in the desktop app or the CLI, runs outside
+any sandbox, so Environments don't apply there. The Agent's and Organization's
+defaults don't reach it, and one it names is refused rather than silently
+ignored.
+
+## Who creates and who uses one
+
+Only an Organization's admins create an Environment, because it decides what
+code is installed and which websites Agents may reach. The rest of the
+Organization can see one by default, and anyone who can see it can name it for a
+conversation, a routine or an Agent. An Environment can also be kept private to
+its owner, or shared with child Organizations, the same three settings as an
+Agent's (see [Sharing and access](/docs/concepts/sharing-and-access)).
+
+Access is checked again at every turn for the Environment a conversation or its
+routine names, so revoking someone's access stops their next turn, and they see
+why. An Agent's default and an Organization's default are vouched for by the
+person who saved them and are not checked again, as an Agent's plugins are not.
+
+## When packages install and when a change takes effect
+
+Packages install each time a sandbox starts fresh, before its first turn, and
+their install time is part of the conversation's working time (on Stigmer Cloud,
+its [agent hours](/docs/concepts/billing)). How often that is depends on the
+sandboxes your server runs:
+
+- **On Kubernetes sandboxes** (the `agent-sandbox` driver), a conversation's
+  sandbox sleeps when idle and keeps only its workspace, so its packages install
+  again when it wakes.
+- **On Agent Substrate**, a sleeping sandbox is saved whole and restored as it
+  was, so its packages install once, at its first start.
+
+An edit to an Environment reaches its conversations in two halves:
+
+- **Its network** applies at a conversation's next turn. On Agent Substrate, a
+  host you remove from the list stops being reachable from the next turn on.
+- **Its packages** apply at a sandbox's next fresh start. On Agent Substrate, a
+  restored sandbox keeps what it installed, so a package edit reaches only new
+  conversations
+  ([stigmer#2440](https://github.com/stigmer/stigmer/issues/2440)).
+
+A failed install fails the turn, with the installer's own output. A command that
+fails is tried once more after two seconds; one command may run for 10 minutes
+and the whole install for 15. When the sandbox's image lacks an installer, the
+install fails naming what to add, such as `ruby-full` in the `apt` packages for
+`gem`.
+
+## What a blocked website looks like
+
+Under limited networking, an HTTPS connection to a host the list doesn't admit
+is closed during its handshake, so a tool reports a connection or TLS error. A
+plain HTTP request is answered `403` with the body `egress denied`; it doesn't
+name the host.
+
+Two cases to know about:
+
+- **In a sandbox's first seconds**, Agent Substrate's gateway can refuse a host
+  the list allows
+  ([stigmer#2413](https://github.com/stigmer/stigmer/issues/2413)). The
+  installer retries once for this.
+- **A conversation with a repository** clones and writes back to it from inside
+  the sandbox, so under limited networking it needs GitHub reachable: list
+  `github.com` and `api.github.com`, or turn on the package registries and code
+  hosts switch. Without either, its first turn fails
+  ([stigmer#2421](https://github.com/stigmer/stigmer/issues/2421)). That is why
+  the console's form starts a new Environment with that switch on.
+
+Which web tools the list governs depends on the
+[harness](/docs/concepts/harnesses). The native harness fetches web pages from
+inside the sandbox, so its `web_fetch` follows the list like any other request.
+The Cursor harness's web fetch and web search run on Cursor's side, outside the
+sandbox, so under limited networking they are hidden from the Agent.
+
+## The package registries and code hosts
+
+**Also allow package registries and code hosts** opens these hosts, over HTTPS,
+and the Debian and Ubuntu archives over plain HTTP on port 80 too. It is Claude
+Managed Agents' published list plus `deb.debian.org`, the archive of the Debian
+image Stigmer's sandboxes start from. An Environment with `apt` packages reaches
+the archives over plain HTTP in every networking mode, since `apt` fetches them
+that way.
+
+| Ecosystem               | Hosts                                                                                                                                                                                      | Plain HTTP too |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- |
+| Code hosting            | `github.com`, `api.github.com`, `codeload.github.com`, `raw.githubusercontent.com`, `objects.githubusercontent.com`, `release-assets.githubusercontent.com`, `gitlab.com`, `bitbucket.org` | No             |
+| Node.js                 | `registry.npmjs.org`, `registry.yarnpkg.com`, `nodejs.org`                                                                                                                                 | No             |
+| Python                  | `pypi.org`, `files.pythonhosted.org`                                                                                                                                                       | No             |
+| Rust                    | `crates.io`, `index.crates.io`, `static.crates.io`, `static.rust-lang.org`                                                                                                                 | No             |
+| Go                      | `proxy.golang.org`, `sum.golang.org`                                                                                                                                                       | No             |
+| Java                    | `repo1.maven.org`, `repo.maven.apache.org`, `services.gradle.org`, `plugins.gradle.org`, `plugins-artifacts.gradle.org`                                                                    | No             |
+| Ruby                    | `rubygems.org`, `index.rubygems.org`                                                                                                                                                       | No             |
+| PHP                     | `packagist.org`, `repo.packagist.org`                                                                                                                                                      | No             |
+| Debian and Ubuntu (apt) | `deb.debian.org`, `archive.ubuntu.com`, `security.ubuntu.com`, `ppa.launchpad.net`                                                                                                         | Yes, port 80   |
+| Containers              | `registry-1.docker.io`, `auth.docker.io`, `production.cloudflare.docker.com`, `download.docker.com`, `ghcr.io`                                                                             | No             |
+
+<Callout type="warn">
+  Access is granted per host, not per action. The sandbox can send any request
+  to an allowed host, uploads included, such as `git push` or publishing a
+  package, with whatever credential the command supplies. An Agent that reads
+  untrusted content could be steered into copying files out through one. If the
+  Environment installs no packages, leave the switch off and list only the hosts
+  the Agent needs.
+</Callout>
+
+## What your server can do
+
+Whether a server can install packages or limit networking depends on how it
+starts its sandboxes, and the console tells you before you try: on a server that
+can't limit networking, **Limited to listed websites** is greyed with the reason
+beside it, and on one whose conversations run in no sandbox it starts, the
+Environments page says Environments don't apply there. The server checks the
+same thing when an Environment is saved, when a conversation using it is
+started, and at every turn, because whoever runs the server can change how it
+starts sandboxes afterwards.
+
+| Where conversations run                                             | Installs packages        | Limits networking             |
+| ------------------------------------------------------------------- | ------------------------ | ----------------------------- |
+| Stigmer Cloud, on Agent Substrate                                   | Yes                      | Yes                           |
+| A self-hosted server with the `substrate` driver                    | Yes                      | Yes, while HTTPS egress is on |
+| A self-hosted server with the `agent-sandbox` or `docker` driver    | Yes                      | No                            |
+| A self-hosted server with the `local-process` driver                | No                       | No                            |
+| A server that starts no sandboxes (the default open-source install) | Environments don't apply | Environments don't apply      |
+| Your own machine (the desktop app, the CLI)                         | Environments don't apply | Environments don't apply      |
+
+The self-hosting
+[runners guide](/docs/guides/self-hosting/runners#environments-on-your-sandboxes)
+says what each driver needs.
+
+## Deleting one
+
+Deleting an Environment is refused while an Agent, a routine or the
+Organization's default still names it; the refusal names each of them, so you
+know what to change first. A conversation already running in it refuses its next
+turn once it is gone, and asks you to start a new one.
+
+## How it compares
+
+Claude Managed Agents' environments
+([Cloud environment setup](https://platform.claude.com/docs/en/managed-agents/environments))
+are the closest idea, and an Environment uses their fields as they are.
+
+| On Stigmer                                                                           | What you already know from Claude Managed Agents                        |
+| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| `networking`: `unrestricted`, or `limited` with `allowed_hosts`                      | The same                                                                |
+| `allow_package_managers`, `allow_mcp_servers`                                        | The same, with the same package-manager host list plus `deb.debian.org` |
+| `packages`: `apt`, `cargo`, `gem`, `go`, `npm`, `pip`, in that order                 | The same                                                                |
+| Packages under limited networking without the registries switch: refused             | Refused with a 400                                                      |
+| An Agent's MCP server at an unlisted host, with the MCP switch off: refused up front | Session creation fails with a 400                                       |
+| Not versioned; each conversation records the one it runs in                          | Not versioned                                                           |
+| A conversation names one, or inherits one                                            | A session names one by its ID                                           |
+
+Claude Code's cloud environments
+([Configure cloud environments](https://code.claude.com/docs/en/cloud-environments))
+share one more choice: an Organization default that an Owner sets, used when you
+haven't picked one.
+
+## Where Stigmer differs, and why
+
+- **A wildcard is one label.** In Claude Managed Agents, `*.example.com` matches
+  every subdomain at any depth. Here it matches exactly one more label, the
+  meaning of the gateway that enforces the list, so a list written for Managed
+  Agents admits less here, never more.
+- **No install cache yet.** Managed Agents caches packages across the sessions
+  that share an environment. Here every fresh sandbox installs them, and the
+  time is the conversation's working time.
+- **Deleting is refused while something names it, instead of archiving.** An
+  Environment is either kept or removed, with nothing in between, and the
+  refusal names what still uses it, so a removal never surprises an Agent or a
+  routine.
+- **An Agent's default and an Organization's.** Channels, chat links,
+  evaluations and routines start conversations nobody configures by hand, so an
+  Agent and an Organization can each say which Environment those get.
+- **A blocked host isn't named.** Managed Agents answers a refused request with
+  a `403` that names the host. Here plain HTTP gets `403` with `egress denied`,
+  and HTTPS is closed during the handshake.
+- **Unrestricted means any website over HTTPS, not any request.** Managed
+  Agents' unrestricted is any host, less a safety blocklist. Here it is HTTPS to
+  any name, plus the plain-HTTP lanes named above, on Agent Substrate; on the
+  other drivers, it is whatever network the server's operator gives the sandbox.
+- **Web tools follow the harness.** Managed Agents applies `allowed_hosts` to
+  its own `web_fetch` and `web_search`. Here the native harness's `web_fetch`
+  runs in the sandbox under the same list, and the Cursor harness's web tools,
+  which leave from Cursor's side, are hidden under limited networking.
+- **No setup script and no variables.** Packages are the one thing an
+  Environment adds; a variable belongs to the Agent's `env`, and a secret to a
+  vault.
+
+## What's next
+
+An Environment decides what a sandbox has and reaches; it never holds the keys
+an Agent's tools sign in with. [Vaults](/docs/concepts/vaults) explains where
+those live and whose they are. To set one up,
+[Set up an Environment](/docs/guides/environments/set-up-an-environment) walks
+an admin through it, and the
+[runners guide](/docs/guides/self-hosting/runners#environments-on-your-sandboxes)
+says what a self-hosted server's sandboxes need.

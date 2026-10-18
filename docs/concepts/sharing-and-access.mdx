@@ -19,20 +19,20 @@ Agent and still not start a conversation with it.
 
 ## General access
 
-Agents, Skills, Plugins and shared vaults have a general access setting. Open
-the resource and choose **Manage access** to change it.
+Agents, Skills, Plugins, Environments and shared vaults have a general access
+setting. Open the resource and choose **Manage access** to change it.
 
-| General access          | Who reaches it                                                                                                         |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Private**             | The person who created it, the people it is shared with, and, for an Agent, Skill or Plugin, the Organization's admins |
-| **Organization**        | Everyone in the Organization. The default for Agents, Skills and Plugins                                               |
-| **Child organizations** | Everyone in every child organization of the Organization. Agents, Skills and Plugins only                              |
+| General access          | Who reaches it                                                                                                                      |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Private**             | The person who created it, the people it is shared with, and, for an Agent, Skill, Plugin or Environment, the Organization's admins |
+| **Organization**        | Everyone in the Organization. The default for Agents, Skills, Plugins and Environments                                              |
+| **Child organizations** | Everyone in every child organization of the Organization. Agents, Skills, Plugins and Environments only                             |
 
-An Organization's admins own every Agent, Skill and Plugin in it, whatever its
-general access, so a private Agent stays manageable after the person who made it
-leaves. A shared vault offers Private and Organization only: its logins and
-secrets never leave the Organization. Nothing reaches another Organization
-except through
+An Organization's admins own every Agent, Skill, Plugin and Environment in it,
+whatever its general access, so a private Agent stays manageable after the
+person who made it leaves. A shared vault offers Private and Organization only:
+its logins and secrets never leave the Organization. Nothing reaches another
+Organization except through
 [child organizations](/docs/concepts/organizations#parent-and-child-organizations).
 
 Conversations have no general access setting. A conversation is private to the

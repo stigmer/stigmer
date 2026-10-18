@@ -158,7 +158,7 @@ See [Harnesses](/docs/concepts/harnesses) for a full comparison.
 ## Session-level additions
 
 Sessions can customize an Agent's behavior for a specific conversation without
-changing the Agent definition. Two key additions:
+changing the Agent definition. Three key additions:
 
 ### Skills
 
@@ -192,6 +192,23 @@ Session-level plugins join the Agent's, one entry per plugin; from the CLI,
 `tools` list does not name `mcp__plugin_inventory-api_inventory-api` cannot use
 that server. To narrow what an Agent can do, change its lists. A conversation
 with no Agent gets its tools from these plugins alone.
+
+### Environment
+
+Run this conversation's sandbox in an [Environment](/docs/concepts/environments)
+other than its Agent's default: the packages installed before its first turn and
+the websites it may reach.
+
+```yaml validate-as="Session"
+spec:
+  environment_ref:
+    kind: environment
+    slug: data-science
+```
+
+From the CLI, `stigmer run --environment data-science` does the same. The
+conversation keeps the Environment it started with: naming another after its
+first turn is refused.
 
 ## Session lifecycle
 
