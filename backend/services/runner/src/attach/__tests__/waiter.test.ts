@@ -11,6 +11,10 @@
  *     restarts with the latest token; a push during a restart's delay
  *     starts the runner at once;
  *   - every refusal carries its stable code;
+ *   - the first push's Environment reaches the runner as
+ *     `STIGMER_SANDBOX_ENVIRONMENT` (JSON, replacing any the sandbox's own
+ *     environment carries), and a later push's is accepted and not applied:
+ *     a restart keeps the first push's, or none when the first had none;
  *   - a push for another sandbox's queue, a malformed push and a wrong method
  *     start nothing;
  *   - a runner that cannot be started at all is retried once per failure,
@@ -29,7 +33,8 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { laterPushRefusal, spawnErrorCode, startAttachWaiter, type AttachWaiter, type RunnerSpawner } from "../waiter.js";
+import { laterPushRefusal, runnerEnvFor, spawnErrorCode, startAttachWaiter, type AttachWaiter, type RunnerSpawner } from "../waiter.js";
+import { SANDBOX_ENVIRONMENT_ENV, type SandboxEnvironment } from "../../environment/spec.js";
 
 const SESSION_QUEUE = "session:ses_01m3zkdb7wxbe2gx0ezmf8fmaq";
 const SESSION_SANDBOX = "sbx-ses-4e918096d317";
@@ -346,6 +351,64 @@ describe("attach waiter", () => {
     expect(logs.filter((m) => m.includes("restarting"))).toEqual(["[attach] runner failed to start (ENOENT); restarting in 1000ms"]);
   });
 
+  describe("the Environment a later push carries", () => {
+    const FIRST: SandboxEnvironment = { network: "limited", packages: { apt: [], cargo: [], gem: [], go: [], npm: ["express"], pip: [] } };
+    const LATER: SandboxEnvironment = { network: "unrestricted", packages: { apt: ["netcat-openbsd"], cargo: [], gem: [], go: [], npm: [], pip: [] } };
+
+    /** A waiter whose runners are stand-ins: each start's environment recorded, the live one exitable. */
+    async function recordingWaiter(): Promise<{ readonly w: AttachWaiter; readonly envs: NodeJS.ProcessEnv[]; readonly exitLive: () => void }> {
+      const envs: NodeJS.ProcessEnv[] = [];
+      let live: ChildProcess | undefined;
+      waiter = await startAttachWaiter({
+        port: 0,
+        readSandboxName: () => SESSION_SANDBOX,
+        runnerEntry: entry,
+        baseEnv: { [SANDBOX_ENVIRONMENT_ENV]: "from-the-template" },
+        spawnRunner: (entryPath, env) => {
+          envs.push(env);
+          live = stayingRunner(entryPath);
+          return live;
+        },
+        restartDelayMs: 20,
+        maxRestartDelayMs: 50,
+        log: () => {},
+      });
+      return { w: waiter, envs, exitLive: () => live?.emit("exit", 1, null) };
+    }
+
+    it("is accepted and not applied: a restart keeps the first push's", async () => {
+      const { w, envs, exitLive } = await recordingWaiter();
+      expect((await push(w, { taskQueue: SESSION_QUEUE, secrets: {}, environment: FIRST })).body).toEqual({ taskQueue: SESSION_QUEUE, started: true });
+      expect(envs[0]?.[SANDBOX_ENVIRONMENT_ENV]).toBe(JSON.stringify(FIRST));
+
+      expect(await push(w, { taskQueue: SESSION_QUEUE, secrets: {}, environment: LATER })).toEqual({ status: 200, body: { taskQueue: SESSION_QUEUE, started: false } });
+      expect(envs, "a later push starts nothing").toHaveLength(1);
+      exitLive();
+      await until(() => envs.length === 2);
+      expect(envs[1]?.[SANDBOX_ENVIRONMENT_ENV], "the restart keeps the first push's Environment").toBe(JSON.stringify(FIRST));
+    });
+
+    it("gives none to a sandbox whose first push carried none", async () => {
+      const { w, envs, exitLive } = await recordingWaiter();
+      await push(w, { taskQueue: SESSION_QUEUE, secrets: {} });
+      expect(envs[0]).not.toHaveProperty(SANDBOX_ENVIRONMENT_ENV);
+      await push(w, { taskQueue: SESSION_QUEUE, secrets: {}, environment: LATER });
+      exitLive();
+      await until(() => envs.length === 2);
+      expect(envs[1]).not.toHaveProperty(SANDBOX_ENVIRONMENT_ENV);
+    });
+
+    it("refuses a later push whose Environment is malformed, as any malformed push", async () => {
+      const { w, envs } = await recordingWaiter();
+      await push(w, { taskQueue: SESSION_QUEUE, secrets: {}, environment: FIRST });
+      expect(await push(w, { taskQueue: SESSION_QUEUE, secrets: {}, environment: { network: "limited", packages: { npm: ["-g"] } } })).toMatchObject({
+        status: 400,
+        body: { code: "malformed" },
+      });
+      expect(envs).toHaveLength(1);
+    });
+  });
+
   it("serves one queue for life, answers 500 when its name cannot be read, and 404 elsewhere", async () => {
     const names = ["sbx-ses-4e918096d317", "sbx-ses-245a956f6110"];
     let reads = 0;
@@ -367,6 +430,24 @@ describe("attach waiter", () => {
     unreadable = true;
     expect((await push(waiter, { taskQueue: SESSION_QUEUE, secrets: {} })).status).toBe(500);
     expect((await fetch(`http://127.0.0.1:${waiter.port}/nope`)).status).toBe(404);
+  });
+});
+
+describe("runnerEnvFor", () => {
+  const environment: SandboxEnvironment = { network: "limited", packages: { apt: [], cargo: [], gem: [], go: [], npm: [], pip: ["sqlalchemy==2.0.30"] } };
+
+  it("sets the push's Environment as JSON, over any the sandbox's own environment carries", () => {
+    const env = runnerEnvFor(
+      { PATH: "/usr/bin", STIGMER_ATTACH_PORT: "80", [SANDBOX_ENVIRONMENT_ENV]: "stale" },
+      { taskQueue: SESSION_QUEUE, secrets: { STIGMER_TOKEN: "t" }, environment },
+    );
+    expect(env).toEqual({ PATH: "/usr/bin", STIGMER_TASK_QUEUE: SESSION_QUEUE, STIGMER_TOKEN: "t", [SANDBOX_ENVIRONMENT_ENV]: JSON.stringify(environment) });
+    expect(JSON.parse(env[SANDBOX_ENVIRONMENT_ENV]!)).toEqual(environment);
+  });
+
+  it("removes an inherited one when the push carries none", () => {
+    const env = runnerEnvFor({ PATH: "/usr/bin", [SANDBOX_ENVIRONMENT_ENV]: "stale" }, { taskQueue: SESSION_QUEUE, secrets: {} });
+    expect(env).toEqual({ PATH: "/usr/bin", STIGMER_TASK_QUEUE: SESSION_QUEUE });
   });
 });
 

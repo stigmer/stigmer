@@ -10,7 +10,9 @@
  *    another tool is refused with a sentence;
  *  - a row's name is the stream's;
  *  - web fetch and web search are hidden when any PreToolUse hook would take
- *    them, the sub-agent tool only when a matcher names it.
+ *    them, the sub-agent tool only when a matcher names it;
+ *  - a sandbox whose Environment limits networking hides web fetch and web
+ *    search; an unrestricted one, or none, hides nothing.
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -18,7 +20,7 @@ import { HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/age
 import { describe, expect, it, vi } from "vitest";
 import { HookSet, type HookFormatName } from "../../../shared/hooks/hook-set.js";
 import { rewriteEchoes } from "../../../shared/hooks/tool-view.js";
-import { toolsHiddenByHooks, withToolsHidden } from "../hook-tool-hiding.js";
+import { LIMITED_NETWORK_HIDDEN_TOOLS, toolsHiddenByHooks, toolsHiddenByNetwork, withToolsHidden } from "../hook-tool-hiding.js";
 import { CursorEngineToolViews, rowNameOf } from "../hook-views.js";
 
 const views = new CursorEngineToolViews({
@@ -157,6 +159,13 @@ describe("the tools a turn hides for its hooks", () => {
     expect(toolsHiddenByHooks(set("claude-code", "PreToolUse", "Agent"))).toEqual(["task"]);
     expect(toolsHiddenByHooks(set("cursor", "preToolUse", "^Task$"))).toEqual(["task"]);
     expect(toolsHiddenByHooks(set("cursor", "preToolUse", ".*"))).toEqual(["webFetch", "webSearch"]);
+  });
+
+  it("hides web fetch and web search under a limited network, and nothing otherwise", () => {
+    expect(toolsHiddenByNetwork("limited")).toEqual(["webFetch", "webSearch"]);
+    expect(LIMITED_NETWORK_HIDDEN_TOOLS).toEqual(["webFetch", "webSearch"]);
+    expect(toolsHiddenByNetwork("unrestricted")).toEqual([]);
+    expect(toolsHiddenByNetwork(undefined)).toEqual([]);
   });
 
   it("puts hidden tools on the deny-list, and takes them off an allow-list too", () => {
