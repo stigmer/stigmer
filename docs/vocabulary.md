@@ -2257,7 +2257,7 @@ word has a replacement, defined in its entry:
 
 ---
 
-### 9. Schedule and routine words---RESOLVED
+### 9. Scheduled-work words---RESOLVED
 
 **What**: Scheduled work was a `Schedule` (`kind: Schedule`, prefix `sch`): a
 cron trigger only, started by hand as a `trigger`, and on the hosted edition

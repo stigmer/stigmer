@@ -47,7 +47,7 @@ on the site. The sections, in sidebar order, are:
 | ------------------ | --------------------------------------------------- |
 | `getting-started/` | Cloud quickstart, local quickstart, first Skill     |
 | `concepts/`        | Core concepts (Agents, Skills, Sessions, etc.)      |
-| `tutorials/`       | Progressive tutorials (tools, approvals, Schedules) |
+| `tutorials/`       | Progressive tutorials (tools, approvals, Routines) |
 | `sdks/`            | Per-language SDK guides                             |
 | `cli/`             | CLI overview and command reference                  |
 | `reference/`       | API reference                                       |

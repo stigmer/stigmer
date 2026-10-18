@@ -1,19 +1,19 @@
 ---
 title: Resources
 description:
-  Every Agent, Skill and Schedule is a resource with a permanent ID and a slug
+  Every Agent, Skill and Routine is a resource with a permanent ID and a slug
   you can rename. Learn how names, references, changes, lists, labels and tags
   work the same way for every kind.
 ---
 
 Priya runs her team's support Agent, `test-bot`. It answers in the support Slack
-channel, a Schedule runs it every morning, and another Agent hands it refund
+channel, a routine runs it every morning, and another Agent hands it refund
 questions. One day she renames it `support-bot`. The channel keeps answering,
-the Schedule runs the next morning, and the other Agent keeps handing it work.
+the routine runs the next morning, and the other Agent keeps handing it work.
 Nothing that used `test-bot` had to change.
 
 That works because every resource in Stigmer (Agents, Skills, Plugins,
-Schedules, Vaults and the rest) follows the same rules for how it is named,
+Routines, Vaults and the rest) follows the same rules for how it is named,
 pointed at, changed, and listed. This page explains those rules once.
 
 ## An ID and a slug
@@ -59,7 +59,7 @@ How you rename depends on where you work:
 - **From a file**, keep the resource's `id` in the file, change its `slug`, and
   apply it. The file `stigmer get agent test-bot -o yaml` prints has both. This
   works for every kind the CLI applies from a file and can rename: Agent,
-  Schedule, Channel App, OAuth App, Federation Issuer and Organization. The
+  Routine, Channel App, OAuth App, Federation Issuer and Organization. The
   console's Edit YAML dialog follows the same rule, and says "Applying will
   rename test-bot to support-bot" before you apply.
 - **Vaults and Teams** have no file: rename them in the console, or with the
@@ -72,7 +72,7 @@ changes, and says the slug was kept.
 ## What a reference holds
 
 When one resource points at another (an Agent's Skills and subagents, a
-Schedule's Agent), you write the target's slug:
+routine's Agent), you write the target's slug:
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1

@@ -52,9 +52,16 @@ Two kinds of resource use a different word, because Viewer would understate what
 the role does there:
 
 - **Participant**, on a conversation or a Slack or WhatsApp channel, reads the
-  conversation and sends messages. A Viewer of a conversation only reads it.
+  conversation and sends messages. A Viewer of a conversation only reads it. On
+  a [routine](/docs/concepts/routines), a Participant starts it with a note and
+  sees its runs, and a Viewer sees its runs and starts nothing.
 - **Can use**, on a shared vault, lets a person's runs use the vault's logins
   and secrets. Handing secrets to a run with a shell is more than reading.
+
+A routine's **Owner** is only the account that created it, because every run
+of the routine acts as that account: the role is never granted, and an
+Organization's admins manage a routine without becoming its owner. Only the
+owner grants Participant or Viewer on it.
 
 What a role allows is the resource's own: a Viewer of an Agent runs it, a Viewer
 of a Skill uses it, a Viewer of a conversation sends nothing. Every kind's roles
