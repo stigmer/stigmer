@@ -638,7 +638,7 @@ export interface SessionComposerProps {
  *
  * The toolbar uses a two-group layout:
  * - **Left (primary state):** Interaction Mode, Model Selector
- * - **Right (secondary actions, icon-only):** Workspace, Attach, Configure (Agent, Plugins, Skills, Vaults), Send
+ * - **Right (secondary actions, icon-only):** Workspace, Attach, Configure (Agent, Plugins, Skills, Vaults, Environment), Send
  *
  * Selected items render as removable chips between the textarea and toolbar.
  *
