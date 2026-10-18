@@ -38,6 +38,9 @@ const RoutineDetailPage = lazy(() => import("./pages/library/RoutineDetailPage")
 const AgentNewPage = lazy(() => import("./pages/library/AgentNewPage"));
 const SkillNewPage = lazy(() => import("./pages/library/SkillNewPage"));
 const RoutineNewPage = lazy(() => import("./pages/library/RoutineNewPage"));
+const EnvironmentListPage = lazy(() => import("./pages/library/EnvironmentListPage"));
+const EnvironmentNewPage = lazy(() => import("./pages/library/EnvironmentNewPage"));
+const EnvironmentDetailPage = lazy(() => import("./pages/library/EnvironmentDetailPage"));
 const PluginListPage = lazy(() => import("./pages/library/PluginListPage"));
 const PluginDetailPage = lazy(() => import("./pages/library/PluginDetailPage"));
 const PluginUploadPage = lazy(() => import("./pages/library/PluginUploadPage"));
@@ -224,6 +227,30 @@ const routes: RouteObject[] = [
             element: (
               <LazyPage>
                 <RoutineDetailPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: "environments",
+            element: (
+              <LazyPage>
+                <EnvironmentListPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: "environments/new",
+            element: (
+              <LazyPage>
+                <EnvironmentNewPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: "environments/:org/:slug",
+            element: (
+              <LazyPage>
+                <EnvironmentDetailPage />
               </LazyPage>
             ),
           },
