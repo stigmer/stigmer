@@ -11,7 +11,9 @@
  * "this server trusts every request" and "this server did not say", which
  * a console meeting an older server must not confuse. The single-organization
  * answer crosses the same way: `true` (fill-on, hide organizations), `false`,
- * and `undefined` from a server that predates it.
+ * and `undefined` from a server that predates it. So does what an
+ * Environment does there: each of its three answers as sent, and
+ * `undefined` from a server that predates the field.
  */
 import { describe, expect, it } from "vitest";
 import { createRouterTransport } from "@connectrpc/connect";
@@ -28,6 +30,7 @@ function clientAnswering(
   edition: ServerEdition,
   authenticationRequired?: boolean,
   singleOrg?: boolean,
+  environments?: { applies: boolean; limitedNetworking: boolean; packages: boolean },
 ): PlatformClient {
   return new PlatformClient(
     createRouterTransport(({ service }) => {
@@ -40,6 +43,7 @@ function clientAnswering(
               ? { authenticationRequired }
               : {}),
             ...(singleOrg !== undefined ? { singleOrg } : {}),
+            ...(environments !== undefined ? { environments } : {}),
           }),
       });
     }),
@@ -91,4 +95,18 @@ describe("PlatformClient.getServerInfo", () => {
       expect(info.singleOrg).toBe(reported);
     },
   );
+
+  it.each([
+    { applies: true, limitedNetworking: true, packages: true },
+    { applies: true, limitedNetworking: false, packages: true },
+    { applies: false, limitedNetworking: false, packages: false },
+  ])("reports what an Environment does there as sent: %o", async (sent) => {
+    const info = await clientAnswering(ServerEdition.oss, false, true, sent).getServerInfo();
+    expect(info.environments).toEqual(sent);
+  });
+
+  it("reports environments as undefined from a server that predates the field", async () => {
+    const info = await clientAnswering(ServerEdition.cloud, false, false).getServerInfo();
+    expect(info.environments).toBeUndefined();
+  });
 });

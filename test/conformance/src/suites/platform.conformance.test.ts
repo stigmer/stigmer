@@ -8,8 +8,9 @@
 // self-bootstraps through. The contract asserted here is the response SHAPE
 // both editions must honor:
 //
-//   - getServerInfo names a real edition (never unspecified) and a non-empty
-//     version.
+//   - getServerInfo names a real edition (never unspecified), a non-empty
+//     version, and what an Environment does on the server (`environments`,
+//     present on every edition).
 //   - getRunnerBootstrapConfig always carries reachable Temporal coordinates,
 //     and its token/key fields follow the PRESENCE-BASED contract: an empty
 //     token means "not minted" (OSS has no Cursor proxy; a cloud server may
@@ -66,6 +67,10 @@ describe("Platform conformance — getServerInfo", () => {
       `the ${target.name} target serves ${ServerEdition[target.edition]}`,
     ).toBe(target.edition);
     expect(info.version, "version must identify the build").not.toBe("");
+    // What an Environment does here is a fact every edition states; each
+    // answer is held to the refusal it predicts by
+    // environment.conformance.test.ts.
+    expect(info.environments, "every server that knows the field sets environments").toBeDefined();
   });
 
   it("[rpc:PlatformQueryController.getServerInfo] is stable across calls — server identity does not drift within a run", async () => {

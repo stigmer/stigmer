@@ -15,20 +15,30 @@
 //     naming it, a single label by the contract's pattern naming the field, and hosts or flags under unrestricted
 //     networking are refused by the contract itself;
 //   - the delete guard: an Environment an agent names as its default is not
-//     deleted, the refusal names the agent, and removing the default frees it.
+//     deleted, the refusal names the agent, and removing the default frees it;
+//   - server info tells the truth: what getServerInfo's `environments` says
+//     the server's sandboxes can do and govern is exactly what its refusals
+//     say. A limited save is refused exactly when it says limited networking
+//     is not available, a save with packages exactly when packages are not,
+//     and a conversation that names an Environment and no target is refused
+//     as one on the person's own machine exactly when it says Environments
+//     do not apply. Each target answers by its own sandbox driver, so the
+//     advertisement cannot drift from the behaviour on any edition.
 //
 // Rename is the shared rename table's (rename.conformance.test.ts).
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { NetworkingType } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvironmentSource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { expectGrpcCode } from "../contract/errors";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
-import { makeAgent, makeAgentSpec } from "../support/agents";
+import { agentRefOf, makeAgent, makeAgentSpec } from "../support/agents";
 import { makeEnvironment, makeLimitedEnvironment } from "../support/environments";
 import { uniqueName } from "../support/naming";
+import { makeSession, makeSessionSpec } from "../support/sessions";
 import { createTarget, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
@@ -198,5 +208,83 @@ describe("Environment conformance — the delete guard", () => {
     });
     const deleted = await clients.environmentCommand.delete({ value: environment.metadata!.id });
     expect(deleted.metadata?.id).toBe(environment.metadata?.id);
+  });
+});
+
+describe("Environment conformance — server info tells the truth", () => {
+  async function availability() {
+    const info = await clients.platformQuery.getServerInfo({});
+    expect(info.environments, "every server that knows the field sets it").toBeDefined();
+    return info.environments!;
+  }
+
+  it("[rpc:PlatformQueryController.getServerInfo] [rpc:EnvironmentCommandController.create] a limited save is refused exactly when limited networking is not available", async () => {
+    const { limitedNetworking } = await availability();
+    const { org } = await target.provisionTenancy();
+    const input = makeLimitedEnvironment(org, uniqueName("env"), ["api.github.com"]);
+    if (!limitedNetworking) {
+      const error = await expectGrpcCode(
+        () => clients.environmentCommand.create(input),
+        Code.FailedPrecondition,
+        "the server said its sandboxes cannot limit networking",
+      );
+      expect(error.rawMessage).toContain("which this server's sandboxes cannot enforce");
+      return;
+    }
+    const created = await clients.environmentCommand.create(input);
+    fixtures.defer(() => clients.environmentCommand.delete({ value: created.metadata!.id }).catch(() => undefined));
+    expect(created.spec?.networking?.type).toBe(NetworkingType.limited);
+  });
+
+  it("[rpc:PlatformQueryController.getServerInfo] [rpc:EnvironmentCommandController.create] a save with packages is refused exactly when packages are not available", async () => {
+    const { packages } = await availability();
+    const { org } = await target.provisionTenancy();
+    const input = {
+      ...makeEnvironment(org, uniqueName("env")),
+      spec: { networking: { type: NetworkingType.unrestricted }, packages: { pip: ["requests"] } },
+    };
+    if (!packages) {
+      const error = await expectGrpcCode(
+        () => clients.environmentCommand.create(input),
+        Code.FailedPrecondition,
+        "the server said its sandboxes cannot install packages",
+      );
+      expect(error.rawMessage).toContain("installs packages, which this server's sandboxes cannot do");
+      return;
+    }
+    const created = await clients.environmentCommand.create(input);
+    fixtures.defer(() => clients.environmentCommand.delete({ value: created.metadata!.id }).catch(() => undefined));
+    expect(created.spec?.packages?.pip).toEqual(["requests"]);
+  });
+
+  it("[rpc:PlatformQueryController.getServerInfo] [rpc:SessionCommandController.create] a conversation naming an Environment and no target is refused exactly when Environments do not apply", async () => {
+    const { applies } = await availability();
+    const { org } = await target.provisionTenancy();
+    const environment = await createEnvironment(org);
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }).catch(() => undefined));
+    const input = {
+      ...makeSession({ org, name: uniqueName("session") }),
+      spec: {
+        ...makeSessionSpec({ agentRef: agentRefOf(agent) }),
+        environmentRef: { kind: ApiResourceKind.environment, org, slug: environment.metadata!.slug },
+      },
+    };
+    if (!applies) {
+      const error = await expectGrpcCode(
+        () => clients.sessionCommand.create(input),
+        Code.FailedPrecondition,
+        "the server said no Environment governs a conversation that names no target",
+      );
+      expect(error.rawMessage).toContain("where an environment does not apply");
+      return;
+    }
+    const session = await clients.sessionCommand.create(input);
+    // Registered before the Environment's own cleanup runs: the delete guard
+    // never holds an Environment for a conversation, but a session left
+    // behind is litter on a shared target.
+    fixtures.defer(() => clients.sessionCommand.delete({ value: session.metadata!.id }).catch(() => undefined));
+    expect(session.status?.environmentSource).toBe(EnvironmentSource.SESSION);
+    expect(session.status?.environment?.slug).toBe(environment.metadata!.slug);
   });
 });

@@ -155,7 +155,7 @@ export {
 } from "./github.js";
 
 // Platform client (server info / edition detection)
-export { PlatformClient, type ServerInfo } from "./platform.js";
+export { PlatformClient, type EnvironmentAvailability, type ServerInfo } from "./platform.js";
 
 // Manifest engine (kind-agnostic YAML ⇄ proto ⇄ apply)
 export {

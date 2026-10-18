@@ -45,6 +45,31 @@ export interface ServerInfo {
    * and show organizations.
    */
   readonly singleOrg: boolean | undefined;
+  /**
+   * What an Environment does on this server: whether one governs the
+   * conversations a console, the CLI, a routine, a channel or a chat link
+   * starts (`applies`), and whether its sandboxes can hold a conversation to
+   * listed hosts (`limitedNetworking`) and install packages (`packages`).
+   * Each answer is the one the server's own refusals give.
+   *
+   * `undefined` when the server predates the field: offer Environments and
+   * let the server's own refusals decide.
+   */
+  readonly environments: EnvironmentAvailability | undefined;
+}
+
+/** What an Environment does on a server, as {@link ServerInfo.environments} reports it. */
+export interface EnvironmentAvailability {
+  /**
+   * Whether a conversation that names no execution target runs in a sandbox
+   * the server starts, so an Environment governs it. `false` where such
+   * conversations run on the person's own machine or an operator's runner.
+   */
+  readonly applies: boolean;
+  /** Whether the server's sandboxes can hold a conversation to an Environment's listed hosts. */
+  readonly limitedNetworking: boolean;
+  /** Whether the server's sandboxes can install an Environment's packages. */
+  readonly packages: boolean;
 }
 
 /**
@@ -64,7 +89,8 @@ export class PlatformClient {
 
   /**
    * Retrieve the connected server's edition, version, authentication
-   * posture and whether it holds one organization.
+   * posture, whether it holds one organization, and what an Environment
+   * does there.
    *
    * Maps the proto {@link ServerEdition} to a {@link DeploymentMode}
    * through {@link deploymentModeOf}:
@@ -84,6 +110,14 @@ export class PlatformClient {
         version: resp.version,
         authenticationRequired: resp.authenticationRequired,
         singleOrg: resp.singleOrg,
+        environments:
+          resp.environments === undefined
+            ? undefined
+            : {
+                applies: resp.environments.applies,
+                limitedNetworking: resp.environments.limitedNetworking,
+                packages: resp.environments.packages,
+              },
       };
     } catch (e) {
       throw wrapError(e);
