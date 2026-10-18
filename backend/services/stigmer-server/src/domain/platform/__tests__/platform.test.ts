@@ -7,12 +7,13 @@
  * The load-bearing pins the conformance suite deliberately does NOT cover
  * (its platform file excludes getRunnerScopedToken — the arms are gated on
  * runner-class flows):
- *   - the oss#535 FAIL-SOFT matrix: execution-id arms mint; pool_claim/
+ *   - the oss#535 FAIL-SOFT matrix: execution-id arms mint;
  *     renewal/unset/empty-id/keyless all answer the presence-based
  *     "not minted" EMPTY output, never a gRPC error;
- *   - a request carrying only the reserved field 2 (the retired
- *     workflow_run_id arm) gets the unset-scope InvalidArgument, the
- *     same code and message as a request naming no scope, never a token;
+ *   - a request carrying only a reserved arm (field 2, the retired
+ *     workflow_run_id; field 3, the retired pool_claim) gets the
+ *     unset-scope InvalidArgument, the same code and message as a request
+ *     naming no scope, never a token;
  *   - a minted token actually verifies against the SAME key the values
  *     fetch uses, bound to exactly the named execution id;
  *   - getRunnerBootstrapConfig echoes the configured Temporal coordinates
@@ -222,10 +223,9 @@ describe("platform domain (composed server)", () => {
     );
   });
 
-  it("answers the not-minted shape for empty ids, pool_claim, and renewal", async () => {
+  it("answers the not-minted shape for empty ids and renewal", async () => {
     const arms: MessageInitShape<typeof GetRunnerScopedTokenInputSchema>[] = [
       { scope: { case: "runId", value: "" } },
-      { scope: { case: "poolClaim", value: { sessionId: "ses_x" } } },
       { scope: { case: "renewal", value: {} } },
     ];
     for (const input of arms) {
@@ -249,17 +249,24 @@ describe("platform domain (composed server)", () => {
     }
   });
 
-  it("a request naming only the retired workflow_run_id field (2) is answered as one naming no scope", async () => {
-    // Field 2 held workflow_run_id until the workflow product was
-    // removed; it is now reserved. An older runner that still sends it
-    // names no arm this server knows, so it gets the unset-scope answer,
-    // never a token. The bytes are built by wire number because the
-    // schema no longer names the field; decoding keeps it as an unknown
-    // field, which the client writes back onto the wire unchanged.
-    const retiredBytes = new BinaryWriter()
-      .tag(2, WireType.LengthDelimited)
-      .string("wex_01platformtest")
-      .finish();
+  it.each([
+    [
+      "workflow_run_id field (2)",
+      new BinaryWriter().tag(2, WireType.LengthDelimited).string("wex_01platformtest").finish(),
+    ],
+    [
+      "pool_claim field (3)",
+      new BinaryWriter().tag(3, WireType.LengthDelimited).fork().tag(1, WireType.LengthDelimited).string("ses_x").join().finish(),
+    ],
+  ])("a request naming only the retired %s is answered as one naming no scope", async (_field, retiredBytes) => {
+    // Field 2 held workflow_run_id until the workflow product was removed,
+    // and field 3 held pool_claim, a pre-started pool sandbox's exchange,
+    // until the hosted edition's sandbox pool was removed; both are now
+    // reserved. An older runner that still sends one names no arm this
+    // server knows, so it gets the unset-scope answer, never a token. The
+    // bytes are built by wire number because the schema no longer names
+    // the field; decoding keeps it as an unknown field, which the client
+    // writes back onto the wire unchanged.
     const retiredOnly = fromBinary(
       GetRunnerScopedTokenInputSchema,
       retiredBytes,
@@ -578,9 +585,9 @@ describe("platform domain (capability-delegating provider)", () => {
         callerIdentityId: caller.identityId,
         callerClass: caller.callerClass,
       });
-      if (request.arm === "pool-claim" && request.sessionId === "ses_denied") {
+      if (request.arm === "agent-execution" && request.executionId === "aexec_denied") {
         throw new ConnectError(
-          "pool member holds no claim for session ses_denied",
+          "run aexec_denied is not the caller's to serve",
           Code.PermissionDenied,
         );
       }
@@ -670,7 +677,7 @@ describe("platform domain (capability-delegating provider)", () => {
       scope: { case: "renewal", value: {} },
     });
     // The implementation's not-minted degrade rides the presence-based
-    // empty output — same wire shape as the OSS pool/renewal answer.
+    // empty output — same wire shape as the OSS renewal answer.
     expect(renewal.runnerScopedToken).toBe("");
     expect(renewal.tokenType).toBe("");
     expect(renewal.expiresInSeconds).toBe(0);
@@ -690,14 +697,14 @@ describe("platform domain (capability-delegating provider)", () => {
   it("a refusal thrown by the implementation propagates as the gRPC error", async () => {
     try {
       await client.getRunnerScopedToken({
-        scope: { case: "poolClaim", value: { sessionId: "ses_denied" } },
+        scope: { case: "runId", value: "aexec_denied" },
       });
       throw new Error("expected the call to fail");
     } catch (error) {
       expect(error).toBeInstanceOf(ConnectError);
       expect((error as ConnectError).code).toBe(Code.PermissionDenied);
       expect((error as ConnectError).rawMessage).toBe(
-        "pool member holds no claim for session ses_denied",
+        "run aexec_denied is not the caller's to serve",
       );
     }
   });

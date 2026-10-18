@@ -3,8 +3,8 @@
  * the header), the bounded retry loop and its classification, and the one
  * thing that must never regress silently — the bearer credential is read
  * from the shared ref on every request, so a rotation between two requests
- * of one saver reaches the second (a pool member claimed for a session; a
- * sandbox token renewed in place).
+ * of one saver reaches the second (a sandbox token renewed in place; a
+ * host's refreshed token).
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";

@@ -152,11 +152,9 @@ service PlatformQueryController {
   // credential AND pass the same can_view check getByExecutionId performs on
   // the named run.
   //
-  // Two arms are exceptions to the embedded_runner rule, each gated on its
-  // own credential class and authorized against a control-plane record
-  // instead of a run: pool_claim (token_type=pool_sandbox, authorized
-  // against the pool claim record) and renewal (token_type=sandbox,
-  // authorized against the live session sandbox record). See each arm's own
+  // The renewal arm is the exception to the embedded_runner rule: it is
+  // gated on its own credential class (token_type=sandbox) and authorized
+  // against the live session sandbox record instead of a run. See its own
   // doc.
   rpc getRunnerScopedToken(GetRunnerScopedTokenInput) returns (GetRunnerScopedTokenOutput) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
@@ -341,9 +339,12 @@ message GetRunnerScopedTokenInput {
   //
   // Arm 2 held workflow_run_id, which scoped a token to one workflow run's
   // ExecutionContext, until the workflow product was removed platform-wide.
-  // Reserved so the number and name are never reused for a different arm.
-  reserved 2;
-  reserved "workflow_run_id";
+  // Arm 3 held pool_claim, the exchange a pre-started pool sandbox made for
+  // the session it was claimed for, until the hosted edition's sandbox pool
+  // was removed. Both are reserved so their numbers and names are never
+  // reused for a different arm.
+  reserved 2, 3;
+  reserved "workflow_run_id", "pool_claim";
 
   oneof scope {
     option (buf.validate.oneof).required = true;
@@ -352,37 +353,11 @@ message GetRunnerScopedTokenInput {
     // session, valid for every run in that session (multi-turn).
     string run_id = 1;
 
-    // Warm-pool claim — a pool sandbox exchanging its pool credential for the
-    // session token of the session it has just been claimed for. Presented
-    // with a token_type=pool_sandbox credential (not embedded_runner).
-    PoolClaim pool_claim = 3;
-
     // Credential renewal — a live sandbox extending its own lifetime.
     // Presented with the still-valid token_type=sandbox credential being
     // renewed (not embedded_runner).
     TokenRenewal renewal = 4;
   }
-}
-
-// Claim exchange for a warm-pool sandbox member.
-//
-// A pool member is a blank, pre-booted sandbox holding only an org-agnostic
-// token_type=pool_sandbox credential (carrying its pool_member_id claim). When
-// the control plane claims it for a session, the member presents this arm to
-// exchange that credential for the session's sandbox token.
-//
-// @internal
-// Cloud authorizes against the pool claim record, not FGA: the pool_sandboxes
-// row for the caller token's pool_member_id must be CLAIMED for exactly this
-// session_id (the DB is the authorization source). Identity and org are minted
-// from the values the claimer recorded on that row — never from the client —
-// and the TTL is the config-owned standard sandbox TTL, like every session
-// token (renewal, not lifetime, carries long conversations).
-// OSS has no pool and mints nothing (empty output, presence-based contract).
-message PoolClaim {
-  // Session the pool member was claimed for — the scope of the token it
-  // receives. Must match the claim recorded by the control plane.
-  string session_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 // Renewal exchange for a running sandbox's own credential.
@@ -402,7 +377,7 @@ message PoolClaim {
 //
 // @internal
 // Cloud authorizes against the live sandbox record, not FGA (a sandbox
-// token is structurally not an FGA principal — the pool_claim posture): a
+// token is structurally not an FGA principal): a
 // token_type=sandbox caller requires its session_sandboxes row to exist and
 // not be archived/deleting; every other credential class is refused. The
 // record IS the revocation lever: when the lifecycle reconciler reaps the

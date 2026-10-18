@@ -76,7 +76,7 @@ export function preflightNodeRuntime(
  * main.ts, while all of main.ts's process modes construct through the
  * factories. A library must never process.exit, so this throws — manager
  * mode's factory catch converts it to a fatal IPC error for the desktop
- * host, static/pool modes exit through main()'s fatal handler, and
+ * host, static mode exits through main()'s fatal handler, and
  * embedders get a rejected promise.
  *
  * Backend misconfiguration is deployment-static; failing here means a

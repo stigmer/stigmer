@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/v1/server_info.proto.
  */
 export const file_ai_stigmer_platform_v1_server_info: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCKPAgoTR2V0U2VydmVySW5mb091dHB1dBI2CgdlZGl0aW9uGAEgASgOMiUuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5TZXJ2ZXJFZGl0aW9uEg8KB3ZlcnNpb24YAiABKAkSJAoXYXV0aGVudGljYXRpb25fcmVxdWlyZWQYAyABKAhIAIgBARIXCgpzaW5nbGVfb3JnGAQgASgISAGIAQESRQoMZW52aXJvbm1lbnRzGAUgASgLMi8uYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5FbnZpcm9ubWVudEF2YWlsYWJpbGl0eUIaChhfYXV0aGVudGljYXRpb25fcmVxdWlyZWRCDQoLX3NpbmdsZV9vcmciWAoXRW52aXJvbm1lbnRBdmFpbGFiaWxpdHkSDwoHYXBwbGllcxgBIAEoCBIaChJsaW1pdGVkX25ldHdvcmtpbmcYAiABKAgSEAoIcGFja2FnZXMYAyABKAgiFwoVR2V0TGljZW5zZVN0YXR1c0lucHV0IsQBChZHZXRMaWNlbnNlU3RhdHVzT3V0cHV0EjMKBXN0YXRlGAEgASgOMiQuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5MaWNlbnNlU3RhdGUSNQoGY2xhaW1zGAIgASgLMiUuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5MaWNlbnNlQ2xhaW1zEg4KBmtleV9pZBgDIAEoCRIuCgpjaGVja2VkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCIfCh1HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dCLjAgoeR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0EiEKEHRlbXBvcmFsX2FkZHJlc3MYASABKAlCB7pIBHICEAESIwoSdGVtcG9yYWxfbmFtZXNwYWNlGAIgASgJQge6SARyAhABEhsKE3J1bm5lcl9hY2Nlc3NfdG9rZW4YAyABKAkSEgoKdG9rZW5fdHlwZRgEIAEoCRIuCiZydW5uZXJfYWNjZXNzX3Rva2VuX2V4cGlyZXNfaW5fc2Vjb25kcxgFIAEoBRIeChZwYXlsb2FkX2VuY3J5cHRpb25fa2V5GAYgASgJEiEKGXBheWxvYWRfZW5jcnlwdGlvbl9rZXlfaWQYByABKAkSKAogcGF5bG9hZF9lbmNyeXB0aW9uX3NlY29uZGFyeV9rZXkYCCABKAkSKwojcGF5bG9hZF9lbmNyeXB0aW9uX3NlY29uZGFyeV9rZXlfaWQYCSABKAkixgEKGUdldFJ1bm5lclNjb3BlZFRva2VuSW5wdXQSEAoGcnVuX2lkGAEgASgJSAASNwoKcG9vbF9jbGFpbRgDIAEoCzIhLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuUG9vbENsYWltSAASNwoHcmVuZXdhbBgEIAEoCzIkLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuVG9rZW5SZW5ld2FsSABCDgoFc2NvcGUSBbpIAggBSgQIAhADUg93b3JrZmxvd19ydW5faWQiKAoJUG9vbENsYWltEhsKCnNlc3Npb25faWQYASABKAlCB7pIBHICEAEiDgoMVG9rZW5SZW5ld2FsImkKGkdldFJ1bm5lclNjb3BlZFRva2VuT3V0cHV0EhsKE3J1bm5lcl9zY29wZWRfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRIaChJleHBpcmVzX2luX3NlY29uZHMYAyABKAUqUwoNU2VydmVyRWRpdGlvbhIeChpzZXJ2ZXJfZWRpdGlvbl91bnNwZWNpZmllZBAAEgcKA29zcxABEgkKBWNsb3VkEAISDgoKZW50ZXJwcmlzZRADMpoEChdQbGF0Zm9ybVF1ZXJ5Q29udHJvbGxlchJuCg1nZXRTZXJ2ZXJJbmZvEiouYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRTZXJ2ZXJJbmZvSW5wdXQaKy5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFNlcnZlckluZm9PdXRwdXQiBMi4GAESdwoQZ2V0TGljZW5zZVN0YXR1cxItLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0TGljZW5zZVN0YXR1c0lucHV0Gi4uYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRMaWNlbnNlU3RhdHVzT3V0cHV0IgTQuBgBEo8BChhnZXRSdW5uZXJCb290c3RyYXBDb25maWcSNS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ0lucHV0GjYuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJCb290c3RyYXBDb25maWdPdXRwdXQiBNC4GAESgwEKFGdldFJ1bm5lclNjb3BlZFRva2VuEjEuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJTY29wZWRUb2tlbklucHV0GjIuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJTY29wZWRUb2tlbk91dHB1dCIE0LgYAUIRQg9TZXJ2ZXJJbmZvUHJvdG9iBnByb3RvMw", [file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_platform_v1_license, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCKPAgoTR2V0U2VydmVySW5mb091dHB1dBI2CgdlZGl0aW9uGAEgASgOMiUuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5TZXJ2ZXJFZGl0aW9uEg8KB3ZlcnNpb24YAiABKAkSJAoXYXV0aGVudGljYXRpb25fcmVxdWlyZWQYAyABKAhIAIgBARIXCgpzaW5nbGVfb3JnGAQgASgISAGIAQESRQoMZW52aXJvbm1lbnRzGAUgASgLMi8uYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5FbnZpcm9ubWVudEF2YWlsYWJpbGl0eUIaChhfYXV0aGVudGljYXRpb25fcmVxdWlyZWRCDQoLX3NpbmdsZV9vcmciWAoXRW52aXJvbm1lbnRBdmFpbGFiaWxpdHkSDwoHYXBwbGllcxgBIAEoCBIaChJsaW1pdGVkX25ldHdvcmtpbmcYAiABKAgSEAoIcGFja2FnZXMYAyABKAgiFwoVR2V0TGljZW5zZVN0YXR1c0lucHV0IsQBChZHZXRMaWNlbnNlU3RhdHVzT3V0cHV0EjMKBXN0YXRlGAEgASgOMiQuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5MaWNlbnNlU3RhdGUSNQoGY2xhaW1zGAIgASgLMiUuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5MaWNlbnNlQ2xhaW1zEg4KBmtleV9pZBgDIAEoCRIuCgpjaGVja2VkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCIfCh1HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dCLjAgoeR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0EiEKEHRlbXBvcmFsX2FkZHJlc3MYASABKAlCB7pIBHICEAESIwoSdGVtcG9yYWxfbmFtZXNwYWNlGAIgASgJQge6SARyAhABEhsKE3J1bm5lcl9hY2Nlc3NfdG9rZW4YAyABKAkSEgoKdG9rZW5fdHlwZRgEIAEoCRIuCiZydW5uZXJfYWNjZXNzX3Rva2VuX2V4cGlyZXNfaW5fc2Vjb25kcxgFIAEoBRIeChZwYXlsb2FkX2VuY3J5cHRpb25fa2V5GAYgASgJEiEKGXBheWxvYWRfZW5jcnlwdGlvbl9rZXlfaWQYByABKAkSKAogcGF5bG9hZF9lbmNyeXB0aW9uX3NlY29uZGFyeV9rZXkYCCABKAkSKwojcGF5bG9hZF9lbmNyeXB0aW9uX3NlY29uZGFyeV9rZXlfaWQYCSABKAkinwEKGUdldFJ1bm5lclNjb3BlZFRva2VuSW5wdXQSEAoGcnVuX2lkGAEgASgJSAASNwoHcmVuZXdhbBgEIAEoCzIkLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuVG9rZW5SZW5ld2FsSABCDgoFc2NvcGUSBbpIAggBSgQIAhADSgQIAxAEUg93b3JrZmxvd19ydW5faWRSCnBvb2xfY2xhaW0iDgoMVG9rZW5SZW5ld2FsImkKGkdldFJ1bm5lclNjb3BlZFRva2VuT3V0cHV0EhsKE3J1bm5lcl9zY29wZWRfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRIaChJleHBpcmVzX2luX3NlY29uZHMYAyABKAUqUwoNU2VydmVyRWRpdGlvbhIeChpzZXJ2ZXJfZWRpdGlvbl91bnNwZWNpZmllZBAAEgcKA29zcxABEgkKBWNsb3VkEAISDgoKZW50ZXJwcmlzZRADMpoEChdQbGF0Zm9ybVF1ZXJ5Q29udHJvbGxlchJuCg1nZXRTZXJ2ZXJJbmZvEiouYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRTZXJ2ZXJJbmZvSW5wdXQaKy5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFNlcnZlckluZm9PdXRwdXQiBMi4GAESdwoQZ2V0TGljZW5zZVN0YXR1cxItLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0TGljZW5zZVN0YXR1c0lucHV0Gi4uYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRMaWNlbnNlU3RhdHVzT3V0cHV0IgTQuBgBEo8BChhnZXRSdW5uZXJCb290c3RyYXBDb25maWcSNS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ0lucHV0GjYuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJCb290c3RyYXBDb25maWdPdXRwdXQiBNC4GAESgwEKFGdldFJ1bm5lclNjb3BlZFRva2VuEjEuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJTY29wZWRUb2tlbklucHV0GjIuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJTY29wZWRUb2tlbk91dHB1dCIE0LgYAUIRQg9TZXJ2ZXJJbmZvUHJvdG9iBnByb3RvMw", [file_ai_stigmer_commons_rpc_method_options, file_ai_stigmer_platform_v1_license, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * Empty request — no parameters needed.
@@ -360,16 +360,6 @@ export type GetRunnerScopedTokenInput = Message<"ai.stigmer.platform.v1.GetRunne
     case: "runId";
   } | {
     /**
-     * Warm-pool claim — a pool sandbox exchanging its pool credential for the
-     * session token of the session it has just been claimed for. Presented
-     * with a token_type=pool_sandbox credential (not embedded_runner).
-     *
-     * @generated from field: ai.stigmer.platform.v1.PoolClaim pool_claim = 3;
-     */
-    value: PoolClaim;
-    case: "poolClaim";
-  } | {
-    /**
      * Credential renewal — a live sandbox extending its own lifetime.
      * Presented with the still-valid token_type=sandbox credential being
      * renewed (not embedded_runner).
@@ -387,33 +377,6 @@ export type GetRunnerScopedTokenInput = Message<"ai.stigmer.platform.v1.GetRunne
  */
 export const GetRunnerScopedTokenInputSchema: GenMessage<GetRunnerScopedTokenInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_platform_v1_server_info, 7);
-
-/**
- * Claim exchange for a warm-pool sandbox member.
- *
- * A pool member is a blank, pre-booted sandbox holding only an org-agnostic
- * token_type=pool_sandbox credential (carrying its pool_member_id claim). When
- * the control plane claims it for a session, the member presents this arm to
- * exchange that credential for the session's sandbox token.
- *
- * @generated from message ai.stigmer.platform.v1.PoolClaim
- */
-export type PoolClaim = Message<"ai.stigmer.platform.v1.PoolClaim"> & {
-  /**
-   * Session the pool member was claimed for — the scope of the token it
-   * receives. Must match the claim recorded by the control plane.
-   *
-   * @generated from field: string session_id = 1;
-   */
-  sessionId: string;
-};
-
-/**
- * Describes the message ai.stigmer.platform.v1.PoolClaim.
- * Use `create(PoolClaimSchema)` to create a new message.
- */
-export const PoolClaimSchema: GenMessage<PoolClaim> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_platform_v1_server_info, 8);
 
 /**
  * Renewal exchange for a running sandbox's own credential.
@@ -441,7 +404,7 @@ export type TokenRenewal = Message<"ai.stigmer.platform.v1.TokenRenewal"> & {
  * Use `create(TokenRenewalSchema)` to create a new message.
  */
 export const TokenRenewalSchema: GenMessage<TokenRenewal> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_platform_v1_server_info, 9);
+  messageDesc(file_ai_stigmer_platform_v1_server_info, 8);
 
 /**
  * A runner token scoped to one unit of work, or empty when the server cannot
@@ -484,7 +447,7 @@ export type GetRunnerScopedTokenOutput = Message<"ai.stigmer.platform.v1.GetRunn
  * Use `create(GetRunnerScopedTokenOutputSchema)` to create a new message.
  */
 export const GetRunnerScopedTokenOutputSchema: GenMessage<GetRunnerScopedTokenOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_platform_v1_server_info, 10);
+  messageDesc(file_ai_stigmer_platform_v1_server_info, 9);
 
 /**
  * Edition of the Stigmer server.

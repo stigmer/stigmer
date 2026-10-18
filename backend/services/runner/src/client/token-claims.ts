@@ -14,12 +14,6 @@
 /** The `token_type` claim value of a bootstrap-minted embedded runner token. */
 export const TOKEN_TYPE_EMBEDDED_RUNNER = "embedded_runner";
 
-/** The `token_type` claim value of a session sandbox token. */
-export const TOKEN_TYPE_SANDBOX = "sandbox";
-
-/** The `token_type` claim value of a warm-pool member's pre-claim credential. */
-export const TOKEN_TYPE_POOL_SANDBOX = "pool_sandbox";
-
 const CLAIM_TOKEN_TYPE = "token_type";
 const CLAIM_SESSION_ID = "session_id";
 
@@ -77,8 +71,9 @@ export function tokenTypeOf(token: string | null | undefined): string | undefine
 }
 
 /**
- * Extract the `session_id` claim of a session-scoped token. A claimed pool
- * member reads its post-claim identity from this on restart.
+ * Extract the `session_id` claim of a session-scoped token. The attach
+ * waiter refuses a later push whose token names another session
+ * (`src/attach/waiter.ts`, `laterPushRefusal`).
  */
 export function sessionIdClaimOf(token: string | null | undefined): string | undefined {
   return claimOf(token, CLAIM_SESSION_ID);

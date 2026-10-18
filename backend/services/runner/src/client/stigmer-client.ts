@@ -110,17 +110,13 @@ export interface RunnerScopedToken {
  * Names the unit of dispatched work a scoped runner token should serve.
  * Exactly one id must be set — mirrors the proto oneof.
  *
- * `poolClaimSessionId` is the warm-pool attach exchange: a pool sandbox
- * presenting its pool_sandbox credential for the session it was claimed for
- * (the server authorizes against the claim record, not the caller's FGA
- * relations). `renewal` is a live sandbox extending its own credential
- * before expiry: no id is named because every mint parameter comes from the
- * presented credential's verified claims (see sandbox-token-renewal.ts).
- * The execution arms remain embedded_runner-only.
+ * `renewal` is a live sandbox extending its own credential before expiry: no
+ * id is named because every mint parameter comes from the presented
+ * credential's verified claims (see sandbox-token-renewal.ts). The execution
+ * arm remains embedded_runner-only.
  */
 export type RunnerScopedTokenScope =
   | { agentExecutionId: string }
-  | { poolClaimSessionId: string }
   | { renewal: true };
 
 /**
@@ -131,9 +127,6 @@ export type RunnerScopedTokenScope =
 function toRunnerScopedTokenOneof(scope: RunnerScopedTokenScope) {
   if ("agentExecutionId" in scope) {
     return { case: "runId", value: scope.agentExecutionId } as const;
-  }
-  if ("poolClaimSessionId" in scope) {
-    return { case: "poolClaim", value: { sessionId: scope.poolClaimSessionId } } as const;
   }
   return { case: "renewal", value: create(TokenRenewalSchema) } as const;
 }
@@ -204,8 +197,8 @@ export class StigmerClient {
         // 1. An explicit per-call credential (an authorization header set via
         //    CallOptions) always wins. The scoped-token flow (issue #156)
         //    authenticates each value fetch with a token minted for that
-        //    specific execution; the renewal and pool-claim exchanges
-        //    present the token being exchanged; the connect lane hands its
+        //    specific execution; the renewal exchange presents the token
+        //    being renewed; the connect lane hands its
         //    decrypt-lane token per call.
         //
         // 2. The run credential of the activity this request belongs to
@@ -362,9 +355,10 @@ export class StigmerClient {
    * like the bootstrap token fields.
    *
    * `callerToken` authenticates the exchange per-call instead of the
-   * process-wide runner credential. The warm-pool attach uses it: a pool
-   * member exchanges with its pool_sandbox token, which is not the runner
-   * credential the interceptor would pick for this method.
+   * process-wide runner credential. The sandbox credential renewal uses it
+   * (sandbox-token-renewal.ts): the exchange authenticates with exactly the
+   * credential being renewed, read at that cycle, not whichever credential
+   * the interceptor would pick for this method.
    */
   async getRunnerScopedToken(
     scope: RunnerScopedTokenScope,
@@ -400,7 +394,7 @@ export class StigmerClient {
    *
    * Otherwise the gate is the credential itself:
    *
-   * 1. An already-scoped runner-class credential (a cloud sandbox, pool or
+   * 1. An already-scoped runner-class credential (a cloud sandbox or
    *    connect token) — skip; the exchange would rightly refuse it and the
    *    ambient credential is bound to its work on its own.
    *

@@ -5,7 +5,7 @@
  * Mint and verify PER CREDENTIAL LANE, where a lane is an implementation's
  * own token_type vocabulary: OSS defines exactly one
  * (TOKEN_TYPE_EXECUTION_SCOPED, runnerauth.ts); the cloud edition's
- * session/connect/pool lanes stay entirely on its side of the
+ * session and connect lanes stay entirely on its side of the
  * seam. The lane parameter is an open string DELIBERATELY — this
  * contract must neither import cloud vocabulary into OSS nor pretend OSS
  * has lanes it does not.
@@ -84,7 +84,6 @@ import {
  */
 export type RunnerScopedTokenRequest =
   | { readonly arm: "agent-execution"; readonly executionId: string }
-  | { readonly arm: "pool-claim"; readonly sessionId: string }
   | { readonly arm: "renewal" }
   // The proto oneof left unset — carried so implementations own the
   // refusal (the Java exchange answers INVALID_ARGUMENT; OSS's
@@ -205,7 +204,7 @@ export interface RunnerCredentialProvider {
    * authorization, and mint (the cloud edition's exchange).
    * When present, the platform controller delegates EVERY arm here;
    * absent, the controller keeps the OSS behavior (the execution arm
-   * mints on the execution_scoped lane; pool-claim/renewal answer
+   * mints on the execution_scoped lane; renewal answers
    * not-minted).
    * Refusals throw; keyless degrade returns `{ minted: false }`.
    */

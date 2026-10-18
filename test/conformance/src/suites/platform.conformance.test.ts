@@ -28,8 +28,7 @@
 //     (CapabilityFlags.licenseStatus).
 //
 // getRunnerScopedToken is deliberately NOT covered here: its arms are gated
-// on runner-class credentials (embedded_runner / pool_sandbox / sandbox
-// token types) that only exist mid-execution, so it belongs to the
+// on runner-class credentials (embedded_runner / sandbox token types) that only exist mid-execution, so it belongs to the
 // execution-lifecycle slice.
 import { LicenseState } from "@stigmer/apis/ai/stigmer/platform/v1/license_pb";
 import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";

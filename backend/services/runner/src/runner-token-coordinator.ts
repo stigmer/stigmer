@@ -14,7 +14,7 @@
  * refreshed here. An in-cluster sandbox pod pins its Temporal address, so its
  * bootstrap returns before any mint and nothing is ever minted: its proxy
  * credential stays the control-plane credential, in lockstep, for the pod's
- * whole life — the claim of a pool member rotates both with one write.
+ * whole life, so one write rotates both.
  *
  * This coordinator exists because the proxy token's freshness was the subject of
  * two production fixes: before them, the proxy token froze at startup and

@@ -112,13 +112,6 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
   peer.handle("fs", (request) => serveFs(request));
   peer.handle("exec", (request) => serveExec(request));
 
-  // The SDK the warm-up loads is the host's: the runner loads no engine.
-  peer.handle("warmCursorSdk", async () => {
-    const { warmCursorSdkStateStores } = await import("../activities/execute-cursor/sdk-warmup.js");
-    const result = await warmCursorSdkStateStores();
-    return { warmed: result.warmed, durationMs: result.durationMs, error: result.error ?? null };
-  });
-
   peer.handle("runTurn", async (args): Promise<WireSettlement> => {
     const { turnId, harness, input: wireInput } = args;
     const adapter = harnessRowFor(rows, harness).adapter;

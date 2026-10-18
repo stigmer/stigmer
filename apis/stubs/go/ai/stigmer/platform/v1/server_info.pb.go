@@ -631,7 +631,6 @@ type GetRunnerScopedTokenInput struct {
 	// Types that are valid to be assigned to Scope:
 	//
 	//	*GetRunnerScopedTokenInput_RunId
-	//	*GetRunnerScopedTokenInput_PoolClaim
 	//	*GetRunnerScopedTokenInput_Renewal
 	Scope         isGetRunnerScopedTokenInput_Scope `protobuf_oneof:"scope"`
 	unknownFields protoimpl.UnknownFields
@@ -684,15 +683,6 @@ func (x *GetRunnerScopedTokenInput) GetRunId() string {
 	return ""
 }
 
-func (x *GetRunnerScopedTokenInput) GetPoolClaim() *PoolClaim {
-	if x != nil {
-		if x, ok := x.Scope.(*GetRunnerScopedTokenInput_PoolClaim); ok {
-			return x.PoolClaim
-		}
-	}
-	return nil
-}
-
 func (x *GetRunnerScopedTokenInput) GetRenewal() *TokenRenewal {
 	if x != nil {
 		if x, ok := x.Scope.(*GetRunnerScopedTokenInput_Renewal); ok {
@@ -712,13 +702,6 @@ type GetRunnerScopedTokenInput_RunId struct {
 	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3,oneof"`
 }
 
-type GetRunnerScopedTokenInput_PoolClaim struct {
-	// Warm-pool claim — a pool sandbox exchanging its pool credential for the
-	// session token of the session it has just been claimed for. Presented
-	// with a token_type=pool_sandbox credential (not embedded_runner).
-	PoolClaim *PoolClaim `protobuf:"bytes,3,opt,name=pool_claim,json=poolClaim,proto3,oneof"`
-}
-
 type GetRunnerScopedTokenInput_Renewal struct {
 	// Credential renewal — a live sandbox extending its own lifetime.
 	// Presented with the still-valid token_type=sandbox credential being
@@ -728,61 +711,7 @@ type GetRunnerScopedTokenInput_Renewal struct {
 
 func (*GetRunnerScopedTokenInput_RunId) isGetRunnerScopedTokenInput_Scope() {}
 
-func (*GetRunnerScopedTokenInput_PoolClaim) isGetRunnerScopedTokenInput_Scope() {}
-
 func (*GetRunnerScopedTokenInput_Renewal) isGetRunnerScopedTokenInput_Scope() {}
-
-// Claim exchange for a warm-pool sandbox member.
-//
-// A pool member is a blank, pre-booted sandbox holding only an org-agnostic
-// token_type=pool_sandbox credential (carrying its pool_member_id claim). When
-// the control plane claims it for a session, the member presents this arm to
-// exchange that credential for the session's sandbox token.
-type PoolClaim struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Session the pool member was claimed for — the scope of the token it
-	// receives. Must match the claim recorded by the control plane.
-	SessionId     string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PoolClaim) Reset() {
-	*x = PoolClaim{}
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PoolClaim) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PoolClaim) ProtoMessage() {}
-
-func (x *PoolClaim) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PoolClaim.ProtoReflect.Descriptor instead.
-func (*PoolClaim) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *PoolClaim) GetSessionId() string {
-	if x != nil {
-		return x.SessionId
-	}
-	return ""
-}
 
 // Renewal exchange for a running sandbox's own credential.
 //
@@ -806,7 +735,7 @@ type TokenRenewal struct {
 
 func (x *TokenRenewal) Reset() {
 	*x = TokenRenewal{}
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[9]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -818,7 +747,7 @@ func (x *TokenRenewal) String() string {
 func (*TokenRenewal) ProtoMessage() {}
 
 func (x *TokenRenewal) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[9]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -831,7 +760,7 @@ func (x *TokenRenewal) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TokenRenewal.ProtoReflect.Descriptor instead.
 func (*TokenRenewal) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{9}
+	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{8}
 }
 
 // A runner token scoped to one unit of work, or empty when the server cannot
@@ -857,7 +786,7 @@ type GetRunnerScopedTokenOutput struct {
 
 func (x *GetRunnerScopedTokenOutput) Reset() {
 	*x = GetRunnerScopedTokenOutput{}
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[10]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -869,7 +798,7 @@ func (x *GetRunnerScopedTokenOutput) String() string {
 func (*GetRunnerScopedTokenOutput) ProtoMessage() {}
 
 func (x *GetRunnerScopedTokenOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[10]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -882,7 +811,7 @@ func (x *GetRunnerScopedTokenOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRunnerScopedTokenOutput.ProtoReflect.Descriptor instead.
 func (*GetRunnerScopedTokenOutput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{10}
+	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetRunnerScopedTokenOutput) GetRunnerScopedToken() string {
@@ -943,16 +872,12 @@ const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	"\x16payload_encryption_key\x18\x06 \x01(\tR\x14payloadEncryptionKey\x129\n" +
 	"\x19payload_encryption_key_id\x18\a \x01(\tR\x16payloadEncryptionKeyId\x12G\n" +
 	" payload_encryption_secondary_key\x18\b \x01(\tR\x1dpayloadEncryptionSecondaryKey\x12L\n" +
-	"#payload_encryption_secondary_key_id\x18\t \x01(\tR\x1fpayloadEncryptionSecondaryKeyId\"\xe1\x01\n" +
+	"#payload_encryption_secondary_key_id\x18\t \x01(\tR\x1fpayloadEncryptionSecondaryKeyId\"\xaf\x01\n" +
 	"\x19GetRunnerScopedTokenInput\x12\x17\n" +
-	"\x06run_id\x18\x01 \x01(\tH\x00R\x05runId\x12B\n" +
-	"\n" +
-	"pool_claim\x18\x03 \x01(\v2!.ai.stigmer.platform.v1.PoolClaimH\x00R\tpoolClaim\x12@\n" +
+	"\x06run_id\x18\x01 \x01(\tH\x00R\x05runId\x12@\n" +
 	"\arenewal\x18\x04 \x01(\v2$.ai.stigmer.platform.v1.TokenRenewalH\x00R\arenewalB\x0e\n" +
-	"\x05scope\x12\x05\xbaH\x02\b\x01J\x04\b\x02\x10\x03R\x0fworkflow_run_id\"3\n" +
-	"\tPoolClaim\x12&\n" +
-	"\n" +
-	"session_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tsessionId\"\x0e\n" +
+	"\x05scope\x12\x05\xbaH\x02\b\x01J\x04\b\x02\x10\x03J\x04\b\x03\x10\x04R\x0fworkflow_run_idR\n" +
+	"pool_claim\"\x0e\n" +
 	"\fTokenRenewal\"\x99\x01\n" +
 	"\x1aGetRunnerScopedTokenOutput\x12.\n" +
 	"\x13runner_scoped_token\x18\x01 \x01(\tR\x11runnerScopedToken\x12\x1d\n" +
@@ -985,7 +910,7 @@ func file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_platform_v1_server_info_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_platform_v1_server_info_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_ai_stigmer_platform_v1_server_info_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_ai_stigmer_platform_v1_server_info_proto_goTypes = []any{
 	(ServerEdition)(0),                     // 0: ai.stigmer.platform.v1.ServerEdition
 	(*GetServerInfoInput)(nil),             // 1: ai.stigmer.platform.v1.GetServerInfoInput
@@ -996,34 +921,32 @@ var file_ai_stigmer_platform_v1_server_info_proto_goTypes = []any{
 	(*GetRunnerBootstrapConfigInput)(nil),  // 6: ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput
 	(*GetRunnerBootstrapConfigOutput)(nil), // 7: ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput
 	(*GetRunnerScopedTokenInput)(nil),      // 8: ai.stigmer.platform.v1.GetRunnerScopedTokenInput
-	(*PoolClaim)(nil),                      // 9: ai.stigmer.platform.v1.PoolClaim
-	(*TokenRenewal)(nil),                   // 10: ai.stigmer.platform.v1.TokenRenewal
-	(*GetRunnerScopedTokenOutput)(nil),     // 11: ai.stigmer.platform.v1.GetRunnerScopedTokenOutput
-	(LicenseState)(0),                      // 12: ai.stigmer.platform.v1.LicenseState
-	(*LicenseClaims)(nil),                  // 13: ai.stigmer.platform.v1.LicenseClaims
-	(*timestamppb.Timestamp)(nil),          // 14: google.protobuf.Timestamp
+	(*TokenRenewal)(nil),                   // 9: ai.stigmer.platform.v1.TokenRenewal
+	(*GetRunnerScopedTokenOutput)(nil),     // 10: ai.stigmer.platform.v1.GetRunnerScopedTokenOutput
+	(LicenseState)(0),                      // 11: ai.stigmer.platform.v1.LicenseState
+	(*LicenseClaims)(nil),                  // 12: ai.stigmer.platform.v1.LicenseClaims
+	(*timestamppb.Timestamp)(nil),          // 13: google.protobuf.Timestamp
 }
 var file_ai_stigmer_platform_v1_server_info_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.platform.v1.GetServerInfoOutput.edition:type_name -> ai.stigmer.platform.v1.ServerEdition
 	3,  // 1: ai.stigmer.platform.v1.GetServerInfoOutput.environments:type_name -> ai.stigmer.platform.v1.EnvironmentAvailability
-	12, // 2: ai.stigmer.platform.v1.GetLicenseStatusOutput.state:type_name -> ai.stigmer.platform.v1.LicenseState
-	13, // 3: ai.stigmer.platform.v1.GetLicenseStatusOutput.claims:type_name -> ai.stigmer.platform.v1.LicenseClaims
-	14, // 4: ai.stigmer.platform.v1.GetLicenseStatusOutput.checked_at:type_name -> google.protobuf.Timestamp
-	9,  // 5: ai.stigmer.platform.v1.GetRunnerScopedTokenInput.pool_claim:type_name -> ai.stigmer.platform.v1.PoolClaim
-	10, // 6: ai.stigmer.platform.v1.GetRunnerScopedTokenInput.renewal:type_name -> ai.stigmer.platform.v1.TokenRenewal
-	1,  // 7: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:input_type -> ai.stigmer.platform.v1.GetServerInfoInput
-	4,  // 8: ai.stigmer.platform.v1.PlatformQueryController.getLicenseStatus:input_type -> ai.stigmer.platform.v1.GetLicenseStatusInput
-	6,  // 9: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:input_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput
-	8,  // 10: ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken:input_type -> ai.stigmer.platform.v1.GetRunnerScopedTokenInput
-	2,  // 11: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:output_type -> ai.stigmer.platform.v1.GetServerInfoOutput
-	5,  // 12: ai.stigmer.platform.v1.PlatformQueryController.getLicenseStatus:output_type -> ai.stigmer.platform.v1.GetLicenseStatusOutput
-	7,  // 13: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:output_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput
-	11, // 14: ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken:output_type -> ai.stigmer.platform.v1.GetRunnerScopedTokenOutput
-	11, // [11:15] is the sub-list for method output_type
-	7,  // [7:11] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	11, // 2: ai.stigmer.platform.v1.GetLicenseStatusOutput.state:type_name -> ai.stigmer.platform.v1.LicenseState
+	12, // 3: ai.stigmer.platform.v1.GetLicenseStatusOutput.claims:type_name -> ai.stigmer.platform.v1.LicenseClaims
+	13, // 4: ai.stigmer.platform.v1.GetLicenseStatusOutput.checked_at:type_name -> google.protobuf.Timestamp
+	9,  // 5: ai.stigmer.platform.v1.GetRunnerScopedTokenInput.renewal:type_name -> ai.stigmer.platform.v1.TokenRenewal
+	1,  // 6: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:input_type -> ai.stigmer.platform.v1.GetServerInfoInput
+	4,  // 7: ai.stigmer.platform.v1.PlatformQueryController.getLicenseStatus:input_type -> ai.stigmer.platform.v1.GetLicenseStatusInput
+	6,  // 8: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:input_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput
+	8,  // 9: ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken:input_type -> ai.stigmer.platform.v1.GetRunnerScopedTokenInput
+	2,  // 10: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:output_type -> ai.stigmer.platform.v1.GetServerInfoOutput
+	5,  // 11: ai.stigmer.platform.v1.PlatformQueryController.getLicenseStatus:output_type -> ai.stigmer.platform.v1.GetLicenseStatusOutput
+	7,  // 12: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:output_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput
+	10, // 13: ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken:output_type -> ai.stigmer.platform.v1.GetRunnerScopedTokenOutput
+	10, // [10:14] is the sub-list for method output_type
+	6,  // [6:10] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_platform_v1_server_info_proto_init() }
@@ -1035,7 +958,6 @@ func file_ai_stigmer_platform_v1_server_info_proto_init() {
 	file_ai_stigmer_platform_v1_server_info_proto_msgTypes[1].OneofWrappers = []any{}
 	file_ai_stigmer_platform_v1_server_info_proto_msgTypes[7].OneofWrappers = []any{
 		(*GetRunnerScopedTokenInput_RunId)(nil),
-		(*GetRunnerScopedTokenInput_PoolClaim)(nil),
 		(*GetRunnerScopedTokenInput_Renewal)(nil),
 	}
 	type x struct{}
@@ -1044,7 +966,7 @@ func file_ai_stigmer_platform_v1_server_info_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_platform_v1_server_info_proto_rawDesc), len(file_ai_stigmer_platform_v1_server_info_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   11,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

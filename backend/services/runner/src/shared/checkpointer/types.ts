@@ -9,7 +9,7 @@
  *
  * The http backend's credential is a shared ref, never a string: the saver
  * reads it per request, so a rotation of the runner's control-plane
- * credential (a pool claim, a sandbox-token renewal) reaches a checkpoint
+ * credential (a sandbox-token renewal, a host refresh) reaches a checkpoint
  * written after it — including mid-turn, since a saver lives for a whole
  * turn (config.ts header; the artifact store holds its credential the same
  * way).

@@ -50,7 +50,7 @@ describe("sessionIdClaimOf", () => {
   });
 
   it("returns undefined when the claim is absent or non-string", () => {
-    expect(sessionIdClaimOf(fakeJwt({ token_type: "pool_sandbox" }))).toBeUndefined();
+    expect(sessionIdClaimOf(fakeJwt({ token_type: "embedded_runner" }))).toBeUndefined();
     expect(sessionIdClaimOf(fakeJwt({ session_id: 7 }))).toBeUndefined();
     expect(sessionIdClaimOf(null)).toBeUndefined();
     expect(sessionIdClaimOf("garbage")).toBeUndefined();

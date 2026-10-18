@@ -203,9 +203,6 @@ export function recordTimingMetric(
       case "execution_setup":
         instruments.executionSetupDuration.record(totalMs, pickAttrs(context, "harness"));
         break;
-      case "pool_attach":
-        instruments.poolAttachDuration.record(totalMs);
-        break;
       default:
         break;
     }
