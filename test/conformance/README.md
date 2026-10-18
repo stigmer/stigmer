@@ -263,6 +263,28 @@ across sessions, the quality arm's eval) is proven hermetically by
 `benchmark-readers.harness.test.ts` on the execution lane, which
 asserts presence and shape and never a number.
 
+### A long turn in real time (a measurement, not a test)
+
+`npm run long-turn:real-clock -w @stigmer/conformance -- --profile goal|endurance`
+plays one long turn in real time against the wire mock, so it costs no
+tokens. It boots the execution target's own stack, creates one run trusted
+for the whole run, and scripts one tool call per step of the profile. The
+tools really run. `goal` plays what a long task needs: a 10-minute silent
+build, a 10-minute build that prints, a subagent that works for 4 minutes,
+enough output for three compactions, a runner killed mid-tool and one
+drained mid-tool. It records where the turn dies. `endurance` runs three
+hours of commands that avoid every known killer, to find what only hours
+show.
+
+The report (`report.json` and `summary.md`, `src/long-turn/report.ts`) is
+rewritten every minute, so a stopped run still leaves one. It ends with a
+check that the session's log reads back unbroken. The
+`long-turn-real-clock.yaml` workflow runs it on demand.
+`npm run long-turn:live -- --harness deep-agent|cursor` plays the same
+profiles against a real provider on the benchmark's stack. Its ceiling is
+the product's own cost cap (`spec.run_config.max_cost_usd`). Its kill and
+drain steps are left out, because that stack cannot restart its runner.
+
 ### The enterprise target (Class A vs a licensed Enterprise server)
 
 The `enterprise` target runs the Class A suite against Stigmer Enterprise
@@ -823,6 +845,8 @@ src/
   benchmark/        report (the contract a run writes), cells, run (the direct-mode stack and driver), session
                     (the per-turn driver), the readers stream-watch, status-facts, timing-lines, temporal-history,
                     workspace-facts, and quality-eval (the quality arm's eval run)  (the live benchmark's library; pure parts unit-tested)
+  long-turn/        profile (the two profiles, their steps and shells), report (minute samples, the transcript check),
+                    drive (the minute loop the real-clock and live runs share)  (pure parts unit-tested)
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
   suites-execution/ *.harness.test.ts (agent, mcp, runner-ipc, benchmark-readers, temporal-port-loss)
                     + run*.conformance.test.ts (lifecycle, approval, recover, messages, subagent, provider-error,
@@ -830,7 +854,7 @@ src/
                       request-shape, tool-lists)
                     + plugin-tools, run-plugins, mcp-caller-identity, mcp-server-address, vault-resolution, session-immutability, routine-firing, billing-*  (Class B)
                     + goldens/  (the request-shape facet's file goldens; regenerated only under a ruling)
-scripts/            check-inventory, cloud-fixtures-serve, benchmark-harnesses
+scripts/            check-inventory, cloud-fixtures-serve, benchmark-harnesses, long-turn-real-clock, long-turn-live
 fixtures/           working-agent/ (the working agent as a plugin: its skills, sub-agent, MCP server, and its evals/ suite
                     with the shared Go workspace; data, outside the TypeScript include)
 ```
