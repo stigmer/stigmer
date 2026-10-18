@@ -886,6 +886,10 @@ export type { SecretCodec } from "./encryption/codec.js";
 // SANDBOX_PROVISIONER_TYPE knob), plus the reserved built-in names its
 // registrations may never shadow.
 export type {
+  EnvironmentFacts,
+  EnvironmentHost,
+  EnvironmentPackageSet,
+  EnvironmentSupport,
   SandboxBackgroundContext,
   SandboxBackgroundHandle,
   SandboxDriverConfig,
@@ -938,11 +942,15 @@ export {
   RUNNER_RELEASE_FILE,
   RUNNER_START,
   RUNNER_UID,
+  SANDBOX_ENVIRONMENT_ENV,
   SERVER_RELEASE_ENV,
   WAITER_ENTRY,
   runnerCommand,
   waiterCommand,
 } from "./sandbox/runner-launch.js";
+// A composition's own image driver hands the runner its sandbox's
+// Environment as this value, in SANDBOX_ENVIRONMENT_ENV.
+export { runnerEnvironmentValue } from "./sandbox/environment.js";
 export type { PushResult as SubstrateAttachPushResult } from "./sandbox/substrate/push.js";
 export type { SubstrateSandboxDriverHandle } from "./sandbox/substrate/builtin.js";
 export { newSubstrateSandboxDriver } from "./sandbox/substrate/builtin.js";
