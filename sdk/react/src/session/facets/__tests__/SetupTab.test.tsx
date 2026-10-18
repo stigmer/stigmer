@@ -1,6 +1,10 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
+import { create } from "@bufbuild/protobuf";
+import { EnvironmentSource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { SetupTab, type SetupTabProps } from "../SetupTab";
+import { conversationEnvironment } from "../../conversation-environment";
 
 // ---------------------------------------------------------------------------
 // The Config facet's access section: a host-injected slot with no chrome of
@@ -62,3 +66,52 @@ describe("SetupTab — deleted references", () => {
     expect(screen.getByRole("button", { name: "Remove skill deleted skill" })).toBeDefined();
   });
 });
+
+// The Environment row: the conversation's own record when the server
+// stamped one, else why none applies (conversationEnvironment), in the
+// words every surface uses.
+describe("SetupTab — the conversation's Environment", () => {
+  const status = (slug: string, environmentSource: EnvironmentSource) => ({
+    environment: create(ApiResourceReferenceSchema, { org: "org_acme", slug, id: "env_1" }),
+    environmentSource,
+  });
+
+  it.each([
+    [EnvironmentSource.SESSION, "data-science · chosen for this conversation"],
+    [EnvironmentSource.ROUTINE, "data-science · set by the routine"],
+    [EnvironmentSource.AGENT, "data-science · the agent's default"],
+    [EnvironmentSource.ORGANIZATION, "data-science · the organization's default"],
+  ])("names the Environment and whose choice it was (source %s)", (source, line) => {
+    render(<SetupTab {...BASE_PROPS} environment={conversationEnvironment(status("data-science", source), undefined)} />);
+    expect(screen.getByText("Environment")).toBeDefined();
+    expect(screen.getByText(line)).toBeDefined();
+  });
+
+  it("says none applied, the server's standard sandbox", () => {
+    render(
+      <SetupTab
+        {...BASE_PROPS}
+        environment={conversationEnvironment({ environmentSource: EnvironmentSource.UNSPECIFIED }, undefined)}
+      />,
+    );
+    expect(screen.getByText("No environment: the server's standard sandbox")).toBeDefined();
+  });
+
+  it("says why none applies on the person's own machine, and on a server that starts no sandbox", () => {
+    const unset = { environmentSource: EnvironmentSource.UNSPECIFIED };
+    const { rerender } = render(
+      <SetupTab {...BASE_PROPS} environment={conversationEnvironment(unset, "own-machine")} />,
+    );
+    expect(screen.getByText("Environments don't apply here: this conversation runs on your own machine")).toBeDefined();
+    rerender(<SetupTab {...BASE_PROPS} environment={conversationEnvironment(unset, "not-on-server")} />);
+    expect(
+      screen.getByText("Environments don't apply here: conversations on this server don't run in sandboxes it starts"),
+    ).toBeDefined();
+  });
+
+  it("shows no row where no conversation exists yet", () => {
+    render(<SetupTab {...BASE_PROPS} />);
+    expect(screen.queryByText("Environment")).toBeNull();
+  });
+});
+
