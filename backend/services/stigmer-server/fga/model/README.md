@@ -73,7 +73,7 @@ Templates discoverable by all org members, with optional child-organization visi
 define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner or editor or child_org_viewer
 ```
 
-Resources: `agent`, `skill`, `plugin`, and `eval` without the child-organization share
+Resources: `agent`, `skill`, `plugin`, `environment`, and `eval` without the child-organization share
 
 ### Personal Resource (Sessions)
 
@@ -296,6 +296,7 @@ fga/
 │       ├── agent.fga               # Agent blueprints (open access)
 │       ├── channel.fga             # The ways people reach an agent: chat links, Slack, WhatsApp (owner-scoped)
 │       ├── channel_app.fga         # Bring-your-own channel provider apps (restricted)
+│       ├── environment.fga         # Sandbox setups: packages and network access (open access)
 │       ├── eval.fga                # Pushed evals, an agent's test cases (private or the organization)
 │       ├── eval_run.fga            # Eval runs on an agent or a plugin (the subject's editors; its own organization's viewers)
 │       ├── memory.fga              # An identity's memories (subject-only)

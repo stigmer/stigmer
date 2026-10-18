@@ -1,0 +1,143 @@
+# Store tests for the environment type: a named sandbox setup, modelled like
+# a skill. The narrowness these pin: only an organization's admins create
+# one (can_create_environment, the skill bar), since it decides what an
+# agent can install and reach; its creator and the org's admins edit and
+# delete it; an ORG Environment is readable, and so nameable for a
+# conversation, by every org role and by nobody outside; a PRIVATE one is
+# invisible to plain members; one shared at visibility_child_orgs is
+# readable in the owning organization's children and nowhere else.
+#
+# Run: fga model test --tests environment-access.fga.yaml
+
+name: environment-access
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # Org acme: alice is a member, oscar administers it, vera a read-only
+  # viewer; mallory belongs to an unrelated org. acme has a child, kidco,
+  # where kim is a member.
+  - {user: identity_account:alice, relation: member, object: organization:acme}
+  - {user: identity_account:alice, relation: affiliated, object: organization:acme}
+  - {user: identity_account:oscar, relation: admin, object: organization:acme}
+  - {user: identity_account:oscar, relation: affiliated, object: organization:acme}
+  - {user: identity_account:vera, relation: viewer, object: organization:acme}
+  - {user: identity_account:vera, relation: affiliated, object: organization:acme}
+  - {user: identity_account:mallory, relation: member, object: organization:other}
+  - {user: identity_account:mallory, relation: affiliated, object: organization:other}
+  - {user: organization:acme, relation: parent_org, object: organization:kidco}
+  - {user: organization:kidco, relation: child_org, object: organization:acme}
+  - {user: identity_account:kim, relation: member, object: organization:kidco}
+  - {user: identity_account:kim, relation: affiliated, object: organization:kidco}
+
+  # A PRIVATE Environment oscar created (no visibility tuples).
+  - {user: organization:acme, relation: organization, object: environment:locked-down}
+  - {user: identity_account:oscar, relation: owner, object: environment:locked-down}
+
+  # An ORG Environment oscar created (the reconciler's org tuple).
+  - {user: organization:acme, relation: organization, object: environment:data-science}
+  - {user: identity_account:oscar, relation: owner, object: environment:data-science}
+  - {user: organization:acme#viewer, relation: viewer, object: environment:data-science}
+
+  # One shared with acme's children (the org floor, then the child tuple).
+  - {user: organization:acme, relation: organization, object: environment:shared}
+  - {user: identity_account:oscar, relation: owner, object: environment:shared}
+  - {user: organization:acme#viewer, relation: viewer, object: environment:shared}
+  - {user: organization:acme#child_org_viewer, relation: child_org_viewer, object: environment:shared}
+
+tests:
+  - name: creating an Environment is an admin act, the skill bar
+    check:
+      - user: identity_account:oscar
+        object: organization:acme
+        assertions:
+          can_create_environment: true
+          can_create_skill: true
+      - user: identity_account:alice
+        object: organization:acme
+        assertions:
+          can_create_environment: false
+      - user: identity_account:vera
+        object: organization:acme
+        assertions:
+          can_create_environment: false
+      - user: identity_account:mallory
+        object: organization:acme
+        assertions:
+          can_create_environment: false
+
+  - name: its creator and the org's admins manage it, private ones included
+    check:
+      - user: identity_account:oscar
+        object: environment:locked-down
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+          can_manage_audience: true
+
+  - name: every org role reads an ORG Environment and none may change it
+    check:
+      - user: identity_account:alice
+        object: environment:data-science
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+          can_grant_access: false
+          can_manage_audience: false
+      - user: identity_account:vera
+        object: environment:data-science
+        assertions:
+          can_view: true
+          can_edit: false
+
+  - name: a PRIVATE Environment is invisible to plain members and to outsiders
+    check:
+      - user: identity_account:alice
+        object: environment:locked-down
+        assertions:
+          can_view: false
+      - user: identity_account:mallory
+        object: environment:data-science
+        assertions:
+          can_view: false
+          can_edit: false
+
+  - name: a child organization reads only what its parent shared with children
+    check:
+      - user: identity_account:kim
+        object: environment:shared
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+      - user: identity_account:kim
+        object: environment:data-science
+        assertions:
+          can_view: false
+
+  - name: ListObjects lists what each role may read
+    list_objects:
+      - user: identity_account:alice
+        type: environment
+        assertions:
+          can_view:
+            - environment:data-science
+            - environment:shared
+      - user: identity_account:oscar
+        type: environment
+        assertions:
+          can_view:
+            - environment:data-science
+            - environment:locked-down
+            - environment:shared
+      - user: identity_account:kim
+        type: environment
+        assertions:
+          can_view:
+            - environment:shared
+      - user: identity_account:mallory
+        type: environment
+        assertions:
+          can_view: []
