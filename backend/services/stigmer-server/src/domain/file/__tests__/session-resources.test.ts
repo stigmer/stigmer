@@ -6,6 +6,8 @@
  *     conversation's own copy: a new id, the conversation's, over the same
  *     bytes, mounted at its filename; the original stays, and deleting it
  *     leaves the copy downloadable;
+ *   - a File is mounted beside a repository, and more than 500 Files are
+ *     refused before any is copied;
  *   - two Files sharing a filename are mounted `name` and `name-2`; a
  *     writer's own mount path is normalized and kept, and two writers'
  *     paths that clash are refused;
@@ -157,6 +159,20 @@ describe("a conversation's Files", () => {
     const once = await upload("once.txt");
     const doubled = await errorOf(() => newSession([fileEntry(once), fileEntry(once)]));
     expect(doubled.code).toBe(Code.InvalidArgument);
+  });
+
+  it("mounts a File beside a repository, and refuses more than 500 Files before copying any", async () => {
+    const beside = await upload("beside.txt");
+    const session = await newSession([repoEntry("app"), fileEntry(beside)]);
+    expect(fileMounts(session).map(([, mount]) => mount)).toEqual(["beside.txt"]);
+    expect(session.spec?.resources[0]?.resource.case).toBe("gitRepository");
+
+    const before = await fileCount();
+    const tooMany = Array.from({ length: 501 }, (_, i) => fileEntry(`file_01toomany${String(i).padStart(3, "0")}`));
+    const refused = await errorOf(() => newSession(tooMany));
+    expect(refused.code).toBe(Code.InvalidArgument);
+    expect(refused.rawMessage).toContain("at most 500 files");
+    expect(await fileCount()).toBe(before);
   });
 
   it("copies nothing on an update that keeps the Files, and only the File an update adds", async () => {

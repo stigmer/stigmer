@@ -26,6 +26,7 @@ import path from "node:path";
 
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import type { FileResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 
 import { invalidArgumentError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
@@ -115,7 +116,7 @@ export function newResolveSessionResourcesStep(instances: FileInstances): Pipeli
       const taken = new Set<string>();
       const named = new Set<string>();
       // A writer's own paths first, so a derived name never takes one.
-      const pending: Array<{ readonly entry: (typeof resources)[number]; readonly filename: string }> = [];
+      const pending: Array<{ readonly resource: FileResource; readonly filename: string }> = [];
       for (const entry of resources) {
         if (entry.resource.case !== "file") {
           continue;
@@ -135,7 +136,7 @@ export function newResolveSessionResourcesStep(instances: FileInstances): Pipeli
         }
         named.add(resource.fileId);
         if (resource.mountPath === "") {
-          pending.push({ entry, filename });
+          pending.push({ resource, filename });
           continue;
         }
         const mountPath = normalizeMountPath(resource.mountPath);
@@ -145,13 +146,10 @@ export function newResolveSessionResourcesStep(instances: FileInstances): Pipeli
         taken.add(mountPath);
         resource.mountPath = mountPath;
       }
-      for (const { entry, filename } of pending) {
-        if (entry.resource.case !== "file") {
-          continue;
-        }
+      for (const { resource, filename } of pending) {
         const mountPath = uniquifyMountPath(filename, taken);
         taken.add(mountPath);
-        entry.resource.value.mountPath = mountPath;
+        resource.mountPath = mountPath;
       }
     },
   };

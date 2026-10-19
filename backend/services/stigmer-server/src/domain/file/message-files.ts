@@ -26,8 +26,7 @@ import { create } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
 
 import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
-import type { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { RunSchema, RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { ContentBlockSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 import type { ContentBlock } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
@@ -146,6 +145,23 @@ export function newResolveMessageFilesStep(store: Store, instances: FileInstance
  * the run was stored: the conversation's new entries, then the copies.
  * Faults are logged, never raised over the create's own.
  */
+/**
+ * Whether a run's row is stored, so a create that failed knows whether to
+ * take its files back. A fault reads as stored: nothing is taken back on a
+ * guess.
+ */
+export async function runIsStored(store: Store, runId: string): Promise<boolean> {
+  if (runId === "") {
+    return false;
+  }
+  try {
+    await store.getResource(ApiResourceKind.run, runId, RunSchema);
+    return true;
+  } catch (error) {
+    return !(error instanceof ResourceNotFoundError);
+  }
+}
+
 export async function undoMessageFiles(
   deps: { readonly store: Store; readonly logger: Logger },
   added: MessageFilesAdded | undefined,

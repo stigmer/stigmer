@@ -111,6 +111,7 @@ import { newFileInstances } from "../file/instances.js";
 import {
   MESSAGE_FILES_ADDED_KEY,
   newResolveMessageFilesStep,
+  runIsStored,
   undoMessageFiles,
 } from "../file/message-files.js";
 import type { MessageFilesAdded } from "../file/message-files.js";
@@ -522,7 +523,7 @@ async function createExecution(
     .catch(async (error: unknown) => {
       // A run stored before the failure keeps its files; one that never
       // was takes them back.
-      if (!(await runStored(deps.store, reqCtx.newState.metadata?.id ?? ""))) {
+      if (!(await runIsStored(deps.store, reqCtx.newState.metadata?.id ?? ""))) {
         await undoMessageFiles(
           deps,
           reqCtx.get(MESSAGE_FILES_ADDED_KEY) as MessageFilesAdded | undefined,
@@ -533,19 +534,6 @@ async function createExecution(
       throw error;
     });
   return reqCtx.newState;
-}
-
-/** Whether a run's row is stored; a fault reads as stored, so nothing is taken back on a guess. */
-async function runStored(store: Store, runId: string): Promise<boolean> {
-  if (runId === "") {
-    return false;
-  }
-  try {
-    await store.getResource(ApiResourceKind.run, runId, RunSchema);
-    return true;
-  } catch (error) {
-    return !(error instanceof ResourceNotFoundError);
-  }
 }
 
 function kindOf(ctx: HandlerContext): ApiResourceKind {

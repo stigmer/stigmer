@@ -191,3 +191,14 @@ export function newFileInstances(deps: FileInstanceDeps): FileInstances {
     },
   };
 }
+
+/** Removes a failed write's copies; a fault here is logged, never raised over the write's own. */
+export async function discardQuietly(instances: FileInstances, caller: CallerIdentity, logger: Logger): Promise<void> {
+  try {
+    await instances.discard(caller);
+  } catch (error) {
+    logger.warn("failed to remove the File copies of a failed write", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}

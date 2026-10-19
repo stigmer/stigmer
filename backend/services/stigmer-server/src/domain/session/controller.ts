@@ -62,7 +62,7 @@ import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-a
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
 import type { FileBlobs } from "../file/blobs.js";
-import { newFileInstances } from "../file/instances.js";
+import { discardQuietly, newFileInstances } from "../file/instances.js";
 import type { FileInstances } from "../file/instances.js";
 import { newResolveSessionResourcesStep } from "../file/session-resources.js";
 import { newCascadeDeleteSessionFilesStep } from "../file/session-files.js";
@@ -377,7 +377,7 @@ async function createSession(
     .build()
     .execute(reqCtx)
     .catch(async (error: unknown) => {
-      await discardInstances(deps, instances, reqCtx.callerIdentity);
+      await discardQuietly(instances, reqCtx.callerIdentity, deps.logger);
       return releaseNameOnFailure(deps.store, deps.logger, reqCtx)(error);
     });
   return redacted(reqCtx.newState);
@@ -392,21 +392,6 @@ function fileInstancesOf(deps: SessionControllerDeps): FileInstances {
     lifecycle: deps.authorizationLifecycle,
     logger: deps.logger,
   });
-}
-
-/** Removes a failed write's File copies; a fault here is logged, never raised over the write's own. */
-async function discardInstances(
-  deps: SessionControllerDeps,
-  instances: FileInstances,
-  caller: CallerIdentity,
-): Promise<void> {
-  try {
-    await instances.discard(caller);
-  } catch (error) {
-    deps.logger.warn("failed to remove the File copies of a failed session write", {
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
 }
 
 /**
@@ -479,7 +464,7 @@ async function update(
       .execute(reqCtx);
     return redacted(reqCtx.newState);
   }).catch(async (error: unknown) => {
-    await discardInstances(deps, instances, caller);
+    await discardQuietly(instances, caller, deps.logger);
     throw error;
   });
 }
