@@ -59,7 +59,7 @@
 // is a conscious deferral, not shipped as a thin partial):
 // - recover happy path (needs a genuinely FAILED execution);
 // - artifact content, sub-agents.
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -90,6 +90,7 @@ import {
   requireLlmProxy,
   sessionIdOf,
 } from "../support/runs";
+import { pollUntil } from "../support/run-poll";
 import { messagesOf, turnById } from "../support/turn";
 import { foreignId, uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -846,6 +847,54 @@ describe("Run conformance — a turn's outputs", () => {
       listed.entries.map((file) => file.metadata?.id).sort(),
     );
   });
+
+  // A person's stop is recorded on the run before its runner settles; the
+  // runner still returns what the agent saved before the stop, admitted for
+  // a short grace after it, so the File follows the stop instead of
+  // preceding the turn's end.
+  it("[rpc:SessionCommandController.interrupt] returns what a turn saved before a person stopped it, after the stop", async () => {
+    if (target.runnerHomeDir === undefined) {
+      throw new Error(`target ${target.name} spawns no runner; the stop arm reads where the runner saved the output`);
+    }
+    const { org } = await target.provisionTenancy();
+    const agent = await provisionAgent(org, uniqueName("agent-outputs-stop"));
+    const draft = "# Draft\n\nHalf written when the person stopped it.\n";
+
+    mock.enqueue(anthropicToolUse("toolu_out_draft", "write_file", { file_path: "/.stigmer/outputs/draft.md", content: draft }));
+    // Held longer than the runner takes to learn of the stop, so the turn
+    // cannot finish on its own first.
+    mock.enqueue(anthropicText("Still writing."), { delayMs: 120_000 });
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-outputs-stop"), agentRef: agentRefOf(agent), message: "Draft the summary." }),
+    );
+    const runId = execution.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));
+    const running = await awaitPhase(clients, runId, RunPhase.RUN_IN_PROGRESS);
+    const sessionId = sessionIdOf(running);
+    const saved = join(target.runnerHomeDir(), ".stigmer", "sessions", sessionId, "platform", "outputs", "draft.md");
+    await pollUntil(
+      async () => existsSync(saved),
+      (present) => present,
+      () => "the agent never saved its draft",
+    );
+
+    await clients.sessionCommand.interrupt({ sessionId });
+    const stopped = await awaitPhase(clients, runId, RunPhase.RUN_CANCELLED);
+    expect(stopped.status?.stopCause).toBe("user");
+
+    // The runner learns of the stop when Temporal delivers the cancel on a
+    // heartbeat, which its throttle can hold for up to a minute; the server
+    // admits the stopped run's outputs for two minutes after the stop.
+    const listed = await pollUntil(
+      () => clients.fileQuery.list({ org, runId }),
+      (list) => list.entries.length > 0,
+      () => "the stopped turn's output never came back",
+      { timeoutMs: 120_000 },
+    );
+    expect(listed.entries.map((file) => file.status?.outputPath)).toEqual(["draft.md"]);
+    const content = await clients.fileQuery.getContent({ id: listed.entries[0]!.metadata!.id });
+    expect(new TextDecoder().decode(content.data)).toBe(draft);
+  }, 240_000);
 });
 
 describe("Run conformance — a turn's dispatch queue is the server's to derive", () => {
