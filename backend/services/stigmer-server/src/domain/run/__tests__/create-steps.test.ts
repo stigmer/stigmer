@@ -368,14 +368,12 @@ it("createSessionIfNeeded skips when a session is provided", async () => {
 // (stigmer/stigmer#249): caller fields survive, the subject default fills
 // only a gap, and the caller's message is never mutated.
 describe("buildAutoCreateSessionSpec", () => {
-  const workspaceEntries = [
+  const resources = [
     {
       name: "repo",
-      source: {
-        source: {
-          case: "localPath" as const,
-          value: { path: "/home/user/repo" },
-        },
+      resource: {
+        case: "localPath" as const,
+        value: { path: "/home/user/repo" },
       },
     },
   ];
@@ -402,7 +400,7 @@ describe("buildAutoCreateSessionSpec", () => {
           version: "latest",
         },
         subject: "Customize the landing page",
-        workspaceEntries,
+        resources,
         harness: Harness.NATIVE,
         executionTarget: ExecutionTarget.LOCAL,
         fileReview: true,
@@ -415,7 +413,7 @@ describe("buildAutoCreateSessionSpec", () => {
           version: "latest",
         },
         subject: "Customize the landing page",
-        workspaceEntries,
+        resources,
         harness: Harness.NATIVE,
         executionTarget: ExecutionTarget.LOCAL,
         fileReview: true,
@@ -424,12 +422,12 @@ describe("buildAutoCreateSessionSpec", () => {
     {
       name: "spec without a subject -> subject defaulted, rest forwarded",
       callerSpec: create(SessionSpecSchema, {
-        workspaceEntries,
+        resources,
         executionTarget: ExecutionTarget.CLOUD,
       }),
       want: create(SessionSpecSchema, {
         subject: AUTO_CREATED_SESSION_SUBJECT,
-        workspaceEntries,
+        resources,
         executionTarget: ExecutionTarget.CLOUD,
       }),
     },
@@ -445,11 +443,11 @@ describe("buildAutoCreateSessionSpec", () => {
   }
 
   it("returns a deep clone: mutation never writes through to the caller", () => {
-    const callerSpec = create(SessionSpecSchema, { workspaceEntries });
+    const callerSpec = create(SessionSpecSchema, { resources });
     const original = clone(SessionSpecSchema, callerSpec);
 
     const got = buildAutoCreateSessionSpec(callerSpec);
-    got.workspaceEntries[0]!.name = "mutated";
+    got.resources[0]!.name = "mutated";
     got.subject = "mutated";
 
     expect(toJson(SessionSpecSchema, callerSpec)).toEqual(

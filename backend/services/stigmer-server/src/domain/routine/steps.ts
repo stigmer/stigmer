@@ -95,7 +95,6 @@ export function newResolveRoutineDefaultsStep(
         throw invalidArgumentError("spec.agent.agent_ref is required");
       }
 
-      validateRoutineWorkspace(spec);
       validateRoutineModelPinning(deps.modelRegistry, spec);
 
       // The same-org invariant (spec.proto): the routine's org is the
@@ -179,26 +178,6 @@ export function validateRoutineSchedule(spec: RoutineSpec | undefined): void {
 }
 
 /**
- * Enforces the routine-specific workspace constraint on the shared
- * AgentInvocation: every workspace entry must be a git_repo
- * source. A local_path needs a connected client to serve the directory,
- * and a routine's run has none — refusing at write time beats a
- * deterministic provisioning failure at 3 AM.
- */
-export function validateRoutineWorkspace(
-  spec: RoutineSpec | undefined,
-): void {
-  const entries = spec?.agent?.workspaceEntries ?? [];
-  for (const [i, entry] of entries.entries()) {
-    if (entry.source?.source.case !== "gitRepo") {
-      throw invalidArgumentError(
-        `spec.agent.workspace_entries[${i}] must use a git_repo source — a routine's run has no connected client to serve a local_path`,
-      );
-    }
-  }
-}
-
-/**
  * Enforces the two unattended model-pinning rules at write time:
  *
  *   - PRESENCE (stigmer/stigmer#362): a Cursor-harness routine must pin a
@@ -275,8 +254,7 @@ export function newValidateRoutineUpdateStep(
       const spec = ctx.newState.spec;
       validateRoutineSchedule(spec);
       // Update replaces the spec wholesale (no defaults resolver), so the
-      // workspace and model-pinning constraints must hold here too.
-      validateRoutineWorkspace(spec);
+      // model-pinning constraints must hold here too.
       validateRoutineModelPinning(deps.modelRegistry, spec);
 
       const inputRef = spec?.agent?.agentRef;

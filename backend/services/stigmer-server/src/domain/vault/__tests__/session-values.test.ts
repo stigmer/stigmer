@@ -84,15 +84,15 @@ function ctxOf(next: Session, existing?: Session) {
 
 /** A repository entry; `token` empty for a public clone. */
 function repo(name: string, url: string, token: string) {
-  return { name, source: { source: { case: "gitRepo" as const, value: { url, token } } } };
+  return { name, resource: { case: "gitRepository" as const, value: { url, token } } };
 }
 
 const REPO = repo("app", "https://github.com/acme/app", "repo-token");
 
 /** The token a stored entry holds, by position. */
 function tokenOf(next: Session, index = 0): string {
-  const source = next.spec!.workspaceEntries[index]!.source!.source;
-  return source.case === "gitRepo" ? source.value.token : "";
+  const source = next.spec!.resources[index]!.resource;
+  return source.case === "gitRepository" ? source.value.token : "";
 }
 
 async function written(next: Session, existing?: Session) {
@@ -105,7 +105,7 @@ async function written(next: Session, existing?: Session) {
 
 describe("writing a repository's token", () => {
   it("seals every token, opened for the resolver under its entry's name and URL", async () => {
-    const { ctx, secrets } = await written(session({ workspaceEntries: [REPO] }));
+    const { ctx, secrets } = await written(session({ resources: [REPO] }));
     expect(tokenOf(ctx.newState)).toMatch(/^enc:v9:/);
     const opened = openSessionValues(secrets, ctx.newState);
     expect(
@@ -117,7 +117,7 @@ describe("writing a repository's token", () => {
     const { secrets } = fixture();
     const opened = openSessionValues(
       secrets,
-      session({ workspaceEntries: [repo("app", "https://gitlab.example.com/acme/app", "gitlab-pat")] }),
+      session({ resources: [repo("app", "https://gitlab.example.com/acme/app", "gitlab-pat")] }),
     );
     expect(opened.repositoryTokens.get(repositoryTokenKey("app", "https://github.com/acme/app"))).toBeUndefined();
     expect(
@@ -126,8 +126,8 @@ describe("writing a repository's token", () => {
   });
 
   it("refuses workspace entries that repeat a name, naming it", async () => {
-    const folder = { name: "app", source: { source: { case: "localPath" as const, value: { path: "/w" } } } };
-    const failure = await written(session({ workspaceEntries: [REPO, folder] })).catch(
+    const folder = { name: "app", resource: { case: "localPath" as const, value: { path: "/w" } } };
+    const failure = await written(session({ resources: [REPO, folder] })).catch(
       (e: unknown) => e,
     );
     expect(failure).toBeInstanceOf(ConnectError);
@@ -136,12 +136,12 @@ describe("writing a repository's token", () => {
   });
 
   it("keeps the stored token behind a marker a writer sends back", async () => {
-    const first = await written(session({ workspaceEntries: [REPO] }));
+    const first = await written(session({ resources: [REPO] }));
     const stored = first.ctx.newState;
     const sealed = tokenOf(stored);
 
     const echoed = session({
-      workspaceEntries: [repo("app", "https://github.com/acme/app", REDACTED_MARKER)],
+      resources: [repo("app", "https://github.com/acme/app", REDACTED_MARKER)],
     });
     const second = await written(echoed, stored);
     expect(tokenOf(second.ctx.newState)).toBe(sealed);
@@ -150,7 +150,7 @@ describe("writing a repository's token", () => {
   it("refuses a marker with nothing stored behind it, and a ciphertext-shaped value", async () => {
     for (const token of [REDACTED_MARKER, "enc:v9:Zm9yZ2Vk"]) {
       const failure = await written(
-        session({ workspaceEntries: [repo("app", "https://github.com/acme/app", token)] }),
+        session({ resources: [repo("app", "https://github.com/acme/app", token)] }),
       ).catch((e: unknown) => e);
       expect(failure).toBeInstanceOf(ConnectError);
       expect((failure as ConnectError).code).toBe(Code.InvalidArgument);
@@ -165,7 +165,7 @@ describe("writing a repository's token", () => {
       "ssh://git@github.com/acme/app.git",
       "https://github.com:8443/acme/app",
     ]) {
-      const failure = await written(session({ workspaceEntries: [repo("app", url, "repo-TOKEN")] })).catch(
+      const failure = await written(session({ resources: [repo("app", url, "repo-TOKEN")] })).catch(
         (e: unknown) => e,
       );
       expect(failure, url).toBeInstanceOf(ConnectError);
@@ -175,19 +175,19 @@ describe("writing a repository's token", () => {
       );
     }
     await expect(
-      written(session({ workspaceEntries: [repo("app", "https://gitlab.example.com/acme/app", "")] })),
+      written(session({ resources: [repo("app", "https://gitlab.example.com/acme/app", "")] })),
     ).resolves.toBeDefined();
   });
 
   it("keeps a repository's stored token only for the same repository: a marker with a new URL is refused", async () => {
-    const first = await written(session({ workspaceEntries: [REPO] }));
+    const first = await written(session({ resources: [REPO] }));
     const moved = repo("app", "https://github.com/attacker/app", REDACTED_MARKER);
-    const failure = await written(session({ workspaceEntries: [moved] }), first.ctx.newState).catch(
+    const failure = await written(session({ resources: [moved] }), first.ctx.newState).catch(
       (e: unknown) => e,
     );
     expect((failure as ConnectError).code).toBe(Code.InvalidArgument);
     const kept = await written(
-      session({ workspaceEntries: [repo("app", "https://github.com/acme/app", REDACTED_MARKER)] }),
+      session({ resources: [repo("app", "https://github.com/acme/app", REDACTED_MARKER)] }),
       first.ctx.newState,
     );
     expect(tokenOf(kept.ctx.newState)).toMatch(/^enc:v9:/);
@@ -197,7 +197,7 @@ describe("writing a repository's token", () => {
 describe("reading and dropping", () => {
   it("a read shows the marker for every token, a tokenless clone untouched", () => {
     const shown = session({
-      workspaceEntries: [REPO, repo("public", "https://github.com/acme/public", "")],
+      resources: [REPO, repo("public", "https://github.com/acme/public", "")],
     });
     redactSessionValues(shown);
     expect(tokenOf(shown, 0)).toBe(REDACTED_MARKER);
@@ -207,7 +207,7 @@ describe("reading and dropping", () => {
   it("an update destroys only the tokens it drops; a replaced token keeps its backing state", async () => {
     const first = await written(
       session({
-        workspaceEntries: [
+        resources: [
           repo("dropped", "https://github.com/acme/dropped", "a"),
           repo("replaced", "https://github.com/acme/replaced", "b"),
           repo("kept", "https://github.com/acme/kept", "c"),
@@ -218,7 +218,7 @@ describe("reading and dropping", () => {
     const { codec, secrets } = fixture();
     const ctx = ctxOf(
       session({
-        workspaceEntries: [
+        resources: [
           repo("replaced", "https://github.com/acme/replaced", "b2"),
           repo("kept", "https://github.com/acme/kept", REDACTED_MARKER),
         ],
@@ -233,7 +233,7 @@ describe("reading and dropping", () => {
 
   it("the delete chain's extractor names every sealed token", async () => {
     const { ctx } = await written(
-      session({ workspaceEntries: [REPO, repo("docs", "https://github.com/acme/docs", "t")] }),
+      session({ resources: [REPO, repo("docs", "https://github.com/acme/docs", "t")] }),
     );
     expect(sealedValuesOfSession(ctx.newState)).toHaveLength(2);
   });
@@ -249,9 +249,9 @@ describe("edges", () => {
   it("only a git repository with its own token is a value; a local folder and a tokenless clone are not", () => {
     const values = sealedValuesOfSession(
       session({
-        workspaceEntries: [
-          { name: "folder", source: { source: { case: "localPath", value: { path: "/w" } } } },
-          { name: "public", source: { source: { case: "gitRepo", value: { url: "https://github.com/a/b" } } } },
+        resources: [
+          { name: "folder", resource: { case: "localPath", value: { path: "/w" } } },
+          { name: "public", resource: { case: "gitRepository", value: { url: "https://github.com/a/b" } } },
         ],
       }),
     );
@@ -266,7 +266,7 @@ describe("edges", () => {
       ]),
       writeVersion: "v9",
     });
-    const ctx = ctxOf(session({ workspaceEntries: [REPO] }));
+    const ctx = ctxOf(session({ resources: [REPO] }));
     await newSealSessionValuesStep(keyless, {
       ...logger,
       warn: (message: string) => warnings.push(message),
@@ -289,7 +289,7 @@ describe("edges", () => {
       ]),
       writeVersion: "v9",
     });
-    const ctx = ctxOf(session({ workspaceEntries: [REPO] }));
+    const ctx = ctxOf(session({ resources: [REPO] }));
     let failure: unknown;
     try {
       await newSealSessionValuesStep(broken, logger).execute(ctx);

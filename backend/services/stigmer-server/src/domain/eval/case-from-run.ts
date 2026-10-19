@@ -167,9 +167,9 @@ export async function buildCaseFromRun(store: Store, logger: Logger, input: Case
   if (input.skill !== "") {
     files.push({ path: "graders/skill-fired.md", content: skillFiredFile(input.skill) });
   }
-  const attachments = run.spec?.attachments ?? [];
-  if (attachments.length > 0) {
-    notes.push(`the request's attachments are not part of the case: ${attachments.map((attachment) => attachment.filename).join(", ")}`);
+  const fileIds = run.spec?.fileIds ?? [];
+  if (fileIds.length > 0) {
+    notes.push(`the message's files are not part of the case: ${fileIds.join(", ")}`);
   }
   return {
     caseName,

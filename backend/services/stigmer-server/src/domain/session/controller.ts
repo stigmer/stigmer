@@ -62,6 +62,9 @@ import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-a
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
 import type { FileBlobs } from "../file/blobs.js";
+import { newFileInstances } from "../file/instances.js";
+import type { FileInstances } from "../file/instances.js";
+import { newResolveSessionResourcesStep } from "../file/session-resources.js";
 import { newCascadeDeleteSessionFilesStep } from "../file/session-files.js";
 import type { AgentExecutionTemporalConfig } from "../run/temporal/config.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
@@ -318,6 +321,7 @@ async function createSession(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
+  const instances = fileInstancesOf(deps);
   const builder = newPipeline<typeof SessionSchema>(
     "session-create",
     deps.logger,
@@ -357,6 +361,7 @@ async function createSession(
     builder.addStep(step);
   }
   await builder
+    .addStep(newResolveSessionResourcesStep(instances))
     .addStep(newSealSessionValuesStep(deps.secretService, deps.logger))
     .addStep(newClaimNameStep(deps.store, ApiResourceKind.session))
     .addStep(newPersistStep(deps.store, deps.credentialBinding))
@@ -371,8 +376,37 @@ async function createSession(
     )
     .build()
     .execute(reqCtx)
-    .catch(releaseNameOnFailure(deps.store, deps.logger, reqCtx));
+    .catch(async (error: unknown) => {
+      await discardInstances(deps, instances, reqCtx.callerIdentity);
+      return releaseNameOnFailure(deps.store, deps.logger, reqCtx)(error);
+    });
   return redacted(reqCtx.newState);
+}
+
+/** The File copies one session write makes (domain/file/instances.ts). */
+function fileInstancesOf(deps: SessionControllerDeps): FileInstances {
+  return newFileInstances({
+    store: deps.store,
+    blobs: deps.fileBlobs,
+    authorizer: deps.authorizer,
+    lifecycle: deps.authorizationLifecycle,
+    logger: deps.logger,
+  });
+}
+
+/** Removes a failed write's File copies; a fault here is logged, never raised over the write's own. */
+async function discardInstances(
+  deps: SessionControllerDeps,
+  instances: FileInstances,
+  caller: CallerIdentity,
+): Promise<void> {
+  try {
+    await instances.discard(caller);
+  } catch (error) {
+    deps.logger.warn("failed to remove the File copies of a failed session write", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 /**
@@ -394,11 +428,15 @@ async function update(
   input: UpdateSessionInput,
   ctx: HandlerContext,
 ): Promise<Session> {
+  // Held across the guarded write's attempts, so a retry reuses the
+  // copies the lost attempt made (domain/file/instances.ts).
+  const instances = fileInstancesOf(deps);
+  const caller = callerIdentityOf(ctx);
   return runGuardedWrite(async () => {
     const reqCtx = updateContext(
       SessionSchema,
       input,
-      callerIdentityOf(ctx),
+      caller,
       kindOf(ctx),
     );
     await newPipeline<typeof SessionSchema>("session-update", deps.logger)
@@ -428,6 +466,7 @@ async function update(
       )
       .addStep(newResolveSessionEnvironmentStep(deps.store, deps.environmentPolicy))
       .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
+      .addStep(newResolveSessionResourcesStep(instances))
       .addStep(newSealSessionValuesStep(deps.secretService, deps.logger))
       .addStep(newPersistStep(deps.store, deps.credentialBinding))
       .addStep(
@@ -439,6 +478,9 @@ async function update(
       .build()
       .execute(reqCtx);
     return redacted(reqCtx.newState);
+  }).catch(async (error: unknown) => {
+    await discardInstances(deps, instances, caller);
+    throw error;
   });
 }
 

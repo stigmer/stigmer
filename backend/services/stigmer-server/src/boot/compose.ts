@@ -198,6 +198,7 @@ import {
   UPLOAD_URL_TTL_MS as FILE_UPLOAD_URL_TTL_MS,
 } from "../domain/file/constants.js";
 import { registerFileServices } from "../domain/file/controller.js";
+import { registerFileMountService } from "../domain/file/mount.js";
 import {
   fileTransferServeUrl,
   fileUploadUrl,
@@ -2025,6 +2026,14 @@ export async function composeServer(
       listReadScope,
       blobs: fileBlobs,
     });
+    // The runner's per-turn door to its conversation's Files, under its run
+    // credential (domain/file/mount.ts).
+    registerFileMountService(router, {
+      store,
+      logger,
+      runnerAuth: runnerCredentials,
+      blobs: fileBlobs,
+    });
     // Routine registers between channelapp and memory (Go server.go
     // 417 → 426 → 436). The clock and runner ride constant providers —
     // production wiring always has both (Go SetClock/SetRunner beside the
@@ -2086,6 +2095,7 @@ export async function composeServer(
       authorizer,
       credentialBinding,
       authorizationLifecycle,
+      fileBlobs,
       listReadScope,
       meteredUsageProvider: extensions.drivers.meteredUsageProvider,
       personAccounts,

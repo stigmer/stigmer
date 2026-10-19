@@ -13,6 +13,7 @@
  */
 import type { CallOptions, Client } from "@connectrpc/connect";
 
+import type { FileQueryController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/query_pb";
 import type { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
 import type { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
 import type { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
@@ -22,6 +23,7 @@ export interface LaneClients {
   readonly sessionQuery: Client<typeof SessionQueryController>;
   readonly sessionCommand: Client<typeof SessionCommandController>;
   readonly runCommand: Client<typeof RunCommandController>;
+  readonly fileQuery: Client<typeof FileQueryController>;
 }
 
 /** One request's calls: the session it names, the clients, and every call's options. */

@@ -7,7 +7,7 @@
  * The id is runner-owned state, so it lives in the session's status and
  * has this one door: no person writes it, and an editor's etag never moves
  * when a turn binds it. The door admits a runner as appendEvents does
- * (events/append.ts mayAppend): a runner credential for this run, the run
+ * (runnerauth/runner-for-run.ts): a runner credential for this run, the run
  * not finished when the door reads it, and the session the run's own,
  * never one the request names. Unlike appendEvents it does not check the
  * run again under the write (stigmer#2244). The write names its fields inside the store's atomic write on the
@@ -43,7 +43,7 @@ import { parseBearerToken } from "../../pipeline/interceptors/auth.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 import { isTerminalExecutionPhase } from "../run/phases.js";
-import { mayAppend } from "./events/append.js";
+import { isRunnerForRun } from "../../runnerauth/runner-for-run.js";
 import type { AppendSessionEventsDeps } from "./events/append.js";
 import { sessionIdOfRun } from "./events/transitions.js";
 import { recordHarnessState } from "./steps.js";
@@ -69,7 +69,7 @@ export async function bindHarnessState(
     throw invalidArgumentError("harness_state_id is required");
   }
   const token = parseBearerToken(ctx.requestHeader.get("authorization") ?? "");
-  if (token === "" || !(await mayAppend(deps, token, input.runId))) {
+  if (token === "" || !(await isRunnerForRun(deps, token, input.runId))) {
     throw permissionDeniedError(NOT_THE_RUNS_RUNNER_TO_BIND_MESSAGE);
   }
 

@@ -180,7 +180,15 @@ export function sessionEventsForTransition(
     events.push(
       event({
         case: "userMessage",
-        value: { id: id(), content: [{ type: "text", text: transition.run.spec?.message ?? "" }] },
+        value: {
+          id: id(),
+          // The text, then the files the message carried, as the server
+          // recorded them when the run was created (domain/file/message-files.ts).
+          content: [
+            { type: "text", text: transition.run.spec?.message ?? "" },
+            ...(transition.run.status?.messageFiles ?? []),
+          ],
+        },
       }),
     );
   }

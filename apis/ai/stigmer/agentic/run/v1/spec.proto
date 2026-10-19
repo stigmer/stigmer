@@ -15,8 +15,8 @@ import "google/protobuf/timestamp.proto";
 message RunSpec {
   option (buf.validate.message).cel = {
     id: "run.message_required"
-    message: "message is required"
-    expression: "this.reconcile_file_review || size(this.message) > 0"
+    message: "message is required unless the message carries files"
+    expression: "this.reconcile_file_review || size(this.message) > 0 || size(this.file_ids) > 0"
   };
 
   // Field 2 named an agent whose default instance a new conversation ran
@@ -94,7 +94,8 @@ message RunSpec {
 
   // User input message that triggers this run.
   // Each run represents one user message and the agent's response.
-  // Required unless reconcile_file_review is set.
+  // Required unless reconcile_file_review is set or file_ids names a file
+  // (a message may be files alone).
   string message = 3;
 
   // The settings this message asks for (optional): a model, a speed tier,

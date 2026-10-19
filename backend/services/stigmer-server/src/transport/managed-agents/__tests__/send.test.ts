@@ -114,7 +114,7 @@ function harness(options: { readonly failConfirmation?: boolean; readonly noRead
 describe("serveSend", () => {
   it("starts a turn for a user.message and answers with the event written with it", async () => {
     const { seen, call, response, answer } = harness();
-    await serveSend(call, [{ type: "user.message", text: "hello" }], response, () => 1234);
+    await serveSend(call, [{ type: "user.message", text: "hello", files: [] }], response, () => 1234);
     expect(seen.run).toMatchObject({
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Run",
@@ -150,7 +150,7 @@ describe("serveSend", () => {
     const events: SendEvent[] = [
       { type: "user.interrupt" },
       { type: "user.tool_confirmation", toolUseId: "tu_1", result: "allow", denyMessage: "" },
-      { type: "user.message", text: "never sent" },
+      { type: "user.message", text: "never sent", files: [] },
     ];
     await expect(serveSend(call, events, response, () => 0)).rejects.toThrow("the call no longer waits");
     expect(seen.calls).toEqual(["interrupt", "confirmToolUse"]);
@@ -158,7 +158,7 @@ describe("serveSend", () => {
 
   it("is an internal fault when the turn's user.message cannot be read back", async () => {
     const { call, response } = harness({ noReadBack: true });
-    await expect(serveSend(call, [{ type: "user.message", text: "x" }], response, () => 0)).rejects.toThrow(
+    await expect(serveSend(call, [{ type: "user.message", text: "x", files: [] }], response, () => 0)).rejects.toThrow(
       "the user.message was applied but its recorded event could not be read",
     );
   });

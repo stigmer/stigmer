@@ -163,7 +163,7 @@ export function autoCreatedSessionName(): string {
  * resolved again over the session's version and judged by the same checks
  * before the turn is persisted (resolve-run-config.ts). A refusal there
  * leaves the session it created, empty, as a refusal by any later create
- * step does (the context build, the attachments): the session is the turn's
+ * step does (the context build, the message's files): the session is the turn's
  * first side effect, and only an author's save landing between the two
  * resolutions reaches this arm.
  */
@@ -498,6 +498,23 @@ export function newKeepExcludedPluginsStep(): PipelineStep<CreateDesc> {
       const existing = ctx.get(EXISTING_RESOURCE_KEY) as Run | undefined;
       ctx.newState.spec ??= create(RunSpecSchema);
       ctx.newState.spec.excludedPluginIds = [...(existing?.spec?.excludedPluginIds ?? [])];
+    },
+  };
+}
+
+/**
+ * KeepMessageFiles: a turn's files are its create's. An update keeps the
+ * stored file_ids, which name the conversation's own Files the create
+ * resolved; the status' message_files are the server's and an update
+ * never writes status.
+ */
+export function newKeepMessageFilesStep(): PipelineStep<CreateDesc> {
+  return {
+    name: "KeepMessageFiles",
+    execute(ctx) {
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as Run | undefined;
+      ctx.newState.spec ??= create(RunSpecSchema);
+      ctx.newState.spec.fileIds = [...(existing?.spec?.fileIds ?? [])];
     },
   };
 }
@@ -842,42 +859,6 @@ export function newSetInitialPhaseStep(): PipelineStep<CreateDesc> {
       const execution = ctx.newState;
       execution.status ??= create(RunStatusSchema);
       execution.status.phase = RunPhase.RUN_PENDING;
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
-// ProcessAttachments — create.go processAttachmentsStep.
-// ---------------------------------------------------------------------------
-
-/**
- * Validates every attachment carries a storage_key — all attachments must
- * be pre-uploaded via the uploadAttachment RPC.
- */
-export function newProcessAttachmentsStep(
-  logger: Logger,
-): PipelineStep<CreateDesc> {
-  return {
-    name: "ProcessAttachments",
-    execute(ctx) {
-      const attachments = ctx.newState.spec?.attachments ?? [];
-      if (attachments.length === 0) {
-        return;
-      }
-      for (const attachment of attachments) {
-        if (attachment.storageKey === "") {
-          logger.error(
-            "Attachment missing storage_key - all attachments must be pre-uploaded via uploadAttachment RPC",
-            { filename: attachment.filename },
-          );
-          throw invalidArgumentError(
-            `attachment '${attachment.filename}' missing storage_key: all attachments must be pre-uploaded via uploadAttachment RPC`,
-          );
-        }
-      }
-      logger.info("All attachments validated successfully", {
-        attachmentCount: attachments.length,
-      });
     },
   };
 }

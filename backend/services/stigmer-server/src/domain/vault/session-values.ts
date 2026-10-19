@@ -94,9 +94,9 @@ function slotsOf(session: Session | undefined): ValueSlot[] {
     return [];
   }
   const slots: ValueSlot[] = [];
-  for (const entry of spec.workspaceEntries) {
-    const source = entry.source?.source;
-    if (source?.case !== "gitRepo" || source.value.token === "") {
+  for (const entry of spec.resources) {
+    const source = entry.resource;
+    if (source.case !== "gitRepository" || source.value.token === "") {
       continue;
     }
     const repo = source.value;
@@ -141,17 +141,10 @@ export function newPreserveSessionValuesStep(): PipelineStep<SessionDesc> {
       if (spec === undefined) {
         return;
       }
-      const entryNames = new Set<string>();
-      for (const entry of spec.workspaceEntries) {
-        if (entryNames.has(entry.name)) {
-          throw invalidArgumentError(
-            `workspace entry '${entry.name}' appears more than once: give each entry its own name`,
-          );
-        }
-        entryNames.add(entry.name);
-        const source = entry.source?.source;
+      for (const entry of spec.resources) {
+        const source = entry.resource;
         if (
-          source?.case === "gitRepo" &&
+          source.case === "gitRepository" &&
           source.value.token !== "" &&
           gitHostOf(source.value.url) !== GITHUB_HOST
         ) {
@@ -267,9 +260,9 @@ export function openSessionValues(
   });
   const spec = session?.spec;
   const repositoryTokens = new Map<string, SealedValue>();
-  for (const entry of spec?.workspaceEntries ?? []) {
-    const source = entry.source?.source;
-    if (source?.case === "gitRepo" && source.value.token !== "") {
+  for (const entry of spec?.resources ?? []) {
+    const source = entry.resource;
+    if (source.case === "gitRepository" && source.value.token !== "") {
       repositoryTokens.set(repositoryTokenKey(entry.name, source.value.url), sealed(source.value.token));
     }
   }

@@ -652,18 +652,18 @@ export function runRequirements(input: RunCredentialInput): Requirement[] {
     );
   }
   requirements.push(...tools, ...hooks);
-  for (const entry of input.session.spec?.workspaceEntries ?? []) {
-    const source = entry.source?.source;
-    if (source?.case !== "gitRepo" || gitHostOf(source.value.url) !== GITHUB_HOST) {
+  for (const entry of input.session.spec?.resources ?? []) {
+    const source = entry.resource;
+    if (source.case !== "gitRepository" || gitHostOf(source.value.url) !== GITHUB_HOST) {
       continue;
     }
     requirements.push({
       key: CLONE_TOKEN_KEY,
       declarer: {
         kind: "repository",
-        // The entry's own name, empty or not: the runner matches its
-        // workspace entry by name and URL exactly as the session carries
-        // them. The messages fall back to the URL.
+        // The repository's own name, empty or not: the runner matches its
+        // repository by name and URL exactly as the session carries them.
+        // The messages fall back to the URL.
         name: entry.name,
         url: source.value.url,
       },

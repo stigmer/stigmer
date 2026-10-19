@@ -7,11 +7,12 @@
  * tell a runner from the person it acts for: `can_edit` on the run would
  * let any editor, a share participant included, write the agent's words.
  * The authority is the runner credential presented as a Bearer header,
- * decided as the values fetch decides (domain/vault/values.ts): the
- * composed `authorizeRunEventsAppend` capability owns the decision when
- * present (an edition whose runner credential serves a whole session),
- * else the open-source one, an execution-scoped credential bound to
- * exactly this run. Either way the run must exist and not be finished,
+ * decided once for every per-run runner door
+ * (runnerauth/runner-for-run.ts): the composed `authorizeRunnerForRun`
+ * capability when present (an edition whose runner credential serves a
+ * whole session), else the open-source one, an execution-scoped
+ * credential bound to exactly this run. Either way the run must exist and
+ * not be finished,
  * checked again under the session's lock as the events are stored. Every
  * refusal of the credential is the same PERMISSION_DENIED.
  *
@@ -63,7 +64,7 @@ import {
 } from "../../../pipeline/errors.js";
 import { parseBearerToken } from "../../../pipeline/interceptors/auth.js";
 import type { RunnerCredentialProvider } from "../../../runnerauth/runner-credential-provider.js";
-import { TOKEN_TYPE_EXECUTION_SCOPED } from "../../../runnerauth/runnerauth.js";
+import { isRunnerForRun } from "../../../runnerauth/runner-for-run.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
 import { SessionEventConflictError } from "../../../store/session-events.js";
@@ -99,7 +100,7 @@ export async function appendSessionEvents(
     throw invalidArgumentError("run_id is required");
   }
   const token = parseBearerToken(ctx.requestHeader.get("authorization") ?? "");
-  if (token === "" || !(await mayAppend(deps, token, runId))) {
+  if (token === "" || !(await isRunnerForRun(deps, token, runId))) {
     throw permissionDeniedError(NOT_THE_RUNS_RUNNER_MESSAGE);
   }
 
@@ -172,45 +173,6 @@ export async function appendSessionEvents(
   deps.sessionEventBroker.publishPreviews(sessionId, input.previews);
   deps.sessionEventBroker.publish(sessionId, stored.appended.map(eventOf));
   return create(AppendSessionEventsResponseSchema, { events: stored.records.map(identityOf) });
-}
-
-/**
- * The trust decision: the composed capability when present, the
- * open-source one otherwise (an execution-scoped credential bound to this
- * run). A capability that throws is a composition fault, logged and
- * refused. The runner's other door, bindHarnessState
- * (domain/session/bind-harness.ts), admits by the same decision.
- */
-export async function mayAppend(
-  deps: Pick<AppendSessionEventsDeps, "logger" | "runnerAuth">,
-  token: string,
-  runId: string,
-): Promise<boolean> {
-  const authorize = deps.runnerAuth.authorizeRunEventsAppend?.bind(deps.runnerAuth);
-  if (authorize !== undefined) {
-    try {
-      return await authorize(token, runId);
-    } catch (error) {
-      deps.logger.warn("Session event append authorization failed; refusing", {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      return false;
-    }
-  }
-  let bound: string;
-  try {
-    bound = deps.runnerAuth.verify(TOKEN_TYPE_EXECUTION_SCOPED, token);
-  } catch {
-    return false;
-  }
-  if (bound !== runId) {
-    deps.logger.warn("A runner credential asked to append another run's events; refusing", {
-      tokenExecutionId: bound,
-      runId,
-    });
-    return false;
-  }
-  return true;
 }
 
 async function loadRun(store: Store, runId: string): Promise<Run> {

@@ -24,7 +24,7 @@
  *   - the rubric's FAIL line comes from the judge's failing reason, else
  *     the eval run's, else the caller's own thumbs-down note (another
  *     person's is not theirs to quote), else a placeholder; a named skill
- *     adds a `tool_used: Skill` check; the request's attachments are noted;
+ *     adds a `tool_used: Skill` check; the message's files are noted;
  *   - every case built here loads through `readEvalFolder` with no finding;
  *     an event of the session that belongs to no run is no turn; a store
  *     fault reading the session or an earlier run is thrown as it came;
@@ -78,13 +78,13 @@ afterEach(async () => {
   await temp.cleanup();
 });
 
-function runRow(id: string, message: string, session = SESSION, attachments: string[] = []): Run {
+function runRow(id: string, message: string, session = SESSION, fileIds: string[] = []): Run {
   return create(RunSchema, {
     metadata: { id, org: ORG },
     spec: {
       ...(session === "" ? {} : { target: { case: "sessionId", value: session } }),
       message,
-      attachments: attachments.map((filename) => ({ filename, storageKey: `attachments/${filename}` })),
+      fileIds,
     },
   });
 }
@@ -215,11 +215,11 @@ describe("a case from a single turn", () => {
   });
 
   it("prompts with the run's request when the turn recorded none, and a run with no session has no history", async () => {
-    const run = await seedRun(runRow("run_3", "  What is the refund window?  ", "", ["receipt.pdf", "photo.png"]));
+    const run = await seedRun(runRow("run_3", "  What is the refund window?  ", "", ["file_01receipt", "file_01photo"]));
     const built = await buildCaseFromRun(temp.store, logger, { run, caseName: "window", skill: "", callerId: CALLER });
     expect(fileOf(built, "prompt.md")).toBe("---\n---\nWhat is the refund window?\n");
     expect(fileOf(built, "history.jsonl")).toBeUndefined();
-    expect(built.notes).toEqual(["the request's attachments are not part of the case: receipt.pdf, photo.png"]);
+    expect(built.notes).toEqual(["the message's files are not part of the case: file_01receipt, file_01photo"]);
     expectLoads(built);
   });
 });

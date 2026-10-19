@@ -126,7 +126,7 @@ describe("the gate", () => {
     await seedRun("run_a", "ses_a");
     const composed = (answer: boolean | Error): RunnerCredentialProvider => ({
       ...credentials,
-      authorizeRunEventsAppend: async () => {
+      authorizeRunnerForRun: async () => {
         if (answer instanceof Error) {
           throw answer;
         }

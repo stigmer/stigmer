@@ -5,11 +5,15 @@
  * Three events are served, each through the native method that owns it,
  * so each meets that method's own authorization and the composed guards:
  *
- *   - user.message (text blocks only) starts a turn: RunCommandController
- *     .create in the session, named `run-<epoch ms>` as the console names
- *     its turns (runs claim no unique name). The server writes the turn's
- *     user.message in the same transaction as the run, under an id the
- *     create does not return, so the lane reads it back by the run's id.
+ *   - user.message starts a turn: RunCommandController.create in the
+ *     session, named `run-<epoch ms>` as the console names its turns (runs
+ *     claim no unique name). Its text blocks join into the turn's message;
+ *     its image and document blocks name Files by id (a `file` source) and
+ *     become the turn's file_ids, so the conversation gets its own copy of
+ *     each and the turn's user.message carries the blocks back. The server
+ *     writes that event in the same transaction as the run, under an id
+ *     the create does not return, so the lane reads it back by the run's
+ *     id.
  *   - user.tool_confirmation answers a call that waits:
  *     SessionCommandController.confirmToolUse.
  *   - user.interrupt stops the session's unfinished work:
@@ -20,8 +24,12 @@
  * name (a share guest may stop, never approve) holds here unchanged.
  *
  * The whole list is checked before anything applies: an event Stigmer does
- * not serve (user.tool_result, custom tools, outcomes, system.message, an
- * image or document block) refuses the request with nothing applied. Then
+ * not serve (user.tool_result, custom tools, outcomes, system.message), a
+ * block with a base64 or url source (Stigmer names files by id: upload the
+ * bytes with its File API first), a document's title, context, citations
+ * or cache_control (Stigmer would not carry them to the model, so the event
+ * read back would differ from the one sent), and an image block naming a
+ * File that is not an image refuse the request with nothing applied. Then
  * the events apply in order; one that fails stops the list and its error is
  * the answer, while the ones before it stay applied, as their methods
  * committed them.
@@ -32,6 +40,7 @@
 import { create } from "@bufbuild/protobuf";
 import type { JsonObject } from "@bufbuild/protobuf";
 
+import { FileIdSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import {
@@ -48,7 +57,7 @@ import { writeJson } from "./respond.js";
 
 /** An event the lane applies, checked. */
 export type SendEvent =
-  | { readonly type: "user.message"; readonly text: string }
+  | { readonly type: "user.message"; readonly text: string; readonly files: readonly MessageFile[] }
   | {
       readonly type: "user.tool_confirmation";
       readonly toolUseId: string;
@@ -56,6 +65,12 @@ export type SendEvent =
       readonly denyMessage: string;
     }
   | { readonly type: "user.interrupt" };
+
+/** A file a user.message names, and the block it came in. */
+export interface MessageFile {
+  readonly fileId: string;
+  readonly block: "image" | "document";
+}
 
 /** How a user.message's text blocks join into the turn's one message. */
 export const TEXT_BLOCK_SEPARATOR = "\n\n";
@@ -104,23 +119,57 @@ function parseEvent(event: unknown): SendEvent | LaneError {
   }
 }
 
+/** The fields of an image or document block Stigmer would not carry to the model. */
+const UNCARRIED_BLOCK_FIELDS = ["title", "context", "citations", "cache_control"] as const;
+
 function parseMessage(event: JsonLike): SendEvent | LaneError {
   const content = event["content"];
   if (!Array.isArray(content) || content.length === 0) {
     return invalidRequest("a user.message needs at least one content block");
   }
   const texts: string[] = [];
+  const files: MessageFile[] = [];
   for (const block of content as unknown[]) {
-    if (!isObject(block) || block["type"] !== "text") {
-      const blockType = isObject(block) && typeof block["type"] === "string" ? block["type"] : "unknown";
-      return invalidRequest(`Stigmer accepts only text blocks in a user.message, not '${blockType}'`);
+    const blockType = isObject(block) && typeof block["type"] === "string" ? block["type"] : "unknown";
+    if (!isObject(block) || (blockType !== "text" && blockType !== "image" && blockType !== "document")) {
+      return invalidRequest(`Stigmer accepts text, image and document blocks in a user.message, not '${blockType}'`);
     }
-    if (typeof block["text"] !== "string") {
-      return invalidRequest("a text block needs its text");
+    if (blockType === "text") {
+      if (typeof block["text"] !== "string") {
+        return invalidRequest("a text block needs its text");
+      }
+      texts.push(block["text"]);
+      continue;
     }
-    texts.push(block["text"]);
+    const file = parseFileBlock(block, blockType === "image" ? "image" : "document");
+    if (isLaneError(file)) {
+      return file;
+    }
+    files.push(file);
   }
-  return { type: "user.message", text: texts.join(TEXT_BLOCK_SEPARATOR) };
+  return { type: "user.message", text: texts.join(TEXT_BLOCK_SEPARATOR), files };
+}
+
+function parseFileBlock(block: JsonLike, kind: "image" | "document"): MessageFile | LaneError {
+  for (const field of UNCARRIED_BLOCK_FIELDS) {
+    if (block[field] !== undefined && block[field] !== null) {
+      return invalidRequest(`Stigmer does not carry a ${kind} block's ${field}; send the block without it`);
+    }
+  }
+  const source = block["source"];
+  if (!isObject(source) || typeof source["type"] !== "string") {
+    return invalidRequest(`an ${kind} block needs a source`);
+  }
+  if (source["type"] !== "file") {
+    return invalidRequest(
+      `Stigmer names a ${kind} block's bytes by File id, not a '${source["type"]}' source: upload the file with Stigmer's File API and name its id`,
+    );
+  }
+  const fileId = source["file_id"];
+  if (typeof fileId !== "string" || fileId === "") {
+    return invalidRequest(`a file source needs its file_id`);
+  }
+  return { fileId, block: kind };
 }
 
 function parseConfirmation(event: JsonLike): SendEvent | LaneError {
@@ -142,6 +191,34 @@ function parseConfirmation(event: JsonLike): SendEvent | LaneError {
   return { type: "user.tool_confirmation", toolUseId, result, denyMessage };
 }
 
+/** The types an image block may name: Claude's image types. */
+const IMAGE_TYPES: ReadonlySet<string> = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
+
+/**
+ * The checks that read a File, before anything applies: each image block
+ * names an image File. A File the caller cannot read answers as the File
+ * query answers (a native refusal throws).
+ */
+export async function checkSendFiles(call: LaneCall, events: readonly SendEvent[]): Promise<LaneError | undefined> {
+  for (const [index, event] of events.entries()) {
+    if (event.type !== "user.message") {
+      continue;
+    }
+    for (const file of event.files) {
+      if (file.block !== "image") {
+        continue;
+      }
+      const found = await call.clients.fileQuery.get(create(FileIdSchema, { value: file.fileId }), call.options);
+      if (!IMAGE_TYPES.has(found.spec?.mimeType ?? "")) {
+        return invalidRequest(
+          `events[${index}]: file ${file.fileId} is ${found.spec?.mimeType ?? "unknown"}, not an image: send it in a document block`,
+        );
+      }
+    }
+  }
+  return undefined;
+}
+
 /** Applies the checked events in order and answers the recorded ones; a native refusal throws. */
 export async function serveSend(
   call: LaneCall,
@@ -160,7 +237,7 @@ export async function serveSend(
 async function apply(call: LaneCall, event: SendEvent, now: () => number): Promise<SessionEvent> {
   switch (event.type) {
     case "user.message":
-      return startTurn(call, event.text, now);
+      return startTurn(call, event, now);
     case "user.tool_confirmation":
       return call.clients.sessionCommand.confirmToolUse(
         create(ConfirmToolUseInputSchema, {
@@ -189,13 +266,21 @@ async function apply(call: LaneCall, event: SendEvent, now: () => number): Promi
   }
 }
 
-async function startTurn(call: LaneCall, message: string, now: () => number): Promise<SessionEvent> {
+async function startTurn(
+  call: LaneCall,
+  message: Extract<SendEvent, { type: "user.message" }>,
+  now: () => number,
+): Promise<SessionEvent> {
   const run = await call.clients.runCommand.create(
     create(RunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Run",
       metadata: { name: `run-${now()}` },
-      spec: { target: { case: "sessionId", value: call.sessionId }, message },
+      spec: {
+        target: { case: "sessionId", value: call.sessionId },
+        message: message.text,
+        fileIds: message.files.map((file) => file.fileId),
+      },
     }),
     call.options,
   );

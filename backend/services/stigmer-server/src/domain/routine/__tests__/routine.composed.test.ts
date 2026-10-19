@@ -265,17 +265,17 @@ describe("create — the defaults resolver through the real chain", () => {
           ...input.spec,
           agent: {
             ...input.spec.agent,
-            workspaceEntries: [
-              { name: "repo", source: { source: { case: "gitRepo", value: { url: "https://github.com/acme/repo" } } } },
-              { name: "laptop", source: { source: { case: "localPath", value: { path: "/home/ana/src" } } } },
+            resources: [
+              { name: "repo", resource: { case: "gitRepository", value: { url: "https://github.com/acme/repo" } } },
+              { name: "laptop", resource: { case: "localPath", value: { path: "/home/ana/src" } } },
             ],
           },
         },
       }),
     );
     expect(err.code).toBe(Code.InvalidArgument);
-    expect(err.rawMessage).toBe(
-      "spec.agent.workspace_entries[1] must use a git_repo source — a routine's run has no connected client to serve a local_path",
+    expect(err.rawMessage).toContain(
+      "a routine's runs cannot use a folder on someone's machine: name a git repository or a File",
     );
   });
 

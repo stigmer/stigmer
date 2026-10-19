@@ -320,17 +320,15 @@ function sessionOf(init: {
     spec: {
       vaults: (init.vaults ?? []).map(vaultRef),
       includeMyVault: init.includeMyVault ?? true,
-      workspaceEntries:
+      resources:
         init.repo === undefined
           ? []
           : [
               {
                 name: "app",
-                source: {
-                  source: {
-                    case: "gitRepo",
-                    value: { url: init.repo.url, token: init.repo.token ?? "" },
-                  },
+                resource: {
+                  case: "gitRepository",
+                  value: { url: init.repo.url, token: init.repo.token ?? "" },
                 },
               },
             ],
@@ -1426,12 +1424,12 @@ describe("matching", () => {
   it("a repository's own token fills only the clone of that repository, not another host's repository of the same name", async () => {
     const repoEntry = (url: string, token: string) => ({
       name: "app",
-      source: { source: { case: "gitRepo" as const, value: { url, token } } },
+      resource: { case: "gitRepository" as const, value: { url, token } },
     });
     const twins = create(SessionSchema, {
       metadata: { id: "ses_resolve", org: ORG },
       spec: {
-        workspaceEntries: [
+        resources: [
           repoEntry("https://gitlab.example.com/acme/app", "gitlab-pat"),
           repoEntry("https://github.com/acme/app", ""),
         ],
@@ -2399,8 +2397,8 @@ describe("edges", () => {
       execution: runOf(),
       session: create(SessionSchema, {
         spec: {
-          workspaceEntries: [
-            { name: "folder", source: { source: { case: "localPath", value: { path: "/w" } } } },
+          resources: [
+            { name: "folder", resource: { case: "localPath", value: { path: "/w" } } },
           ],
         },
       }),
@@ -2730,13 +2728,13 @@ describe("a stored value the server cannot open", () => {
     const own = await cannot.secrets.encrypt("own-value", EncryptionScope.forOrganization(ORG));
     const entry = (name: string, url: string, token: string) => ({
       name,
-      source: { source: { case: "gitRepo" as const, value: { url, token } } },
+      resource: { case: "gitRepository" as const, value: { url, token } },
     });
     const session = await stored(
       create(SessionSchema, {
         metadata: { id: "ses_resolve", org: ORG },
         spec: {
-          workspaceEntries: [
+          resources: [
             entry("app", "https://github.com/acme/app", own),
             entry("mirror", "https://git.example.com/acme/app", cannot.stored),
           ],

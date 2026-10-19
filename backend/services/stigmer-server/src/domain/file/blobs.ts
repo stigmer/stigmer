@@ -100,6 +100,8 @@ export interface FileBlobs {
   removeFile(fileId: string): Promise<void>;
   /** A person's download link to a File's bytes, saved under `filename`. */
   downloadUrl(fileId: string, filename: string): Promise<FileDownloadLink>;
+  /** A runner's link to a File's bytes, for its mount; undefined when the File has no stored bytes. */
+  mountUrl(fileId: string): Promise<string | undefined>;
   /** Deletes a bounded batch of expired staged and orphaned blobs; returns how many went. */
   sweep(): Promise<number>;
   /** Deletes every remaining blob of an organization, bytes before rows (its purge). */
@@ -342,6 +344,23 @@ export function newFileBlobs(deps: FileBlobsDeps): FileBlobs {
         return { url, expiresAtMs };
       } catch (error) {
         throw internalError(error, "failed to sign a download link");
+      }
+    },
+
+    async mountUrl(fileId) {
+      let blobKey: string | undefined;
+      try {
+        blobKey = await store.files.blobKeyOf(fileId);
+      } catch (error) {
+        throw internalError(error, "failed to read the file's storage");
+      }
+      if (blobKey === undefined) {
+        return undefined;
+      }
+      try {
+        return await storage.getSignedUrl(blobKey, DOWNLOAD_URL_TTL_MS, "", "runner");
+      } catch (error) {
+        throw internalError(error, "failed to sign a link to the file");
       }
     },
 
