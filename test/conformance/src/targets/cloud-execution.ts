@@ -102,8 +102,8 @@ export class CloudExecutionTarget implements TargetProfile {
       proxy: { endpoint: this.mockLlm.url(), token: "conformance-cloud-bootstrap" },
       // Artifacts presign against the real service's HTTP port (MinIO-backed)
       // while LLM traffic stays on the mock — the presign-capable artifact
-      // lane (stigmer#803) that lets a conversation's Files be mounted
-      // against cloud. The runner authenticates presigns with its adopted
+      // lane (stigmer#803) that lets attachment materialization run against
+      // cloud. The runner authenticates presigns with its adopted
       // embedded_runner credential (the same lane production runners use).
       artifactProxy: { endpoint: requireCloudEnv(CLOUD_ENV.httpAddress) },
       logFile: join(RUNNER_LOG_DIR, `conformance-runner-${runnerLogLabel()}.log`),
