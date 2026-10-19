@@ -108,6 +108,18 @@ export interface RunnerScopedToken {
 }
 
 /**
+ * The credential a call bound to one execution presents, with how long it
+ * lives: `token` undefined means the ambient credential serves (an
+ * already-scoped runner credential, which renews on its own), and
+ * `expiresInSeconds` is set only for a clocked exchange token, which the
+ * holder must renew before it lapses. A run credential has no expiry.
+ */
+export interface ScopedRunnerCredential {
+  readonly token: string | undefined;
+  readonly expiresInSeconds?: number;
+}
+
+/**
  * Names the unit of dispatched work a scoped runner token should serve.
  * Exactly one id must be set — mirrors the proto oneof.
  *
@@ -430,16 +442,29 @@ export class StigmerClient {
   async acquireScopedRunnerToken(
     scope: RunnerScopedTokenScope,
   ): Promise<string | undefined> {
+    return (await this.acquireScopedRunnerCredential(scope)).token;
+  }
+
+  /**
+   * {@link acquireScopedRunnerToken}, with the token's lifetime: the same
+   * chain, for a holder that keeps the credential for a long turn and must
+   * renew a clocked exchange token before it lapses (the session event
+   * emitter, `harness/events/emitter.ts`; stigmer#2455). The exchange's
+   * token is minted for an hour; a run credential has no expiry.
+   */
+  async acquireScopedRunnerCredential(
+    scope: RunnerScopedTokenScope,
+  ): Promise<ScopedRunnerCredential> {
     const runCredential = currentRunCredential();
     if (runCredential !== undefined) {
-      return runCredential;
+      return { token: runCredential };
     }
     // Inspect the same credential chain the fetch's interceptor would use.
     const ambientTokenType = tokenTypeOf(
       this.runnerTokenRef?.current ?? this.tokenRef?.current ?? this.fixedToken,
     );
     if (ambientTokenType !== undefined && ambientTokenType !== TOKEN_TYPE_EMBEDDED_RUNNER) {
-      return undefined;
+      return { token: undefined };
     }
     const scopeDescription =
       "agentExecutionId" in scope
@@ -463,7 +488,7 @@ export class StigmerClient {
         "fetch the execution's values until the control plane mints scoped tokens.",
       );
     }
-    return scoped.token;
+    return { token: scoped.token, ...(scoped.expiresInSeconds !== undefined ? { expiresInSeconds: scoped.expiresInSeconds } : {}) };
   }
 
   /**

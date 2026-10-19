@@ -197,11 +197,11 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
   // resolution writes no event of the agent's; the one exception is what
   // the turn's start put back for earlier turns (`writeReconciled`), written
   // at once under the workspace lock. The append presents the credential the
-  // values fetch presents.
+  // values fetch presents, renewed before a clocked one lapses (#2455).
   const events = new SessionEventEmitter({
     client,
     runId: executionId,
-    credential: () => client.acquireScopedRunnerToken({ agentExecutionId: executionId }),
+    credential: () => client.acquireScopedRunnerCredential({ agentExecutionId: executionId }),
     boundaryRewritesRow: adapter.capabilities.boundaryRewritesRow,
   });
 

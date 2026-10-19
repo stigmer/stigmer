@@ -601,6 +601,84 @@ describe("what never stops a turn", () => {
     expect(ids(log)).toEqual(["root.m0"]);
   });
 
+  it("renews a clocked credential at 0.8 of its lifetime, so a turn past the hour keeps appending (#2455)", async () => {
+    const log = logDouble();
+    let now = 0;
+    let minted = 0;
+    const credential = vi.fn(async () => ({ token: `tok-${++minted}`, expiresInSeconds: 3600 }));
+    const e = emitter(log, { credential, now: () => now });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    const tokens = () => log.client.appendSessionEvents.mock.calls.map((call) => call[3]);
+
+    await e.flush(status({ messages: [{ type: AI, content: "one" }] }), { final: false });
+    now = 2_879_000;
+    await e.flush(status({ messages: [{ type: AI, content: "one" }, { type: AI, content: "two" }] }), { final: false });
+    expect(tokens(), "held while the token is young").toEqual(["tok-1", "tok-1"]);
+
+    now = 2_880_000;
+    await e.flush(status({ messages: [{ type: AI, content: "one" }, { type: AI, content: "two" }, { type: AI, content: "three" }] }), { final: false });
+    expect(tokens().at(-1), "renewed at 0.8 of the hour, before it lapses").toBe("tok-2");
+    expect(credential).toHaveBeenCalledTimes(2);
+    expect(ids(log)).toEqual(["root.m0", "root.m1", "root.m2"]);
+  });
+
+  it("holds a credential with no expiry for the whole turn", async () => {
+    const log = logDouble();
+    let now = 0;
+    const credential = vi.fn(async () => ({ token: "run-credential" }));
+    const e = emitter(log, { credential, now: () => now });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    await e.flush(status({ messages: [{ type: AI, content: "one" }] }), { final: false });
+    now = 10 * 3_600_000;
+    await e.flush(status({ messages: [{ type: AI, content: "one" }, { type: AI, content: "two" }] }), { final: true });
+    expect(credential).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-acquires once and retries the same write when an append is answered Unauthenticated", async () => {
+    const log = logDouble();
+    let minted = 0;
+    const credential = vi.fn(async () => ({ token: `tok-${++minted}`, expiresInSeconds: 3600 }));
+    const e = emitter(log, { credential });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    log.client.appendSessionEvents.mockRejectedValueOnce(new ConnectError("expired", Code.Unauthenticated));
+
+    await e.flush(status({ messages: [{ type: AI, content: "Kept." }] }), { final: false });
+
+    expect(log.client.appendSessionEvents.mock.calls.map((call) => call[3])).toEqual(["tok-1", "tok-2"]);
+    expect(ids(log), "the events landed on the retry, none lost").toEqual(["root.m0"]);
+  });
+
+  it("does not loop when a fresh credential is refused too: the events wait for the next write", async () => {
+    const log = logDouble();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const credential = vi.fn(async () => ({ token: "refused", expiresInSeconds: 3600 }));
+    const e = emitter(log, { credential });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    log.client.appendSessionEvents.mockRejectedValue(new ConnectError("expired", Code.Unauthenticated));
+
+    await e.flush(status({ messages: [{ type: AI, content: "Waits." }] }), { final: false });
+
+    expect(credential).toHaveBeenCalledTimes(2);
+    expect(log.client.appendSessionEvents.mock.calls.length, "one renewal, then the usual retries").toBe(4);
+    expect(ids(log)).toEqual([]);
+    warn.mockRestore();
+  });
+
+  it("drops a credential a preview flush was refused with, so the next append acquires a fresh one", async () => {
+    const log = logDouble();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let minted = 0;
+    const credential = vi.fn(async () => ({ token: `tok-${++minted}`, expiresInSeconds: 3600 }));
+    const e = emitter(log, { credential });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    e.observe({ kind: "tool_output_delta", callId: "sh", delta: "line" });
+    log.client.appendSessionEvents.mockRejectedValueOnce(new ConnectError("expired", Code.Unauthenticated));
+    await e.flushToolOutput();
+    await e.flush(status({ messages: [{ type: AI, content: "Next." }] }), { final: false });
+    expect(log.client.appendSessionEvents.mock.calls.map((call) => call[3])).toEqual(["tok-1", "tok-2"]);
+    warn.mockRestore();
+  });
+
   it("waits between transient retries by default", async () => {
     const log = logDouble();
     const e = new SessionEventEmitter({ client: log.client, runId: RUN, credential: async () => undefined });

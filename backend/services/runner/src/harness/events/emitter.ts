@@ -74,6 +74,15 @@
  * output would otherwise reach the session only after the result, when it
  * is dropped.
  *
+ * Its credential. The append presents the credential the values fetch
+ * acquires, and renews a clocked one at 0.8 of its lifetime: a turn without
+ * a run credential holds an exchange token minted for an hour, and before
+ * #2455 a turn longer than that went on appending with it, every append
+ * refused `Unauthenticated` from the hour on, and lost its events at the
+ * end. An append answered `Unauthenticated` re-acquires once and retries
+ * within the same write (a clock skew, a server restarted with a new key).
+ * A run credential has no expiry and is held for the turn.
+ *
  * Failure. A transient append failure is retried; if it still fails the
  * events stay queued for the next write, whose status write goes ahead
  * (STOP and the heartbeat ride it). A refusal is a runner defect: the batch
@@ -94,7 +103,7 @@ import type { CapturedFileChange } from "@stigmer/apis/ai/stigmer/agentic/run/v1
 import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { SessionEventPreviewSchema, type SessionEventPreview } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
-import type { StigmerClient } from "../../client/stigmer-client.js";
+import type { ScopedRunnerCredential, StigmerClient } from "../../client/stigmer-client.js";
 import type { ReconciledUndo } from "../owed-undos.js";
 import { elideToEncodedSize } from "../../shared/status-offload.js";
 import { isToolCallRowHidden } from "../../shared/tool-row.js";
@@ -147,11 +156,24 @@ const REFUSAL_CODES: ReadonlySet<Code> = new Set([
   Code.Unimplemented,
 ]);
 
+/** Fraction of a clocked credential's lifetime after which the emitter renews it (the runner token coordinator's). */
+const CREDENTIAL_RENEW_FRACTION = 0.8;
+
+/** Floor on the renewal delay, so a tiny lifetime cannot turn every append into an exchange. */
+const CREDENTIAL_MIN_RENEW_MS = 5_000;
+
 export interface SessionEventEmitterDeps {
   readonly client: Pick<StigmerClient, "appendSessionEvents" | "listRunSessionEvents">;
   readonly runId: string;
-  /** The credential the append presents, as the values fetch acquires it; read once, at the first append. */
-  readonly credential: () => Promise<string | undefined>;
+  /**
+   * The credential the append presents, as the values fetch acquires it
+   * (`StigmerClient.acquireScopedRunnerCredential`); acquired at the first
+   * append and again before a clocked one lapses. Undefined, or an
+   * undefined token, appends with the ambient credential.
+   */
+  readonly credential: () => Promise<ScopedRunnerCredential | undefined>;
+  /** `Date.now` in production; tests drive a clock across an expiry. */
+  readonly now?: () => number;
   /** The harness's `boundaryRewritesRow` capability; absent when its boundary never rewrites a row. */
   readonly boundaryRewritesRow?: (row: ToolCall) => boolean;
   /** Waits between transient retries; the tests pass an immediate one. */
@@ -254,7 +276,9 @@ export class SessionEventEmitter {
   private readonly frontiers = new Map<string, Frontier>();
   /** The sub-agent threads of the write being read, by sub-agent id. */
   private threads = new Map<string, Thread>();
-  private token: Promise<string | undefined> | undefined;
+  /** The credential in hand, and when to renew it (`undefined`: never, it has no expiry). */
+  private held: { readonly token: string | undefined; readonly renewAtMs: number | undefined } | undefined;
+  private acquiring: Promise<string | undefined> | undefined;
   private lost = 0;
 
   constructor(private readonly deps: SessionEventEmitterDeps) {}
@@ -342,6 +366,7 @@ export class SessionEventEmitter {
     try {
       await this.deps.client.appendSessionEvents(this.deps.runId, [], previews, await this.credential());
     } catch (err) {
+      if (err instanceof ConnectError && err.code === Code.Unauthenticated) this.dropCredential();
       console.warn(`[session-events] run=${this.deps.runId}: sending ${previews.length} tool-output preview(s) failed; not resent: ${String(err)}`);
     }
   }
@@ -743,18 +768,43 @@ export class SessionEventEmitter {
 
   // ── Appending ─────────────────────────────────────────────────────────────
 
-  /** The credential every append presents, acquired once. */
+  /** The credential every append presents: the one in hand, or a fresh one once it is due for renewal (the module header). */
   private credential(): Promise<string | undefined> {
-    this.token ??= this.deps.credential().catch((err: unknown) => {
-      console.warn(`[session-events] run=${this.deps.runId}: no scoped credential; appending with the ambient one: ${String(err)}`);
-      return undefined;
-    });
-    return this.token;
+    const now = (this.deps.now ?? Date.now)();
+    if (this.held !== undefined && (this.held.renewAtMs === undefined || now < this.held.renewAtMs)) {
+      return Promise.resolve(this.held.token);
+    }
+    this.acquiring ??= this.deps
+      .credential()
+      .then((credential) => {
+        const lifetime = credential?.expiresInSeconds;
+        const renewAtMs =
+          lifetime === undefined || lifetime <= 0
+            ? undefined
+            : now + Math.max(lifetime * 1000 * CREDENTIAL_RENEW_FRACTION, CREDENTIAL_MIN_RENEW_MS);
+        this.held = { token: credential?.token, renewAtMs };
+        return credential?.token;
+      })
+      .catch((err: unknown) => {
+        console.warn(`[session-events] run=${this.deps.runId}: no scoped credential; appending with the ambient one: ${String(err)}`);
+        this.held = { token: undefined, renewAtMs: undefined };
+        return undefined;
+      })
+      .finally(() => {
+        this.acquiring = undefined;
+      });
+    return this.acquiring;
+  }
+
+  /** Drop the credential in hand: the log refused it, so the next append acquires a fresh one. */
+  private dropCredential(): void {
+    this.held = undefined;
   }
 
   private async append(previews: SessionEventPreview[], final: boolean): Promise<void> {
     const delay = this.deps.delay ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
-    const token = await this.credential();
+    let token = await this.credential();
+    let renewed = false;
     const batches = this.batches();
     if (batches.length === 0) batches.push([]);
     for (let b = 0; b < batches.length; b++) {
@@ -768,6 +818,15 @@ export class SessionEventEmitter {
           outcome = "sent";
           break;
         } catch (err) {
+          if (err instanceof ConnectError && err.code === Code.Unauthenticated && !renewed) {
+            // The credential lapsed or the server no longer knows its key:
+            // a fresh one, once, and the same attempt again.
+            renewed = true;
+            this.dropCredential();
+            token = await this.credential();
+            attempt -= 1;
+            continue;
+          }
           if (err instanceof ConnectError && REFUSAL_CODES.has(err.code)) {
             console.error(
               `[session-events] run=${this.deps.runId}: the log refused ${batch.length} event(s), dropped: ` +

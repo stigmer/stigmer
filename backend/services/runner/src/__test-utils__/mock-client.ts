@@ -25,6 +25,7 @@ export function mockStigmerClient(overrides: MockMethods = {}): StigmerClient {
     mountRunFiles: vi.fn().mockResolvedValue([]),
     // No scoped token by default — the OSS/local shape (no runner credential).
     acquireScopedRunnerToken: vi.fn().mockResolvedValue(undefined),
+    acquireScopedRunnerCredential: vi.fn().mockResolvedValue({ token: undefined }),
     getRunnerScopedToken: vi.fn().mockResolvedValue(undefined),
     getSession: vi.fn().mockResolvedValue({}),
     bindHarnessState: vi.fn().mockResolvedValue({}),
