@@ -10,7 +10,10 @@
  *     refused before any is copied;
  *   - two Files sharing a filename are mounted `name` and `name-2`; a
  *     writer's own mount path is normalized and kept, and two writers'
- *     paths that clash are refused;
+ *     paths that clash, or put a File where another needs a folder, are
+ *     refused; a path with a control character, a name over 255 bytes or
+ *     over 1024 bytes in all is refused, and a derived name is renamed past
+ *     a folder and cut to fit;
  *   - a File of another organization is refused; a repository or folder
  *     name given twice is refused, as is a File named twice;
  *   - an update that keeps the Files makes no new copy, and one that adds a
@@ -46,7 +49,7 @@ import type { ComposedServer } from "../../../boot/compose.js";
 import { baseConfig, silentLogger, transportFor } from "../../../extensions/__tests__/composed-support.js";
 import { errorOf } from "../../../pipeline/__tests__/support.js";
 import { organizationId, seedOrganizations } from "../../organization/__tests__/support.js";
-import { normalizeMountPath, uniquifyMountPath } from "../session-resources.js";
+import { MAX_MOUNT_NAME_BYTES, mountPathConflict, normalizeMountPath, uniquifyMountPath } from "../session-resources.js";
 
 const ORG = "res-acme";
 const OTHER_ORG = "res-globex";
@@ -144,6 +147,10 @@ describe("a conversation's Files", () => {
     const clash = await errorOf(() => newSession([fileEntry(first, "a.txt"), fileEntry(second, "a.txt")]));
     expect(clash.code).toBe(Code.InvalidArgument);
     expect(clash.rawMessage).toContain("two files are mounted at 'a.txt'");
+
+    const folder = await errorOf(() => newSession([fileEntry(first, "data"), fileEntry(second, "data/a.csv")]));
+    expect(folder.code).toBe(Code.InvalidArgument);
+    expect(folder.rawMessage).toContain("one is a file where the other needs a folder");
   });
 
   it("refuses another organization's File, a repository named twice, and a File named twice", async () => {
@@ -236,6 +243,32 @@ describe("mount paths", () => {
     expect(normalizeMountPath("./a//b/./c.txt")).toBe("a/b/c.txt");
     expect(() => normalizeMountPath("a/../../b")).toThrow("does not name a file");
     expect(() => normalizeMountPath(".")).toThrow("does not name a file");
+  });
+
+  it("refuses a control character, a name over 255 bytes and a path over 1024 bytes", () => {
+    expect(() => normalizeMountPath("a\u0000b")).toThrow("no control characters");
+    expect(() => normalizeMountPath(`${"é".repeat(128)}.txt`)).toThrow("at most 255 bytes");
+    expect(() => normalizeMountPath(Array.from({ length: 6 }, () => "d".repeat(200)).join("/"))).toThrow("at most 1024 bytes");
+    expect(normalizeMountPath(`${"a".repeat(251)}.txt`)).toHaveLength(255);
+  });
+
+  it("finds a File where a folder is needed, and a folder where a File is", () => {
+    expect(mountPathConflict("data", new Set(["data/a.csv"]))).toBe("data/a.csv");
+    expect(mountPathConflict("data/a.csv", new Set(["data"]))).toBe("data");
+    expect(mountPathConflict("data.csv", new Set(["data/a.csv", "data"]))).toBeUndefined();
+  });
+
+  it("renames a derived name past a folder it would sit on, and cuts it to fit a name", () => {
+    expect(uniquifyMountPath("data", new Set(["data/a.csv"]))).toBe("data-2");
+    const long = `${"a".repeat(251)}.txt`;
+    const renamed = uniquifyMountPath(long, new Set([long]));
+    expect(renamed.endsWith("-2.txt")).toBe(true);
+    expect(Buffer.byteLength(renamed)).toBeLessThanOrEqual(MAX_MOUNT_NAME_BYTES);
+    const wide = `${"é".repeat(200)}.png`;
+    expect(Buffer.byteLength(uniquifyMountPath(wide, new Set()))).toBeLessThanOrEqual(MAX_MOUNT_NAME_BYTES);
+    const noExtension = "x".repeat(300);
+    expect(Buffer.byteLength(uniquifyMountPath(noExtension, new Set()))).toBe(MAX_MOUNT_NAME_BYTES);
+    expect(() => uniquifyMountPath("q3/ledger", new Set(["q3"]))).toThrow("'q3' is a file");
   });
 
   it("renames a derived name stem-2.ext, keeping a hidden file's leading dot and the folder", () => {

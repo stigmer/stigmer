@@ -8,7 +8,8 @@
  *
  * The load-bearing pins the conformance suite does NOT own:
  *   - the create refusals an unattended run needs: a resource that is a
- *     local folder, a Cursor routine with no pinned model, and
+ *     local folder, a File that does not exist (domain/file/routine-files.ts
+ *     owns the File checks), a Cursor routine with no pinned model, and
  *     a pin the model registry does not know;
  *   - status preservation across apply-as-update (the auto-pause can never
  *     be clobbered declaratively) and the update graft's status honesty;
@@ -277,6 +278,23 @@ describe("create — the defaults resolver through the real chain", () => {
     expect(err.rawMessage).toContain(
       "a routine's runs cannot use a folder on someone's machine: name a git repository or a File",
     );
+  });
+
+  it("refuses naming a File that does not exist", async () => {
+    const input = routineInput({ name: "Unknown file" });
+    const err = await refusal(() =>
+      command.create({
+        ...input,
+        spec: {
+          ...input.spec,
+          agent: {
+            ...input.spec.agent,
+            resources: [{ resource: { case: "file", value: { fileId: "file_01nosuchfilenosuchfilenos" } } }],
+          },
+        },
+      }),
+    );
+    expect(err.code).toBe(Code.NotFound);
   });
 
   it("refuses a Cursor routine that pins no model", async () => {

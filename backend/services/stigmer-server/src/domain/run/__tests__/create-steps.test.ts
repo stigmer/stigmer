@@ -68,6 +68,7 @@ import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
+import { SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
 import {
   ExecutionTarget,
@@ -264,6 +265,23 @@ describe("the built-in assistant (no session and no session_spec named)", () => 
     const created = sessions.created();
     expect(created?.spec?.agentRef).toBeUndefined();
     expect(created?.spec?.plugins.map((ref) => ref.slug)).toEqual(["github"]);
+  });
+
+  it("createSessionIfNeeded forwards a session_spec's Files and repositories to the session create, which copies each File", async () => {
+    const sessions = recordingSessionCreator("ses_with_files");
+    const step = newCreateSessionIfNeededStep({
+      ...noRunConfigReads,
+      logger: silentLogger,
+      sessionCreator: sessions.creator,
+    });
+    const execution = newExecution("");
+    const resources = [
+      create(SessionResourceSchema, { resource: { case: "file", value: { fileId: "file_01ledger", mountPath: "q3/ledger.xlsx" } } }),
+      create(SessionResourceSchema, { name: "app", resource: { case: "gitRepository", value: { url: "https://github.com/acme/app" } } }),
+    ];
+    execution.spec!.target = { case: "sessionSpec", value: create(SessionSpecSchema, { resources }) };
+    await step.execute(newContext(execution));
+    expect(sessions.created()?.spec?.resources).toEqual(resources);
   });
 });
 
