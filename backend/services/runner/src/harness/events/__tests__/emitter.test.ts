@@ -648,6 +648,49 @@ describe("what never stops a turn", () => {
     expect(ids(log), "the events landed on the retry, none lost").toEqual(["root.m0"]);
   });
 
+  it("keeps the credential in hand when its renewal fails, and tries again a minute later", async () => {
+    const log = logDouble();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let now = 0;
+    const answers: Array<() => Promise<{ token: string; expiresInSeconds: number }>> = [
+      async () => ({ token: "tok-1", expiresInSeconds: 3600 }),
+      async () => { throw new Error("exchange unavailable"); },
+      async () => ({ token: "tok-2", expiresInSeconds: 3600 }),
+    ];
+    const credential = vi.fn(() => answers.shift()!());
+    const e = emitter(log, { credential, now: () => now });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    const rowsOf = (n: number) => status({ messages: Array.from({ length: n }, (_, i) => ({ type: AI, content: `m${i}` })) });
+
+    await e.flush(rowsOf(1), { final: false });
+    now = 2_880_000;
+    await e.flush(rowsOf(2), { final: false });
+    now = 2_880_000 + 59_000;
+    await e.flush(rowsOf(3), { final: false });
+    now = 2_880_000 + 60_000;
+    await e.flush(rowsOf(4), { final: false });
+
+    expect(log.client.appendSessionEvents.mock.calls.map((call) => call[3]), "never the ambient credential once a scoped one was held").toEqual(["tok-1", "tok-1", "tok-1", "tok-2"]);
+    expect(credential).toHaveBeenCalledTimes(3);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("renewing the scoped credential failed; keeping the one in hand"));
+    expect(ids(log)).toEqual(["root.m0", "root.m1", "root.m2", "root.m3"]);
+    warn.mockRestore();
+  });
+
+  it("re-acquires once on PermissionDenied too, the trusted-local posture's answer to a credential it no longer admits", async () => {
+    const log = logDouble();
+    let minted = 0;
+    const credential = vi.fn(async () => ({ token: `tok-${++minted}`, expiresInSeconds: 3600 }));
+    const e = emitter(log, { credential });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    log.client.appendSessionEvents.mockRejectedValueOnce(new ConnectError("not this run's runner", Code.PermissionDenied));
+
+    await e.flush(status({ messages: [{ type: AI, content: "Kept." }] }), { final: false });
+
+    expect(log.client.appendSessionEvents.mock.calls.map((call) => call[3])).toEqual(["tok-1", "tok-2"]);
+    expect(ids(log)).toEqual(["root.m0"]);
+  });
+
   it("does not loop when a fresh credential is refused too: the events wait for the next write", async () => {
     const log = logDouble();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
