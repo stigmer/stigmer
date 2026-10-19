@@ -2,6 +2,6 @@
   "phase": "RUN_FAILED",
   "error": "[StallTimeoutError] Agent stream stalled: no activity for 3s (last tool: shell). Retry or resume.",
   "startedAt": "2026-01-01T00:00:00.000Z",
-  "completedAt": "2026-01-01T00:00:06.000Z",
+  "completedAt": "2026-01-01T00:00:07.000Z",
   "stopCause": "timeout"
 }

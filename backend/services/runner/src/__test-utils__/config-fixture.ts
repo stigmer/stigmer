@@ -27,6 +27,7 @@ import type { Config } from "../config.js";
 import {
   DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
   DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,
+  DEFAULT_OPEN_OPERATION_MAX_MS,
   DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
 } from "../config.js";
 
@@ -58,6 +59,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     artifactProxyEndpoint: null,
     primaryModel: "test-model",
     cursorStreamStallTimeoutMs: DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,
+    openOperationMaxMs: DEFAULT_OPEN_OPERATION_MAX_MS,
     agentResolveTimeoutMs: DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
     workspaceLockTimeoutMs: DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
     ...overrides,

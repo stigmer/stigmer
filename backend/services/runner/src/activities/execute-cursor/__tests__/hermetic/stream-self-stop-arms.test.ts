@@ -20,7 +20,9 @@
  *
  * How each is triggered without a timer or a sleep:
  *  - STALL: the stall watchdog measures idle time with `Date.now()`, which the
- *    scripted clock fakes and only the script advances. An `effect` step ticks
+ *    scripted clock fakes and only the script advances. The wedge is a stream
+ *    that goes silent with nothing open (a shell that is still running holds
+ *    the watchdog: `harness/open-operations.ts`). An `effect` step ticks
  *    the clock past the stall window, then awaits the watchdog's own
  *    `run.cancel()` (the run's status flips to `cancelled`). The watchdog's
  *    poll interval is real (stallMs / 4), so the wait is sub-second and the
@@ -140,9 +142,12 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
         [
           step.event(ev.init()),
           step.event(ev.assistant("Running the suite.")),
-          // A tool call that never returns: the shape of a real wedge, and the
-          // detail the stall copy carries (`last tool: shell`).
+          // A tool call that finishes, then a stream that says nothing more
+          // with nothing open: the shape of a real wedge (a model connection
+          // that silently died), and the detail the stall copy carries
+          // (`last tool: shell`). A call still running would hold the window.
           step.event(ev.toolCall("call-hermetic-stall-0001", "shell", "running", { command: "npm test" })),
+          step.event(ev.toolCall("call-hermetic-stall-0001", "shell", "completed", { command: "npm test" }, "12 passing")),
           step.effect("the stream goes silent past the stall window", async ({ run }) => {
             const cancelled = untilCancelled(run);
             clock.tick(STALL_TIMEOUT_MS);

@@ -20,5 +20,18 @@
       },
       "name": "shell"
     }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "agent_tool_result": {
+      "id": "aex_hermetic_0001.call-hermetic-stall-0001.r",
+      "tool_use_id": "aex_hermetic_0001.call-hermetic-stall-0001",
+      "content": [
+        {
+          "type": "text",
+          "text": "12 passing"
+        }
+      ]
+    }
   }
 ]

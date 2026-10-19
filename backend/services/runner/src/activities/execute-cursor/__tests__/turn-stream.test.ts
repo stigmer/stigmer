@@ -150,6 +150,44 @@ describe("consumeCursorTurnStream", () => {
     expect(row.completedAt, "stamped at the delta's observed instant").not.toBe("");
   });
 
+  it("applies a running command's output the moment it arrives while the loop waits for the next event, and holds a completion for the stream's own", async () => {
+    const { deps, sink, state } = buildDeps();
+    const onDelta = makeCursorTurnOnDelta(deps);
+    const seen: Array<{ readonly result: string; readonly status: ToolCallStatus }> = [];
+    const live: StreamableRun = {
+      stream: async function* () {
+        yield sdk.toolCall("sh-1", "shell", "running", { command: "make" });
+        expect(state.awaitingEvent, "the loop is waiting for the next event").toBe(true);
+        onDelta({ update: { type: "shell-output-delta", event: { callId: "sh-1", type: "stdout", data: "compiling 1\n" } } });
+        seen.push({ result: rows(sink)[0].result, status: rows(sink)[0].status });
+        onDelta({ update: { type: "tool-call-completed", callId: "sh-1", modelCallId: "m", toolCall: { type: "shell", args: { command: "make" }, result: { status: "success", value: { exitCode: 0, signal: "", stdout: "compiling 1\n", stderr: "", executionTime: 1 } } } } });
+        onDelta({ update: { type: "shell-output-delta", event: { callId: "sh-1", type: "stdout", data: "late\n" } } });
+        seen.push({ result: rows(sink)[0].result, status: rows(sink)[0].status });
+        yield sdk.assistant("Built.");
+      },
+      supports: () => true,
+      cancel: async () => {},
+    };
+
+    await consumeCursorTurnStream(live, deps);
+
+    expect(seen[0], "the line reached the row while the command ran").toEqual({ result: "compiling 1\n", status: ToolCallStatus.TOOL_CALL_RUNNING });
+    expect(seen[1], "with a completion queued, nothing more is applied until the stream's event").toEqual({ result: "compiling 1\n", status: ToolCallStatus.TOOL_CALL_RUNNING });
+    expect(rows(sink)[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(state.awaitingEvent, "the flag is down once the stream has ended").toBe(false);
+  });
+
+  it("queues a running command's output while the loop handles an event (a persist may be in flight)", () => {
+    const { deps, sink, state } = buildDeps();
+    const onDelta = makeCursorTurnOnDelta(deps);
+    sink.transcript.apply({ kind: "tool_started", callId: "sh-1", name: "shell", input: { command: "make" }, mcpServerSlug: "" });
+    deps.translator.translate(sdk.toolCall("sh-1", "shell", "running", { command: "make" }));
+    expect(state.awaitingEvent).toBe(false);
+    onDelta({ update: { type: "shell-output-delta", event: { callId: "sh-1", type: "stdout", data: "compiling 1\n" } } });
+    expect(rows(sink)[0].result).toBe("");
+    expect(deps.translator.drainDeltas()).toEqual([{ kind: "tool_output_delta", callId: "sh-1", delta: "compiling 1\n" }]);
+  });
+
   it("reports progress per event, naming the tool of a tool_call event (the stall copy's `last tool`)", async () => {
     const { deps, sink } = buildDeps();
 

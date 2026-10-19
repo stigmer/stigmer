@@ -113,9 +113,7 @@ describe("ExecuteDeepAgent hermetic — the harness contract kit against the rea
     failureSurfaces: ["internal"],
     engineCancel: false,
     knownGaps: {
-      "silent-operation": "stigmer/stigmer#2414",
       "streamed-output": "stigmer/stigmer#2415",
-      "subagent-operation": "stigmer/stigmer#2416",
       "no-resent-task": "stigmer/stigmer#2417",
     },
     stopOrphans: isNativeStopOrphan,

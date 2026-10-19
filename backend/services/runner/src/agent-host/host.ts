@@ -31,6 +31,7 @@
 
 import { harnessRowFor, type HarnessRow } from "../harness/registry.js";
 import type { Config } from "../config.js";
+import { DEFAULT_OPEN_OPERATION_MAX_MS } from "../harness/open-operations.js";
 import type { TurnOutcome } from "../harness/types.js";
 import { runWithExecutionContext } from "../shared/execution-context.js";
 import { withTraceparent } from "../shared/trace-context.js";
@@ -190,6 +191,9 @@ function hostConfig(wire: HostConfigWire): Config {
     artifactProxyEndpoint: null,
     primaryModel: wire.primaryModel,
     cursorStreamStallTimeoutMs: wire.cursorStreamStallTimeoutMs,
+    // The backstop is the turn runtime's, which runs in the runner, never
+    // here: the host reads it nowhere, so it does not cross the wire.
+    openOperationMaxMs: DEFAULT_OPEN_OPERATION_MAX_MS,
     agentResolveTimeoutMs: wire.agentResolveTimeoutMs,
     workspaceLockTimeoutMs: wire.workspaceLockTimeoutMs,
   };

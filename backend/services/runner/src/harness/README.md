@@ -33,7 +33,7 @@ pinned somewhere. Read a row across before searching for anything.
   `TurnOutcome`, and what was deliberately left off it.
 - `harness/capabilities.ts` — the flags the runtime branches on instead of
   harness names (`HarnessCapabilities`, `PausePrimitive`, `StateIdSource`,
-  `boundaryRewritesRow`), the harness matrix the contract was designed against,
+  `boundaryRewritesRow`, `SubAgentProgress`), the harness matrix the contract was designed against,
   and which values a real adapter stands behind.
 - `__test-utils__/harness-contract/scripted-adapter.ts` — the template: every
   rule of the contract as the smallest code that obeys it, with the reason
@@ -51,6 +51,14 @@ pinned somewhere. Read a row across before searching for anything.
   builder's events into the `turn_phases` timing line every harness gets for
   free: first visible token, model rounds, tool and sub-agent spans, the longest
   silence.
+- `harness/open-operations.ts` — `OpenOperations`, the runtime's fold over the
+  same events into what is running right now: it holds the stall watchdog while
+  a tool call or a delegated task is open, so a silent build is not a stall, and
+  names the oldest open call for the backstop. An adapter supplies one fact,
+  when its engine reports a sub-agent's work (`subAgentProgress`).
+- `harness/preview-pump.ts` — `PreviewPump`, which sends a running tool's output
+  to the session between writes, on the streaming floor, through the persist
+  chokepoint's single flight.
 - `harness/events/emitter.ts` — `SessionEventEmitter`, which writes what the
   agent did into the session's event log from the rows every persist carries,
   sealed facts only, each thread in order; `harness/events/ids.ts` derives every

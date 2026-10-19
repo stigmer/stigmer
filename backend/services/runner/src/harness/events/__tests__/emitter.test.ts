@@ -454,6 +454,55 @@ describe("previews", () => {
     expect(preview.case === "stigmerToolOutputDelta" && [preview.value.toolUseId, preview.value.delta]).toEqual([`${RUN}.sh`, "12 passing"]);
   });
 
+  it("sends a running tool's output between writes, alone: no event, and text previews wait for the write that reads their rows", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    const st = status({ messages: [{ type: AI, content: "Running.", isStreaming: true }] });
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    expect(e.toolOutputPending).toBe(false);
+    e.observe({ kind: "text_delta", runId: "r1", text: "Running." }, { messageIndex: 0 });
+    e.observe({ kind: "tool_output_delta", callId: "sh", delta: "compiling 1\n" });
+    expect(e.toolOutputPending).toBe(true);
+
+    await e.flushToolOutput();
+    expect(e.toolOutputPending).toBe(false);
+    expect(log.client.appendSessionEvents).toHaveBeenCalledTimes(1);
+    expect(log.client.appendSessionEvents.mock.calls[0]![1], "a preview flush carries no event").toEqual([]);
+    expect(log.previews.map((p) => p.preview.case)).toEqual(["stigmerToolOutputDelta"]);
+
+    await e.flush(st, { final: false });
+    expect(log.previews.map((p) => p.preview.case), "the text preview rode the write").toEqual(["stigmerToolOutputDelta", "eventStart", "eventDelta"]);
+  });
+
+  it("sends nothing between writes before it begins, for a call whose result is written, or for no output", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    e.observe({ kind: "tool_output_delta", callId: "sh", delta: "early" });
+    await e.flushToolOutput();
+    expect(log.client.appendSessionEvents).not.toHaveBeenCalled();
+
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    await e.flush(status({ messages: [{ type: AI, content: "Ran.", toolCalls: [row("sh", { name: "shell" })] }] }), { final: false });
+    const calls = log.client.appendSessionEvents.mock.calls.length;
+    e.observe({ kind: "tool_output_delta", callId: "sh", delta: "late" });
+    await e.flushToolOutput();
+    await e.flushToolOutput();
+    expect(log.client.appendSessionEvents.mock.calls.length, "the result is in the log, where the output is whole").toBe(calls);
+  });
+
+  it("logs a failed preview flush and does not resend it", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const log = logDouble();
+    const e = emitter(log);
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    e.observe({ kind: "tool_output_delta", callId: "sh", delta: "lost" });
+    log.answers.push("fail");
+    await e.flushToolOutput();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("tool-output preview(s) failed"));
+    expect(e.toolOutputPending).toBe(false);
+    warn.mockRestore();
+  });
+
   it("the terminal write sends no preview", async () => {
     const log = logDouble();
     const e = emitter(log);

@@ -109,7 +109,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
   describeHarnessRuntimeContract(harness, {
     subagentOperation: false,
     compaction: false,
-    knownGaps: { "silent-operation": "stigmer/stigmer#2414", "streamed-output": "stigmer/stigmer#2415", "no-resent-task": "stigmer/stigmer#2417" },
+    knownGaps: { "no-resent-task": "stigmer/stigmer#2417" },
   });
 
   describe("the fake's own facts", () => {

@@ -1,10 +1,15 @@
+/**
+ * The stall watchdog's timer: it fires once after a window with no activity,
+ * activity resets it, it stays quiet while the runtime says the turn is busy
+ * (`held`), and it runs the runtime's per-poll check (`onTick`) on its own
+ * cadence. Pinned on fake timers, so a window of minutes runs in no time.
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   startStallWatchdog,
   StallTimeoutError,
   formatStallFailure,
   STALL_ERROR_PREFIX,
-  DEFAULT_STALL_TIMEOUT_MS,
 } from "../stall-watchdog.js";
 
 describe("startStallWatchdog", () => {
@@ -79,6 +84,45 @@ describe("startStallWatchdog", () => {
   });
 });
 
+describe("startStallWatchdog with the runtime's options", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("does not fire while held, however long, and counts the window again from the last held poll", () => {
+    const onStall = vi.fn();
+    let busy = true;
+    const wd = startStallWatchdog(60_000, onStall, { held: () => busy });
+
+    vi.advanceTimersByTime(10 * 60_000);
+    expect(onStall).not.toHaveBeenCalled();
+
+    busy = false;
+    vi.advanceTimersByTime(45_000);
+    expect(onStall).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(30_000);
+    expect(onStall).toHaveBeenCalledTimes(1);
+    wd.stop();
+  });
+
+  it("runs onTick on every poll before the idle check, and onTick's stop wins over a stall", () => {
+    const onStall = vi.fn();
+    const ticks: number[] = [];
+    let wd: ReturnType<typeof startStallWatchdog> | undefined;
+    wd = startStallWatchdog(60_000, onStall, {
+      onTick: () => {
+        ticks.push(Date.now());
+        if (ticks.length === 4) wd?.stop();
+      },
+    });
+
+    vi.advanceTimersByTime(15_000 * 3);
+    expect(ticks).toHaveLength(3);
+    vi.advanceTimersByTime(15_000 * 4);
+    expect(ticks, "a stopped watchdog runs no more ticks").toHaveLength(4);
+    expect(onStall, "the fourth poll reached the window, but onTick stopped it first").not.toHaveBeenCalled();
+  });
+});
+
 describe("StallTimeoutError", () => {
   it("builds a readable message from the idle duration", () => {
     const err = new StallTimeoutError(120_000);
@@ -101,12 +145,6 @@ describe("formatStallFailure", () => {
     expect(msg).toContain("180s");
     expect(msg).toContain("last tool: browser_capture");
     expect(msg).toContain("Retry or resume.");
-  });
-});
-
-describe("DEFAULT_STALL_TIMEOUT_MS", () => {
-  it("matches the canonical 120s default", () => {
-    expect(DEFAULT_STALL_TIMEOUT_MS).toBe(120_000);
   });
 });
 

@@ -48,11 +48,11 @@ import { homedir, tmpdir } from "node:os";
 /**
  * Default no-progress bound for every harness's engine stream (ms); named for
  * the Cursor harness, its first user, and armed by the turn runtime for every
- * engine since #1070. Larger than the shared DEFAULT_STALL_TIMEOUT_MS (120s)
- * because opaque MCP / GUI tool calls can run for minutes while emitting no
- * stream activity. Single source of truth
- * for env-loaded ({@link loadConfig}) and options-mapped (runner / manager)
- * config so the three construction sites never drift.
+ * engine since #1070. It bounds a turn with nothing open and nothing
+ * arriving: an open operation holds the window (`harness/open-operations.ts`).
+ * Single source of truth for env-loaded ({@link loadConfig}) and
+ * options-mapped (runner / manager) config so the three construction sites
+ * never drift.
  */
 export const DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS = 180_000;
 
@@ -72,6 +72,9 @@ export const DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS = 120_000;
 // three construction sites — mirrors DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS).
 export { DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./shared/workspace/workspace-lock.js";
 import { DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./shared/workspace/workspace-lock.js";
+// The same for the open-operation backstop, whose owner is the turn runtime.
+export { DEFAULT_OPEN_OPERATION_MAX_MS } from "./harness/open-operations.js";
+import { DEFAULT_OPEN_OPERATION_MAX_MS } from "./harness/open-operations.js";
 import { getRunnerSecret } from "./shared/runner-credential-store.js";
 import { loadTemporalConnectionConfig } from "@stigmer/temporal-codecs";
 import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
@@ -160,20 +163,27 @@ export interface Config {
   readonly primaryModel: string;
   /**
    * No-progress bound for every harness's engine stream (milliseconds); the
-   * name is the Cursor harness's, its first user. The roots set it from the
-   * `cursorStreamStallTimeoutMs` option; `loadConfig` also reads
-   * CURSOR_STREAM_STALL_TIMEOUT_MS, which no boot path in `main.ts` forwards
-   * yet (stigmer/stigmer#1731). If the engine reports no activity for this
-   * long, the turn runtime's stall watchdog (harness/run-turn.ts over
+   * name is the Cursor harness's, its first user. `loadConfig` reads
+   * CURSOR_STREAM_STALL_TIMEOUT_MS and both boot paths in `main.ts` forward
+   * it; embedders set the `cursorStreamStallTimeoutMs` option. If the engine
+   * reports no activity for this long while no operation is open, the turn
+   * runtime's stall watchdog (harness/run-turn.ts over
    * shared/stall-watchdog.ts) cancels the run and fails the execution with a
-   * StallTimeoutError rather than hanging at RUN_IN_PROGRESS forever.
+   * StallTimeoutError rather than hanging at RUN_IN_PROGRESS forever. An
+   * open operation holds it (`harness/open-operations.ts`), so a silent
+   * build is not a stall.
    *
-   * Larger than the shared DEFAULT_STALL_TIMEOUT_MS (120s) because opaque MCP /
-   * GUI tool calls can legitimately run for minutes while emitting no stream
-   * activity. This bounds no-progress time only; it is orthogonal to Temporal's
+   * This bounds no-progress time only; it is orthogonal to Temporal's
    * heartbeatTimeout (process liveness) and the 30s keep-alive heartbeat.
    */
   readonly cursorStreamStallTimeoutMs: number;
+  /**
+   * The runtime's backstop for one open operation (milliseconds,
+   * STIGMER_OPEN_OPERATION_MAX_MS, the `openOperationMaxMs` option): see
+   * `harness/open-operations.ts`. Read by the turn runtime only,
+   * which runs in the runner's own process, never in the agent host.
+   */
+  readonly openOperationMaxMs: number;
   /**
    * Bound (milliseconds) for Cursor Agent.create/Agent.resume. On expiry the
    * execution fails fast with an explicit transport diagnosis instead of
@@ -293,6 +303,10 @@ export function loadConfig(): Config {
     ? parseInt(process.env.CURSOR_STREAM_STALL_TIMEOUT_MS, 10)
     : DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS;
 
+  const openOperationMaxMs = process.env.STIGMER_OPEN_OPERATION_MAX_MS
+    ? parseInt(process.env.STIGMER_OPEN_OPERATION_MAX_MS, 10)
+    : DEFAULT_OPEN_OPERATION_MAX_MS;
+
   const workspaceLockTimeoutMs = process.env.WORKSPACE_LOCK_TIMEOUT_MS
     ? parseInt(process.env.WORKSPACE_LOCK_TIMEOUT_MS, 10)
     : DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS;
@@ -322,6 +336,7 @@ export function loadConfig(): Config {
     artifactProxyEndpoint,
     primaryModel,
     cursorStreamStallTimeoutMs,
+    openOperationMaxMs,
     agentResolveTimeoutMs,
     workspaceLockTimeoutMs,
   };
