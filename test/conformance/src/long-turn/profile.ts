@@ -8,7 +8,7 @@
 //     turn: a 10-minute silent build, a 10-minute build that prints a line
 //     every 30 s, a subagent that works 4 minutes, enough tool output for
 //     three compactions, a runner killed mid-tool and a runner drained
-//     mid-tool. Today the turn dies early; the report says where.
+//     mid-tool. The report says how far the turn got.
 //   - `endurance` avoids every killer known on 2026-10-18 (stigmer#2414,
 //     #2415, #2416, #2417, #2428, #2429, and the native shell's 120 s
 //     timeout, #2432):
@@ -19,6 +19,12 @@
 //
 // Every step's shell appends `start <id>` and `end <id>` to the run's marker
 // file, so the run reads which step is open from disk, never from a guess.
+// The subagent's step is a shell too, which the subagent runs: on the native
+// harness a subagent's work is its own tool calls, streamed into the parent,
+// and a subagent whose model sat silent for minutes with nothing open would
+// be a hung model call, which the stall window stops by design. Each shell
+// step names its timeout, as a model raises it for a long command
+// (`timeoutSecondsOf`): the native shell's default bound is 120 s.
 // A held step (`kill`, `drain`) waits for its release file, so the run ends
 // the runner while the step is provably running.
 
@@ -93,7 +99,7 @@ export function goalProfile(): LongTurnProfile {
 export const ENDURANCE_STEP_SECONDS = 100;
 export const ENDURANCE_EVERY_SECONDS = 20;
 
-/** The native shell's own time limit (deepagents' default; the runner passes none, #2432). */
+/** The native shell's default bound, which a call raises with `timeout` (the runner's command runner keeps deepagents' 120 s). */
 export const NATIVE_SHELL_TIMEOUT_SECONDS = 120;
 
 /** The `endurance` profile: `minutes` of 100-second commands that print, paced for three compactions or more. */
@@ -134,12 +140,38 @@ export interface StepFiles {
   releaseOf(id: string): string;
 }
 
-/** The shell command a step runs, or undefined for the subagent (it is a `task`, not a shell). */
-export function shellCommandOf(step: LongTurnStep, files: StepFiles): string | undefined {
+/** Room a step's timeout leaves past its own length. */
+const TIMEOUT_MARGIN_SECONDS = 120;
+
+/** How long a held step may wait for its release: under the native shell's 55-minute ceiling. */
+const HELD_TIMEOUT_SECONDS = 3_000;
+
+/**
+ * The `timeout` (seconds) a step's shell call asks for, so the command is
+ * never cut off at the shell's default bound; undefined where the default
+ * (120 s) is already ample.
+ */
+export function timeoutSecondsOf(step: LongTurnStep): number | undefined {
+  switch (step.kind) {
+    case "silent":
+    case "streamed":
+    case "subagent":
+      return step.seconds + TIMEOUT_MARGIN_SECONDS;
+    case "kill":
+    case "drain":
+      return HELD_TIMEOUT_SECONDS;
+    case "bulk":
+      return undefined;
+  }
+}
+
+/** The shell command a step runs; a subagent's is the one its subagent runs. */
+export function shellCommandOf(step: LongTurnStep, files: StepFiles): string {
   const start = `echo 'start ${step.id}' >> '${files.markers}'`;
   const end = `echo 'end ${step.id}' >> '${files.markers}'`;
   switch (step.kind) {
     case "silent":
+    case "subagent":
       return `${start}; sleep ${step.seconds}; ${end}`;
     case "streamed": {
       const lines = Math.max(1, Math.round(step.seconds / step.everySeconds));
@@ -151,8 +183,6 @@ export function shellCommandOf(step: LongTurnStep, files: StepFiles): string | u
     case "kill":
     case "drain":
       return `${start}; while [ ! -f '${files.releaseOf(step.id)}' ]; do sleep 0.2; done; ${end}`;
-    case "subagent":
-      return undefined;
   }
 }
 
@@ -177,10 +207,12 @@ export function stepProgressOf(markerText: string): StepProgress {
 
 /** The instruction a live model is given for a step: the scripted run's tool call, in words. */
 export function narrateStep(step: LongTurnStep, files: StepFiles): string {
+  const timeout = timeoutSecondsOf(step);
+  const run = `Run exactly this shell command${timeout === undefined ? "" : `, with a timeout of ${timeout} seconds,`} and wait for it to finish: ${shellCommandOf(step, files)}`;
   if (step.kind === "subagent") {
-    return `Hand this to a general-purpose subagent with the task tool: "Think about what a careful code review checks, for ${step.seconds} seconds of work, then answer in one line."`;
+    return `Hand this to a general-purpose subagent with the task tool, and wait for its answer: "${run.replace(/"/g, "'")} Then answer in one line: done."`;
   }
-  return `Run exactly this shell command with the execute tool, and wait for it to finish: ${shellCommandOf(step, files)}`;
+  return run;
 }
 
 /** The steps a live run can play: all but `kill` and `drain`, which need a door to restart the runner. */
