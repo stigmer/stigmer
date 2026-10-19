@@ -22,6 +22,7 @@ contents:
   - agentic/environment.fga
   - agentic/eval.fga
   - agentic/eval_run.fga
+  - agentic/file.fga
   - agentic/scoring_rule.fga
   - agentic/memory.fga
   - agentic/plugin.fga

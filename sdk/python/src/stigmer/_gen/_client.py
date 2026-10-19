@@ -12,6 +12,7 @@ from ._environment import EnvironmentClient
 from ._eval import EvalClient
 from ._evalrun import EvalRunClient
 from ._federationissuer import FederationIssuerClient
+from ._file import FileClient
 from ._grant import GrantClient
 from ._identityaccount import IdentityAccountClient
 from ._invitation import InvitationClient
@@ -45,6 +46,7 @@ class GeneratedClient:
         self.evals = EvalClient(channel)
         self.evalruns = EvalRunClient(channel)
         self.federation_issuers = FederationIssuerClient(channel)
+        self.files = FileClient(channel)
         self.grants = GrantClient(channel)
         self.identity_accounts = IdentityAccountClient(channel)
         self.invitations = InvitationClient(channel)

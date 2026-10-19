@@ -139,6 +139,9 @@ type organization
     # Admins always; members while the organization's policy lets them.
     define can_create_agent: admin or member from agent_creation_open
     define can_create_session: member or guest
+    # Whoever may start a conversation may bring a file to it: a guest's
+    # file before the first message is their own File, as a member's is.
+    define can_create_file: member or guest
     # Every member keeps a My vault of their own logins and secrets; a
     # shared vault is the organization's, so only admins create one.
     define can_create_vault: member

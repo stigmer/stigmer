@@ -55,6 +55,7 @@ class ApiResourceKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     eval_run: _ClassVar[ApiResourceKind]
     eval: _ClassVar[ApiResourceKind]
     environment: _ClassVar[ApiResourceKind]
+    file: _ClassVar[ApiResourceKind]
     plan: _ClassVar[ApiResourceKind]
     subscription: _ClassVar[ApiResourceKind]
     license: _ClassVar[ApiResourceKind]
@@ -92,6 +93,7 @@ scoring_rule: ApiResourceKind
 eval_run: ApiResourceKind
 eval: ApiResourceKind
 environment: ApiResourceKind
+file: ApiResourceKind
 plan: ApiResourceKind
 subscription: ApiResourceKind
 license: ApiResourceKind

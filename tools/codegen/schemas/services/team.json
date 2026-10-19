@@ -198,6 +198,7 @@
               "eval_run",
               "eval",
               "environment",
+              "file",
               "plan",
               "subscription",
               "license"
@@ -472,6 +473,11 @@
           "name": "environment",
           "number": 67,
           "description": "A named sandbox setup: the packages installed in every sandbox a\n conversation using it runs in, and the hosts it may reach."
+        },
+        {
+          "name": "file",
+          "number": 73,
+          "description": "A file uploaded once and named by its id: given to a conversation with\n a message, held in a conversation's resources, or kept by its uploader."
         },
         {
           "name": "plan",

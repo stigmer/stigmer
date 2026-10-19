@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.file.v1;
+
+import "ai/stigmer/commons/apiresource/status.proto";
+
+// FileStatus is what the server records about a File.
+message FileStatus {
+  // The file's size in bytes.
+  int64 size_bytes = 1;
+
+  // The conversation the File belongs to, when it was uploaded into one or
+  // given to one. Everyone who can see the conversation can see the File,
+  // and deleting the conversation deletes it. Empty for a File that
+  // belongs to no conversation.
+  string session_id = 2;
+
+  // The turn that wrote the File, for a file an agent saved. Empty for an
+  // uploaded File.
+  string run_id = 3;
+
+  // Standard audit information (created_at, updated_at, created_by, etc.)
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+}

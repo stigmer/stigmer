@@ -338,6 +338,14 @@ enum IamPermission {
   // packages and network access a conversation's sandbox gets. The
   // organization's admins.
   can_create_environment = 60;
+
+  // Whether the caller may upload a File of their own in an organization:
+  // its members and guests, the people who may start a conversation.
+  //
+  // @internal
+  // A File uploaded into a conversation asks can_create_run_in on the
+  // conversation instead.
+  can_create_file = 61;
 }
 
 // Display metadata for an IamRole value: the one place a role's name lives,

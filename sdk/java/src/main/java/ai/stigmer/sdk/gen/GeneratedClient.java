@@ -14,6 +14,7 @@ public class GeneratedClient {
     public final EvalClient eval;
     public final EvalRunClient evalrun;
     public final FederationIssuerClient federationIssuer;
+    public final FileClient file;
     public final GrantClient grant;
     public final IdentityAccountClient identityAccount;
     public final InvitationClient invitation;
@@ -43,6 +44,7 @@ public class GeneratedClient {
         this.eval = new EvalClient(channel);
         this.evalrun = new EvalRunClient(channel);
         this.federationIssuer = new FederationIssuerClient(channel);
+        this.file = new FileClient(channel);
         this.grant = new GrantClient(channel);
         this.identityAccount = new IdentityAccountClient(channel);
         this.invitation = new InvitationClient(channel);

@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.file.v1;
+
+import "ai/stigmer/agentic/file/v1/api.proto";
+import "ai/stigmer/agentic/file/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// FileQueryController handles read operations for Files.
+service FileQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = file;
+
+  // Get a File by its id.
+  rpc get(FileId) returns (File) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = file;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get file";
+  }
+
+  // List an organization's Files, newest first: every File of the org the
+  // caller may see, or with session_id only that conversation's.
+  //
+  // @internal
+  // Authorization in-handler: the list read scope keeps the Files the
+  // caller could get by id, as every organization list does.
+  rpc list(ListFilesRequest) returns (FileList) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // A link to download a File's bytes, valid for an hour. A browser
+  // opening it saves the file under its filename.
+  rpc getDownloadUrl(FileId) returns (FileDownloadUrl) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = file;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to download file";
+  }
+}

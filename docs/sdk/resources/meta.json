@@ -10,6 +10,7 @@
     "eval",
     "eval-run",
     "federation-issuer",
+    "file",
     "grant",
     "identity-account",
     "invitation",

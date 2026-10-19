@@ -1,0 +1,71 @@
+module agentic
+
+# ========================================
+# FILE TYPE (Organization-scoped)
+# ========================================
+# A file uploaded once and named by its id. Every File has its uploader as
+# owner. A File of a conversation (status.session_id) also links that
+# session, so whoever can see the conversation sees the File and the
+# conversation's owner may delete it. Any other File is private to its
+# uploader until its visibility (private / org) or a grant widens it.
+# Members and guests upload Files of their own (can_create_file); an upload
+# into a conversation asks can_create_run_in on the session instead.
+#
+# Organization admins get nothing implicit, as on a conversation: a File
+# holds what someone gave an agent, which admins have no business reading.
+#
+# FGA tuples on creation:
+# - file:<id>#organization@organization:<org>
+# - file:<id>#owner@identity_account:alice
+# - file:<id>#session@session:<session id> (a conversation's File only)
+# - file:<id>#viewer@organization:<org>#viewer (if visibility>=ORG)
+
+type file
+  relations
+    # ========================================
+    # ORGANIZATION OWNERSHIP
+    # ========================================
+    # Structural link for the affiliation bound and the org audience; it
+    # carries no admin inheritance.
+    define organization: [organization]
+
+    # ========================================
+    # CONVERSATION LINK (Structural)
+    # ========================================
+    # Written from status.session_id, which only the server sets. Composes
+    # the conversation's readers into can_view and its owner into can_edit
+    # and can_delete, WITHOUT widening viewer, so can_view_access stays the
+    # File's own audience.
+    define session: [session]
+
+    # ========================================
+    # OWNERSHIP (Uploader)
+    # ========================================
+    define owner: [identity_account] and affiliated from organization
+
+    # ========================================
+    # VIEWER ACCESS
+    # ========================================
+    # organization#viewer is the shape VisibilityTupleReconciler writes;
+    # team#member is an Enterprise team's grant, bounded by the
+    # organization in team.fga.
+    define viewer: ([identity_account, organization#viewer, team#member] and affiliated from organization) or owner
+
+    # ========================================
+    # PERMISSIONS
+    # ========================================
+    define can_view: viewer or can_view from session
+    define can_edit: owner or can_edit from session
+    define can_delete: owner or can_edit from session
+
+    # ========================================
+    # ACCESS MANAGEMENT
+    # ========================================
+    define can_grant_access: owner
+
+    # ========================================
+    # AUDIENCE
+    # ========================================
+    # Who reaches this File (visibility) is its uploader's to change.
+    define can_manage_audience: owner
+    define can_view_access: viewer

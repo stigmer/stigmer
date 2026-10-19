@@ -28,6 +28,7 @@ export const GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole[]> =
   [ApiResourceKind.vault, [IamRole.user]],
   [ApiResourceKind.eval, [IamRole.owner, IamRole.viewer]],
   [ApiResourceKind.environment, [IamRole.owner, IamRole.viewer]],
+  [ApiResourceKind.file, [IamRole.owner, IamRole.viewer]],
 ]);
 
 /**
@@ -49,6 +50,7 @@ export const TEAM_GRANTABLE_ROLES: ReadonlyMap<ApiResourceKind, readonly IamRole
   [ApiResourceKind.vault, [IamRole.user]],
   [ApiResourceKind.eval, [IamRole.viewer]],
   [ApiResourceKind.environment, [IamRole.viewer]],
+  [ApiResourceKind.file, [IamRole.viewer]],
 ]);
 
 /**
@@ -114,6 +116,10 @@ export const ROLE_DESCRIPTIONS: ReadonlyMap<ApiResourceKind, ReadonlyMap<IamRole
   [ApiResourceKind.environment, new Map<IamRole, string>([
     [IamRole.owner, "Everything, including deleting it and deciding who has access"],
     [IamRole.viewer, "Use it for a conversation and see what it contains; cannot change it"],
+  ])],
+  [ApiResourceKind.file, new Map<IamRole, string>([
+    [IamRole.owner, "Everything, including deleting it and deciding who has access"],
+    [IamRole.viewer, "See it and download it; cannot change it"],
   ])],
 ]);
 

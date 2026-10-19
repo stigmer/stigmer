@@ -1,0 +1,153 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.file.v1;
+
+import "ai/stigmer/agentic/file/v1/api.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+
+// FileId wraps a File identifier.
+message FileId {
+  // Unique identifier of the File: "file_01j…".
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// UploadFileInput uploads a File: its bytes inline, or the reference of
+// bytes already put to an upload URL (createUploadUrl).
+message UploadFileInput {
+  // Organization the File belongs to, by id or slug. With session_id, the
+  // conversation's organization.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The conversation to upload the File into, when it belongs to one.
+  // Everyone who can see the conversation can see the File, and deleting
+  // the conversation deletes it. Empty uploads a File of your own.
+  string session_id = 2;
+
+  // The file's name: at most 255 characters, with no `/`, `\` or control
+  // characters, and not `.` or `..`.
+  string filename = 3 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 255,
+    (buf.validate.field).string.pattern = "^[^/\\\\\\x00-\\x1f\\x7f]+$",
+    (buf.validate.field).cel = {
+      id: "upload_file_input.filename.not_dot"
+      message: "filename must not be . or .."
+      expression: "this != '.' && this != '..'"
+    }
+  ];
+
+  // The media type ("image/png"). Empty takes it from the filename's
+  // extension, else "application/octet-stream".
+  string mime_type = 4 [
+    (buf.validate.field).string.max_len = 255,
+    (buf.validate.field).string.pattern = "^$|^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*$"
+  ];
+
+  // Where the bytes come from: exactly one.
+  oneof source {
+    option (buf.validate.oneof).required = true;
+
+    // The bytes themselves, for a file small enough to travel in one
+    // request (the transport caps a request at 10 MiB). An empty file is
+    // uploaded this way.
+    bytes data = 5;
+
+    // The reference createUploadUrl returned, once the bytes were put to
+    // its URL. Single-use; it expires with the URL.
+    string upload_ref = 6 [(buf.validate.field).string.min_len = 1];
+  }
+}
+
+// CreateFileUploadUrlInput asks for a URL to put a file's bytes to, for a
+// file too large to upload inline.
+message CreateFileUploadUrlInput {
+  // Organization the File will belong to, by id or slug; with session_id,
+  // the conversation's organization.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The conversation the File will be uploaded into, when it belongs to
+  // one: the same caller may upload into it.
+  string session_id = 2;
+
+  // The file's size in bytes. A size over the server's limit (500 MB unless
+  // the operator set another) is refused here, before any bytes move, and
+  // the upload URL accepts exactly this many bytes.
+  int64 size_bytes = 3 [(buf.validate.field).int64.gt = 0];
+}
+
+// FileUploadUrl is a short-lived, single-use place to put a file's bytes.
+message FileUploadUrl {
+  // URL to HTTP PUT the bytes to, exactly size_bytes of them.
+  string url = 1;
+
+  // The reference to pass to upload (UploadFileInput.upload_ref) once the
+  // PUT succeeds. Single-use; it expires with the URL.
+  string upload_ref = 2;
+
+  // How long the URL and the reference stay valid, in seconds.
+  int32 ttl_seconds = 3;
+}
+
+// Input for updating a File's labels and tags: the only things about a File
+// that change.
+message UpdateFileInput {
+  option (buf.validate.message).cel = {
+    id: "update_names_its_target"
+    message: "resource.metadata.id is required: an update names the file by its id"
+    expression: "has(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''"
+  };
+
+  // The File carrying the new values, named by metadata.id. Only the fields
+  // update_mask names are read.
+  File resource = 1 [(buf.validate.field).ignore = IGNORE_ALWAYS];
+
+  // The paths the update changes: metadata.labels, metadata.tags, or "*"
+  // for both. Any other path is refused with INVALID_ARGUMENT naming it: a
+  // File's name, type and bytes never change.
+  google.protobuf.FieldMask update_mask = 2 [(buf.validate.field).required = true];
+}
+
+// Input for listing an organization's Files, newest first.
+message ListFilesRequest {
+  // Organization whose Files to list, by id or slug.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Only the Files of this conversation. Empty lists every File of the
+  // organization the caller may see.
+  string session_id = 2;
+
+  // The most entries to return: 0 asks for the default page of 50, and a
+  // size above 100 is read as 100.
+  int32 page_size = 3 [(buf.validate.field).int32.gte = 0];
+
+  // The previous response's next_page_token, to continue that list; every
+  // other field must equal that request's, or the call is refused.
+  string page_token = 4 [(buf.validate.field).string.max_len = 1024];
+
+  // Only Files carrying every label given, each matched exactly (AND). A
+  // selective filter may answer short pages, even empty ones, that still
+  // carry a token.
+  map<string, string> labels = 5;
+}
+
+// One page of an organization's Files.
+message FileList {
+  // The Files in this page, newest first.
+  repeated File entries = 1;
+
+  // Set when more entries may follow: pass it as page_token to continue. A
+  // page may be short, even empty, and still carry a token.
+  string next_page_token = 2;
+}
+
+// FileDownloadUrl is a short-lived link to a File's bytes.
+message FileDownloadUrl {
+  // URL to HTTP GET the bytes from. A browser opening it saves the file
+  // under its filename.
+  string url = 1;
+
+  // When the link stops working.
+  google.protobuf.Timestamp expires_at = 2;
+}

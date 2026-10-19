@@ -1,0 +1,159 @@
+# Store tests for the file type: a file uploaded once and named by its id.
+# The narrowness these pin: whoever may start a conversation may upload a
+# File of their own (can_create_file, the can_create_session audience,
+# guests included); a File is its uploader's, with no admin inheritance; a
+# PRIVATE one is invisible to every other member, an ORG one readable by
+# the organization's viewers and up (a guest sees only their own Files, as
+# with every org-visible kind) and nobody outside; a conversation's File is
+# read by the conversation's readers and deleted by its owner, without
+# widening the File's own audience (can_view_access) or its access
+# management.
+#
+# Run: fga model test --tests file-access.fga.yaml
+
+name: file-access
+model_file: ../../src/authorization/model/data/authorization-model.json
+
+tuples:
+  # Org acme: alice and bob are members, oscar administers it, vera is a
+  # read-only viewer, gina a guest; mallory belongs to an unrelated org.
+  - {user: identity_account:alice, relation: member, object: organization:acme}
+  - {user: identity_account:alice, relation: affiliated, object: organization:acme}
+  - {user: identity_account:bob, relation: member, object: organization:acme}
+  - {user: identity_account:bob, relation: affiliated, object: organization:acme}
+  - {user: identity_account:carol, relation: member, object: organization:acme}
+  - {user: identity_account:carol, relation: affiliated, object: organization:acme}
+  - {user: identity_account:paul, relation: member, object: organization:acme}
+  - {user: identity_account:paul, relation: affiliated, object: organization:acme}
+  - {user: identity_account:oscar, relation: admin, object: organization:acme}
+  - {user: identity_account:oscar, relation: affiliated, object: organization:acme}
+  - {user: identity_account:vera, relation: viewer, object: organization:acme}
+  - {user: identity_account:vera, relation: affiliated, object: organization:acme}
+  - {user: identity_account:gina, relation: guest, object: organization:acme}
+  - {user: identity_account:gina, relation: affiliated, object: organization:acme}
+  - {user: identity_account:mallory, relation: member, object: organization:other}
+  - {user: identity_account:mallory, relation: affiliated, object: organization:other}
+
+  # bob's conversation: paul is a participant, carol a viewer.
+  - {user: organization:acme, relation: organization, object: session:bobs-chat}
+  - {user: identity_account:bob, relation: owner, object: session:bobs-chat}
+  - {user: identity_account:paul, relation: participant, object: session:bobs-chat}
+  - {user: identity_account:carol, relation: viewer, object: session:bobs-chat}
+
+  # A PRIVATE File alice uploaded (no visibility tuples).
+  - {user: organization:acme, relation: organization, object: file:alice-notes}
+  - {user: identity_account:alice, relation: owner, object: file:alice-notes}
+
+  # An ORG File alice uploaded (the reconciler's org tuple).
+  - {user: organization:acme, relation: organization, object: file:q3-ledger}
+  - {user: identity_account:alice, relation: owner, object: file:q3-ledger}
+  - {user: organization:acme#viewer, relation: viewer, object: file:q3-ledger}
+
+  # A File paul uploaded into bob's conversation (the status parent tuple).
+  - {user: organization:acme, relation: organization, object: file:screenshot}
+  - {user: identity_account:paul, relation: owner, object: file:screenshot}
+  - {user: session:bobs-chat, relation: session, object: file:screenshot}
+
+tests:
+  - name: whoever may start a conversation may upload a File of their own
+    check:
+      - user: identity_account:alice
+        object: organization:acme
+        assertions:
+          can_create_file: true
+          can_create_session: true
+      - user: identity_account:gina
+        object: organization:acme
+        assertions:
+          can_create_file: true
+      - user: identity_account:oscar
+        object: organization:acme
+        assertions:
+          can_create_file: true
+      - user: identity_account:vera
+        object: organization:acme
+        assertions:
+          can_create_file: false
+      - user: identity_account:mallory
+        object: organization:acme
+        assertions:
+          can_create_file: false
+
+  - name: a private File is its uploader's alone, admins included
+    check:
+      - user: identity_account:alice
+        object: file:alice-notes
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: true
+          can_manage_audience: true
+      - user: identity_account:oscar
+        object: file:alice-notes
+        assertions:
+          can_view: false
+          can_edit: false
+          can_delete: false
+      - user: identity_account:bob
+        object: file:alice-notes
+        assertions:
+          can_view: false
+
+  - name: an org File is readable by the org's viewers and up, not by a guest or anyone outside
+    check:
+      - user: identity_account:vera
+        object: file:q3-ledger
+        assertions:
+          can_view: true
+          can_view_access: true
+          can_edit: false
+          can_delete: false
+      - user: identity_account:gina
+        object: file:q3-ledger
+        assertions:
+          can_view: false
+      - user: identity_account:oscar
+        object: file:q3-ledger
+        assertions:
+          can_view: true
+          can_delete: false
+      - user: identity_account:mallory
+        object: file:q3-ledger
+        assertions:
+          can_view: false
+
+  - name: a conversation's File follows the conversation's readers and its owner
+    check:
+      - user: identity_account:paul
+        object: file:screenshot
+        assertions:
+          can_view: true
+          can_delete: true
+          can_grant_access: true
+          can_manage_audience: true
+      - user: identity_account:bob
+        object: file:screenshot
+        assertions:
+          can_view: true
+          can_edit: true
+          can_delete: true
+          can_grant_access: false
+          can_manage_audience: false
+          can_view_access: false
+      - user: identity_account:carol
+        object: file:screenshot
+        assertions:
+          can_view: true
+          can_edit: false
+          can_delete: false
+          can_view_access: false
+      - user: identity_account:oscar
+        object: file:screenshot
+        assertions:
+          can_view: false
+          can_delete: false
+      - user: identity_account:alice
+        object: file:screenshot
+        assertions:
+          can_view: false

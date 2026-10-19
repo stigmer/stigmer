@@ -1084,6 +1084,63 @@ enum ApiResourceKind {
     }
   }];
 
+  // Agentic - Files (what a conversation is given and what it returns)
+
+  // A file uploaded once and named by its id: given to a conversation with
+  // a message, held in a conversation's resources, or kept by its uploader.
+  //
+  // @internal
+  // Server-named: metadata.name is the filename and claims nothing, as a
+  // run's name does. A File uploaded into a conversation links it from
+  // status (session_id), so the conversation's viewers read it; any other
+  // File is private to its uploader until its visibility or a grant shares
+  // it. Prefix "file" gives Claude's own id shape (file_01j…).
+  file = 73 [(kind_meta) = {
+    group: agentic
+    version: v1
+    name: "File"
+    display_name: "File"
+    id_prefix: "file"
+    is_versioned: false
+    // Not searchable: a conversation's screenshots do not belong in the
+    // organization's search.
+    not_search_indexed: true
+    tier: open_source
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      // A File of a conversation links it, so the conversation's viewers
+      // read it and its owner may delete it (the model's file#session).
+      // Read from status, which only the server writes.
+      additional_parents: [
+        {
+          kind: "session"
+          relation: "session"
+          status_field: "session_id"
+          optional: true
+        }
+      ]
+      // Private to its uploader by default: org visibility shares it with
+      // every member.
+      visibility: {supports_org: true}
+      grantable_roles: [
+        owner,
+        viewer
+      ]
+      team_grantable_roles: [viewer]
+      role_descriptions: [
+        {
+          role: owner
+          description: "Everything, including deleting it and deciding who has access"
+        },
+        {
+          role: viewer
+          description: "See it and download it; cannot change it"
+        }
+      ]
+    }
+  }];
+
   // Billing - Plans, and the subscriptions and licenses that grant them.
   //
   // An entitlement is what the platform permits; a subscription and a
