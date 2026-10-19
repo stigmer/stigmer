@@ -5,8 +5,9 @@
  * a confirmation and an interrupt each go through their own method; the
  * events apply in order and the first failure stops the list with the
  * ones before it applied. A message's Files ride the turn by id; the
- * file check asks the File query only for an image block's type, refuses
- * one that is not an image, and lets the query's own refusal through.
+ * file check asks the File query each block's type, refuses an image
+ * block naming a File that is not an image and a document block naming
+ * one that is, and lets the query's own refusal through.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -195,7 +196,7 @@ describe("serveSend", () => {
 });
 
 describe("checkSendFiles", () => {
-  it("passes an image block naming an image File and a document block naming any File, asking only for the image", async () => {
+  it("passes an image block naming an image File and a document block naming a File that is not one", async () => {
     const { seen, call } = harness();
     const events: SendEvent[] = [
       { type: "user.interrupt" },
@@ -209,7 +210,7 @@ describe("checkSendFiles", () => {
       },
     ];
     expect(await checkSendFiles(call, events)).toBeUndefined();
-    expect(seen.calls).toEqual(["File.get file_shot"]);
+    expect(seen.calls).toEqual(["File.get file_shot", "File.get file_brief"]);
   });
 
   it("refuses an image block naming a File that is not an image, naming the event and the type", async () => {
@@ -218,6 +219,14 @@ describe("checkSendFiles", () => {
       { type: "user.message", text: "", files: [{ fileId: "file_brief", block: "image" }] },
     ]);
     expect(refused?.message).toBe("events[0]: file file_brief is application/pdf, not an image: send it in a document block");
+  });
+
+  it("refuses a document block naming an image File, which would read back as an image block", async () => {
+    const { call } = harness();
+    const refused = await checkSendFiles(call, [
+      { type: "user.message", text: "", files: [{ fileId: "file_shot", block: "document" }] },
+    ]);
+    expect(refused?.message).toBe("events[0]: file file_shot is image/png, an image: send it in an image block");
   });
 
   it("lets the File query's own refusal through for a File the caller cannot read", async () => {

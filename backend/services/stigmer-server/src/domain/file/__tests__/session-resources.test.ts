@@ -14,8 +14,9 @@
  *     refused; a path with a control character, a name over 255 bytes or
  *     over 1024 bytes in all is refused, and a derived name is renamed past
  *     a folder and cut to fit;
- *   - a File of another organization is refused; a repository or folder
- *     name given twice is refused, as is a File named twice;
+ *   - a File of another organization is refused; a repository whose
+ *     commit is not an object id, and a repository or folder name given
+ *     twice, are refused, as is a File named twice;
  *   - an update that keeps the Files makes no new copy, and one that adds a
  *     File copies only that one;
  *   - a create that fails after copying (its slug already held) leaves no
@@ -158,6 +159,17 @@ describe("a conversation's Files", () => {
     const refused = await errorOf(() => newSession([fileEntry(foreign)]));
     expect(refused.code).toBe(Code.FailedPrecondition);
     expect(refused.rawMessage).toContain("belongs to another organization");
+
+    const optionLike = await errorOf(() =>
+      newSession([
+        create(SessionResourceSchema, {
+          name: "app",
+          resource: { case: "gitRepository", value: { url: "https://github.com/acme/app", commit: "--upload-pack=x" } },
+        }),
+      ]),
+    );
+    expect(optionLike.code).toBe(Code.InvalidArgument);
+    expect(optionLike.rawMessage).toContain("is not a commit id");
 
     const twice = await errorOf(() => newSession([repoEntry("app"), repoEntry("app")]));
     expect(twice.code).toBe(Code.InvalidArgument);

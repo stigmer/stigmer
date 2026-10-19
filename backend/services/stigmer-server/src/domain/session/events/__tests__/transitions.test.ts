@@ -1,8 +1,9 @@
 /**
  * Pins what the server writes into a session's log for each run
  * transition (../transitions.ts): the turn's user message at creation,
- * its text then the file blocks the run recorded (none for a reconcile
- * turn, which has no message), and
+ * its text then the file blocks the run recorded, the text left out when
+ * the message is files alone (none for a reconcile turn, which has no
+ * message), and
  * the session's status, which describes the whole session, so a run that
  * stops ends the turn only when no other run of the session works; a turn
  * that waits for answers states requires_action with every open ask of
@@ -107,6 +108,13 @@ describe("creation", () => {
       ["image", "", "file_shot"],
       ["document", "", "file_brief"],
     ]);
+  });
+
+  it("records a message of files alone as its files, with no empty text block", () => {
+    const filesOnly = run(P.RUN_PENDING, { message: "" });
+    filesOnly.status!.messageFiles = [create(ContentBlockSchema, { type: "image", source: { type: "file", fileId: "file_shot" } })];
+    const message = eventsFor({ kind: "create", run: filesOnly })[0]!.event;
+    expect(message.case === "userMessage" && message.value.content.map((b) => b.type)).toEqual(["image"]);
   });
 
   it("writes only the user message while another run of the session works (the session is already running)", () => {

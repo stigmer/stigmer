@@ -73,6 +73,8 @@
  * Proven by __tests__/transitions.test.ts.
  */
 import { create } from "@bufbuild/protobuf";
+import { ContentBlockSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
+import type { ContentBlock } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -184,10 +186,9 @@ export function sessionEventsForTransition(
           id: id(),
           // The text, then the files the message carried, as the server
           // recorded them when the run was created (domain/file/message-files.ts).
-          content: [
-            { type: "text", text: transition.run.spec?.message ?? "" },
-            ...(transition.run.status?.messageFiles ?? []),
-          ],
+          // A message of files alone has no text block, so a Managed Agents
+          // client reads back the blocks it sent.
+          content: messageContent(transition.run.spec?.message ?? "", transition.run.status?.messageFiles ?? []),
         },
       }),
     );
@@ -282,4 +283,10 @@ export function sessionEventsForTransition(
     );
   }
   return events;
+}
+
+/** A turn's user.message blocks: its text, unless the message is files alone, then its files. */
+function messageContent(text: string, files: readonly ContentBlock[]): ContentBlock[] {
+  const textBlock = create(ContentBlockSchema, { type: "text", text });
+  return text === "" && files.length > 0 ? [...files] : [textBlock, ...files];
 }

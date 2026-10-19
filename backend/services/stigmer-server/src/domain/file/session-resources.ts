@@ -5,7 +5,8 @@
  *
  * The rules:
  *   - a repository's or a folder's name is unique among them (the
- *     workspace directory it is given);
+ *     workspace directory it is given), and a repository's commit is an
+ *     object id;
  *   - at most 500 Files (Managed Agents' cap on a session's files), each
  *     named once;
  *   - a File's mount path, under .stigmer/uploads/, is normalized and
@@ -36,6 +37,9 @@ import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { FileInstances } from "./instances.js";
+
+/** A commit a repository names: an object id, abbreviated or whole, never anything git could read as an option. */
+const COMMIT_ID = /^[0-9a-fA-F]{7,64}$/;
 
 /** The most Files a conversation holds. */
 export const MAX_SESSION_FILES = 500;
@@ -162,6 +166,12 @@ export function newResolveSessionResourcesStep(instances: FileInstances): Pipeli
           );
         }
         names.add(entry.name);
+        const commit = entry.resource.case === "gitRepository" ? entry.resource.value.commit : "";
+        if (commit !== "" && !COMMIT_ID.test(commit)) {
+          throw invalidArgumentError(
+            `resource '${entry.name}': commit '${commit}' is not a commit id: give its 7 to 64 hexadecimal characters`,
+          );
+        }
       }
       if (files > MAX_SESSION_FILES) {
         throw invalidArgumentError(

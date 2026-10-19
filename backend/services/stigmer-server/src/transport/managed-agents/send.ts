@@ -196,9 +196,12 @@ function parseConfirmation(event: JsonLike): SendEvent | LaneError {
 const IMAGE_TYPES: ReadonlySet<string> = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
 
 /**
- * The checks that read a File, before anything applies: each image block
- * names an image File. A File the caller cannot read answers as the File
- * query answers (a native refusal throws).
+ * The checks that read a File, before anything applies: an image block
+ * names an image File, and a document block names a File that is not one
+ * (the server records an image File as an image block, so a document
+ * block naming one would read back as something the client did not send).
+ * A File the caller cannot read answers as the File query answers (a
+ * native refusal throws).
  */
 export async function checkSendFiles(call: LaneCall, events: readonly SendEvent[]): Promise<LaneError | undefined> {
   for (const [index, event] of events.entries()) {
@@ -206,14 +209,13 @@ export async function checkSendFiles(call: LaneCall, events: readonly SendEvent[
       continue;
     }
     for (const file of event.files) {
-      if (file.block !== "image") {
-        continue;
-      }
       const found = await call.clients.fileQuery.get(create(FileIdSchema, { value: file.fileId }), call.options);
-      if (!IMAGE_TYPES.has(found.spec?.mimeType ?? "")) {
-        return invalidRequest(
-          `events[${index}]: file ${file.fileId} is ${found.spec?.mimeType ?? "unknown"}, not an image: send it in a document block`,
-        );
+      const mimeType = found.spec?.mimeType ?? "";
+      if (file.block === "image" && !IMAGE_TYPES.has(mimeType)) {
+        return invalidRequest(`events[${index}]: file ${file.fileId} is ${mimeType}, not an image: send it in a document block`);
+      }
+      if (file.block === "document" && IMAGE_TYPES.has(mimeType)) {
+        return invalidRequest(`events[${index}]: file ${file.fileId} is ${mimeType}, an image: send it in an image block`);
       }
     }
   }
