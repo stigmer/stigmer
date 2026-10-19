@@ -15,8 +15,8 @@
 //     and send (a server that enforces does not say whether a session it
 //     will not show exists: the native method's refusal is the answer);
 //   - a Stigmer type filter, an event Stigmer does not serve, an image
-//     block and a later Managed Agents version are each a BadRequestError
-//     with nothing applied.
+//     block by URL (Stigmer names an image by File id) and a later Managed
+//     Agents version are each a BadRequestError with nothing applied.
 //
 // On a target that requires no sign-in, any key the SDK sends is the local
 // person (the SDK cannot send none), and an unknown session is its
@@ -181,7 +181,7 @@ describe("Anthropic's SDK against the Managed Agents lane (on the enforcing lane
     ).toEqual([]);
   });
 
-  it("a Stigmer type filter, an unserved event, an image block and a later version are each a BadRequestError with nothing applied", async (ctx) => {
+  it("a Stigmer type filter, an unserved event, an image block by URL and a later version are each a BadRequestError with nothing applied", async (ctx) => {
     const lane = laneOrSkip(ctx);
     const { org } = await lane.provisionTenancy();
     fixtures.defer(() => lane.cleanupTenancy({ org }));
@@ -214,7 +214,7 @@ describe("Anthropic's SDK against the Managed Agents lane (on the enforcing lane
           }),
       ],
       [
-        "an image block, after an event that would apply",
+        "an image block by URL, after an event that would apply",
         () =>
           sdk.beta.sessions.events.send(sessionId, {
             events: [

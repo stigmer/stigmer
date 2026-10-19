@@ -23,6 +23,10 @@
 //     stigmer.permission.asked never reaches it); allow runs the call to
 //     end_turn, deny (with its message) ends the turn without it;
 //   - user.interrupt stops a held turn, which ends idle;
+//   - an image block naming a File by id, as the SDK sends one: the
+//     conversation lists its own copy of the File, the logged
+//     user.message carries the block naming that copy, and the model's
+//     request carries the image;
 //   - an agent that edits files reaches end_turn with the file written and
 //     no Stigmer event on the lane, and with file review on reaches it just
 //     the same, nothing to answer and the edit kept, while the native log
@@ -32,7 +36,7 @@
 // versions) are Class A, suites/session-events-managed-agents.conformance
 // .test.ts. Managed Agents' session resource (create, retrieve, list,
 // delete) is not served; nor are user.tool_result, custom tools, outcomes,
-// system.message, or image and document blocks.
+// system.message, or image and document blocks whose source is not a File.
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -133,6 +137,28 @@ async function newSession(org: string, options: Omit<SessionSpecOptions, "agentR
 /** A user.message's send parameters. */
 function message(text: string): { type: "user.message"; content: Array<{ type: "text"; text: string }> } {
   return { type: "user.message", content: [{ type: "text", text }] };
+}
+
+/** A valid one-pixel PNG: the runner reads an image's header before it shows it to the model. */
+const ONE_PIXEL_PNG_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
+/** Whether a captured request is a Messages call (it carries messages). */
+function isChatRequest(body: unknown): boolean {
+  return typeof body === "object" && body !== null && Array.isArray((body as { messages?: unknown }).messages);
+}
+
+/** The content blocks of a Messages request's last user message. */
+function lastUserContent(body: unknown): Array<Record<string, unknown>> {
+  const messages = isChatRequest(body) ? (body as { messages: Array<{ role?: string; content?: unknown }> }).messages : [];
+  const last = [...messages].reverse().find((message) => message.role === "user");
+  return Array.isArray(last?.content) ? (last.content as Array<Record<string, unknown>>) : [];
+}
+
+/** An image block's inline bytes, whichever of the two Anthropic shapes carries them. */
+function sourceData(block: Record<string, unknown>): string {
+  const source = block["source"] as { data?: unknown } | undefined;
+  return typeof source?.data === "string" ? source.data : "";
 }
 
 /** The run the newest user.message started, from the native log (the SDK's events carry no run). */
@@ -307,6 +333,60 @@ describe("Anthropic's SDK on a Stigmer session (the Managed Agents lane)", () =>
     await awaitIdleWith(clients, sessionId, "end_turn");
     const idle = (await sdk.beta.sessions.events.list(sessionId, { order: "desc", types: ["session.status_idle"], limit: 1 })).data[0];
     expect(idle?.type === "session.status_idle" && idle.stop_reason.type).toBe("end_turn");
+  });
+
+  it("an image block naming a File reaches the model, and the conversation lists its own copy", async () => {
+    const { org } = await target.provisionTenancy();
+    const sessionId = await newSession(org);
+    const sdk = await sdkFor(org);
+    const png = Buffer.from(ONE_PIXEL_PNG_BASE64, "base64");
+    const original = await clients.fileCommand.upload({
+      org,
+      filename: "shot.png",
+      mimeType: "image/png",
+      source: { case: "data", value: new Uint8Array(png) },
+    });
+    const originalId = original.metadata!.id;
+    fixtures.defer(() => clients.fileCommand.delete({ value: originalId }).catch(() => undefined));
+    mock.enqueue(anthropicText("A single pixel."));
+
+    const sent = await sdk.beta.sessions.events.send(sessionId, {
+      events: [
+        {
+          type: "user.message",
+          content: [
+            { type: "text", text: "what is in this image?" },
+            { type: "image", source: { type: "file", file_id: originalId } },
+          ],
+        },
+      ],
+    });
+    await awaitIdleWith(clients, sessionId, "end_turn");
+
+    const session = await clients.sessionQuery.get({ value: sessionId });
+    const listed = (session.spec?.resources ?? []).flatMap((entry) =>
+      entry.resource.case === "file" ? [entry.resource.value.fileId] : [],
+    );
+    expect(listed, "the conversation lists one File").toHaveLength(1);
+    const copyId = listed[0]!;
+    expect(copyId, "the conversation's File is its own copy").not.toBe(originalId);
+    expect((await clients.fileQuery.get({ value: copyId })).status?.sessionId).toBe(sessionId);
+
+    const logged = sent.data?.[0];
+    expect(logged?.type).toBe("user.message");
+    const blocks = logged?.type === "user.message" ? logged.content : [];
+    expect(blocks.map((block) => block.type)).toEqual(["text", "image"]);
+    const image = blocks[1];
+    expect(image?.type === "image" && image.source.type === "file" ? image.source.file_id : "", "the block names the copy").toBe(
+      copyId,
+    );
+
+    const chats = mock.requests().filter((request) => isChatRequest(request.body));
+    const userTurn = lastUserContent(chats[chats.length - 1]?.body);
+    expect(
+      userTurn.some((block) => block["type"] === "image" && sourceData(block) === ONE_PIXEL_PNG_BASE64),
+      "the model's request carries the image",
+    ).toBe(true);
   });
 
   describe("an agent that edits files", () => {
