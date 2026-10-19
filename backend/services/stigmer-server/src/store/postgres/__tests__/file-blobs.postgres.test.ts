@@ -19,7 +19,7 @@ import {
 import { PostgresStore } from "../store.js";
 import { createTestDatabase, testDatabaseAdminUrl, type TestDatabase } from "./support.js";
 
-const TABLES = ["resources", "resource_list_keys", "file_blobs", "file_blob_refs"] as const;
+const TABLES = ["resources", "resource_list_keys", "file_blobs", "file_blob_refs", "file_conversions"] as const;
 
 describe.skipIf(testDatabaseAdminUrl() === undefined)("postgres file blob store contract", () => {
   let db: TestDatabase;
@@ -40,6 +40,17 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)("postgres file blob store 
   describeFileBlobStoreContract(async () => {
     await hooks.query(`TRUNCATE ${TABLES.join(", ")}`);
     const store = await PostgresStore.open(db.databaseUrl, undefined, FILE_BLOBS_CONTRACT_STORE_OPTIONS);
-    return { store, cleanup: () => store.close() };
+    return {
+      store,
+      async seedConversion(c) {
+        await hooks.query(
+          `INSERT INTO file_conversions
+             (run_id, position, org, session_id, filename, storage_key, content_type, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [c.runId, c.position, c.org, c.sessionId, c.filename, c.storageKey, c.contentType, c.createdAt],
+        );
+      },
+      cleanup: () => store.close(),
+    };
   });
 });

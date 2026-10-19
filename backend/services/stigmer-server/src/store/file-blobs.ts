@@ -34,6 +34,12 @@
  * row (and its list keys) with the ref, in one transaction: the
  * `writeResourceAppendingEvents` precedent (README.md, "File blobs").
  *
+ * A third table, `file_conversions`, holds the attachments a run carried
+ * before a message's files became Files: one row per attachment, lifted
+ * off its run by the step that retired them
+ * (workspace-becomes-resources.ts), for the file domain to make into a
+ * File of the run's conversation and then forget.
+ *
  * Times are Unix seconds. The kit both drivers pass is
  * `__tests__/file-blobs-contract.ts`.
  */
@@ -55,6 +61,22 @@ export interface FileBlobRecord {
   readonly sizeBytes: number;
   /** When a staged or orphaned blob may be swept; 0 for a stored blob. */
   readonly expiresAt: number;
+}
+
+/** One attachment a run carried before the step that retired them, waiting to become a File. */
+export interface AttachmentConversion {
+  readonly runId: string;
+  /** The attachment's index in the run's list. */
+  readonly position: number;
+  readonly org: string;
+  /** The run's conversation (its `spec.session_id`); "" when it named none. */
+  readonly sessionId: string;
+  readonly filename: string;
+  /** The key its bytes were stored under. */
+  readonly storageKey: string;
+  readonly contentType: string;
+  /** The run's spec creation instant (RFC-3339, the list index's fixed-width form), or "". */
+  readonly createdAt: string;
 }
 
 /** What `remove` did. */
@@ -171,8 +193,15 @@ export interface FileBlobStore {
   listBlobKeysByOrg(org: string, after: string, limit: number): Promise<string[]>;
 
   /**
-   * Removes every blob and ref row of an organization (its purge, once the
-   * bytes and the Files are gone); returns the count of blob rows.
+   * Removes every blob, ref and conversion row of an organization (its
+   * purge, once the bytes and the Files are gone); returns the count of
+   * blob rows.
    */
   deleteByOrg(org: string): Promise<number>;
+
+  /** Attachments waiting to become Files: oldest run first, then by position, at most `limit`. */
+  listConversions(limit: number): Promise<AttachmentConversion[]>;
+
+  /** Forgets one conversion, made or abandoned; forgetting an absent one is not an error. */
+  forgetConversion(runId: string, position: number): Promise<void>;
 }

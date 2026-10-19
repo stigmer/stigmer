@@ -212,6 +212,16 @@ import {
 } from "../environment-retired.js";
 import { RETIRED_EXECUTION_CONTEXT_KIND } from "../execution-context-retired.js";
 import {
+  WORKSPACE_RESOURCES_PAGE_SIZE,
+  WORKSPACE_ROUTINE_KIND,
+  WORKSPACE_RUN_KIND,
+  WORKSPACE_SESSION_KIND,
+  liftRunAttachments,
+  migrateRoutineResourcesRow,
+  migrateSessionResourcesRow,
+  unreadableWorkspaceRowError,
+} from "../workspace-becomes-resources.js";
+import {
   SESSION_HARNESS_KIND,
   SESSION_HARNESS_PAGE_SIZE,
   migrateSessionHarnessRow,
@@ -325,8 +335,11 @@ export const SCHEMA_VERSION_38 = 38;
 /** v39: the File kind's blobs and the Files that name them. */
 export const SCHEMA_VERSION_39 = 39;
 
+/** v40: a conversation's workspace entries become its resources, and a run's attachments wait to become Files. */
+export const SCHEMA_VERSION_40 = 40;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_39;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_40;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -406,6 +419,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_37, (migrating) => migrateToV37(migrating, logger)],
       [SCHEMA_VERSION_38, migrateToV38],
       [SCHEMA_VERSION_39, migrateToV39],
+      [SCHEMA_VERSION_40, migrateToV40],
     ];
 
     for (const [version, migrate] of chain) {
@@ -2802,4 +2816,113 @@ async function migrateToV39(client: PoolClient): Promise<void> {
     CREATE INDEX idx_file_blob_refs_blob ON file_blob_refs (blob_key);
     CREATE INDEX idx_file_blob_refs_org ON file_blob_refs (org);
   `);
+}
+
+/**
+ * v40: a conversation's workspace entries become its resources, and a
+ * run's attachments are lifted off it to become Files
+ * (../workspace-becomes-resources.ts says what each row becomes).
+ *
+ * - `file_conversions` holds one row per lifted attachment, keyed by its
+ *   run and its index there, read oldest run first by the file domain
+ *   (`(created_at, run_id, position)`) and purged by organization.
+ * - Every session, routine and run row is read in keyset pages on
+ *   `(kind, id)` and rewritten only when it holds the retired field, its
+ *   `updated_at` left alone; a run's attachments are inserted beside its
+ *   rewrite.
+ *
+ * Live rows only: these kinds write no audit snapshots. The chain's
+ * advisory lock keeps a second instance's boot out of the step, and the
+ * transaction makes it whole or nothing.
+ */
+async function migrateToV40(client: PoolClient): Promise<void> {
+  await client.query(`
+    CREATE TABLE file_conversions (
+      run_id TEXT COLLATE "C" NOT NULL,
+      position INTEGER NOT NULL,
+      org TEXT NOT NULL,
+      session_id TEXT NOT NULL,
+      filename TEXT NOT NULL,
+      storage_key TEXT NOT NULL,
+      content_type TEXT NOT NULL,
+      created_at TEXT COLLATE "C" NOT NULL,
+      PRIMARY KEY (run_id, position)
+    );
+    CREATE INDEX idx_file_conversions_order ON file_conversions (created_at, run_id, position);
+    CREATE INDEX idx_file_conversions_org ON file_conversions (org);
+  `);
+
+  const forEachRow = async (
+    kind: string,
+    visit: (row: { id: string; data: Uint8Array }) => Promise<void>,
+  ): Promise<void> => {
+    for (let after = ""; ; ) {
+      const rows = (
+        await client.query<{ id: string; data: Buffer }>(
+          `SELECT id, data FROM resources
+           WHERE kind = $1 AND id > $2
+           ORDER BY id
+           LIMIT $3`,
+          [kind, after, WORKSPACE_RESOURCES_PAGE_SIZE],
+        )
+      ).rows;
+      for (const row of rows) {
+        await visit({ id: row.id, data: new Uint8Array(row.data) });
+      }
+      if (rows.length < WORKSPACE_RESOURCES_PAGE_SIZE) {
+        return;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  };
+  const rewrite = async (kind: string, id: string, data: Uint8Array): Promise<void> => {
+    await client.query(`UPDATE resources SET data = $1 WHERE kind = $2 AND id = $3`, [Buffer.from(data), kind, id]);
+  };
+
+  for (const [kind, migrate] of [
+    [WORKSPACE_SESSION_KIND, migrateSessionResourcesRow],
+    [WORKSPACE_ROUTINE_KIND, migrateRoutineResourcesRow],
+  ] as const) {
+    await forEachRow(kind, async (row) => {
+      let migrated: Uint8Array | undefined;
+      try {
+        migrated = migrate(row.data);
+      } catch (error) {
+        throw unreadableWorkspaceRowError(kind, row.id, error);
+      }
+      if (migrated !== undefined) {
+        await rewrite(kind, row.id, migrated);
+      }
+    });
+  }
+
+  await forEachRow(WORKSPACE_RUN_KIND, async (row) => {
+    let lifted: ReturnType<typeof liftRunAttachments>;
+    try {
+      lifted = liftRunAttachments(row.data);
+    } catch (error) {
+      throw unreadableWorkspaceRowError(WORKSPACE_RUN_KIND, row.id, error);
+    }
+    if (lifted === undefined) {
+      return;
+    }
+    await rewrite(WORKSPACE_RUN_KIND, row.id, lifted.data);
+    for (const attachment of lifted.attachments) {
+      await client.query(
+        `INSERT INTO file_conversions
+           (run_id, position, org, session_id, filename, storage_key, content_type, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [
+          row.id,
+          attachment.position,
+          attachment.org,
+          attachment.sessionId,
+          attachment.filename,
+          attachment.storageKey,
+          attachment.contentType,
+          attachment.createdAt,
+        ],
+      );
+    }
+  });
 }

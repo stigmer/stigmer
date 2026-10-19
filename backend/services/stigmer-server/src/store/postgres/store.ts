@@ -140,7 +140,13 @@ import { decodeFiredBy, encodeFiredBy } from "../fired-by.js";
 import { instantNotBefore, rfc3339Seconds } from "../rfc3339.js";
 import { stampEtag } from "../etag.js";
 import { fileBlobRefusal } from "../file-blobs.js";
-import type { FileBlobRecord, FileBlobState, FileBlobStore, FileRemoval } from "../file-blobs.js";
+import type {
+  AttachmentConversion,
+  FileBlobRecord,
+  FileBlobState,
+  FileBlobStore,
+  FileRemoval,
+} from "../file-blobs.js";
 import { runMigrations } from "./migrations.js";
 import { normalizeTsRankScore, renderTsQueryExpression } from "./tsquery.js";
 
@@ -3337,8 +3343,50 @@ class PostgresFileBlobStore implements FileBlobStore {
   async deleteByOrg(org: string): Promise<number> {
     return this.transaction(async (client) => {
       await client.query(`DELETE FROM file_blob_refs WHERE org = $1`, [org]);
+      await client.query(`DELETE FROM file_conversions WHERE org = $1`, [org]);
       const result = await client.query(`DELETE FROM file_blobs WHERE org = $1`, [org]);
       return result.rowCount ?? 0;
     });
   }
+
+  async listConversions(limit: number): Promise<AttachmentConversion[]> {
+    const result = await this.open().query<FileConversionRow>(
+      `SELECT ${FILE_CONVERSION_COLUMNS} FROM file_conversions
+       ORDER BY created_at, run_id, position
+       LIMIT $1`,
+      [limit],
+    );
+    return result.rows.map(fileConversionOf);
+  }
+
+  async forgetConversion(runId: string, position: number): Promise<void> {
+    await this.open().query(`DELETE FROM file_conversions WHERE run_id = $1 AND position = $2`, [runId, position]);
+  }
+}
+
+const FILE_CONVERSION_COLUMNS =
+  "run_id, position, org, session_id, filename, storage_key, content_type, created_at";
+
+interface FileConversionRow {
+  run_id: string;
+  position: string | number;
+  org: string;
+  session_id: string;
+  filename: string;
+  storage_key: string;
+  content_type: string;
+  created_at: string;
+}
+
+function fileConversionOf(row: FileConversionRow): AttachmentConversion {
+  return {
+    runId: row.run_id,
+    position: Number(row.position),
+    org: row.org,
+    sessionId: row.session_id,
+    filename: row.filename,
+    storageKey: row.storage_key,
+    contentType: row.content_type,
+    createdAt: row.created_at,
+  };
 }

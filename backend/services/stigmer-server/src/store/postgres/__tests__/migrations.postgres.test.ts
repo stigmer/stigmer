@@ -170,6 +170,7 @@ import {
   SCHEMA_VERSION_37,
   SCHEMA_VERSION_38,
   SCHEMA_VERSION_39,
+  SCHEMA_VERSION_40,
   runMigrations,
 } from "../migrations.js";
 import { LABEL_TAG_REPORT_PAGE_SIZE } from "../../label-tag-report.js";
@@ -215,6 +216,12 @@ import {
   retiredWorkflowRunRow,
 } from "../../__tests__/retired-workflow-rows.js";
 import { PostgresStore } from "../store.js";
+import {
+  WORKSPACE_STEP_CONVERSIONS,
+  WORKSPACE_STEP_EXPECTED,
+  WORKSPACE_STEP_ROWS,
+  conversionOfRow,
+} from "../../__tests__/retired-workspace-rows.js";
 import { agentExecutionListIndex } from "../../../domain/run/list-index.js";
 import { grantListIndex } from "../../../domain/grant/list-index.js";
 import { newResourceGrantStore } from "../../../domain/grant/resource-store.js";
@@ -444,6 +451,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           "connect_link",
           "file_blob_refs",
           "file_blobs",
+          "file_conversions",
           "grant_history",
           "grant_history_heads",
           "oauth_client_registration",
@@ -5049,6 +5057,85 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
 
           const kept = await client.query<{ data: Buffer }>(`SELECT data FROM resources WHERE id = 'agt_kept'`);
           expect([...kept.rows[0]!.data]).toEqual([1, 2, 3]);
+        } finally {
+          await client.end();
+        }
+      });
+    });
+
+    describe("v40: workspace entries become resources, and run attachments wait to become Files", () => {
+      const storedAt = new Date("2026-10-01T00:00:00Z");
+
+      /** A v39 database holding the scenario's rows, and a client on it. */
+      async function v39Client(): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_39);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        for (const row of WORKSPACE_STEP_ROWS) {
+          await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, $4)`, [
+            row.kind,
+            row.id,
+            Buffer.from(row.data),
+            storedAt,
+          ]);
+        }
+        return client;
+      }
+
+      async function version(client: pg.Client): Promise<number> {
+        const result = await client.query(`SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`);
+        return Number(result.rows[0].version);
+      }
+
+      it("rewrites every row holding the retired field, lifts each attachment, and leaves the rest and updated_at alone", async () => {
+        const client = await v39Client();
+        try {
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_40);
+          expect(await version(client)).toBe(SCHEMA_VERSION_40);
+
+          const rows = (
+            await client.query<{ id: string; data: Buffer; updated_at: Date }>(
+              `SELECT id, data, updated_at FROM resources ORDER BY id COLLATE "C"`,
+            )
+          ).rows;
+          expect(rows.map((row) => row.id)).toEqual([...WORKSPACE_STEP_EXPECTED.keys()].sort());
+          for (const row of rows) {
+            expect(new Uint8Array(row.data), row.id).toEqual(WORKSPACE_STEP_EXPECTED.get(row.id));
+            expect(row.updated_at.getTime(), row.id).toBe(storedAt.getTime());
+          }
+          const conversions = (
+            await client.query<Record<string, unknown>>(`SELECT * FROM file_conversions ORDER BY run_id, position`)
+          ).rows;
+          expect(conversions.map(conversionOfRow)).toEqual(WORKSPACE_STEP_CONVERSIONS);
+          const indexes = (
+            await client.query<{ indexname: string }>(
+              `SELECT indexname FROM pg_indexes WHERE tablename = 'file_conversions' ORDER BY indexname`,
+            )
+          ).rows.map((row) => row.indexname);
+          expect(indexes).toEqual(["file_conversions_pkey", "idx_file_conversions_order", "idx_file_conversions_org"]);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a row that does not decode fails the step, names the row, and leaves the database at v39", async () => {
+        const client = await v39Client();
+        try {
+          await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('run', 'run_broken', $1, now())`, [
+            Buffer.from([0xff, 0xff, 0xff]),
+          ]);
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_40)).rejects.toThrow(
+            "run 'run_broken' cannot be read to turn its workspace entries into resources",
+          );
+          expect(await version(client)).toBe(SCHEMA_VERSION_39);
+          const tables = (
+            await client.query<{ table_name: string }>(
+              `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`,
+            )
+          ).rows.map((row) => row.table_name);
+          expect(tables).not.toContain("file_conversions");
+          const session = await client.query<{ data: Buffer }>(`SELECT data FROM resources WHERE id = 'ses_step'`);
+          expect(new Uint8Array(session.rows[0]!.data)).toEqual(WORKSPACE_STEP_ROWS[0]!.data);
         } finally {
           await client.end();
         }
