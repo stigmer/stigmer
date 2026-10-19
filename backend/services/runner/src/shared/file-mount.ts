@@ -133,15 +133,15 @@ export async function mountFiles(entries: readonly FileMount[], options: FileMou
   const kept = await pruneUploads(uploadsDir, wanted, index);
   if (wanted.size > 0) await ensureStigmerSymlink(options.primaryWorkspaceDir, platformDir);
 
-  const records: Record<string, IndexRecord> = {};
+  const records = new Map<string, IndexRecord>();
   let fetched = 0;
   for (const [path, entry] of wanted) {
     const record = kept.get(path);
     if (record !== undefined) {
-      records[path] = record;
+      records.set(path, record);
       continue;
     }
-    records[path] = await download(entry, path, uploadsDir);
+    records.set(path, await download(entry, path, uploadsDir));
     fetched += 1;
   }
   await writeIndex(platformDir, records);
@@ -189,7 +189,9 @@ export function splitMessageFiles(
  * Offer a mounted image to the turn's vision budget (`attachment-vision.ts`
  * owns every rule). The bytes are read from disk only when they could be
  * accepted: a model that cannot see, or an image over the per-image cap,
- * settles the outcome without the read.
+ * settles the outcome without the read. The image is labelled with its
+ * mount path, where the agent finds it, never the File's own filename: a
+ * second `image.png` sits at `image-2.png`.
  */
 export async function offerMountedImage(
   file: MountedFile,
@@ -199,7 +201,7 @@ export async function offerMountedImage(
   if (budget.modelCannotSee()) return budget.offerBlind();
   if (budget.exceedsImageCap(file.sizeBytes)) return budget.offerOversized();
   const bytes = await agentFs().readFile(join(getPlatformDir(sessionId), UPLOADS_SUBDIR, file.mountPath));
-  return budget.offer(file.filename, file.mimeType, bytes);
+  return budget.offer(file.mountPath, file.mimeType, bytes);
 }
 
 /** The entry's mount path, refused when empty or when it would leave `uploads/`. */
@@ -266,8 +268,9 @@ async function keptRecord(
 }
 
 /**
- * Stream one File's bytes to its place, check the size, and answer its
- * record. The partial file is removed on any failure.
+ * Make one File's folder, stream its bytes to its place, check the size, and
+ * answer its record. Any failure, the folder's included (a parent that is a
+ * file), is a {@link FileMountError}, and the partial file is removed.
  */
 async function download(
   entry: FileMount,
@@ -276,8 +279,10 @@ async function download(
 ): Promise<IndexRecord> {
   const dest = entryPathIn(uploadsDir, path, "File mount");
   const expected = Number(entry.sizeBytes);
-  await agentFs().mkdir(dirname(dest), { recursive: true });
+  let foldered = false;
   try {
+    await agentFs().mkdir(dirname(dest), { recursive: true });
+    foldered = true;
     const response = await fetch(entry.url);
     if (!response.ok || response.body === null) {
       throw new Error(`HTTP ${response.status} from ${withoutQuery(entry.url)}`);
@@ -287,7 +292,10 @@ async function download(
       throw new Error(`got ${written} bytes, expected ${expected}`);
     }
   } catch (err) {
-    await agentFs().rm(dest, { force: true });
+    // Best effort: when the folder could not be made, the path cannot be
+    // removed either (ENOTDIR), and the mount's error is the one to report.
+    await agentFs().rm(dest, { force: true }).catch(() => undefined);
+    if (!foldered) throw new FileMountError(path, `its folder could not be made: ${errorText(err)}`);
     // A refused connection says only "fetch failed": name the origin the
     // link points at, never its path (the blob's key) or its query.
     const text = scrubbed(errorText(err), entry.url);
@@ -332,7 +340,12 @@ async function streamToFile(body: ReadableStream<Uint8Array>, dest: string, expe
   return written;
 }
 
-/** The index as the last mount wrote it; empty when there is none or it cannot be read. */
+/**
+ * The index as the last mount wrote it; empty when there is none or it
+ * cannot be read. The records are keyed by mount path, which the server
+ * chooses from a user's filename, so they live in a `Map`: a path such as
+ * `__proto__` is an ordinary key there, never an object's prototype.
+ */
 async function readIndex(platformDir: string): Promise<Map<string, IndexRecord>> {
   let raw: string;
   try {
@@ -341,6 +354,8 @@ async function readIndex(platformDir: string): Promise<Map<string, IndexRecord>>
     return new Map();
   }
   try {
+    // `JSON.parse` makes a `__proto__` key an own property, which
+    // `Object.entries` reads like any other.
     const parsed = JSON.parse(raw) as { readonly files?: Record<string, IndexRecord> };
     return new Map(Object.entries(parsed.files ?? {}));
   } catch (err) {
@@ -349,11 +364,16 @@ async function readIndex(platformDir: string): Promise<Map<string, IndexRecord>>
   }
 }
 
-/** Replace the index whole: written beside, then renamed over, so a reader never sees half of it. */
-async function writeIndex(platformDir: string, files: Record<string, IndexRecord>): Promise<void> {
+/**
+ * Replace the index whole: written beside, then renamed over, so a reader
+ * never sees half of it. On disk it stays `{ "files": { <mount path>: record } }`;
+ * `Object.fromEntries` defines each key as an own property, so `__proto__`
+ * is written as a key like any other.
+ */
+async function writeIndex(platformDir: string, files: ReadonlyMap<string, IndexRecord>): Promise<void> {
   const path = join(platformDir, UPLOADS_INDEX_FILE);
   await agentFs().mkdir(platformDir, { recursive: true });
-  await agentFs().writeFile(`${path}.next`, JSON.stringify({ files }));
+  await agentFs().writeFile(`${path}.next`, JSON.stringify({ files: Object.fromEntries(files) }));
   await agentFs().rename(`${path}.next`, path);
 }
 

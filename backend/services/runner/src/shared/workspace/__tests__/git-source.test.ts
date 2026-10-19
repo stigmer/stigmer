@@ -1,7 +1,8 @@
 /**
  * Pins the git workspace source: the clone-in-place flow (a named commit
  * checked out on its branch, fetched by id when no branch holds it, a
- * reused clone never reset), default-branch
+ * reused clone never reset, a commit that is not 7 to 64 hex digits refused
+ * before any git command runs), default-branch
  * resolution, idempotent reuse, and how a repository's token reaches git —
  * through the environment of the two network commands only, for a
  * github.com URL only, never in a remote URL, argv or a file — plus the
@@ -136,31 +137,55 @@ describe("provisionGit", () => {
 
   it("puts the branch at a named commit a fetched branch holds, fetching nothing more", async () => {
     const backend = mockWorkspaceBackend({ execute: routingExecute() });
-    await provisionGit(makeOptions({ backend, branch: "main", commit: "c0ffee" }));
+    await provisionGit(makeOptions({ backend, branch: "main", commit: "c0ffee1" }));
 
     const cmds = calls(backend);
     expect(cmds.filter((c) => c.startsWith("git fetch"))).toEqual(["git fetch --quiet origin"]);
-    expect(cmds).toContain("git reset --quiet --hard 'c0ffee'");
-    expect(cmds.indexOf("git checkout 'main'")).toBeLessThan(cmds.indexOf("git reset --quiet --hard 'c0ffee'"));
+    expect(cmds).toContain("git reset --quiet --hard 'c0ffee1'");
+    expect(cmds.indexOf("git checkout 'main'")).toBeLessThan(cmds.indexOf("git reset --quiet --hard 'c0ffee1'"));
   });
 
   it("fetches a named commit by id when no branch holds it, then checks it out", async () => {
     const backend = mockWorkspaceBackend({
       execute: routingExecute({ fail: (cmd) => (cmd.startsWith("git cat-file") ? new Error("missing") : undefined) }),
     });
-    await provisionGit(makeOptions({ backend, branch: "main", commit: "c0ffee", token: "ghp_commit" }));
+    await provisionGit(makeOptions({ backend, branch: "main", commit: "c0ffee1", token: "ghp_commit" }));
 
     const runsWithEnv = (backend.execute as ReturnType<typeof vi.fn>).mock.calls
       .filter((call) => (call[1] as { env?: unknown } | undefined)?.env !== undefined)
       .map((call) => call[0] as string);
-    expect(runsWithEnv).toEqual(["git fetch --quiet origin", "git fetch --quiet origin 'c0ffee'"]);
+    expect(runsWithEnv).toEqual(["git fetch --quiet origin", "git fetch --quiet origin 'c0ffee1'"]);
     const cmds = calls(backend);
-    expect(cmds.indexOf("git fetch --quiet origin 'c0ffee'")).toBeLessThan(cmds.indexOf("git reset --quiet --hard 'c0ffee'"));
+    expect(cmds.indexOf("git fetch --quiet origin 'c0ffee1'")).toBeLessThan(cmds.indexOf("git reset --quiet --hard 'c0ffee1'"));
+  });
+
+  it("refuses a commit that is not hex digits before any git command runs", async () => {
+    for (const commit of ["--upload-pack=x", "c0ffee", "HEAD~1", "c0ffee1 --hard"]) {
+      const backend = mockWorkspaceBackend({ execute: routingExecute() });
+      const err = await provisionGit(makeOptions({ backend, commit })).then(() => undefined, (e: unknown) => e);
+      expect(err, commit).toBeInstanceOf(WorkspaceProvisionError);
+      expect((err as Error).message).toContain("is not a commit id");
+      expect(backend.execute, commit).not.toHaveBeenCalled();
+    }
+  });
+
+  it("hands an accepted full commit id to git as one quoted argument", async () => {
+    const sha = "0123456789abcdef0123456789ABCDEF01234567";
+    const backend = mockWorkspaceBackend({
+      execute: routingExecute({ fail: (cmd) => (cmd.startsWith("git cat-file") ? new Error("missing") : undefined) }),
+    });
+    await provisionGit(makeOptions({ backend, branch: "main", commit: sha }));
+
+    expect(calls(backend).filter((c) => c.includes(sha))).toEqual([
+      `git cat-file -e '${sha}^{commit}'`,
+      `git fetch --quiet origin '${sha}'`,
+      `git reset --quiet --hard '${sha}'`,
+    ]);
   });
 
   it("leaves a reused clone where the agent's work put it: no named commit is checked out again", async () => {
     const backend = mockWorkspaceBackend({ execute: routingExecute(), exists: vi.fn(async () => true) });
-    await provisionGit(makeOptions({ backend, branch: "main", commit: "c0ffee" }));
+    await provisionGit(makeOptions({ backend, branch: "main", commit: "c0ffee1" }));
 
     expect(calls(backend).some((c) => c.includes("reset") || c.includes("git fetch"))).toBe(false);
   });

@@ -849,6 +849,21 @@ describe("formatImplementPlanSection", () => {
     expect(section).toContain("conversation above");
   });
 
+  it("finds a second plan of the same name at its renamed mount path, never the conversation's earlier one", () => {
+    const earlier: ListedFile = { filename: "x.plan.md", relativePath: ".stigmer/uploads/x.plan.md", sizeBytes: 1024 };
+    const approved: ListedFile = { filename: "x.plan.md", relativePath: ".stigmer/uploads/x.plan-2.md", sizeBytes: 1024 };
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "created_first_execution"),
+        buildFromPlan: true,
+        files: { ...NO_FILES, message: [approved], conversation: [earlier] },
+      }),
+    );
+
+    expect(prompt).toContain("The approved plan document is attached at `.stigmer/uploads/x.plan-2.md`");
+    expect(prompt).not.toContain("attached at `.stigmer/uploads/x.plan.md`");
+  });
+
   it("finds the plan among this message's files only, never the conversation's earlier ones", () => {
     const prompt = buildPrompt(
       input({

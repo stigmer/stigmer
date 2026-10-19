@@ -17,7 +17,8 @@
  *   sits on the branch at that commit, so write-back still has a base
  *   branch to open its pull request against. A reused clone is left where
  *   the agent's work put it: the commit is where a conversation starts, not
- *   where each turn is reset to.
+ *   where each turn is reset to. A commit that is not 7 to 64 hex digits is
+ *   refused before any git command runs (assertCommitId).
  * - Multi-entry mode: clones into target_subdir
  * - Every value interpolated into a git command is shell-quoted (shellQuote)
  */
@@ -51,8 +52,12 @@ const GITHUB_HOST = "github.com";
 /** The credential file earlier runners kept inside the clone; reuse deletes it. */
 const LEGACY_CREDENTIAL_FILE = ".git-credentials";
 
+/** A commit id as a resource names one: an abbreviated or full SHA-1 or SHA-256 object name. */
+const COMMIT_ID = /^[0-9a-fA-F]{7,64}$/;
+
 export async function provisionGit(options: GitProvisionOptions): Promise<ProvisionResult> {
   const { url, branch, commit, backend, targetSubdir, writeBack } = options;
+  if (commit) assertCommitId(commit);
 
   const cloneDir = targetSubdir
     ? join(backend.rootDir, targetSubdir)
@@ -204,6 +209,24 @@ async function cloneInPlace(
   const present = await exec(`git cat-file -e ${shellQuote(`${commit}^{commit}`)}`).then(() => true, () => false);
   if (!present) await network(`git fetch --quiet origin ${shellQuote(commit)}`);
   await exec(`git reset --quiet --hard ${shellQuote(commit)}`);
+}
+
+/**
+ * Refuses a commit that is not an object id: the value reaches `git fetch`,
+ * `git cat-file` and `git reset` as an argument, and one that starts with
+ * `-` (`--upload-pack=…`) would be read as an option. Hex digits alone can
+ * never be. The commands carry no `--end-of-options` as a second guard: git
+ * learned it in 2.24, and only a clone that needs a token has a git floor
+ * (2.31, ../git-credential.ts); a public clone runs on any git, and an older
+ * one refuses the marker as an unknown option. This check is the guard.
+ */
+function assertCommitId(commit: string): void {
+  if (!COMMIT_ID.test(commit)) {
+    throw new WorkspaceProvisionError(
+      "git_repo",
+      `The commit '${commit}' is not a commit id: name it by 7 to 64 hexadecimal digits.`,
+    );
+  }
 }
 
 /**

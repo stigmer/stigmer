@@ -378,7 +378,7 @@ export function composeSystemPrompt(input: TurnInput, recalledMemories: Recalled
     interactionMode: spec.interactionMode,
     buildFromPlan: spec.buildFromPlan,
     ...(spec.buildFromPlan
-      ? { approvedPlanPath: findApprovedPlanPath(input.files.message.map((f) => f.relativePath)) }
+      ? { approvedPlanPath: findApprovedPlanPath(input.files.message) }
       : {}),
     contextBridge: input.standing.contextBridge,
     senderIdentity: input.standing.senderIdentity,

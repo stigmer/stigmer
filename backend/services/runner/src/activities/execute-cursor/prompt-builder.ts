@@ -56,6 +56,7 @@ import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import {
   buildImplementPlanDirective,
   findApprovedPlanPath,
+  type PlanCandidate,
 } from "../../shared/implement-plan-prompt.js";
 import type { PendingApproval } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
@@ -628,14 +629,14 @@ export function formatInteractionModePrefix(
  */
 export function formatImplementPlanSection(
   buildFromPlan: boolean | undefined,
-  messageFiles: readonly { readonly relativePath: string }[],
+  messageFiles: readonly PlanCandidate[],
 ): string | undefined {
   if (!buildFromPlan) {
     return undefined;
   }
 
   const directive = buildImplementPlanDirective(
-    findApprovedPlanPath(messageFiles.map((f) => f.relativePath)),
+    findApprovedPlanPath(messageFiles),
   );
   return ["<implement_plan>", directive, "</implement_plan>"].join("\n");
 }

@@ -17,11 +17,14 @@
  *    leave no partial file; a refused connection names the link's origin;
  *  - a body larger than the flush size is written in pieces, never whole;
  *  - a mount path outside `uploads/`, or two Files at one path, is refused;
- *  - an unreadable index costs a refetch, never a failure;
+ *  - a File whose folder cannot be made (its parent is a file) ends the
+ *    mount with the mount's own error;
+ *  - an unreadable index costs a refetch, never a failure; a mount path
+ *    `__proto__` is recorded and kept like any other;
  *  - this message's Files are found among the mounted ones by id, in the
  *    message's order, and a message File the conversation lacks is refused;
- *  - a mounted image is offered to the vision budget, read from disk only
- *    when it could be accepted;
+ *  - a mounted image is offered to the vision budget under its mount path,
+ *    not its filename, read from disk only when it could be accepted;
  *  - the door is asked under the run's scoped credential.
  */
 
@@ -236,6 +239,31 @@ describe("mountFiles", () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("uploads index could not be read"));
   });
 
+  it("records a File at the mount path __proto__ in the index and keeps it unfetched", async () => {
+    const entries = [served("file_p", "__proto__", Buffer.from("proto"))];
+    await mount(entries);
+    const index = JSON.parse(readFileSync(join(getPlatformDir(sessionId), UPLOADS_INDEX_FILE), "utf8")) as {
+      readonly files: Record<string, { readonly fileId: string }>;
+    };
+    expect(Object.keys(index.files)).toEqual(["__proto__"]);
+    expect(Object.getOwnPropertyDescriptor(index.files, "__proto__")?.value).toMatchObject({ fileId: "file_p" });
+    requested.length = 0;
+
+    await mount(entries);
+
+    expect(requested, "the record was written, so the File is kept").toEqual([]);
+    expect(readFileSync(uploads("__proto__"), "utf8")).toBe("proto");
+  });
+
+  it("refuses a File whose folder is a file with the mount's error, naming its path", async () => {
+    const err = await refusal([
+      served("file_d", "data", Buffer.from("a file, not a folder")),
+      served("file_a", "data/a.csv", Buffer.from("a,b")),
+    ]);
+    expect(err.message).toContain("File 'data/a.csv': its folder could not be made");
+    expect(err.message, "a folder that cannot be made names no link").not.toContain(base);
+  });
+
   it("refuses a File whose bytes are not its recorded size, without the link's query, and leaves no partial file", async () => {
     const entry = served("file_a", "a.txt", Buffer.from("short"), { sizeBytes: 99n });
     const err = await refusal([entry]);
@@ -358,17 +386,17 @@ describe("splitMessageFiles", () => {
 describe("offerMountedImage", () => {
   const image = (sizeBytes: number): MountedFile => ({
     fileId: "file_img",
-    mountPath: "shot.png",
+    mountPath: "shot-2.png",
     filename: "shot.png",
     mimeType: "image/png",
     sizeBytes,
-    relativePath: ".stigmer/uploads/shot.png",
+    relativePath: ".stigmer/uploads/shot-2.png",
   });
 
-  it("reads the mounted bytes and offers them to the budget", async () => {
-    await mount([served("file_img", "shot.png", PNG, { mimeType: "image/png" })]);
+  it("reads the mounted bytes and offers them to the budget under the mount path", async () => {
+    await mount([served("file_img", "shot-2.png", PNG, { mimeType: "image/png", filename: "shot.png" })]);
     const outcome = await offerMountedImage(image(PNG.length), sessionId, new VisionBudget(DEEP_AGENT_VISION_PROFILE));
-    expect(outcome).toMatchObject({ kind: "accepted", image: { filename: "shot.png", mimeType: "image/png", byteSize: PNG.length } });
+    expect(outcome).toMatchObject({ kind: "accepted", image: { filename: "shot-2.png", mimeType: "image/png", byteSize: PNG.length } });
   });
 
   it("settles a blind model and an oversized image without reading the file", async () => {

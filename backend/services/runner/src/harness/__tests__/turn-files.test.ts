@@ -9,7 +9,8 @@
  *  - this message's Files come first in the message's order, the rest of
  *    the conversation's after; a document is listed and never shown;
  *  - each message image goes through the vision budget, its bytes read from
- *    where the mount placed them, and a degraded one is disclosed by path;
+ *    where the mount placed them and labelled with that mount path, not the
+ *    File's filename, and a degraded one is disclosed by path;
  *  - the budget asks the registry about the model the turn's resolved
  *    settings name, or the registry's default when they name none, never
  *    the model the request asked for, and asks nothing when the message
@@ -118,12 +119,12 @@ function deps(client: StigmerClient): ResolutionDeps {
   };
 }
 
-function file(fileId: string, mountPath: string, bytes: Buffer, mimeType: string): FileMount {
+function file(fileId: string, mountPath: string, bytes: Buffer, mimeType: string, filename = mountPath): FileMount {
   served.set(`/${fileId}`, bytes);
   return create(FileMountSchema, {
     fileId,
     mountPath,
-    filename: mountPath,
+    filename,
     mimeType,
     sizeBytes: BigInt(bytes.length),
     url: `${base}/${fileId}?sig=1`,
@@ -204,6 +205,19 @@ describe("mountTurnFiles", () => {
     expect(files.visionNotViewable).toEqual([]);
     expect(getModelVisionCapability).toHaveBeenCalledWith("claude-haiku-4.5");
     expect(getDefaultModel).not.toHaveBeenCalled();
+  });
+
+  it("labels a message image with its mount path when the File's filename was taken", async () => {
+    const entries = [
+      file("file_first", "image.png", PNG, "image/png"),
+      file("file_second", "image-2.png", PNG, "image/png", "image.png"),
+    ];
+    const client = mockStigmerClient({ mountRunFiles: vi.fn().mockResolvedValue(entries) });
+
+    const files = await run(client, sessionHolding(["file_first", "file_second"]), execution({ messageFiles: [["image", "file_second"]] }));
+
+    expect(files.message.map((f) => [f.filename, f.relativePath])).toEqual([["image.png", ".stigmer/uploads/image-2.png"]]);
+    expect(files.visionImages.map((v) => v.filename)).toEqual(["image-2.png"]);
   });
 
   it("discloses a message image the model cannot see by its path", async () => {
