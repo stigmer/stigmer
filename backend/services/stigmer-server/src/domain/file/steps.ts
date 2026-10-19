@@ -195,12 +195,16 @@ export function newPersistUploadedFileStep(
       if (sessionId === "") {
         return;
       }
+      let gone = false;
       try {
         await deps.store.getResource(ApiResourceKind.session, sessionId, SessionSchema);
       } catch (error) {
         if (!(error instanceof ResourceNotFoundError)) {
           throw internalError(error, "failed to load session");
         }
+        gone = true;
+      }
+      if (gone) {
         await deps.blobs.removeFile(id);
         throw notFoundError("session", sessionId);
       }
