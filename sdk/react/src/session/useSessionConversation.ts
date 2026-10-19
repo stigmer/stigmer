@@ -12,6 +12,7 @@ import {
   displayFileChangeSets,
   supersededRunIds,
   buildSessionProto,
+  getErrorReason,
   type FileReviewSet,
   type ResourceRef,
   type ToolUse,
@@ -41,7 +42,7 @@ import { useSession } from "./useSession.js";
 import { useSessionEvents } from "./useSessionEvents.js";
 import { useSessionRuns } from "./useSessionRuns.js";
 import { useUpdateSession } from "./useUpdateSession.js";
-import { maskedEdit } from "../internal/maskedEdit.js";
+import { ETAG_MISMATCH, maskedEdit } from "../internal/maskedEdit.js";
 import { useLocalSessionWorker } from "./useLocalSessionWorker.js";
 
 /**
@@ -59,6 +60,14 @@ const STOPPABLE_PHASES: ReadonlySet<TurnPhase> = new Set<TurnPhase>([
   "waiting",
   "paused",
 ]);
+
+/**
+ * How many times a follow-up's session update is made, the first included,
+ * when each is refused because the session changed since it was read
+ * (ETAG_MISMATCH): each attempt reads the session again and rebuilds the
+ * update from that read. The last refusal fails the send.
+ */
+const SESSION_EDIT_ATTEMPTS = 3;
 
 const EMPTY_ASKS: readonly ToolUse[] = [];
 const EMPTY_SETS: readonly FileReviewSet[] = [];
@@ -94,7 +103,8 @@ export interface SendFollowUpOptions {
    * ones. A repository kept by name and URL and sent without a token keeps
    * its stored token; a token sent replaces it. The conversation's Files
    * are kept: a File resource left out of the list stays, so a send that
-   * rebuilds the workspace never drops a file given earlier.
+   * rebuilds the workspace never drops a file given earlier, nor one
+   * another participant's run adds while this send is made.
    */
   readonly resources?: SessionResourceInput[];
   /** Plugins the conversation uses, replacing the stored ones; each is used whole. */
@@ -755,18 +765,28 @@ export function useSessionConversation(
         if (needsSessionUpdate) {
           // The update names only the fields this send provides, so a
           // field written since (the generated subject) keeps its value.
-          // The session is read fresh for the repository tokens the
-          // workspace echoes back (buildSessionEdit).
-          const freshSession = await stigmer.session.get(sessionId);
-          const { resource, paths } = buildSessionEdit(freshSession, {
-            agentRef: options?.agentRef,
-            resources: options?.resources,
-            plugins: options?.plugins,
-            skillRefs: options?.skillRefs,
-            vaults: options?.vaults,
-            includeMyVault: options?.includeMyVault,
-          });
-          await updateSession(resource, paths);
+          // The session is read fresh for the repository tokens and Files
+          // the replacement resources keep (buildSessionEdit); an update
+          // refused because the session changed since that read is built
+          // again from a new read.
+          for (let attempt = 1; ; attempt++) {
+            const freshSession = await stigmer.session.get(sessionId);
+            const { resource, paths } = buildSessionEdit(freshSession, {
+              agentRef: options?.agentRef,
+              resources: options?.resources,
+              plugins: options?.plugins,
+              skillRefs: options?.skillRefs,
+              vaults: options?.vaults,
+              includeMyVault: options?.includeMyVault,
+            });
+            try {
+              await updateSession(resource, paths);
+              break;
+            } catch (err) {
+              const stale = getErrorReason(err)?.reason === ETAG_MISMATCH;
+              if (!stale || attempt >= SESSION_EDIT_ATTEMPTS) throw err;
+            }
+          }
           refetchSession();
         }
 
@@ -988,8 +1008,14 @@ const LATEST_AGENT_VERSION = "latest";
  * agent's pinned version among them: editing the workspace or the tools
  * never moves the agent version a conversation runs). An empty-array
  * override clears the collection; an agent override of `null` clears the
- * agent (the built-in assistant). The update carries no etag: it is a
- * send, not an editor, and a subject written since must not refuse it.
+ * agent (the built-in assistant).
+ *
+ * An update that replaces the resources carries the etag `session` was read
+ * at: it writes back the stored Files and repository tokens from that read,
+ * so a File another participant's run added since must refuse it (the
+ * caller reads again and rebuilds it), never be dropped. Any other update
+ * carries no etag: it is a send, not an editor, and a subject written since
+ * must not refuse it.
  */
 function buildSessionEdit(
   session: Session,
@@ -1013,7 +1039,7 @@ function buildSessionEdit(
     ...(overrides.includeMyVault !== undefined && { includeMyVault: overrides.includeMyVault }),
   };
   const edit = maskedEdit(session, buildSessionProto, patch);
-  if (edit.resource.metadata !== undefined) {
+  if (overrides.resources === undefined && edit.resource.metadata !== undefined) {
     edit.resource.metadata.etag = "";
   }
   return edit;

@@ -8,7 +8,9 @@
  * nothing until `release`, which deletes only the person's own Files,
  * once. The `preparing` phase (stigmer/stigmer#369) keeps its contract:
  * an entry exists from the instant a paste is added, size is judged on
- * the prepared bytes, and a cancelled preparation never uploads.
+ * the prepared bytes, and a cancelled preparation never uploads. The
+ * chat box holds at most MAX_MESSAGE_FILES files, the most a message
+ * carries; a file past it is refused before it uploads.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
@@ -22,7 +24,7 @@ vi.mock("../prepare-image.js", () => ({
 
 import { useStigmer } from "../../hooks";
 import { prepareImageForVision } from "../prepare-image.js";
-import { useFileUploads } from "../useFileUploads.js";
+import { MAX_MESSAGE_FILES, useFileUploads } from "../useFileUploads.js";
 import { MAX_ATTACHMENT_BYTES } from "../attachment-utils.js";
 
 // ---------------------------------------------------------------------------
@@ -302,6 +304,75 @@ describe("useFileUploads — Files", () => {
       "shot.png",
       "shot-2.png",
     ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The most Files a message carries
+// ---------------------------------------------------------------------------
+
+/** `count` small files named `<prefix>1.png` onward. */
+function makeFiles(count: number, prefix = "f"): File[] {
+  return Array.from({ length: count }, (_, i) => makeFile(`${prefix}${i + 1}.png`, 8));
+}
+
+describe("useFileUploads — the message cap", () => {
+  it("accepts and uploads exactly MAX_MESSAGE_FILES files", async () => {
+    const { uploadFile } = mockStigmer();
+    const onValidationError = vi.fn();
+
+    const { result } = renderHook(() => useFileUploads({ org: "acme", onValidationError }));
+    act(() => {
+      result.current.addFiles(makeFiles(MAX_MESSAGE_FILES));
+    });
+
+    await waitFor(() => expect(result.current.allReady).toBe(true));
+    expect(MAX_MESSAGE_FILES).toBe(20);
+    expect(result.current.entries).toHaveLength(20);
+    expect(uploadFile).toHaveBeenCalledTimes(20);
+    expect(onValidationError).not.toHaveBeenCalled();
+  });
+
+  it("refuses the file past the cap before it uploads, and says why", async () => {
+    const { uploadFile } = mockStigmer();
+    const onValidationError = vi.fn();
+
+    const { result } = renderHook(() => useFileUploads({ org: "acme", onValidationError }));
+    act(() => {
+      result.current.addFiles(makeFiles(MAX_MESSAGE_FILES + 1));
+    });
+
+    await waitFor(() => expect(result.current.allReady).toBe(true));
+    expect(result.current.entries.map((e) => e.file.name)).not.toContain("f21.png");
+    expect(uploadFile).toHaveBeenCalledTimes(20);
+    expect(onValidationError).toHaveBeenCalledTimes(1);
+    expect(onValidationError).toHaveBeenCalledWith("A message carries at most 20 files; 1 file was not added.");
+  });
+
+  it("counts the files already in the chat box, in any phase, and frees a slot on removal", async () => {
+    const { uploadFile } = mockStigmer();
+    prepareMock.mockReturnValue(new Promise(() => {}));
+    const onValidationError = vi.fn();
+
+    const { result } = renderHook(() => useFileUploads({ org: "acme", onValidationError }));
+    act(() => {
+      result.current.addFiles(makeFiles(MAX_MESSAGE_FILES - 1));
+      result.current.addFiles([makeFile("pasted.png", 8)], { prepareImages: true });
+    });
+    act(() => {
+      result.current.addFiles(makeFiles(2, "late"));
+    });
+
+    expect(result.current.entries).toHaveLength(20);
+    expect(onValidationError).toHaveBeenCalledWith("A message carries at most 20 files; 2 files were not added.");
+
+    act(() => {
+      result.current.removeEntry(result.current.entries[0].id);
+      result.current.addFiles([makeFile("again.png", 8)]);
+    });
+    expect(result.current.entries).toHaveLength(20);
+    expect(result.current.entries.at(-1)?.file.name).toBe("again.png");
+    await waitFor(() => expect(uploadFile).toHaveBeenCalledTimes(20));
   });
 });
 

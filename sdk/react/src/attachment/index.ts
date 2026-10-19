@@ -1,4 +1,4 @@
-export { useFileUploads, toAttachmentView } from "./useFileUploads.js";
+export { MAX_MESSAGE_FILES, useFileUploads, toAttachmentView } from "./useFileUploads.js";
 export type {
   AddFilesOptions,
   FileHandOff,

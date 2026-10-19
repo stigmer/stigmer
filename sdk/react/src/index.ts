@@ -512,6 +512,7 @@ export {
   toAttachmentView,
   AttachmentChipList,
   MAX_ATTACHMENT_BYTES,
+  MAX_MESSAGE_FILES,
   MAX_VISION_LONG_EDGE_PX,
   MAX_VISION_PIXELS,
   assessVisionPreflight,

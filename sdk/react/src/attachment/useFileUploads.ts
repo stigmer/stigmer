@@ -23,6 +23,9 @@
  * - Sending is a hand-off, not a clear: {@link UseFileUploadsReturn.handOff}
  *   empties the chips without deleting anything, because the run that
  *   names the Files does not exist yet.
+ * - The chat box holds at most {@link MAX_MESSAGE_FILES} files, the most a
+ *   message carries: a file past it is refused before it uploads, since
+ *   the send (and every retry of it) would be refused.
  */
 
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -35,6 +38,12 @@ import {
   validateAttachmentSize,
 } from "./attachment-utils.js";
 import { prepareImageForVision } from "./prepare-image.js";
+
+/**
+ * The most Files one message carries: the server refuses a run naming more
+ * in `file_ids`. {@link useFileUploads} holds no more entries than this.
+ */
+export const MAX_MESSAGE_FILES = 20;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -113,7 +122,8 @@ export interface UseFileUploadsOptions {
   readonly sessionId?: string;
   /**
    * Called when a file is refused while it is added (for example, it
-   * exceeds the size limit). Use it for a toast.
+   * exceeds the size limit, or the chat box already holds
+   * {@link MAX_MESSAGE_FILES} files). Use it for a toast.
    */
   readonly onValidationError?: (message: string) => void;
 }
@@ -179,8 +189,8 @@ export interface UseFileUploadsReturn {
   readonly hasEntries: boolean;
   /**
    * Add one or more files. Each is validated and uploaded at once; a file
-   * refused (too large) is reported through `onValidationError` and not
-   * added.
+   * refused (too large, or past {@link MAX_MESSAGE_FILES} entries) is
+   * reported through `onValidationError` and not added.
    */
   readonly addFiles: (files: FileList | File[], addOptions?: AddFilesOptions) => void;
   /**
@@ -378,8 +388,15 @@ export function useFileUploads(options?: UseFileUploadsOptions): UseFileUploadsR
       // before its first await must find its entry to mark.
       const starts: (() => void)[] = [];
       const takenNames = new Set(entriesRef.current.map((e) => e.file.name));
+      // Every entry, in any phase, may become one of the message's Files.
+      let slots = MAX_MESSAGE_FILES - entriesRef.current.length;
+      let overCap = 0;
 
       for (const rawFile of Array.from(files)) {
+        if (slots <= 0) {
+          overCap++;
+          continue;
+        }
         if (addOptions?.prepareImages) {
           // The entry exists this tick: the preparing phase is the
           // feedback during the decode and downscale.
@@ -394,6 +411,7 @@ export function useFileUploads(options?: UseFileUploadsOptions): UseFileUploadsR
             error: null,
           });
           starts.push(() => void prepareEntry(id, rawFile));
+          slots--;
           continue;
         }
 
@@ -428,8 +446,14 @@ export function useFileUploads(options?: UseFileUploadsOptions): UseFileUploadsR
           error: null,
         });
         starts.push(() => void upload(id, file, contentType));
+        slots--;
       }
 
+      if (overCap > 0) {
+        onValidationError?.(
+          `A message carries at most ${MAX_MESSAGE_FILES} files; ${overCap === 1 ? "1 file was" : `${overCap} files were`} not added.`,
+        );
+      }
       if (added.length > 0) {
         entriesRef.current = [...entriesRef.current, ...added];
         setEntries((prev) => [...prev, ...added]);
