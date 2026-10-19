@@ -167,6 +167,7 @@ import {
   SCHEMA_VERSION_40,
   SCHEMA_VERSION_41,
   SCHEMA_VERSION_42,
+  SCHEMA_VERSION_43,
   SCHEMA_VERSION_7,
   getSchemaVersion,
   runMigrations,
@@ -403,7 +404,7 @@ describe("fresh database", () => {
     expect(rows.map((row) => row.version)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
       22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
-      40, 41, 42,
+      40, 41, 42, 43,
     ]);
   });
 
@@ -4718,5 +4719,49 @@ describe("v42: the schedule is a routine", () => {
     expect(db.prepare(`SELECT kind FROM resources WHERE id = 'sch_daily'`).all()).toEqual([{ kind: "schedule" }]);
     expect(tableNames(db)).toContain("schedule_runs");
     expect(tableNames(db)).not.toContain("routine_fires");
+  });
+});
+
+describe("v43: the File kind's blob tables", () => {
+  it("adds the two tables with the indexes their reads use, touching no row", () => {
+    const db = new DatabaseSync(tempDbPath());
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_42);
+    db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('agent', 'agt_kept', ?, datetime('now'))`).run(
+      new Uint8Array([1, 2, 3]),
+    );
+
+    runMigrations(db, SCHEMA_VERSION_43);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_43);
+
+    const columns = (table: string) =>
+      (db.prepare(`SELECT name, type FROM pragma_table_info(?) ORDER BY cid`).all(table) as Array<{ name: string; type: string }>).map(
+        (row) => `${row.name} ${row.type}`,
+      );
+    expect(columns("file_blobs")).toEqual([
+      "blob_key TEXT",
+      "org TEXT",
+      "state TEXT",
+      "size_bytes INTEGER",
+      "expires_at INTEGER",
+    ]);
+    expect(columns("file_blob_refs")).toEqual(["file_id TEXT", "blob_key TEXT", "org TEXT"]);
+
+    const indexes = (
+      db
+        .prepare(
+          `SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name IN ('file_blobs', 'file_blob_refs') AND sql IS NOT NULL ORDER BY name`,
+        )
+        .all() as Array<{ name: string }>
+    ).map((row) => row.name);
+    expect(indexes).toEqual([
+      "idx_file_blob_refs_blob",
+      "idx_file_blob_refs_org",
+      "idx_file_blobs_org",
+      "idx_file_blobs_sweep",
+    ]);
+
+    const kept = db.prepare(`SELECT data FROM resources WHERE id = 'agt_kept'`).get() as { data: Uint8Array };
+    expect([...kept.data]).toEqual([1, 2, 3]);
   });
 });

@@ -191,6 +191,18 @@ import {
   uploadUrl as skillUploadUrl,
 } from "../domain/skill/transfer/handler.js";
 import { UploadSlots } from "../domain/skill/transfer/slots.js";
+import { newFileBlobs, uploadRefOf as fileUploadRefOf } from "../domain/file/blobs.js";
+import {
+  STAGED_FILE_NAME,
+  STAGING_KEY_PREFIX as FILE_STAGING_KEY_PREFIX,
+  UPLOAD_URL_TTL_MS as FILE_UPLOAD_URL_TTL_MS,
+} from "../domain/file/constants.js";
+import { registerFileServices } from "../domain/file/controller.js";
+import {
+  fileTransferServeUrl,
+  fileUploadUrl,
+  newFileTransferLane,
+} from "../domain/file/transfer.js";
 import {
   newArchiveStaging,
   uploadRefOf,
@@ -1425,6 +1437,61 @@ export async function composeServer(
     skillStorageDriver,
     EVAL_ARTIFACT_KEY_PREFIX,
   );
+  // Files (domain/file/): the File store's own driver, built as the
+  // skill's is. On the local arm it is a local driver over the ARTIFACT
+  // root, where a run's stored attachments already live, and the Files
+  // transfer lane serves its upload slots and signed links on the unified
+  // port from the same public base as the skill lane, so a sandboxed
+  // runner and a person reach it where they reach skill archives. On any
+  // other arm it is the generic store itself (ARTIFACT_STORAGE_TYPE, the
+  // cloud's registered bucket driver), so bytes stay in the bucket they
+  // are in today. The slots exist only on the local arm: they wipe their
+  // staging directory at boot.
+  const filesLocal = config.artifactStorageType === "" || config.artifactStorageType === "local";
+  const fileUploadSlots = filesLocal
+    ? new UploadSlots(
+        config.artifactLocalBasePath,
+        FILE_STAGING_KEY_PREFIX,
+        FILE_UPLOAD_URL_TTL_MS,
+        config.fileMaxBytes,
+        Date.now,
+        STAGED_FILE_NAME,
+      )
+    : undefined;
+  const fileStorage: ArtifactStorage =
+    fileUploadSlots === undefined
+      ? artifactStorage
+      : new LocalArtifactStorage(
+          config.artifactLocalBasePath,
+          typeof skillTransferBase === "function"
+            ? () => fileTransferServeUrl(skillTransferBase())
+            : fileTransferServeUrl(skillTransferBase),
+          downloadUrlSigner,
+          {
+            reserve: (key, declaredSizeBytes) => {
+              const { ttlMs } = fileUploadSlots.reserve(key, declaredSizeBytes);
+              return {
+                url: fileUploadUrl(renderSkillTransferBase(), fileUploadRefOf(key)),
+                ttlMs,
+              };
+            },
+          },
+        );
+  const fileBlobs = newFileBlobs({
+    store,
+    storage: fileStorage,
+    logger,
+    maxBytes: config.fileMaxBytes,
+  });
+  const fileTransferLane =
+    fileUploadSlots === undefined
+      ? undefined
+      : newFileTransferLane({
+          slots: fileUploadSlots,
+          root: config.artifactLocalBasePath,
+          signer: downloadUrlSigner,
+          logger,
+        });
   // One staging port for every archive kind, over the one skill blob
   // driver: the controllers mint, consume and sign through it and never
   // meet the slots or the bucket.
@@ -1442,12 +1509,12 @@ export async function composeServer(
   // it forgot to name deserves a pointer, not an outage.
   const transferOrigin = assessSkillTransferOrigin({
     configured: config.skillTransferBaseUrl,
-    relaysThroughServer: skillType === "local",
+    relaysThroughServer: skillType === "local" || filesLocal,
     requireAuthentication,
   });
   if (transferOrigin.kind === "loopback-hosted") {
     logger.warn(
-      "skill artifact transfer lane mints capability URLs on the server's own loopback while the server requires authentication; pushes above the gRPC message cap and sandbox skill downloads will fail — set SKILL_TRANSFER_BASE_URL to the origin callers reach this server on",
+      "the skill and file transfer lanes mint capability URLs on the server's own loopback while the server requires authentication; pushes and uploads above the gRPC message cap and sandbox downloads will fail — set SKILL_TRANSFER_BASE_URL to the origin callers reach this server on",
       { baseUrl: transferOrigin.baseUrl },
     );
   }
@@ -1631,6 +1698,7 @@ export async function composeServer(
     accountLifecycle: roleLifecycle,
     runScores,
     evalRunWorkflows,
+    fileBlobs,
   });
   const purgeQuiesce = newQuiesceStage({
     store,
@@ -1890,6 +1958,7 @@ export async function composeServer(
       listReadScope,
       secretService,
       runScores,
+      fileBlobs,
       sessionEventBroker,
       runnerAuth: runnerCredentials,
       // The reconcile turn an undo on an ended turn starts
@@ -1946,6 +2015,15 @@ export async function composeServer(
       authorizationLifecycle,
       listReadScope,
       environmentSupport: environmentPolicy.support,
+    });
+    registerFileServices(router, {
+      store,
+      logger,
+      authorizer,
+      credentialBinding,
+      authorizationLifecycle,
+      listReadScope,
+      blobs: fileBlobs,
     });
     // Routine registers between channelapp and memory (Go server.go
     // 417 → 426 → 436). The clock and runner ride constant providers —
@@ -2344,6 +2422,7 @@ export async function composeServer(
           ),
         }),
     skillTransferLane,
+    ...(fileTransferLane === undefined ? {} : { fileTransferLane }),
     managedAgentsLane,
     consoleLane,
   });

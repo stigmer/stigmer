@@ -14,6 +14,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 
 import type { RefusedUpdatePath } from "../pipeline/steps/update-mask.js";
 import { API_KEY_REFUSED_UPDATE_PATHS } from "./apikey/controller.js";
+import { FILE_REFUSED_UPDATE_PATHS } from "./file/steps.js";
 import { ORGANIZATION_REFUSED_UPDATE_PATHS } from "./organization/controller.js";
 import { VAULT_REFUSED_UPDATE_PATHS } from "./vault/controller.js";
 
@@ -23,6 +24,7 @@ export const REFUSED_UPDATE_PATHS_BY_KIND: ReadonlyMap<
   ReadonlyArray<RefusedUpdatePath>
 > = new Map([
   [ApiResourceKind.api_key, API_KEY_REFUSED_UPDATE_PATHS],
+  [ApiResourceKind.file, FILE_REFUSED_UPDATE_PATHS],
   [ApiResourceKind.organization, ORGANIZATION_REFUSED_UPDATE_PATHS],
   [ApiResourceKind.vault, VAULT_REFUSED_UPDATE_PATHS],
 ]);

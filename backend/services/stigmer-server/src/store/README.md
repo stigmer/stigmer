@@ -60,6 +60,12 @@ Each session's ordered event log (`session-events.ts`) is its own table, `sessio
 
 One lock order everywhere: the session first, then rows. Postgres takes a transaction-scoped advisory lock on the session (`hashtextextended('session_events/' || id)`), then the row `FOR UPDATE`; an append takes the session's lock, then reads its guard row `FOR SHARE`. SQLite serializes every writer under `BEGIN IMMEDIATE`. So a session's numbers, times and working count are assigned by one writer at a time. The contract both drivers pass, and a composition runs over its own database, is the kit `session-events-contract.ts`.
 
+## File blobs
+
+A File's bytes live in a blob store under a key the server mints, and that key is kept off every File row (`file-blobs.ts`). Two tables hold it: `file_blobs`, one row per blob (its key, organization, state, size and the instant a sweep may delete it), and `file_blob_refs`, one row per File naming its blob; several Files may share a blob, and a blob goes only with the last File that names it. A blob is `staged` while an upload URL is out, `stored` while a File names it, and `orphaned` while no File does: leased while a new File's bytes are written, or expiring at once when its last File was deleted. A sweep deletes the bytes of every staged or orphaned blob past its expiry, then forgets the row only while it is still past its expiry, and `insert` refuses such a blob, so nothing can name bytes a sweep is deleting.
+
+`Store.files.insert` and `Store.files.remove` change who names a blob, and each commits the File's resource row (with its etag and list keys, as `insertResource` writes one), its ref and the blob's state in one transaction, as `writeResourceAppendingEvents` commits a row with its events. One lock order: the blob's row first, then the resource rows. Postgres takes `SELECT … FROM file_blobs … FOR UPDATE` before it touches a resource row; SQLite serializes every writer under `BEGIN IMMEDIATE`. So two removes of a blob's last two Files orphan it exactly once, and an insert racing the remove of a blob's last File lands first or is refused. The contract both drivers pass is the kit `__tests__/file-blobs-contract.ts`.
+
 ## The permission history
 
 Every change to an access row can be recorded in `grant_history`

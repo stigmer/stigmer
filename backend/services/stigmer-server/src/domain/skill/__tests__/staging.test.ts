@@ -128,6 +128,12 @@ function fakeDriver(
         ttlMs: ttlMs / 2,
       });
     },
+    copy: (fromKey, toKey) => {
+      const data = blobs.get(fromKey);
+      if (data === undefined) return Promise.reject(new ArtifactStorageNotFoundError(fromKey));
+      blobs.set(toKey, data);
+      return Promise.resolve();
+    },
     getSignedUrl: (key, expiresInMs, downloadFilename, reader) => {
       recorded.signed.push({ key, expiresInMs, downloadFilename, reader });
       return Promise.resolve(`https://bucket.test/${key}?sig=get`);

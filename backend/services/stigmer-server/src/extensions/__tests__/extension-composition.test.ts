@@ -844,6 +844,10 @@ describe("extension composition (driver substitution)", () => {
               size: (key) => Promise.resolve(blobs.get(key)?.length ?? 0),
               presignPut: () => Promise.reject(new Error("not exercised here")),
               getSignedUrl: () => Promise.resolve("https://blob.invalid"),
+              copy: (fromKey, toKey) => {
+                blobs.set(toKey, blobs.get(fromKey) ?? new Uint8Array());
+                return Promise.resolve();
+              },
               delete: () => Promise.resolve(),
               exists: (key) => Promise.resolve(blobs.has(key)),
               health: () => Promise.resolve(),

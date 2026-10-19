@@ -33,7 +33,8 @@
  * Since every list pages (2026-10-14), every kind a list RPC reads joins:
  * `agent`, `skill` and `plugin` for their organization lists, and
  * `routine` and `channel` for theirs and for one agent's, and `oauth_app` and `channel_app` for their organization lists
- * (each domain's list-index.ts).
+ * (each domain's list-index.ts). `file` joins for its organization list
+ * and for one conversation's Files (domain/file/list-index.ts).
  */
 import { agentListIndex } from "../domain/agent/list-index.js";
 import { channelListIndex } from "../domain/channel/list-index.js";
@@ -47,6 +48,7 @@ import { agentExecutionListIndex } from "../domain/run/list-index.js";
 import { scoringRuleListIndex } from "../domain/scoring-rule/list-index.js";
 import { evalListIndex } from "../domain/eval/list-index.js";
 import { evalRunListIndex } from "../domain/eval-run/list-index.js";
+import { fileListIndex } from "../domain/file/list-index.js";
 import { grantListIndex } from "../domain/grant/list-index.js";
 import { memoryListIndex } from "../domain/memory/list-index.js";
 import { oauthAppListIndex } from "../domain/oauthapp/list-index.js";
@@ -70,6 +72,7 @@ export const LIST_INDEXES: ReadonlyArray<ListIndexDeclaration> = [
   scoringRuleListIndex,
   evalListIndex,
   evalRunListIndex,
+  fileListIndex,
   grantListIndex,
   memoryListIndex,
   organizationListIndex,

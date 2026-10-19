@@ -2,7 +2,8 @@
  * The session's purge (domain/organization/purge/kind-purge.ts): every
  * session of an organization being deleted, removed with its delete
  * chain's cleanup (controller.ts `deleteSession`: its executions, its
- * event log, the row, its access, its search entry), read through the session list index, and
+ * Files, its event log, the row, its access, its search entry), read
+ * through the session list index, and
  * without its refusal of a session with active executions: core quiesce
  * has terminated them. The executions themselves are purged first, by
  * their own purge (which also removes their attachments), so the cascade
@@ -25,6 +26,8 @@ import type {
 } from "../organization/purge/kind-purge.js";
 import type { SecretService } from "../../encryption/encryption.js";
 import { newDestroySecretBackingStateStep } from "../../pipeline/steps/secret-cleanup.js";
+import type { FileBlobs } from "../file/blobs.js";
+import { newCascadeDeleteSessionFilesStep } from "../file/session-files.js";
 import type { RunScoreCascade } from "../score/cascade.js";
 import { sealedValuesOfSession } from "../vault/session-values.js";
 import { sessionListIndex } from "./list-index.js";
@@ -39,6 +42,8 @@ export interface SessionPurgeDeps extends KindPurgeDeps {
   readonly secretService: SecretService;
   /** Removes each cascaded run's scores before the run's row. */
   readonly runScores: RunScoreCascade;
+  /** The File store's bytes: the session's Files go with it. */
+  readonly fileBlobs: FileBlobs;
 }
 
 export function newSessionPurge(deps: SessionPurgeDeps): KindPurge {
@@ -53,6 +58,12 @@ export function newSessionPurge(deps: SessionPurgeDeps): KindPurge {
         deps.authorizationLifecycle,
         deps.logger,
         deps.runScores,
+      ),
+      newCascadeDeleteSessionFilesStep(
+        deps.store,
+        deps.fileBlobs,
+        deps.authorizationLifecycle,
+        deps.logger,
       ),
       newDeleteSessionEventsStep(deps.store),
       newDeleteResourceStep(deps.store),

@@ -5,8 +5,8 @@
  * required-config copy, the 7-day presign clamp, the signed
  * Content-Disposition, the not-found mapping, and the widened surface
  * (typed not-found on download/size, presigned-PUT under the caller's key
- * with the signed Content-Length), and a runner's links signed for the
- * runner's address when one is set.
+ * with the signed Content-Length), a runner's links signed for the
+ * runner's address when one is set, and the server-side copy.
  */
 import { describe, expect, it } from "vitest";
 
@@ -142,6 +142,35 @@ describe("R2ArtifactStorage widened surface", () => {
     await expect(storage.size("k")).rejects.toThrow(
       "r2 head failed: connection refused",
     );
+  });
+});
+
+describe("R2ArtifactStorage copy", () => {
+  it("sends one CopyObject inside the bucket, the source's segments encoded", async () => {
+    const sent: unknown[] = [];
+    const storage = new R2ArtifactStorage(VALID, {
+      client: { send: (command: unknown) => { sent.push(command); return Promise.resolve({}); } } as never,
+      presign: () => Promise.resolve("unused"),
+    });
+    await storage.copy("files/staging/a b#c", "files/org_1/blob_1");
+    expect(sent).toHaveLength(1);
+    const input = (sent[0] as { input: Record<string, string> }).input;
+    expect(input).toEqual({
+      Bucket: VALID.bucket,
+      Key: "files/org_1/blob_1",
+      CopySource: `${VALID.bucket}/files/staging/a%20b%23c`,
+    });
+  });
+
+  it("maps a missing source onto the typed not-found; real faults stay wrapped", async () => {
+    let nextError: Error = Object.assign(new Error("no such key"), { name: "NoSuchKey" });
+    const storage = new R2ArtifactStorage(VALID, {
+      client: { send: () => Promise.reject(nextError) } as never,
+      presign: () => Promise.resolve("unused"),
+    });
+    await expect(storage.copy("a", "b")).rejects.toThrow(ArtifactStorageNotFoundError);
+    nextError = new Error("connection refused");
+    await expect(storage.copy("a", "b")).rejects.toThrow("r2 copy failed: connection refused");
   });
 });
 

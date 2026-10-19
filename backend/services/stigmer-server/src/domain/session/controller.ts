@@ -6,7 +6,7 @@
  * (resolve-session-agent.ts); update enforces the harness and
  * execution-target immutability sentinels and maintains the server-owned
  * harness_state_id_history; delete blocks while executions are active and
- * cascades the session's agent executions; updateSubject is a field-level
+ * cascades the session's agent executions and its Files; updateSubject is a field-level
  * read-modify-write.
  *
  * Pipeline per RPC mirrors the Go step chains character-for-character.
@@ -61,6 +61,8 @@ import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
 import { stepsForSlot } from "../../extensions/gate-slots.js";
+import type { FileBlobs } from "../file/blobs.js";
+import { newCascadeDeleteSessionFilesStep } from "../file/session-files.js";
 import type { AgentExecutionTemporalConfig } from "../run/temporal/config.js";
 import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import {
@@ -223,6 +225,8 @@ export interface SessionControllerDeps {
   readonly secretService: SecretService;
   /** Removes each cascaded run's scores before the run's row (delete). */
   readonly runScores: RunScoreCascade;
+  /** The File store's bytes: a session's delete removes its Files (domain/file/session-files.ts). */
+  readonly fileBlobs: FileBlobs;
   /** The live fan-out of each session's events (streamEvents, appendEvents). */
   readonly sessionEventBroker: SessionEventBroker;
   /** Decides whose runner credential may append a run's events (appendEvents). */
@@ -518,6 +522,14 @@ async function deleteSession(
         deps.authorizationLifecycle,
         deps.logger,
         deps.runScores,
+      ),
+    )
+    .addStep(
+      newCascadeDeleteSessionFilesStep(
+        deps.store,
+        deps.fileBlobs,
+        deps.authorizationLifecycle,
+        deps.logger,
       ),
     )
     .addStep(newDeleteSessionEventsStep(deps.store))

@@ -22,6 +22,9 @@ Rows read `| Kind | refused path | written by |`, or `| Kind | none | |` for a k
 | Channel | none | |
 | ChannelApp | none | |
 | Environment | none | |
+| File | `spec.filename` | upload |
+| File | `spec.mime_type` | upload |
+| File | `metadata.name` | upload |
 | IdentityAccount | none | |
 | Memory | none | |
 | OAuthApp | none | |

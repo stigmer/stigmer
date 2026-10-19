@@ -21,7 +21,9 @@
  * owns keys and lanes.
  */
 import { mkdirSync } from "node:fs";
+import { constants as fsConstants } from "node:fs";
 import {
+  copyFile,
   mkdir,
   readFile,
   rm,
@@ -125,6 +127,14 @@ export interface ArtifactStorage {
     declaredSizeBytes: number,
     ttlMs: number,
   ): Promise<PresignedUpload>;
+  /**
+   * Copies the blob at fromKey to toKey inside the store, without its
+   * bytes passing through the caller: a staged upload is promoted to a
+   * key no upload URL was ever minted for. A fromKey addressing no stored
+   * blob throws ArtifactStorageNotFoundError; an existing toKey is
+   * replaced.
+   */
+  copy(fromKey: string, toKey: string): Promise<void>;
   /** Removes the artifact; missing is not an error. */
   delete(key: string): Promise<void>;
   /** Whether an artifact with the key exists. */
@@ -322,6 +332,23 @@ export class LocalArtifactStorage implements ArtifactStorage {
       throw new Error("local serve URL not configured");
     }
     return `${serveUrl}/${encodeKeyPath(key)}?${this.signer.signedQuery(key, expiresInMs, downloadFilename)}`;
+  }
+
+  // A clone where the filesystem offers one (APFS, btrfs), else a plain
+  // copy: the source is deleted right after a promotion, but the port
+  // promises a copy, which a rename would not keep.
+  async copy(fromKey: string, toKey: string): Promise<void> {
+    const fromPath = this.resolveWithinRoot(fromKey);
+    const toPath = this.resolveWithinRoot(toKey);
+    await mkdir(path.dirname(toPath), { recursive: true });
+    try {
+      await copyFile(fromPath, toPath, fsConstants.COPYFILE_FICLONE);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        throw new ArtifactStorageNotFoundError(fromKey);
+      }
+      throw error;
+    }
   }
 
   async delete(key: string): Promise<void> {

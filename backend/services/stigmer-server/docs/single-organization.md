@@ -101,6 +101,14 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 |---|---|
 | EvalRunCommandController.create | metadata.org |
 
+## `ai.stigmer.agentic.file.v1`
+
+| Method | Fills |
+|---|---|
+| FileCommandController.createUploadUrl | org |
+| FileCommandController.upload | org |
+| FileQueryController.list | org |
+
 ## `ai.stigmer.agentic.scoringrule.v1`
 
 | Method | Fills |

@@ -63,6 +63,8 @@ export const CENSUS_TABLES: Readonly<Record<string, CensusClass>> = {
   connect_attempt: "org-column",
   session_events: "org-column",
   session_event_heads: "org-column",
+  file_blobs: "org-column",
+  file_blob_refs: "org-column",
   // The permission history is the audit trail of who could reach what, so
   // an organization's delete leaves it in place; retention removes its
   // entries once they are older than the window, never its head

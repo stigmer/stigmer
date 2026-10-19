@@ -315,8 +315,11 @@ export const SCHEMA_VERSION_41 = 41;
 /** v42: the schedule is a routine: its names, grants and history, fire ledger and runs' labels. */
 export const SCHEMA_VERSION_42 = 42;
 
+/** v43: the File kind's blobs and the Files that name them. */
+export const SCHEMA_VERSION_43 = 43;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_42;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_43;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -384,6 +387,7 @@ export function runMigrations(
     [SCHEMA_VERSION_40, migrateToV40],
     [SCHEMA_VERSION_41, (migrating) => migrateToV41(migrating, logger)],
     [SCHEMA_VERSION_42, migrateToV42],
+    [SCHEMA_VERSION_43, migrateToV43],
   ];
 
   for (const [version, migrate] of chain) {
@@ -2598,4 +2602,33 @@ function migrateToV42(db: DatabaseSync): void {
       relabel.run(relabelled, ROUTINE_RENAME_RUN_KIND, row.id);
     }
   }
+}
+
+/**
+ * v43: the File kind's blob tables (../file-blobs.ts); the Postgres
+ * driver's v39 in this engine's terms. The sweep reads `(state,
+ * expires_at)`, an organization's purge pages `(org, blob_key)`, a remove
+ * counts a blob's refs on `blob_key`, and a purge removes an
+ * organization's refs on `org`. DDL only.
+ */
+function migrateToV43(db: DatabaseSync): void {
+  db.exec(`
+    CREATE TABLE file_blobs (
+      blob_key   TEXT PRIMARY KEY,
+      org        TEXT NOT NULL,
+      state      TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL DEFAULT 0,
+      expires_at INTEGER NOT NULL DEFAULT 0
+    ) WITHOUT ROWID;
+    CREATE INDEX idx_file_blobs_org ON file_blobs (org, blob_key);
+    CREATE INDEX idx_file_blobs_sweep ON file_blobs (state, expires_at);
+
+    CREATE TABLE file_blob_refs (
+      file_id  TEXT PRIMARY KEY,
+      blob_key TEXT NOT NULL,
+      org      TEXT NOT NULL
+    ) WITHOUT ROWID;
+    CREATE INDEX idx_file_blob_refs_blob ON file_blob_refs (blob_key);
+    CREATE INDEX idx_file_blob_refs_org ON file_blob_refs (org);
+  `);
 }

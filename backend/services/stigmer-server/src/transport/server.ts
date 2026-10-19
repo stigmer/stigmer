@@ -43,6 +43,7 @@ import type { Socket } from "node:net";
 
 import type { Logger } from "../boot/logger.js";
 import {
+  FILE_TRANSFER_PATH_PREFIX,
   KEEPALIVE_PING_INTERVAL_MS,
   KEEPALIVE_PING_TIMEOUT_MS,
   MANAGED_AGENTS_PATH_PREFIX,
@@ -83,6 +84,12 @@ export interface UnifiedPortServerOptions {
    * unknown paths.
    */
   skillTransferLane?: LaneHandler;
+  /**
+   * Lane 2: the Files transfer lane (domain/file/transfer.ts): a File's
+   * staged upload and its signed download, when the File store is local.
+   * When absent, the prefix falls through to the adapter's 404.
+   */
+  fileTransferLane?: LaneHandler;
   /**
    * Lane 2: the Claude Managed Agents lane (managed-agents/lane.ts). It
    * calls the native methods through the serving chain held in memory,
@@ -133,6 +140,13 @@ export function createUnifiedPortServer(
       path.startsWith(SKILL_ARTIFACTS_PATH_PREFIX)
     ) {
       options.skillTransferLane(request, response);
+      return;
+    }
+    if (
+      options.fileTransferLane !== undefined &&
+      path.startsWith(FILE_TRANSFER_PATH_PREFIX)
+    ) {
+      options.fileTransferLane(request, response);
       return;
     }
     if (

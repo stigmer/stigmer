@@ -49,6 +49,8 @@ import { newOAuthAppPurge } from "../domain/oauthapp/purge.js";
 import type { KindPurge, KindPurgeDeps } from "../domain/organization/purge/kind-purge.js";
 import { newPluginPurge } from "../domain/plugin/purge.js";
 import { newEvalPurge } from "../domain/eval/purge.js";
+import type { FileBlobs } from "../domain/file/blobs.js";
+import { newFilePurge } from "../domain/file/purge.js";
 import type { ClockProvider } from "../domain/routine/clock.js";
 import { newRoutinePurge } from "../domain/routine/purge.js";
 import type { RunScoreCascade } from "../domain/score/cascade.js";
@@ -86,6 +88,8 @@ export interface CoreKindPurgeDeps extends KindPurgeDeps {
   readonly runScores: RunScoreCascade;
   /** Stops a purged eval run's workflow; absent, the eval run purge stops none. */
   readonly evalRunWorkflows?: EvalRunWorkflows;
+  /** The File store's bytes and blob rows (domain/file/blobs.ts). */
+  readonly fileBlobs: FileBlobs;
 }
 
 /** The core's kind purges, by stage. */
@@ -105,6 +109,9 @@ export function newCoreKindPurges(deps: CoreKindPurgeDeps): CoreKindPurges {
       // links it to the organization.
       newScorePurge(deps),
       newAgentExecutionPurge(deps),
+      // Files before the sessions they belong to, then every blob the
+      // organization still holds.
+      newFilePurge(deps),
       newSessionPurge(deps),
       // A blueprint's channels and scoring rule before the blueprint; a
       // channel before the channel app it references.
@@ -145,6 +152,7 @@ export const CORE_PURGED_KINDS: ReadonlySet<ApiResourceKind> = new Set([
   ApiResourceKind.routine,
   ApiResourceKind.score,
   ApiResourceKind.run,
+  ApiResourceKind.file,
   ApiResourceKind.session,
   ApiResourceKind.channel,
   ApiResourceKind.scoring_rule,

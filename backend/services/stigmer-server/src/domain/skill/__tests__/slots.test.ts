@@ -3,8 +3,9 @@
  * domain's staging key: reservation bounds and key shape, TTL expiry
  * (injected clock), exact-declared-size enforcement (short AND long
  * bodies), single upload per key, staged-file placement under the driver
- * root, expiry sweep on reservation, the boot-time staging wipe, and the
- * staging directory's recreation after the driver's delete pruned it.
+ * root, expiry sweep on reservation, the boot-time staging wipe, the
+ * staging directory's recreation after the driver's delete pruned it, and
+ * a second lane's own file-name shape.
  */
 import {
   existsSync,
@@ -89,10 +90,30 @@ describe("UploadSlots", () => {
     );
     expect(() =>
       slots.reserve(`${STAGING_KEY_PREFIX}../escape.zip`, 1),
-    ).toThrow("does not name a staged archive");
+    ).toThrow("does not name a staged upload");
     expect(() => slots.reserve(`${STAGING_KEY_PREFIX}notes.txt`, 1)).toThrow(
-      "does not name a staged archive",
+      "does not name a staged upload",
     );
+  });
+
+  it("takes another lane's file-name shape when one is given", () => {
+    const filesRoot = mkdtempSync(path.join(tmpdir(), "file-slots-test-"));
+    try {
+      const fileSlots = new UploadSlots(
+        filesRoot,
+        "files/staging/",
+        TTL_MS,
+        MAX_SIZE,
+        () => nowMs,
+        /^[0-9a-f]{32}$/,
+      );
+      expect(fileSlots.reserve(`files/staging/${"ab".repeat(16)}`, 1)).toEqual({ ttlMs: TTL_MS });
+      expect(() => fileSlots.reserve("files/staging/deadbeef.zip", 1)).toThrow(
+        "does not name a staged upload",
+      );
+    } finally {
+      rmSync(filesRoot, { recursive: true, force: true });
+    }
   });
 
   it("refuses to reserve the same key twice", () => {
