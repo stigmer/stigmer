@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { WorkspaceEntryInput, WorkspaceSourceInput } from "@stigmer/client";
+import type { SessionResourceInput } from "@stigmer/client";
 
 /**
  * A single workspace entry managed by {@link useWorkspaceEntries}.
@@ -74,8 +74,12 @@ export interface UseWorkspaceEntriesReturn {
   readonly clear: () => void;
   /** Remove all local folder entries, keeping git entries intact. */
   readonly clearLocal: () => void;
-  /** Convert entries to the `WorkspaceEntryInput[]` shape required by the SDK. */
-  readonly toInput: () => WorkspaceEntryInput[];
+  /**
+   * The entries as a conversation's resources (`SessionInput.resources`):
+   * each a named git repository or local folder. A conversation's Files are
+   * resources too, but never workspace entries.
+   */
+  readonly toInput: () => SessionResourceInput[];
   /** `true` when at least one entry exists. */
   readonly hasEntries: boolean;
 }
@@ -192,15 +196,12 @@ export function useWorkspaceEntries(): UseWorkspaceEntriesReturn {
     setEntries((prev) => prev.filter((e) => e.type !== "local"));
   }, []);
 
-  const toInput = useCallback((): WorkspaceEntryInput[] => {
-    return entries.map((entry): WorkspaceEntryInput => {
-      const source: WorkspaceSourceInput =
-        entry.type === "git"
-          ? { gitRepo: { url: entry.gitUrl!, branch: entry.gitBranch } }
-          : { localPath: { path: entry.localPath } };
-
-      return { name: entry.name, source };
-    });
+  const toInput = useCallback((): SessionResourceInput[] => {
+    return entries.map((entry): SessionResourceInput =>
+      entry.type === "git"
+        ? { name: entry.name, gitRepository: { url: entry.gitUrl!, branch: entry.gitBranch } }
+        : { name: entry.name, localPath: { path: entry.localPath } },
+    );
   }, [entries]);
 
   const hasEntries = entries.length > 0;

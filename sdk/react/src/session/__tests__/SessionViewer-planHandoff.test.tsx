@@ -7,9 +7,9 @@
 //   turn's plan opens read-only, the latest plan (or a turn with no plan)
 //   opens the editable current plan.
 // - "Build from plan" reads the published plan by its run and storage key,
-//   uploads it as the approved copy, and submits the build turn with it
-//   mounted as an input; a truncated read never attaches a partial plan, the
-//   turn goes on without it and the viewer says so.
+//   uploads it as the approved copy, a File of the conversation, and
+//   submits the build turn naming it; a truncated read never attaches a
+//   partial plan, the turn goes on without it and the viewer says so.
 //
 // The thread, the composer and the workspace surface are prop-capturing
 // probes; the composer probe exposes the imperative `submit` handle.
@@ -70,8 +70,10 @@ const client = vi.hoisted(() => ({
   // Server info answers the Environment row: a server that predates the field.
   platform: { getServerInfo: async () => ({}) },
   run: {
-    uploadAttachment: vi.fn(),
     getArtifactContent: vi.fn(),
+  },
+  file: {
+    uploadFile: vi.fn(),
   },
 }));
 // The reader's own access to the conversation: an owner's, unless a case
@@ -267,13 +269,13 @@ describe("SessionViewer — Open plan picks the plan tab's plan", () => {
 });
 
 describe("SessionViewer — Build from plan attaches the approved plan", () => {
-  it("reads the latest plan, uploads it, and submits the build turn with it mounted", async () => {
+  it("reads the latest plan, uploads it into the conversation, and submits the build turn naming it", async () => {
     client.run.getArtifactContent.mockResolvedValue({
       content: new TextEncoder().encode("# Plan\n\n1. Do it\n"),
       contentType: "text/markdown",
       truncated: false,
     });
-    client.run.uploadAttachment.mockResolvedValue({ storageKey: "uploads/approved-plan.md" });
+    client.file.uploadFile.mockResolvedValue({ metadata: { id: "file_plan" }, status: { sessionId: "ses_1" } });
     render(<SessionViewer sessionId="ses_1" org="acme" />);
 
     act(() => (lastThread().onBuildFromPlan as () => void)());
@@ -283,26 +285,41 @@ describe("SessionViewer — Build from plan attaches the approved plan", () => {
       runId: "aex_latest",
       storageKey: "artifacts/aex_latest/plan.md",
     });
-    const upload = client.run.uploadAttachment.mock.calls[0]![0] as {
+    const upload = client.file.uploadFile.mock.calls[0]![0] as {
+      sessionId: string;
       filename: string;
       content: Uint8Array;
-      contentType: string;
+      mimeType: string;
     };
+    expect(upload.sessionId).toBe("ses_1");
     expect(upload.filename).toBe("plan.md");
-    expect(upload.contentType).toBe("text/markdown");
+    expect(upload.mimeType).toBe("text/markdown");
     expect(new TextDecoder().decode(upload.content)).toBe("# Plan\n\n1. Do it\n");
     expect(composerSubmit).toHaveBeenCalledWith("Build from plan", {
       interactionMode: "agent",
       buildFromPlan: true,
-      attachments: [
-        {
-          filename: "plan.md",
-          storageKey: "uploads/approved-plan.md",
-          mountPath: ".stigmer/inputs/plan.md",
-          contentType: "text/markdown",
-        },
-      ],
+      fileIds: ["file_plan"],
     });
+  });
+
+  it("builds without the plan and says so when the upload answers no File", async () => {
+    client.run.getArtifactContent.mockResolvedValue({
+      content: new TextEncoder().encode("# Plan\n"),
+      contentType: "text/markdown",
+      truncated: false,
+    });
+    client.file.uploadFile.mockResolvedValue({ metadata: undefined, status: undefined });
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+
+    act(() => (lastThread().onBuildFromPlan as () => void)());
+
+    await waitFor(() => expect(composerSubmit).toHaveBeenCalledOnce());
+    expect(composerSubmit).toHaveBeenCalledWith("Build from plan", {
+      interactionMode: "agent",
+      buildFromPlan: true,
+      fileIds: undefined,
+    });
+    await screen.findByText(/attach plan\.md/);
   });
 
   it("builds without an attachment and says so when the plan read is truncated", async () => {
@@ -316,11 +333,11 @@ describe("SessionViewer — Build from plan attaches the approved plan", () => {
     act(() => (lastThread().onBuildFromPlan as () => void)());
 
     await waitFor(() => expect(composerSubmit).toHaveBeenCalledOnce());
-    expect(client.run.uploadAttachment).not.toHaveBeenCalled();
+    expect(client.file.uploadFile).not.toHaveBeenCalled();
     expect(composerSubmit).toHaveBeenCalledWith("Build from plan", {
       interactionMode: "agent",
       buildFromPlan: true,
-      attachments: undefined,
+      fileIds: undefined,
     });
     await screen.findByText(/attach plan\.md/);
   });

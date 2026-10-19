@@ -1,4 +1,4 @@
-import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { trimTrailing } from "../internal/trim.js";
 
 const PLATFORM_PREFIX = ".stigmer/";
@@ -151,7 +151,8 @@ export type ResolvedPathAction =
  * Resolution strategy (mirrors the CLI's `buildHyperlinkedPath`):
  *
  * 1. **Platform paths** (`.stigmer/` prefix) → copy raw path.
- * 2. **Workspace paths** → match against workspace entries:
+ * 2. **Workspace paths** → match against the conversation's repositories
+ *    and folders (its Files live under `.stigmer/uploads/`, a platform path):
  *    - Single entry: treat path as relative to that entry.
  *    - Multiple entries: scan path segments for an entry name match
  *      (handles org-prefixed paths like `plantonhq/agent-fleet/...`).
@@ -162,7 +163,7 @@ export type ResolvedPathAction =
  */
 export function resolvePathAction(
   path: string,
-  workspaceEntries: readonly WorkspaceEntry[],
+  resources: readonly SessionResource[],
 ): ResolvedPathAction {
   if (!path) {
     return { action: "copy", value: path, tooltip: "Copy path" };
@@ -175,14 +176,15 @@ export function resolvePathAction(
   }
 
   const { remainder } = classification;
-  if (workspaceEntries.length === 0) {
+  const roots = resources.filter((r) => r.resource.case !== "file");
+  if (roots.length === 0) {
     return { action: "copy", value: path, tooltip: "Copy path" };
   }
 
-  const { entry, relPath } = matchWorkspaceEntry(remainder, workspaceEntries);
-  const source = entry.source?.source;
+  const { entry, relPath } = matchWorkspaceEntry(remainder, roots);
+  const source = entry.resource;
 
-  if (source?.case === "gitRepo") {
+  if (source.case === "gitRepository") {
     const url = resolveGitBrowseUrl(
       source.value.url,
       source.value.branch,
@@ -194,7 +196,7 @@ export function resolvePathAction(
     }
   }
 
-  if (source?.case === "localPath") {
+  if (source.case === "localPath") {
     const abs = joinLocalPath(source.value.path, relPath);
     return { action: "copy", value: abs, tooltip: "Copy path" };
   }
@@ -217,8 +219,8 @@ export function resolvePathAction(
  */
 function matchWorkspaceEntry(
   relPath: string,
-  entries: readonly WorkspaceEntry[],
-): { entry: WorkspaceEntry; relPath: string } {
+  entries: readonly SessionResource[],
+): { entry: SessionResource; relPath: string } {
   if (entries.length === 1) {
     return { entry: entries[0], relPath };
   }

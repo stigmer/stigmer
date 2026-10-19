@@ -3,11 +3,8 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/design-tokens";
-import { getUserMessage, type AttachmentInput, type ResourceRef } from "@stigmer/client";
-import {
-  GetArtifactContentRequestSchema,
-  UploadAttachmentRequestSchema,
-} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { getUserMessage, type ResourceRef } from "@stigmer/client";
+import { GetArtifactContentRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
 import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
@@ -77,19 +74,6 @@ import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { SessionAudience, SessionPanelMode } from "./audience.js";
 import { showsRunScores } from "./audience.js";
 import type { SessionRunConfig } from "./run-config.js";
-
-/**
- * Where the approved plan mounts in the implement run's workspace —
- * the harnesses' standard attachment inputs directory, where the runner's
- * implement-plan directive points the agent (shared/implement-plan-prompt.ts).
- * Attaching under the plan's own filename (e.g. `feature-x_a1b2c3d4.plan.md`) is what
- * makes the build implement the document the user approved (including in-place
- * edits), not a paraphrase from memory; the runner detects it by the plan
- * filename convention (`isPlanArtifactName`), so the exact name is free to vary.
- */
-function approvedPlanMountPath(planFileName: string): string {
-  return `.stigmer/inputs/${planFileName}`;
-}
 
 /**
  * The build turn's user message — a short human-readable label, NOT the
@@ -578,11 +562,11 @@ export function SessionViewer({
     // `buildFromPlan` (not message text) is what tells the runner to inject
     // the implement directive and the thread to hide the turn's message —
     // with or without the attachment (the runner picks the directive variant).
-    const submitImplementTurn = (attachments?: AttachmentInput[]) => {
+    const submitImplementTurn = (fileIds?: string[]) => {
       composerRef.current?.submit(BUILD_FROM_PLAN_MESSAGE, {
         interactionMode: "agent",
         buildFromPlan: true,
-        attachments,
+        fileIds,
       });
     };
 
@@ -593,32 +577,30 @@ export function SessionViewer({
     }
 
     // Deterministic handoff: upload the APPROVED plan (draft if edited, else
-    // the artifact text — one uniform path) and attach it to the implement
-    // run. The published artifact itself stays immutable; the approved
-    // copy is a new input on the build turn (edit-as-input provenance).
+    // the artifact text, one uniform path) as a File of the conversation
+    // and name it on the implement run. The published artifact itself stays
+    // immutable; the approved copy is a new input on the build turn
+    // (edit-as-input provenance).
     setIsBuildingFromPlan(true);
-    // The approved copy keeps the published plan's filename, so the mounted
-    // input, the download, and the plan card all agree on one name.
+    // The approved copy keeps the published plan's filename: the runner
+    // finds it among the conversation's uploads by the plan filename
+    // convention (`isPlanArtifactName`), and the download and the plan card
+    // agree on one name.
     const planFileName = sessionPlan.artifact.name;
     void (async () => {
       try {
         const approvedText =
           planDraft.readDraft() ?? (await fetchPlanText(stigmer, sessionPlan));
-        const response = await stigmer.run.uploadAttachment(
-          create(UploadAttachmentRequestSchema, {
-            filename: planFileName,
-            content: new TextEncoder().encode(approvedText),
-            contentType: "text/markdown",
-          }),
-        );
-        submitImplementTurn([
-          {
-            filename: planFileName,
-            storageKey: response.storageKey,
-            mountPath: approvedPlanMountPath(planFileName),
-            contentType: "text/markdown",
-          },
-        ]);
+        const planFile = await stigmer.file.uploadFile({
+          org,
+          sessionId,
+          filename: planFileName,
+          mimeType: "text/markdown",
+          content: new TextEncoder().encode(approvedText),
+        });
+        const planFileId = planFile.metadata?.id;
+        if (!planFileId) throw new Error("the uploaded plan came back without an id");
+        submitImplementTurn([planFileId]);
       } catch {
         // Attachment plumbing must never block the build: implement from
         // conversation history alone, and say so (non-blocking notice).
@@ -628,7 +610,7 @@ export function SessionViewer({
         setIsBuildingFromPlan(false);
       }
     })();
-  }, [setInteractionMode, sessionPlan, planDraft.readDraft, stigmer]);
+  }, [setInteractionMode, sessionPlan, planDraft.readDraft, stigmer, org, sessionId]);
 
   // "Open plan" (a thread plan card, or the Artifacts facet's plan.md) → the
   // panel's plan document tab. Opening the LATEST plan clears the historical
@@ -1017,10 +999,10 @@ const ConversationColumn = memo(function ConversationColumn({
   // dock's memoized cards are not invalidated by unrelated renders.
   const dockFilePathCtx = useMemo<FilePathContextValue>(
     () => ({
-      workspaceEntries: conv.workspaceEntries ?? [],
+      resources: conv.resources ?? [],
       onFilePathClick,
     }),
-    [conv.workspaceEntries, onFilePathClick],
+    [conv.resources, onFilePathClick],
   );
 
   return (
@@ -1053,7 +1035,7 @@ const ConversationColumn = memo(function ConversationColumn({
         onEditMessage={
           isObserver || isParticipant || !conv.isStoppable ? undefined : handleEditMessage
         }
-        workspaceEntries={conv.workspaceEntries}
+        resources={conv.resources}
         onFilePathClick={onFilePathClick}
         sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
         // The agent version each turn ran, marked where it starts and

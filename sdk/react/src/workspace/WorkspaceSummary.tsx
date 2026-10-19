@@ -1,7 +1,6 @@
 "use client";
 
-import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
-import type { WorkspaceSource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { cn } from "@stigmer/design-tokens";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
@@ -9,8 +8,12 @@ import { TruncatedText } from "../internal/truncated-text.js";
 
 /** Props for {@link WorkspaceSummary}. */
 export interface WorkspaceSummaryProps {
-  /** Session-level workspace entries. Renders nothing when empty. */
-  readonly entries: readonly WorkspaceEntry[];
+  /**
+   * The conversation's resources. Its repositories and folders are listed;
+   * its Files are not workspace entries and are skipped. Renders nothing
+   * when no repository or folder remains.
+   */
+  readonly entries: readonly SessionResource[];
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -33,7 +36,7 @@ export interface WorkspaceSummaryProps {
  * const { session } = useSession(sessionId);
  *
  * <WorkspaceSummary
- *   entries={session?.spec?.workspaceEntries ?? []}
+ *   entries={session?.spec?.resources ?? []}
  * />
  * ```
  */
@@ -41,17 +44,18 @@ export function WorkspaceSummary({
   entries,
   className,
 }: WorkspaceSummaryProps) {
-  if (entries.length === 0) return null;
+  const roots = entries.filter((entry) => entry.resource.case !== "file");
+  if (roots.length === 0) return null;
 
   return (
     <ul className={cn(UNSTYLED_LIST, "stg:space-y-1.5", className)} aria-label="Workspace entries">
-      {entries.map((entry) => (
+      {roots.map((entry) => (
         <li key={entry.name} className="stg:text-xs">
           <div className="stg:flex stg:items-center stg:gap-1.5 stg:font-medium">
             <FolderIcon />
             <span className="stg:truncate">{entry.name}</span>
           </div>
-          <SourceLabel source={entry.source} />
+          <SourceLabel source={entry.resource} />
         </li>
       ))}
     </ul>
@@ -62,11 +66,9 @@ export function WorkspaceSummary({
 // Internal sub-components
 // ---------------------------------------------------------------------------
 
-function SourceLabel({ source }: { source?: WorkspaceSource }) {
-  if (!source || source.source.case === undefined) return null;
-
-  if (source.source.case === "gitRepo") {
-    const url = source.source.value.url;
+function SourceLabel({ source }: { source: SessionResource["resource"] }) {
+  if (source.case === "gitRepository") {
+    const url = source.value.url;
     const short = url
       .replace(/^https?:\/\//, "")
       .replace(/\.git$/, "");
@@ -89,8 +91,8 @@ function SourceLabel({ source }: { source?: WorkspaceSource }) {
     );
   }
 
-  if (source.source.case === "localPath") {
-    const path = source.source.value.path;
+  if (source.case === "localPath") {
+    const path = source.value.path;
     return (
       <TruncatedText
         text={path}

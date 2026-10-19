@@ -1,11 +1,12 @@
 /**
- * Maximum attachment size in bytes (10 MB).
+ * Maximum size of a file given with a message, in bytes (500 MB).
  *
- * Matches the CLI's `maxAttachmentSize` and the gRPC server's
- * `MaxRecvMsgSize`. Files exceeding this limit are rejected before
- * upload to avoid wasting bandwidth on requests that will fail.
+ * The server's default File size limit: a file this large is streamed to
+ * an upload URL, so the request cap does not bind it. A file over it is
+ * refused before any bytes move. An operator may set a lower limit, which
+ * the server enforces when the upload URL is requested.
  */
-export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+export const MAX_ATTACHMENT_BYTES = 500 * 1024 * 1024;
 
 /**
  * Extension-to-MIME-type mapping for common file types.
@@ -108,7 +109,7 @@ export function formatFileSize(bytes: number): string {
  */
 export function validateAttachmentSize(file: File): string | null {
   if (file.size > MAX_ATTACHMENT_BYTES) {
-    return `${file.name} exceeds the 10 MB attachment limit (${formatFileSize(file.size)})`;
+    return `${file.name} exceeds the 500 MB file limit (${formatFileSize(file.size)})`;
   }
   return null;
 }

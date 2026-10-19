@@ -32,7 +32,7 @@ import type { WorkspaceEntry } from "./useWorkspaceEntries.js";
  * @param fileChanges - Net-per-file session changes (from `useSessionFileChanges`).
  * @param entries - The client workspace entries — the SAME list the tree and
  *   transcript resolve against (`flow.workspace.entries`), so the returned
- *   `entryId` is directly comparable. Do not pass the proto `workspaceEntries`.
+ *   `entryId` is directly comparable. Do not pass the proto `resources`.
  * @param sandboxWorkspaceRoot - The sandbox root for git sessions (strips
  *   cloud-absolute change paths), identical to the transcript resolver's input.
  * @returns The matching change, or `null`.

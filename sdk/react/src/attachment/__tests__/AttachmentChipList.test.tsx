@@ -8,13 +8,13 @@ import {
 } from "@testing-library/react";
 import { AttachmentChipList } from "../AttachmentChipList.js";
 import type { AttachmentChipListProps } from "../AttachmentChipList.js";
-import type { AttachmentEntry } from "../useAttachments.js";
+import type { FileUploadEntry } from "../useFileUploads.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function entry(overrides: Partial<AttachmentEntry> = {}): AttachmentEntry {
+function entry(overrides: Partial<FileUploadEntry> = {}): FileUploadEntry {
   return {
     id: overrides.id ?? "entry-1",
     file:
@@ -24,13 +24,14 @@ function entry(overrides: Partial<AttachmentEntry> = {}): AttachmentEntry {
       }),
     phase: overrides.phase ?? "ready",
     contentType: overrides.contentType ?? "image/png",
-    storageKey: overrides.storageKey ?? "attachments/test/shot.png",
+    fileId: overrides.fileId !== undefined ? overrides.fileId : "file_shot",
+    inConversation: overrides.inConversation ?? false,
     error: overrides.error ?? null,
   };
 }
 
 function renderChips(
-  entries: AttachmentEntry[],
+  entries: FileUploadEntry[],
   props: Partial<AttachmentChipListProps> = {},
 ) {
   return render(
@@ -92,7 +93,7 @@ describe("AttachmentChipList — image miniature", () => {
   });
 
   it("keeps the miniature visible while uploading — the spinner overlays it, never replaces it", async () => {
-    const uploading = entry({ id: "up", phase: "uploading", storageKey: null });
+    const uploading = entry({ id: "up", phase: "uploading", fileId: null });
 
     const { container } = renderChips([uploading]);
 
@@ -102,7 +103,7 @@ describe("AttachmentChipList — image miniature", () => {
   });
 
   it("treats the preparing phase as busy: spinner over the miniature, 'preparing' in the accessible label (#369)", async () => {
-    const preparing = entry({ id: "prep", phase: "preparing", storageKey: null });
+    const preparing = entry({ id: "prep", phase: "preparing", fileId: null });
 
     const { container } = renderChips([preparing]);
 
@@ -144,7 +145,7 @@ describe("AttachmentChipList — image miniature", () => {
       id: "err",
       phase: "error",
       error: "boom",
-      storageKey: null,
+      fileId: null,
     });
 
     const { container } = renderChips([errored]);

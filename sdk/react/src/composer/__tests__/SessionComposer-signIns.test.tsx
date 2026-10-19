@@ -64,7 +64,7 @@ beforeAll(() => {
 
 function createMinimalStigmerMock(): Stigmer {
   return {
-    run: { uploadAttachment: vi.fn() },
+    file: { uploadFile: vi.fn(), delete: vi.fn().mockResolvedValue({}) },
     vault: noMyVaultClient(),
     plugin: { getByReference: vi.fn().mockRejectedValue(new Error("no backend in this test")) },
     baseUrl: "http://localhost:8080",

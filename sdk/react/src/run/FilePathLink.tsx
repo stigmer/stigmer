@@ -60,12 +60,12 @@ export function FilePathLink({
   dirDisplay = "hide",
   className,
 }: FilePathLinkProps) {
-  const { workspaceEntries, onFilePathClick } = useContext(FilePathContext);
+  const { resources, onFilePathClick } = useContext(FilePathContext);
   const { copy, copied } = useCopyFeedback();
 
   const resolved = useMemo(
-    () => resolvePathAction(path, workspaceEntries),
-    [path, workspaceEntries],
+    () => resolvePathAction(path, resources),
+    [path, resources],
   );
 
   const { dir, base } = useMemo(() => splitDisplayPath(path), [path]);

@@ -39,7 +39,7 @@ const mockConv = {
     status?: object;
   } | null,
   asks: [] as { id: string }[],
-  workspaceEntries: [] as unknown[],
+  resources: [] as unknown[],
   answerToolUse: mockAnswerToolUse,
   sendFollowUp: mockSendFollowUp,
 };

@@ -5,7 +5,7 @@ import {
   PENDING_SUBJECT,
   mergeSessionContext,
   type ResourceRef,
-  type WorkspaceEntryInput,
+  type SessionResourceInput,
 } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
@@ -17,8 +17,12 @@ import { useExecutionTarget } from "../execution-target-context.js";
 export interface SharedSessionFields {
   /** Organization id for the new session (a slug is also accepted). */
   readonly org: string;
-  /** Workspace source entries to attach to the session. */
-  readonly workspaceEntries?: WorkspaceEntryInput[];
+  /**
+   * What the conversation holds: git repositories and local folders (each
+   * named), and Files (`{ file: { fileId } }`) the agent finds under
+   * `.stigmer/uploads/`.
+   */
+  readonly resources?: SessionResourceInput[];
   /** Initial conversation subject (defaults to `PENDING_SUBJECT`). */
   readonly subject?: string;
   /** Plugins the conversation uses, each whole: their skills, agents, hooks and MCP servers. */
@@ -162,7 +166,7 @@ export function useCreateSession(): UseCreateSessionReturn {
           name: `session-${Date.now()}`,
           org: input.org,
           subject: input.subject ?? PENDING_SUBJECT,
-          workspaceEntries: input.workspaceEntries,
+          resources: input.resources,
           plugins: input.plugins,
           skillRefs: input.skillRefs,
           environmentRef: input.environmentRef,

@@ -1,37 +1,37 @@
+/**
+ * MessageEntry's file row (stigmer/stigmer#372): a person's bubble shows the
+ * files given with the turn. With a run, an image is a preview tile whose
+ * link is minted from the File and a document a chip that downloads the
+ * File under its own name and shows its size; on the pending bubble both
+ * are inert; an agent's message never shows them.
+ *
+ * The File hooks are mocked at the module boundary: these are rendering
+ * tests, and the hooks have their own (file/__tests__/useFile.test.tsx).
+ */
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { MessageEntry, type ThreadMessage } from "../MessageEntry";
 import type { MessageAttachmentView } from "../MessageAttachments";
-
-// ---------------------------------------------------------------------------
-// MessageEntry attachment rendering (stigmer/stigmer#372): a person's bubble
-// shows the turn's submitted files — image previews and document downloads
-// when the run record exists, inert chips on the pending bubble, and
-// nothing at all when the turn had no attachments.
-//
-// The presign hooks are mocked at the module boundary: these are rendering
-// tests, and the URL-minting contract has its own coverage.
-// ---------------------------------------------------------------------------
 
 const downloadSpy = vi.fn(() => Promise.resolve());
 let urlState: { url: string | null; error: Error | null } = {
   url: null,
   error: null,
 };
+let fileRecords: Record<string, { spec: { filename: string }; status: { sizeBytes: bigint } }> = {};
 
-vi.mock("../useArtifactDownloadUrl", () => ({
-  useArtifactDownloadUrl: (executionId: string | null, storageKey: string | null) => ({
-    url: executionId && storageKey ? urlState.url : null,
+vi.mock("../../file/useFile", () => ({
+  useFile: (fileId: string | null) => ({
+    file: fileId ? (fileRecords[fileId] ?? null) : null,
     isLoading: false,
-    isRefetching: false,
-    error: urlState.error,
-    refetch: vi.fn(),
+    error: null,
   }),
-}));
-
-vi.mock("../useArtifactDownload", () => ({
-  useArtifactDownload: (executionId: string | null) => ({
-    download: executionId ? downloadSpy : vi.fn(() => Promise.resolve()),
+  useFileDownloadUrl: (fileId: string | null) => ({
+    url: fileId ? urlState.url : null,
+    error: urlState.error,
+  }),
+  useFileDownload: () => ({
+    download: downloadSpy,
     isDownloading: false,
     error: null,
   }),
@@ -51,6 +51,7 @@ afterEach(() => {
   cleanup();
   downloadSpy.mockClear();
   urlState = { url: null, error: null };
+  fileRecords = {};
 });
 
 function humanMessage(text: string): ThreadMessage {
@@ -58,15 +59,15 @@ function humanMessage(text: string): ThreadMessage {
 }
 
 const imageAttachment: MessageAttachmentView = {
+  fileId: "file_shot",
   filename: "screenshot.png",
-  contentType: "image/png",
-  storageKey: "attachments/01AAA/screenshot.png",
+  kind: "image",
 };
 
 const documentAttachment: MessageAttachmentView = {
+  fileId: "file_notes",
   filename: "notes.txt",
-  contentType: "text/plain",
-  storageKey: "attachments/01BBB/notes.txt",
+  kind: "document",
 };
 
 describe("MessageEntry attachment rendering", () => {
@@ -99,7 +100,25 @@ describe("MessageEntry attachment rendering", () => {
     expect(dialog!.getAttribute("aria-label")).toBe("Preview screenshot.png");
   });
 
-  it("renders a document chip that downloads under the original filename", () => {
+  it("renders no row for an empty file list", () => {
+    render(<MessageEntry message={humanMessage("Nothing given.")} attachments={[]} runId="exec-1" />);
+
+    expect(screen.queryByRole("list", { name: "Submitted attachments" })).toBeNull();
+  });
+
+  it("closes the image lightbox", () => {
+    urlState = { url: "https://files.example/screenshot", error: null };
+    const { container } = render(
+      <MessageEntry message={humanMessage("See the screenshot.")} attachments={[imageAttachment]} runId="exec-1" />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Preview screenshot.png" }));
+    expect(container.querySelector("dialog")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /close/i }));
+    expect(container.querySelector("dialog")).toBeNull();
+  });
+
+  it("renders a document chip that downloads the File under its filename", () => {
     render(
       <MessageEntry
         message={humanMessage("The notes are attached.")}
@@ -109,10 +128,7 @@ describe("MessageEntry attachment rendering", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Download notes.txt" }));
-    expect(downloadSpy).toHaveBeenCalledWith(
-      "attachments/01BBB/notes.txt",
-      "notes.txt",
-    );
+    expect(downloadSpy).toHaveBeenCalledWith("file_notes", "notes.txt");
   });
 
   it("renders no visible filename on image tiles — identity lives in the tooltip and accessible label", () => {
@@ -192,16 +208,21 @@ describe("MessageEntry attachment rendering", () => {
     ).toBeTruthy();
   });
 
-  it("falls back to the storage key's basename when the filename is missing", () => {
+  it("reads a recorded turn's name and size from the File itself", () => {
+    fileRecords = { file_data: { spec: { filename: "data.bin" }, status: { sizeBytes: 2048n } } };
+
     render(
       <MessageEntry
         message={humanMessage("Unnamed attachment.")}
-        attachments={[{ storageKey: "attachments/01CCC/data.bin" }]}
+        attachments={[{ fileId: "file_data", kind: "document" }]}
         runId="exec-1"
       />,
     );
 
     expect(screen.getByText("data.bin")).toBeTruthy();
+    expect(screen.getByText("2.0 KB")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Download data.bin" }));
+    expect(downloadSpy).toHaveBeenCalledWith("file_data", "data.bin");
   });
 
   it("ignores attachments on an agent's message", () => {

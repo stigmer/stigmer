@@ -83,7 +83,7 @@ afterEach(cleanup);
 
 function client(): Stigmer {
   return {
-    run: { uploadAttachment: vi.fn() },
+    file: { uploadFile: vi.fn(), delete: vi.fn().mockResolvedValue({}) },
     vault: noMyVaultClient(),
     identityAccount: { whoAmI: vi.fn().mockResolvedValue({ metadata: { id: "ida_me" } }) },
     baseUrl: "http://localhost:8080",

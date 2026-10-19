@@ -1,9 +1,10 @@
 /**
- * A console follow-up never destroys a repository token an integrator set
- * on the conversation: the page loads each stored repository under its
- * stored name, and the follow-up's workspace rewrite echoes the stored
- * token's redaction marker for it, which the server reads as "keep the
- * stored value".
+ * A console follow-up never destroys what the conversation holds: the page
+ * loads each stored repository under its stored name (and no File as a
+ * workspace entry), and the follow-up's workspace rewrite echoes the
+ * stored token's redaction marker, which the server reads as "keep the
+ * stored value", and keeps the stored Files. The composer's Files ride the
+ * run, released once it exists.
  */
 import { describe, it, expect, vi } from "vitest";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
@@ -21,16 +22,15 @@ const MARKER = "***REDACTED***";
 const STORED = create(SessionSchema, {
   metadata: { id: "session-1", org: "org_acme", name: "s" },
   spec: {
-    workspaceEntries: [
+    resources: [
       {
         name: "backend",
-        source: {
-          source: {
-            case: "gitRepo",
-            value: { url: "https://github.com/acme/api.git", branch: "main", token: MARKER },
-          },
+        resource: {
+          case: "gitRepository",
+          value: { url: "https://github.com/acme/api.git", branch: "main", token: MARKER },
         },
       },
+      { resource: { case: "file", value: { fileId: "file_brief", mountPath: "" } } },
     ],
   },
 });
@@ -38,11 +38,13 @@ const STORED = create(SessionSchema, {
 describe("useSessionPageFlow — a stored repository token", () => {
   it("is kept by a follow-up: the entry keeps its name and echoes the marker", async () => {
     const sessionUpdate = vi.fn().mockResolvedValue(STORED);
+    const runCreate = vi.fn().mockResolvedValue({ metadata: { id: "aex_1" }, spec: {} });
+    const releaseFiles = vi.fn().mockResolvedValue(undefined);
     const client = {
       session: { get: vi.fn().mockResolvedValue(STORED), update: sessionUpdate, streamEvents: sessionEventStream().streamEvents },
       run: {
         listBySession: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
-        create: vi.fn().mockResolvedValue({ metadata: { id: "aex_1" }, spec: {} }),
+        create: runCreate,
         // The sent turn's run, read while it is live; never answered here.
         get: vi.fn(() => new Promise(() => {})),
       },
@@ -58,18 +60,47 @@ describe("useSessionPageFlow — a stored repository token", () => {
       { wrapper },
     );
     await waitFor(() => expect(result.current.workspace.hasEntries).toBe(true));
-    expect(result.current.workspace.entries[0]?.name).toBe("backend");
+    expect(result.current.workspace.entries.map((entry) => entry.name)).toEqual(["backend"]);
 
     await act(async () => {
-      await result.current.handleSubmit("go");
+      await result.current.handleSubmit("go", undefined, { fileIds: ["file_new"], releaseFiles });
     });
 
     await waitFor(() => expect(sessionUpdate).toHaveBeenCalledTimes(1));
-    const entries = sentUpdate<Session>(sessionUpdate).resource.spec?.workspaceEntries ?? [];
-    expect(entries.map((entry) => entry.name)).toEqual(["backend"]);
-    expect(entries[0]?.source?.source).toMatchObject({
-      case: "gitRepo",
+    const resources = sentUpdate<Session>(sessionUpdate).resource.spec?.resources ?? [];
+    expect(resources.map((entry) => entry.resource.case)).toEqual(["gitRepository", "file"]);
+    expect(resources[0]?.name).toBe("backend");
+    expect(resources[0]?.resource).toMatchObject({
+      case: "gitRepository",
       value: { url: "https://github.com/acme/api.git", branch: "main", token: MARKER },
     });
+    expect(resources[1]?.resource).toMatchObject({ case: "file", value: { fileId: "file_brief" } });
+    expect(runCreate.mock.calls[0][0].fileIds).toEqual(["file_new"]);
+    expect(releaseFiles).toHaveBeenCalledTimes(1);
+  });
+
+  it("loads a stored folder as a local workspace entry", async () => {
+    const withFolder = create(SessionSchema, {
+      metadata: { id: "session-1", org: "org_acme", name: "s" },
+      spec: {
+        resources: [{ name: "dev/site", resource: { case: "localPath", value: { path: "/Users/dev/site" } } }],
+      },
+    });
+    const client = {
+      session: { get: vi.fn().mockResolvedValue(withFolder), update: vi.fn(), streamEvents: sessionEventStream().streamEvents },
+      run: { listBySession: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }) },
+      agent: { getByReference: vi.fn().mockResolvedValue(null) },
+      identityAccount: { whoAmI: vi.fn().mockRejectedValue(new Error("none")) },
+    } as unknown as Stigmer;
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <StigmerContext.Provider value={client}>{children}</StigmerContext.Provider>
+    );
+
+    const { result } = renderHook(
+      () => useSessionPageFlow({ sessionId: "session-1", org: "org_acme" }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.workspace.hasEntries).toBe(true));
+    expect(result.current.workspace.entries[0]).toMatchObject({ type: "local", localPath: "/Users/dev/site" });
   });
 });

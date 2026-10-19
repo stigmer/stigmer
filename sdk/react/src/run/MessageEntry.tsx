@@ -71,7 +71,7 @@ export interface MessageEntryProps {
   readonly interactionMode?: InteractionMode;
   /**
    * The turn's submitted attachments, stamped by the thread builder on a
-   * person's message from the run's `spec.attachments` (or the pending
+   * person's message from the run's `status.messageFiles` (or the pending
    * submit context). Renders as a {@link MessageAttachments} row above the
    * prose. Ignored for other messages.
    *
@@ -81,7 +81,8 @@ export interface MessageEntryProps {
   readonly attachments?: readonly MessageAttachmentView[];
   /**
    * The run the attachments belong to — enables their byte-backed
-   * affordances (image previews, document downloads) via presigned URLs.
+   * affordances (image previews, document downloads), each link minted
+   * from the File when it is needed.
    * Absent on the optimistic pending bubble, where attachments render as
    * inert chips until the real run record replaces it.
    */

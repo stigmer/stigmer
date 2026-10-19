@@ -92,7 +92,7 @@ const stubConv = {
   activeTurn: null,
   activeRun: null,
   pendingUserMessage: null,
-  workspaceEntries: [],
+  resources: [],
   fileReviewSets: [],
   fileChangeCaptures: new Map(),
   reviewFileChanges: vi.fn(),
@@ -164,7 +164,6 @@ vi.mock("../../hooks", () => ({
     // Server info answers the Environment row: a server that predates the field.
     platform: { getServerInfo: async () => ({}) },
     run: {
-      uploadAttachment: vi.fn(),
       getArtifactContent: vi.fn(),
     },
   }),

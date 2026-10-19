@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { JsonObject } from "@bufbuild/protobuf";
-import { mergeSessionContext, type AttachmentInput, type ResourceRef, type RunConfigInput, type WorkspaceEntryInput } from "@stigmer/client";
+import { mergeSessionContext, type ResourceRef, type RunConfigInput, type SessionResourceInput } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { toProtoInteractionMode } from "../composer/interaction-mode.js";
@@ -31,8 +31,13 @@ export interface BootstrapSessionSpec {
   readonly agentRef?: ResourceRef;
   /** Initial conversation subject. Omit for an async LLM-generated title. */
   readonly subject?: string;
-  /** Workspace source entries to attach to the session. */
-  readonly workspaceEntries?: WorkspaceEntryInput[];
+  /**
+   * What the conversation holds: git repositories and local folders (each
+   * named), and Files (`{ file: { fileId } }`), found under
+   * `.stigmer/uploads/`. A File given with the first message belongs in
+   * `fileIds` instead, which also shows it to the model with the message.
+   */
+  readonly resources?: SessionResourceInput[];
   /** Plugins the conversation uses, each whole: their skills, agents, hooks and MCP servers. */
   readonly plugins?: ResourceRef[];
   /** Skill references to enable for runs in this session. */
@@ -113,13 +118,14 @@ export interface SharedRunFields {
    */
   readonly modelName?: string;
   /**
-   * Pre-uploaded file attachments injected into the agent sandbox.
-   *
-   * Each entry must include a `storageKey` obtained from
-   * `run.uploadAttachment()`. The agent can read attached
-   * files from their mount paths (default `/inputs/{filename}`).
+   * Files given with this message, by id (`"file_01j…"`), at most 20:
+   * `stigmer.file.uploadFile` returns them. Each that is not yet the
+   * conversation's becomes its own copy and joins the conversation's
+   * resources, so the agent finds it under `.stigmer/uploads/` on this
+   * turn and every later one; the message shows an image to the model as
+   * an image and any other file as a document. Maps to `RunSpec.file_ids`.
    */
-  readonly attachments?: AttachmentInput[];
+  readonly fileIds?: string[];
   /**
    * Interaction mode for this run.
    *
@@ -321,7 +327,7 @@ export interface UseCreateRunReturn {
  *   message: "Customize the landing page",
  *   sessionSpec: {
  *     agentRef: { org: "acme", slug: "site-builder" },
- *     workspaceEntries: [{ name: "site", source: { localPath: { path: "/repos/site" } } }],
+ *     resources: [{ name: "site", localPath: { path: "/repos/site" } }],
  *     executionTarget: "local",
  *   },
  * });
@@ -362,7 +368,7 @@ export function useCreateRun(): UseCreateRunReturn {
           ? {
               agentRef: input.sessionSpec.agentRef,
               subject: input.sessionSpec.subject,
-              workspaceEntries: input.sessionSpec.workspaceEntries,
+              resources: input.sessionSpec.resources,
               plugins: input.sessionSpec.plugins,
               skillRefs: input.sessionSpec.skillRefs,
               vaults: input.sessionSpec.vaults,
@@ -395,7 +401,7 @@ export function useCreateRun(): UseCreateRunReturn {
           buildFromPlan: input.buildFromPlan || undefined,
           structuredOutputSchema: input.structuredOutputSchema,
           autoApproveAll: input.autoApproveAll,
-          attachments: input.attachments,
+          fileIds: input.fileIds?.length ? input.fileIds : undefined,
           workspaceFileRefs: input.workspaceFileRefs,
           supersedesRunId: input.supersedesRunId,
         });

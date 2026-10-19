@@ -1,24 +1,25 @@
+/**
+ * FilePathLink: a tool call's file path shown filename-first, resolved
+ * through FilePathContext's resources to a GitHub link or an absolute path
+ * to copy, and routed through an injected click handler that may open it
+ * in-app or decline it back to the native link.
+ */
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import {
-  WorkspaceEntrySchema,
-  WorkspaceSourceSchema,
-  LocalPathSourceSchema,
-  GitRepoSourceSchema,
-} from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
-import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+  SessionResourceSchema,
+  type SessionResource,
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { FilePathLink } from "../FilePathLink";
 import { FilePathContext } from "../FilePathContext";
 
 afterEach(cleanup);
 
-function localEntry(name: string, path: string): WorkspaceEntry {
-  return create(WorkspaceEntrySchema, {
+function localEntry(name: string, path: string): SessionResource {
+  return create(SessionResourceSchema, {
     name,
-    source: create(WorkspaceSourceSchema, {
-      source: { case: "localPath", value: create(LocalPathSourceSchema, { path }) },
-    }),
+    resource: { case: "localPath", value: { path } },
   });
 }
 
@@ -50,7 +51,7 @@ describe("FilePathLink full path resolution", () => {
   it("resolves the absolute local path into the accessible name (hover ride the house tooltip)", () => {
     const entries = [localEntry("my-app", "/Users/dev/my-app")];
     render(
-      <FilePathContext.Provider value={{ workspaceEntries: entries }}>
+      <FilePathContext.Provider value={{ resources: entries }}>
         <FilePathLink path="src/main.go" />
       </FilePathContext.Provider>,
     );
@@ -84,7 +85,7 @@ describe("FilePathLink interaction", () => {
   it("invokes the context onFilePathClick override with the resolved action", () => {
     const onFilePathClick = vi.fn();
     render(
-      <FilePathContext.Provider value={{ workspaceEntries: [], onFilePathClick }}>
+      <FilePathContext.Provider value={{ resources: [], onFilePathClick }}>
         <FilePathLink path="src/main.go" />
       </FilePathContext.Provider>,
     );
@@ -99,7 +100,7 @@ describe("FilePathLink interaction", () => {
     vi.stubGlobal("navigator", { clipboard: { writeText } });
     const onFilePathClick = vi.fn().mockReturnValue(false);
     render(
-      <FilePathContext.Provider value={{ workspaceEntries: [], onFilePathClick }}>
+      <FilePathContext.Provider value={{ resources: [], onFilePathClick }}>
         <FilePathLink path="src/main.go" />
       </FilePathContext.Provider>,
     );
@@ -114,7 +115,7 @@ describe("FilePathLink interaction", () => {
     vi.stubGlobal("navigator", { clipboard: { writeText } });
     const onFilePathClick = vi.fn(); // returns undefined -> handled
     render(
-      <FilePathContext.Provider value={{ workspaceEntries: [], onFilePathClick }}>
+      <FilePathContext.Provider value={{ resources: [], onFilePathClick }}>
         <FilePathLink path="src/main.go" />
       </FilePathContext.Provider>,
     );
@@ -127,24 +128,19 @@ describe("FilePathLink interaction", () => {
 
 describe("FilePathLink link-action with an injected handler", () => {
   const gitEntries = [
-    create(WorkspaceEntrySchema, {
+    create(SessionResourceSchema, {
       name: "acme/app",
-      source: create(WorkspaceSourceSchema, {
-        source: {
-          case: "gitRepo",
-          value: create(GitRepoSourceSchema, {
-            url: "https://github.com/acme/app.git",
-            branch: "main",
-          }),
-        },
-      }),
+      resource: {
+        case: "gitRepository",
+        value: { url: "https://github.com/acme/app.git", branch: "main" },
+      },
     }),
   ];
 
   it("renders a real <a href> even when a handler is present (native link semantics)", () => {
     const onFilePathClick = vi.fn().mockReturnValue(true);
     render(
-      <FilePathContext.Provider value={{ workspaceEntries: gitEntries, onFilePathClick }}>
+      <FilePathContext.Provider value={{ resources: gitEntries, onFilePathClick }}>
         <FilePathLink path="src/main.go" />
       </FilePathContext.Provider>,
     );
@@ -157,7 +153,7 @@ describe("FilePathLink link-action with an injected handler", () => {
   it("prevents native navigation when the handler opens it in-app (returns true)", () => {
     const onFilePathClick = vi.fn().mockReturnValue(true);
     render(
-      <FilePathContext.Provider value={{ workspaceEntries: gitEntries, onFilePathClick }}>
+      <FilePathContext.Provider value={{ resources: gitEntries, onFilePathClick }}>
         <FilePathLink path="src/main.go" />
       </FilePathContext.Provider>,
     );
@@ -170,7 +166,7 @@ describe("FilePathLink link-action with an injected handler", () => {
   it("leaves native navigation intact when the handler declines (returns false)", () => {
     const onFilePathClick = vi.fn().mockReturnValue(false);
     render(
-      <FilePathContext.Provider value={{ workspaceEntries: gitEntries, onFilePathClick }}>
+      <FilePathContext.Provider value={{ resources: gitEntries, onFilePathClick }}>
         <FilePathLink path="src/main.go" />
       </FilePathContext.Provider>,
     );

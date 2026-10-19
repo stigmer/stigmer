@@ -112,7 +112,7 @@ afterEach(cleanup);
 /** A client whose signed-in person is `viewerId`, with no My vault yet. */
 function client(viewerId = "ida_creator"): Stigmer {
   return {
-    run: { uploadAttachment: vi.fn() },
+    file: { uploadFile: vi.fn(), delete: vi.fn().mockResolvedValue({}) },
     vault: noMyVaultClient(),
     identityAccount: { whoAmI: vi.fn().mockResolvedValue({ metadata: { id: viewerId } }) },
     baseUrl: "http://localhost:8080",

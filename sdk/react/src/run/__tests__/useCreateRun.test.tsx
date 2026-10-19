@@ -1,3 +1,9 @@
+/**
+ * useCreateRun: the run it creates carries what this message asks for and
+ * nothing it leaves to a less specific layer. Pins the message's Files
+ * (`fileIds`, omitted when empty) and the one-call bootstrap's session
+ * spec, whose resources travel as given.
+ */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -98,6 +104,22 @@ describe("useCreateRun — run_config and the per-message intents", () => {
   });
 });
 
+describe("useCreateRun — the message's Files", () => {
+  it("names the Files on the run, and sends no list when there are none", async () => {
+    const { result } = renderHook(() => useCreateRun(), {
+      wrapper: createWrapper(makeMockClient()),
+    });
+
+    await act(async () => {
+      await result.current.create({ org: "acme", sessionId: "ses_1", message: "See these", fileIds: ["file_1", "file_2"] });
+      await result.current.create({ org: "acme", sessionId: "ses_1", message: "No files", fileIds: [] });
+    });
+
+    expect(mockCreate.mock.calls[0][0].fileIds).toEqual(["file_1", "file_2"]);
+    expect(mockCreate.mock.calls[1][0].fileIds).toBeUndefined();
+  });
+});
+
 describe("useCreateRun — one-call session bootstrap (sessionSpec)", () => {
   it("converts harness and executionTarget options to proto enums", async () => {
     const { result } = renderHook(() => useCreateRun(), {
@@ -110,8 +132,9 @@ describe("useCreateRun — one-call session bootstrap (sessionSpec)", () => {
         message: "Customize the landing page",
         sessionSpec: {
           agentRef: { org: "acme", slug: "site-builder" },
-          workspaceEntries: [
-            { name: "site", source: { localPath: { path: "/repos/site" } } },
+          resources: [
+            { name: "site", localPath: { path: "/repos/site" } },
+            { file: { fileId: "file_brief" } },
           ],
           harness: "native",
           executionTarget: "local",
@@ -127,8 +150,9 @@ describe("useCreateRun — one-call session bootstrap (sessionSpec)", () => {
       harness: Harness.NATIVE,
       executionTarget: ExecutionTarget.LOCAL,
     });
-    expect(input.sessionSpec.workspaceEntries).toEqual([
-      { name: "site", source: { localPath: { path: "/repos/site" } } },
+    expect(input.sessionSpec.resources).toEqual([
+      { name: "site", localPath: { path: "/repos/site" } },
+      { file: { fileId: "file_brief" } },
     ]);
   });
 

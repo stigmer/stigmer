@@ -103,7 +103,7 @@ export function useArtifactDownload(
  * `download` hint is still set as a same-origin nicety. Falls back to a new tab
  * in non-DOM environments.
  */
-function triggerBrowserDownload(url: string, fileName?: string): void {
+export function triggerBrowserDownload(url: string, fileName?: string): void {
   if (typeof document === "undefined") {
     if (typeof window !== "undefined") {
       window.open(url, "_blank", "noopener,noreferrer");

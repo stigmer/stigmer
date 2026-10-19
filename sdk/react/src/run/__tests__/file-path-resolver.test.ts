@@ -1,12 +1,16 @@
+/**
+ * The path resolver behind FilePathLink: platform paths (`.stigmer/`) copy
+ * as they are; a workspace path resolves against the conversation's
+ * repositories and folders (a GitHub link, or an absolute local path to
+ * copy), matched by entry name when there are several, and never against
+ * its Files, which live under `.stigmer/uploads/`.
+ */
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import {
-  WorkspaceEntrySchema,
-  WorkspaceSourceSchema,
-  GitRepoSourceSchema,
-  LocalPathSourceSchema,
-} from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
-import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+  SessionResourceSchema,
+  type SessionResource,
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import {
   classifyPath,
   resolveGitBrowseUrl,
@@ -18,27 +22,23 @@ import {
 // Factory helpers
 // ---------------------------------------------------------------------------
 
-function gitEntry(name: string, url: string, branch = "main"): WorkspaceEntry {
-  return create(WorkspaceEntrySchema, {
+function gitEntry(name: string, url: string, branch = "main"): SessionResource {
+  return create(SessionResourceSchema, {
     name,
-    source: create(WorkspaceSourceSchema, {
-      source: {
-        case: "gitRepo",
-        value: create(GitRepoSourceSchema, { url, branch, commit: "" }),
-      },
-    }),
+    resource: { case: "gitRepository", value: { url, branch, commit: "" } },
   });
 }
 
-function localEntry(name: string, path: string): WorkspaceEntry {
-  return create(WorkspaceEntrySchema, {
+function localEntry(name: string, path: string): SessionResource {
+  return create(SessionResourceSchema, {
     name,
-    source: create(WorkspaceSourceSchema, {
-      source: {
-        case: "localPath",
-        value: create(LocalPathSourceSchema, { path }),
-      },
-    }),
+    resource: { case: "localPath", value: { path } },
+  });
+}
+
+function fileResource(fileId: string): SessionResource {
+  return create(SessionResourceSchema, {
+    resource: { case: "file", value: { fileId, mountPath: "" } },
   });
 }
 
@@ -318,6 +318,28 @@ describe("resolvePathAction", () => {
         action: "link",
         url: "https://github.com/acme/my-app/blob/main/unknown/path/file.txt",
         tooltip: "Open on GitHub",
+      });
+    });
+  });
+
+  describe("a conversation's Files beside its folder", () => {
+    // A File lives under .stigmer/uploads/, never under a workspace root:
+    // it must not turn one folder into an ambiguous many.
+    const entries = [fileResource("file_1"), localEntry("my-app", "/Users/dev/projects/my-app")];
+
+    it("resolves against the folder alone", () => {
+      expect(resolvePathAction("src/main.go", entries)).toEqual({
+        action: "copy",
+        value: "/Users/dev/projects/my-app/src/main.go",
+        tooltip: "Copy path",
+      });
+    });
+
+    it("copies the raw path when the conversation holds only Files", () => {
+      expect(resolvePathAction("src/main.go", [fileResource("file_1")])).toEqual({
+        action: "copy",
+        value: "src/main.go",
+        tooltip: "Copy path",
       });
     });
   });

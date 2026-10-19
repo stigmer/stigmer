@@ -19,7 +19,7 @@ const mockConv = {
   runs: [] as unknown[],
   activeRun: null,
   asks: [] as unknown[],
-  workspaceEntries: [] as unknown[],
+  resources: [] as unknown[],
   answerToolUse: vi.fn(),
   sendFollowUp: mockSendFollowUp,
 };

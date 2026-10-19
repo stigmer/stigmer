@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@stigmer/design-tokens";
-import type { AttachmentEntry } from "./useAttachments.js";
+import type { FileUploadEntry } from "./useFileUploads.js";
 import { formatFileSize } from "./attachment-utils.js";
 import { useObjectUrl } from "./useObjectUrl.js";
 import { AttachmentImageLightbox } from "./AttachmentImageLightbox.js";
@@ -11,8 +11,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js"
 
 /** Props for {@link AttachmentChipList}. */
 export interface AttachmentChipListProps {
-  /** Attachment entries from {@link useAttachments}. */
-  readonly entries: readonly AttachmentEntry[];
+  /** Entries from {@link useFileUploads}. */
+  readonly entries: readonly FileUploadEntry[];
   /** Remove callback (by entry ID). */
   readonly onRemove: (id: string) => void;
   /** Retry callback for failed uploads (by entry ID). */
@@ -23,7 +23,7 @@ export interface AttachmentChipListProps {
    * route the click to their own viewer. Omit for the default behavior:
    * a full-size image lightbox over the locally-held file bytes.
    */
-  readonly onPreview?: (entry: AttachmentEntry) => void;
+  readonly onPreview?: (entry: FileUploadEntry) => void;
   /** Disables remove and retry actions. Preview stays active — it is read-only. */
   readonly disabled?: boolean;
   /** Additional CSS class names for the root container. */
@@ -48,13 +48,13 @@ export interface AttachmentChipListProps {
  * @example
  * ```tsx
  * function CustomComposer() {
- *   const attachments = useAttachments({ sessionId });
+ *   const uploads = useFileUploads({ org, sessionId });
  *
  *   return (
  *     <AttachmentChipList
- *       entries={attachments.entries}
- *       onRemove={attachments.remove}
- *       onRetry={attachments.retry}
+ *       entries={uploads.entries}
+ *       onRemove={uploads.removeEntry}
+ *       onRetry={uploads.retryEntry}
  *     />
  *   );
  * }
@@ -128,7 +128,7 @@ function AttachmentChip({
   onPreview,
   disabled,
 }: {
-  readonly entry: AttachmentEntry;
+  readonly entry: FileUploadEntry;
   readonly onRemove: () => void;
   readonly onRetry: () => void;
   readonly onPreview: () => void;
@@ -153,7 +153,7 @@ function AttachmentChip({
 }
 
 /** Shared accessible name: filename, size, and upload status. */
-function chipAriaLabel(entry: AttachmentEntry): string {
+function chipAriaLabel(entry: FileUploadEntry): string {
   const isPreparing = entry.phase === "preparing";
   const isUploading = entry.phase === "uploading";
   const isError = entry.phase === "error";
@@ -166,7 +166,7 @@ function chipAriaLabel(entry: AttachmentEntry): string {
  * means "your file is on its way", and the split is audible in the
  * accessible label where it actually informs.
  */
-function isChipBusy(entry: AttachmentEntry): boolean {
+function isChipBusy(entry: FileUploadEntry): boolean {
   return entry.phase === "preparing" || entry.phase === "uploading";
 }
 
@@ -202,7 +202,7 @@ function ImageAttachmentChip({
   onPreview,
   disabled,
 }: {
-  readonly entry: AttachmentEntry;
+  readonly entry: FileUploadEntry;
   readonly onRemove: () => void;
   readonly onRetry: () => void;
   readonly onPreview: () => void;
@@ -327,7 +327,7 @@ function FileAttachmentChip({
   onRetry,
   disabled,
 }: {
-  readonly entry: AttachmentEntry;
+  readonly entry: FileUploadEntry;
   readonly onRemove: () => void;
   readonly onRetry: () => void;
   readonly disabled?: boolean;
@@ -431,7 +431,7 @@ function ChipPreviewLightbox({
   entry,
   onClose,
 }: {
-  readonly entry: AttachmentEntry;
+  readonly entry: FileUploadEntry;
   readonly onClose: () => void;
 }) {
   const src = useObjectUrl(entry.file);

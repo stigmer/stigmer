@@ -11,7 +11,8 @@
  * My vault only to the routine's creator, the one person the server
  * accepts it from. The Environment row says which applies and why (the
  * routine's own, else its agent's default), and its editor saves the
- * picked one with the environment kind stamped.
+ * picked one with the environment kind stamped. The Workspace row lists
+ * the repositories each fire clones and leaves the invocation's Files out.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import { sentUpdate } from "../../internal/__tests__/sent-update";
@@ -20,6 +21,7 @@ import type { ReactNode } from "react";
 import { clone, create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { RoutineSchema, type Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import {
   RoutineFireResultSchema,
   RoutineFireListSchema,
@@ -272,6 +274,23 @@ describe("RoutineDetailView", () => {
     // Active routines show no state banner.
     expect(screen.queryByText("Routine is disabled")).toBeNull();
     expect(screen.queryByText("Paused by the platform")).toBeNull();
+  });
+
+  it("lists the repositories each fire clones in the Workspace row, never its Files", async () => {
+    const routine = makeRoutine();
+    routine.spec!.agent!.resources = [
+      create(SessionResourceSchema, {
+        name: "isc/fee-data",
+        resource: { case: "gitRepository", value: { url: "https://github.com/isc/fee-data.git", branch: "main" } },
+      }),
+      create(SessionResourceSchema, { resource: { case: "file", value: { fileId: "file_ledger", mountPath: "q3-ledger.xlsx" } } }),
+    ];
+    renderView(makeClient(routine));
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    expect(screen.getByText("isc/fee-data")).toBeTruthy();
+    expect(screen.getByText("https://github.com/isc/fee-data.git@main")).toBeTruthy();
+    expect(screen.queryByText(/q3-ledger|file_ledger/)).toBeNull();
   });
 
   it("renders the disabled banner with an inline Enable remedy", async () => {

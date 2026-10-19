@@ -181,7 +181,7 @@ export type { SubagentSectionProps } from "./SubagentSection.js";
 export { MessageEntry } from "./MessageEntry.js";
 export type { MessageEntryProps, ThreadMessage, UserMessageItem } from "./MessageEntry.js";
 
-export { MessageAttachments } from "./MessageAttachments.js";
+export { MessageAttachments, messageFileViews } from "./MessageAttachments.js";
 export type {
   MessageAttachmentsProps,
   MessageAttachmentView,

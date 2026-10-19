@@ -22,10 +22,9 @@ import { MAX_ATTACHMENT_BYTES } from "../../attachment/attachment-utils";
 
 function createMinimalStigmerMock(): Stigmer {
   return {
-    run: {
-      uploadAttachment: vi
-        .fn()
-        .mockResolvedValue({ storageKey: "attachments/test-ulid/file" }),
+    file: {
+      uploadFile: vi.fn().mockResolvedValue({ metadata: { id: "file_1" }, status: { sessionId: "" } }),
+      delete: vi.fn().mockResolvedValue({}),
     },
     vault: noMyVaultClient(),
     baseUrl: "http://localhost:8080",
@@ -62,6 +61,7 @@ function renderComposer(
     <SessionComposer
       onSubmit={onSubmit}
       onAttachmentValidationError={onAttachmentValidationError}
+      org="acme"
       {...props}
     />,
     { wrapper: createWrapper(client) },
@@ -122,8 +122,8 @@ describe("SessionComposer — clipboard paste", () => {
 
     await waitFor(() => {
       expect(
-        (client as unknown as { run: { uploadAttachment: ReturnType<typeof vi.fn> } })
-          .run.uploadAttachment,
+        (client as unknown as { file: { uploadFile: ReturnType<typeof vi.fn> } })
+          .file.uploadFile,
       ).toHaveBeenCalledTimes(1);
     });
   });
@@ -200,13 +200,23 @@ describe("SessionComposer — clipboard paste", () => {
     const { container, onAttachmentValidationError } = renderComposer();
     const textarea = screen.getByRole("textbox");
 
-    const huge = pngFile("image.png", new Uint8Array(MAX_ATTACHMENT_BYTES + 1));
+    // A file of a marker length reports a size over the limit, so the test
+    // never allocates it; the marker survives the paste's rename, which
+    // copies the bytes into a new File.
+    const MARKER_BYTES = 7777;
+    const realSize = Object.getOwnPropertyDescriptor(Blob.prototype, "size")!.get!;
+    const sizeSpy = vi.spyOn(Blob.prototype, "size", "get").mockImplementation(function (this: Blob) {
+      const size = realSize.call(this) as number;
+      return size === MARKER_BYTES ? MAX_ATTACHMENT_BYTES + 1 : size;
+    });
+    const huge = pngFile("image.png", new Uint8Array(MARKER_BYTES));
     await act(async () => {
       fireEvent.paste(textarea, pasteInit([huge]));
     });
+    sizeSpy.mockRestore();
 
     expect(onAttachmentValidationError).toHaveBeenCalledTimes(1);
-    expect(onAttachmentValidationError.mock.calls[0][0]).toContain("10 MB");
+    expect(onAttachmentValidationError.mock.calls[0][0]).toContain("500 MB");
     expect(container.querySelector('[role="listitem"]')).toBeNull();
   });
 
@@ -228,10 +238,10 @@ describe("SessionComposer — clipboard paste", () => {
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
     const [, , context] = onSubmit.mock.calls[0];
+    expect(context?.fileIds).toEqual(["file_1"]);
     expect(context?.attachments).toHaveLength(1);
     expect(context.attachments[0].filename).toMatch(/^pasted-image-/);
-    expect(context.attachments[0].storageKey).toBe("attachments/test-ulid/file");
-    expect(context.attachments[0].contentType).toBe("image/png");
+    expect(context.attachments[0].kind).toBe("image");
   });
 
   it("keeps the drop path working: same-named drops are uniquified, not clobbered", async () => {
