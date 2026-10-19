@@ -312,21 +312,24 @@ async function updateVisibility(
   return reqCtx.get(UPDATE_VISIBILITY_FILE_KEY) as File;
 }
 
+/** A File by its id: a missing one answers NotFound, a store fault Internal. */
+export async function loadFile(store: Store, id: string): Promise<File> {
+  try {
+    return await store.getResource(ApiResourceKind.file, id, FileSchema);
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      throw notFoundError(FILE_NOUN, id);
+    }
+    throw internalError(error, "failed to load file");
+  }
+}
+
 /** Loads the File by resource_id; a missing one answers NotFound, a store fault Internal. */
 export function newLoadFileForVisibilityUpdateStep(store: Store): PipelineStep<UpdateVisibilityDesc> {
   return {
     name: "LoadFileForVisibilityUpdate",
     async execute(ctx: RequestContext<UpdateVisibilityDesc>): Promise<void> {
-      let file: File;
-      try {
-        file = await store.getResource(ctx.apiResourceKind, ctx.input.resourceId, FileSchema);
-      } catch (error) {
-        if (error instanceof ResourceNotFoundError) {
-          throw notFoundError(FILE_NOUN, ctx.input.resourceId);
-        }
-        throw internalError(error, "failed to load file");
-      }
-      ctx.set(UPDATE_VISIBILITY_FILE_KEY, file);
+      ctx.set(UPDATE_VISIBILITY_FILE_KEY, await loadFile(store, ctx.input.resourceId));
     },
   };
 }
@@ -437,15 +440,7 @@ async function getContent(deps: FileControllerDeps, input: GetFileContentInput, 
     .addStep({
       name: "ReadFileContent",
       async execute(step: RequestContext<typeof FileQueryController.method.getContent.input>): Promise<void> {
-        let file: File;
-        try {
-          file = await deps.store.getResource(ApiResourceKind.file, step.input.id, FileSchema);
-        } catch (error) {
-          if (error instanceof ResourceNotFoundError) {
-            throw notFoundError(FILE_NOUN, step.input.id);
-          }
-          throw internalError(error, "failed to load file");
-        }
+        const file = await loadFile(deps.store, step.input.id);
         const asked = Number(step.input.maxBytes);
         const maxBytes = asked <= 0 || asked > MAX_FILE_CONTENT_BYTES ? MAX_FILE_CONTENT_BYTES : asked;
         const sizeBytes = Number(file.status?.sizeBytes ?? 0n);

@@ -13,7 +13,9 @@
  *     being orphaned), INTERNAL on any other store fault, and takes the
  *     copy back when its access cannot be written;
  *   - a runner's link to a File is INTERNAL when the store or the signer
- *     fails.
+ *     fails;
+ *   - loading a File by id (a visibility update, a content read) answers
+ *     NOT_FOUND for one that is gone and INTERNAL on a store fault.
  * Their working paths run in session-resources.test.ts and
  * message-files.test.ts.
  */
@@ -40,6 +42,7 @@ import { newFileBlobs } from "../blobs.js";
 import type { FileBlobs } from "../blobs.js";
 import { discardQuietly, newFileInstances } from "../instances.js";
 import type { FileInstances } from "../instances.js";
+import { loadFile } from "../controller.js";
 import { runIsStored } from "../message-files.js";
 import { newGuardFileUnreferencedStep, newRemoveFromConversationStep } from "../steps.js";
 
@@ -86,6 +89,15 @@ describe("the File delete steps when the store fails", () => {
     const store = stubStore({ updateResource: () => Promise.reject(new Error("database unreachable")) });
     const error = await refusal(newRemoveFromConversationStep(store).execute(deleteContext("ses_01held")));
     expect(error.code).toBe(Code.Internal);
+  });
+});
+
+describe("loadFile", () => {
+  it("answers NOT_FOUND for a File that is gone and INTERNAL on a store fault", async () => {
+    const missing = stubStore({ getResource: () => Promise.reject(new ResourceNotFoundError("file file_01x")) });
+    const faulty = stubStore({ getResource: () => Promise.reject(new Error("database unreachable")) });
+    await expect(loadFile(missing, "file_01x")).rejects.toMatchObject({ code: Code.NotFound });
+    await expect(loadFile(faulty, "file_01x")).rejects.toMatchObject({ code: Code.Internal });
   });
 });
 

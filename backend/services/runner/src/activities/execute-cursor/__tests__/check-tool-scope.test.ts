@@ -305,8 +305,11 @@ describe("platformOutputsRoot", () => {
       rmSync(workspace, { recursive: true, force: true });
       rmSync(platform, { recursive: true, force: true });
     });
-    mkdirSync(join(platform, "outputs"));
     expect(await platformOutputsRoot(workspace, platform), "no link").toBe("");
+    symlinkSync(platform, join(workspace, ".stigmer"), "dir");
+    expect(await platformOutputsRoot(workspace, platform), "the link, but no outputs folder made").toBe("");
+    rmSync(join(workspace, ".stigmer"));
+    mkdirSync(join(platform, "outputs"));
     mkdirSync(join(workspace, "repo-state"));
     symlinkSync(join(workspace, "repo-state"), join(workspace, ".stigmer"), "dir");
     expect(await platformOutputsRoot(workspace, platform), "the repository's own .stigmer").toBe("");

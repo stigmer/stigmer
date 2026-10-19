@@ -212,6 +212,18 @@ describe("reading a File's first bytes", () => {
     expect(new TextDecoder().decode(await plain.readHead("file_01head", 4))).toBe("0123");
     expect(downloads).toEqual([blob.blobKey]);
   });
+
+  it("answers Internal when the File's storage cannot be read or names no blob", async () => {
+    const blob = await blobs.storeInline(ORG, new TextEncoder().encode("x"), "text/plain");
+    await insert("file_01headfault", blob);
+    for (const failing of [
+      blobsWith({ files: { blobKeyOf: boom } }),
+      blobsWith({ storage: { readRange: boom } }),
+    ]) {
+      await expect(failing.readHead("file_01headfault", 4)).rejects.toMatchObject({ code: Code.Internal });
+    }
+    await expect(blobs.readHead("file_01nostoredblobnostored", 4)).rejects.toMatchObject({ code: Code.Internal });
+  });
 });
 
 describe("the size cap", () => {

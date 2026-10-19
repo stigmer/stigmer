@@ -240,6 +240,22 @@ describe("LocalArtifactStorage", () => {
       }
     });
 
+    it("readRange reads the range asked, short at the end, and nothing past it", async () => {
+      await storage.upload("files/org_1/range", Buffer.from("0123456789"), "");
+      expect(Buffer.from(await storage.readRange!("files/org_1/range", 2, 4)).toString()).toBe("2345");
+      expect(Buffer.from(await storage.readRange!("files/org_1/range", 8, 10)).toString()).toBe("89");
+      expect((await storage.readRange!("files/org_1/range", 20, 4)).length).toBe(0);
+    });
+
+    it("readRange answers the typed not-found, and rethrows any other fault", async () => {
+      const missing = await storage.readRange!("files/absent", 0, 4).catch((e: unknown) => e);
+      expect(missing).toBeInstanceOf(ArtifactStorageNotFoundError);
+      await storage.upload("files/a-file", Buffer.from("x"), "");
+      const notADirectory = await storage.readRange!("files/a-file/inner", 0, 4).catch((e: unknown) => e);
+      expect(notADirectory).toBeInstanceOf(Error);
+      expect(notADirectory).not.toBeInstanceOf(ArtifactStorageNotFoundError);
+    });
+
     it("copy duplicates the bytes under the new key and leaves the source", async () => {
       await storage.upload("files/staging/aa", Buffer.from("payload"), "");
       await storage.copy("files/staging/aa", "files/org_1/blob_1");

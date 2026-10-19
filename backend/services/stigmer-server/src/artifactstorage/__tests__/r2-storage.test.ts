@@ -197,3 +197,37 @@ describe("isNotFoundError", () => {
     expect(isNotFoundError(undefined)).toBe(false);
   });
 });
+
+describe("R2ArtifactStorage readRange", () => {
+  function withClient(send: (command: unknown) => Promise<unknown>): R2ArtifactStorage {
+    return new R2ArtifactStorage(VALID, { client: { send } as never, presign: () => Promise.resolve("unused") });
+  }
+
+  it("asks for exactly the range and answers its bytes, and asks nothing for an empty one", async () => {
+    const sent: unknown[] = [];
+    const storage = withClient((command) => {
+      sent.push(command);
+      return Promise.resolve({ Body: { transformToByteArray: () => Promise.resolve(new Uint8Array([2, 3, 4, 5])) } });
+    });
+    expect(await storage.readRange("files/org_1/blob", 2, 4)).toEqual(new Uint8Array([2, 3, 4, 5]));
+    expect((sent[0] as { input: Record<string, string> }).input).toEqual({ Bucket: VALID.bucket, Key: "files/org_1/blob", Range: "bytes=2-5" });
+    expect(await storage.readRange("files/org_1/blob", 0, 0)).toEqual(new Uint8Array());
+    expect(sent, "an empty range reads nothing").toHaveLength(1);
+  });
+
+  it("maps a missing key onto the typed not-found, a range past the end onto nothing, and keeps real faults wrapped", async () => {
+    let next: unknown = Object.assign(new Error("no such key"), { name: "NoSuchKey" });
+    const storage = withClient(() => Promise.reject(next));
+    await expect(storage.readRange("k", 0, 4)).rejects.toThrow(ArtifactStorageNotFoundError);
+    next = Object.assign(new Error("range"), { name: "InvalidRange" });
+    expect(await storage.readRange("k", 100, 4)).toEqual(new Uint8Array());
+    next = Object.assign(new Error("range"), { $metadata: { httpStatusCode: 416 } });
+    expect(await storage.readRange("k", 100, 4)).toEqual(new Uint8Array());
+    next = new Error("connection refused");
+    await expect(storage.readRange("k", 0, 4)).rejects.toThrow("r2 ranged download failed: connection refused");
+    next = null;
+    await expect(storage.readRange("k", 0, 4)).rejects.toThrow("r2 ranged download failed");
+    const bodiless = withClient(() => Promise.resolve({}));
+    await expect(bodiless.readRange("k", 0, 4)).rejects.toThrow("empty response body");
+  });
+});

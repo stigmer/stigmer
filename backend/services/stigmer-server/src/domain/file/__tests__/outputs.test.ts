@@ -15,7 +15,10 @@
  *   - everyone but the run's runner gets the one PERMISSION_DENIED;
  *   - a path that leaves the folder, names a folder twice or is not a
  *     filename at its end, and an output over the cap, are refused;
- *   - a conversation deleted while its output lands takes the File back.
+ *   - a conversation deleted while its output lands takes the File back;
+ *   - two registrations of one output at once make one File; with no
+ *     authorization store none of its access is written; a store fault
+ *     reading the run, the output or the conversation is INTERNAL.
  */
 import { createHash, randomBytes } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -71,6 +74,7 @@ import {
   registerOutputs,
 } from "../outputs.js";
 import type { OutputDeps } from "../outputs.js";
+import type { Store } from "../../../store/interface.js";
 import { registerRunFileService } from "../run-files.js";
 import { fileTransferServeUrl, fileUploadUrl, newFileTransferLane } from "../transfer.js";
 
@@ -361,6 +365,75 @@ describe("RunFileController.createOutputUploads and registerOutputs", () => {
     await fx.store.deleteResource(ApiResourceKind.session, SESSION);
     expect((await refusal(register(uploads, outputs))).code).toBe(Code.NotFound);
     expect(await filesOfRun(RUN)).toHaveLength(0);
+  });
+
+  it("refuses a request with no run, no outputs or an empty path before anything is read", async () => {
+    expect(outputPathProblem("")).toBe("output_path is required");
+    const token = auth.mintRunCredential(RUN);
+    for (const input of [
+      create(CreateOutputUploadsInputSchema, { runId: "", entries: [{ outputPath: "a.md", sizeBytes: 1n }] }),
+      create(CreateOutputUploadsInputSchema, { runId: RUN, entries: [] }),
+    ]) {
+      expect((await refusal(createOutputUploads(deps(), input, bearer(token)))).code).toBe(Code.InvalidArgument);
+    }
+  });
+
+  it("makes one File of two registrations of one output at once", async () => {
+    const outputs = { "report.md": "racing" };
+    const uploads = await mint(outputs);
+    await put(uploads, outputs);
+    // The other registration's File lands between this one's look-up and its insert.
+    const racing: FileBlobs = {
+      ...blobs,
+      insertFile: async (id, schema, file, blob) => {
+        await blobs.insertFile(id, schema, file, blob);
+        throw new Error("file id already held");
+      },
+    };
+    const files = (await register(uploads, outputs, RUN, auth.mintRunCredential(RUN), { blobs: racing })).files;
+    expect(files).toHaveLength(1);
+    expect(await filesOfRun(RUN)).toHaveLength(1);
+
+    const fresh = await mint({ "other.md": "lost" });
+    await put(fresh, { "other.md": "lost" });
+    const failing: FileBlobs = { ...blobs, insertFile: () => Promise.reject(new Error("disk full")) };
+    await expect(register(fresh, { "other.md": "lost" }, RUN, auth.mintRunCredential(RUN), { blobs: failing })).rejects.toThrow("disk full");
+  });
+
+  it("writes no access with no authorization store, and the File still lands", async () => {
+    const files = await (async () => {
+      const outputs = { "quiet.md": "no store" };
+      const uploads = await mint(outputs);
+      await put(uploads, outputs);
+      return (await register(uploads, outputs, RUN, auth.mintRunCredential(RUN), { lifecycle: undefined })).files;
+    })();
+    expect(files).toHaveLength(1);
+    expect(created).toEqual([]);
+  });
+
+  it("answers INTERNAL when the run, an output or the conversation cannot be read", async () => {
+    const outputs = { "fault.md": "x" };
+    for (const kind of [ApiResourceKind.run, ApiResourceKind.file, ApiResourceKind.session]) {
+      const uploads = kind === ApiResourceKind.run ? undefined : await mint(outputs);
+      if (uploads !== undefined) await put(uploads, outputs);
+      const store = new Proxy(fx.store, {
+        get(target, property, receiver) {
+          if (property === "getResource") {
+            return (asked: ApiResourceKind, ...rest: unknown[]) =>
+              asked === kind
+                ? Promise.reject(new Error("database unreachable"))
+                : (target.getResource as (...args: unknown[]) => Promise<unknown>).call(target, asked, ...rest);
+          }
+          const value: unknown = Reflect.get(target, property, receiver);
+          return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(target) : value;
+        },
+      }) as Store;
+      const answer =
+        uploads === undefined
+          ? mint(outputs, RUN, auth.mintRunCredential(RUN), { store })
+          : register(uploads, outputs, RUN, auth.mintRunCredential(RUN), { store });
+      expect((await refusal(answer)).code, ApiResourceKind[kind]).toBe(Code.Internal);
+    }
   });
 
   it("serves both methods through the registered service", async () => {
