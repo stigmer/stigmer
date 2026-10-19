@@ -4,12 +4,16 @@
  *   - the runner acting for the run gets its conversation's Files, in the
  *     list's order, each with its mount path, name, type, size and a link
  *     that serves its bytes;
- *   - a File gone since, or one that is not the conversation's own, is left
- *     out; a run in no conversation mounts nothing;
+ *   - a File gone since, one whose bytes went, or one that is not the
+ *     conversation's own, is left out, as is a repository beside them; a run
+ *     in no conversation mounts nothing, served through the registered
+ *     service as through the handler;
  *   - no bearer, garbage, another run's credential, a run nobody holds and
  *     a composed decision that refuses are each the one PERMISSION_DENIED;
  *     a finished run is refused; a run_id is required;
- *   - a conversation that is gone is refused.
+ *   - a conversation that is gone is refused;
+ *   - a store fault reading the run, the conversation or a File is
+ *     INTERNAL.
  */
 import { randomBytes } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -20,15 +24,17 @@ import path from "node:path";
 
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import type { HandlerContext } from "@connectrpc/connect";
+import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { MountRunFilesInputSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/mount_pb";
+import type { MountRunFilesInput, RunFileMounts } from "@stigmer/apis/ai/stigmer/agentic/file/v1/mount_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
+import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import { LocalArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
@@ -43,7 +49,7 @@ import { UploadSlots } from "../../skill/transfer/slots.js";
 import { newFileBlobs } from "../blobs.js";
 import type { FileBlobs } from "../blobs.js";
 import { STAGED_FILE_NAME, STAGING_KEY_PREFIX } from "../constants.js";
-import { NOT_THE_RUNS_RUNNER_MOUNT_MESSAGE, mountRunFiles } from "../mount.js";
+import { NOT_THE_RUNS_RUNNER_MOUNT_MESSAGE, mountRunFiles, registerFileMountService } from "../mount.js";
 import type { FileMountDeps } from "../mount.js";
 import { fileTransferServeUrl, newFileTransferLane } from "../transfer.js";
 
@@ -120,7 +126,7 @@ async function seedFile(id: string, filename: string, text: string, sessionId = 
   );
 }
 
-async function seedSession(files: Array<[string, string]>): Promise<void> {
+async function seedSession(files: Array<[string, string]>, extra: SessionResource[] = []): Promise<void> {
   await fx.store.saveResource(
     ApiResourceKind.session,
     SESSION,
@@ -128,9 +134,12 @@ async function seedSession(files: Array<[string, string]>): Promise<void> {
     create(SessionSchema, {
       metadata: { id: SESSION, org: ORG },
       spec: {
-        resources: files.map(([fileId, mountPath]) =>
-          create(SessionResourceSchema, { resource: { case: "file", value: { fileId, mountPath } } }),
-        ),
+        resources: [
+          ...extra,
+          ...files.map(([fileId, mountPath]) =>
+            create(SessionResourceSchema, { resource: { case: "file", value: { fileId, mountPath } } }),
+          ),
+        ],
       },
     }),
   );
@@ -154,12 +163,23 @@ describe("FileMountController.mount", () => {
     await seedFile("file_01a", "a.txt", "alpha");
     await seedFile("file_01b", "b.txt", "bravo");
     await seedFile("file_01elsewhere", "c.txt", "charlie", "ses_01other");
-    await seedSession([
-      ["file_01b", "docs/b.txt"],
-      ["file_01gone", "gone.txt"],
-      ["file_01elsewhere", "c.txt"],
-      ["file_01a", "a.txt"],
-    ]);
+    // A File row with no blob behind it: its bytes went.
+    await fx.store.saveResource(
+      ApiResourceKind.file,
+      "file_01nobytes",
+      FileSchema,
+      create(FileSchema, { metadata: { id: "file_01nobytes", org: ORG }, status: { sessionId: SESSION } }),
+    );
+    await seedSession(
+      [
+        ["file_01b", "docs/b.txt"],
+        ["file_01gone", "gone.txt"],
+        ["file_01elsewhere", "c.txt"],
+        ["file_01nobytes", "nobytes.txt"],
+        ["file_01a", "a.txt"],
+      ],
+      [create(SessionResourceSchema, { name: "app", resource: { case: "gitRepository", value: { url: "https://github.com/acme/app" } } })],
+    );
     await seedRun("run_01m", SESSION);
 
     const mounts = await mount("run_01m", auth.mintRunCredential("run_01m"));
@@ -170,9 +190,45 @@ describe("FileMountController.mount", () => {
     expect(await (await fetch(mounts.entries[0]!.url)).text()).toBe("bravo");
   });
 
-  it("mounts nothing for a run in no conversation", async () => {
+  it("mounts nothing for a run in no conversation, through the registered service too", async () => {
     await seedRun("run_01lonely", "");
     expect((await mount("run_01lonely", auth.mintRunCredential("run_01lonely"))).entries).toEqual([]);
+
+    let served: { mount: (input: MountRunFilesInput, ctx: HandlerContext) => Promise<RunFileMounts> } | undefined;
+    const router = {
+      service: (_service: unknown, implementation: typeof served) => {
+        served = implementation;
+        return router;
+      },
+    } as unknown as ConnectRouter;
+    registerFileMountService(router, deps());
+    const answer = await served!.mount(
+      create(MountRunFilesInputSchema, { runId: "run_01lonely" }),
+      bearer(auth.mintRunCredential("run_01lonely")),
+    );
+    expect(answer.entries).toEqual([]);
+  });
+
+  it("answers INTERNAL when the run, the conversation or a File cannot be read", async () => {
+    await seedFile("file_01a", "a.txt", "alpha");
+    await seedSession([["file_01a", "a.txt"]]);
+    await seedRun("run_01m", SESSION);
+    for (const kind of [ApiResourceKind.run, ApiResourceKind.session, ApiResourceKind.file]) {
+      const store = new Proxy(fx.store, {
+        get(target, property, receiver) {
+          if (property === "getResource") {
+            return (asked: ApiResourceKind, ...rest: unknown[]) =>
+              asked === kind
+                ? Promise.reject(new Error("database unreachable"))
+                : (target.getResource as (...args: unknown[]) => Promise<unknown>).call(target, asked, ...rest);
+          }
+          const value: unknown = Reflect.get(target, property, receiver);
+          return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(target) : value;
+        },
+      });
+      const error = await refusal(mount("run_01m", auth.mintRunCredential("run_01m"), { store }));
+      expect(error.code, ApiResourceKind[kind]).toBe(Code.Internal);
+    }
   });
 
   it("refuses everyone but the run's runner with the one PERMISSION_DENIED", async () => {

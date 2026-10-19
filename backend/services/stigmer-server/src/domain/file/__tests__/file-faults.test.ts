@@ -7,7 +7,11 @@
  *   - runIsStored reads a stored run as stored, a missing one (or none
  *     named) as not, and a fault as stored, so nothing is taken back on a
  *     guess;
- *   - discardQuietly logs a copy it could not remove and raises nothing.
+ *   - discardQuietly logs a copy it could not remove and raises nothing;
+ *   - making a conversation's copy answers NOT_FOUND for a File that is
+ *     gone, FAILED_PRECONDITION when its bytes went (no ref, or a blob
+ *     being orphaned), INTERNAL on any other store fault, and takes the
+ *     copy back when its access cannot be written.
  * Their working paths run in session-resources.test.ts and
  * message-files.test.ts.
  */
@@ -25,7 +29,12 @@ import { RequestContext } from "../../../pipeline/request-context.js";
 import { EXISTING_RESOURCE_KEY } from "../../../pipeline/steps/load-existing.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
-import { discardQuietly } from "../instances.js";
+import type { Authorizer } from "../../../extensions/authorizer.js";
+import type { ResourceAuthorizationLifecycle } from "../../../extensions/resource-authorization.js";
+import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
+import { FileBlobUnavailableError } from "../../../store/file-blobs.js";
+import type { FileBlobs } from "../blobs.js";
+import { discardQuietly, newFileInstances } from "../instances.js";
 import type { FileInstances } from "../instances.js";
 import { runIsStored } from "../message-files.js";
 import { newGuardFileUnreferencedStep, newRemoveFromConversationStep } from "../steps.js";
@@ -101,5 +110,72 @@ describe("discardQuietly", () => {
     };
     await expect(discardQuietly(instances, CALLER, logger)).resolves.toBeUndefined();
     expect(lines.join("\n")).toContain("blob store unreachable");
+  });
+});
+
+describe("making a conversation's copy when the store fails", () => {
+  const ORG = "org_01a";
+  const TARGET = { org: ORG, sessionId: "ses_01held" };
+  const original = create(FileSchema, {
+    metadata: { id: "file_01orig", org: ORG, name: "a.txt" },
+    spec: { filename: "a.txt", mimeType: "text/plain" },
+    status: { sizeBytes: 1n },
+  });
+  const allowing: Authorizer = { authorize: () => Promise.resolve({ kind: "allow" }) };
+
+  function instancesOver(options: {
+    readonly getResource?: () => Promise<unknown>;
+    readonly blobKeyOf?: () => Promise<string | undefined>;
+    readonly insert?: () => Promise<void>;
+    readonly lifecycle?: ResourceAuthorizationLifecycle;
+    readonly removed?: string[];
+  }) {
+    const store = stubStore({
+      getResource: (options.getResource ?? (() => Promise.resolve(original))) as unknown as Store["getResource"],
+      files: {
+        blobKeyOf: options.blobKeyOf ?? (() => Promise.resolve("files/org_01a/blob")),
+        insert: options.insert ?? (() => Promise.resolve()),
+      } as unknown as Store["files"],
+    });
+    const blobs = {
+      removeFile: (id: string) => {
+        options.removed?.push(id);
+        return Promise.resolve();
+      },
+    } as unknown as FileBlobs;
+    return newFileInstances({ store, blobs, authorizer: allowing, lifecycle: options.lifecycle, logger: silentLogger });
+  }
+
+  const resolve = (options: Parameters<typeof instancesOver>[0]) =>
+    refusal(instancesOver(options).resolve("file_01orig", TARGET, CALLER));
+
+  it("answers NOT_FOUND for a File that is gone, and INTERNAL when it cannot be read", async () => {
+    expect((await resolve({ getResource: () => Promise.reject(new ResourceNotFoundError("file file_01orig")) })).code).toBe(
+      Code.NotFound,
+    );
+    expect((await resolve({ getResource: () => Promise.reject(new Error("database unreachable")) })).code).toBe(Code.Internal);
+  });
+
+  it("answers FAILED_PRECONDITION when the bytes went, and INTERNAL on any other fault", async () => {
+    expect((await resolve({ blobKeyOf: () => Promise.resolve(undefined) })).code).toBe(Code.FailedPrecondition);
+    expect((await resolve({ blobKeyOf: () => Promise.reject(new Error("database unreachable")) })).code).toBe(Code.Internal);
+    expect(
+      (await resolve({ insert: () => Promise.reject(new FileBlobUnavailableError("files/org_01a/blob", "orphaned")) })).code,
+    ).toBe(Code.FailedPrecondition);
+    expect((await resolve({ insert: () => Promise.reject(new Error("database unreachable")) })).code).toBe(Code.Internal);
+  });
+
+  it("takes the copy back when its access cannot be written", async () => {
+    const removed: string[] = [];
+    const lifecycle = {
+      onResourceCreated: () => Promise.reject(new Error("authorization store unreachable")),
+      onResourceDeleted: () => Promise.resolve(),
+      onVisibilityChanged: () => Promise.resolve(),
+    } as ResourceAuthorizationLifecycle;
+    const error = await resolve({ lifecycle, removed });
+    expect(error.code).toBe(Code.Internal);
+    expect(removed).toHaveLength(1);
+    expect(removed[0]).toMatch(/^file_/);
+    expect(removed[0]).not.toBe("file_01orig");
   });
 });

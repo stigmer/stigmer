@@ -11,7 +11,10 @@
  *   - a File of another organization, and one the caller may not view, are
  *     refused before anything is written;
  *   - the conversation's 500-file cap is held;
- *   - undoMessageFiles takes back the list's new entries and the copies.
+ *   - undoMessageFiles takes back the list's new entries and the copies,
+ *     and logs a fault rather than raising it;
+ *   - a conversation gone while its list is written is NOT_FOUND, and any
+ *     other store fault there INTERNAL.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -34,6 +37,9 @@ import type { Authorizer } from "../../../extensions/authorizer.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
 import { RequestContext } from "../../../pipeline/request-context.js";
+import { createLogger } from "../../../boot/logger.js";
+import { ResourceNotFoundError } from "../../../store/interface.js";
+import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { newFileBlobs } from "../blobs.js";
@@ -194,5 +200,49 @@ describe("a turn's files", () => {
     const ctx = runContext([]);
     expect(await run(ctx, instancesWith(denying))).toBeUndefined();
     expect(ctx.newState.status?.messageFiles ?? []).toEqual([]);
+  });
+});
+
+describe("a turn's files when the conversation's row cannot be written", () => {
+  /** The test store, its session update failing with `error`. */
+  function failingUpdates(error: Error): Store {
+    return new Proxy(fx.store, {
+      get(target, property, receiver) {
+        if (property === "updateResource") {
+          return () => Promise.reject(error);
+        }
+        const value: unknown = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(target) : value;
+      },
+    });
+  }
+
+  it("answers NOT_FOUND when the conversation went, and INTERNAL on any other fault", async () => {
+    await seedFile("file_01own", "own.txt", "text/plain", ORG, SESSION);
+    const instances = instancesWith(allowing);
+    const gone = await Promise.resolve(
+      newResolveMessageFilesStep(failingUpdates(new ResourceNotFoundError(`session ${SESSION}`)), instances).execute(
+        runContext(["file_01own"]),
+      ),
+    ).catch((e: unknown) => e);
+    expect((gone as ConnectError).code).toBe(Code.NotFound);
+    const faulty = await Promise.resolve(
+      newResolveMessageFilesStep(failingUpdates(new Error("database unreachable")), instances).execute(
+        runContext(["file_01own"]),
+      ),
+    ).catch((e: unknown) => e);
+    expect((faulty as ConnectError).code).toBe(Code.Internal);
+  });
+
+  it("undoMessageFiles logs a fault and raises nothing", async () => {
+    const lines: string[] = [];
+    const logger = createLogger({ level: "warn", pretty: false, write: (line) => lines.push(line) });
+    await undoMessageFiles(
+      { store: failingUpdates(new Error("database unreachable")), logger },
+      { sessionId: SESSION, fileIds: ["file_01x"] },
+      instancesWith(allowing),
+      CALLER,
+    );
+    expect(lines.join("\n")).toContain("database unreachable");
   });
 });
