@@ -42,7 +42,7 @@ import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewher
 import type { RefusedUpdatePath } from "../../pipeline/steps/update-mask.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
-import type { NewBlob } from "./blobs.js";
+import type { FileBlobs, NewBlob } from "./blobs.js";
 
 /** The refusal when the caller may not upload into the conversation. */
 export const UPLOAD_INTO_SESSION_DENIED = "unauthorized to upload a file into this session";
@@ -163,6 +163,46 @@ export function newKeepFileDescriptionStep(): PipelineStep<typeof FileSchema> {
       ctx.newState.spec = stored.spec;
       if (ctx.newState.metadata !== undefined) {
         ctx.newState.metadata.name = stored.metadata?.name ?? "";
+      }
+    },
+  };
+}
+
+/**
+ * Persist for an upload: the credential backstop every Persist runs, then
+ * the File's row and its blob's ref in one transaction (blobs.ts
+ * insertFile), whose refusals reach the client as they are; Persist's own
+ * save would answer every one Internal.
+ *
+ * Then, for a File of a conversation, the conversation must still exist:
+ * a delete that listed its Files before this row landed, and removed its
+ * own row after, would leave this File behind. Either this read sees the
+ * conversation gone and takes the File back, or the conversation's row
+ * went after it and the delete's second pass over its Files
+ * (session-files.ts) finds this one.
+ */
+export function newPersistUploadedFileStep(
+  deps: { readonly store: Store; readonly credentialBinding: OrganizationAdmission; readonly blobs: FileBlobs },
+  blob: NewBlob,
+  sessionId: string,
+): PipelineStep<typeof FileSchema> {
+  return {
+    name: "PersistUploadedFile",
+    async execute(ctx: RequestContext<typeof FileSchema>): Promise<void> {
+      const id = ctx.newState.metadata?.id ?? "";
+      await refuseBoundElsewhere(deps.credentialBinding, ctx.callerIdentity, ctx.newState.metadata?.org ?? "");
+      await deps.blobs.insertFile(id, FileSchema, ctx.newState, blob);
+      if (sessionId === "") {
+        return;
+      }
+      try {
+        await deps.store.getResource(ApiResourceKind.session, sessionId, SessionSchema);
+      } catch (error) {
+        if (!(error instanceof ResourceNotFoundError)) {
+          throw internalError(error, "failed to load session");
+        }
+        await deps.blobs.removeFile(id);
+        throw notFoundError("session", sessionId);
       }
     },
   };

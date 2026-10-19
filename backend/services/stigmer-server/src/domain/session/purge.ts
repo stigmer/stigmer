@@ -67,6 +67,13 @@ export function newSessionPurge(deps: SessionPurgeDeps): KindPurge {
       ),
       newDeleteSessionEventsStep(deps.store),
       newDeleteResourceStep(deps.store),
+      // Again once the row is gone (domain/file/session-files.ts).
+      newCascadeDeleteSessionFilesStep(
+        deps.store,
+        deps.fileBlobs,
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
       newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.session),
       newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),
       newDestroySecretBackingStateStep<DeleteInput, typeof SessionSchema>(

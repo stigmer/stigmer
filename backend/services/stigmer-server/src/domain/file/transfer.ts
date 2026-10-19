@@ -142,8 +142,8 @@ async function handleUpload(
     } else if (error instanceof SizeMismatchError) {
       writeText(response, 400, `${error.message} — the upload must match the size given to createUploadUrl`);
     } else {
+      // Never the reference: it is the capability, usable until it expires.
       logger.error("file upload failed", {
-        ref,
         error: error instanceof Error ? error.message : String(error),
       });
       writeText(response, 500, "failed to stage upload");
