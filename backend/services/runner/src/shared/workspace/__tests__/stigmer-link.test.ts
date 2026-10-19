@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtemp, mkdir, rm, writeFile, readFile, readdir, rename, lstat, readlink } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -24,7 +26,9 @@ import { LocalWorkspaceBackend } from "../local-backend.js";
  * whatever reads from the workspace: the Cursor SDK and shell commands on
  * both harnesses. The lifecycle tests pin the ownership contract (ensure
  * moves a real entry out of the workspace and never deletes one, refuses a
- * `.stigmer` that holds the platform dir, and remove is symlink-only); the
+ * `.stigmer` that holds the platform dir, and remove is symlink-only), and
+ * the link is kept out of a git work tree's own history through its local
+ * exclude file, once, inside a repository's subfolder too; the
  * convergence tests pin the physics:
  * content written through the platform-routing LocalWorkspaceBackend is
  * readable at the same `.stigmer/…` path from inside the workspace once the
@@ -177,6 +181,47 @@ describe("stigmer-link", () => {
       await expect(ensureStigmerSymlink(workspaceDir, linkPath())).rejects.toThrow(/is the Stigmer home/);
 
       expect(await readFile(join(linkPath(), "keep.txt"), "utf-8")).toBe("keep");
+    });
+  });
+
+  describe("ensureStigmerSymlink in a git work tree", () => {
+    const git = (cwd: string, ...args: string[]): string => execFileSync("git", ["-C", cwd, ...args], { encoding: "utf8" });
+    const excludeOf = (repo: string): string => readFileSync(join(repo, ".git", "info", "exclude"), "utf8");
+
+    it("keeps the link out of the repository, writing the exclude once across turns", async () => {
+      git(workspaceDir, "init", "-q");
+      await writeFile(join(workspaceDir, ".git", "info", "exclude"), "# local rules\n*.tmp");
+      await ensureStigmerSymlink(workspaceDir, platformDir);
+      await removeStigmerSymlink(workspaceDir);
+      await ensureStigmerSymlink(workspaceDir, platformDir);
+
+      expect(git(workspaceDir, "status", "--porcelain"), "nothing untracked").toBe("");
+      expect(excludeOf(workspaceDir), "the person's rules kept, the entry added once on its own line").toBe("# local rules\n*.tmp\n.stigmer\n");
+    });
+
+    it("writes to the repository's exclude when the workspace is one of its subfolders, and adds nothing to an entry already there", async () => {
+      git(workspaceDir, "init", "-q");
+      const sub = join(workspaceDir, "packages", "app");
+      await mkdir(sub, { recursive: true });
+      await ensureStigmerSymlink(sub, platformDir);
+      expect(git(workspaceDir, "status", "--porcelain")).toBe("");
+      expect(excludeOf(workspaceDir).split("\n").filter((line) => line === ".stigmer")).toHaveLength(1);
+
+      await writeFile(join(workspaceDir, ".git", "info", "exclude"), ".stigmer\nlost+found\n");
+      await removeStigmerSymlink(sub);
+      await ensureStigmerSymlink(sub, platformDir);
+      expect(excludeOf(workspaceDir)).toBe(".stigmer\nlost+found\n");
+    });
+
+    it("makes the link all the same, warned, when the exclude cannot be written", async () => {
+      git(workspaceDir, "init", "-q");
+      await rm(join(workspaceDir, ".git", "info"), { recursive: true, force: true });
+      await mkdir(join(workspaceDir, ".git", "info", "exclude"), { recursive: true });
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      await ensureStigmerSymlink(workspaceDir, platformDir);
+      expect(await readlink(linkPath())).toBe(platformDir);
+      expect(warn.mock.calls.map((call) => String(call[0])).join("\n")).toContain("could not add .stigmer");
+      warn.mockRestore();
     });
   });
 
