@@ -34,15 +34,6 @@
 
 import { spawn } from "node:child_process";
 
-/**
- * Default ceiling on a command's timeout, in seconds (`Config.shellTimeoutMaxSeconds`,
- * STIGMER_SHELL_TIMEOUT_MAX_SECONDS): the most the model may raise one
- * command's bound to. 55 minutes: well past a long build or test suite, and
- * under the turn runtime's 60-minute backstop for an open operation, so the
- * shell's own bound always fires first.
- */
-export const DEFAULT_SHELL_TIMEOUT_MAX_SECONDS = 3_300;
-
 /** deepagents' `LocalShellBackend` cap on a command's output, in characters. */
 export const DEFAULT_MAX_OUTPUT_BYTES = 100_000;
 

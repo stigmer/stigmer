@@ -75,9 +75,9 @@ import { DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./shared/workspace/workspace-
 // The same for the open-operation backstop, whose owner is the turn runtime.
 export { DEFAULT_OPEN_OPERATION_MAX_MS } from "./harness/open-operations.js";
 import { DEFAULT_OPEN_OPERATION_MAX_MS } from "./harness/open-operations.js";
-// And the native shell's timeout ceiling, whose owner is the command runner.
-export { DEFAULT_SHELL_TIMEOUT_MAX_SECONDS } from "./shared/shell/run-command.js";
-import { DEFAULT_SHELL_TIMEOUT_MAX_SECONDS } from "./shared/shell/run-command.js";
+// And the native shell's timeout ceiling, which the shell's bounds own.
+export { DEFAULT_SHELL_TIMEOUT_MAX_SECONDS } from "./shared/shell/limits.js";
+import { DEFAULT_SHELL_TIMEOUT_MAX_SECONDS } from "./shared/shell/limits.js";
 import { getRunnerSecret } from "./shared/runner-credential-store.js";
 import { loadTemporalConnectionConfig } from "@stigmer/temporal-codecs";
 import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
