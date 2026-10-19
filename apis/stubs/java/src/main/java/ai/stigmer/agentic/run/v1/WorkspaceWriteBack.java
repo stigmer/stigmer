@@ -8,7 +8,7 @@ package ai.stigmer.agentic.run.v1;
 /**
  * <pre>
  * WorkspaceWriteBack captures the outcome of the platform-owned git
- * write-back workflow for a single workspace entry.
+ * write-back workflow for a single repository resource.
  *
  * One entry is created per git repository that had uncommitted changes
  * when the run reached a terminal phase. Not populated for local folders or
@@ -16,7 +16,7 @@ package ai.stigmer.agentic.run.v1;
  *
  * The write-back progresses through phases: committed -&gt; pushed -&gt;
  * pr_created. If any step fails, the phase is set to FAILED with the
- * error message, and processing continues to the next workspace entry.
+ * error message, and processing continues to the next repository.
  * One failed write-back does not block others.
  * </pre>
  *
@@ -75,8 +75,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object workspaceEntryName_ = "";
   /**
    * <pre>
-   * Name of the workspace entry this write-back corresponds to.
-   * Links to SessionSpec.workspace_entries[].name.
+   * Name of the repository resource this write-back corresponds to.
+   * Links to SessionSpec.resources[].name.
    * Example: "my-app", "frontend"
    * </pre>
    *
@@ -98,8 +98,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Name of the workspace entry this write-back corresponds to.
-   * Links to SessionSpec.workspace_entries[].name.
+   * Name of the repository resource this write-back corresponds to.
+   * Links to SessionSpec.resources[].name.
    * Example: "my-app", "frontend"
    * </pre>
    *
@@ -701,7 +701,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * WorkspaceWriteBack captures the outcome of the platform-owned git
-   * write-back workflow for a single workspace entry.
+   * write-back workflow for a single repository resource.
    *
    * One entry is created per git repository that had uncommitted changes
    * when the run reached a terminal phase. Not populated for local folders or
@@ -709,7 +709,7 @@ private static final long serialVersionUID = 0L;
    *
    * The write-back progresses through phases: committed -&gt; pushed -&gt;
    * pr_created. If any step fails, the phase is set to FAILED with the
-   * error message, and processing continues to the next workspace entry.
+   * error message, and processing continues to the next repository.
    * One failed write-back does not block others.
    * </pre>
    *
@@ -961,8 +961,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object workspaceEntryName_ = "";
     /**
      * <pre>
-     * Name of the workspace entry this write-back corresponds to.
-     * Links to SessionSpec.workspace_entries[].name.
+     * Name of the repository resource this write-back corresponds to.
+     * Links to SessionSpec.resources[].name.
      * Example: "my-app", "frontend"
      * </pre>
      *
@@ -983,8 +983,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Name of the workspace entry this write-back corresponds to.
-     * Links to SessionSpec.workspace_entries[].name.
+     * Name of the repository resource this write-back corresponds to.
+     * Links to SessionSpec.resources[].name.
      * Example: "my-app", "frontend"
      * </pre>
      *
@@ -1006,8 +1006,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Name of the workspace entry this write-back corresponds to.
-     * Links to SessionSpec.workspace_entries[].name.
+     * Name of the repository resource this write-back corresponds to.
+     * Links to SessionSpec.resources[].name.
      * Example: "my-app", "frontend"
      * </pre>
      *
@@ -1025,8 +1025,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Name of the workspace entry this write-back corresponds to.
-     * Links to SessionSpec.workspace_entries[].name.
+     * Name of the repository resource this write-back corresponds to.
+     * Links to SessionSpec.resources[].name.
      * Example: "my-app", "frontend"
      * </pre>
      *
@@ -1041,8 +1041,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Name of the workspace entry this write-back corresponds to.
-     * Links to SessionSpec.workspace_entries[].name.
+     * Name of the repository resource this write-back corresponds to.
+     * Links to SessionSpec.resources[].name.
      * Example: "my-app", "frontend"
      * </pre>
      *

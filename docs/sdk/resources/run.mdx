@@ -1904,11 +1904,11 @@ The runner's turn facts backing the approved-command auto-keep policy: its asser
 
 ### WorkspaceWriteBack
 
-WorkspaceWriteBack captures the outcome of the platform-owned git write-back workflow for a single workspace entry.
+WorkspaceWriteBack captures the outcome of the platform-owned git write-back workflow for a single repository resource.
 
 <TypeTable
   type={{
-    workspaceEntryName: { type: "string", description: "Name of the workspace entry this write-back corresponds to." },
+    workspaceEntryName: { type: "string", description: "Name of the repository resource this write-back corresponds to." },
     branchName: { type: "string", description: "Branch created for the agent's changes." },
     baseBranch: { type: "string", description: "Base branch the PR targets (the branch that was originally cloned)." },
     commitSha: { type: "string", description: "Full commit SHA of the agent's changes on the branch." },

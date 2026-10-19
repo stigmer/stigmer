@@ -65,7 +65,7 @@ public interface RunSpecOrBuilder extends
    * Spec for a new session this turn starts.
    *
    * This is the one-call session bootstrap: a single create carries the
-   * full session shape (the agent, workspace_entries, harness,
+   * full session shape (the agent, resources, harness,
    * execution_target, plugins, skills) together with the first
    * message, so embedders do not need to orchestrate session.create
    * followed by run.create. The created session's ID is
@@ -87,7 +87,7 @@ public interface RunSpecOrBuilder extends
    * Spec for a new session this turn starts.
    *
    * This is the one-call session bootstrap: a single create carries the
-   * full session shape (the agent, workspace_entries, harness,
+   * full session shape (the agent, resources, harness,
    * execution_target, plugins, skills) together with the first
    * message, so embedders do not need to orchestrate session.create
    * followed by run.create. The created session's ID is
@@ -109,7 +109,7 @@ public interface RunSpecOrBuilder extends
    * Spec for a new session this turn starts.
    *
    * This is the one-call session bootstrap: a single create carries the
-   * full session shape (the agent, workspace_entries, harness,
+   * full session shape (the agent, resources, harness,
    * execution_target, plugins, skills) together with the first
    * message, so embedders do not need to orchestrate session.create
    * followed by run.create. The created session's ID is

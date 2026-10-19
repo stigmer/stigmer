@@ -4073,7 +4073,7 @@
     },
     {
       "name": "WorkspaceWriteBack",
-      "description": "WorkspaceWriteBack captures the outcome of the platform-owned git\n write-back workflow for a single workspace entry.\n\n One entry is created per git repository that had uncommitted changes\n when the run reached a terminal phase. Not populated for local folders or\n repositories with no detected changes.\n\n The write-back progresses through phases: committed -\u003e pushed -\u003e\n pr_created. If any step fails, the phase is set to FAILED with the\n error message, and processing continues to the next workspace entry.\n One failed write-back does not block others.",
+      "description": "WorkspaceWriteBack captures the outcome of the platform-owned git\n write-back workflow for a single repository resource.\n\n One entry is created per git repository that had uncommitted changes\n when the run reached a terminal phase. Not populated for local folders or\n repositories with no detected changes.\n\n The write-back progresses through phases: committed -\u003e pushed -\u003e\n pr_created. If any step fails, the phase is set to FAILED with the\n error message, and processing continues to the next repository.\n One failed write-back does not block others.",
       "protoType": "ai.stigmer.agentic.run.v1.WorkspaceWriteBack",
       "protoFile": "apis/ai/stigmer/agentic/run/v1/writeback.proto",
       "fields": [
@@ -4084,7 +4084,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Name of the workspace entry this write-back corresponds to.\n Links to SessionSpec.workspace_entries[].name.\n Example: \"my-app\", \"frontend\"",
+          "description": "Name of the repository resource this write-back corresponds to.\n Links to SessionSpec.resources[].name.\n Example: \"my-app\", \"frontend\"",
           "required": false
         },
         {

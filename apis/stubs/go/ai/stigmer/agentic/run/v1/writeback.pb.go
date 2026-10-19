@@ -87,7 +87,7 @@ func (WorkspaceWriteBackPhase) EnumDescriptor() ([]byte, []int) {
 }
 
 // WorkspaceWriteBack captures the outcome of the platform-owned git
-// write-back workflow for a single workspace entry.
+// write-back workflow for a single repository resource.
 //
 // One entry is created per git repository that had uncommitted changes
 // when the run reached a terminal phase. Not populated for local folders or
@@ -95,12 +95,12 @@ func (WorkspaceWriteBackPhase) EnumDescriptor() ([]byte, []int) {
 //
 // The write-back progresses through phases: committed -> pushed ->
 // pr_created. If any step fails, the phase is set to FAILED with the
-// error message, and processing continues to the next workspace entry.
+// error message, and processing continues to the next repository.
 // One failed write-back does not block others.
 type WorkspaceWriteBack struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Name of the workspace entry this write-back corresponds to.
-	// Links to SessionSpec.workspace_entries[].name.
+	// Name of the repository resource this write-back corresponds to.
+	// Links to SessionSpec.resources[].name.
 	// Example: "my-app", "frontend"
 	WorkspaceEntryName string `protobuf:"bytes,1,opt,name=workspace_entry_name,json=workspaceEntryName,proto3" json:"workspace_entry_name,omitempty"`
 	// Branch created for the agent's changes.

@@ -12,8 +12,8 @@ public interface WorkspaceWriteBackOrBuilder extends
 
   /**
    * <pre>
-   * Name of the workspace entry this write-back corresponds to.
-   * Links to SessionSpec.workspace_entries[].name.
+   * Name of the repository resource this write-back corresponds to.
+   * Links to SessionSpec.resources[].name.
    * Example: "my-app", "frontend"
    * </pre>
    *
@@ -23,8 +23,8 @@ public interface WorkspaceWriteBackOrBuilder extends
   java.lang.String getWorkspaceEntryName();
   /**
    * <pre>
-   * Name of the workspace entry this write-back corresponds to.
-   * Links to SessionSpec.workspace_entries[].name.
+   * Name of the repository resource this write-back corresponds to.
+   * Links to SessionSpec.resources[].name.
    * Example: "my-app", "frontend"
    * </pre>
    *
