@@ -13,8 +13,9 @@
  * authorized createUploadUrl, is single-use and expires; a download link
  * is signed by the local driver for one key and expires, and an expired,
  * tampered or unsigned one is answered the 404 a missing key gets, before
- * the disk is touched. Only a File's own blobs are served
- * (`files/<org id>/…`), never a staged upload.
+ * the disk is touched. Only a File's own blobs are served (`files/<org
+ * id>/…`, and the `attachments/…` keys a converted attachment's File kept),
+ * never a staged upload.
  *
  * Unlike the skill lane, both directions stream: a File may be 500 MB, so
  * the upload goes to disk through the slot registry's byte-capped pipe and
@@ -46,6 +47,17 @@ import { stagingKeyOf } from "./blobs.js";
 import { BLOB_KEY_PREFIX, STAGING_KEY_PREFIX } from "./constants.js";
 
 const UPLOADS_SEGMENT = "/uploads/";
+
+/** Where a File's bytes may live: a minted blob, or a converted attachment's key. */
+const CONVERTED_ATTACHMENT_PREFIX = "attachments/";
+
+/** Whether a key may be a File's blob, never a staged upload's. */
+function isFileBlobKey(key: string): boolean {
+  if (key.startsWith(STAGING_KEY_PREFIX)) {
+    return false;
+  }
+  return key.startsWith(BLOB_KEY_PREFIX) || key.startsWith(CONVERTED_ATTACHMENT_PREFIX);
+}
 
 function trimTrailingSlash(url: string): string {
   return url.endsWith("/") ? url.slice(0, -1) : url;
@@ -179,7 +191,7 @@ async function handleDownload(
     notFound();
     return;
   }
-  if (!key.startsWith(BLOB_KEY_PREFIX) || key.startsWith(STAGING_KEY_PREFIX)) {
+  if (!isFileBlobKey(key)) {
     notFound();
     return;
   }

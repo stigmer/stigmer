@@ -1,7 +1,8 @@
 /**
  * Pins what the server writes into a session's log for each run
- * transition (../transitions.ts): the turn's user message at creation
- * (none for a reconcile turn, which has no message), and
+ * transition (../transitions.ts): the turn's user message at creation,
+ * its text then the file blocks the run recorded (none for a reconcile
+ * turn, which has no message), and
  * the session's status, which describes the whole session, so a run that
  * stops ends the turn only when no other run of the session works; a turn
  * that waits for answers states requires_action with every open ask of
@@ -16,6 +17,7 @@ import { describe, expect, it } from "vitest";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { ContentBlockSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 
 import { eventTypeOf } from "@stigmer/session-log";
 import { runPhaseWordOf, sessionEventsForTransition, sessionIdOfRun, sessionStatusOf } from "../transitions.js";
@@ -88,6 +90,22 @@ describe("creation", () => {
     const message = events[0]!.event;
     expect(message.case === "userMessage" && message.value.content.map((b) => [b.type, b.text])).toEqual([
       ["text", "summarise the repo"],
+    ]);
+  });
+
+  it("follows the text with the files the server recorded on the run, in their order", () => {
+    const withFiles = run(P.RUN_PENDING, { message: "see these" });
+    withFiles.status!.messageFiles = [
+      create(ContentBlockSchema, { type: "image", source: { type: "file", fileId: "file_shot" } }),
+      create(ContentBlockSchema, { type: "document", source: { type: "file", fileId: "file_brief" } }),
+    ];
+    const message = eventsFor({ kind: "create", run: withFiles })[0]!.event;
+    expect(
+      message.case === "userMessage" && message.value.content.map((b) => [b.type, b.text, b.source?.fileId ?? ""]),
+    ).toEqual([
+      ["text", "see these", ""],
+      ["image", "", "file_shot"],
+      ["document", "", "file_brief"],
     ]);
   });
 

@@ -6,9 +6,9 @@
  *
  *   - an update that names another path (spec.subject) keeps a repository
  *     token added since its read and destroys nothing; one that names the
- *     workspace entries without the token drops it and destroys its
+ *     resources without the token drops it and destroys its
  *     backing state;
- *   - an update that names the workspace entries echoing the marker for a
+ *   - an update that names the resources echoing the marker for a
  *     token removed since is refused; one that names another path lands;
  *   - an update that names another path neither detaches a vault attached
  *     since, nor re-attaches one removed since, nor switches back
@@ -141,7 +141,7 @@ function subjectWrite(readEarlier: Session, subject: string): { resource: Sessio
   return { resource: write, updateMask: { paths: ["spec.subject"] } };
 }
 
-/** An update that names the workspace entries, sending no etag. */
+/** An update that names the resources, sending no etag. */
 function entriesWrite(
   read: Session,
   entries: ReturnType<typeof repository>[],

@@ -6,7 +6,8 @@
  *
  * Each arm pins a rule a client depends on and nothing else would catch:
  * a version a later client names, a stigmer.* filter, a credential the two
- * SDK options carry, an event Stigmer does not serve.
+ * SDK options carry, an event Stigmer does not serve, a file sent by its
+ * bytes rather than its File id.
  */
 import { Code, ConnectError } from "@connectrpc/connect";
 import { describe, expect, it } from "vitest";
@@ -213,10 +214,36 @@ describe("a send's whole-list check", () => {
         ],
       }),
     ).toEqual([
-      { type: "user.message", text: "a\n\nb" },
+      { type: "user.message", text: "a\n\nb", files: [] },
       { type: "user.tool_confirmation", toolUseId: "tu_1", result: "deny", denyMessage: "no" },
       { type: "user.tool_confirmation", toolUseId: "tu_2", result: "allow", denyMessage: "" },
       { type: "user.interrupt" },
+    ]);
+  });
+
+  it("reads image and document blocks naming a File by id, in order, with the message's text", () => {
+    expect(
+      parseSendBody({
+        events: [
+          {
+            type: "user.message",
+            content: [
+              { type: "text", text: "see these" },
+              { type: "image", source: { type: "file", file_id: "file_shot" } },
+              { type: "document", source: { type: "file", file_id: "file_brief" }, title: null },
+            ],
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        type: "user.message",
+        text: "see these",
+        files: [
+          { fileId: "file_shot", block: "image" },
+          { fileId: "file_brief", block: "document" },
+        ],
+      },
     ]);
   });
 
@@ -231,8 +258,44 @@ describe("a send's whole-list check", () => {
       ],
       [{ events: [{ type: "system.message" }] }, "events[0]: Stigmer does not serve 'system.message' events"],
       [
-        { events: [{ type: "user.message", content: [{ type: "image", source: {} }] }] },
-        "events[0]: Stigmer accepts only text blocks in a user.message, not 'image'",
+        { events: [{ type: "user.message", content: [{ type: "tool_result" }] }] },
+        "events[0]: Stigmer accepts text, image and document blocks in a user.message, not 'tool_result'",
+      ],
+      [{ events: [{ type: "user.message", content: [{ type: "image", source: {} }] }] }, "an image block needs a source"],
+      [{ events: [{ type: "user.message", content: [{ type: "document" }] }] }, "a document block needs a source"],
+      [
+        { events: [{ type: "user.message", content: [{ type: "image", source: { type: "base64", data: "AA==" } }] }] },
+        "not a 'base64' source: upload the file with Stigmer's File API and name its id",
+      ],
+      [
+        { events: [{ type: "user.message", content: [{ type: "document", source: { type: "url", url: "https://x" } }] }] },
+        "not a 'url' source",
+      ],
+      [
+        { events: [{ type: "user.message", content: [{ type: "image", source: { type: "file", file_id: "" } }] }] },
+        "a file source needs its file_id",
+      ],
+      [
+        {
+          events: [
+            {
+              type: "user.message",
+              content: [{ type: "document", title: "Brief", source: { type: "file", file_id: "file_1" } }],
+            },
+          ],
+        },
+        "Stigmer does not carry a document block's title",
+      ],
+      [
+        {
+          events: [
+            {
+              type: "user.message",
+              content: [{ type: "document", citations: { enabled: true }, source: { type: "file", file_id: "file_1" } }],
+            },
+          ],
+        },
+        "document block's citations",
       ],
       [{ events: [{ type: "user.message", content: [] }] }, "needs at least one content block"],
       [{ events: [{ type: "user.message", content: [{ type: "text" }] }] }, "a text block needs its text"],

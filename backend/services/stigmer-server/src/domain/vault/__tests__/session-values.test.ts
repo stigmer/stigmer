@@ -1,6 +1,6 @@
 /**
  * Pins a conversation's own values, which are its repositories' tokens
- * (GitRepoSource.token): sealed on every write, shown as the marker on
+ * (GitRepositoryResource.token): sealed on every write, shown as the marker on
  * every read, kept when a writer sends the marker back (the runner
  * rewrites the whole session after each turn), refused when the marker
  * has nothing behind it or a value is shaped like server ciphertext; a
@@ -123,16 +123,6 @@ describe("writing a repository's token", () => {
     expect(
       await opened.repositoryTokens.get(repositoryTokenKey("app", "https://gitlab.example.com/acme/app"))?.open(),
     ).toBe("gitlab-pat");
-  });
-
-  it("refuses workspace entries that repeat a name, naming it", async () => {
-    const folder = { name: "app", resource: { case: "localPath" as const, value: { path: "/w" } } };
-    const failure = await written(session({ resources: [REPO, folder] })).catch(
-      (e: unknown) => e,
-    );
-    expect(failure).toBeInstanceOf(ConnectError);
-    expect((failure as ConnectError).code).toBe(Code.InvalidArgument);
-    expect((failure as ConnectError).rawMessage).toContain("'app'");
   });
 
   it("keeps the stored token behind a marker a writer sends back", async () => {

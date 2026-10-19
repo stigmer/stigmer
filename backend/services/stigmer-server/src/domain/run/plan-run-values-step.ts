@@ -16,7 +16,7 @@
  * session was repointed, plans for the agent the turn ran.
  *
  * Inputs: the session by the execution's session_id (its own values, its
- * vaults, its workspace entries and its own plugins), and the agent
+ * vaults, its resources and its own plugins), and the agent
  * from the stamp alone: the stamped version's spec, or the stamped agent
  * as it is now when the turn recorded no version. A stamped version that
  * no longer resolves refuses, naming it. The agent's organization is read

@@ -8,7 +8,8 @@
  *     400, and a registry fault 500;
  *   - a download is a GET (or HEAD) of a link the File driver signed: any
  *     other method is 405, and an unsigned, tampered or expired link, a
- *     malformed path, a staged upload's key, a key outside the File store,
+ *     malformed path, a staged upload's key, a key outside the File store
+ *     (a converted attachment's kept key is inside it),
  *     a key that escapes the root, a key naming nothing and a directory
  *     are each the one 404; a signed link to a File's blob streams its
  *     bytes, named for download when the link carries a filename, a HEAD
@@ -128,6 +129,15 @@ describe("the download route", () => {
     expect(inline.headers.get("content-disposition")).toBeNull();
   });
 
+  it("serves a converted attachment's File from the key it kept", async () => {
+    const key = "attachments/01JXULIDULIDULIDULIDULIDXX/notes.txt";
+    mkdirSync(path.join(root, path.dirname(key)), { recursive: true });
+    writeFileSync(path.join(root, key), "kept bytes");
+    const response = await fetch(await signedLink(key));
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("kept bytes");
+  });
+
   it("answers a HEAD with the length and no body", async () => {
     const response = await fetch(await signedLink(BLOB_KEY), { method: "HEAD" });
     expect(response.status).toBe(200);
@@ -170,7 +180,7 @@ describe("the download route", () => {
 
   it.each([
     ["a staged upload's key", `files/staging/${HEX}`],
-    ["a key outside the File store", "attachments/01x/notes.txt"],
+    ["a key outside the File store", "artifacts/run_01x/out.txt"],
     ["a key that escapes the root", "files/../../etc/passwd"],
     ["a key naming nothing", "files/org_01aaaaaaaaaaaaaaaaaaaaaaaa/absent"],
     ["a directory", "files/org_01aaaaaaaaaaaaaaaaaaaaaaaa"],

@@ -151,18 +151,19 @@ function parseMessage(event: JsonLike): SendEvent | LaneError {
 }
 
 function parseFileBlock(block: JsonLike, kind: "image" | "document"): MessageFile | LaneError {
+  const named = kind === "image" ? "an image block" : "a document block";
   for (const field of UNCARRIED_BLOCK_FIELDS) {
     if (block[field] !== undefined && block[field] !== null) {
-      return invalidRequest(`Stigmer does not carry a ${kind} block's ${field}; send the block without it`);
+      return invalidRequest(`Stigmer does not carry ${named}'s ${field}; send the block without it`);
     }
   }
   const source = block["source"];
   if (!isObject(source) || typeof source["type"] !== "string") {
-    return invalidRequest(`an ${kind} block needs a source`);
+    return invalidRequest(`${named} needs a source`);
   }
   if (source["type"] !== "file") {
     return invalidRequest(
-      `Stigmer names a ${kind} block's bytes by File id, not a '${source["type"]}' source: upload the file with Stigmer's File API and name its id`,
+      `Stigmer names ${named}'s bytes by File id, not a '${source["type"]}' source: upload the file with Stigmer's File API and name its id`,
     );
   }
   const fileId = source["file_id"];
