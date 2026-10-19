@@ -16,7 +16,8 @@
  *     refused when the request names another organization;
  *   - deleting the conversation deletes its Files and their bytes;
  *   - update changes labels, refuses the filename by name, and keeps it
- *     under `*`;
+ *     under `*`; updateVisibility widens a File to the organization, and an
+ *     upload into a conversation nobody holds is NOT_FOUND;
  *   - delete removes the File and its bytes.
  *
  * Under the require-authentication posture (the built-in evaluator over
@@ -242,6 +243,38 @@ describe("the File controller (trusted-local, composed server)", () => {
     expect(whole.spec?.filename).toBe("notes.md");
     expect(whole.metadata?.name).toBe("notes.md");
     expect(whole.metadata?.labels).toEqual({});
+  });
+
+  it("widens a File to the organization, and answers an id naming nothing NOT_FOUND", async () => {
+    const file = await command.upload({
+      org: ORG,
+      filename: "shared.txt",
+      source: { case: "data", value: new TextEncoder().encode("for all") },
+    });
+    const widened = await command.updateVisibility({
+      resourceId: file.metadata!.id,
+      visibility: ApiResourceVisibility.visibility_org,
+    });
+    expect(widened.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
+    expect((await query.get({ value: file.metadata!.id })).metadata?.visibility).toBe(
+      ApiResourceVisibility.visibility_org,
+    );
+    const missing = await errorOf(() =>
+      command.updateVisibility({ resourceId: "file_01aaaaaaaaaaaaaaaaaaaaaaaa", visibility: ApiResourceVisibility.visibility_org }),
+    );
+    expect(missing.code).toBe(Code.NotFound);
+  });
+
+  it("answers an upload into a conversation nobody holds NOT_FOUND", async () => {
+    const missing = await errorOf(() =>
+      command.upload({
+        org: ORG,
+        sessionId: "ses_01aaaaaaaaaaaaaaaaaaaaaaaa",
+        filename: "x.txt",
+        source: { case: "data", value: new Uint8Array([1]) },
+      }),
+    );
+    expect(missing.code).toBe(Code.NotFound);
   });
 
   it("deletes a File and its bytes", async () => {

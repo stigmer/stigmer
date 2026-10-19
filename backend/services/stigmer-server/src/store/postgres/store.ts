@@ -3290,12 +3290,11 @@ class PostgresFileBlobStore implements FileBlobStore {
       if (blobKey === undefined) {
         return result;
       }
+      // A ref another remove of this File already took orphans nothing
+      // here; that remove saw whether the blob is still named.
       const unref = await client.query(`DELETE FROM file_blob_refs WHERE file_id = $1`, [id]);
-      if ((unref.rowCount ?? 0) === 0) {
-        return result;
-      }
       const named = await client.query(`SELECT 1 FROM file_blob_refs WHERE blob_key = $1 LIMIT 1`, [blobKey]);
-      if ((named.rowCount ?? 0) > 0) {
+      if ((unref.rowCount ?? 0) === 0 || (named.rowCount ?? 0) > 0) {
         return result;
       }
       const orphaned = await client.query(

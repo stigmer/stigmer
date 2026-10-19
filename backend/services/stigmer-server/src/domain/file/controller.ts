@@ -162,22 +162,12 @@ async function upload(deps: FileControllerDeps, input: UploadFileInput, ctx: Han
     .execute(admitted);
 
   const mimeType = fileMimeType(input.filename, input.mimeType);
-  let blob: NewBlob;
-  switch (input.source.case) {
-    case "data":
-      blob = await deps.blobs.storeInline(input.org, input.source.value, mimeType);
-      break;
-    case "uploadRef":
-      blob = await deps.blobs.promote(input.org, input.source.value);
-      break;
-    case undefined:
-      // Unreachable past ValidateProto: the source oneof is required.
-      throw internalError(new Error("upload carries no source"), "upload");
-    default: {
-      const unhandled: never = input.source;
-      throw internalError(new Error(`unknown source ${String(unhandled)}`), "upload");
-    }
-  }
+  // ValidateProto refused a request with no source (the oneof is required),
+  // so a source that is not a reference is inline bytes.
+  const blob: NewBlob =
+    input.source.case === "uploadRef"
+      ? await deps.blobs.promote(input.org, input.source.value)
+      : await deps.blobs.storeInline(input.org, input.source.value ?? new Uint8Array(), mimeType);
 
   const file = create(FileSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
@@ -194,12 +184,9 @@ async function upload(deps: FileControllerDeps, input: UploadFileInput, ctx: Han
     .addStep(newStampFileStatusStep(blob, input.sessionId))
     .addStep(newValidateProtoStep({ of: "state" }))
     .addStep(
-      newPersistStep(deps.store, deps.credentialBinding, async (state) => {
-        const inserted = await deps.blobs.insertFile(state.metadata?.id ?? "", FileSchema, state, blob);
-        if (!inserted) {
-          throw new Error(`file id ${state.metadata?.id ?? ""} is already held`);
-        }
-      }),
+      newPersistStep(deps.store, deps.credentialBinding, (state) =>
+        deps.blobs.insertFile(state.metadata?.id ?? "", FileSchema, state, blob),
+      ),
     )
     .addStep(newCreateAuthorizationTuplesStep(deps.authorizationLifecycle, deps.logger))
     .build()
@@ -279,11 +266,7 @@ async function deleteFile(deps: FileControllerDeps, input: FileId, ctx: HandlerC
     .addStep(newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger))
     .build()
     .execute(reqCtx);
-  const deleted = reqCtx.get(EXISTING_RESOURCE_KEY);
-  if (deleted === undefined) {
-    throw internalError(new Error("deleted file not found in context"), "deleted file not found in context");
-  }
-  return deleted as File;
+  return reqCtx.get(EXISTING_RESOURCE_KEY) as File;
 }
 
 // ─── updateVisibility ────────────────────────────────────────────────────
@@ -437,11 +420,7 @@ async function list(deps: FileControllerDeps, req: ListFilesRequest, ctx: Handle
     .addStep(newListStep(deps.store, deps.listReadScope, deps.logger))
     .build()
     .execute(reqCtx);
-  const result = reqCtx.get(LIST_RESULT_KEY);
-  if (result === undefined) {
-    throw internalError(new Error("File list missing from context"), "list files");
-  }
-  return result as FileList;
+  return reqCtx.get(LIST_RESULT_KEY) as FileList;
 }
 
 /** One page of the organization's (or conversation's) Files through the list index, narrowed to the caller's. */

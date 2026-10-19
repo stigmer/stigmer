@@ -158,10 +158,8 @@ export function newKeepFileDescriptionStep(): PipelineStep<typeof FileSchema> {
   return {
     name: "KeepFileDescription",
     execute(ctx: RequestContext<typeof FileSchema>): void {
-      const stored = ctx.get(EXISTING_RESOURCE_KEY) as File | undefined;
-      if (stored === undefined) {
-        throw internalError(new Error("existing file not in context"), "keep file description");
-      }
+      // LoadExisting put the stored File here before BuildUpdateState ran.
+      const stored = ctx.get(EXISTING_RESOURCE_KEY) as File;
       ctx.newState.spec = stored.spec;
       if (ctx.newState.metadata !== undefined) {
         ctx.newState.metadata.name = stored.metadata?.name ?? "";

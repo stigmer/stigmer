@@ -23,7 +23,7 @@ import { internalError } from "../../pipeline/errors.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { cleanUpDeletedResource } from "../../pipeline/steps/authorization-tuples.js";
-import { RESOURCE_ID_KEY } from "../../pipeline/steps/delete.js";
+import { requireResourceId } from "../../pipeline/steps/delete.js";
 import type { Store } from "../../store/interface.js";
 import type { ListIndexRow } from "../../store/list-index.js";
 import type { FileBlobs } from "./blobs.js";
@@ -41,13 +41,7 @@ export function newCascadeDeleteSessionFilesStep<Desc extends DescMessage>(
   return {
     name: "CascadeDeleteSessionFiles",
     async execute(ctx: RequestContext<Desc>): Promise<void> {
-      const sessionId = ctx.get(RESOURCE_ID_KEY);
-      if (typeof sessionId !== "string" || sessionId === "") {
-        throw internalError(
-          new Error("session id not in context (ExtractResourceId must run first)"),
-          "cascade delete session files",
-        );
-      }
+      const sessionId = requireResourceId(ctx);
       let removed = 0;
       for (;;) {
         // Each pass reads from the top: the rows removed below are gone

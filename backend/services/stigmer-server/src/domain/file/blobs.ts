@@ -88,14 +88,14 @@ export interface FileBlobs {
   promote(org: string, ref: string): Promise<NewBlob>;
   /**
    * Commits a new File naming a new blob: its row and its ref in one
-   * transaction. False when the File's id is already held.
+   * transaction. An id already held is a fault: the server minted it.
    */
   insertFile<Desc extends DescMessage>(
     id: string,
     schema: Desc,
     file: MessageShape<Desc>,
     blob: NewBlob,
-  ): Promise<boolean>;
+  ): Promise<void>;
   /** Removes a File's row and ref, then its bytes when no other File shares them. */
   removeFile(fileId: string): Promise<void>;
   /** A person's download link to a File's bytes, saved under `filename`. */
@@ -219,11 +219,9 @@ export function newFileBlobs(deps: FileBlobsDeps): FileBlobs {
     async mintUpload(org, sizeBytes) {
       refuseOverLimit(sizeBytes);
       await sweep();
-      const ref = UPLOAD_REF_PREFIX + randomBytes(UPLOAD_REF_BYTE_LEN).toString("hex");
-      const stagingKey = stagingKeyOf(ref);
-      if (stagingKey === undefined) {
-        throw internalError(new Error(`minted reference ${ref} has no staging key`), "failed to mint an upload URL");
-      }
+      const hex = randomBytes(UPLOAD_REF_BYTE_LEN).toString("hex");
+      const ref = UPLOAD_REF_PREFIX + hex;
+      const stagingKey = STAGING_KEY_PREFIX + hex;
       try {
         // Recorded before the URL exists, so bytes put to it are always
         // tracked and swept once it expires.
@@ -301,14 +299,18 @@ export function newFileBlobs(deps: FileBlobsDeps): FileBlobs {
     },
 
     async insertFile(id, schema, file, blob) {
+      let inserted: boolean;
       try {
-        return await store.files.insert(ApiResourceKind.file, id, schema, file, blob, nowSeconds());
+        inserted = await store.files.insert(ApiResourceKind.file, id, schema, file, blob, nowSeconds());
       } catch (error) {
         if (error instanceof FileBlobUnavailableError) {
           // The write outlived its lease and the bytes are being swept.
           throw failedPreconditionError("the upload took too long to complete; upload the file again");
         }
         throw internalError(error, "failed to save file");
+      }
+      if (!inserted) {
+        throw internalError(new Error(`file id ${id} is already held`), "failed to save file");
       }
     },
 

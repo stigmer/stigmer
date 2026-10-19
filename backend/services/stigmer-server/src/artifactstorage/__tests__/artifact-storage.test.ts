@@ -253,6 +253,13 @@ describe("LocalArtifactStorage", () => {
       expect(await storage.exists("files/org_1/blob_2")).toBe(false);
     });
 
+    it("copy rethrows a fault that is not a missing source", async () => {
+      await storage.upload("files/dir/inner", Buffer.from("x"), "");
+      const error = await storage.copy("files/dir", "files/elsewhere").catch((e: unknown) => e);
+      expect(error).toBeInstanceOf(Error);
+      expect(error).not.toBeInstanceOf(ArtifactStorageNotFoundError);
+    });
+
     it("copy refuses a key on either side that would leave the root", async () => {
       await storage.upload("files/staging/bb", Buffer.from("x"), "");
       await expect(storage.copy("../escape", "files/x")).rejects.toThrow("outside the artifact storage root");
