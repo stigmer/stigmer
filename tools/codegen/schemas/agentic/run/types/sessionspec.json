@@ -43,20 +43,6 @@
       "required": false
     },
     {
-      "name": "WorkspaceEntries",
-      "jsonName": "workspaceEntries",
-      "protoField": "workspace_entries",
-      "type": {
-        "kind": "array",
-        "elementType": {
-          "kind": "message",
-          "messageType": "WorkspaceEntry"
-        }
-      },
-      "description": "Workspace entries for this session.\n\n Each entry pairs a name with a source (git repo or local path), forming\n a multi-root workspace. Entries are provisioned on the first run;\n subsequent runs reuse the same workspace.\n\n When empty, the session uses an empty workspace directory.",
-      "required": false
-    },
-    {
       "name": "SkillRefs",
       "jsonName": "skillRefs",
       "protoField": "skill_refs",
@@ -180,6 +166,23 @@
       "description": "The Environment this conversation runs in: the packages its sandboxes\n get and the websites they may reach. Unset: its routine's, else its\n agent's default, else its organization's (status.environment records\n which applied).\n\n Fixed once a turn has run. A conversation on the person's own machine\n (the desktop app, the CLI) refuses one, since its sandbox is that\n machine. Naming one needs permission to view it, and every turn asks\n it again.",
       "required": false,
       "referenceKind": 67
+    },
+    {
+      "name": "Resources",
+      "jsonName": "resources",
+      "protoField": "resources",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "SessionResource"
+        }
+      },
+      "description": "What the conversation holds: Files the agent finds under\n .stigmer/uploads/ on every turn, git repositories cloned into its\n workspace, and folders on the person's own machine. Repositories and\n folders are provisioned on the first turn and reused after it.\n\n A File named here that is not yet the conversation's (an organization\n File the writer may view) becomes the conversation's own copy over the\n same bytes, and the entry names the copy: deleting the original later\n leaves the conversation's copy. A File of another organization is\n refused. At most 500 files; repository and folder names are unique, and\n so are the files' mount paths.\n\n A turn's own files (RunSpec.file_ids) join this list when the turn is\n created, so whoever may send the conversation a message may add files\n without editing it.",
+      "required": false,
+      "validation": {
+        "maxItems": 1000
+      }
     }
   ]
 }

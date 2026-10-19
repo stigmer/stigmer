@@ -264,37 +264,6 @@ public final class RunCommandControllerGrpc {
     return getResumeMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.UploadAttachmentRequest,
-      ai.stigmer.agentic.run.v1.UploadAttachmentResponse> getUploadAttachmentMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "uploadAttachment",
-      requestType = ai.stigmer.agentic.run.v1.UploadAttachmentRequest.class,
-      responseType = ai.stigmer.agentic.run.v1.UploadAttachmentResponse.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.UploadAttachmentRequest,
-      ai.stigmer.agentic.run.v1.UploadAttachmentResponse> getUploadAttachmentMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.UploadAttachmentRequest, ai.stigmer.agentic.run.v1.UploadAttachmentResponse> getUploadAttachmentMethod;
-    if ((getUploadAttachmentMethod = RunCommandControllerGrpc.getUploadAttachmentMethod) == null) {
-      synchronized (RunCommandControllerGrpc.class) {
-        if ((getUploadAttachmentMethod = RunCommandControllerGrpc.getUploadAttachmentMethod) == null) {
-          RunCommandControllerGrpc.getUploadAttachmentMethod = getUploadAttachmentMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.run.v1.UploadAttachmentRequest, ai.stigmer.agentic.run.v1.UploadAttachmentResponse>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "uploadAttachment"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.run.v1.UploadAttachmentRequest.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.run.v1.UploadAttachmentResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new RunCommandControllerMethodDescriptorSupplier("uploadAttachment"))
-              .build();
-        }
-      }
-    }
-    return getUploadAttachmentMethod;
-  }
-
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -463,19 +432,6 @@ public final class RunCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getResumeMethod(), responseObserver);
     }
-
-    /**
-     * <pre>
-     * Upload a file attachment for use in a run.
-     * Pre-uploads files to artifact storage before creating a run.
-     * The returned storage_key can be used in Attachment.storage_key when
-     * creating the run.
-     * </pre>
-     */
-    default void uploadAttachment(ai.stigmer.agentic.run.v1.UploadAttachmentRequest request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.UploadAttachmentResponse> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUploadAttachmentMethod(), responseObserver);
-    }
   }
 
   /**
@@ -622,20 +578,6 @@ public final class RunCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getResumeMethod(), getCallOptions()), request, responseObserver);
     }
-
-    /**
-     * <pre>
-     * Upload a file attachment for use in a run.
-     * Pre-uploads files to artifact storage before creating a run.
-     * The returned storage_key can be used in Attachment.storage_key when
-     * creating the run.
-     * </pre>
-     */
-    public void uploadAttachment(ai.stigmer.agentic.run.v1.UploadAttachmentRequest request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.UploadAttachmentResponse> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getUploadAttachmentMethod(), getCallOptions()), request, responseObserver);
-    }
   }
 
   /**
@@ -759,19 +701,6 @@ public final class RunCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getResumeMethod(), getCallOptions(), request);
     }
-
-    /**
-     * <pre>
-     * Upload a file attachment for use in a run.
-     * Pre-uploads files to artifact storage before creating a run.
-     * The returned storage_key can be used in Attachment.storage_key when
-     * creating the run.
-     * </pre>
-     */
-    public ai.stigmer.agentic.run.v1.UploadAttachmentResponse uploadAttachment(ai.stigmer.agentic.run.v1.UploadAttachmentRequest request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getUploadAttachmentMethod(), getCallOptions(), request);
-    }
   }
 
   /**
@@ -894,19 +823,6 @@ public final class RunCommandControllerGrpc {
     public ai.stigmer.agentic.run.v1.Run resume(ai.stigmer.agentic.run.v1.ResumeRunInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getResumeMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Upload a file attachment for use in a run.
-     * Pre-uploads files to artifact storage before creating a run.
-     * The returned storage_key can be used in Attachment.storage_key when
-     * creating the run.
-     * </pre>
-     */
-    public ai.stigmer.agentic.run.v1.UploadAttachmentResponse uploadAttachment(ai.stigmer.agentic.run.v1.UploadAttachmentRequest request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getUploadAttachmentMethod(), getCallOptions(), request);
     }
   }
 
@@ -1039,20 +955,6 @@ public final class RunCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getResumeMethod(), getCallOptions()), request);
     }
-
-    /**
-     * <pre>
-     * Upload a file attachment for use in a run.
-     * Pre-uploads files to artifact storage before creating a run.
-     * The returned storage_key can be used in Attachment.storage_key when
-     * creating the run.
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.run.v1.UploadAttachmentResponse> uploadAttachment(
-        ai.stigmer.agentic.run.v1.UploadAttachmentRequest request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getUploadAttachmentMethod(), getCallOptions()), request);
-    }
   }
 
   private static final int METHODID_CREATE = 0;
@@ -1063,7 +965,6 @@ public final class RunCommandControllerGrpc {
   private static final int METHODID_RECOVER = 5;
   private static final int METHODID_PAUSE = 6;
   private static final int METHODID_RESUME = 7;
-  private static final int METHODID_UPLOAD_ATTACHMENT = 8;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1113,10 +1014,6 @@ public final class RunCommandControllerGrpc {
         case METHODID_RESUME:
           serviceImpl.resume((ai.stigmer.agentic.run.v1.ResumeRunInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run>) responseObserver);
-          break;
-        case METHODID_UPLOAD_ATTACHMENT:
-          serviceImpl.uploadAttachment((ai.stigmer.agentic.run.v1.UploadAttachmentRequest) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.UploadAttachmentResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -1192,13 +1089,6 @@ public final class RunCommandControllerGrpc {
               ai.stigmer.agentic.run.v1.ResumeRunInput,
               ai.stigmer.agentic.run.v1.Run>(
                 service, METHODID_RESUME)))
-        .addMethod(
-          getUploadAttachmentMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.agentic.run.v1.UploadAttachmentRequest,
-              ai.stigmer.agentic.run.v1.UploadAttachmentResponse>(
-                service, METHODID_UPLOAD_ATTACHMENT)))
         .build();
   }
 
@@ -1255,7 +1145,6 @@ public final class RunCommandControllerGrpc {
               .addMethod(getRecoverMethod())
               .addMethod(getPauseMethod())
               .addMethod(getResumeMethod())
-              .addMethod(getUploadAttachmentMethod())
               .build();
         }
       }

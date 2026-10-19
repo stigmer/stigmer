@@ -4,14 +4,14 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.session.v1.CursorMode;
 import ai.stigmer.agentic.session.v1.ExecutionTarget;
-import ai.stigmer.agentic.session.v1.GitRepoSource;
+import ai.stigmer.agentic.session.v1.FileResource;
+import ai.stigmer.agentic.session.v1.GitRepositoryResource;
 import ai.stigmer.agentic.session.v1.GitWriteBackMode;
 import ai.stigmer.agentic.session.v1.Harness;
-import ai.stigmer.agentic.session.v1.LocalPathSource;
+import ai.stigmer.agentic.session.v1.LocalPathResource;
 import ai.stigmer.agentic.session.v1.Session;
+import ai.stigmer.agentic.session.v1.SessionResource;
 import ai.stigmer.agentic.session.v1.SessionSpec;
-import ai.stigmer.agentic.session.v1.WorkspaceEntry;
-import ai.stigmer.agentic.session.v1.WorkspaceSource;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
@@ -27,7 +27,6 @@ public final class SessionInput {
     private final ResourceRef agentRef;
     private final String subject;
     private final java.util.Map<String, String> metadata;
-    private final java.util.List<WorkspaceEntryInput> workspaceEntries;
     private final java.util.List<ResourceRef> skillRefs;
     private final Harness harness;
     private final CursorMode cursorMode;
@@ -37,6 +36,7 @@ public final class SessionInput {
     private final java.util.List<ResourceRef> plugins;
     private final boolean fileReview;
     private final ResourceRef environmentRef;
+    private final java.util.List<SessionResourceInput> resources;
 
     private SessionInput(Builder builder) {
         this.id = builder.id;
@@ -48,7 +48,6 @@ public final class SessionInput {
         this.agentRef = builder.agentRef;
         this.subject = builder.subject;
         this.metadata = builder.metadata;
-        this.workspaceEntries = builder.workspaceEntries;
         this.skillRefs = builder.skillRefs;
         this.harness = builder.harness;
         this.cursorMode = builder.cursorMode;
@@ -58,6 +57,7 @@ public final class SessionInput {
         this.plugins = builder.plugins;
         this.fileReview = builder.fileReview;
         this.environmentRef = builder.environmentRef;
+        this.resources = builder.resources;
     }
 
     Session toProto() {
@@ -71,11 +71,6 @@ public final class SessionInput {
         }
         if (this.metadata != null && !this.metadata.isEmpty()) {
             spec.putAllMetadata(this.metadata);
-        }
-        if (this.workspaceEntries != null) {
-            for (WorkspaceEntryInput item : this.workspaceEntries) {
-                spec.addWorkspaceEntries(item.toProto());
-            }
         }
         if (this.skillRefs != null) {
             for (ResourceRef item : this.skillRefs) {
@@ -109,6 +104,11 @@ public final class SessionInput {
         if (this.environmentRef != null && this.environmentRef.hasIdentifier()) {
             spec.setEnvironmentRef(this.environmentRef.toProto().toBuilder()
                 .setKind(ApiResourceKind.environment).build());
+        }
+        if (this.resources != null) {
+            for (SessionResourceInput item : this.resources) {
+                spec.addResources(item.toProto());
+            }
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -147,7 +147,6 @@ public final class SessionInput {
         private ResourceRef agentRef;
         private String subject;
         private java.util.Map<String, String> metadata;
-        private java.util.List<WorkspaceEntryInput> workspaceEntries;
         private java.util.List<ResourceRef> skillRefs;
         private Harness harness;
         private CursorMode cursorMode;
@@ -157,6 +156,7 @@ public final class SessionInput {
         private java.util.List<ResourceRef> plugins;
         private boolean fileReview;
         private ResourceRef environmentRef;
+        private java.util.List<SessionResourceInput> resources;
 
         private Builder() {}
 
@@ -174,7 +174,6 @@ public final class SessionInput {
         public Builder agentRef(ResourceRef agentRef) { this.agentRef = agentRef; return this; }
         public Builder subject(String subject) { this.subject = subject; return this; }
         public Builder metadata(java.util.Map<String, String> metadata) { this.metadata = metadata; return this; }
-        public Builder workspaceEntries(java.util.List<WorkspaceEntryInput> workspaceEntries) { this.workspaceEntries = workspaceEntries; return this; }
         public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }
         public Builder harness(Harness harness) { this.harness = harness; return this; }
         public Builder cursorMode(CursorMode cursorMode) { this.cursorMode = cursorMode; return this; }
@@ -184,27 +183,38 @@ public final class SessionInput {
         public Builder plugins(java.util.List<ResourceRef> plugins) { this.plugins = plugins; return this; }
         public Builder fileReview(boolean fileReview) { this.fileReview = fileReview; return this; }
         public Builder environmentRef(ResourceRef environmentRef) { this.environmentRef = environmentRef; return this; }
+        public Builder resources(java.util.List<SessionResourceInput> resources) { this.resources = resources; return this; }
 
         public SessionInput build() { return new SessionInput(this); }
     }
 
-    /** SDK input type for WorkspaceEntry. */
-    public static final class WorkspaceEntryInput {
+    /** SDK input type for SessionResource. */
+    public static final class SessionResourceInput {
         private final String name;
-        private final WorkspaceSourceInput source;
+        private final FileResourceInput file;
+        private final GitRepositoryResourceInput gitRepository;
+        private final LocalPathResourceInput localPath;
 
-        private WorkspaceEntryInput(Builder builder) {
+        private SessionResourceInput(Builder builder) {
             this.name = builder.name;
-            this.source = builder.source;
+            this.file = builder.file;
+            this.gitRepository = builder.gitRepository;
+            this.localPath = builder.localPath;
         }
 
-        WorkspaceEntry toProto() {
-            WorkspaceEntry.Builder builder = WorkspaceEntry.newBuilder();
+        SessionResource toProto() {
+            SessionResource.Builder builder = SessionResource.newBuilder();
             if (this.name != null) {
                 builder.setName(this.name);
             }
-            if (this.source != null) {
-                builder.setSource(this.source.toProto());
+            if (this.localPath != null) {
+                builder.setLocalPath(this.localPath.toProto());
+            }
+            if (this.gitRepository != null) {
+                builder.setGitRepository(this.gitRepository.toProto());
+            }
+            if (this.file != null) {
+                builder.setFile(this.file.toProto());
             }
             return builder.build();
         }
@@ -213,34 +223,38 @@ public final class SessionInput {
 
         public static final class Builder {
             private String name;
-            private WorkspaceSourceInput source;
+            private FileResourceInput file;
+            private GitRepositoryResourceInput gitRepository;
+            private LocalPathResourceInput localPath;
 
             private Builder() {}
 
             public Builder name(String name) { this.name = name; return this; }
-            public Builder source(WorkspaceSourceInput source) { this.source = source; return this; }
+            public Builder file(FileResourceInput file) { this.file = file; return this; }
+            public Builder gitRepository(GitRepositoryResourceInput gitRepository) { this.gitRepository = gitRepository; return this; }
+            public Builder localPath(LocalPathResourceInput localPath) { this.localPath = localPath; return this; }
 
-            public WorkspaceEntryInput build() { return new WorkspaceEntryInput(this); }
+            public SessionResourceInput build() { return new SessionResourceInput(this); }
         }
     }
 
-    /** SDK input type for WorkspaceSource. */
-    public static final class WorkspaceSourceInput {
-        private final GitRepoSourceInput gitRepo;
-        private final LocalPathSourceInput localPath;
+    /** SDK input type for FileResource. */
+    public static final class FileResourceInput {
+        private final String fileId;
+        private final String mountPath;
 
-        private WorkspaceSourceInput(Builder builder) {
-            this.gitRepo = builder.gitRepo;
-            this.localPath = builder.localPath;
+        private FileResourceInput(Builder builder) {
+            this.fileId = builder.fileId;
+            this.mountPath = builder.mountPath;
         }
 
-        WorkspaceSource toProto() {
-            WorkspaceSource.Builder builder = WorkspaceSource.newBuilder();
-            if (this.localPath != null) {
-                builder.setLocalPath(this.localPath.toProto());
+        FileResource toProto() {
+            FileResource.Builder builder = FileResource.newBuilder();
+            if (this.fileId != null) {
+                builder.setFileId(this.fileId);
             }
-            if (this.gitRepo != null) {
-                builder.setGitRepo(this.gitRepo.toProto());
+            if (this.mountPath != null) {
+                builder.setMountPath(this.mountPath);
             }
             return builder.build();
         }
@@ -248,38 +262,36 @@ public final class SessionInput {
         public static Builder builder() { return new Builder(); }
 
         public static final class Builder {
-            private GitRepoSourceInput gitRepo;
-            private LocalPathSourceInput localPath;
+            private String fileId;
+            private String mountPath;
 
             private Builder() {}
 
-            public Builder gitRepo(GitRepoSourceInput gitRepo) { this.gitRepo = gitRepo; return this; }
-            public Builder localPath(LocalPathSourceInput localPath) { this.localPath = localPath; return this; }
+            public Builder fileId(String fileId) { this.fileId = fileId; return this; }
+            public Builder mountPath(String mountPath) { this.mountPath = mountPath; return this; }
 
-            public WorkspaceSourceInput build() { return new WorkspaceSourceInput(this); }
+            public FileResourceInput build() { return new FileResourceInput(this); }
         }
     }
 
-    /** SDK input type for GitRepoSource. */
-    public static final class GitRepoSourceInput {
+    /** SDK input type for GitRepositoryResource. */
+    public static final class GitRepositoryResourceInput {
         private final String url;
         private final String branch;
         private final String commit;
-        private final Integer depth;
         private final GitWriteBackMode writeBackMode;
         private final String token;
 
-        private GitRepoSourceInput(Builder builder) {
+        private GitRepositoryResourceInput(Builder builder) {
             this.url = builder.url;
             this.branch = builder.branch;
             this.commit = builder.commit;
-            this.depth = builder.depth;
             this.writeBackMode = builder.writeBackMode;
             this.token = builder.token;
         }
 
-        GitRepoSource toProto() {
-            GitRepoSource.Builder builder = GitRepoSource.newBuilder();
+        GitRepositoryResource toProto() {
+            GitRepositoryResource.Builder builder = GitRepositoryResource.newBuilder();
             if (this.url != null) {
                 builder.setUrl(this.url);
             }
@@ -288,9 +300,6 @@ public final class SessionInput {
             }
             if (this.commit != null) {
                 builder.setCommit(this.commit);
-            }
-            if (this.depth != null) {
-                builder.setDepth(this.depth);
             }
             if (this.writeBackMode != null) {
                 builder.setWriteBackMode(this.writeBackMode);
@@ -307,7 +316,6 @@ public final class SessionInput {
             private String url;
             private String branch;
             private String commit;
-            private Integer depth;
             private GitWriteBackMode writeBackMode;
             private String token;
 
@@ -316,24 +324,23 @@ public final class SessionInput {
             public Builder url(String url) { this.url = url; return this; }
             public Builder branch(String branch) { this.branch = branch; return this; }
             public Builder commit(String commit) { this.commit = commit; return this; }
-            public Builder depth(int depth) { this.depth = depth; return this; }
             public Builder writeBackMode(GitWriteBackMode writeBackMode) { this.writeBackMode = writeBackMode; return this; }
             public Builder token(String token) { this.token = token; return this; }
 
-            public GitRepoSourceInput build() { return new GitRepoSourceInput(this); }
+            public GitRepositoryResourceInput build() { return new GitRepositoryResourceInput(this); }
         }
     }
 
-    /** SDK input type for LocalPathSource. */
-    public static final class LocalPathSourceInput {
+    /** SDK input type for LocalPathResource. */
+    public static final class LocalPathResourceInput {
         private final String path;
 
-        private LocalPathSourceInput(Builder builder) {
+        private LocalPathResourceInput(Builder builder) {
             this.path = builder.path;
         }
 
-        LocalPathSource toProto() {
-            LocalPathSource.Builder builder = LocalPathSource.newBuilder();
+        LocalPathResource toProto() {
+            LocalPathResource.Builder builder = LocalPathResource.newBuilder();
             if (this.path != null) {
                 builder.setPath(this.path);
             }
@@ -349,7 +356,7 @@ public final class SessionInput {
 
             public Builder path(String path) { this.path = path; return this; }
 
-            public LocalPathSourceInput build() { return new LocalPathSourceInput(this); }
+            public LocalPathResourceInput build() { return new LocalPathResourceInput(this); }
         }
     }
 }

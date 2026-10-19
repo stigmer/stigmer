@@ -8,8 +8,8 @@ import type { ServiceTier, ThinkingMode } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_run_v1_enum } from "./enum_pb.js";
 import type { Harness } from "../../session/v1/enum_pb.js";
 import { file_ai_stigmer_agentic_session_v1_enum } from "../../session/v1/enum_pb.js";
-import type { WorkspaceEntry } from "../../session/v1/workspace_pb.js";
-import { file_ai_stigmer_agentic_session_v1_workspace } from "../../session/v1/workspace_pb.js";
+import type { SessionResource } from "../../session/v1/resource_pb.js";
+import { file_ai_stigmer_agentic_session_v1_resource } from "../../session/v1/resource_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
 import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -20,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/run/v1/invocation.proto.
  */
 export const file_ai_stigmer_agentic_run_v1_invocation: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2ludm9jYXRpb24ucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEi0QUKD0FnZW50SW52b2NhdGlvbhJTCglhZ2VudF9yZWYYASABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCCrpIA8gBAeCFLCgSGwoHbWVzc2FnZRgCIAEoCUIKukgHcgUQARiAQBI3CgdoYXJuZXNzGAMgASgOMiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSGFybmVzcxKXAgoRd29ya3NwYWNlX2VudHJpZXMYBCADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeULMAbpIyAGSAcQBIsEBugG9AQoad29ya3NwYWNlX2VudHJpZXMubm9fdG9rZW4SX2EgcmVwb3NpdG9yeSBoZXJlIGNhbm5vdCBjYXJyeSBhIHRva2VuOiBzYXZlIGl0IGFzIGEgY29ubmVjdGlvbiBpbiBhIHZhdWx0IHRoZSBpbnZvY2F0aW9uIG5hbWVzGj4haGFzKHRoaXMuc291cmNlLmdpdF9yZXBvKSB8fCB0aGlzLnNvdXJjZS5naXRfcmVwby50b2tlbiA9PSAnJxJSCgZ2YXVsdHMYByADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCDLpIBZIBAhAU4IUsOxI4CgpydW5fY29uZmlnGAYgASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5Db25maWcSUwoPZW52aXJvbm1lbnRfcmVmGAggASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSxDSgQIBRAGUhBlbnZpcm9ubWVudF9yZWZzIqECCglSdW5Db25maWcSEgoKbW9kZWxfbmFtZRgBIAEoCRIkCgxtYXhfY29zdF91c2QYAiABKAFCDrpICxIJKQAAAAAAAAAAEiAKD21heF90b29sX3JvdW5kcxgDIAEoBUIHukgEGgIoABJGCgxzZXJ2aWNlX3RpZXIYBCABKA4yJi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlNlcnZpY2VUaWVyQgi6SAWCAQIQARJICg10aGlua2luZ19tb2RlGAUgASgOMicuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5UaGlua2luZ01vZGVCCLpIBYIBAhABEiYKFW1heF90b29sX3Jlc3VsdF9jaGFycxgGIAEoBUIHukgEGgIoAGIGcHJvdG8z", [file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2ludm9jYXRpb24ucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEi7AYKD0FnZW50SW52b2NhdGlvbhJTCglhZ2VudF9yZWYYASABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCCrpIA8gBAeCFLCgSGwoHbWVzc2FnZRgCIAEoCUIKukgHcgUQARiAQBI3CgdoYXJuZXNzGAMgASgOMiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSGFybmVzcxJSCgZ2YXVsdHMYByADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCDLpIBZIBAhAU4IUsOxI4CgpydW5fY29uZmlnGAYgASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5Db25maWcSUwoPZW52aXJvbm1lbnRfcmVmGAggASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSxDEpkDCglyZXNvdXJjZXMYCSADKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uUmVzb3VyY2VC1QK6SNECkgHNAhD0AyLHAroBjAEKF3Jlc291cmNlcy5ub19sb2NhbF9wYXRoElphIHJvdXRpbmUncyBydW5zIGNhbm5vdCB1c2UgYSBmb2xkZXIgb24gc29tZW9uZSdzIG1hY2hpbmU6IG5hbWUgYSBnaXQgcmVwb3NpdG9yeSBvciBhIEZpbGUaFSFoYXModGhpcy5sb2NhbF9wYXRoKboBswEKEnJlc291cmNlcy5ub190b2tlbhJfYSByZXBvc2l0b3J5IGhlcmUgY2Fubm90IGNhcnJ5IGEgdG9rZW46IHNhdmUgaXQgYXMgYSBjb25uZWN0aW9uIGluIGEgdmF1bHQgdGhlIGludm9jYXRpb24gbmFtZXMaPCFoYXModGhpcy5naXRfcmVwb3NpdG9yeSkgfHwgdGhpcy5naXRfcmVwb3NpdG9yeS50b2tlbiA9PSAnJ0oECAQQBUoECAUQBlIRd29ya3NwYWNlX2VudHJpZXNSEGVudmlyb25tZW50X3JlZnMioQIKCVJ1bkNvbmZpZxISCgptb2RlbF9uYW1lGAEgASgJEiQKDG1heF9jb3N0X3VzZBgCIAEoAUIOukgLEgkpAAAAAAAAAAASIAoPbWF4X3Rvb2xfcm91bmRzGAMgASgFQge6SAQaAigAEkYKDHNlcnZpY2VfdGllchgEIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuU2VydmljZVRpZXJCCLpIBYIBAhABEkgKDXRoaW5raW5nX21vZGUYBSABKA4yJy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlRoaW5raW5nTW9kZUIIukgFggECEAESJgoVbWF4X3Rvb2xfcmVzdWx0X2NoYXJzGAYgASgFQge6SAQaAigAYgZwcm90bzM", [file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_resource, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentInvocation is what a caller may ask an agent to do.
@@ -64,13 +64,6 @@ export type AgentInvocation = Message<"ai.stigmer.agentic.run.v1.AgentInvocation
   harness: Harness;
 
   /**
-   * Workspace the run's session operates on. Empty means no workspace.
-   *
-   * @generated from field: repeated ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4;
-   */
-  workspaceEntries: WorkspaceEntry[];
-
-  /**
    * Vaults whose logins and secrets the runs this invocation creates use, in
    * order: the first vault holding a match wins. At most 20.
    *
@@ -98,6 +91,16 @@ export type AgentInvocation = Message<"ai.stigmer.agentic.run.v1.AgentInvocation
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 8;
    */
   environmentRef?: ApiResourceReference;
+
+  /**
+   * What each run's conversation holds: Files and git repositories (a
+   * routine's runs have no machine of the person's to read a folder from).
+   * Each run's conversation gets its own copy of each File, made when the
+   * run starts, so every nightly run finds the same q3-ledger.xlsx.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.session.v1.SessionResource resources = 9;
+   */
+  resources: SessionResource[];
 };
 
 /**

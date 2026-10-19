@@ -13,7 +13,7 @@ import { RoutineSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/s
 import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunConfigSchema, AgentInvocationSchema, type RunConfig, type AgentInvocation } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 import { Harness, GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
-import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema, type GitRepoSource, type LocalPathSource, type WorkspaceSource, type WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import { FileResourceSchema, GitRepositoryResourceSchema, LocalPathResourceSchema, SessionResourceSchema, type FileResource, type GitRepositoryResource, type LocalPathResource, type SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema, type RenameInput } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
@@ -169,37 +169,10 @@ export interface AgentInvocationInput {
   agentRef: ResourceRef;
   message?: string;
   harness?: Harness;
-  workspaceEntries?: WorkspaceEntryInput[];
   vaults?: ResourceRef[];
   runConfig?: RunConfigInput;
   environmentRef?: ResourceRef;
-}
-
-/** SDK input type for WorkspaceEntry. */
-export interface WorkspaceEntryInput {
-  name?: string;
-  source: WorkspaceSourceInput;
-}
-
-/** SDK input type for WorkspaceSource. */
-export interface WorkspaceSourceInput {
-  gitRepo?: GitRepoSourceInput;
-  localPath?: LocalPathSourceInput;
-}
-
-/** SDK input type for GitRepoSource. */
-export interface GitRepoSourceInput {
-  url: string;
-  branch?: string;
-  commit?: string;
-  depth?: number;
-  writeBackMode?: GitWriteBackMode;
-  token?: string;
-}
-
-/** SDK input type for LocalPathSource. */
-export interface LocalPathSourceInput {
-  path?: string;
+  resources?: SessionResourceInput[];
 }
 
 /** SDK input type for RunConfig. */
@@ -212,38 +185,32 @@ export interface RunConfigInput {
   maxToolResultChars?: number;
 }
 
-function buildGitRepoSourceProto(input: GitRepoSourceInput) {
-  return Object.assign(create(GitRepoSourceSchema), stripUndefined({
-    url: input.url,
-    branch: input.branch,
-    commit: input.commit,
-    depth: input.depth,
-    writeBackMode: input.writeBackMode,
-    token: input.token,
-  }));
+/** SDK input type for SessionResource. */
+export interface SessionResourceInput {
+  name?: string;
+  file?: FileResourceInput;
+  gitRepository?: GitRepositoryResourceInput;
+  localPath?: LocalPathResourceInput;
 }
 
-function buildLocalPathSourceProto(input: LocalPathSourceInput) {
-  return Object.assign(create(LocalPathSourceSchema), stripUndefined({
-    path: input.path,
-  }));
+/** SDK input type for FileResource. */
+export interface FileResourceInput {
+  fileId?: string;
+  mountPath?: string;
 }
 
-function buildWorkspaceSourceProto(input: WorkspaceSourceInput) {
-  const msg = create(WorkspaceSourceSchema);
-  if (input.gitRepo) {
-    msg.source = { case: "gitRepo", value: buildGitRepoSourceProto(input.gitRepo) };
-  } else if (input.localPath) {
-    msg.source = { case: "localPath", value: buildLocalPathSourceProto(input.localPath) };
-  }
-  return msg;
+/** SDK input type for GitRepositoryResource. */
+export interface GitRepositoryResourceInput {
+  url: string;
+  branch?: string;
+  commit?: string;
+  writeBackMode?: GitWriteBackMode;
+  token?: string;
 }
 
-function buildWorkspaceEntryProto(input: WorkspaceEntryInput) {
-  const msg = create(WorkspaceEntrySchema);
-  if (input.name !== undefined) msg.name = input.name;
-  if (input.source) msg.source = buildWorkspaceSourceProto(input.source);
-  return msg;
+/** SDK input type for LocalPathResource. */
+export interface LocalPathResourceInput {
+  path?: string;
 }
 
 function buildRunConfigProto(input: RunConfigInput) {
@@ -257,15 +224,51 @@ function buildRunConfigProto(input: RunConfigInput) {
   }));
 }
 
+function buildFileResourceProto(input: FileResourceInput) {
+  return Object.assign(create(FileResourceSchema), stripUndefined({
+    fileId: input.fileId,
+    mountPath: input.mountPath,
+  }));
+}
+
+function buildGitRepositoryResourceProto(input: GitRepositoryResourceInput) {
+  return Object.assign(create(GitRepositoryResourceSchema), stripUndefined({
+    url: input.url,
+    branch: input.branch,
+    commit: input.commit,
+    writeBackMode: input.writeBackMode,
+    token: input.token,
+  }));
+}
+
+function buildLocalPathResourceProto(input: LocalPathResourceInput) {
+  return Object.assign(create(LocalPathResourceSchema), stripUndefined({
+    path: input.path,
+  }));
+}
+
+function buildSessionResourceProto(input: SessionResourceInput) {
+  const msg = create(SessionResourceSchema);
+  if (input.name !== undefined) msg.name = input.name;
+  if (input.file) {
+    msg.resource = { case: "file", value: buildFileResourceProto(input.file) };
+  } else if (input.gitRepository) {
+    msg.resource = { case: "gitRepository", value: buildGitRepositoryResourceProto(input.gitRepository) };
+  } else if (input.localPath) {
+    msg.resource = { case: "localPath", value: buildLocalPathResourceProto(input.localPath) };
+  }
+  return msg;
+}
+
 function buildAgentInvocationProto(input: AgentInvocationInput) {
   const msg = create(AgentInvocationSchema);
   if (input.agentRef?.slug || input.agentRef?.org || input.agentRef?.id) msg.agentRef = create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 });
   if (input.message !== undefined) msg.message = input.message;
   if (input.harness !== undefined) msg.harness = input.harness;
-  if (input.workspaceEntries) msg.workspaceEntries = input.workspaceEntries.map(buildWorkspaceEntryProto);
   if (input.vaults) msg.vaults = input.vaults.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 59 }));
   if (input.runConfig) msg.runConfig = buildRunConfigProto(input.runConfig);
   if (input.environmentRef?.slug || input.environmentRef?.org || input.environmentRef?.id) msg.environmentRef = create(ApiResourceReferenceSchema, { ...input.environmentRef, kind: 67 });
+  if (input.resources) msg.resources = input.resources.map(buildSessionResourceProto);
   return msg;
 }
 
@@ -291,37 +294,6 @@ export function buildRoutineProto(input: RoutineInput): Routine {
   }) as Routine;
 }
 
-function toGitRepoSourceInput(msg: GitRepoSource): GitRepoSourceInput {
-  return {
-    url: msg.url ?? "",
-    branch: msg.branch || undefined,
-    commit: msg.commit || undefined,
-    depth: msg.depth || undefined,
-    writeBackMode: msg.writeBackMode || undefined,
-    token: msg.token || undefined,
-  };
-}
-
-function toLocalPathSourceInput(msg: LocalPathSource): LocalPathSourceInput {
-  return {
-    path: msg.path || undefined,
-  };
-}
-
-function toWorkspaceSourceInput(msg: WorkspaceSource): WorkspaceSourceInput {
-  return {
-    gitRepo: msg.source?.case === "gitRepo" ? toGitRepoSourceInput(msg.source.value) : undefined,
-    localPath: msg.source?.case === "localPath" ? toLocalPathSourceInput(msg.source.value) : undefined,
-  };
-}
-
-function toWorkspaceEntryInput(msg: WorkspaceEntry): WorkspaceEntryInput {
-  return {
-    name: msg.name || undefined,
-    source: toWorkspaceSourceInput(msg.source ?? create(WorkspaceSourceSchema)),
-  };
-}
-
 function toRunConfigInput(msg: RunConfig): RunConfigInput {
   return {
     modelName: msg.modelName || undefined,
@@ -333,15 +305,47 @@ function toRunConfigInput(msg: RunConfig): RunConfigInput {
   };
 }
 
+function toFileResourceInput(msg: FileResource): FileResourceInput {
+  return {
+    fileId: msg.fileId || undefined,
+    mountPath: msg.mountPath || undefined,
+  };
+}
+
+function toGitRepositoryResourceInput(msg: GitRepositoryResource): GitRepositoryResourceInput {
+  return {
+    url: msg.url ?? "",
+    branch: msg.branch || undefined,
+    commit: msg.commit || undefined,
+    writeBackMode: msg.writeBackMode || undefined,
+    token: msg.token || undefined,
+  };
+}
+
+function toLocalPathResourceInput(msg: LocalPathResource): LocalPathResourceInput {
+  return {
+    path: msg.path || undefined,
+  };
+}
+
+function toSessionResourceInput(msg: SessionResource): SessionResourceInput {
+  return {
+    name: msg.name || undefined,
+    file: msg.resource?.case === "file" ? toFileResourceInput(msg.resource.value) : undefined,
+    gitRepository: msg.resource?.case === "gitRepository" ? toGitRepositoryResourceInput(msg.resource.value) : undefined,
+    localPath: msg.resource?.case === "localPath" ? toLocalPathResourceInput(msg.resource.value) : undefined,
+  };
+}
+
 function toAgentInvocationInput(msg: AgentInvocation): AgentInvocationInput {
   return {
     agentRef: toResourceRefInput(msg.agentRef) ?? { org: "", slug: "" },
     message: msg.message || undefined,
     harness: msg.harness || undefined,
-    workspaceEntries: msg.workspaceEntries?.length ? msg.workspaceEntries.map(toWorkspaceEntryInput) : undefined,
     vaults: toResourceRefInputs(msg.vaults),
     runConfig: msg.runConfig ? toRunConfigInput(msg.runConfig) : undefined,
     environmentRef: toResourceRefInput(msg.environmentRef),
+    resources: msg.resources?.length ? msg.resources.map(toSessionResourceInput) : undefined,
   };
 }
 

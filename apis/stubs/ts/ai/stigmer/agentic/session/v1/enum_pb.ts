@@ -218,7 +218,7 @@ export enum CursorMode {
   /**
    * Cloud Cursor agent created with a cloud repos configuration.
    *
-   * Requires all workspace entries to be GitRepoSource (HTTPS URLs).
+   * Requires every resource to be a git repository (HTTPS URL).
    * Cursor natively manages conversation state for cloud agents.
    * Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED.
    *

@@ -20,15 +20,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RunCommandController_Create_FullMethodName           = "/ai.stigmer.agentic.run.v1.RunCommandController/create"
-	RunCommandController_Update_FullMethodName           = "/ai.stigmer.agentic.run.v1.RunCommandController/update"
-	RunCommandController_UpdateStatus_FullMethodName     = "/ai.stigmer.agentic.run.v1.RunCommandController/updateStatus"
-	RunCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.run.v1.RunCommandController/delete"
-	RunCommandController_Terminate_FullMethodName        = "/ai.stigmer.agentic.run.v1.RunCommandController/terminate"
-	RunCommandController_Recover_FullMethodName          = "/ai.stigmer.agentic.run.v1.RunCommandController/recover"
-	RunCommandController_Pause_FullMethodName            = "/ai.stigmer.agentic.run.v1.RunCommandController/pause"
-	RunCommandController_Resume_FullMethodName           = "/ai.stigmer.agentic.run.v1.RunCommandController/resume"
-	RunCommandController_UploadAttachment_FullMethodName = "/ai.stigmer.agentic.run.v1.RunCommandController/uploadAttachment"
+	RunCommandController_Create_FullMethodName       = "/ai.stigmer.agentic.run.v1.RunCommandController/create"
+	RunCommandController_Update_FullMethodName       = "/ai.stigmer.agentic.run.v1.RunCommandController/update"
+	RunCommandController_UpdateStatus_FullMethodName = "/ai.stigmer.agentic.run.v1.RunCommandController/updateStatus"
+	RunCommandController_Delete_FullMethodName       = "/ai.stigmer.agentic.run.v1.RunCommandController/delete"
+	RunCommandController_Terminate_FullMethodName    = "/ai.stigmer.agentic.run.v1.RunCommandController/terminate"
+	RunCommandController_Recover_FullMethodName      = "/ai.stigmer.agentic.run.v1.RunCommandController/recover"
+	RunCommandController_Pause_FullMethodName        = "/ai.stigmer.agentic.run.v1.RunCommandController/pause"
+	RunCommandController_Resume_FullMethodName       = "/ai.stigmer.agentic.run.v1.RunCommandController/resume"
 )
 
 // RunCommandControllerClient is the client API for RunCommandController service.
@@ -83,12 +82,6 @@ type RunCommandControllerClient interface {
 	// Continues the run from where it was paused. How a turn's state is saved
 	// is the harness's ([Harnesses](/docs/concepts/harnesses)).
 	Resume(ctx context.Context, in *ResumeRunInput, opts ...grpc.CallOption) (*Run, error)
-	// Upload a file attachment for use in a run.
-	//
-	// Pre-uploads files to artifact storage before creating a run.
-	// The returned storage_key can be used in Attachment.storage_key when
-	// creating the run.
-	UploadAttachment(ctx context.Context, in *UploadAttachmentRequest, opts ...grpc.CallOption) (*UploadAttachmentResponse, error)
 }
 
 type runCommandControllerClient struct {
@@ -179,16 +172,6 @@ func (c *runCommandControllerClient) Resume(ctx context.Context, in *ResumeRunIn
 	return out, nil
 }
 
-func (c *runCommandControllerClient) UploadAttachment(ctx context.Context, in *UploadAttachmentRequest, opts ...grpc.CallOption) (*UploadAttachmentResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UploadAttachmentResponse)
-	err := c.cc.Invoke(ctx, RunCommandController_UploadAttachment_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // RunCommandControllerServer is the server API for RunCommandController service.
 // All implementations should embed UnimplementedRunCommandControllerServer
 // for forward compatibility.
@@ -241,12 +224,6 @@ type RunCommandControllerServer interface {
 	// Continues the run from where it was paused. How a turn's state is saved
 	// is the harness's ([Harnesses](/docs/concepts/harnesses)).
 	Resume(context.Context, *ResumeRunInput) (*Run, error)
-	// Upload a file attachment for use in a run.
-	//
-	// Pre-uploads files to artifact storage before creating a run.
-	// The returned storage_key can be used in Attachment.storage_key when
-	// creating the run.
-	UploadAttachment(context.Context, *UploadAttachmentRequest) (*UploadAttachmentResponse, error)
 }
 
 // UnimplementedRunCommandControllerServer should be embedded to have
@@ -279,9 +256,6 @@ func (UnimplementedRunCommandControllerServer) Pause(context.Context, *PauseRunI
 }
 func (UnimplementedRunCommandControllerServer) Resume(context.Context, *ResumeRunInput) (*Run, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Resume not implemented")
-}
-func (UnimplementedRunCommandControllerServer) UploadAttachment(context.Context, *UploadAttachmentRequest) (*UploadAttachmentResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UploadAttachment not implemented")
 }
 func (UnimplementedRunCommandControllerServer) testEmbeddedByValue() {}
 
@@ -447,24 +421,6 @@ func _RunCommandController_Resume_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RunCommandController_UploadAttachment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UploadAttachmentRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RunCommandControllerServer).UploadAttachment(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RunCommandController_UploadAttachment_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RunCommandControllerServer).UploadAttachment(ctx, req.(*UploadAttachmentRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // RunCommandController_ServiceDesc is the grpc.ServiceDesc for RunCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -503,10 +459,6 @@ var RunCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "resume",
 			Handler:    _RunCommandController_Resume_Handler,
-		},
-		{
-			MethodName: "uploadAttachment",
-			Handler:    _RunCommandController_UploadAttachment_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

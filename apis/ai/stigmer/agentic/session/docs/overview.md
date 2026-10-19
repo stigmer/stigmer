@@ -21,12 +21,14 @@ spec:
     org: acme
     slug: code-reviewer
   subject: "Refactor the auth module"
-  workspace_entries:
+  resources:
     - name: backend
-      source:
-        git_repo:
-          url: https://github.com/acme/backend.git
-          branch: main
+      git_repository:
+        url: https://github.com/acme/backend.git
+        branch: main
+    - file:
+        file_id: file_01j9x7k2m4q8r3t5v6w7y8z9a0
+        mount_path: q3-ledger.xlsx
   plugins:
     - kind: plugin
       slug: github

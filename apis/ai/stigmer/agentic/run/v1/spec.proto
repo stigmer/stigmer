@@ -248,25 +248,10 @@ message RunSpec {
   // Default: false (approvals required as configured in policies)
   bool auto_approve_all = 7;
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // File Attachments (Artifact Lifecycle)
-  //
-  // Files to inject into the sandbox before the run begins.
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // Files attached to this run.
-  //
-  // Attachments are injected into the sandbox before the run begins.
-  // The agent can read these files from the specified mount paths.
-  //
-  // Use cases:
-  // - Provide input data files to process
-  // - Pass configuration files
-  // - Supply reference documents for analysis
-  //
-  // Example CLI usage:
-  //   stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-  repeated Attachment attachments = 9;
+  // Field 9 held the run's attachments, each named by a storage key, until
+  // a turn's files became Files named by id (file_ids).
+  reserved 9;
+  reserved "attachments";
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Workspace File References (Workspace-Aware Attachments)
@@ -282,7 +267,7 @@ message RunSpec {
   // no upload, no copy, no injection.
   //
   // This separates the "attention" signal ("look at this file") from the
-  // "transport" mechanism (upload + inject) that regular attachments use.
+  // "transport" a File gives (upload, then name it in file_ids).
   //
   // Works for any workspace type with a resolvable filesystem post-provisioning
   // (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -391,84 +376,23 @@ message RunSpec {
       }
     }
   }];
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// File Attachments (Artifact Lifecycle)
-//
-// These types support file input to runs.
-// ─────────────────────────────────────────────────────────────────────────────
-
-// Attachment represents a file attached to a run.
-//
-// All files must be pre-uploaded via the uploadAttachment RPC and referenced
-// by storage_key. This ensures consistent behavior regardless of file size.
-//
-// ## Usage Flow
-//
-// 1. Client calls uploadAttachment RPC with file content
-// 2. Server returns a storage_key
-// 3. Client creates run with Attachment containing that storage_key
-// 4. The runner downloads file from storage and injects into sandbox
-//
-// ## Mount Path
-//
-// The mount_path determines where the file appears in the sandbox.
-// If not specified, defaults to /inputs/{filename}
-//
-// Examples:
-//   - mount_path: "/inputs/config.yaml" -> file at /inputs/config.yaml
-//   - mount_path: "/workspace/data/" -> directory extracted at /workspace/data/
-message Attachment {
-  // Original filename for display and default mount path derivation.
-  // Example: "config.yaml", "input-data.zip"
+  // Files given with this message, by id ("file_01j…"), at most 20.
   //
-  // Must be a bare filename: no path separators and no `.`/`..` traversal
-  // segments. The filename is interpolated into the storage key and, on the
-  // local backend, into an on-disk path, so path structure here is a
-  // directory-traversal vector.
-  string filename = 1 [
-    (buf.validate.field).string.min_len = 1,
-    (buf.validate.field).cel = {
-      id: "attachment.filename.no_path"
-      message: "filename must be a bare filename without path separators or traversal segments"
-      expression: "!this.contains('/') && !this.contains('\\\\') && this != '.' && this != '..'"
+  // Each is a File of the run's organization the caller may view. One that
+  // is not yet the conversation's becomes the conversation's own copy, and
+  // each joins the conversation's resources, so the agent finds it under
+  // .stigmer/uploads/ on this turn and every later one. The message shows
+  // each to the model with the text: an image as an image, anything else as
+  // a document the agent reads with its tools (RunStatus.message_files says
+  // which blocks the message carried).
+  repeated string file_ids = 28 [(buf.validate.field).repeated = {
+    max_items: 20
+    unique: true
+    items: {
+      string: {min_len: 1}
     }
-  ];
-
-  // Reference to pre-uploaded file in artifact store (required).
-  // Obtained by calling uploadAttachment RPC before creating the run.
-  // Format: "attachments/{ulid}/{filename}"
-  string storage_key = 2 [(buf.validate.field).string.min_len = 1];
-
-  // Path in sandbox where file will be placed.
-  // Defaults to "/inputs/{filename}" if not specified.
-  // Example: "/workspace/input.yaml", "/inputs/data/"
-  string mount_path = 3;
-
-  // MIME type for content negotiation (optional).
-  // Example: "application/yaml", "text/plain", "application/zip"
-  string content_type = 4;
-
-  // When true, the attachment is a zip archive that should be extracted
-  // at mount_path rather than written as a single file.
-  // Set automatically by the CLI when a directory is attached.
-  bool extract = 5;
-
-  // Absolute filesystem path to the original file on the CLI host (optional).
-  //
-  // When set and the runner is in local mode, the file is read directly
-  // from this path instead of downloading from artifact storage via
-  // storage_key.  This eliminates the storage round-trip for local
-  // runs.
-  //
-  // Ignored when the runner is not in local mode (cloud runners use
-  // storage_key exclusively).
-  //
-  // The CLI sets this unconditionally to the resolved absolute path of
-  // the attached file.  storage_key remains required -- the upload still
-  // happens for run history and replay support.
-  string local_path = 6;
+  }];
 }
 
 // ConversationCatchup carries the channel-conversation events an agent

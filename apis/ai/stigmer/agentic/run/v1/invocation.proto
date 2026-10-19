@@ -4,7 +4,7 @@ package ai.stigmer.agentic.run.v1;
 
 import "ai/stigmer/agentic/run/v1/enum.proto";
 import "ai/stigmer/agentic/session/v1/enum.proto";
-import "ai/stigmer/agentic/session/v1/workspace.proto";
+import "ai/stigmer/agentic/session/v1/resource.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
@@ -81,22 +81,10 @@ message AgentInvocation {
   // absent.
   ai.stigmer.agentic.session.v1.Harness harness = 3;
 
-  // Workspace the run's session operates on. Empty means no workspace.
-  //
-  // @internal
-  // Maps onto SessionSpec.workspace_entries of the session each run
-  // creates. Unattended surfaces constrain sources in their handlers:
-  // routines accept git_repo only (no client is connected at fire
-  // time to serve a local_path). Credentials: a private
-  // repository's clone uses a connection for its host (github.com) in
-  // one of the invocation's vaults. A repository token on an entry is
-  // sealed only on a session and is refused here, because nothing in a
-  // routine's row is sealed. Public repos need no token.
-  repeated ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [(buf.validate.field).repeated.items.cel = {
-    id: "workspace_entries.no_token"
-    message: "a repository here cannot carry a token: save it as a connection in a vault the invocation names"
-    expression: "!has(this.source.git_repo) || this.source.git_repo.token == ''"
-  }];
+  // Field 4 held the invocation's workspace entries until a conversation's
+  // files, repositories and folders became one list (resources).
+  reserved 4;
+  reserved "workspace_entries";
 
   // Value 5 held environment_refs, the environments whose values a
   // run received, until vaults replaced environments.
@@ -134,6 +122,32 @@ message AgentInvocation {
   // needs can_view on the Environment; each turn asks the routine's owner
   // again, as a vault the routine names is asked again.
   ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 8 [(ai.stigmer.commons.apiresource.reference_kind) = environment];
+
+  // What each run's conversation holds: Files and git repositories (a
+  // routine's runs have no machine of the person's to read a folder from).
+  // Each run's conversation gets its own copy of each File, made when the
+  // run starts, so every nightly run finds the same q3-ledger.xlsx.
+  //
+  // @internal
+  // Maps onto SessionSpec.resources of the session each run creates. A
+  // repository's token is sealed only on a session and is refused here,
+  // because nothing in a routine's row is sealed: a private repository's
+  // clone uses a connection for its host in one of the invocation's
+  // vaults. The routine's owner must still be able to view each File when
+  // a run starts.
+  repeated ai.stigmer.agentic.session.v1.SessionResource resources = 9 [
+    (buf.validate.field).repeated.max_items = 500,
+    (buf.validate.field).repeated.items.cel = {
+      id: "resources.no_local_path"
+      message: "a routine's runs cannot use a folder on someone's machine: name a git repository or a File"
+      expression: "!has(this.local_path)"
+    },
+    (buf.validate.field).repeated.items.cel = {
+      id: "resources.no_token"
+      message: "a repository here cannot carry a token: save it as a connection in a vault the invocation names"
+      expression: "!has(this.git_repository) || this.git_repository.token == ''"
+    }
+  ];
 }
 
 // RunConfig is the settings message for every run: a model, a speed tier,

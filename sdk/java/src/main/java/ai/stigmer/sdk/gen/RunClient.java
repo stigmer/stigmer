@@ -30,8 +30,6 @@ import ai.stigmer.agentic.run.v1.RunUpdateStatusInput;
 import ai.stigmer.agentic.run.v1.TerminateRunInput;
 import ai.stigmer.agentic.run.v1.UpdateRunInput;
 import ai.stigmer.agentic.run.v1.UpdateStatusResponse;
-import ai.stigmer.agentic.run.v1.UploadAttachmentRequest;
-import ai.stigmer.agentic.run.v1.UploadAttachmentResponse;
 import ai.stigmer.commons.apiresource.ApiResourceId;
 import com.google.protobuf.FieldMask;
 import io.grpc.Channel;
@@ -95,12 +93,6 @@ public final class RunClient {
     public Run resume(ResumeRunInput input) {
         try {
             return command.resume(input);
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
-    public UploadAttachmentResponse uploadAttachment(UploadAttachmentRequest input) {
-        try {
-            return command.uploadAttachment(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

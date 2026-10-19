@@ -132,22 +132,6 @@ class ResumeRunInput(_message.Message):
     id: str
     def __init__(self, id: _Optional[str] = ...) -> None: ...
 
-class UploadAttachmentRequest(_message.Message):
-    __slots__ = ("filename", "content", "content_type")
-    FILENAME_FIELD_NUMBER: _ClassVar[int]
-    CONTENT_FIELD_NUMBER: _ClassVar[int]
-    CONTENT_TYPE_FIELD_NUMBER: _ClassVar[int]
-    filename: str
-    content: bytes
-    content_type: str
-    def __init__(self, filename: _Optional[str] = ..., content: _Optional[bytes] = ..., content_type: _Optional[str] = ...) -> None: ...
-
-class UploadAttachmentResponse(_message.Message):
-    __slots__ = ("storage_key",)
-    STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]
-    storage_key: str
-    def __init__(self, storage_key: _Optional[str] = ...) -> None: ...
-
 class GetArtifactDownloadUrlRequest(_message.Message):
     __slots__ = ("run_id", "storage_key", "as_attachment")
     RUN_ID_FIELD_NUMBER: _ClassVar[int]

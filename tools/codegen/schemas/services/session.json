@@ -1793,7 +1793,7 @@
         {
           "name": "CURSOR_MODE_CLOUD",
           "number": 2,
-          "description": "Cloud Cursor agent created with a cloud repos configuration.\n\n Requires all workspace entries to be GitRepoSource (HTTPS URLs).\n Cursor natively manages conversation state for cloud agents.\n Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED."
+          "description": "Cloud Cursor agent created with a cloud repos configuration.\n\n Requires every resource to be a git repository (HTTPS URL).\n Cursor natively manages conversation state for cloud agents.\n Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED."
         }
       ]
     },

@@ -20,7 +20,7 @@ from ai.stigmer.agentic.session.v1 import spec_pb2 as session_spec_pb2
 from ._errors import wrap_error
 from ._types import ResourceRef
 from ._agent import RunConfigInput
-from ._routine import GitRepoSourceInput, LocalPathSourceInput, WorkspaceEntryInput, WorkspaceSourceInput
+from ._routine import FileResourceInput, GitRepositoryResourceInput, LocalPathResourceInput, SessionResourceInput
 
 
 class RunClient:
@@ -77,12 +77,6 @@ class RunClient:
     def resume(self, input: io_pb2.ResumeRunInput) -> api_pb2.Run:
         try:
             return self._command.resume(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
-    def upload_attachment(self, input: io_pb2.UploadAttachmentRequest) -> io_pb2.UploadAttachmentResponse:
-        try:
-            return self._command.uploadAttachment(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -192,13 +186,13 @@ class RunInput:
     disallowed_tools: list[str] = field(default_factory=list)
     append_system_prompt: str = ""
     auto_approve_all: bool = False
-    attachments: list[AttachmentInput] = field(default_factory=list)
     workspace_file_refs: list[str] = field(default_factory=list)
     supersedes_run_id: str = ""
     conversation_catchup: ConversationCatchupInput | None = None
     eval_case: EvalCaseContextInput | None = None
     reconcile_file_review: bool = False
     excluded_plugin_ids: list[str] = field(default_factory=list)
+    file_ids: list[str] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.Run:
         spec = spec_pb2.RunSpec(
@@ -218,8 +212,6 @@ class RunInput:
             spec.tools.extend(self.tools)
         if self.disallowed_tools:
             spec.disallowed_tools.extend(self.disallowed_tools)
-        for item in self.attachments:
-            spec.attachments.append(item._to_proto())
         if self.workspace_file_refs:
             spec.workspace_file_refs.extend(self.workspace_file_refs)
         if self.conversation_catchup is not None:
@@ -228,6 +220,8 @@ class RunInput:
             spec.eval_case.CopyFrom(self.eval_case._to_proto())
         if self.excluded_plugin_ids:
             spec.excluded_plugin_ids.extend(self.excluded_plugin_ids)
+        if self.file_ids:
+            spec.file_ids.extend(self.file_ids)
         if self.session_spec is not None:
             spec.session_spec.CopyFrom(self.session_spec._to_proto())
         if self.session_id:
@@ -259,7 +253,6 @@ class SessionSpecInput:
     agent_ref: ResourceRef | None = None
     subject: str = ""
     metadata: dict[str, str] = field(default_factory=dict)
-    workspace_entries: list[WorkspaceEntryInput] = field(default_factory=list)
     skill_refs: list[ResourceRef] = field(default_factory=list)
     harness: int = 0
     cursor_mode: int = 0
@@ -269,6 +262,7 @@ class SessionSpecInput:
     plugins: list[ResourceRef] = field(default_factory=list)
     file_review: bool = False
     environment_ref: ResourceRef | None = None
+    resources: list[SessionResourceInput] = field(default_factory=list)
 
     def _to_proto(self) -> session_spec_pb2.SessionSpec:
         msg = session_spec_pb2.SessionSpec(
@@ -285,8 +279,6 @@ class SessionSpecInput:
             msg.agent_ref.CopyFrom(_ref)
         if self.metadata:
             msg.metadata.update(self.metadata)
-        for item in self.workspace_entries:
-            msg.workspace_entries.append(item._to_proto())
         for ref in self.skill_refs:
             _ref = ref._to_proto()
             _ref.kind = 43
@@ -303,29 +295,8 @@ class SessionSpecInput:
             _ref = self.environment_ref._to_proto()
             _ref.kind = 67
             msg.environment_ref.CopyFrom(_ref)
-        return msg
-
-
-@dataclass
-class AttachmentInput:
-    """SDK input type for Attachment."""
-
-    filename: str = ""
-    storage_key: str = ""
-    mount_path: str = ""
-    content_type: str = ""
-    extract: bool = False
-    local_path: str = ""
-
-    def _to_proto(self) -> spec_pb2.Attachment:
-        msg = spec_pb2.Attachment(
-            filename=self.filename,
-            storage_key=self.storage_key,
-            mount_path=self.mount_path,
-            content_type=self.content_type,
-            extract=self.extract,
-            local_path=self.local_path,
-        )
+        for item in self.resources:
+            msg.resources.append(item._to_proto())
         return msg
 
 

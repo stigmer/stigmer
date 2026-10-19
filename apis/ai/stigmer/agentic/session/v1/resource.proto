@@ -1,0 +1,141 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.session.v1;
+
+import "ai/stigmer/agentic/session/v1/enum.proto";
+import "buf/validate/validate.proto";
+
+// SessionResource is one thing a conversation holds: a File the agent finds
+// in its uploads folder, a git repository cloned into its workspace, or a
+// folder on the person's own machine.
+//
+// @internal
+// Shaped as Claude Managed Agents' session resources (`file`,
+// `github_repository`), with Stigmer's local folder beside them. One typed
+// oneof rather than a type-tagged flat message: no lane serves resources in
+// the outside format yet, and a oneof validates and generates better.
+message SessionResource {
+  option (buf.validate.message).cel = {
+    id: "session_resource.name"
+    message: "a repository or a folder needs a name; a file takes none"
+    expression: "has(this.file) ? this.name == '' : this.name != ''"
+  };
+
+  // The directory a repository or a local folder is given in the
+  // workspace: unique among the conversation's repositories and folders.
+  // Empty for a file, which is placed by its mount_path.
+  string name = 1 [(buf.validate.field).string.max_len = 255];
+
+  // Field 2 is left free: a workspace entry's source sat there before the
+  // three resource types became one list.
+  reserved 2;
+
+  // What the resource is: exactly one.
+  oneof resource {
+    option (buf.validate.oneof).required = true;
+
+    // A File the agent finds under .stigmer/uploads/.
+    FileResource file = 3;
+
+    // A git repository cloned into the workspace.
+    GitRepositoryResource git_repository = 4;
+
+    // A folder on the person's own machine, used where it is.
+    LocalPathResource local_path = 5;
+  }
+}
+
+// FileResource names a File the conversation holds and where the agent
+// finds it.
+message FileResource {
+  // The File's id: "file_01j…". A File of the conversation's organization
+  // that is not yet the conversation's becomes the conversation's own copy
+  // when it is named, and the entry names the copy.
+  string file_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Where the agent finds the File, relative to .stigmer/uploads/: "q3/ledger.xlsx".
+  // Empty takes the File's filename, made unique among the conversation's
+  // Files. No leading `/`, no `..` segment, at most 1024 characters.
+  string mount_path = 2 [
+    (buf.validate.field).string.max_len = 1024,
+    (buf.validate.field).cel = {
+      id: "file_resource.mount_path.relative"
+      message: "mount_path is relative to .stigmer/uploads/: no leading /, no .. segment"
+      expression: "!this.startsWith('/') && !this.contains('\\\\') && !this.split('/').exists(s, s == '..')"
+    }
+  ];
+}
+
+// GitRepositoryResource clones a git repository into the workspace.
+//
+// Only HTTPS clone URLs are supported.
+//
+// A private repository is cloned with the resource's own token when it
+// carries one, else with a login saved for the repository's host
+// (github.com) in the vaults the conversation uses. The resource's own
+// token is used only for an https://github.com repository: a session write
+// carrying a token for any other repository is refused.
+//
+// @internal
+// Field numbers are the retired GitRepoSource's, depth (4) dropped, so a
+// stored repository and its sealed token move across unchanged.
+// Authentication: the run's credential resolver fills GITHUB_TOKEN from the
+// resource's token, then from a connection at the clone URL's host. The
+// token is consumed by provisioning and never reaches the agent runtime.
+message GitRepositoryResource {
+  // HTTPS clone URL for the repository.
+  string url = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).cel = {
+      id: "git_repository_resource.url.https"
+      message: "url must use HTTPS (e.g. https://github.com/org/repo). SSH URLs are not supported."
+      expression: "this.startsWith('https://')"
+    }
+  ];
+
+  // Branch to clone. Empty clones the repository's default branch.
+  string branch = 2;
+
+  // Commit to check out after the clone. With a branch, the branch is
+  // cloned first, then the commit is checked out.
+  string commit = 3;
+
+  // Field 4 held a clone depth; a repository is cloned shallow, and a
+  // commit set here is fetched when the shallow clone lacks it.
+  reserved 4;
+  reserved "depth";
+
+  // Whether the platform turns the agent's changes into a branch and a pull
+  // request.
+  //
+  // @internal
+  // A platform workflow, not an agent decision: the pull request appears
+  // when the first file is written and grows as the agent works. Needs a
+  // GITHUB_TOKEN for the run; without one, write-back is skipped. UNSPECIFIED
+  // lets the platform decide: on when git credentials are available.
+  GitWriteBackMode write_back_mode = 5;
+
+  // A token for cloning this repository, kept for the conversation only.
+  //
+  // Used only when the URL is an https://github.com repository; a session
+  // write carrying a token for any other repository is refused. Sealed for
+  // the conversation's life and never returned by a read. A routine's
+  // repositories refuse it: save the token in a vault the routine names.
+  //
+  // @internal
+  // Sealed through the server's SecretService. A read shows the redaction
+  // marker, and a write that sends the marker back keeps the stored token,
+  // so the runner's per-turn session writes never clear it.
+  string token = 6 [(buf.validate.field).string.max_len = 65536];
+}
+
+// LocalPathResource uses a folder on the person's own machine as it is:
+// the agent works on the files directly, and no copy is made.
+//
+// @internal
+// Only a runner in local mode can serve it; a sandboxed runner refuses it
+// when the workspace is provisioned.
+message LocalPathResource {
+  // Absolute path of an existing folder.
+  string path = 1 [(buf.validate.field).string.min_len = 1];
+}

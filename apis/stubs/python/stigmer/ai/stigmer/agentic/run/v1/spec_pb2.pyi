@@ -16,7 +16,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class RunSpec(_message.Message):
-    __slots__ = ("session_id", "session_spec", "message", "run_config", "interaction_mode", "build_from_plan", "structured_output_schema", "tools", "disallowed_tools", "append_system_prompt", "auto_approve_all", "attachments", "workspace_file_refs", "supersedes_run_id", "conversation_catchup", "eval_case", "reconcile_file_review", "excluded_plugin_ids")
+    __slots__ = ("session_id", "session_spec", "message", "run_config", "interaction_mode", "build_from_plan", "structured_output_schema", "tools", "disallowed_tools", "append_system_prompt", "auto_approve_all", "workspace_file_refs", "supersedes_run_id", "conversation_catchup", "eval_case", "reconcile_file_review", "excluded_plugin_ids", "file_ids")
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     SESSION_SPEC_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
@@ -28,13 +28,13 @@ class RunSpec(_message.Message):
     DISALLOWED_TOOLS_FIELD_NUMBER: _ClassVar[int]
     APPEND_SYSTEM_PROMPT_FIELD_NUMBER: _ClassVar[int]
     AUTO_APPROVE_ALL_FIELD_NUMBER: _ClassVar[int]
-    ATTACHMENTS_FIELD_NUMBER: _ClassVar[int]
     WORKSPACE_FILE_REFS_FIELD_NUMBER: _ClassVar[int]
     SUPERSEDES_RUN_ID_FIELD_NUMBER: _ClassVar[int]
     CONVERSATION_CATCHUP_FIELD_NUMBER: _ClassVar[int]
     EVAL_CASE_FIELD_NUMBER: _ClassVar[int]
     RECONCILE_FILE_REVIEW_FIELD_NUMBER: _ClassVar[int]
     EXCLUDED_PLUGIN_IDS_FIELD_NUMBER: _ClassVar[int]
+    FILE_IDS_FIELD_NUMBER: _ClassVar[int]
     session_id: str
     session_spec: _spec_pb2.SessionSpec
     message: str
@@ -46,30 +46,14 @@ class RunSpec(_message.Message):
     disallowed_tools: _containers.RepeatedScalarFieldContainer[str]
     append_system_prompt: str
     auto_approve_all: bool
-    attachments: _containers.RepeatedCompositeFieldContainer[Attachment]
     workspace_file_refs: _containers.RepeatedScalarFieldContainer[str]
     supersedes_run_id: str
     conversation_catchup: ConversationCatchup
     eval_case: _eval_case_pb2.EvalCaseContext
     reconcile_file_review: bool
     excluded_plugin_ids: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, session_id: _Optional[str] = ..., session_spec: _Optional[_Union[_spec_pb2.SessionSpec, _Mapping]] = ..., message: _Optional[str] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., interaction_mode: _Optional[_Union[_enum_pb2.InteractionMode, str]] = ..., build_from_plan: bool = ..., structured_output_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ..., append_system_prompt: _Optional[str] = ..., auto_approve_all: bool = ..., attachments: _Optional[_Iterable[_Union[Attachment, _Mapping]]] = ..., workspace_file_refs: _Optional[_Iterable[str]] = ..., supersedes_run_id: _Optional[str] = ..., conversation_catchup: _Optional[_Union[ConversationCatchup, _Mapping]] = ..., eval_case: _Optional[_Union[_eval_case_pb2.EvalCaseContext, _Mapping]] = ..., reconcile_file_review: bool = ..., excluded_plugin_ids: _Optional[_Iterable[str]] = ...) -> None: ...
-
-class Attachment(_message.Message):
-    __slots__ = ("filename", "storage_key", "mount_path", "content_type", "extract", "local_path")
-    FILENAME_FIELD_NUMBER: _ClassVar[int]
-    STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]
-    MOUNT_PATH_FIELD_NUMBER: _ClassVar[int]
-    CONTENT_TYPE_FIELD_NUMBER: _ClassVar[int]
-    EXTRACT_FIELD_NUMBER: _ClassVar[int]
-    LOCAL_PATH_FIELD_NUMBER: _ClassVar[int]
-    filename: str
-    storage_key: str
-    mount_path: str
-    content_type: str
-    extract: bool
-    local_path: str
-    def __init__(self, filename: _Optional[str] = ..., storage_key: _Optional[str] = ..., mount_path: _Optional[str] = ..., content_type: _Optional[str] = ..., extract: bool = ..., local_path: _Optional[str] = ...) -> None: ...
+    file_ids: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, session_id: _Optional[str] = ..., session_spec: _Optional[_Union[_spec_pb2.SessionSpec, _Mapping]] = ..., message: _Optional[str] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., interaction_mode: _Optional[_Union[_enum_pb2.InteractionMode, str]] = ..., build_from_plan: bool = ..., structured_output_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., tools: _Optional[_Iterable[str]] = ..., disallowed_tools: _Optional[_Iterable[str]] = ..., append_system_prompt: _Optional[str] = ..., auto_approve_all: bool = ..., workspace_file_refs: _Optional[_Iterable[str]] = ..., supersedes_run_id: _Optional[str] = ..., conversation_catchup: _Optional[_Union[ConversationCatchup, _Mapping]] = ..., eval_case: _Optional[_Union[_eval_case_pb2.EvalCaseContext, _Mapping]] = ..., reconcile_file_review: bool = ..., excluded_plugin_ids: _Optional[_Iterable[str]] = ..., file_ids: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class ConversationCatchup(_message.Message):
     __slots__ = ("digest", "window_end")

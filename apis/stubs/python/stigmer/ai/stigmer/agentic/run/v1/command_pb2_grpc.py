@@ -58,11 +58,6 @@ class RunCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.ResumeRunInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.FromString,
                 _registered_method=True)
-        self.uploadAttachment = channel.unary_unary(
-                '/ai.stigmer.agentic.run.v1.RunCommandController/uploadAttachment',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.UploadAttachmentRequest.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.UploadAttachmentResponse.FromString,
-                _registered_method=True)
 
 
 class RunCommandControllerServicer(object):
@@ -163,25 +158,6 @@ class RunCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def uploadAttachment(self, request, context):
-        """─────────────────────────────────────────────────────────────────────────────
-        Artifact Lifecycle Operations
-
-        These RPCs support file attachments and artifacts for runs.
-        Attachments are input files provided before the run; artifacts are
-        output files created during the run.
-        ─────────────────────────────────────────────────────────────────────────────
-
-        Upload a file attachment for use in a run.
-
-        Pre-uploads files to artifact storage before creating a run.
-        The returned storage_key can be used in Attachment.storage_key when
-        creating the run.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
 
 def add_RunCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -224,11 +200,6 @@ def add_RunCommandControllerServicer_to_server(servicer, server):
                     servicer.resume,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.ResumeRunInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.SerializeToString,
-            ),
-            'uploadAttachment': grpc.unary_unary_rpc_method_handler(
-                    servicer.uploadAttachment,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.UploadAttachmentRequest.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.UploadAttachmentResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -449,33 +420,6 @@ class RunCommandController(object):
             '/ai.stigmer.agentic.run.v1.RunCommandController/resume',
             ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.ResumeRunInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def uploadAttachment(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.agentic.run.v1.RunCommandController/uploadAttachment',
-            ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.UploadAttachmentRequest.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.UploadAttachmentResponse.FromString,
             options,
             channel_credentials,
             insecure,

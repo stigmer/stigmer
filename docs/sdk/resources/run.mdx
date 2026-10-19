@@ -80,7 +80,6 @@ Run run = client.runs().get("run_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`resume`](#resume) | Resume a paused run. |
 | [`terminate`](#terminate) | Terminate a run immediately. |
 | [`recover`](#recover) | Recover a failed run. |
-| [`uploadAttachment`](#uploadattachment) | Upload a file attachment for use in a run. |
 
 ### get
 
@@ -583,13 +582,13 @@ const run = await stigmer.run.create({
   disallowedTools: [],
   appendSystemPrompt: "...",
   autoApproveAll: false,
-  attachments: [],
   workspaceFileRefs: [],
   supersedesRunId: "...",
   conversationCatchup: {},
   evalCase: {},
   reconcileFileReview: false,
   excludedPluginIds: [],
+  fileIds: [],
 });
 ```
 </Tab>
@@ -611,13 +610,13 @@ run, err := client.Run.Create(ctx, &stigmer.RunInput{
   DisallowedTools:        []string{},
   AppendSystemPrompt:     "...",
   AutoApproveAll:         false,
-  Attachments:            []stigmer.AttachmentInput{},
   WorkspaceFileRefs:      []string{},
   SupersedesRunId:        "...",
   ConversationCatchup:    &stigmer.ConversationCatchupInput{},
   EvalCase:               &stigmer.EvalCaseContextInput{},
   ReconcileFileReview:    false,
   ExcludedPluginIds:      []string{},
+  FileIds:                []string{},
 })
 ```
 </Tab>
@@ -639,13 +638,13 @@ run = client.runs.create(RunInput(
     disallowed_tools=[],
     append_system_prompt="...",
     auto_approve_all=False,
-    attachments=[],
     workspace_file_refs=[],
     supersedes_run_id="...",
     conversation_catchup=None,
     eval_case=None,
     reconcile_file_review=False,
     excluded_plugin_ids=[],
+    file_ids=[],
 ))
 ```
 </Tab>
@@ -667,13 +666,13 @@ Run run = client.runs().create(RunInput.builder()
     .disallowedTools(List.of())
     .appendSystemPrompt("...")
     .autoApproveAll(false)
-    .attachments(List.of())
     .workspaceFileRefs(List.of())
     .supersedesRunId("...")
     .conversationCatchup(null)
     .evalCase(null)
     .reconcileFileReview(false)
     .excludedPluginIds(List.of())
+    .fileIds(List.of())
     .build());
 ```
 </Tab>
@@ -984,55 +983,6 @@ Run run = client.runs().recover(RecoverRunInput.builder()
 
 **Returns**: [`Run`](#run)
 
-### uploadAttachment
-
-Upload a file attachment for use in a run.
-
-Pre-uploads files to artifact storage before creating a run. The returned storage_key can be used in Attachment.storage_key when creating the run.
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const uploadAttachmentResponse = await stigmer.run.uploadAttachment({
-  filename: "...",
-  content: "...",
-  contentType: "...",
-});
-```
-</Tab>
-<Tab value="Go">
-```go
-uploadAttachmentResponse, err := client.Run.UploadAttachment(ctx, &stigmer.UploadAttachmentRequest{
-  Filename:    "...",
-  Content:     "...",
-  ContentType: "...",
-})
-```
-</Tab>
-<Tab value="Python">
-```python
-upload_attachment_response = client.runs.upload_attachment(UploadAttachmentRequest(
-    filename="...",
-    content="...",
-    content_type="...",
-))
-```
-</Tab>
-<Tab value="Java">
-```java
-UploadAttachmentResponse uploadAttachmentResponse = client.runs().uploadAttachment(UploadAttachmentRequest.builder()
-    .filename("...")
-    .content("...")
-    .contentType("...")
-    .build());
-```
-</Tab>
-</SDKTabs>
-
-**Parameters**: [`UploadAttachmentRequest`](#uploadattachmentrequest)
-
-**Returns**: [`UploadAttachmentResponse`](#uploadattachmentresponse)
-
 ## Types
 
 ### RunInput
@@ -1056,13 +1006,13 @@ Input for creating or updating a Run.
     disallowedTools: { type: "string[]", description: "Tools this turn may never use, in the same names as tools." },
     appendSystemPrompt: { type: "string", description: "Text appended to the system prompt for this turn, as Claude Code's --append-system-prompt." },
     autoApproveAll: { type: "boolean", description: "Auto-approve all tool executions for this run." },
-    attachments: { type: "AttachmentInput[]", description: "Files attached to this run.", typeDescriptionLink: "#attachmentinput" },
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on." },
     supersedesRunId: { type: "string", description: "ID of the run this one supersedes via edit-and-resubmit (optional)." },
     conversationCatchup: { type: "ConversationCatchupInput", description: "Conversation events the agent has not yet seen, composed by the platform for this turn (optional).", typeDescriptionLink: "#conversationcatchupinput" },
     evalCase: { type: "EvalCaseContextInput", description: "What an eval case gives this try beyond its message: a starting folder, reference folders, an earlier conversation, variables and MCP stand-ins.", typeDescriptionLink: "#evalcasecontextinput" },
     reconcileFileReview: { type: "boolean", description: "Set on a turn that only puts back the files a person undid after an earlier turn ended: it runs no model and carries no message." },
     excludedPluginIds: { type: "string[]", description: "Plugins this turn leaves out, by id, wherever the turn would take them from: its agent version, its conversation or one of its subagents." },
+    fileIds: { type: "string[]", description: "Files given with this message, by id (\"file_01j…\"), at most 20." },
   }}
 />
 
@@ -1075,7 +1025,6 @@ SessionSpec defines the configurable properties of a session.
     agentRef: { type: "ResourceRef", description: "The agent this conversation runs, as 'org/slug' with an optional version; empty means no agent, and the built-in assistant answers with the plugins and skills this session itself declares.", typeDescriptionLink: "#resourceref" },
     subject: { type: "string", description: "Conversation title for UI display." },
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs for client-specific information." },
-    workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries for this session.", typeDescriptionLink: "#workspaceentryinput" },
     skillRefs: { type: "ResourceRef[]", description: "Skills to inject into this session's context.", typeDescriptionLink: "#resourceref" },
     harness: { type: "Harness", description: "Execution harness for this session.", typeDescriptionLink: "#harness" },
     cursorMode: { type: "CursorMode", description: "Cursor SDK agent mode for this session.", typeDescriptionLink: "#cursormode" },
@@ -1085,6 +1034,7 @@ SessionSpec defines the configurable properties of a session.
     plugins: { type: "ResourceRef[]", description: "Plugins this conversation uses, each whole, besides its agent's: their skills, agents, hooks and MCP servers.", typeDescriptionLink: "#resourceref" },
     fileReview: { type: "boolean", description: "Whether each turn's file edits are offered for review, Keep or Undo, after the turn." },
     environmentRef: { type: "ResourceRef", description: "The Environment this conversation runs in: the packages its sandboxes get and the websites they may reach.", typeDescriptionLink: "#resourceref" },
+    resources: { type: "SessionResourceInput[]", description: "What the conversation holds: Files the agent finds under .stigmer/uploads/ on every turn, git repositories cloned into its workspace, and folders on the person's own machine.", typeDescriptionLink: "#sessionresourceinput" },
   }}
 />
 
@@ -1102,50 +1052,51 @@ Generic reference to any API resource.
   }}
 />
 
-### WorkspaceEntryInput
+### SessionResourceInput
 
-WorkspaceEntry pairs a WorkspaceSource with a human-readable name, forming an addressable unit within a session's workspace.
-
-<TypeTable
-  type={{
-    name: { type: "string", description: "Short identifier for this workspace entry." },
-    source: { type: "WorkspaceSourceInput", description: "The source that provides this entry's content.", typeDescriptionLink: "#workspacesourceinput", required: true },
-  }}
-/>
-
-### WorkspaceSourceInput
-
-WorkspaceSource defines where the workspace content comes from.
+SessionResource is one thing a conversation holds: a File the agent finds in its uploads folder, a git repository cloned into its workspace, or a folder on the person's own machine.
 
 <TypeTable
   type={{
-    gitRepo: { type: "GitRepoSourceInput", description: "Clone a git repository as the workspace source.", typeDescriptionLink: "#gitreposourceinput" },
-    localPath: { type: "LocalPathSourceInput", description: "Use an existing local directory as the workspace source.", typeDescriptionLink: "#localpathsourceinput" },
+    name: { type: "string", description: "The directory a repository or a local folder is given in the workspace: unique among the conversation's repositories and folders." },
+    file: { type: "FileResourceInput", description: "A File the agent finds under .stigmer/uploads/.", typeDescriptionLink: "#fileresourceinput" },
+    gitRepository: { type: "GitRepositoryResourceInput", description: "A git repository cloned into the workspace.", typeDescriptionLink: "#gitrepositoryresourceinput" },
+    localPath: { type: "LocalPathResourceInput", description: "A folder on the person's own machine, used where it is.", typeDescriptionLink: "#localpathresourceinput" },
   }}
 />
 
-### GitRepoSourceInput
+### FileResourceInput
 
-GitRepoSource provisions a workspace by cloning a git repository.
+FileResource names a File the conversation holds and where the agent finds it.
+
+<TypeTable
+  type={{
+    fileId: { type: "string", description: "The File's id: \"file_01j…\"." },
+    mountPath: { type: "string", description: "Where the agent finds the File, relative to .stigmer/uploads/: \"q3/ledger.xlsx\"." },
+  }}
+/>
+
+### GitRepositoryResourceInput
+
+GitRepositoryResource clones a git repository into the workspace.
 
 <TypeTable
   type={{
     url: { type: "string", description: "HTTPS clone URL for the repository.", required: true },
     branch: { type: "string", description: "Branch to clone." },
-    commit: { type: "string", description: "Commit SHA to checkout after cloning." },
-    depth: { type: "number", description: "Number of commits to include in the clone history." },
-    writeBackMode: { type: "GitWriteBackMode", description: "Controls whether the platform creates a branch and pull request from the agent's file changes.", typeDescriptionLink: "#gitwritebackmode" },
+    commit: { type: "string", description: "Commit to check out after the clone." },
+    writeBackMode: { type: "GitWriteBackMode", description: "Whether the platform turns the agent's changes into a branch and a pull request.", typeDescriptionLink: "#gitwritebackmode" },
     token: { type: "string", description: "A token for cloning this repository, kept for the conversation only." },
   }}
 />
 
-### LocalPathSourceInput
+### LocalPathResourceInput
 
-LocalPathSource uses an existing directory on the host filesystem as the workspace.
+LocalPathResource uses a folder on the person's own machine as it is: the agent works on the files directly, and no copy is made.
 
 <TypeTable
   type={{
-    path: { type: "string", description: "Absolute path to an existing directory on the host filesystem." },
+    path: { type: "string", description: "Absolute path of an existing folder." },
   }}
 />
 
@@ -1161,21 +1112,6 @@ RunConfig is the settings message for every run: a model, a speed tier, thinking
     serviceTier: { type: "ServiceTier", description: "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.", typeDescriptionLink: "#servicetier" },
     thinkingMode: { type: "ThinkingMode", description: "Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output).", typeDescriptionLink: "#thinkingmode" },
     maxToolResultChars: { type: "number", description: "Maximum number of characters for a single tool result before truncation." },
-  }}
-/>
-
-### AttachmentInput
-
-Attachment represents a file attached to a run.
-
-<TypeTable
-  type={{
-    filename: { type: "string", description: "Original filename for display and default mount path derivation." },
-    storageKey: { type: "string", description: "Reference to pre-uploaded file in artifact store (required)." },
-    mountPath: { type: "string", description: "Path in sandbox where file will be placed." },
-    contentType: { type: "string", description: "MIME type for content negotiation (optional)." },
-    extract: { type: "boolean", description: "When true, the attachment is a zip archive that should be extracted at mount_path rather than written as a single file." },
-    localPath: { type: "string", description: "Absolute filesystem path to the original file on the CLI host (optional)." },
   }}
 />
 
@@ -1339,28 +1275,6 @@ ResumeRunInput requests resuming a paused run.
 <TypeTable
   type={{
     id: { type: "string", description: "Run ID to resume." },
-  }}
-/>
-
-### UploadAttachmentRequest
-
-UploadAttachmentRequest uploads a file attachment for use in a run.
-
-<TypeTable
-  type={{
-    filename: { type: "string", description: "Original filename of the attachment." },
-    content: { type: "Uint8Array", description: "Binary content of the file.", required: true },
-    contentType: { type: "string", description: "MIME type of the file content." },
-  }}
-/>
-
-### UploadAttachmentResponse
-
-UploadAttachmentResponse returns the storage key for the uploaded attachment.
-
-<TypeTable
-  type={{
-    storageKey: { type: "string", description: "Storage key for the uploaded attachment." },
   }}
 />
 
@@ -1623,6 +1537,7 @@ RunStatus contains all run results and state.
     credentials: { type: "RunCredentials", description: "Whose logins and secrets this turn uses: decided once when the turn is created, and kept when it is recovered.", typeDescriptionLink: "#runcredentials" },
     evalFiles: { type: "EvalFiles", description: "The files an eval case's graders read, as the try's turn left them.", typeDescriptionLink: "#evalfiles" },
     stopCause: { type: "string", description: "Why the turn stopped, as one word: budget_reached (the cost cap or the tool-call limit), timeout (a stall or the workspace lock), infrastructure (the worker shut down or stopped answering), platform_stop, user (a pause or a cancel), model_error (the model provider failed the turn), failed (any other failure), eval_stopped (an eval case's mock or scaffold stopped the try) or review_resolved (a file review was settled)." },
+    messageFiles: { type: "ContentBlock[]", description: "The files this turn's message carried, as content blocks: an image block for an image File, a document block for any other, each with a file source naming the conversation's own copy.", typeDescriptionLink: "#contentblock" },
   }}
 />
 
@@ -1672,6 +1587,34 @@ A content-addressed snapshot manifest for paths git cannot capture (gitignored o
   type={{
     manifestDigest: { type: "string", description: "Digest of the manifest listing each captured path and its blob digest." },
     artifactUri: { type: "string", description: "Storage URI of the manifest artifact." },
+  }}
+/>
+
+### ContentBlock
+
+ContentBlock is one block of an event's content: text, an image, a document, or a redacted block.
+
+<TypeTable
+  type={{
+    type: { type: "string", description: "The block's kind: text, image, document or redacted." },
+    text: { type: "string", description: "The text of a text block." },
+    source: { type: "ContentSource", description: "Where an image or document block's bytes come from.", typeDescriptionLink: "#contentsource" },
+    context: { type: "string", description: "Context about a document block, for the model." },
+    title: { type: "string", description: "A document block's title." },
+  }}
+/>
+
+### ContentSource
+
+ContentSource says where an image or document block's bytes come from: inline base64 data, inline plain text, a URL, or an uploaded file.
+
+<TypeTable
+  type={{
+    type: { type: "string", description: "The source's kind: base64, text, url or file." },
+    data: { type: "string", description: "The inline data of a base64 or text source." },
+    mediaType: { type: "string", description: "The media type of inline data, for example image/png or text/plain." },
+    url: { type: "string", description: "The address of a url source." },
+    fileId: { type: "string", description: "The uploaded file of a file source." },
   }}
 />
 

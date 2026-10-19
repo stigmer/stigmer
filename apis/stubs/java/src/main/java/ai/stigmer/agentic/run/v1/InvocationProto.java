@@ -48,52 +48,56 @@ public final class InvocationProto extends com.google.protobuf.GeneratedFile {
       "\n*ai/stigmer/agentic/run/v1/invocation.p" +
       "roto\022\031ai.stigmer.agentic.run.v1\032$ai/stig" +
       "mer/agentic/run/v1/enum.proto\032(ai/stigme" +
-      "r/agentic/session/v1/enum.proto\032-ai/stig" +
-      "mer/agentic/session/v1/workspace.proto\0322" +
-      "ai/stigmer/commons/apiresource/field_opt" +
-      "ions.proto\032\'ai/stigmer/commons/apiresour" +
-      "ce/io.proto\032\033buf/validate/validate.proto" +
-      "\"\242\006\n\017AgentInvocation\022]\n\tagent_ref\030\001 \001(\0132" +
-      "4.ai.stigmer.commons.apiresource.ApiReso" +
-      "urceReferenceB\n\272H\003\310\001\001\340\205,(R\010agentRef\022$\n\007m" +
-      "essage\030\002 \001(\tB\n\272H\007r\005\020\001\030\200@R\007message\022@\n\007har" +
-      "ness\030\003 \001(\0162&.ai.stigmer.agentic.session." +
-      "v1.HarnessR\007harness\022\251\002\n\021workspace_entrie" +
-      "s\030\004 \003(\0132-.ai.stigmer.agentic.session.v1." +
-      "WorkspaceEntryB\314\001\272H\310\001\222\001\304\001\"\301\001\272\001\275\001\n\032worksp" +
-      "ace_entries.no_token\022_a repository here " +
-      "cannot carry a token: save it as a conne" +
-      "ction in a vault the invocation names\032>!" +
-      "has(this.source.git_repo) || this.source" +
-      ".git_repo.token == \'\'R\020workspaceEntries\022" +
-      "Z\n\006vaults\030\007 \003(\01324.ai.stigmer.commons.api" +
-      "resource.ApiResourceReferenceB\014\272H\005\222\001\002\020\024\340" +
-      "\205,;R\006vaults\022C\n\nrun_config\030\006 \001(\0132$.ai.sti" +
-      "gmer.agentic.run.v1.RunConfigR\trunConfig" +
-      "\022c\n\017environment_ref\030\010 \001(\01324.ai.stigmer.c" +
-      "ommons.apiresource.ApiResourceReferenceB" +
-      "\004\340\205,CR\016environmentRefJ\004\010\005\020\006R\020environment" +
-      "_refs\"\366\002\n\tRunConfig\022\035\n\nmodel_name\030\001 \001(\tR" +
-      "\tmodelName\0220\n\014max_cost_usd\030\002 \001(\001B\016\272H\013\022\t)" +
-      "\000\000\000\000\000\000\000\000R\nmaxCostUsd\022/\n\017max_tool_rounds\030" +
-      "\003 \001(\005B\007\272H\004\032\002(\000R\rmaxToolRounds\022S\n\014service" +
-      "_tier\030\004 \001(\0162&.ai.stigmer.agentic.run.v1." +
-      "ServiceTierB\010\272H\005\202\001\002\020\001R\013serviceTier\022V\n\rth" +
-      "inking_mode\030\005 \001(\0162\'.ai.stigmer.agentic.r" +
-      "un.v1.ThinkingModeB\010\272H\005\202\001\002\020\001R\014thinkingMo" +
-      "de\022:\n\025max_tool_result_chars\030\006 \001(\005B\007\272H\004\032\002" +
-      "(\000R\022maxToolResultCharsB\232\001B\017InvocationPro" +
-      "toP\001\242\002\004ASAR\252\002\031Ai.Stigmer.Agentic.Run.V1\312" +
-      "\002\031Ai\\Stigmer\\Agentic\\Run\\V1\342\002%Ai\\Stigmer" +
-      "\\Agentic\\Run\\V1\\GPBMetadata\352\002\035Ai::Stigme" +
-      "r::Agentic::Run::V1b\006proto3"
+      "r/agentic/session/v1/enum.proto\032,ai/stig" +
+      "mer/agentic/session/v1/resource.proto\0322a" +
+      "i/stigmer/commons/apiresource/field_opti" +
+      "ons.proto\032\'ai/stigmer/commons/apiresourc" +
+      "e/io.proto\032\033buf/validate/validate.proto\"" +
+      "\266\007\n\017AgentInvocation\022]\n\tagent_ref\030\001 \001(\01324" +
+      ".ai.stigmer.commons.apiresource.ApiResou" +
+      "rceReferenceB\n\272H\003\310\001\001\340\205,(R\010agentRef\022$\n\007me" +
+      "ssage\030\002 \001(\tB\n\272H\007r\005\020\001\030\200@R\007message\022@\n\007harn" +
+      "ess\030\003 \001(\0162&.ai.stigmer.agentic.session.v" +
+      "1.HarnessR\007harness\022Z\n\006vaults\030\007 \003(\01324.ai." +
+      "stigmer.commons.apiresource.ApiResourceR" +
+      "eferenceB\014\272H\005\222\001\002\020\024\340\205,;R\006vaults\022C\n\nrun_co" +
+      "nfig\030\006 \001(\0132$.ai.stigmer.agentic.run.v1.R" +
+      "unConfigR\trunConfig\022c\n\017environment_ref\030\010" +
+      " \001(\01324.ai.stigmer.commons.apiresource.Ap" +
+      "iResourceReferenceB\004\340\205,CR\016environmentRef" +
+      "\022\244\003\n\tresources\030\t \003(\0132..ai.stigmer.agenti" +
+      "c.session.v1.SessionResourceB\325\002\272H\321\002\222\001\315\002\020" +
+      "\364\003\"\307\002\272\001\214\001\n\027resources.no_local_path\022Za ro" +
+      "utine\'s runs cannot use a folder on some" +
+      "one\'s machine: name a git repository or " +
+      "a File\032\025!has(this.local_path)\272\001\263\001\n\022resou" +
+      "rces.no_token\022_a repository here cannot " +
+      "carry a token: save it as a connection i" +
+      "n a vault the invocation names\032<!has(thi" +
+      "s.git_repository) || this.git_repository" +
+      ".token == \'\'R\tresourcesJ\004\010\004\020\005J\004\010\005\020\006R\021wor" +
+      "kspace_entriesR\020environment_refs\"\366\002\n\tRun" +
+      "Config\022\035\n\nmodel_name\030\001 \001(\tR\tmodelName\0220\n" +
+      "\014max_cost_usd\030\002 \001(\001B\016\272H\013\022\t)\000\000\000\000\000\000\000\000R\nmax" +
+      "CostUsd\022/\n\017max_tool_rounds\030\003 \001(\005B\007\272H\004\032\002(" +
+      "\000R\rmaxToolRounds\022S\n\014service_tier\030\004 \001(\0162&" +
+      ".ai.stigmer.agentic.run.v1.ServiceTierB\010" +
+      "\272H\005\202\001\002\020\001R\013serviceTier\022V\n\rthinking_mode\030\005" +
+      " \001(\0162\'.ai.stigmer.agentic.run.v1.Thinkin" +
+      "gModeB\010\272H\005\202\001\002\020\001R\014thinkingMode\022:\n\025max_too" +
+      "l_result_chars\030\006 \001(\005B\007\272H\004\032\002(\000R\022maxToolRe" +
+      "sultCharsB\232\001B\017InvocationProtoP\001\242\002\004ASAR\252\002" +
+      "\031Ai.Stigmer.Agentic.Run.V1\312\002\031Ai\\Stigmer\\" +
+      "Agentic\\Run\\V1\342\002%Ai\\Stigmer\\Agentic\\Run\\" +
+      "V1\\GPBMetadata\352\002\035Ai::Stigmer::Agentic::R" +
+      "un::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.run.v1.EnumProto.getDescriptor(),
           ai.stigmer.agentic.session.v1.EnumProto.getDescriptor(),
-          ai.stigmer.agentic.session.v1.WorkspaceProto.getDescriptor(),
+          ai.stigmer.agentic.session.v1.ResourceProto.getDescriptor(),
           ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
@@ -103,7 +107,7 @@ public final class InvocationProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_run_v1_AgentInvocation_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_run_v1_AgentInvocation_descriptor,
-        new java.lang.String[] { "AgentRef", "Message", "Harness", "WorkspaceEntries", "Vaults", "RunConfig", "EnvironmentRef", });
+        new java.lang.String[] { "AgentRef", "Message", "Harness", "Vaults", "RunConfig", "EnvironmentRef", "Resources", });
     internal_static_ai_stigmer_agentic_run_v1_RunConfig_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_run_v1_RunConfig_fieldAccessorTable = new
@@ -113,7 +117,7 @@ public final class InvocationProto extends com.google.protobuf.GeneratedFile {
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.run.v1.EnumProto.getDescriptor();
     ai.stigmer.agentic.session.v1.EnumProto.getDescriptor();
-    ai.stigmer.agentic.session.v1.WorkspaceProto.getDescriptor();
+    ai.stigmer.agentic.session.v1.ResourceProto.getDescriptor();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

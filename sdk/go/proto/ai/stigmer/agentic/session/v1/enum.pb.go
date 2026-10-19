@@ -288,7 +288,7 @@ const (
 	CursorMode_CURSOR_MODE_LOCAL CursorMode = 1
 	// Cloud Cursor agent created with a cloud repos configuration.
 	//
-	// Requires all workspace entries to be GitRepoSource (HTTPS URLs).
+	// Requires every resource to be a git repository (HTTPS URL).
 	// Cursor natively manages conversation state for cloud agents.
 	// Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED.
 	CursorMode_CURSOR_MODE_CLOUD CursorMode = 2

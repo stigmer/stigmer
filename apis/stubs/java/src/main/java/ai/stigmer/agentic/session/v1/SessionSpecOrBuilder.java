@@ -173,80 +173,6 @@ java.lang.String defaultValue);
 
   /**
    * <pre>
-   * Workspace entries for this session.
-   *
-   * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first run;
-   * subsequent runs reuse the same workspace.
-   *
-   * When empty, the session uses an empty workspace directory.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-   */
-  java.util.List<ai.stigmer.agentic.session.v1.WorkspaceEntry> 
-      getWorkspaceEntriesList();
-  /**
-   * <pre>
-   * Workspace entries for this session.
-   *
-   * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first run;
-   * subsequent runs reuse the same workspace.
-   *
-   * When empty, the session uses an empty workspace directory.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-   */
-  ai.stigmer.agentic.session.v1.WorkspaceEntry getWorkspaceEntries(int index);
-  /**
-   * <pre>
-   * Workspace entries for this session.
-   *
-   * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first run;
-   * subsequent runs reuse the same workspace.
-   *
-   * When empty, the session uses an empty workspace directory.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-   */
-  int getWorkspaceEntriesCount();
-  /**
-   * <pre>
-   * Workspace entries for this session.
-   *
-   * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first run;
-   * subsequent runs reuse the same workspace.
-   *
-   * When empty, the session uses an empty workspace directory.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder> 
-      getWorkspaceEntriesOrBuilderList();
-  /**
-   * <pre>
-   * Workspace entries for this session.
-   *
-   * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first run;
-   * subsequent runs reuse the same workspace.
-   *
-   * When empty, the session uses an empty workspace directory.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-   */
-  ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder getWorkspaceEntriesOrBuilder(
-      int index);
-
-  /**
-   * <pre>
    * Skills to inject into this session's context.
    *
    * Provides domain-specific knowledge for this specific conversation without
@@ -671,4 +597,118 @@ java.lang.String defaultValue);
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefOrBuilder();
+
+  /**
+   * <pre>
+   * What the conversation holds: Files the agent finds under
+   * .stigmer/uploads/ on every turn, git repositories cloned into its
+   * workspace, and folders on the person's own machine. Repositories and
+   * folders are provisioned on the first turn and reused after it.
+   *
+   * A File named here that is not yet the conversation's (an organization
+   * File the writer may view) becomes the conversation's own copy over the
+   * same bytes, and the entry names the copy: deleting the original later
+   * leaves the conversation's copy. A File of another organization is
+   * refused. At most 500 files; repository and folder names are unique, and
+   * so are the files' mount paths.
+   *
+   * A turn's own files (RunSpec.file_ids) join this list when the turn is
+   * created, so whoever may send the conversation a message may add files
+   * without editing it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<ai.stigmer.agentic.session.v1.SessionResource> 
+      getResourcesList();
+  /**
+   * <pre>
+   * What the conversation holds: Files the agent finds under
+   * .stigmer/uploads/ on every turn, git repositories cloned into its
+   * workspace, and folders on the person's own machine. Repositories and
+   * folders are provisioned on the first turn and reused after it.
+   *
+   * A File named here that is not yet the conversation's (an organization
+   * File the writer may view) becomes the conversation's own copy over the
+   * same bytes, and the entry names the copy: deleting the original later
+   * leaves the conversation's copy. A File of another organization is
+   * refused. At most 500 files; repository and folder names are unique, and
+   * so are the files' mount paths.
+   *
+   * A turn's own files (RunSpec.file_ids) join this list when the turn is
+   * created, so whoever may send the conversation a message may add files
+   * without editing it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.agentic.session.v1.SessionResource getResources(int index);
+  /**
+   * <pre>
+   * What the conversation holds: Files the agent finds under
+   * .stigmer/uploads/ on every turn, git repositories cloned into its
+   * workspace, and folders on the person's own machine. Repositories and
+   * folders are provisioned on the first turn and reused after it.
+   *
+   * A File named here that is not yet the conversation's (an organization
+   * File the writer may view) becomes the conversation's own copy over the
+   * same bytes, and the entry names the copy: deleting the original later
+   * leaves the conversation's copy. A File of another organization is
+   * refused. At most 500 files; repository and folder names are unique, and
+   * so are the files' mount paths.
+   *
+   * A turn's own files (RunSpec.file_ids) join this list when the turn is
+   * created, so whoever may send the conversation a message may add files
+   * without editing it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  int getResourcesCount();
+  /**
+   * <pre>
+   * What the conversation holds: Files the agent finds under
+   * .stigmer/uploads/ on every turn, git repositories cloned into its
+   * workspace, and folders on the person's own machine. Repositories and
+   * folders are provisioned on the first turn and reused after it.
+   *
+   * A File named here that is not yet the conversation's (an organization
+   * File the writer may view) becomes the conversation's own copy over the
+   * same bytes, and the entry names the copy: deleting the original later
+   * leaves the conversation's copy. A File of another organization is
+   * refused. At most 500 files; repository and folder names are unique, and
+   * so are the files' mount paths.
+   *
+   * A turn's own files (RunSpec.file_ids) join this list when the turn is
+   * created, so whoever may send the conversation a message may add files
+   * without editing it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.session.v1.SessionResourceOrBuilder> 
+      getResourcesOrBuilderList();
+  /**
+   * <pre>
+   * What the conversation holds: Files the agent finds under
+   * .stigmer/uploads/ on every turn, git repositories cloned into its
+   * workspace, and folders on the person's own machine. Repositories and
+   * folders are provisioned on the first turn and reused after it.
+   *
+   * A File named here that is not yet the conversation's (an organization
+   * File the writer may view) becomes the conversation's own copy over the
+   * same bytes, and the entry names the copy: deleting the original later
+   * leaves the conversation's copy. A File of another organization is
+   * refused. At most 500 files; repository and folder names are unique, and
+   * so are the files' mount paths.
+   *
+   * A turn's own files (RunSpec.file_ids) join this list when the turn is
+   * created, so whoever may send the conversation a message may add files
+   * without editing it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.agentic.session.v1.SessionResourceOrBuilder getResourcesOrBuilder(
+      int index);
 }

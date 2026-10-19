@@ -3,7 +3,7 @@ syntax = "proto3";
 package ai.stigmer.agentic.session.v1;
 
 import "ai/stigmer/agentic/session/v1/enum.proto";
-import "ai/stigmer/agentic/session/v1/workspace.proto";
+import "ai/stigmer/agentic/session/v1/resource.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
@@ -63,14 +63,10 @@ message SessionSpec {
   // Custom key-value pairs for client-specific information.
   map<string, string> metadata = 5;
 
-  // Workspace entries for this session.
-  //
-  // Each entry pairs a name with a source (git repo or local path), forming
-  // a multi-root workspace. Entries are provisioned on the first run;
-  // subsequent runs reuse the same workspace.
-  //
-  // When empty, the session uses an empty workspace directory.
-  repeated WorkspaceEntry workspace_entries = 6;
+  // Field 6 held the conversation's workspace entries until its files,
+  // repositories and folders became one list (resources).
+  reserved 6;
+  reserved "workspace_entries";
 
   // Field 7 named MCP server resources this conversation added until an MCP
   // server became configuration inside a plugin: a conversation lists the
@@ -216,4 +212,21 @@ message SessionSpec {
   // Refused up front where the server's sandbox driver cannot install its
   // packages or limit its networking (domain/run/environment-admission.ts).
   ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [(ai.stigmer.commons.apiresource.reference_kind) = environment];
+
+  // What the conversation holds: Files the agent finds under
+  // .stigmer/uploads/ on every turn, git repositories cloned into its
+  // workspace, and folders on the person's own machine. Repositories and
+  // folders are provisioned on the first turn and reused after it.
+  //
+  // A File named here that is not yet the conversation's (an organization
+  // File the writer may view) becomes the conversation's own copy over the
+  // same bytes, and the entry names the copy: deleting the original later
+  // leaves the conversation's copy. A File of another organization is
+  // refused. At most 500 files; repository and folder names are unique, and
+  // so are the files' mount paths.
+  //
+  // A turn's own files (RunSpec.file_ids) join this list when the turn is
+  // created, so whoever may send the conversation a message may add files
+  // without editing it.
+  repeated SessionResource resources = 22 [(buf.validate.field).repeated.max_items = 1000];
 }

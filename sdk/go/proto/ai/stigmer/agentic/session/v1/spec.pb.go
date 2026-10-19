@@ -52,14 +52,6 @@ type SessionSpec struct {
 	Subject string `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
 	// Custom key-value pairs for client-specific information.
 	Metadata map[string]string `protobuf:"bytes,5,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Workspace entries for this session.
-	//
-	// Each entry pairs a name with a source (git repo or local path), forming
-	// a multi-root workspace. Entries are provisioned on the first run;
-	// subsequent runs reuse the same workspace.
-	//
-	// When empty, the session uses an empty workspace directory.
-	WorkspaceEntries []*WorkspaceEntry `protobuf:"bytes,6,rep,name=workspace_entries,json=workspaceEntries,proto3" json:"workspace_entries,omitempty"`
 	// Skills to inject into this session's context.
 	//
 	// Provides domain-specific knowledge for this specific conversation without
@@ -146,8 +138,24 @@ type SessionSpec struct {
 	// machine. Naming one needs permission to view it, and every turn asks
 	// it again.
 	EnvironmentRef *apiresource.ApiResourceReference `protobuf:"bytes,21,opt,name=environment_ref,json=environmentRef,proto3" json:"environment_ref,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// What the conversation holds: Files the agent finds under
+	// .stigmer/uploads/ on every turn, git repositories cloned into its
+	// workspace, and folders on the person's own machine. Repositories and
+	// folders are provisioned on the first turn and reused after it.
+	//
+	// A File named here that is not yet the conversation's (an organization
+	// File the writer may view) becomes the conversation's own copy over the
+	// same bytes, and the entry names the copy: deleting the original later
+	// leaves the conversation's copy. A File of another organization is
+	// refused. At most 500 files; repository and folder names are unique, and
+	// so are the files' mount paths.
+	//
+	// A turn's own files (RunSpec.file_ids) join this list when the turn is
+	// created, so whoever may send the conversation a message may add files
+	// without editing it.
+	Resources     []*SessionResource `protobuf:"bytes,22,rep,name=resources,proto3" json:"resources,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SessionSpec) Reset() {
@@ -197,13 +205,6 @@ func (x *SessionSpec) GetSubject() string {
 func (x *SessionSpec) GetMetadata() map[string]string {
 	if x != nil {
 		return x.Metadata
-	}
-	return nil
-}
-
-func (x *SessionSpec) GetWorkspaceEntries() []*WorkspaceEntry {
-	if x != nil {
-		return x.WorkspaceEntries
 	}
 	return nil
 }
@@ -271,16 +272,22 @@ func (x *SessionSpec) GetEnvironmentRef() *apiresource.ApiResourceReference {
 	return nil
 }
 
+func (x *SessionSpec) GetResources() []*SessionResource {
+	if x != nil {
+		return x.Resources
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xa1\t\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a,ai/stigmer/agentic/session/v1/resource.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xb7\t\n" +
 	"\vSessionSpec\x12W\n" +
 	"\tagent_ref\x18\x0e \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,(R\bagentRef\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12T\n" +
-	"\bmetadata\x18\x05 \x03(\v28.ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntryR\bmetadata\x12Z\n" +
-	"\x11workspace_entries\x18\x06 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12Y\n" +
+	"\bmetadata\x18\x05 \x03(\v28.ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntryR\bmetadata\x12Y\n" +
 	"\n" +
 	"skill_refs\x18\b \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,+R\tskillRefs\x12@\n" +
 	"\aharness\x18\n" +
@@ -293,10 +300,11 @@ const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\aplugins\x18\x13 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,:R\aplugins\x12\x1f\n" +
 	"\vfile_review\x18\x14 \x01(\bR\n" +
 	"fileReview\x12c\n" +
-	"\x0fenvironment_ref\x18\x15 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,CR\x0eenvironmentRef\x1a;\n" +
+	"\x0fenvironment_ref\x18\x15 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,CR\x0eenvironmentRef\x12W\n" +
+	"\tresources\x18\x16 \x03(\v2..ai.stigmer.agentic.session.v1.SessionResourceB\t\xbaH\x06\x92\x01\x03\x10\xe8\aR\tresources\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x01\x10\x02J\x04\b\x03\x10\x04J\x04\b\r\x10\x0eJ\x04\b\a\x10\bJ\x04\b\x10\x10\x11J\x04\b\x11\x10\x12R\x11agent_instance_idR\x10harness_state_idR\x18harness_state_id_historyR\x11mcp_server_usagesR\asecretsR\vconnectionsB\x88\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x01\x10\x02J\x04\b\x03\x10\x04J\x04\b\r\x10\x0eJ\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\x10\x10\x11J\x04\b\x11\x10\x12R\x11agent_instance_idR\x10harness_state_idR\x18harness_state_id_historyR\x11workspace_entriesR\x11mcp_server_usagesR\asecretsR\vconnectionsB\x88\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\tSpecProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
@@ -316,22 +324,22 @@ var file_ai_stigmer_agentic_session_v1_spec_proto_goTypes = []any{
 	(*SessionSpec)(nil),                      // 0: ai.stigmer.agentic.session.v1.SessionSpec
 	nil,                                      // 1: ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
 	(*apiresource.ApiResourceReference)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*WorkspaceEntry)(nil),                   // 3: ai.stigmer.agentic.session.v1.WorkspaceEntry
-	(Harness)(0),                             // 4: ai.stigmer.agentic.session.v1.Harness
-	(CursorMode)(0),                          // 5: ai.stigmer.agentic.session.v1.CursorMode
-	(ExecutionTarget)(0),                     // 6: ai.stigmer.agentic.session.v1.ExecutionTarget
+	(Harness)(0),                             // 3: ai.stigmer.agentic.session.v1.Harness
+	(CursorMode)(0),                          // 4: ai.stigmer.agentic.session.v1.CursorMode
+	(ExecutionTarget)(0),                     // 5: ai.stigmer.agentic.session.v1.ExecutionTarget
+	(*SessionResource)(nil),                  // 6: ai.stigmer.agentic.session.v1.SessionResource
 }
 var file_ai_stigmer_agentic_session_v1_spec_proto_depIdxs = []int32{
 	2,  // 0: ai.stigmer.agentic.session.v1.SessionSpec.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	1,  // 1: ai.stigmer.agentic.session.v1.SessionSpec.metadata:type_name -> ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
-	3,  // 2: ai.stigmer.agentic.session.v1.SessionSpec.workspace_entries:type_name -> ai.stigmer.agentic.session.v1.WorkspaceEntry
-	2,  // 3: ai.stigmer.agentic.session.v1.SessionSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	4,  // 4: ai.stigmer.agentic.session.v1.SessionSpec.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
-	5,  // 5: ai.stigmer.agentic.session.v1.SessionSpec.cursor_mode:type_name -> ai.stigmer.agentic.session.v1.CursorMode
-	6,  // 6: ai.stigmer.agentic.session.v1.SessionSpec.execution_target:type_name -> ai.stigmer.agentic.session.v1.ExecutionTarget
-	2,  // 7: ai.stigmer.agentic.session.v1.SessionSpec.vaults:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2,  // 8: ai.stigmer.agentic.session.v1.SessionSpec.plugins:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2,  // 9: ai.stigmer.agentic.session.v1.SessionSpec.environment_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	2,  // 2: ai.stigmer.agentic.session.v1.SessionSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	3,  // 3: ai.stigmer.agentic.session.v1.SessionSpec.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
+	4,  // 4: ai.stigmer.agentic.session.v1.SessionSpec.cursor_mode:type_name -> ai.stigmer.agentic.session.v1.CursorMode
+	5,  // 5: ai.stigmer.agentic.session.v1.SessionSpec.execution_target:type_name -> ai.stigmer.agentic.session.v1.ExecutionTarget
+	2,  // 6: ai.stigmer.agentic.session.v1.SessionSpec.vaults:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	2,  // 7: ai.stigmer.agentic.session.v1.SessionSpec.plugins:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	2,  // 8: ai.stigmer.agentic.session.v1.SessionSpec.environment_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	6,  // 9: ai.stigmer.agentic.session.v1.SessionSpec.resources:type_name -> ai.stigmer.agentic.session.v1.SessionResource
 	10, // [10:10] is the sub-list for method output_type
 	10, // [10:10] is the sub-list for method input_type
 	10, // [10:10] is the sub-list for extension type_name
@@ -345,7 +353,7 @@ func file_ai_stigmer_agentic_session_v1_spec_proto_init() {
 		return
 	}
 	file_ai_stigmer_agentic_session_v1_enum_proto_init()
-	file_ai_stigmer_agentic_session_v1_workspace_proto_init()
+	file_ai_stigmer_agentic_session_v1_resource_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

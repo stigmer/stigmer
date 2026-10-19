@@ -6,8 +6,8 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { CursorMode, ExecutionTarget, Harness } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_session_v1_enum } from "./enum_pb.js";
-import type { WorkspaceEntry } from "./workspace_pb.js";
-import { file_ai_stigmer_agentic_session_v1_workspace } from "./workspace_pb.js";
+import type { SessionResource } from "./resource_pb.js";
+import { file_ai_stigmer_agentic_session_v1_resource } from "./resource_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
 import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -18,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSL4BwoLU2Vzc2lvblNwZWMSTQoJYWdlbnRfcmVmGA4gASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSwoEg8KB3N1YmplY3QYAiABKAkSSgoIbWV0YWRhdGEYBSADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYy5NZXRhZGF0YUVudHJ5EkgKEXdvcmtzcGFjZV9lbnRyaWVzGAYgAygLMi0uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuV29ya3NwYWNlRW50cnkSTgoKc2tpbGxfcmVmcxgIIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsKxI3CgdoYXJuZXNzGAogASgOMiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSGFybmVzcxI+CgtjdXJzb3JfbW9kZRgLIAEoDjIpLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkN1cnNvck1vZGUSSAoQZXhlY3V0aW9uX3RhcmdldBgMIAEoDjIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkV4ZWN1dGlvblRhcmdldBJSCgZ2YXVsdHMYDyADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCDLpIBZIBAhAU4IUsOxIYChBpbmNsdWRlX215X3ZhdWx0GBIgASgIEksKB3BsdWdpbnMYEyADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLDoSEwoLZmlsZV9yZXZpZXcYFCABKAgSUwoPZW52aXJvbm1lbnRfcmVmGBUgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSxDGi8KDU1ldGFkYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AUoECAEQAkoECAMQBEoECA0QDkoECAcQCEoECBAQEUoECBEQElIRYWdlbnRfaW5zdGFuY2VfaWRSEGhhcm5lc3Nfc3RhdGVfaWRSGGhhcm5lc3Nfc3RhdGVfaWRfaGlzdG9yeVIRbWNwX3NlcnZlcl91c2FnZXNSB3NlY3JldHNSC2Nvbm5lY3Rpb25zYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSKVCAoLU2Vzc2lvblNwZWMSTQoJYWdlbnRfcmVmGA4gASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSwoEg8KB3N1YmplY3QYAiABKAkSSgoIbWV0YWRhdGEYBSADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYy5NZXRhZGF0YUVudHJ5Ek4KCnNraWxsX3JlZnMYCCADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCBOCFLCsSNwoHaGFybmVzcxgKIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3MSPgoLY3Vyc29yX21vZGUYCyABKA4yKS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5DdXJzb3JNb2RlEkgKEGV4ZWN1dGlvbl90YXJnZXQYDCABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5FeGVjdXRpb25UYXJnZXQSUgoGdmF1bHRzGA8gAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgy6SAWSAQIQFOCFLDsSGAoQaW5jbHVkZV9teV92YXVsdBgSIAEoCBJLCgdwbHVnaW5zGBMgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSw6EhMKC2ZpbGVfcmV2aWV3GBQgASgIElMKD2Vudmlyb25tZW50X3JlZhgVIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsQxJMCglyZXNvdXJjZXMYFiADKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uUmVzb3VyY2VCCbpIBpIBAxDoBxovCg1NZXRhZGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFKBAgBEAJKBAgDEARKBAgNEA5KBAgGEAdKBAgHEAhKBAgQEBFKBAgREBJSEWFnZW50X2luc3RhbmNlX2lkUhBoYXJuZXNzX3N0YXRlX2lkUhhoYXJuZXNzX3N0YXRlX2lkX2hpc3RvcnlSEXdvcmtzcGFjZV9lbnRyaWVzUhFtY3Bfc2VydmVyX3VzYWdlc1IHc2VjcmV0c1ILY29ubmVjdGlvbnNiBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_resource, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * SessionSpec defines the configurable properties of a session.
@@ -66,19 +66,6 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * @generated from field: map<string, string> metadata = 5;
    */
   metadata: { [key: string]: string };
-
-  /**
-   * Workspace entries for this session.
-   *
-   * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first run;
-   * subsequent runs reuse the same workspace.
-   *
-   * When empty, the session uses an empty workspace directory.
-   *
-   * @generated from field: repeated ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6;
-   */
-  workspaceEntries: WorkspaceEntry[];
 
   /**
    * Skills to inject into this session's context.
@@ -210,6 +197,27 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21;
    */
   environmentRef?: ApiResourceReference;
+
+  /**
+   * What the conversation holds: Files the agent finds under
+   * .stigmer/uploads/ on every turn, git repositories cloned into its
+   * workspace, and folders on the person's own machine. Repositories and
+   * folders are provisioned on the first turn and reused after it.
+   *
+   * A File named here that is not yet the conversation's (an organization
+   * File the writer may view) becomes the conversation's own copy over the
+   * same bytes, and the entry names the copy: deleting the original later
+   * leaves the conversation's copy. A File of another organization is
+   * refused. At most 500 files; repository and folder names are unique, and
+   * so are the files' mount paths.
+   *
+   * A turn's own files (RunSpec.file_ids) join this list when the turn is
+   * created, so whoever may send the conversation a message may add files
+   * without editing it.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.session.v1.SessionResource resources = 22;
+   */
+  resources: SessionResource[];
 };
 
 /**

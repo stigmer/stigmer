@@ -219,10 +219,10 @@ public interface RunStatusOrBuilder extends
    * <pre>
    * Git write-back outcomes for workspace entries that had changes.
    *
-   * One entry per git-backed workspace entry where the agent modified
-   * files and write_back_mode was enabled on the GitRepoSource. Omitted
-   * for workspace entries with no changes, non-git sources, or disabled
-   * write-back mode.
+   * One entry per git repository the conversation holds where the agent
+   * modified files and write_back_mode was enabled on the
+   * GitRepositoryResource. Omitted for repositories with no changes, local
+   * folders, or disabled write-back mode.
    *
    * Populated during post-run processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -237,10 +237,10 @@ public interface RunStatusOrBuilder extends
    * <pre>
    * Git write-back outcomes for workspace entries that had changes.
    *
-   * One entry per git-backed workspace entry where the agent modified
-   * files and write_back_mode was enabled on the GitRepoSource. Omitted
-   * for workspace entries with no changes, non-git sources, or disabled
-   * write-back mode.
+   * One entry per git repository the conversation holds where the agent
+   * modified files and write_back_mode was enabled on the
+   * GitRepositoryResource. Omitted for repositories with no changes, local
+   * folders, or disabled write-back mode.
    *
    * Populated during post-run processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -254,10 +254,10 @@ public interface RunStatusOrBuilder extends
    * <pre>
    * Git write-back outcomes for workspace entries that had changes.
    *
-   * One entry per git-backed workspace entry where the agent modified
-   * files and write_back_mode was enabled on the GitRepoSource. Omitted
-   * for workspace entries with no changes, non-git sources, or disabled
-   * write-back mode.
+   * One entry per git repository the conversation holds where the agent
+   * modified files and write_back_mode was enabled on the
+   * GitRepositoryResource. Omitted for repositories with no changes, local
+   * folders, or disabled write-back mode.
    *
    * Populated during post-run processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -271,10 +271,10 @@ public interface RunStatusOrBuilder extends
    * <pre>
    * Git write-back outcomes for workspace entries that had changes.
    *
-   * One entry per git-backed workspace entry where the agent modified
-   * files and write_back_mode was enabled on the GitRepoSource. Omitted
-   * for workspace entries with no changes, non-git sources, or disabled
-   * write-back mode.
+   * One entry per git repository the conversation holds where the agent
+   * modified files and write_back_mode was enabled on the
+   * GitRepositoryResource. Omitted for repositories with no changes, local
+   * folders, or disabled write-back mode.
    *
    * Populated during post-run processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -289,10 +289,10 @@ public interface RunStatusOrBuilder extends
    * <pre>
    * Git write-back outcomes for workspace entries that had changes.
    *
-   * One entry per git-backed workspace entry where the agent modified
-   * files and write_back_mode was enabled on the GitRepoSource. Omitted
-   * for workspace entries with no changes, non-git sources, or disabled
-   * write-back mode.
+   * One entry per git repository the conversation holds where the agent
+   * modified files and write_back_mode was enabled on the
+   * GitRepositoryResource. Omitted for repositories with no changes, local
+   * folders, or disabled write-back mode.
    *
    * Populated during post-run processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -798,4 +798,63 @@ public interface RunStatusOrBuilder extends
    */
   com.google.protobuf.ByteString
       getStopCauseBytes();
+
+  /**
+   * <pre>
+   * The files this turn's message carried, as content blocks: an image
+   * block for an image File, a document block for any other, each with a
+   * file source naming the conversation's own copy. The turn's
+   * user.message event carries them after its text.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.session.v1.ContentBlock> 
+      getMessageFilesList();
+  /**
+   * <pre>
+   * The files this turn's message carried, as content blocks: an image
+   * block for an image File, a document block for any other, each with a
+   * file source naming the conversation's own copy. The turn's
+   * user.message event carries them after its text.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+   */
+  ai.stigmer.agentic.session.v1.ContentBlock getMessageFiles(int index);
+  /**
+   * <pre>
+   * The files this turn's message carried, as content blocks: an image
+   * block for an image File, a document block for any other, each with a
+   * file source naming the conversation's own copy. The turn's
+   * user.message event carries them after its text.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+   */
+  int getMessageFilesCount();
+  /**
+   * <pre>
+   * The files this turn's message carried, as content blocks: an image
+   * block for an image File, a document block for any other, each with a
+   * file source naming the conversation's own copy. The turn's
+   * user.message event carries them after its text.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.session.v1.ContentBlockOrBuilder> 
+      getMessageFilesOrBuilderList();
+  /**
+   * <pre>
+   * The files this turn's message carried, as content blocks: an image
+   * block for an image File, a document block for any other, each with a
+   * file source naming the conversation's own copy. The turn's
+   * user.message event carries them after its text.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+   */
+  ai.stigmer.agentic.session.v1.ContentBlockOrBuilder getMessageFilesOrBuilder(
+      int index);
 }

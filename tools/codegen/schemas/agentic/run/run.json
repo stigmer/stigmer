@@ -139,20 +139,6 @@
       "required": false
     },
     {
-      "name": "Attachments",
-      "jsonName": "attachments",
-      "protoField": "attachments",
-      "type": {
-        "kind": "array",
-        "elementType": {
-          "kind": "message",
-          "messageType": "Attachment"
-        }
-      },
-      "description": "Files attached to this run.\n\n Attachments are injected into the sandbox before the run begins.\n The agent can read these files from the specified mount paths.\n\n Use cases:\n - Provide input data files to process\n - Pass configuration files\n - Supply reference documents for analysis\n\n Example CLI usage:\n   stigmer run agent my-agent --attach ./config.yaml -m \"Process this config\"",
-      "required": false
-    },
-    {
       "name": "WorkspaceFileRefs",
       "jsonName": "workspaceFileRefs",
       "protoField": "workspace_file_refs",
@@ -162,7 +148,7 @@
           "kind": "string"
         }
       },
-      "description": "Workspace-relative file paths the user wants the agent to focus on.\n\n When users reference files that exist inside the session's workspace,\n the client records the workspace-relative path here instead of uploading.\n The agent accesses these files directly via the workspace filesystem --\n no upload, no copy, no injection.\n\n This separates the \"attention\" signal (\"look at this file\") from the\n \"transport\" mechanism (upload + inject) that regular attachments use.\n\n Works for any workspace type with a resolvable filesystem post-provisioning\n (local-path workspaces, git-cloned workspaces, or any future source type).\n The runner resolves paths after workspace provisioning regardless of source.\n\n Populated by:\n   - CLI: detects --attach paths inside workspace roots automatically\n   - Web/Desktop: drag-to-reference from workspace file tree to composer\n\n Example CLI usage:\n   stigmer run agent reviewer --workspace . --attach ./src/config.yaml -m \"Review\"\n   # CLI detects src/config.yaml is inside workspace -\u003e workspace_file_ref\n   # No upload, no injection; agent reads directly from src/config.yaml",
+      "description": "Workspace-relative file paths the user wants the agent to focus on.\n\n When users reference files that exist inside the session's workspace,\n the client records the workspace-relative path here instead of uploading.\n The agent accesses these files directly via the workspace filesystem --\n no upload, no copy, no injection.\n\n This separates the \"attention\" signal (\"look at this file\") from the\n \"transport\" a File gives (upload, then name it in file_ids).\n\n Works for any workspace type with a resolvable filesystem post-provisioning\n (local-path workspaces, git-cloned workspaces, or any future source type).\n The runner resolves paths after workspace provisioning regardless of source.\n\n Populated by:\n   - CLI: detects --attach paths inside workspace roots automatically\n   - Web/Desktop: drag-to-reference from workspace file tree to composer\n\n Example CLI usage:\n   stigmer run agent reviewer --workspace . --attach ./src/config.yaml -m \"Review\"\n   # CLI detects src/config.yaml is inside workspace -\u003e workspace_file_ref\n   # No upload, no injection; agent reads directly from src/config.yaml",
       "required": false
     },
     {
@@ -221,6 +207,22 @@
       "required": false,
       "validation": {
         "maxItems": 8
+      }
+    },
+    {
+      "name": "FileIds",
+      "jsonName": "fileIds",
+      "protoField": "file_ids",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Files given with this message, by id (\"file_01j…\"), at most 20.\n\n Each is a File of the run's organization the caller may view. One that\n is not yet the conversation's becomes the conversation's own copy, and\n each joins the conversation's resources, so the agent finds it under\n .stigmer/uploads/ on this turn and every later one. The message shows\n each to the model with the text: an image as an image, anything else as\n a document the agent reads with its tools (RunStatus.message_files says\n which blocks the message carried).",
+      "required": false,
+      "validation": {
+        "maxItems": 20
       }
     }
   ]

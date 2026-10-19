@@ -1,6 +1,6 @@
 from ai.stigmer.agentic.run.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.session.v1 import enum_pb2 as _enum_pb2_1
-from ai.stigmer.agentic.session.v1 import workspace_pb2 as _workspace_pb2
+from ai.stigmer.agentic.session.v1 import resource_pb2 as _resource_pb2
 from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from buf.validate import validate_pb2 as _validate_pb2
@@ -13,22 +13,22 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentInvocation(_message.Message):
-    __slots__ = ("agent_ref", "message", "harness", "workspace_entries", "vaults", "run_config", "environment_ref")
+    __slots__ = ("agent_ref", "message", "harness", "vaults", "run_config", "environment_ref", "resources")
     AGENT_REF_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     HARNESS_FIELD_NUMBER: _ClassVar[int]
-    WORKSPACE_ENTRIES_FIELD_NUMBER: _ClassVar[int]
     VAULTS_FIELD_NUMBER: _ClassVar[int]
     RUN_CONFIG_FIELD_NUMBER: _ClassVar[int]
     ENVIRONMENT_REF_FIELD_NUMBER: _ClassVar[int]
+    RESOURCES_FIELD_NUMBER: _ClassVar[int]
     agent_ref: _io_pb2.ApiResourceReference
     message: str
     harness: _enum_pb2_1.Harness
-    workspace_entries: _containers.RepeatedCompositeFieldContainer[_workspace_pb2.WorkspaceEntry]
     vaults: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
     run_config: RunConfig
     environment_ref: _io_pb2.ApiResourceReference
-    def __init__(self, agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., message: _Optional[str] = ..., harness: _Optional[_Union[_enum_pb2_1.Harness, str]] = ..., workspace_entries: _Optional[_Iterable[_Union[_workspace_pb2.WorkspaceEntry, _Mapping]]] = ..., vaults: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., run_config: _Optional[_Union[RunConfig, _Mapping]] = ..., environment_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ...) -> None: ...
+    resources: _containers.RepeatedCompositeFieldContainer[_resource_pb2.SessionResource]
+    def __init__(self, agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., message: _Optional[str] = ..., harness: _Optional[_Union[_enum_pb2_1.Harness, str]] = ..., vaults: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., run_config: _Optional[_Union[RunConfig, _Mapping]] = ..., environment_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., resources: _Optional[_Iterable[_Union[_resource_pb2.SessionResource, _Mapping]]] = ...) -> None: ...
 
 class RunConfig(_message.Message):
     __slots__ = ("model_name", "max_cost_usd", "max_tool_rounds", "service_tier", "thinking_mode", "max_tool_result_chars")

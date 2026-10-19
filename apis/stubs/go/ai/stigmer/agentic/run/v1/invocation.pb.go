@@ -47,8 +47,6 @@ type AgentInvocation struct {
 	// save), else the agent's own engine (AgentSpec.harness), else the
 	// embedding surface's platform default.
 	Harness v1.Harness `protobuf:"varint,3,opt,name=harness,proto3,enum=ai.stigmer.agentic.session.v1.Harness" json:"harness,omitempty"`
-	// Workspace the run's session operates on. Empty means no workspace.
-	WorkspaceEntries []*v1.WorkspaceEntry `protobuf:"bytes,4,rep,name=workspace_entries,json=workspaceEntries,proto3" json:"workspace_entries,omitempty"`
 	// Vaults whose logins and secrets the runs this invocation creates use, in
 	// order: the first vault holding a match wins. At most 20.
 	//
@@ -63,8 +61,13 @@ type AgentInvocation struct {
 	// packages their sandboxes get and the websites they may reach. Unset:
 	// the agent's default, else the organization's.
 	EnvironmentRef *apiresource.ApiResourceReference `protobuf:"bytes,8,opt,name=environment_ref,json=environmentRef,proto3" json:"environment_ref,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// What each run's conversation holds: Files and git repositories (a
+	// routine's runs have no machine of the person's to read a folder from).
+	// Each run's conversation gets its own copy of each File, made when the
+	// run starts, so every nightly run finds the same q3-ledger.xlsx.
+	Resources     []*v1.SessionResource `protobuf:"bytes,9,rep,name=resources,proto3" json:"resources,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AgentInvocation) Reset() {
@@ -118,13 +121,6 @@ func (x *AgentInvocation) GetHarness() v1.Harness {
 	return v1.Harness(0)
 }
 
-func (x *AgentInvocation) GetWorkspaceEntries() []*v1.WorkspaceEntry {
-	if x != nil {
-		return x.WorkspaceEntries
-	}
-	return nil
-}
-
 func (x *AgentInvocation) GetVaults() []*apiresource.ApiResourceReference {
 	if x != nil {
 		return x.Vaults
@@ -142,6 +138,13 @@ func (x *AgentInvocation) GetRunConfig() *RunConfig {
 func (x *AgentInvocation) GetEnvironmentRef() *apiresource.ApiResourceReference {
 	if x != nil {
 		return x.EnvironmentRef
+	}
+	return nil
+}
+
+func (x *AgentInvocation) GetResources() []*v1.SessionResource {
+	if x != nil {
+		return x.Resources
 	}
 	return nil
 }
@@ -321,19 +324,20 @@ var File_ai_stigmer_agentic_run_v1_invocation_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_invocation_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/run/v1/invocation.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xa2\x06\n" +
+	"*ai/stigmer/agentic/run/v1/invocation.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a,ai/stigmer/agentic/session/v1/resource.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xb6\a\n" +
 	"\x0fAgentInvocation\x12]\n" +
 	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\n" +
 	"\xbaH\x03\xc8\x01\x01\xe0\x85,(R\bagentRef\x12$\n" +
 	"\amessage\x18\x02 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\x80@R\amessage\x12@\n" +
-	"\aharness\x18\x03 \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x12\xa9\x02\n" +
-	"\x11workspace_entries\x18\x04 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryB\xcc\x01\xbaH\xc8\x01\x92\x01\xc4\x01\"\xc1\x01\xba\x01\xbd\x01\n" +
-	"\x1aworkspace_entries.no_token\x12_a repository here cannot carry a token: save it as a connection in a vault the invocation names\x1a>!has(this.source.git_repo) || this.source.git_repo.token == ''R\x10workspaceEntries\x12Z\n" +
+	"\aharness\x18\x03 \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x12Z\n" +
 	"\x06vaults\x18\a \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\f\xbaH\x05\x92\x01\x02\x10\x14\xe0\x85,;R\x06vaults\x12C\n" +
 	"\n" +
 	"run_config\x18\x06 \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig\x12c\n" +
-	"\x0fenvironment_ref\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,CR\x0eenvironmentRefJ\x04\b\x05\x10\x06R\x10environment_refs\"\xf6\x02\n" +
+	"\x0fenvironment_ref\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,CR\x0eenvironmentRef\x12\xa4\x03\n" +
+	"\tresources\x18\t \x03(\v2..ai.stigmer.agentic.session.v1.SessionResourceB\xd5\x02\xbaH\xd1\x02\x92\x01\xcd\x02\x10\xf4\x03\"\xc7\x02\xba\x01\x8c\x01\n" +
+	"\x17resources.no_local_path\x12Za routine's runs cannot use a folder on someone's machine: name a git repository or a File\x1a\x15!has(this.local_path)\xba\x01\xb3\x01\n" +
+	"\x12resources.no_token\x12_a repository here cannot carry a token: save it as a connection in a vault the invocation names\x1a<!has(this.git_repository) || this.git_repository.token == ''R\tresourcesJ\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\x11workspace_entriesR\x10environment_refs\"\xf6\x02\n" +
 	"\tRunConfig\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x01 \x01(\tR\tmodelName\x120\n" +
@@ -363,17 +367,17 @@ var file_ai_stigmer_agentic_run_v1_invocation_proto_goTypes = []any{
 	(*RunConfig)(nil),                        // 1: ai.stigmer.agentic.run.v1.RunConfig
 	(*apiresource.ApiResourceReference)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceReference
 	(v1.Harness)(0),                          // 3: ai.stigmer.agentic.session.v1.Harness
-	(*v1.WorkspaceEntry)(nil),                // 4: ai.stigmer.agentic.session.v1.WorkspaceEntry
+	(*v1.SessionResource)(nil),               // 4: ai.stigmer.agentic.session.v1.SessionResource
 	(ServiceTier)(0),                         // 5: ai.stigmer.agentic.run.v1.ServiceTier
 	(ThinkingMode)(0),                        // 6: ai.stigmer.agentic.run.v1.ThinkingMode
 }
 var file_ai_stigmer_agentic_run_v1_invocation_proto_depIdxs = []int32{
 	2, // 0: ai.stigmer.agentic.run.v1.AgentInvocation.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	3, // 1: ai.stigmer.agentic.run.v1.AgentInvocation.harness:type_name -> ai.stigmer.agentic.session.v1.Harness
-	4, // 2: ai.stigmer.agentic.run.v1.AgentInvocation.workspace_entries:type_name -> ai.stigmer.agentic.session.v1.WorkspaceEntry
-	2, // 3: ai.stigmer.agentic.run.v1.AgentInvocation.vaults:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	1, // 4: ai.stigmer.agentic.run.v1.AgentInvocation.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
-	2, // 5: ai.stigmer.agentic.run.v1.AgentInvocation.environment_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	2, // 2: ai.stigmer.agentic.run.v1.AgentInvocation.vaults:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	1, // 3: ai.stigmer.agentic.run.v1.AgentInvocation.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
+	2, // 4: ai.stigmer.agentic.run.v1.AgentInvocation.environment_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	4, // 5: ai.stigmer.agentic.run.v1.AgentInvocation.resources:type_name -> ai.stigmer.agentic.session.v1.SessionResource
 	5, // 6: ai.stigmer.agentic.run.v1.RunConfig.service_tier:type_name -> ai.stigmer.agentic.run.v1.ServiceTier
 	6, // 7: ai.stigmer.agentic.run.v1.RunConfig.thinking_mode:type_name -> ai.stigmer.agentic.run.v1.ThinkingMode
 	8, // [8:8] is the sub-list for method output_type

@@ -1,0 +1,34 @@
+{
+  "name": "FileResource",
+  "description": "FileResource names a File the conversation holds and where the agent\n finds it.",
+  "protoType": "ai.stigmer.agentic.session.v1.FileResource",
+  "protoFile": "apis/ai/stigmer/agentic/session/v1/resource.proto",
+  "fields": [
+    {
+      "name": "FileId",
+      "jsonName": "fileId",
+      "protoField": "file_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The File's id: \"file_01j…\". A File of the conversation's organization\n that is not yet the conversation's becomes the conversation's own copy\n when it is named, and the entry names the copy.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "MountPath",
+      "jsonName": "mountPath",
+      "protoField": "mount_path",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Where the agent finds the File, relative to .stigmer/uploads/: \"q3/ledger.xlsx\".\n Empty takes the File's filename, made unique among the conversation's\n Files. No leading `/`, no `..` segment, at most 1024 characters.",
+      "required": false,
+      "validation": {
+        "maxLength": 1024
+      }
+    }
+  ]
+}

@@ -872,18 +872,6 @@
       ]
     },
     {
-      "name": "GitWriteBackMode",
-      "description": "GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.",
-      "protoType": "ai.stigmer.agentic.session.v1.GitWriteBackMode",
-      "values": [
-        {
-          "name": "GIT_WRITE_BACK_BRANCH_AND_PR",
-          "number": 1,
-          "description": "Create a branch and pull request from the agent's file changes after the run completes."
-        }
-      ]
-    },
-    {
       "name": "ServiceTier",
       "description": "ServiceTier selects the provider-side speed/service tier for a run's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what a run pays (stigmer/stigmer#357).",
       "protoType": "ai.stigmer.agentic.run.v1.ServiceTier",
@@ -914,6 +902,18 @@
           "name": "THINKING_MODE_ENABLED",
           "number": 2,
           "description": "Extended reasoning on: the model's thinking variant, billed at base\n per-token rates (reasoning tokens bill as output tokens).\n\n Valid only for models whose registry entry on the run's harness\n declares a thinking capability; refused at run create otherwise."
+        }
+      ]
+    },
+    {
+      "name": "GitWriteBackMode",
+      "description": "GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.",
+      "protoType": "ai.stigmer.agentic.session.v1.GitWriteBackMode",
+      "values": [
+        {
+          "name": "GIT_WRITE_BACK_BRANCH_AND_PR",
+          "number": 1,
+          "description": "Create a branch and pull request from the agent's file changes after the run completes."
         }
       ]
     },

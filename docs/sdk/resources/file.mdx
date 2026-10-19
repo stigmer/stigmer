@@ -62,6 +62,7 @@ File file = client.files().get("file_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`updateVisibility`](#updatevisibility) | Update the visibility of a File. |
 | [`delete`](#delete) | Delete a File. |
 | [`createUploadUrl`](#createuploadurl) | Mint a short-lived, single-use URL to put a file's bytes to, for a file too large to upload inline. |
+| [`mount`](#mount) | The Files a run's conversation holds (SessionSpec.resources), each with where the agent finds it under .stigmer/uploads/ and a link to its bytes, valid for an hour. |
 | [`upload`](#upload) | Upload a File: its bytes inline, or the reference of bytes already put to a URL createUploadUrl returned. |
 
 ### get
@@ -371,6 +372,45 @@ FileUploadUrl fileUploadUrl = client.files().createUploadUrl(CreateFileUploadUrl
 
 **Returns**: [`FileUploadUrl`](#fileuploadurl)
 
+### mount
+
+The Files a run's conversation holds (SessionSpec.resources), each with where the agent finds it under .stigmer/uploads/ and a link to its bytes, valid for an hour.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const runFileMounts = await stigmer.file.mount({
+  runId: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+runFileMounts, err := client.File.Mount(ctx, &stigmer.MountRunFilesInput{
+  RunId: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+run_file_mounts = client.files.mount(MountRunFilesInput(
+    run_id="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+RunFileMounts runFileMounts = client.files().mount(MountRunFilesInput.builder()
+    .runId("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`MountRunFilesInput`](#mountrunfilesinput)
+
+**Returns**: [`RunFileMounts`](#runfilemounts)
+
 ### upload
 
 Upload a File: its bytes inline, or the reference of bytes already put to a URL createUploadUrl returned. Returns the File with its new id.
@@ -509,6 +549,26 @@ Input for updating the visibility of any API resource.
   type={{
     resourceId: { type: "string", description: "ID of the resource whose visibility is being updated.", required: true },
     visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcevisibility" },
+  }}
+/>
+
+### MountRunFilesInput
+
+Which run's Files to mount.
+
+<TypeTable
+  type={{
+    runId: { type: "string", description: "The run's id." },
+  }}
+/>
+
+### RunFileMounts
+
+RunFileMounts are the Files a run's conversation holds, ready to mount.
+
+<TypeTable
+  type={{
+    entries: { type: "FileMountInput[]", description: "One per File the conversation holds, in its resources' order." },
   }}
 />
 

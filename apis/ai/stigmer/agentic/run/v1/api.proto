@@ -10,6 +10,7 @@ import "ai/stigmer/agentic/run/v1/invocation.proto";
 import "ai/stigmer/agentic/run/v1/spec.proto";
 import "ai/stigmer/agentic/run/v1/usage.proto";
 import "ai/stigmer/agentic/run/v1/writeback.proto";
+import "ai/stigmer/agentic/session/v1/event_content.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";
@@ -121,10 +122,10 @@ message RunStatus {
 
   // Git write-back outcomes for workspace entries that had changes.
   //
-  // One entry per git-backed workspace entry where the agent modified
-  // files and write_back_mode was enabled on the GitRepoSource. Omitted
-  // for workspace entries with no changes, non-git sources, or disabled
-  // write-back mode.
+  // One entry per git repository the conversation holds where the agent
+  // modified files and write_back_mode was enabled on the
+  // GitRepositoryResource. Omitted for repositories with no changes, local
+  // folders, or disabled write-back mode.
   //
   // Populated during post-run processing. Each entry tracks the
   // write-back lifecycle (committed -> pushed -> PR created) and carries
@@ -356,6 +357,16 @@ message RunStatus {
       ]
     }
   ];
+
+  // The files this turn's message carried, as content blocks: an image
+  // block for an image File, a document block for any other, each with a
+  // file source naming the conversation's own copy. The turn's
+  // user.message event carries them after its text.
+  //
+  // @internal
+  // Written by the server when the run is created, from spec.file_ids, as it
+  // writes run_config; the runner's status writes never touch it.
+  repeated ai.stigmer.agentic.session.v1.ContentBlock message_files = 38;
 }
 
 // LoadedVersions lists what a run loaded besides its agent: one list per

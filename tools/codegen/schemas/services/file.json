@@ -51,6 +51,21 @@
       ]
     },
     {
+      "name": "FileMountController",
+      "role": "fileMount",
+      "protoFile": "ai/stigmer/agentic/file/v1/mount.proto",
+      "methods": [
+        {
+          "name": "Mount",
+          "inputType": "MountRunFilesInput",
+          "inputFullType": "ai.stigmer.agentic.file.v1.MountRunFilesInput",
+          "outputType": "RunFileMounts",
+          "outputFullType": "ai.stigmer.agentic.file.v1.RunFileMounts",
+          "description": "The Files a run's conversation holds (SessionSpec.resources), each with\n where the agent finds it under .stigmer/uploads/ and a link to its\n bytes, valid for an hour."
+        }
+      ]
+    },
+    {
       "name": "FileQueryController",
       "role": "query",
       "protoFile": "ai/stigmer/agentic/file/v1/query.proto",
@@ -314,6 +329,49 @@
             ]
           },
           "description": "The new visibility setting for the resource.\n Must not be unspecified (0). Valid values depend on resource kind —\n see the VisibilityConfig in the kind's kind_meta.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "MountRunFilesInput",
+      "description": "Which run's Files to mount.",
+      "protoType": "ai.stigmer.agentic.file.v1.MountRunFilesInput",
+      "protoFile": "apis/ai/stigmer/agentic/file/v1/mount.proto",
+      "fields": [
+        {
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The run's id.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "RunFileMounts",
+      "description": "RunFileMounts are the Files a run's conversation holds, ready to mount.",
+      "protoType": "ai.stigmer.agentic.file.v1.RunFileMounts",
+      "protoFile": "apis/ai/stigmer/agentic/file/v1/mount.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "FileMount"
+            }
+          },
+          "description": "One per File the conversation holds, in its resources' order.",
           "required": false
         }
       ]

@@ -531,105 +531,6 @@ public interface RunSpecOrBuilder extends
 
   /**
    * <pre>
-   * Files attached to this run.
-   *
-   * Attachments are injected into the sandbox before the run begins.
-   * The agent can read these files from the specified mount paths.
-   *
-   * Use cases:
-   * - Provide input data files to process
-   * - Pass configuration files
-   * - Supply reference documents for analysis
-   *
-   * Example CLI usage:
-   * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-   */
-  java.util.List<ai.stigmer.agentic.run.v1.Attachment> 
-      getAttachmentsList();
-  /**
-   * <pre>
-   * Files attached to this run.
-   *
-   * Attachments are injected into the sandbox before the run begins.
-   * The agent can read these files from the specified mount paths.
-   *
-   * Use cases:
-   * - Provide input data files to process
-   * - Pass configuration files
-   * - Supply reference documents for analysis
-   *
-   * Example CLI usage:
-   * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-   */
-  ai.stigmer.agentic.run.v1.Attachment getAttachments(int index);
-  /**
-   * <pre>
-   * Files attached to this run.
-   *
-   * Attachments are injected into the sandbox before the run begins.
-   * The agent can read these files from the specified mount paths.
-   *
-   * Use cases:
-   * - Provide input data files to process
-   * - Pass configuration files
-   * - Supply reference documents for analysis
-   *
-   * Example CLI usage:
-   * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-   */
-  int getAttachmentsCount();
-  /**
-   * <pre>
-   * Files attached to this run.
-   *
-   * Attachments are injected into the sandbox before the run begins.
-   * The agent can read these files from the specified mount paths.
-   *
-   * Use cases:
-   * - Provide input data files to process
-   * - Pass configuration files
-   * - Supply reference documents for analysis
-   *
-   * Example CLI usage:
-   * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.run.v1.AttachmentOrBuilder> 
-      getAttachmentsOrBuilderList();
-  /**
-   * <pre>
-   * Files attached to this run.
-   *
-   * Attachments are injected into the sandbox before the run begins.
-   * The agent can read these files from the specified mount paths.
-   *
-   * Use cases:
-   * - Provide input data files to process
-   * - Pass configuration files
-   * - Supply reference documents for analysis
-   *
-   * Example CLI usage:
-   * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-   */
-  ai.stigmer.agentic.run.v1.AttachmentOrBuilder getAttachmentsOrBuilder(
-      int index);
-
-  /**
-   * <pre>
    * Workspace-relative file paths the user wants the agent to focus on.
    *
    * When users reference files that exist inside the session's workspace,
@@ -638,7 +539,7 @@ public interface RunSpecOrBuilder extends
    * no upload, no copy, no injection.
    *
    * This separates the "attention" signal ("look at this file") from the
-   * "transport" mechanism (upload + inject) that regular attachments use.
+   * "transport" a File gives (upload, then name it in file_ids).
    *
    * Works for any workspace type with a resolvable filesystem post-provisioning
    * (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -669,7 +570,7 @@ public interface RunSpecOrBuilder extends
    * no upload, no copy, no injection.
    *
    * This separates the "attention" signal ("look at this file") from the
-   * "transport" mechanism (upload + inject) that regular attachments use.
+   * "transport" a File gives (upload, then name it in file_ids).
    *
    * Works for any workspace type with a resolvable filesystem post-provisioning
    * (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -699,7 +600,7 @@ public interface RunSpecOrBuilder extends
    * no upload, no copy, no injection.
    *
    * This separates the "attention" signal ("look at this file") from the
-   * "transport" mechanism (upload + inject) that regular attachments use.
+   * "transport" a File gives (upload, then name it in file_ids).
    *
    * Works for any workspace type with a resolvable filesystem post-provisioning
    * (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -730,7 +631,7 @@ public interface RunSpecOrBuilder extends
    * no upload, no copy, no injection.
    *
    * This separates the "attention" signal ("look at this file") from the
-   * "transport" mechanism (upload + inject) that regular attachments use.
+   * "transport" a File gives (upload, then name it in file_ids).
    *
    * Works for any workspace type with a resolvable filesystem post-provisioning
    * (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -931,6 +832,79 @@ public interface RunSpecOrBuilder extends
    */
   com.google.protobuf.ByteString
       getExcludedPluginIdsBytes(int index);
+
+  /**
+   * <pre>
+   * Files given with this message, by id ("file_01j…"), at most 20.
+   *
+   * Each is a File of the run's organization the caller may view. One that
+   * is not yet the conversation's becomes the conversation's own copy, and
+   * each joins the conversation's resources, so the agent finds it under
+   * .stigmer/uploads/ on this turn and every later one. The message shows
+   * each to the model with the text: an image as an image, anything else as
+   * a document the agent reads with its tools (RunStatus.message_files says
+   * which blocks the message carried).
+   * </pre>
+   *
+   * <code>repeated string file_ids = 28 [json_name = "fileIds", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the fileIds.
+   */
+  java.util.List<java.lang.String>
+      getFileIdsList();
+  /**
+   * <pre>
+   * Files given with this message, by id ("file_01j…"), at most 20.
+   *
+   * Each is a File of the run's organization the caller may view. One that
+   * is not yet the conversation's becomes the conversation's own copy, and
+   * each joins the conversation's resources, so the agent finds it under
+   * .stigmer/uploads/ on this turn and every later one. The message shows
+   * each to the model with the text: an image as an image, anything else as
+   * a document the agent reads with its tools (RunStatus.message_files says
+   * which blocks the message carried).
+   * </pre>
+   *
+   * <code>repeated string file_ids = 28 [json_name = "fileIds", (.buf.validate.field) = { ... }</code>
+   * @return The count of fileIds.
+   */
+  int getFileIdsCount();
+  /**
+   * <pre>
+   * Files given with this message, by id ("file_01j…"), at most 20.
+   *
+   * Each is a File of the run's organization the caller may view. One that
+   * is not yet the conversation's becomes the conversation's own copy, and
+   * each joins the conversation's resources, so the agent finds it under
+   * .stigmer/uploads/ on this turn and every later one. The message shows
+   * each to the model with the text: an image as an image, anything else as
+   * a document the agent reads with its tools (RunStatus.message_files says
+   * which blocks the message carried).
+   * </pre>
+   *
+   * <code>repeated string file_ids = 28 [json_name = "fileIds", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The fileIds at the given index.
+   */
+  java.lang.String getFileIds(int index);
+  /**
+   * <pre>
+   * Files given with this message, by id ("file_01j…"), at most 20.
+   *
+   * Each is a File of the run's organization the caller may view. One that
+   * is not yet the conversation's becomes the conversation's own copy, and
+   * each joins the conversation's resources, so the agent finds it under
+   * .stigmer/uploads/ on this turn and every later one. The message shows
+   * each to the model with the text: an image as an image, anything else as
+   * a document the agent reads with its tools (RunStatus.message_files says
+   * which blocks the message carried).
+   * </pre>
+   *
+   * <code>repeated string file_ids = 28 [json_name = "fileIds", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the fileIds at the given index.
+   */
+  com.google.protobuf.ByteString
+      getFileIdsBytes(int index);
 
   ai.stigmer.agentic.run.v1.RunSpec.TargetCase getTargetCase();
 }

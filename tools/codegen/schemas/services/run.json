@@ -71,14 +71,6 @@
           "outputType": "Run",
           "outputFullType": "ai.stigmer.agentic.run.v1.Run",
           "description": "Resume a paused run.\n\n Continues the run from where it was paused. How a turn's state is saved\n is the harness's ([Harnesses](/docs/concepts/harnesses))."
-        },
-        {
-          "name": "UploadAttachment",
-          "inputType": "UploadAttachmentRequest",
-          "inputFullType": "ai.stigmer.agentic.run.v1.UploadAttachmentRequest",
-          "outputType": "UploadAttachmentResponse",
-          "outputFullType": "ai.stigmer.agentic.run.v1.UploadAttachmentResponse",
-          "description": "Upload a file attachment for use in a run.\n\n Pre-uploads files to artifact storage before creating a run.\n The returned storage_key can be used in Attachment.storage_key when\n creating the run."
         }
       ]
     },
@@ -373,68 +365,6 @@
           "validation": {
             "minLength": 1
           }
-        }
-      ]
-    },
-    {
-      "name": "UploadAttachmentRequest",
-      "description": "UploadAttachmentRequest uploads a file attachment for use in a run.\n\n This endpoint allows CLI and other clients to pre-upload large files (\u003e4MB)\n to artifact storage before creating a run. The returned storage_key\n can then be used in the Attachment message when creating the run.\n\n ## Storage\n\n Files are uploaded to: attachments/{ulid}/{filename}\n The ULID ensures unique paths and allows for future cleanup policies.\n\n ## Authorization\n\n This endpoint does not require authorization. The storage_key returned acts\n as a capability token - knowing the key grants access to the content. This\n simplifies the upload flow while maintaining security through obscurity\n of the storage path.\n\n ## Use Cases\n\n - CLI uploading files before run\n - Pre-uploading large datasets for agent processing\n - Uploading binary files that cannot be embedded inline\n\n ## Example\n\n Request:\n {\n   \"filename\": \"dataset.csv\",\n   \"content\": \u003cbinary data\u003e,\n   \"content_type\": \"text/csv\"\n }\n\n Response:\n {\n   \"storage_key\": \"attachments/01HGXXX.../dataset.csv\"\n }",
-      "protoType": "ai.stigmer.agentic.run.v1.UploadAttachmentRequest",
-      "protoFile": "apis/ai/stigmer/agentic/run/v1/io.proto",
-      "fields": [
-        {
-          "name": "Filename",
-          "jsonName": "filename",
-          "protoField": "filename",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Original filename of the attachment.\n\n Used in the storage path and for display purposes.\n Must be a bare filename with no path separators and no `.`/`..` traversal\n segments — it is interpolated into the storage key and, on the local\n backend, into an on-disk path.\n\n Examples: \"dataset.csv\", \"config.json\", \"report.pdf\"\n\n Validation: Required, minimum 1 character, no path separators or traversal\n segments",
-          "required": false,
-          "validation": {
-            "minLength": 1
-          }
-        },
-        {
-          "name": "Content",
-          "jsonName": "content",
-          "protoField": "content",
-          "type": {
-            "kind": "bytes"
-          },
-          "description": "Binary content of the file.\n\n Maximum size depends on gRPC message limits (typically 4MB).\n For very large files, consider chunked upload (future enhancement).\n\n Validation: Required, cannot be empty",
-          "required": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "ContentType",
-          "jsonName": "contentType",
-          "protoField": "content_type",
-          "type": {
-            "kind": "string"
-          },
-          "description": "MIME type of the file content.\n\n Used for Content-Type header when downloading.\n If not provided, will be guessed from filename extension.\n\n Examples: \"text/csv\", \"application/json\", \"application/pdf\"",
-          "required": false
-        }
-      ]
-    },
-    {
-      "name": "UploadAttachmentResponse",
-      "description": "UploadAttachmentResponse returns the storage key for the uploaded attachment.\n\n The storage_key should be used in the Attachment message when creating\n a run. The key is opaque to clients - do not parse or\n construct keys manually.",
-      "protoType": "ai.stigmer.agentic.run.v1.UploadAttachmentResponse",
-      "protoFile": "apis/ai/stigmer/agentic/run/v1/io.proto",
-      "fields": [
-        {
-          "name": "StorageKey",
-          "jsonName": "storageKey",
-          "protoField": "storage_key",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Storage key for the uploaded attachment.\n\n Use this key in Attachment.storage_key when creating a run.\n The key includes a unique identifier and the filename.\n\n Format: \"attachments/{ulid}/{filename}\"\n Example: \"attachments/01HGXXX123ABC/dataset.csv\"",
-          "required": false
         }
       ]
     },
@@ -1957,7 +1887,7 @@
         {
           "name": "CURSOR_MODE_CLOUD",
           "number": 2,
-          "description": "Cloud Cursor agent created with a cloud repos configuration.\n\n Requires all workspace entries to be GitRepoSource (HTTPS URLs).\n Cursor natively manages conversation state for cloud agents.\n Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED."
+          "description": "Cloud Cursor agent created with a cloud repos configuration.\n\n Requires every resource to be a git repository (HTTPS URL).\n Cursor natively manages conversation state for cloud agents.\n Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED."
         }
       ]
     },
@@ -2119,7 +2049,7 @@
             "messageType": "WorkspaceWriteBack"
           }
         },
-        "description": "Git write-back outcomes for workspace entries that had changes.\n\n One entry per git-backed workspace entry where the agent modified\n files and write_back_mode was enabled on the GitRepoSource. Omitted\n for workspace entries with no changes, non-git sources, or disabled\n write-back mode.\n\n Populated during post-run processing. Each entry tracks the\n write-back lifecycle (committed -\u003e pushed -\u003e PR created) and carries\n the PR URL for UI display.",
+        "description": "Git write-back outcomes for workspace entries that had changes.\n\n One entry per git repository the conversation holds where the agent\n modified files and write_back_mode was enabled on the\n GitRepositoryResource. Omitted for repositories with no changes, local\n folders, or disabled write-back mode.\n\n Populated during post-run processing. Each entry tracks the\n write-back lifecycle (committed -\u003e pushed -\u003e PR created) and carries\n the PR URL for UI display.",
         "required": false
       },
       {
@@ -2292,6 +2222,20 @@
             "review_resolved"
           ]
         }
+      },
+      {
+        "name": "MessageFiles",
+        "jsonName": "messageFiles",
+        "protoField": "message_files",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "ContentBlock"
+          }
+        },
+        "description": "The files this turn's message carried, as content blocks: an image\n block for an image File, a document block for any other, each with a\n file source naming the conversation's own copy. The turn's\n user.message event carries them after its text.",
+        "required": false
       }
     ]
   },
@@ -2755,6 +2699,139 @@
             "kind": "string"
           },
           "description": "Storage URI of the manifest artifact.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ContentBlock",
+      "description": "ContentBlock is one block of an event's content: text, an image, a\n document, or a redacted block.\n\n The fields are those of Claude Managed Agents' content blocks; type names\n the block and only that block's fields are set.",
+      "protoType": "ai.stigmer.agentic.session.v1.ContentBlock",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/event_content.proto",
+      "fields": [
+        {
+          "name": "Type",
+          "jsonName": "type",
+          "protoField": "type",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The block's kind: text, image, document or redacted.",
+          "required": false,
+          "validation": {
+            "enum": [
+              "text",
+              "image",
+              "document",
+              "redacted"
+            ]
+          }
+        },
+        {
+          "name": "Text",
+          "jsonName": "text",
+          "protoField": "text",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The text of a text block.",
+          "required": false
+        },
+        {
+          "name": "Source",
+          "jsonName": "source",
+          "protoField": "source",
+          "type": {
+            "kind": "message",
+            "messageType": "ContentSource"
+          },
+          "description": "Where an image or document block's bytes come from.",
+          "required": false
+        },
+        {
+          "name": "Context",
+          "jsonName": "context",
+          "protoField": "context",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Context about a document block, for the model.",
+          "required": false
+        },
+        {
+          "name": "Title",
+          "jsonName": "title",
+          "protoField": "title",
+          "type": {
+            "kind": "string"
+          },
+          "description": "A document block's title.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ContentSource",
+      "description": "ContentSource says where an image or document block's bytes come from:\n inline base64 data, inline plain text, a URL, or an uploaded file.",
+      "protoType": "ai.stigmer.agentic.session.v1.ContentSource",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/event_content.proto",
+      "fields": [
+        {
+          "name": "Type",
+          "jsonName": "type",
+          "protoField": "type",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The source's kind: base64, text, url or file.",
+          "required": false,
+          "validation": {
+            "enum": [
+              "base64",
+              "text",
+              "url",
+              "file"
+            ]
+          }
+        },
+        {
+          "name": "Data",
+          "jsonName": "data",
+          "protoField": "data",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The inline data of a base64 or text source.",
+          "required": false
+        },
+        {
+          "name": "MediaType",
+          "jsonName": "mediaType",
+          "protoField": "media_type",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The media type of inline data, for example image/png or text/plain.",
+          "required": false
+        },
+        {
+          "name": "Url",
+          "jsonName": "url",
+          "protoField": "url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The address of a url source.",
+          "required": false
+        },
+        {
+          "name": "FileId",
+          "jsonName": "fileId",
+          "protoField": "file_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The uploaded file of a file source.",
           "required": false
         }
       ]
@@ -3996,7 +4073,7 @@
     },
     {
       "name": "WorkspaceWriteBack",
-      "description": "WorkspaceWriteBack captures the outcome of the platform-owned git\n write-back workflow for a single workspace entry.\n\n One entry is created per git-backed workspace entry that had uncommitted\n changes when the run reached a terminal phase. Not populated for\n LocalPathSource workspace entries or git workspaces with no detected\n changes.\n\n The write-back progresses through phases: committed -\u003e pushed -\u003e\n pr_created. If any step fails, the phase is set to FAILED with the\n error message, and processing continues to the next workspace entry.\n One failed write-back does not block others.",
+      "description": "WorkspaceWriteBack captures the outcome of the platform-owned git\n write-back workflow for a single workspace entry.\n\n One entry is created per git repository that had uncommitted changes\n when the run reached a terminal phase. Not populated for local folders or\n repositories with no detected changes.\n\n The write-back progresses through phases: committed -\u003e pushed -\u003e\n pr_created. If any step fails, the phase is set to FAILED with the\n error message, and processing continues to the next workspace entry.\n One failed write-back does not block others.",
       "protoType": "ai.stigmer.agentic.run.v1.WorkspaceWriteBack",
       "protoFile": "apis/ai/stigmer/agentic/run/v1/writeback.proto",
       "fields": [
