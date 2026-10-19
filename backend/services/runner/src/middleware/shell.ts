@@ -67,14 +67,14 @@ function isDeclaredTool(candidate: unknown): candidate is DeclaredTool {
  */
 function declareShell(original: unknown): unknown {
   if (!isDeclaredTool(original) || original.name !== SHELL_TOOL_NAME) return original;
-  let schema: unknown;
+  let object: { readonly properties?: Record<string, unknown> };
   try {
-    schema = toJsonSchema(original.schema as Parameters<typeof toJsonSchema>[0]);
+    const schema: unknown = toJsonSchema(original.schema as Parameters<typeof toJsonSchema>[0]);
+    if (schema == null || typeof schema !== "object" || (schema as { type?: unknown }).type !== "object") return original;
+    object = schema as { readonly properties?: Record<string, unknown> };
   } catch {
     return original;
   }
-  if (schema == null || typeof schema !== "object" || (schema as { type?: unknown }).type !== "object") return original;
-  const object = schema as { readonly properties?: Record<string, unknown> };
   return Object.freeze({
     name: original.name,
     description: original.description,

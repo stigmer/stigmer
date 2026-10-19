@@ -117,6 +117,7 @@ export function runCommand(options: RunCommandOptions): Promise<CommandResult> {
     let drainTimer: ReturnType<typeof setTimeout> | undefined;
 
     const signalGroup = (signal: NodeJS.Signals): void => {
+      /* v8 ignore next -- @preserve: a child with no pid failed to spawn, and its error settles the call before any stop */
       if (child.pid === undefined) return;
       try {
         process.kill(-child.pid, signal);
@@ -136,7 +137,7 @@ export function runCommand(options: RunCommandOptions): Promise<CommandResult> {
       settled = true;
       clearTimeout(timeoutTimer);
       if (drainTimer !== undefined) clearTimeout(drainTimer);
-      if (killTimer !== undefined && !timedOut && !aborted) clearTimeout(killTimer);
+      // A stopped group keeps its kill timer: SIGKILL follows SIGTERM if it lingers.
       options.signal?.removeEventListener("abort", onAbort);
       child.stdout?.destroy();
       child.stderr?.destroy();
@@ -151,14 +152,14 @@ export function runCommand(options: RunCommandOptions): Promise<CommandResult> {
       });
     };
 
+    // Removed at settle, so it only ever fires on a running command.
     const onAbort = (): void => {
-      if (settled) return;
       aborted = true;
       stopGroup();
     };
 
+    // Cleared at settle, so it only ever fires on a running command.
     const timeoutTimer = setTimeout(() => {
-      if (settled) return;
       timedOut = true;
       stopGroup();
     }, Math.max(0, options.timeoutSeconds) * 1000);

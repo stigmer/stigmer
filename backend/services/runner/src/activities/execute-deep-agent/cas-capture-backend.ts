@@ -146,9 +146,10 @@ export class CasCaptureShellBackend extends LocalShellBackend {
           exitCode: 124,
           truncated: result.truncated,
         };
+      /* v8 ignore start -- @preserve: this door takes no signal, so only its timeout stops a command; the agent's tool is the door the turn's stop reaches */
       case "stopped":
-        /* v8 ignore next -- @preserve: this door takes no signal, so only its timeout stops a command; the agent's tool is the door the turn's stop reaches */
         return { output: `${output.trimEnd()}\n\nCommand stopped with the turn.`, exitCode: 130, truncated: result.truncated };
+      /* v8 ignore stop */
       case "spawn-failed":
         return { output: `Error executing command: ${ending.message}`, exitCode: 1, truncated: false };
       /* v8 ignore start -- @preserve: the never arm; the compiler proves no ending reaches it */

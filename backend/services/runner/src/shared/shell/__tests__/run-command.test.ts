@@ -133,6 +133,12 @@ describe("runCommand", () => {
     expect(formatCommandOutput(done, 1000)).toContain("... Output truncated at 1000 bytes.");
   });
 
+  it("keeps capping a stream that goes on printing past the cap", async () => {
+    const done = await runCommand({ command: "head -c 1500 /dev/zero | tr '\\0' a; sleep 0.2; head -c 1500 /dev/zero | tr '\\0' b", cwd, env: ENV, timeoutSeconds: 5, maxOutputBytes: 1000 });
+    expect(done.stdout).toBe("a".repeat(1000));
+    expect(done.truncated).toBe(true);
+  });
+
   it("reports a spawn that fails", async () => {
     const done = await runCommand({ command: "echo hi", cwd: join(cwd, "missing"), env: ENV, timeoutSeconds: 5 });
     expect(done.spawnError).toBeDefined();
