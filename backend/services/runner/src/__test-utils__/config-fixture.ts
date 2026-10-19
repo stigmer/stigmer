@@ -28,6 +28,7 @@ import {
   DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
   DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,
   DEFAULT_OPEN_OPERATION_MAX_MS,
+  DEFAULT_SHELL_TIMEOUT_MAX_SECONDS,
   DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
 } from "../config.js";
 
@@ -60,6 +61,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     primaryModel: "test-model",
     cursorStreamStallTimeoutMs: DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,
     openOperationMaxMs: DEFAULT_OPEN_OPERATION_MAX_MS,
+    shellTimeoutMaxSeconds: DEFAULT_SHELL_TIMEOUT_MAX_SECONDS,
     agentResolveTimeoutMs: DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
     workspaceLockTimeoutMs: DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
     ...overrides,

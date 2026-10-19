@@ -122,6 +122,46 @@ describe("CasCaptureShellBackend (shell + CAS adapter)", () => {
     expect(result.output.trim()).toBe("from-shell-env");
   });
 
+  it("execute keeps what a command printed at its timeout, and stops it", async () => {
+    const observer = new CasCaptureObserver({ rootDir: root, isIgnored });
+    const backend = new CasCaptureShellBackend({ rootDir: root, virtualMode: true, timeout: 1, env: { PATH: process.env.PATH ?? "/usr/bin:/bin" } }, { observer });
+    await backend.initialize();
+
+    const result = await backend.execute("echo compiled-half; sleep 30");
+
+    expect(result.exitCode).toBe(124);
+    expect(result.output).toBe("compiled-half\n\nError: Command timed out after 1 seconds; its processes were stopped.");
+  });
+
+  it("execute returns when the shell exits although a background child holds its pipes (#2432)", async () => {
+    const observer = new CasCaptureObserver({ rootDir: root, isIgnored });
+    const backend = await createCasCaptureBackend({ rootDir: root, observer, shellEnv: { PATH: process.env.PATH ?? "/usr/bin:/bin" } }) as CasCaptureShellBackend;
+    const started = Date.now();
+
+    const result = await backend.execute("sleep 3 & echo detached");
+
+    expect(Date.now() - started).toBeLessThan(2_500);
+    expect(result).toEqual({ output: "detached\n", exitCode: 0, truncated: false });
+  });
+
+  it("execute answers a failed exit, an empty command and a failed spawn in deepagents' words", async () => {
+    const observer = new CasCaptureObserver({ rootDir: root, isIgnored });
+    const backend = await createCasCaptureBackend({ rootDir: root, observer, shellEnv: { PATH: process.env.PATH ?? "/usr/bin:/bin" } }) as CasCaptureShellBackend;
+    expect(await backend.execute("echo nope >&2; exit 3")).toEqual({ output: "[stderr] nope\n\nExit code: 3", exitCode: 3, truncated: false });
+    expect(await backend.execute("")).toEqual({ output: "Error: Command must be a non-empty string.", exitCode: 1, truncated: false });
+    const gone = new CasCaptureShellBackend({ rootDir: join(root, "missing"), virtualMode: true, env: {} }, { observer });
+    expect((await gone.execute("echo hi")).output).toMatch(/^Error executing command: /);
+  });
+
+  it("execute says a command the caller stopped was stopped", async () => {
+    const observer = new CasCaptureObserver({ rootDir: root, isIgnored });
+    const backend = await createCasCaptureBackend({ rootDir: root, observer, shellEnv: { PATH: process.env.PATH ?? "/usr/bin:/bin" } }) as CasCaptureShellBackend;
+    const controller = new AbortController();
+    const result = await backend.runShell("echo going; sleep 30", { timeoutSeconds: 60, signal: controller.signal, onOutput: () => controller.abort() });
+    expect(result.aborted).toBe(true);
+    expect(result.stdout).toBe("going\n");
+  });
+
   it("write/edit CAS capture still records before-bytes on the shell backend", async () => {
     await writeFile(join(root, "ignored/cfg.txt"), "v0");
     const observer = new CasCaptureObserver({ rootDir: root, isIgnored });

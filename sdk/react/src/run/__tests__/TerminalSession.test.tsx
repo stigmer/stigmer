@@ -6,6 +6,21 @@ import { SandboxContext } from "../SandboxContext";
 afterEach(cleanup);
 
 describe("TerminalSession", () => {
+  it("keeps a running command's newest lines in view, folding the oldest into a count", () => {
+    const stdout = Array.from({ length: 14 }, (_, i) => `line ${i + 1}`).join("\n") + "\n";
+    const { container } = render(<TerminalSession command="make" stdout={stdout} live />);
+    const live = container.querySelector('[data-cursor-target="terminal-live-output"]');
+    expect(live?.textContent).toContain("… +4 lines");
+    expect(live?.textContent).toContain("line 14");
+    expect(live?.textContent).not.toContain("line 4\n");
+    expect(screen.queryByText(/Show all \d+ lines/), "no reveal while the output still grows").toBeNull();
+  });
+
+  it("shows a short running output whole, with no count", () => {
+    const { container } = render(<TerminalSession command="make" stdout={"one\n"} live />);
+    expect(container.querySelector('[data-cursor-target="terminal-live-output"]')?.textContent).toBe("one");
+  });
+
   it("renders one session: the $ command prompt line then its output", () => {
     const { container } = render(
       <TerminalSession command="echo hello" stdout="hello world" exitCode={0} />,

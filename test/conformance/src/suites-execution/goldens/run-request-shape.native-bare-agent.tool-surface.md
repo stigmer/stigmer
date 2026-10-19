@@ -290,6 +290,11 @@ input_schema:
     "command": {
       "type": "string"
     },
+    "timeout": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "How long the command may run, in seconds (default 120). Raise it for a build, a full test suite or an install that takes minutes; a command still running at its timeout is stopped and returns what it printed."
+    },
     "description": {
       "type": "string",
       "description": "A short present-tense phrase describing what this command does and why, shown to the user as the title of this action (5-10 words, e.g. 'Run unit tests for the parser'). Do not restate the command syntax."

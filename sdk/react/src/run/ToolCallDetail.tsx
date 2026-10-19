@@ -202,12 +202,25 @@ function CategoryDetail({
         </>
       );
 
-    case "shell":
+    case "shell": {
       // The result IS a terminal session (command + output in one block via
       // ResultView's terminal view), so a separate args box would just restate
       // the command line the session already leads with. The exception is a
       // hard tool failure (TOOL_CALL_FAILED → error view, which has no command):
       // show the command (args) alongside the error so it is never lost.
+      //
+      // While the command runs, the session shows what it has printed so far
+      // (the fold's `liveOutput`, previews the runner streams), its newest
+      // lines in view; when the result lands the fold clears `liveOutput` and
+      // the finished session takes its place.
+      if (toolUse.state === "running" && toolUse.liveOutput !== "" && result.type === "terminal") {
+        return (
+          <>
+            <ProvenanceNote toolUse={toolUse} />
+            <ResultView view={{ ...result, stdout: toolUse.liveOutput }} live />
+          </>
+        );
+      }
       return (
         <>
           <ProvenanceNote toolUse={toolUse} />
@@ -221,6 +234,7 @@ function CategoryDetail({
           )}
         </>
       );
+    }
 
     default:
       // fetch, web-search, unknown: input + effect.

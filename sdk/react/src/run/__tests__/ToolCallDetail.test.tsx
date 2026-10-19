@@ -4,7 +4,8 @@
 // without duplicated stats, and a write's body: its turn's captured diff of
 // the file (matched through the turn's file review by path, the bytes from
 // the run's change set), with the proposed-content fallback for every
-// unresolvable case.
+// unresolvable case. A shell call that is still running shows what it has
+// printed so far, and its finished session once the result lands.
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
@@ -412,5 +413,26 @@ describe("formatHeaderDuration", () => {
     expect(formatHeaderDuration("", at(400))).toBeNull();
     expect(formatHeaderDuration(T0, "")).toBeNull();
     expect(formatHeaderDuration("not-a-date", at(2000))).toBeNull();
+  });
+});
+
+describe("a running shell call", () => {
+  it("shows its output so far in the terminal session, then its finished session once the result lands", () => {
+    const running = toolUse({ name: "execute", input: { command: "npm test" }, state: "running", liveOutput: "PASS parser\nPASS lexer\n" });
+    const { container, rerender } = render(<ToolCallDetail toolUse={running} />);
+    const session = container.querySelector('[data-cursor-target="terminal-session"]');
+    expect(session?.textContent).toContain("$ npm test");
+    expect(container.querySelector('[data-cursor-target="terminal-live-output"]')?.textContent).toBe("PASS parser\nPASS lexer");
+
+    const finished = toolUse({ name: "execute", input: { command: "npm test" }, result: "PASS parser\nPASS lexer\nall passed\n[Command succeeded with exit code 0]" });
+    rerender(<ToolCallDetail toolUse={finished} />);
+    expect(container.querySelector('[data-cursor-target="terminal-live-output"]')).toBeNull();
+    expect(container.querySelector('[data-cursor-target="terminal-session"]')?.textContent).toContain("all passed");
+  });
+
+  it("shows only the command while a running call has printed nothing", () => {
+    const { container } = render(<ToolCallDetail toolUse={toolUse({ name: "execute", input: { command: "make" }, state: "running" })} />);
+    expect(container.querySelector('[data-cursor-target="terminal-live-output"]')).toBeNull();
+    expect(container.querySelector('[data-cursor-target="terminal-session"]')?.textContent).toBe("$ make");
   });
 });

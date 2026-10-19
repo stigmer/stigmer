@@ -11,6 +11,16 @@
  * escape review under auto-approve-all. Observing at the backend keeps CAS
  * capture gate-independent, so it is symmetric with the git-tracked path.
  *
+ * THE SHELL IS STIGMER'S
+ * ----------------------
+ * {@link CasCaptureShellBackend.execute} overrides deepagents' with the
+ * runner's command runner (`shared/shell/run-command.ts`): a process group,
+ * the output kept on a timeout, no hang on an orphan holding the pipes
+ * (stigmer#2432). The agent's `execute` tool runs the same runner through
+ * {@link CasCaptureShellBackend.runShell}, streaming and under the turn's
+ * stop (`shell-tool.ts`); this override is for any path that still reaches
+ * the backend's own `execute`.
+ *
  * SHELL VS PLAN MODE
  * ------------------
  * Outside plan mode the harness uses {@link CasCaptureShellBackend} (deepagents
@@ -48,8 +58,12 @@
  */
 
 import { FilesystemBackend, LocalShellBackend } from "deepagents";
-import type { DeleteResult, LocalShellBackendOptions } from "deepagents";
+import type { DeleteResult, ExecuteResponse, LocalShellBackendOptions } from "deepagents";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
+import { endingOf, formatCommandOutput, runCommand, type CommandResult, type RunCommandOptions } from "../../shared/shell/run-command.js";
+
+/** deepagents' default shell timeout, in seconds: the bound of a command the model did not raise. */
+export const DEFAULT_SHELL_TIMEOUT_SECONDS = 120;
 
 export type { CasBeforeMap } from "./cas-capture-observer.js";
 
@@ -93,12 +107,58 @@ export class CasCaptureFilesystemBackend extends FilesystemBackend {
   }
 }
 
+/** What one command run through the backend may set: its bound, the turn's stop, and a listener for its output. */
+export type ShellRunOptions = Pick<RunCommandOptions, "timeoutSeconds" | "signal" | "onOutput">;
+
 export class CasCaptureShellBackend extends LocalShellBackend {
   private readonly observer: CasCaptureObserver;
+  /** The command's whole environment, as deepagents' own backend would hand it (no inheritance). */
+  private readonly shellEnv: Record<string, string>;
+  /** The bound of the backend's own `execute`, deepagents' `timeout` option (seconds). */
+  private readonly timeoutSeconds: number;
 
   constructor(options: LocalShellBackendOptions, deps: CasCaptureDeps) {
     super(options);
     this.observer = deps.observer;
+    this.shellEnv = options.env ?? {};
+    this.timeoutSeconds = options.timeout ?? DEFAULT_SHELL_TIMEOUT_SECONDS;
+  }
+
+  /** Run one command in the workspace with the backend's environment (`shared/shell/run-command.ts`). */
+  runShell(command: string, options: ShellRunOptions): Promise<CommandResult> {
+    return runCommand({ command, cwd: this.cwd, env: this.shellEnv, ...options });
+  }
+
+  /** deepagents' `execute`, on the runner's command runner at the backend's bound, in deepagents' words. */
+  override async execute(command: string): Promise<ExecuteResponse> {
+    if (!command || typeof command !== "string") {
+      return { output: "Error: Command must be a non-empty string.", exitCode: 1, truncated: false };
+    }
+    const result = await this.runShell(command, { timeoutSeconds: this.timeoutSeconds });
+    const ending = endingOf(result, this.timeoutSeconds);
+    const output = formatCommandOutput(result);
+    switch (ending.kind) {
+      case "exited":
+        return { output, exitCode: ending.exitCode, truncated: result.truncated };
+      case "timed-out":
+        return {
+          output: `${output.trimEnd()}\n\nError: Command timed out after ${ending.timeoutSeconds} seconds; its processes were stopped.`,
+          exitCode: 124,
+          truncated: result.truncated,
+        };
+      /* v8 ignore start -- @preserve: this door takes no signal, so only its timeout stops a command; the agent's tool is the door the turn's stop reaches */
+      case "stopped":
+        return { output: `${output.trimEnd()}\n\nCommand stopped with the turn.`, exitCode: 130, truncated: result.truncated };
+      /* v8 ignore stop */
+      case "spawn-failed":
+        return { output: `Error executing command: ${ending.message}`, exitCode: 1, truncated: false };
+      /* v8 ignore start -- @preserve: the never arm; the compiler proves no ending reaches it */
+      default: {
+        const exhaustive: never = ending;
+        throw new Error(`CasCaptureShellBackend: unknown command ending ${JSON.stringify(exhaustive)}`);
+      }
+      /* v8 ignore stop */
+    }
   }
 
   override async write(filePath: string, content: string) {

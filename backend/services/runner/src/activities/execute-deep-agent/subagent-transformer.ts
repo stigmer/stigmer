@@ -53,7 +53,11 @@ import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
 import type { ToolScopeConfig } from "../../middleware/tool-scope.js";
 import type { ToolScope } from "../../shared/tool-lists.js";
-import { createCasCaptureBackend } from "./cas-capture-backend.js";
+import { CasCaptureShellBackend, createCasCaptureBackend } from "./cas-capture-backend.js";
+import { createShellTool, type ShellToolOptions } from "./shell-tool.js";
+
+/** How a sub-agent's shell tool runs, beside its backend: the parent's ceiling and streaming floor. */
+export type ShellStreaming = Omit<ShellToolOptions, "backend">;
 import { mountPlatformRoute, OUTPUTS_ROUTE_PREFIX as NATIVE_OUTPUTS_FOLDER } from "./platform-route.js";
 import { outputsFolderInstruction } from "../../shared/prompt-sections.js";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
@@ -256,6 +260,12 @@ export interface SubagentTransformOptions {
    */
   readonly shellEnv?: Record<string, string>;
   /**
+   * How a shell-capable sub-agent's `execute` tool runs (`shell-tool.ts`):
+   * the timeout ceiling and the streaming floor, the parent's. Absent, a
+   * sub-agent's shell is deepagents' own (unit tests that build no turn).
+   */
+  readonly shellStreaming?: ShellStreaming;
+  /**
    * Filesystem permission rules baked into each compiled sub-agent graph,
    * inherited from the parent's rules in turn-setup.ts (plan mode's deny-all-writes
    * today). Required because deepagents' parent-permission inheritance covers
@@ -439,18 +449,6 @@ function withSkills(instructions: string, skills: readonly SkillMetadata[]): str
  * the parent's read-only `.stigmer/` platform mount (`platform-route.ts`), so
  * a sub-agent reads its skills where its prompt says they are.
  */
-async function buildSubagentBackend(opts: {
-  readonly workspaceRootDir: string;
-  readonly platformDir?: string;
-  readonly casObserver?: CasCaptureObserver;
-  readonly shellEnv?: Record<string, string>;
-}): Promise<AnyBackendProtocol> {
-  return mountPlatformRoute(await buildSubagentWorkspaceBackend(opts), {
-    workspaceDir: opts.workspaceRootDir,
-    platformDir: opts.platformDir,
-  });
-}
-
 async function buildSubagentWorkspaceBackend(opts: {
   readonly workspaceRootDir: string;
   readonly casObserver?: CasCaptureObserver;
@@ -482,7 +480,8 @@ async function buildSubagentWorkspaceBackend(opts: {
  *
  * Each subagent gets:
  * - One model client and one backend sharing the parent's workspace root
- *   (shell-capable outside plan mode; see {@link buildSubagentBackend})
+ *   (shell-capable outside plan mode, with the runner's shell tool over it;
+ *   see {@link buildSubagentWorkspaceBackend})
  * - A fresh agent graph and middleware stack (loop detection, budget,
  *   truncation, cost view) per invocation, built once more at compile only
  *   to refuse a spec deepagents cannot build
@@ -506,6 +505,8 @@ export async function compileSubagents(
     readonly modelFactory?: (modelName: string) => Promise<BaseChatModel>;
     /** Shell env for `execute`; see {@link SubagentTransformOptions.shellEnv}. */
     readonly shellEnv?: Record<string, string>;
+    /** See {@link SubagentTransformOptions.shellStreaming}. */
+    readonly shellStreaming?: ShellStreaming;
     /** Per-graph filesystem rules; see {@link SubagentTransformOptions.permissions}. */
     readonly permissions?: FilesystemPermission[];
   },
@@ -529,7 +530,13 @@ export async function compileSubagents(
       // values); every other subagent's are the parent's.
       const approvalGate = spec.own ? spec.own.approvalGate : opts.approvalGate;
       const shellEnv = spec.own ? spec.own.shellEnv : opts.shellEnv;
-      const backend = await buildSubagentBackend({ ...opts, shellEnv });
+      const workspace = await buildSubagentWorkspaceBackend({ ...opts, shellEnv });
+      const backend = await mountPlatformRoute(workspace, { workspaceDir: opts.workspaceRootDir, platformDir: opts.platformDir });
+      // The sub-agent's own shell over its own backend (its values, never the
+      // parent's), shared by every invocation as the backend is.
+      const shell = workspace instanceof CasCaptureShellBackend && opts.shellStreaming
+        ? { tool: createShellTool({ backend: workspace, ...opts.shellStreaming }) }
+        : undefined;
 
       // One graph on one middleware stack per INVOCATION (stigmer/stigmer#1699).
       // Loop detection, the periodic budget and the cost view keep one
@@ -564,6 +571,7 @@ export async function compileSubagents(
           pathNormalization: { rootDir: opts.workspaceRootDir },
           ...(opts.scopeBase ? { toolScope: { ...opts.scopeBase, scope: spec.scope } } : {}),
           otelSpans: { toolServerMap: opts.toolServerMap ?? new Map() },
+          ...(shell ? { shell } : {}),
         }) as unknown[],
         backend,
         // Enforced inside this graph's own filesystem tools — and inherited by
@@ -645,6 +653,7 @@ export async function transformAndCompileSubagents(
     costAdvisory,
     modelFactory,
     shellEnv,
+    shellStreaming,
     permissions,
   } = options;
 
@@ -707,6 +716,7 @@ export async function transformAndCompileSubagents(
     toolServerMap,
     modelFactory,
     shellEnv,
+    shellStreaming,
     permissions,
   });
 
