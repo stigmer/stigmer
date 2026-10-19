@@ -10,6 +10,7 @@ import (
 	environmentv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/environment/v1"
 	evalv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/eval/v1"
 	evalrunv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/evalrun/v1"
+	filev1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/file/v1"
 	memoryv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/memory/v1"
 	pluginv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/plugin/v1"
 	routinev1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/routine/v1"
@@ -70,6 +71,11 @@ func EvalRunInputFromProto(p *evalrunv1.EvalRun) *EvalRunInput {
 // FederationIssuerInputFromProto creates a FederationIssuerInput from a proto FederationIssuer resource.
 func FederationIssuerInputFromProto(p *federationissuerv1.FederationIssuer) *FederationIssuerInput {
 	return gen.FederationIssuerInputFromProto(p)
+}
+
+// FileInputFromProto creates a FileInput from a proto File resource.
+func FileInputFromProto(p *filev1.File) *FileInput {
+	return gen.FileInputFromProto(p)
 }
 
 // GrantInputFromProto creates a GrantInput from a proto Grant resource.

@@ -60,6 +60,7 @@ const DOCUMENTS = [
   "eval-run-agent-access.fga.yaml",
   "eval-run-plugin-access.fga.yaml",
   "federation-issuer-administration.fga.yaml",
+  "file-access.fga.yaml",
   "invitation-administration.fga.yaml",
   "license-issuer.fga.yaml",
   "memory-subject-only.fga.yaml",

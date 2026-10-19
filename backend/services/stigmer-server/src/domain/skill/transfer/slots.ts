@@ -12,6 +12,11 @@
  * consumption: it reserves, receives, and sweeps; the domain reads and
  * deletes through the driver, one path for every backend.
  *
+ * The registry serves two lanes, each with its own instance: the skill
+ * transfer lane (archives, `<hex>.zip`) and the Files transfer lane
+ * (domain/file/transfer.ts, `files/staging/<hex>`). Each instance names
+ * the file-name shape its staging keys carry.
+ *
  * In-memory is deliberate: the local driver is single-instance (the same
  * assumption the in-process router transport and SQLite store already
  * make), and a slot is worthless across restarts anyway — its bytes live
@@ -63,12 +68,12 @@ interface Slot {
 }
 
 /**
- * The one file-name shape a staging key may carry past its prefix: the
+ * The skill lane's file-name shape for a staging key past its prefix: the
  * domain's hex reference plus the archive suffix. Keys are server-minted,
- * never client-supplied, so this is an invariant check, not input
+ * never client-supplied, so the shape is an invariant check, not input
  * validation — a violation is a programming error and throws.
  */
-const STAGED_FILE_NAME = /^[0-9a-f]+\.zip$/;
+export const STAGED_ARCHIVE_NAME = /^[0-9a-f]+\.zip$/;
 
 export class UploadSlots {
   private readonly slots = new Map<string, Slot>();
@@ -90,6 +95,8 @@ export class UploadSlots {
     private readonly ttlMs: number,
     private readonly maxSize: number,
     now: () => number = Date.now,
+    /** The file-name shape every staging key carries past its prefix. */
+    private readonly stagedFileName: RegExp = STAGED_ARCHIVE_NAME,
   ) {
     this.stagingDir = path.join(root, stagingPrefix);
     fs.rmSync(this.stagingDir, { recursive: true, force: true });
@@ -208,8 +215,8 @@ export class UploadSlots {
       throw new Error(`staging key ${key} is outside ${this.stagingPrefix}`);
     }
     const fileName = key.slice(this.stagingPrefix.length);
-    if (!STAGED_FILE_NAME.test(fileName)) {
-      throw new Error(`staging key ${key} does not name a staged archive`);
+    if (!this.stagedFileName.test(fileName)) {
+      throw new Error(`staging key ${key} does not name a staged upload`);
     }
     return path.join(this.root, key);
   }

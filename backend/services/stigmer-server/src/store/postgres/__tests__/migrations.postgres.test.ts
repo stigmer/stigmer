@@ -169,6 +169,7 @@ import {
   SCHEMA_VERSION_36,
   SCHEMA_VERSION_37,
   SCHEMA_VERSION_38,
+  SCHEMA_VERSION_39,
   runMigrations,
 } from "../migrations.js";
 import { LABEL_TAG_REPORT_PAGE_SIZE } from "../../label-tag-report.js";
@@ -441,6 +442,8 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           "bootstrap_state",
           "connect_attempt",
           "connect_link",
+          "file_blob_refs",
+          "file_blobs",
           "grant_history",
           "grant_history_heads",
           "oauth_client_registration",
@@ -4995,6 +4998,57 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           ).rows.map((r) => r.table_name);
           expect(tables).toContain("schedule_runs");
           expect(tables).not.toContain("routine_fires");
+        } finally {
+          await client.end();
+        }
+      });
+    });
+
+    describe("v39: the File kind's blob tables", () => {
+      it("adds the two tables with the indexes their reads use, touching no row", async () => {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_38);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        try {
+          await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('agent', 'agt_kept', $1, now())`, [
+            Buffer.from([1, 2, 3]),
+          ]);
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_39);
+          const version = await client.query(`SELECT MAX(version) AS version FROM schema_version`);
+          expect(Number(version.rows[0].version)).toBe(SCHEMA_VERSION_39);
+
+          const columns = async (table: string) =>
+            (
+              await client.query<{ column_name: string; data_type: string }>(
+                `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = $1 ORDER BY ordinal_position`,
+                [table],
+              )
+            ).rows.map((row) => `${row.column_name} ${row.data_type}`);
+          expect(await columns("file_blobs")).toEqual([
+            "blob_key text",
+            "org text",
+            "state text",
+            "size_bytes bigint",
+            "expires_at bigint",
+          ]);
+          expect(await columns("file_blob_refs")).toEqual(["file_id text", "blob_key text", "org text"]);
+
+          const indexes = (
+            await client.query<{ indexname: string; indexdef: string }>(
+              `SELECT indexname, indexdef FROM pg_indexes WHERE tablename IN ('file_blobs', 'file_blob_refs') ORDER BY indexname`,
+            )
+          ).rows.map((row) => row.indexname);
+          expect(indexes).toEqual([
+            "file_blob_refs_pkey",
+            "file_blobs_pkey",
+            "idx_file_blob_refs_blob",
+            "idx_file_blob_refs_org",
+            "idx_file_blobs_org",
+            "idx_file_blobs_sweep",
+          ]);
+
+          const kept = await client.query<{ data: Buffer }>(`SELECT data FROM resources WHERE id = 'agt_kept'`);
+          expect([...kept.rows[0]!.data]).toEqual([1, 2, 3]);
         } finally {
           await client.end();
         }

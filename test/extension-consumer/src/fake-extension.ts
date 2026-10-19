@@ -814,7 +814,7 @@ const consumerR2Driver: ArtifactStorageDriverFactory = () =>
 
 /**
  * A consumer-registered blob driver (the registration shape) —
- * lazy factory, typed not-found, the widened size/presignPut surface.
+ * lazy factory, typed not-found, the widened size/presignPut/copy surface.
  */
 const consumerBlobDriver: ArtifactStorageDriverFactory =
   (): ArtifactStorage => ({
@@ -828,6 +828,7 @@ const consumerBlobDriver: ArtifactStorageDriverFactory =
         ttlMs,
       }),
     getSignedUrl: () => Promise.resolve("https://blob.invalid/get"),
+    copy: (fromKey) => Promise.reject(new ArtifactStorageNotFoundError(fromKey)),
     delete: () => Promise.resolve(),
     exists: () => Promise.resolve(false),
     health: () => Promise.resolve(),

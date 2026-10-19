@@ -29,6 +29,7 @@ import {
 import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
 
 import { SERVER_VERSION } from "../domain/platform/version.js";
+import { DEFAULT_FILE_MAX_BYTES } from "../domain/file/constants.js";
 import { DEFAULT_ROUTINE_FIRES_PER_HOUR } from "../domain/routine/fire-rate.js";
 import {
   loginProviderSettingNames,
@@ -336,6 +337,13 @@ export interface ServerConfig {
    * (domain/routine/fire-rate.ts).
    */
   readonly routineFiresPerHour: number;
+  /**
+   * The largest File an upload may carry, in bytes (FILE_MAX_BYTES, default
+   * 500 MB, Claude's Files limit); a value below 1 keeps the default. Every
+   * File store honours it, the local one included, since its transfer lane
+   * streams an upload to disk (domain/file/constants.ts).
+   */
+  readonly fileMaxBytes: number;
 }
 
 // The bundled "Stigmer Local" OAuth App credentials (callback:
@@ -507,6 +515,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       env,
       "STIGMER_ROUTINE_FIRES_PER_HOUR",
       DEFAULT_ROUTINE_FIRES_PER_HOUR,
+    ),
+    fileMaxBytes: positiveOr(
+      envInt(env, "FILE_MAX_BYTES", DEFAULT_FILE_MAX_BYTES),
+      DEFAULT_FILE_MAX_BYTES,
     ),
   };
 }
@@ -743,6 +755,11 @@ function envString(
 ): string {
   const value = env[key];
   return value !== undefined && value !== "" ? value : fallback;
+}
+
+/** The value when it is at least 1, else the fallback. */
+function positiveOr(value: number, fallback: number): number {
+  return value >= 1 ? value : fallback;
 }
 
 function envInt(env: NodeJS.ProcessEnv, key: string, fallback: number): number {

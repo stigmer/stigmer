@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.file.v1;
+
+import "buf/validate/validate.proto";
+
+// FileSpec is a File's name and type. Both are set by the upload and never
+// change: a File's bytes are immutable, and so is what describes them.
+message FileSpec {
+  // The file's name, as the uploader named it: "q3-ledger.xlsx".
+  //
+  // At most 255 characters, with no `/`, `\` or control characters, and not
+  // `.` or `..`.
+  string filename = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 255,
+    (buf.validate.field).string.pattern = "^[^/\\\\\\x00-\\x1f\\x7f]+$",
+    (buf.validate.field).cel = {
+      id: "file.filename.not_dot"
+      message: "filename must not be . or .."
+      expression: "this != '.' && this != '..'"
+    }
+  ];
+
+  // The media type: "image/png", "application/pdf". The upload's own, else
+  // the filename's extension, else "application/octet-stream".
+  //
+  // @internal
+  // The server never sniffs bytes it was not handed; the runner sniffs an
+  // image before it shows it to the model.
+  string mime_type = 2 [
+    (buf.validate.field).string.max_len = 255,
+    (buf.validate.field).string.pattern = "^$|^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*$"
+  ];
+}

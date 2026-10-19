@@ -5,9 +5,11 @@
  * Not conformance-assertable on the local targets (same as Go — the Go
  * tree carries no R2 tests at all); the port adds unit pins for the pieces
  * that have logic: config validation copy, the 7-day presign clamp, the
- * signed Content-Disposition, and the not-found mapping.
+ * signed Content-Disposition, the not-found mapping, and the copy's
+ * source encoding.
  */
 import {
+  CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadBucketCommand,
@@ -227,6 +229,25 @@ export class R2ArtifactStorage implements ArtifactStorage {
     }
   }
 
+  // One server-side CopyObject: the bytes stay in the bucket. R2 copies an
+  // object of up to 5 GB in one request, far above any File's cap.
+  async copy(fromKey: string, toKey: string): Promise<void> {
+    try {
+      await this.client.send(
+        new CopyObjectCommand({
+          Bucket: this.bucket,
+          Key: toKey,
+          CopySource: `${this.bucket}/${encodeCopySourceKey(fromKey)}`,
+        }),
+      );
+    } catch (error) {
+      if (isNotFoundError(error)) {
+        throw new ArtifactStorageNotFoundError(fromKey);
+      }
+      throw new Error(`r2 copy failed: ${errorText(error)}`, { cause: error });
+    }
+  }
+
   async delete(key: string): Promise<void> {
     try {
       await this.client.send(
@@ -282,6 +303,14 @@ export function isNotFoundError(error: unknown): boolean {
   }
   const message = error instanceof Error ? error.message : String(error);
   return message.includes("404") || message.includes("not found");
+}
+
+/**
+ * A key as CopySource carries it: each path segment URL-encoded, the
+ * slashes kept, as the S3 API reads the header.
+ */
+function encodeCopySourceKey(key: string): string {
+  return key.split("/").map(encodeURIComponent).join("/");
 }
 
 function errorText(error: unknown): string {

@@ -51,6 +51,7 @@
           "eval_run",
           "eval",
           "environment",
+          "file",
           "plan",
           "subscription",
           "license"

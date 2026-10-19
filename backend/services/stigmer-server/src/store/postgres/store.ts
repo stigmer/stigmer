@@ -139,6 +139,8 @@ import type {
 import { decodeFiredBy, encodeFiredBy } from "../fired-by.js";
 import { instantNotBefore, rfc3339Seconds } from "../rfc3339.js";
 import { stampEtag } from "../etag.js";
+import { fileBlobRefusal } from "../file-blobs.js";
+import type { FileBlobRecord, FileBlobState, FileBlobStore, FileRemoval } from "../file-blobs.js";
 import { runMigrations } from "./migrations.js";
 import { normalizeTsRankScore, renderTsQueryExpression } from "./tsquery.js";
 
@@ -209,6 +211,7 @@ export class PostgresStore implements Store {
   readonly connectAttempts: ConnectAttemptStore;
   readonly organizationDeletions: OrganizationDeletionStore;
   readonly sessionEvents: SessionEventStore;
+  readonly files: FileBlobStore;
 
   private pool: Pool | undefined;
   private readonly logger: StoreLogger;
@@ -242,6 +245,11 @@ export class PostgresStore implements Store {
       () => this.open(),
       (fn) => this.withTransaction(fn),
       gates,
+    );
+    this.files = new PostgresFileBlobStore(
+      () => this.open(),
+      (fn) => this.withTransaction(fn),
+      listIndexes,
     );
   }
 
@@ -3123,5 +3131,214 @@ function assertSameSession(kindName: string, id: string, locked: string, rows: s
     throw new Error(
       `${kindName}/${id} names session '${rows}', not the session '${locked}' its write locked`,
     );
+  }
+}
+
+// =============================================================================
+// File blobs
+// =============================================================================
+
+const FILE_BLOB_COLUMNS = "blob_key, org, state, size_bytes, expires_at";
+
+interface FileBlobRow {
+  blob_key: string;
+  org: string;
+  state: string;
+  size_bytes: string | number;
+  expires_at: string | number;
+}
+
+function fileBlobOf(row: FileBlobRow): FileBlobRecord {
+  return {
+    blobKey: row.blob_key,
+    org: row.org,
+    state: row.state as FileBlobState,
+    sizeBytes: Number(row.size_bytes),
+    expiresAt: Number(row.expires_at),
+  };
+}
+
+/** The blob's row, locked until the caller's transaction ends: every writer of who names a blob takes it first. */
+async function lockFileBlob(client: PoolClient, blobKey: string): Promise<FileBlobRecord | undefined> {
+  const result = await client.query<FileBlobRow>(
+    `SELECT ${FILE_BLOB_COLUMNS} FROM file_blobs WHERE blob_key = $1 FOR UPDATE`,
+    [blobKey],
+  );
+  const row = result.rows[0];
+  return row === undefined ? undefined : fileBlobOf(row);
+}
+
+/**
+ * The File blob store (../file-blobs.ts). `insert` and `remove` lock the
+ * blob's row before they touch a resource row, so two writers of one blob
+ * meet on it and, under read committed, each statement after the lock sees
+ * what the other committed. No advisory lock: the row is the lock.
+ */
+class PostgresFileBlobStore implements FileBlobStore {
+  constructor(
+    private readonly open: () => Pool,
+    private readonly transaction: <T>(fn: (client: PoolClient) => Promise<T>) => Promise<T>,
+    private readonly listIndexes: ListIndexRegistry,
+  ) {}
+
+  async recordBlob(blob: FileBlobRecord): Promise<void> {
+    await this.open().query(
+      `INSERT INTO file_blobs (${FILE_BLOB_COLUMNS}) VALUES ($1, $2, $3, $4, $5)`,
+      [blob.blobKey, blob.org, blob.state, blob.sizeBytes, blob.expiresAt],
+    );
+  }
+
+  async getBlob(blobKey: string): Promise<FileBlobRecord | undefined> {
+    const result = await this.open().query<FileBlobRow>(
+      `SELECT ${FILE_BLOB_COLUMNS} FROM file_blobs WHERE blob_key = $1`,
+      [blobKey],
+    );
+    const row = result.rows[0];
+    return row === undefined ? undefined : fileBlobOf(row);
+  }
+
+  async claimStaged(
+    blobKey: string,
+    org: string,
+    now: number,
+    leaseUntil: number,
+  ): Promise<FileBlobRecord | undefined> {
+    return this.transaction(async (client) => {
+      const row = await lockFileBlob(client, blobKey);
+      if (row === undefined || row.org !== org || row.state !== "staged" || row.expiresAt <= now) {
+        return undefined;
+      }
+      await client.query(
+        `UPDATE file_blobs SET state = 'orphaned', expires_at = $2 WHERE blob_key = $1`,
+        [blobKey, leaseUntil],
+      );
+      return row;
+    });
+  }
+
+  async insert<Desc extends DescMessage>(
+    kind: ApiResourceKind,
+    id: string,
+    schema: Desc,
+    msg: MessageShape<Desc>,
+    blob: { readonly blobKey: string; readonly org: string; readonly sizeBytes: number },
+    now: number,
+  ): Promise<boolean> {
+    stampEtag(schema, msg);
+    const data = Buffer.from(toBinary(schema, msg));
+    const kindName = apiResourceKindName(kind);
+    const facts = this.listIndexes.factsOf(kind, msg);
+    return this.transaction(async (client) => {
+      const refusal = fileBlobRefusal(blob.blobKey, await lockFileBlob(client, blob.blobKey), blob.org, now);
+      if (refusal !== undefined) {
+        throw refusal;
+      }
+      const result = await client.query(INSERT_NEW_RESOURCE_SQL, [
+        kindName,
+        id,
+        data,
+        facts?.org ?? null,
+        facts?.createdAt ?? null,
+        facts?.revision ?? null,
+      ]);
+      if ((result.rowCount ?? 0) === 0) {
+        return false;
+      }
+      if (facts !== undefined) {
+        await replaceListKeys(client, kindName, id, facts);
+      }
+      await client.query(
+        `INSERT INTO file_blob_refs (file_id, blob_key, org) VALUES ($1, $2, $3)`,
+        [id, blob.blobKey, blob.org],
+      );
+      await client.query(
+        `UPDATE file_blobs
+         SET size_bytes = CASE WHEN state = 'stored' THEN size_bytes ELSE $2 END,
+             state = 'stored',
+             expires_at = 0
+         WHERE blob_key = $1`,
+        [blob.blobKey, blob.sizeBytes],
+      );
+      return true;
+    });
+  }
+
+  async blobKeyOf(fileId: string): Promise<string | undefined> {
+    const result = await this.open().query<{ blob_key: string }>(
+      `SELECT blob_key FROM file_blob_refs WHERE file_id = $1`,
+      [fileId],
+    );
+    return result.rows[0]?.blob_key;
+  }
+
+  async remove(kind: ApiResourceKind, id: string): Promise<FileRemoval> {
+    const kindName = apiResourceKindName(kind);
+    return this.transaction(async (client) => {
+      // A ref's blob never changes, so reading it before the lock is safe;
+      // a concurrent remove of this File shows as a ref already gone.
+      const ref = await client.query<{ blob_key: string }>(
+        `SELECT blob_key FROM file_blob_refs WHERE file_id = $1`,
+        [id],
+      );
+      const blobKey = ref.rows[0]?.blob_key;
+      if (blobKey !== undefined) {
+        await lockFileBlob(client, blobKey);
+      }
+      const removed = await client.query(`DELETE FROM resources WHERE kind = $1 AND id = $2`, [kindName, id]);
+      await client.query(`DELETE FROM resource_list_keys WHERE kind = $1 AND id = $2`, [kindName, id]);
+      const result: FileRemoval = { removed: (removed.rowCount ?? 0) > 0, orphanedBlobKey: undefined };
+      if (blobKey === undefined) {
+        return result;
+      }
+      // A ref another remove of this File already took orphans nothing
+      // here; that remove saw whether the blob is still named.
+      const unref = await client.query(`DELETE FROM file_blob_refs WHERE file_id = $1`, [id]);
+      const named = await client.query(`SELECT 1 FROM file_blob_refs WHERE blob_key = $1 LIMIT 1`, [blobKey]);
+      if ((unref.rowCount ?? 0) === 0 || (named.rowCount ?? 0) > 0) {
+        return result;
+      }
+      const orphaned = await client.query(
+        `UPDATE file_blobs SET state = 'orphaned', expires_at = 0 WHERE blob_key = $1 AND state = 'stored'`,
+        [blobKey],
+      );
+      return (orphaned.rowCount ?? 0) > 0 ? { ...result, orphanedBlobKey: blobKey } : result;
+    });
+  }
+
+  async listSweepable(now: number, limit: number): Promise<string[]> {
+    const result = await this.open().query<{ blob_key: string }>(
+      `SELECT blob_key FROM file_blobs
+       WHERE state IN ('staged', 'orphaned') AND expires_at <= $1
+       ORDER BY expires_at, blob_key
+       LIMIT $2`,
+      [now, limit],
+    );
+    return result.rows.map((row) => row.blob_key);
+  }
+
+  async forgetBlob(blobKey: string, now: number): Promise<boolean> {
+    const result = await this.open().query(
+      `DELETE FROM file_blobs
+       WHERE blob_key = $1 AND state IN ('staged', 'orphaned') AND expires_at <= $2
+         AND NOT EXISTS (SELECT 1 FROM file_blob_refs WHERE blob_key = $1)`,
+      [blobKey, now],
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async listBlobKeysByOrg(org: string, after: string, limit: number): Promise<string[]> {
+    const result = await this.open().query<{ blob_key: string }>(
+      `SELECT blob_key FROM file_blobs WHERE org = $1 AND blob_key > $2 ORDER BY blob_key LIMIT $3`,
+      [org, after, limit],
+    );
+    return result.rows.map((row) => row.blob_key);
+  }
+
+  async deleteByOrg(org: string): Promise<number> {
+    return this.transaction(async (client) => {
+      await client.query(`DELETE FROM file_blob_refs WHERE org = $1`, [org]);
+      const result = await client.query(`DELETE FROM file_blobs WHERE org = $1`, [org]);
+      return result.rowCount ?? 0;
+    });
   }
 }

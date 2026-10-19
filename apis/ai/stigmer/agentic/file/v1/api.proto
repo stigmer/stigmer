@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.file.v1;
+
+import "ai/stigmer/agentic/file/v1/spec.proto";
+import "ai/stigmer/agentic/file/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// File is a file uploaded once and named by its id: a screenshot given to a
+// conversation, a spreadsheet a routine reads every night, a document kept
+// for later.
+//
+// A File's bytes never change: uploading again makes a new File with a new
+// id. A File uploaded into a conversation belongs to it (status.session_id)
+// and is seen by everyone who can see the conversation; any other File is
+// private to its uploader until its visibility or a grant shares it.
+//
+// @internal
+// Organization-scoped kind (73, prefix file), shaped as Claude's Files API
+// object: id, filename, mime type, size, created time. The bytes live in the
+// organization's blob store under a key only the server knows (the store's
+// file_blob_refs table), and no message carries that key: every read of the
+// bytes goes through a link the server signs (FileQueryController
+// getDownloadUrl). A File is server-named: metadata.name is its filename and
+// claims nothing, so two uploads of report.pdf both succeed.
+message File {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'File'];
+
+  // Resource metadata including id, organization, visibility and labels.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // The file's name and type, as uploaded.
+  FileSpec spec = 4;
+
+  // System-managed state: the size, the conversation it belongs to, and the
+  // audit trail.
+  FileStatus status = 5;
+}

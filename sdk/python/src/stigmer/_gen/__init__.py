@@ -10,6 +10,7 @@ from ._environment import EnvironmentClient, EnvironmentInput, EnvironmentNetwor
 from ._eval import EvalClient, EvalInput
 from ._evalrun import EvalRunClient, EvalRunInput, EvalRunCaseSourceInput, EvalRunTargetInput
 from ._federationissuer import FederationIssuerClient, FederationIssuerInput
+from ._file import FileClient, FileInput
 from ._grant import GrantClient, GrantInput, ApiResourceRefInput
 from ._identityaccount import IdentityAccountClient, IdentityAccountInput, IdentityAccountPreferencesInput
 from ._invitation import InvitationClient, InvitationInput
@@ -79,6 +80,8 @@ __all__ = [
     "EvalRunTargetInput",
     "FederationIssuerClient",
     "FederationIssuerInput",
+    "FileClient",
+    "FileInput",
     "GrantClient",
     "GrantInput",
     "ApiResourceRefInput",

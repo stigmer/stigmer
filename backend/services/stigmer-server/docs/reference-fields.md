@@ -88,6 +88,16 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.scoringrule.v1.ScoringRuleSpec.agent_id` | stamped id |
 | `ai.stigmer.agentic.scoringrule.v1.GetScoringRuleByAgentRequest.agent_id` | stamped id |
 
+## `ai.stigmer.agentic.file.v1`
+
+| Field | Class |
+|---|---|
+| `ai.stigmer.agentic.file.v1.CreateFileUploadUrlInput.session_id` | stamped id |
+| `ai.stigmer.agentic.file.v1.FileStatus.run_id` | stamped id |
+| `ai.stigmer.agentic.file.v1.FileStatus.session_id` | stamped id |
+| `ai.stigmer.agentic.file.v1.ListFilesRequest.session_id` | stamped id |
+| `ai.stigmer.agentic.file.v1.UploadFileInput.session_id` | stamped id |
+
 ## `ai.stigmer.agentic.memory.v1`
 
 | Field | Class |
@@ -166,6 +176,7 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.session.v1.AppendSessionEventsInput.run_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.BindHarnessStateInput.run_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.ConfirmToolUseInput.session_id` | stamped id |
+| `ai.stigmer.agentic.session.v1.ContentSource.file_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.GrantPermissionInput.session_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.InterruptSessionInput.session_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.ListSessionEventsRequest.run_id` | stamped id |

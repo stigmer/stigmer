@@ -322,8 +322,11 @@ export const SCHEMA_VERSION_37 = 37;
 /** v38: the schedule is a routine: its names, grants and history, fire ledger and runs' labels. */
 export const SCHEMA_VERSION_38 = 38;
 
+/** v39: the File kind's blobs and the Files that name them. */
+export const SCHEMA_VERSION_39 = 39;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_38;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_39;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -402,6 +405,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_36, migrateToV36],
       [SCHEMA_VERSION_37, (migrating) => migrateToV37(migrating, logger)],
       [SCHEMA_VERSION_38, migrateToV38],
+      [SCHEMA_VERSION_39, migrateToV39],
     ];
 
     for (const [version, migrate] of chain) {
@@ -2768,4 +2772,34 @@ async function migrateToV38(client: PoolClient): Promise<void> {
       ]);
     }
   });
+}
+
+/**
+ * v39: the File kind's blob tables (../file-blobs.ts). `file_blobs` holds
+ * one row per blob the server minted; `file_blob_refs` one row per File,
+ * naming its blob. Keys compare under `COLLATE "C"` so an organization's
+ * purge pages them in byte order on `(org, blob_key)`. The sweep reads
+ * `(state, expires_at)`; a remove counts a blob's refs on `blob_key`; a
+ * purge removes an organization's refs on `org`. DDL only.
+ */
+async function migrateToV39(client: PoolClient): Promise<void> {
+  await client.query(`
+    CREATE TABLE file_blobs (
+      blob_key TEXT COLLATE "C" PRIMARY KEY,
+      org TEXT NOT NULL,
+      state TEXT NOT NULL,
+      size_bytes BIGINT NOT NULL DEFAULT 0,
+      expires_at BIGINT NOT NULL DEFAULT 0
+    );
+    CREATE INDEX idx_file_blobs_org ON file_blobs (org, blob_key);
+    CREATE INDEX idx_file_blobs_sweep ON file_blobs (state, expires_at);
+
+    CREATE TABLE file_blob_refs (
+      file_id TEXT PRIMARY KEY,
+      blob_key TEXT COLLATE "C" NOT NULL,
+      org TEXT NOT NULL
+    );
+    CREATE INDEX idx_file_blob_refs_blob ON file_blob_refs (blob_key);
+    CREATE INDEX idx_file_blob_refs_org ON file_blob_refs (org);
+  `);
 }

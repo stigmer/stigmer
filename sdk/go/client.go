@@ -21,10 +21,13 @@ import (
 //
 // Skill shadows the embedded generated client with a wrapper that routes
 // Push by artifact size (#675) — existing client.Skill.Push call sites
-// gain >10MB support with no code change.
+// gain >10MB support with no code change. File shadows the generated file
+// client the same way with a wrapper whose UploadFile routes a file's
+// content by size.
 type Client struct {
 	*gen.Client
 	Skill   *SkillClient
+	File    *FileClient
 	Search  *SearchClient
 	GitHub  *GitHubClient
 	Billing *BillingClient
@@ -93,6 +96,7 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 	return &Client{
 		Client:                 genClient,
 		Skill:                  newSkillClient(genClient.Skill),
+		File:                   newFileClient(genClient.File),
 		Search:                 newSearchClient(conn),
 		GitHub:                 newGitHubClient(conn),
 		Billing:                newBillingClient(conn),

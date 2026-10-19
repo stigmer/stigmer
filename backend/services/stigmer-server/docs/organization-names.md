@@ -109,6 +109,15 @@ Rows read `| Service.method | <field>, <field>, … |`.
 |---|---|
 | EvalRunCommandController.create | `metadata.org`, `spec.cases.plugin.org`, `spec.cases.eval.org`, `spec.vaults.org` |
 
+## `ai.stigmer.agentic.file.v1`
+
+| Method | Organization fields |
+|---|---|
+| FileCommandController.createUploadUrl | `org` |
+| FileCommandController.update | `resource.metadata.org` |
+| FileCommandController.upload | `org` |
+| FileQueryController.list | `org` |
+
 ## `ai.stigmer.agentic.scoringrule.v1`
 
 | Method | Organization fields |

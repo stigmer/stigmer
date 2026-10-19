@@ -243,6 +243,15 @@ public enum ApiResourceKind
   environment(67),
   /**
    * <pre>
+   * A file uploaded once and named by its id: given to a conversation with
+   * a message, held in a conversation's resources, or kept by its uploader.
+   * </pre>
+   *
+   * <code>file = 73 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  file(73),
+  /**
+   * <pre>
    * Catalog entry naming a bundle of entitlements and the terms that buy it.
    *
    * Platform-level: a plan belongs to no organization, so it carries no
@@ -519,6 +528,15 @@ public enum ApiResourceKind
   public static final int environment_VALUE = 67;
   /**
    * <pre>
+   * A file uploaded once and named by its id: given to a conversation with
+   * a message, held in a conversation's resources, or kept by its uploader.
+   * </pre>
+   *
+   * <code>file = 73 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int file_VALUE = 73;
+  /**
+   * <pre>
    * Catalog entry naming a bundle of entitlements and the terms that buy it.
    *
    * Platform-level: a plan belongs to no organization, so it carries no
@@ -607,6 +625,7 @@ public enum ApiResourceKind
       case 65: return eval_run;
       case 66: return eval;
       case 67: return environment;
+      case 73: return file;
       case 70: return plan;
       case 71: return subscription;
       case 72: return license;

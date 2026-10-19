@@ -9,8 +9,9 @@
  * backend shares, and the signer's verify accepting what it minted), and the
  * Content-Disposition builder. Adds the factory's r2/unknown refusals
  * (Go's are boot asserted; here they're the disclosed deferral), and the
- * widened surface: size, the typed not-found, presigned-PUT over the
- * skill-transfer-lane mechanism, and registered-driver factory selection.
+ * widened surface: size, the typed not-found, the contained copy,
+ * presigned-PUT over the skill-transfer-lane mechanism, and
+ * registered-driver factory selection.
  */
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -237,6 +238,33 @@ describe("LocalArtifactStorage", () => {
           "artifact not found: attachments/absent.bin",
         );
       }
+    });
+
+    it("copy duplicates the bytes under the new key and leaves the source", async () => {
+      await storage.upload("files/staging/aa", Buffer.from("payload"), "");
+      await storage.copy("files/staging/aa", "files/org_1/blob_1");
+      expect(Buffer.from(await storage.download("files/org_1/blob_1")).toString()).toBe("payload");
+      expect(await storage.exists("files/staging/aa")).toBe(true);
+    });
+
+    it("copy of an absent source answers the typed not-found and writes nothing", async () => {
+      const error = await storage.copy("files/staging/absent", "files/org_1/blob_2").catch((e: unknown) => e);
+      expect(error).toBeInstanceOf(ArtifactStorageNotFoundError);
+      expect(await storage.exists("files/org_1/blob_2")).toBe(false);
+    });
+
+    it("copy rethrows a fault that is not a missing source", async () => {
+      await storage.upload("files/dir/inner", Buffer.from("x"), "");
+      const error = await storage.copy("files/dir", "files/elsewhere").catch((e: unknown) => e);
+      expect(error).toBeInstanceOf(Error);
+      expect(error).not.toBeInstanceOf(ArtifactStorageNotFoundError);
+    });
+
+    it("copy refuses a key on either side that would leave the root", async () => {
+      await storage.upload("files/staging/bb", Buffer.from("x"), "");
+      await expect(storage.copy("../escape", "files/x")).rejects.toThrow("outside the artifact storage root");
+      await expect(storage.copy("files/staging/bb", "../escaped")).rejects.toThrow("outside the artifact storage root");
+      assertNoEscape("escaped");
     });
 
     it("presignPut without a wired lane is the explicit not-configured throw, never a silent no-op", async () => {

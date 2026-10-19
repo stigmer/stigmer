@@ -82,6 +82,8 @@ import {
   sameListKeyRows,
 } from "../list-index.js";
 import { stampEtag } from "../etag.js";
+import { fileBlobRefusal } from "../file-blobs.js";
+import type { FileBlobRecord, FileBlobState, FileBlobStore, FileRemoval } from "../file-blobs.js";
 import type {
   ListIndexDeclaration,
   ListIndexFacts,
@@ -219,6 +221,7 @@ export class SqliteStore implements Store {
   readonly connectAttempts: ConnectAttemptStore;
   readonly organizationDeletions: OrganizationDeletionStore;
   readonly sessionEvents: SessionEventStore;
+  readonly files: FileBlobStore;
 
   private db: DatabaseSync | undefined;
   private readonly dbPath: string;
@@ -252,6 +255,7 @@ export class SqliteStore implements Store {
       this.open(),
     );
     this.sessionEvents = new SqliteSessionEventStore(() => this.open(), gates);
+    this.files = new SqliteFileBlobStore(() => this.open(), listIndexes);
   }
 
   /**
@@ -2095,16 +2099,23 @@ class SqliteResourceNameStore implements ResourceNameStore {
   }
 
   private transaction<T>(fn: (db: DatabaseSync) => T): T {
-    const db = this.open();
-    db.exec("BEGIN IMMEDIATE");
-    try {
-      const result = fn(db);
-      db.exec("COMMIT");
-      return result;
-    } catch (error) {
-      db.exec("ROLLBACK");
-      throw error;
-    }
+    return immediateTransaction(this.open(), fn);
+  }
+}
+
+/**
+ * Runs a synchronous multi-statement write under BEGIN IMMEDIATE, which
+ * takes the write lock up front: rolled back when `fn` throws.
+ */
+function immediateTransaction<T>(db: DatabaseSync, fn: (db: DatabaseSync) => T): T {
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const result = fn(db);
+    db.exec("COMMIT");
+    return result;
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
   }
 }
 
@@ -3016,4 +3027,191 @@ function auditRecordOf(row: SqliteAuditRow): AuditRecord {
     tag: row.tag ?? "",
     seq: String(row.id),
   };
+}
+
+// =============================================================================
+// File blobs
+// =============================================================================
+
+const FILE_BLOB_COLUMNS = "blob_key, org, state, size_bytes, expires_at";
+
+interface FileBlobRow {
+  blob_key: string;
+  org: string;
+  state: string;
+  size_bytes: number;
+  expires_at: number;
+}
+
+function fileBlobOf(row: FileBlobRow): FileBlobRecord {
+  return {
+    blobKey: row.blob_key,
+    org: row.org,
+    state: row.state as FileBlobState,
+    sizeBytes: Number(row.size_bytes),
+    expiresAt: Number(row.expires_at),
+  };
+}
+
+function readFileBlob(db: DatabaseSync, blobKey: string): FileBlobRecord | undefined {
+  const row = db
+    .prepare(`SELECT ${FILE_BLOB_COLUMNS} FROM file_blobs WHERE blob_key = ?`)
+    .get(blobKey) as FileBlobRow | undefined;
+  return row === undefined ? undefined : fileBlobOf(row);
+}
+
+/**
+ * The File blob store (../file-blobs.ts; postgres/store.ts's twin). Every
+ * write that reads before it writes runs under BEGIN IMMEDIATE, which
+ * serializes it against every other writer of the file, so a blob's row is
+ * as good as locked from the first statement.
+ */
+class SqliteFileBlobStore implements FileBlobStore {
+  constructor(
+    private readonly open: () => DatabaseSync,
+    private readonly listIndexes: ListIndexRegistry,
+  ) {}
+
+  async recordBlob(blob: FileBlobRecord): Promise<void> {
+    this.open()
+      .prepare(`INSERT INTO file_blobs (${FILE_BLOB_COLUMNS}) VALUES (?, ?, ?, ?, ?)`)
+      .run(blob.blobKey, blob.org, blob.state, blob.sizeBytes, blob.expiresAt);
+  }
+
+  async getBlob(blobKey: string): Promise<FileBlobRecord | undefined> {
+    return readFileBlob(this.open(), blobKey);
+  }
+
+  async claimStaged(
+    blobKey: string,
+    org: string,
+    now: number,
+    leaseUntil: number,
+  ): Promise<FileBlobRecord | undefined> {
+    return immediateTransaction(this.open(), (db) => {
+      const row = readFileBlob(db, blobKey);
+      if (row === undefined || row.org !== org || row.state !== "staged" || row.expiresAt <= now) {
+        return undefined;
+      }
+      db.prepare(`UPDATE file_blobs SET state = 'orphaned', expires_at = ? WHERE blob_key = ?`).run(
+        leaseUntil,
+        blobKey,
+      );
+      return row;
+    });
+  }
+
+  async insert<Desc extends DescMessage>(
+    kind: ApiResourceKind,
+    id: string,
+    schema: Desc,
+    msg: MessageShape<Desc>,
+    blob: { readonly blobKey: string; readonly org: string; readonly sizeBytes: number },
+    now: number,
+  ): Promise<boolean> {
+    stampEtag(schema, msg);
+    const data = toBinary(schema, msg);
+    const kindName = apiResourceKindName(kind);
+    const facts = this.listIndexes.factsOf(kind, msg);
+    return immediateTransaction(this.open(), (db) => {
+      const refusal = fileBlobRefusal(blob.blobKey, readFileBlob(db, blob.blobKey), blob.org, now);
+      if (refusal !== undefined) {
+        throw refusal;
+      }
+      const inserted =
+        Number(
+          db
+            .prepare(INSERT_NEW_RESOURCE_SQL)
+            .run(kindName, id, data, facts?.org ?? null, facts?.createdAt ?? null, facts?.revision ?? null).changes,
+        ) > 0;
+      if (!inserted) {
+        return false;
+      }
+      if (facts !== undefined) {
+        replaceListKeys(db, kindName, id, facts);
+      }
+      db.prepare(`INSERT INTO file_blob_refs (file_id, blob_key, org) VALUES (?, ?, ?)`).run(
+        id,
+        blob.blobKey,
+        blob.org,
+      );
+      db.prepare(
+        `UPDATE file_blobs
+         SET size_bytes = CASE WHEN state = 'stored' THEN size_bytes ELSE ? END,
+             state = 'stored',
+             expires_at = 0
+         WHERE blob_key = ?`,
+      ).run(blob.sizeBytes, blob.blobKey);
+      return true;
+    });
+  }
+
+  async blobKeyOf(fileId: string): Promise<string | undefined> {
+    const row = this.open()
+      .prepare(`SELECT blob_key FROM file_blob_refs WHERE file_id = ?`)
+      .get(fileId) as { blob_key: string } | undefined;
+    return row?.blob_key;
+  }
+
+  async remove(kind: ApiResourceKind, id: string): Promise<FileRemoval> {
+    const kindName = apiResourceKindName(kind);
+    return immediateTransaction(this.open(), (db) => {
+      const removed = db.prepare(`DELETE FROM resources WHERE kind = ? AND id = ?`).run(kindName, id).changes;
+      db.prepare(`DELETE FROM resource_list_keys WHERE kind = ? AND id = ?`).run(kindName, id);
+      const result: FileRemoval = { removed: Number(removed) > 0, orphanedBlobKey: undefined };
+      const ref = (
+        db.prepare(`DELETE FROM file_blob_refs WHERE file_id = ? RETURNING blob_key`).all(id) as Array<{
+          blob_key: string;
+        }>
+      )[0];
+      if (ref === undefined) {
+        return result;
+      }
+      const named = db.prepare(`SELECT 1 FROM file_blob_refs WHERE blob_key = ? LIMIT 1`).get(ref.blob_key);
+      if (named !== undefined) {
+        return result;
+      }
+      const orphaned = db
+        .prepare(`UPDATE file_blobs SET state = 'orphaned', expires_at = 0 WHERE blob_key = ? AND state = 'stored'`)
+        .run(ref.blob_key).changes;
+      return Number(orphaned) > 0 ? { ...result, orphanedBlobKey: ref.blob_key } : result;
+    });
+  }
+
+  async listSweepable(now: number, limit: number): Promise<string[]> {
+    const rows = this.open()
+      .prepare(
+        `SELECT blob_key FROM file_blobs
+         WHERE state IN ('staged', 'orphaned') AND expires_at <= ?
+         ORDER BY expires_at, blob_key
+         LIMIT ?`,
+      )
+      .all(now, limit) as Array<{ blob_key: string }>;
+    return rows.map((row) => row.blob_key);
+  }
+
+  async forgetBlob(blobKey: string, now: number): Promise<boolean> {
+    const removed = this.open()
+      .prepare(
+        `DELETE FROM file_blobs
+         WHERE blob_key = ? AND state IN ('staged', 'orphaned') AND expires_at <= ?
+           AND NOT EXISTS (SELECT 1 FROM file_blob_refs WHERE blob_key = ?)`,
+      )
+      .run(blobKey, now, blobKey).changes;
+    return Number(removed) > 0;
+  }
+
+  async listBlobKeysByOrg(org: string, after: string, limit: number): Promise<string[]> {
+    const rows = this.open()
+      .prepare(`SELECT blob_key FROM file_blobs WHERE org = ? AND blob_key > ? ORDER BY blob_key LIMIT ?`)
+      .all(org, after, limit) as Array<{ blob_key: string }>;
+    return rows.map((row) => row.blob_key);
+  }
+
+  async deleteByOrg(org: string): Promise<number> {
+    return immediateTransaction(this.open(), (db) => {
+      db.prepare(`DELETE FROM file_blob_refs WHERE org = ?`).run(org);
+      return Number(db.prepare(`DELETE FROM file_blobs WHERE org = ?`).run(org).changes);
+    });
+  }
 }

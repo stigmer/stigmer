@@ -14,6 +14,7 @@ public class GeneratedClient {
     public final EvalClient eval;
     public final EvalRunClient evalrun;
     public final FederationIssuerClient federationIssuer;
+    public final FileClient file;
     public final GrantClient grant;
     public final IdentityAccountClient identityAccount;
     public final InvitationClient invitation;
@@ -43,6 +44,7 @@ public class GeneratedClient {
         this.eval = new EvalClient(channel);
         this.evalrun = new EvalRunClient(channel);
         this.federationIssuer = new FederationIssuerClient(channel);
+        this.file = newFileClient(channel);
         this.grant = new GrantClient(channel);
         this.identityAccount = new IdentityAccountClient(channel);
         this.invitation = new InvitationClient(channel);
@@ -62,6 +64,16 @@ public class GeneratedClient {
         this.subscription = new SubscriptionClient(channel);
         this.team = new TeamClient(channel);
         this.vault = new VaultClient(channel);
+    }
+
+    /**
+     * Factory hook for the file field (uploads routed by size over the same transfer lane).
+     * Overrides run during this class's constructor, so they must build
+     * the client from the channel argument alone — never from subclass
+     * instance state, which is not initialized yet.
+     */
+    protected FileClient newFileClient(Channel channel) {
+        return new FileClient(channel);
     }
 
     /**

@@ -17,7 +17,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
+import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
+import { newFileBlobs } from "../../domain/file/blobs.js";
 import { silentLogger } from "../../extensions/__tests__/composed-support.js";
+import { untouchable } from "../../pipeline/__tests__/support.js";
 import type {
   OrganizationPurgeStage,
   ResolvedOrganizationPurge,
@@ -69,6 +72,12 @@ describe("the core's kind purges", () => {
       accounts: newResourceIdentityAccountStore(fx.store),
       accountLifecycle: undefined,
       runScores: { deleteScoresOfRun: async () => {} },
+      fileBlobs: newFileBlobs({
+        store: fx.store,
+        storage: untouchable<ArtifactStorage>("file storage"),
+        logger: silentLogger,
+        maxBytes: 1024,
+      }),
     });
     const kinds = [purges.quiesce.kind, ...purges.content.map((p) => p.kind)];
     expect(new Set(kinds).size, "no kind is purged twice").toBe(kinds.length);

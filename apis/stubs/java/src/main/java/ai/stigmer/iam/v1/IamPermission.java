@@ -352,6 +352,15 @@ public enum IamPermission
    * <code>can_create_environment = 60;</code>
    */
   can_create_environment(60),
+  /**
+   * <pre>
+   * Whether the caller may upload a File of their own in an organization:
+   * its members and guests, the people who may start a conversation.
+   * </pre>
+   *
+   * <code>can_create_file = 61;</code>
+   */
+  can_create_file(61),
   UNRECOGNIZED(-1),
   ;
 
@@ -692,6 +701,15 @@ public enum IamPermission
    * <code>can_create_environment = 60;</code>
    */
   public static final int can_create_environment_VALUE = 60;
+  /**
+   * <pre>
+   * Whether the caller may upload a File of their own in an organization:
+   * its members and guests, the people who may start a conversation.
+   * </pre>
+   *
+   * <code>can_create_file = 61;</code>
+   */
+  public static final int can_create_file_VALUE = 61;
 
 
   public final int getNumber() {
@@ -758,6 +776,7 @@ public enum IamPermission
       case 58: return can_create_eval;
       case 59: return can_fire;
       case 60: return can_create_environment;
+      case 61: return can_create_file;
       default: return null;
     }
   }

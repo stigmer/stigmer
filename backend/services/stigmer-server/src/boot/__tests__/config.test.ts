@@ -256,6 +256,14 @@ describe("loadConfig", () => {
     }
   });
 
+  it("caps a File at 500 MB unless the operator names a positive size", () => {
+    expect(loadConfig({}).fileMaxBytes).toBe(500 * 1024 * 1024);
+    expect(loadConfig({ FILE_MAX_BYTES: "1048576" }).fileMaxBytes).toBe(1048576);
+    for (const value of ["", "0", "-5", "big", "5x"]) {
+      expect(loadConfig({ FILE_MAX_BYTES: value }).fileMaxBytes).toBe(500 * 1024 * 1024);
+    }
+  });
+
   describe("the sandbox runner image (STIGMER_SANDBOX_RUNNER_IMAGE)", () => {
     it("defaults to the image of the server's own release", () => {
       expect(defaultSandboxRunnerImage("3.41.0")).toBe(

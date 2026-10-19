@@ -1,0 +1,681 @@
+{
+  "resource": "file",
+  "package": "ai.stigmer.agentic.file.v1",
+  "goImportPath": "filev1",
+  "services": [
+    {
+      "name": "FileCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/agentic/file/v1/command.proto",
+      "methods": [
+        {
+          "name": "Upload",
+          "inputType": "UploadFileInput",
+          "inputFullType": "ai.stigmer.agentic.file.v1.UploadFileInput",
+          "outputType": "File",
+          "outputFullType": "ai.stigmer.agentic.file.v1.File",
+          "description": "Upload a File: its bytes inline, or the reference of bytes already put\n to a URL createUploadUrl returned. Returns the File with its new id.\n\n With session_id, the File belongs to that conversation: whoever may\n send it a message may upload into it, and org must be the\n conversation's organization (FAILED_PRECONDITION otherwise). Without\n it, the File is the uploader's own, private until shared, and any\n member or guest of the organization may upload one.\n\n A file over the server's limit (500 MB unless the operator set\n another) is refused with INVALID_ARGUMENT. An upload_ref that is\n unknown, expired or already used is refused with FAILED_PRECONDITION,\n and so is one whose bytes differ in size from the size createUploadUrl\n was given."
+        },
+        {
+          "name": "CreateUploadUrl",
+          "inputType": "CreateFileUploadUrlInput",
+          "inputFullType": "ai.stigmer.agentic.file.v1.CreateFileUploadUrlInput",
+          "outputType": "FileUploadUrl",
+          "outputFullType": "ai.stigmer.agentic.file.v1.FileUploadUrl",
+          "description": "Mint a short-lived, single-use URL to put a file's bytes to, for a file\n too large to upload inline. Then PUT exactly size_bytes bytes to the\n URL and call upload with the returned upload_ref.\n\n A size over the server's limit is refused here, before any bytes move."
+        },
+        {
+          "name": "Update",
+          "inputType": "UpdateFileInput",
+          "inputFullType": "ai.stigmer.agentic.file.v1.UpdateFileInput",
+          "outputType": "File",
+          "outputFullType": "ai.stigmer.agentic.file.v1.File",
+          "description": "Update a File's labels and tags: the fields update_mask names change,\n every other field keeps its stored value. A File's name, type and\n bytes never change, so any other path is refused with INVALID_ARGUMENT.\n\n An update is refused with ABORTED carrying a google.rpc.ErrorInfo detail\n (domain \"stigmer.ai\"):\n\n   - ETAG_MISMATCH — resource.metadata.etag is set and the File changed\n     since that etag was read: read it again and make the change again.\n     No metadata.\n   - WRITE_CONFLICT — the File kept changing while the update was being\n     saved: try again. No metadata."
+        },
+        {
+          "name": "UpdateVisibility",
+          "inputType": "UpdateVisibilityInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+          "outputType": "File",
+          "outputFullType": "ai.stigmer.agentic.file.v1.File",
+          "description": "Update the visibility of a File.\n\n Setting org lets every member of the organization see the File."
+        },
+        {
+          "name": "Delete",
+          "inputType": "FileId",
+          "inputFullType": "ai.stigmer.agentic.file.v1.FileId",
+          "outputType": "File",
+          "outputFullType": "ai.stigmer.agentic.file.v1.File",
+          "description": "Delete a File. Its bytes are removed once no other File shares them.\n\n Its uploader may delete it, and so may the owner of the conversation\n it belongs to."
+        }
+      ]
+    },
+    {
+      "name": "FileQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/agentic/file/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "FileId",
+          "inputFullType": "ai.stigmer.agentic.file.v1.FileId",
+          "outputType": "File",
+          "outputFullType": "ai.stigmer.agentic.file.v1.File",
+          "description": "Get a File by its id."
+        },
+        {
+          "name": "List",
+          "inputType": "ListFilesRequest",
+          "inputFullType": "ai.stigmer.agentic.file.v1.ListFilesRequest",
+          "outputType": "FileList",
+          "outputFullType": "ai.stigmer.agentic.file.v1.FileList",
+          "description": "List an organization's Files, newest first: every File of the org the\n caller may see, or with session_id only that conversation's."
+        },
+        {
+          "name": "GetDownloadUrl",
+          "inputType": "FileId",
+          "inputFullType": "ai.stigmer.agentic.file.v1.FileId",
+          "outputType": "FileDownloadUrl",
+          "outputFullType": "ai.stigmer.agentic.file.v1.FileDownloadUrl",
+          "description": "A link to download a File's bytes, valid for an hour. A browser\n opening it saves the file under its filename."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "UploadFileInput",
+      "description": "UploadFileInput uploads a File: its bytes inline, or the reference of\n bytes already put to an upload URL (createUploadUrl).",
+      "protoType": "ai.stigmer.agentic.file.v1.UploadFileInput",
+      "protoFile": "apis/ai/stigmer/agentic/file/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the File belongs to, by id or slug. With session_id, the\n conversation's organization.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The conversation to upload the File into, when it belongs to one.\n Everyone who can see the conversation can see the File, and deleting\n the conversation deletes it. Empty uploads a File of your own.",
+          "required": false
+        },
+        {
+          "name": "Filename",
+          "jsonName": "filename",
+          "protoField": "filename",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The file's name: at most 255 characters, with no `/`, `\\` or control\n characters, and not `.` or `..`.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 255,
+            "pattern": "^[^/\\\\\\x00-\\x1f\\x7f]+$"
+          }
+        },
+        {
+          "name": "MimeType",
+          "jsonName": "mimeType",
+          "protoField": "mime_type",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The media type (\"image/png\"). Empty takes it from the filename's\n extension, else \"application/octet-stream\".",
+          "required": false,
+          "validation": {
+            "maxLength": 255,
+            "pattern": "^$|^[A-Za-z0-9][A-Za-z0-9!#$\u0026^_.+-]*/[A-Za-z0-9][A-Za-z0-9!#$\u0026^_.+-]*$"
+          }
+        },
+        {
+          "name": "Data",
+          "jsonName": "data",
+          "protoField": "data",
+          "type": {
+            "kind": "bytes"
+          },
+          "description": "The bytes themselves, for a file small enough to travel in one\n request (the transport caps a request at 10 MiB). An empty file is\n uploaded this way.",
+          "required": false,
+          "oneofGroup": "source"
+        },
+        {
+          "name": "UploadRef",
+          "jsonName": "uploadRef",
+          "protoField": "upload_ref",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The reference createUploadUrl returned, once the bytes were put to\n its URL. Single-use; it expires with the URL.",
+          "required": false,
+          "oneofGroup": "source",
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "CreateFileUploadUrlInput",
+      "description": "CreateFileUploadUrlInput asks for a URL to put a file's bytes to, for a\n file too large to upload inline.",
+      "protoType": "ai.stigmer.agentic.file.v1.CreateFileUploadUrlInput",
+      "protoFile": "apis/ai/stigmer/agentic/file/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the File will belong to, by id or slug; with session_id,\n the conversation's organization.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The conversation the File will be uploaded into, when it belongs to\n one: the same caller may upload into it.",
+          "required": false
+        },
+        {
+          "name": "SizeBytes",
+          "jsonName": "sizeBytes",
+          "protoField": "size_bytes",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "The file's size in bytes. A size over the server's limit (500 MB unless\n the operator set another) is refused here, before any bytes move, and\n the upload URL accepts exactly this many bytes.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "FileUploadUrl",
+      "description": "FileUploadUrl is a short-lived, single-use place to put a file's bytes.",
+      "protoType": "ai.stigmer.agentic.file.v1.FileUploadUrl",
+      "protoFile": "apis/ai/stigmer/agentic/file/v1/io.proto",
+      "fields": [
+        {
+          "name": "Url",
+          "jsonName": "url",
+          "protoField": "url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to HTTP PUT the bytes to, exactly size_bytes of them.",
+          "required": false
+        },
+        {
+          "name": "UploadRef",
+          "jsonName": "uploadRef",
+          "protoField": "upload_ref",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The reference to pass to upload (UploadFileInput.upload_ref) once the\n PUT succeeds. Single-use; it expires with the URL.",
+          "required": false
+        },
+        {
+          "name": "TtlSeconds",
+          "jsonName": "ttlSeconds",
+          "protoField": "ttl_seconds",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "How long the URL and the reference stay valid, in seconds.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "UpdateFileInput",
+      "description": "Input for updating a File's labels and tags: the only things about a File\n that change.",
+      "protoType": "ai.stigmer.agentic.file.v1.UpdateFileInput",
+      "protoFile": "apis/ai/stigmer/agentic/file/v1/io.proto",
+      "fields": [
+        {
+          "name": "Resource",
+          "jsonName": "resource",
+          "protoField": "resource",
+          "type": {
+            "kind": "message",
+            "messageType": "File"
+          },
+          "description": "The File carrying the new values, named by metadata.id. Only the fields\n update_mask names are read.",
+          "required": false
+        },
+        {
+          "name": "UpdateMask",
+          "jsonName": "updateMask",
+          "protoField": "update_mask",
+          "type": {
+            "kind": "message",
+            "messageType": "FieldMask"
+          },
+          "description": "The paths the update changes: metadata.labels, metadata.tags, or \"*\"\n for both. Any other path is refused with INVALID_ARGUMENT naming it: a\n File's name, type and bytes never change.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "UpdateVisibilityInput",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode. Each\n level maps to exactly one tuple shape; on a transition the tuple for the\n old level is removed and the tuple for the new level is created:\n - PRIVATE:  no visibility tuple (owner + explicit grants only)\n - ORG:      resource#viewer@organization:\u003corg\u003e#viewer\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n\n Not all resources support all visibility levels — the supported set is\n declared per kind via VisibilityConfig in kind_meta:\n - Blueprints (agent, skill, plugin):\n     PRIVATE, ORG, or CHILD_ORGS\n - Org-only kinds (vault):\n     PRIVATE or ORG (never CHILD_ORGS — tenant isolation)\n\n visibility_public is refused for every kind (INVALID_ARGUMENT naming the\n supported levels); the level is retired.",
+      "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the resource whose visibility is being updated.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Visibility",
+          "jsonName": "visibility",
+          "protoField": "visibility",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+            "enumValues": [
+              "visibility_private",
+              "visibility_public",
+              "visibility_org",
+              "visibility_child_orgs"
+            ]
+          },
+          "description": "The new visibility setting for the resource.\n Must not be unspecified (0). Valid values depend on resource kind —\n see the VisibilityConfig in the kind's kind_meta.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListFilesRequest",
+      "description": "Input for listing an organization's Files, newest first.",
+      "protoType": "ai.stigmer.agentic.file.v1.ListFilesRequest",
+      "protoFile": "apis/ai/stigmer/agentic/file/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization whose Files to list, by id or slug.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Only the Files of this conversation. Empty lists every File of the\n organization the caller may see.",
+          "required": false
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "The most entries to return: 0 asks for the default page of 50, and a\n size above 100 is read as 100.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The previous response's next_page_token, to continue that list; every\n other field must equal that request's, or the call is refused.",
+          "required": false,
+          "validation": {
+            "maxLength": 1024
+          }
+        },
+        {
+          "name": "Labels",
+          "jsonName": "labels",
+          "protoField": "labels",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Only Files carrying every label given, each matched exactly (AND). A\n selective filter may answer short pages, even empty ones, that still\n carry a token.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "FileList",
+      "description": "One page of an organization's Files.",
+      "protoType": "ai.stigmer.agentic.file.v1.FileList",
+      "protoFile": "apis/ai/stigmer/agentic/file/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "File"
+            }
+          },
+          "description": "The Files in this page, newest first.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Set when more entries may follow: pass it as page_token to continue. A\n page may be short, even empty, and still carry a token.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "FileDownloadUrl",
+      "description": "FileDownloadUrl is a short-lived link to a File's bytes.",
+      "protoType": "ai.stigmer.agentic.file.v1.FileDownloadUrl",
+      "protoFile": "apis/ai/stigmer/agentic/file/v1/io.proto",
+      "fields": [
+        {
+          "name": "Url",
+          "jsonName": "url",
+          "protoField": "url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to HTTP GET the bytes from. A browser opening it saves the file\n under its filename.",
+          "required": false
+        },
+        {
+          "name": "ExpiresAt",
+          "jsonName": "expiresAt",
+          "protoField": "expires_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When the link stops working.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines which\n users, inside that organization or in its child organizations, can read\n the resource. No level reaches every\n account on the server.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#viewer tuple (everyone in the\n   org — the org role hierarchy flows downward, so owners, admins, members\n   AND read-only viewers all satisfy the organization#viewer userset)\n - CHILD_ORGS: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer\n   (everyone in every child organization of the owning organization)\n - PUBLIC: retired; see the value's own comment.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for personal and run-scoped resources.\n\n Org admins count as owners of blueprint kinds (agent, channel,\n skill, plugin), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (sessions) stay creator-only."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Retired. This level made a resource readable to every account on the\n server; it is refused at create and at updateVisibility for every kind,\n and every stored row that held it has been moved to visibility_org.\n Sharing across organizations happens through plugins (a copy is\n installed and owned) or, from a parent organization to its children,\n through visibility_child_orgs."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "Everyone in the owning organization can access (read) this resource —\n all org roles including read-only viewers (the role just-in-time provisioning\n grants by default). Running or otherwise spending against the resource\n still requires the org-level member-or-guest permissions\n (can_create_session / can_create_run_in); org visibility widens\n read, never spend.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#viewer\n (The tuple once targeted organization#member, which\n excluded viewer-role users; the authorization model no longer admits\n that shape.)"
+        },
+        {
+          "name": "visibility_child_orgs",
+          "number": 4,
+          "description": "Everyone in every child organization of the owning organization can\n read and run this resource: the shared catalog an organization offers\n the organizations under it (spec.parent_org). Child organizations\n created later gain access automatically, and no other organization\n does. Instances, sessions, runs and vaults are never shared\n this way: each child runs the shared blueprint inside its own boundary.\n\n Only valid for blueprint kinds with supports_child_orgs: true, and only\n in an organization that is not itself a child.\n\n FGA tuple: resource#child_org_viewer@organization:\u003corg\u003e#child_org_viewer"
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "File is a file uploaded once and named by its id: a screenshot given to a\n conversation, a spreadsheet a routine reads every night, a document kept\n for later.\n\n A File's bytes never change: uploading again makes a new File with a new\n id. A File uploaded into a conversation belongs to it (status.session_id)\n and is seen by everyone who can see the conversation; any other File is\n private to its uploader until its visibility or a grant shares it.",
+  "statusType": {
+    "name": "FileStatus",
+    "description": "FileStatus is what the server records about a File.",
+    "protoType": "ai.stigmer.agentic.file.v1.FileStatus",
+    "protoFile": "apis/ai/stigmer/agentic/file/v1/status.proto",
+    "fields": [
+      {
+        "name": "SizeBytes",
+        "jsonName": "sizeBytes",
+        "protoField": "size_bytes",
+        "type": {
+          "kind": "int64"
+        },
+        "description": "The file's size in bytes.",
+        "required": false
+      },
+      {
+        "name": "SessionId",
+        "jsonName": "sessionId",
+        "protoField": "session_id",
+        "type": {
+          "kind": "string"
+        },
+        "description": "The conversation the File belongs to, when it was uploaded into one or\n given to one. Everyone who can see the conversation can see the File,\n and deleting the conversation deletes it. Empty for a File that\n belongs to no conversation.",
+        "required": false
+      },
+      {
+        "name": "RunId",
+        "jsonName": "runId",
+        "protoField": "run_id",
+        "type": {
+          "kind": "string"
+        },
+        "description": "The turn that wrote the File, for a file an agent saved. Empty for an\n uploaded File.",
+        "required": false
+      },
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.)",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.\n\n This is the platform's single actor vocabulary: every \"who did this\"\n reference (created_by / updated_by, version-history applied_by / pushed_by,\n approval resolved_by_actor) uses this message, so actor rendering is\n uniform across all surfaces.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": "displayName",
+          "protoField": "display_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable display name (e.g. \"Ada Lovelace\"). Empty when unknown;\n renderers fall back to email, then id.",
+          "required": false
+        },
+        {
+          "name": "Email",
+          "jsonName": "email",
+          "protoField": "email",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Email address of the actor. Empty when unknown or not applicable\n (e.g. machine accounts).",
+          "required": false
+        },
+        {
+          "name": "MintedBy",
+          "jsonName": "mintedBy",
+          "protoField": "minted_by",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The service account whose key minted the user token the actor acted\n through. Empty for every other credential, and on an actor that records\n no act (an account's profile lookup).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

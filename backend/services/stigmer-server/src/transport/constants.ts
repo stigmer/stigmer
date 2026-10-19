@@ -44,6 +44,12 @@ export const SHUTDOWN_DRAIN_TIMEOUT_MS = 10_000;
  */
 export const MODEL_REGISTRY_PATH = "/v1/proxy/model-registry";
 export const SKILL_ARTIFACTS_PATH_PREFIX = "/v1/skill-artifacts";
+/**
+ * The Files transfer lane (domain/file/transfer.ts): a File's staged
+ * upload and its signed download, when the File store is the local one.
+ * Not `/v1/files`, which stays free for a Managed Agents files lane.
+ */
+export const FILE_TRANSFER_PATH_PREFIX = "/v1/file-transfer";
 /** Stigmer's OAuth Client ID Metadata Document (domain/vault/sign-in/client-document.ts). */
 export const OAUTH_CLIENT_DOCUMENT_PATH = "/v1/oauth/client.json";
 /**

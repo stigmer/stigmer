@@ -145,6 +145,11 @@ export const NAMED_KINDS: Readonly<Record<ApiResourceKind, NamedKind>> = {
   [ApiResourceKind.eval]: CLAIMS,
   [ApiResourceKind.eval_run]: CLAIMS,
   [ApiResourceKind.environment]: CLAIMS,
+  [ApiResourceKind.file]: {
+    claims: false,
+    reason:
+      "a File is named by its id; its name is its filename, which two uploads of report.pdf both carry",
+  },
   [ApiResourceKind.plan]: {
     claims: false,
     reason:

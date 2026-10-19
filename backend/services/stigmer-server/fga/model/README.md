@@ -94,7 +94,7 @@ Private by default, expandable to org via an additional tuple:
 define viewer: ([identity_account, organization#viewer] and affiliated from organization) or owner
 ```
 
-Resources: none since vaults replaced environments. A vault (`agentic/vault.fga`) is either a person's own My vault, which nobody else reaches (its organization's admins included), or the organization's shared vault, which its admins manage and let people use through `user` grants or org visibility.
+Resources: `file`, and a vault. A File (`agentic/file.fga`) is its uploader's, with no admin inheritance, as a conversation is; a File of a conversation also links that session from status, so `can_view from session` and `can_edit from session` add the conversation's readers and its owner without widening `viewer`. A vault (`agentic/vault.fga`) is either a person's own My vault, which nobody else reaches (its organization's admins included), or the organization's shared vault, which its admins manage and let people use through `user` grants or org visibility.
 
 ### Inherited Visibility (Runs)
 
@@ -299,6 +299,7 @@ fga/
 │       ├── environment.fga         # Sandbox setups: packages and network access (open access)
 │       ├── eval.fga                # Pushed evals, an agent's test cases (private or the organization)
 │       ├── eval_run.fga            # Eval runs on an agent or a plugin (the subject's editors; its own organization's viewers)
+│       ├── file.fga                # Uploaded Files (the uploader, and a conversation's readers for its own Files)
 │       ├── memory.fga              # An identity's memories (subject-only)
 │       ├── plugin.fga              # Installed plugins, the unit of install
 │       ├── routine.fga             # Saved agent invocations (act as their owner)

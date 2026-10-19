@@ -30,6 +30,7 @@ import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 import type { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { ApiResourceAuditActor } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 
+import type { FileBlobStore } from "./file-blobs.js";
 import type {
   ListIndexDeclaration,
   ListIndexQuery,
@@ -1187,6 +1188,8 @@ export interface Store {
   readonly organizationDeletions: OrganizationDeletionStore;
   /** Each session's ordered event log (session-events.ts). */
   readonly sessionEvents: SessionEventStore;
+  /** Where each File's bytes live, and the Files that name them (file-blobs.ts). */
+  readonly files: FileBlobStore;
 
   // ---------------------------------------------------------------------------
   // Lifecycle

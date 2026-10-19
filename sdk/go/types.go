@@ -13,6 +13,10 @@ type EnvironmentClient = gen.EnvironmentClient
 type EvalClient = gen.EvalClient
 type EvalRunClient = gen.EvalRunClient
 type FederationIssuerClient = gen.FederationIssuerClient
+
+// FileClient is NOT aliased here: the handwritten wrapper in file.go
+// (uploads routed by size over the same transfer lane) takes the name so
+// client.File and the exported type agree.
 type GrantClient = gen.GrantClient
 type IdentityAccountClient = gen.IdentityAccountClient
 type InvitationClient = gen.InvitationClient
@@ -62,6 +66,7 @@ type EvalRunInput = gen.EvalRunInput
 type EvalRunCaseSourceInput = gen.EvalRunCaseSourceInput
 type EvalRunTargetInput = gen.EvalRunTargetInput
 type FederationIssuerInput = gen.FederationIssuerInput
+type FileInput = gen.FileInput
 type GrantInput = gen.GrantInput
 type ApiResourceRefInput = gen.ApiResourceRefInput
 type IdentityAccountInput = gen.IdentityAccountInput
