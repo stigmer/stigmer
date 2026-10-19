@@ -24,7 +24,11 @@
  * translator never hands a delta's events to anyone
  * directly: {@link observeDelta} QUEUES them and the loop applies
  * {@link drainDeltas} after each stream event, and once more before
- * `finalize()`. A delta for a call the stream has not announced yet (the
+ * `finalize()`. One exception keeps a running command's output live: while
+ * the loop waits for the next stream event (no persist in flight), output
+ * that is all the queue holds is applied at once ({@link drainOutputOnly}),
+ * so a long command's lines reach the session as it prints them instead of
+ * with its completion. A delta for a call the stream has not announced yet (the
  * output that beats the `running` event) is HELD and replayed right after the
  * `tool_started` that announces it. Because the fold is later than
  * the observation, a completion learned from a delta carries `observedAt` —
@@ -246,6 +250,18 @@ export class CursorTranslator {
         // markers, `partial-tool-call`: no transcript fact.
         return;
     }
+  }
+
+  /**
+   * The queue, when it holds nothing but a running command's output; nothing
+   * otherwise. For the loop's idle moments (the header's exception): a queued
+   * completion waits for the stream's own event, so the enricher's order
+   * (the stream's instant first) is kept, and the output queued before it
+   * waits with it.
+   */
+  drainOutputOnly(): TranscriptEvent[] {
+    if (this.queue.some((event) => event.kind !== "tool_output_delta")) return [];
+    return this.drainDeltas();
   }
 
   /** The delta-derived events ready to apply, in arrival order; empties the queue. */

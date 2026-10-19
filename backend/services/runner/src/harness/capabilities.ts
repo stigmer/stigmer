@@ -32,6 +32,7 @@
  * | `visionProfile`   | PNG, JPEG, WebP, GIF        | PNG, JPEG (transport re-sniffs)         | (surveyed later)                              | (surveyed later)                               |
  * | `fileReview`      | `deep-agent`, no excludes   | `cursor`, the gate's files excluded     | (surveyed later)                              | (surveyed later)                               |
  * | `boundaryRewritesRow` | none                    | the boundary's reopened, hidden and refused rows | (surveyed later)                     | (surveyed later)                               |
+ * | `subAgentProgress` | `streamed` (sub-graph events) | `at-completion` (the `task` result only) | (surveyed later)                          | (no sub-agents)                                |
  *
  * Adapter-internal, deliberately NOT flags: how MCP servers are bound, how
  * metering is routed, how the cost cap is applied inside the engine, how a
@@ -85,6 +86,25 @@ export type PausePrimitive = "interrupt" | "deny-and-retry" | "callback" | "none
  * (`TurnSink.bindHarnessState`) so a crash mid-turn still resumes.
  */
 export type StateIdSource = "deterministic" | "engine-minted";
+
+/**
+ * When the runtime sees a delegated sub-agent's work.
+ *
+ *  - `streamed`: the sub-agent's own model output and tool calls reach the
+ *    parent's stream as they happen (native: the sub-graph runs under the
+ *    parent's config and its events arrive tagged with its namespace). The
+ *    sub-agent's calls are its open operations; the delegating call is not.
+ *  - `at-completion`: the engine reports the sub-agent only when it is done
+ *    (Cursor: `@cursor/sdk` returns the transcript in the `task` call's
+ *    completion and sends no event while the task runs,
+ *    `execute-cursor/sub-agent-steps.ts`). The delegating call is the only
+ *    sign the work is running, so it counts as an open operation, bounded
+ *    by the runtime's backstop.
+ *
+ * Read by one runtime phase, the open-operation fold behind the stall
+ * watchdog (`open-operations.ts`).
+ */
+export type SubAgentProgress = "streamed" | "at-completion";
 
 /**
  * The two facts the runtime's file-review capture and reconcile need from
@@ -152,4 +172,6 @@ export interface HarnessCapabilities {
    * the adapter knows which rows its boundary touches.
    */
   readonly boundaryRewritesRow?: (row: ToolCall) => boolean;
+  /** When the runtime sees a delegated sub-agent's work (see {@link SubAgentProgress}). */
+  readonly subAgentProgress: SubAgentProgress;
 }

@@ -19,7 +19,12 @@ import { homedir, tmpdir } from "node:os";
 import { releasingOnFailure, type HostedBoot } from "./agent-host/failed-boot.js";
 import type { Config, TokenRef } from "./config.js";
 import type { HarnessRow } from "./harness/registry.js";
-import { DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS, DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS, DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./config.js";
+import {
+  DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
+  DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,
+  DEFAULT_OPEN_OPERATION_MAX_MS,
+  DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
+} from "./config.js";
 import type { NativeConnection } from "@temporalio/worker";
 import type { WorkerActivities } from "./worker.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
@@ -88,8 +93,11 @@ export interface StigmerRunnerOptions {
   /** Default LLM model identifier. @default "gpt-4.1" */
   readonly primaryModel?: string;
 
-  /** No-progress bound for every harness's engine stream (ms); named for Cursor, its first user. @default 180000 */
+  /** No-progress bound for every harness's engine stream (ms); named for Cursor, its first user. An open operation holds it. @default 180000 */
   readonly cursorStreamStallTimeoutMs?: number;
+
+  /** The backstop for one open operation (ms): an operation open this long is stopped and the turn fails. @default 3600000 */
+  readonly openOperationMaxMs?: number;
 
   /** Bound for Cursor Agent.create/resume (ms). @default 120000 */
   readonly agentResolveTimeoutMs?: number;
@@ -523,6 +531,7 @@ export function mapOptionsToConfig(
     primaryModel: options.primaryModel ?? "gpt-4.1",
     cursorStreamStallTimeoutMs:
       options.cursorStreamStallTimeoutMs ?? DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,
+    openOperationMaxMs: options.openOperationMaxMs ?? DEFAULT_OPEN_OPERATION_MAX_MS,
     agentResolveTimeoutMs:
       options.agentResolveTimeoutMs ?? DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
     workspaceLockTimeoutMs:

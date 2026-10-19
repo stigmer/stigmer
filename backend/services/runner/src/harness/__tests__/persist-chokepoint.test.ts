@@ -342,3 +342,64 @@ describe("PersistChokepoint: the run's file record", () => {
     expect(carried, "lost, then carried again, then sent").toEqual([1, 1, 0]);
   });
 });
+
+describe("PersistChokepoint: a running tool's output between writes", () => {
+  function withEvents(client: StigmerClient) {
+    const flushGates: Gate[] = [];
+    const events = {
+      flush: vi.fn(async () => {}),
+      flushToolOutput: vi.fn(async () => {
+        const g = gate();
+        flushGates.push(g);
+        await g.opened;
+      }),
+    };
+    const chokepoint = new PersistChokepoint({
+      client,
+      executionId: "aex_test",
+      status: create(RunStatusSchema, {}),
+      rows: create(TurnRowsSchema, {}),
+      offload: undefined,
+      usage: () => undefined,
+      progress: () => undefined,
+      heartbeat: vi.fn(),
+      onPlatformStop: vi.fn(),
+      events,
+    });
+    return { chokepoint, events, flushGates };
+  }
+
+  it("sends nothing while a write holds the slot, and never waits for it", async () => {
+    const { client, gates } = heldClient();
+    const { chokepoint, events } = withEvents(client);
+    const write = chokepoint.request();
+    expect(await chokepoint.flushPreviews()).toBe(false);
+    expect(events.flushToolOutput).not.toHaveBeenCalled();
+    gates[0]!.open();
+    await write;
+  });
+
+  it("takes the slot when it is free: a write requested meanwhile follows it, and the status write is the write's alone", async () => {
+    const { client, gates } = heldClient();
+    const { chokepoint, events, flushGates } = withEvents(client);
+    const flushing = chokepoint.flushPreviews();
+    expect(events.flushToolOutput).toHaveBeenCalledTimes(1);
+    expect(await Promise.race([chokepoint.flushPreviews(), Promise.resolve("busy")]), "a second flush finds the slot held").toBe(false);
+
+    const write = chokepoint.request();
+    await Promise.resolve();
+    expect(client.updateStatus, "the write waits for the flush").not.toHaveBeenCalled();
+    flushGates[0]!.open();
+    expect(await flushing).toBe(true);
+    await vi.waitFor(() => expect(gates).toHaveLength(1));
+    gates[0]!.open();
+    await write;
+    expect(client.updateStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it("does nothing without a session event emitter", async () => {
+    const { client } = heldClient();
+    const { chokepoint } = chokepointOver(client);
+    expect(await chokepoint.flushPreviews()).toBe(false);
+  });
+});

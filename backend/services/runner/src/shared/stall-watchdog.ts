@@ -18,16 +18,19 @@
  * only runs when the loop advances cannot fire while the loop is blocked
  * awaiting the next event, which is exactly the wedge we need to detect.
  *
- * This module is the convergence target for stall detection across harnesses:
- * the Cursor harness wires it here, and the native deep-agent harness has its
- * own (harness-local, in-band) check that should later converge onto this one.
+ * One watchdog serves every harness: the turn runtime arms it around the
+ * adapter's whole turn (`harness/run-turn.ts`, since #1070), with the
+ * window `Config.cursorStreamStallTimeoutMs`.
+ *
+ * A turn that is working but silent is not a stall. While `held()` says an
+ * operation is open (the runtime's fold, `harness/open-operations.ts`),
+ * idle time does not accumulate: a ten-minute build that prints nothing is
+ * work. The runtime records activity when the last operation closes, so the
+ * window counts from there. What the window catches is the wedge: nothing
+ * open and nothing arriving. An operation that never finishes is bounded by
+ * its own deadline or by the runtime's backstop, which `onTick` runs on this
+ * timer's cadence.
  */
-
-/**
- * Canonical default stall window. Harnesses may override with a larger value
- * when their tool calls routinely run longer without emitting stream activity.
- */
-export const DEFAULT_STALL_TIMEOUT_MS = 120_000;
 
 /**
  * Thrown / reported when an agent stream makes no progress for longer than the
@@ -61,6 +64,14 @@ export function formatStallFailure(error: StallTimeoutError): string {
   return `${STALL_ERROR_PREFIX} ${error.message}. Retry or resume.`;
 }
 
+/** What the runtime layers onto the window. */
+export interface StallWatchdogOptions {
+  /** True while the turn is legitimately busy; idle time does not accumulate while it holds. */
+  readonly held?: () => boolean;
+  /** Run on every poll before the idle check, while the watchdog is armed. */
+  readonly onTick?: () => void;
+}
+
 export interface StallWatchdog {
   /** Reset the idle timer. Call on every stream event AND every token delta. */
   recordActivity(): void;
@@ -77,6 +88,8 @@ export interface StallWatchdog {
  *                 watchdog disarms itself before invoking, so `onStall` runs
  *                 exactly once even if its handler is slow.
  *
+ * @param options  `held` and `onTick` ({@link StallWatchdogOptions}).
+ *
  * The poll interval is `stallMs / 4` capped at 15s: frequent enough to detect a
  * stall promptly without busy-looping, and bounded so a large `stallMs` still
  * polls on a sane cadence.
@@ -84,6 +97,7 @@ export interface StallWatchdog {
 export function startStallWatchdog(
   stallMs: number,
   onStall: (idleMs: number) => void,
+  options: StallWatchdogOptions = {},
 ): StallWatchdog {
   let lastActivityAt = Date.now();
   let fired = false;
@@ -100,6 +114,14 @@ export function startStallWatchdog(
 
   timer = setInterval(() => {
     if (fired) return;
+    options.onTick?.();
+    if (fired) return;
+    if (options.held?.()) {
+      // Busy, not idle: the idle time restarts from now, and the close of the
+      // last operation records activity on its own.
+      lastActivityAt = Date.now();
+      return;
+    }
     const idleMs = Date.now() - lastActivityAt;
     if (idleMs >= stallMs) {
       fired = true;

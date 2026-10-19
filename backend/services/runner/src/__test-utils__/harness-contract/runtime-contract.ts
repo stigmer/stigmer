@@ -1086,10 +1086,11 @@ async function turnWithOpenOperation(
   turn: TurnScenario,
   toolCallId: string,
   drive: (controls: LongTurnControls) => Promise<void>,
+  config: Partial<Config> = {},
 ): Promise<ActivityInvocation> {
   const { subject } = harness;
   const controls = longTurnOf(subject);
-  const settled = driver.turn(turn, { config: { cursorStreamStallTimeoutMs: STALL_TIMEOUT_MS } });
+  const settled = driver.turn(turn, { config: { cursorStreamStallTimeoutMs: STALL_TIMEOUT_MS, ...config } });
   let opened = false;
   const driving = Promise.race([controls.whenOpen(toolCallId).then(() => true), settled.then(() => false, () => false)]).then(async (running) => {
     opened = running;
@@ -1174,6 +1175,44 @@ export async function assertSubagentOutlivesTheStallWindow(harness: RuntimeContr
   const invocation = await turnWithOpenOperation(harness, driver, [scenario.say("Delegating."), scenario.open(id, { as: "subagent" }), scenario.say("Delegated work is in.")], id, () => silentFor(clock));
   await expectKnownGap(gapFor(gap, endedOnTheStall(driver)), () => expectCompleted(harness, driver, invocation, "Delegated work is in."));
   return { driver, invocations: [invocation], final: finalStatusOf(harness, driver) };
+}
+
+/** The backstop the operation-limit arm runs under: past the three windows a long operation lasts, so only the backstop can end it. */
+export const KIT_OPEN_OPERATION_MAX_MS = (LONG_OPERATION_WINDOWS + 1) * STALL_TIMEOUT_MS;
+
+/**
+ * An operation open past the runtime's backstop stops the turn: FAILED, with
+ * the operation-limit copy naming the call and the limit, never the stall's
+ * "made no progress", and the stall's stop cause. What it guards is an
+ * operation with no bound of our own (a Cursor `task`): a live heartbeat over
+ * it would otherwise keep a dead turn alive forever.
+ */
+export async function assertOpenOperationStopsAtTheBackstop(harness: RuntimeContractHarness, label = "rt-operation-limit"): Promise<RuntimeArmResult> {
+  const { clock, subject } = harness;
+  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
+  const id = `${label}-build`;
+  const invocation = await turnWithOpenOperation(
+    harness,
+    driver,
+    [scenario.say("Building."), scenario.open(id), scenario.say(NEVER_SEEN)],
+    id,
+    async () => {
+      await silentFor(clock);
+      clock.tick(KIT_OPEN_OPERATION_MAX_MS);
+      await oneWatchdogPoll();
+    },
+    { openOperationMaxMs: KIT_OPEN_OPERATION_MAX_MS },
+  );
+  expect(slimOf(subject, invocation).phase, `${subject.name}: the backstop RETURNS FAILED`).toBe("RUN_FAILED");
+  const final = finalStatusOf(harness, driver);
+  const seconds = KIT_OPEN_OPERATION_MAX_MS / 1000;
+  expect(final.error).toMatch(new RegExp(`^\\[OperationLimitError\\] \`[^\`]+\` ran for more than ${seconds} seconds without finishing\\. Retry or resume\\.$`));
+  expect(final.stopCause, `${subject.name}: the backstop's stop cause is the stall's`).toBe("timeout");
+  const notes = systemMessages(driver.record.rowsOf(final));
+  expect(notes).toHaveLength(1);
+  expect(notes[0]).toMatch(new RegExp(`^Execution failed: \`[^\`]+\` ran for more than ${seconds} seconds without finishing and was stopped\\. You can retry or resume\\.$`));
+  expect(aiMessages(driver.record.rowsOf(final))).not.toContain(NEVER_SEEN);
+  return { driver, invocations: [invocation], final };
 }
 
 /**
@@ -1427,6 +1466,10 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       it("output streams to the session while an operation runs, and the turn completes", async () => {
         clock.reset();
         await withStopOrphans(subject.name, orphans, () => assertStreamedOutputReachesTheSession(harness, gaps["streamed-output"]));
+      });
+      it("an operation open past the backstop fails the turn with the operation-limit copy", async () => {
+        clock.reset();
+        await withStopOrphans(subject.name, orphans, () => assertOpenOperationStopsAtTheBackstop(harness));
       });
       it.skipIf(options.subagentOperation === false)("a subagent outlives the stall window and the parent's turn completes", async () => {
         clock.reset();

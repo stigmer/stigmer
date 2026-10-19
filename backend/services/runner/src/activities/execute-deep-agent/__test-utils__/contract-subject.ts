@@ -90,9 +90,15 @@
  *                       the same shell; whether its lines reach anyone is
  *                       the adapter's business, which is the arm's point.
  *  - `open(id, subagent)` → `task` to the kit's helper (the record lists it);
- *                       the helper's model call holds on the kit's latch
- *                       (`ScriptedTurn.waitsFor`), then answers. Told apart
- *                       from the root by its instructions in its prompt.
+ *                       the helper does the delegated work in a REAL
+ *                       `execute` of the same kit shell under `id`, so the
+ *                       kit's `whenOpen` and `release` drive it as they
+ *                       drive the root's, then answers. A helper's work on
+ *                       this harness is its own calls, streamed into the
+ *                       parent (`subAgentProgress: "streamed"`): a silent
+ *                       shell in the helper is the silent build of a
+ *                       delegated task. Told apart from the root by its
+ *                       instructions in its prompt.
  *  - `compact`        → real compaction: an engine whose plan compacts
  *                       reports a context window, sized at its first
  *                       compaction from what the runner really sends
@@ -159,7 +165,7 @@ const BULK_READS_PER_COMPACTION = 3;
 /** The window an engine whose plan compacts reports until its first compaction sizes it: present (so the middleware takes fraction-based defaults), never reached. */
 const UNSIZED_WINDOW = 1_000_000_000;
 
-/** What the kit's helper answers once its latch is released. */
+/** What the kit's helper answers once its work is released. */
 const SUBAGENT_ANSWER = "The delegated work is done.";
 
 export interface DeepAgentContractSubject extends HarnessContractSubject {
@@ -208,7 +214,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
   /** Per execution, the context window its engine reports (only an engine whose plan compacts reports one). */
   private readonly windows = new Map<string, number>();
   private readonly summaries = new Map<string, number>();
-  /** Per execution, the `task` call the root is waiting on: the helper's turn holds on its latch. */
+  /** Per execution, the `task` call the root is waiting on: the helper's shell runs under its id. */
   private readonly delegations = new Map<string, string>();
   private readonly executionsBySession = new Map<string, string>();
   private mintCounter = 0;
@@ -295,7 +301,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
     return new ScriptedModel(
       (_tools, context) =>
         context.systemPrompt.includes(KIT_SUBAGENT_INSTRUCTIONS)
-          ? () => this.playHelper(executionId)
+          ? (transcript) => this.playHelper(executionId, transcript)
           : (transcript) => this.play(executionId, transcript),
       [],
       {
@@ -308,11 +314,13 @@ class DeepAgentSubject implements DeepAgentContractSubject {
     );
   }
 
-  /** The kit's helper: its one turn holds on the delegating call's latch, then answers. */
-  private playHelper(executionId: string): ScriptedTurn {
+  /** The kit's helper: it runs the delegating call's shell, then answers once the shell has. */
+  private playHelper(executionId: string, transcript: readonly BaseMessage[]): ScriptedTurn {
     const toolCallId = this.delegations.get(executionId);
     if (!toolCallId) throw new Error(`${this.name}: the kit's helper was asked for execution '${executionId}' with no delegation open (kit bug)`);
-    return { waitsFor: this.operations.hold(toolCallId), text: SUBAGENT_ANSWER };
+    const workId = `${toolCallId}-work`;
+    if (settledToolCallIds(transcript).has(workId)) return { text: SUBAGENT_ANSWER };
+    return { toolCalls: [{ id: workId, name: ENGINE_TOOL.execute, args: { command: this.operations.shellCommand(toolCallId) } }] };
   }
 
   /** The words this subject has no honest translation for (see the header); each is a kit-file bug, named. */
@@ -542,10 +550,14 @@ function seedFile(file: string, content: string): void {
 /** The line that ends a kit shell; never a line the kit emits. */
 const RELEASE_LINE = "__kit_release__";
 
-/** A shell the kit drives through its control FIFO, or a latch a helper's turn holds on. */
-type KitOperation =
-  | { readonly kind: "shell"; readonly ctl: string; readonly command: string; readonly writer: Promise<FileHandle>; running: boolean; done: boolean }
-  | { readonly kind: "latch"; readonly latch: Promise<void>; readonly open: () => void; done: boolean };
+/** A shell the kit drives through its control FIFO. */
+interface KitOperation {
+  readonly ctl: string;
+  readonly command: string;
+  readonly writer: Promise<FileHandle>;
+  running: boolean;
+  done: boolean;
+}
 
 /**
  * The operations `open` steps start, by tool-call id. A shell is opened
@@ -565,7 +577,7 @@ class KitOperations {
   /** The command for `toolCallId`'s shell, starting a new one unless one is still live. */
   shellCommand(toolCallId: string): string {
     const live = this.operations.get(toolCallId);
-    if (live?.kind === "shell" && !live.done) return live.command;
+    if (live !== undefined && !live.done) return live.command;
     mkdirSync(this.dir, { recursive: true });
     const ctl = join(this.dir, `op-${++this.counter}.ctl`);
     execFileSync("mkfifo", [ctl]);
@@ -573,7 +585,7 @@ class KitOperations {
       `exec 3<'${ctl}'; ` +
       `while IFS= read -r line <&3; do [ "$line" = '${RELEASE_LINE}' ] && break; printf '%s\\n' "$line"; done; ` +
       `echo 'kit operation finished'`;
-    const operation: KitOperation = { kind: "shell", ctl, command, writer: open(ctl, "w"), running: false, done: false };
+    const operation: KitOperation = { ctl, command, writer: open(ctl, "w"), running: false, done: false };
     this.operations.set(toolCallId, operation);
     void operation.writer.then(
       () => {
@@ -586,28 +598,15 @@ class KitOperations {
     return command;
   }
 
-  /** A latch for `toolCallId`, running at once: what a helper's turn holds on. */
-  hold(toolCallId: string): Promise<void> {
-    const live = this.operations.get(toolCallId);
-    if (live?.kind === "latch" && !live.done) return live.latch;
-    let openLatch: () => void = () => {};
-    const latch = new Promise<void>((resolve) => (openLatch = resolve));
-    const operation: KitOperation = { kind: "latch", latch, open: openLatch, done: false };
-    this.operations.set(toolCallId, operation);
-    this.wake(toolCallId);
-    if (this.released.has(toolCallId)) void this.finish(operation);
-    return latch;
-  }
-
   whenOpen(toolCallId: string): Promise<void> {
     const operation = this.operations.get(toolCallId);
-    if (operation && (operation.kind === "latch" || operation.running)) return Promise.resolve();
+    if (operation?.running) return Promise.resolve();
     return new Promise((resolve) => this.waiters.set(toolCallId, [...(this.waiters.get(toolCallId) ?? []), resolve]));
   }
 
   async emit(toolCallId: string, line: string): Promise<void> {
     const operation = this.operations.get(toolCallId);
-    if (operation?.kind !== "shell" || operation.done) throw new Error(`deep-agent: emit(${toolCallId}) with no shell open (kit bug)`);
+    if (operation === undefined || operation.done) throw new Error(`deep-agent: emit(${toolCallId}) with no shell open (kit bug)`);
     await (await operation.writer).write(`${line}\n`);
   }
 
@@ -622,14 +621,10 @@ class KitOperations {
     this.waiters.delete(toolCallId);
   }
 
-  /** End an operation: open a latch; tell a shell to finish, first completing a write end still waiting for a reader that never came. */
+  /** End an operation: tell the shell to finish, first completing a write end still waiting for a reader that never came. */
   private async finish(operation: KitOperation): Promise<void> {
     if (operation.done) return;
     operation.done = true;
-    if (operation.kind === "latch") {
-      operation.open();
-      return;
-    }
     const reader = operation.running ? undefined : openSync(operation.ctl, constants.O_RDONLY | constants.O_NONBLOCK);
     const handle = await operation.writer;
     try {

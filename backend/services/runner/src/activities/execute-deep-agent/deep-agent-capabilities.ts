@@ -25,6 +25,9 @@
  *    at provision). The capture is the runtime's (`harness/capture.ts`,
  *    since #1096); this harness binds its `CasCaptureObserver`'s snapshot as the
  *    runtime's CAS observations (`turn.ts`).
+ *  - Sub-agents stream: a sub-graph runs under the parent's config and its
+ *    events reach the parent's stream tagged with its namespace
+ *    (`translator.ts`), so the sub-agent's own calls are the open operations.
  */
 
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
@@ -46,4 +49,5 @@ export const DEEP_AGENT_CAPABILITIES: HarnessCapabilities = {
   readsToolMarks: true,
   visionProfile: DEEP_AGENT_VISION_PROFILE,
   fileReview: { harnessId: DEEP_AGENT_HARNESS_ID, excludePaths: [] },
+  subAgentProgress: "streamed",
 };

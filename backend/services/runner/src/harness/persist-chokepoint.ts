@@ -52,6 +52,14 @@
  * The runtime's terminal writes use the same path (`write()`), so the
  * secret backstop and the usage summary ride the final status too, as they
  * did when the orchestrator's `persist` closure was the one place to write.
+ *
+ * A running tool's output has one more door, {@link flushPreviews}: the
+ * session event emitter's previews of it, appended alone, with no event and
+ * no status write, so a chatty build does not multiply status writes. It
+ * takes the same single-flight slot as a write, so two appends never race
+ * over the emitter's queue, and it never waits: while a write is in flight
+ * the output rides that write or the pump's next tick. No sealed event
+ * leaves through it, so the redaction order above is unchanged.
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -95,7 +103,7 @@ export interface PersistChokepointDeps {
   /** The control plane answered STOP to this write. */
   readonly onPlatformStop: () => void;
   /** Writes the session's events from the rows each write carries; absent in tests that do not read the log. */
-  readonly events?: Pick<SessionEventEmitter, "flush">;
+  readonly events?: Pick<SessionEventEmitter, "flush" | "flushToolOutput">;
 }
 
 export class PersistChokepoint {
@@ -125,6 +133,24 @@ export class PersistChokepoint {
       });
     }
     return this.followUp;
+  }
+
+  /**
+   * Send the running tools' output that waits, as previews alone, when no
+   * write is in flight: the runtime's preview pump (`preview-pump.ts`).
+   * Resolves `false`, sending nothing, when a write or another flush holds
+   * the slot. A request made while it runs follows it, as it follows a
+   * write. Never rejects.
+   */
+  async flushPreviews(): Promise<boolean> {
+    const events = this.deps.events;
+    if (events === undefined || this.inFlight !== undefined) return false;
+    const flush = events.flushToolOutput().finally(() => {
+      this.inFlight = undefined;
+    });
+    this.inFlight = flush;
+    await flush;
+    return true;
   }
 
   /**
