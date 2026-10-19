@@ -72,6 +72,18 @@ public final class StigmerClient extends GeneratedClient implements AutoCloseabl
         return new RoutedSkillClient(channel);
     }
 
+    /**
+     * The file field carries uploads routed by size over the same transfer
+     * lane: {@code client.file} is a {@link RoutedFileClient}, whose
+     * {@code uploadFile} works for any file the server accepts. Called from
+     * GeneratedClient's constructor — builds from the channel alone, per the
+     * hook's contract.
+     */
+    @Override
+    protected ai.stigmer.sdk.gen.FileClient newFileClient(io.grpc.Channel channel) {
+        return new RoutedFileClient(channel);
+    }
+
     // -- Extra clients (not code-generated) ------------------------------------
 
     /** Returns the billing client for the billing account, Stripe and the model catalog. */

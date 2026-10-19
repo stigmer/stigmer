@@ -8,6 +8,10 @@ import {
 } from "./internal/interceptors.js";
 
 import { trimTrailing } from "./internal/trim.js";
+import * as fs from "node:fs";
+import { basename } from "node:path";
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import type { RoutedFileClient, UploadFileOptions } from "./file.js";
 
 /**
  * Configuration for creating a Node.js-compatible Stigmer client.
@@ -195,4 +199,44 @@ function splitHostPort(authority: string): { host: string; port: string } {
 
 function isLoopbackHost(host: string): boolean {
   return host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]";
+}
+
+/** What {@link uploadFileFromPath} uploads: a file on disk, and where to. */
+export interface UploadFileFromPathOptions extends Omit<UploadFileOptions, "content" | "filename"> {
+  /** Path of the file to upload. */
+  readonly path: string;
+  /** The File's name. Omitted, the path's last segment. */
+  readonly filename?: string;
+}
+
+/**
+ * Upload a file on disk as a File, without reading it into memory when it
+ * is large: the file is opened as a file-backed `Blob` (`fs.openAsBlob`),
+ * which the staging PUT streams from disk. Small files travel inline, as
+ * {@link RoutedFileClient.uploadFile} routes them.
+ *
+ * Needs Node 19.8 or later, where `fs.openAsBlob` exists.
+ *
+ * @example
+ * ```typescript
+ * const file = await uploadFileFromPath(stigmer.file, {
+ *   org: "acme",
+ *   sessionId: session.metadata!.id,
+ *   path: "./q3-ledger.xlsx",
+ * });
+ * ```
+ */
+export async function uploadFileFromPath(
+  files: RoutedFileClient,
+  options: UploadFileFromPathOptions,
+): Promise<File> {
+  // Read off the namespace, not imported by name: a Node without
+  // openAsBlob would otherwise fail to load this whole module.
+  const openAsBlob: typeof fs.openAsBlob | undefined = fs.openAsBlob;
+  if (typeof openAsBlob !== "function") {
+    throw new Error("uploadFileFromPath needs fs.openAsBlob (Node 19.8 or later)");
+  }
+  const { path, filename, ...target } = options;
+  const content = await openAsBlob(path);
+  return files.uploadFile({ ...target, filename: filename ?? basename(path), content });
 }

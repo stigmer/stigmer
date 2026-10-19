@@ -32,6 +32,7 @@ from ._gen._agent import (
 )
 from ._gen._apikey import ApiKeyClient, ApiKeyInput
 from ._gen._federationissuer import FederationIssuerClient, FederationIssuerInput
+from ._gen._file import FileClient, FileInput
 from ._gen._grant import ApiResourceRefInput, GrantClient, GrantInput
 from ._gen._identityaccount import IdentityAccountClient, IdentityAccountInput
 from ._gen._oauthapp import OAuthAppClient, OAuthAppInput
@@ -59,6 +60,7 @@ from ._gen._vault import (
     VaultSecretInput,
 )
 from ._skill import MAX_INLINE_ARTIFACT_BYTES, RoutedSkillClient
+from ._file import FileContent, RoutedFileClient
 
 # --- Shared types (generated) ----------------------------------------------
 
@@ -105,6 +107,7 @@ __all__ = [
     "AgentClient",
     "ApiKeyClient",
     "FederationIssuerClient",
+    "FileClient",
     "GrantClient",
     "IdentityAccountClient",
     "OAuthAppClient",
@@ -115,6 +118,8 @@ __all__ = [
     "SkillClient",
     "VaultClient",
     "RoutedSkillClient",
+    "RoutedFileClient",
+    "FileContent",
     "MAX_INLINE_ARTIFACT_BYTES",
     # Input types
     "AgentInput",
@@ -124,6 +129,7 @@ __all__ = [
     "AttachmentInput",
     "DeleteResourceInput",
     "FederationIssuerInput",
+    "FileInput",
     "GitRepoSourceInput",
     "GrantInput",
     "IdentityAccountInput",

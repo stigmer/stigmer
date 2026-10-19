@@ -8,6 +8,7 @@ from types import TracebackType
 import grpc
 
 from ._billing import BillingClient
+from ._file import RoutedFileClient
 from ._gen._client import GeneratedClient
 from ._github import GitHubClient
 from ._runner_adapter import RunnerAdapter
@@ -61,6 +62,7 @@ class StigmerClient(GeneratedClient):
     billing: BillingClient
     tokens: TokenClient
     skills: RoutedSkillClient
+    files: RoutedFileClient
     default_execution_target: int
     runner_adapter: RunnerAdapter | None
 
@@ -106,6 +108,9 @@ class StigmerClient(GeneratedClient):
         # (stigmer#675): `client.skills.push` simply works for any valid
         # skill size — large artifacts ride the HTTP transfer lane.
         self.skills = RoutedSkillClient(self._channel)
+        # The same for files: `client.files.upload_file` routes a file's
+        # content by size, so a large file rides the same lane.
+        self.files = RoutedFileClient(self._channel)
 
     def close(self) -> None:
         """Release the underlying gRPC channel."""

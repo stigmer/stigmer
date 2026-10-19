@@ -25,6 +25,7 @@ const JAVA_GEN_PACKAGE = "ai.stigmer.sdk.gen";
 // layering, never the reverse).
 const JAVA_EXTENSIBLE_CLIENTS = new Map<string, string>([
   ["SkillClient", "push routing over the artifact transfer lane (stigmer#675/#701)"],
+  ["FileClient", "uploads routed by size over the same transfer lane"],
 ]);
 
 // =========================================================================

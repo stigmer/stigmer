@@ -498,6 +498,8 @@ export {
   type DisplayFileChange,
   type DisplayFileChangeType,
 } from "./run/to-display-file-change.js";
+export { FileClient, type FileInput } from "./gen/file.js";
+export { RoutedFileClient, type FileContent, type UploadFileOptions } from "./file.js";
 export { SkillClient, type SkillInput } from "./gen/skill.js";
 export { RoutedSkillClient, MAX_INLINE_ARTIFACT_BYTES } from "./skill.js";
 export { PluginClient, type PluginInput, type PluginAuthorInput } from "./gen/plugin.js";

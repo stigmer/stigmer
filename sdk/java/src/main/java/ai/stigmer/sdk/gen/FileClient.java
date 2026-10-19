@@ -19,11 +19,11 @@ import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
 /** Provides operations on file resources. */
-public final class FileClient {
+public class FileClient {
     private final FileCommandControllerGrpc.FileCommandControllerBlockingStub command;
     private final FileQueryControllerGrpc.FileQueryControllerBlockingStub query;
 
-    FileClient(Channel channel) {
+    protected FileClient(Channel channel) {
         this.command = FileCommandControllerGrpc.newBlockingStub(channel);
         this.query = FileQueryControllerGrpc.newBlockingStub(channel);
     }

@@ -7,6 +7,7 @@ import { PlatformClient } from "./platform.js";
 import { SearchClient } from "./search.js";
 import { TokenClient } from "./tokens.js";
 import { RoutedEvalClient } from "./eval.js";
+import { RoutedFileClient } from "./file.js";
 import { RoutedPluginClient } from "./plugin.js";
 import { RoutedSkillClient } from "./skill.js";
 import { createStigmerTransport } from "./transport.js";
@@ -104,6 +105,12 @@ export class Stigmer extends GeneratedClient {
    * `stigmer.eval.push` simply works for any valid folder size.
    */
   override readonly eval: RoutedEvalClient;
+  /**
+   * File operations, with `uploadFile` routing the content by size over the
+   * same transfer lane — shadows the inherited generated client so
+   * `stigmer.file.uploadFile` works for any file the server accepts.
+   */
+  override readonly file: RoutedFileClient;
 
   private readonly _tokenProvider: TokenProvider;
 
@@ -130,6 +137,7 @@ export class Stigmer extends GeneratedClient {
     this.skill = new RoutedSkillClient(transport, config.fetch);
     this.plugin = new RoutedPluginClient(transport, config.fetch);
     this.eval = new RoutedEvalClient(transport, config.fetch);
+    this.file = new RoutedFileClient(transport, config.fetch);
 
     if (this.defaultExecutionTarget != null) {
       this._applyExecutionTargetDefaults();

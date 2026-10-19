@@ -1557,6 +1557,12 @@ const HAND_WRITTEN_CLIENT_WRAPPERS = new Map<string, string>([
       "// (push routing over the artifact transfer lane, #675) takes the name so\n" +
       "// client.Skill and the exported type agree.\n",
   ],
+  [
+    "FileClient",
+    "// FileClient is NOT aliased here: the handwritten wrapper in file.go\n" +
+      "// (uploads routed by size over the same transfer lane) takes the name so\n" +
+      "// client.File and the exported type agree.\n",
+  ],
 ]);
 
 function generateSDKTypesFile(sdkRootDir: string, resources: GoResourceGenInfo[]): void {
