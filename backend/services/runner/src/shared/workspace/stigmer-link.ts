@@ -106,7 +106,6 @@ async function excludeFromGit(workspaceDir: string): Promise<void> {
   } catch {
     return;
   }
-  if (reported === "") return;
   const excludePath = isAbsolute(reported) ? reported : join(workspaceDir, reported);
   try {
     let current = "";
