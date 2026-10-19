@@ -15,7 +15,10 @@
  * (`harness/transcript/builder.ts`), and the delta channel's facts, which the
  * translator QUEUES as they arrive in `onDelta`, are drained into the builder
  * after each stream event — never during an awaited persist, where a row
- * write would land on a row the offload is replacing.
+ * write would land on a row the offload is replacing. While the loop waits
+ * for the next stream event, a running command's output is applied as it
+ * arrives (`foldIdleOutput`): nothing is persisting then, and a quiet
+ * command's lines would otherwise wait for its completion.
  * Until #1097 this loop fed three writers of its own (the message accumulator,
  * the delta enricher, the todo tracker), the Cursor copy of the folding rule.
  *
@@ -86,6 +89,12 @@ export interface TurnStreamState {
   eventCount: number;
   /** Written + read by: onDelta (log the first turn's context attribution exactly once). */
   firstTurnAttributionLogged: boolean;
+  /**
+   * Written by: the loop (true while it waits for the next stream event,
+   * false while it handles one, persist included). Read by: onDelta, which
+   * applies a running command's output at once only while it is true.
+   */
+  awaitingEvent: boolean;
 }
 
 export function newTurnStreamState(): TurnStreamState {
@@ -96,6 +105,7 @@ export function newTurnStreamState(): TurnStreamState {
     streamErrorMessage: undefined,
     eventCount: 0,
     firstTurnAttributionLogged: false,
+    awaitingEvent: false,
   };
 }
 
@@ -142,6 +152,23 @@ export function foldDrainedDeltas(
 }
 
 /**
+ * Apply a running command's output the moment it arrives, when the loop is
+ * waiting for the next stream event (the header's exception): the builder's
+ * observer then sends it to the session between writes. Anything else in
+ * the queue waits for the loop's drain.
+ */
+export function foldIdleOutput(
+  translator: Pick<CursorTranslator, "drainOutputOnly">,
+  transcript: Pick<TurnSink["transcript"], "apply">,
+  telemetry: CursorTurnObserver | undefined,
+): void {
+  const drained = translator.drainOutputOnly();
+  if (drained.length === 0) return;
+  for (const fact of drained) transcript.apply(fact);
+  telemetry?.observe(drained);
+}
+
+/**
  * Build the shared onDelta callback. The Cursor SDK's fine-grained delta channel
  * carries token usage, live shell output, and precise tool-call timings; it also
  * fires far more often than discrete stream events, so it is where the runtime's
@@ -178,6 +205,7 @@ export function makeCursorTurnOnDelta(
       }
     }
     translator.observeDelta(update);
+    if (state.awaitingEvent) foldIdleOutput(translator, sink.transcript, telemetry);
   };
 }
 
@@ -227,7 +255,9 @@ export async function consumeCursorTurnStream(
   stopSignal.addEventListener("abort", cancelOnStop, { once: true });
 
   try {
+    state.awaitingEvent = true;
     for await (const event of run.stream()) {
+      state.awaitingEvent = false;
       if (stopSignal.aborted) break;
 
       // Progress: reset the runtime's stall timer on every stream event,
@@ -328,6 +358,7 @@ export async function consumeCursorTurnStream(
         await sink.requestPersist();
         scheduler.markUpdateSent(state.eventCount);
       }
+      state.awaitingEvent = true;
     }
   } catch (streamErr) {
     // run.cancel() — from the runtime's stop or the first-denial stop — can
@@ -342,6 +373,7 @@ export async function consumeCursorTurnStream(
         `stopped=${stopSignal.aborted}, firstDenial=${state.firstDenialDetected}`,
     );
   } finally {
+    state.awaitingEvent = false;
     stopSignal.removeEventListener("abort", cancelOnStop);
   }
 

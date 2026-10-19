@@ -30,6 +30,10 @@
  *    overlay, the twin and one-gate collapses, the refusal stamps), so the
  *    session's events hold every row it may still rewrite until the turn's
  *    terminal write (`boundary-rows.ts` `boundaryMayStillRewrite`).
+ *  - Sub-agents report at completion: the SDK returns a sub-agent's
+ *    transcript only in its `task` call's completion and sends nothing while
+ *    it runs (`sub-agent-steps.ts`, an upstream limit), so the open `task`
+ *    call is the runtime's one sign the work is live.
  */
 
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
@@ -77,4 +81,5 @@ export const CURSOR_CAPABILITIES: HarnessCapabilities = {
   visionProfile: CURSOR_VISION_PROFILE,
   fileReview: CURSOR_FILE_REVIEW_IDENTITY,
   boundaryRewritesRow: boundaryMayStillRewrite,
+  subAgentProgress: "at-completion",
 };

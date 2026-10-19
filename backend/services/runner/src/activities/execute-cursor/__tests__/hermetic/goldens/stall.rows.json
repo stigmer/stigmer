@@ -11,8 +11,10 @@
           "args": {
             "command": "npm test"
           },
-          "status": "TOOL_CALL_RUNNING",
+          "result": "12 passing",
+          "status": "TOOL_CALL_COMPLETED",
           "startedAt": "2026-01-01T00:00:03.000Z",
+          "completedAt": "2026-01-01T00:00:04.000Z",
           "argsPreview": "{\"command\":\"npm test\"}",
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
@@ -23,7 +25,7 @@
     {
       "type": "MESSAGE_SYSTEM",
       "content": "Execution failed: the agent made no progress for too long and was stopped (Agent stream stalled: no activity for 3s (last tool: shell)). You can retry or resume.",
-      "timestamp": "2026-01-01T00:00:06.000Z"
+      "timestamp": "2026-01-01T00:00:07.000Z"
     }
   ]
 }

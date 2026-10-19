@@ -53,6 +53,7 @@ import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { COST_LIMIT_USER_COPY, formatCostLimitError } from "../shared/cost-guard.js";
 import { TOOL_CALL_LIMIT_USER_COPY, formatToolCallLimitError } from "../shared/tool-rounds.js";
 import { formatStallFailure, type StallTimeoutError } from "../shared/stall-watchdog.js";
+import { formatOperationLimitFailure, type OperationLimitError } from "./open-operations.js";
 import { utcTimestamp } from "../shared/status.js";
 import type { WorkspaceLockTimeoutError } from "../shared/workspace/workspace-lock.js";
 import type { FailureSurface } from "./types.js";
@@ -138,6 +139,25 @@ export function stallArm(error: StallTimeoutError): TerminalArm {
     rows: [
       `Execution failed: the agent made no progress for too long and was stopped (${error.message}). You can retry or resume.`,
     ],
+    completes: true,
+    stopCause: "timeout",
+    disposition: RETURN,
+  };
+}
+
+/**
+ * The runtime's backstop stopped an operation that stayed open past its
+ * limit (`open-operations.ts`). FAILED with the stall's stop cause, so no
+ * new wire value: both are a turn stopped by the runtime's clock. Its own
+ * copy, because the stall's "made no progress" is untrue here: the turn was
+ * working, and was stopped at a limit. RETURN: a retry would run the same
+ * operation into the same limit.
+ */
+export function operationLimitArm(error: OperationLimitError): TerminalArm {
+  return {
+    phase: RunPhase.RUN_FAILED,
+    error: formatOperationLimitFailure(error),
+    rows: [`Execution failed: ${error.message} and was stopped. You can retry or resume.`],
     completes: true,
     stopCause: "timeout",
     disposition: RETURN,

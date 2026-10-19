@@ -25,6 +25,7 @@ import { createInterface } from "node:readline";
 import { preflightNodeRuntime } from "./preflight.js";
 import { markBoot } from "./shared/cold-start-timing.js";
 import { loadConfig } from "./config.js";
+import { operatorBounds } from "./operator-bounds.js";
 import { captureRunnerSecrets } from "./shared/runner-credential-store.js";
 import { initTracing, initMetrics, startRunnerTelemetry } from "./otel.js";
 import { createStigmerRunner } from "./runner.js";
@@ -70,11 +71,10 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
   // The manager is the runner's own process (the CLI and the desktop app
   // start it), so it owns its telemetry as static mode does; a setting
   // the standard does not name is the same fatal error as any other.
-  /* v8 ignore start -- @preserve: manager mode's process boundary, driven over IPC by test/conformance's runner-ipc harness; startRunnerTelemetry is otel.ts's, tested there */
+  /* v8 ignore start -- @preserve: manager mode's process boundary, driven over IPC by test/conformance's runner-ipc harness; startRunnerTelemetry is otel.ts's, tested there; the options become a Config in mapManagerOptionsToConfig, and __tests__/operator-bounds.test.ts reads the bounds spread below off this source */
   let flushTelemetry: (() => Promise<void>) | null = null;
   try {
     flushTelemetry = await startRunnerTelemetry("stigmer-runner");
-    /* v8 ignore stop */
     manager = await createStigmerRunnerManager({
       temporalAddress: config.temporalAddress,
       temporalNamespace: config.temporalNamespace,
@@ -90,7 +90,9 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
       artifactProxyEndpoint: config.artifactProxyEndpoint ?? undefined,
       cloudModeEnabled: config.cloudModeEnabled,
       executionMode: config.mode,
+      ...operatorBounds(config),
     });
+    /* v8 ignore stop */
   } catch (err) {
     sendIpc({
       type: "error",
@@ -184,6 +186,7 @@ async function runStaticMode(config: import("./config.js").Config): Promise<void
   const otelShutdown = await initTracing("stigmer-runner");
   const metricsShutdown = await initMetrics("stigmer-runner");
 
+  /* v8 ignore start -- @preserve: static mode's process boundary, booted by the CLI daemon as the execution conformance lanes run it; the options become a Config in mapOptionsToConfig, and __tests__/operator-bounds.test.ts reads the bounds spread below off this source */
   const runner = await createStigmerRunner({
     taskQueue: config.taskQueue,
     temporalAddress: config.temporalAddress,
@@ -203,7 +206,9 @@ async function runStaticMode(config: import("./config.js").Config): Promise<void
     // re-deriving execution location from the proxy. This keeps static mode
     // consistent with manager mode, which already passes config.mode.
     executionMode: config.mode,
+    ...operatorBounds(config),
   });
+  /* v8 ignore stop */
 
   let shutdownRequested = false;
   const shutdown = (signal: string) => {

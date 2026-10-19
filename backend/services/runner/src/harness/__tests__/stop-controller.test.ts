@@ -12,8 +12,9 @@ import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { formatTryStop, parseTryStop } from "@stigmer/eval-runtime";
 
 import { StallTimeoutError } from "../../shared/stall-watchdog.js";
+import { OperationLimitError } from "../open-operations.js";
 import { StopController } from "../stop-controller.js";
-import { evalScaffoldFailedArm, mockAbortArm } from "../terminal-table.js";
+import { evalScaffoldFailedArm, mockAbortArm, operationLimitArm } from "../terminal-table.js";
 
 describe("StopController", () => {
   it("starts live with no evidence", () => {
@@ -21,6 +22,7 @@ describe("StopController", () => {
     expect(stop.signal.aborted).toBe(false);
     expect(stop.evidence).toEqual({
       stall: undefined,
+      operationLimit: undefined,
       mockAbort: undefined,
       costCapExceeded: false,
       platformStop: false,
@@ -46,6 +48,16 @@ describe("StopController", () => {
     stop.stop({ kind: "stall", error: first });
     stop.stop({ kind: "stall", error: new StallTimeoutError(9_000) });
     expect(stop.evidence.stall).toBe(first);
+  });
+
+  it("records the backstop's first operation limit as its own cause, beside a stall", () => {
+    const stop = new StopController();
+    const first = new OperationLimitError("task", 3_600_000);
+    stop.stop({ kind: "operation-limit", error: first });
+    stop.stop({ kind: "operation-limit", error: new OperationLimitError("shell", 60_000) });
+    expect(stop.signal.reason).toBe("operation-limit");
+    expect(stop.evidence.operationLimit).toBe(first);
+    expect(stop.evidence.stall).toBeUndefined();
   });
 
   it("fires abort listeners exactly once", () => {

@@ -16,6 +16,7 @@ import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb"
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { StallTimeoutError } from "../../shared/stall-watchdog.js";
+import { OperationLimitError } from "../open-operations.js";
 import { WorkspaceLockTimeoutError } from "../../shared/workspace/workspace-lock.js";
 import * as table from "../terminal-table.js";
 import type { StopCause, TerminalArm } from "../terminal-table.js";
@@ -24,6 +25,7 @@ import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb
 
 const ARMS: ReadonlyArray<{ readonly name: string; readonly arm: TerminalArm; readonly cause: StopCause | null }> = [
   { name: "stallArm", arm: table.stallArm(new StallTimeoutError(1_000)), cause: "timeout" },
+  { name: "operationLimitArm", arm: table.operationLimitArm(new OperationLimitError("task", 3_600_000)), cause: "timeout" },
   { name: "evalScaffoldFailedArm", arm: table.evalScaffoldFailedArm("scaffold failed"), cause: "eval_stopped" },
   { name: "mockAbortArm", arm: table.mockAbortArm({ server: "s", tool: "t", reason: "r" }), cause: "eval_stopped" },
   { name: "costCapArm", arm: table.costCapArm(1, 2), cause: "budget_reached" },
@@ -77,5 +79,21 @@ describe("applying an arm", () => {
     const status = create(RunStatusSchema, { phase: RunPhase.RUN_IN_PROGRESS });
     expect(table.applyTerminalArm(status, create(TurnRowsSchema), table.awaitingApprovalArm())).toEqual([]);
     expect(status.stopCause).toBe("");
+  });
+});
+
+describe("the operation limit's copy", () => {
+  it("says the operation ran past its limit and was stopped, never that the agent made no progress", () => {
+    const arm = table.operationLimitArm(new OperationLimitError("task", 3_600_000));
+    expect(arm.phase).toBe(RunPhase.RUN_FAILED);
+    expect(arm.disposition).toEqual({ kind: "return" });
+    expect(arm.error).toBe("[OperationLimitError] `task` ran for more than 60 minutes without finishing. Retry or resume.");
+    expect(arm.rows).toEqual(["Execution failed: `task` ran for more than 60 minutes without finishing and was stopped. You can retry or resume."]);
+  });
+
+  it("names a limit under a minute in seconds, and one minute in the singular", () => {
+    expect(new OperationLimitError("shell", 2_000).message).toBe("`shell` ran for more than 2 seconds without finishing");
+    expect(new OperationLimitError("shell", 60_000).message).toBe("`shell` ran for more than 1 minute without finishing");
+    expect(new OperationLimitError("shell", 1_000).message).toBe("`shell` ran for more than 1 second without finishing");
   });
 });

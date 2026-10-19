@@ -11,8 +11,13 @@
  * (`turn-timeline.ts`), the session event emitter that writes what the
  * agent did into the session's log from the rows every persist carries
  * (`events/emitter.ts`), and the single persist chokepoint;
- * the periodic heartbeat; the stop controller and its four producers (the
- * stall watchdog, the cost cap, the platform STOP, Temporal's cancellation);
+ * the operations the turn has open, folded from the same events
+ * (`open-operations.ts`), which hold the stall watchdog while something
+ * runs and feed the backstop; the pump that sends a running tool's output
+ * between writes (`preview-pump.ts`);
+ * the periodic heartbeat; the stop controller and its producers (the
+ * stall watchdog and the open-operation backstop on its timer, the cost
+ * cap, the platform STOP, Temporal's cancellation);
  * the resolution phases (`turn-context.ts`) composed into the `TurnInput`;
  * the sink the adapter is handed; the terminal table (`terminal-table.ts`)
  * with its throw-vs-return rule, applied by `settleWith`, the one writer of
@@ -59,6 +64,7 @@ import { collectOutputs } from "../shared/outputs.js";
 import { publishPlanArtifact } from "../shared/plan-artifact.js";
 import { readEvalFiles } from "../shared/eval-case/read-files.js";
 import { StallTimeoutError, startStallWatchdog, type StallWatchdog } from "../shared/stall-watchdog.js";
+import { loadStreamingConfig } from "../shared/streaming-scheduler.js";
 import { reportSetupProgress, slimStatus, utcTimestamp } from "../shared/status.js";
 import { cancelInProgressSubAgentProtos } from "../shared/subagent-rows.js";
 import { removeStigmerSymlink } from "../shared/workspace/stigmer-link.js";
@@ -71,7 +77,9 @@ import {
 import { terminalizeNonExecutingDecisions } from "./approval-decisions.js";
 import { captureCandidate, pinCaptureBaseline, type TurnCapture } from "./capture.js";
 import { SessionEventEmitter } from "./events/emitter.js";
+import { OpenOperations, OperationLimitError } from "./open-operations.js";
 import { PersistChokepoint } from "./persist-chokepoint.js";
+import { PreviewPump } from "./preview-pump.js";
 import { StopController } from "./stop-controller.js";
 import {
   applyTerminalArm,
@@ -82,6 +90,7 @@ import {
   failedArm,
   fileReviewResolvedArm,
   infrastructureCancelArm,
+  operationLimitArm,
   orchestratorStopArm,
   platformStopArm,
   stallArm,
@@ -198,16 +207,36 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     boundaryRewritesRow: adapter.capabilities.boundaryRewritesRow,
   });
 
+  // What the turn has open right now (`open-operations.ts`): the stall
+  // watchdog's `held()` and the backstop's oldest call. The close of the
+  // last open operation is activity: the window counts from there.
+  let watchdog: StallWatchdog | undefined;
+  const operations = new OpenOperations({
+    subAgentProgress: adapter.capabilities.subAgentProgress,
+    onIdle: () => watchdog?.recordActivity(),
+  });
+
+  // A running tool's output, sent between writes on the streaming floor
+  // (`preview-pump.ts`), through the chokepoint's single flight.
+  const previews = new PreviewPump({
+    pending: () => events.toolOutputPending,
+    flush: () => chokepoint.flushPreviews(),
+    intervalMs: loadStreamingConfig().minIntervalMs,
+  });
+
   // The one transcript builder of this turn, born with the rows and before
   // any phase, so it exists for everything that writes a row or an output:
   // the write-back coordinator (phase 2c), the seed of a reinvocation's asks
   // (phase 3, through `seed()`, which indexes them as it appends), the
   // adapter (`sink.transcript`), and the epilogue. One constructor call per
   // turn; a second builder over the same rows would index them twice. The
-  // timeline and the emitter's previews are its observer.
+  // timeline, the emitter's previews, the open operations and the preview
+  // pump are its observer, told every event in both process modes.
   const transcript = new TranscriptBuilder(executionId, rows, status, (event, at, place) => {
     timeline.observe(event, at);
     events.observe(event, place);
+    operations.observe(event);
+    if (event.kind === "tool_output_delta") previews.note();
   });
 
   // Cold-start timeline of this turn's setup: one mark after each phase, the
@@ -243,7 +272,6 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
   let outputsSessionId: string | undefined;
   let heartbeatPhase = "setup";
   let lastActivityDetail: string | undefined;
-  let watchdog: StallWatchdog | undefined;
 
   const activity = Context.current();
   const cancellationSignal = activity.cancellationSignal;
@@ -432,17 +460,37 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     // The stall watchdog: the periodic heartbeat proves the process is alive,
     // not that the engine is progressing; if the engine wedges, nothing
     // arrives and the turn would hang forever. Armed for the adapter's whole
-    // stretch and reset by every `recordActivity`; on stall the
-    // signal aborts, the adapter cancels its run, and the table reports the
-    // stall with the last detail the adapter named.
-    watchdog = startStallWatchdog(config.cursorStreamStallTimeoutMs, (idleMs) => {
-      const error = new StallTimeoutError(idleMs, lastActivityDetail ? `last tool: ${lastActivityDetail}` : undefined);
-      console.warn(
-        `${activityName} stall detected: execution=${executionId}, idleMs=${idleMs}, lastTool=${lastActivityDetail ?? "none"}`,
-      );
-      stop.stop({ kind: "stall", error });
-    });
-    const armedWatchdog = watchdog;
+    // stretch and reset by every `recordActivity`; held while an operation
+    // is open, so a silent build is not a stall; on stall the signal
+    // aborts, the adapter cancels its run, and the table reports the stall
+    // with the last detail the adapter named. On every poll it also runs
+    // the backstop: an operation open past `openOperationMaxMs` stops the
+    // turn with its own cause, because a live heartbeat over an operation
+    // with no bound of our own would keep a dead turn alive forever.
+    const armedWatchdog = startStallWatchdog(
+      config.cursorStreamStallTimeoutMs,
+      (idleMs) => {
+        const error = new StallTimeoutError(idleMs, lastActivityDetail ? `last tool: ${lastActivityDetail}` : undefined);
+        console.warn(
+          `${activityName} stall detected: execution=${executionId}, idleMs=${idleMs}, lastTool=${lastActivityDetail ?? "none"}`,
+        );
+        stop.stop({ kind: "stall", error });
+      },
+      {
+        held: () => operations.held(),
+        onTick: () => {
+          const oldest = operations.oldest();
+          if (oldest === undefined || oldest.ageMs < config.openOperationMaxMs) return;
+          console.warn(
+            `${activityName} operation limit: execution=${executionId}, tool=${oldest.name}, callId=${oldest.callId}, ` +
+              `ageMs=${oldest.ageMs}, limitMs=${config.openOperationMaxMs}`,
+          );
+          armedWatchdog.stop();
+          stop.stop({ kind: "operation-limit", error: new OperationLimitError(oldest.name, config.openOperationMaxMs) });
+        },
+      },
+    );
+    watchdog = armedWatchdog;
 
     const sink: TurnSink = {
       status,
@@ -499,6 +547,8 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     outputsSessionId = turn.sessionId;
     const outcome = await adapter.runTurn(turn, sink);
     armedWatchdog.stop();
+    // Nothing streams now; a flush still sending lands before the turn's own writes.
+    await previews.stop();
     heartbeatPhase = "epilogue";
 
     // The stream is over, however it ended: nothing on the transcript is
@@ -586,7 +636,8 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
 
   /**
    * The table for an `interrupted` outcome, in the orchestrator's precedence:
-   * a stall (FAILED, return) outranks everything; a eval-case mock's abort
+   * a stall (FAILED, return) outranks everything, and the backstop's
+   * operation limit (FAILED, return) stands beside it; a eval-case mock's abort
    * (TERMINATED, return); a cost cap (TERMINATED, return); then Temporal's cancellation as the signal's reason reads it —
    * the runner's drain, the orchestrator's stop, an infrastructure cancel
    * (all thrown); last a platform stop (COMPLETED, return).
@@ -596,6 +647,11 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     if (evidence.stall) {
       const outcome = await settleWith(stallArm(evidence.stall));
       console.warn(`${activityName} stalled: execution=${executionId}, error=${status.error}`);
+      return outcome;
+    }
+    if (evidence.operationLimit) {
+      const outcome = await settleWith(operationLimitArm(evidence.operationLimit));
+      console.warn(`${activityName} stopped at the operation limit: execution=${executionId}, error=${status.error}`);
       return outcome;
     }
     if (evidence.mockAbort) {
@@ -863,6 +919,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
   } finally {
     periodicHeartbeat.stop();
     watchdog?.stop();
+    await previews.stop();
     cancellationSignal.removeEventListener("abort", onCancellation);
     // A eval-run try's mock endpoint serves this turn only.
     await frame.evalMocks?.close();

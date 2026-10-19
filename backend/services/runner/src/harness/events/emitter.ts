@@ -66,7 +66,13 @@
  * {@link observe}; the previews ride the next append. A message is
  * previewed only while its thread's sealed prefix has reached it, and one
  * whose previews were ever held back is never previewed again (a partial
- * preview would show a client half a sentence).
+ * preview would show a client half a sentence). A running tool's output
+ * does not wait for a write: the runtime's pump sends it on its own
+ * cadence through {@link flushToolOutput}, an append of previews and no
+ * events, because a harness may stream output while nothing else happens
+ * (Cursor's shell deltas arrive outside its loop's persists) and the
+ * output would otherwise reach the session only after the result, when it
+ * is dropped.
  *
  * Failure. A transient append failure is retried; if it still fails the
  * events stay queued for the next write, whose status write goes ahead
@@ -302,6 +308,41 @@ export class SessionEventEmitter {
         return;
       default:
         return;
+    }
+  }
+
+  /** Whether a running tool's output waits to be sent: what the runtime's pump asks before it asks for a flush. */
+  get toolOutputPending(): boolean {
+    return this.pendingPreviews.some((preview) => preview.kind === "tool-output");
+  }
+
+  /**
+   * The running tools' output that waits, sent now as previews alone: no
+   * event, no row read, no status write. Text and thinking previews stay
+   * for the next write, whose read of the rows decides them. Called by the
+   * persist chokepoint in its single flight (`persist-chokepoint.ts`
+   * `flushPreviews`), so it never races a write's append. A preview is
+   * ephemeral: a failed append is logged and the output is not resent.
+   * Never throws.
+   */
+  async flushToolOutput(): Promise<void> {
+    if (!this.began) return;
+    const previews: SessionEventPreview[] = [];
+    const rest: PendingPreview[] = [];
+    for (const preview of this.pendingPreviews) {
+      if (preview.kind !== "tool-output") {
+        rest.push(preview);
+        continue;
+      }
+      const sent = this.toolOutputPreview(preview.callId, preview.delta);
+      if (sent !== undefined) previews.push(sent);
+    }
+    this.pendingPreviews = rest;
+    if (previews.length === 0) return;
+    try {
+      await this.deps.client.appendSessionEvents(this.deps.runId, [], previews, await this.credential());
+    } catch (err) {
+      console.warn(`[session-events] run=${this.deps.runId}: sending ${previews.length} tool-output preview(s) failed; not resent: ${String(err)}`);
     }
   }
 
@@ -659,11 +700,8 @@ export class SessionEventEmitter {
     const out: SessionEventPreview[] = [];
     for (const preview of pending) {
       if (preview.kind === "tool-output") {
-        const useId = toolUseEventId(this.deps.runId, preview.callId);
-        if (this.known(toolResultEventId(useId))) continue;
-        out.push(create(SessionEventPreviewSchema, {
-          preview: { case: "stigmerToolOutputDelta", value: { toolUseId: useId, delta: preview.delta } },
-        }));
+        const sent = this.toolOutputPreview(preview.callId, preview.delta);
+        if (sent !== undefined) out.push(sent);
         continue;
       }
       const prefix = scopeEventPrefix(this.deps.runId, preview.subAgentId);
@@ -694,15 +732,29 @@ export class SessionEventEmitter {
     return out;
   }
 
+  /** A running call's output as its preview; none once the call's result is in the log, where the output is whole. */
+  private toolOutputPreview(callId: string, delta: string): SessionEventPreview | undefined {
+    const useId = toolUseEventId(this.deps.runId, callId);
+    if (this.known(toolResultEventId(useId))) return undefined;
+    return create(SessionEventPreviewSchema, {
+      preview: { case: "stigmerToolOutputDelta", value: { toolUseId: useId, delta } },
+    });
+  }
+
   // ── Appending ─────────────────────────────────────────────────────────────
 
-  private async append(previews: SessionEventPreview[], final: boolean): Promise<void> {
-    const delay = this.deps.delay ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+  /** The credential every append presents, acquired once. */
+  private credential(): Promise<string | undefined> {
     this.token ??= this.deps.credential().catch((err: unknown) => {
       console.warn(`[session-events] run=${this.deps.runId}: no scoped credential; appending with the ambient one: ${String(err)}`);
       return undefined;
     });
-    const token = await this.token;
+    return this.token;
+  }
+
+  private async append(previews: SessionEventPreview[], final: boolean): Promise<void> {
+    const delay = this.deps.delay ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+    const token = await this.credential();
     const batches = this.batches();
     if (batches.length === 0) batches.push([]);
     for (let b = 0; b < batches.length; b++) {
