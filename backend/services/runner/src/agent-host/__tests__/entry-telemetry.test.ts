@@ -49,6 +49,7 @@ const CONFIG: HostConfigWire = {
   mcpBridgeEndpoint: null,
   mcpPublicEndpoint: null,
   cursorStreamStallTimeoutMs: 1,
+  shellTimeoutMaxSeconds: 1,
   agentResolveTimeoutMs: 1,
   workspaceLockTimeoutMs: 1,
   proxyEndpoint: "http://127.0.0.1:4321",

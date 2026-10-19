@@ -48,6 +48,7 @@ export function resolveDeepAgentConfig(config: Config): DeepAgentAdapterConfig {
     proxyEndpoint: config.proxyEndpoint,
     mode: config.mode,
     cursorStreamStallTimeoutMs: config.cursorStreamStallTimeoutMs,
+    shellTimeoutMaxSeconds: config.shellTimeoutMaxSeconds,
   };
 }
 

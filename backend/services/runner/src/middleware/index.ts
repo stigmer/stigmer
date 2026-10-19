@@ -10,6 +10,11 @@
  *   1. Loop detection (always)
  *   2. Execution budget (always — counts tool rounds, advises at ~80% of
  *      `max_tool_rounds` and ends the turn at it)
+ *   2a. Shell (conditional: only on a graph whose backend runs a shell —
+ *      the model sees the runner's `execute` schema and every `execute`
+ *      call runs the runner's tool, `shell.ts`; right before tool intent,
+ *      so that extends this declaration, and outside the scope, gate and
+ *      truncation, so they see the call and its result as before)
  *   3. Tool intent (always — bind-time shell schema extension, issue #276)
  *   4. Tool truncation (always)
  *   5. Tool scope (conditional: only when the agent's scope carries a list —
@@ -49,6 +54,7 @@ import { createPathNormalizationMiddleware } from "./path-normalization.js";
 import { createLoopDetectionMiddleware } from "./loop-detection.js";
 import { createExecutionBudgetMiddleware } from "./execution-budget.js";
 import { createToolIntentMiddleware } from "./tool-intent.js";
+import { createShellMiddleware } from "./shell.js";
 import { createToolTruncationMiddleware } from "./tool-truncation.js";
 import { createApprovalGateMiddleware } from "./approval-gate.js";
 import { createToolScopeMiddleware } from "./tool-scope.js";
@@ -76,6 +82,7 @@ export function buildMiddlewareStack(
 
   stack.push(createLoopDetectionMiddleware(config.loopDetection));
   stack.push(createExecutionBudgetMiddleware(config.executionBudget));
+  if (config.shell) stack.push(createShellMiddleware(config.shell));
   stack.push(createToolIntentMiddleware());
   stack.push(createToolTruncationMiddleware(config.toolTruncation));
 

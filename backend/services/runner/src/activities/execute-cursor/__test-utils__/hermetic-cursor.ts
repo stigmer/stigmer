@@ -169,6 +169,7 @@ export function hermeticCursorConfig(env: HermeticEnvironment): Config {
     primaryModel: FIXTURE.model,
     cursorStreamStallTimeoutMs: 180_000,
     openOperationMaxMs: 3_600_000,
+    shellTimeoutMaxSeconds: 3_300,
     agentResolveTimeoutMs: 120_000,
     workspaceLockTimeoutMs: 900_000,
   };

@@ -49,6 +49,12 @@ export interface ResultViewProps {
    * the name but keeps the stats.
    */
   readonly showStats?: boolean;
+  /**
+   * The tool is still running and the view holds its output so far. A
+   * terminal keeps its newest lines in view as they arrive
+   * ({@link TerminalSession}'s `live`); every other view ignores it.
+   */
+  readonly live?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -61,12 +67,12 @@ export interface ResultViewProps {
  * this component renders it. Importable on its own by platform builders who
  * compose custom tool UIs.
  */
-export function ResultView({ view, showFileName = true, showStats = true, className }: ResultViewProps) {
+export function ResultView({ view, showFileName = true, showStats = true, live = false, className }: ResultViewProps) {
   switch (view.type) {
     case "diff":
       return <DiffResultView view={view} showFileName={showFileName} showStats={showStats} className={className} />;
     case "terminal":
-      return <TerminalResultView view={view} className={className} />;
+      return <TerminalResultView view={view} live={live} className={className} />;
     case "search":
       return <SearchResultView view={view} showCount={showStats} className={className} />;
     case "list":
@@ -225,13 +231,14 @@ type TerminalView = Extract<ToolResultView, { type: "terminal" }>;
 // A shell result IS a terminal session: the command prompt line plus its
 // output, rendered as one block by the shared TerminalSession (no separate
 // "Output" caption or command box).
-function TerminalResultView({ view, className }: { view: TerminalView; className?: string }) {
+function TerminalResultView({ view, live, className }: { view: TerminalView; live: boolean; className?: string }) {
   return (
     <TerminalSession
       command={view.command}
       stdout={view.stdout}
       stderr={view.stderr}
       exitCode={view.exitCode}
+      live={live}
       className={className}
     />
   );

@@ -1,9 +1,9 @@
 /**
  * The operator's bounds reach the runtime `Config` on both boot paths
- * (stigmer#1731): `loadConfig` reads the four variables, `main.ts` spreads
+ * (stigmer#1731): `loadConfig` reads their variables, `main.ts` spreads
  * `operatorBounds(config)` into each root's options, and each root's mapper
  * carries them into the `Config` its turns read. Before this, both option
- * lists left the four out and the defaults always applied.
+ * lists left the bounds out and the defaults always applied.
  *
  * `main.ts` is a process entry with side effects on import, so its half is
  * read off its source: one spread per boot path, in the function that
@@ -24,6 +24,7 @@ const MAIN_SOURCE = readFileSync(fileURLToPath(new URL("../main.ts", import.meta
 const SET = {
   CURSOR_STREAM_STALL_TIMEOUT_MS: "90000",
   STIGMER_OPEN_OPERATION_MAX_MS: "1200000",
+  STIGMER_SHELL_TIMEOUT_MAX_SECONDS: "900",
   WORKSPACE_LOCK_TIMEOUT_MS: "60000",
   CURSOR_AGENT_RESOLVE_TIMEOUT_MS: "45000",
 };
@@ -31,6 +32,7 @@ const SET = {
 const EXPECTED = {
   cursorStreamStallTimeoutMs: 90_000,
   openOperationMaxMs: 1_200_000,
+  shellTimeoutMaxSeconds: 900,
   workspaceLockTimeoutMs: 60_000,
   agentResolveTimeoutMs: 45_000,
 };
@@ -56,7 +58,7 @@ describe("the operator's bounds on both boot paths", () => {
     process.env = originalEnv;
   });
 
-  it("reads all four from the environment", () => {
+  it("reads every one from the environment", () => {
     expect(operatorBounds(loadConfig())).toEqual(EXPECTED);
   });
 

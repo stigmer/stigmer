@@ -6,7 +6,7 @@
 // bespoke dark box — so it tracks the host theme, preset, and color mode.
 
 import { cn } from "@stigmer/design-tokens";
-import { CollapsiblePre } from "./tool-rendering-primitives.js";
+import { CollapsiblePre, TRUNCATION_LINE_LIMIT } from "./tool-rendering-primitives.js";
 import { useSandboxNormalize } from "./SandboxContext.js";
 
 /** Props for {@link TerminalSession}. */
@@ -23,6 +23,13 @@ export interface TerminalSessionProps {
   readonly stderr?: string;
   /** Process exit code. A non-zero code renders a trailing `exit N` badge. */
   readonly exitCode?: number;
+  /**
+   * The command is still running and `stdout` is what it has printed so far:
+   * the newest lines stay in view as the output grows (the oldest fold into
+   * a `… +N lines` marker), the way a terminal scrolls. Once the command
+   * returns, the row renders its finished session instead.
+   */
+  readonly live?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -47,6 +54,7 @@ export function TerminalSession({
   stdout,
   stderr,
   exitCode,
+  live = false,
   className,
 }: TerminalSessionProps) {
   const normalize = useSandboxNormalize();
@@ -69,7 +77,8 @@ export function TerminalSession({
           {normalize(command)}
         </pre>
       )}
-      {stdout && (
+      {stdout && live && <LiveOutput content={normalize(stdout)} />}
+      {stdout && !live && (
         <CollapsiblePre content={normalize(stdout)} className="stg:text-foreground" />
       )}
       {stderr && (
@@ -77,6 +86,27 @@ export function TerminalSession({
       )}
       {failed && <ExitBadge exitCode={exitCode} />}
     </div>
+  );
+}
+
+/**
+ * A running command's output so far, pinned to its newest lines: what a
+ * person watching a build needs is what it printed last. No reveal control,
+ * because the output is still growing; the finished session has one.
+ */
+function LiveOutput({ content }: { content: string }) {
+  const lines = content.trimEnd().split("\n");
+  const shown = lines.slice(-TRUNCATION_LINE_LIMIT);
+  const hidden = lines.length - shown.length;
+  return (
+    <pre data-cursor-target="terminal-live-output" className="stg:whitespace-pre-wrap stg:break-words stg:font-mono stg:text-foreground">
+      {hidden > 0 && (
+        <span className="stg:block stg:select-none stg:text-muted-foreground-subtle">
+          … +{hidden} {hidden === 1 ? "line" : "lines"}
+        </span>
+      )}
+      {shown.join("\n")}
+    </pre>
   );
 }
 
