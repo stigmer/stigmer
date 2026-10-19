@@ -1,6 +1,6 @@
-# Attachments and Artifacts
+# Files and Artifacts
 
-How to pass input files to agent runs (attachments) and download files created by agents (artifacts).
+How to give an agent files (a message's files and a conversation's Files) and download files created by agents (artifacts).
 
 ---
 
@@ -8,13 +8,15 @@ How to pass input files to agent runs (attachments) and download files created b
 
 Run supports a complete file lifecycle:
 
-- **Attachments** — input files you provide *before* run starts. The agent reads them from the sandbox.
-- **Artifacts** — output files the agent *creates during* run and publishes for download.
+- **Files** — a file is uploaded once as a **File** (`ai.stigmer.agentic.file.v1`) and named by its id, `file_01j…`, wherever it should go: in a message, or in a conversation's resources.
+- **Artifacts** — output files the agent *creates during* a run and publishes for download.
 
 ```
-You ──► uploadAttachment ──► storage_key ──► Run.spec.attachments
+You ──► FileCommandController.upload ──► file_01j… ──► Run.spec.file_ids
                                                          │
-                                                 sandbox: /inputs/...
+                                      the conversation's resources gain it
+                                                         │
+                                       sandbox: .stigmer/uploads/...
                                                          │
                                                    Agent reads files
                                                          │
@@ -25,20 +27,11 @@ You ──► uploadAttachment ──► storage_key ──► Run.spec.attachme
 
 ---
 
-## Attachments — Input Files
+## Files — Input
 
-### How Attachments Work
+### A message's files
 
-Attachments are a two-step process: upload first, then reference in the run.
-
-**Step 1 — Upload the file:**
-
-```bash
-# The CLI handles this automatically. Internally, it calls uploadAttachment RPC.
-# The server returns a storage_key.
-```
-
-**Step 2 — Reference the storage key when triggering the run:**
+Upload the file, then name its id in the message:
 
 ```yaml
 spec:
@@ -48,74 +41,45 @@ spec:
       org: acme
       slug: my-agent
   message: "Process this configuration file"
-  attachments:
-    - filename: "config.yaml"
-      storage_key: "attachments/01HGXXX.../config.yaml"
-      mount_path: "/inputs/config.yaml"
-      content_type: "application/yaml"
+  file_ids:
+    - file_01j9zq6v8w3x4y5z6a7b8c9d0e
 ```
 
-**Via CLI (steps combined automatically):**
+A message names at most 20 Files. Each must be a File of the run's organization that the person sending the message may view. The server makes each one the conversation's own copy (a new id over the same bytes) unless it already is, adds it to the conversation's resources, and records the message's file blocks on `status.message_files` (an `image` block for JPEG, PNG, GIF and WebP, a `document` block otherwise). The turn's `user.message` carries those blocks after its text.
+
+A message may be only files: `message` is required unless `file_ids` is set.
+
+**Via CLI:**
 
 ```bash
 stigmer run my-agent "Process this config" --attach ./config.yaml
 ```
 
-The CLI detects whether the file is inside the session's workspace or external, then:
-- **External file**: Uploads via `uploadAttachment` RPC and sets `attachments[]`
-- **File inside workspace**: Sets `workspace_file_refs[]` instead — no upload, no copy
+The CLI uploads the file and names it in `file_ids`. A file inside the session's local workspace becomes a `workspace_file_refs` entry instead: no upload, no copy.
 
-### Attachment Fields
+### A conversation's Files
 
-Defined by the `Attachment` message in `spec.proto`.
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `filename` | `string` | Yes (min_len: 1) | Original filename. Used for display and default mount path. Example: `"config.yaml"`. |
-| `storage_key` | `string` | Yes (min_len: 1) | Reference to the pre-uploaded file. Obtained from `uploadAttachment`. Format: `"attachments/{ulid}/{filename}"`. |
-| `mount_path` | `string` | No | Path in the sandbox where the file is placed. Defaults to `/inputs/{filename}` if omitted. |
-| `content_type` | `string` | No | MIME type. Example: `"application/yaml"`, `"text/plain"`, `"application/zip"`. |
-| `extract` | `bool` | No | When `true`, the attachment is treated as a ZIP archive and extracted at `mount_path`. Set automatically by the CLI for directory attachments. |
-| `local_path` | `string` | No | Absolute path on the CLI host. In local mode, the runner reads directly from this path, skipping the storage download round-trip. Ignored in cloud mode. |
-
-### Mount Path Behavior
-
-If `mount_path` is not specified, the file is placed at `/inputs/{filename}`:
+A conversation's `spec.resources` lists the Files it holds beside its repositories and folders. The agent finds every one under `.stigmer/uploads/` on every turn, at its `mount_path` (by default its filename, made unique as `name-2.ext`). A routine's invocation lists Files the same way, so every run it starts finds them.
 
 ```yaml
-# These are equivalent:
-- filename: "data.csv"
-  storage_key: "attachments/.../data.csv"
-  # mount_path not set → defaults to /inputs/data.csv
-
-- filename: "data.csv"
-  storage_key: "attachments/.../data.csv"
-  mount_path: "/inputs/data.csv"
+spec:
+  resources:
+    - file:
+        file_id: file_01j9zq6v8w3x4y5z6a7b8c9d0e
+        mount_path: q3/ledger.xlsx
 ```
 
-Place files in subdirectories using explicit mount paths:
+Attaching a folder (`--attach ./my-project/`) uploads each file under it (hidden entries and links skipped, at most 500) and lists each in the conversation's resources at its relative path.
 
-```yaml
-- filename: "schema.json"
-  storage_key: "attachments/.../schema.json"
-  mount_path: "/workspace/schema/schema.json"
-```
+### Uploading a File
 
-### Directory Attachments
-
-When you attach a directory, the CLI zips it and sets `extract: true`:
-
-```bash
-stigmer run my-agent "Analyze this project" --attach ./my-project/
-```
-
-The runner extracts the ZIP at the mount path, making all files accessible under their original relative paths.
+`FileCommandController.upload` takes the bytes inline (under the transport's 10 MiB), or an `upload_ref` from `createUploadUrl` after the bytes were PUT to the URL it returned. Each SDK's file client chooses for you by size. A File is at most the server's `FILE_MAX_BYTES` (500 MB by default). Into a conversation (`session_id` set) it is the conversation's File; without one it is the uploader's own, private until its access widens.
 
 ---
 
 ## Workspace File References
 
-When files already exist inside the session's workspace, use `workspace_file_refs` instead of `attachments`. This avoids the upload round-trip — the agent reads the files directly from the workspace filesystem.
+When files already exist inside the session's workspace, use `workspace_file_refs` instead of uploading them. The agent reads the files directly from the workspace filesystem.
 
 ```yaml
 spec:
@@ -138,34 +102,12 @@ stigmer run reviewer --workspace . --attach ./src/config.yaml -m "Review this"
 ```
 
 **When workspace file refs are valid:**
-- The session has a `workspace_source` with a local path
-- The referenced files exist inside that workspace path
+- The session has a local folder among its resources
+- The referenced files exist inside that folder
 
-**When to use regular attachments instead:**
+**When to upload a File instead:**
 - The file is from outside the workspace
-- The session has a git workspace or no workspace configured
-
----
-
-## `uploadAttachment` RPC
-
-Pre-upload files before creating a Run. The returned `storage_key` is used in `Attachment.storage_key`.
-
-**Request — `UploadAttachmentRequest`:**
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `filename` | `string` | Yes | Original filename. Example: `"dataset.csv"`. |
-| `content` | `bytes` | Yes | Binary content of the file. Maximum size ~4MB (gRPC limit). |
-| `content_type` | `string` | No | MIME type. Guessed from filename extension if omitted. |
-
-**Response — `UploadAttachmentResponse`:**
-
-| Field | Type | Description |
-|---|---|---|
-| `storage_key` | `string` | Opaque storage key. Format: `"attachments/{ulid}/{filename}"`. Use in `Attachment.storage_key`. |
-
-**Authorization:** This endpoint requires no authentication. The storage key acts as a capability token — knowing the key grants access to the content. Do not expose storage keys publicly.
+- The session has a git repository or no folder
 
 ---
 
@@ -223,8 +165,8 @@ Download URLs expire after 7 days. `stigmer download run` asks for a fresh URL o
 
 | Field | Type | Description |
 |---|---|---|
-| `run_id` | `string` | ID of the run that produced the artifact (or received the attachment). |
-| `storage_key` | `string` | Storage key from `RunArtifact.storage_key` or `Attachment.storage_key`. |
+| `run_id` | `string` | ID of the run that produced the artifact. |
+| `storage_key` | `string` | Storage key from `RunArtifact.storage_key`. |
 
 **Response:**
 
@@ -233,7 +175,7 @@ Download URLs expire after 7 days. `stigmer download run` asks for a fresh URL o
 | `download_url` | `string` | Fresh pre-signed URL valid for HTTP GET without authentication. |
 | `expires_at` | `string` | ISO 8601 timestamp when the new URL expires. |
 
-**Security:** The `storage_key` must belong to the specified run. Two key forms are accepted: an artifact key starting with `"artifacts/{run_id}/"` (the embedded run id is the ownership proof), or a key listed verbatim in the run's `spec.attachments` (attachment keys are `"attachments/{ulid}/{filename}"` and carry no run id, so ownership is the spec reference). Anything else is rejected — users cannot request download URLs for other runs' files. The attachment arm is what lets clients render submitted attachments in the message thread after the composer's local file handles are gone.
+**Security:** The `storage_key` must belong to the specified run: an artifact key starting with `"artifacts/{run_id}/"`, the embedded run id being the ownership proof. Anything else is rejected — users cannot request download URLs for other runs' files. A message's files are Files: their links come from `FileQueryController.getDownloadUrl`.
 
 **Authorization:** Requires `can_view` permission on the run.
 
@@ -248,7 +190,7 @@ Download URLs expire after 7 days. `stigmer download run` asks for a fresh URL o
 stigmer run config-validator "Validate this configuration" --attach ./app-config.yaml
 ```
 
-The agent finds the file at `/inputs/app-config.yaml` in its sandbox.
+The agent finds the file at `.stigmer/uploads/app-config.yaml`.
 
 ### Attach Multiple Files
 
@@ -263,11 +205,11 @@ stigmer run my-agent "Analyze these files" \
 ### Attach a Directory
 
 ```bash
-# The CLI zips the directory and sets extract: true
+# The CLI uploads each file under the folder into the conversation
 stigmer run code-reviewer "Review this project" --attach ./src/
 ```
 
-The agent finds all files under `/inputs/src/` (extracted from the ZIP).
+The agent finds the files under `.stigmer/uploads/`, at their paths relative to the folder.
 
 ### Download a Generated Skill
 

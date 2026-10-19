@@ -194,8 +194,8 @@ export class LocalExecutionTarget implements TargetProfile {
       backendEndpoint: this.server.baseUrl,
       registryOrigin: this.server.baseUrl,
       proxy: { endpoint: this.mockLlm.url(), token: "conformance-mock-token" },
-      // Share the server's local artifact store so a storage-key attachment the
-      // server wrote resolves when the runner reads it back (#285).
+      // Share the server's local artifact store so a File's bytes the server
+      // stored resolve when the runner fetches them back (#285).
       artifactDir: this.server.artifactBaseDir,
       telemetry: { endpoint: this.otlpCollector.endpoint(), login: COLLECTOR_LOGIN },
       dirs: this.runnerDirs,

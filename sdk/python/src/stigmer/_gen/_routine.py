@@ -17,7 +17,7 @@ from ai.stigmer.commons.apiresource import metadata_pb2
 from google.protobuf import field_mask_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
 from ai.stigmer.agentic.run.v1 import invocation_pb2 as run_invocation_pb2
-from ai.stigmer.agentic.session.v1 import workspace_pb2 as session_workspace_pb2
+from ai.stigmer.agentic.session.v1 import resource_pb2 as session_resource_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
@@ -195,10 +195,10 @@ class AgentInvocationInput:
     agent_ref: ResourceRef | None
     message: str = ""
     harness: int = 0
-    workspace_entries: list[WorkspaceEntryInput] = field(default_factory=list)
     vaults: list[ResourceRef] = field(default_factory=list)
     run_config: RunConfigInput | None = None
     environment_ref: ResourceRef | None = None
+    resources: list[SessionResourceInput] = field(default_factory=list)
 
     def _to_proto(self) -> run_invocation_pb2.AgentInvocation:
         msg = run_invocation_pb2.AgentInvocation(
@@ -209,8 +209,6 @@ class AgentInvocationInput:
             _ref = self.agent_ref._to_proto()
             _ref.kind = 40
             msg.agent_ref.CopyFrom(_ref)
-        for item in self.workspace_entries:
-            msg.workspace_entries.append(item._to_proto())
         for ref in self.vaults:
             _ref = ref._to_proto()
             _ref.kind = 59
@@ -221,73 +219,77 @@ class AgentInvocationInput:
             _ref = self.environment_ref._to_proto()
             _ref.kind = 67
             msg.environment_ref.CopyFrom(_ref)
+        for item in self.resources:
+            msg.resources.append(item._to_proto())
         return msg
 
 
 @dataclass
-class WorkspaceEntryInput:
-    """SDK input type for WorkspaceEntry."""
+class SessionResourceInput:
+    """SDK input type for SessionResource."""
 
-    source: WorkspaceSourceInput | None
     name: str = ""
+    file: FileResourceInput | None = None
+    git_repository: GitRepositoryResourceInput | None = None
+    local_path: LocalPathResourceInput | None = None
 
-    def _to_proto(self) -> session_workspace_pb2.WorkspaceEntry:
-        msg = session_workspace_pb2.WorkspaceEntry(
+    def _to_proto(self) -> session_resource_pb2.SessionResource:
+        msg = session_resource_pb2.SessionResource(
             name=self.name,
         )
-        if self.source is not None:
-            msg.source.CopyFrom(self.source._to_proto())
-        return msg
-
-
-@dataclass
-class WorkspaceSourceInput:
-    """SDK input type for WorkspaceSource."""
-
-    git_repo: GitRepoSourceInput | None = None
-    local_path: LocalPathSourceInput | None = None
-
-    def _to_proto(self) -> session_workspace_pb2.WorkspaceSource:
-        msg = session_workspace_pb2.WorkspaceSource()
         if self.local_path is not None:
             msg.local_path.CopyFrom(self.local_path._to_proto())
-        if self.git_repo is not None:
-            msg.git_repo.CopyFrom(self.git_repo._to_proto())
+        if self.git_repository is not None:
+            msg.git_repository.CopyFrom(self.git_repository._to_proto())
+        if self.file is not None:
+            msg.file.CopyFrom(self.file._to_proto())
         return msg
 
 
 @dataclass
-class GitRepoSourceInput:
-    """SDK input type for GitRepoSource."""
+class FileResourceInput:
+    """SDK input type for FileResource."""
+
+    file_id: str = ""
+    mount_path: str = ""
+
+    def _to_proto(self) -> session_resource_pb2.FileResource:
+        msg = session_resource_pb2.FileResource(
+            file_id=self.file_id,
+            mount_path=self.mount_path,
+        )
+        return msg
+
+
+@dataclass
+class GitRepositoryResourceInput:
+    """SDK input type for GitRepositoryResource."""
 
     url: str
     branch: str = ""
     commit: str = ""
-    depth: int | None = None
     write_back_mode: int = 0
     token: str = ""
 
-    def _to_proto(self) -> session_workspace_pb2.GitRepoSource:
-        msg = session_workspace_pb2.GitRepoSource(
+    def _to_proto(self) -> session_resource_pb2.GitRepositoryResource:
+        msg = session_resource_pb2.GitRepositoryResource(
             url=self.url,
             branch=self.branch,
             commit=self.commit,
             write_back_mode=self.write_back_mode,
             token=self.token,
         )
-        if self.depth is not None:
-            msg.depth = self.depth
         return msg
 
 
 @dataclass
-class LocalPathSourceInput:
-    """SDK input type for LocalPathSource."""
+class LocalPathResourceInput:
+    """SDK input type for LocalPathResource."""
 
     path: str = ""
 
-    def _to_proto(self) -> session_workspace_pb2.LocalPathSource:
-        msg = session_workspace_pb2.LocalPathSource(
+    def _to_proto(self) -> session_resource_pb2.LocalPathResource:
+        msg = session_resource_pb2.LocalPathResource(
             path=self.path,
         )
         return msg

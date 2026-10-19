@@ -191,6 +191,7 @@ import {
   uploadUrl as skillUploadUrl,
 } from "../domain/skill/transfer/handler.js";
 import { UploadSlots } from "../domain/skill/transfer/slots.js";
+import { convertStoredAttachments } from "../domain/file/convert-attachments.js";
 import { newFileBlobs, uploadRefOf as fileUploadRefOf } from "../domain/file/blobs.js";
 import {
   STAGED_FILE_NAME,
@@ -198,6 +199,7 @@ import {
   UPLOAD_URL_TTL_MS as FILE_UPLOAD_URL_TTL_MS,
 } from "../domain/file/constants.js";
 import { registerFileServices } from "../domain/file/controller.js";
+import { registerFileMountService } from "../domain/file/mount.js";
 import {
   fileTransferServeUrl,
   fileUploadUrl,
@@ -278,6 +280,7 @@ import { builtInSandboxProvisionerFactories } from "../sandbox/builtins.js";
 import { newSandboxLane } from "../sandbox/lane.js";
 import {
   newSandboxProvisioner,
+  SANDBOX_DRIVERS_WITHOUT_RUNNER_IMAGE,
   type SandboxBackgroundHandle,
 } from "../sandbox/provisioner.js";
 import { newStoreSessionActivityReader } from "../sandbox/session-activity.js";
@@ -1483,6 +1486,18 @@ export async function composeServer(
     logger,
     maxBytes: config.fileMaxBytes,
   });
+  // Stage: the attachments runs carried before a message's files were
+  // Files become Files of their conversations, from the rows the store's
+  // migration left (domain/file/convert-attachments.ts). Awaited like the
+  // role reconcile: a storage fault is a loud boot throw, the next boot
+  // converges, and an old conversation never shows its files missing.
+  // The generic store is where attachments always lived.
+  await convertStoredAttachments({
+    store,
+    storage: artifactStorage,
+    lifecycle: authorizationLifecycle,
+    logger,
+  });
   const fileTransferLane =
     fileUploadSlots === undefined
       ? undefined
@@ -1511,10 +1526,11 @@ export async function composeServer(
     configured: config.skillTransferBaseUrl,
     relaysThroughServer: skillType === "local" || filesLocal,
     requireAuthentication,
+    containerRunners: !SANDBOX_DRIVERS_WITHOUT_RUNNER_IMAGE.includes(config.sandboxProvisionerType),
   });
   if (transferOrigin.kind === "loopback-hosted") {
     logger.warn(
-      "the skill and file transfer lanes mint capability URLs on the server's own loopback while the server requires authentication; pushes and uploads above the gRPC message cap and sandbox downloads will fail — set SKILL_TRANSFER_BASE_URL to the origin callers reach this server on",
+      "the skill and file transfer lanes mint capability URLs on the server's own loopback while the server requires authentication or runs its runners in containers; pushes and uploads above the gRPC message cap, and a sandbox's skills and Files, will fail — set SKILL_TRANSFER_BASE_URL to the origin callers reach this server on",
       { baseUrl: transferOrigin.baseUrl },
     );
   }
@@ -2025,6 +2041,14 @@ export async function composeServer(
       listReadScope,
       blobs: fileBlobs,
     });
+    // The runner's per-turn door to its conversation's Files, under its run
+    // credential (domain/file/mount.ts).
+    registerFileMountService(router, {
+      store,
+      logger,
+      runnerAuth: runnerCredentials,
+      blobs: fileBlobs,
+    });
     // Routine registers between channelapp and memory (Go server.go
     // 417 → 426 → 436). The clock and runner ride constant providers —
     // production wiring always has both (Go SetClock/SetRunner beside the
@@ -2086,6 +2110,7 @@ export async function composeServer(
       authorizer,
       credentialBinding,
       authorizationLifecycle,
+      fileBlobs,
       listReadScope,
       meteredUsageProvider: extensions.drivers.meteredUsageProvider,
       personAccounts,

@@ -1,11 +1,12 @@
-export { useAttachments } from "./useAttachments.js";
+export { MAX_MESSAGE_FILES, useFileUploads, toAttachmentView } from "./useFileUploads.js";
 export type {
   AddFilesOptions,
-  AttachmentPhase,
-  AttachmentEntry,
-  UseAttachmentsOptions,
-  UseAttachmentsReturn,
-} from "./useAttachments.js";
+  FileHandOff,
+  FileUploadPhase,
+  FileUploadEntry,
+  UseFileUploadsOptions,
+  UseFileUploadsReturn,
+} from "./useFileUploads.js";
 
 export { AttachmentChipList } from "./AttachmentChipList.js";
 export type { AttachmentChipListProps } from "./AttachmentChipList.js";

@@ -16,11 +16,13 @@
  * broader path (`spec`, `*`): a File's bytes are immutable, and so is what
  * describes them.
  */
-import { create } from "@bufbuild/protobuf";
+import { create, fromBinary } from "@bufbuild/protobuf";
 import type { DescMessage } from "@bufbuild/protobuf";
 
 import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { FileCommandController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/command_pb";
+import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { FileStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/status_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -42,6 +44,7 @@ import { refuseBoundElsewhere } from "../../pipeline/steps/refuse-bound-elsewher
 import type { RefusedUpdatePath } from "../../pipeline/steps/update-mask.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
+import { routineListIndex } from "../routine/list-index.js";
 import type { FileBlobs, NewBlob } from "./blobs.js";
 
 /** The refusal when the caller may not upload into the conversation. */
@@ -163,6 +166,83 @@ export function newKeepFileDescriptionStep(): PipelineStep<typeof FileSchema> {
       ctx.newState.spec = stored.spec;
       if (ctx.newState.metadata !== undefined) {
         ctx.newState.metadata.name = stored.metadata?.name ?? "";
+      }
+    },
+  };
+}
+
+/** The refusal of a File a routine still names. */
+export function fileStillNamedMessage(fileId: string, routines: readonly string[]): string {
+  return `file ${fileId} is still named by ${routines.join(", ")}; remove it from them first`;
+}
+
+type DeleteDesc = typeof FileCommandController.method.delete.input;
+
+/**
+ * Refuses deleting a File a routine of its organization names in its
+ * resources: the routine's next run would find it gone, and the person
+ * deleting the File may not be able to edit the routine. A conversation
+ * never blocks a delete: it holds its own copy, or the File is its own and
+ * leaves its list in the same delete (newRemoveFromConversationStep).
+ */
+export function newGuardFileUnreferencedStep(store: Store): PipelineStep<DeleteDesc> {
+  return {
+    name: "GuardFileUnreferenced",
+    async execute(ctx: RequestContext<DeleteDesc>): Promise<void> {
+      const file = ctx.get(EXISTING_RESOURCE_KEY) as File;
+      const id = file.metadata?.id ?? "";
+      const org = file.metadata?.org ?? "";
+      const routines: string[] = [];
+      try {
+        for (const row of await store.queryResources(routineListIndex, { org })) {
+          const routine = fromBinary(RoutineSchema, row.data);
+          const names = (routine.spec?.agent?.resources ?? []).some(
+            (entry) => entry.resource.case === "file" && entry.resource.value.fileId === id,
+          );
+          if (names) {
+            routines.push(`routine '${routine.metadata?.slug ?? ""}'`);
+          }
+        }
+      } catch (error) {
+        throw internalError(error, "failed to read what names the file");
+      }
+      if (routines.length > 0) {
+        throw failedPreconditionError(fileStillNamedMessage(id, routines.sort()));
+      }
+    },
+  };
+}
+
+/**
+ * A conversation's own File leaves the conversation's resources when it is
+ * deleted, in the delete's own act: whoever may delete it (its uploader or
+ * the conversation's owner) belongs to that conversation. Written inside the
+ * store's synchronous modify of the session's row, so nothing written since
+ * is undone. A conversation already gone holds nothing to remove.
+ */
+export function newRemoveFromConversationStep(store: Store): PipelineStep<DeleteDesc> {
+  return {
+    name: "RemoveFromConversation",
+    async execute(ctx: RequestContext<DeleteDesc>): Promise<void> {
+      const file = ctx.get(EXISTING_RESOURCE_KEY) as File;
+      const id = file.metadata?.id ?? "";
+      const sessionId = file.status?.sessionId ?? "";
+      if (sessionId === "") {
+        return;
+      }
+      try {
+        await store.updateResource(ApiResourceKind.session, sessionId, SessionSchema, (row) => {
+          if (row.spec !== undefined) {
+            row.spec.resources = row.spec.resources.filter(
+              (entry) => !(entry.resource.case === "file" && entry.resource.value.fileId === id),
+            );
+          }
+        });
+      } catch (error) {
+        if (error instanceof ResourceNotFoundError) {
+          return;
+        }
+        throw internalError(error, "failed to remove the file from its conversation");
       }
     },
   };

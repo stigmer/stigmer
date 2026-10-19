@@ -1,0 +1,57 @@
+{
+  "name": "SessionResource",
+  "description": "SessionResource is one thing a conversation holds: a File the agent finds\n in its uploads folder, a git repository cloned into its workspace, or a\n folder on the person's own machine.",
+  "protoType": "ai.stigmer.agentic.session.v1.SessionResource",
+  "protoFile": "apis/ai/stigmer/agentic/session/v1/resource.proto",
+  "fields": [
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The directory a repository or a local folder is given in the\n workspace: unique among the conversation's repositories and folders.\n Empty for a file, which is placed by its mount_path.",
+      "required": false,
+      "validation": {
+        "maxLength": 255
+      }
+    },
+    {
+      "name": "File",
+      "jsonName": "file",
+      "protoField": "file",
+      "type": {
+        "kind": "message",
+        "messageType": "FileResource"
+      },
+      "description": "A File the agent finds under .stigmer/uploads/.",
+      "required": false,
+      "oneofGroup": "resource"
+    },
+    {
+      "name": "GitRepository",
+      "jsonName": "gitRepository",
+      "protoField": "git_repository",
+      "type": {
+        "kind": "message",
+        "messageType": "GitRepositoryResource"
+      },
+      "description": "A git repository cloned into the workspace.",
+      "required": false,
+      "oneofGroup": "resource"
+    },
+    {
+      "name": "LocalPath",
+      "jsonName": "localPath",
+      "protoField": "local_path",
+      "type": {
+        "kind": "message",
+        "messageType": "LocalPathResource"
+      },
+      "description": "A folder on the person's own machine, used where it is.",
+      "required": false,
+      "oneofGroup": "resource"
+    }
+  ]
+}

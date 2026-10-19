@@ -546,7 +546,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — a plugin's hook denies, al
     const settingsPath = join(folder, ".claude", "settings.local.json");
     const settings = JSON.stringify({ hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "true" }] }] } });
     writeFileSync(settingsPath, settings, "utf-8");
-    const record = cursorExecutionRecord({ message: "Look around.", workspaceEntries: [localPathEntry("mine", folder)] });
+    const record = cursorExecutionRecord({ message: "Look around.", resources: [localPathEntry("mine", folder)] });
     const scenario = beginCursorScenario({
       env,
       clock,

@@ -6,21 +6,22 @@ import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { FileChangeProgress, FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { InterruptSessionInputSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
-import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import type { ApiResourceReference as ProtoApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import {
   displayFileChangeSets,
   supersededRunIds,
   buildSessionProto,
-  type AttachmentInput,
+  getErrorReason,
   type FileReviewSet,
   type ResourceRef,
   type ToolUse,
   type Turn,
   type TurnPhase,
   type SessionInput,
-  type WorkspaceEntryInput,
+  type SessionResourceInput,
 } from "@stigmer/client";
+import type { MessageAttachmentView } from "../run/MessageAttachments.js";
 import type { ServiceTierOption } from "../models/service-tier.js";
 import type { ThinkingModeOption } from "../models/thinking-mode.js";
 import { useStigmer } from "../hooks.js";
@@ -41,7 +42,7 @@ import { useSession } from "./useSession.js";
 import { useSessionEvents } from "./useSessionEvents.js";
 import { useSessionRuns } from "./useSessionRuns.js";
 import { useUpdateSession } from "./useUpdateSession.js";
-import { maskedEdit } from "../internal/maskedEdit.js";
+import { ETAG_MISMATCH, maskedEdit } from "../internal/maskedEdit.js";
 import { useLocalSessionWorker } from "./useLocalSessionWorker.js";
 
 /**
@@ -60,13 +61,21 @@ const STOPPABLE_PHASES: ReadonlySet<TurnPhase> = new Set<TurnPhase>([
   "paused",
 ]);
 
+/**
+ * How many times a follow-up's session update is made, the first included,
+ * when each is refused because the session changed since it was read
+ * (ETAG_MISMATCH): each attempt reads the session again and rebuilds the
+ * update from that read. The last refusal fails the send.
+ */
+const SESSION_EDIT_ATTEMPTS = 3;
+
 const EMPTY_ASKS: readonly ToolUse[] = [];
 const EMPTY_SETS: readonly FileReviewSet[] = [];
 
 /**
  * Options for {@link UseSessionConversationReturn.sendFollowUp}.
  *
- * Session-level fields (`workspaceEntries`, `plugins`,
+ * Session-level fields (`resources`, `plugins`,
  * `skillRefs`, `vaults`, `includeMyVault`) trigger a `session.update()`
  * before the run is created. The update names only the provided fields;
  * omitted fields keep the session's stored values.
@@ -90,11 +99,14 @@ export interface SendFollowUpOptions {
    */
   readonly agentRef?: ResourceRef | null;
   /**
-   * Workspace entries to attach to the run, replacing the stored ones. A
-   * repository kept by name and URL and sent without a token keeps its
-   * stored token; a token sent replaces it.
+   * The conversation's repositories and folders, replacing the stored
+   * ones. A repository kept by name and URL and sent without a token keeps
+   * its stored token; a token sent replaces it. The conversation's Files
+   * are kept: a File resource left out of the list stays, so a send that
+   * rebuilds the workspace never drops a file given earlier, nor one
+   * another participant's run adds while this send is made.
    */
-  readonly workspaceEntries?: WorkspaceEntryInput[];
+  readonly resources?: SessionResourceInput[];
   /** Plugins the conversation uses, replacing the stored ones; each is used whole. */
   readonly plugins?: ResourceRef[];
   /** Skill references to enable for this run. */
@@ -112,15 +124,23 @@ export interface SendFollowUpOptions {
    */
   readonly includeMyVault?: boolean;
   /**
-   * Pre-uploaded file attachments for this run.
+   * Files given with this message, by id.
    *
-   * Each entry must include a `storageKey` from
-   * `run.uploadAttachment()`. Forwarded directly to
-   * run creation.
-   *
-   * @see {@link SharedRunFields.attachments}
+   * @see {@link SharedRunFields.fileIds}
    */
-  readonly attachments?: AttachmentInput[];
+  readonly fileIds?: string[];
+  /**
+   * The message's files as its optimistic bubble shows them, until the
+   * run's own record (`status.messageFiles`) replaces them.
+   */
+  readonly attachments?: readonly MessageAttachmentView[];
+  /**
+   * Called once the run naming {@link fileIds} exists, and not when the
+   * send fails, so a retry still names Files that exist. The composer's
+   * `releaseFiles` goes here: it deletes the person's own Files the
+   * conversation has copied.
+   */
+  readonly releaseFiles?: () => Promise<void>;
   /**
    * Interaction mode for this run.
    *
@@ -238,7 +258,7 @@ export interface UseSessionConversationReturn {
    * Submit a follow-up message. Internally creates a run (a new turn of the
    * session).
    *
-   * When session-level fields (`agentRef`, `workspaceEntries`,
+   * When session-level fields (`agentRef`, `resources`,
    * `plugins`, `skillRefs`) are provided in options, the
    * session is updated via `session.update()` before creating the
    * run.
@@ -294,10 +314,13 @@ export interface UseSessionConversationReturn {
    * including retention on a failed send, where the chips are the evidence
    * of what Retry will re-send. Wire to `MessageThread.pendingAttachments`.
    */
-  readonly pendingAttachments: readonly AttachmentInput[] | null;
+  readonly pendingAttachments: readonly MessageAttachmentView[] | null;
 
-  /** Current workspace entries from the session spec. Empty array when session is not loaded. */
-  readonly workspaceEntries: readonly ProtoWorkspaceEntry[];
+  /**
+   * What the conversation holds, from the session spec: its repositories,
+   * folders and Files. Empty while the session is not loaded.
+   */
+  readonly resources: readonly SessionResource[];
   /** Current plugin references from the session spec. Empty array when session is not loaded. */
   readonly plugins: readonly ProtoApiResourceReference[];
   /** Current skill references from the session spec. Empty array when session is not loaded. */
@@ -543,7 +566,7 @@ export function useSessionConversation(
   // pending turn, two facets. Held separately (not an object) so existing
   // pendingUserMessage consumers keep their string contract.
   const [pendingAttachments, setPendingAttachments] = useState<
-    readonly AttachmentInput[] | null
+    readonly MessageAttachmentView[] | null
   >(null);
   // Dedicated send-failure state, distinct from the create hook's internal
   // error so it can also cover the session.update() path. The last send's
@@ -698,8 +721,8 @@ export function useSessionConversation(
 
   const canSendFollowUp = !isCreating && activeRunId === null;
 
-  const workspaceEntries = useMemo<readonly ProtoWorkspaceEntry[]>(
-    () => session?.spec?.workspaceEntries ?? [],
+  const resources = useMemo<readonly SessionResource[]>(
+    () => session?.spec?.resources ?? [],
     [session],
   );
 
@@ -733,7 +756,7 @@ export function useSessionConversation(
       try {
         const needsSessionUpdate =
           options?.agentRef !== undefined ||
-          options?.workspaceEntries !== undefined ||
+          options?.resources !== undefined ||
           options?.plugins !== undefined ||
           options?.skillRefs !== undefined ||
           options?.vaults !== undefined ||
@@ -742,18 +765,28 @@ export function useSessionConversation(
         if (needsSessionUpdate) {
           // The update names only the fields this send provides, so a
           // field written since (the generated subject) keeps its value.
-          // The session is read fresh for the repository tokens the
-          // workspace echoes back (buildSessionEdit).
-          const freshSession = await stigmer.session.get(sessionId);
-          const { resource, paths } = buildSessionEdit(freshSession, {
-            agentRef: options?.agentRef,
-            workspaceEntries: options?.workspaceEntries,
-            plugins: options?.plugins,
-            skillRefs: options?.skillRefs,
-            vaults: options?.vaults,
-            includeMyVault: options?.includeMyVault,
-          });
-          await updateSession(resource, paths);
+          // The session is read fresh for the repository tokens and Files
+          // the replacement resources keep (buildSessionEdit); an update
+          // refused because the session changed since that read is built
+          // again from a new read.
+          for (let attempt = 1; ; attempt++) {
+            const freshSession = await stigmer.session.get(sessionId);
+            const { resource, paths } = buildSessionEdit(freshSession, {
+              agentRef: options?.agentRef,
+              resources: options?.resources,
+              plugins: options?.plugins,
+              skillRefs: options?.skillRefs,
+              vaults: options?.vaults,
+              includeMyVault: options?.includeMyVault,
+            });
+            try {
+              await updateSession(resource, paths);
+              break;
+            } catch (err) {
+              const stale = getErrorReason(err)?.reason === ETAG_MISMATCH;
+              if (!stale || attempt >= SESSION_EDIT_ATTEMPTS) throw err;
+            }
+          }
           refetchSession();
         }
 
@@ -762,7 +795,7 @@ export function useSessionConversation(
           sessionId,
           message,
           modelName: options?.modelName,
-          attachments: options?.attachments,
+          fileIds: options?.fileIds,
           interactionMode: options?.interactionMode,
           serviceTier: options?.serviceTier,
           thinkingMode: options?.thinkingMode,
@@ -774,6 +807,9 @@ export function useSessionConversation(
         requestedRunIdsRef.current.add(result.runId);
         setPendingRunId(result.runId);
         refetch();
+        // The run exists and names the Files: the originals the
+        // conversation copied can go.
+        void options?.releaseFiles?.();
       } catch (err) {
         // Surface the failure and KEEP the user's message visible (do not clear
         // pendingUserMessage) so the turn renders as failed-with-retry instead
@@ -907,7 +943,7 @@ export function useSessionConversation(
     pendingUserMessage,
     pendingAttachments,
 
-    workspaceEntries,
+    resources,
     plugins,
     skillRefs,
 
@@ -972,14 +1008,20 @@ const LATEST_AGENT_VERSION = "latest";
  * agent's pinned version among them: editing the workspace or the tools
  * never moves the agent version a conversation runs). An empty-array
  * override clears the collection; an agent override of `null` clears the
- * agent (the built-in assistant). The update carries no etag: it is a
- * send, not an editor, and a subject written since must not refuse it.
+ * agent (the built-in assistant).
+ *
+ * An update that replaces the resources carries the etag `session` was read
+ * at: it writes back the stored Files and repository tokens from that read,
+ * so a File another participant's run added since must refuse it (the
+ * caller reads again and rebuilds it), never be dropped. Any other update
+ * carries no etag: it is a send, not an editor, and a subject written since
+ * must not refuse it.
  */
 function buildSessionEdit(
   session: Session,
   overrides: {
     agentRef?: ResourceRef | null;
-    workspaceEntries?: WorkspaceEntryInput[];
+    resources?: SessionResourceInput[];
     plugins?: ResourceRef[];
     skillRefs?: ResourceRef[];
     vaults?: ResourceRef[];
@@ -988,8 +1030,8 @@ function buildSessionEdit(
 ) {
   const patch: Partial<SessionInput> = {
     ...(overrides.agentRef !== undefined && { agentRef: overrides.agentRef ?? undefined }),
-    ...(overrides.workspaceEntries !== undefined && {
-      workspaceEntries: keepStoredRepositoryTokens(overrides.workspaceEntries, session),
+    ...(overrides.resources !== undefined && {
+      resources: keepStoredFiles(keepStoredRepositoryTokens(overrides.resources, session), session),
     }),
     ...(overrides.plugins !== undefined && { plugins: overrides.plugins }),
     ...(overrides.skillRefs !== undefined && { skillRefs: overrides.skillRefs }),
@@ -997,37 +1039,57 @@ function buildSessionEdit(
     ...(overrides.includeMyVault !== undefined && { includeMyVault: overrides.includeMyVault }),
   };
   const edit = maskedEdit(session, buildSessionProto, patch);
-  if (edit.resource.metadata !== undefined) {
+  if (overrides.resources === undefined && edit.resource.metadata !== undefined) {
     edit.resource.metadata.etag = "";
   }
   return edit;
 }
 
 /**
- * Replacement workspace entries that keep each stored repository token.
- * A repository the replacement keeps by name and URL, sent without a
- * token, carries the stored one as read (the redaction marker, which the
- * server reads as "keep the stored value"); a token the caller sends wins.
+ * Replacement resources that keep each stored repository token. A
+ * repository the replacement keeps by name and URL, sent without a token,
+ * carries the stored one as read (the redaction marker, which the server
+ * reads as "keep the stored value"); a token the caller sends wins.
  * Without this, a follow-up that rebuilds the workspace from URL and
  * branch alone would make the server destroy a token an integrator set.
  */
 function keepStoredRepositoryTokens(
-  entries: WorkspaceEntryInput[],
+  resources: SessionResourceInput[],
   session: Session,
-): WorkspaceEntryInput[] {
+): SessionResourceInput[] {
   const storedTokens = new Map<string, string>();
-  for (const entry of session.spec?.workspaceEntries ?? []) {
-    const source = entry.source?.source;
-    if (source?.case === "gitRepo" && source.value.token) {
-      storedTokens.set(repositorySlot(entry.name, source.value.url), source.value.token);
+  for (const stored of session.spec?.resources ?? []) {
+    const resource = stored.resource;
+    if (resource.case === "gitRepository" && resource.value.token) {
+      storedTokens.set(repositorySlot(stored.name, resource.value.url), resource.value.token);
     }
   }
-  return entries.map((entry) => {
-    const repo = entry.source.gitRepo;
+  return resources.map((entry) => {
+    const repo = entry.gitRepository;
     if (!repo || repo.token) return entry;
     const token = storedTokens.get(repositorySlot(entry.name, repo.url));
-    return token ? { ...entry, source: { ...entry.source, gitRepo: { ...repo, token } } } : entry;
+    return token ? { ...entry, gitRepository: { ...repo, token } } : entry;
   });
+}
+
+/**
+ * Replacement resources with the conversation's stored Files appended, each
+ * one the replacement does not name itself. A send rewrites the
+ * repositories and folders from the workspace picker, which never holds
+ * Files; without this, every such send would drop the files given with
+ * earlier messages.
+ */
+function keepStoredFiles(
+  resources: SessionResourceInput[],
+  session: Session,
+): SessionResourceInput[] {
+  const named = new Set(resources.flatMap((entry) => (entry.file?.fileId ? [entry.file.fileId] : [])));
+  const kept = (session.spec?.resources ?? []).flatMap((stored): SessionResourceInput[] => {
+    const resource = stored.resource;
+    if (resource.case !== "file" || named.has(resource.value.fileId)) return [];
+    return [{ file: { fileId: resource.value.fileId, mountPath: resource.value.mountPath || undefined } }];
+  });
+  return kept.length > 0 ? [...resources, ...kept] : resources;
 }
 
 /** A repository's token slot: its entry name and URL, as the server keys it. */

@@ -55,7 +55,7 @@ const stubConv = {
   activeTurn: { runId: "exec-old" },
   activeRun: { metadata: { id: "exec-old" } },
   pendingUserMessage: null,
-  workspaceEntries: [],
+  resources: [],
   fileReviewSets: [],
   fileChangeCaptures: new Map(),
   reviewFileChanges: vi.fn(),
@@ -134,7 +134,6 @@ vi.mock("../useSessionAccess", () => ({
 vi.mock("../../hooks", () => ({
   useStigmer: () => ({
     run: {
-      uploadAttachment: vi.fn(),
       getArtifactContent: vi.fn(),
     },
   }),

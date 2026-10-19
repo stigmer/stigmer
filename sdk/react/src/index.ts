@@ -504,12 +504,15 @@ export type {
 export type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
 export { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
-// Attachment — file upload behavior hook, styled chip list, clipboard paste,
-// vision-resolution image preparation, and vision preflight warnings
+// Attachment — the chat box's file uploads (Stigmer Files), styled chip
+// list, clipboard paste, vision-resolution image preparation, and vision
+// preflight warnings
 export {
-  useAttachments,
+  useFileUploads,
+  toAttachmentView,
   AttachmentChipList,
   MAX_ATTACHMENT_BYTES,
+  MAX_MESSAGE_FILES,
   MAX_VISION_LONG_EDGE_PX,
   MAX_VISION_PIXELS,
   assessVisionPreflight,
@@ -525,12 +528,13 @@ export {
 } from "./attachment/index.js";
 export type {
   AddFilesOptions,
-  AttachmentPhase,
-  AttachmentEntry,
+  FileHandOff,
+  FileUploadPhase,
+  FileUploadEntry,
   AssessVisionPreflightOptions,
   ClipboardFilesSource,
-  UseAttachmentsOptions,
-  UseAttachmentsReturn,
+  UseFileUploadsOptions,
+  UseFileUploadsReturn,
   AttachmentChipListProps,
   VisionFitSize,
   VisionPreflight,
@@ -539,6 +543,10 @@ export type {
   VisionPreflightReason,
   VisionPreflightWarning,
 } from "./attachment/index.js";
+
+// File — one Stigmer File's record, link and download
+export { useFile, useFileDownloadUrl, useFileDownload } from "./file/index.js";
+export type { UseFileReturn, UseFileDownloadUrlReturn, UseFileDownloadReturn } from "./file/index.js";
 
 // File Reference — workspace file-reference behavior hook and styled chip list
 export {

@@ -10,7 +10,8 @@
  * at open (the guard holds the native subscription while an event is
  * appended, which a stream that did not resume after its newest event
  * would never deliver); the client leaving ends the native stream; and a
- * send is checked whole before anything applies.
+ * send is checked whole before anything applies, a file block's File read
+ * through the same chain.
  *
  * A composition that requires sign-in pins the credential edge: X-Api-Key
  * and Authorization: Bearer each reach the chain as a bearer token, a key
@@ -27,6 +28,7 @@ import type { Client } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
+import { FileCommandController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/command_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
@@ -146,6 +148,7 @@ describe("the Managed Agents lane on an open composition", () => {
   let base: string;
   let query: Client<typeof SessionQueryController>;
   let command: Client<typeof SessionCommandController>;
+  let files: Client<typeof FileCommandController>;
   let counter = 0;
 
   beforeAll(async () => {
@@ -159,6 +162,7 @@ describe("the Managed Agents lane on an open composition", () => {
     await seedOrganizations(transport, [ORG]);
     query = createClient(SessionQueryController, transport);
     command = createClient(SessionCommandController, transport);
+    files = createClient(FileCommandController, transport);
   });
 
   afterAll(async () => {
@@ -279,14 +283,36 @@ describe("the Managed Agents lane on an open composition", () => {
     const mixed = await fetch(eventsUrl(sessionId), {
       method: "POST",
       body: JSON.stringify({
-        events: [{ type: "user.interrupt" }, { type: "user.message", content: [{ type: "image", source: {} }] }],
+        events: [
+          { type: "user.interrupt" },
+          { type: "user.message", content: [{ type: "image", source: { type: "base64", media_type: "image/png", data: "AA==" } }] },
+        ],
       }),
     });
     expect(mixed.status).toBe(400);
     expect(((await mixed.json()) as { error: { message: string } }).error.message).toBe(
-      "events[1]: Stigmer accepts only text blocks in a user.message, not 'image'",
+      "events[1]: Stigmer names an image block's bytes by File id, not a 'base64' source: upload the file with Stigmer's File API and name its id",
     );
     expect(state.records).toEqual([]);
+
+    // An image block naming a File that is not an image is refused after the File is read, before the interrupt applies.
+    const brief = await files.upload({ org: ORG, filename: "brief.pdf", source: { case: "data", value: new Uint8Array([37, 80]) } });
+    state.records = [];
+    const notAnImage = await fetch(eventsUrl(sessionId), {
+      method: "POST",
+      body: JSON.stringify({
+        events: [
+          { type: "user.interrupt" },
+          { type: "user.message", content: [{ type: "image", source: { type: "file", file_id: brief.metadata?.id } }] },
+        ],
+      }),
+    });
+    expect(notAnImage.status).toBe(400);
+    expect(((await notAnImage.json()) as { error: { message: string } }).error.message).toBe(
+      `events[1]: file ${brief.metadata?.id} is application/pdf, not an image: send it in a document block`,
+    );
+    expect(state.records.map((record) => record.method)).toEqual(["get"]);
+    state.records = [];
 
     // No engine is connected, so the interrupt itself refuses (FAILED_PRECONDITION).
     const interrupted = await fetch(eventsUrl(sessionId), {

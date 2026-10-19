@@ -5,10 +5,10 @@
 // workspace is a real git work tree: the runner snapshots the tree at turn
 // start, lets the agent's write_file/edit_file tools land, snapshots again at
 // the turn boundary, and offers diff(baseline, candidate) for review. Attaching
-// this directory to a session as a LocalPathSource workspace entry puts the
+// this directory to a session as a local path resource puts the
 // runner — spawned by the same harness, on the same host — inside it, so the
 // identical capture path a cloned repo would take runs with no network, no
-// auth and no flake (the GitRepoSource path is HTTPS-only and needs a remote).
+// auth and no flake (a git repository resource is HTTPS-only and needs a remote).
 //
 // Two seeds are load-bearing, and both come from the runner's own tests
 // (shared/filereview's shadow-capture test) via the Go reference fixture

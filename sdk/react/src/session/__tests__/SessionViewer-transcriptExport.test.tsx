@@ -54,7 +54,7 @@ const stubConv = {
   sendError: null,
   clearSendError: vi.fn(),
   pendingUserMessage: null,
-  workspaceEntries: [],
+  resources: [],
   plugins: [],
   skillRefs: [],
   asks: [],
@@ -121,7 +121,6 @@ vi.mock("../../hooks", () => ({
     // Server info answers the Environment row: a server that predates the field.
     platform: { getServerInfo: async () => ({}) },
     run: {
-      uploadAttachment: vi.fn(),
       getArtifactContent: vi.fn(),
       listBySession: vi.fn(),
     },

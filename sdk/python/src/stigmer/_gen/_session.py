@@ -18,7 +18,7 @@ from google.protobuf import field_mask_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
-from ._routine import GitRepoSourceInput, LocalPathSourceInput, WorkspaceEntryInput, WorkspaceSourceInput
+from ._routine import FileResourceInput, GitRepositoryResourceInput, LocalPathResourceInput, SessionResourceInput
 
 
 class SessionClient:
@@ -183,7 +183,6 @@ class SessionInput:
     agent_ref: ResourceRef | None = None
     subject: str = ""
     metadata: dict[str, str] = field(default_factory=dict)
-    workspace_entries: list[WorkspaceEntryInput] = field(default_factory=list)
     skill_refs: list[ResourceRef] = field(default_factory=list)
     harness: int = 0
     cursor_mode: int = 0
@@ -193,6 +192,7 @@ class SessionInput:
     plugins: list[ResourceRef] = field(default_factory=list)
     file_review: bool = False
     environment_ref: ResourceRef | None = None
+    resources: list[SessionResourceInput] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.Session:
         spec = spec_pb2.SessionSpec(
@@ -209,8 +209,6 @@ class SessionInput:
             spec.agent_ref.CopyFrom(_ref)
         if self.metadata:
             spec.metadata.update(self.metadata)
-        for item in self.workspace_entries:
-            spec.workspace_entries.append(item._to_proto())
         for ref in self.skill_refs:
             _ref = ref._to_proto()
             _ref.kind = 43
@@ -227,6 +225,8 @@ class SessionInput:
             _ref = self.environment_ref._to_proto()
             _ref.kind = 67
             spec.environment_ref.CopyFrom(_ref)
+        for item in self.resources:
+            spec.resources.append(item._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,

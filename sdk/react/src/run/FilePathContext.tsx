@@ -1,9 +1,9 @@
 import { createContext } from "react";
-import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import type { ResolvedPathAction } from "./file-path-resolver.js";
 
 /**
- * Context value that carries workspace entries and an optional click
+ * Context value that carries the conversation's resources and an optional click
  * handler to {@link FilePathLink} components deep in the tree.
  *
  * Provided by {@link MessageThread} (or a platform builder's custom
@@ -11,8 +11,11 @@ import type { ResolvedPathAction } from "./file-path-resolver.js";
  * copy-to-clipboard for all paths.
  */
 export interface FilePathContextValue {
-  /** Workspace entries from the session spec, used for path resolution. */
-  readonly workspaceEntries: readonly WorkspaceEntry[];
+  /**
+   * The conversation's resources from the session spec; its repositories
+   * and folders resolve paths.
+   */
+  readonly resources: readonly SessionResource[];
   /**
    * Optional override for the default click behavior. When provided,
    * `FilePathLink` delegates to this callback instead of opening
@@ -33,7 +36,7 @@ export interface FilePathContextValue {
 }
 
 const DEFAULT_VALUE: FilePathContextValue = {
-  workspaceEntries: [],
+  resources: [],
 };
 
 /** Context that supplies workspace file-path metadata for display-time path resolution. */

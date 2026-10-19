@@ -85,7 +85,7 @@ function useWorkspaceEntries(): UseWorkspaceEntriesReturn
     entries: { type: "readonly WorkspaceEntry[]", description: "Current workspace entries." },
     hasEntries: { type: "boolean", description: "`true` when at least one entry exists." },
     remove: { type: "(id: string) => void", description: "Remove an entry by its stable ID." },
-    toInput: { type: "() => WorkspaceEntryInput[]", description: "Convert entries to the `WorkspaceEntryInput[]` shape required by the SDK." },
+    toInput: { type: "() => SessionResourceInput[]", description: "The entries as a conversation's resources (`SessionInput.resources`): each a named git repository or local folder. A conversation's Files are resources too, but never workspace entries." },
   }}
 />
 
@@ -490,7 +490,7 @@ All visual properties flow through `--stgm-*` tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    entries: { type: "readonly WorkspaceEntry[]", description: "Session-level workspace entries. Renders nothing when empty.", required: true },
+    entries: { type: "readonly SessionResource[]", description: "The conversation's resources. Its repositories and folders are listed; its Files are not workspace entries and are skipped. Renders nothing when no repository or folder remains.", required: true },
   }}
 />
 
@@ -498,7 +498,7 @@ All visual properties flow through `--stgm-*` tokens.
 const { session } = useSession(sessionId);
 
 <WorkspaceSummary
-  entries={session?.spec?.workspaceEntries ?? []}
+  entries={session?.spec?.resources ?? []}
 />
 ```
 

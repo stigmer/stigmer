@@ -194,7 +194,7 @@ export function RoutineForm({
               ? { harness: toProtoHarness(modelHarness) }
               : {}),
             ...(workspace.hasEntries
-              ? { workspaceEntries: workspace.toInput() }
+              ? { resources: workspace.toInput() }
               : {}),
             ...(vaults.length > 0 ? { vaults } : {}),
             ...(environmentRef ? { environmentRef } : {}),

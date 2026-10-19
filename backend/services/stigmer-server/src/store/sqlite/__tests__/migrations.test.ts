@@ -168,6 +168,7 @@ import {
   SCHEMA_VERSION_41,
   SCHEMA_VERSION_42,
   SCHEMA_VERSION_43,
+  SCHEMA_VERSION_44,
   SCHEMA_VERSION_7,
   getSchemaVersion,
   runMigrations,
@@ -216,6 +217,14 @@ import {
   retiredWorkflowRunRow,
 } from "../../__tests__/retired-workflow-rows.js";
 import { materializeGoFixture } from "./support.js";
+import {
+  WORKSPACE_STEP_CONVERSIONS,
+  WORKSPACE_STEP_EXPECTED,
+  WORKSPACE_STEP_ROWS,
+  conversionOfRow,
+  sessionRowWithEntries,
+} from "../../__tests__/retired-workspace-rows.js";
+import { WORKSPACE_RESOURCES_PAGE_SIZE } from "../../workspace-becomes-resources.js";
 import { agentExecutionListIndex } from "../../../domain/run/list-index.js";
 import { grantListIndex } from "../../../domain/grant/list-index.js";
 import { newResourceGrantStore } from "../../../domain/grant/resource-store.js";
@@ -404,7 +413,7 @@ describe("fresh database", () => {
     expect(rows.map((row) => row.version)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
       22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
-      40, 41, 42, 43,
+      40, 41, 42, 43, 44,
     ]);
   });
 
@@ -2957,14 +2966,12 @@ describe("v23: a conversation's retired own secrets and connections leave every 
     spec: {
       vaults: [{ kind: ApiResourceKind.vault, org: ORG, slug: "team" }],
       includeMyVault: true,
-      workspaceEntries: [
+      resources: [
         {
           name: "app",
-          source: {
-            source: {
-              case: "gitRepo" as const,
-              value: { url: "https://github.com/acme/app", token: "enc:v1:repo" },
-            },
+          resource: {
+            case: "gitRepository" as const,
+            value: { url: "https://github.com/acme/app", token: "enc:v1:repo" },
           },
         },
       ],
@@ -4763,5 +4770,97 @@ describe("v43: the File kind's blob tables", () => {
 
     const kept = db.prepare(`SELECT data FROM resources WHERE id = 'agt_kept'`).get() as { data: Uint8Array };
     expect([...kept.data]).toEqual([1, 2, 3]);
+  });
+});
+
+describe("v44: workspace entries become resources, and run attachments wait to become Files", () => {
+  const STORED_AT = "2026-10-01 00:00:00";
+
+  /** A v43 database holding the scenario's rows. */
+  function v43Database(): DatabaseSync {
+    const db = new DatabaseSync(tempDbPath());
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_43);
+    const insert = db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, ?)`);
+    for (const row of WORKSPACE_STEP_ROWS) {
+      insert.run(row.kind, row.id, row.data, STORED_AT);
+    }
+    return db;
+  }
+
+  it("rewrites every row holding the retired field, lifts each attachment, and leaves the rest and updated_at alone", () => {
+    const db = v43Database();
+    runMigrations(db, SCHEMA_VERSION_44);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_44);
+
+    const rows = db.prepare(`SELECT id, data, updated_at FROM resources ORDER BY id`).all() as Array<{
+      id: string;
+      data: Uint8Array;
+      updated_at: string;
+    }>;
+    expect(rows.map((row) => row.id)).toEqual([...WORKSPACE_STEP_EXPECTED.keys()].sort());
+    for (const row of rows) {
+      expect(new Uint8Array(row.data), row.id).toEqual(WORKSPACE_STEP_EXPECTED.get(row.id));
+      expect(row.updated_at, row.id).toBe(STORED_AT);
+    }
+    const conversions = db.prepare(`SELECT * FROM file_conversions ORDER BY run_id, position`).all() as Array<
+      Record<string, unknown>
+    >;
+    expect(conversions.map(conversionOfRow)).toEqual(WORKSPACE_STEP_CONVERSIONS);
+    expect(
+      (
+        db
+          .prepare(`SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'file_conversions' AND sql IS NOT NULL ORDER BY name`)
+          .all() as Array<{ name: string }>
+      ).map((row) => row.name),
+    ).toEqual(["idx_file_conversions_order", "idx_file_conversions_org"]);
+  });
+
+  it("a row that does not decode fails the step, names the row, and leaves the database at v43", () => {
+    const db = v43Database();
+    db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('run', 'run_broken', ?, ?)`).run(
+      new Uint8Array([0xff, 0xff, 0xff]),
+      STORED_AT,
+    );
+    expect(() => runMigrations(db, SCHEMA_VERSION_44)).toThrow(
+      "run 'run_broken' cannot be read to turn its workspace entries into resources",
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_43);
+    expect(tableNames(db)).not.toContain("file_conversions");
+    const session = db.prepare(`SELECT data FROM resources WHERE id = 'ses_step'`).get() as { data: Uint8Array };
+    expect(new Uint8Array(session.data)).toEqual(WORKSPACE_STEP_ROWS[0]!.data);
+  });
+
+  it("a session that does not decode fails the step the same way, naming it", () => {
+    const db = v43Database();
+    db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('session', 'ses_broken', ?, ?)`).run(
+      new Uint8Array([0xff, 0xff, 0xff]),
+      STORED_AT,
+    );
+    expect(() => runMigrations(db, SCHEMA_VERSION_44)).toThrow(
+      "session 'ses_broken' cannot be read to turn its workspace entries into resources",
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_43);
+  });
+
+  it("reads sessions across keyset pages, missing none past the first page", () => {
+    const db = v43Database();
+    const insert = db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('session', ?, ?, ?)`);
+    const ids: string[] = [];
+    for (let i = 0; i <= WORKSPACE_RESOURCES_PAGE_SIZE; i++) {
+      const id = `ses_page${String(i).padStart(4, "0")}`;
+      ids.push(id);
+      insert.run(
+        id,
+        sessionRowWithEntries({ metadata: { id }, spec: {} }, [{ name: "notes", localPath: "/notes" }]),
+        STORED_AT,
+      );
+    }
+    runMigrations(db, SCHEMA_VERSION_44);
+    const read = db.prepare(`SELECT data FROM resources WHERE kind = 'session' AND id = ?`);
+    for (const id of ids) {
+      const row = read.get(id) as { data: Uint8Array };
+      expect(fromBinary(SessionSchema, new Uint8Array(row.data)).spec?.resources.map((r) => r.name), id).toEqual(["notes"]);
+    }
   });
 });

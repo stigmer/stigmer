@@ -12,7 +12,9 @@
  * refusal-code partition, and the run-request shape: a new conversation on
  * the routine's agent, titled by the routine, on the harness the routine
  * names, in the Environment the routine names (copied into the session
- * spec, none when it names none). A routine with no agent is a missing
+ * spec, none when it names none), with the routine's Files and
+ * repositories, which the session create copies as the routine's owner
+ * (domain/file/session-resources.ts). A routine with no agent is a missing
  * target; a routine deleted mid-fire keeps its run and stamps nothing; and every store or create
  * fault that is not a deterministic refusal throws, naming what it was
  * doing, so the tick activity retries under the fire's deterministic name.
@@ -23,10 +25,12 @@ import path from "node:path";
 
 import { Code, ConnectError } from "@connectrpc/connect";
 import { clone, create } from "@bufbuild/protobuf";
+import type { MessageInitShape } from "@bufbuild/protobuf";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
@@ -134,6 +138,7 @@ function routineWith(overrides?: {
   slug?: string;
   name?: string;
   createdBy?: string;
+  resources?: MessageInitShape<typeof SessionResourceSchema>[];
 }): Routine {
   return create(RoutineSchema, {
     metadata: {
@@ -153,6 +158,7 @@ function routineWith(overrides?: {
         },
         message: overrides?.message ?? "Do the morning rounds",
         harness: overrides?.harness ?? Harness.UNSPECIFIED,
+        resources: overrides?.resources ?? [],
         runConfig: {
           modelName: overrides?.modelName ?? "",
           maxToolRounds: overrides?.maxToolRounds ?? 0,
@@ -385,6 +391,21 @@ describe("RunStarter.startRun — against a real store", () => {
       RoutineSchema,
     );
     expect(row.status?.lastRunId).toBe("run_01new");
+  });
+
+  it("hands the fire's new conversation the routine's Files and repositories, for the session create to copy", async () => {
+    let seen: Run | undefined;
+    const runStarter = starter(async (run) => {
+      seen = run;
+      return create(RunSchema, { metadata: { id: "run_01files", org: "acme" } });
+    });
+    const resources = [
+      { resource: { case: "file" as const, value: { fileId: "file_01ledger", mountPath: "q3/ledger.xlsx" } } },
+      { name: "app", resource: { case: "gitRepository" as const, value: { url: "https://github.com/acme/app" } } },
+    ];
+    await runStarter.startRun(routineWith({ resources }), scheduleFire(ROUTINE_ID, new Date("2026-08-25T11:30:00Z")));
+    const sessionSpec = seen?.spec?.target.case === "sessionSpec" ? seen.spec.target.value : undefined;
+    expect(sessionSpec?.resources).toEqual(resources.map((entry) => create(SessionResourceSchema, entry)));
   });
 
   it("titles the fire's conversation by the routine's name when it has one", async () => {

@@ -72,7 +72,7 @@ const stubConv = {
   sendError: null,
   clearSendError: vi.fn(),
   pendingUserMessage: null,
-  workspaceEntries: [],
+  resources: [],
   mcpServerUsages: [],
   skillRefs: [],
   asks: [] as unknown[],
@@ -136,7 +136,6 @@ vi.mock("../useSessionAccess", () => ({
 vi.mock("../../hooks", () => ({
   useStigmer: () => ({
     run: {
-      uploadAttachment: vi.fn(),
       getArtifactContent: vi.fn(),
     },
   }),

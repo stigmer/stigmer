@@ -16,6 +16,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 
 import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { FileCommandController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/command_pb";
 import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { GrantCommandController } from "@stigmer/apis/ai/stigmer/iam/grant/v1/command_pb";
@@ -226,9 +227,9 @@ describe("skip arms (the authorizer is never consulted)", () => {
     expect(checks).toHaveLength(0);
   });
 
-  it("methods with NO config skip (uploadAttachment — storage_key is the capability)", async () => {
+  it("methods with NO config skip (FileCommandController.upload — the handler asks its own question)", async () => {
     const { authorizer, checks } = denyAll();
-    const method = RunCommandController.method.uploadAttachment;
+    const method = FileCommandController.method.upload;
     const step = newAuthorizeStep(method, authorizer);
     const ctx = new RequestContext(
       method.input,

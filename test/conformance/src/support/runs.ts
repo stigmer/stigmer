@@ -21,7 +21,6 @@ import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
-import type { AttachmentSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
@@ -70,9 +69,10 @@ export interface AgentExecutionOptions {
   interactionMode?: InteractionMode;
   buildFromPlan?: boolean;
   structuredOutputSchema?: JsonObject;
-  // Input attachments (spec.attachments). Each carries a storage_key from
-  // uploadAttachment; the runner materializes them under .stigmer/inputs/.
-  attachments?: MessageInitShape<typeof AttachmentSchema>[];
+  // Files given with the message (spec.file_ids), by id. Each joins the
+  // conversation's resources as its own copy, and the runner places it under
+  // .stigmer/uploads/.
+  fileIds?: string[];
   // Workspace paths the user highlighted for this message
   // (spec.workspace_file_refs): named to the agent, never uploaded.
   workspaceFileRefs?: string[];
@@ -99,7 +99,7 @@ export function makeAgentExecution(opts: AgentExecutionOptions): InitShape<typeo
       ...(opts.structuredOutputSchema !== undefined
         ? { structuredOutputSchema: opts.structuredOutputSchema }
         : {}),
-      ...(opts.attachments !== undefined ? { attachments: opts.attachments } : {}),
+      ...(opts.fileIds !== undefined ? { fileIds: opts.fileIds } : {}),
       ...(opts.workspaceFileRefs !== undefined ? { workspaceFileRefs: opts.workspaceFileRefs } : {}),
     },
   };

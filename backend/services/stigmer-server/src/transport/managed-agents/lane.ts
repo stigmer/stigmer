@@ -43,6 +43,7 @@ import type { Readable } from "node:stream";
 
 import { ConnectError, createClient, type Transport } from "@connectrpc/connect";
 
+import { FileQueryController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/query_pb";
 import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
 import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
@@ -57,7 +58,7 @@ import { INTERNAL_ERROR_MESSAGE, isLaneError, laneError, laneErrorOf, notFound, 
 import { serveList } from "./list.js";
 import { parseListQuery, parseStreamQuery } from "./query.js";
 import { writeError } from "./respond.js";
-import { parseSendBody, serveSend } from "./send.js";
+import { checkSendFiles, parseSendBody, serveSend } from "./send.js";
 import { serveStream, STREAM_KEEPALIVE_MS } from "./stream.js";
 import { selectManagedAgentsVersion } from "./version.js";
 
@@ -93,6 +94,7 @@ export function createManagedAgentsLane(options: ManagedAgentsLaneOptions): Lane
     sessionQuery: createClient(SessionQueryController, options.transport),
     sessionCommand: createClient(SessionCommandController, options.transport),
     runCommand: createClient(RunCommandController, options.transport),
+    fileQuery: createClient(FileQueryController, options.transport),
   };
   const now = options.now ?? Date.now;
   const keepAliveMs = options.keepAliveMs ?? STREAM_KEEPALIVE_MS;
@@ -200,7 +202,11 @@ async function serve(
       return refuse(body);
     }
     const events = parseSendBody(body.value);
-    return isLaneError(events) ? refuse(events) : await serveSend(call, events, response, context.now);
+    if (isLaneError(events)) {
+      return refuse(events);
+    }
+    const unservable = await checkSendFiles(call, events);
+    return unservable !== undefined ? refuse(unservable) : await serveSend(call, events, response, context.now);
   } catch (error) {
     if (abort.signal.aborted) {
       // The client left; there is no one to answer.

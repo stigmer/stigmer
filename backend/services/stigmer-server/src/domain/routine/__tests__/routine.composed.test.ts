@@ -7,8 +7,9 @@
  * never refuse).
  *
  * The load-bearing pins the conformance suite does NOT own:
- *   - the create refusals an unattended run needs: a workspace entry that
- *     is not a git repository, a Cursor routine with no pinned model, and
+ *   - the create refusals an unattended run needs: a resource that is a
+ *     local folder, a File that does not exist (domain/file/routine-files.ts
+ *     owns the File checks), a Cursor routine with no pinned model, and
  *     a pin the model registry does not know;
  *   - status preservation across apply-as-update (the auto-pause can never
  *     be clobbered declaratively) and the update graft's status honesty;
@@ -256,7 +257,7 @@ describe("create — the defaults resolver through the real chain", () => {
     expect(err.rawMessage).toContain("spec.agent.run_config.model_name");
   });
 
-  it("refuses a workspace entry that is not a git repository, naming the entry", async () => {
+  it("refuses a resource that is a local folder", async () => {
     const input = routineInput({ name: "Local tree" });
     const err = await refusal(() =>
       command.create({
@@ -265,18 +266,35 @@ describe("create — the defaults resolver through the real chain", () => {
           ...input.spec,
           agent: {
             ...input.spec.agent,
-            workspaceEntries: [
-              { name: "repo", source: { source: { case: "gitRepo", value: { url: "https://github.com/acme/repo" } } } },
-              { name: "laptop", source: { source: { case: "localPath", value: { path: "/home/ana/src" } } } },
+            resources: [
+              { name: "repo", resource: { case: "gitRepository", value: { url: "https://github.com/acme/repo" } } },
+              { name: "laptop", resource: { case: "localPath", value: { path: "/home/ana/src" } } },
             ],
           },
         },
       }),
     );
     expect(err.code).toBe(Code.InvalidArgument);
-    expect(err.rawMessage).toBe(
-      "spec.agent.workspace_entries[1] must use a git_repo source — a routine's run has no connected client to serve a local_path",
+    expect(err.rawMessage).toContain(
+      "a routine's runs cannot use a folder on someone's machine: name a git repository or a File",
     );
+  });
+
+  it("refuses naming a File that does not exist", async () => {
+    const input = routineInput({ name: "Unknown file" });
+    const err = await refusal(() =>
+      command.create({
+        ...input,
+        spec: {
+          ...input.spec,
+          agent: {
+            ...input.spec.agent,
+            resources: [{ resource: { case: "file", value: { fileId: "file_01nosuchfilenosuchfilenos" } } }],
+          },
+        },
+      }),
+    );
+    expect(err.code).toBe(Code.NotFound);
   });
 
   it("refuses a Cursor routine that pins no model", async () => {

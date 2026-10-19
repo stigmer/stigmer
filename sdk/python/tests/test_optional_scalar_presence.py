@@ -2,16 +2,16 @@
 
 An ``optional`` scalar has explicit presence: unset and zero differ on the
 wire. An absent entitlement limit is no limit and zero is refused; an absent
-clone depth is a shallow clone and 0 is the full history. The generated
-inputs used to default these fields to 0 and always send them, so a limit the
-caller never set arrived as zero and was refused, and every clone asked for
-the full history. Each such field now defaults to None and is sent only when
-set, zero included.
+cron is a routine that fires only by hand, and an empty one is refused. The
+generated inputs used to default these fields to their zero value and always
+send them, so a limit the caller never set arrived as zero and was refused.
+Each such field now defaults to None and is sent only when set, zero
+included.
 """
 
 from __future__ import annotations
 
-from stigmer._gen._run import GitRepoSourceInput
+from stigmer._gen._routine import RoutineInput
 from stigmer._gen._plan import EntitlementLimitsInput, PlanTermsInput
 
 
@@ -32,11 +32,11 @@ class TestOptionalScalarPresence:
         assert not terms.HasField("monthly_minimum_micros")
         assert not terms.HasField("per_extra_org_micros")
 
-    def test_an_unset_depth_stays_absent_for_the_shallow_default(self) -> None:
-        source = GitRepoSourceInput(url="https://example.com/repo.git")._to_proto()
-        assert not source.HasField("depth")
+    def test_a_routine_with_no_schedule_sends_no_cron(self) -> None:
+        routine = RoutineInput(name="triage", org="acme", agent=None)._to_proto()
+        assert not routine.spec.HasField("cron")
 
-    def test_a_depth_of_zero_is_sent_for_the_full_history(self) -> None:
-        source = GitRepoSourceInput(url="https://example.com/repo.git", depth=0)._to_proto()
-        assert source.HasField("depth")
-        assert source.depth == 0
+    def test_a_schedule_is_sent_as_given(self) -> None:
+        routine = RoutineInput(name="triage", org="acme", agent=None, cron="0 9 * * 1")._to_proto()
+        assert routine.spec.HasField("cron")
+        assert routine.spec.cron == "0 9 * * 1"

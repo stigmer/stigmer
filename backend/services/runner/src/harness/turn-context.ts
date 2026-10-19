@@ -7,7 +7,7 @@
  * agent blueprint, the run's values, the workspace and its lock, the undos
  * still owed to earlier turns, what the previous turn left waiting for
  * approval, the MCP servers with the
- * approval default and the agent's tool scope, the attachments, the standing context. Until #1070
+ * approval default and the agent's tool scope, the conversation's Files, the standing context. Until #1070
  * that sequence lived inline in the Cursor orchestrator
  * (`activities/execute-cursor/index.ts` `executeCursorInner`, phases 1 to
  * 9c); the native orchestrator carried a second copy in its `performSetup`.
@@ -113,7 +113,7 @@ import { injectSynthesizedAttachment } from "../shared/synthesized-attachment.js
 import { buildMcpApprovalDefault, deriveActiveLeases, NOTHING_LISTED, type LeaseGrant } from "../shared/approval-policy.js";
 import { listTurnTools, type McpToolListing } from "../shared/mcp-tool-listing.js";
 import { ToolScope } from "../shared/tool-lists.js";
-import { resolveAttachments } from "../shared/attachment-resolver.js";
+import { fetchRunFileMounts, mountFiles, offerMountedImage, splitMessageFiles } from "../shared/file-mount.js";
 import { resolveSkills, type SkillMetadata } from "../shared/skill-resolver.js";
 import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { loadedVersionsOf } from "./loaded-versions.js";
@@ -130,7 +130,7 @@ import { PLUGINS_SUBDIR } from "../shared/plugin-mount.js";
 import { ensureStigmerSymlink, STIGMER_LOCAL_STATE_DIR } from "../shared/workspace/stigmer-link.js";
 import { pluginAgentName } from "../shared/blueprint-resolver.js";
 import type { ResolvedMcpServer } from "../shared/mcp-resolver.js";
-import { VisionBudget, type NotViewableEntry, type VisionProfile } from "../shared/attachment-vision.js";
+import { VisionBudget, type NotViewableEntry, type VisionImage, type VisionProfile } from "../shared/attachment-vision.js";
 import { getDefaultModel, getModelVisionCapability } from "../shared/model-registry.js";
 import { pluginSubagentScope, savedSubagentScope, subagentModel } from "../shared/subagents.js";
 import { applyApprovedWholeFileWrites } from "../shared/exact-apply.js";
@@ -149,7 +149,7 @@ import { reconcileOwedUndos, type ReconciledUndo } from "./owed-undos.js";
 import type { RunFacts } from "./run-span.js";
 import type { TranscriptBuilder } from "./transcript/builder.js";
 import type {
-  TurnAttachments,
+  TurnFiles,
   TurnHookSource,
   TurnHooks,
   TurnInput,
@@ -578,7 +578,7 @@ export async function provisionWorkspace(
         sessionId: args.sessionId,
         repositories: args.repositories,
         provisionResults: provision.provisionResults,
-        workspaceEntries: args.session.spec?.workspaceEntries ?? [],
+        resources: args.session.spec?.resources ?? [],
         workspaceBackend: provision.workspaceBackend,
       })
     : null;
@@ -1149,7 +1149,7 @@ export function mainToolScope(blueprint: ResolvedBlueprint, spec: RunSpec | unde
 }
 
 /**
- * Phase 5 (between the tool surface and the attachments): mount the skills
+ * Phase 5 (between the tool surface and the Files): mount the skills
  * under the session's platform dir, reachable from the workspace through its
  * `.stigmer` link, and return what a prompt renders, per owner
  * (`shared/skill-resolver.ts`).
@@ -1180,7 +1180,7 @@ export function mainToolScope(blueprint: ResolvedBlueprint, spec: RunSpec | unde
  * neither fetched nor mounted, so no prompt lists them; the harness's
  * confined read refuses the skill files an earlier turn mounted.
  *
- * The `.stigmer` link this and the attachment phase create is removed in
+ * The `.stigmer` link this and the File mount create is removed in
  * the runtime's finally, after the harness's own teardown. Until #1096 the
  * native orchestrator fetched and mounted sub-agent skills itself
  * (`subagent-transformer.ts` with a client); this phase is where that read
@@ -1531,63 +1531,63 @@ function errorText(err: unknown): string {
 }
 
 /**
- * Phase 5b: resolve the turn's attachments, fail-hard
- * (they are explicit user inputs; see `shared/attachment-resolver.ts`).
- * Downloads by storage key through the same artifact storage resolved for
- * status offload. The vision budget rides along so image attachments are
- * selected for inline delivery while their bytes are already in hand
- * (`shared/attachment-vision.ts` owns all policy); it carries the vision
+ * Phase 5b: mount the conversation's Files under the session's
+ * `uploads/` (`shared/file-mount.ts`), fail-hard: a File is an explicit
+ * input. The door is asked only when the session holds a File or the
+ * message carries one; with neither, the mount still empties `uploads/`
+ * of a File the conversation dropped. The Files are split into this
+ * message's (`status.message_files`, in its order) and the rest.
+ *
+ * Each image this message carried is offered to the vision budget, read
+ * from where the mount placed it (`shared/attachment-vision.ts` owns all
+ * policy); a document is listed, never shown. The budget carries the vision
  * capability of the model the turn will run on: the one the turn's resolved
  * settings name (`status.run_config`, which the control plane resolved once
- * at create), or the registry's default when they name none — the model the native
- * harness builds in that case, so the budget asks about the model that will
- * actually see the image. Full model validation is not needed for this. The
- * Cursor harness with no model named builds its own catalog default instead
- * (`resolveModelId("default")`), so for it this is an approximation: today
- * both answers read as sighted, and the exact per-harness default is not yet
- * declared. The vision profile is the harness's
- * (each engine accepts different image shapes), so it arrives as an
- * argument.
+ * at create), or the registry's default when they name none — the model the
+ * native harness builds in that case, so the budget asks about the model
+ * that will actually see the image. The Cursor harness with no model named
+ * builds its own catalog default instead (`resolveModelId("default")`), so
+ * for it this is an approximation: today both answers read as sighted. The
+ * registry is asked only when the message carries an image. The vision
+ * profile is the harness's (each engine accepts different image shapes), so
+ * it arrives as an argument.
  */
-export async function resolveTurnAttachments(
+export async function mountTurnFiles(
   deps: ResolutionDeps,
   args: {
-    readonly spec: RunSpec;
-    /** The settings the turn runs with (`execution.status.run_config`); never the request's. */
-    readonly runConfig: RunConfig | undefined;
+    readonly execution: Run;
+    readonly session: Session;
     readonly sessionId: string;
     readonly primaryDir: string;
     readonly visionProfile: VisionProfile;
   },
-): Promise<TurnAttachments> {
-  deps.enterPhase("resolve_attachments");
-  const modelName = args.runConfig?.modelName || (await getDefaultModel());
-  const visionBudget = new VisionBudget(args.visionProfile, {
-    modelVision: await getModelVisionCapability(modelName),
-  });
-  const results = await resolveAttachments(args.spec.attachments, {
-    sessionId: args.sessionId,
-    primaryWorkspaceDir: args.primaryDir,
-    mode: deps.config.mode,
-    storage: deps.artifactStorage,
-    visionBudget,
-  });
-  // Vision facts, derived once from the single resolution result: the
-  // images the model will see inline (in attachment order) and the ones
-  // that degraded to path-only, disclosed in the prompt.
-  const visionImages = results.flatMap((a) => (a.vision ? [a.vision] : []));
-  const visionNotViewable: NotViewableEntry[] = results.flatMap((a) =>
-    a.visionDegraded ? [{ path: a.relativePath, reason: a.visionDegraded }] : [],
-  );
-  if (visionImages.length > 0 || visionNotViewable.length > 0) {
+): Promise<TurnFiles> {
+  deps.enterPhase("mount_files");
+  const blocks = args.execution.status?.messageFiles ?? [];
+  const holdsFiles = blocks.length > 0 || (args.session.spec?.resources ?? []).some((resource) => resource.resource.case === "file");
+  const entries = holdsFiles ? await fetchRunFileMounts(deps.client, deps.input.executionId) : [];
+  const mounted = await mountFiles(entries, { sessionId: args.sessionId, primaryWorkspaceDir: args.primaryDir });
+  const { message, conversation } = splitMessageFiles(blocks, mounted);
+
+  const visionImages: VisionImage[] = [];
+  const visionNotViewable: NotViewableEntry[] = [];
+  const images = message.filter((file) => file.kind === "image");
+  if (images.length > 0) {
+    const modelName = args.execution.status?.runConfig?.modelName || (await getDefaultModel());
+    const budget = new VisionBudget(args.visionProfile, { modelVision: await getModelVisionCapability(modelName) });
+    for (const image of images) {
+      const outcome = await offerMountedImage(image, args.sessionId, budget);
+      if (outcome.kind === "accepted") visionImages.push(outcome.image);
+      else if (outcome.kind === "degraded") visionNotViewable.push({ path: image.relativePath, reason: outcome.reason });
+    }
     console.log(
       `[attachment-vision] execution=${deps.input.executionId} inline=${visionImages.length} ` +
       `(${visionImages.reduce((n, v) => n + v.byteSize, 0)} bytes) ` +
       `degraded=${JSON.stringify(visionNotViewable.map((d) => `${d.path}:${d.reason}`))}`,
     );
   }
-  deps.timing.mark("resolve_attachments");
-  return { results, visionImages, visionNotViewable };
+  deps.timing.mark("mount_files");
+  return { message, conversation, references: [], visionImages, visionNotViewable };
 }
 
 /**
@@ -1752,7 +1752,7 @@ export function resolveStandingContext(
  * the write-back.
  */
 export interface TurnFrame {
-  /** The primary tree once provisioned: the `.stigmer` link the skill and attachment phases create under it is removed at turn end. */
+  /** The primary tree once provisioned: the `.stigmer` link the skill and File phases create under it is removed at turn end. */
   primaryDir: string | undefined;
   /** Exclusive turn lock on the primary tree; released LAST, after the adapter's own teardown. */
   releaseWorkspaceLock: ReleaseWorkspaceLock | undefined;
@@ -1791,7 +1791,7 @@ export type TurnResolution =
  *
  * The order is the orchestrator's, with its harness-specific steps gone
  * (they run inside `adapter.runTurn`, after this returns): the tool surface,
- * the skills, the attachments, the exact-apply, then the reads that need no
+ * the skills, the Files, the exact-apply, then the reads that need no
  * network.
  *
  * The one persist a phase requires — the applied writes must be durable
@@ -1879,17 +1879,14 @@ export async function resolveTurnContext(
     mainServers: mcp.servers,
   });
   if (subagentResolution.kind === "settled") return subagentResolution;
-  const resolvedAttachments = await resolveTurnAttachments(deps, {
-    spec,
-    runConfig: execution.status?.runConfig,
+  const mountedFiles = await mountTurnFiles(deps, {
+    execution,
+    session,
     sessionId,
     primaryDir: workspace.primaryDir,
     visionProfile: capabilities.visionProfile,
   });
-  const attachments: TurnAttachments =
-    prepared === undefined || prepared.case.referenceInputs.length === 0
-      ? resolvedAttachments
-      : { ...resolvedAttachments, results: [...resolvedAttachments.results, ...prepared.case.referenceInputs] };
+  const files: TurnFiles = prepared === undefined ? mountedFiles : { ...mountedFiles, references: prepared.case.referenceInputs };
   const appliedToolCallIds = await applyApprovedWrites(deps, {
     pausePrimitive: capabilities.pausePrimitive,
     workspace,
@@ -1930,7 +1927,7 @@ export async function resolveTurnContext(
       skills: mounted.skills,
       hooks: hookResolution.hooks,
       subagents: subagentResolution.subagents,
-      attachments,
+      files,
       appliedToolCallIds,
       model: resolveModelPreferences(execution.status?.runConfig),
       structuredOutputSchema: structuredOutputSchemaOf(spec),
@@ -1946,10 +1943,10 @@ export async function resolveTurnContext(
 /**
  * A reconcile turn's whole resolution: the run a person's Undo on an ended
  * turn starts, with no message and nothing for an engine to do. Only what
- * putting the files back needs: the session (its workspace entries; no
+ * putting the files back needs: the session (its repositories and folders; no
  * blueprint is resolved), the run's values (the repository tokens the
  * write-back pushes with), the workspace and its lock, then the undos owed
- * (`owed-undos.ts`). No hook, eval case, MCP server, skill, attachment or
+ * (`owed-undos.ts`). No hook, eval case, MCP server, skill, File or
  * engine is touched on any harness, and the session event emitter never
  * begins; the outcome is written as `stigmer.file_review.reconciled` and the
  * turn settles `file-review-resolved`, whose settle finalizes the write-back

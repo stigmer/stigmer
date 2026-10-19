@@ -49,20 +49,6 @@
       "required": false
     },
     {
-      "name": "WorkspaceEntries",
-      "jsonName": "workspaceEntries",
-      "protoField": "workspace_entries",
-      "type": {
-        "kind": "array",
-        "elementType": {
-          "kind": "message",
-          "messageType": "WorkspaceEntry"
-        }
-      },
-      "description": "Workspace the run's session operates on. Empty means no workspace.",
-      "required": false
-    },
-    {
       "name": "Vaults",
       "jsonName": "vaults",
       "protoField": "vaults",
@@ -102,6 +88,23 @@
       "description": "The Environment the conversations this invocation starts run in: the\n packages their sandboxes get and the websites they may reach. Unset:\n the agent's default, else the organization's.",
       "required": false,
       "referenceKind": 67
+    },
+    {
+      "name": "Resources",
+      "jsonName": "resources",
+      "protoField": "resources",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "SessionResource"
+        }
+      },
+      "description": "What each run's conversation holds: Files and git repositories (a\n routine's runs have no machine of the person's to read a folder from).\n Each run's conversation gets its own copy of each File, made when the\n run starts, so every nightly run finds the same q3-ledger.xlsx.",
+      "required": false,
+      "validation": {
+        "maxItems": 500
+      }
     }
   ]
 }

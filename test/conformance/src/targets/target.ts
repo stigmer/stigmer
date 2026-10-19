@@ -128,12 +128,12 @@ export interface CapabilityFlags {
   // ordinary caller introducing a reserved label gets INVALID_ARGUMENT.
   clientReservedLabelWrites: boolean;
 // NOTE: there is deliberately no shared-runner-artifact-store capability.
-  // Every execution target's runner resolves storage-key attachments the
-  // server persisted: local targets share the server's on-disk store (the
-  // #285 shared-dir wiring), and cloud-execution presigns against the real
-  // service's MinIO-backed artifact routes via the runner's
+  // Every execution target's runner fetches the Files the server stored:
+  // local targets share the server's on-disk store (the #285 shared-dir
+  // wiring), and cloud-execution presigns against the real service's
+  // MinIO-backed artifact routes via the runner's
   // STIGMER_ARTIFACT_PROXY_ENDPOINT override (stigmer#803). The flag that
-  // used to gate the attachment-materialization assertions
+  // used to gate the input-file materialization assertions
   // (sharedRunnerArtifactStore) was retired when that lane landed.
   // The conformance caller passes the Memory create RPC's strict
   // first-party-human-operator gate, which memory capture inherits.

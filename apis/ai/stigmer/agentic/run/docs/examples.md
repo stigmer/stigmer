@@ -98,7 +98,7 @@ Pass a file into the agent's sandbox for it to read.
 stigmer run config-validator -m "Validate this configuration" --attach ./app-config.yaml
 ```
 
-**YAML (after uploading the file via `uploadAttachment`):**
+**YAML (after uploading the file with `FileCommandController.upload`, which returns its id):**
 
 ```yaml
 spec:
@@ -108,14 +108,11 @@ spec:
       org: acme
       slug: my-agent
   message: "Validate this configuration file and report any issues"
-  attachments:
-    - filename: "app-config.yaml"
-      storage_key: "attachments/01HGXXX.../app-config.yaml"
-      mount_path: "/inputs/app-config.yaml"
-      content_type: "application/yaml"
+  file_ids:
+    - file_01j9zq6v8w3x4y5z6a7b8c9d0e
 ```
 
-The agent reads the file from `/inputs/app-config.yaml` inside its sandbox.
+The agent reads the file from `.stigmer/uploads/app-config.yaml`.
 
 ---
 
@@ -136,23 +133,17 @@ spec:
       org: acme
       slug: my-agent
   message: "Validate data against the schema using the rules file"
-  attachments:
-    - filename: "data.csv"
-      storage_key: "attachments/01HGXXX.../data.csv"
-      mount_path: "/inputs/data.csv"
-    - filename: "schema.json"
-      storage_key: "attachments/01HGYYY.../schema.json"
-      mount_path: "/inputs/schema.json"
-    - filename: "validation-rules.yaml"
-      storage_key: "attachments/01HGZZZ.../validation-rules.yaml"
-      mount_path: "/inputs/validation-rules.yaml"
+  file_ids:
+    - file_01j9zq6v8w3x4y5z6a7b8c9d0e
+    - file_01j9zq7a1b2c3d4e5f6g7h8j9k
+    - file_01j9zq7m4n5p6q7r8s9t0v1w2x
 ```
 
 ---
 
 ## Attach a Directory
 
-The CLI zips the directory automatically and sets `extract: true`.
+The CLI uploads each file under the folder (hidden entries and links skipped, at most 500) into the conversation and lists each in its resources at its relative path.
 
 ```bash
 stigmer run code-reviewer -m "Review this project for security vulnerabilities" --attach ./src/
@@ -165,13 +156,17 @@ spec:
       kind: agent
       org: acme
       slug: my-agent
+    resources:
+      - file:
+          file_id: file_01j9zq6v8w3x4y5z6a7b8c9d0e
+          mount_path: src/main.go
+      - file:
+          file_id: file_01j9zq7a1b2c3d4e5f6g7h8j9k
+          mount_path: src/handlers/auth.go
   message: "Review this project for security vulnerabilities"
-  attachments:
-    - filename: "src.zip"
-      storage_key: "attachments/01HGXXX.../src.zip"
-      mount_path: "/inputs/src/"
-      extract: true
 ```
+
+The agent finds the files under `.stigmer/uploads/src/`.
 
 ---
 
@@ -246,7 +241,7 @@ Context summarization needs no settings: it follows the model's Model Registry e
 
 ## Full-Featured Run Spec
 
-A run with all optional fields populated — run settings, runtime secrets, attachments, and workspace refs.
+A run with all optional fields populated — run settings, runtime secrets, files, and workspace refs.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -275,11 +270,8 @@ spec:
 
   auto_approve_all: false  # require explicit approval for destructive operations
 
-  attachments:
-    - filename: "migration-001.sql"
-      storage_key: "attachments/01HGXXX.../migration-001.sql"
-      mount_path: "/inputs/migration.sql"
-      content_type: "text/plain"
+  file_ids:
+    - file_01j9zq6v8w3x4y5z6a7b8c9d0e  # migration-001.sql
 
   workspace_file_refs:
     - "db/schema/current.sql"

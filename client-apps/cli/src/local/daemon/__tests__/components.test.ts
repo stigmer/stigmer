@@ -100,8 +100,8 @@ describe("buildRunnerEnv", () => {
   });
 
   // #285 regression guard: the server's artifact base and the runner's artifact
-  // path must be the SAME directory, or a storage-key attachment the server
-  // wrote fails to resolve when the runner reads it back. Both must be defined
+  // path must be the SAME directory, or bytes the server stored under a
+  // storage key fail to resolve when the runner reads them back. Both must be defined
   // (a naive `runnerEnv.X === serverEnv.Y` would pass vacuously on
   // undefined === undefined) and equal to the ~/.stigmer/data/artifacts root.
   it("pins the runner's artifact path to the server's artifact base", () => {

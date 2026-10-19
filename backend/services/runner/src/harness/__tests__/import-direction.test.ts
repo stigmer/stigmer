@@ -143,7 +143,7 @@ describe("src/harness never imports src/activities", () => {
 
 describe("src/shared production modules never import src/activities", () => {
   // Tests under shared/__tests__ may legitimately import both harnesses'
-  // implementations to compare them (attachment-naming.test.ts does); the
+  // implementations to compare them; the
   // rule is about what production code can reach.
   const result = sweep(join(SRC_ROOT, "shared"), new Set(["__tests__"]));
 

@@ -2,7 +2,7 @@
 
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { getUserMessage, type AttachmentInput, type ResourceRef } from "@stigmer/client";
+import { getUserMessage, type ResourceRef } from "@stigmer/client";
 import type { EnvVarInput } from "../vault/types.js";
 import { useComposer } from "./useComposer.js";
 import { ComposerToolbar } from "./ComposerToolbar.js";
@@ -32,7 +32,8 @@ import { SecretFlowErrorGuide, isSecretFlowError } from "../error/SecretFlowErro
 import { SkillPicker } from "../skill/SkillPicker.js";
 import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries.js";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
-import { useAttachments } from "../attachment/useAttachments.js";
+import { useFileUploads } from "../attachment/useFileUploads.js";
+import type { MessageAttachmentView } from "../run/MessageAttachments.js";
 import { AttachmentChipList } from "../attachment/AttachmentChipList.js";
 import { extractClipboardFiles } from "../attachment/clipboard.js";
 import { useFileReferences } from "../file-reference/useFileReferences.js";
@@ -89,7 +90,7 @@ export interface SessionComposerHandle {
   focus(): void;
   /**
    * Submit a message programmatically through the composer's full submit
-   * pipeline (the vault pick, attachments, file references).
+   * pipeline (the vault pick, the chat box's files, file references).
    *
    * Unlike calling the consumer's `onSubmit` directly, this guarantees the
    * same runtime context the user would get from pressing Send. No-ops when
@@ -99,10 +100,10 @@ export interface SessionComposerHandle {
    * @param options.interactionMode - Force the interaction mode for this one
    *   submission, overriding the picker. Avoids the same-tick race when the
    *   caller also calls `onInteractionModeChange` just before submitting.
-   * @param options.attachments - Pre-uploaded attachments (storage keys from
-   *   `run.uploadAttachment`) to include with this one submission,
-   *   in addition to any files attached in the composer. Used by "Build from
-   *   plan" to deliver the approved `plan.md` to the implement run.
+   * @param options.fileIds - Files, by id, to give with this one
+   *   submission in addition to the chat box's. Used by "Build from plan"
+   *   to deliver the approved plan, uploaded as a File of the
+   *   conversation, to the implement run.
    * @param options.buildFromPlan - Marks this submission as the implement
    *   turn of a Plan → Build handoff (`RunSpec.build_from_plan`).
    *   The runner injects the implement-plan directive and the thread hides
@@ -113,7 +114,7 @@ export interface SessionComposerHandle {
     message: string,
     options?: {
       interactionMode?: InteractionModeOption;
-      attachments?: AttachmentInput[];
+      fileIds?: string[];
       buildFromPlan?: boolean;
     },
   ): void;
@@ -150,16 +151,28 @@ export interface SessionComposerSubmitContext {
    */
   readonly environmentRef?: ResourceRef;
   /**
-   * Pre-uploaded file attachments for the run.
+   * The Files given with this message, by id, in the order they were
+   * added: the chat box's ready uploads plus any the caller of
+   * {@link SessionComposerHandle.submit} passed. Pass to run creation as
+   * `fileIds` (`RunSpec.file_ids`).
    *
-   * Each entry contains a `storageKey` obtained from
-   * `run.uploadAttachment()`. Only successfully uploaded
-   * attachments are included. Pass directly to run creation
-   * as `attachments`.
-   *
-   * `undefined` when no files were attached.
+   * `undefined` when no files were given.
    */
-  readonly attachments?: AttachmentInput[];
+  readonly fileIds?: string[];
+  /**
+   * The chat box's files as the optimistic bubble shows them. Pass to
+   * `sendFollowUp` as `attachments` (it feeds
+   * `MessageThread.pendingAttachments`).
+   */
+  readonly attachments?: readonly MessageAttachmentView[];
+  /**
+   * Call once the run naming {@link fileIds} exists. Before the first
+   * message the chat box uploads the person's own Files; the run makes the
+   * conversation its own copies, and this deletes the originals. Files
+   * uploaded into the conversation are kept. Never call it before the run
+   * exists: the run could no longer name them.
+   */
+  readonly releaseFiles?: () => Promise<void>;
   /**
    * Interaction mode selected by the user for this run.
    *
@@ -565,9 +578,10 @@ export interface SessionComposerProps {
    * When `true`, renders an attach button in the toolbar and enables
    * drag-and-drop file upload plus clipboard paste on the textarea —
    * pasting a screenshot attaches it exactly like a picked file, with
-   * a generated `pasted-image-*` filename. Attachments are uploaded
-   * immediately via `run.uploadAttachment()` and included
-   * in `context.attachments` on submit.
+   * a generated `pasted-image-*` filename. Each file is uploaded as a
+   * Stigmer File the moment it is added (into the conversation when
+   * `sessionId` is set, else as the person's own File, under `org`) and
+   * named in `context.fileIds` on submit.
    *
    * @default true
    */
@@ -585,7 +599,7 @@ export interface SessionComposerProps {
   readonly enableFileReferences?: boolean;
 
   /**
-   * Called when a file is rejected (e.g., exceeds the 10 MB limit).
+   * Called when a file is rejected (e.g., exceeds the 500 MB limit).
    * Consumers can use this for toast notifications.
    */
   readonly onAttachmentValidationError?: (message: string) => void;
@@ -981,9 +995,9 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // Attachments — file upload state machine
   // ---------------------------------------------------------------------------
 
-  const attachments = useAttachments(
+  const attachments = useFileUploads(
     enableAttachments
-      ? { onValidationError: onAttachmentValidationError }
+      ? { org, sessionId, onValidationError: onAttachmentValidationError }
       : undefined,
   );
 
@@ -1265,21 +1279,17 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       message: string,
       overrides?: {
         interactionMode?: InteractionModeOption;
-        attachments?: AttachmentInput[];
+        fileIds?: string[];
         buildFromPlan?: boolean;
       },
     ) => {
-      // Composer-attached files plus caller-supplied extras (e.g. the approved
-      // plan.md from a Build-from-plan turn) travel as one attachment list.
-      const composerAttachments = enableAttachments
-        ? attachments.toAttachmentInputs()
-        : [];
-      const attachmentInputs = [
-        ...composerAttachments,
-        ...(overrides?.attachments ?? []),
-      ];
+      // The chat box's Files plus caller-supplied ones (the approved plan
+      // of a Build-from-plan turn) travel as one list. The hand-off empties
+      // the chat box without deleting: the run does not exist yet.
+      const handOff = enableAttachments ? attachments.handOff() : null;
+      const fileIds = [...(handOff?.fileIds ?? []), ...(overrides?.fileIds ?? [])];
 
-      const hasAttachments = attachmentInputs.length > 0;
+      const hasAttachments = fileIds.length > 0;
       const effectiveMode =
         overrides?.interactionMode ??
         (showInteractionModePicker && interactionMode
@@ -1315,7 +1325,9 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
               vaults: vaultPick ? [...vaultPick.vaults] : undefined,
               includeMyVault: vaultPick?.includeMyVault,
               environmentRef: showEnvironment ? environmentPick : undefined,
-              attachments: hasAttachments ? attachmentInputs : undefined,
+              fileIds: hasAttachments ? fileIds : undefined,
+              attachments: handOff && handOff.attachments.length > 0 ? handOff.attachments : undefined,
+              releaseFiles: handOff && handOff.fileIds.length > 0 ? handOff.release : undefined,
               interactionMode: effectiveMode,
               serviceTier: submitServiceTier,
               thinkingMode: submitThinkingMode,
@@ -1332,14 +1344,11 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         : undefined;
       onSubmit(message, resolvedModelId, context);
 
-      if (enableAttachments) {
-        attachments.clear();
-      }
       if (enableFileReferences) {
         fileRefs.clear();
       }
     },
-    [onSubmit, effective, serviceTierPick, thinkingModePick, enableAttachments, attachments, showInteractionModePicker, interactionMode, vaultPick, showEnvironment, environmentPick],
+    [onSubmit, effective, serviceTierPick, thinkingModePick, enableAttachments, attachments.handOff, enableFileReferences, fileRefs.hasRefs, fileRefs.refs, fileRefs.clear, showInteractionModePicker, interactionMode, vaultPick, showEnvironment, environmentPick],
   );
 
   const composer = useComposer({
@@ -1582,7 +1591,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
     }
   }, [initialAttachments, enableAttachments, attachments]);
 
-  // Send waits for in-flight work: toAttachmentInputs() carries only
+  // Send waits for in-flight work: handOff() takes only
   // "ready" entries, so a send racing an upload would silently drop the
   // file the user just pasted — the worst failure for "what's wrong in
   // this screenshot?". Errored entries never gate (their chip offers

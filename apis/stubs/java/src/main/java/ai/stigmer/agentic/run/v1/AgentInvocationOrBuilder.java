@@ -96,50 +96,6 @@ public interface AgentInvocationOrBuilder extends
 
   /**
    * <pre>
-   * Workspace the run's session operates on. Empty means no workspace.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-   */
-  java.util.List<ai.stigmer.agentic.session.v1.WorkspaceEntry> 
-      getWorkspaceEntriesList();
-  /**
-   * <pre>
-   * Workspace the run's session operates on. Empty means no workspace.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-   */
-  ai.stigmer.agentic.session.v1.WorkspaceEntry getWorkspaceEntries(int index);
-  /**
-   * <pre>
-   * Workspace the run's session operates on. Empty means no workspace.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-   */
-  int getWorkspaceEntriesCount();
-  /**
-   * <pre>
-   * Workspace the run's session operates on. Empty means no workspace.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder> 
-      getWorkspaceEntriesOrBuilderList();
-  /**
-   * <pre>
-   * Workspace the run's session operates on. Empty means no workspace.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-   */
-  ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder getWorkspaceEntriesOrBuilder(
-      int index);
-
-  /**
-   * <pre>
    * Vaults whose logins and secrets the runs this invocation creates use, in
    * order: the first vault holding a match wins. At most 20.
    *
@@ -267,4 +223,63 @@ public interface AgentInvocationOrBuilder extends
    * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 8 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefOrBuilder();
+
+  /**
+   * <pre>
+   * What each run's conversation holds: Files and git repositories (a
+   * routine's runs have no machine of the person's to read a folder from).
+   * Each run's conversation gets its own copy of each File, made when the
+   * run starts, so every nightly run finds the same q3-ledger.xlsx.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<ai.stigmer.agentic.session.v1.SessionResource> 
+      getResourcesList();
+  /**
+   * <pre>
+   * What each run's conversation holds: Files and git repositories (a
+   * routine's runs have no machine of the person's to read a folder from).
+   * Each run's conversation gets its own copy of each File, made when the
+   * run starts, so every nightly run finds the same q3-ledger.xlsx.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.agentic.session.v1.SessionResource getResources(int index);
+  /**
+   * <pre>
+   * What each run's conversation holds: Files and git repositories (a
+   * routine's runs have no machine of the person's to read a folder from).
+   * Each run's conversation gets its own copy of each File, made when the
+   * run starts, so every nightly run finds the same q3-ledger.xlsx.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  int getResourcesCount();
+  /**
+   * <pre>
+   * What each run's conversation holds: Files and git repositories (a
+   * routine's runs have no machine of the person's to read a folder from).
+   * Each run's conversation gets its own copy of each File, made when the
+   * run starts, so every nightly run finds the same q3-ledger.xlsx.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.session.v1.SessionResourceOrBuilder> 
+      getResourcesOrBuilderList();
+  /**
+   * <pre>
+   * What each run's conversation holds: Files and git repositories (a
+   * routine's runs have no machine of the person's to read a folder from).
+   * Each run's conversation gets its own copy of each File, made when the
+   * run starts, so every nightly run finds the same q3-ledger.xlsx.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.agentic.session.v1.SessionResourceOrBuilder getResourcesOrBuilder(
+      int index);
 }

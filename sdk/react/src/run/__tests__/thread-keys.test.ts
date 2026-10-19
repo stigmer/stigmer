@@ -190,7 +190,7 @@ describe("buildThreadItems key generation", () => {
 
     it("shows while the live turn is pending, with the run's set-up phase and the workspace", () => {
       const run = runOf(R, { status: { setupProgress: { currentPhase: "cloning" } } });
-      const item = setup(buildThreadItems(turnsOf(user(R, "Hello"), status(R, "pending")), [run], { workspaceEntries: [] }));
+      const item = setup(buildThreadItems(turnsOf(user(R, "Hello"), status(R, "pending")), [run], { resources: [] }));
 
       expect(item?.key).toBe("setup-progress");
       expect(item?.serverPhase).toBe("cloning");
@@ -201,7 +201,7 @@ describe("buildThreadItems key generation", () => {
       const item = setup(buildThreadItems(turnsOf(user(R, "Hello")), []));
 
       expect(item?.serverPhase).toBeUndefined();
-      expect(item?.workspaceEntries).toEqual([]);
+      expect(item?.resources).toEqual([]);
     });
 
     it("shows as awaiting the first output while the live turn runs with nothing yet", () => {

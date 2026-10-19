@@ -1,12 +1,7 @@
 /**
- * Attachment upload + artifact read surfaces — ports
- * upload_attachment.go, get_artifact_content.go, and
- * get_artifact_download_url.go.
- *
- * uploadAttachment pre-uploads files (>4MB inline limit) before create;
- * the returned storage_key acts as a capability token. Keys are
- * attachments/{ulid}/{filename} with strict bare-filename validation (a
- * name carrying path structure is a directory-traversal vector).
+ * Artifact read surfaces — ports get_artifact_content.go and
+ * get_artifact_download_url.go. A run's input files are Files
+ * (domain/file/), named by id and read through their own links.
  *
  * getArtifactContent returns bytes through the API (no CORS concerns for
  * SDK consumers): key-prefix ownership check, CAS-blob serve-time
@@ -15,14 +10,12 @@
  * no stdlib ZIP), 512KB default truncation.
  *
  * getArtifactDownloadUrl returns a time-limited direct-download URL;
- * ownership is the artifacts/{execution_id}/ prefix OR a key listed
- * verbatim in spec.attachments (attachment keys carry no execution id, so
- * membership is the proof). On local storage the URL points at the port+1
- * artifact file server (src/artifactstorage/file-server.ts).
+ * ownership is the artifacts/{execution_id}/ prefix. On local storage the
+ * URL points at the port+1 artifact file server
+ * (src/artifactstorage/file-server.ts).
  */
 import path from "node:path";
 
-import { ulid } from "ulidx";
 import { unzipSync } from "fflate";
 import { Code, ConnectError } from "@connectrpc/connect";
 
@@ -33,13 +26,10 @@ import type {
   GetArtifactContentResponse,
   GetArtifactDownloadUrlRequest,
   GetArtifactDownloadUrlResponse,
-  UploadAttachmentRequest,
-  UploadAttachmentResponse,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import {
   GetArtifactContentResponseSchema,
   GetArtifactDownloadUrlResponseSchema,
-  UploadAttachmentResponseSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { create } from "@bufbuild/protobuf";
@@ -66,8 +56,6 @@ export interface ArtifactRpcDeps {
   /**
    * The composed authorization seam — the two artifact READ surfaces
    * evaluate their can_view annotations before the ownership checks.
-   * uploadAttachment stays checkless by
-   * annotation (is_skip_authorization — the storage_key is the capability).
    */
   readonly authorizer: Authorizer;
 }
@@ -135,79 +123,6 @@ const OS_MIME_FALLBACK: ReadonlyMap<string, string> = new Map([
   [".webp", "image/webp"],
   [".xml", "text/xml; charset=utf-8"],
 ]);
-
-// ---------------------------------------------------------------------------
-// uploadAttachment
-// ---------------------------------------------------------------------------
-
-export async function uploadAttachment(
-  deps: ArtifactRpcDeps,
-  req: UploadAttachmentRequest,
-): Promise<UploadAttachmentResponse> {
-  // Field validation mirrors the proto's buf.validate constraints so a
-  // bypassed constraint still fails closed at the service boundary.
-  if (req.filename === "") {
-    throw invalidArgumentError("filename is required");
-  }
-  validateAttachmentFilename(req.filename);
-  if (req.content.length === 0) {
-    throw invalidArgumentError("content is required");
-  }
-
-  const uploadId = ulid();
-  let contentType = req.contentType;
-  if (contentType === "") {
-    // Go's UPLOAD path consults ONLY mime.TypeByExtension — never the
-    // artifact-relevant knownContentTypes table, which is a read-path
-    // (detectContentType) concern. Mirrored so the content type the R2
-    // backend stores as object metadata stays edition-identical.
-    contentType = osMimeTypeByExtension(req.filename);
-  }
-
-  const storageKey = `attachments/${uploadId}/${req.filename}`;
-  deps.logger.info("Uploading attachment to artifact storage", {
-    storageKey,
-    filename: req.filename,
-    contentType,
-    sizeBytes: req.content.length,
-  });
-
-  try {
-    await deps.artifactStorage.upload(storageKey, req.content, contentType);
-  } catch (error) {
-    throw internalError(error, "failed to upload attachment");
-  }
-
-  deps.logger.info("Successfully uploaded attachment to storage", {
-    storageKey,
-    filename: req.filename,
-    sizeBytes: req.content.length,
-  });
-
-  return create(UploadAttachmentResponseSchema, { storageKey });
-}
-
-/**
- * Enforces that a filename is a single bare path component: no directory
- * separators (either flavor), no `.`/`..` traversal segments, no NUL —
- * the name becomes part of the storage key and, on the local backend, an
- * on-disk path (Go validateAttachmentFilename).
- */
-export function validateAttachmentFilename(name: string): void {
-  if (name.includes("/") || name.includes("\\")) {
-    throw invalidArgumentError(
-      `filename ${JSON.stringify(name)} must not contain path separators; send a bare filename such as "report.pdf"`,
-    );
-  }
-  if (name.includes("\0")) {
-    throw invalidArgumentError("filename must not contain NUL bytes");
-  }
-  if (name === "." || name === "..") {
-    throw invalidArgumentError(
-      `filename ${JSON.stringify(name)} must be a bare filename, not a traversal segment`,
-    );
-  }
-}
 
 // ---------------------------------------------------------------------------
 // getArtifactContent
@@ -379,18 +294,6 @@ export function detectContentType(storageKey: string): string {
   );
 }
 
-/**
- * The upload path's MIME detection (Go mime.TypeByExtension +
- * octet-stream fallback — see uploadAttachment).
- */
-export function osMimeTypeByExtension(filename: string): string {
-  const ext = fileExtension(filename);
-  if (ext === "") {
-    return "application/octet-stream";
-  }
-  return OS_MIME_FALLBACK.get(ext) ?? "application/octet-stream";
-}
-
 function fileExtension(name: string): string {
   const dot = name.lastIndexOf(".");
   const slash = Math.max(name.lastIndexOf("/"), name.lastIndexOf("\\"));
@@ -423,9 +326,9 @@ export async function getArtifactDownloadUrl(
     req,
   );
 
-  // Load BEFORE the key check: the attachment arm needs spec.attachments,
-  // and this doubles as the existence check (a missing execution is
-  // NotFound; any other store failure is an infrastructure fault).
+  // Load BEFORE the key check: this is the existence check (a missing
+  // execution is NotFound; any other store failure is an infrastructure
+  // fault).
   let execution: Run;
   try {
     execution = await deps.store.getResource(
@@ -444,15 +347,10 @@ export async function getArtifactDownloadUrl(
   }
 
   // Same normalize-before-check posture as getArtifactContent
-  // (stigmer/stigmer#858); spec.attachments membership also compares the
-  // normalized form — stored attachment keys are always clean, so a
-  // dot-segment-carrying alias of a listed key matches its verbatim row.
+  // (stigmer/stigmer#858).
   const storageKey = path.posix.normalize(req.storageKey);
   const expectedPrefix = `artifacts/${req.runId}/`;
-  if (
-    !storageKey.startsWith(expectedPrefix) &&
-    !isSpecAttachmentKey(execution, storageKey)
-  ) {
+  if (!storageKey.startsWith(expectedPrefix)) {
     deps.logger.warn(
       "Storage key does not belong to execution - potential path traversal attempt",
       {
@@ -499,19 +397,4 @@ export async function getArtifactDownloadUrl(
     // RFC3339 seconds precision, Go's time.RFC3339 Format.
     expiresAt: expiresAt.toISOString().replace(/\.\d{3}Z$/, "Z"),
   });
-}
-
-/**
- * Whether storageKey appears verbatim in spec.attachments — the ownership
- * proof for submitted inputs (attachment keys carry no execution id;
- * ULID-unique per upload, so membership cannot reference another
- * execution's files).
- */
-function isSpecAttachmentKey(
-  execution: Run,
-  storageKey: string,
-): boolean {
-  return (execution.spec?.attachments ?? []).some(
-    (attachment) => attachment.storageKey === storageKey,
-  );
 }

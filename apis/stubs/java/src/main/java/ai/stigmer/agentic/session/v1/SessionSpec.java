@@ -33,13 +33,13 @@ private static final long serialVersionUID = 0L;
   }
   private SessionSpec() {
     subject_ = "";
-    workspaceEntries_ = java.util.Collections.emptyList();
     skillRefs_ = java.util.Collections.emptyList();
     harness_ = 0;
     cursorMode_ = 0;
     executionTarget_ = 0;
     vaults_ = java.util.Collections.emptyList();
     plugins_ = java.util.Collections.emptyList();
+    resources_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -311,97 +311,6 @@ java.lang.String defaultValue) {
       throw new java.lang.IllegalArgumentException();
     }
     return map.get(key);
-  }
-
-  public static final int WORKSPACE_ENTRIES_FIELD_NUMBER = 6;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.session.v1.WorkspaceEntry> workspaceEntries_;
-  /**
-   * <pre>
-   * Workspace entries for this session.
-   *
-   * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first run;
-   * subsequent runs reuse the same workspace.
-   *
-   * When empty, the session uses an empty workspace directory.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.session.v1.WorkspaceEntry> getWorkspaceEntriesList() {
-    return workspaceEntries_;
-  }
-  /**
-   * <pre>
-   * Workspace entries for this session.
-   *
-   * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first run;
-   * subsequent runs reuse the same workspace.
-   *
-   * When empty, the session uses an empty workspace directory.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder> 
-      getWorkspaceEntriesOrBuilderList() {
-    return workspaceEntries_;
-  }
-  /**
-   * <pre>
-   * Workspace entries for this session.
-   *
-   * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first run;
-   * subsequent runs reuse the same workspace.
-   *
-   * When empty, the session uses an empty workspace directory.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-   */
-  @java.lang.Override
-  public int getWorkspaceEntriesCount() {
-    return workspaceEntries_.size();
-  }
-  /**
-   * <pre>
-   * Workspace entries for this session.
-   *
-   * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first run;
-   * subsequent runs reuse the same workspace.
-   *
-   * When empty, the session uses an empty workspace directory.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.session.v1.WorkspaceEntry getWorkspaceEntries(int index) {
-    return workspaceEntries_.get(index);
-  }
-  /**
-   * <pre>
-   * Workspace entries for this session.
-   *
-   * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace. Entries are provisioned on the first run;
-   * subsequent runs reuse the same workspace.
-   *
-   * When empty, the session uses an empty workspace directory.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder getWorkspaceEntriesOrBuilder(
-      int index) {
-    return workspaceEntries_.get(index);
   }
 
   public static final int SKILL_REFS_FIELD_NUMBER = 8;
@@ -924,6 +833,137 @@ java.lang.String defaultValue) {
     return environmentRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : environmentRef_;
   }
 
+  public static final int RESOURCES_FIELD_NUMBER = 22;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.session.v1.SessionResource> resources_;
+  /**
+   * <pre>
+   * What the conversation holds: Files the agent finds under
+   * .stigmer/uploads/ on every turn, git repositories cloned into its
+   * workspace, and folders on the person's own machine. Repositories and
+   * folders are provisioned on the first turn and reused after it.
+   *
+   * A File named here that is not yet the conversation's (an organization
+   * File the writer may view) becomes the conversation's own copy over the
+   * same bytes, and the entry names the copy: deleting the original later
+   * leaves the conversation's copy. A File of another organization is
+   * refused. At most 500 files; repository and folder names are unique, and
+   * so are the files' mount paths.
+   *
+   * A turn's own files (RunSpec.file_ids) join this list when the turn is
+   * created, so whoever may send the conversation a message may add files
+   * without editing it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.session.v1.SessionResource> getResourcesList() {
+    return resources_;
+  }
+  /**
+   * <pre>
+   * What the conversation holds: Files the agent finds under
+   * .stigmer/uploads/ on every turn, git repositories cloned into its
+   * workspace, and folders on the person's own machine. Repositories and
+   * folders are provisioned on the first turn and reused after it.
+   *
+   * A File named here that is not yet the conversation's (an organization
+   * File the writer may view) becomes the conversation's own copy over the
+   * same bytes, and the entry names the copy: deleting the original later
+   * leaves the conversation's copy. A File of another organization is
+   * refused. At most 500 files; repository and folder names are unique, and
+   * so are the files' mount paths.
+   *
+   * A turn's own files (RunSpec.file_ids) join this list when the turn is
+   * created, so whoever may send the conversation a message may add files
+   * without editing it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.session.v1.SessionResourceOrBuilder> 
+      getResourcesOrBuilderList() {
+    return resources_;
+  }
+  /**
+   * <pre>
+   * What the conversation holds: Files the agent finds under
+   * .stigmer/uploads/ on every turn, git repositories cloned into its
+   * workspace, and folders on the person's own machine. Repositories and
+   * folders are provisioned on the first turn and reused after it.
+   *
+   * A File named here that is not yet the conversation's (an organization
+   * File the writer may view) becomes the conversation's own copy over the
+   * same bytes, and the entry names the copy: deleting the original later
+   * leaves the conversation's copy. A File of another organization is
+   * refused. At most 500 files; repository and folder names are unique, and
+   * so are the files' mount paths.
+   *
+   * A turn's own files (RunSpec.file_ids) join this list when the turn is
+   * created, so whoever may send the conversation a message may add files
+   * without editing it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public int getResourcesCount() {
+    return resources_.size();
+  }
+  /**
+   * <pre>
+   * What the conversation holds: Files the agent finds under
+   * .stigmer/uploads/ on every turn, git repositories cloned into its
+   * workspace, and folders on the person's own machine. Repositories and
+   * folders are provisioned on the first turn and reused after it.
+   *
+   * A File named here that is not yet the conversation's (an organization
+   * File the writer may view) becomes the conversation's own copy over the
+   * same bytes, and the entry names the copy: deleting the original later
+   * leaves the conversation's copy. A File of another organization is
+   * refused. At most 500 files; repository and folder names are unique, and
+   * so are the files' mount paths.
+   *
+   * A turn's own files (RunSpec.file_ids) join this list when the turn is
+   * created, so whoever may send the conversation a message may add files
+   * without editing it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.SessionResource getResources(int index) {
+    return resources_.get(index);
+  }
+  /**
+   * <pre>
+   * What the conversation holds: Files the agent finds under
+   * .stigmer/uploads/ on every turn, git repositories cloned into its
+   * workspace, and folders on the person's own machine. Repositories and
+   * folders are provisioned on the first turn and reused after it.
+   *
+   * A File named here that is not yet the conversation's (an organization
+   * File the writer may view) becomes the conversation's own copy over the
+   * same bytes, and the entry names the copy: deleting the original later
+   * leaves the conversation's copy. A File of another organization is
+   * refused. At most 500 files; repository and folder names are unique, and
+   * so are the files' mount paths.
+   *
+   * A turn's own files (RunSpec.file_ids) join this list when the turn is
+   * created, so whoever may send the conversation a message may add files
+   * without editing it.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.SessionResourceOrBuilder getResourcesOrBuilder(
+      int index) {
+    return resources_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -947,9 +987,6 @@ java.lang.String defaultValue) {
         internalGetMetadata(),
         MetadataDefaultEntryHolder.defaultEntry,
         5);
-    for (int i = 0; i < workspaceEntries_.size(); i++) {
-      output.writeMessage(6, workspaceEntries_.get(i));
-    }
     for (int i = 0; i < skillRefs_.size(); i++) {
       output.writeMessage(8, skillRefs_.get(i));
     }
@@ -980,6 +1017,9 @@ java.lang.String defaultValue) {
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(21, getEnvironmentRef());
     }
+    for (int i = 0; i < resources_.size(); i++) {
+      output.writeMessage(22, resources_.get(i));
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -1002,15 +1042,6 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(5, metadata__);
     }
-
-        {
-          final int count = workspaceEntries_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(workspaceEntries_.get(i));
-          }
-          size += 1 * count;
-        }
 
         {
           final int count = skillRefs_.size();
@@ -1066,6 +1097,15 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(21, getEnvironmentRef());
     }
+
+        {
+          final int count = resources_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(resources_.get(i));
+          }
+          size += 2 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1090,8 +1130,6 @@ java.lang.String defaultValue) {
         .equals(other.getSubject())) return false;
     if (!internalGetMetadata().equals(
         other.internalGetMetadata())) return false;
-    if (!getWorkspaceEntriesList()
-        .equals(other.getWorkspaceEntriesList())) return false;
     if (!getSkillRefsList()
         .equals(other.getSkillRefsList())) return false;
     if (harness_ != other.harness_) return false;
@@ -1110,6 +1148,8 @@ java.lang.String defaultValue) {
       if (!getEnvironmentRef()
           .equals(other.getEnvironmentRef())) return false;
     }
+    if (!getResourcesList()
+        .equals(other.getResourcesList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1130,10 +1170,6 @@ java.lang.String defaultValue) {
     if (!internalGetMetadata().getMap().isEmpty()) {
       hash = (37 * hash) + METADATA_FIELD_NUMBER;
       hash = (53 * hash) + internalGetMetadata().hashCode();
-    }
-    if (getWorkspaceEntriesCount() > 0) {
-      hash = (37 * hash) + WORKSPACE_ENTRIES_FIELD_NUMBER;
-      hash = (53 * hash) + getWorkspaceEntriesList().hashCode();
     }
     if (getSkillRefsCount() > 0) {
       hash = (37 * hash) + SKILL_REFS_FIELD_NUMBER;
@@ -1162,6 +1198,10 @@ java.lang.String defaultValue) {
     if (hasEnvironmentRef()) {
       hash = (37 * hash) + ENVIRONMENT_REF_FIELD_NUMBER;
       hash = (53 * hash) + getEnvironmentRef().hashCode();
+    }
+    if (getResourcesCount() > 0) {
+      hash = (37 * hash) + RESOURCES_FIELD_NUMBER;
+      hash = (53 * hash) + getResourcesList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -1320,11 +1360,11 @@ java.lang.String defaultValue) {
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetAgentRefFieldBuilder();
-        internalGetWorkspaceEntriesFieldBuilder();
         internalGetSkillRefsFieldBuilder();
         internalGetVaultsFieldBuilder();
         internalGetPluginsFieldBuilder();
         internalGetEnvironmentRefFieldBuilder();
+        internalGetResourcesFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1338,20 +1378,13 @@ java.lang.String defaultValue) {
       }
       subject_ = "";
       internalGetMutableMetadata().clear();
-      if (workspaceEntriesBuilder_ == null) {
-        workspaceEntries_ = java.util.Collections.emptyList();
-      } else {
-        workspaceEntries_ = null;
-        workspaceEntriesBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000008);
       if (skillRefsBuilder_ == null) {
         skillRefs_ = java.util.Collections.emptyList();
       } else {
         skillRefs_ = null;
         skillRefsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000008);
       harness_ = 0;
       cursorMode_ = 0;
       executionTarget_ = 0;
@@ -1361,7 +1394,7 @@ java.lang.String defaultValue) {
         vaults_ = null;
         vaultsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000080);
       includeMyVault_ = false;
       if (pluginsBuilder_ == null) {
         plugins_ = java.util.Collections.emptyList();
@@ -1369,13 +1402,20 @@ java.lang.String defaultValue) {
         plugins_ = null;
         pluginsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000200);
       fileReview_ = false;
       environmentRef_ = null;
       if (environmentRefBuilder_ != null) {
         environmentRefBuilder_.dispose();
         environmentRefBuilder_ = null;
       }
+      if (resourcesBuilder_ == null) {
+        resources_ = java.util.Collections.emptyList();
+      } else {
+        resources_ = null;
+        resourcesBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00001000);
       return this;
     }
 
@@ -1409,41 +1449,41 @@ java.lang.String defaultValue) {
     }
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.session.v1.SessionSpec result) {
-      if (workspaceEntriesBuilder_ == null) {
-        if (((bitField0_ & 0x00000008) != 0)) {
-          workspaceEntries_ = java.util.Collections.unmodifiableList(workspaceEntries_);
-          bitField0_ = (bitField0_ & ~0x00000008);
-        }
-        result.workspaceEntries_ = workspaceEntries_;
-      } else {
-        result.workspaceEntries_ = workspaceEntriesBuilder_.build();
-      }
       if (skillRefsBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0)) {
+        if (((bitField0_ & 0x00000008) != 0)) {
           skillRefs_ = java.util.Collections.unmodifiableList(skillRefs_);
-          bitField0_ = (bitField0_ & ~0x00000010);
+          bitField0_ = (bitField0_ & ~0x00000008);
         }
         result.skillRefs_ = skillRefs_;
       } else {
         result.skillRefs_ = skillRefsBuilder_.build();
       }
       if (vaultsBuilder_ == null) {
-        if (((bitField0_ & 0x00000100) != 0)) {
+        if (((bitField0_ & 0x00000080) != 0)) {
           vaults_ = java.util.Collections.unmodifiableList(vaults_);
-          bitField0_ = (bitField0_ & ~0x00000100);
+          bitField0_ = (bitField0_ & ~0x00000080);
         }
         result.vaults_ = vaults_;
       } else {
         result.vaults_ = vaultsBuilder_.build();
       }
       if (pluginsBuilder_ == null) {
-        if (((bitField0_ & 0x00000400) != 0)) {
+        if (((bitField0_ & 0x00000200) != 0)) {
           plugins_ = java.util.Collections.unmodifiableList(plugins_);
-          bitField0_ = (bitField0_ & ~0x00000400);
+          bitField0_ = (bitField0_ & ~0x00000200);
         }
         result.plugins_ = plugins_;
       } else {
         result.plugins_ = pluginsBuilder_.build();
+      }
+      if (resourcesBuilder_ == null) {
+        if (((bitField0_ & 0x00001000) != 0)) {
+          resources_ = java.util.Collections.unmodifiableList(resources_);
+          bitField0_ = (bitField0_ & ~0x00001000);
+        }
+        result.resources_ = resources_;
+      } else {
+        result.resources_ = resourcesBuilder_.build();
       }
     }
 
@@ -1463,22 +1503,22 @@ java.lang.String defaultValue) {
         result.metadata_ = internalGetMetadata();
         result.metadata_.makeImmutable();
       }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.harness_ = harness_;
       }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
+      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.cursorMode_ = cursorMode_;
       }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
+      if (((from_bitField0_ & 0x00000040) != 0)) {
         result.executionTarget_ = executionTarget_;
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.includeMyVault_ = includeMyVault_;
       }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
+      if (((from_bitField0_ & 0x00000400) != 0)) {
         result.fileReview_ = fileReview_;
       }
-      if (((from_bitField0_ & 0x00001000) != 0)) {
+      if (((from_bitField0_ & 0x00000800) != 0)) {
         result.environmentRef_ = environmentRefBuilder_ == null
             ? environmentRef_
             : environmentRefBuilder_.build();
@@ -1510,37 +1550,11 @@ java.lang.String defaultValue) {
       internalGetMutableMetadata().mergeFrom(
           other.internalGetMetadata());
       bitField0_ |= 0x00000004;
-      if (workspaceEntriesBuilder_ == null) {
-        if (!other.workspaceEntries_.isEmpty()) {
-          if (workspaceEntries_.isEmpty()) {
-            workspaceEntries_ = other.workspaceEntries_;
-            bitField0_ = (bitField0_ & ~0x00000008);
-          } else {
-            ensureWorkspaceEntriesIsMutable();
-            workspaceEntries_.addAll(other.workspaceEntries_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.workspaceEntries_.isEmpty()) {
-          if (workspaceEntriesBuilder_.isEmpty()) {
-            workspaceEntriesBuilder_.dispose();
-            workspaceEntriesBuilder_ = null;
-            workspaceEntries_ = other.workspaceEntries_;
-            bitField0_ = (bitField0_ & ~0x00000008);
-            workspaceEntriesBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetWorkspaceEntriesFieldBuilder() : null;
-          } else {
-            workspaceEntriesBuilder_.addAllMessages(other.workspaceEntries_);
-          }
-        }
-      }
       if (skillRefsBuilder_ == null) {
         if (!other.skillRefs_.isEmpty()) {
           if (skillRefs_.isEmpty()) {
             skillRefs_ = other.skillRefs_;
-            bitField0_ = (bitField0_ & ~0x00000010);
+            bitField0_ = (bitField0_ & ~0x00000008);
           } else {
             ensureSkillRefsIsMutable();
             skillRefs_.addAll(other.skillRefs_);
@@ -1553,7 +1567,7 @@ java.lang.String defaultValue) {
             skillRefsBuilder_.dispose();
             skillRefsBuilder_ = null;
             skillRefs_ = other.skillRefs_;
-            bitField0_ = (bitField0_ & ~0x00000010);
+            bitField0_ = (bitField0_ & ~0x00000008);
             skillRefsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetSkillRefsFieldBuilder() : null;
@@ -1575,7 +1589,7 @@ java.lang.String defaultValue) {
         if (!other.vaults_.isEmpty()) {
           if (vaults_.isEmpty()) {
             vaults_ = other.vaults_;
-            bitField0_ = (bitField0_ & ~0x00000100);
+            bitField0_ = (bitField0_ & ~0x00000080);
           } else {
             ensureVaultsIsMutable();
             vaults_.addAll(other.vaults_);
@@ -1588,7 +1602,7 @@ java.lang.String defaultValue) {
             vaultsBuilder_.dispose();
             vaultsBuilder_ = null;
             vaults_ = other.vaults_;
-            bitField0_ = (bitField0_ & ~0x00000100);
+            bitField0_ = (bitField0_ & ~0x00000080);
             vaultsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetVaultsFieldBuilder() : null;
@@ -1604,7 +1618,7 @@ java.lang.String defaultValue) {
         if (!other.plugins_.isEmpty()) {
           if (plugins_.isEmpty()) {
             plugins_ = other.plugins_;
-            bitField0_ = (bitField0_ & ~0x00000400);
+            bitField0_ = (bitField0_ & ~0x00000200);
           } else {
             ensurePluginsIsMutable();
             plugins_.addAll(other.plugins_);
@@ -1617,7 +1631,7 @@ java.lang.String defaultValue) {
             pluginsBuilder_.dispose();
             pluginsBuilder_ = null;
             plugins_ = other.plugins_;
-            bitField0_ = (bitField0_ & ~0x00000400);
+            bitField0_ = (bitField0_ & ~0x00000200);
             pluginsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetPluginsFieldBuilder() : null;
@@ -1631,6 +1645,32 @@ java.lang.String defaultValue) {
       }
       if (other.hasEnvironmentRef()) {
         mergeEnvironmentRef(other.getEnvironmentRef());
+      }
+      if (resourcesBuilder_ == null) {
+        if (!other.resources_.isEmpty()) {
+          if (resources_.isEmpty()) {
+            resources_ = other.resources_;
+            bitField0_ = (bitField0_ & ~0x00001000);
+          } else {
+            ensureResourcesIsMutable();
+            resources_.addAll(other.resources_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.resources_.isEmpty()) {
+          if (resourcesBuilder_.isEmpty()) {
+            resourcesBuilder_.dispose();
+            resourcesBuilder_ = null;
+            resources_ = other.resources_;
+            bitField0_ = (bitField0_ & ~0x00001000);
+            resourcesBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetResourcesFieldBuilder() : null;
+          } else {
+            resourcesBuilder_.addAllMessages(other.resources_);
+          }
+        }
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1672,19 +1712,6 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000004;
               break;
             } // case 42
-            case 50: {
-              ai.stigmer.agentic.session.v1.WorkspaceEntry m =
-                  input.readMessage(
-                      ai.stigmer.agentic.session.v1.WorkspaceEntry.parser(),
-                      extensionRegistry);
-              if (workspaceEntriesBuilder_ == null) {
-                ensureWorkspaceEntriesIsMutable();
-                workspaceEntries_.add(m);
-              } else {
-                workspaceEntriesBuilder_.addMessage(m);
-              }
-              break;
-            } // case 50
             case 66: {
               ai.stigmer.commons.apiresource.ApiResourceReference m =
                   input.readMessage(
@@ -1700,17 +1727,17 @@ java.lang.String defaultValue) {
             } // case 66
             case 80: {
               harness_ = input.readEnum();
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000010;
               break;
             } // case 80
             case 88: {
               cursorMode_ = input.readEnum();
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000020;
               break;
             } // case 88
             case 96: {
               executionTarget_ = input.readEnum();
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000040;
               break;
             } // case 96
             case 114: {
@@ -1735,7 +1762,7 @@ java.lang.String defaultValue) {
             } // case 122
             case 144: {
               includeMyVault_ = input.readBool();
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000100;
               break;
             } // case 144
             case 154: {
@@ -1753,16 +1780,29 @@ java.lang.String defaultValue) {
             } // case 154
             case 160: {
               fileReview_ = input.readBool();
-              bitField0_ |= 0x00000800;
+              bitField0_ |= 0x00000400;
               break;
             } // case 160
             case 170: {
               input.readMessage(
                   internalGetEnvironmentRefFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00001000;
+              bitField0_ |= 0x00000800;
               break;
             } // case 170
+            case 178: {
+              ai.stigmer.agentic.session.v1.SessionResource m =
+                  input.readMessage(
+                      ai.stigmer.agentic.session.v1.SessionResource.parser(),
+                      extensionRegistry);
+              if (resourcesBuilder_ == null) {
+                ensureResourcesIsMutable();
+                resources_.add(m);
+              } else {
+                resourcesBuilder_.addMessage(m);
+              }
+              break;
+            } // case 178
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2364,432 +2404,12 @@ java.lang.String defaultValue) {
       return this;
     }
 
-    private java.util.List<ai.stigmer.agentic.session.v1.WorkspaceEntry> workspaceEntries_ =
-      java.util.Collections.emptyList();
-    private void ensureWorkspaceEntriesIsMutable() {
-      if (!((bitField0_ & 0x00000008) != 0)) {
-        workspaceEntries_ = new java.util.ArrayList<ai.stigmer.agentic.session.v1.WorkspaceEntry>(workspaceEntries_);
-        bitField0_ |= 0x00000008;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.session.v1.WorkspaceEntry, ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder, ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder> workspaceEntriesBuilder_;
-
-    /**
-     * <pre>
-     * Workspace entries for this session.
-     *
-     * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first run;
-     * subsequent runs reuse the same workspace.
-     *
-     * When empty, the session uses an empty workspace directory.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.session.v1.WorkspaceEntry> getWorkspaceEntriesList() {
-      if (workspaceEntriesBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(workspaceEntries_);
-      } else {
-        return workspaceEntriesBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * Workspace entries for this session.
-     *
-     * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first run;
-     * subsequent runs reuse the same workspace.
-     *
-     * When empty, the session uses an empty workspace directory.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-     */
-    public int getWorkspaceEntriesCount() {
-      if (workspaceEntriesBuilder_ == null) {
-        return workspaceEntries_.size();
-      } else {
-        return workspaceEntriesBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * Workspace entries for this session.
-     *
-     * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first run;
-     * subsequent runs reuse the same workspace.
-     *
-     * When empty, the session uses an empty workspace directory.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-     */
-    public ai.stigmer.agentic.session.v1.WorkspaceEntry getWorkspaceEntries(int index) {
-      if (workspaceEntriesBuilder_ == null) {
-        return workspaceEntries_.get(index);
-      } else {
-        return workspaceEntriesBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * Workspace entries for this session.
-     *
-     * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first run;
-     * subsequent runs reuse the same workspace.
-     *
-     * When empty, the session uses an empty workspace directory.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-     */
-    public Builder setWorkspaceEntries(
-        int index, ai.stigmer.agentic.session.v1.WorkspaceEntry value) {
-      if (workspaceEntriesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureWorkspaceEntriesIsMutable();
-        workspaceEntries_.set(index, value);
-        onChanged();
-      } else {
-        workspaceEntriesBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace entries for this session.
-     *
-     * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first run;
-     * subsequent runs reuse the same workspace.
-     *
-     * When empty, the session uses an empty workspace directory.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-     */
-    public Builder setWorkspaceEntries(
-        int index, ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder builderForValue) {
-      if (workspaceEntriesBuilder_ == null) {
-        ensureWorkspaceEntriesIsMutable();
-        workspaceEntries_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        workspaceEntriesBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace entries for this session.
-     *
-     * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first run;
-     * subsequent runs reuse the same workspace.
-     *
-     * When empty, the session uses an empty workspace directory.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-     */
-    public Builder addWorkspaceEntries(ai.stigmer.agentic.session.v1.WorkspaceEntry value) {
-      if (workspaceEntriesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureWorkspaceEntriesIsMutable();
-        workspaceEntries_.add(value);
-        onChanged();
-      } else {
-        workspaceEntriesBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace entries for this session.
-     *
-     * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first run;
-     * subsequent runs reuse the same workspace.
-     *
-     * When empty, the session uses an empty workspace directory.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-     */
-    public Builder addWorkspaceEntries(
-        int index, ai.stigmer.agentic.session.v1.WorkspaceEntry value) {
-      if (workspaceEntriesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureWorkspaceEntriesIsMutable();
-        workspaceEntries_.add(index, value);
-        onChanged();
-      } else {
-        workspaceEntriesBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace entries for this session.
-     *
-     * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first run;
-     * subsequent runs reuse the same workspace.
-     *
-     * When empty, the session uses an empty workspace directory.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-     */
-    public Builder addWorkspaceEntries(
-        ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder builderForValue) {
-      if (workspaceEntriesBuilder_ == null) {
-        ensureWorkspaceEntriesIsMutable();
-        workspaceEntries_.add(builderForValue.build());
-        onChanged();
-      } else {
-        workspaceEntriesBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace entries for this session.
-     *
-     * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first run;
-     * subsequent runs reuse the same workspace.
-     *
-     * When empty, the session uses an empty workspace directory.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-     */
-    public Builder addWorkspaceEntries(
-        int index, ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder builderForValue) {
-      if (workspaceEntriesBuilder_ == null) {
-        ensureWorkspaceEntriesIsMutable();
-        workspaceEntries_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        workspaceEntriesBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace entries for this session.
-     *
-     * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first run;
-     * subsequent runs reuse the same workspace.
-     *
-     * When empty, the session uses an empty workspace directory.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-     */
-    public Builder addAllWorkspaceEntries(
-        java.lang.Iterable<? extends ai.stigmer.agentic.session.v1.WorkspaceEntry> values) {
-      if (workspaceEntriesBuilder_ == null) {
-        ensureWorkspaceEntriesIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, workspaceEntries_);
-        onChanged();
-      } else {
-        workspaceEntriesBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace entries for this session.
-     *
-     * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first run;
-     * subsequent runs reuse the same workspace.
-     *
-     * When empty, the session uses an empty workspace directory.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-     */
-    public Builder clearWorkspaceEntries() {
-      if (workspaceEntriesBuilder_ == null) {
-        workspaceEntries_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000008);
-        onChanged();
-      } else {
-        workspaceEntriesBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace entries for this session.
-     *
-     * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first run;
-     * subsequent runs reuse the same workspace.
-     *
-     * When empty, the session uses an empty workspace directory.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-     */
-    public Builder removeWorkspaceEntries(int index) {
-      if (workspaceEntriesBuilder_ == null) {
-        ensureWorkspaceEntriesIsMutable();
-        workspaceEntries_.remove(index);
-        onChanged();
-      } else {
-        workspaceEntriesBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace entries for this session.
-     *
-     * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first run;
-     * subsequent runs reuse the same workspace.
-     *
-     * When empty, the session uses an empty workspace directory.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-     */
-    public ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder getWorkspaceEntriesBuilder(
-        int index) {
-      return internalGetWorkspaceEntriesFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * Workspace entries for this session.
-     *
-     * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first run;
-     * subsequent runs reuse the same workspace.
-     *
-     * When empty, the session uses an empty workspace directory.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-     */
-    public ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder getWorkspaceEntriesOrBuilder(
-        int index) {
-      if (workspaceEntriesBuilder_ == null) {
-        return workspaceEntries_.get(index);  } else {
-        return workspaceEntriesBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * Workspace entries for this session.
-     *
-     * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first run;
-     * subsequent runs reuse the same workspace.
-     *
-     * When empty, the session uses an empty workspace directory.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-     */
-    public java.util.List<? extends ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder> 
-         getWorkspaceEntriesOrBuilderList() {
-      if (workspaceEntriesBuilder_ != null) {
-        return workspaceEntriesBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(workspaceEntries_);
-      }
-    }
-    /**
-     * <pre>
-     * Workspace entries for this session.
-     *
-     * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first run;
-     * subsequent runs reuse the same workspace.
-     *
-     * When empty, the session uses an empty workspace directory.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-     */
-    public ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder addWorkspaceEntriesBuilder() {
-      return internalGetWorkspaceEntriesFieldBuilder().addBuilder(
-          ai.stigmer.agentic.session.v1.WorkspaceEntry.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Workspace entries for this session.
-     *
-     * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first run;
-     * subsequent runs reuse the same workspace.
-     *
-     * When empty, the session uses an empty workspace directory.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-     */
-    public ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder addWorkspaceEntriesBuilder(
-        int index) {
-      return internalGetWorkspaceEntriesFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.session.v1.WorkspaceEntry.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Workspace entries for this session.
-     *
-     * Each entry pairs a name with a source (git repo or local path), forming
-     * a multi-root workspace. Entries are provisioned on the first run;
-     * subsequent runs reuse the same workspace.
-     *
-     * When empty, the session uses an empty workspace directory.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder> 
-         getWorkspaceEntriesBuilderList() {
-      return internalGetWorkspaceEntriesFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.session.v1.WorkspaceEntry, ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder, ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder> 
-        internalGetWorkspaceEntriesFieldBuilder() {
-      if (workspaceEntriesBuilder_ == null) {
-        workspaceEntriesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.session.v1.WorkspaceEntry, ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder, ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder>(
-                workspaceEntries_,
-                ((bitField0_ & 0x00000008) != 0),
-                getParentForChildren(),
-                isClean());
-        workspaceEntries_ = null;
-      }
-      return workspaceEntriesBuilder_;
-    }
-
     private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> skillRefs_ =
       java.util.Collections.emptyList();
     private void ensureSkillRefsIsMutable() {
-      if (!((bitField0_ & 0x00000010) != 0)) {
+      if (!((bitField0_ & 0x00000008) != 0)) {
         skillRefs_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(skillRefs_);
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000008;
        }
     }
 
@@ -3027,7 +2647,7 @@ java.lang.String defaultValue) {
     public Builder clearSkillRefs() {
       if (skillRefsBuilder_ == null) {
         skillRefs_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000010);
+        bitField0_ = (bitField0_ & ~0x00000008);
         onChanged();
       } else {
         skillRefsBuilder_.clear();
@@ -3160,7 +2780,7 @@ java.lang.String defaultValue) {
         skillRefsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
                 skillRefs_,
-                ((bitField0_ & 0x00000010) != 0),
+                ((bitField0_ & 0x00000008) != 0),
                 getParentForChildren(),
                 isClean());
         skillRefs_ = null;
@@ -3214,7 +2834,7 @@ java.lang.String defaultValue) {
      */
     public Builder setHarnessValue(int value) {
       harness_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -3264,7 +2884,7 @@ java.lang.String defaultValue) {
      */
     public Builder setHarness(ai.stigmer.agentic.session.v1.Harness value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       harness_ = value.getNumber();
       onChanged();
       return this;
@@ -3289,7 +2909,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearHarness() {
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000010);
       harness_ = 0;
       onChanged();
       return this;
@@ -3335,7 +2955,7 @@ java.lang.String defaultValue) {
      */
     public Builder setCursorModeValue(int value) {
       cursorMode_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -3379,7 +2999,7 @@ java.lang.String defaultValue) {
      */
     public Builder setCursorMode(ai.stigmer.agentic.session.v1.CursorMode value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       cursorMode_ = value.getNumber();
       onChanged();
       return this;
@@ -3401,7 +3021,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearCursorMode() {
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000020);
       cursorMode_ = 0;
       onChanged();
       return this;
@@ -3455,7 +3075,7 @@ java.lang.String defaultValue) {
      */
     public Builder setExecutionTargetValue(int value) {
       executionTarget_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -3507,7 +3127,7 @@ java.lang.String defaultValue) {
      */
     public Builder setExecutionTarget(ai.stigmer.agentic.session.v1.ExecutionTarget value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       executionTarget_ = value.getNumber();
       onChanged();
       return this;
@@ -3533,7 +3153,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearExecutionTarget() {
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000040);
       executionTarget_ = 0;
       onChanged();
       return this;
@@ -3542,9 +3162,9 @@ java.lang.String defaultValue) {
     private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> vaults_ =
       java.util.Collections.emptyList();
     private void ensureVaultsIsMutable() {
-      if (!((bitField0_ & 0x00000100) != 0)) {
+      if (!((bitField0_ & 0x00000080) != 0)) {
         vaults_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(vaults_);
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000080;
        }
     }
 
@@ -3848,7 +3468,7 @@ java.lang.String defaultValue) {
     public Builder clearVaults() {
       if (vaultsBuilder_ == null) {
         vaults_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000100);
+        bitField0_ = (bitField0_ & ~0x00000080);
         onChanged();
       } else {
         vaultsBuilder_.clear();
@@ -4023,7 +3643,7 @@ java.lang.String defaultValue) {
         vaultsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
                 vaults_,
-                ((bitField0_ & 0x00000100) != 0),
+                ((bitField0_ & 0x00000080) != 0),
                 getParentForChildren(),
                 isClean());
         vaults_ = null;
@@ -4066,7 +3686,7 @@ java.lang.String defaultValue) {
     public Builder setIncludeMyVault(boolean value) {
 
       includeMyVault_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -4084,7 +3704,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearIncludeMyVault() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000100);
       includeMyVault_ = false;
       onChanged();
       return this;
@@ -4093,9 +3713,9 @@ java.lang.String defaultValue) {
     private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> plugins_ =
       java.util.Collections.emptyList();
     private void ensurePluginsIsMutable() {
-      if (!((bitField0_ & 0x00000400) != 0)) {
+      if (!((bitField0_ & 0x00000200) != 0)) {
         plugins_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(plugins_);
-        bitField0_ |= 0x00000400;
+        bitField0_ |= 0x00000200;
        }
     }
 
@@ -4344,7 +3964,7 @@ java.lang.String defaultValue) {
     public Builder clearPlugins() {
       if (pluginsBuilder_ == null) {
         plugins_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000400);
+        bitField0_ = (bitField0_ & ~0x00000200);
         onChanged();
       } else {
         pluginsBuilder_.clear();
@@ -4484,7 +4104,7 @@ java.lang.String defaultValue) {
         pluginsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
                 plugins_,
-                ((bitField0_ & 0x00000400) != 0),
+                ((bitField0_ & 0x00000200) != 0),
                 getParentForChildren(),
                 isClean());
         plugins_ = null;
@@ -4527,7 +4147,7 @@ java.lang.String defaultValue) {
     public Builder setFileReview(boolean value) {
 
       fileReview_ = value;
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -4545,7 +4165,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearFileReview() {
-      bitField0_ = (bitField0_ & ~0x00000800);
+      bitField0_ = (bitField0_ & ~0x00000400);
       fileReview_ = false;
       onChanged();
       return this;
@@ -4571,7 +4191,7 @@ java.lang.String defaultValue) {
      * @return Whether the environmentRef field is set.
      */
     public boolean hasEnvironmentRef() {
-      return ((bitField0_ & 0x00001000) != 0);
+      return ((bitField0_ & 0x00000800) != 0);
     }
     /**
      * <pre>
@@ -4620,7 +4240,7 @@ java.lang.String defaultValue) {
       } else {
         environmentRefBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -4646,7 +4266,7 @@ java.lang.String defaultValue) {
       } else {
         environmentRefBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -4667,7 +4287,7 @@ java.lang.String defaultValue) {
      */
     public Builder mergeEnvironmentRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
       if (environmentRefBuilder_ == null) {
-        if (((bitField0_ & 0x00001000) != 0) &&
+        if (((bitField0_ & 0x00000800) != 0) &&
           environmentRef_ != null &&
           environmentRef_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
           getEnvironmentRefBuilder().mergeFrom(value);
@@ -4678,7 +4298,7 @@ java.lang.String defaultValue) {
         environmentRefBuilder_.mergeFrom(value);
       }
       if (environmentRef_ != null) {
-        bitField0_ |= 0x00001000;
+        bitField0_ |= 0x00000800;
         onChanged();
       }
       return this;
@@ -4699,7 +4319,7 @@ java.lang.String defaultValue) {
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
      */
     public Builder clearEnvironmentRef() {
-      bitField0_ = (bitField0_ & ~0x00001000);
+      bitField0_ = (bitField0_ & ~0x00000800);
       environmentRef_ = null;
       if (environmentRefBuilder_ != null) {
         environmentRefBuilder_.dispose();
@@ -4724,7 +4344,7 @@ java.lang.String defaultValue) {
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 21 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getEnvironmentRefBuilder() {
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return internalGetEnvironmentRefFieldBuilder().getBuilder();
     }
@@ -4778,6 +4398,570 @@ java.lang.String defaultValue) {
         environmentRef_ = null;
       }
       return environmentRefBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.session.v1.SessionResource> resources_ =
+      java.util.Collections.emptyList();
+    private void ensureResourcesIsMutable() {
+      if (!((bitField0_ & 0x00001000) != 0)) {
+        resources_ = new java.util.ArrayList<ai.stigmer.agentic.session.v1.SessionResource>(resources_);
+        bitField0_ |= 0x00001000;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.session.v1.SessionResource, ai.stigmer.agentic.session.v1.SessionResource.Builder, ai.stigmer.agentic.session.v1.SessionResourceOrBuilder> resourcesBuilder_;
+
+    /**
+     * <pre>
+     * What the conversation holds: Files the agent finds under
+     * .stigmer/uploads/ on every turn, git repositories cloned into its
+     * workspace, and folders on the person's own machine. Repositories and
+     * folders are provisioned on the first turn and reused after it.
+     *
+     * A File named here that is not yet the conversation's (an organization
+     * File the writer may view) becomes the conversation's own copy over the
+     * same bytes, and the entry names the copy: deleting the original later
+     * leaves the conversation's copy. A File of another organization is
+     * refused. At most 500 files; repository and folder names are unique, and
+     * so are the files' mount paths.
+     *
+     * A turn's own files (RunSpec.file_ids) join this list when the turn is
+     * created, so whoever may send the conversation a message may add files
+     * without editing it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.agentic.session.v1.SessionResource> getResourcesList() {
+      if (resourcesBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(resources_);
+      } else {
+        return resourcesBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * What the conversation holds: Files the agent finds under
+     * .stigmer/uploads/ on every turn, git repositories cloned into its
+     * workspace, and folders on the person's own machine. Repositories and
+     * folders are provisioned on the first turn and reused after it.
+     *
+     * A File named here that is not yet the conversation's (an organization
+     * File the writer may view) becomes the conversation's own copy over the
+     * same bytes, and the entry names the copy: deleting the original later
+     * leaves the conversation's copy. A File of another organization is
+     * refused. At most 500 files; repository and folder names are unique, and
+     * so are the files' mount paths.
+     *
+     * A turn's own files (RunSpec.file_ids) join this list when the turn is
+     * created, so whoever may send the conversation a message may add files
+     * without editing it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public int getResourcesCount() {
+      if (resourcesBuilder_ == null) {
+        return resources_.size();
+      } else {
+        return resourcesBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * What the conversation holds: Files the agent finds under
+     * .stigmer/uploads/ on every turn, git repositories cloned into its
+     * workspace, and folders on the person's own machine. Repositories and
+     * folders are provisioned on the first turn and reused after it.
+     *
+     * A File named here that is not yet the conversation's (an organization
+     * File the writer may view) becomes the conversation's own copy over the
+     * same bytes, and the entry names the copy: deleting the original later
+     * leaves the conversation's copy. A File of another organization is
+     * refused. At most 500 files; repository and folder names are unique, and
+     * so are the files' mount paths.
+     *
+     * A turn's own files (RunSpec.file_ids) join this list when the turn is
+     * created, so whoever may send the conversation a message may add files
+     * without editing it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.session.v1.SessionResource getResources(int index) {
+      if (resourcesBuilder_ == null) {
+        return resources_.get(index);
+      } else {
+        return resourcesBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * What the conversation holds: Files the agent finds under
+     * .stigmer/uploads/ on every turn, git repositories cloned into its
+     * workspace, and folders on the person's own machine. Repositories and
+     * folders are provisioned on the first turn and reused after it.
+     *
+     * A File named here that is not yet the conversation's (an organization
+     * File the writer may view) becomes the conversation's own copy over the
+     * same bytes, and the entry names the copy: deleting the original later
+     * leaves the conversation's copy. A File of another organization is
+     * refused. At most 500 files; repository and folder names are unique, and
+     * so are the files' mount paths.
+     *
+     * A turn's own files (RunSpec.file_ids) join this list when the turn is
+     * created, so whoever may send the conversation a message may add files
+     * without editing it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setResources(
+        int index, ai.stigmer.agentic.session.v1.SessionResource value) {
+      if (resourcesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureResourcesIsMutable();
+        resources_.set(index, value);
+        onChanged();
+      } else {
+        resourcesBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What the conversation holds: Files the agent finds under
+     * .stigmer/uploads/ on every turn, git repositories cloned into its
+     * workspace, and folders on the person's own machine. Repositories and
+     * folders are provisioned on the first turn and reused after it.
+     *
+     * A File named here that is not yet the conversation's (an organization
+     * File the writer may view) becomes the conversation's own copy over the
+     * same bytes, and the entry names the copy: deleting the original later
+     * leaves the conversation's copy. A File of another organization is
+     * refused. At most 500 files; repository and folder names are unique, and
+     * so are the files' mount paths.
+     *
+     * A turn's own files (RunSpec.file_ids) join this list when the turn is
+     * created, so whoever may send the conversation a message may add files
+     * without editing it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setResources(
+        int index, ai.stigmer.agentic.session.v1.SessionResource.Builder builderForValue) {
+      if (resourcesBuilder_ == null) {
+        ensureResourcesIsMutable();
+        resources_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        resourcesBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What the conversation holds: Files the agent finds under
+     * .stigmer/uploads/ on every turn, git repositories cloned into its
+     * workspace, and folders on the person's own machine. Repositories and
+     * folders are provisioned on the first turn and reused after it.
+     *
+     * A File named here that is not yet the conversation's (an organization
+     * File the writer may view) becomes the conversation's own copy over the
+     * same bytes, and the entry names the copy: deleting the original later
+     * leaves the conversation's copy. A File of another organization is
+     * refused. At most 500 files; repository and folder names are unique, and
+     * so are the files' mount paths.
+     *
+     * A turn's own files (RunSpec.file_ids) join this list when the turn is
+     * created, so whoever may send the conversation a message may add files
+     * without editing it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addResources(ai.stigmer.agentic.session.v1.SessionResource value) {
+      if (resourcesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureResourcesIsMutable();
+        resources_.add(value);
+        onChanged();
+      } else {
+        resourcesBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What the conversation holds: Files the agent finds under
+     * .stigmer/uploads/ on every turn, git repositories cloned into its
+     * workspace, and folders on the person's own machine. Repositories and
+     * folders are provisioned on the first turn and reused after it.
+     *
+     * A File named here that is not yet the conversation's (an organization
+     * File the writer may view) becomes the conversation's own copy over the
+     * same bytes, and the entry names the copy: deleting the original later
+     * leaves the conversation's copy. A File of another organization is
+     * refused. At most 500 files; repository and folder names are unique, and
+     * so are the files' mount paths.
+     *
+     * A turn's own files (RunSpec.file_ids) join this list when the turn is
+     * created, so whoever may send the conversation a message may add files
+     * without editing it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addResources(
+        int index, ai.stigmer.agentic.session.v1.SessionResource value) {
+      if (resourcesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureResourcesIsMutable();
+        resources_.add(index, value);
+        onChanged();
+      } else {
+        resourcesBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What the conversation holds: Files the agent finds under
+     * .stigmer/uploads/ on every turn, git repositories cloned into its
+     * workspace, and folders on the person's own machine. Repositories and
+     * folders are provisioned on the first turn and reused after it.
+     *
+     * A File named here that is not yet the conversation's (an organization
+     * File the writer may view) becomes the conversation's own copy over the
+     * same bytes, and the entry names the copy: deleting the original later
+     * leaves the conversation's copy. A File of another organization is
+     * refused. At most 500 files; repository and folder names are unique, and
+     * so are the files' mount paths.
+     *
+     * A turn's own files (RunSpec.file_ids) join this list when the turn is
+     * created, so whoever may send the conversation a message may add files
+     * without editing it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addResources(
+        ai.stigmer.agentic.session.v1.SessionResource.Builder builderForValue) {
+      if (resourcesBuilder_ == null) {
+        ensureResourcesIsMutable();
+        resources_.add(builderForValue.build());
+        onChanged();
+      } else {
+        resourcesBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What the conversation holds: Files the agent finds under
+     * .stigmer/uploads/ on every turn, git repositories cloned into its
+     * workspace, and folders on the person's own machine. Repositories and
+     * folders are provisioned on the first turn and reused after it.
+     *
+     * A File named here that is not yet the conversation's (an organization
+     * File the writer may view) becomes the conversation's own copy over the
+     * same bytes, and the entry names the copy: deleting the original later
+     * leaves the conversation's copy. A File of another organization is
+     * refused. At most 500 files; repository and folder names are unique, and
+     * so are the files' mount paths.
+     *
+     * A turn's own files (RunSpec.file_ids) join this list when the turn is
+     * created, so whoever may send the conversation a message may add files
+     * without editing it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addResources(
+        int index, ai.stigmer.agentic.session.v1.SessionResource.Builder builderForValue) {
+      if (resourcesBuilder_ == null) {
+        ensureResourcesIsMutable();
+        resources_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        resourcesBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What the conversation holds: Files the agent finds under
+     * .stigmer/uploads/ on every turn, git repositories cloned into its
+     * workspace, and folders on the person's own machine. Repositories and
+     * folders are provisioned on the first turn and reused after it.
+     *
+     * A File named here that is not yet the conversation's (an organization
+     * File the writer may view) becomes the conversation's own copy over the
+     * same bytes, and the entry names the copy: deleting the original later
+     * leaves the conversation's copy. A File of another organization is
+     * refused. At most 500 files; repository and folder names are unique, and
+     * so are the files' mount paths.
+     *
+     * A turn's own files (RunSpec.file_ids) join this list when the turn is
+     * created, so whoever may send the conversation a message may add files
+     * without editing it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addAllResources(
+        java.lang.Iterable<? extends ai.stigmer.agentic.session.v1.SessionResource> values) {
+      if (resourcesBuilder_ == null) {
+        ensureResourcesIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, resources_);
+        onChanged();
+      } else {
+        resourcesBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What the conversation holds: Files the agent finds under
+     * .stigmer/uploads/ on every turn, git repositories cloned into its
+     * workspace, and folders on the person's own machine. Repositories and
+     * folders are provisioned on the first turn and reused after it.
+     *
+     * A File named here that is not yet the conversation's (an organization
+     * File the writer may view) becomes the conversation's own copy over the
+     * same bytes, and the entry names the copy: deleting the original later
+     * leaves the conversation's copy. A File of another organization is
+     * refused. At most 500 files; repository and folder names are unique, and
+     * so are the files' mount paths.
+     *
+     * A turn's own files (RunSpec.file_ids) join this list when the turn is
+     * created, so whoever may send the conversation a message may add files
+     * without editing it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder clearResources() {
+      if (resourcesBuilder_ == null) {
+        resources_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00001000);
+        onChanged();
+      } else {
+        resourcesBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What the conversation holds: Files the agent finds under
+     * .stigmer/uploads/ on every turn, git repositories cloned into its
+     * workspace, and folders on the person's own machine. Repositories and
+     * folders are provisioned on the first turn and reused after it.
+     *
+     * A File named here that is not yet the conversation's (an organization
+     * File the writer may view) becomes the conversation's own copy over the
+     * same bytes, and the entry names the copy: deleting the original later
+     * leaves the conversation's copy. A File of another organization is
+     * refused. At most 500 files; repository and folder names are unique, and
+     * so are the files' mount paths.
+     *
+     * A turn's own files (RunSpec.file_ids) join this list when the turn is
+     * created, so whoever may send the conversation a message may add files
+     * without editing it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder removeResources(int index) {
+      if (resourcesBuilder_ == null) {
+        ensureResourcesIsMutable();
+        resources_.remove(index);
+        onChanged();
+      } else {
+        resourcesBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What the conversation holds: Files the agent finds under
+     * .stigmer/uploads/ on every turn, git repositories cloned into its
+     * workspace, and folders on the person's own machine. Repositories and
+     * folders are provisioned on the first turn and reused after it.
+     *
+     * A File named here that is not yet the conversation's (an organization
+     * File the writer may view) becomes the conversation's own copy over the
+     * same bytes, and the entry names the copy: deleting the original later
+     * leaves the conversation's copy. A File of another organization is
+     * refused. At most 500 files; repository and folder names are unique, and
+     * so are the files' mount paths.
+     *
+     * A turn's own files (RunSpec.file_ids) join this list when the turn is
+     * created, so whoever may send the conversation a message may add files
+     * without editing it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.session.v1.SessionResource.Builder getResourcesBuilder(
+        int index) {
+      return internalGetResourcesFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * What the conversation holds: Files the agent finds under
+     * .stigmer/uploads/ on every turn, git repositories cloned into its
+     * workspace, and folders on the person's own machine. Repositories and
+     * folders are provisioned on the first turn and reused after it.
+     *
+     * A File named here that is not yet the conversation's (an organization
+     * File the writer may view) becomes the conversation's own copy over the
+     * same bytes, and the entry names the copy: deleting the original later
+     * leaves the conversation's copy. A File of another organization is
+     * refused. At most 500 files; repository and folder names are unique, and
+     * so are the files' mount paths.
+     *
+     * A turn's own files (RunSpec.file_ids) join this list when the turn is
+     * created, so whoever may send the conversation a message may add files
+     * without editing it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.session.v1.SessionResourceOrBuilder getResourcesOrBuilder(
+        int index) {
+      if (resourcesBuilder_ == null) {
+        return resources_.get(index);  } else {
+        return resourcesBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * What the conversation holds: Files the agent finds under
+     * .stigmer/uploads/ on every turn, git repositories cloned into its
+     * workspace, and folders on the person's own machine. Repositories and
+     * folders are provisioned on the first turn and reused after it.
+     *
+     * A File named here that is not yet the conversation's (an organization
+     * File the writer may view) becomes the conversation's own copy over the
+     * same bytes, and the entry names the copy: deleting the original later
+     * leaves the conversation's copy. A File of another organization is
+     * refused. At most 500 files; repository and folder names are unique, and
+     * so are the files' mount paths.
+     *
+     * A turn's own files (RunSpec.file_ids) join this list when the turn is
+     * created, so whoever may send the conversation a message may add files
+     * without editing it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.session.v1.SessionResourceOrBuilder> 
+         getResourcesOrBuilderList() {
+      if (resourcesBuilder_ != null) {
+        return resourcesBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(resources_);
+      }
+    }
+    /**
+     * <pre>
+     * What the conversation holds: Files the agent finds under
+     * .stigmer/uploads/ on every turn, git repositories cloned into its
+     * workspace, and folders on the person's own machine. Repositories and
+     * folders are provisioned on the first turn and reused after it.
+     *
+     * A File named here that is not yet the conversation's (an organization
+     * File the writer may view) becomes the conversation's own copy over the
+     * same bytes, and the entry names the copy: deleting the original later
+     * leaves the conversation's copy. A File of another organization is
+     * refused. At most 500 files; repository and folder names are unique, and
+     * so are the files' mount paths.
+     *
+     * A turn's own files (RunSpec.file_ids) join this list when the turn is
+     * created, so whoever may send the conversation a message may add files
+     * without editing it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.session.v1.SessionResource.Builder addResourcesBuilder() {
+      return internalGetResourcesFieldBuilder().addBuilder(
+          ai.stigmer.agentic.session.v1.SessionResource.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * What the conversation holds: Files the agent finds under
+     * .stigmer/uploads/ on every turn, git repositories cloned into its
+     * workspace, and folders on the person's own machine. Repositories and
+     * folders are provisioned on the first turn and reused after it.
+     *
+     * A File named here that is not yet the conversation's (an organization
+     * File the writer may view) becomes the conversation's own copy over the
+     * same bytes, and the entry names the copy: deleting the original later
+     * leaves the conversation's copy. A File of another organization is
+     * refused. At most 500 files; repository and folder names are unique, and
+     * so are the files' mount paths.
+     *
+     * A turn's own files (RunSpec.file_ids) join this list when the turn is
+     * created, so whoever may send the conversation a message may add files
+     * without editing it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.session.v1.SessionResource.Builder addResourcesBuilder(
+        int index) {
+      return internalGetResourcesFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.session.v1.SessionResource.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * What the conversation holds: Files the agent finds under
+     * .stigmer/uploads/ on every turn, git repositories cloned into its
+     * workspace, and folders on the person's own machine. Repositories and
+     * folders are provisioned on the first turn and reused after it.
+     *
+     * A File named here that is not yet the conversation's (an organization
+     * File the writer may view) becomes the conversation's own copy over the
+     * same bytes, and the entry names the copy: deleting the original later
+     * leaves the conversation's copy. A File of another organization is
+     * refused. At most 500 files; repository and folder names are unique, and
+     * so are the files' mount paths.
+     *
+     * A turn's own files (RunSpec.file_ids) join this list when the turn is
+     * created, so whoever may send the conversation a message may add files
+     * without editing it.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 22 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.agentic.session.v1.SessionResource.Builder> 
+         getResourcesBuilderList() {
+      return internalGetResourcesFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.session.v1.SessionResource, ai.stigmer.agentic.session.v1.SessionResource.Builder, ai.stigmer.agentic.session.v1.SessionResourceOrBuilder> 
+        internalGetResourcesFieldBuilder() {
+      if (resourcesBuilder_ == null) {
+        resourcesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.session.v1.SessionResource, ai.stigmer.agentic.session.v1.SessionResource.Builder, ai.stigmer.agentic.session.v1.SessionResourceOrBuilder>(
+                resources_,
+                ((bitField0_ & 0x00001000) != 0),
+                getParentForChildren(),
+                isClean());
+        resources_ = null;
+      }
+      return resourcesBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.SessionSpec)

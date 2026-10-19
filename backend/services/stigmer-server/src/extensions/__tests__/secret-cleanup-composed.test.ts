@@ -44,7 +44,7 @@ import { ChannelAppSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1
 import { ChannelAppCommandController } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { WorkspaceEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import { SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultCommandController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/command_pb";
@@ -357,20 +357,18 @@ describe("vault entry writes", () => {
 
 /** A github.com repository entry carrying `token`. */
 function repository(name: string, token: string) {
-  return create(WorkspaceEntrySchema, {
+  return create(SessionResourceSchema, {
     name,
-    source: {
-      source: { case: "gitRepo", value: { url: `https://github.com/acme/${name}`, token } },
-    },
+    resource: { case: "gitRepository", value: { url: `https://github.com/acme/${name}`, token } },
   });
 }
 
 /** The tokens a session holds, by entry name. */
 function tokensOf(session: Session): Record<string, string> {
   const tokens: Record<string, string> = {};
-  for (const entry of session.spec?.workspaceEntries ?? []) {
-    const source = entry.source?.source;
-    if (source?.case === "gitRepo") {
+  for (const entry of session.spec?.resources ?? []) {
+    const source = entry.resource;
+    if (source?.case === "gitRepository") {
       tokens[entry.name] = source.value.token;
     }
   }
@@ -385,7 +383,7 @@ describe("a session's repository tokens", () => {
       kind: "Session",
       metadata: { name: `Cleanup Session ${counter}`, org: ORG },
       spec: {
-        workspaceEntries: [
+        resources: [
           repository("dropped", "goes-away"),
           repository("kept", "stays"),
           repository("rotated", "old"),
@@ -405,7 +403,7 @@ describe("a session's repository tokens", () => {
       ...created,
       spec: {
         ...created.spec!,
-        workspaceEntries: [
+        resources: [
           repository("dropped", ""),
           repository("kept", REDACTED_MARKER),
           repository("rotated", "new"),
@@ -427,7 +425,7 @@ describe("a session's repository tokens", () => {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Session",
       metadata: { name: `Cleanup Session ${counter}`, org: ORG },
-      spec: { workspaceEntries: [repository("one", "first"), repository("two", "second")] },
+      spec: { resources: [repository("one", "first"), repository("two", "second")] },
     });
     const stored = await server.store.getResource(
       ApiResourceKind.session,

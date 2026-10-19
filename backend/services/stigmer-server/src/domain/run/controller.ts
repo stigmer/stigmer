@@ -13,8 +13,7 @@
  * on the agent the turn runs); create and delete run the shared
  * tuple-lifecycle steps against the composed lifecycle. The direct
  * handlers — the two artifact reads — evaluate their annotation through
- * authorizeDirect; uploadAttachment is authorized at
- * the create its storage key feeds. list, listBySession, getRunSummary
+ * authorizeDirect. list, listBySession, getRunSummary
  * and the session, agent and organization usage reports narrow through the
  * composed list read scope; the usage reports count metered runs through
  * the composed meter (usage.ts). What a turn says is read from its
@@ -97,6 +96,7 @@ import { newRunTargetReachableStep } from "../../pipeline/steps/run-target-reach
 import type { CredentialBinding } from "../../extensions/credential-binding.js";
 import { newResolveSlugStep } from "../../pipeline/steps/slug.js";
 import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
+import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
@@ -105,8 +105,16 @@ import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-prov
 import {
   getArtifactContent,
   getArtifactDownloadUrl,
-  uploadAttachment,
 } from "./artifacts.js";
+import type { FileBlobs } from "../file/blobs.js";
+import { newFileInstances } from "../file/instances.js";
+import {
+  MESSAGE_FILES_ADDED_KEY,
+  newResolveMessageFilesStep,
+  runIsStored,
+  undoMessageFiles,
+} from "../file/message-files.js";
+import type { MessageFilesAdded } from "../file/message-files.js";
 import type { SessionCreatorProvider } from "./create-steps.js";
 import {
   newComposeDeclaredPreferencesStep,
@@ -116,10 +124,10 @@ import {
   newKeepReconcileFileReviewStep,
   newGuardExcludedPluginsStep,
   newKeepExcludedPluginsStep,
+  newKeepMessageFilesStep,
   newRefuseVisitorAppendedPromptStep,
   newComposeRecalledMemoriesStep,
   newCreateSessionIfNeededStep,
-  newProcessAttachmentsStep,
   newSetInitialPhaseStep,
   newStartWorkflowStep,
 } from "./create-steps.js";
@@ -243,8 +251,10 @@ export interface AgentExecutionControllerDeps {
    * read it at create.
    */
   readonly modelRegistry: ModelCatalogProvider;
-  /** The shared artifact blob store (attachments + artifact reads). */
+  /** The shared artifact blob store (a run's artifact reads). */
   readonly artifactStorage: ArtifactStorage;
+  /** The File store's bytes: a turn's files become the conversation's own (domain/file/message-files.ts). */
+  readonly fileBlobs: FileBlobs;
   /**
    * The in-process edge the create pipeline consumes (a lazy provider —
    * the routes↔clients cycle resolves at request time).
@@ -313,7 +323,6 @@ export function registerAgentExecutionServices(
       pauseExecution(lifecycleDeps, input, callerIdentityOf(ctx)),
     resume: (input, ctx) =>
       resumeExecution(lifecycleDeps, input, callerIdentityOf(ctx)),
-    uploadAttachment: (req) => uploadAttachment(artifactDeps, req),
     delete: (id, ctx) => deleteExecution(deps, id, ctx),
   });
   router.service(RunQueryController, {
@@ -374,6 +383,13 @@ async function createExecution(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
+  const instances = newFileInstances({
+    store: deps.store,
+    blobs: deps.fileBlobs,
+    authorizer: deps.authorizer,
+    lifecycle: deps.authorizationLifecycle,
+    logger: deps.logger,
+  });
   const builder = newPipeline<typeof RunSchema>(
     "agent-execution-create",
     deps.logger,
@@ -443,6 +459,7 @@ async function createExecution(
         modelRegistry: deps.modelRegistry,
       }),
     )
+    .addStep(newResolveMessageFilesStep(deps.store, instances))
     .addStep(
       newComposeDeclaredPreferencesStep(
         deps.store,
@@ -461,7 +478,6 @@ async function createExecution(
     .addStep(newSetInitialPhaseStep())
     .addStep(newStampRunCredentialsStep())
     .addStep(newPlanRunValuesStep(deps.runValuePlanner))
-    .addStep(newProcessAttachmentsStep(deps.logger))
     // The run commits with its user message and, when it starts its
     // session's work, the session's running status.
     .addStep(
@@ -503,7 +519,20 @@ async function createExecution(
       }),
     )
     .build()
-    .execute(reqCtx);
+    .execute(reqCtx)
+    .catch(async (error: unknown) => {
+      // A run stored before the failure keeps its files; one that never
+      // was takes them back.
+      if (!(await runIsStored(deps.store, reqCtx.newState.metadata?.id ?? ""))) {
+        await undoMessageFiles(
+          deps,
+          reqCtx.get(MESSAGE_FILES_ADDED_KEY) as MessageFilesAdded | undefined,
+          instances,
+          reqCtx.callerIdentity,
+        );
+      }
+      throw error;
+    });
   return reqCtx.newState;
 }
 
@@ -519,8 +548,8 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * introduces or changes (a run's schedule label names whose vaults a
  * person-less run uses), ValidateSessionImmutability keeps the
  * execution in its session (session-binding.ts), and KeepEvalRunCase,
- * KeepReconcileFileReview and KeepExcludedPlugins keep what the server
- * composed at create.
+ * KeepReconcileFileReview, KeepExcludedPlugins and KeepMessageFiles keep
+ * what the server composed at create.
  */
 async function update(
   deps: AgentExecutionControllerDeps,
@@ -553,6 +582,7 @@ async function update(
       .addStep(newKeepEvalRunCaseStep())
       .addStep(newKeepReconcileFileReviewStep())
       .addStep(newKeepExcludedPluginsStep())
+      .addStep(newKeepMessageFilesStep())
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newValidateSessionImmutabilityStep())
       .addStep(newValidateReferencesStep(deps.store, deps.authorizer))

@@ -669,7 +669,7 @@ fallback ask the mock and degrade to an unresolved registry; leaves the
 checkpointer at the runner's own default (the durable SQLite saver every OSS
 install runs; the `memory` pin is gone); and gives the runner child a
 harness-owned `HOME`, so its `~/.stigmer/sessions/…` tree (checkpoints, the
-platform dir attachments materialize into) never lands in the developer's
+platform dir a conversation's Files are mounted into) never lands in the developer's
 real home. The targets expose what suites need to read back:
 `modelRegistryDocument()` (the document the runner resolved against),
 `runnerHomeDir()`, `artifactStoreDir()`, `engineCoordinates()`.

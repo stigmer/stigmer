@@ -1,7 +1,9 @@
 /**
- * Pins session workspace provisioning: git-repo workspace entries are cloned
- * locally (never delegated to a cloud agent), local-path entries are
- * mounted, and a session with no entries gets its own empty per-session root.
+ * Pins session workspace provisioning: git repositories are cloned
+ * locally (never delegated to a cloud agent), with their history, at the
+ * commit a repository names when it names one; local folders are mounted; and a
+ * session with no repository or folder (Files alone are none) gets its own
+ * empty per-session root.
  * Harness-agnostic; the Cursor activity was its only caller until the turn
  * runtime took it over in #1070.
  *
@@ -16,12 +18,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import {
-  WorkspaceEntrySchema,
-  WorkspaceSourceSchema,
-  GitRepoSourceSchema,
-  LocalPathSourceSchema,
-} from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
-import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+  FileResourceSchema,
+  GitRepositoryResourceSchema,
+  LocalPathResourceSchema,
+  SessionResourceSchema,
+  type SessionResource,
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { provisionSessionWorkspace, type SessionProvisionConfig } from "../session-provision.js";
 
@@ -59,52 +61,49 @@ function makeConfig(workspaceRootDir: string): SessionProvisionConfig {
   return { mode: "local", workspaceRootDir };
 }
 
+function sessionOf(resources: SessionResource[]): Session {
+  return { spec: { resources } } as unknown as Session;
+}
+
+function gitRepository(name: string, url: string, fields: { branch?: string; commit?: string } = {}): SessionResource {
+  return create(SessionResourceSchema, {
+    name,
+    resource: { case: "gitRepository", value: create(GitRepositoryResourceSchema, { url, ...fields }) },
+  });
+}
+
+/** A File the conversation holds: a resource of the session, no part of its workspace. */
+function fileResource(fileId: string): SessionResource {
+  return create(SessionResourceSchema, {
+    resource: { case: "file", value: create(FileResourceSchema, { fileId, mountPath: `${fileId}.txt` }) },
+  });
+}
+
 function gitRepoSession(url: string, branch = "main"): Session {
-  const entry: WorkspaceEntry = create(WorkspaceEntrySchema, {
-    name: "repo",
-    source: create(WorkspaceSourceSchema, {
-      source: { case: "gitRepo", value: create(GitRepoSourceSchema, { url, branch }) },
-    }),
-  });
-  return { spec: { workspaceEntries: [entry] } } as unknown as Session;
+  return sessionOf([gitRepository("repo", url, { branch })]);
 }
 
-/** Single git-repo entry with no branch set (proto default ""). */
+/** Single git repository with no branch set (proto default ""). */
 function gitRepoSessionNoBranch(url: string): Session {
-  const entry: WorkspaceEntry = create(WorkspaceEntrySchema, {
-    name: "repo",
-    source: create(WorkspaceSourceSchema, {
-      source: { case: "gitRepo", value: create(GitRepoSourceSchema, { url }) },
-    }),
-  });
-  return { spec: { workspaceEntries: [entry] } } as unknown as Session;
+  return sessionOf([gitRepository("repo", url)]);
 }
 
-/** Multiple git-repo entries (multi-repo workspace). */
+/** Multiple git repositories (multi-repo workspace). */
 function multiGitRepoSession(repos: { name: string; url: string }[]): Session {
-  const entries = repos.map(({ name, url }) =>
-    create(WorkspaceEntrySchema, {
-      name,
-      source: create(WorkspaceSourceSchema, {
-        source: { case: "gitRepo", value: create(GitRepoSourceSchema, { url, branch: "main" }) },
-      }),
-    }),
-  );
-  return { spec: { workspaceEntries: entries } } as unknown as Session;
+  return sessionOf(repos.map(({ name, url }) => gitRepository(name, url, { branch: "main" })));
 }
 
 function localPathSession(path: string): Session {
-  const entry: WorkspaceEntry = create(WorkspaceEntrySchema, {
-    name: "local",
-    source: create(WorkspaceSourceSchema, {
-      source: { case: "localPath", value: create(LocalPathSourceSchema, { path }) },
+  return sessionOf([
+    create(SessionResourceSchema, {
+      name: "local",
+      resource: { case: "localPath", value: create(LocalPathResourceSchema, { path }) },
     }),
-  });
-  return { spec: { workspaceEntries: [entry] } } as unknown as Session;
+  ]);
 }
 
 function emptySession(): Session {
-  return { spec: { workspaceEntries: [] } } as unknown as Session;
+  return sessionOf([]);
 }
 
 // Real git spawns (init/commit/clone) are slow under parallel test load, so
@@ -155,6 +154,74 @@ describe("provisionSessionWorkspace", () => {
     expect(provisionResults).toHaveLength(1);
     expect(provisionResults[0].gitMetadata?.branch).toBe("main");
     expect(workspaceBackend).toBeDefined();
+  }, GIT_TEST_TIMEOUT_MS);
+
+  it("checks out the commit a repository names on its branch, with the branch's history", async () => {
+    const source = seedSourceRepo("main", "first");
+    const first = execFileSync("git", ["rev-parse", "HEAD"], { cwd: source, encoding: "utf-8" }).trim();
+    writeFileSync(join(source, MARKER_FILE), "second");
+    git(source, ["commit", "-am", "second"]);
+    const workspaceRoot = join(tmpRoot, "commit-workspace");
+    mkdirSync(workspaceRoot, { recursive: true });
+
+    const { workspaceDirs: dirs, provisionResults } = await provisionSessionWorkspace(
+      makeConfig(workspaceRoot),
+      sessionOf([gitRepository("repo", source, { branch: "main", commit: first })]),
+      [],
+      "test-session-commit",
+    );
+
+    expect(readFileSync(join(dirs[0]!, MARKER_FILE), "utf-8")).toBe("first");
+    const head = (args: string[]) => execFileSync("git", args, { cwd: dirs[0]!, encoding: "utf-8" }).trim();
+    expect(head(["rev-parse", "HEAD"])).toBe(first);
+    expect(head(["rev-parse", "--abbrev-ref", "HEAD"]), "the clone stays on its branch, the base write-back opens against").toBe("main");
+    expect(provisionResults[0]!.gitMetadata?.baseCommit).toBe(first);
+    expect(head(["rev-parse", "--is-shallow-repository"])).toBe("false");
+    expect(head(["rev-parse", "origin/main"]), "the remote branch still names its tip").not.toBe(first);
+  }, GIT_TEST_TIMEOUT_MS);
+
+  it("clones the branch's tip, with its history, when the repository names no commit", async () => {
+    const source = seedSourceRepo();
+    writeFileSync(join(source, MARKER_FILE), "tip");
+    git(source, ["commit", "-am", "tip"]);
+    const workspaceRoot = join(tmpRoot, "tip-workspace");
+    mkdirSync(workspaceRoot, { recursive: true });
+
+    const { workspaceDirs: dirs } = await provisionSessionWorkspace(makeConfig(workspaceRoot), gitRepoSession(source), [], "test-session-tip");
+
+    expect(readFileSync(join(dirs[0]!, MARKER_FILE), "utf-8")).toBe("tip");
+    expect(execFileSync("git", ["rev-list", "--count", "HEAD"], { cwd: dirs[0]!, encoding: "utf-8" }).trim()).toBe("2");
+  }, GIT_TEST_TIMEOUT_MS);
+
+  it("leaves the session's Files out of its workspace: a repository beside a File is cloned in place", async () => {
+    const source = seedSourceRepo();
+    const workspaceRoot = join(tmpRoot, "file-beside-repo");
+    mkdirSync(workspaceRoot, { recursive: true });
+
+    const { workspaceDirs: dirs } = await provisionSessionWorkspace(
+      makeConfig(workspaceRoot),
+      sessionOf([fileResource("file_1"), gitRepository("repo", source, { branch: "main" })]),
+      [],
+      "test-session-file-and-repo",
+    );
+
+    expect(dirs).toEqual([workspaceRoot]);
+    expect(existsSync(join(workspaceRoot, MARKER_FILE))).toBe(true);
+  }, GIT_TEST_TIMEOUT_MS);
+
+  it("gives a session holding only Files its own empty per-session directory", async () => {
+    const workspaceRoot = join(tmpRoot, "files-only");
+    mkdirSync(workspaceRoot, { recursive: true });
+
+    const { workspaceDirs: dirs, provisionResults } = await provisionSessionWorkspace(
+      makeConfig(workspaceRoot),
+      sessionOf([fileResource("file_1")]),
+      [],
+      "test-session-files-only",
+    );
+
+    expect(provisionResults).toEqual([]);
+    expect(dirs).toEqual([join(workspaceRoot, "sessions", "test-session-files-only")]);
   }, GIT_TEST_TIMEOUT_MS);
 
   it("clones into a workspace root that already contains lost+found (PVC simulation)", async () => {
@@ -254,8 +321,8 @@ describe("provisionSessionWorkspace", () => {
   }, GIT_TEST_TIMEOUT_MS);
 
   it("gives a session with no workspace entries its own empty per-session directory", async () => {
-    // SessionSpec.workspace_entries: "When empty, the session uses an empty
-    // workspace directory." The shared root would leak other sessions' files
+    // A session with no repository or folder works in an empty workspace
+    // directory of its own. The shared root would leak other sessions' files
     // into a "new" session (and falsely serialize unrelated sessions under
     // the workspace turn lock), so no-entry sessions get sessions/{sessionId}.
     const workspaceRoot = join(tmpRoot, "empty-workspace");

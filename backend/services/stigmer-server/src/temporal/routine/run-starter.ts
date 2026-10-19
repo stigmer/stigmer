@@ -543,12 +543,14 @@ export class RunStarter {
     // The fresh per-fire session speaks the invocation's session half: it
     // runs the routine's agent at the version the routine names (none:
     // the agent's current version when the fire starts), and harness and
-    // workspace come from the owner's spec. An unspecified harness stays
+    // resources come from the owner's spec. An unspecified harness stays
     // unset — the agent's engine applies, else the platform default (OSS:
-    // native). Workspace entries are git-only by write-time validation;
-    // credentials, when a repo is private, ride a vault the routine names
-    // holding a GITHUB_TOKEN secret or a connection for the repository's
-    // host.
+    // native). Resources are Files and git repositories (the contract
+    // refuses a folder); each File becomes the new conversation's own copy
+    // when its session is created, asked again of the owner the fire acts
+    // as. Credentials, when a repo is private, ride a vault the routine
+    // names holding a GITHUB_TOKEN secret or a connection for the
+    // repository's host.
     const sessionSpec = create(SessionSpecSchema, {
       agentRef: create(ApiResourceReferenceSchema, {
         kind: ApiResourceKind.agent,
@@ -557,7 +559,7 @@ export class RunStarter {
         version: invocation?.agentRef?.version ?? "",
       }),
       subject: routine.metadata?.name || (routine.metadata?.slug ?? ""),
-      workspaceEntries: invocation?.workspaceEntries ?? [],
+      resources: invocation?.resources ?? [],
     });
     if (
       invocation !== undefined &&

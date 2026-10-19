@@ -29,3 +29,24 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request makes a turn's files and a conversation's workspace
+  # Files named by id: a run's attachments (RunSpec field 9, kept reserved
+  # with its name) and the Attachment message, the uploadAttachment RPC and
+  # its request and response, and the workspace entries of a session and a
+  # routine's invocation (field 6 and field 4, kept reserved with their
+  # names) with workspace.proto, whose shapes became SessionResource. This
+  # block exists for that one pull request. While it stays, buf breaking does
+  # not report these rules on the listed files, so the pull request that
+  # removes it lands straight after the merge (stigmer#2452).
+  ignore_only:
+    FILE_NO_DELETE:
+      - ai/stigmer/agentic/session/v1/workspace.proto
+    RPC_NO_DELETE:
+      - ai/stigmer/agentic/run/v1/command.proto
+    FIELD_NO_DELETE:
+      - ai/stigmer/agentic/run/v1/invocation.proto
+      - ai/stigmer/agentic/run/v1/spec.proto
+      - ai/stigmer/agentic/session/v1/spec.proto
+    MESSAGE_NO_DELETE:
+      - ai/stigmer/agentic/run/v1/io.proto
+      - ai/stigmer/agentic/run/v1/spec.proto

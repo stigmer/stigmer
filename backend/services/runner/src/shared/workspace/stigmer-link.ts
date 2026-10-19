@@ -3,13 +3,13 @@
  * to its platform-managed directory (~/.stigmer/sessions/{id}/platform/, see
  * platform-dir.ts), shared by BOTH harnesses.
  *
- * Platform-injected content (skills, attachment inputs, the approved plan)
+ * Platform-injected content (skills, the conversation's Files, eval inputs)
  * physically lives in the platform dir, outside the workspace, so a real repo
  * is never polluted with Stigmer files (issue #173). But the agent reads from
  * the workspace: the Cursor SDK resolves paths against the workspace CWD, and
  * shell commands on both harnesses run there. The symlink is what makes the
  * `.stigmer/…` paths those agents are prompted with (skill locations,
- * `.stigmer/inputs/…` attachments) actually resolve. The native harness's
+ * `.stigmer/uploads/…` Files) actually resolve. The native harness's
  * FILE tools are the exception: their virtual-rooted backend refuses a path
  * whose real location leaves the workspace, so they reach `.stigmer/` through
  * a route instead (`activities/execute-deep-agent/platform-route.ts`),
@@ -20,7 +20,7 @@
  * - Created per turn, under the workspace turn lock — the link is a
  *   working-tree mutation, and re-pointing it while another session's turn is
  *   running on a shared tree would redirect that turn's reads mid-flight.
- *   the turn runtime creates it in its skill and attachment phases (which
+ *   the turn runtime creates it in its skill and File phases (which
  *   run after lock acquisition), for both harnesses; until #1096 the native
  *   orchestrator created it unconditionally right after the lock.
  * - Removed at turn end ({@link removeStigmerSymlink} in the activity's
@@ -146,7 +146,7 @@ function errnoCode(err: unknown): string | undefined {
 /**
  * Whether the workspace's `.stigmer` is, right now, the link
  * {@link ensureStigmerSymlink} makes to `platformDir`. A turn that mounts no
- * skill and no attachment creates no link, so this is also "does this turn
+ * skill and no File creates no link, so this is also "does this turn
  * expose platform content at all" — the native harness mounts its read-only
  * `.stigmer/` route on exactly the turns where the link would resolve.
  */

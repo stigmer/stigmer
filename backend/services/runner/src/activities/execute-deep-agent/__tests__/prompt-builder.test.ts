@@ -3,6 +3,7 @@ import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb
 import { buildEnhancedSystemPrompt, composeUserMessage, type TurnMessageInput } from "../prompt-builder.js";
 import { PLAN_MODE_DIRECTIVE } from "../../../shared/plan-mode-prompt.js";
 import type { ProvisionResult } from "../../../shared/workspace/types.js";
+import type { InputFileGroups } from "../../../shared/prompt-sections.js";
 
 function makeProvisionResult(overrides: Partial<ProvisionResult> = {}): ProvisionResult {
   return {
@@ -13,6 +14,9 @@ function makeProvisionResult(overrides: Partial<ProvisionResult> = {}): Provisio
     ...overrides,
   };
 }
+
+
+const NO_FILES: InputFileGroups = { message: [], conversation: [], references: [] };
 
 describe("buildEnhancedSystemPrompt", () => {
   it("starts with instructions", () => {
@@ -397,7 +401,7 @@ describe("buildEnhancedSystemPrompt", () => {
       containerRoot: "",
       skillsPromptSection: "",
     };
-    const planPath = ".stigmer/inputs/plan.md";
+    const planPath = ".stigmer/uploads/plan.md";
 
     it("appends the implement-plan directive pointing at the injected plan", () => {
       const prompt = buildEnhancedSystemPrompt({
@@ -407,7 +411,7 @@ describe("buildEnhancedSystemPrompt", () => {
       });
 
       expect(prompt).toContain("## Implement the approved plan");
-      expect(prompt).toContain("`.stigmer/inputs/plan.md`");
+      expect(prompt).toContain("`.stigmer/uploads/plan.md`");
       expect(prompt).toContain("APPROVED");
     });
 
@@ -449,7 +453,7 @@ describe("composeUserMessage (conversation catchup)", () => {
   const DIGEST =
     "Customer: I want a refund\nTeammate: I've refunded you in full.";
   const withCatchup = (conversationCatchup: string | undefined): string =>
-    composeUserMessage({ message: MESSAGE, inputFiles: [], workspaceFileRefs: [], ...(conversationCatchup !== undefined ? { conversationCatchup } : {}) });
+    composeUserMessage({ message: MESSAGE, inputFiles: NO_FILES, workspaceFileRefs: [], ...(conversationCatchup !== undefined ? { conversationCatchup } : {}) });
 
   it("prepends the framed catchup to the turn's user message — history durability rides the checkpointer, not the rebuilt system prompt", () => {
     const composed = withCatchup(DIGEST);
@@ -484,7 +488,7 @@ describe("composeUserMessage (conversation catchup)", () => {
 describe("composeUserMessage (the turn's payload rides the turn's message)", () => {
   const MESSAGE = "Review the attached report.";
   const message = (overrides: Partial<TurnMessageInput>): string =>
-    composeUserMessage({ message: MESSAGE, inputFiles: [], workspaceFileRefs: [], ...overrides });
+    composeUserMessage({ message: MESSAGE, inputFiles: NO_FILES, workspaceFileRefs: [], ...overrides });
 
   it("names the referenced workspace paths, one bullet each, before the message", () => {
     const composed = message({ workspaceFileRefs: ["src/config.yaml", "README.md"] });
@@ -495,62 +499,27 @@ describe("composeUserMessage (the turn's payload rides the turn's message)", () 
   });
 
   it("lists the input files with their size", () => {
-    // The section renders the injector's own result type (sizeBytes). A local
+    // The section renders the runtime's own record (sizeBytes). A local
     // structural twin with a `size` field used to live in the prompt builder,
     // and production wiring silently dropped the size — this pin holds the
     // real field name so that drift class cannot return.
     const composed = message({
-      inputFiles: [
-        { filename: "data.csv", relativePath: ".stigmer/inputs/data.csv", sizeBytes: 1024 },
-        { filename: "notes.md", relativePath: ".stigmer/inputs/notes.md", sizeBytes: 12 },
-      ],
+      inputFiles: {
+        ...NO_FILES,
+        message: [{ filename: "data.csv", relativePath: ".stigmer/uploads/data.csv", sizeBytes: 1024 }],
+        conversation: [{ filename: "notes.md", relativePath: ".stigmer/uploads/notes.md", sizeBytes: 12 }],
+      },
     });
 
     expect(composed).toContain("## Input Files");
-    expect(composed).toContain("`.stigmer/inputs/data.csv` (1024 bytes)");
-    expect(composed).toContain("`.stigmer/inputs/notes.md` (12 bytes)");
-  });
-
-  it("discloses a duplicate-renamed input file's original name", () => {
-    const composed = message({
-      inputFiles: [
-        { filename: "report.pdf", relativePath: ".stigmer/inputs/report.pdf", sizeBytes: 10 },
-        { filename: "report-2.pdf", relativePath: ".stigmer/inputs/report-2.pdf", sizeBytes: 20, renamedFrom: "report.pdf" },
-      ],
-    });
-
-    expect(composed).toContain("`.stigmer/inputs/report-2.pdf` (20 bytes) (renamed from duplicate 'report.pdf')");
-    // The first file keeps a clean entry — no disclosure noise.
-    expect(composed).toContain("`.stigmer/inputs/report.pdf` (10 bytes)\n");
-  });
-
-  it("lists a minted download URL beside its file with the presigned hand-off line (issue #532)", () => {
-    const composed = message({
-      inputFiles: [
-        { filename: "lease.pdf", relativePath: ".stigmer/inputs/lease.pdf", sizeBytes: 2048, downloadUrl: "https://r2.example/lease?sig=abc" },
-        { filename: "notes.md", relativePath: ".stigmer/inputs/notes.md", sizeBytes: 12 },
-      ],
-    });
-
-    expect(composed).toContain("`.stigmer/inputs/lease.pdf` (2048 bytes) — download URL: https://r2.example/lease?sig=abc");
-    // The URL-less file keeps a clean entry.
-    expect(composed).toContain("`.stigmer/inputs/notes.md` (12 bytes)\n");
-    expect(composed).toContain("These URLs are time-limited");
-  });
-
-  it("renders no hand-off line when no listed file carries a URL", () => {
-    const composed = message({
-      inputFiles: [{ filename: "local.csv", relativePath: ".stigmer/inputs/local.csv", sizeBytes: 5 }],
-    });
-
-    expect(composed).toContain("## Input Files");
-    expect(composed).not.toContain("download URL");
-    expect(composed).not.toContain("time-limited");
+    expect(composed).toContain("`.stigmer/uploads/data.csv` (1024 bytes)");
+    expect(composed).toContain("`.stigmer/uploads/notes.md` (12 bytes)");
+    expect(composed.indexOf("data.csv")).toBeLessThan(composed.indexOf("notes.md"));
   });
 
   it("orders the payload first, the catchup next and what the user typed last, each set off by a rule", () => {
     const composed = message({
-      inputFiles: [{ filename: "a.txt", relativePath: ".stigmer/inputs/a.txt", sizeBytes: 1 }],
+      inputFiles: { ...NO_FILES, message: [{ filename: "a.txt", relativePath: ".stigmer/uploads/a.txt", sizeBytes: 1 }] },
       workspaceFileRefs: ["src/a.ts"],
       conversationCatchup: "Customer: hello",
     });

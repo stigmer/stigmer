@@ -1,5 +1,5 @@
 /**
- * Git write-back coordinator for workspace entries.
+ * Git write-back coordinator for the session's git repositories.
  *
  * Commits the workspace's changes to the session's write-back branch, pushes,
  * and keeps one pull request open per session. The branch and PR are
@@ -35,7 +35,7 @@ import {
   type WorkspaceWriteBack,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 import { GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
-import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import type { WorkspaceBackend, ProvisionResult } from "./types.js";
 import { gitCommitAsAgent } from "./git-identity.js";
 import { runNetworkGit } from "./git-credential.js";
@@ -109,7 +109,8 @@ export class WriteBackCoordinator {
     /** The run's repository tokens; each entry takes its own by name and URL. */
     repositories: readonly RepositoryToken[];
     provisionResults: readonly ProvisionResult[];
-    workspaceEntries: readonly WorkspaceEntry[];
+    /** The session's resources; each git repository's write-back mode and token are read by its name. */
+    resources: readonly SessionResource[];
     workspaceBackend: WorkspaceBackend;
   }) {
     this.writeBacks = opts.writeBacks;
@@ -119,7 +120,7 @@ export class WriteBackCoordinator {
     // sessions created near-simultaneously would collide on a short prefix.
     this.branchName = `stigmer/${opts.sessionId}`;
 
-    this.initEligibleEntries(opts.provisionResults, opts.workspaceEntries, opts.repositories);
+    this.initEligibleEntries(opts.provisionResults, opts.resources, opts.repositories);
   }
 
   get hasEligibleEntries(): boolean {
@@ -149,16 +150,15 @@ export class WriteBackCoordinator {
 
   private initEligibleEntries(
     provisionResults: readonly ProvisionResult[],
-    workspaceEntries: readonly WorkspaceEntry[],
+    resources: readonly SessionResource[],
     repositories: readonly RepositoryToken[],
   ): void {
     const modeMap = new Map<string, GitWriteBackMode>();
     const tokenMap = new Map<string, string>();
-    for (const entry of workspaceEntries) {
-      const source = entry.source;
-      if (source?.source.case === "gitRepo") {
-        modeMap.set(entry.name, source.source.value.writeBackMode);
-        tokenMap.set(entry.name, repositoryTokenFor(repositories, entry.name, source.source.value.url) ?? "");
+    for (const entry of resources) {
+      if (entry.resource.case === "gitRepository") {
+        modeMap.set(entry.name, entry.resource.value.writeBackMode);
+        tokenMap.set(entry.name, repositoryTokenFor(repositories, entry.name, entry.resource.value.url) ?? "");
       }
     }
 

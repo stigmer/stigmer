@@ -5,7 +5,7 @@
 
 import { Run } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { PauseRunInput, RecoverRunInput, ResumeRunInput, RunUpdateStatusInput, TerminateRunInput, UpdateRunInput, UpdateStatusResponse, UploadAttachmentRequest, UploadAttachmentResponse } from "./io_pbjs";
+import { PauseRunInput, RecoverRunInput, ResumeRunInput, RunUpdateStatusInput, TerminateRunInput, UpdateRunInput, UpdateStatusResponse } from "./io_pbjs";
 import { ApiResourceId } from "../../../commons/apiresource/io_pbjs";
 
 /**
@@ -132,21 +132,6 @@ export const RunCommandController = {
       name: "resume",
       I: ResumeRunInput,
       O: Run,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Upload a file attachment for use in a run.
-     *
-     * Pre-uploads files to artifact storage before creating a run.
-     * The returned storage_key can be used in Attachment.storage_key when
-     * creating the run.
-     *
-     * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.uploadAttachment
-     */
-    uploadAttachment: {
-      name: "uploadAttachment",
-      I: UploadAttachmentRequest,
-      O: UploadAttachmentResponse,
       kind: MethodKind.Unary,
     },
   }

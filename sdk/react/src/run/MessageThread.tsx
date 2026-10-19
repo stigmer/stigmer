@@ -9,7 +9,7 @@ import {
   InteractionMode,
   RunPhase,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
   deletedReferenceLabel,
@@ -30,7 +30,7 @@ import { runPhaseOf } from "./run-phases.js";
 import { MessageEntry, type MessageEntryProps, type ThreadMessage } from "./MessageEntry.js";
 import { RunScores } from "../score/RunScores.js";
 import { RunScoresProvider, useRunScoresEnabled } from "../score/RunScoresContext.js";
-import type { MessageAttachmentView } from "./MessageAttachments.js";
+import { messageFileViews, type MessageAttachmentView } from "./MessageAttachments.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { SubagentSection, subagentSubjectOf } from "./SubagentSection.js";
 import { RunPhaseBadge } from "./RunPhaseBadge.js";
@@ -267,14 +267,15 @@ export interface MessageThreadProps {
    */
   readonly showFileReviewRecords?: boolean;
   /**
-   * Workspace entries from the session spec. When provided, file
-   * paths in tool call rendering become interactive — git-sourced
-   * paths open on GitHub, local paths offer copy-to-clipboard.
+   * The conversation's resources from the session spec. When provided,
+   * file paths in tool call rendering become interactive: a path in a git
+   * repository opens on GitHub, a path in a local folder offers
+   * copy-to-clipboard.
    *
    * Passed to {@link FilePathContext} for consumption by
    * {@link FilePathLink} components deep in the tree.
    */
-  readonly workspaceEntries?: readonly WorkspaceEntry[];
+  readonly resources?: readonly SessionResource[];
   /**
    * Optional override for file path click behavior. Platform
    * builders use this to integrate their own file viewer or
@@ -416,7 +417,7 @@ export type ThreadItem =
   | { readonly kind: "execution-error"; readonly error: string; readonly retryMessage?: string; readonly key: string }
   | { readonly kind: "approval-request"; readonly toolUse: ToolUse; readonly key: string }
   | { readonly kind: "file-review-record"; readonly fileReviewSet: FileReviewSet; readonly key: string }
-  | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
+  | { readonly kind: "setup-progress"; readonly resources: readonly SessionResource[]; readonly serverPhase?: string; readonly isAwaitingResponse?: boolean; readonly key: string }
   | { readonly kind: "recalled-memories"; readonly recall: MemoryRecall; readonly facts: readonly RecalledMemoryFact[]; readonly key: string }
   | { readonly kind: "context-compacted"; readonly compacted: CompactedItem; readonly key: string }
   | { readonly kind: "agent-version"; readonly versionHash: string; readonly label: string; readonly key: string }
@@ -480,7 +481,7 @@ export interface BuildThreadItemsOptions {
   readonly pendingUserMessage?: string | null;
   /** Emit a bottom approval card for a waiting tool use that has no row of its own. */
   readonly includeApprovals?: boolean;
-  readonly workspaceEntries?: readonly WorkspaceEntry[];
+  readonly resources?: readonly SessionResource[];
   readonly pendingMessageFailed?: boolean;
   /** Mark the live turn's message editable. */
   readonly editableActiveTurn?: boolean;
@@ -670,7 +671,7 @@ export function buildThreadItems(
   const {
     pendingUserMessage,
     includeApprovals = false,
-    workspaceEntries,
+    resources,
     pendingMessageFailed = false,
     editableActiveTurn = false,
     includeFileReviewRecords = false,
@@ -810,7 +811,8 @@ export function buildThreadItems(
       // bridging key lets React update the pending bubble in place.
       const bridgePending =
         isActiveTurn && pendingUserMessage != null && promptText === pendingUserMessage;
-      const specAttachments = run?.spec?.attachments;
+      // The files the server recorded for the turn's message.
+      const messageFiles = messageFileViews(run?.status?.messageFiles ?? []);
       items.push({
         kind: "message",
         message: { kind: "user", id: turn.userMessage?.id ?? `${runId}.user`, text: promptText },
@@ -820,8 +822,7 @@ export function buildThreadItems(
         isEditable: isActiveTurn && editableActiveTurn,
         // The turn's mode marks the bubble (a "Plan" pill on Plan turns).
         interactionMode: run?.spec?.interactionMode,
-        attachments:
-          specAttachments && specAttachments.length > 0 ? specAttachments : undefined,
+        attachments: messageFiles.length > 0 ? messageFiles : undefined,
         executionId: runId,
       });
     }
@@ -957,14 +958,14 @@ export function buildThreadItems(
     if (phase === undefined || phase === "pending") {
       items.push({
         kind: "setup-progress",
-        workspaceEntries: workspaceEntries ?? [],
+        resources: resources ?? [],
         serverPhase: lastRun?.status?.setupProgress?.currentPhase || undefined,
         key: "setup-progress",
       });
     } else if (phase === "running") {
       items.push({
         kind: "setup-progress",
-        workspaceEntries: workspaceEntries ?? [],
+        resources: resources ?? [],
         isAwaitingResponse: true,
         key: "setup-progress",
       });
@@ -1112,7 +1113,7 @@ export function MessageThread({
   answeringToolUseIds,
   answerErrors,
   showFileReviewRecords = false,
-  workspaceEntries,
+  resources,
   onFilePathClick,
   sandboxWorkspaceRoot,
   agentVersionLabel,
@@ -1139,7 +1140,7 @@ export function MessageThread({
       buildThreadItems(turns, runs, {
         pendingUserMessage,
         includeApprovals,
-        workspaceEntries,
+        resources,
         pendingMessageFailed,
         editableActiveTurn,
         includeFileReviewRecords: showFileReviewRecords,
@@ -1147,7 +1148,7 @@ export function MessageThread({
         pendingAttachments,
         agentVersionLabel,
       }),
-    [turns, runs, pendingUserMessage, includeApprovals, workspaceEntries, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingAttachments, agentVersionLabel],
+    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingAttachments, agentVersionLabel],
   );
 
   useKeyStability(items);
@@ -1170,10 +1171,10 @@ export function MessageThread({
 
   const filePathCtx = useMemo<FilePathContextValue>(
     () => ({
-      workspaceEntries: workspaceEntries ?? [],
+      resources: resources ?? [],
       onFilePathClick,
     }),
-    [workspaceEntries, onFilePathClick],
+    [resources, onFilePathClick],
   );
 
   const sandboxCtx = useMemo<SandboxContextValue>(
@@ -1544,7 +1545,7 @@ export function ThreadItemRenderer({
       const Setup = slots?.SetupProgress ?? SetupProgress;
       return (
         <Setup
-          workspaceEntries={item.workspaceEntries}
+          resources={item.resources}
           serverPhase={item.serverPhase}
           isAwaitingResponse={item.isAwaitingResponse}
         />

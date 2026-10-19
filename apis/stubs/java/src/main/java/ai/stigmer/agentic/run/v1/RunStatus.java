@@ -47,6 +47,7 @@ private static final long serialVersionUID = 0L;
     agentVersionHash_ = "";
     approvalMode_ = 0;
     stopCause_ = "";
+    messageFiles_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -396,10 +397,10 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Git write-back outcomes for workspace entries that had changes.
    *
-   * One entry per git-backed workspace entry where the agent modified
-   * files and write_back_mode was enabled on the GitRepoSource. Omitted
-   * for workspace entries with no changes, non-git sources, or disabled
-   * write-back mode.
+   * One entry per git repository the conversation holds where the agent
+   * modified files and write_back_mode was enabled on the
+   * GitRepositoryResource. Omitted for repositories with no changes, local
+   * folders, or disabled write-back mode.
    *
    * Populated during post-run processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -416,10 +417,10 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Git write-back outcomes for workspace entries that had changes.
    *
-   * One entry per git-backed workspace entry where the agent modified
-   * files and write_back_mode was enabled on the GitRepoSource. Omitted
-   * for workspace entries with no changes, non-git sources, or disabled
-   * write-back mode.
+   * One entry per git repository the conversation holds where the agent
+   * modified files and write_back_mode was enabled on the
+   * GitRepositoryResource. Omitted for repositories with no changes, local
+   * folders, or disabled write-back mode.
    *
    * Populated during post-run processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -437,10 +438,10 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Git write-back outcomes for workspace entries that had changes.
    *
-   * One entry per git-backed workspace entry where the agent modified
-   * files and write_back_mode was enabled on the GitRepoSource. Omitted
-   * for workspace entries with no changes, non-git sources, or disabled
-   * write-back mode.
+   * One entry per git repository the conversation holds where the agent
+   * modified files and write_back_mode was enabled on the
+   * GitRepositoryResource. Omitted for repositories with no changes, local
+   * folders, or disabled write-back mode.
    *
    * Populated during post-run processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -457,10 +458,10 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Git write-back outcomes for workspace entries that had changes.
    *
-   * One entry per git-backed workspace entry where the agent modified
-   * files and write_back_mode was enabled on the GitRepoSource. Omitted
-   * for workspace entries with no changes, non-git sources, or disabled
-   * write-back mode.
+   * One entry per git repository the conversation holds where the agent
+   * modified files and write_back_mode was enabled on the
+   * GitRepositoryResource. Omitted for repositories with no changes, local
+   * folders, or disabled write-back mode.
    *
    * Populated during post-run processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -477,10 +478,10 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Git write-back outcomes for workspace entries that had changes.
    *
-   * One entry per git-backed workspace entry where the agent modified
-   * files and write_back_mode was enabled on the GitRepoSource. Omitted
-   * for workspace entries with no changes, non-git sources, or disabled
-   * write-back mode.
+   * One entry per git repository the conversation holds where the agent
+   * modified files and write_back_mode was enabled on the
+   * GitRepositoryResource. Omitted for repositories with no changes, local
+   * folders, or disabled write-back mode.
    *
    * Populated during post-run processing. Each entry tracks the
    * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -1194,6 +1195,82 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int MESSAGE_FILES_FIELD_NUMBER = 38;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.session.v1.ContentBlock> messageFiles_;
+  /**
+   * <pre>
+   * The files this turn's message carried, as content blocks: an image
+   * block for an image File, a document block for any other, each with a
+   * file source naming the conversation's own copy. The turn's
+   * user.message event carries them after its text.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.session.v1.ContentBlock> getMessageFilesList() {
+    return messageFiles_;
+  }
+  /**
+   * <pre>
+   * The files this turn's message carried, as content blocks: an image
+   * block for an image File, a document block for any other, each with a
+   * file source naming the conversation's own copy. The turn's
+   * user.message event carries them after its text.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.session.v1.ContentBlockOrBuilder> 
+      getMessageFilesOrBuilderList() {
+    return messageFiles_;
+  }
+  /**
+   * <pre>
+   * The files this turn's message carried, as content blocks: an image
+   * block for an image File, a document block for any other, each with a
+   * file source naming the conversation's own copy. The turn's
+   * user.message event carries them after its text.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+   */
+  @java.lang.Override
+  public int getMessageFilesCount() {
+    return messageFiles_.size();
+  }
+  /**
+   * <pre>
+   * The files this turn's message carried, as content blocks: an image
+   * block for an image File, a document block for any other, each with a
+   * file source naming the conversation's own copy. The turn's
+   * user.message event carries them after its text.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.ContentBlock getMessageFiles(int index) {
+    return messageFiles_.get(index);
+  }
+  /**
+   * <pre>
+   * The files this turn's message carried, as content blocks: an image
+   * block for an image File, a document block for any other, each with a
+   * file source naming the conversation's own copy. The turn's
+   * user.message event carries them after its text.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.ContentBlockOrBuilder getMessageFilesOrBuilder(
+      int index) {
+    return messageFiles_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1267,6 +1344,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < fileChanges_.size(); i++) {
       output.writeMessage(37, fileChanges_.get(i));
+    }
+    for (int i = 0; i < messageFiles_.size(); i++) {
+      output.writeMessage(38, messageFiles_.get(i));
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -1369,6 +1449,15 @@ private static final long serialVersionUID = 0L;
           }
           size += 2 * count;
         }
+
+        {
+          final int count = messageFiles_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(messageFiles_.get(i));
+          }
+          size += 2 * count;
+        }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -1458,6 +1547,8 @@ private static final long serialVersionUID = 0L;
     }
     if (!getStopCause()
         .equals(other.getStopCause())) return false;
+    if (!getMessageFilesList()
+        .equals(other.getMessageFilesList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1537,6 +1628,10 @@ private static final long serialVersionUID = 0L;
     }
     hash = (37 * hash) + STOP_CAUSE_FIELD_NUMBER;
     hash = (53 * hash) + getStopCause().hashCode();
+    if (getMessageFilesCount() > 0) {
+      hash = (37 * hash) + MESSAGE_FILES_FIELD_NUMBER;
+      hash = (53 * hash) + getMessageFilesList().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1688,6 +1783,7 @@ private static final long serialVersionUID = 0L;
         internalGetRunConfigFieldBuilder();
         internalGetCredentialsFieldBuilder();
         internalGetEvalFilesFieldBuilder();
+        internalGetMessageFilesFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1773,6 +1869,13 @@ private static final long serialVersionUID = 0L;
         evalFilesBuilder_ = null;
       }
       stopCause_ = "";
+      if (messageFilesBuilder_ == null) {
+        messageFiles_ = java.util.Collections.emptyList();
+      } else {
+        messageFiles_ = null;
+        messageFilesBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00200000);
       return this;
     }
 
@@ -1832,6 +1935,15 @@ private static final long serialVersionUID = 0L;
         result.fileChanges_ = fileChanges_;
       } else {
         result.fileChanges_ = fileChangesBuilder_.build();
+      }
+      if (messageFilesBuilder_ == null) {
+        if (((bitField0_ & 0x00200000) != 0)) {
+          messageFiles_ = java.util.Collections.unmodifiableList(messageFiles_);
+          bitField0_ = (bitField0_ & ~0x00200000);
+        }
+        result.messageFiles_ = messageFiles_;
+      } else {
+        result.messageFiles_ = messageFilesBuilder_.build();
       }
     }
 
@@ -2081,6 +2193,32 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00100000;
         onChanged();
       }
+      if (messageFilesBuilder_ == null) {
+        if (!other.messageFiles_.isEmpty()) {
+          if (messageFiles_.isEmpty()) {
+            messageFiles_ = other.messageFiles_;
+            bitField0_ = (bitField0_ & ~0x00200000);
+          } else {
+            ensureMessageFilesIsMutable();
+            messageFiles_.addAll(other.messageFiles_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.messageFiles_.isEmpty()) {
+          if (messageFilesBuilder_.isEmpty()) {
+            messageFilesBuilder_.dispose();
+            messageFilesBuilder_ = null;
+            messageFiles_ = other.messageFiles_;
+            bitField0_ = (bitField0_ & ~0x00200000);
+            messageFilesBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetMessageFilesFieldBuilder() : null;
+          } else {
+            messageFilesBuilder_.addAllMessages(other.messageFiles_);
+          }
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -2249,6 +2387,19 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 298
+            case 306: {
+              ai.stigmer.agentic.session.v1.ContentBlock m =
+                  input.readMessage(
+                      ai.stigmer.agentic.session.v1.ContentBlock.parser(),
+                      extensionRegistry);
+              if (messageFilesBuilder_ == null) {
+                ensureMessageFilesIsMutable();
+                messageFiles_.add(m);
+              } else {
+                messageFilesBuilder_.addMessage(m);
+              }
+              break;
+            } // case 306
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -3293,10 +3444,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git write-back outcomes for workspace entries that had changes.
      *
-     * One entry per git-backed workspace entry where the agent modified
-     * files and write_back_mode was enabled on the GitRepoSource. Omitted
-     * for workspace entries with no changes, non-git sources, or disabled
-     * write-back mode.
+     * One entry per git repository the conversation holds where the agent
+     * modified files and write_back_mode was enabled on the
+     * GitRepositoryResource. Omitted for repositories with no changes, local
+     * folders, or disabled write-back mode.
      *
      * Populated during post-run processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -3316,10 +3467,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git write-back outcomes for workspace entries that had changes.
      *
-     * One entry per git-backed workspace entry where the agent modified
-     * files and write_back_mode was enabled on the GitRepoSource. Omitted
-     * for workspace entries with no changes, non-git sources, or disabled
-     * write-back mode.
+     * One entry per git repository the conversation holds where the agent
+     * modified files and write_back_mode was enabled on the
+     * GitRepositoryResource. Omitted for repositories with no changes, local
+     * folders, or disabled write-back mode.
      *
      * Populated during post-run processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -3339,10 +3490,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git write-back outcomes for workspace entries that had changes.
      *
-     * One entry per git-backed workspace entry where the agent modified
-     * files and write_back_mode was enabled on the GitRepoSource. Omitted
-     * for workspace entries with no changes, non-git sources, or disabled
-     * write-back mode.
+     * One entry per git repository the conversation holds where the agent
+     * modified files and write_back_mode was enabled on the
+     * GitRepositoryResource. Omitted for repositories with no changes, local
+     * folders, or disabled write-back mode.
      *
      * Populated during post-run processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -3362,10 +3513,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git write-back outcomes for workspace entries that had changes.
      *
-     * One entry per git-backed workspace entry where the agent modified
-     * files and write_back_mode was enabled on the GitRepoSource. Omitted
-     * for workspace entries with no changes, non-git sources, or disabled
-     * write-back mode.
+     * One entry per git repository the conversation holds where the agent
+     * modified files and write_back_mode was enabled on the
+     * GitRepositoryResource. Omitted for repositories with no changes, local
+     * folders, or disabled write-back mode.
      *
      * Populated during post-run processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -3392,10 +3543,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git write-back outcomes for workspace entries that had changes.
      *
-     * One entry per git-backed workspace entry where the agent modified
-     * files and write_back_mode was enabled on the GitRepoSource. Omitted
-     * for workspace entries with no changes, non-git sources, or disabled
-     * write-back mode.
+     * One entry per git repository the conversation holds where the agent
+     * modified files and write_back_mode was enabled on the
+     * GitRepositoryResource. Omitted for repositories with no changes, local
+     * folders, or disabled write-back mode.
      *
      * Populated during post-run processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -3419,10 +3570,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git write-back outcomes for workspace entries that had changes.
      *
-     * One entry per git-backed workspace entry where the agent modified
-     * files and write_back_mode was enabled on the GitRepoSource. Omitted
-     * for workspace entries with no changes, non-git sources, or disabled
-     * write-back mode.
+     * One entry per git repository the conversation holds where the agent
+     * modified files and write_back_mode was enabled on the
+     * GitRepositoryResource. Omitted for repositories with no changes, local
+     * folders, or disabled write-back mode.
      *
      * Populated during post-run processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -3448,10 +3599,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git write-back outcomes for workspace entries that had changes.
      *
-     * One entry per git-backed workspace entry where the agent modified
-     * files and write_back_mode was enabled on the GitRepoSource. Omitted
-     * for workspace entries with no changes, non-git sources, or disabled
-     * write-back mode.
+     * One entry per git repository the conversation holds where the agent
+     * modified files and write_back_mode was enabled on the
+     * GitRepositoryResource. Omitted for repositories with no changes, local
+     * folders, or disabled write-back mode.
      *
      * Populated during post-run processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -3478,10 +3629,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git write-back outcomes for workspace entries that had changes.
      *
-     * One entry per git-backed workspace entry where the agent modified
-     * files and write_back_mode was enabled on the GitRepoSource. Omitted
-     * for workspace entries with no changes, non-git sources, or disabled
-     * write-back mode.
+     * One entry per git repository the conversation holds where the agent
+     * modified files and write_back_mode was enabled on the
+     * GitRepositoryResource. Omitted for repositories with no changes, local
+     * folders, or disabled write-back mode.
      *
      * Populated during post-run processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -3505,10 +3656,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git write-back outcomes for workspace entries that had changes.
      *
-     * One entry per git-backed workspace entry where the agent modified
-     * files and write_back_mode was enabled on the GitRepoSource. Omitted
-     * for workspace entries with no changes, non-git sources, or disabled
-     * write-back mode.
+     * One entry per git repository the conversation holds where the agent
+     * modified files and write_back_mode was enabled on the
+     * GitRepositoryResource. Omitted for repositories with no changes, local
+     * folders, or disabled write-back mode.
      *
      * Populated during post-run processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -3532,10 +3683,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git write-back outcomes for workspace entries that had changes.
      *
-     * One entry per git-backed workspace entry where the agent modified
-     * files and write_back_mode was enabled on the GitRepoSource. Omitted
-     * for workspace entries with no changes, non-git sources, or disabled
-     * write-back mode.
+     * One entry per git repository the conversation holds where the agent
+     * modified files and write_back_mode was enabled on the
+     * GitRepositoryResource. Omitted for repositories with no changes, local
+     * folders, or disabled write-back mode.
      *
      * Populated during post-run processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -3560,10 +3711,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git write-back outcomes for workspace entries that had changes.
      *
-     * One entry per git-backed workspace entry where the agent modified
-     * files and write_back_mode was enabled on the GitRepoSource. Omitted
-     * for workspace entries with no changes, non-git sources, or disabled
-     * write-back mode.
+     * One entry per git repository the conversation holds where the agent
+     * modified files and write_back_mode was enabled on the
+     * GitRepositoryResource. Omitted for repositories with no changes, local
+     * folders, or disabled write-back mode.
      *
      * Populated during post-run processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -3586,10 +3737,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git write-back outcomes for workspace entries that had changes.
      *
-     * One entry per git-backed workspace entry where the agent modified
-     * files and write_back_mode was enabled on the GitRepoSource. Omitted
-     * for workspace entries with no changes, non-git sources, or disabled
-     * write-back mode.
+     * One entry per git repository the conversation holds where the agent
+     * modified files and write_back_mode was enabled on the
+     * GitRepositoryResource. Omitted for repositories with no changes, local
+     * folders, or disabled write-back mode.
      *
      * Populated during post-run processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -3612,10 +3763,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git write-back outcomes for workspace entries that had changes.
      *
-     * One entry per git-backed workspace entry where the agent modified
-     * files and write_back_mode was enabled on the GitRepoSource. Omitted
-     * for workspace entries with no changes, non-git sources, or disabled
-     * write-back mode.
+     * One entry per git repository the conversation holds where the agent
+     * modified files and write_back_mode was enabled on the
+     * GitRepositoryResource. Omitted for repositories with no changes, local
+     * folders, or disabled write-back mode.
      *
      * Populated during post-run processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -3632,10 +3783,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git write-back outcomes for workspace entries that had changes.
      *
-     * One entry per git-backed workspace entry where the agent modified
-     * files and write_back_mode was enabled on the GitRepoSource. Omitted
-     * for workspace entries with no changes, non-git sources, or disabled
-     * write-back mode.
+     * One entry per git repository the conversation holds where the agent
+     * modified files and write_back_mode was enabled on the
+     * GitRepositoryResource. Omitted for repositories with no changes, local
+     * folders, or disabled write-back mode.
      *
      * Populated during post-run processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -3655,10 +3806,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git write-back outcomes for workspace entries that had changes.
      *
-     * One entry per git-backed workspace entry where the agent modified
-     * files and write_back_mode was enabled on the GitRepoSource. Omitted
-     * for workspace entries with no changes, non-git sources, or disabled
-     * write-back mode.
+     * One entry per git repository the conversation holds where the agent
+     * modified files and write_back_mode was enabled on the
+     * GitRepositoryResource. Omitted for repositories with no changes, local
+     * folders, or disabled write-back mode.
      *
      * Populated during post-run processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -3679,10 +3830,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git write-back outcomes for workspace entries that had changes.
      *
-     * One entry per git-backed workspace entry where the agent modified
-     * files and write_back_mode was enabled on the GitRepoSource. Omitted
-     * for workspace entries with no changes, non-git sources, or disabled
-     * write-back mode.
+     * One entry per git repository the conversation holds where the agent
+     * modified files and write_back_mode was enabled on the
+     * GitRepositoryResource. Omitted for repositories with no changes, local
+     * folders, or disabled write-back mode.
      *
      * Populated during post-run processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -3699,10 +3850,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git write-back outcomes for workspace entries that had changes.
      *
-     * One entry per git-backed workspace entry where the agent modified
-     * files and write_back_mode was enabled on the GitRepoSource. Omitted
-     * for workspace entries with no changes, non-git sources, or disabled
-     * write-back mode.
+     * One entry per git repository the conversation holds where the agent
+     * modified files and write_back_mode was enabled on the
+     * GitRepositoryResource. Omitted for repositories with no changes, local
+     * folders, or disabled write-back mode.
      *
      * Populated during post-run processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -3720,10 +3871,10 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Git write-back outcomes for workspace entries that had changes.
      *
-     * One entry per git-backed workspace entry where the agent modified
-     * files and write_back_mode was enabled on the GitRepoSource. Omitted
-     * for workspace entries with no changes, non-git sources, or disabled
-     * write-back mode.
+     * One entry per git repository the conversation holds where the agent
+     * modified files and write_back_mode was enabled on the
+     * GitRepositoryResource. Omitted for repositories with no changes, local
+     * folders, or disabled write-back mode.
      *
      * Populated during post-run processing. Each entry tracks the
      * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
@@ -6210,6 +6361,372 @@ private static final long serialVersionUID = 0L;
       bitField0_ |= 0x00100000;
       onChanged();
       return this;
+    }
+
+    private java.util.List<ai.stigmer.agentic.session.v1.ContentBlock> messageFiles_ =
+      java.util.Collections.emptyList();
+    private void ensureMessageFilesIsMutable() {
+      if (!((bitField0_ & 0x00200000) != 0)) {
+        messageFiles_ = new java.util.ArrayList<ai.stigmer.agentic.session.v1.ContentBlock>(messageFiles_);
+        bitField0_ |= 0x00200000;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.session.v1.ContentBlock, ai.stigmer.agentic.session.v1.ContentBlock.Builder, ai.stigmer.agentic.session.v1.ContentBlockOrBuilder> messageFilesBuilder_;
+
+    /**
+     * <pre>
+     * The files this turn's message carried, as content blocks: an image
+     * block for an image File, a document block for any other, each with a
+     * file source naming the conversation's own copy. The turn's
+     * user.message event carries them after its text.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.session.v1.ContentBlock> getMessageFilesList() {
+      if (messageFilesBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(messageFiles_);
+      } else {
+        return messageFilesBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * The files this turn's message carried, as content blocks: an image
+     * block for an image File, a document block for any other, each with a
+     * file source naming the conversation's own copy. The turn's
+     * user.message event carries them after its text.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+     */
+    public int getMessageFilesCount() {
+      if (messageFilesBuilder_ == null) {
+        return messageFiles_.size();
+      } else {
+        return messageFilesBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * The files this turn's message carried, as content blocks: an image
+     * block for an image File, a document block for any other, each with a
+     * file source naming the conversation's own copy. The turn's
+     * user.message event carries them after its text.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.ContentBlock getMessageFiles(int index) {
+      if (messageFilesBuilder_ == null) {
+        return messageFiles_.get(index);
+      } else {
+        return messageFilesBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * The files this turn's message carried, as content blocks: an image
+     * block for an image File, a document block for any other, each with a
+     * file source naming the conversation's own copy. The turn's
+     * user.message event carries them after its text.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+     */
+    public Builder setMessageFiles(
+        int index, ai.stigmer.agentic.session.v1.ContentBlock value) {
+      if (messageFilesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureMessageFilesIsMutable();
+        messageFiles_.set(index, value);
+        onChanged();
+      } else {
+        messageFilesBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The files this turn's message carried, as content blocks: an image
+     * block for an image File, a document block for any other, each with a
+     * file source naming the conversation's own copy. The turn's
+     * user.message event carries them after its text.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+     */
+    public Builder setMessageFiles(
+        int index, ai.stigmer.agentic.session.v1.ContentBlock.Builder builderForValue) {
+      if (messageFilesBuilder_ == null) {
+        ensureMessageFilesIsMutable();
+        messageFiles_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        messageFilesBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The files this turn's message carried, as content blocks: an image
+     * block for an image File, a document block for any other, each with a
+     * file source naming the conversation's own copy. The turn's
+     * user.message event carries them after its text.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+     */
+    public Builder addMessageFiles(ai.stigmer.agentic.session.v1.ContentBlock value) {
+      if (messageFilesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureMessageFilesIsMutable();
+        messageFiles_.add(value);
+        onChanged();
+      } else {
+        messageFilesBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The files this turn's message carried, as content blocks: an image
+     * block for an image File, a document block for any other, each with a
+     * file source naming the conversation's own copy. The turn's
+     * user.message event carries them after its text.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+     */
+    public Builder addMessageFiles(
+        int index, ai.stigmer.agentic.session.v1.ContentBlock value) {
+      if (messageFilesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureMessageFilesIsMutable();
+        messageFiles_.add(index, value);
+        onChanged();
+      } else {
+        messageFilesBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The files this turn's message carried, as content blocks: an image
+     * block for an image File, a document block for any other, each with a
+     * file source naming the conversation's own copy. The turn's
+     * user.message event carries them after its text.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+     */
+    public Builder addMessageFiles(
+        ai.stigmer.agentic.session.v1.ContentBlock.Builder builderForValue) {
+      if (messageFilesBuilder_ == null) {
+        ensureMessageFilesIsMutable();
+        messageFiles_.add(builderForValue.build());
+        onChanged();
+      } else {
+        messageFilesBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The files this turn's message carried, as content blocks: an image
+     * block for an image File, a document block for any other, each with a
+     * file source naming the conversation's own copy. The turn's
+     * user.message event carries them after its text.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+     */
+    public Builder addMessageFiles(
+        int index, ai.stigmer.agentic.session.v1.ContentBlock.Builder builderForValue) {
+      if (messageFilesBuilder_ == null) {
+        ensureMessageFilesIsMutable();
+        messageFiles_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        messageFilesBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The files this turn's message carried, as content blocks: an image
+     * block for an image File, a document block for any other, each with a
+     * file source naming the conversation's own copy. The turn's
+     * user.message event carries them after its text.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+     */
+    public Builder addAllMessageFiles(
+        java.lang.Iterable<? extends ai.stigmer.agentic.session.v1.ContentBlock> values) {
+      if (messageFilesBuilder_ == null) {
+        ensureMessageFilesIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, messageFiles_);
+        onChanged();
+      } else {
+        messageFilesBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The files this turn's message carried, as content blocks: an image
+     * block for an image File, a document block for any other, each with a
+     * file source naming the conversation's own copy. The turn's
+     * user.message event carries them after its text.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+     */
+    public Builder clearMessageFiles() {
+      if (messageFilesBuilder_ == null) {
+        messageFiles_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00200000);
+        onChanged();
+      } else {
+        messageFilesBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The files this turn's message carried, as content blocks: an image
+     * block for an image File, a document block for any other, each with a
+     * file source naming the conversation's own copy. The turn's
+     * user.message event carries them after its text.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+     */
+    public Builder removeMessageFiles(int index) {
+      if (messageFilesBuilder_ == null) {
+        ensureMessageFilesIsMutable();
+        messageFiles_.remove(index);
+        onChanged();
+      } else {
+        messageFilesBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * The files this turn's message carried, as content blocks: an image
+     * block for an image File, a document block for any other, each with a
+     * file source naming the conversation's own copy. The turn's
+     * user.message event carries them after its text.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.ContentBlock.Builder getMessageFilesBuilder(
+        int index) {
+      return internalGetMessageFilesFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * The files this turn's message carried, as content blocks: an image
+     * block for an image File, a document block for any other, each with a
+     * file source naming the conversation's own copy. The turn's
+     * user.message event carries them after its text.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.ContentBlockOrBuilder getMessageFilesOrBuilder(
+        int index) {
+      if (messageFilesBuilder_ == null) {
+        return messageFiles_.get(index);  } else {
+        return messageFilesBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * The files this turn's message carried, as content blocks: an image
+     * block for an image File, a document block for any other, each with a
+     * file source naming the conversation's own copy. The turn's
+     * user.message event carries them after its text.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.session.v1.ContentBlockOrBuilder> 
+         getMessageFilesOrBuilderList() {
+      if (messageFilesBuilder_ != null) {
+        return messageFilesBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(messageFiles_);
+      }
+    }
+    /**
+     * <pre>
+     * The files this turn's message carried, as content blocks: an image
+     * block for an image File, a document block for any other, each with a
+     * file source naming the conversation's own copy. The turn's
+     * user.message event carries them after its text.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.ContentBlock.Builder addMessageFilesBuilder() {
+      return internalGetMessageFilesFieldBuilder().addBuilder(
+          ai.stigmer.agentic.session.v1.ContentBlock.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * The files this turn's message carried, as content blocks: an image
+     * block for an image File, a document block for any other, each with a
+     * file source naming the conversation's own copy. The turn's
+     * user.message event carries them after its text.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.ContentBlock.Builder addMessageFilesBuilder(
+        int index) {
+      return internalGetMessageFilesFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.session.v1.ContentBlock.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * The files this turn's message carried, as content blocks: an image
+     * block for an image File, a document block for any other, each with a
+     * file source naming the conversation's own copy. The turn's
+     * user.message event carries them after its text.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.ContentBlock message_files = 38 [json_name = "messageFiles"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.session.v1.ContentBlock.Builder> 
+         getMessageFilesBuilderList() {
+      return internalGetMessageFilesFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.session.v1.ContentBlock, ai.stigmer.agentic.session.v1.ContentBlock.Builder, ai.stigmer.agentic.session.v1.ContentBlockOrBuilder> 
+        internalGetMessageFilesFieldBuilder() {
+      if (messageFilesBuilder_ == null) {
+        messageFilesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.session.v1.ContentBlock, ai.stigmer.agentic.session.v1.ContentBlock.Builder, ai.stigmer.agentic.session.v1.ContentBlockOrBuilder>(
+                messageFiles_,
+                ((bitField0_ & 0x00200000) != 0),
+                getParentForChildren(),
+                isClean());
+        messageFiles_ = null;
+      }
+      return messageFilesBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.run.v1.RunStatus)

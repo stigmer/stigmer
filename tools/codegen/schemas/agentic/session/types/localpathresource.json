@@ -1,0 +1,21 @@
+{
+  "name": "LocalPathResource",
+  "description": "LocalPathResource uses a folder on the person's own machine as it is:\n the agent works on the files directly, and no copy is made.",
+  "protoType": "ai.stigmer.agentic.session.v1.LocalPathResource",
+  "protoFile": "apis/ai/stigmer/agentic/session/v1/resource.proto",
+  "fields": [
+    {
+      "name": "Path",
+      "jsonName": "path",
+      "protoField": "path",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Absolute path of an existing folder.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    }
+  ]
+}

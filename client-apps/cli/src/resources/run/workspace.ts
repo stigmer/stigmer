@@ -1,9 +1,9 @@
 // Workspace flag parsing for runs.
 //
 // Ports the Go CLI's run_workspace.go: turns repeatable `--workspace` values
-// (plus `--branch`/`--commit`) into WorkspaceEntry protos. A workspace is either
-// an HTTPS git repo (branch/commit allowed) or a local directory (branch/commit
-// rejected). SSH git URLs are rejected with HTTPS guidance, and `--branch`/
+// (plus `--branch`/`--commit`) into the conversation's resources. A workspace is
+// either an HTTPS git repository (branch/commit allowed) or a local directory
+// (branch/commit rejected). SSH git URLs are rejected with HTTPS guidance, and `--branch`/
 // `--commit` only apply to a single git workspace.
 
 import { statSync } from "node:fs";
@@ -11,26 +11,24 @@ import { homedir } from "node:os";
 import { basename, isAbsolute, resolve } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import {
-  GitRepoSourceSchema,
-  LocalPathSourceSchema,
-  type WorkspaceEntry,
-  WorkspaceEntrySchema,
-  type WorkspaceSource,
-  WorkspaceSourceSchema,
-} from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+  GitRepositoryResourceSchema,
+  LocalPathResourceSchema,
+  type SessionResource,
+  SessionResourceSchema,
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { UsageError } from "../../errors/index.js";
 
 /**
- * Convert `--workspace`/`--branch`/`--commit` flags into WorkspaceEntry protos.
- * Returns an empty list when no workspace is requested. Mirrors Go's
- * parseWorkspaceEntries, including the single-git-workspace rule for
- * branch/commit and duplicate-name detection.
+ * Convert `--workspace`/`--branch`/`--commit` flags into the conversation's
+ * repository and folder resources. Returns an empty list when no workspace is
+ * requested. Mirrors Go's parseWorkspaceEntries, including the
+ * single-git-workspace rule for branch/commit and duplicate-name detection.
  */
-export function parseWorkspaceEntries(
+export function parseWorkspaceResources(
   workspaces: readonly string[],
   branch: string,
   commit: string,
-): WorkspaceEntry[] {
+): SessionResource[] {
   if (workspaces.length === 0) {
     if (branch !== "" || commit !== "") {
       throw new UsageError("--branch and --commit require --workspace");
@@ -42,10 +40,10 @@ export function parseWorkspaceEntries(
     throw new UsageError("--branch and --commit are only valid with a single git workspace");
   }
 
-  const entries: WorkspaceEntry[] = [];
+  const entries: SessionResource[] = [];
   const seenNames = new Map<string, string>(); // derived name -> original value
   for (const ws of workspaces) {
-    const source = parseWorkspaceSource(ws, branch, commit);
+    const resource = parseWorkspaceSource(ws, branch, commit);
     const name = deriveEntryName(ws);
     const prev = seenNames.get(name);
     if (prev !== undefined) {
@@ -55,34 +53,29 @@ export function parseWorkspaceEntries(
       );
     }
     seenNames.set(name, ws);
-    entries.push(create(WorkspaceEntrySchema, { name, source }));
+    entries.push(create(SessionResourceSchema, { name, resource }));
   }
   return entries;
 }
 
 /**
  * The absolute paths of any local (non-git) workspace roots. Attachment
- * processing uses these to decide whether a file is workspace-relative (no
+ * planning uses these to decide whether a file is workspace-relative (no
  * upload) versus an upload. Mirrors Go's localWorkspaceRoots.
  */
-export function localWorkspaceRoots(entries: readonly WorkspaceEntry[]): string[] {
+export function localWorkspaceRoots(resources: readonly SessionResource[]): string[] {
   const roots: string[] = [];
-  for (const entry of entries) {
-    if (entry.source?.source.case === "localPath") {
-      roots.push(entry.source.source.value.path);
+  for (const entry of resources) {
+    if (entry.resource.case === "localPath") {
+      roots.push(entry.resource.value.path);
     }
   }
   return roots;
 }
 
-/** The derived display names of the workspace entries, for the session header. */
-export function workspaceNames(entries: readonly WorkspaceEntry[]): string[] {
-  return entries.map((entry) => entry.name);
-}
-
-// Mirrors Go's parseWorkspaceSource: variant selection (git vs local) plus the
+// Mirrors Go's parseWorkspaceSource: the resource arm (git vs local) plus the
 // branch/commit applicability rules and SSH rejection.
-function parseWorkspaceSource(workspace: string, branch: string, commit: string): WorkspaceSource {
+function parseWorkspaceSource(workspace: string, branch: string, commit: string): SessionResource["resource"] {
   if (isSshGitUrl(workspace)) {
     throw new UsageError(
       `SSH git URLs are not supported: ${workspace}\n\n` +
@@ -91,9 +84,10 @@ function parseWorkspaceSource(workspace: string, branch: string, commit: string)
   }
 
   if (isGitUrl(workspace)) {
-    return create(WorkspaceSourceSchema, {
-      source: { case: "gitRepo", value: create(GitRepoSourceSchema, { url: workspace, branch, commit }) },
-    });
+    return {
+      case: "gitRepository",
+      value: create(GitRepositoryResourceSchema, { url: workspace, branch, commit }),
+    };
   }
 
   if (branch !== "" || commit !== "") {
@@ -103,8 +97,8 @@ function parseWorkspaceSource(workspace: string, branch: string, commit: string)
 }
 
 // Resolve a local path, verify it is an existing directory, and wrap it as a
-// LocalPathSource. Mirrors Go's parseLocalWorkspace.
-function parseLocalWorkspace(path: string): WorkspaceSource {
+// local path resource. Mirrors Go's parseLocalWorkspace.
+function parseLocalWorkspace(path: string): SessionResource["resource"] {
   const resolved = resolveLocalPath(path);
   let isDir: boolean;
   try {
@@ -116,9 +110,7 @@ function parseLocalWorkspace(path: string): WorkspaceSource {
   }
   if (!isDir) throw new UsageError(`workspace path is not a directory: ${resolved}`);
 
-  return create(WorkspaceSourceSchema, {
-    source: { case: "localPath", value: create(LocalPathSourceSchema, { path: resolved }) },
-  });
+  return { case: "localPath", value: create(LocalPathResourceSchema, { path: resolved }) };
 }
 
 // A short identity for the entry: the repo name for git URLs, the directory

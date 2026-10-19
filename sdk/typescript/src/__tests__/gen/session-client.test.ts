@@ -129,60 +129,69 @@ describe("SessionClient proto serialization", () => {
     });
   });
 
-  it("serializes workspace entries with git repo source", async () => {
+  it("serializes a git repository resource", async () => {
     await client.create({
       name: "s1",
       org: "o1",
-      workspaceEntries: [
+      resources: [
         {
           name: "my-repo",
-          source: {
-            gitRepo: {
-              url: "https://github.com/example/repo.git",
-              branch: "main",
-            },
+          gitRepository: {
+            url: "https://github.com/example/repo.git",
+            branch: "main",
           },
         },
       ],
     });
 
     const proto = captured[0].message as Session;
-    const entries = proto.spec?.workspaceEntries;
-    expect(entries).toHaveLength(1);
-    expect(entries![0].name).toBe("my-repo");
+    const resources = proto.spec?.resources;
+    expect(resources).toHaveLength(1);
+    expect(resources![0].name).toBe("my-repo");
 
-    const source = entries![0].source;
-    expect(source?.source?.case).toBe("gitRepo");
-    if (source?.source?.case === "gitRepo") {
-      expect(source.source.value.url).toBe(
-        "https://github.com/example/repo.git",
-      );
-      expect(source.source.value.branch).toBe("main");
+    const resource = resources![0].resource;
+    expect(resource.case).toBe("gitRepository");
+    if (resource.case === "gitRepository") {
+      expect(resource.value.url).toBe("https://github.com/example/repo.git");
+      expect(resource.value.branch).toBe("main");
     }
   });
 
-  it("serializes workspace entries with local path source", async () => {
+  it("serializes a local path resource", async () => {
     await client.create({
       name: "s1",
       org: "o1",
-      workspaceEntries: [
-        {
-          name: "local",
-          source: {
-            localPath: { path: "/home/user/project" },
-          },
-        },
-      ],
+      resources: [{ name: "local", localPath: { path: "/home/user/project" } }],
     });
 
     const proto = captured[0].message as Session;
-    const entries = proto.spec?.workspaceEntries;
-    expect(entries).toHaveLength(1);
+    const resources = proto.spec?.resources;
+    expect(resources).toHaveLength(1);
 
-    const source = entries![0].source;
-    expect(source?.source?.case).toBe("localPath");
-    if (source?.source?.case === "localPath") {
-      expect(source.source.value.path).toBe("/home/user/project");
+    const resource = resources![0].resource;
+    expect(resource.case).toBe("localPath");
+    if (resource.case === "localPath") {
+      expect(resource.value.path).toBe("/home/user/project");
+    }
+  });
+
+  it("serializes a file resource with no name and its mount path", async () => {
+    await client.create({
+      name: "s1",
+      org: "o1",
+      resources: [{ file: { fileId: "file_01", mountPath: "q3/ledger.xlsx" } }],
+    });
+
+    const proto = captured[0].message as Session;
+    const resources = proto.spec?.resources;
+    expect(resources).toHaveLength(1);
+    expect(resources![0].name).toBe("");
+
+    const resource = resources![0].resource;
+    expect(resource.case).toBe("file");
+    if (resource.case === "file") {
+      expect(resource.value.fileId).toBe("file_01");
+      expect(resource.value.mountPath).toBe("q3/ledger.xlsx");
     }
   });
 

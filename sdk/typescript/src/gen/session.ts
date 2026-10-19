@@ -11,8 +11,8 @@ import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer
 import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { SessionIdSchema, UpdateSessionInputSchema, UpdateSessionSubjectRequestSchema, ReviewFileChangesInputSchema, ReviewFileChangesResponseSchema, ConfirmToolUseInputSchema, GrantPermissionInputSchema, GrantPermissionResponseSchema, InterruptSessionInputSchema, InterruptSessionResponseSchema, AppendSessionEventsInputSchema, AppendSessionEventsResponseSchema, BindHarnessStateInputSchema, BindHarnessStateResponseSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, ListSessionsByChannelRequestSchema, ListSessionEventsRequestSchema, SessionEventListSchema, StreamSessionEventsRequestSchema, StreamSessionEventsResponseSchema, type UpdateSessionSubjectRequest, type ReviewFileChangesInput, type ReviewFileChangesResponse, type ConfirmToolUseInput, type GrantPermissionInput, type GrantPermissionResponse, type InterruptSessionInput, type InterruptSessionResponse, type AppendSessionEventsInput, type AppendSessionEventsResponse, type BindHarnessStateInput, type BindHarnessStateResponse, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest, type ListSessionsByChannelRequest, type ListSessionEventsRequest, type SessionEventList, type StreamSessionEventsRequest, type StreamSessionEventsResponse } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
+import { FileResourceSchema, GitRepositoryResourceSchema, LocalPathResourceSchema, SessionResourceSchema, type FileResource, type GitRepositoryResource, type LocalPathResource, type SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
-import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema, type GitRepoSource, type LocalPathSource, type WorkspaceSource, type WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
@@ -191,7 +191,6 @@ export interface SessionInput {
   agentRef?: ResourceRef;
   subject?: string;
   metadata?: Record<string, string>;
-  workspaceEntries?: WorkspaceEntryInput[];
   skillRefs?: ResourceRef[];
   harness?: Harness;
   cursorMode?: CursorMode;
@@ -201,76 +200,80 @@ export interface SessionInput {
   plugins?: ResourceRef[];
   fileReview?: boolean;
   environmentRef?: ResourceRef;
+  resources?: SessionResourceInput[];
 }
 
-/** SDK input type for WorkspaceEntry. */
-export interface WorkspaceEntryInput {
+/** SDK input type for SessionResource. */
+export interface SessionResourceInput {
   name?: string;
-  source: WorkspaceSourceInput;
+  file?: FileResourceInput;
+  gitRepository?: GitRepositoryResourceInput;
+  localPath?: LocalPathResourceInput;
 }
 
-/** SDK input type for WorkspaceSource. */
-export interface WorkspaceSourceInput {
-  gitRepo?: GitRepoSourceInput;
-  localPath?: LocalPathSourceInput;
+/** SDK input type for FileResource. */
+export interface FileResourceInput {
+  fileId?: string;
+  mountPath?: string;
 }
 
-/** SDK input type for GitRepoSource. */
-export interface GitRepoSourceInput {
+/** SDK input type for GitRepositoryResource. */
+export interface GitRepositoryResourceInput {
   url: string;
   branch?: string;
   commit?: string;
-  depth?: number;
   writeBackMode?: GitWriteBackMode;
   token?: string;
 }
 
-/** SDK input type for LocalPathSource. */
-export interface LocalPathSourceInput {
+/** SDK input type for LocalPathResource. */
+export interface LocalPathResourceInput {
   path?: string;
 }
 
-function buildGitRepoSourceProto(input: GitRepoSourceInput) {
-  return Object.assign(create(GitRepoSourceSchema), stripUndefined({
+function buildFileResourceProto(input: FileResourceInput) {
+  return Object.assign(create(FileResourceSchema), stripUndefined({
+    fileId: input.fileId,
+    mountPath: input.mountPath,
+  }));
+}
+
+function buildGitRepositoryResourceProto(input: GitRepositoryResourceInput) {
+  return Object.assign(create(GitRepositoryResourceSchema), stripUndefined({
     url: input.url,
     branch: input.branch,
     commit: input.commit,
-    depth: input.depth,
     writeBackMode: input.writeBackMode,
     token: input.token,
   }));
 }
 
-function buildLocalPathSourceProto(input: LocalPathSourceInput) {
-  return Object.assign(create(LocalPathSourceSchema), stripUndefined({
+function buildLocalPathResourceProto(input: LocalPathResourceInput) {
+  return Object.assign(create(LocalPathResourceSchema), stripUndefined({
     path: input.path,
   }));
 }
 
-function buildWorkspaceSourceProto(input: WorkspaceSourceInput) {
-  const msg = create(WorkspaceSourceSchema);
-  if (input.gitRepo) {
-    msg.source = { case: "gitRepo", value: buildGitRepoSourceProto(input.gitRepo) };
-  } else if (input.localPath) {
-    msg.source = { case: "localPath", value: buildLocalPathSourceProto(input.localPath) };
-  }
-  return msg;
-}
-
-function buildWorkspaceEntryProto(input: WorkspaceEntryInput) {
-  const msg = create(WorkspaceEntrySchema);
+function buildSessionResourceProto(input: SessionResourceInput) {
+  const msg = create(SessionResourceSchema);
   if (input.name !== undefined) msg.name = input.name;
-  if (input.source) msg.source = buildWorkspaceSourceProto(input.source);
+  if (input.file) {
+    msg.resource = { case: "file", value: buildFileResourceProto(input.file) };
+  } else if (input.gitRepository) {
+    msg.resource = { case: "gitRepository", value: buildGitRepositoryResourceProto(input.gitRepository) };
+  } else if (input.localPath) {
+    msg.resource = { case: "localPath", value: buildLocalPathResourceProto(input.localPath) };
+  }
   return msg;
 }
 
 export function buildSessionProto(input: SessionInput): Session {
   const agentRef = (input.agentRef?.slug || input.agentRef?.org || input.agentRef?.id) ? create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 }) : undefined;
-  const workspaceEntries = input.workspaceEntries?.map(buildWorkspaceEntryProto);
   const skillRefs = input.skillRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
   const vaults = input.vaults?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 59 }));
   const plugins = input.plugins?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 58 }));
   const environmentRef = (input.environmentRef?.slug || input.environmentRef?.org || input.environmentRef?.id) ? create(ApiResourceReferenceSchema, { ...input.environmentRef, kind: 67 }) : undefined;
+  const resources = input.resources?.map(buildSessionResourceProto);
   return Object.assign(create(SessionSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Session",
@@ -286,7 +289,6 @@ export function buildSessionProto(input: SessionInput): Session {
       agentRef,
       subject: input.subject,
       metadata: input.metadata,
-      workspaceEntries,
       skillRefs,
       harness: input.harness,
       cursorMode: input.cursorMode,
@@ -296,38 +298,40 @@ export function buildSessionProto(input: SessionInput): Session {
       plugins,
       fileReview: input.fileReview,
       environmentRef,
+      resources,
     })),
   }) as Session;
 }
 
-function toGitRepoSourceInput(msg: GitRepoSource): GitRepoSourceInput {
+function toFileResourceInput(msg: FileResource): FileResourceInput {
+  return {
+    fileId: msg.fileId || undefined,
+    mountPath: msg.mountPath || undefined,
+  };
+}
+
+function toGitRepositoryResourceInput(msg: GitRepositoryResource): GitRepositoryResourceInput {
   return {
     url: msg.url ?? "",
     branch: msg.branch || undefined,
     commit: msg.commit || undefined,
-    depth: msg.depth || undefined,
     writeBackMode: msg.writeBackMode || undefined,
     token: msg.token || undefined,
   };
 }
 
-function toLocalPathSourceInput(msg: LocalPathSource): LocalPathSourceInput {
+function toLocalPathResourceInput(msg: LocalPathResource): LocalPathResourceInput {
   return {
     path: msg.path || undefined,
   };
 }
 
-function toWorkspaceSourceInput(msg: WorkspaceSource): WorkspaceSourceInput {
-  return {
-    gitRepo: msg.source?.case === "gitRepo" ? toGitRepoSourceInput(msg.source.value) : undefined,
-    localPath: msg.source?.case === "localPath" ? toLocalPathSourceInput(msg.source.value) : undefined,
-  };
-}
-
-function toWorkspaceEntryInput(msg: WorkspaceEntry): WorkspaceEntryInput {
+function toSessionResourceInput(msg: SessionResource): SessionResourceInput {
   return {
     name: msg.name || undefined,
-    source: toWorkspaceSourceInput(msg.source ?? create(WorkspaceSourceSchema)),
+    file: msg.resource?.case === "file" ? toFileResourceInput(msg.resource.value) : undefined,
+    gitRepository: msg.resource?.case === "gitRepository" ? toGitRepositoryResourceInput(msg.resource.value) : undefined,
+    localPath: msg.resource?.case === "localPath" ? toLocalPathResourceInput(msg.resource.value) : undefined,
   };
 }
 
@@ -357,7 +361,6 @@ export function toSessionInput(resource: Session): SessionInput {
     agentRef: toResourceRefInput(spec.agentRef),
     subject: spec.subject || undefined,
     metadata: Object.keys(spec.metadata ?? {}).length > 0 ? { ...spec.metadata } : undefined,
-    workspaceEntries: spec.workspaceEntries?.length ? spec.workspaceEntries.map(toWorkspaceEntryInput) : undefined,
     skillRefs: toResourceRefInputs(spec.skillRefs),
     harness: spec.harness || undefined,
     cursorMode: spec.cursorMode || undefined,
@@ -367,5 +370,6 @@ export function toSessionInput(resource: Session): SessionInput {
     plugins: toResourceRefInputs(spec.plugins),
     fileReview: spec.fileReview || undefined,
     environmentRef: toResourceRefInput(spec.environmentRef),
+    resources: spec.resources?.length ? spec.resources.map(toSessionResourceInput) : undefined,
   };
 }

@@ -13,7 +13,7 @@ import { SessionComposer } from "../SessionComposer";
 
 function createMinimalStigmerMock(): Stigmer {
   return {
-    run: { uploadAttachment: vi.fn() },
+    file: { uploadFile: vi.fn(), delete: vi.fn().mockResolvedValue({}) },
     vault: noMyVaultClient(),
     baseUrl: "http://localhost:8080",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),

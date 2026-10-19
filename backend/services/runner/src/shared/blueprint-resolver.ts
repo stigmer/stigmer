@@ -79,7 +79,7 @@ import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_p
 import type { Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
-import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { builtInJudgeSpec, isJudgeRunLabels } from "./builtin-judge.js";
 
@@ -183,7 +183,7 @@ export async function resolveBlueprint(
     sessionSpec.skillRefs,
   );
 
-  const cloudRepos = resolveCloudRepos(sessionSpec.workspaceEntries);
+  const cloudRepos = resolveCloudRepos(sessionSpec.resources);
 
   return {
     agent,
@@ -366,20 +366,20 @@ export function pluginAgentName(pluginName: string, agentName: string): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Extract Cursor SDK-compatible repo descriptors from workspace entries.
+ * Extract Cursor SDK-compatible repo descriptors from the session's resources.
  *
- * Maps Stigmer's GitRepoSource (url + branch) to the Cursor SDK's
- * CloudAgentOptions.repos shape ({ url, startingRef? }). Only GitRepoSource
- * entries produce output — LocalPathSource entries are silently skipped.
+ * Maps Stigmer's GitRepositoryResource (url + branch) to the Cursor SDK's
+ * CloudAgentOptions.repos shape ({ url, startingRef? }). Only git
+ * repositories produce output — folders and Files are silently skipped.
  *
  * Always computed (cheap iteration) but only consumed when mode is cloud.
  */
-export function resolveCloudRepos(workspaceEntries: WorkspaceEntry[]): CloudRepo[] {
+export function resolveCloudRepos(resources: readonly SessionResource[]): CloudRepo[] {
   const repos: CloudRepo[] = [];
 
-  for (const entry of workspaceEntries) {
-    if (entry.source?.source.case === "gitRepo") {
-      const git = entry.source.source.value;
+  for (const entry of resources) {
+    if (entry.resource.case === "gitRepository") {
+      const git = entry.resource.value;
       repos.push({
         url: git.url,
         startingRef: git.branch || undefined,

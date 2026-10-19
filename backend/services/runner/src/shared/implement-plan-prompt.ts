@@ -11,8 +11,9 @@
  * The directive has two variants, chosen by whether the approved plan document
  * actually materialized in the workspace:
  * - Attached (the normal case): the client uploaded the approved plan text
- *   (edited or not) and attached it, mounted under `.stigmer/inputs/` as the
- *   plan's own file (`<slug>_<id>.plan.md`). The directive points the model at
+ *   (edited or not) as a File and sent it with the message, mounted under
+ *   `.stigmer/uploads/` as the plan's own file (`<slug>_<id>.plan.md`). The
+ *   directive points the model at
  *   that file and names it authoritative —
  *   the user may have refined the document after the plan turn, so the
  *   conversation's version can be stale.
@@ -51,22 +52,27 @@ const TRACK_PROGRESS_INSTRUCTION = [
     "begin it and completed when it is done.",
 ].join("\n");
 
+/** A File this turn's message carried: its own filename and where the agent reads it. */
+export interface PlanCandidate {
+  readonly filename: string;
+  readonly relativePath: string;
+}
+
 /**
- * Find the approved plan document among the workspace paths the harness
- * injected for this execution's attachments. Detection keys on the plan
- * filename convention ({@link isPlanArtifactName} — the legacy `plan.md` or any
- * `*.plan.md`), the same convention the UI uses to detect the plan artifact.
- * Returns `undefined` when no plan attachment landed (upload failed, or the
- * attachment itself failed to inject), which selects the conversation-only
- * directive variant.
+ * Find the approved plan document among the Files this turn's message
+ * carried — never the conversation's earlier Files, where an older plan may
+ * still sit — and answer its workspace path. Detection keys on the File's
+ * own filename against the plan convention ({@link isPlanArtifactName} — the
+ * legacy `plan.md` or any `*.plan.md`), the same convention the UI uses to
+ * detect the plan artifact, never on the mount path: the server mounts a
+ * second plan of the same name at `x.plan-2.md`, which no longer matches.
+ * Returns `undefined` when the message carried no plan (the upload failed),
+ * which selects the conversation-only directive variant.
  */
 export function findApprovedPlanPath(
-  attachmentPaths: readonly string[],
+  messageFiles: readonly PlanCandidate[],
 ): string | undefined {
-  return attachmentPaths.find((p) => {
-    const name = p.split("/").pop();
-    return name !== undefined && isPlanArtifactName(name);
-  });
+  return messageFiles.find((file) => isPlanArtifactName(file.filename))?.relativePath;
 }
 
 /**

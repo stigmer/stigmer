@@ -135,7 +135,7 @@ export interface TurnRuntimeDeps {
  * Run one turn: the activity body behind every harness's registry row. Sets
  * the execution-scoped context for the WHOLE activity (the interceptors stamp
  * every proxy-bound request from it, and much of that traffic is the
- * runtime's own: offload, attachments, the epilogue's extraction) and runs
+ * runtime's own: offload, the File mount, the epilogue's extraction) and runs
  * the turn inside it.
  */
 export async function runTurnActivity(deps: TurnRuntimeDeps, input: NormalizedActivityInput): Promise<unknown> {
@@ -845,7 +845,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     cancellationSignal.removeEventListener("abort", onCancellation);
     // A eval-run try's mock endpoint serves this turn only.
     await frame.evalMocks?.close();
-    // Remove the workspace's `.stigmer` link the skill and attachment phases
+    // Remove the workspace's `.stigmer` link the skill and File phases
     // created, so attaching a real repo leaves it untouched between turns
     // (issue #173). After the adapter's own teardown (its gate), before the
     // lock. Idempotent and non-throwing.

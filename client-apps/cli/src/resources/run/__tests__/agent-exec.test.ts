@@ -8,23 +8,33 @@
 // use detach mode so no streaming machinery is exercised; the attached runs
 // stream through a double that returns the final run, and pin that the
 // run's artifacts are downloaded only when a download directory was given
-// and the final run holds some.
+// and the final run holds some. Attached files are uploaded as the person's
+// own before the create, named on it (the message's by id, a folder's as the
+// new conversation's resources), and the originals are deleted once the
+// create has answered, whether or not it succeeded.
 
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError, createRouterTransport } from "@connectrpc/connect";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { FileCommandController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/command_pb";
+import { Stigmer } from "@stigmer/client";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import {
-  LocalPathSourceSchema,
-  WorkspaceEntrySchema,
-  WorkspaceSourceSchema,
-} from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+  LocalPathResourceSchema,
+  SessionResourceSchema,
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { BackendClient } from "../../../client/index.js";
 import { executeResolvedAgent } from "../agent-exec.js";
+import { NO_ATTACHMENTS, planAttachments } from "../attachments.js";
 import type { PreparedRun } from "../prepare.js";
 
 const stream = vi.hoisted(() => ({ streamAgentRun: vi.fn() }));
@@ -32,11 +42,9 @@ const download = vi.hoisted(() => ({ downloadRunArtifacts: vi.fn() }));
 vi.mock("../stream.js", () => stream);
 vi.mock("../../download.js", () => download);
 
-const WORKSPACE_ENTRY = create(WorkspaceEntrySchema, {
+const WORKSPACE_ENTRY = create(SessionResourceSchema, {
   name: "repo",
-  source: create(WorkspaceSourceSchema, {
-    source: { case: "localPath", value: create(LocalPathSourceSchema, { path: "/home/user/repo" }) },
-  }),
+  resource: { case: "localPath", value: create(LocalPathResourceSchema, { path: "/home/user/repo" }) },
 });
 
 function makeAgent(): Agent {
@@ -48,12 +56,11 @@ function makeAgent(): Agent {
 function makePrepared(overrides: Partial<PreparedRun> = {}): PreparedRun {
   return {
     approveDefault: "",
-    workspaceEntries: [],
+    resources: [],
     vaults: [],
     includeMyVault: true,
     plugins: [],
-    attachments: [],
-    workspaceFileRefs: [],
+    attachments: NO_ATTACHMENTS,
     message: "hi",
     detach: true,
     verbose: false,
@@ -69,12 +76,15 @@ function makePrepared(overrides: Partial<PreparedRun> = {}): PreparedRun {
 
 // A BackendClient double whose controller records every create call and
 // emulates the server stamping the bootstrapped session id onto the returned
-// run spec.
-function fakeBackend(): { client: BackendClient; creates: () => Run[] } {
+// run spec. `stigmer` is the client attached files upload through.
+function fakeBackend(
+  options: { stigmer?: Stigmer; refuseCreate?: boolean } = {},
+): { client: BackendClient; creates: () => Run[] } {
   const captured: Run[] = [];
   const controller = () => ({
     create: async (msg: Run) => {
       captured.push(msg);
+      if (options.refuseCreate === true) throw new ConnectError("no such agent", Code.NotFound);
       // Echo with the server-owned session id filled in, like the real backend.
       return {
         ...msg,
@@ -85,7 +95,7 @@ function fakeBackend(): { client: BackendClient; creates: () => Run[] } {
       };
     },
   });
-  const client = { controller, stigmer: { name: "stub-client" } } as unknown as BackendClient;
+  const client = { controller, stigmer: options.stigmer ?? { name: "stub-client" } } as unknown as BackendClient;
   return { client, creates: () => captured };
 }
 
@@ -111,7 +121,7 @@ describe("executeResolvedAgent", () => {
 
     await executeResolvedAgent({
       agent: makeAgent(),
-      prepared: makePrepared({ workspaceEntries: [WORKSPACE_ENTRY] }),
+      prepared: makePrepared({ resources: [WORKSPACE_ENTRY] }),
       org: "acme",
       downloadDir: "",
       outputMode: "inline",
@@ -124,7 +134,7 @@ describe("executeResolvedAgent", () => {
     expect(target?.case, "no client-created session id").toBe("sessionSpec");
     const sessionSpec = target?.case === "sessionSpec" ? target.value : undefined;
     expect(sessionSpec?.agentRef).toMatchObject({ kind: ApiResourceKind.agent, org: "acme", slug: "helper" });
-    expect(sessionSpec?.workspaceEntries).toEqual([WORKSPACE_ENTRY]);
+    expect(sessionSpec?.resources).toEqual([WORKSPACE_ENTRY]);
 
     // The canonical session id comes back on the run spec and drives the
     // re-attach hint.
@@ -154,7 +164,7 @@ describe("executeResolvedAgent", () => {
       slug: "helper",
       version: "",
     });
-    expect(sessionSpec?.workspaceEntries).toEqual([]);
+    expect(sessionSpec?.resources).toEqual([]);
   });
 
   it("runs the built-in assistant with no agent: a session_spec naming no agent and the assistant's name in the header", async () => {
@@ -270,5 +280,104 @@ describe("executeResolvedAgent, attached", () => {
     });
 
     expect(download.downloadRunArtifacts).not.toHaveBeenCalled();
+  });
+});
+
+describe("executeResolvedAgent, with files", () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "agent-exec-files-"));
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  // A Stigmer client whose File service records uploads and deletes; each
+  // upload answers a File named after the uploaded filename.
+  function fileServer(refuseDelete = false): { stigmer: Stigmer; sessionIds: string[]; deletes: string[] } {
+    const sessionIds: string[] = [];
+    const deletes: string[] = [];
+    const transport = createRouterTransport(({ service }) => {
+      service(FileCommandController, {
+        upload: (input) => {
+          sessionIds.push(input.sessionId);
+          return create(FileSchema, { metadata: { id: `file_${input.filename}` } });
+        },
+        delete: (id) => {
+          if (refuseDelete) throw new ConnectError("unavailable", Code.Unavailable);
+          deletes.push(id.value);
+          return create(FileSchema, { metadata: { id: id.value } });
+        },
+      });
+    });
+    const stigmer = new Stigmer({ baseUrl: "/", getAccessToken: () => "t", customTransport: transport });
+    return { stigmer, sessionIds, deletes };
+  }
+
+  function attach(): ReturnType<typeof planAttachments> {
+    writeFileSync(join(dir, "report.pdf"), "pdf");
+    mkdirSync(join(dir, "data"));
+    writeFileSync(join(dir, "data", "a.csv"), "1,2");
+    return planAttachments([join(dir, "report.pdf"), join(dir, "data")], []);
+  }
+
+  it("names the uploaded Files on the one create, then deletes the person's originals", async () => {
+    const files = fileServer();
+    const { client, creates } = fakeBackend({ stigmer: files.stigmer });
+
+    await executeResolvedAgent({
+      agent: makeAgent(),
+      prepared: makePrepared({ resources: [WORKSPACE_ENTRY], attachments: attach() }),
+      org: "acme",
+      downloadDir: "",
+      outputMode: "inline",
+      client,
+    });
+
+    expect(files.sessionIds, "uploaded as the person's own, before the conversation exists").toEqual(["", ""]);
+    const spec = creates()[0]?.spec;
+    expect(spec?.fileIds).toEqual(["file_report.pdf"]);
+    const sessionSpec = spec?.target.case === "sessionSpec" ? spec.target.value : undefined;
+    expect(sessionSpec?.resources.map((r) => r.resource.case)).toEqual(["localPath", "file"]);
+    const folderFile = sessionSpec?.resources[1]?.resource;
+    expect(folderFile?.case === "file" ? folderFile.value : undefined).toMatchObject({
+      fileId: "file_a.csv",
+      mountPath: "data/a.csv",
+    });
+    expect(files.deletes.sort()).toEqual(["file_a.csv", "file_report.pdf"]);
+  });
+
+  it("deletes the originals when the create is refused, and the refusal surfaces", async () => {
+    const files = fileServer();
+    const { client } = fakeBackend({ stigmer: files.stigmer, refuseCreate: true });
+
+    await expect(
+      executeResolvedAgent({
+        agent: makeAgent(),
+        prepared: makePrepared({ attachments: attach() }),
+        org: "acme",
+        downloadDir: "",
+        outputMode: "inline",
+        client,
+      }),
+    ).rejects.toThrow(/no such agent/);
+    expect(files.deletes.sort()).toEqual(["file_a.csv", "file_report.pdf"]);
+  });
+
+  it("says on stderr which original it could not delete, and the run goes on", async () => {
+    const files = fileServer(true);
+    const { client, creates } = fakeBackend({ stigmer: files.stigmer });
+
+    await executeResolvedAgent({
+      agent: makeAgent(),
+      prepared: makePrepared({ attachments: attach() }),
+      org: "acme",
+      downloadDir: "",
+      outputMode: "inline",
+      client,
+    });
+
+    expect(creates()).toHaveLength(1);
+    expect(stderrLines.join("")).toContain("Could not delete the uploaded File file_report.pdf");
   });
 });

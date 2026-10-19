@@ -1,14 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 /**
- * Pins the run-scoped call the client composes for the control plane: the
+ * Pins the run-scoped calls the client composes for the control plane: the
  * run's status write, which names the run by `run_id`, the wire field
- * the run rename settled on. The transport and the generated clients are
+ * the run rename settled on; and the File mount, which names the run the
+ * same way and authenticates with the scoped token it is handed. The transport and the generated clients are
  * replaced at their module seams, so the request the method builds is
  * observed without a server.
  */
 
 const runUpdateStatus = vi.fn();
+const fileMount = vi.fn();
 
 vi.mock("@connectrpc/connect-node", () => ({
   createGrpcTransport: () => ({}),
@@ -22,6 +24,8 @@ vi.mock("@connectrpc/connect", async (importOriginal) => {
       switch (service.typeName) {
         case "ai.stigmer.agentic.run.v1.RunCommandController":
           return { updateStatus: runUpdateStatus };
+        case "ai.stigmer.agentic.file.v1.FileMountController":
+          return { mount: fileMount };
         default:
           return {};
       }
@@ -41,6 +45,7 @@ function newClient(): StigmerClient {
 
 beforeEach(() => {
   runUpdateStatus.mockReset();
+  fileMount.mockReset();
 });
 
 describe("StigmerClient.updateStatus", () => {
@@ -61,5 +66,25 @@ describe("StigmerClient.updateStatus", () => {
     expect(input.runId).toBe("aex_1");
     expect(input.status).toBe(status);
     expect(answered).toBe(response);
+  });
+});
+
+describe("StigmerClient.mountRunFiles", () => {
+  it("names the run, authenticates with the scoped token and answers the mount's entries", async () => {
+    const entries = [{ fileId: "file_1", mountPath: "a.txt" }];
+    fileMount.mockResolvedValue({ entries });
+
+    const answered = await newClient().mountRunFiles("aex_1", "scoped-tok");
+
+    const [input, options] = fileMount.mock.calls[0]! as [{ runId: string }, { headers: Record<string, string> }];
+    expect(input.runId).toBe("aex_1");
+    expect(options.headers.authorization).toBe("Bearer scoped-tok");
+    expect(answered).toBe(entries);
+  });
+
+  it("leaves the credential to the interceptor when no scoped token is handed", async () => {
+    fileMount.mockResolvedValue({ entries: [] });
+    await newClient().mountRunFiles("aex_1");
+    expect(fileMount.mock.calls[0]![1]).toBeUndefined();
   });
 });

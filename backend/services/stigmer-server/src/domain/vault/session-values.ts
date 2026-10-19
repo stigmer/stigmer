@@ -1,24 +1,23 @@
 /**
  * A conversation's own values: the token a repository entry carries for
- * its clone (GitRepoSource.token), the one value a conversation holds
+ * its clone (GitRepositoryResource.token), the one value a conversation holds
  * itself. Every other secret and login reaches a run from the vaults the
  * conversation uses.
  *
  * Tokens are kept sealed in the session row for the conversation's life:
  *
  *   - every write seals what arrives in plaintext (SecretService, under the
- *     organization's scope); it refuses workspace entries that repeat a
- *     name, and a token on any repository that is not an
- *     https://github.com URL, the only clone the runner authenticates (a
- *     token elsewhere would be sealed and never used);
+ *     organization's scope); it refuses a token on any repository that
+ *     is not an https://github.com URL, the only clone the runner
+ *     authenticates (a token elsewhere would be sealed and never used);
  *   - every read shows the redaction marker in place of each token;
  *   - a write that sends the marker back keeps the stored token, so an
- *     editor that read the session can save its workspace entries without
+ *     editor that read the session can save its resources without
  *     knowing a token. A marker with nothing stored behind it is refused,
  *     and so is a value shaped like server ciphertext, at every write;
  *   - an update changes only the paths its mask names, onto the row as
  *     stored when it lands (pipeline/steps/update-mask.ts), so a write
- *     that does not name the workspace entries or the vaults never drops a
+ *     that does not name the resources or the vaults never drops a
  *     token or changes the vault choice made since it read the session.
  *     An editor that wants a refusal instead of a merge sends the etag it
  *     read;
@@ -65,7 +64,7 @@ type SessionDesc = typeof SessionSchema;
 
 /** A session's own values, each opened only when asked. Server-side only. */
 export interface SessionOwnValues {
-  /** Keyed by repositoryTokenKey: the workspace entry's name and URL. */
+  /** Keyed by repositoryTokenKey: the repository resource's name and URL. */
   readonly repositoryTokens: ReadonlyMap<string, SealedValue>;
 }
 
@@ -94,9 +93,9 @@ function slotsOf(session: Session | undefined): ValueSlot[] {
     return [];
   }
   const slots: ValueSlot[] = [];
-  for (const entry of spec.workspaceEntries) {
-    const source = entry.source?.source;
-    if (source?.case !== "gitRepo" || source.value.token === "") {
+  for (const entry of spec.resources) {
+    const source = entry.resource;
+    if (source.case !== "gitRepository" || source.value.token === "") {
       continue;
     }
     const repo = source.value;
@@ -127,8 +126,9 @@ export function redactSessionValues(session: Session | undefined): void {
 }
 
 /**
- * Refuses workspace entries that repeat a name and a repository token on
- * a repository that is not an https://github.com URL, keeps stored tokens
+ * Refuses a repository token on a repository that is not an
+ * https://github.com URL (a name given twice is refused before, by
+ * domain/file/session-resources.ts), keeps stored tokens
  * the write echoes back as the marker, and refuses a marker with nothing
  * behind it or a value shaped like server ciphertext. Runs while the spec is client input: after BuildNewState
  * (create) or BuildUpdateState (update).
@@ -141,17 +141,10 @@ export function newPreserveSessionValuesStep(): PipelineStep<SessionDesc> {
       if (spec === undefined) {
         return;
       }
-      const entryNames = new Set<string>();
-      for (const entry of spec.workspaceEntries) {
-        if (entryNames.has(entry.name)) {
-          throw invalidArgumentError(
-            `workspace entry '${entry.name}' appears more than once: give each entry its own name`,
-          );
-        }
-        entryNames.add(entry.name);
-        const source = entry.source?.source;
+      for (const entry of spec.resources) {
+        const source = entry.resource;
         if (
-          source?.case === "gitRepo" &&
+          source.case === "gitRepository" &&
           source.value.token !== "" &&
           gitHostOf(source.value.url) !== GITHUB_HOST
         ) {
@@ -267,9 +260,9 @@ export function openSessionValues(
   });
   const spec = session?.spec;
   const repositoryTokens = new Map<string, SealedValue>();
-  for (const entry of spec?.workspaceEntries ?? []) {
-    const source = entry.source?.source;
-    if (source?.case === "gitRepo" && source.value.token !== "") {
+  for (const entry of spec?.resources ?? []) {
+    const source = entry.resource;
+    if (source.case === "gitRepository" && source.value.token !== "") {
       repositoryTokens.set(repositoryTokenKey(entry.name, source.value.url), sealed(source.value.token));
     }
   }

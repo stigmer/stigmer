@@ -8,9 +8,12 @@ import ai.stigmer.agentic.file.v1.FileCommandControllerGrpc;
 import ai.stigmer.agentic.file.v1.FileDownloadUrl;
 import ai.stigmer.agentic.file.v1.FileId;
 import ai.stigmer.agentic.file.v1.FileList;
+import ai.stigmer.agentic.file.v1.FileMountControllerGrpc;
 import ai.stigmer.agentic.file.v1.FileQueryControllerGrpc;
 import ai.stigmer.agentic.file.v1.FileUploadUrl;
 import ai.stigmer.agentic.file.v1.ListFilesRequest;
+import ai.stigmer.agentic.file.v1.MountRunFilesInput;
+import ai.stigmer.agentic.file.v1.RunFileMounts;
 import ai.stigmer.agentic.file.v1.UpdateFileInput;
 import ai.stigmer.agentic.file.v1.UploadFileInput;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
@@ -21,10 +24,12 @@ import io.grpc.StatusRuntimeException;
 /** Provides operations on file resources. */
 public class FileClient {
     private final FileCommandControllerGrpc.FileCommandControllerBlockingStub command;
+    private final FileMountControllerGrpc.FileMountControllerBlockingStub fileMount;
     private final FileQueryControllerGrpc.FileQueryControllerBlockingStub query;
 
     protected FileClient(Channel channel) {
         this.command = FileCommandControllerGrpc.newBlockingStub(channel);
+        this.fileMount = FileMountControllerGrpc.newBlockingStub(channel);
         this.query = FileQueryControllerGrpc.newBlockingStub(channel);
     }
 
@@ -58,6 +63,12 @@ public class FileClient {
     public File delete(String id) {
         try {
             return command.delete(FileId.newBuilder().setValue(id).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public RunFileMounts mount(MountRunFilesInput input) {
+        try {
+            return fileMount.mount(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

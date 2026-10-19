@@ -27,12 +27,14 @@ spec:
     org: acme
     slug: code-reviewer
   subject: "Refactor the auth module"
-  workspace_entries:
+  resources:
     - name: backend
-      source:
-        git_repo:
-          url: https://github.com/acme/backend.git
-          branch: main
+      git_repository:
+        url: https://github.com/acme/backend.git
+        branch: main
+    - file:
+        file_id: file_01j9x7k2m4q8r3t5v6w7y8z9a0
+        mount_path: q3-ledger.xlsx
   plugins:
     - kind: plugin
       slug: github
@@ -380,7 +382,6 @@ const session = await stigmer.session.apply({
   agentRef: {},
   subject: "...",
   metadata: {},
-  workspaceEntries: [],
   skillRefs: [],
   harness: "...",
   cursorMode: "...",
@@ -390,29 +391,30 @@ const session = await stigmer.session.apply({
   plugins: [],
   fileReview: false,
   environmentRef: {},
+  resources: [],
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 session, err := client.Session.Apply(ctx, &stigmer.SessionInput{
-  Name:             "my-session",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  AgentRef:         &stigmer.ResourceRef{},
-  Subject:          "...",
-  Metadata:         map[string]string{},
-  WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
-  SkillRefs:        []stigmer.ResourceRef{},
-  Harness:          "...",
-  CursorMode:       "...",
-  ExecutionTarget:  "...",
-  Vaults:           []stigmer.ResourceRef{},
-  IncludeMyVault:   false,
-  Plugins:          []stigmer.ResourceRef{},
-  FileReview:       false,
-  EnvironmentRef:   &stigmer.ResourceRef{},
+  Name:            "my-session",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  AgentRef:        &stigmer.ResourceRef{},
+  Subject:         "...",
+  Metadata:        map[string]string{},
+  SkillRefs:       []stigmer.ResourceRef{},
+  Harness:         "...",
+  CursorMode:      "...",
+  ExecutionTarget: "...",
+  Vaults:          []stigmer.ResourceRef{},
+  IncludeMyVault:  false,
+  Plugins:         []stigmer.ResourceRef{},
+  FileReview:      false,
+  EnvironmentRef:  &stigmer.ResourceRef{},
+  Resources:       []stigmer.SessionResourceInput{},
 })
 ```
 </Tab>
@@ -426,7 +428,6 @@ session = client.sessions.apply(SessionInput(
     agent_ref=None,
     subject="...",
     metadata={},
-    workspace_entries=[],
     skill_refs=[],
     harness="...",
     cursor_mode="...",
@@ -436,6 +437,7 @@ session = client.sessions.apply(SessionInput(
     plugins=[],
     file_review=False,
     environment_ref=None,
+    resources=[],
 ))
 ```
 </Tab>
@@ -449,7 +451,6 @@ Session session = client.sessions().apply(SessionInput.builder()
     .agentRef(null)
     .subject("...")
     .metadata(Map.of())
-    .workspaceEntries(List.of())
     .skillRefs(List.of())
     .harness("...")
     .cursorMode("...")
@@ -459,6 +460,7 @@ Session session = client.sessions().apply(SessionInput.builder()
     .plugins(List.of())
     .fileReview(false)
     .environmentRef(null)
+    .resources(List.of())
     .build());
 ```
 </Tab>
@@ -483,7 +485,6 @@ const session = await stigmer.session.create({
   agentRef: {},
   subject: "...",
   metadata: {},
-  workspaceEntries: [],
   skillRefs: [],
   harness: "...",
   cursorMode: "...",
@@ -493,29 +494,30 @@ const session = await stigmer.session.create({
   plugins: [],
   fileReview: false,
   environmentRef: {},
+  resources: [],
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 session, err := client.Session.Create(ctx, &stigmer.SessionInput{
-  Name:             "my-session",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  AgentRef:         &stigmer.ResourceRef{},
-  Subject:          "...",
-  Metadata:         map[string]string{},
-  WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
-  SkillRefs:        []stigmer.ResourceRef{},
-  Harness:          "...",
-  CursorMode:       "...",
-  ExecutionTarget:  "...",
-  Vaults:           []stigmer.ResourceRef{},
-  IncludeMyVault:   false,
-  Plugins:          []stigmer.ResourceRef{},
-  FileReview:       false,
-  EnvironmentRef:   &stigmer.ResourceRef{},
+  Name:            "my-session",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  AgentRef:        &stigmer.ResourceRef{},
+  Subject:         "...",
+  Metadata:        map[string]string{},
+  SkillRefs:       []stigmer.ResourceRef{},
+  Harness:         "...",
+  CursorMode:      "...",
+  ExecutionTarget: "...",
+  Vaults:          []stigmer.ResourceRef{},
+  IncludeMyVault:  false,
+  Plugins:         []stigmer.ResourceRef{},
+  FileReview:      false,
+  EnvironmentRef:  &stigmer.ResourceRef{},
+  Resources:       []stigmer.SessionResourceInput{},
 })
 ```
 </Tab>
@@ -529,7 +531,6 @@ session = client.sessions.create(SessionInput(
     agent_ref=None,
     subject="...",
     metadata={},
-    workspace_entries=[],
     skill_refs=[],
     harness="...",
     cursor_mode="...",
@@ -539,6 +540,7 @@ session = client.sessions.create(SessionInput(
     plugins=[],
     file_review=False,
     environment_ref=None,
+    resources=[],
 ))
 ```
 </Tab>
@@ -552,7 +554,6 @@ Session session = client.sessions().create(SessionInput.builder()
     .agentRef(null)
     .subject("...")
     .metadata(Map.of())
-    .workspaceEntries(List.of())
     .skillRefs(List.of())
     .harness("...")
     .cursorMode("...")
@@ -562,6 +563,7 @@ Session session = client.sessions().create(SessionInput.builder()
     .plugins(List.of())
     .fileReview(false)
     .environmentRef(null)
+    .resources(List.of())
     .build());
 ```
 </Tab>
@@ -1075,7 +1077,6 @@ Input for creating or updating a Session.
     agentRef: { type: "ResourceRef", description: "The agent this conversation runs, as 'org/slug' with an optional version; empty means no agent, and the built-in assistant answers with the plugins and skills this session itself declares.", typeDescriptionLink: "#resourceref" },
     subject: { type: "string", description: "Conversation title for UI display." },
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs for client-specific information." },
-    workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries for this session.", typeDescriptionLink: "#workspaceentryinput" },
     skillRefs: { type: "ResourceRef[]", description: "Skills to inject into this session's context.", typeDescriptionLink: "#resourceref" },
     harness: { type: "Harness", description: "Execution harness for this session.", typeDescriptionLink: "#harness" },
     cursorMode: { type: "CursorMode", description: "Cursor SDK agent mode for this session.", typeDescriptionLink: "#cursormode" },
@@ -1085,6 +1086,7 @@ Input for creating or updating a Session.
     plugins: { type: "ResourceRef[]", description: "Plugins this conversation uses, each whole, besides its agent's: their skills, agents, hooks and MCP servers.", typeDescriptionLink: "#resourceref" },
     fileReview: { type: "boolean", description: "Whether each turn's file edits are offered for review, Keep or Undo, after the turn." },
     environmentRef: { type: "ResourceRef", description: "The Environment this conversation runs in: the packages its sandboxes get and the websites they may reach.", typeDescriptionLink: "#resourceref" },
+    resources: { type: "SessionResourceInput[]", description: "What the conversation holds: Files the agent finds under .stigmer/uploads/ on every turn, git repositories cloned into its workspace, and folders on the person's own machine.", typeDescriptionLink: "#sessionresourceinput" },
   }}
 />
 
@@ -1102,50 +1104,51 @@ Generic reference to any API resource.
   }}
 />
 
-### WorkspaceEntryInput
+### SessionResourceInput
 
-WorkspaceEntry pairs a WorkspaceSource with a human-readable name, forming an addressable unit within a session's workspace.
-
-<TypeTable
-  type={{
-    name: { type: "string", description: "Short identifier for this workspace entry." },
-    source: { type: "WorkspaceSourceInput", description: "The source that provides this entry's content.", typeDescriptionLink: "#workspacesourceinput", required: true },
-  }}
-/>
-
-### WorkspaceSourceInput
-
-WorkspaceSource defines where the workspace content comes from.
+SessionResource is one thing a conversation holds: a File the agent finds in its uploads folder, a git repository cloned into its workspace, or a folder on the person's own machine.
 
 <TypeTable
   type={{
-    gitRepo: { type: "GitRepoSourceInput", description: "Clone a git repository as the workspace source.", typeDescriptionLink: "#gitreposourceinput" },
-    localPath: { type: "LocalPathSourceInput", description: "Use an existing local directory as the workspace source.", typeDescriptionLink: "#localpathsourceinput" },
+    name: { type: "string", description: "The directory a repository or a local folder is given in the workspace: unique among the conversation's repositories and folders." },
+    file: { type: "FileResourceInput", description: "A File the agent finds under .stigmer/uploads/.", typeDescriptionLink: "#fileresourceinput" },
+    gitRepository: { type: "GitRepositoryResourceInput", description: "A git repository cloned into the workspace.", typeDescriptionLink: "#gitrepositoryresourceinput" },
+    localPath: { type: "LocalPathResourceInput", description: "A folder on the person's own machine, used where it is.", typeDescriptionLink: "#localpathresourceinput" },
   }}
 />
 
-### GitRepoSourceInput
+### FileResourceInput
 
-GitRepoSource provisions a workspace by cloning a git repository.
+FileResource names a File the conversation holds and where the agent finds it.
+
+<TypeTable
+  type={{
+    fileId: { type: "string", description: "The File's id: \"file_01j…\"." },
+    mountPath: { type: "string", description: "Where the agent finds the File, relative to .stigmer/uploads/: \"q3/ledger.xlsx\"." },
+  }}
+/>
+
+### GitRepositoryResourceInput
+
+GitRepositoryResource clones a git repository into the workspace.
 
 <TypeTable
   type={{
     url: { type: "string", description: "HTTPS clone URL for the repository.", required: true },
     branch: { type: "string", description: "Branch to clone." },
-    commit: { type: "string", description: "Commit SHA to checkout after cloning." },
-    depth: { type: "number", description: "Number of commits to include in the clone history." },
-    writeBackMode: { type: "GitWriteBackMode", description: "Controls whether the platform creates a branch and pull request from the agent's file changes.", typeDescriptionLink: "#gitwritebackmode" },
+    commit: { type: "string", description: "Commit to check out after the clone." },
+    writeBackMode: { type: "GitWriteBackMode", description: "Whether the platform turns the agent's changes into a branch and a pull request.", typeDescriptionLink: "#gitwritebackmode" },
     token: { type: "string", description: "A token for cloning this repository, kept for the conversation only." },
   }}
 />
 
-### LocalPathSourceInput
+### LocalPathResourceInput
 
-LocalPathSource uses an existing directory on the host filesystem as the workspace.
+LocalPathResource uses a folder on the person's own machine as it is: the agent works on the files directly, and no copy is made.
 
 <TypeTable
   type={{
-    path: { type: "string", description: "Absolute path to an existing directory on the host filesystem." },
+    path: { type: "string", description: "Absolute path of an existing folder." },
   }}
 />
 

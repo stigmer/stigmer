@@ -1,23 +1,22 @@
 /**
- * buildThreadItems attachment stamping (stigmer/stigmer#372). A turn's
- * person's message carries the files submitted with it from two sources:
- * the turn's run (`spec.attachments`, durable and presign-capable, stamped
- * by reference with the run id) and the submit context's pending
- * attachments (the optimistic bubble, before any run, kept on a failed
- * send). An empty list is omitted.
+ * buildThreadItems file stamping (stigmer/stigmer#372). A turn's person's
+ * message carries the files given with it from two sources: the turn's run
+ * (`status.messageFiles`, the blocks the server recorded, each naming the
+ * conversation's File; stamped with the run id, which makes the chips live)
+ * and the submit context's pending attachments (the optimistic bubble,
+ * before any run, kept on a failed send). An empty list is omitted, a
+ * block with no File is skipped, and the chips keep their identity across
+ * rebuilds so a streamed frame never re-renders an unchanged message.
  */
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { AttachmentSchema, type Attachment } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
+import { ContentBlockSchema, type ContentBlock } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 import { buildThreadItems, type ThreadItem } from "../MessageThread";
+import { messageFileViews } from "../MessageAttachments";
 import { runOf, status, turnsOf, user } from "./__fixtures__/thread-events";
 
-function attachment(filename: string, storageKey: string): Attachment {
-  return create(AttachmentSchema, {
-    filename,
-    storageKey,
-    contentType: filename.endsWith(".png") ? "image/png" : "text/plain",
-  });
+function fileBlock(type: "image" | "document", fileId: string, title = ""): ContentBlock {
+  return create(ContentBlockSchema, { type, title, source: { type: "file", fileId } });
 }
 
 type MessageItem = Extract<ThreadItem, { kind: "message" }>;
@@ -26,27 +25,29 @@ function messageByKey(items: readonly ThreadItem[], key: string): MessageItem | 
   return items.find((i): i is MessageItem => i.kind === "message" && i.key === key);
 }
 
-describe("buildThreadItems spec.attachments stamping", () => {
-  it("stamps the person's message with the run's attachments, by reference, and the run id", () => {
+describe("buildThreadItems status.messageFiles stamping", () => {
+  it("stamps the person's message with the turn's Files, in order, and the run id", () => {
     const run = runOf("exec-attach", {
-      spec: {
-        message: "Look at these files.",
-        attachments: [
-          attachment("notes.png", "attachments/01AAA/notes.png"),
-          attachment("report.txt", "attachments/01BBB/report.txt"),
-        ],
+      spec: { message: "Look at these files." },
+      status: {
+        messageFiles: [fileBlock("image", "file_notes"), fileBlock("document", "file_report", "report.txt")],
       },
     });
     const turns = turnsOf(user("exec-attach", "Look at these files."), status("exec-attach", "completed"));
 
-    const prompt = messageByKey(buildThreadItems(turns, [run]), "exec-attach-spec");
+    const items = buildThreadItems(turns, [run]);
+    const prompt = messageByKey(items, "exec-attach-spec");
 
     expect(prompt?.executionId).toBe("exec-attach");
-    expect(prompt?.attachments).toBe(run.spec!.attachments);
-    expect(prompt?.attachments).toHaveLength(2);
+    expect(prompt?.attachments).toEqual([
+      { fileId: "file_notes", filename: undefined, kind: "image" },
+      { fileId: "file_report", filename: "report.txt", kind: "document" },
+    ]);
+    // A rebuild (the next streamed frame) hands the row the same array.
+    expect(messageByKey(buildThreadItems(turns, [run]), "exec-attach-spec")?.attachments).toBe(prompt?.attachments);
   });
 
-  it("stamps NO attachments when the run has none", () => {
+  it("stamps NO attachments when the run recorded no files", () => {
     const turns = turnsOf(user("exec-plain", "Just text."), status("exec-plain", "completed"));
     const prompt = messageByKey(
       buildThreadItems(turns, [runOf("exec-plain", { spec: { message: "Just text." } })]),
@@ -58,9 +59,18 @@ describe("buildThreadItems spec.attachments stamping", () => {
   });
 });
 
+describe("messageFileViews", () => {
+  it("skips a block whose source is not a File", () => {
+    const inline = create(ContentBlockSchema, { type: "image", source: { type: "base64", data: "aGk=" } });
+    expect(messageFileViews([inline, fileBlock("document", "file_1")])).toEqual([
+      { fileId: "file_1", filename: undefined, kind: "document" },
+    ]);
+  });
+});
+
 describe("buildThreadItems pendingAttachments stamping", () => {
   const pendingAttachments = [
-    { filename: "sketch.png", contentType: "image/png", storageKey: "attachments/01CCC/sketch.png" },
+    { fileId: "file_sketch", filename: "sketch.png", kind: "image" as const },
   ];
 
   it("carries the submit context's attachments on the pending bubble, without a run id", () => {

@@ -33,11 +33,15 @@
 // A turn's dispatch queue is the server's to derive, never a caller's: the
 // retired request field that once named one is read as an unknown field.
 //
-// A run's file reaches a browser through the link getArtifactDownloadUrl
-// mints. Where artifact storage is local, the attachments block below fetches
-// that link from the server's file server: inline by default, an attachment
-// when a download is asked for, and an altered, unsigned or re-dated link
-// answered like a missing key.
+// A message's Files (spec.file_ids) cross from the server to the runner: the
+// Files block below proves the runner places each at .stigmer/uploads/ byte
+// for byte, that the run records the blocks its message carried naming the
+// conversation's own copy, and that an image reaches the provider as an
+// inline image block. A run's file reaches a browser through the link
+// getArtifactDownloadUrl mints. Where artifact storage is local, the same
+// block fetches that link from the server's file server: inline by default,
+// an attachment when a download is asked for, and an altered, unsigned or
+// re-dated link answered like a missing key.
 //
 // Covered in a sibling file (kept separate because it needs the MCP tool
 // fixture and approval choreography, and this file is already large):
@@ -55,7 +59,7 @@
 // is a conscious deferral, not shipped as a thin partial):
 // - recover happy path (needs a genuinely FAILED execution);
 // - artifact content, sub-agents.
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -65,7 +69,6 @@ import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { UploadAttachmentRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { ProviderKeySource } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
@@ -756,9 +759,7 @@ describe("Run conformance — one-call session bootstrap (session_spec)", () => 
         agentRef: agentRefOf(agent),
         sessionSpec: {
           subject: "Bootstrap conformance",
-          workspaceEntries: [
-            { name: "project", source: { source: { case: "localPath", value: { path: workspaceDir } } } },
-          ],
+          resources: [{ name: "project", resource: { case: "localPath", value: { path: workspaceDir } } }],
           harness: Harness.NATIVE,
         },
       }),
@@ -787,9 +788,9 @@ describe("Run conformance — one-call session bootstrap (session_spec)", () => 
       "Bootstrap conformance",
     );
     expect(session.spec?.harness).toBe(Harness.NATIVE);
-    expect(session.spec?.workspaceEntries).toHaveLength(1);
-    expect(session.spec?.workspaceEntries?.[0]?.name).toBe("project");
-    expect(session.spec?.workspaceEntries?.[0]?.source?.source).toEqual({
+    expect(session.spec?.resources).toHaveLength(1);
+    expect(session.spec?.resources?.[0]?.name).toBe("project");
+    expect(session.spec?.resources?.[0]?.resource).toEqual({
       case: "localPath",
       value: expect.objectContaining({ path: workspaceDir }),
     });
@@ -800,15 +801,6 @@ describe("Run conformance — one-call session bootstrap (session_spec)", () => 
   });
 });
 
-// The cross-process artifact contract (stigmer/stigmer#285). Nothing else in the
-// suite exercises it: the server writes an uploaded attachment to its store,
-// and the runner — a separate process — must read it back from the SAME store.
-// Before the fix the two disagreed on the path and this failed; the harness
-// points local targets at one shared directory (server-process.ts /
-// runner-process.ts) and cloud-execution's runner presigns against the real
-// service's MinIO-backed artifact routes (stigmer#803), so every case here
-// runs unconditionally on every execution target (the retired
-// sharedRunnerArtifactStore gate — see target.ts).
 // The retired RunSpec field that once let a caller name the
 // turn's dispatch queue (activity_task_queue, number 11). Reserved on the
 // wire: a request carrying it is read with the field as an unknown one.
@@ -844,25 +836,33 @@ describe("Run conformance — a turn's dispatch queue is the server's to derive"
   });
 });
 
-describe("Run conformance — attachments (#285)", () => {
-  it("[rpc:RunCommandController.uploadAttachment] resolves a storage-key attachment (no local_path) the server wrote to the shared store", async () => {
+// The cross-process file contract (stigmer/stigmer#285). Nothing else in the
+// suite exercises it: the server stores an uploaded File's bytes, and the
+// runner, a separate process, must fetch them back from the SAME store
+// through the links the server signs for it. Before #285 the two disagreed
+// on the path and this failed; the harness points local targets at one
+// shared directory (server-process.ts / runner-process.ts) and
+// cloud-execution's runner fetches through the real service's MinIO-backed
+// routes (stigmer#803), so every case here runs on every execution target
+// (the retired sharedRunnerArtifactStore gate, see target.ts).
+describe("Run conformance — a message's Files (#285)", () => {
+  // A File of the person's own, uploaded inline: the run's conversation
+  // takes its own copy when the run names it.
+  async function uploadOwnFile(org: string, filename: string, content: Uint8Array): Promise<string> {
+    const file = await clients.fileCommand.upload({ org, filename, source: { case: "data", value: content } });
+    const id = file.metadata!.id;
+    fixtures.defer(() => clients.fileCommand.delete({ value: id }).catch(() => undefined));
+    return id;
+  }
+
+  it("places a message's File the server stored at the conversation's uploads, byte for byte, as the conversation's own copy", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org, uniqueName("agent-attach"));
 
-    // Upload through the server; it lands in the server's local artifact store.
     const filename = "readme-285.txt";
     const content = Buffer.from(`shared-store proof ${Date.now()}`);
-    const uploaded = await clients.agentExecutionCommand.uploadAttachment(
-      create(UploadAttachmentRequestSchema, {
-        filename,
-        content,
-        contentType: "text/plain",
-      }),
-    );
-    expect(uploaded.storageKey).toMatch(/^attachments\/.+\/readme-285\.txt$/);
+    const original = await uploadOwnFile(org, filename, content);
 
-    // A storage-key attachment with NO local_path — the branch that forces the
-    // runner to read from artifact storage rather than the CLI's local fast path.
     mock.enqueue(anthropicText("Got your file."));
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
@@ -870,27 +870,33 @@ describe("Run conformance — attachments (#285)", () => {
         name: uniqueName("aex-attach"),
         agentRef: agentRefOf(agent),
         message: "Here is a file.",
-        attachments: [{ filename, storageKey: uploaded.storageKey }],
+        fileIds: [original],
       }),
     );
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: execution.metadata!.id }));
 
-    // Attachment injection is fail-hard, so reaching COMPLETED is itself proof
-    // that the runner resolved the storage-key attachment from the shared store.
+    // A turn's Files are mounted fail-hard, so reaching COMPLETED is itself
+    // proof that the runner fetched the File from the shared store.
     const final = await awaitTerminal(clients, execution.metadata!.id);
     expect(
       final.status?.phase,
       `expected COMPLETED; error: ${final.status?.error || "(none)"}`,
     ).toBe(RunPhase.RUN_COMPLETED);
 
-    // And the materialized bytes match end to end. The runner writes
-    // attachments to the session platform dir under ITS home — the
-    // harness-owned directory the target spawned it with, never this process's
-    // — and it never deletes the session tree, so we read it there.
+    // The conversation holds the File as its own copy, not the person's.
     const sessionId = sessionIdOf(final);
     expect(sessionId, "execution should carry a session id").toBeTruthy();
+    const session = await clients.sessionQuery.get({ value: sessionId });
+    const held = (session.spec?.resources ?? []).flatMap((r) => (r.resource.case === "file" ? [r.resource.value] : []));
+    expect(held, "the message's File joins the conversation's resources").toHaveLength(1);
+    expect(held[0]?.fileId, "the conversation names its own copy").not.toBe(original);
+
+    // And the placed bytes match end to end. The runner mounts Files in the
+    // session platform dir under ITS home (the harness-owned directory the
+    // target spawned it with, never this process's), where the workspace's
+    // .stigmer/uploads/ leads, and it never deletes the session tree.
     if (target.runnerHomeDir === undefined) {
-      throw new Error(`target ${target.name} spawns no runner; the attachment arm needs its home directory`);
+      throw new Error(`target ${target.name} spawns no runner; the File arm needs its home directory`);
     }
     const materialized = join(
       target.runnerHomeDir(),
@@ -898,31 +904,25 @@ describe("Run conformance — attachments (#285)", () => {
       "sessions",
       sessionId,
       "platform",
-      "inputs",
+      "uploads",
       filename,
     );
     const got = await readFile(materialized);
     expect(Buffer.compare(got, content)).toBe(0);
   });
 
-  // The thread-rendering seam (stigmer/stigmer#372): a submitted attachment's
-  // storage key must presign via getArtifactDownloadUrl so the message thread
-  // can show the turn's files after the composer's local handles are gone.
-  // Attachment keys carry no execution id, so ownership is the execution's
-  // spec.attachments referencing the key verbatim — and ONLY that: a key the
-  // spec never referenced is rejected even when syntactically valid.
-  it("[rpc:RunQueryController.getArtifactDownloadUrl] presigns a spec-referenced attachment key and rejects a foreign one (#372)", async () => {
+  // The thread-rendering seam (stigmer/stigmer#372): the message thread shows
+  // a turn's files after the composer's local handles are gone. The run
+  // records the blocks its message carried, each naming the conversation's
+  // copy, and that File's own link serves the bytes. A run's artifact links
+  // are for the files it published alone: an upload key, which no run
+  // publishes under, is refused.
+  it("[rpc:RunQueryController.getArtifactDownloadUrl] records a message's Files as blocks naming the conversation's copy, which the File's link serves, and refuses an upload key as a run file (#372)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org, uniqueName("agent-presign"));
 
-    const filename = "evidence-372.txt";
-    const uploaded = await clients.agentExecutionCommand.uploadAttachment(
-      create(UploadAttachmentRequestSchema, {
-        filename,
-        content: Buffer.from("presign proof"),
-        contentType: "text/plain",
-      }),
-    );
+    const content = "presign proof";
+    const original = await uploadOwnFile(org, "evidence-372.txt", new TextEncoder().encode(content));
 
     mock.enqueue(anthropicText("Received."));
     const execution = await clients.agentExecutionCommand.create(
@@ -931,31 +931,40 @@ describe("Run conformance — attachments (#285)", () => {
         name: uniqueName("aex-presign"),
         agentRef: agentRefOf(agent),
         message: "Here is a file.",
-        attachments: [{ filename, storageKey: uploaded.storageKey }],
+        fileIds: [original],
       }),
     );
-    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: execution.metadata!.id }));
+    const runId = execution.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));
 
-    // The spec-referenced key presigns — no need to wait for the run.
-    const presigned = await clients.agentExecutionQuery.getArtifactDownloadUrl({
-      runId: execution.metadata!.id,
-      storageKey: uploaded.storageKey,
-    });
-    expect(presigned.downloadUrl, "attachment key should presign").toBeTruthy();
+    // Recorded when the run is created: no need to wait for the run.
+    const stored = await clients.agentExecutionQuery.get({ value: runId });
+    const blocks = stored.status?.messageFiles ?? [];
+    expect(
+      blocks.map((block) => [block.type, block.source?.type]),
+      "a text file is a document block with a file source",
+    ).toEqual([["document", "file"]]);
+    const copy = blocks[0]?.source?.fileId ?? "";
+    expect(copy, "the block names the conversation's copy").not.toBe(original);
+    expect(copy).not.toBe("");
 
-    // A foreign attachment key (valid shape, never referenced) is rejected.
+    const link = await clients.fileQuery.getDownloadUrl({ value: copy });
+    const served = await fetch(link.url);
+    expect(served.status, "the copy's link serves the file").toBe(200);
+    expect(await served.text()).toBe(content);
+
     await expectGrpcCode(
       () =>
         clients.agentExecutionQuery.getArtifactDownloadUrl({
-          runId: execution.metadata!.id,
+          runId,
           storageKey: "attachments/01JXFOREIGNULIDULIDULIDULX/other.txt",
         }),
       Code.InvalidArgument,
-      "presign foreign attachment key",
+      "presign an upload key as a run file",
     );
 
     // Leave the background run settled so teardown is quiet.
-    await awaitTerminal(clients, execution.metadata!.id);
+    await awaitTerminal(clients, runId);
   });
 
   // The local file server, on the wire: the link getArtifactDownloadUrl
@@ -967,7 +976,9 @@ describe("Run conformance — attachments (#285)", () => {
   // the key, the expiry and the download name. Only local artifact storage
   // serves this lane (the targets with an on-disk store); cloud's links are
   // presigned object-store URLs, a different contract, so the case reports
-  // SKIPPED there.
+  // SKIPPED there. The served file is placed in the store where the runner
+  // publishes a run's files (artifacts/<run id>/), so the case needs no
+  // scripted tool call to produce one.
   it("[rpc:RunQueryController.getArtifactDownloadUrl] the local file server serves a run's file inline at the minted link, as an attachment when a download is asked for, and answers an altered, removed or re-dated signature 404 like a missing key", async (ctx) => {
     if (target.artifactStoreDir === undefined) {
       return ctx.skip("this target keeps run files in an object store, whose presigned links are not this lane");
@@ -975,29 +986,25 @@ describe("Run conformance — attachments (#285)", () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org, uniqueName("agent-fileserver"));
 
-    const filename = "file-server-proof.txt";
-    const content = new TextEncoder().encode("file-server conformance body\n");
-    const uploaded = await clients.agentExecutionCommand.uploadAttachment(
-      create(UploadAttachmentRequestSchema, { filename, content, contentType: "text/plain" }),
-    );
-
     mock.enqueue(anthropicText("Received."));
     const execution = await clients.agentExecutionCommand.create(
       makeAgentExecution({
         org,
         name: uniqueName("aex-fileserver"),
         agentRef: agentRefOf(agent),
-        message: "Here is a file.",
-        attachments: [{ filename, storageKey: uploaded.storageKey }],
+        message: "Publish a file.",
       }),
     );
     const runId = execution.metadata!.id;
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));
 
-    const inlineLink = await clients.agentExecutionQuery.getArtifactDownloadUrl({
-      runId,
-      storageKey: uploaded.storageKey,
-    });
+    const filename = "file-server-proof.txt";
+    const content = new TextEncoder().encode("file-server conformance body\n");
+    const storageKey = `artifacts/${runId}/${filename}`;
+    mkdirSync(join(target.artifactStoreDir(), "artifacts", runId), { recursive: true });
+    writeFileSync(join(target.artifactStoreDir(), storageKey), content);
+
+    const inlineLink = await clients.agentExecutionQuery.getArtifactDownloadUrl({ runId, storageKey });
     const inline = await fetch(inlineLink.downloadUrl);
     expect(inline.status, "the minted link serves the file").toBe(200);
     expect(inline.headers.get("content-disposition"), "a link minted without a download is served inline").toBeNull();
@@ -1005,7 +1012,7 @@ describe("Run conformance — attachments (#285)", () => {
 
     const attachmentLink = await clients.agentExecutionQuery.getArtifactDownloadUrl({
       runId,
-      storageKey: uploaded.storageKey,
+      storageKey,
       asAttachment: true,
     });
     const attachment = await fetch(attachmentLink.downloadUrl);
@@ -1051,13 +1058,13 @@ describe("Run conformance — attachments (#285)", () => {
     await awaitTerminal(clients, runId);
   });
 
-  // The vision contract, proven at the provider boundary: an image
-  // attachment must reach the model as an inline image block, not just as a
-  // file on disk. This is the offline substitute for a live vision probe — the
+  // The vision contract, proven at the provider boundary: an image File
+  // given with a message must reach the model as an inline image block, not
+  // just as a file on disk. This is the offline substitute for a live vision probe — the
   // captured request is byte-for-byte what Anthropic would have received
   // (@langchain/anthropic converts the runner's image_url data-URL block into
   // the native base64 source block on the wire).
-  it("delivers an image attachment to the provider as an inline base64 image block (vision)", async () => {
+  it("delivers an image File given with a message to the provider as an inline base64 image block (vision)", async () => {
     const { org } = await target.provisionTenancy();
     const agent = await provisionAgent(org, uniqueName("agent-vision"));
 
@@ -1067,13 +1074,7 @@ describe("Run conformance — attachments (#285)", () => {
       Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
       Buffer.alloc(120, 0xab),
     ]);
-    const uploaded = await clients.agentExecutionCommand.uploadAttachment(
-      create(UploadAttachmentRequestSchema, {
-        filename,
-        content: pngBytes,
-        contentType: "image/png",
-      }),
-    );
+    const image = await uploadOwnFile(org, filename, pngBytes);
 
     mock.enqueue(anthropicText("I can see the image."));
     const execution = await clients.agentExecutionCommand.create(
@@ -1082,7 +1083,7 @@ describe("Run conformance — attachments (#285)", () => {
         name: uniqueName("aex-vision"),
         agentRef: agentRefOf(agent),
         message: "What is in this image?",
-        attachments: [{ filename, storageKey: uploaded.storageKey }],
+        fileIds: [image],
       }),
     );
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: execution.metadata!.id }));
@@ -1117,28 +1118,25 @@ describe("Run conformance — attachments (#285)", () => {
     const blocks = userBlockMessages[0]!.content as AnthropicWireBlock[];
     // The ordinal filename label precedes the image (pixel-to-filename
     // association), and the image arrives as Anthropic's native base64 block
-    // carrying the EXACT uploaded bytes with the sniffed media type. The text
-    // block after it is the turn's message: this turn's Input Files section
-    // (the file, its vision disclosure) set off by a rule from what the user
-    // typed, because a turn's payload rides its own message and never the
-    // system prompt (the request-shape suite pins why).
-    expect(blocks).toEqual([
-      { type: "text", text: `Image 1: ${filename}` },
-      {
-        type: "image",
-        source: {
-          type: "base64",
-          media_type: "image/png",
-          data: pngBytes.toString("base64"),
-        },
+    // carrying the EXACT uploaded bytes with the sniffed media type. The
+    // turn's message closes the content, naming where the agent finds the
+    // File. A turn's payload rides its own message and never the system
+    // prompt (the request-shape suite pins why).
+    const imageAt = blocks.findIndex((block) => block.type === "image");
+    expect(imageAt, "the message carries an image block").toBeGreaterThan(0);
+    expect(blocks[imageAt - 1]).toEqual({ type: "text", text: `Image 1: ${filename}` });
+    expect(blocks[imageAt]).toEqual({
+      type: "image",
+      source: {
+        type: "base64",
+        media_type: "image/png",
+        data: pngBytes.toString("base64"),
       },
-      expect.objectContaining({
-        type: "text",
-        text: expect.stringMatching(
-          new RegExp(`^## Input Files\\n[\\s\\S]*\`\\.stigmer/inputs/${filename.replace(".", "\\.")}\`[\\s\\S]*\\n\\n---\\n\\nWhat is in this image\\?$`),
-        ),
-      }),
-    ]);
+    });
+    const closing = blocks[blocks.length - 1];
+    expect(closing?.type).toBe("text");
+    expect(closing?.text ?? "").toContain(`.stigmer/uploads/${filename}`);
+    expect(closing?.text ?? "").toMatch(/What is in this image\?$/);
   });
 });
 

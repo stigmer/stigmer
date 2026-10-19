@@ -87,8 +87,8 @@ describe("workingAgentSessionSpec", () => {
     expect(spec).toEqual({
       harness: Harness.CURSOR,
       subject: "harness benchmark",
-      workspaceEntries: [
-        { name: WORKING_AGENT_WORKSPACE_NAME, source: { source: { case: "localPath", value: { path: "/tmp/x/orders-sync" } } } },
+      resources: [
+        { name: WORKING_AGENT_WORKSPACE_NAME, resource: { case: "localPath", value: { path: "/tmp/x/orders-sync" } } },
       ],
     });
   });

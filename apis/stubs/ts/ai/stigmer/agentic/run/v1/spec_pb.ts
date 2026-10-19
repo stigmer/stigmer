@@ -21,7 +21,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/run/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_run_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL3NwZWMucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEi/QoKB1J1blNwZWMSFAoKc2Vzc2lvbl9pZBgBIAEoCUgAEkIKDHNlc3Npb25fc3BlYxgNIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjSAASDwoHbWVzc2FnZRgDIAEoCRI4CgpydW5fY29uZmlnGBIgASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5Db25maWcSTgoQaW50ZXJhY3Rpb25fbW9kZRgTIAEoDjIqLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuSW50ZXJhY3Rpb25Nb2RlQgi6SAWCAQIQARIXCg9idWlsZF9mcm9tX3BsYW4YFCABKAgSOQoYc3RydWN0dXJlZF9vdXRwdXRfc2NoZW1hGBUgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBKlAQoFdG9vbHMYFiADKAlClQG6SJEBkgGNARCAASKHAXKEARiAAjJ/XihtY3BfX1wqfG1jcF9fKFthLXpdW2EtejAtOS1dKlthLXowLTldfHBsdWdpbihfW0EtWmEtejAtOS1dKykrKShfXyhcKnxbQS1aYS16MC05Xy4tXSspKT98W0EtWl1bQS1aYS16MC05X10qKFwoW14oKVxyXG5dK1wpKT8pJBKwAQoQZGlzYWxsb3dlZF90b29scxgXIAMoCUKVAbpIkQGSAY0BEIABIocBcoQBGIACMn9eKG1jcF9fXCp8bWNwX18oW2Etel1bYS16MC05LV0qW2EtejAtOV18cGx1Z2luKF9bQS1aYS16MC05LV0rKSspKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkEicKFGFwcGVuZF9zeXN0ZW1fcHJvbXB0GBggASgJQgm6SAZyBBiAgAISGAoQYXV0b19hcHByb3ZlX2FsbBgHIAEoCBI6CgthdHRhY2htZW50cxgJIAMoCzIlLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuQXR0YWNobWVudBIbChN3b3Jrc3BhY2VfZmlsZV9yZWZzGAogAygJEhkKEXN1cGVyc2VkZXNfcnVuX2lkGAwgASgJEkwKFGNvbnZlcnNhdGlvbl9jYXRjaHVwGA4gASgLMi4uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Db252ZXJzYXRpb25DYXRjaHVwEj0KCWV2YWxfY2FzZRgZIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRXZhbENhc2VDb250ZXh0Eh0KFXJlY29uY2lsZV9maWxlX3JldmlldxgaIAEoCBIwChNleGNsdWRlZF9wbHVnaW5faWRzGBsgAygJQhO6SBCSAQ0QCBgBIgdyBRABGIABOma6SGMaYQoUcnVuLm1lc3NhZ2VfcmVxdWlyZWQSE21lc3NhZ2UgaXMgcmVxdWlyZWQaNHRoaXMucmVjb25jaWxlX2ZpbGVfcmV2aWV3IHx8IHNpemUodGhpcy5tZXNzYWdlKSA+IDBCCAoGdGFyZ2V0SgQIAhADSgQIBhAHSgQICBAJSgQICxAMSgQIERASSgQIDxAQSgQIEBARSgQIBBAFSgQIBRAGUghhZ2VudF9pZFIOY2FsbGJhY2tfdG9rZW5SEnBhcmVudF93b3JrZmxvd19pZFITYWN0aXZpdHlfdGFza19xdWV1ZVIGcGFyZW50UhRkZWNsYXJlZF9wcmVmZXJlbmNlc1IRcmVjYWxsZWRfbWVtb3JpZXNSEGV4ZWN1dGlvbl9jb25maWdSC3J1bnRpbWVfZW52ItQCCgpBdHRhY2htZW50EtgBCghmaWxlbmFtZRgBIAEoCULFAbpIwQG6AbkBChthdHRhY2htZW50LmZpbGVuYW1lLm5vX3BhdGgSTmZpbGVuYW1lIG11c3QgYmUgYSBiYXJlIGZpbGVuYW1lIHdpdGhvdXQgcGF0aCBzZXBhcmF0b3JzIG9yIHRyYXZlcnNhbCBzZWdtZW50cxpKIXRoaXMuY29udGFpbnMoJy8nKSAmJiAhdGhpcy5jb250YWlucygnXFwnKSAmJiB0aGlzICE9ICcuJyAmJiB0aGlzICE9ICcuLidyAhABEhwKC3N0b3JhZ2Vfa2V5GAIgASgJQge6SARyAhABEhIKCm1vdW50X3BhdGgYAyABKAkSFAoMY29udGVudF90eXBlGAQgASgJEg8KB2V4dHJhY3QYBSABKAgSEgoKbG9jYWxfcGF0aBgGIAEoCSJVChNDb252ZXJzYXRpb25DYXRjaHVwEg4KBmRpZ2VzdBgBIAEoCRIuCgp3aW5kb3dfZW5kGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJAChNEZWNsYXJlZFByZWZlcmVuY2VzEhMKC29yZ19jb250ZXh0GAEgASgJEhQKDHVzZXJfY29udGV4dBgCIAEoCSJhChBSZWNhbGxlZE1lbW9yaWVzEg8KB2VuYWJsZWQYASABKAgSPAoFZmFjdHMYAiADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJlY2FsbGVkTWVtb3J5RmFjdCI4ChJSZWNhbGxlZE1lbW9yeUZhY3QSEQoJbWVtb3J5X2lkGAEgASgJEg8KB2NvbnRlbnQYAiABKAliBnByb3RvMw", [file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_run_v1_eval_case, file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_agentic_session_v1_spec, file_buf_validate_validate, file_google_protobuf_struct, file_google_protobuf_timestamp]);
+  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL3NwZWMucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEitwsKB1J1blNwZWMSFAoKc2Vzc2lvbl9pZBgBIAEoCUgAEkIKDHNlc3Npb25fc3BlYxgNIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjSAASDwoHbWVzc2FnZRgDIAEoCRI4CgpydW5fY29uZmlnGBIgASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5Db25maWcSTgoQaW50ZXJhY3Rpb25fbW9kZRgTIAEoDjIqLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuSW50ZXJhY3Rpb25Nb2RlQgi6SAWCAQIQARIXCg9idWlsZF9mcm9tX3BsYW4YFCABKAgSOQoYc3RydWN0dXJlZF9vdXRwdXRfc2NoZW1hGBUgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBKlAQoFdG9vbHMYFiADKAlClQG6SJEBkgGNARCAASKHAXKEARiAAjJ/XihtY3BfX1wqfG1jcF9fKFthLXpdW2EtejAtOS1dKlthLXowLTldfHBsdWdpbihfW0EtWmEtejAtOS1dKykrKShfXyhcKnxbQS1aYS16MC05Xy4tXSspKT98W0EtWl1bQS1aYS16MC05X10qKFwoW14oKVxyXG5dK1wpKT8pJBKwAQoQZGlzYWxsb3dlZF90b29scxgXIAMoCUKVAbpIkQGSAY0BEIABIocBcoQBGIACMn9eKG1jcF9fXCp8bWNwX18oW2Etel1bYS16MC05LV0qW2EtejAtOV18cGx1Z2luKF9bQS1aYS16MC05LV0rKSspKF9fKFwqfFtBLVphLXowLTlfLi1dKykpP3xbQS1aXVtBLVphLXowLTlfXSooXChbXigpXHJcbl0rXCkpPykkEicKFGFwcGVuZF9zeXN0ZW1fcHJvbXB0GBggASgJQgm6SAZyBBiAgAISGAoQYXV0b19hcHByb3ZlX2FsbBgHIAEoCBIbChN3b3Jrc3BhY2VfZmlsZV9yZWZzGAogAygJEhkKEXN1cGVyc2VkZXNfcnVuX2lkGAwgASgJEkwKFGNvbnZlcnNhdGlvbl9jYXRjaHVwGA4gASgLMi4uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5Db252ZXJzYXRpb25DYXRjaHVwEj0KCWV2YWxfY2FzZRgZIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuRXZhbENhc2VDb250ZXh0Eh0KFXJlY29uY2lsZV9maWxlX3JldmlldxgaIAEoCBIwChNleGNsdWRlZF9wbHVnaW5faWRzGBsgAygJQhO6SBCSAQ0QCBgBIgdyBRABGIABEiIKCGZpbGVfaWRzGBwgAygJQhC6SA2SAQoQFBgBIgRyAhABOqQBukigARqdAQoUcnVuLm1lc3NhZ2VfcmVxdWlyZWQSNG1lc3NhZ2UgaXMgcmVxdWlyZWQgdW5sZXNzIHRoZSBtZXNzYWdlIGNhcnJpZXMgZmlsZXMaT3RoaXMucmVjb25jaWxlX2ZpbGVfcmV2aWV3IHx8IHNpemUodGhpcy5tZXNzYWdlKSA+IDAgfHwgc2l6ZSh0aGlzLmZpbGVfaWRzKSA+IDBCCAoGdGFyZ2V0SgQIAhADSgQIBhAHSgQICBAJSgQICxAMSgQIERASSgQIDxAQSgQIEBARSgQIBBAFSgQIBRAGSgQICRAKUghhZ2VudF9pZFIOY2FsbGJhY2tfdG9rZW5SEnBhcmVudF93b3JrZmxvd19pZFITYWN0aXZpdHlfdGFza19xdWV1ZVIGcGFyZW50UhRkZWNsYXJlZF9wcmVmZXJlbmNlc1IRcmVjYWxsZWRfbWVtb3JpZXNSEGV4ZWN1dGlvbl9jb25maWdSC3J1bnRpbWVfZW52UgthdHRhY2htZW50cyJVChNDb252ZXJzYXRpb25DYXRjaHVwEg4KBmRpZ2VzdBgBIAEoCRIuCgp3aW5kb3dfZW5kGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJAChNEZWNsYXJlZFByZWZlcmVuY2VzEhMKC29yZ19jb250ZXh0GAEgASgJEhQKDHVzZXJfY29udGV4dBgCIAEoCSJhChBSZWNhbGxlZE1lbW9yaWVzEg8KB2VuYWJsZWQYASABKAgSPAoFZmFjdHMYAiADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJlY2FsbGVkTWVtb3J5RmFjdCI4ChJSZWNhbGxlZE1lbW9yeUZhY3QSEQoJbWVtb3J5X2lkGAEgASgJEg8KB2NvbnRlbnQYAiABKAliBnByb3RvMw", [file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_run_v1_eval_case, file_ai_stigmer_agentic_run_v1_invocation, file_ai_stigmer_agentic_session_v1_spec, file_buf_validate_validate, file_google_protobuf_struct, file_google_protobuf_timestamp]);
 
 /**
  * RunSpec contains only user-provided inputs for triggering a run.
@@ -63,7 +63,7 @@ export type RunSpec = Message<"ai.stigmer.agentic.run.v1.RunSpec"> & {
      * Spec for a new session this turn starts.
      *
      * This is the one-call session bootstrap: a single create carries the
-     * full session shape (the agent, workspace_entries, harness,
+     * full session shape (the agent, resources, harness,
      * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
@@ -84,7 +84,8 @@ export type RunSpec = Message<"ai.stigmer.agentic.run.v1.RunSpec"> & {
   /**
    * User input message that triggers this run.
    * Each run represents one user message and the agent's response.
-   * Required unless reconcile_file_review is set.
+   * Required unless reconcile_file_review is set or file_ids names a file
+   * (a message may be files alone).
    *
    * @generated from field: string message = 3;
    */
@@ -232,24 +233,6 @@ export type RunSpec = Message<"ai.stigmer.agentic.run.v1.RunSpec"> & {
   autoApproveAll: boolean;
 
   /**
-   * Files attached to this run.
-   *
-   * Attachments are injected into the sandbox before the run begins.
-   * The agent can read these files from the specified mount paths.
-   *
-   * Use cases:
-   * - Provide input data files to process
-   * - Pass configuration files
-   * - Supply reference documents for analysis
-   *
-   * Example CLI usage:
-   *   stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-   *
-   * @generated from field: repeated ai.stigmer.agentic.run.v1.Attachment attachments = 9;
-   */
-  attachments: Attachment[];
-
-  /**
    * Workspace-relative file paths the user wants the agent to focus on.
    *
    * When users reference files that exist inside the session's workspace,
@@ -258,7 +241,7 @@ export type RunSpec = Message<"ai.stigmer.agentic.run.v1.RunSpec"> & {
    * no upload, no copy, no injection.
    *
    * This separates the "attention" signal ("look at this file") from the
-   * "transport" mechanism (upload + inject) that regular attachments use.
+   * "transport" a File gives (upload, then name it in file_ids).
    *
    * Works for any workspace type with a resolvable filesystem post-provisioning
    * (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -332,6 +315,21 @@ export type RunSpec = Message<"ai.stigmer.agentic.run.v1.RunSpec"> & {
    * @generated from field: repeated string excluded_plugin_ids = 27;
    */
   excludedPluginIds: string[];
+
+  /**
+   * Files given with this message, by id ("file_01j…"), at most 20.
+   *
+   * Each is a File of the run's organization the caller may view. One that
+   * is not yet the conversation's becomes the conversation's own copy, and
+   * each joins the conversation's resources, so the agent finds it under
+   * .stigmer/uploads/ on this turn and every later one. The message shows
+   * each to the model with the text: an image as an image, anything else as
+   * a document the agent reads with its tools (RunStatus.message_files says
+   * which blocks the message carried).
+   *
+   * @generated from field: repeated string file_ids = 28;
+   */
+  fileIds: string[];
 };
 
 /**
@@ -340,106 +338,6 @@ export type RunSpec = Message<"ai.stigmer.agentic.run.v1.RunSpec"> & {
  */
 export const RunSpecSchema: GenMessage<RunSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_run_v1_spec, 0);
-
-/**
- * Attachment represents a file attached to a run.
- *
- * All files must be pre-uploaded via the uploadAttachment RPC and referenced
- * by storage_key. This ensures consistent behavior regardless of file size.
- *
- * ## Usage Flow
- *
- * 1. Client calls uploadAttachment RPC with file content
- * 2. Server returns a storage_key
- * 3. Client creates run with Attachment containing that storage_key
- * 4. The runner downloads file from storage and injects into sandbox
- *
- * ## Mount Path
- *
- * The mount_path determines where the file appears in the sandbox.
- * If not specified, defaults to /inputs/{filename}
- *
- * Examples:
- *   - mount_path: "/inputs/config.yaml" -> file at /inputs/config.yaml
- *   - mount_path: "/workspace/data/" -> directory extracted at /workspace/data/
- *
- * @generated from message ai.stigmer.agentic.run.v1.Attachment
- */
-export type Attachment = Message<"ai.stigmer.agentic.run.v1.Attachment"> & {
-  /**
-   * Original filename for display and default mount path derivation.
-   * Example: "config.yaml", "input-data.zip"
-   *
-   * Must be a bare filename: no path separators and no `.`/`..` traversal
-   * segments. The filename is interpolated into the storage key and, on the
-   * local backend, into an on-disk path, so path structure here is a
-   * directory-traversal vector.
-   *
-   * @generated from field: string filename = 1;
-   */
-  filename: string;
-
-  /**
-   * Reference to pre-uploaded file in artifact store (required).
-   * Obtained by calling uploadAttachment RPC before creating the run.
-   * Format: "attachments/{ulid}/{filename}"
-   *
-   * @generated from field: string storage_key = 2;
-   */
-  storageKey: string;
-
-  /**
-   * Path in sandbox where file will be placed.
-   * Defaults to "/inputs/{filename}" if not specified.
-   * Example: "/workspace/input.yaml", "/inputs/data/"
-   *
-   * @generated from field: string mount_path = 3;
-   */
-  mountPath: string;
-
-  /**
-   * MIME type for content negotiation (optional).
-   * Example: "application/yaml", "text/plain", "application/zip"
-   *
-   * @generated from field: string content_type = 4;
-   */
-  contentType: string;
-
-  /**
-   * When true, the attachment is a zip archive that should be extracted
-   * at mount_path rather than written as a single file.
-   * Set automatically by the CLI when a directory is attached.
-   *
-   * @generated from field: bool extract = 5;
-   */
-  extract: boolean;
-
-  /**
-   * Absolute filesystem path to the original file on the CLI host (optional).
-   *
-   * When set and the runner is in local mode, the file is read directly
-   * from this path instead of downloading from artifact storage via
-   * storage_key.  This eliminates the storage round-trip for local
-   * runs.
-   *
-   * Ignored when the runner is not in local mode (cloud runners use
-   * storage_key exclusively).
-   *
-   * The CLI sets this unconditionally to the resolved absolute path of
-   * the attached file.  storage_key remains required -- the upload still
-   * happens for run history and replay support.
-   *
-   * @generated from field: string local_path = 6;
-   */
-  localPath: string;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.run.v1.Attachment.
- * Use `create(AttachmentSchema)` to create a new message.
- */
-export const AttachmentSchema: GenMessage<Attachment> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_spec, 1);
 
 /**
  * ConversationCatchup carries the channel-conversation events an agent
@@ -469,7 +367,7 @@ export type ConversationCatchup = Message<"ai.stigmer.agentic.run.v1.Conversatio
  * Use `create(ConversationCatchupSchema)` to create a new message.
  */
 export const ConversationCatchupSchema: GenMessage<ConversationCatchup> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_spec, 2);
+  messageDesc(file_ai_stigmer_agentic_run_v1_spec, 1);
 
 /**
  * DeclaredPreferences carries the standing preference texts injected into
@@ -498,7 +396,7 @@ export type DeclaredPreferences = Message<"ai.stigmer.agentic.run.v1.DeclaredPre
  * Use `create(DeclaredPreferencesSchema)` to create a new message.
  */
 export const DeclaredPreferencesSchema: GenMessage<DeclaredPreferences> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_spec, 3);
+  messageDesc(file_ai_stigmer_agentic_run_v1_spec, 2);
 
 /**
  * RecalledMemories is the server-composed snapshot of the caller's
@@ -529,7 +427,7 @@ export type RecalledMemories = Message<"ai.stigmer.agentic.run.v1.RecalledMemori
  * Use `create(RecalledMemoriesSchema)` to create a new message.
  */
 export const RecalledMemoriesSchema: GenMessage<RecalledMemories> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_spec, 4);
+  messageDesc(file_ai_stigmer_agentic_run_v1_spec, 3);
 
 /**
  * RecalledMemoryFact is one confirmed memory as injected into an
@@ -558,5 +456,5 @@ export type RecalledMemoryFact = Message<"ai.stigmer.agentic.run.v1.RecalledMemo
  * Use `create(RecalledMemoryFactSchema)` to create a new message.
  */
 export const RecalledMemoryFactSchema: GenMessage<RecalledMemoryFact> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_run_v1_spec, 5);
+  messageDesc(file_ai_stigmer_agentic_run_v1_spec, 4);
 

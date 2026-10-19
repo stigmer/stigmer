@@ -15,14 +15,16 @@ import (
 
 // FileClient provides operations on file resources.
 type FileClient struct {
-	command filev1.FileCommandControllerClient
-	query   filev1.FileQueryControllerClient
+	command   filev1.FileCommandControllerClient
+	fileMount filev1.FileMountControllerClient
+	query     filev1.FileQueryControllerClient
 }
 
 func NewFileClient(conn grpc.ClientConnInterface) *FileClient {
 	return &FileClient{
-		command: filev1.NewFileCommandControllerClient(conn),
-		query:   filev1.NewFileQueryControllerClient(conn),
+		command:   filev1.NewFileCommandControllerClient(conn),
+		fileMount: filev1.NewFileMountControllerClient(conn),
+		query:     filev1.NewFileQueryControllerClient(conn),
 	}
 }
 
@@ -51,6 +53,11 @@ func (f *FileClient) UpdateVisibility(ctx context.Context, input *apiresource.Up
 
 func (f *FileClient) Delete(ctx context.Context, id string) (*filev1.File, error) {
 	resp, err := f.command.Delete(ctx, &filev1.FileId{Value: id})
+	return resp, wrapErr(err)
+}
+
+func (f *FileClient) Mount(ctx context.Context, input *filev1.MountRunFilesInput) (*filev1.RunFileMounts, error) {
+	resp, err := f.fileMount.Mount(ctx, input)
 	return resp, wrapErr(err)
 }
 

@@ -1,6 +1,6 @@
 /**
- * Attachment + artifact RPC tests — ports upload_attachment_test.go,
- * get_artifact_content_test.go, and get_artifact_download_url_test.go
+ * Artifact RPC tests — ports get_artifact_content_test.go and
+ * get_artifact_download_url_test.go
  * case-for-case over a real SQLite store and a real local-filesystem
  * artifact backend (the same direct-call shape as Go's controller tests).
  */
@@ -18,7 +18,6 @@ import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import {
   GetArtifactContentRequestSchema,
   GetArtifactDownloadUrlRequestSchema,
-  UploadAttachmentRequestSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -34,8 +33,6 @@ import {
   detectContentType,
   getArtifactContent as getArtifactContentRpc,
   getArtifactDownloadUrl as getArtifactDownloadUrlRpc,
-  osMimeTypeByExtension,
-  uploadAttachment,
 } from "../artifacts.js";
 import { testUrlSigner } from "../../../artifactstorage/__test-utils__/url-signer.js";
 
@@ -82,29 +79,12 @@ afterAll(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-async function seedExecution(
-  executionId: string,
-  attachmentKey?: string,
-): Promise<void> {
+async function seedExecution(executionId: string): Promise<void> {
   await store.saveResource(
     ApiResourceKind.run,
     executionId,
     RunSchema,
-    create(RunSchema, {
-      metadata: { id: executionId, name: "artifact-test" },
-      spec:
-        attachmentKey === undefined
-          ? {}
-          : {
-              attachments: [
-                {
-                  filename: "notes.png",
-                  storageKey: attachmentKey,
-                  contentType: "image/png",
-                },
-              ],
-            },
-    }),
+    create(RunSchema, { metadata: { id: executionId, name: "artifact-test" } }),
   );
 }
 
@@ -132,84 +112,6 @@ async function expectCode(
   }
   throw new Error(`expected code ${Code[code]}, call succeeded`);
 }
-
-describe("uploadAttachment", () => {
-  // The service boundary refuses a filename that would smuggle path
-  // separators or `..` segments into the storage key — backstopping the
-  // buf.validate constraint so a bypassed constraint still fails closed.
-  const badFilenames = [
-    "../evil.txt",
-    "../../evil.txt",
-    "a/b.txt",
-    "dir/../../escape",
-    "..",
-    ".",
-    "..\\evil.txt",
-    "sub\\file.txt",
-  ];
-  for (const name of badFilenames) {
-    it(`rejects traversal filename ${JSON.stringify(name)}`, async () => {
-      await expectCode(
-        () =>
-          uploadAttachment(
-            deps,
-            create(UploadAttachmentRequestSchema, {
-              filename: name,
-              content: Buffer.from("payload"),
-            }),
-          ),
-        Code.InvalidArgument,
-      );
-    });
-  }
-
-  // The guard must not over-reject: ordinary filenames (dots inside the
-  // name, spaces, unicode) upload and produce the documented key shape.
-  const goodFilenames = [
-    "dataset.csv",
-    "report.final.v2.pdf",
-    "my report.txt",
-    "contrat-français.pdf",
-  ];
-  for (const name of goodFilenames) {
-    it(`accepts plain filename ${JSON.stringify(name)}`, async () => {
-      const resp = await uploadAttachment(
-        deps,
-        create(UploadAttachmentRequestSchema, {
-          filename: name,
-          content: Buffer.from("payload"),
-        }),
-      );
-      expect(resp.storageKey.startsWith("attachments/")).toBe(true);
-      expect(resp.storageKey.endsWith(`/${name}`)).toBe(true);
-    });
-  }
-
-  it("rejects empty filename and empty content", async () => {
-    await expectCode(
-      () =>
-        uploadAttachment(
-          deps,
-          create(UploadAttachmentRequestSchema, {
-            filename: "",
-            content: Buffer.from("x"),
-          }),
-        ),
-      Code.InvalidArgument,
-    );
-    await expectCode(
-      () =>
-        uploadAttachment(
-          deps,
-          create(UploadAttachmentRequestSchema, {
-            filename: "ok.txt",
-            content: new Uint8Array(),
-          }),
-        ),
-      Code.InvalidArgument,
-    );
-  });
-});
 
 describe("getArtifactContent CAS blob integrity", () => {
   const execId = "aex_artifact";
@@ -471,56 +373,18 @@ describe("getArtifactDownloadUrl", () => {
     );
   });
 
-  describe("spec.attachments key arm", () => {
-    const attachExecId = "aex_attach_presign";
-    const attachmentKey = "attachments/01JXULIDULIDULIDULIDULIDXX/notes.png";
+  describe("keys outside the run's artifacts", () => {
+    const execId = "aex_outside_keys";
 
-    it("key listed in spec.attachments is accepted", async () => {
-      await seedExecution(attachExecId, attachmentKey);
-      const resp = await getArtifactDownloadUrl(
-        deps,
-        create(GetArtifactDownloadUrlRequestSchema, {
-          runId: attachExecId,
-          storageKey: attachmentKey,
-        }),
-      );
-      expect(resp.downloadUrl).not.toBe("");
-    });
-
-    it("as_attachment names the download after the attachment file", async () => {
-      await seedExecution(attachExecId, attachmentKey);
-      const resp = await getArtifactDownloadUrl(
-        deps,
-        create(GetArtifactDownloadUrlRequestSchema, {
-          runId: attachExecId,
-          storageKey: attachmentKey,
-          asAttachment: true,
-        }),
-      );
-      expect(resp.downloadUrl).toContain("download=notes.png");
-    });
-
-    it("artifact-prefixed key still accepted alongside attachments", async () => {
-      await seedExecution(attachExecId, attachmentKey);
-      const resp = await getArtifactDownloadUrl(
-        deps,
-        create(GetArtifactDownloadUrlRequestSchema, {
-          runId: attachExecId,
-          storageKey: `artifacts/${attachExecId}/report.md`,
-        }),
-      );
-      expect(resp.downloadUrl).not.toBe("");
-    });
-
-    it("attachment key not in spec is rejected", async () => {
-      await seedExecution(attachExecId, attachmentKey);
+    it("an attachments/ key is no longer a run's to sign: a message's files are Files", async () => {
+      await seedExecution(execId);
       await expectCode(
         () =>
           getArtifactDownloadUrl(
             deps,
             create(GetArtifactDownloadUrlRequestSchema, {
-              runId: attachExecId,
-              storageKey: "attachments/01JXOTHERULIDULIDULIDULIDX/other.png",
+              runId: execId,
+              storageKey: "attachments/01JXULIDULIDULIDULIDULIDXX/notes.png",
             }),
           ),
         Code.InvalidArgument,
@@ -529,31 +393,14 @@ describe("getArtifactDownloadUrl", () => {
 
     it("a `..` key clean-resolving into another execution's prefix is rejected (presign)", async () => {
       // stigmer/stigmer#858, the presign arm.
-      await seedExecution(attachExecId, attachmentKey);
+      await seedExecution(execId);
       await expectCode(
         () =>
           getArtifactDownloadUrl(
             deps,
             create(GetArtifactDownloadUrlRequestSchema, {
-              runId: attachExecId,
-              storageKey: `artifacts/${attachExecId}/../aex_victim/secret.txt`,
-            }),
-          ),
-        Code.InvalidArgument,
-      );
-    });
-
-    it("execution without the spec entry rejects the same key", async () => {
-      // A second execution that never referenced attachmentKey must not
-      // presign it — membership is per-execution, not global.
-      await seedExecution("aex_other");
-      await expectCode(
-        () =>
-          getArtifactDownloadUrl(
-            deps,
-            create(GetArtifactDownloadUrlRequestSchema, {
-              runId: "aex_other",
-              storageKey: attachmentKey,
+              runId: execId,
+              storageKey: `artifacts/${execId}/../aex_victim/secret.txt`,
             }),
           ),
         Code.InvalidArgument,
@@ -579,23 +426,6 @@ describe("detectContentType", () => {
       "application/octet-stream",
     );
     expect(detectContentType("artifacts/x/no-extension")).toBe(
-      "application/octet-stream",
-    );
-  });
-});
-
-describe("osMimeTypeByExtension (the upload path's detection)", () => {
-  it("consults only the mime-builtin table — never the artifact table", () => {
-    // Go's upload path uses mime.TypeByExtension alone: .yaml is NOT a
-    // Go mime builtin, so an uploaded YAML stores octet-stream even
-    // though the READ path reports text/yaml (edition-identical object
-    // metadata for the R2 backend).
-    expect(osMimeTypeByExtension("values.yaml")).toBe(
-      "application/octet-stream",
-    );
-    expect(osMimeTypeByExtension("photo.png")).toBe("image/png");
-    expect(osMimeTypeByExtension("doc.pdf")).toBe("application/pdf");
-    expect(osMimeTypeByExtension("no-extension")).toBe(
       "application/octet-stream",
     );
   });

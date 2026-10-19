@@ -333,7 +333,7 @@ async function buildStigmerRunner(
   );
   // Surface the resolved artifact store at boot so a path/type misconfiguration
   // (the #285 class of failure) is visible immediately instead of only when an
-  // attachment or offload read fails minutes into an execution.
+  // artifact or offload read fails minutes into an execution.
   try {
     const { loadArtifactStorageConfig } = await import(
       "./shared/artifact-storage.js"

@@ -51,11 +51,11 @@ import type { TimingRecorderWire } from "../shared/cold-start-timing.js";
 import type { TelemetrySettings } from "../otel-export.js";
 import type { RuntimeFieldsWire, WireOffload, WireProjection, WireTurnInput } from "./codec.js";
 
-export const AGENT_HOST_PROTOCOL_VERSION = 9;
+export const AGENT_HOST_PROTOCOL_VERSION = 10;
 
 /**
  * The largest single message either side sends or accepts. A turn's input
- * carries its attachments' images (at most 4 MiB raw, `attachment-vision.ts`)
+ * carries its message's images (at most 4 MiB raw, `attachment-vision.ts`)
  * and the turn's rows; 64 MiB is far above both and still a
  * bound on what a misbehaving peer can make the other buffer.
  */

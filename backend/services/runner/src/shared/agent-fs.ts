@@ -92,6 +92,8 @@ export class AgentExecError extends Error {
 export interface AgentFs {
   readFile(path: string): Promise<Buffer>;
   writeFile(path: string, data: string | Uint8Array, options?: { readonly mode?: number }): Promise<void>;
+  /** Adds `data` to the end of `path`, creating it when absent: how a body too large to hold whole is written piece by piece. */
+  appendFile(path: string, data: Uint8Array): Promise<void>;
   mkdir(path: string, options?: { readonly recursive?: boolean; readonly mode?: number }): Promise<void>;
   rm(path: string, options?: { readonly recursive?: boolean; readonly force?: boolean }): Promise<void>;
   rmdir(path: string): Promise<void>;
@@ -117,6 +119,7 @@ export const DEFAULT_EXEC_MAX_BUFFER = 1024 * 1024;
 export const localAgentFs: AgentFs = {
   readFile: (path) => fs.readFile(path),
   writeFile: (path, data, options) => fs.writeFile(path, data, options?.mode === undefined ? undefined : { mode: options.mode }),
+  appendFile: (path, data) => fs.appendFile(path, data),
   mkdir: async (path, options) => {
     await fs.mkdir(path, options);
   },
@@ -162,6 +165,7 @@ export function refusingAgentFs(reason: string): AgentFs {
   return {
     readFile: refuse,
     writeFile: refuse,
+    appendFile: refuse,
     mkdir: refuse,
     rm: refuse,
     rmdir: refuse,

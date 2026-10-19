@@ -13,7 +13,7 @@ import { SessionComposer, type SessionComposerHandle } from "../SessionComposer"
 
 function createMinimalStigmerMock(): Stigmer {
   return {
-    run: { uploadAttachment: vi.fn() },
+    file: { uploadFile: vi.fn(), delete: vi.fn().mockResolvedValue({}) },
     vault: noMyVaultClient(),
     baseUrl: "http://localhost:8080",
     getAuthCredential: vi.fn().mockResolvedValue("test-token"),
@@ -165,26 +165,22 @@ describe("SessionComposer — imperative submit (Build from plan)", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it("carries caller-supplied attachments into the submit context (approved plan.md)", async () => {
+  it("carries caller-supplied Files into the submit context (the approved plan)", async () => {
     const ref = createRef<SessionComposerHandle>();
     const { onSubmit } = renderComposer({ ref });
 
-    const planAttachment = {
-      filename: "plan.md",
-      storageKey: "attachments/01ABC/plan.md",
-      mountPath: ".stigmer/inputs/plan.md",
-      contentType: "text/markdown",
-    };
     ref.current!.submit("Build from plan", {
       interactionMode: "agent",
-      attachments: [planAttachment],
+      fileIds: ["file_plan"],
     });
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledOnce();
     });
     const [, , context] = onSubmit.mock.calls[0];
-    expect(context?.attachments).toEqual([planAttachment]);
+    expect(context?.fileIds).toEqual(["file_plan"]);
+    // A caller's File is the conversation's own: nothing for the composer to release.
+    expect(context?.releaseFiles).toBeUndefined();
     expect(context?.interactionMode).toBe("agent");
   });
 

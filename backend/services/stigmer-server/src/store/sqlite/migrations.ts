@@ -207,6 +207,16 @@ import {
 } from "../environment-retired.js";
 import { RETIRED_EXECUTION_CONTEXT_KIND } from "../execution-context-retired.js";
 import {
+  WORKSPACE_RESOURCES_PAGE_SIZE,
+  WORKSPACE_ROUTINE_KIND,
+  WORKSPACE_RUN_KIND,
+  WORKSPACE_SESSION_KIND,
+  liftRunAttachments,
+  migrateRoutineResourcesRow,
+  migrateSessionResourcesRow,
+  unreadableWorkspaceRowError,
+} from "../workspace-becomes-resources.js";
+import {
   SESSION_HARNESS_KIND,
   SESSION_HARNESS_PAGE_SIZE,
   migrateSessionHarnessRow,
@@ -318,8 +328,11 @@ export const SCHEMA_VERSION_42 = 42;
 /** v43: the File kind's blobs and the Files that name them. */
 export const SCHEMA_VERSION_43 = 43;
 
+/** v44: a conversation's workspace entries become its resources, and a run's attachments wait to become Files. */
+export const SCHEMA_VERSION_44 = 44;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_43;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_44;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -388,6 +401,7 @@ export function runMigrations(
     [SCHEMA_VERSION_41, (migrating) => migrateToV41(migrating, logger)],
     [SCHEMA_VERSION_42, migrateToV42],
     [SCHEMA_VERSION_43, migrateToV43],
+    [SCHEMA_VERSION_44, migrateToV44],
   ];
 
   for (const [version, migrate] of chain) {
@@ -2631,4 +2645,93 @@ function migrateToV43(db: DatabaseSync): void {
     CREATE INDEX idx_file_blob_refs_blob ON file_blob_refs (blob_key);
     CREATE INDEX idx_file_blob_refs_org ON file_blob_refs (org);
   `);
+}
+
+/**
+ * v44: a conversation's workspace entries become its resources, and a
+ * run's attachments are lifted off it to become Files; the Postgres
+ * driver's v40 in this engine's terms (../workspace-becomes-resources.ts
+ * says what each row becomes). `file_conversions` holds one row per lifted
+ * attachment, read oldest run first and purged by organization. Every
+ * session, routine and run row is read in keyset pages and rewritten only
+ * when it holds the retired field, its `updated_at` left alone. Live rows
+ * only: these kinds write no audit snapshots. Runs inside
+ * applyInTransaction's BEGIN, so a throw rolls the whole step back.
+ */
+function migrateToV44(db: DatabaseSync): void {
+  db.exec(`
+    CREATE TABLE file_conversions (
+      run_id       TEXT NOT NULL,
+      position     INTEGER NOT NULL,
+      org          TEXT NOT NULL,
+      session_id   TEXT NOT NULL,
+      filename     TEXT NOT NULL,
+      storage_key  TEXT NOT NULL,
+      content_type TEXT NOT NULL,
+      created_at   TEXT NOT NULL,
+      PRIMARY KEY (run_id, position)
+    ) WITHOUT ROWID;
+    CREATE INDEX idx_file_conversions_order ON file_conversions (created_at, run_id, position);
+    CREATE INDEX idx_file_conversions_org ON file_conversions (org);
+  `);
+
+  const page = db.prepare(`SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`);
+  const rowsOf = function* (kind: string): Generator<{ id: string; data: Uint8Array }> {
+    for (let after = ""; ; ) {
+      const rows = page.all(kind, after, WORKSPACE_RESOURCES_PAGE_SIZE) as Array<{ id: string; data: Uint8Array }>;
+      yield* rows;
+      if (rows.length < WORKSPACE_RESOURCES_PAGE_SIZE) {
+        return;
+      }
+      after = rows[rows.length - 1]!.id;
+    }
+  };
+  const rewrite = db.prepare(`UPDATE resources SET data = ? WHERE kind = ? AND id = ?`);
+
+  for (const [kind, migrate] of [
+    [WORKSPACE_SESSION_KIND, migrateSessionResourcesRow],
+    [WORKSPACE_ROUTINE_KIND, migrateRoutineResourcesRow],
+  ] as const) {
+    for (const row of rowsOf(kind)) {
+      let migrated: Uint8Array | undefined;
+      try {
+        migrated = migrate(row.data);
+      } catch (error) {
+        throw unreadableWorkspaceRowError(kind, row.id, error);
+      }
+      if (migrated !== undefined) {
+        rewrite.run(migrated, kind, row.id);
+      }
+    }
+  }
+
+  const convert = db.prepare(
+    `INSERT INTO file_conversions
+       (run_id, position, org, session_id, filename, storage_key, content_type, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  for (const row of rowsOf(WORKSPACE_RUN_KIND)) {
+    let lifted: ReturnType<typeof liftRunAttachments>;
+    try {
+      lifted = liftRunAttachments(row.data);
+    } catch (error) {
+      throw unreadableWorkspaceRowError(WORKSPACE_RUN_KIND, row.id, error);
+    }
+    if (lifted === undefined) {
+      continue;
+    }
+    rewrite.run(lifted.data, WORKSPACE_RUN_KIND, row.id);
+    for (const attachment of lifted.attachments) {
+      convert.run(
+        row.id,
+        attachment.position,
+        attachment.org,
+        attachment.sessionId,
+        attachment.filename,
+        attachment.storageKey,
+        attachment.contentType,
+        attachment.createdAt,
+      );
+    }
+  }
 }

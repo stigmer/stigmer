@@ -20,8 +20,6 @@
  * commons-compress `ZipFile` in SkillArtifactExtractor), so a missing
  * EOCD here can only mean a truncated or corrupted download — and the
  * honest result for that is the documented empty return, not a guess.
- * (The attachment injector consumes the same structural layer under the
- * opposite policy — fail-hard — because its input is untrusted.)
  *
  * Handles stored (method 0) and deflated (method 8) entries. Returns
  * parsed entries as path + content pairs — consumers bring their own

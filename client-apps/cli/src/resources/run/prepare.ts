@@ -3,24 +3,26 @@
 //
 // Order matters and mirrors Go: validate cheap flags first (mode, approve
 // default), then parse workspaces, then resolve the vaults, plugins and
-// environment the conversation uses, then process attachments. A failure short-circuits before any
-// upload. A run carries no values of its own: its keys come from the vaults
-// its conversation uses (vaults.ts), which is why a vault named by id is
-// looked up here, before anything is uploaded.
+// environment the conversation uses, then plan the attachments. Nothing is
+// uploaded here: the attached files are read from disk and checked against
+// the limits, and the create step uploads them once it knows the run's
+// target (attachments.ts), so any failure here leaves nothing behind. A run
+// carries no values of its own: its keys come from the vaults its
+// conversation uses (vaults.ts), which is why a vault named by id is looked
+// up here, before anything is uploaded.
 
 import type { AgentSpec } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { Attachment } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
-import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import type { Stigmer } from "@stigmer/client";
 import { UsageError } from "../../errors/index.js";
 import { parseApproveDefault, type ApproveDefault } from "../stream/answer.js";
-import { type ProgressSink, processAttachments } from "./attachments.js";
+import { type AttachmentPlan, type ProgressSink, planAttachments } from "./attachments.js";
 import { resolveRunEnvironment } from "./environment.js";
 import { resolveRunPlugins } from "./plugins.js";
 import { resolveRunVaults } from "./vaults.js";
-import { localWorkspaceRoots, parseWorkspaceEntries } from "./workspace.js";
+import { localWorkspaceRoots, parseWorkspaceResources } from "./workspace.js";
 
 /** The interaction mode requested for the run; "" means the agent default. */
 export type RunMode = "" | "agent" | "plan";
@@ -79,7 +81,8 @@ export interface AgentExecFlags {
  */
 export interface PreparedRun {
   readonly approveDefault: ApproveDefault;
-  readonly workspaceEntries: WorkspaceEntry[];
+  /** The new conversation's repositories and folders from `--workspace`. */
+  readonly resources: SessionResource[];
   /** The shared vaults the new conversation uses, in order. */
   readonly vaults: readonly ApiResourceReference[];
   /** Whether each turn uses its sender's own My vault first. */
@@ -88,8 +91,8 @@ export interface PreparedRun {
   readonly plugins: readonly ApiResourceReference[];
   /** The Environment the new conversation names; undefined leaves its agent's or organization's default. */
   readonly environment?: ApiResourceReference;
-  readonly attachments: Attachment[];
-  readonly workspaceFileRefs: string[];
+  /** What `--attach` resolved to, uploaded by the create step. */
+  readonly attachments: AttachmentPlan;
   readonly message: string;
   readonly detach: boolean;
   readonly verbose: boolean;
@@ -141,8 +144,8 @@ export interface PrepareAgentExecOptions {
 }
 
 /**
- * Validate flags and resolve all run inputs. The `client` uploads
- * non-workspace attachments.
+ * Validate flags and resolve all run inputs. The `client` looks up the
+ * vaults, plugins, environment and account defaults; nothing is uploaded.
  */
 export async function prepareAgentExec(
   flags: AgentExecFlags,
@@ -198,7 +201,7 @@ export async function prepareAgentExec(
       : accountDefaults.nativeModel
     : flags.model;
 
-  const workspaceEntries = parseWorkspaceEntries(
+  const resources = parseWorkspaceResources(
     flags.workspace,
     flags.branch,
     flags.commit,
@@ -208,22 +211,16 @@ export async function prepareAgentExec(
   const plugins = await resolveRunPlugins(client, flags.plugin, options?.org ?? "");
   const environment = await resolveRunEnvironment(client, flags.environment, options?.org ?? "");
 
-  const { attachments, workspaceFileRefs } = await processAttachments(
-    client.run,
-    flags.attach,
-    localWorkspaceRoots(workspaceEntries),
-    progress,
-  );
+  const attachments = planAttachments(flags.attach, localWorkspaceRoots(resources), progress);
 
   return {
     approveDefault,
-    workspaceEntries,
+    resources,
     vaults,
     includeMyVault: flags.myVault,
     plugins,
     ...(environment === undefined ? {} : { environment }),
     attachments,
-    workspaceFileRefs,
     message: flags.message,
     detach: flags.detach,
     verbose: flags.verbose,

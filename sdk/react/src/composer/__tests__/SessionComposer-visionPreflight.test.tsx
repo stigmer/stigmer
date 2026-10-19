@@ -54,8 +54,9 @@ const REGISTRY_DOCUMENT = parseRegistryDocument({
 
 function createUploadMockClient(): Stigmer {
   return {
-    run: {
-      uploadAttachment: vi.fn().mockResolvedValue({ storageKey: "attachments/test/file" }),
+    file: {
+      uploadFile: vi.fn().mockResolvedValue({ metadata: { id: "file_1" }, status: { sessionId: "" } }),
+      delete: vi.fn().mockResolvedValue({}),
     },
     vault: noMyVaultClient(),
     baseUrl: "http://localhost:8080",
@@ -204,7 +205,7 @@ describe("SessionComposer — vision preflight notice (#365, #386)", () => {
 
   it("does not gate the send — the warned message still submits with the attachment", async () => {
     const onSubmit = vi.fn();
-    render(<SessionComposer onSubmit={onSubmit} />, { wrapper: createWrapper() });
+    render(<SessionComposer onSubmit={onSubmit} org="acme" />, { wrapper: createWrapper() });
     const textarea = screen.getByRole("textbox");
 
     await act(async () => {
@@ -218,6 +219,6 @@ describe("SessionComposer — vision preflight notice (#365, #386)", () => {
     });
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
-    expect(onSubmit.mock.calls[0][2]?.attachments).toHaveLength(1);
+    expect(onSubmit.mock.calls[0][2]?.fileIds).toEqual(["file_1"]);
   });
 });

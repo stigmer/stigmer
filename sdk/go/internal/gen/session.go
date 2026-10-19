@@ -236,25 +236,25 @@ type SessionInput struct {
 	// that resource, whatever its slug. Ignored on create: the server
 	// assigns every new resource's id. An update takes the resource
 	// itself and the paths it changes.
-	Id               string
-	Name             string
-	Slug             string
-	Org              string
-	Labels           map[string]string
-	Visibility       apiresource.ApiResourceVisibility
-	AgentRef         ResourceRef
-	Subject          string
-	Metadata         map[string]string
-	WorkspaceEntries []*WorkspaceEntryInput
-	SkillRefs        []ResourceRef
-	Harness          sessionv1.Harness
-	CursorMode       sessionv1.CursorMode
-	ExecutionTarget  sessionv1.ExecutionTarget
-	Vaults           []ResourceRef
-	IncludeMyVault   bool
-	Plugins          []ResourceRef
-	FileReview       bool
-	EnvironmentRef   ResourceRef
+	Id              string
+	Name            string
+	Slug            string
+	Org             string
+	Labels          map[string]string
+	Visibility      apiresource.ApiResourceVisibility
+	AgentRef        ResourceRef
+	Subject         string
+	Metadata        map[string]string
+	SkillRefs       []ResourceRef
+	Harness         sessionv1.Harness
+	CursorMode      sessionv1.CursorMode
+	ExecutionTarget sessionv1.ExecutionTarget
+	Vaults          []ResourceRef
+	IncludeMyVault  bool
+	Plugins         []ResourceRef
+	FileReview      bool
+	EnvironmentRef  ResourceRef
+	Resources       []*SessionResourceInput
 }
 
 func (i *SessionInput) toProto() (*sessionv1.Session, error) {
@@ -278,13 +278,6 @@ func (i *SessionInput) toProto() (*sessionv1.Session, error) {
 	}
 	resource.Spec.Subject = i.Subject
 	resource.Spec.Metadata = i.Metadata
-	for idx, item := range i.WorkspaceEntries {
-		v, err := item.toProto()
-		if err != nil {
-			return nil, indexErr("WorkspaceEntries", idx, err)
-		}
-		resource.Spec.WorkspaceEntries = append(resource.Spec.WorkspaceEntries, v)
-	}
 	for _, r := range i.SkillRefs {
 		ref := r.toProto()
 		ref.Kind = apiresourcekind.ApiResourceKind_skill
@@ -310,6 +303,13 @@ func (i *SessionInput) toProto() (*sessionv1.Session, error) {
 		ref.Kind = apiresourcekind.ApiResourceKind_environment
 		resource.Spec.EnvironmentRef = ref
 	}
+	for idx, item := range i.Resources {
+		v, err := item.toProto()
+		if err != nil {
+			return nil, indexErr("Resources", idx, err)
+		}
+		resource.Spec.Resources = append(resource.Spec.Resources, v)
+	}
 	return resource, nil
 }
 
@@ -331,9 +331,6 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 		input.AgentRef = resourceRefFromProto(s.GetAgentRef())
 		input.Subject = s.GetSubject()
 		input.Metadata = s.GetMetadata()
-		for _, item := range s.GetWorkspaceEntries() {
-			input.WorkspaceEntries = append(input.WorkspaceEntries, workspaceEntryInputFromProto(item))
-		}
 		for _, r := range s.GetSkillRefs() {
 			input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
 		}
@@ -349,6 +346,9 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 		}
 		input.FileReview = s.GetFileReview()
 		input.EnvironmentRef = resourceRefFromProto(s.GetEnvironmentRef())
+		for _, item := range s.GetResources() {
+			input.Resources = append(input.Resources, sessionResourceInputFromProto(item))
+		}
 	}
 	return input
 }

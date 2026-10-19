@@ -2,7 +2,8 @@
 // message default, run_config presence/contents, the top-level mode, the vault
 // choice on the new session (always sent: include_my_vault is off when unset),
 // the Environment the new session names (none when no flag named one),
-// the one-call session_spec bootstrap, and the turn's target (an existing
+// the one-call session_spec bootstrap carrying the new conversation's
+// resources, the message's Files by id, and the turn's target (an existing
 // session by id alone, or a new conversation naming its agent by reference).
 // The controller is faked to capture the exact proto sent to
 // the RPC.
@@ -12,10 +13,10 @@ import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/apis/ai/sti
 import { create } from "@bufbuild/protobuf";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import {
-  LocalPathSourceSchema,
-  WorkspaceEntrySchema,
-  WorkspaceSourceSchema,
-} from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+  FileResourceSchema,
+  LocalPathResourceSchema,
+  SessionResourceSchema,
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -70,9 +71,9 @@ describe("createAgentRun", () => {
       includeMyVault: true,
       plugins: [],
       ...(environment === undefined ? {} : { environment }),
-      attachments: [],
+      fileIds: [],
       workspaceFileRefs: [],
-      workspaceEntries: [],
+      resources: [],
       model: "",
       mode: "",
       serviceTier: "",
@@ -94,9 +95,9 @@ describe("createAgentRun", () => {
       vaults: [VAULT_REF],
       includeMyVault: true,
       plugins: [],
-      attachments: [],
+      fileIds: [],
       workspaceFileRefs: ["src/a.ts"],
-      workspaceEntries: [],
+      resources: [],
       model: "claude",
       mode: "plan",
       serviceTier: "",
@@ -131,9 +132,9 @@ describe("createAgentRun", () => {
       vaults: [],
       includeMyVault: true,
       plugins: [],
-      attachments: [],
+      fileIds: [],
       workspaceFileRefs: [],
-      workspaceEntries: [],
+      resources: [],
       model: "",
       mode: "",
       serviceTier: "",
@@ -155,9 +156,9 @@ describe("createAgentRun", () => {
       vaults: [],
       includeMyVault: true,
       plugins: [],
-      attachments: [],
+      fileIds: [],
       workspaceFileRefs: [],
-      workspaceEntries: [],
+      resources: [],
       model: "composer-2.5",
       mode: "",
       serviceTier: "fast",
@@ -179,9 +180,9 @@ describe("createAgentRun", () => {
       vaults: [],
       includeMyVault: true,
       plugins: [],
-      attachments: [],
+      fileIds: [],
       workspaceFileRefs: [],
-      workspaceEntries: [],
+      resources: [],
       model: "",
       mode: "",
       serviceTier: "standard",
@@ -201,9 +202,9 @@ describe("createAgentRun", () => {
       vaults: [],
       includeMyVault: true,
       plugins: [],
-      attachments: [],
+      fileIds: [],
       workspaceFileRefs: [],
-      workspaceEntries: [],
+      resources: [],
       model: "claude-haiku-4-5",
       mode: "",
       serviceTier: "",
@@ -225,9 +226,9 @@ describe("createAgentRun", () => {
       vaults: [],
       includeMyVault: true,
       plugins: [],
-      attachments: [],
+      fileIds: [],
       workspaceFileRefs: [],
-      workspaceEntries: [],
+      resources: [],
       model: "",
       mode: "",
       serviceTier: "",
@@ -247,9 +248,9 @@ describe("createAgentRun", () => {
       vaults: [],
       includeMyVault: true,
       plugins: [],
-      attachments: [],
+      fileIds: [],
       workspaceFileRefs: [],
-      workspaceEntries: [],
+      resources: [],
       model: "m",
       mode: "agent",
       serviceTier: "",
@@ -261,12 +262,13 @@ describe("createAgentRun", () => {
     expect(exec.spec?.interactionMode).toBe(InteractionMode.UNSPECIFIED);
   });
 
-  it("embeds workspace entries as session_spec (one-call bootstrap) with an empty subject", async () => {
-    const entry = create(WorkspaceEntrySchema, {
+  it("embeds the resources as session_spec (one-call bootstrap) with an empty subject, and the message's Files by id", async () => {
+    const entry = create(SessionResourceSchema, {
       name: "repo",
-      source: create(WorkspaceSourceSchema, {
-        source: { case: "localPath", value: create(LocalPathSourceSchema, { path: "/home/user/repo" }) },
-      }),
+      resource: { case: "localPath", value: create(LocalPathResourceSchema, { path: "/home/user/repo" }) },
+    });
+    const folderFile = create(SessionResourceSchema, {
+      resource: { case: "file", value: create(FileResourceSchema, { fileId: "file_dir", mountPath: "data/a.csv" }) },
     });
 
     const { fn } = fakeController();
@@ -277,9 +279,9 @@ describe("createAgentRun", () => {
       vaults: [],
       includeMyVault: true,
       plugins: [],
-      attachments: [],
+      fileIds: ["file_msg"],
       workspaceFileRefs: [],
-      workspaceEntries: [entry],
+      resources: [entry, folderFile],
       model: "",
       mode: "",
       serviceTier: "",
@@ -289,7 +291,8 @@ describe("createAgentRun", () => {
     });
 
     expect(exec.spec?.target?.case).toBe("sessionSpec");
-    expect(sessionSpecOf(exec)?.workspaceEntries).toEqual([entry]);
+    expect(sessionSpecOf(exec)?.resources).toEqual([entry, folderFile]);
+    expect(exec.spec?.fileIds).toEqual(["file_msg"]);
     // Subject stays empty so the server defaults its sentinel and the async
     // title activity generates a real one.
     expect(sessionSpecOf(exec)?.subject).toBe("");
@@ -309,9 +312,9 @@ describe("createAgentRun", () => {
       vaults: [],
       includeMyVault: true,
       plugins: [],
-      attachments: [],
+      fileIds: [],
       workspaceFileRefs: [],
-      workspaceEntries: [],
+      resources: [],
       model: "",
       mode: "",
       serviceTier: "",
@@ -334,9 +337,9 @@ describe("createAgentRun", () => {
       vaults: [],
       includeMyVault: true,
       plugins: [],
-      attachments: [],
+      fileIds: [],
       workspaceFileRefs: [],
-      workspaceEntries: [],
+      resources: [],
       model: "",
       mode: "",
       serviceTier: "",
@@ -347,10 +350,10 @@ describe("createAgentRun", () => {
     expect(sessionSpecOf(exec)?.agentRef?.version).toBe("stable");
   });
 
-  it("sends only the session id for a turn in an existing session", async () => {
+  it("sends only the session id and the message's Files for a turn in an existing session", async () => {
     // The session pins its agent, workspace and harness at creation; a turn
-    // in it names the session alone, never an agent beside it.
-    const entry = create(WorkspaceEntrySchema, { name: "repo" });
+    // in it names the session alone, never an agent or resources beside it.
+    const entry = create(SessionResourceSchema, { name: "repo" });
     const { fn } = fakeController();
     const exec = await createAgentRun(fn, {
       sessionId: "ses_1",
@@ -360,9 +363,9 @@ describe("createAgentRun", () => {
       vaults: [],
       includeMyVault: true,
       plugins: [],
-      attachments: [],
+      fileIds: ["file_msg"],
       workspaceFileRefs: [],
-      workspaceEntries: [entry],
+      resources: [entry],
       model: "",
       mode: "",
       serviceTier: "",
@@ -371,6 +374,7 @@ describe("createAgentRun", () => {
       harness: "cursor",
     });
     expect(exec.spec?.target).toEqual({ case: "sessionId", value: "ses_1" });
+    expect(exec.spec?.fileIds).toEqual(["file_msg"]);
   });
 
   it("stamps cursor harness on a session_spec created just for it (oss#293)", async () => {
@@ -382,9 +386,9 @@ describe("createAgentRun", () => {
       vaults: [],
       includeMyVault: true,
       plugins: [],
-      attachments: [],
+      fileIds: [],
       workspaceFileRefs: [],
-      workspaceEntries: [],
+      resources: [],
       model: "",
       mode: "",
       serviceTier: "",
@@ -395,7 +399,7 @@ describe("createAgentRun", () => {
     // Harness alone justifies the embedded spec: the server clones it onto
     // the auto-created session (the one-call bootstrap contract).
     expect(sessionSpecOf(exec)?.harness).toBe(Harness.CURSOR);
-    expect(sessionSpecOf(exec)?.workspaceEntries).toEqual([]);
+    expect(sessionSpecOf(exec)?.resources).toEqual([]);
   });
 
   it("stamps an explicit native harness rather than leaving it unspecified", async () => {
@@ -410,9 +414,9 @@ describe("createAgentRun", () => {
       vaults: [],
       includeMyVault: true,
       plugins: [],
-      attachments: [],
+      fileIds: [],
       workspaceFileRefs: [],
-      workspaceEntries: [],
+      resources: [],
       model: "",
       mode: "",
       serviceTier: "",
@@ -423,12 +427,10 @@ describe("createAgentRun", () => {
     expect(sessionSpecOf(exec)?.harness).toBe(Harness.NATIVE);
   });
 
-  it("carries harness and workspace entries together on one session_spec", async () => {
-    const entry = create(WorkspaceEntrySchema, {
+  it("carries harness and resources together on one session_spec", async () => {
+    const entry = create(SessionResourceSchema, {
       name: "repo",
-      source: create(WorkspaceSourceSchema, {
-        source: { case: "localPath", value: create(LocalPathSourceSchema, { path: "/home/user/repo" }) },
-      }),
+      resource: { case: "localPath", value: create(LocalPathResourceSchema, { path: "/home/user/repo" }) },
     });
 
     const { fn } = fakeController();
@@ -439,9 +441,9 @@ describe("createAgentRun", () => {
       vaults: [],
       includeMyVault: true,
       plugins: [],
-      attachments: [],
+      fileIds: [],
       workspaceFileRefs: [],
-      workspaceEntries: [entry],
+      resources: [entry],
       model: "",
       mode: "",
       serviceTier: "",
@@ -450,7 +452,7 @@ describe("createAgentRun", () => {
       harness: "cursor",
     });
     expect(sessionSpecOf(exec)?.harness).toBe(Harness.CURSOR);
-    expect(sessionSpecOf(exec)?.workspaceEntries).toEqual([entry]);
+    expect(sessionSpecOf(exec)?.resources).toEqual([entry]);
   });
 
   it("leaves My vault out of a new conversation when the run asks, keeping its vaults", async () => {
@@ -461,9 +463,9 @@ describe("createAgentRun", () => {
       vaults: [VAULT_REF],
       includeMyVault: false,
       plugins: [],
-      attachments: [],
+      fileIds: [],
       workspaceFileRefs: [],
-      workspaceEntries: [],
+      resources: [],
       model: "",
       mode: "",
       serviceTier: "",

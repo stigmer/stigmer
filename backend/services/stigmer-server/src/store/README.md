@@ -66,6 +66,8 @@ A File's bytes live in a blob store under a key the server mints, and that key i
 
 `Store.files.insert` and `Store.files.remove` change who names a blob, and each commits the File's resource row (with its etag and list keys, as `insertResource` writes one), its ref and the blob's state in one transaction, as `writeResourceAppendingEvents` commits a row with its events. One lock order: the blob's row first, then the resource rows. Postgres takes `SELECT … FROM file_blobs … FOR UPDATE` before it touches a resource row; SQLite serializes every writer under `BEGIN IMMEDIATE`. So two removes of a blob's last two Files orphan it exactly once, and an insert racing the remove of a blob's last File lands first or is refused. The contract both drivers pass is the kit `__tests__/file-blobs-contract.ts`.
 
+A third table, `file_conversions`, holds the attachments runs carried before a message's files became Files. The step that turned a conversation's workspace entries into its resources (Postgres v40, SQLite v44, `workspace-becomes-resources.ts`) lifted each one off its run into a row keyed by the run and its position, and the file domain reads them oldest run first (`Store.files.listConversions`), makes each a File of the run's conversation, and forgets it (`forgetConversion`). An organization's purge removes its rows with its blobs.
+
 ## The permission history
 
 Every change to an access row can be recorded in `grant_history`

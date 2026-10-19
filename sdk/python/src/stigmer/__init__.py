@@ -39,17 +39,16 @@ from ._gen._oauthapp import OAuthAppClient, OAuthAppInput
 from ._gen._organization import OrganizationClient, OrganizationInput
 from ._gen._plugin import PluginClient
 from ._gen._run import (
-    AttachmentInput,
     RunClient,
     RunInput,
 )
 from ._gen._session import (
-    GitRepoSourceInput,
-    LocalPathSourceInput,
+    FileResourceInput,
+    GitRepositoryResourceInput,
+    LocalPathResourceInput,
     SessionClient,
     SessionInput,
-    WorkspaceEntryInput,
-    WorkspaceSourceInput,
+    SessionResourceInput,
 )
 from ._gen._skill import SkillClient, SkillInput
 from ._gen._vault import (
@@ -126,26 +125,25 @@ __all__ = [
     "AgentMcpServerInput",
     "ApiKeyInput",
     "ApiResourceRefInput",
-    "AttachmentInput",
     "DeleteResourceInput",
     "FederationIssuerInput",
     "FileInput",
-    "GitRepoSourceInput",
+    "FileResourceInput",
+    "GitRepositoryResourceInput",
     "GrantInput",
     "IdentityAccountInput",
-    "LocalPathSourceInput",
+    "LocalPathResourceInput",
     "OAuthAppInput",
     "OrganizationInput",
     "RunInput",
     "RunConfigInput",
     "SessionInput",
+    "SessionResourceInput",
     "SkillInput",
     "VaultConnectionInput",
     "VaultConnectionSignInInput",
     "VaultInput",
     "VaultSecretInput",
-    "WorkspaceEntryInput",
-    "WorkspaceSourceInput",
     # Shared types
     "ResourceRef",
     # Errors

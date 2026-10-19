@@ -157,6 +157,7 @@ import { newValidateFireRateStep } from "./fire-rate.js";
 import { newOwnersLockStep } from "./owners-lock.js";
 import { newVaultAttachmentsStep } from "../vault/attachments.js";
 import { ROUTINE_VAULT_ATTACHMENTS } from "./vault-attachments.js";
+import { newCheckRoutineFilesStep } from "../file/routine-files.js";
 
 export interface RoutineControllerDeps {
   readonly store: Store;
@@ -292,6 +293,7 @@ async function createRoutine(
     .addStep(newBuildNewStateStep())
     .addStep(newGuardReservedLabelsStep(deps.authorizer))
     .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+    .addStep(newCheckRoutineFilesStep(deps))
     .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, ROUTINE_VAULT_ATTACHMENTS))
     .addStep(newClaimNameStep(deps.store, ApiResourceKind.routine))
     .addStep(newPersistStep(deps.store, deps.credentialBinding))
@@ -350,6 +352,7 @@ async function update(
       .addStep(newOwnersLockStep(deps.ownerAccounts))
       .addStep(newGuardReservedLabelsStep(deps.authorizer))
       .addStep(newValidateReferencesStep(deps.store, deps.authorizer))
+      .addStep(newCheckRoutineFilesStep(deps))
       .addStep(newVaultAttachmentsStep(deps.store, deps.authorizer, ROUTINE_VAULT_ATTACHMENTS))
       .addStep(newPersistRoutineUpdateStep(deps.store))
       .addStep(newArmRoutineStep(deps.clock, deps.logger))

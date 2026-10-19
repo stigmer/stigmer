@@ -1,0 +1,68 @@
+{
+  "name": "GitRepositoryResource",
+  "description": "GitRepositoryResource clones a git repository into the workspace.\n\n Only HTTPS clone URLs are supported.\n\n A private repository is cloned with the resource's own token when it\n carries one, else with a login saved for the repository's host\n (github.com) in the vaults the conversation uses. The resource's own\n token is used only for an https://github.com repository: a session write\n carrying a token for any other repository is refused.",
+  "protoType": "ai.stigmer.agentic.session.v1.GitRepositoryResource",
+  "protoFile": "apis/ai/stigmer/agentic/session/v1/resource.proto",
+  "fields": [
+    {
+      "name": "Url",
+      "jsonName": "url",
+      "protoField": "url",
+      "type": {
+        "kind": "string"
+      },
+      "description": "HTTPS clone URL for the repository.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Branch",
+      "jsonName": "branch",
+      "protoField": "branch",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Branch to clone. Empty clones the repository's default branch.",
+      "required": false
+    },
+    {
+      "name": "Commit",
+      "jsonName": "commit",
+      "protoField": "commit",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Commit to check out after the clone. With a branch, the branch is\n cloned first, then the commit is checked out.",
+      "required": false
+    },
+    {
+      "name": "WriteBackMode",
+      "jsonName": "writeBackMode",
+      "protoField": "write_back_mode",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.session.v1.GitWriteBackMode",
+        "enumValues": [
+          "GIT_WRITE_BACK_BRANCH_AND_PR"
+        ]
+      },
+      "description": "Whether the platform turns the agent's changes into a branch and a pull\n request.",
+      "required": false
+    },
+    {
+      "name": "Token",
+      "jsonName": "token",
+      "protoField": "token",
+      "type": {
+        "kind": "string"
+      },
+      "description": "A token for cloning this repository, kept for the conversation only.\n\n Used only when the URL is an https://github.com repository; a session\n write carrying a token for any other repository is refused. Sealed for\n the conversation's life and never returned by a read. A routine's\n repositories refuse it: save the token in a vault the routine names.",
+      "required": false,
+      "validation": {
+        "maxLength": 65536
+      }
+    }
+  ]
+}

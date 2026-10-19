@@ -9,7 +9,7 @@
 // bordered panel there would be noise. So we emit a compact, aligned key/value
 // block carrying the same fields (Agent, Session, Model, Mode, Workspaces).
 
-import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { shouldColorize, styler } from "../../output/style.js";
 import type { HarnessFlag, RunMode } from "./prepare.js";
 
@@ -66,7 +66,11 @@ function row(s: ReturnType<typeof styler>, label: string, value: string): string
   return `${s.dim(padded)}${value}`;
 }
 
-/** Displayable names from workspace entries (Go's workspaceNames). */
-export function workspaceNames(entries: readonly WorkspaceEntry[]): string[] {
-  return entries.map((e) => e.name);
+/**
+ * The names of the conversation's repositories and folders (Go's
+ * workspaceNames). Files carry no name: they sit under .stigmer/uploads/,
+ * not in the workspace this row lists.
+ */
+export function workspaceNames(resources: readonly SessionResource[]): string[] {
+  return resources.filter((r) => r.resource.case !== "file").map((r) => r.name);
 }

@@ -36,7 +36,7 @@
  * on any other turn made a real directory in the user's tree that the next
  * link displaced. What the route exposes follows the link, so the file tools
  * reach exactly what the shell reaches on the same turn:
- * - on a turn whose skill or attachment phase made the link, the platform dir
+ * - on a turn whose skill or File phase made the link, the platform dir
  *   ({@link PlatformContentBackend});
  * - on any other turn, nothing ({@link NoPlatformContentBackend}): the dir
  *   still holds earlier turns' skills and inputs, which this turn's shell

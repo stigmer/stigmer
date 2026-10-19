@@ -40,11 +40,12 @@ private static final long serialVersionUID = 0L;
     disallowedTools_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
     appendSystemPrompt_ = "";
-    attachments_ = java.util.Collections.emptyList();
     workspaceFileRefs_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
     supersedesRunId_ = "";
     excludedPluginIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    fileIds_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
@@ -196,7 +197,7 @@ private static final long serialVersionUID = 0L;
    * Spec for a new session this turn starts.
    *
    * This is the one-call session bootstrap: a single create carries the
-   * full session shape (the agent, workspace_entries, harness,
+   * full session shape (the agent, resources, harness,
    * execution_target, plugins, skills) together with the first
    * message, so embedders do not need to orchestrate session.create
    * followed by run.create. The created session's ID is
@@ -221,7 +222,7 @@ private static final long serialVersionUID = 0L;
    * Spec for a new session this turn starts.
    *
    * This is the one-call session bootstrap: a single create carries the
-   * full session shape (the agent, workspace_entries, harness,
+   * full session shape (the agent, resources, harness,
    * execution_target, plugins, skills) together with the first
    * message, so embedders do not need to orchestrate session.create
    * followed by run.create. The created session's ID is
@@ -249,7 +250,7 @@ private static final long serialVersionUID = 0L;
    * Spec for a new session this turn starts.
    *
    * This is the one-call session bootstrap: a single create carries the
-   * full session shape (the agent, workspace_entries, harness,
+   * full session shape (the agent, resources, harness,
    * execution_target, plugins, skills) together with the first
    * message, so embedders do not need to orchestrate session.create
    * followed by run.create. The created session's ID is
@@ -279,7 +280,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * User input message that triggers this run.
    * Each run represents one user message and the agent's response.
-   * Required unless reconcile_file_review is set.
+   * Required unless reconcile_file_review is set or file_ids names a file
+   * (a message may be files alone).
    * </pre>
    *
    * <code>string message = 3 [json_name = "message"];</code>
@@ -302,7 +304,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * User input message that triggers this run.
    * Each run represents one user message and the agent's response.
-   * Required unless reconcile_file_review is set.
+   * Required unless reconcile_file_review is set or file_ids names a file
+   * (a message may be files alone).
    * </pre>
    *
    * <code>string message = 3 [json_name = "message"];</code>
@@ -792,122 +795,6 @@ private static final long serialVersionUID = 0L;
     return autoApproveAll_;
   }
 
-  public static final int ATTACHMENTS_FIELD_NUMBER = 9;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.run.v1.Attachment> attachments_;
-  /**
-   * <pre>
-   * Files attached to this run.
-   *
-   * Attachments are injected into the sandbox before the run begins.
-   * The agent can read these files from the specified mount paths.
-   *
-   * Use cases:
-   * - Provide input data files to process
-   * - Pass configuration files
-   * - Supply reference documents for analysis
-   *
-   * Example CLI usage:
-   * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.run.v1.Attachment> getAttachmentsList() {
-    return attachments_;
-  }
-  /**
-   * <pre>
-   * Files attached to this run.
-   *
-   * Attachments are injected into the sandbox before the run begins.
-   * The agent can read these files from the specified mount paths.
-   *
-   * Use cases:
-   * - Provide input data files to process
-   * - Pass configuration files
-   * - Supply reference documents for analysis
-   *
-   * Example CLI usage:
-   * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.run.v1.AttachmentOrBuilder> 
-      getAttachmentsOrBuilderList() {
-    return attachments_;
-  }
-  /**
-   * <pre>
-   * Files attached to this run.
-   *
-   * Attachments are injected into the sandbox before the run begins.
-   * The agent can read these files from the specified mount paths.
-   *
-   * Use cases:
-   * - Provide input data files to process
-   * - Pass configuration files
-   * - Supply reference documents for analysis
-   *
-   * Example CLI usage:
-   * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-   */
-  @java.lang.Override
-  public int getAttachmentsCount() {
-    return attachments_.size();
-  }
-  /**
-   * <pre>
-   * Files attached to this run.
-   *
-   * Attachments are injected into the sandbox before the run begins.
-   * The agent can read these files from the specified mount paths.
-   *
-   * Use cases:
-   * - Provide input data files to process
-   * - Pass configuration files
-   * - Supply reference documents for analysis
-   *
-   * Example CLI usage:
-   * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.Attachment getAttachments(int index) {
-    return attachments_.get(index);
-  }
-  /**
-   * <pre>
-   * Files attached to this run.
-   *
-   * Attachments are injected into the sandbox before the run begins.
-   * The agent can read these files from the specified mount paths.
-   *
-   * Use cases:
-   * - Provide input data files to process
-   * - Pass configuration files
-   * - Supply reference documents for analysis
-   *
-   * Example CLI usage:
-   * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.AttachmentOrBuilder getAttachmentsOrBuilder(
-      int index) {
-    return attachments_.get(index);
-  }
-
   public static final int WORKSPACE_FILE_REFS_FIELD_NUMBER = 10;
   @SuppressWarnings("serial")
   private com.google.protobuf.LazyStringArrayList workspaceFileRefs_ =
@@ -922,7 +809,7 @@ private static final long serialVersionUID = 0L;
    * no upload, no copy, no injection.
    *
    * This separates the "attention" signal ("look at this file") from the
-   * "transport" mechanism (upload + inject) that regular attachments use.
+   * "transport" a File gives (upload, then name it in file_ids).
    *
    * Works for any workspace type with a resolvable filesystem post-provisioning
    * (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -955,7 +842,7 @@ private static final long serialVersionUID = 0L;
    * no upload, no copy, no injection.
    *
    * This separates the "attention" signal ("look at this file") from the
-   * "transport" mechanism (upload + inject) that regular attachments use.
+   * "transport" a File gives (upload, then name it in file_ids).
    *
    * Works for any workspace type with a resolvable filesystem post-provisioning
    * (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -987,7 +874,7 @@ private static final long serialVersionUID = 0L;
    * no upload, no copy, no injection.
    *
    * This separates the "attention" signal ("look at this file") from the
-   * "transport" mechanism (upload + inject) that regular attachments use.
+   * "transport" a File gives (upload, then name it in file_ids).
    *
    * Works for any workspace type with a resolvable filesystem post-provisioning
    * (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -1020,7 +907,7 @@ private static final long serialVersionUID = 0L;
    * no upload, no copy, no injection.
    *
    * This separates the "attention" signal ("look at this file") from the
-   * "transport" mechanism (upload + inject) that regular attachments use.
+   * "transport" a File gives (upload, then name it in file_ids).
    *
    * Works for any workspace type with a resolvable filesystem post-provisioning
    * (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -1290,6 +1177,91 @@ private static final long serialVersionUID = 0L;
     return excludedPluginIds_.getByteString(index);
   }
 
+  public static final int FILE_IDS_FIELD_NUMBER = 28;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList fileIds_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * Files given with this message, by id ("file_01j…"), at most 20.
+   *
+   * Each is a File of the run's organization the caller may view. One that
+   * is not yet the conversation's becomes the conversation's own copy, and
+   * each joins the conversation's resources, so the agent finds it under
+   * .stigmer/uploads/ on this turn and every later one. The message shows
+   * each to the model with the text: an image as an image, anything else as
+   * a document the agent reads with its tools (RunStatus.message_files says
+   * which blocks the message carried).
+   * </pre>
+   *
+   * <code>repeated string file_ids = 28 [json_name = "fileIds", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the fileIds.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getFileIdsList() {
+    return fileIds_;
+  }
+  /**
+   * <pre>
+   * Files given with this message, by id ("file_01j…"), at most 20.
+   *
+   * Each is a File of the run's organization the caller may view. One that
+   * is not yet the conversation's becomes the conversation's own copy, and
+   * each joins the conversation's resources, so the agent finds it under
+   * .stigmer/uploads/ on this turn and every later one. The message shows
+   * each to the model with the text: an image as an image, anything else as
+   * a document the agent reads with its tools (RunStatus.message_files says
+   * which blocks the message carried).
+   * </pre>
+   *
+   * <code>repeated string file_ids = 28 [json_name = "fileIds", (.buf.validate.field) = { ... }</code>
+   * @return The count of fileIds.
+   */
+  public int getFileIdsCount() {
+    return fileIds_.size();
+  }
+  /**
+   * <pre>
+   * Files given with this message, by id ("file_01j…"), at most 20.
+   *
+   * Each is a File of the run's organization the caller may view. One that
+   * is not yet the conversation's becomes the conversation's own copy, and
+   * each joins the conversation's resources, so the agent finds it under
+   * .stigmer/uploads/ on this turn and every later one. The message shows
+   * each to the model with the text: an image as an image, anything else as
+   * a document the agent reads with its tools (RunStatus.message_files says
+   * which blocks the message carried).
+   * </pre>
+   *
+   * <code>repeated string file_ids = 28 [json_name = "fileIds", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The fileIds at the given index.
+   */
+  public java.lang.String getFileIds(int index) {
+    return fileIds_.get(index);
+  }
+  /**
+   * <pre>
+   * Files given with this message, by id ("file_01j…"), at most 20.
+   *
+   * Each is a File of the run's organization the caller may view. One that
+   * is not yet the conversation's becomes the conversation's own copy, and
+   * each joins the conversation's resources, so the agent finds it under
+   * .stigmer/uploads/ on this turn and every later one. The message shows
+   * each to the model with the text: an image as an image, anything else as
+   * a document the agent reads with its tools (RunStatus.message_files says
+   * which blocks the message carried).
+   * </pre>
+   *
+   * <code>repeated string file_ids = 28 [json_name = "fileIds", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the fileIds at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getFileIdsBytes(int index) {
+    return fileIds_.getByteString(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1312,9 +1284,6 @@ private static final long serialVersionUID = 0L;
     }
     if (autoApproveAll_ != false) {
       output.writeBool(7, autoApproveAll_);
-    }
-    for (int i = 0; i < attachments_.size(); i++) {
-      output.writeMessage(9, attachments_.get(i));
     }
     for (int i = 0; i < workspaceFileRefs_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 10, workspaceFileRefs_.getRaw(i));
@@ -1358,6 +1327,9 @@ private static final long serialVersionUID = 0L;
     for (int i = 0; i < excludedPluginIds_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 27, excludedPluginIds_.getRaw(i));
     }
+    for (int i = 0; i < fileIds_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 28, fileIds_.getRaw(i));
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -1377,15 +1349,6 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(7, autoApproveAll_);
     }
-
-        {
-          final int count = attachments_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(attachments_.get(i));
-          }
-          size += 1 * count;
-        }
     {
       int dataSize = 0;
       for (int i = 0; i < workspaceFileRefs_.size(); i++) {
@@ -1456,6 +1419,14 @@ private static final long serialVersionUID = 0L;
       size += dataSize;
       size += 2 * getExcludedPluginIdsList().size();
     }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < fileIds_.size(); i++) {
+        dataSize += computeStringSizeNoTag(fileIds_.getRaw(i));
+      }
+      size += dataSize;
+      size += 2 * getFileIdsList().size();
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1494,8 +1465,6 @@ private static final long serialVersionUID = 0L;
         .equals(other.getAppendSystemPrompt())) return false;
     if (getAutoApproveAll()
         != other.getAutoApproveAll()) return false;
-    if (!getAttachmentsList()
-        .equals(other.getAttachmentsList())) return false;
     if (!getWorkspaceFileRefsList()
         .equals(other.getWorkspaceFileRefsList())) return false;
     if (!getSupersedesRunId()
@@ -1514,6 +1483,8 @@ private static final long serialVersionUID = 0L;
         != other.getReconcileFileReview()) return false;
     if (!getExcludedPluginIdsList()
         .equals(other.getExcludedPluginIdsList())) return false;
+    if (!getFileIdsList()
+        .equals(other.getFileIdsList())) return false;
     if (!getTargetCase().equals(other.getTargetCase())) return false;
     switch (targetCase_) {
       case 1:
@@ -1566,10 +1537,6 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + AUTO_APPROVE_ALL_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getAutoApproveAll());
-    if (getAttachmentsCount() > 0) {
-      hash = (37 * hash) + ATTACHMENTS_FIELD_NUMBER;
-      hash = (53 * hash) + getAttachmentsList().hashCode();
-    }
     if (getWorkspaceFileRefsCount() > 0) {
       hash = (37 * hash) + WORKSPACE_FILE_REFS_FIELD_NUMBER;
       hash = (53 * hash) + getWorkspaceFileRefsList().hashCode();
@@ -1590,6 +1557,10 @@ private static final long serialVersionUID = 0L;
     if (getExcludedPluginIdsCount() > 0) {
       hash = (37 * hash) + EXCLUDED_PLUGIN_IDS_FIELD_NUMBER;
       hash = (53 * hash) + getExcludedPluginIdsList().hashCode();
+    }
+    if (getFileIdsCount() > 0) {
+      hash = (37 * hash) + FILE_IDS_FIELD_NUMBER;
+      hash = (53 * hash) + getFileIdsList().hashCode();
     }
     switch (targetCase_) {
       case 1:
@@ -1740,7 +1711,6 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         internalGetRunConfigFieldBuilder();
         internalGetStructuredOutputSchemaFieldBuilder();
-        internalGetAttachmentsFieldBuilder();
         internalGetConversationCatchupFieldBuilder();
         internalGetEvalCaseFieldBuilder();
       }
@@ -1771,13 +1741,6 @@ private static final long serialVersionUID = 0L;
           com.google.protobuf.LazyStringArrayList.emptyList();
       appendSystemPrompt_ = "";
       autoApproveAll_ = false;
-      if (attachmentsBuilder_ == null) {
-        attachments_ = java.util.Collections.emptyList();
-      } else {
-        attachments_ = null;
-        attachmentsBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000800);
       workspaceFileRefs_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       supersedesRunId_ = "";
@@ -1793,6 +1756,8 @@ private static final long serialVersionUID = 0L;
       }
       reconcileFileReview_ = false;
       excludedPluginIds_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
+      fileIds_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       targetCase_ = 0;
       target_ = null;
@@ -1822,23 +1787,10 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public ai.stigmer.agentic.run.v1.RunSpec buildPartial() {
       ai.stigmer.agentic.run.v1.RunSpec result = new ai.stigmer.agentic.run.v1.RunSpec(this);
-      buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
       buildPartialOneofs(result);
       onBuilt();
       return result;
-    }
-
-    private void buildPartialRepeatedFields(ai.stigmer.agentic.run.v1.RunSpec result) {
-      if (attachmentsBuilder_ == null) {
-        if (((bitField0_ & 0x00000800) != 0)) {
-          attachments_ = java.util.Collections.unmodifiableList(attachments_);
-          bitField0_ = (bitField0_ & ~0x00000800);
-        }
-        result.attachments_ = attachments_;
-      } else {
-        result.attachments_ = attachmentsBuilder_.build();
-      }
     }
 
     private void buildPartial0(ai.stigmer.agentic.run.v1.RunSpec result) {
@@ -1879,31 +1831,35 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000400) != 0)) {
         result.autoApproveAll_ = autoApproveAll_;
       }
-      if (((from_bitField0_ & 0x00001000) != 0)) {
+      if (((from_bitField0_ & 0x00000800) != 0)) {
         workspaceFileRefs_.makeImmutable();
         result.workspaceFileRefs_ = workspaceFileRefs_;
       }
-      if (((from_bitField0_ & 0x00002000) != 0)) {
+      if (((from_bitField0_ & 0x00001000) != 0)) {
         result.supersedesRunId_ = supersedesRunId_;
       }
-      if (((from_bitField0_ & 0x00004000) != 0)) {
+      if (((from_bitField0_ & 0x00002000) != 0)) {
         result.conversationCatchup_ = conversationCatchupBuilder_ == null
             ? conversationCatchup_
             : conversationCatchupBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
-      if (((from_bitField0_ & 0x00008000) != 0)) {
+      if (((from_bitField0_ & 0x00004000) != 0)) {
         result.evalCase_ = evalCaseBuilder_ == null
             ? evalCase_
             : evalCaseBuilder_.build();
         to_bitField0_ |= 0x00000008;
       }
-      if (((from_bitField0_ & 0x00010000) != 0)) {
+      if (((from_bitField0_ & 0x00008000) != 0)) {
         result.reconcileFileReview_ = reconcileFileReview_;
       }
-      if (((from_bitField0_ & 0x00020000) != 0)) {
+      if (((from_bitField0_ & 0x00010000) != 0)) {
         excludedPluginIds_.makeImmutable();
         result.excludedPluginIds_ = excludedPluginIds_;
+      }
+      if (((from_bitField0_ & 0x00020000) != 0)) {
+        fileIds_.makeImmutable();
+        result.fileIds_ = fileIds_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1974,36 +1930,10 @@ private static final long serialVersionUID = 0L;
       if (other.getAutoApproveAll() != false) {
         setAutoApproveAll(other.getAutoApproveAll());
       }
-      if (attachmentsBuilder_ == null) {
-        if (!other.attachments_.isEmpty()) {
-          if (attachments_.isEmpty()) {
-            attachments_ = other.attachments_;
-            bitField0_ = (bitField0_ & ~0x00000800);
-          } else {
-            ensureAttachmentsIsMutable();
-            attachments_.addAll(other.attachments_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.attachments_.isEmpty()) {
-          if (attachmentsBuilder_.isEmpty()) {
-            attachmentsBuilder_.dispose();
-            attachmentsBuilder_ = null;
-            attachments_ = other.attachments_;
-            bitField0_ = (bitField0_ & ~0x00000800);
-            attachmentsBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetAttachmentsFieldBuilder() : null;
-          } else {
-            attachmentsBuilder_.addAllMessages(other.attachments_);
-          }
-        }
-      }
       if (!other.workspaceFileRefs_.isEmpty()) {
         if (workspaceFileRefs_.isEmpty()) {
           workspaceFileRefs_ = other.workspaceFileRefs_;
-          bitField0_ |= 0x00001000;
+          bitField0_ |= 0x00000800;
         } else {
           ensureWorkspaceFileRefsIsMutable();
           workspaceFileRefs_.addAll(other.workspaceFileRefs_);
@@ -2012,7 +1942,7 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getSupersedesRunId().isEmpty()) {
         supersedesRunId_ = other.supersedesRunId_;
-        bitField0_ |= 0x00002000;
+        bitField0_ |= 0x00001000;
         onChanged();
       }
       if (other.hasConversationCatchup()) {
@@ -2027,10 +1957,20 @@ private static final long serialVersionUID = 0L;
       if (!other.excludedPluginIds_.isEmpty()) {
         if (excludedPluginIds_.isEmpty()) {
           excludedPluginIds_ = other.excludedPluginIds_;
-          bitField0_ |= 0x00020000;
+          bitField0_ |= 0x00010000;
         } else {
           ensureExcludedPluginIdsIsMutable();
           excludedPluginIds_.addAll(other.excludedPluginIds_);
+        }
+        onChanged();
+      }
+      if (!other.fileIds_.isEmpty()) {
+        if (fileIds_.isEmpty()) {
+          fileIds_ = other.fileIds_;
+          bitField0_ |= 0x00020000;
+        } else {
+          ensureFileIdsIsMutable();
+          fileIds_.addAll(other.fileIds_);
         }
         onChanged();
       }
@@ -2090,19 +2030,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000400;
               break;
             } // case 56
-            case 74: {
-              ai.stigmer.agentic.run.v1.Attachment m =
-                  input.readMessage(
-                      ai.stigmer.agentic.run.v1.Attachment.parser(),
-                      extensionRegistry);
-              if (attachmentsBuilder_ == null) {
-                ensureAttachmentsIsMutable();
-                attachments_.add(m);
-              } else {
-                attachmentsBuilder_.addMessage(m);
-              }
-              break;
-            } // case 74
             case 82: {
               ensureWorkspaceFileRefsIsMutable();
               workspaceFileRefs_.add(input.readStringRequireUtf8());
@@ -2110,7 +2037,7 @@ private static final long serialVersionUID = 0L;
             } // case 82
             case 98: {
               supersedesRunId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00002000;
+              bitField0_ |= 0x00001000;
               break;
             } // case 98
             case 106: {
@@ -2124,7 +2051,7 @@ private static final long serialVersionUID = 0L;
               input.readMessage(
                   internalGetConversationCatchupFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00004000;
+              bitField0_ |= 0x00002000;
               break;
             } // case 114
             case 146: {
@@ -2170,12 +2097,12 @@ private static final long serialVersionUID = 0L;
               input.readMessage(
                   internalGetEvalCaseFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00008000;
+              bitField0_ |= 0x00004000;
               break;
             } // case 202
             case 208: {
               reconcileFileReview_ = input.readBool();
-              bitField0_ |= 0x00010000;
+              bitField0_ |= 0x00008000;
               break;
             } // case 208
             case 218: {
@@ -2183,6 +2110,11 @@ private static final long serialVersionUID = 0L;
               excludedPluginIds_.add(input.readStringRequireUtf8());
               break;
             } // case 218
+            case 226: {
+              ensureFileIdsIsMutable();
+              fileIds_.add(input.readStringRequireUtf8());
+              break;
+            } // case 226
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2377,7 +2309,7 @@ private static final long serialVersionUID = 0L;
      * Spec for a new session this turn starts.
      *
      * This is the one-call session bootstrap: a single create carries the
-     * full session shape (the agent, workspace_entries, harness,
+     * full session shape (the agent, resources, harness,
      * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
@@ -2402,7 +2334,7 @@ private static final long serialVersionUID = 0L;
      * Spec for a new session this turn starts.
      *
      * This is the one-call session bootstrap: a single create carries the
-     * full session shape (the agent, workspace_entries, harness,
+     * full session shape (the agent, resources, harness,
      * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
@@ -2437,7 +2369,7 @@ private static final long serialVersionUID = 0L;
      * Spec for a new session this turn starts.
      *
      * This is the one-call session bootstrap: a single create carries the
-     * full session shape (the agent, workspace_entries, harness,
+     * full session shape (the agent, resources, harness,
      * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
@@ -2470,7 +2402,7 @@ private static final long serialVersionUID = 0L;
      * Spec for a new session this turn starts.
      *
      * This is the one-call session bootstrap: a single create carries the
-     * full session shape (the agent, workspace_entries, harness,
+     * full session shape (the agent, resources, harness,
      * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
@@ -2501,7 +2433,7 @@ private static final long serialVersionUID = 0L;
      * Spec for a new session this turn starts.
      *
      * This is the one-call session bootstrap: a single create carries the
-     * full session shape (the agent, workspace_entries, harness,
+     * full session shape (the agent, resources, harness,
      * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
@@ -2541,7 +2473,7 @@ private static final long serialVersionUID = 0L;
      * Spec for a new session this turn starts.
      *
      * This is the one-call session bootstrap: a single create carries the
-     * full session shape (the agent, workspace_entries, harness,
+     * full session shape (the agent, resources, harness,
      * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
@@ -2577,7 +2509,7 @@ private static final long serialVersionUID = 0L;
      * Spec for a new session this turn starts.
      *
      * This is the one-call session bootstrap: a single create carries the
-     * full session shape (the agent, workspace_entries, harness,
+     * full session shape (the agent, resources, harness,
      * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
@@ -2600,7 +2532,7 @@ private static final long serialVersionUID = 0L;
      * Spec for a new session this turn starts.
      *
      * This is the one-call session bootstrap: a single create carries the
-     * full session shape (the agent, workspace_entries, harness,
+     * full session shape (the agent, resources, harness,
      * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
@@ -2631,7 +2563,7 @@ private static final long serialVersionUID = 0L;
      * Spec for a new session this turn starts.
      *
      * This is the one-call session bootstrap: a single create carries the
-     * full session shape (the agent, workspace_entries, harness,
+     * full session shape (the agent, resources, harness,
      * execution_target, plugins, skills) together with the first
      * message, so embedders do not need to orchestrate session.create
      * followed by run.create. The created session's ID is
@@ -2670,7 +2602,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User input message that triggers this run.
      * Each run represents one user message and the agent's response.
-     * Required unless reconcile_file_review is set.
+     * Required unless reconcile_file_review is set or file_ids names a file
+     * (a message may be files alone).
      * </pre>
      *
      * <code>string message = 3 [json_name = "message"];</code>
@@ -2692,7 +2625,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User input message that triggers this run.
      * Each run represents one user message and the agent's response.
-     * Required unless reconcile_file_review is set.
+     * Required unless reconcile_file_review is set or file_ids names a file
+     * (a message may be files alone).
      * </pre>
      *
      * <code>string message = 3 [json_name = "message"];</code>
@@ -2715,7 +2649,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User input message that triggers this run.
      * Each run represents one user message and the agent's response.
-     * Required unless reconcile_file_review is set.
+     * Required unless reconcile_file_review is set or file_ids names a file
+     * (a message may be files alone).
      * </pre>
      *
      * <code>string message = 3 [json_name = "message"];</code>
@@ -2734,7 +2669,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User input message that triggers this run.
      * Each run represents one user message and the agent's response.
-     * Required unless reconcile_file_review is set.
+     * Required unless reconcile_file_review is set or file_ids names a file
+     * (a message may be files alone).
      * </pre>
      *
      * <code>string message = 3 [json_name = "message"];</code>
@@ -2750,7 +2686,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * User input message that triggers this run.
      * Each run represents one user message and the agent's response.
-     * Required unless reconcile_file_review is set.
+     * Required unless reconcile_file_review is set or file_ids names a file
+     * (a message may be files alone).
      * </pre>
      *
      * <code>string message = 3 [json_name = "message"];</code>
@@ -4130,523 +4067,13 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.util.List<ai.stigmer.agentic.run.v1.Attachment> attachments_ =
-      java.util.Collections.emptyList();
-    private void ensureAttachmentsIsMutable() {
-      if (!((bitField0_ & 0x00000800) != 0)) {
-        attachments_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.Attachment>(attachments_);
-        bitField0_ |= 0x00000800;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.Attachment, ai.stigmer.agentic.run.v1.Attachment.Builder, ai.stigmer.agentic.run.v1.AttachmentOrBuilder> attachmentsBuilder_;
-
-    /**
-     * <pre>
-     * Files attached to this run.
-     *
-     * Attachments are injected into the sandbox before the run begins.
-     * The agent can read these files from the specified mount paths.
-     *
-     * Use cases:
-     * - Provide input data files to process
-     * - Pass configuration files
-     * - Supply reference documents for analysis
-     *
-     * Example CLI usage:
-     * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.run.v1.Attachment> getAttachmentsList() {
-      if (attachmentsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(attachments_);
-      } else {
-        return attachmentsBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * Files attached to this run.
-     *
-     * Attachments are injected into the sandbox before the run begins.
-     * The agent can read these files from the specified mount paths.
-     *
-     * Use cases:
-     * - Provide input data files to process
-     * - Pass configuration files
-     * - Supply reference documents for analysis
-     *
-     * Example CLI usage:
-     * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-     */
-    public int getAttachmentsCount() {
-      if (attachmentsBuilder_ == null) {
-        return attachments_.size();
-      } else {
-        return attachmentsBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * Files attached to this run.
-     *
-     * Attachments are injected into the sandbox before the run begins.
-     * The agent can read these files from the specified mount paths.
-     *
-     * Use cases:
-     * - Provide input data files to process
-     * - Pass configuration files
-     * - Supply reference documents for analysis
-     *
-     * Example CLI usage:
-     * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.Attachment getAttachments(int index) {
-      if (attachmentsBuilder_ == null) {
-        return attachments_.get(index);
-      } else {
-        return attachmentsBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * Files attached to this run.
-     *
-     * Attachments are injected into the sandbox before the run begins.
-     * The agent can read these files from the specified mount paths.
-     *
-     * Use cases:
-     * - Provide input data files to process
-     * - Pass configuration files
-     * - Supply reference documents for analysis
-     *
-     * Example CLI usage:
-     * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-     */
-    public Builder setAttachments(
-        int index, ai.stigmer.agentic.run.v1.Attachment value) {
-      if (attachmentsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureAttachmentsIsMutable();
-        attachments_.set(index, value);
-        onChanged();
-      } else {
-        attachmentsBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Files attached to this run.
-     *
-     * Attachments are injected into the sandbox before the run begins.
-     * The agent can read these files from the specified mount paths.
-     *
-     * Use cases:
-     * - Provide input data files to process
-     * - Pass configuration files
-     * - Supply reference documents for analysis
-     *
-     * Example CLI usage:
-     * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-     */
-    public Builder setAttachments(
-        int index, ai.stigmer.agentic.run.v1.Attachment.Builder builderForValue) {
-      if (attachmentsBuilder_ == null) {
-        ensureAttachmentsIsMutable();
-        attachments_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        attachmentsBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Files attached to this run.
-     *
-     * Attachments are injected into the sandbox before the run begins.
-     * The agent can read these files from the specified mount paths.
-     *
-     * Use cases:
-     * - Provide input data files to process
-     * - Pass configuration files
-     * - Supply reference documents for analysis
-     *
-     * Example CLI usage:
-     * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-     */
-    public Builder addAttachments(ai.stigmer.agentic.run.v1.Attachment value) {
-      if (attachmentsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureAttachmentsIsMutable();
-        attachments_.add(value);
-        onChanged();
-      } else {
-        attachmentsBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Files attached to this run.
-     *
-     * Attachments are injected into the sandbox before the run begins.
-     * The agent can read these files from the specified mount paths.
-     *
-     * Use cases:
-     * - Provide input data files to process
-     * - Pass configuration files
-     * - Supply reference documents for analysis
-     *
-     * Example CLI usage:
-     * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-     */
-    public Builder addAttachments(
-        int index, ai.stigmer.agentic.run.v1.Attachment value) {
-      if (attachmentsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureAttachmentsIsMutable();
-        attachments_.add(index, value);
-        onChanged();
-      } else {
-        attachmentsBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Files attached to this run.
-     *
-     * Attachments are injected into the sandbox before the run begins.
-     * The agent can read these files from the specified mount paths.
-     *
-     * Use cases:
-     * - Provide input data files to process
-     * - Pass configuration files
-     * - Supply reference documents for analysis
-     *
-     * Example CLI usage:
-     * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-     */
-    public Builder addAttachments(
-        ai.stigmer.agentic.run.v1.Attachment.Builder builderForValue) {
-      if (attachmentsBuilder_ == null) {
-        ensureAttachmentsIsMutable();
-        attachments_.add(builderForValue.build());
-        onChanged();
-      } else {
-        attachmentsBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Files attached to this run.
-     *
-     * Attachments are injected into the sandbox before the run begins.
-     * The agent can read these files from the specified mount paths.
-     *
-     * Use cases:
-     * - Provide input data files to process
-     * - Pass configuration files
-     * - Supply reference documents for analysis
-     *
-     * Example CLI usage:
-     * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-     */
-    public Builder addAttachments(
-        int index, ai.stigmer.agentic.run.v1.Attachment.Builder builderForValue) {
-      if (attachmentsBuilder_ == null) {
-        ensureAttachmentsIsMutable();
-        attachments_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        attachmentsBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Files attached to this run.
-     *
-     * Attachments are injected into the sandbox before the run begins.
-     * The agent can read these files from the specified mount paths.
-     *
-     * Use cases:
-     * - Provide input data files to process
-     * - Pass configuration files
-     * - Supply reference documents for analysis
-     *
-     * Example CLI usage:
-     * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-     */
-    public Builder addAllAttachments(
-        java.lang.Iterable<? extends ai.stigmer.agentic.run.v1.Attachment> values) {
-      if (attachmentsBuilder_ == null) {
-        ensureAttachmentsIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, attachments_);
-        onChanged();
-      } else {
-        attachmentsBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Files attached to this run.
-     *
-     * Attachments are injected into the sandbox before the run begins.
-     * The agent can read these files from the specified mount paths.
-     *
-     * Use cases:
-     * - Provide input data files to process
-     * - Pass configuration files
-     * - Supply reference documents for analysis
-     *
-     * Example CLI usage:
-     * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-     */
-    public Builder clearAttachments() {
-      if (attachmentsBuilder_ == null) {
-        attachments_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000800);
-        onChanged();
-      } else {
-        attachmentsBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Files attached to this run.
-     *
-     * Attachments are injected into the sandbox before the run begins.
-     * The agent can read these files from the specified mount paths.
-     *
-     * Use cases:
-     * - Provide input data files to process
-     * - Pass configuration files
-     * - Supply reference documents for analysis
-     *
-     * Example CLI usage:
-     * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-     */
-    public Builder removeAttachments(int index) {
-      if (attachmentsBuilder_ == null) {
-        ensureAttachmentsIsMutable();
-        attachments_.remove(index);
-        onChanged();
-      } else {
-        attachmentsBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Files attached to this run.
-     *
-     * Attachments are injected into the sandbox before the run begins.
-     * The agent can read these files from the specified mount paths.
-     *
-     * Use cases:
-     * - Provide input data files to process
-     * - Pass configuration files
-     * - Supply reference documents for analysis
-     *
-     * Example CLI usage:
-     * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.Attachment.Builder getAttachmentsBuilder(
-        int index) {
-      return internalGetAttachmentsFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * Files attached to this run.
-     *
-     * Attachments are injected into the sandbox before the run begins.
-     * The agent can read these files from the specified mount paths.
-     *
-     * Use cases:
-     * - Provide input data files to process
-     * - Pass configuration files
-     * - Supply reference documents for analysis
-     *
-     * Example CLI usage:
-     * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.AttachmentOrBuilder getAttachmentsOrBuilder(
-        int index) {
-      if (attachmentsBuilder_ == null) {
-        return attachments_.get(index);  } else {
-        return attachmentsBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * Files attached to this run.
-     *
-     * Attachments are injected into the sandbox before the run begins.
-     * The agent can read these files from the specified mount paths.
-     *
-     * Use cases:
-     * - Provide input data files to process
-     * - Pass configuration files
-     * - Supply reference documents for analysis
-     *
-     * Example CLI usage:
-     * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-     */
-    public java.util.List<? extends ai.stigmer.agentic.run.v1.AttachmentOrBuilder> 
-         getAttachmentsOrBuilderList() {
-      if (attachmentsBuilder_ != null) {
-        return attachmentsBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(attachments_);
-      }
-    }
-    /**
-     * <pre>
-     * Files attached to this run.
-     *
-     * Attachments are injected into the sandbox before the run begins.
-     * The agent can read these files from the specified mount paths.
-     *
-     * Use cases:
-     * - Provide input data files to process
-     * - Pass configuration files
-     * - Supply reference documents for analysis
-     *
-     * Example CLI usage:
-     * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.Attachment.Builder addAttachmentsBuilder() {
-      return internalGetAttachmentsFieldBuilder().addBuilder(
-          ai.stigmer.agentic.run.v1.Attachment.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Files attached to this run.
-     *
-     * Attachments are injected into the sandbox before the run begins.
-     * The agent can read these files from the specified mount paths.
-     *
-     * Use cases:
-     * - Provide input data files to process
-     * - Pass configuration files
-     * - Supply reference documents for analysis
-     *
-     * Example CLI usage:
-     * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.Attachment.Builder addAttachmentsBuilder(
-        int index) {
-      return internalGetAttachmentsFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.run.v1.Attachment.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Files attached to this run.
-     *
-     * Attachments are injected into the sandbox before the run begins.
-     * The agent can read these files from the specified mount paths.
-     *
-     * Use cases:
-     * - Provide input data files to process
-     * - Pass configuration files
-     * - Supply reference documents for analysis
-     *
-     * Example CLI usage:
-     * stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.Attachment attachments = 9 [json_name = "attachments"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.run.v1.Attachment.Builder> 
-         getAttachmentsBuilderList() {
-      return internalGetAttachmentsFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.Attachment, ai.stigmer.agentic.run.v1.Attachment.Builder, ai.stigmer.agentic.run.v1.AttachmentOrBuilder> 
-        internalGetAttachmentsFieldBuilder() {
-      if (attachmentsBuilder_ == null) {
-        attachmentsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.run.v1.Attachment, ai.stigmer.agentic.run.v1.Attachment.Builder, ai.stigmer.agentic.run.v1.AttachmentOrBuilder>(
-                attachments_,
-                ((bitField0_ & 0x00000800) != 0),
-                getParentForChildren(),
-                isClean());
-        attachments_ = null;
-      }
-      return attachmentsBuilder_;
-    }
-
     private com.google.protobuf.LazyStringArrayList workspaceFileRefs_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
     private void ensureWorkspaceFileRefsIsMutable() {
       if (!workspaceFileRefs_.isModifiable()) {
         workspaceFileRefs_ = new com.google.protobuf.LazyStringArrayList(workspaceFileRefs_);
       }
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000800;
     }
     /**
      * <pre>
@@ -4658,7 +4085,7 @@ private static final long serialVersionUID = 0L;
      * no upload, no copy, no injection.
      *
      * This separates the "attention" signal ("look at this file") from the
-     * "transport" mechanism (upload + inject) that regular attachments use.
+     * "transport" a File gives (upload, then name it in file_ids).
      *
      * Works for any workspace type with a resolvable filesystem post-provisioning
      * (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -4692,7 +4119,7 @@ private static final long serialVersionUID = 0L;
      * no upload, no copy, no injection.
      *
      * This separates the "attention" signal ("look at this file") from the
-     * "transport" mechanism (upload + inject) that regular attachments use.
+     * "transport" a File gives (upload, then name it in file_ids).
      *
      * Works for any workspace type with a resolvable filesystem post-provisioning
      * (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -4724,7 +4151,7 @@ private static final long serialVersionUID = 0L;
      * no upload, no copy, no injection.
      *
      * This separates the "attention" signal ("look at this file") from the
-     * "transport" mechanism (upload + inject) that regular attachments use.
+     * "transport" a File gives (upload, then name it in file_ids).
      *
      * Works for any workspace type with a resolvable filesystem post-provisioning
      * (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -4757,7 +4184,7 @@ private static final long serialVersionUID = 0L;
      * no upload, no copy, no injection.
      *
      * This separates the "attention" signal ("look at this file") from the
-     * "transport" mechanism (upload + inject) that regular attachments use.
+     * "transport" a File gives (upload, then name it in file_ids).
      *
      * Works for any workspace type with a resolvable filesystem post-provisioning
      * (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -4791,7 +4218,7 @@ private static final long serialVersionUID = 0L;
      * no upload, no copy, no injection.
      *
      * This separates the "attention" signal ("look at this file") from the
-     * "transport" mechanism (upload + inject) that regular attachments use.
+     * "transport" a File gives (upload, then name it in file_ids).
      *
      * Works for any workspace type with a resolvable filesystem post-provisioning
      * (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -4817,7 +4244,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.set(index, value);
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -4831,7 +4258,7 @@ private static final long serialVersionUID = 0L;
      * no upload, no copy, no injection.
      *
      * This separates the "attention" signal ("look at this file") from the
-     * "transport" mechanism (upload + inject) that regular attachments use.
+     * "transport" a File gives (upload, then name it in file_ids).
      *
      * Works for any workspace type with a resolvable filesystem post-provisioning
      * (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -4856,7 +4283,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.add(value);
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -4870,7 +4297,7 @@ private static final long serialVersionUID = 0L;
      * no upload, no copy, no injection.
      *
      * This separates the "attention" signal ("look at this file") from the
-     * "transport" mechanism (upload + inject) that regular attachments use.
+     * "transport" a File gives (upload, then name it in file_ids).
      *
      * Works for any workspace type with a resolvable filesystem post-provisioning
      * (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -4895,7 +4322,7 @@ private static final long serialVersionUID = 0L;
       ensureWorkspaceFileRefsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, workspaceFileRefs_);
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -4909,7 +4336,7 @@ private static final long serialVersionUID = 0L;
      * no upload, no copy, no injection.
      *
      * This separates the "attention" signal ("look at this file") from the
-     * "transport" mechanism (upload + inject) that regular attachments use.
+     * "transport" a File gives (upload, then name it in file_ids).
      *
      * Works for any workspace type with a resolvable filesystem post-provisioning
      * (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -4931,7 +4358,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearWorkspaceFileRefs() {
       workspaceFileRefs_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00001000);;
+      bitField0_ = (bitField0_ & ~0x00000800);;
       onChanged();
       return this;
     }
@@ -4945,7 +4372,7 @@ private static final long serialVersionUID = 0L;
      * no upload, no copy, no injection.
      *
      * This separates the "attention" signal ("look at this file") from the
-     * "transport" mechanism (upload + inject) that regular attachments use.
+     * "transport" a File gives (upload, then name it in file_ids).
      *
      * Works for any workspace type with a resolvable filesystem post-provisioning
      * (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -4971,7 +4398,7 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.add(value);
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -5055,7 +4482,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       supersedesRunId_ = value;
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -5077,7 +4504,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearSupersedesRunId() {
       supersedesRunId_ = getDefaultInstance().getSupersedesRunId();
-      bitField0_ = (bitField0_ & ~0x00002000);
+      bitField0_ = (bitField0_ & ~0x00001000);
       onChanged();
       return this;
     }
@@ -5103,7 +4530,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       supersedesRunId_ = value;
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -5126,7 +4553,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the conversationCatchup field is set.
      */
     public boolean hasConversationCatchup() {
-      return ((bitField0_ & 0x00004000) != 0);
+      return ((bitField0_ & 0x00002000) != 0);
     }
     /**
      * <pre>
@@ -5171,7 +4598,7 @@ private static final long serialVersionUID = 0L;
       } else {
         conversationCatchupBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -5195,7 +4622,7 @@ private static final long serialVersionUID = 0L;
       } else {
         conversationCatchupBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -5214,7 +4641,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeConversationCatchup(ai.stigmer.agentic.run.v1.ConversationCatchup value) {
       if (conversationCatchupBuilder_ == null) {
-        if (((bitField0_ & 0x00004000) != 0) &&
+        if (((bitField0_ & 0x00002000) != 0) &&
           conversationCatchup_ != null &&
           conversationCatchup_ != ai.stigmer.agentic.run.v1.ConversationCatchup.getDefaultInstance()) {
           getConversationCatchupBuilder().mergeFrom(value);
@@ -5225,7 +4652,7 @@ private static final long serialVersionUID = 0L;
         conversationCatchupBuilder_.mergeFrom(value);
       }
       if (conversationCatchup_ != null) {
-        bitField0_ |= 0x00004000;
+        bitField0_ |= 0x00002000;
         onChanged();
       }
       return this;
@@ -5244,7 +4671,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
      */
     public Builder clearConversationCatchup() {
-      bitField0_ = (bitField0_ & ~0x00004000);
+      bitField0_ = (bitField0_ & ~0x00002000);
       conversationCatchup_ = null;
       if (conversationCatchupBuilder_ != null) {
         conversationCatchupBuilder_.dispose();
@@ -5267,7 +4694,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
      */
     public ai.stigmer.agentic.run.v1.ConversationCatchup.Builder getConversationCatchupBuilder() {
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return internalGetConversationCatchupFieldBuilder().getBuilder();
     }
@@ -5333,7 +4760,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the evalCase field is set.
      */
     public boolean hasEvalCase() {
-      return ((bitField0_ & 0x00008000) != 0);
+      return ((bitField0_ & 0x00004000) != 0);
     }
     /**
      * <pre>
@@ -5370,7 +4797,7 @@ private static final long serialVersionUID = 0L;
       } else {
         evalCaseBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }
@@ -5390,7 +4817,7 @@ private static final long serialVersionUID = 0L;
       } else {
         evalCaseBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }
@@ -5405,7 +4832,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeEvalCase(ai.stigmer.agentic.run.v1.EvalCaseContext value) {
       if (evalCaseBuilder_ == null) {
-        if (((bitField0_ & 0x00008000) != 0) &&
+        if (((bitField0_ & 0x00004000) != 0) &&
           evalCase_ != null &&
           evalCase_ != ai.stigmer.agentic.run.v1.EvalCaseContext.getDefaultInstance()) {
           getEvalCaseBuilder().mergeFrom(value);
@@ -5416,7 +4843,7 @@ private static final long serialVersionUID = 0L;
         evalCaseBuilder_.mergeFrom(value);
       }
       if (evalCase_ != null) {
-        bitField0_ |= 0x00008000;
+        bitField0_ |= 0x00004000;
         onChanged();
       }
       return this;
@@ -5431,7 +4858,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.EvalCaseContext eval_case = 25 [json_name = "evalCase"];</code>
      */
     public Builder clearEvalCase() {
-      bitField0_ = (bitField0_ & ~0x00008000);
+      bitField0_ = (bitField0_ & ~0x00004000);
       evalCase_ = null;
       if (evalCaseBuilder_ != null) {
         evalCaseBuilder_.dispose();
@@ -5450,7 +4877,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.EvalCaseContext eval_case = 25 [json_name = "evalCase"];</code>
      */
     public ai.stigmer.agentic.run.v1.EvalCaseContext.Builder getEvalCaseBuilder() {
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return internalGetEvalCaseFieldBuilder().getBuilder();
     }
@@ -5523,7 +4950,7 @@ private static final long serialVersionUID = 0L;
     public Builder setReconcileFileReview(boolean value) {
 
       reconcileFileReview_ = value;
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -5538,7 +4965,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearReconcileFileReview() {
-      bitField0_ = (bitField0_ & ~0x00010000);
+      bitField0_ = (bitField0_ & ~0x00008000);
       reconcileFileReview_ = false;
       onChanged();
       return this;
@@ -5550,7 +4977,7 @@ private static final long serialVersionUID = 0L;
       if (!excludedPluginIds_.isModifiable()) {
         excludedPluginIds_ = new com.google.protobuf.LazyStringArrayList(excludedPluginIds_);
       }
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00010000;
     }
     /**
      * <pre>
@@ -5631,7 +5058,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureExcludedPluginIdsIsMutable();
       excludedPluginIds_.set(index, value);
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
@@ -5652,7 +5079,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       ensureExcludedPluginIdsIsMutable();
       excludedPluginIds_.add(value);
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
@@ -5673,7 +5100,7 @@ private static final long serialVersionUID = 0L;
       ensureExcludedPluginIdsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, excludedPluginIds_);
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
@@ -5691,7 +5118,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearExcludedPluginIds() {
       excludedPluginIds_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00020000);;
+      bitField0_ = (bitField0_ & ~0x00010000);;
       onChanged();
       return this;
     }
@@ -5713,6 +5140,225 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       ensureExcludedPluginIdsIsMutable();
       excludedPluginIds_.add(value);
+      bitField0_ |= 0x00010000;
+      onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.LazyStringArrayList fileIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureFileIdsIsMutable() {
+      if (!fileIds_.isModifiable()) {
+        fileIds_ = new com.google.protobuf.LazyStringArrayList(fileIds_);
+      }
+      bitField0_ |= 0x00020000;
+    }
+    /**
+     * <pre>
+     * Files given with this message, by id ("file_01j…"), at most 20.
+     *
+     * Each is a File of the run's organization the caller may view. One that
+     * is not yet the conversation's becomes the conversation's own copy, and
+     * each joins the conversation's resources, so the agent finds it under
+     * .stigmer/uploads/ on this turn and every later one. The message shows
+     * each to the model with the text: an image as an image, anything else as
+     * a document the agent reads with its tools (RunStatus.message_files says
+     * which blocks the message carried).
+     * </pre>
+     *
+     * <code>repeated string file_ids = 28 [json_name = "fileIds", (.buf.validate.field) = { ... }</code>
+     * @return A list containing the fileIds.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getFileIdsList() {
+      fileIds_.makeImmutable();
+      return fileIds_;
+    }
+    /**
+     * <pre>
+     * Files given with this message, by id ("file_01j…"), at most 20.
+     *
+     * Each is a File of the run's organization the caller may view. One that
+     * is not yet the conversation's becomes the conversation's own copy, and
+     * each joins the conversation's resources, so the agent finds it under
+     * .stigmer/uploads/ on this turn and every later one. The message shows
+     * each to the model with the text: an image as an image, anything else as
+     * a document the agent reads with its tools (RunStatus.message_files says
+     * which blocks the message carried).
+     * </pre>
+     *
+     * <code>repeated string file_ids = 28 [json_name = "fileIds", (.buf.validate.field) = { ... }</code>
+     * @return The count of fileIds.
+     */
+    public int getFileIdsCount() {
+      return fileIds_.size();
+    }
+    /**
+     * <pre>
+     * Files given with this message, by id ("file_01j…"), at most 20.
+     *
+     * Each is a File of the run's organization the caller may view. One that
+     * is not yet the conversation's becomes the conversation's own copy, and
+     * each joins the conversation's resources, so the agent finds it under
+     * .stigmer/uploads/ on this turn and every later one. The message shows
+     * each to the model with the text: an image as an image, anything else as
+     * a document the agent reads with its tools (RunStatus.message_files says
+     * which blocks the message carried).
+     * </pre>
+     *
+     * <code>repeated string file_ids = 28 [json_name = "fileIds", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the element to return.
+     * @return The fileIds at the given index.
+     */
+    public java.lang.String getFileIds(int index) {
+      return fileIds_.get(index);
+    }
+    /**
+     * <pre>
+     * Files given with this message, by id ("file_01j…"), at most 20.
+     *
+     * Each is a File of the run's organization the caller may view. One that
+     * is not yet the conversation's becomes the conversation's own copy, and
+     * each joins the conversation's resources, so the agent finds it under
+     * .stigmer/uploads/ on this turn and every later one. The message shows
+     * each to the model with the text: an image as an image, anything else as
+     * a document the agent reads with its tools (RunStatus.message_files says
+     * which blocks the message carried).
+     * </pre>
+     *
+     * <code>repeated string file_ids = 28 [json_name = "fileIds", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the fileIds at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getFileIdsBytes(int index) {
+      return fileIds_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * Files given with this message, by id ("file_01j…"), at most 20.
+     *
+     * Each is a File of the run's organization the caller may view. One that
+     * is not yet the conversation's becomes the conversation's own copy, and
+     * each joins the conversation's resources, so the agent finds it under
+     * .stigmer/uploads/ on this turn and every later one. The message shows
+     * each to the model with the text: an image as an image, anything else as
+     * a document the agent reads with its tools (RunStatus.message_files says
+     * which blocks the message carried).
+     * </pre>
+     *
+     * <code>repeated string file_ids = 28 [json_name = "fileIds", (.buf.validate.field) = { ... }</code>
+     * @param index The index to set the value at.
+     * @param value The fileIds to set.
+     * @return This builder for chaining.
+     */
+    public Builder setFileIds(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureFileIdsIsMutable();
+      fileIds_.set(index, value);
+      bitField0_ |= 0x00020000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Files given with this message, by id ("file_01j…"), at most 20.
+     *
+     * Each is a File of the run's organization the caller may view. One that
+     * is not yet the conversation's becomes the conversation's own copy, and
+     * each joins the conversation's resources, so the agent finds it under
+     * .stigmer/uploads/ on this turn and every later one. The message shows
+     * each to the model with the text: an image as an image, anything else as
+     * a document the agent reads with its tools (RunStatus.message_files says
+     * which blocks the message carried).
+     * </pre>
+     *
+     * <code>repeated string file_ids = 28 [json_name = "fileIds", (.buf.validate.field) = { ... }</code>
+     * @param value The fileIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addFileIds(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureFileIdsIsMutable();
+      fileIds_.add(value);
+      bitField0_ |= 0x00020000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Files given with this message, by id ("file_01j…"), at most 20.
+     *
+     * Each is a File of the run's organization the caller may view. One that
+     * is not yet the conversation's becomes the conversation's own copy, and
+     * each joins the conversation's resources, so the agent finds it under
+     * .stigmer/uploads/ on this turn and every later one. The message shows
+     * each to the model with the text: an image as an image, anything else as
+     * a document the agent reads with its tools (RunStatus.message_files says
+     * which blocks the message carried).
+     * </pre>
+     *
+     * <code>repeated string file_ids = 28 [json_name = "fileIds", (.buf.validate.field) = { ... }</code>
+     * @param values The fileIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllFileIds(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureFileIdsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, fileIds_);
+      bitField0_ |= 0x00020000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Files given with this message, by id ("file_01j…"), at most 20.
+     *
+     * Each is a File of the run's organization the caller may view. One that
+     * is not yet the conversation's becomes the conversation's own copy, and
+     * each joins the conversation's resources, so the agent finds it under
+     * .stigmer/uploads/ on this turn and every later one. The message shows
+     * each to the model with the text: an image as an image, anything else as
+     * a document the agent reads with its tools (RunStatus.message_files says
+     * which blocks the message carried).
+     * </pre>
+     *
+     * <code>repeated string file_ids = 28 [json_name = "fileIds", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearFileIds() {
+      fileIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00020000);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Files given with this message, by id ("file_01j…"), at most 20.
+     *
+     * Each is a File of the run's organization the caller may view. One that
+     * is not yet the conversation's becomes the conversation's own copy, and
+     * each joins the conversation's resources, so the agent finds it under
+     * .stigmer/uploads/ on this turn and every later one. The message shows
+     * each to the model with the text: an image as an image, anything else as
+     * a document the agent reads with its tools (RunStatus.message_files says
+     * which blocks the message carried).
+     * </pre>
+     *
+     * <code>repeated string file_ids = 28 [json_name = "fileIds", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes of the fileIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addFileIdsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureFileIdsIsMutable();
+      fileIds_.add(value);
       bitField0_ |= 0x00020000;
       onChanged();
       return this;

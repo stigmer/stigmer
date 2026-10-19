@@ -11,12 +11,12 @@ import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/co
 import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { EvalMockKind, EvalMockToolSchema, EvalMockPluginHomeSchema, EvalMockAgentHomeSchema, EvalMockServerSchema, EvalCaseContextSchema, type EvalMockTool, type EvalMockPluginHome, type EvalMockAgentHome, type EvalMockServer, type EvalCaseContext } from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
 import { RunConfigSchema, type RunConfig } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
-import { RunIdSchema, UpdateRunInputSchema, RunUpdateStatusInputSchema, UpdateStatusResponseSchema, TerminateRunInputSchema, RecoverRunInputSchema, PauseRunInputSchema, ResumeRunInputSchema, UploadAttachmentRequestSchema, UploadAttachmentResponseSchema, ListRunsRequestSchema, RunListSchema, ListRunsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetRunUsageReportInputSchema, GetRunUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetRunSummaryRequestSchema, RunSummarySchema, type RunUpdateStatusInput, type UpdateStatusResponse, type TerminateRunInput, type RecoverRunInput, type PauseRunInput, type ResumeRunInput, type UploadAttachmentRequest, type UploadAttachmentResponse, type ListRunsRequest, type RunList, type ListRunsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetRunUsageReportInput, type GetRunUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetRunSummaryRequest, type RunSummary } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { RunIdSchema, UpdateRunInputSchema, RunUpdateStatusInputSchema, UpdateStatusResponseSchema, TerminateRunInputSchema, RecoverRunInputSchema, PauseRunInputSchema, ResumeRunInputSchema, ListRunsRequestSchema, RunListSchema, ListRunsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetRunUsageReportInputSchema, GetRunUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetRunSummaryRequestSchema, RunSummarySchema, type RunUpdateStatusInput, type UpdateStatusResponse, type TerminateRunInput, type RecoverRunInput, type PauseRunInput, type ResumeRunInput, type ListRunsRequest, type RunList, type ListRunsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetRunUsageReportInput, type GetRunUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetRunSummaryRequest, type RunSummary } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
-import { RunSpecSchema, AttachmentSchema, ConversationCatchupSchema, type Attachment, type ConversationCatchup } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
+import { RunSpecSchema, ConversationCatchupSchema, type ConversationCatchup } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { FileResourceSchema, GitRepositoryResourceSchema, LocalPathResourceSchema, SessionResourceSchema, type FileResource, type GitRepositoryResource, type LocalPathResource, type SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { SessionSpecSchema, type SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
-import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema, type GitRepoSource, type LocalPathSource, type WorkspaceSource, type WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
@@ -76,12 +76,6 @@ export class RunClient {
   async resume(input: ResumeRunInput): Promise<Run> {
     try {
       return await this.command.resume(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async uploadAttachment(input: UploadAttachmentRequest): Promise<UploadAttachmentResponse> {
-    try {
-      return await this.command.uploadAttachment(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -199,13 +193,13 @@ export interface RunInput {
   disallowedTools?: string[];
   appendSystemPrompt?: string;
   autoApproveAll?: boolean;
-  attachments?: AttachmentInput[];
   workspaceFileRefs?: string[];
   supersedesRunId?: string;
   conversationCatchup?: ConversationCatchupInput;
   evalCase?: EvalCaseContextInput;
   reconcileFileReview?: boolean;
   excludedPluginIds?: string[];
+  fileIds?: string[];
 }
 
 /** SDK input type for SessionSpec. */
@@ -213,7 +207,6 @@ export interface SessionSpecInput {
   agentRef?: ResourceRef;
   subject?: string;
   metadata?: Record<string, string>;
-  workspaceEntries?: WorkspaceEntryInput[];
   skillRefs?: ResourceRef[];
   harness?: Harness;
   cursorMode?: CursorMode;
@@ -223,32 +216,34 @@ export interface SessionSpecInput {
   plugins?: ResourceRef[];
   fileReview?: boolean;
   environmentRef?: ResourceRef;
+  resources?: SessionResourceInput[];
 }
 
-/** SDK input type for WorkspaceEntry. */
-export interface WorkspaceEntryInput {
+/** SDK input type for SessionResource. */
+export interface SessionResourceInput {
   name?: string;
-  source: WorkspaceSourceInput;
+  file?: FileResourceInput;
+  gitRepository?: GitRepositoryResourceInput;
+  localPath?: LocalPathResourceInput;
 }
 
-/** SDK input type for WorkspaceSource. */
-export interface WorkspaceSourceInput {
-  gitRepo?: GitRepoSourceInput;
-  localPath?: LocalPathSourceInput;
+/** SDK input type for FileResource. */
+export interface FileResourceInput {
+  fileId?: string;
+  mountPath?: string;
 }
 
-/** SDK input type for GitRepoSource. */
-export interface GitRepoSourceInput {
+/** SDK input type for GitRepositoryResource. */
+export interface GitRepositoryResourceInput {
   url: string;
   branch?: string;
   commit?: string;
-  depth?: number;
   writeBackMode?: GitWriteBackMode;
   token?: string;
 }
 
-/** SDK input type for LocalPathSource. */
-export interface LocalPathSourceInput {
+/** SDK input type for LocalPathResource. */
+export interface LocalPathResourceInput {
   path?: string;
 }
 
@@ -260,16 +255,6 @@ export interface RunConfigInput {
   serviceTier?: ServiceTier;
   thinkingMode?: ThinkingMode;
   maxToolResultChars?: number;
-}
-
-/** SDK input type for Attachment. */
-export interface AttachmentInput {
-  filename?: string;
-  storageKey?: string;
-  mountPath?: string;
-  contentType?: string;
-  extract?: boolean;
-  localPath?: string;
 }
 
 /** SDK input type for ConversationCatchup. */
@@ -330,37 +315,39 @@ export interface EvalMockAgentHomeInput {
   server?: string;
 }
 
-function buildGitRepoSourceProto(input: GitRepoSourceInput) {
-  return Object.assign(create(GitRepoSourceSchema), stripUndefined({
+function buildFileResourceProto(input: FileResourceInput) {
+  return Object.assign(create(FileResourceSchema), stripUndefined({
+    fileId: input.fileId,
+    mountPath: input.mountPath,
+  }));
+}
+
+function buildGitRepositoryResourceProto(input: GitRepositoryResourceInput) {
+  return Object.assign(create(GitRepositoryResourceSchema), stripUndefined({
     url: input.url,
     branch: input.branch,
     commit: input.commit,
-    depth: input.depth,
     writeBackMode: input.writeBackMode,
     token: input.token,
   }));
 }
 
-function buildLocalPathSourceProto(input: LocalPathSourceInput) {
-  return Object.assign(create(LocalPathSourceSchema), stripUndefined({
+function buildLocalPathResourceProto(input: LocalPathResourceInput) {
+  return Object.assign(create(LocalPathResourceSchema), stripUndefined({
     path: input.path,
   }));
 }
 
-function buildWorkspaceSourceProto(input: WorkspaceSourceInput) {
-  const msg = create(WorkspaceSourceSchema);
-  if (input.gitRepo) {
-    msg.source = { case: "gitRepo", value: buildGitRepoSourceProto(input.gitRepo) };
-  } else if (input.localPath) {
-    msg.source = { case: "localPath", value: buildLocalPathSourceProto(input.localPath) };
-  }
-  return msg;
-}
-
-function buildWorkspaceEntryProto(input: WorkspaceEntryInput) {
-  const msg = create(WorkspaceEntrySchema);
+function buildSessionResourceProto(input: SessionResourceInput) {
+  const msg = create(SessionResourceSchema);
   if (input.name !== undefined) msg.name = input.name;
-  if (input.source) msg.source = buildWorkspaceSourceProto(input.source);
+  if (input.file) {
+    msg.resource = { case: "file", value: buildFileResourceProto(input.file) };
+  } else if (input.gitRepository) {
+    msg.resource = { case: "gitRepository", value: buildGitRepositoryResourceProto(input.gitRepository) };
+  } else if (input.localPath) {
+    msg.resource = { case: "localPath", value: buildLocalPathResourceProto(input.localPath) };
+  }
   return msg;
 }
 
@@ -369,7 +356,6 @@ function buildSessionSpecProto(input: SessionSpecInput) {
   if (input.agentRef?.slug || input.agentRef?.org || input.agentRef?.id) msg.agentRef = create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 });
   if (input.subject !== undefined) msg.subject = input.subject;
   if (input.metadata) Object.assign(msg.metadata, input.metadata);
-  if (input.workspaceEntries) msg.workspaceEntries = input.workspaceEntries.map(buildWorkspaceEntryProto);
   if (input.skillRefs) msg.skillRefs = input.skillRefs.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
   if (input.harness !== undefined) msg.harness = input.harness;
   if (input.cursorMode !== undefined) msg.cursorMode = input.cursorMode;
@@ -379,6 +365,7 @@ function buildSessionSpecProto(input: SessionSpecInput) {
   if (input.plugins) msg.plugins = input.plugins.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 58 }));
   if (input.fileReview !== undefined) msg.fileReview = input.fileReview;
   if (input.environmentRef?.slug || input.environmentRef?.org || input.environmentRef?.id) msg.environmentRef = create(ApiResourceReferenceSchema, { ...input.environmentRef, kind: 67 });
+  if (input.resources) msg.resources = input.resources.map(buildSessionResourceProto);
   return msg;
 }
 
@@ -390,17 +377,6 @@ function buildRunConfigProto(input: RunConfigInput) {
     serviceTier: input.serviceTier,
     thinkingMode: input.thinkingMode,
     maxToolResultChars: input.maxToolResultChars,
-  }));
-}
-
-function buildAttachmentProto(input: AttachmentInput) {
-  return Object.assign(create(AttachmentSchema), stripUndefined({
-    filename: input.filename,
-    storageKey: input.storageKey,
-    mountPath: input.mountPath,
-    contentType: input.contentType,
-    extract: input.extract,
-    localPath: input.localPath,
   }));
 }
 
@@ -473,7 +449,6 @@ function buildEvalCaseContextProto(input: EvalCaseContextInput) {
 
 export function buildRunProto(input: RunInput): Run {
   const runConfig = input.runConfig ? buildRunConfigProto(input.runConfig) : undefined;
-  const attachments = input.attachments?.map(buildAttachmentProto);
   const conversationCatchup = input.conversationCatchup ? buildConversationCatchupProto(input.conversationCatchup) : undefined;
   const evalCase = input.evalCase ? buildEvalCaseContextProto(input.evalCase) : undefined;
   const spec = Object.assign(create(RunSpecSchema), stripUndefined({
@@ -486,13 +461,13 @@ export function buildRunProto(input: RunInput): Run {
     disallowedTools: input.disallowedTools,
     appendSystemPrompt: input.appendSystemPrompt,
     autoApproveAll: input.autoApproveAll,
-    attachments,
     workspaceFileRefs: input.workspaceFileRefs,
     supersedesRunId: input.supersedesRunId,
     conversationCatchup,
     evalCase,
     reconcileFileReview: input.reconcileFileReview,
     excludedPluginIds: input.excludedPluginIds,
+    fileIds: input.fileIds,
   }));
   if (input.sessionId) {
     spec.target = { case: "sessionId", value: input.sessionId };
@@ -514,34 +489,35 @@ export function buildRunProto(input: RunInput): Run {
   }) as Run;
 }
 
-function toGitRepoSourceInput(msg: GitRepoSource): GitRepoSourceInput {
+function toFileResourceInput(msg: FileResource): FileResourceInput {
+  return {
+    fileId: msg.fileId || undefined,
+    mountPath: msg.mountPath || undefined,
+  };
+}
+
+function toGitRepositoryResourceInput(msg: GitRepositoryResource): GitRepositoryResourceInput {
   return {
     url: msg.url ?? "",
     branch: msg.branch || undefined,
     commit: msg.commit || undefined,
-    depth: msg.depth || undefined,
     writeBackMode: msg.writeBackMode || undefined,
     token: msg.token || undefined,
   };
 }
 
-function toLocalPathSourceInput(msg: LocalPathSource): LocalPathSourceInput {
+function toLocalPathResourceInput(msg: LocalPathResource): LocalPathResourceInput {
   return {
     path: msg.path || undefined,
   };
 }
 
-function toWorkspaceSourceInput(msg: WorkspaceSource): WorkspaceSourceInput {
-  return {
-    gitRepo: msg.source?.case === "gitRepo" ? toGitRepoSourceInput(msg.source.value) : undefined,
-    localPath: msg.source?.case === "localPath" ? toLocalPathSourceInput(msg.source.value) : undefined,
-  };
-}
-
-function toWorkspaceEntryInput(msg: WorkspaceEntry): WorkspaceEntryInput {
+function toSessionResourceInput(msg: SessionResource): SessionResourceInput {
   return {
     name: msg.name || undefined,
-    source: toWorkspaceSourceInput(msg.source ?? create(WorkspaceSourceSchema)),
+    file: msg.resource?.case === "file" ? toFileResourceInput(msg.resource.value) : undefined,
+    gitRepository: msg.resource?.case === "gitRepository" ? toGitRepositoryResourceInput(msg.resource.value) : undefined,
+    localPath: msg.resource?.case === "localPath" ? toLocalPathResourceInput(msg.resource.value) : undefined,
   };
 }
 
@@ -550,7 +526,6 @@ function toSessionSpecInput(msg: SessionSpec): SessionSpecInput {
     agentRef: toResourceRefInput(msg.agentRef),
     subject: msg.subject || undefined,
     metadata: Object.keys(msg.metadata ?? {}).length > 0 ? { ...msg.metadata } : undefined,
-    workspaceEntries: msg.workspaceEntries?.length ? msg.workspaceEntries.map(toWorkspaceEntryInput) : undefined,
     skillRefs: toResourceRefInputs(msg.skillRefs),
     harness: msg.harness || undefined,
     cursorMode: msg.cursorMode || undefined,
@@ -560,6 +535,7 @@ function toSessionSpecInput(msg: SessionSpec): SessionSpecInput {
     plugins: toResourceRefInputs(msg.plugins),
     fileReview: msg.fileReview || undefined,
     environmentRef: toResourceRefInput(msg.environmentRef),
+    resources: msg.resources?.length ? msg.resources.map(toSessionResourceInput) : undefined,
   };
 }
 
@@ -571,17 +547,6 @@ function toRunConfigInput(msg: RunConfig): RunConfigInput {
     serviceTier: msg.serviceTier || undefined,
     thinkingMode: msg.thinkingMode || undefined,
     maxToolResultChars: msg.maxToolResultChars || undefined,
-  };
-}
-
-function toAttachmentInput(msg: Attachment): AttachmentInput {
-  return {
-    filename: msg.filename || undefined,
-    storageKey: msg.storageKey || undefined,
-    mountPath: msg.mountPath || undefined,
-    contentType: msg.contentType || undefined,
-    extract: msg.extract || undefined,
-    localPath: msg.localPath || undefined,
   };
 }
 
@@ -683,12 +648,12 @@ export function toRunInput(resource: Run): RunInput {
     disallowedTools: spec.disallowedTools?.length ? [...spec.disallowedTools] : undefined,
     appendSystemPrompt: spec.appendSystemPrompt || undefined,
     autoApproveAll: spec.autoApproveAll || undefined,
-    attachments: spec.attachments?.length ? spec.attachments.map(toAttachmentInput) : undefined,
     workspaceFileRefs: spec.workspaceFileRefs?.length ? [...spec.workspaceFileRefs] : undefined,
     supersedesRunId: spec.supersedesRunId || undefined,
     conversationCatchup: spec.conversationCatchup ? toConversationCatchupInput(spec.conversationCatchup) : undefined,
     evalCase: spec.evalCase ? toEvalCaseContextInput(spec.evalCase) : undefined,
     reconcileFileReview: spec.reconcileFileReview || undefined,
     excludedPluginIds: spec.excludedPluginIds?.length ? [...spec.excludedPluginIds] : undefined,
+    fileIds: spec.fileIds?.length ? [...spec.fileIds] : undefined,
   };
 }

@@ -42,7 +42,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "s/apiresource/io.proto\0328ai/stigmer/commo" +
       "ns/apiresource/rpc_service_options.proto" +
       "\032+ai/stigmer/commons/rpc/method_options." +
-      "proto2\270\t\n\024RunCommandController\022N\n\006create" +
+      "proto2\264\010\n\024RunCommandController\022N\n\006create" +
       "\022\036.ai.stigmer.agentic.run.v1.Run\032\036.ai.st" +
       "igmer.agentic.run.v1.Run\"\004\320\270\030\001\022\217\001\n\006updat" +
       "e\022).ai.stigmer.agentic.run.v1.UpdateRunI" +
@@ -68,15 +68,12 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\"\002id*\031unauthorized to pause run\022}\n\006resum" +
       "e\022).ai.stigmer.agentic.run.v1.ResumeRunI" +
       "nput\032\036.ai.stigmer.agentic.run.v1.Run\"(\302\270" +
-      "\030$\010\002\020)\"\002id*\032unauthorized to resume run\022\201" +
-      "\001\n\020uploadAttachment\0222.ai.stigmer.agentic" +
-      ".run.v1.UploadAttachmentRequest\0323.ai.sti" +
-      "gmer.agentic.run.v1.UploadAttachmentResp" +
-      "onse\"\004\320\270\030\001\032\004\240\377+)B\227\001B\014CommandProtoP\001\242\002\004AS" +
-      "AR\252\002\031Ai.Stigmer.Agentic.Run.V1\312\002\031Ai\\Stig" +
-      "mer\\Agentic\\Run\\V1\342\002%Ai\\Stigmer\\Agentic\\" +
-      "Run\\V1\\GPBMetadata\352\002\035Ai::Stigmer::Agenti" +
-      "c::Run::V1b\006proto3"
+      "\030$\010\002\020)\"\002id*\032unauthorized to resume run\032\004" +
+      "\240\377+)B\227\001B\014CommandProtoP\001\242\002\004ASAR\252\002\031Ai.Stig" +
+      "mer.Agentic.Run.V1\312\002\031Ai\\Stigmer\\Agentic\\" +
+      "Run\\V1\342\002%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMe" +
+      "tadata\352\002\035Ai::Stigmer::Agentic::Run::V1b\006" +
+      "proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

@@ -83,7 +83,13 @@ import {
 } from "../list-index.js";
 import { stampEtag } from "../etag.js";
 import { fileBlobRefusal } from "../file-blobs.js";
-import type { FileBlobRecord, FileBlobState, FileBlobStore, FileRemoval } from "../file-blobs.js";
+import type {
+  AttachmentConversion,
+  FileBlobRecord,
+  FileBlobState,
+  FileBlobStore,
+  FileRemoval,
+} from "../file-blobs.js";
 import type {
   ListIndexDeclaration,
   ListIndexFacts,
@@ -3211,7 +3217,50 @@ class SqliteFileBlobStore implements FileBlobStore {
   async deleteByOrg(org: string): Promise<number> {
     return immediateTransaction(this.open(), (db) => {
       db.prepare(`DELETE FROM file_blob_refs WHERE org = ?`).run(org);
+      db.prepare(`DELETE FROM file_conversions WHERE org = ?`).run(org);
       return Number(db.prepare(`DELETE FROM file_blobs WHERE org = ?`).run(org).changes);
     });
   }
+
+  async listConversions(limit: number): Promise<AttachmentConversion[]> {
+    const rows = this.open()
+      .prepare(
+        `SELECT ${FILE_CONVERSION_COLUMNS} FROM file_conversions
+         ORDER BY created_at, run_id, position
+         LIMIT ?`,
+      )
+      .all(limit) as unknown as FileConversionRow[];
+    return rows.map(fileConversionOf);
+  }
+
+  async forgetConversion(runId: string, position: number): Promise<void> {
+    this.open().prepare(`DELETE FROM file_conversions WHERE run_id = ? AND position = ?`).run(runId, position);
+  }
+}
+
+const FILE_CONVERSION_COLUMNS =
+  "run_id, position, org, session_id, filename, storage_key, content_type, created_at";
+
+interface FileConversionRow {
+  run_id: string;
+  position: number;
+  org: string;
+  session_id: string;
+  filename: string;
+  storage_key: string;
+  content_type: string;
+  created_at: string;
+}
+
+function fileConversionOf(row: FileConversionRow): AttachmentConversion {
+  return {
+    runId: row.run_id,
+    position: Number(row.position),
+    org: row.org,
+    sessionId: row.session_id,
+    filename: row.filename,
+    storageKey: row.storage_key,
+    contentType: row.content_type,
+    createdAt: row.created_at,
+  };
 }

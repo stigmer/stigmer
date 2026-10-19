@@ -46,7 +46,8 @@ type RunSpec struct {
 	Target isRunSpec_Target `protobuf_oneof:"target"`
 	// User input message that triggers this run.
 	// Each run represents one user message and the agent's response.
-	// Required unless reconcile_file_review is set.
+	// Required unless reconcile_file_review is set or file_ids names a file
+	// (a message may be files alone).
 	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
 	// The settings this message asks for (optional): a model, a speed tier,
 	// thinking, and run bounds. Zero or empty fields are not set here.
@@ -149,20 +150,6 @@ type RunSpec struct {
 	//
 	// Default: false (approvals required as configured in policies)
 	AutoApproveAll bool `protobuf:"varint,7,opt,name=auto_approve_all,json=autoApproveAll,proto3" json:"auto_approve_all,omitempty"`
-	// Files attached to this run.
-	//
-	// Attachments are injected into the sandbox before the run begins.
-	// The agent can read these files from the specified mount paths.
-	//
-	// Use cases:
-	// - Provide input data files to process
-	// - Pass configuration files
-	// - Supply reference documents for analysis
-	//
-	// Example CLI usage:
-	//
-	//	stigmer run agent my-agent --attach ./config.yaml -m "Process this config"
-	Attachments []*Attachment `protobuf:"bytes,9,rep,name=attachments,proto3" json:"attachments,omitempty"`
 	// Workspace-relative file paths the user wants the agent to focus on.
 	//
 	// When users reference files that exist inside the session's workspace,
@@ -171,7 +158,7 @@ type RunSpec struct {
 	// no upload, no copy, no injection.
 	//
 	// This separates the "attention" signal ("look at this file") from the
-	// "transport" mechanism (upload + inject) that regular attachments use.
+	// "transport" a File gives (upload, then name it in file_ids).
 	//
 	// Works for any workspace type with a resolvable filesystem post-provisioning
 	// (local-path workspaces, git-cloned workspaces, or any future source type).
@@ -218,8 +205,18 @@ type RunSpec struct {
 	// plugin left out loads nothing into the turn: no skills, agents, hooks
 	// or MCP servers, and no values planned for it.
 	ExcludedPluginIds []string `protobuf:"bytes,27,rep,name=excluded_plugin_ids,json=excludedPluginIds,proto3" json:"excluded_plugin_ids,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Files given with this message, by id ("file_01j…"), at most 20.
+	//
+	// Each is a File of the run's organization the caller may view. One that
+	// is not yet the conversation's becomes the conversation's own copy, and
+	// each joins the conversation's resources, so the agent finds it under
+	// .stigmer/uploads/ on this turn and every later one. The message shows
+	// each to the model with the text: an image as an image, anything else as
+	// a document the agent reads with its tools (RunStatus.message_files says
+	// which blocks the message carried).
+	FileIds       []string `protobuf:"bytes,28,rep,name=file_ids,json=fileIds,proto3" json:"file_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RunSpec) Reset() {
@@ -340,13 +337,6 @@ func (x *RunSpec) GetAutoApproveAll() bool {
 	return false
 }
 
-func (x *RunSpec) GetAttachments() []*Attachment {
-	if x != nil {
-		return x.Attachments
-	}
-	return nil
-}
-
 func (x *RunSpec) GetWorkspaceFileRefs() []string {
 	if x != nil {
 		return x.WorkspaceFileRefs
@@ -389,6 +379,13 @@ func (x *RunSpec) GetExcludedPluginIds() []string {
 	return nil
 }
 
+func (x *RunSpec) GetFileIds() []string {
+	if x != nil {
+		return x.FileIds
+	}
+	return nil
+}
+
 type isRunSpec_Target interface {
 	isRunSpec_Target()
 }
@@ -409,7 +406,7 @@ type RunSpec_SessionSpec struct {
 	// Spec for a new session this turn starts.
 	//
 	// This is the one-call session bootstrap: a single create carries the
-	// full session shape (the agent, workspace_entries, harness,
+	// full session shape (the agent, resources, harness,
 	// execution_target, plugins, skills) together with the first
 	// message, so embedders do not need to orchestrate session.create
 	// followed by run.create. The created session's ID is
@@ -427,141 +424,6 @@ func (*RunSpec_SessionId) isRunSpec_Target() {}
 
 func (*RunSpec_SessionSpec) isRunSpec_Target() {}
 
-// Attachment represents a file attached to a run.
-//
-// All files must be pre-uploaded via the uploadAttachment RPC and referenced
-// by storage_key. This ensures consistent behavior regardless of file size.
-//
-// ## Usage Flow
-//
-// 1. Client calls uploadAttachment RPC with file content
-// 2. Server returns a storage_key
-// 3. Client creates run with Attachment containing that storage_key
-// 4. The runner downloads file from storage and injects into sandbox
-//
-// ## Mount Path
-//
-// The mount_path determines where the file appears in the sandbox.
-// If not specified, defaults to /inputs/{filename}
-//
-// Examples:
-//   - mount_path: "/inputs/config.yaml" -> file at /inputs/config.yaml
-//   - mount_path: "/workspace/data/" -> directory extracted at /workspace/data/
-type Attachment struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Original filename for display and default mount path derivation.
-	// Example: "config.yaml", "input-data.zip"
-	//
-	// Must be a bare filename: no path separators and no `.`/`..` traversal
-	// segments. The filename is interpolated into the storage key and, on the
-	// local backend, into an on-disk path, so path structure here is a
-	// directory-traversal vector.
-	Filename string `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`
-	// Reference to pre-uploaded file in artifact store (required).
-	// Obtained by calling uploadAttachment RPC before creating the run.
-	// Format: "attachments/{ulid}/{filename}"
-	StorageKey string `protobuf:"bytes,2,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
-	// Path in sandbox where file will be placed.
-	// Defaults to "/inputs/{filename}" if not specified.
-	// Example: "/workspace/input.yaml", "/inputs/data/"
-	MountPath string `protobuf:"bytes,3,opt,name=mount_path,json=mountPath,proto3" json:"mount_path,omitempty"`
-	// MIME type for content negotiation (optional).
-	// Example: "application/yaml", "text/plain", "application/zip"
-	ContentType string `protobuf:"bytes,4,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
-	// When true, the attachment is a zip archive that should be extracted
-	// at mount_path rather than written as a single file.
-	// Set automatically by the CLI when a directory is attached.
-	Extract bool `protobuf:"varint,5,opt,name=extract,proto3" json:"extract,omitempty"`
-	// Absolute filesystem path to the original file on the CLI host (optional).
-	//
-	// When set and the runner is in local mode, the file is read directly
-	// from this path instead of downloading from artifact storage via
-	// storage_key.  This eliminates the storage round-trip for local
-	// runs.
-	//
-	// Ignored when the runner is not in local mode (cloud runners use
-	// storage_key exclusively).
-	//
-	// The CLI sets this unconditionally to the resolved absolute path of
-	// the attached file.  storage_key remains required -- the upload still
-	// happens for run history and replay support.
-	LocalPath     string `protobuf:"bytes,6,opt,name=local_path,json=localPath,proto3" json:"local_path,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Attachment) Reset() {
-	*x = Attachment{}
-	mi := &file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Attachment) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Attachment) ProtoMessage() {}
-
-func (x *Attachment) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Attachment.ProtoReflect.Descriptor instead.
-func (*Attachment) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_spec_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *Attachment) GetFilename() string {
-	if x != nil {
-		return x.Filename
-	}
-	return ""
-}
-
-func (x *Attachment) GetStorageKey() string {
-	if x != nil {
-		return x.StorageKey
-	}
-	return ""
-}
-
-func (x *Attachment) GetMountPath() string {
-	if x != nil {
-		return x.MountPath
-	}
-	return ""
-}
-
-func (x *Attachment) GetContentType() string {
-	if x != nil {
-		return x.ContentType
-	}
-	return ""
-}
-
-func (x *Attachment) GetExtract() bool {
-	if x != nil {
-		return x.Extract
-	}
-	return false
-}
-
-func (x *Attachment) GetLocalPath() string {
-	if x != nil {
-		return x.LocalPath
-	}
-	return ""
-}
-
 // ConversationCatchup carries the channel-conversation events an agent
 // missed, composed fresh for one run.
 type ConversationCatchup struct {
@@ -577,7 +439,7 @@ type ConversationCatchup struct {
 
 func (x *ConversationCatchup) Reset() {
 	*x = ConversationCatchup{}
-	mi := &file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -589,7 +451,7 @@ func (x *ConversationCatchup) String() string {
 func (*ConversationCatchup) ProtoMessage() {}
 
 func (x *ConversationCatchup) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -602,7 +464,7 @@ func (x *ConversationCatchup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationCatchup.ProtoReflect.Descriptor instead.
 func (*ConversationCatchup) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_spec_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_run_v1_spec_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ConversationCatchup) GetDigest() string {
@@ -633,7 +495,7 @@ type DeclaredPreferences struct {
 
 func (x *DeclaredPreferences) Reset() {
 	*x = DeclaredPreferences{}
-	mi := &file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -645,7 +507,7 @@ func (x *DeclaredPreferences) String() string {
 func (*DeclaredPreferences) ProtoMessage() {}
 
 func (x *DeclaredPreferences) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[3]
+	mi := &file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -658,7 +520,7 @@ func (x *DeclaredPreferences) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeclaredPreferences.ProtoReflect.Descriptor instead.
 func (*DeclaredPreferences) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_spec_proto_rawDescGZIP(), []int{3}
+	return file_ai_stigmer_agentic_run_v1_spec_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *DeclaredPreferences) GetOrgContext() string {
@@ -691,7 +553,7 @@ type RecalledMemories struct {
 
 func (x *RecalledMemories) Reset() {
 	*x = RecalledMemories{}
-	mi := &file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -703,7 +565,7 @@ func (x *RecalledMemories) String() string {
 func (*RecalledMemories) ProtoMessage() {}
 
 func (x *RecalledMemories) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -716,7 +578,7 @@ func (x *RecalledMemories) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecalledMemories.ProtoReflect.Descriptor instead.
 func (*RecalledMemories) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_spec_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_run_v1_spec_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *RecalledMemories) GetEnabled() bool {
@@ -747,7 +609,7 @@ type RecalledMemoryFact struct {
 
 func (x *RecalledMemoryFact) Reset() {
 	*x = RecalledMemoryFact{}
-	mi := &file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -759,7 +621,7 @@ func (x *RecalledMemoryFact) String() string {
 func (*RecalledMemoryFact) ProtoMessage() {}
 
 func (x *RecalledMemoryFact) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -772,7 +634,7 @@ func (x *RecalledMemoryFact) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecalledMemoryFact.ProtoReflect.Descriptor instead.
 func (*RecalledMemoryFact) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_spec_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_run_v1_spec_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *RecalledMemoryFact) GetMemoryId() string {
@@ -793,7 +655,7 @@ var File_ai_stigmer_agentic_run_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/agentic/run/v1/spec.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a)ai/stigmer/agentic/run/v1/eval_case.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x95\r\n" +
+	"$ai/stigmer/agentic/run/v1/spec.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a)ai/stigmer/agentic/run/v1/eval_case.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xcb\r\n" +
 	"\aRunSpec\x12\x1f\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tH\x00R\tsessionId\x12O\n" +
@@ -807,29 +669,19 @@ const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"\x05tools\x18\x16 \x03(\tB\x95\x01\xbaH\x91\x01\x92\x01\x8d\x01\x10\x80\x01\"\x87\x01r\x84\x01\x18\x80\x022\x7f^(mcp__\\*|mcp__([a-z][a-z0-9-]*[a-z0-9]|plugin(_[A-Za-z0-9-]+)+)(__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x05tools\x12\xc1\x01\n" +
 	"\x10disallowed_tools\x18\x17 \x03(\tB\x95\x01\xbaH\x91\x01\x92\x01\x8d\x01\x10\x80\x01\"\x87\x01r\x84\x01\x18\x80\x022\x7f^(mcp__\\*|mcp__([a-z][a-z0-9-]*[a-z0-9]|plugin(_[A-Za-z0-9-]+)+)(__(\\*|[A-Za-z0-9_.-]+))?|[A-Z][A-Za-z0-9_]*(\\([^()\\r\\n]+\\))?)$R\x0fdisallowedTools\x12;\n" +
 	"\x14append_system_prompt\x18\x18 \x01(\tB\t\xbaH\x06r\x04\x18\x80\x80\x02R\x12appendSystemPrompt\x12(\n" +
-	"\x10auto_approve_all\x18\a \x01(\bR\x0eautoApproveAll\x12G\n" +
-	"\vattachments\x18\t \x03(\v2%.ai.stigmer.agentic.run.v1.AttachmentR\vattachments\x12.\n" +
+	"\x10auto_approve_all\x18\a \x01(\bR\x0eautoApproveAll\x12.\n" +
 	"\x13workspace_file_refs\x18\n" +
 	" \x03(\tR\x11workspaceFileRefs\x12*\n" +
 	"\x11supersedes_run_id\x18\f \x01(\tR\x0fsupersedesRunId\x12a\n" +
 	"\x14conversation_catchup\x18\x0e \x01(\v2..ai.stigmer.agentic.run.v1.ConversationCatchupR\x13conversationCatchup\x12G\n" +
 	"\teval_case\x18\x19 \x01(\v2*.ai.stigmer.agentic.run.v1.EvalCaseContextR\bevalCase\x122\n" +
 	"\x15reconcile_file_review\x18\x1a \x01(\bR\x13reconcileFileReview\x12C\n" +
-	"\x13excluded_plugin_ids\x18\x1b \x03(\tB\x13\xbaH\x10\x92\x01\r\x10\b\x18\x01\"\ar\x05\x10\x01\x18\x80\x01R\x11excludedPluginIds:f\xbaHc\x1aa\n" +
-	"\x14run.message_required\x12\x13message is required\x1a4this.reconcile_file_review || size(this.message) > 0B\b\n" +
-	"\x06targetJ\x04\b\x02\x10\x03J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\v\x10\fJ\x04\b\x11\x10\x12J\x04\b\x0f\x10\x10J\x04\b\x10\x10\x11J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06R\bagent_idR\x0ecallback_tokenR\x12parent_workflow_idR\x13activity_task_queueR\x06parentR\x14declared_preferencesR\x11recalled_memoriesR\x10execution_configR\vruntime_env\"\x96\x03\n" +
-	"\n" +
-	"Attachment\x12\xe2\x01\n" +
-	"\bfilename\x18\x01 \x01(\tB\xc5\x01\xbaH\xc1\x01\xba\x01\xb9\x01\n" +
-	"\x1battachment.filename.no_path\x12Nfilename must be a bare filename without path separators or traversal segments\x1aJ!this.contains('/') && !this.contains('\\\\') && this != '.' && this != '..'r\x02\x10\x01R\bfilename\x12(\n" +
-	"\vstorage_key\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
-	"storageKey\x12\x1d\n" +
-	"\n" +
-	"mount_path\x18\x03 \x01(\tR\tmountPath\x12!\n" +
-	"\fcontent_type\x18\x04 \x01(\tR\vcontentType\x12\x18\n" +
-	"\aextract\x18\x05 \x01(\bR\aextract\x12\x1d\n" +
-	"\n" +
-	"local_path\x18\x06 \x01(\tR\tlocalPath\"h\n" +
+	"\x13excluded_plugin_ids\x18\x1b \x03(\tB\x13\xbaH\x10\x92\x01\r\x10\b\x18\x01\"\ar\x05\x10\x01\x18\x80\x01R\x11excludedPluginIds\x12+\n" +
+	"\bfile_ids\x18\x1c \x03(\tB\x10\xbaH\r\x92\x01\n" +
+	"\x10\x14\x18\x01\"\x04r\x02\x10\x01R\afileIds:\xa4\x01\xbaH\xa0\x01\x1a\x9d\x01\n" +
+	"\x14run.message_required\x124message is required unless the message carries files\x1aOthis.reconcile_file_review || size(this.message) > 0 || size(this.file_ids) > 0B\b\n" +
+	"\x06targetJ\x04\b\x02\x10\x03J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\v\x10\fJ\x04\b\x11\x10\x12J\x04\b\x0f\x10\x10J\x04\b\x10\x10\x11J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\t\x10\n" +
+	"R\bagent_idR\x0ecallback_tokenR\x12parent_workflow_idR\x13activity_task_queueR\x06parentR\x14declared_preferencesR\x11recalled_memoriesR\x10execution_configR\vruntime_envR\vattachments\"h\n" +
 	"\x13ConversationCatchup\x12\x16\n" +
 	"\x06digest\x18\x01 \x01(\tR\x06digest\x129\n" +
 	"\n" +
@@ -858,36 +710,34 @@ func file_ai_stigmer_agentic_run_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_run_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_ai_stigmer_agentic_run_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_ai_stigmer_agentic_run_v1_spec_proto_goTypes = []any{
 	(*RunSpec)(nil),               // 0: ai.stigmer.agentic.run.v1.RunSpec
-	(*Attachment)(nil),            // 1: ai.stigmer.agentic.run.v1.Attachment
-	(*ConversationCatchup)(nil),   // 2: ai.stigmer.agentic.run.v1.ConversationCatchup
-	(*DeclaredPreferences)(nil),   // 3: ai.stigmer.agentic.run.v1.DeclaredPreferences
-	(*RecalledMemories)(nil),      // 4: ai.stigmer.agentic.run.v1.RecalledMemories
-	(*RecalledMemoryFact)(nil),    // 5: ai.stigmer.agentic.run.v1.RecalledMemoryFact
-	(*v1.SessionSpec)(nil),        // 6: ai.stigmer.agentic.session.v1.SessionSpec
-	(*RunConfig)(nil),             // 7: ai.stigmer.agentic.run.v1.RunConfig
-	(InteractionMode)(0),          // 8: ai.stigmer.agentic.run.v1.InteractionMode
-	(*structpb.Struct)(nil),       // 9: google.protobuf.Struct
-	(*EvalCaseContext)(nil),       // 10: ai.stigmer.agentic.run.v1.EvalCaseContext
-	(*timestamppb.Timestamp)(nil), // 11: google.protobuf.Timestamp
+	(*ConversationCatchup)(nil),   // 1: ai.stigmer.agentic.run.v1.ConversationCatchup
+	(*DeclaredPreferences)(nil),   // 2: ai.stigmer.agentic.run.v1.DeclaredPreferences
+	(*RecalledMemories)(nil),      // 3: ai.stigmer.agentic.run.v1.RecalledMemories
+	(*RecalledMemoryFact)(nil),    // 4: ai.stigmer.agentic.run.v1.RecalledMemoryFact
+	(*v1.SessionSpec)(nil),        // 5: ai.stigmer.agentic.session.v1.SessionSpec
+	(*RunConfig)(nil),             // 6: ai.stigmer.agentic.run.v1.RunConfig
+	(InteractionMode)(0),          // 7: ai.stigmer.agentic.run.v1.InteractionMode
+	(*structpb.Struct)(nil),       // 8: google.protobuf.Struct
+	(*EvalCaseContext)(nil),       // 9: ai.stigmer.agentic.run.v1.EvalCaseContext
+	(*timestamppb.Timestamp)(nil), // 10: google.protobuf.Timestamp
 }
 var file_ai_stigmer_agentic_run_v1_spec_proto_depIdxs = []int32{
-	6,  // 0: ai.stigmer.agentic.run.v1.RunSpec.session_spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
-	7,  // 1: ai.stigmer.agentic.run.v1.RunSpec.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
-	8,  // 2: ai.stigmer.agentic.run.v1.RunSpec.interaction_mode:type_name -> ai.stigmer.agentic.run.v1.InteractionMode
-	9,  // 3: ai.stigmer.agentic.run.v1.RunSpec.structured_output_schema:type_name -> google.protobuf.Struct
-	1,  // 4: ai.stigmer.agentic.run.v1.RunSpec.attachments:type_name -> ai.stigmer.agentic.run.v1.Attachment
-	2,  // 5: ai.stigmer.agentic.run.v1.RunSpec.conversation_catchup:type_name -> ai.stigmer.agentic.run.v1.ConversationCatchup
-	10, // 6: ai.stigmer.agentic.run.v1.RunSpec.eval_case:type_name -> ai.stigmer.agentic.run.v1.EvalCaseContext
-	11, // 7: ai.stigmer.agentic.run.v1.ConversationCatchup.window_end:type_name -> google.protobuf.Timestamp
-	5,  // 8: ai.stigmer.agentic.run.v1.RecalledMemories.facts:type_name -> ai.stigmer.agentic.run.v1.RecalledMemoryFact
-	9,  // [9:9] is the sub-list for method output_type
-	9,  // [9:9] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	5,  // 0: ai.stigmer.agentic.run.v1.RunSpec.session_spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
+	6,  // 1: ai.stigmer.agentic.run.v1.RunSpec.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
+	7,  // 2: ai.stigmer.agentic.run.v1.RunSpec.interaction_mode:type_name -> ai.stigmer.agentic.run.v1.InteractionMode
+	8,  // 3: ai.stigmer.agentic.run.v1.RunSpec.structured_output_schema:type_name -> google.protobuf.Struct
+	1,  // 4: ai.stigmer.agentic.run.v1.RunSpec.conversation_catchup:type_name -> ai.stigmer.agentic.run.v1.ConversationCatchup
+	9,  // 5: ai.stigmer.agentic.run.v1.RunSpec.eval_case:type_name -> ai.stigmer.agentic.run.v1.EvalCaseContext
+	10, // 6: ai.stigmer.agentic.run.v1.ConversationCatchup.window_end:type_name -> google.protobuf.Timestamp
+	4,  // 7: ai.stigmer.agentic.run.v1.RecalledMemories.facts:type_name -> ai.stigmer.agentic.run.v1.RecalledMemoryFact
+	8,  // [8:8] is the sub-list for method output_type
+	8,  // [8:8] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_run_v1_spec_proto_init() }
@@ -908,7 +758,7 @@ func file_ai_stigmer_agentic_run_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

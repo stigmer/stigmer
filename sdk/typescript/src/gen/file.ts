@@ -7,6 +7,7 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { FileSchema, type File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { FileCommandController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/command_pb";
 import { FileIdSchema, UploadFileInputSchema, CreateFileUploadUrlInputSchema, FileUploadUrlSchema, UpdateFileInputSchema, ListFilesRequestSchema, FileListSchema, FileDownloadUrlSchema, type UploadFileInput, type CreateFileUploadUrlInput, type FileUploadUrl, type ListFilesRequest, type FileList, type FileDownloadUrl } from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
+import { FileMountController, MountRunFilesInputSchema, RunFileMountsSchema, type MountRunFilesInput, type RunFileMounts } from "@stigmer/apis/ai/stigmer/agentic/file/v1/mount_pb";
 import { FileQueryController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/query_pb";
 import { FileSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
@@ -16,10 +17,12 @@ import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apir
 /** Provides operations on file resources. */
 export class FileClient {
   private readonly command: Client<typeof FileCommandController>;
+  private readonly fileMount: Client<typeof FileMountController>;
   private readonly query: Client<typeof FileQueryController>;
 
   constructor(transport: Transport) {
     this.command = createClient(FileCommandController, transport);
+    this.fileMount = createClient(FileMountController, transport);
     this.query = createClient(FileQueryController, transport);
   }
 
@@ -50,6 +53,12 @@ export class FileClient {
   async delete(id: string): Promise<File> {
     try {
       return await this.command.delete(create(FileIdSchema, { value: id }));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async mount(input: MountRunFilesInput): Promise<RunFileMounts> {
+    try {
+      return await this.fileMount.mount(input);
     } catch (e) { throw wrapError(e); }
   }
 

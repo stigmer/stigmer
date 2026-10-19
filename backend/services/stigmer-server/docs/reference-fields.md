@@ -93,9 +93,11 @@ Rows read `| \`Message.field\` | class |`.
 | Field | Class |
 |---|---|
 | `ai.stigmer.agentic.file.v1.CreateFileUploadUrlInput.session_id` | stamped id |
+| `ai.stigmer.agentic.file.v1.FileMount.file_id` | stamped id |
 | `ai.stigmer.agentic.file.v1.FileStatus.run_id` | stamped id |
 | `ai.stigmer.agentic.file.v1.FileStatus.session_id` | stamped id |
 | `ai.stigmer.agentic.file.v1.ListFilesRequest.session_id` | stamped id |
+| `ai.stigmer.agentic.file.v1.MountRunFilesInput.run_id` | stamped id |
 | `ai.stigmer.agentic.file.v1.UploadFileInput.session_id` | stamped id |
 
 ## `ai.stigmer.agentic.memory.v1`
@@ -148,6 +150,7 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.run.v1.EvalMockAgentHome.agent_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.EvalMockPluginHome.plugin_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RecalledMemoryFact.memory_id` | stamped id |
+| `ai.stigmer.agentic.run.v1.RunSpec.file_ids` | stamped id |
 | `ai.stigmer.agentic.run.v1.RunSpec.session_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RunStatus.agent_id` | stamped id |
 | `ai.stigmer.agentic.run.v1.RunUpdateStatusInput.run_id` | stamped id |
@@ -177,6 +180,7 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.session.v1.BindHarnessStateInput.run_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.ConfirmToolUseInput.session_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.ContentSource.file_id` | stamped id |
+| `ai.stigmer.agentic.session.v1.FileResource.file_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.GrantPermissionInput.session_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.InterruptSessionInput.session_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.ListSessionEventsRequest.run_id` | stamped id |

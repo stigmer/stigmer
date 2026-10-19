@@ -273,21 +273,22 @@ export interface RunnerCredentialProvider {
   ): Promise<boolean>;
 
   /**
-   * The trust decision for SessionCommandController.appendEvents: whether
-   * the bearer is the runner acting for run `runId`, and so may write the
-   * agent's events into the run's session. When present, it decides whose
+   * The trust decision for the runner's per-run doors
+   * (runnerauth/runner-for-run.ts): the session event log's append, the
+   * harness state binding and the File mount. Whether the bearer is the
+   * runner acting for run `runId`. When present, it decides whose
    * credential this is (an edition whose runner credential serves a whole
-   * session admits it for every run of that session); absent, the append
+   * session admits it for every run of that session); absent, each door
    * keeps the OSS decision (execution_scoped verify and binding equality
    * with the run). Either way the run must then exist and not be finished,
-   * which the append checks itself. True allows; false refuses with
+   * which each door checks itself. True allows; false refuses with
    * PERMISSION_DENIED; it never throws for an unrecognized or invalid token
    * (a throw is a composition fault, logged and refused the same way).
    * Deliberately not the values read's decision: that one admits a run
    * that ended within a grace, which is the wrong question for writing the
-   * agent's words.
+   * agent's words or mounting its files.
    */
-  authorizeRunEventsAppend?(rawToken: string, runId: string): Promise<boolean>;
+  authorizeRunnerForRun?(rawToken: string, runId: string): Promise<boolean>;
 
   /**
    * Decrypt-key material for a Temporal payload-encryption key id the

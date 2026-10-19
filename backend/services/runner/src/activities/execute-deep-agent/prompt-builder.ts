@@ -49,15 +49,16 @@ import type { SenderIdentity } from "../../shared/sender-identity.js";
 import type { DeclaredPreferencesContent } from "../../shared/declared-preferences.js";
 import type { RecalledMemoriesContent } from "../../shared/recalled-memories.js";
 import {
+  hasInputFiles,
   inputFileLines,
   standingContextSections,
+  type InputFileGroups,
   type StandingSectionKind,
   type VisionPromptInfo,
 } from "../../shared/prompt-sections.js";
 import { effectiveInstructions } from "../../shared/builtin-assistant-prompt.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import { buildImplementPlanDirective } from "../../shared/implement-plan-prompt.js";
-import type { ResolvedAttachment } from "../../shared/attachment-resolver.js";
 import type { SkillMetadata } from "../../shared/skill-resolver.js";
 import { STIGMER_LOCAL_STATE_DIR } from "../../shared/workspace/stigmer-link.js";
 import { DEFAULT_MAX_CONCURRENT } from "../../shared/subagent-gate.js";
@@ -152,8 +153,8 @@ export interface PromptBuilderInput {
   /**
    * The execution is a Build-from-plan turn (spec.build_from_plan):
    * appends the shared implement-plan directive, pointing
-   * the model at the injected approved plan document (or, when the plan
-   * attachment did not materialize, at the conversation's plan). The user
+   * the model at the approved plan document the message carried (or, when
+   * it carried none, at the conversation's plan). The user
    * message itself is just a short label ("Build from plan").
    */
   buildFromPlan?: boolean;
@@ -216,11 +217,12 @@ export interface PromptBuilderInput {
   appendSystemPrompt?: string;
 }
 
-// The prompt renders the attachment resolver's own result type — a local
-// structural twin once lived here and silently dropped the size field
-// (`size` vs `sizeBytes`), so the "(N bytes)" annotation never rendered. One
-// type, one truth: the runtime's `ResolvedAttachment`; the vision facts are
-// the shared `VisionPromptInfo` (prompt-sections.ts) for the same reason.
+// The prompt renders the runtime's own record of the turn's files
+// (`InputFileGroups`, the `TurnInput.files` shape) — a local structural
+// twin once lived here and silently dropped the size field, so the
+// "(N bytes)" annotation never rendered. One type, one truth; the vision
+// facts are the shared `VisionPromptInfo` (prompt-sections.ts) for the same
+// reason.
 
 export type { VisionPromptInfo };
 
@@ -307,10 +309,10 @@ export interface TurnMessageInput {
   readonly message: string;
   /** The conversation catchup digest, when the turn carries one. */
   readonly conversationCatchup?: string;
-  /** This turn's resolved input files, as the runtime's attachment phase returns them. */
-  readonly inputFiles: readonly ResolvedAttachment[];
+  /** This turn's files, as the runtime's File phase returns them. */
+  readonly inputFiles: InputFileGroups;
   /**
-   * Vision facts about this turn's attachments: which images the model
+   * Vision facts about this message's images: which ones the model
    * sees inline in this same message and which degraded to path-only.
    * Rendered inside the Input Files section.
    */
@@ -337,7 +339,7 @@ export interface TurnMessageInput {
  */
 export function composeUserMessage(input: TurnMessageInput): string {
   const parts: string[] = [];
-  if (input.inputFiles.length > 0) {
+  if (hasInputFiles(input.inputFiles)) {
     parts.push(buildInputFilesSection(input.inputFiles, input.vision));
   }
   if (input.workspaceFileRefs.length > 0) {
@@ -518,13 +520,13 @@ function buildReferencedFilesSection(workspaceFileRefs: readonly string[]): stri
  * markdown idiom.
  */
 function buildInputFilesSection(
-  files: readonly ResolvedAttachment[],
+  files: InputFileGroups,
   vision?: VisionPromptInfo,
 ): string {
   let section = "## Input Files\n\n";
   section +=
     "The following files have been provided as read-only reference " +
-    "material for your task. They live under `.stigmer/inputs/` and " +
+    "material for your task. They live under `.stigmer/` and " +
     "are NOT part of the project source tree.\n\n" +
     `Read them with \`${ENGINE_TOOL.readFile}\` when you need their contents. ` +
     "Do NOT echo, reprint, or summarize file contents in your response " +
@@ -534,9 +536,6 @@ function buildInputFilesSection(
   const lines = inputFileLines(files, vision);
   for (const entry of lines.entries) {
     section += `${entry}\n`;
-  }
-  if (lines.urlHandoff !== undefined) {
-    section += "\n" + lines.urlHandoff + "\n";
   }
   if (lines.vision.length > 0) {
     section += "\n" + lines.vision.join("\n") + "\n";

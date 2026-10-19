@@ -405,7 +405,7 @@ describe("useSessionConversation — sending", () => {
   it("shows the message and its files at once, holds the composer, and hands over when the turn arrives", async () => {
     methods.runCreate.mockResolvedValue(makeRun("run_new", RunPhase.RUN_PENDING));
     const attachments = [
-      { filename: "sketch.png", storageKey: "attachments/01AAA/sketch.png", contentType: "image/png" },
+      { fileId: "file_sketch", filename: "sketch.png", kind: "image" as const },
     ];
     const { result } = await opened();
 
@@ -473,7 +473,7 @@ describe("useSessionConversation — sending", () => {
     methods.runCreate.mockRejectedValueOnce(new Error("create boom"));
     methods.runCreate.mockResolvedValue(makeRun("run_retry", RunPhase.RUN_PENDING));
     const attachments = [
-      { filename: "notes.txt", storageKey: "attachments/01BBB/notes.txt", contentType: "text/plain" },
+      { fileId: "file_notes", filename: "notes.txt", kind: "document" as const },
     ];
     const { result } = await opened();
 

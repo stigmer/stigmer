@@ -68,6 +68,7 @@ import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
+import { SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
 import {
   ExecutionTarget,
@@ -265,6 +266,23 @@ describe("the built-in assistant (no session and no session_spec named)", () => 
     expect(created?.spec?.agentRef).toBeUndefined();
     expect(created?.spec?.plugins.map((ref) => ref.slug)).toEqual(["github"]);
   });
+
+  it("createSessionIfNeeded forwards a session_spec's Files and repositories to the session create, which copies each File", async () => {
+    const sessions = recordingSessionCreator("ses_with_files");
+    const step = newCreateSessionIfNeededStep({
+      ...noRunConfigReads,
+      logger: silentLogger,
+      sessionCreator: sessions.creator,
+    });
+    const execution = newExecution("");
+    const resources = [
+      create(SessionResourceSchema, { resource: { case: "file", value: { fileId: "file_01ledger", mountPath: "q3/ledger.xlsx" } } }),
+      create(SessionResourceSchema, { name: "app", resource: { case: "gitRepository", value: { url: "https://github.com/acme/app" } } }),
+    ];
+    execution.spec!.target = { case: "sessionSpec", value: create(SessionSpecSchema, { resources }) };
+    await step.execute(newContext(execution));
+    expect(sessions.created()?.spec?.resources).toEqual(resources);
+  });
 });
 
 // A new conversation on an agent: the caller's session_spec, agent_ref
@@ -368,14 +386,12 @@ it("createSessionIfNeeded skips when a session is provided", async () => {
 // (stigmer/stigmer#249): caller fields survive, the subject default fills
 // only a gap, and the caller's message is never mutated.
 describe("buildAutoCreateSessionSpec", () => {
-  const workspaceEntries = [
+  const resources = [
     {
       name: "repo",
-      source: {
-        source: {
-          case: "localPath" as const,
-          value: { path: "/home/user/repo" },
-        },
+      resource: {
+        case: "localPath" as const,
+        value: { path: "/home/user/repo" },
       },
     },
   ];
@@ -402,7 +418,7 @@ describe("buildAutoCreateSessionSpec", () => {
           version: "latest",
         },
         subject: "Customize the landing page",
-        workspaceEntries,
+        resources,
         harness: Harness.NATIVE,
         executionTarget: ExecutionTarget.LOCAL,
         fileReview: true,
@@ -415,7 +431,7 @@ describe("buildAutoCreateSessionSpec", () => {
           version: "latest",
         },
         subject: "Customize the landing page",
-        workspaceEntries,
+        resources,
         harness: Harness.NATIVE,
         executionTarget: ExecutionTarget.LOCAL,
         fileReview: true,
@@ -424,12 +440,12 @@ describe("buildAutoCreateSessionSpec", () => {
     {
       name: "spec without a subject -> subject defaulted, rest forwarded",
       callerSpec: create(SessionSpecSchema, {
-        workspaceEntries,
+        resources,
         executionTarget: ExecutionTarget.CLOUD,
       }),
       want: create(SessionSpecSchema, {
         subject: AUTO_CREATED_SESSION_SUBJECT,
-        workspaceEntries,
+        resources,
         executionTarget: ExecutionTarget.CLOUD,
       }),
     },
@@ -445,11 +461,11 @@ describe("buildAutoCreateSessionSpec", () => {
   }
 
   it("returns a deep clone: mutation never writes through to the caller", () => {
-    const callerSpec = create(SessionSpecSchema, { workspaceEntries });
+    const callerSpec = create(SessionSpecSchema, { resources });
     const original = clone(SessionSpecSchema, callerSpec);
 
     const got = buildAutoCreateSessionSpec(callerSpec);
-    got.workspaceEntries[0]!.name = "mutated";
+    got.resources[0]!.name = "mutated";
     got.subject = "mutated";
 
     expect(toJson(SessionSpecSchema, callerSpec)).toEqual(

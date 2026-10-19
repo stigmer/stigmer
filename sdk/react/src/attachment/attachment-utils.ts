@@ -1,11 +1,12 @@
 /**
- * Maximum attachment size in bytes (10 MB).
+ * Maximum size of a file given with a message, in bytes (500 MB).
  *
- * Matches the CLI's `maxAttachmentSize` and the gRPC server's
- * `MaxRecvMsgSize`. Files exceeding this limit are rejected before
- * upload to avoid wasting bandwidth on requests that will fail.
+ * The server's default File size limit: a file this large is streamed to
+ * an upload URL, so the request cap does not bind it. A file over it is
+ * refused before any bytes move. An operator may set a lower limit, which
+ * the server enforces when the upload URL is requested.
  */
-export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+export const MAX_ATTACHMENT_BYTES = 500 * 1024 * 1024;
 
 /**
  * Extension-to-MIME-type mapping for common file types.
@@ -108,7 +109,7 @@ export function formatFileSize(bytes: number): string {
  */
 export function validateAttachmentSize(file: File): string | null {
   if (file.size > MAX_ATTACHMENT_BYTES) {
-    return `${file.name} exceeds the 10 MB attachment limit (${formatFileSize(file.size)})`;
+    return `${file.name} exceeds the 500 MB file limit (${formatFileSize(file.size)})`;
   }
   return null;
 }
@@ -117,14 +118,14 @@ export function validateAttachmentSize(file: File): string | null {
  * Returns `name` unchanged when it is not in `taken`, otherwise the first
  * free `stem-2.ext`, `stem-3.ext`, … variant.
  *
- * Attachments materialize at `.stigmer/inputs/{filename}`, so duplicate
- * names within one turn contend for one path. The runner resolves that with
- * this same rename (backend/services/runner/src/shared/attachment-naming.ts,
- * a byte-for-byte twin kept in sync by hand — the packages share no
- * dependency), disclosed to the agent in the prompt. Renaming client-side
- * as well keeps the chip, the uploaded bytes, and the mounted file all
- * agreeing on one visible name — strictly better UX than a server-side
- * rename the user only discovers in the transcript.
+ * A conversation's Files are mounted at `.stigmer/uploads/{filename}`, so
+ * duplicate names contend for one path. The server resolves that with this
+ * same rename when it lists a File in the conversation
+ * (backend/services/stigmer-server/src/domain/file/session-resources.ts,
+ * uniquifyMountPath — the packages share no dependency). Renaming
+ * client-side as well keeps the chip, the uploaded File and the mounted
+ * file agreeing on one visible name — strictly better UX than a rename the
+ * user only discovers in the transcript.
  */
 export function uniquifyFilename(
   name: string,

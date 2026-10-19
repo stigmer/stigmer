@@ -446,7 +446,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
     function driverWithLocalWorkspace(label: string, fileReview = false): { driver: RuntimeExecutionDriver; repo: string } {
       const repo = join(env.workspaceRootDir, "repos", label);
       initGitWorkspace(repo, { "README.md": "# write-back\n" });
-      const driver = new RuntimeExecutionDriver(harness, label, { workspaceEntries: [localPathEntry("notes", repo)], fileReview });
+      const driver = new RuntimeExecutionDriver(harness, label, { resources: [localPathEntry("notes", repo)], fileReview });
       return { driver, repo };
     }
 

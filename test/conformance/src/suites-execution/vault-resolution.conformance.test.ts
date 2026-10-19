@@ -53,7 +53,7 @@ import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm"
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { expectGrpcCode } from "../contract/errors";
 import { RoutineFireOutcome } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
-import { WorkspaceEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import { SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { invokeWorkflowIdFor, showWorkflow } from "../benchmark/temporal-history";
 import { TEMPORAL_DEV_NAMESPACE } from "@stigmer/test-support/temporal";
 import { ECHO_TOOL_NAME } from "../harness/mcp-server";
@@ -470,17 +470,17 @@ describe("vault resolution — a person's run", () => {
       includeMyVault: true,
       vaults: [team.slug],
     });
-    input.spec!.workspaceEntries = [
-      create(WorkspaceEntrySchema, {
+    input.spec!.resources = [
+      create(SessionResourceSchema, {
         name: "app",
-        source: { source: { case: "gitRepo", value: { url: "https://github.com/acme/app", token: "ghp-own-token" } } },
+        resource: { case: "gitRepository", value: { url: "https://github.com/acme/app", token: "ghp-own-token" } },
       }),
     ];
     const created = await clients.sessionCommand.create(input);
     fixtures.defer(() => clients.sessionCommand.delete({ value: created.metadata!.id }));
     const tokenOf = (session: typeof created): string | undefined => {
-      const source = session.spec?.workspaceEntries[0]?.source?.source;
-      return source?.case === "gitRepo" ? source.value.token : undefined;
+      const resource = session.spec?.resources[0]?.resource;
+      return resource?.case === "gitRepository" ? resource.value.token : undefined;
     };
 
     // A read taken before the creator's change below.

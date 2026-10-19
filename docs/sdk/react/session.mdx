@@ -491,15 +491,16 @@ function useSessionConversation(sessionId: string | null, org: string): UseSessi
     loadError: { type: "Error | null", description: "Error from session or run list loading, or `null` when healthy." },
     moveToCurrentAgentVersion: { type: "() => Promise<void>", description: "Move the conversation to its agent's current version: the session's agent reference is written back with `version: \"latest\"`, which the server resolves to the version the agent's author last saved and pins there, then the session is read again. The one way a conversation's agent version changes; nothing else this hook does moves it. Rejects with the update's error, and does nothing for a session that names no agent." },
     org: { type: "string", description: "The organization this conversation's turns are filed under: the session's own (`session.metadata.org`) once it has loaded, the `org` argument until then. A turn in a session belongs to that session's organization, and the server refuses any other (stigmer/stigmer#1580), so every org-scoped control of a session surface reads this value rather than the caller's active organization." },
-    pendingAttachments: { type: "readonly AttachmentInput[] | null", description: "The attachments submitted with pendingUserMessage, so the optimistic bubble shows the turn's files, not just its text (stigmer/stigmer#372). Set and cleared in lockstep with the message — including retention on a failed send, where the chips are the evidence of what Retry will re-send. Wire to `MessageThread.pendingAttachments`." },
+    pendingAttachments: { type: "readonly MessageAttachmentView[] | null", description: "The attachments submitted with pendingUserMessage, so the optimistic bubble shows the turn's files, not just its text (stigmer/stigmer#372). Set and cleared in lockstep with the message — including retention on a failed send, where the chips are the evidence of what Retry will re-send. Wire to `MessageThread.pendingAttachments`." },
     pendingUserMessage: { type: "string | null", description: "The user's message text, shown in the thread before the session's events carry it. Retained when a send fails so the typed message is never lost — pair with sendError to render the turn as failed with a retry control." },
     plugins: { type: "readonly ApiResourceReference[]", description: "Current plugin references from the session spec. Empty array when session is not loaded." },
     reconnectStream: { type: "() => void", description: "Re-open the session's follow (the conversation stays on screen)." },
+    resources: { type: "readonly SessionResource[]", description: "What the conversation holds, from the session spec: its repositories, folders and Files. Empty while the session is not loaded." },
     retryLastSend: { type: "() => void", description: "Re-send the most recent `sendFollowUp` (same message and options). No-op when nothing has been sent yet. Use as the \"Retry\" affordance on a failed turn; clears sendError for the new attempt." },
     reviewFileChanges: { type: "(changeSetId: string, action: FileReviewAction, options: ReviewFileChangesOptions) => Promise<void>", description: "Keep or undo files of one of fileReviewSets (one file, or the whole set). The session id is managed internally." },
     runs: { type: "readonly Run[]", description: "The conversation's runs, oldest first: each turn's lifecycle, stamps and files (phase, error, usage, artifacts, write-backs, captured file changes). The live turn's run is read again while it works. Excludes superseded and reconcile runs, as turns does." },
     sendError: { type: "Error | null", description: "Error from the last `sendFollowUp` attempt, or `null`.  Covers **both** failing paths — the optional `session.update()` and the `create()` RPC — so a follow-up never fails silently. When set, the user's message is preserved (see pendingUserMessage) and can be re-sent via retryLastSend." },
-    sendFollowUp: { type: "(message: string, options?: SendFollowUpOptions) => Promise<void>", description: "Submit a follow-up message. Internally creates a run (a new turn of the session).  When session-level fields (`agentRef`, `workspaceEntries`, `plugins`, `skillRefs`) are provided in options, the session is updated via `session.update()` before creating the run." },
+    sendFollowUp: { type: "(message: string, options?: SendFollowUpOptions) => Promise<void>", description: "Submit a follow-up message. Internally creates a run (a new turn of the session).  When session-level fields (`agentRef`, `resources`, `plugins`, `skillRefs`) are provided in options, the session is updated via `session.update()` before creating the run." },
     session: { type: "Session | null", description: "The session object, or null while loading." },
     skillRefs: { type: "readonly ApiResourceReference[]", description: "Current skill references from the session spec. Empty array when session is not loaded." },
     stop: { type: "(reason?: string) => Promise<void>", description: "Stop the live turn, with progressive escalation: the first call interrupts the session (every unfinished turn stops gracefully); a repeat call, because the turn is still winding down, terminates its run (with `reason` recorded). No-op when nothing is isStoppable." },
@@ -507,7 +508,6 @@ function useSessionConversation(sessionId: string | null, org: string): UseSessi
     streamError: { type: "Error | null", description: "Why the follow ended (refused, or its reconnects ran out), or `null`." },
     submittingFileDecisionKeys: { type: "ReadonlySet<string>", description: "Decision keys (fileDecisionKey) currently being submitted." },
     turns: { type: "readonly Turn[]", description: "The conversation's turns, in order: the session's events folded (each turn's message, the agent's items, its asks, to-dos, file reviews and phase). Objects no event touched keep their reference from render to render, so memoized rows skip re-renders.  Excludes turns replaced via edit-and-resubmit (a run whose id appears as another run's `supersedesRunId`) — the edited message stands in the original's place — and reconcile turns (`spec.reconcileFileReview`): the message-less turn an Undo starts to put files back is not a turn of the conversation." },
-    workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Current workspace entries from the session spec. Empty array when session is not loaded." },
   }}
 />
 
@@ -1538,10 +1538,10 @@ Input for creating a session: the agent the conversation runs, or none.
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs stored on `SessionSpec.metadata`.  A passthrough for embedder-owned keys (correlation IDs, tenant tags) and for platform-reserved `stigmer.ai/*` keys set explicitly. For the common case — standing user context injected into the agent's prompt — prefer the typed sessionContext field, which maps onto the reserved `stigmer.ai/session-context` key and wins over a raw entry under that key when both are provided." },
     org: { type: "string", description: "Organization id for the new session (a slug is also accepted).", required: true },
     plugins: { type: "ResourceRef[]", description: "Plugins the conversation uses, each whole: their skills, agents, hooks and MCP servers." },
+    resources: { type: "SessionResourceInput[]", description: "What the conversation holds: git repositories and local folders (each named), and Files (`{ file: { fileId } }`) the agent finds under `.stigmer/uploads/`." },
     sessionContext: { type: "string", description: "Standing, per-user context the agent receives on every turn but the conversation UI never renders — who the caller is, their experience level, their standing instructions (stigmer/stigmer#286).  Stored on `SessionSpec.metadata` under `stigmer.ai/session-context`; the agent runner injects it into the system prompt as already-known background, so agents can greet the user by name and calibrate depth/defaults from the first turn without a visible context preamble.  Personalization, not authorization: anyone who can create the session can set this (the same trust level as authoring the first message). Hidden from the conversation thread, not from the API — `session.get` returns it, so never put secrets here; secrets belong in a vault. Large values bloat every prompt." },
     skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for runs in this session." },
     subject: { type: "string", description: "Initial conversation subject (defaults to `PENDING_SUBJECT`)." },
-    workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace source entries to attach to the session." },
   }}
 />
 
@@ -1742,7 +1742,7 @@ A time-based group of search results produced by [`groupSearchResultsByTime`](#g
 
 Options for `UseSessionConversationReturn.sendFollowUp`.
 
-Session-level fields (`workspaceEntries`, `plugins`,
+Session-level fields (`resources`, `plugins`,
 `skillRefs`, `vaults`, `includeMyVault`) trigger a `session.update()`
 before the run is created. The update names only the provided fields;
 omitted fields keep the session's stored values.
@@ -1750,19 +1750,21 @@ omitted fields keep the session's stored values.
 <TypeTable
   type={{
     agentRef: { type: "ResourceRef | null", description: "Move the conversation to another agent for this and all future runs: a reference rebinds the session to that agent (the server pins the version the reference names, the agent's current one when it names none), `null` returns it to the built-in assistant, and `undefined` leaves the session's agent alone. When provided, the session is updated before the run is created." },
-    attachments: { type: "AttachmentInput[]", description: "Pre-uploaded file attachments for this run.  Each entry must include a `storageKey` from `run.uploadAttachment()`. Forwarded directly to run creation." },
+    attachments: { type: "readonly MessageAttachmentView[]", description: "The message's files as its optimistic bubble shows them, until the run's own record (`status.messageFiles`) replaces them." },
     autoApproveAll: { type: "boolean", description: "Auto-approve every tool call for this run (bypass the HITL gate)." },
     buildFromPlan: { type: "boolean", description: "Marks this run as a Build-from-plan turn." },
+    fileIds: { type: "string[]", description: "Files given with this message, by id." },
     includeMyVault: { type: "boolean", description: "Whether the conversation includes the sender's own My vault, read ahead of the listed vaults. Only the conversation's creator may change it (or its vaults): the server refuses anyone else's session update." },
     interactionMode: { type: "\"agent\" | \"plan\"", description: "Interaction mode for this run.  - `\"agent\"` (default): full tool access. - `\"plan\"`: read-only analysis, no file mutations." },
     modelName: { type: "string", description: "The model this message asks for. Omit it to run the model a less specific layer chooses (the agent's run defaults, the operator profile, the engine's default)." },
     plugins: { type: "ResourceRef[]", description: "Plugins the conversation uses, replacing the stored ones; each is used whole." },
+    releaseFiles: { type: "() => Promise<void>", description: "Called once the run naming fileIds exists, and not when the send fails, so a retry still names Files that exist. The composer's `releaseFiles` goes here: it deletes the person's own Files the conversation has copied." },
+    resources: { type: "SessionResourceInput[]", description: "The conversation's repositories and folders, replacing the stored ones. A repository kept by name and URL and sent without a token keeps its stored token; a token sent replaces it. The conversation's Files are kept: a File resource left out of the list stays, so a send that rebuilds the workspace never drops a file given earlier, nor one another participant's run adds while this send is made." },
     serviceTier: { type: "ServiceTierOption", description: "Service tier this message asks for (stigmer/stigmer#357): set only when the person chose one, `\"standard\"` as explicitly as `\"fast\"`; `undefined` keeps the tier of the layer that chose the model." },
     skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for this run." },
     supersedesRunId: { type: "string", description: "ID of the run this follow-up supersedes (edit-and-resubmit).  The conversation read model hides the superseded run so the edited message replaces the original in place." },
     thinkingMode: { type: "ThinkingModeOption", description: "Thinking mode this message asks for (stigmer/stigmer#772): set only when the person chose one, `\"disabled\"` as explicitly as `\"enabled\"`; `undefined` keeps the mode of the layer that chose the model." },
     vaults: { type: "ResourceRef[]", description: "Replace the vaults the conversation lists, in order. An empty list leaves it listing none: it then uses only the sender's My vault, when it includes that." },
-    workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries to attach to the run, replacing the stored ones. A repository kept by name and URL and sent without a token keeps its stored token; a token sent replaces it." },
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on.  Lightweight \"attention\" signals — no upload, no injection. The agent reads these files directly from the workspace filesystem." },
   }}
 />
@@ -2018,10 +2020,10 @@ Shared fields present in both variants of [`CreateSessionInput`](#createsessioni
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs stored on `SessionSpec.metadata`.  A passthrough for embedder-owned keys (correlation IDs, tenant tags) and for platform-reserved `stigmer.ai/*` keys set explicitly. For the common case — standing user context injected into the agent's prompt — prefer the typed sessionContext field, which maps onto the reserved `stigmer.ai/session-context` key and wins over a raw entry under that key when both are provided." },
     org: { type: "string", description: "Organization id for the new session (a slug is also accepted).", required: true },
     plugins: { type: "ResourceRef[]", description: "Plugins the conversation uses, each whole: their skills, agents, hooks and MCP servers." },
+    resources: { type: "SessionResourceInput[]", description: "What the conversation holds: git repositories and local folders (each named), and Files (`{ file: { fileId } }`) the agent finds under `.stigmer/uploads/`." },
     sessionContext: { type: "string", description: "Standing, per-user context the agent receives on every turn but the conversation UI never renders — who the caller is, their experience level, their standing instructions (stigmer/stigmer#286).  Stored on `SessionSpec.metadata` under `stigmer.ai/session-context`; the agent runner injects it into the system prompt as already-known background, so agents can greet the user by name and calibrate depth/defaults from the first turn without a visible context preamble.  Personalization, not authorization: anyone who can create the session can set this (the same trust level as authoring the first message). Hidden from the conversation thread, not from the API — `session.get` returns it, so never put secrets here; secrets belong in a vault. Large values bloat every prompt." },
     skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for runs in this session." },
     subject: { type: "string", description: "Initial conversation subject (defaults to `PENDING_SUBJECT`)." },
-    workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace source entries to attach to the session." },
   }}
 />
 

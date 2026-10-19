@@ -738,10 +738,10 @@ AgentInvocation is what a caller may ask an agent to do.
     agentRef: { type: "ResourceRef", description: "Reference to the agent to run.", typeDescriptionLink: "#resourceref", required: true },
     message: { type: "string", description: "Prompt the run starts from." },
     harness: { type: "Harness", description: "Execution engine for the run's session.", typeDescriptionLink: "#harness" },
-    workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace the run's session operates on.", typeDescriptionLink: "#workspaceentryinput" },
     vaults: { type: "ResourceRef[]", description: "Vaults whose logins and secrets the runs this invocation creates use, in order: the first vault holding a match wins.", typeDescriptionLink: "#resourceref" },
     runConfig: { type: "RunConfigInput", description: "Per-invocation model choice and run bounds.", typeDescriptionLink: "#runconfiginput" },
     environmentRef: { type: "ResourceRef", description: "The Environment the conversations this invocation starts run in: the packages their sandboxes get and the websites they may reach.", typeDescriptionLink: "#resourceref" },
+    resources: { type: "SessionResourceInput[]", description: "What each run's conversation holds: Files and git repositories (a routine's runs have no machine of the person's to read a folder from).", typeDescriptionLink: "#sessionresourceinput" },
   }}
 />
 
@@ -759,53 +759,6 @@ Generic reference to any API resource.
   }}
 />
 
-### WorkspaceEntryInput
-
-WorkspaceEntry pairs a WorkspaceSource with a human-readable name, forming an addressable unit within a session's workspace.
-
-<TypeTable
-  type={{
-    name: { type: "string", description: "Short identifier for this workspace entry." },
-    source: { type: "WorkspaceSourceInput", description: "The source that provides this entry's content.", typeDescriptionLink: "#workspacesourceinput", required: true },
-  }}
-/>
-
-### WorkspaceSourceInput
-
-WorkspaceSource defines where the workspace content comes from.
-
-<TypeTable
-  type={{
-    gitRepo: { type: "GitRepoSourceInput", description: "Clone a git repository as the workspace source.", typeDescriptionLink: "#gitreposourceinput" },
-    localPath: { type: "LocalPathSourceInput", description: "Use an existing local directory as the workspace source.", typeDescriptionLink: "#localpathsourceinput" },
-  }}
-/>
-
-### GitRepoSourceInput
-
-GitRepoSource provisions a workspace by cloning a git repository.
-
-<TypeTable
-  type={{
-    url: { type: "string", description: "HTTPS clone URL for the repository.", required: true },
-    branch: { type: "string", description: "Branch to clone." },
-    commit: { type: "string", description: "Commit SHA to checkout after cloning." },
-    depth: { type: "number", description: "Number of commits to include in the clone history." },
-    writeBackMode: { type: "GitWriteBackMode", description: "Controls whether the platform creates a branch and pull request from the agent's file changes.", typeDescriptionLink: "#gitwritebackmode" },
-    token: { type: "string", description: "A token for cloning this repository, kept for the conversation only." },
-  }}
-/>
-
-### LocalPathSourceInput
-
-LocalPathSource uses an existing directory on the host filesystem as the workspace.
-
-<TypeTable
-  type={{
-    path: { type: "string", description: "Absolute path to an existing directory on the host filesystem." },
-  }}
-/>
-
 ### RunConfigInput
 
 RunConfig is the settings message for every run: a model, a speed tier, thinking, and run bounds.
@@ -818,6 +771,54 @@ RunConfig is the settings message for every run: a model, a speed tier, thinking
     serviceTier: { type: "ServiceTier", description: "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.", typeDescriptionLink: "#servicetier" },
     thinkingMode: { type: "ThinkingMode", description: "Thinking mode for each run's model calls: disabled (the default) or enabled, where enabled selects the model's extended-reasoning variant (billed at base per-token rates — reasoning tokens bill as output).", typeDescriptionLink: "#thinkingmode" },
     maxToolResultChars: { type: "number", description: "Maximum number of characters for a single tool result before truncation." },
+  }}
+/>
+
+### SessionResourceInput
+
+SessionResource is one thing a conversation holds: a File the agent finds in its uploads folder, a git repository cloned into its workspace, or a folder on the person's own machine.
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "The directory a repository or a local folder is given in the workspace: unique among the conversation's repositories and folders." },
+    file: { type: "FileResourceInput", description: "A File the agent finds under .stigmer/uploads/.", typeDescriptionLink: "#fileresourceinput" },
+    gitRepository: { type: "GitRepositoryResourceInput", description: "A git repository cloned into the workspace.", typeDescriptionLink: "#gitrepositoryresourceinput" },
+    localPath: { type: "LocalPathResourceInput", description: "A folder on the person's own machine, used where it is.", typeDescriptionLink: "#localpathresourceinput" },
+  }}
+/>
+
+### FileResourceInput
+
+FileResource names a File the conversation holds and where the agent finds it.
+
+<TypeTable
+  type={{
+    fileId: { type: "string", description: "The File's id: \"file_01j…\"." },
+    mountPath: { type: "string", description: "Where the agent finds the File, relative to .stigmer/uploads/: \"q3/ledger.xlsx\"." },
+  }}
+/>
+
+### GitRepositoryResourceInput
+
+GitRepositoryResource clones a git repository into the workspace.
+
+<TypeTable
+  type={{
+    url: { type: "string", description: "HTTPS clone URL for the repository.", required: true },
+    branch: { type: "string", description: "Branch to clone." },
+    commit: { type: "string", description: "Commit to check out after the clone." },
+    writeBackMode: { type: "GitWriteBackMode", description: "Whether the platform turns the agent's changes into a branch and a pull request.", typeDescriptionLink: "#gitwritebackmode" },
+    token: { type: "string", description: "A token for cloning this repository, kept for the conversation only." },
+  }}
+/>
+
+### LocalPathResourceInput
+
+LocalPathResource uses a folder on the person's own machine as it is: the agent works on the files directly, and no copy is made.
+
+<TypeTable
+  type={{
+    path: { type: "string", description: "Absolute path of an existing folder." },
   }}
 />
 
@@ -982,14 +983,6 @@ Harness identifies the execution engine that processes agent activities for a se
 | `HARNESS_NATIVE` | Stigmer's native execution engine. |
 | `HARNESS_CURSOR` | Cursor SDK execution engine. |
 
-### GitWriteBackMode
-
-GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.
-
-| Value | Description |
-|-------|-------------|
-| `GIT_WRITE_BACK_BRANCH_AND_PR` | Create a branch and pull request from the agent's file changes after the run completes. |
-
 ### ServiceTier
 
 ServiceTier selects the provider-side speed/service tier for a run's model calls.
@@ -1007,6 +1000,14 @@ ThinkingMode selects the model's extended-reasoning ("thinking") variant for a r
 |-------|-------------|
 | `THINKING_MODE_DISABLED` | Extended reasoning off: the model's base variant, requested explicitly (thinking=false pinned where the model declares the parameter). |
 | `THINKING_MODE_ENABLED` | Extended reasoning on: the model's thinking variant, billed at base per-token rates (reasoning tokens bill as output tokens). |
+
+### GitWriteBackMode
+
+GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.
+
+| Value | Description |
+|-------|-------------|
+| `GIT_WRITE_BACK_BRANCH_AND_PR` | Create a branch and pull request from the agent's file changes after the run completes. |
 
 ### RoutineFireOrigin
 

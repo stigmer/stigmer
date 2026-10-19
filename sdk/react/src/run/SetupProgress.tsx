@@ -1,17 +1,17 @@
 "use client";
 
 import { memo, useEffect, useMemo, useState } from "react";
-import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { cn } from "@stigmer/design-tokens";
 
 /** Props for {@link SetupProgress}. */
 export interface SetupProgressProps {
   /**
-   * Workspace entries from the session spec. When git-sourced entries
-   * are present, the fallback indicator shows workspace-specific messaging
-   * (e.g. "Setting up workspace...").
+   * The conversation's resources from the session spec. When a git
+   * repository is among them, the fallback indicator shows
+   * workspace-specific messaging (e.g. "Setting up workspace...").
    */
-  readonly workspaceEntries?: readonly WorkspaceEntry[];
+  readonly resources?: readonly SessionResource[];
   /**
    * Server-reported setup phase label from
    * `RunStatus.setup_progress.current_phase`.
@@ -19,7 +19,7 @@ export interface SetupProgressProps {
    * When non-empty, rendered directly — the timer-based fallback is
    * bypassed.  When absent or empty (older backends that don't emit
    * setup progress), the component falls back to the time-based
-   * step sequence derived from `workspaceEntries`.
+   * step sequence derived from `resources`.
    */
   readonly serverPhase?: string;
   /**
@@ -43,10 +43,10 @@ interface SetupStep {
 const STEP_INTERVAL_MS = 4000;
 
 function buildSteps(
-  workspaceEntries: readonly WorkspaceEntry[] | undefined,
+  resources: readonly SessionResource[] | undefined,
 ): SetupStep[] {
-  const hasGitRepo = workspaceEntries?.some(
-    (e) => e.source?.source.case === "gitRepo",
+  const hasGitRepo = resources?.some(
+    (r) => r.resource.case === "gitRepository",
   );
 
   const steps: SetupStep[] = [
@@ -85,7 +85,7 @@ function buildSteps(
  *    server-reported `setup_progress.current_phase` label directly.
  *
  * 3. **Timer-based fallback** — neither of the above. Cycles through
- *    contextual status messages derived from `workspaceEntries`.
+ *    contextual status messages derived from `resources`.
  *
  * All visual properties flow through `--stgm-*` tokens.
  *
@@ -98,11 +98,11 @@ function buildSteps(
  * <SetupProgress serverPhase={run.status?.setupProgress?.currentPhase} />
  *
  * // Timer fallback (PENDING, no server phase available)
- * <SetupProgress workspaceEntries={session.spec?.workspaceEntries} />
+ * <SetupProgress resources={session.spec?.resources} />
  * ```
  */
 export const SetupProgress = memo(function SetupProgress({
-  workspaceEntries,
+  resources,
   serverPhase,
   isAwaitingResponse,
   className,
@@ -110,7 +110,7 @@ export const SetupProgress = memo(function SetupProgress({
   const useServerPhase = !isAwaitingResponse && !!serverPhase;
 
   /* ── Timer-based fallback state ─────────────────────────────────── */
-  const steps = useMemo(() => buildSteps(workspaceEntries), [workspaceEntries]);
+  const steps = useMemo(() => buildSteps(resources), [resources]);
   const [stepIndex, setStepIndex] = useState(0);
 
   useEffect(() => {

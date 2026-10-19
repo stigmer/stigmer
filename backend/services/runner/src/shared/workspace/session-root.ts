@@ -2,8 +2,8 @@
  * Session workspace-root resolution — shared by both executors (Cursor and
  * deep-agent) so their placement rules can never drift.
  *
- * SessionSpec.workspace_entries promises: "When empty, the session uses an
- * empty workspace directory." Handing every no-entry session the shared
+ * A session with no repository or folder among its resources works in an
+ * empty workspace directory of its own. Handing every such session the shared
  * `config.workspaceRootDir` broke that contract twice over: a "new" session
  * started amid every prior session's leftovers, and — under the per-workspace
  * turn lock (workspace-lock.ts) — unrelated no-entry sessions would falsely
@@ -22,10 +22,10 @@ import { agentFs } from "../agent-fs.js";
 /**
  * Resolve (and create) the working-tree root for a session.
  *
- * - No workspace entries → `{workspaceRootDir}/sessions/{sessionId}`, created
+ * - No repository or folder → `{workspaceRootDir}/sessions/{sessionId}`, created
  *   on demand. Deterministic from sessionId alone, so it is stable across
  *   turns, HITL reinvocations, and Temporal retries with no persisted state.
- * - One or more entries → the shared `workspaceRootDir`, where the
+ * - One or more → the shared `workspaceRootDir`, where the
  *   provisioner materializes each entry (in place, or per-entry subdirs).
  *
  * The `sessions/` namespace lives under the configured workspace root (the
@@ -38,10 +38,10 @@ import { agentFs } from "../agent-fs.js";
  */
 export async function resolveSessionWorkspaceRoot(
   workspaceRootDir: string,
-  workspaceEntries: readonly unknown[],
+  workspaceResources: readonly unknown[],
   sessionId: string,
 ): Promise<string> {
-  if (workspaceEntries.length > 0) {
+  if (workspaceResources.length > 0) {
     return workspaceRootDir;
   }
   if (!sessionId) {

@@ -384,12 +384,10 @@ describe("RoutineForm", () => {
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
     const input = apply.mock.calls[0][0];
-    expect(input.agent.workspaceEntries).toEqual([
+    expect(input.agent.resources).toEqual([
       {
         name: "isc/fee-data",
-        source: {
-          gitRepo: { url: "https://github.com/isc/fee-data.git", branch: "main" },
-        },
+        gitRepository: { url: "https://github.com/isc/fee-data.git", branch: "main" },
       },
     ]);
   });

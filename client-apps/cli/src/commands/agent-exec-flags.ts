@@ -35,7 +35,7 @@ export interface AgentExecOptions {
 export function addAgentExecFlags(command: Command): Command {
   return command
     .option("-m, --message <text>", "initial message/prompt for the run")
-    .option("--attach <path>", "file or directory to attach as input (repeatable)", collect, [])
+    .option("--attach <path>", "a file sent with the message (at most 20), or a folder whose files the conversation keeps under .stigmer/uploads/; a file inside a --workspace folder is pointed to where it is (repeatable)", collect, [])
     .option("--approve-default <action>", "answer every tool call that asks, in headless mode: allow, deny, or allow-all (allow it and every waiting call of its kind for the rest of the turn); unset denies each one")
     .option("-v, --verbose", "show run IDs and phase transitions")
     .option("--detach", "start the run and return immediately without streaming")

@@ -3,6 +3,11 @@ import { create } from "@bufbuild/protobuf";
 import { type RunStatus, RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { WorkspaceWriteBackPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 import { GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import {
+  GitRepositoryResourceSchema,
+  SessionResourceSchema,
+  type SessionResource,
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import {
   WriteBackCoordinator,
@@ -45,17 +50,16 @@ function makeProvisionResult(overrides: Partial<ProvisionResult> = {}): Provisio
   };
 }
 
-function makeWorkspaceEntry(name: string, writeBackMode: GitWriteBackMode = GitWriteBackMode.GIT_WRITE_BACK_BRANCH_AND_PR) {
-  return {
+function makeWorkspaceEntry(name: string, writeBackMode: GitWriteBackMode = GitWriteBackMode.GIT_WRITE_BACK_BRANCH_AND_PR): SessionResource {
+  return create(SessionResourceSchema, {
     name,
-    source: {
-      source: {
-        case: "gitRepo" as const,
-        value: { writeBackMode, url: `https://github.com/acme/${name}.git` },
-      },
-    },
-    $typeName: "ai.stigmer.agentic.session.v1.WorkspaceEntry" as const,
-  } as any;
+    resource: { case: "gitRepository", value: create(GitRepositoryResourceSchema, { writeBackMode, url: `https://github.com/acme/${name}.git` }) },
+  });
+}
+
+/** The clone URL of a git repository resource. */
+function urlOf(entry: SessionResource): string {
+  return entry.resource.case === "gitRepository" ? entry.resource.value.url : "";
 }
 
 function mockWorkspaceBackend(responses: Record<string, string> = {}): WorkspaceBackend {
@@ -103,19 +107,19 @@ function makeCoordinator(opts: {
   sessionId?: string;
   githubToken?: string;
   provisionResults?: ProvisionResult[];
-  workspaceEntries?: any[];
+  resources?: SessionResource[];
 }): WriteBackCoordinator {
   return new WriteBackCoordinator({
     writeBacks: opts.sb,
     executionId: opts.executionId ?? "exec-12345678rest",
     sessionId: opts.sessionId ?? SESSION_ID,
-    repositories: (opts.workspaceEntries ?? [makeWorkspaceEntry("my-app")]).map((entry) => ({
+    repositories: (opts.resources ?? [makeWorkspaceEntry("my-app")]).map((entry) => ({
       name: entry.name,
-      url: entry.source.source.value.url,
+      url: urlOf(entry),
       token: opts.githubToken ?? "ghp_plumbed_token",
     })),
     provisionResults: opts.provisionResults ?? [makeProvisionResult()],
-    workspaceEntries: opts.workspaceEntries ?? [makeWorkspaceEntry("my-app")],
+    resources: opts.resources ?? [makeWorkspaceEntry("my-app")],
     workspaceBackend: opts.backend ?? mockWorkspaceBackend(),
   });
 }
@@ -189,7 +193,7 @@ describe("WriteBackCoordinator", () => {
   it("accepts entries with UNSPECIFIED write-back mode (platform decides)", () => {
     const coord = makeCoordinator({
       sb,
-      workspaceEntries: [makeWorkspaceEntry("my-app", GitWriteBackMode.GIT_WRITE_BACK_MODE_UNSPECIFIED)],
+      resources: [makeWorkspaceEntry("my-app", GitWriteBackMode.GIT_WRITE_BACK_MODE_UNSPECIFIED)],
     });
     expect(coord.hasEligibleEntries).toBe(true);
   });
@@ -286,7 +290,7 @@ describe("WriteBackCoordinator", () => {
       sessionId: SESSION_ID,
       repositories: [{ name: "my-app", url: "https://github.com/acme/other.git", token: "ghp_other" }],
       provisionResults: [makeProvisionResult()],
-      workspaceEntries: [makeWorkspaceEntry("my-app")],
+      resources: [makeWorkspaceEntry("my-app")],
       workspaceBackend: backend,
     });
 

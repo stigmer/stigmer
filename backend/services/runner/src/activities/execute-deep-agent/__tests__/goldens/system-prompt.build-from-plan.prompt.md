@@ -124,7 +124,7 @@ Earlier the user asked for a staging deploy; it succeeded.
 
 IMPORTANT: This turn implements a plan the user has reviewed and APPROVED.
 
-The approved plan document is attached at `.stigmer/inputs/release_aex1.plan.md`. Read it FIRST, then implement it step by step.
+The approved plan document is attached at `.stigmer/uploads/release_aex1.plan.md`. Read it FIRST, then implement it step by step.
 
 That document is the authoritative version of the plan — the user may have edited it after it was proposed, so where it differs from the conversation above, follow the document.
 

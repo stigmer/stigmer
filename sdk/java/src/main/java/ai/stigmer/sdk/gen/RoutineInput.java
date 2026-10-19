@@ -8,12 +8,12 @@ import ai.stigmer.agentic.run.v1.AgentInvocation;
 import ai.stigmer.agentic.run.v1.RunConfig;
 import ai.stigmer.agentic.run.v1.ServiceTier;
 import ai.stigmer.agentic.run.v1.ThinkingMode;
-import ai.stigmer.agentic.session.v1.GitRepoSource;
+import ai.stigmer.agentic.session.v1.FileResource;
+import ai.stigmer.agentic.session.v1.GitRepositoryResource;
 import ai.stigmer.agentic.session.v1.GitWriteBackMode;
 import ai.stigmer.agentic.session.v1.Harness;
-import ai.stigmer.agentic.session.v1.LocalPathSource;
-import ai.stigmer.agentic.session.v1.WorkspaceEntry;
-import ai.stigmer.agentic.session.v1.WorkspaceSource;
+import ai.stigmer.agentic.session.v1.LocalPathResource;
+import ai.stigmer.agentic.session.v1.SessionResource;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
@@ -121,19 +121,19 @@ public final class RoutineInput {
         private final ResourceRef agentRef;
         private final String message;
         private final Harness harness;
-        private final java.util.List<WorkspaceEntryInput> workspaceEntries;
         private final java.util.List<ResourceRef> vaults;
         private final RunConfigInput runConfig;
         private final ResourceRef environmentRef;
+        private final java.util.List<SessionResourceInput> resources;
 
         private AgentInvocationInput(Builder builder) {
             this.agentRef = builder.agentRef;
             this.message = builder.message;
             this.harness = builder.harness;
-            this.workspaceEntries = builder.workspaceEntries;
             this.vaults = builder.vaults;
             this.runConfig = builder.runConfig;
             this.environmentRef = builder.environmentRef;
+            this.resources = builder.resources;
         }
 
         AgentInvocation toProto() {
@@ -148,11 +148,6 @@ public final class RoutineInput {
             if (this.harness != null) {
                 builder.setHarness(this.harness);
             }
-            if (this.workspaceEntries != null) {
-                for (WorkspaceEntryInput item : this.workspaceEntries) {
-                    builder.addWorkspaceEntries(item.toProto());
-                }
-            }
             if (this.vaults != null) {
                 for (ResourceRef item : this.vaults) {
                     builder.addVaults(item.toProto().toBuilder()
@@ -166,6 +161,11 @@ public final class RoutineInput {
                 builder.setEnvironmentRef(this.environmentRef.toProto().toBuilder()
                     .setKind(ApiResourceKind.environment).build());
             }
+            if (this.resources != null) {
+                for (SessionResourceInput item : this.resources) {
+                    builder.addResources(item.toProto());
+                }
+            }
             return builder.build();
         }
 
@@ -175,187 +175,22 @@ public final class RoutineInput {
             private ResourceRef agentRef;
             private String message;
             private Harness harness;
-            private java.util.List<WorkspaceEntryInput> workspaceEntries;
             private java.util.List<ResourceRef> vaults;
             private RunConfigInput runConfig;
             private ResourceRef environmentRef;
+            private java.util.List<SessionResourceInput> resources;
 
             private Builder() {}
 
             public Builder agentRef(ResourceRef agentRef) { this.agentRef = agentRef; return this; }
             public Builder message(String message) { this.message = message; return this; }
             public Builder harness(Harness harness) { this.harness = harness; return this; }
-            public Builder workspaceEntries(java.util.List<WorkspaceEntryInput> workspaceEntries) { this.workspaceEntries = workspaceEntries; return this; }
             public Builder vaults(java.util.List<ResourceRef> vaults) { this.vaults = vaults; return this; }
             public Builder runConfig(RunConfigInput runConfig) { this.runConfig = runConfig; return this; }
             public Builder environmentRef(ResourceRef environmentRef) { this.environmentRef = environmentRef; return this; }
+            public Builder resources(java.util.List<SessionResourceInput> resources) { this.resources = resources; return this; }
 
             public AgentInvocationInput build() { return new AgentInvocationInput(this); }
-        }
-    }
-
-    /** SDK input type for WorkspaceEntry. */
-    public static final class WorkspaceEntryInput {
-        private final String name;
-        private final WorkspaceSourceInput source;
-
-        private WorkspaceEntryInput(Builder builder) {
-            this.name = builder.name;
-            this.source = builder.source;
-        }
-
-        WorkspaceEntry toProto() {
-            WorkspaceEntry.Builder builder = WorkspaceEntry.newBuilder();
-            if (this.name != null) {
-                builder.setName(this.name);
-            }
-            if (this.source != null) {
-                builder.setSource(this.source.toProto());
-            }
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private String name;
-            private WorkspaceSourceInput source;
-
-            private Builder() {}
-
-            public Builder name(String name) { this.name = name; return this; }
-            public Builder source(WorkspaceSourceInput source) { this.source = source; return this; }
-
-            public WorkspaceEntryInput build() { return new WorkspaceEntryInput(this); }
-        }
-    }
-
-    /** SDK input type for WorkspaceSource. */
-    public static final class WorkspaceSourceInput {
-        private final GitRepoSourceInput gitRepo;
-        private final LocalPathSourceInput localPath;
-
-        private WorkspaceSourceInput(Builder builder) {
-            this.gitRepo = builder.gitRepo;
-            this.localPath = builder.localPath;
-        }
-
-        WorkspaceSource toProto() {
-            WorkspaceSource.Builder builder = WorkspaceSource.newBuilder();
-            if (this.localPath != null) {
-                builder.setLocalPath(this.localPath.toProto());
-            }
-            if (this.gitRepo != null) {
-                builder.setGitRepo(this.gitRepo.toProto());
-            }
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private GitRepoSourceInput gitRepo;
-            private LocalPathSourceInput localPath;
-
-            private Builder() {}
-
-            public Builder gitRepo(GitRepoSourceInput gitRepo) { this.gitRepo = gitRepo; return this; }
-            public Builder localPath(LocalPathSourceInput localPath) { this.localPath = localPath; return this; }
-
-            public WorkspaceSourceInput build() { return new WorkspaceSourceInput(this); }
-        }
-    }
-
-    /** SDK input type for GitRepoSource. */
-    public static final class GitRepoSourceInput {
-        private final String url;
-        private final String branch;
-        private final String commit;
-        private final Integer depth;
-        private final GitWriteBackMode writeBackMode;
-        private final String token;
-
-        private GitRepoSourceInput(Builder builder) {
-            this.url = builder.url;
-            this.branch = builder.branch;
-            this.commit = builder.commit;
-            this.depth = builder.depth;
-            this.writeBackMode = builder.writeBackMode;
-            this.token = builder.token;
-        }
-
-        GitRepoSource toProto() {
-            GitRepoSource.Builder builder = GitRepoSource.newBuilder();
-            if (this.url != null) {
-                builder.setUrl(this.url);
-            }
-            if (this.branch != null) {
-                builder.setBranch(this.branch);
-            }
-            if (this.commit != null) {
-                builder.setCommit(this.commit);
-            }
-            if (this.depth != null) {
-                builder.setDepth(this.depth);
-            }
-            if (this.writeBackMode != null) {
-                builder.setWriteBackMode(this.writeBackMode);
-            }
-            if (this.token != null) {
-                builder.setToken(this.token);
-            }
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private String url;
-            private String branch;
-            private String commit;
-            private Integer depth;
-            private GitWriteBackMode writeBackMode;
-            private String token;
-
-            private Builder() {}
-
-            public Builder url(String url) { this.url = url; return this; }
-            public Builder branch(String branch) { this.branch = branch; return this; }
-            public Builder commit(String commit) { this.commit = commit; return this; }
-            public Builder depth(int depth) { this.depth = depth; return this; }
-            public Builder writeBackMode(GitWriteBackMode writeBackMode) { this.writeBackMode = writeBackMode; return this; }
-            public Builder token(String token) { this.token = token; return this; }
-
-            public GitRepoSourceInput build() { return new GitRepoSourceInput(this); }
-        }
-    }
-
-    /** SDK input type for LocalPathSource. */
-    public static final class LocalPathSourceInput {
-        private final String path;
-
-        private LocalPathSourceInput(Builder builder) {
-            this.path = builder.path;
-        }
-
-        LocalPathSource toProto() {
-            LocalPathSource.Builder builder = LocalPathSource.newBuilder();
-            if (this.path != null) {
-                builder.setPath(this.path);
-            }
-            return builder.build();
-        }
-
-        public static Builder builder() { return new Builder(); }
-
-        public static final class Builder {
-            private String path;
-
-            private Builder() {}
-
-            public Builder path(String path) { this.path = path; return this; }
-
-            public LocalPathSourceInput build() { return new LocalPathSourceInput(this); }
         }
     }
 
@@ -414,6 +249,178 @@ public final class RoutineInput {
             public Builder maxToolResultChars(int maxToolResultChars) { this.maxToolResultChars = maxToolResultChars; return this; }
 
             public RunConfigInput build() { return new RunConfigInput(this); }
+        }
+    }
+
+    /** SDK input type for SessionResource. */
+    public static final class SessionResourceInput {
+        private final String name;
+        private final FileResourceInput file;
+        private final GitRepositoryResourceInput gitRepository;
+        private final LocalPathResourceInput localPath;
+
+        private SessionResourceInput(Builder builder) {
+            this.name = builder.name;
+            this.file = builder.file;
+            this.gitRepository = builder.gitRepository;
+            this.localPath = builder.localPath;
+        }
+
+        SessionResource toProto() {
+            SessionResource.Builder builder = SessionResource.newBuilder();
+            if (this.name != null) {
+                builder.setName(this.name);
+            }
+            if (this.localPath != null) {
+                builder.setLocalPath(this.localPath.toProto());
+            }
+            if (this.gitRepository != null) {
+                builder.setGitRepository(this.gitRepository.toProto());
+            }
+            if (this.file != null) {
+                builder.setFile(this.file.toProto());
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String name;
+            private FileResourceInput file;
+            private GitRepositoryResourceInput gitRepository;
+            private LocalPathResourceInput localPath;
+
+            private Builder() {}
+
+            public Builder name(String name) { this.name = name; return this; }
+            public Builder file(FileResourceInput file) { this.file = file; return this; }
+            public Builder gitRepository(GitRepositoryResourceInput gitRepository) { this.gitRepository = gitRepository; return this; }
+            public Builder localPath(LocalPathResourceInput localPath) { this.localPath = localPath; return this; }
+
+            public SessionResourceInput build() { return new SessionResourceInput(this); }
+        }
+    }
+
+    /** SDK input type for FileResource. */
+    public static final class FileResourceInput {
+        private final String fileId;
+        private final String mountPath;
+
+        private FileResourceInput(Builder builder) {
+            this.fileId = builder.fileId;
+            this.mountPath = builder.mountPath;
+        }
+
+        FileResource toProto() {
+            FileResource.Builder builder = FileResource.newBuilder();
+            if (this.fileId != null) {
+                builder.setFileId(this.fileId);
+            }
+            if (this.mountPath != null) {
+                builder.setMountPath(this.mountPath);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String fileId;
+            private String mountPath;
+
+            private Builder() {}
+
+            public Builder fileId(String fileId) { this.fileId = fileId; return this; }
+            public Builder mountPath(String mountPath) { this.mountPath = mountPath; return this; }
+
+            public FileResourceInput build() { return new FileResourceInput(this); }
+        }
+    }
+
+    /** SDK input type for GitRepositoryResource. */
+    public static final class GitRepositoryResourceInput {
+        private final String url;
+        private final String branch;
+        private final String commit;
+        private final GitWriteBackMode writeBackMode;
+        private final String token;
+
+        private GitRepositoryResourceInput(Builder builder) {
+            this.url = builder.url;
+            this.branch = builder.branch;
+            this.commit = builder.commit;
+            this.writeBackMode = builder.writeBackMode;
+            this.token = builder.token;
+        }
+
+        GitRepositoryResource toProto() {
+            GitRepositoryResource.Builder builder = GitRepositoryResource.newBuilder();
+            if (this.url != null) {
+                builder.setUrl(this.url);
+            }
+            if (this.branch != null) {
+                builder.setBranch(this.branch);
+            }
+            if (this.commit != null) {
+                builder.setCommit(this.commit);
+            }
+            if (this.writeBackMode != null) {
+                builder.setWriteBackMode(this.writeBackMode);
+            }
+            if (this.token != null) {
+                builder.setToken(this.token);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String url;
+            private String branch;
+            private String commit;
+            private GitWriteBackMode writeBackMode;
+            private String token;
+
+            private Builder() {}
+
+            public Builder url(String url) { this.url = url; return this; }
+            public Builder branch(String branch) { this.branch = branch; return this; }
+            public Builder commit(String commit) { this.commit = commit; return this; }
+            public Builder writeBackMode(GitWriteBackMode writeBackMode) { this.writeBackMode = writeBackMode; return this; }
+            public Builder token(String token) { this.token = token; return this; }
+
+            public GitRepositoryResourceInput build() { return new GitRepositoryResourceInput(this); }
+        }
+    }
+
+    /** SDK input type for LocalPathResource. */
+    public static final class LocalPathResourceInput {
+        private final String path;
+
+        private LocalPathResourceInput(Builder builder) {
+            this.path = builder.path;
+        }
+
+        LocalPathResource toProto() {
+            LocalPathResource.Builder builder = LocalPathResource.newBuilder();
+            if (this.path != null) {
+                builder.setPath(this.path);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String path;
+
+            private Builder() {}
+
+            public Builder path(String path) { this.path = path; return this; }
+
+            public LocalPathResourceInput build() { return new LocalPathResourceInput(this); }
         }
     }
 }

@@ -44,7 +44,7 @@ export interface SessionSpecOptions {
   plugins?: string[];
   // Session-level Skill slugs, projected into spec.skill_refs.
   skillRefs?: string[];
-  // Workspaces mounted for the session's turns (spec.workspace_entries), each a
+  // Workspaces mounted for the session's turns (spec.resources), each a
   // local path on the runner's host. The first entry is the primary workspace:
   // when it is a git work tree and the session asks for review (`fileReview`)
   // the runner captures each turn's edits for review (the file-review suites
@@ -81,22 +81,22 @@ export function makeSessionSpec(opts: SessionSpecOptions = {}): InitShape<typeof
       ? { plugins: opts.plugins.map((slug) => ({ slug, kind: ApiResourceKind.plugin })) }
       : {}),
     skillRefs: (opts.skillRefs ?? []).map((slug) => ({ slug, kind: ApiResourceKind.skill })),
-    ...(opts.localWorkspaces !== undefined ? { workspaceEntries: localWorkspaceEntries(opts.localWorkspaces) } : {}),
+    ...(opts.localWorkspaces !== undefined ? { resources: localWorkspaceResources(opts.localWorkspaces) } : {}),
     ...(opts.vaults !== undefined ? { vaults: opts.vaults.map((slug) => ({ slug, kind: ApiResourceKind.vault })) } : {}),
     ...(opts.includeMyVault !== undefined ? { includeMyVault: opts.includeMyVault } : {}),
     ...(opts.fileReview !== undefined ? { fileReview: opts.fileReview } : {}),
   };
 }
 
-// spec.workspace_entries for local-path workspaces, the one projection both
-// the Session builder above and an execution's one-call bootstrap
+// spec.resources for local-path workspaces, the one projection both the
+// Session builder above and an execution's one-call bootstrap
 // (Run.spec.session_spec) mount a host directory through.
-export function localWorkspaceEntries(
+export function localWorkspaceResources(
   workspaces: readonly LocalWorkspaceOption[],
-): NonNullable<InitShape<typeof SessionSpecSchema>["workspaceEntries"]> {
+): NonNullable<InitShape<typeof SessionSpecSchema>["resources"]> {
   return workspaces.map((workspace) => ({
     name: workspace.name,
-    source: { source: { case: "localPath" as const, value: { path: workspace.path } } },
+    resource: { case: "localPath" as const, value: { path: workspace.path } },
   }));
 }
 

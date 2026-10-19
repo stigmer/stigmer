@@ -3,7 +3,7 @@
 // Ports the Go CLI's run_create.go. We build the full proto messages and drive
 // the generated command controllers directly — the fidelity rule
 // resources/apply/handlers.ts states: the SDK's typed `create(input)` wrappers model a
-// subset of fields, and our attachments/workspace entries are already proto
+// subset of fields, and the conversation's resources are already proto
 // messages, so a round-trip through the input types would be lossy and pointless.
 
 import type { Client } from "@connectrpc/connect";
@@ -11,7 +11,6 @@ import { create, type DescService } from "@bufbuild/protobuf";
 import { type Run, RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
 import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import type { Attachment } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import {
   type RunSpec,
   RunSpecSchema,
@@ -22,7 +21,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { type SessionSpec, SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
-import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
 import {
   type ApiResourceReference,
@@ -55,13 +54,14 @@ export interface AgentRefInput {
  * embedded session_spec. agentRef names the new conversation's agent; with
  * neither, the new conversation runs the built-in assistant.
  *
- * workspaceEntries, harness, vaults, includeMyVault, plugins and environment
+ * resources, harness, vaults, includeMyVault, plugins and environment
  * ride the one-call bootstrap (spec.session_spec, stigmer/stigmer#249) and
- * shape the auto-created session. A session's agent, workspace, harness,
- * vault, plugin and environment choice are set at creation, so with sessionId set they are not sent: the
- * target carries the session id alone, and the conversation keeps the vaults
- * it was started with. A run carries no keys of its own; they come from the
- * vaults its conversation uses.
+ * shape the auto-created session. A session's agent, harness, vault, plugin
+ * and environment choice are set at creation, so with sessionId set they are
+ * not sent: the target carries the session id alone, and the conversation
+ * keeps the vaults it was started with. Files reach an existing conversation
+ * through fileIds, or through an update of its own resources. A run carries
+ * no keys of its own; they come from the vaults its conversation uses.
  */
 export interface CreateRunInput {
   readonly agentRef?: AgentRefInput;
@@ -76,9 +76,11 @@ export interface CreateRunInput {
   readonly plugins: readonly ApiResourceReference[];
   /** The Environment the new conversation names; undefined leaves its agent's or organization's default. */
   readonly environment?: ApiResourceReference;
-  readonly attachments: readonly Attachment[];
+  /** The Files the message carries, by id. */
+  readonly fileIds: readonly string[];
   readonly workspaceFileRefs: readonly string[];
-  readonly workspaceEntries: readonly WorkspaceEntry[];
+  /** The new conversation's repositories, folders and Files. */
+  readonly resources: readonly SessionResource[];
   readonly model: string;
   readonly mode: RunMode;
   readonly serviceTier: ServiceTierFlag;
@@ -98,7 +100,7 @@ export async function createAgentRun(
     metadata: create(ApiResourceMetadataSchema, { name: runName(), org: input.orgId }),
     spec: create(RunSpecSchema, {
       message: input.message === "" ? "execute" : input.message,
-      attachments: [...input.attachments],
+      fileIds: [...input.fileIds],
       workspaceFileRefs: [...input.workspaceFileRefs],
       autoApproveAll: input.autoApproveAll,
       target: buildTarget(input),
@@ -135,7 +137,7 @@ function buildTarget(input: CreateRunInput): RunSpec["target"] {
 function buildSessionSpec(input: CreateRunInput): SessionSpec {
   const { agentRef, harness } = input;
   const spec = create(SessionSpecSchema, {
-    workspaceEntries: [...input.workspaceEntries],
+    resources: [...input.resources],
     vaults: [...input.vaults],
     includeMyVault: input.includeMyVault,
     plugins: [...input.plugins],

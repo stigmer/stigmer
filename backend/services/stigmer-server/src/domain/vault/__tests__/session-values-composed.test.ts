@@ -6,9 +6,9 @@
  *
  *   - an update that names another path (spec.subject) keeps a repository
  *     token added since its read and destroys nothing; one that names the
- *     workspace entries without the token drops it and destroys its
+ *     resources without the token drops it and destroys its
  *     backing state;
- *   - an update that names the workspace entries echoing the marker for a
+ *   - an update that names the resources echoing the marker for a
  *     token removed since is refused; one that names another path lands;
  *   - an update that names another path neither detaches a vault attached
  *     since, nor re-attaches one removed since, nor switches back
@@ -28,7 +28,7 @@ import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_p
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
-import { WorkspaceEntrySchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import { SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { VaultCommandController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/command_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
@@ -94,15 +94,15 @@ afterAll(async () => {
 
 /** A github.com repository entry carrying `token`. */
 function repository(token: string) {
-  return create(WorkspaceEntrySchema, {
+  return create(SessionResourceSchema, {
     name: "app",
-    source: { source: { case: "gitRepo", value: { url: REPO_URL, token } } },
+    resource: { case: "gitRepository", value: { url: REPO_URL, token } },
   });
 }
 
 function repositoryToken(session: Session | undefined): string {
-  const source = session?.spec?.workspaceEntries[0]?.source?.source;
-  return source?.case === "gitRepo" ? source.value.token : "";
+  const source = session?.spec?.resources[0]?.resource;
+  return source?.case === "gitRepository" ? source.value.token : "";
 }
 
 let counter = 0;
@@ -141,15 +141,15 @@ function subjectWrite(readEarlier: Session, subject: string): { resource: Sessio
   return { resource: write, updateMask: { paths: ["spec.subject"] } };
 }
 
-/** An update that names the workspace entries, sending no etag. */
+/** An update that names the resources, sending no etag. */
 function entriesWrite(
   read: Session,
   entries: ReturnType<typeof repository>[],
 ): { resource: Session; updateMask: { paths: string[] } } {
   const write = clone(SessionSchema, read);
   write.metadata!.etag = "";
-  write.spec!.workspaceEntries = entries;
-  return { resource: write, updateMask: { paths: ["spec.workspace_entries"] } };
+  write.spec!.resources = entries;
+  return { resource: write, updateMask: { paths: ["spec.resources"] } };
 }
 
 async function failureOf(promise: Promise<unknown>): Promise<ConnectError> {
@@ -166,7 +166,7 @@ async function failureOf(promise: Promise<unknown>): Promise<ConnectError> {
 
 describe("an update built on an earlier read: a conversation's repository tokens", () => {
   it("keeps a token added since its read and destroys nothing; one that names the entries without it drops and destroys it", async () => {
-    const id = await createSession({ workspaceEntries: [repository("")] });
+    const id = await createSession({ resources: [repository("")] });
     const readEarlier = await read(id);
 
     await command.update(entriesWrite(readEarlier, [repository("repo-token")]));
@@ -187,7 +187,7 @@ describe("an update built on an earlier read: a conversation's repository tokens
   });
 
   it("refuses an update naming the entries that echoes the marker of a token removed since; one naming another path lands", async () => {
-    const id = await createSession({ workspaceEntries: [repository("repo-token")] });
+    const id = await createSession({ resources: [repository("repo-token")] });
     const readEarlier = await read(id);
     expect(repositoryToken(readEarlier)).toBe(REDACTED_MARKER);
 

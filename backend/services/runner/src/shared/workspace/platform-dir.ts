@@ -3,7 +3,7 @@
  *
  * Each agent execution session gets a dedicated directory tree under
  * `~/.stigmer/sessions/{sessionId}/`:
- * - `platform/` — skills, attachments, and other platform-managed files the
+ * - `platform/` — skills, the conversation's Files, and other platform-managed files the
  *   agent sees via the `.stigmer/` virtual namespace (WorkspaceBackend routing).
  * - `hitl/` — the HITL approval gate's runtime artifacts (hook script, approval
  *   state, denial ledger). These live OUTSIDE the user's workspace so attaching
@@ -13,8 +13,8 @@
  * - `displaced/` — a real `.stigmer` entry found in the workspace when the
  *   platform link takes the name, kept rather than deleted (stigmer-link.ts).
  *
- * This module replaces the duplicated `getPlatformDir` helpers in
- * execute-cursor/skill-resolver.ts and shared/attachment-resolver.ts.
+ * This module replaces the `getPlatformDir` helpers the skill and attachment
+ * resolvers each once carried.
  */
 
 import { dirname, join } from "node:path";

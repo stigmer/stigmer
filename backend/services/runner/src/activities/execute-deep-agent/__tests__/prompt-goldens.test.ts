@@ -54,6 +54,11 @@
  * - 2026-10-10 (a turn's appended system prompt): a new golden, the minimal
  *   shape with `append_system_prompt`, which closes the prompt after every
  *   platform section; no existing golden moved.
+ * - 2026-10-19 (a turn's files are the conversation's Files, mounted under
+ *   `.stigmer/uploads/`): the user message's Input Files section lists this
+ *   message's Files and the conversation's others under their own labels,
+ *   says the files live under `.stigmer/`, and carries no rename and no
+ *   download URL; the build-from-plan directive names the plan's new path.
  */
 
 import { describe, it, expect } from "vitest";
@@ -68,7 +73,7 @@ import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifa
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
 import { TURN_INPUT_FIXTURE_IDS, turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
 import type { TurnInput } from "../../../harness/types.js";
-import type { ResolvedAttachment } from "../../../shared/attachment-resolver.js";
+import type { MessageFile, MountedFile } from "../../../shared/file-mount.js";
 import type { SkillMetadata } from "../../../shared/skill-resolver.js";
 import type { RecalledMemoriesContent } from "../../../shared/recalled-memories.js";
 import type { ProvisionResult } from "../../../shared/workspace/types.js";
@@ -119,16 +124,18 @@ const PROVISION_RESULTS: readonly ProvisionResult[] = [
   },
 ];
 
-const INPUT_FILES: readonly ResolvedAttachment[] = [
-  { filename: "spec.pdf", relativePath: ".stigmer/inputs/spec.pdf", sizeBytes: 204800 },
-  { filename: "report (2).pdf", relativePath: ".stigmer/inputs/report (2).pdf", sizeBytes: 1024, renamedFrom: "report.pdf" },
-  {
-    filename: "diagram.png",
-    relativePath: ".stigmer/inputs/diagram.png",
-    sizeBytes: 4096,
-    downloadUrl: "https://storage.example.test/diagram.png?sig=abc",
-  },
+/** A File as the mount placed it, under `.stigmer/uploads/<mountPath>`. */
+function mounted(mountPath: string, sizeBytes: number, mimeType: string): MountedFile {
+  const filename = mountPath.split("/").pop()!;
+  return { fileId: `file_${filename}`, mountPath, filename, mimeType, sizeBytes, relativePath: `.stigmer/uploads/${mountPath}` };
+}
+
+const MESSAGE_FILES: readonly MessageFile[] = [
+  { ...mounted("diagram.png", 4096, "image/png"), kind: "image" },
+  { ...mounted("spec.pdf", 204800, "application/pdf"), kind: "document" },
 ];
+
+const CONVERSATION_FILES: readonly MountedFile[] = [mounted("q3/ledger.xlsx", 1024, "application/vnd.ms-excel")];
 
 const CHANNEL_MESSAGING = [
   {
@@ -152,17 +159,13 @@ const CHANNEL_MESSAGING = [
 
 const RECALLED: RecalledMemoriesContent = { facts: ["Prefers helm over kustomize.", "Release notes go in CHANGELOG.md."] };
 
-const PLAN_ATTACHMENT: ResolvedAttachment = {
-  filename: "release_aex1.plan.md",
-  relativePath: ".stigmer/inputs/release_aex1.plan.md",
-  sizeBytes: 2048,
-};
+const PLAN_FILE: MessageFile = { ...mounted("release_aex1.plan.md", 2048, "text/markdown"), kind: "document" };
 
 interface EverythingShape {
   readonly skills: readonly SkillMetadata[];
   readonly interactionMode?: InteractionMode;
   readonly buildFromPlan?: boolean;
-  readonly inputFiles?: readonly ResolvedAttachment[];
+  readonly messageFiles?: readonly MessageFile[];
   readonly conversationCatchup?: string;
 }
 
@@ -209,10 +212,12 @@ function everythingInput(shape: EverythingShape): TurnInput {
       platformServerSlugs: new Set(),
       toolScope: ToolScope.unrestricted(),
     },
-    attachments: {
-      results: [...(shape.inputFiles ?? INPUT_FILES)],
+    files: {
+      message: [...(shape.messageFiles ?? MESSAGE_FILES)],
+      conversation: CONVERSATION_FILES,
+      references: [],
       visionImages: [{ filename: "diagram.png", mimeType: "image/png", base64: "", byteSize: 4096 }],
-      visionNotViewable: [{ path: ".stigmer/inputs/huge.png", reason: "too_large" }],
+      visionNotViewable: [{ path: ".stigmer/uploads/huge.png", reason: "too_large" }],
     },
     artifactStorage: makeInMemoryArtifactStorage().storage,
     standing: {
@@ -248,7 +253,7 @@ describe("native system prompt goldens", () => {
 
   it("build-from-plan points at the attached approved plan", async () => {
     const prompt = await systemPromptOf(
-      everythingInput({ skills: THREE_SKILLS, buildFromPlan: true, inputFiles: [...INPUT_FILES, PLAN_ATTACHMENT] }),
+      everythingInput({ skills: THREE_SKILLS, buildFromPlan: true, messageFiles: [...MESSAGE_FILES, PLAN_FILE] }),
     );
     await expect(prompt).toMatchFileSnapshot("./goldens/system-prompt.build-from-plan.prompt.md");
   });

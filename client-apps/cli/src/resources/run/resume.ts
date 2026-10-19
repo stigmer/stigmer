@@ -61,7 +61,7 @@ export async function openSession(deps: OpenSessionDeps): Promise<void> {
     subject: resolvedSubject(session.spec?.subject ?? ""),
     model: "",
     mode: effectiveMode,
-    workspaces: workspaceNames(session.spec?.workspaceEntries ?? []),
+    workspaces: workspaceNames(session.spec?.resources ?? []),
   };
 
   if (ACTIVE_PHASES.has(phase)) {

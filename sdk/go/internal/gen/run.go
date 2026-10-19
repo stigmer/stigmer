@@ -77,11 +77,6 @@ func (r *RunClient) Resume(ctx context.Context, input *runv1.ResumeRunInput) (*r
 	return resp, wrapErr(err)
 }
 
-func (r *RunClient) UploadAttachment(ctx context.Context, input *runv1.UploadAttachmentRequest) (*runv1.UploadAttachmentResponse, error) {
-	resp, err := r.command.UploadAttachment(ctx, input)
-	return resp, wrapErr(err)
-}
-
 func (r *RunClient) Get(ctx context.Context, id string) (*runv1.Run, error) {
 	resp, err := r.query.Get(ctx, &runv1.RunId{Value: id})
 	return resp, wrapErr(err)
@@ -213,40 +208,30 @@ type RunInput struct {
 	DisallowedTools        []string
 	AppendSystemPrompt     string
 	AutoApproveAll         bool
-	Attachments            []*AttachmentInput
 	WorkspaceFileRefs      []string
 	SupersedesRunId        string
 	ConversationCatchup    *ConversationCatchupInput
 	EvalCase               *EvalCaseContextInput
 	ReconcileFileReview    bool
 	ExcludedPluginIds      []string
+	FileIds                []string
 }
 
 // SessionSpecInput is the SDK input type for SessionSpec.
 type SessionSpecInput struct {
-	AgentRef         ResourceRef
-	Subject          string
-	Metadata         map[string]string
-	WorkspaceEntries []*WorkspaceEntryInput
-	SkillRefs        []ResourceRef
-	Harness          sessionv1.Harness
-	CursorMode       sessionv1.CursorMode
-	ExecutionTarget  sessionv1.ExecutionTarget
-	Vaults           []ResourceRef
-	IncludeMyVault   bool
-	Plugins          []ResourceRef
-	FileReview       bool
-	EnvironmentRef   ResourceRef
-}
-
-// AttachmentInput is the SDK input type for Attachment.
-type AttachmentInput struct {
-	Filename    string
-	StorageKey  string
-	MountPath   string
-	ContentType string
-	Extract     bool
-	LocalPath   string
+	AgentRef        ResourceRef
+	Subject         string
+	Metadata        map[string]string
+	SkillRefs       []ResourceRef
+	Harness         sessionv1.Harness
+	CursorMode      sessionv1.CursorMode
+	ExecutionTarget sessionv1.ExecutionTarget
+	Vaults          []ResourceRef
+	IncludeMyVault  bool
+	Plugins         []ResourceRef
+	FileReview      bool
+	EnvironmentRef  ResourceRef
+	Resources       []*SessionResourceInput
 }
 
 // ConversationCatchupInput is the SDK input type for ConversationCatchup.
@@ -330,13 +315,6 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 		}
 		m.Subject = i.SessionSpec.Subject
 		m.Metadata = i.SessionSpec.Metadata
-		for idx, item := range i.SessionSpec.WorkspaceEntries {
-			v, err := item.toProto()
-			if err != nil {
-				return nil, indexErr("SessionSpec.WorkspaceEntries", idx, err)
-			}
-			m.WorkspaceEntries = append(m.WorkspaceEntries, v)
-		}
 		for _, r := range i.SessionSpec.SkillRefs {
 			ref := r.toProto()
 			ref.Kind = apiresourcekind.ApiResourceKind_skill
@@ -361,6 +339,13 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 			ref := i.SessionSpec.EnvironmentRef.toProto()
 			ref.Kind = apiresourcekind.ApiResourceKind_environment
 			m.EnvironmentRef = ref
+		}
+		for idx, item := range i.SessionSpec.Resources {
+			v, err := item.toProto()
+			if err != nil {
+				return nil, indexErr("SessionSpec.Resources", idx, err)
+			}
+			m.Resources = append(m.Resources, v)
 		}
 		resource.Spec.Target = &runv1.RunSpec_SessionSpec{SessionSpec: m}
 	}
@@ -388,13 +373,6 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 	resource.Spec.DisallowedTools = i.DisallowedTools
 	resource.Spec.AppendSystemPrompt = i.AppendSystemPrompt
 	resource.Spec.AutoApproveAll = i.AutoApproveAll
-	for idx, item := range i.Attachments {
-		v, err := item.toProto()
-		if err != nil {
-			return nil, indexErr("Attachments", idx, err)
-		}
-		resource.Spec.Attachments = append(resource.Spec.Attachments, v)
-	}
 	resource.Spec.WorkspaceFileRefs = i.WorkspaceFileRefs
 	resource.Spec.SupersedesRunId = i.SupersedesRunId
 	if i.ConversationCatchup != nil {
@@ -413,18 +391,8 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 	}
 	resource.Spec.ReconcileFileReview = i.ReconcileFileReview
 	resource.Spec.ExcludedPluginIds = i.ExcludedPluginIds
+	resource.Spec.FileIds = i.FileIds
 	return resource, nil
-}
-
-func (i *AttachmentInput) toProto() (*runv1.Attachment, error) {
-	return &runv1.Attachment{
-		Filename:    i.Filename,
-		StorageKey:  i.StorageKey,
-		MountPath:   i.MountPath,
-		ContentType: i.ContentType,
-		Extract:     i.Extract,
-		LocalPath:   i.LocalPath,
-	}, nil
 }
 
 func (i *ConversationCatchupInput) toProto() (*runv1.ConversationCatchup, error) {
@@ -531,15 +499,13 @@ func RunInputFromProto(p *runv1.Run) *RunInput {
 		input.DisallowedTools = s.GetDisallowedTools()
 		input.AppendSystemPrompt = s.GetAppendSystemPrompt()
 		input.AutoApproveAll = s.GetAutoApproveAll()
-		for _, item := range s.GetAttachments() {
-			input.Attachments = append(input.Attachments, attachmentInputFromProto(item))
-		}
 		input.WorkspaceFileRefs = s.GetWorkspaceFileRefs()
 		input.SupersedesRunId = s.GetSupersedesRunId()
 		input.ConversationCatchup = conversationCatchupInputFromProto(s.GetConversationCatchup())
 		input.EvalCase = evalCaseContextInputFromProto(s.GetEvalCase())
 		input.ReconcileFileReview = s.GetReconcileFileReview()
 		input.ExcludedPluginIds = s.GetExcludedPluginIds()
+		input.FileIds = s.GetFileIds()
 		input.SessionId = s.GetSessionId()
 		if ov := s.GetSessionSpec(); ov != nil {
 			input.SessionSpec = sessionSpecInputFromProto(ov)
@@ -556,9 +522,6 @@ func sessionSpecInputFromProto(p *sessionv1.SessionSpec) *SessionSpecInput {
 	input.AgentRef = resourceRefFromProto(p.GetAgentRef())
 	input.Subject = p.GetSubject()
 	input.Metadata = p.GetMetadata()
-	for _, item := range p.GetWorkspaceEntries() {
-		input.WorkspaceEntries = append(input.WorkspaceEntries, workspaceEntryInputFromProto(item))
-	}
 	for _, r := range p.GetSkillRefs() {
 		input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
 	}
@@ -574,20 +537,9 @@ func sessionSpecInputFromProto(p *sessionv1.SessionSpec) *SessionSpecInput {
 	}
 	input.FileReview = p.GetFileReview()
 	input.EnvironmentRef = resourceRefFromProto(p.GetEnvironmentRef())
-	return input
-}
-
-func attachmentInputFromProto(p *runv1.Attachment) *AttachmentInput {
-	if p == nil {
-		return nil
+	for _, item := range p.GetResources() {
+		input.Resources = append(input.Resources, sessionResourceInputFromProto(item))
 	}
-	input := &AttachmentInput{}
-	input.Filename = p.GetFilename()
-	input.StorageKey = p.GetStorageKey()
-	input.MountPath = p.GetMountPath()
-	input.ContentType = p.GetContentType()
-	input.Extract = p.GetExtract()
-	input.LocalPath = p.GetLocalPath()
 	return input
 }
 

@@ -213,42 +213,40 @@ type RoutineInput struct {
 
 // AgentInvocationInput is the SDK input type for AgentInvocation.
 type AgentInvocationInput struct {
-	AgentRef         ResourceRef
-	Message          string
-	Harness          sessionv1.Harness
-	WorkspaceEntries []*WorkspaceEntryInput
-	Vaults           []ResourceRef
-	RunConfig        *RunConfigInput
-	EnvironmentRef   ResourceRef
+	AgentRef       ResourceRef
+	Message        string
+	Harness        sessionv1.Harness
+	Vaults         []ResourceRef
+	RunConfig      *RunConfigInput
+	EnvironmentRef ResourceRef
+	Resources      []*SessionResourceInput
 }
 
-// WorkspaceEntryInput is the SDK input type for WorkspaceEntry.
-type WorkspaceEntryInput struct {
-	Name   string
-	Source *WorkspaceSourceInput
+// SessionResourceInput is the SDK input type for SessionResource.
+type SessionResourceInput struct {
+	Name          string
+	File          *FileResourceInput
+	GitRepository *GitRepositoryResourceInput
+	LocalPath     *LocalPathResourceInput
 }
 
-// WorkspaceSourceInput is the SDK input type for WorkspaceSource.
-type WorkspaceSourceInput struct {
-	GitRepo   *GitRepoSourceInput
-	LocalPath *LocalPathSourceInput
+// FileResourceInput is the SDK input type for FileResource.
+type FileResourceInput struct {
+	FileId    string
+	MountPath string
 }
 
-// GitRepoSourceInput is the SDK input type for GitRepoSource.
-type GitRepoSourceInput struct {
-	Url    string
-	Branch string
-	Commit string
-	// Depth is not sent when zero: this input cannot tell a zero you set from
-	// none, so zero means unset. Number of commits to include in the clone
-	// history.
-	Depth         int32
+// GitRepositoryResourceInput is the SDK input type for GitRepositoryResource.
+type GitRepositoryResourceInput struct {
+	Url           string
+	Branch        string
+	Commit        string
 	WriteBackMode sessionv1.GitWriteBackMode
 	Token         string
 }
 
-// LocalPathSourceInput is the SDK input type for LocalPathSource.
-type LocalPathSourceInput struct {
+// LocalPathResourceInput is the SDK input type for LocalPathResource.
+type LocalPathResourceInput struct {
 	Path string
 }
 
@@ -291,13 +289,6 @@ func (i *AgentInvocationInput) toProto() (*runv1.AgentInvocation, error) {
 	}
 	p.Message = i.Message
 	p.Harness = i.Harness
-	for idx, item := range i.WorkspaceEntries {
-		v, err := item.toProto()
-		if err != nil {
-			return nil, indexErr("WorkspaceEntries", idx, err)
-		}
-		p.WorkspaceEntries = append(p.WorkspaceEntries, v)
-	}
 	for _, r := range i.Vaults {
 		ref := r.toProto()
 		ref.Kind = apiresourcekind.ApiResourceKind_vault
@@ -315,41 +306,38 @@ func (i *AgentInvocationInput) toProto() (*runv1.AgentInvocation, error) {
 		ref.Kind = apiresourcekind.ApiResourceKind_environment
 		p.EnvironmentRef = ref
 	}
-	return p, nil
-}
-
-func (i *WorkspaceEntryInput) toProto() (*sessionv1.WorkspaceEntry, error) {
-	p := &sessionv1.WorkspaceEntry{}
-	p.Name = i.Name
-	if i.Source != nil {
-		v, err := i.Source.toProto()
+	for idx, item := range i.Resources {
+		v, err := item.toProto()
 		if err != nil {
-			return nil, fieldErr("Source", err)
+			return nil, indexErr("Resources", idx, err)
 		}
-		p.Source = v
+		p.Resources = append(p.Resources, v)
 	}
 	return p, nil
 }
 
-func (i *WorkspaceSourceInput) toProto() (*sessionv1.WorkspaceSource, error) {
-	p := &sessionv1.WorkspaceSource{}
+func (i *SessionResourceInput) toProto() (*sessionv1.SessionResource, error) {
+	p := &sessionv1.SessionResource{}
+	p.Name = i.Name
 	if i.LocalPath != nil {
-		m := &sessionv1.LocalPathSource{}
+		m := &sessionv1.LocalPathResource{}
 		m.Path = i.LocalPath.Path
-		p.Source = &sessionv1.WorkspaceSource_LocalPath{LocalPath: m}
+		p.Resource = &sessionv1.SessionResource_LocalPath{LocalPath: m}
 	}
-	if i.GitRepo != nil {
-		m := &sessionv1.GitRepoSource{}
-		m.Url = i.GitRepo.Url
-		m.Branch = i.GitRepo.Branch
-		m.Commit = i.GitRepo.Commit
-		if i.GitRepo.Depth != 0 {
-			v := i.GitRepo.Depth
-			m.Depth = &v
-		}
-		m.WriteBackMode = i.GitRepo.WriteBackMode
-		m.Token = i.GitRepo.Token
-		p.Source = &sessionv1.WorkspaceSource_GitRepo{GitRepo: m}
+	if i.GitRepository != nil {
+		m := &sessionv1.GitRepositoryResource{}
+		m.Url = i.GitRepository.Url
+		m.Branch = i.GitRepository.Branch
+		m.Commit = i.GitRepository.Commit
+		m.WriteBackMode = i.GitRepository.WriteBackMode
+		m.Token = i.GitRepository.Token
+		p.Resource = &sessionv1.SessionResource_GitRepository{GitRepository: m}
+	}
+	if i.File != nil {
+		m := &sessionv1.FileResource{}
+		m.FileId = i.File.FileId
+		m.MountPath = i.File.MountPath
+		p.Resource = &sessionv1.SessionResource_File{File: m}
 	}
 	return p, nil
 }
@@ -385,56 +373,57 @@ func agentInvocationInputFromProto(p *runv1.AgentInvocation) *AgentInvocationInp
 	input.AgentRef = resourceRefFromProto(p.GetAgentRef())
 	input.Message = p.GetMessage()
 	input.Harness = p.GetHarness()
-	for _, item := range p.GetWorkspaceEntries() {
-		input.WorkspaceEntries = append(input.WorkspaceEntries, workspaceEntryInputFromProto(item))
-	}
 	for _, r := range p.GetVaults() {
 		input.Vaults = append(input.Vaults, resourceRefFromProto(r))
 	}
 	input.RunConfig = runConfigInputFromProto(p.GetRunConfig())
 	input.EnvironmentRef = resourceRefFromProto(p.GetEnvironmentRef())
+	for _, item := range p.GetResources() {
+		input.Resources = append(input.Resources, sessionResourceInputFromProto(item))
+	}
 	return input
 }
 
-func workspaceEntryInputFromProto(p *sessionv1.WorkspaceEntry) *WorkspaceEntryInput {
+func sessionResourceInputFromProto(p *sessionv1.SessionResource) *SessionResourceInput {
 	if p == nil {
 		return nil
 	}
-	input := &WorkspaceEntryInput{}
+	input := &SessionResourceInput{}
 	input.Name = p.GetName()
-	input.Source = workspaceSourceInputFromProto(p.GetSource())
+	input.File = fileResourceInputFromProto(p.GetFile())
+	input.GitRepository = gitRepositoryResourceInputFromProto(p.GetGitRepository())
+	input.LocalPath = localPathResourceInputFromProto(p.GetLocalPath())
 	return input
 }
 
-func workspaceSourceInputFromProto(p *sessionv1.WorkspaceSource) *WorkspaceSourceInput {
+func fileResourceInputFromProto(p *sessionv1.FileResource) *FileResourceInput {
 	if p == nil {
 		return nil
 	}
-	input := &WorkspaceSourceInput{}
-	input.GitRepo = gitRepoSourceInputFromProto(p.GetGitRepo())
-	input.LocalPath = localPathSourceInputFromProto(p.GetLocalPath())
+	input := &FileResourceInput{}
+	input.FileId = p.GetFileId()
+	input.MountPath = p.GetMountPath()
 	return input
 }
 
-func gitRepoSourceInputFromProto(p *sessionv1.GitRepoSource) *GitRepoSourceInput {
+func gitRepositoryResourceInputFromProto(p *sessionv1.GitRepositoryResource) *GitRepositoryResourceInput {
 	if p == nil {
 		return nil
 	}
-	input := &GitRepoSourceInput{}
+	input := &GitRepositoryResourceInput{}
 	input.Url = p.GetUrl()
 	input.Branch = p.GetBranch()
 	input.Commit = p.GetCommit()
-	input.Depth = p.GetDepth()
 	input.WriteBackMode = p.GetWriteBackMode()
 	input.Token = p.GetToken()
 	return input
 }
 
-func localPathSourceInputFromProto(p *sessionv1.LocalPathSource) *LocalPathSourceInput {
+func localPathResourceInputFromProto(p *sessionv1.LocalPathResource) *LocalPathResourceInput {
 	if p == nil {
 		return nil
 	}
-	input := &LocalPathSourceInput{}
+	input := &LocalPathResourceInput{}
 	input.Path = p.GetPath()
 	return input
 }

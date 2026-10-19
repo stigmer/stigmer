@@ -38,7 +38,6 @@ import {
   Health,
   HealthCheckResponse_ServingStatus as ServingStatus,
 } from "@stigmer/apis/grpc/health/v1/health_pb";
-import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -93,8 +92,9 @@ function compose(
     // a live local Temporal (the conformance CRUD harness does the same).
     TEMPORAL_HOST_PORT: "127.0.0.1:1",
     DB_PATH: path.join(testDir, "stigmer.db"),
-    // Keep the artifact store inside the test dir (never ~/.stigmer).
-    ARTIFACT_LOCAL_BASE_PATH: path.join(testDir, "artifacts"),
+    // Keep the artifact store inside the test dir (never ~/.stigmer),
+    // unless the test names its own.
+    ARTIFACT_LOCAL_BASE_PATH: env.ARTIFACT_LOCAL_BASE_PATH ?? path.join(testDir, "artifacts"),
     // Same for the skill artifact store — its boot-time staging wipe
     // must never run against the real ~/.stigmer/storage.
     STORAGE_PATH: path.join(testDir, "storage"),
@@ -173,7 +173,8 @@ describe("the artifact download lane", () => {
   });
 
   it("binds an ephemeral lane beside an ephemeral unified port, reports both, and a minted download URL reaches it", async () => {
-    const server = await compose();
+    const artifactRoot = mkdtempSync(path.join(tmpdir(), "compose-artifacts-"));
+    const server = await compose({ ARTIFACT_LOCAL_BASE_PATH: artifactRoot });
     expect(server.boundPorts()).toBeUndefined();
     const port = await server.start();
     try {
@@ -187,27 +188,19 @@ describe("the artifact download lane", () => {
       const transport = createGrpcTransport({
         baseUrl: `http://127.0.0.1:${port}`,
       });
-      // A run's attachment: uploaded through the run's own lane, named on
-      // a stored run, and handed back as a minted download URL.
-      const command = createClient(RunCommandController, transport);
+      // A run's artifact, written where the store keeps it, named by a
+      // stored run, and handed back as a minted download URL.
       const query = createClient(RunQueryController, transport);
       const content = new TextEncoder().encode("ephemeral lane body\n");
-      const { storageKey } = await command.uploadAttachment({
-        filename: "ephemeral-lane.txt",
-        content,
-        contentType: "text/plain",
-      });
       const runId = "aex_01ephemerallane";
+      const storageKey = `artifacts/${runId}/ephemeral-lane.txt`;
+      mkdirSync(path.join(artifactRoot, "artifacts", runId), { recursive: true });
+      writeFileSync(path.join(artifactRoot, storageKey), content);
       await server.store.saveResource(
         ApiResourceKind.run,
         runId,
         RunSchema,
-        create(RunSchema, {
-          metadata: { id: runId, name: runId },
-          spec: {
-            attachments: [{ filename: "ephemeral-lane.txt", storageKey }],
-          },
-        }),
+        create(RunSchema, { metadata: { id: runId, name: runId } }),
       );
       const download = await query.getArtifactDownloadUrl({
         runId,

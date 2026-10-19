@@ -673,7 +673,7 @@ export function useNewSessionFlow(
         const vaults = pick?.vaults ?? vaultsOption;
 
         const sessionSpecBase = {
-          workspaceEntries: workspace.hasEntries
+          resources: workspace.hasEntries
             ? workspace.toInput()
             : undefined,
           plugins: pluginRefs.length > 0 ? pluginRefs : undefined,
@@ -708,7 +708,7 @@ export function useNewSessionFlow(
           // The composer's context carries only the tier and thinking the
           // person chose.
           modelName: pinnedModelName ?? selectedModel ?? effectiveModelId,
-          attachments: context?.attachments,
+          fileIds: context?.fileIds,
           interactionMode: context?.interactionMode,
           serviceTier: pinnedModelName ? pinnedServiceTier : context?.serviceTier,
           thinkingMode: pinnedModelName ? pinnedThinkingMode : context?.thinkingMode,
@@ -751,6 +751,9 @@ export function useNewSessionFlow(
           ...executionFields,
           sessionSpec: { ...sessionSpecBase, agentRef: sessionAgentRef },
         });
+        // The run exists and names the person's own Files; the new
+        // conversation holds its copies, so the originals can go.
+        void context?.releaseFiles?.();
 
         // Local run: attach the session's runner worker now that the
         // session ID is known. The session view (useSessionConversation)
@@ -765,6 +768,10 @@ export function useNewSessionFlow(
 
         onSessionCreated(sessionId);
       } catch (err) {
+        // The chat box has already let go of the Files and nothing names
+        // them again (another attempt uploads afresh), so a failed start
+        // leaves no File of the person's behind either.
+        void context?.releaseFiles?.();
         const detail = getUserMessage(err, "Failed to start session");
         setSubmitError(detail);
         setSubmitFailure(toError(err));

@@ -41,8 +41,8 @@ private static final long serialVersionUID = 0L;
   private AgentInvocation() {
     message_ = "";
     harness_ = 0;
-    workspaceEntries_ = java.util.Collections.emptyList();
     vaults_ = java.util.Collections.emptyList();
+    resources_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -191,67 +191,6 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override public ai.stigmer.agentic.session.v1.Harness getHarness() {
     ai.stigmer.agentic.session.v1.Harness result = ai.stigmer.agentic.session.v1.Harness.forNumber(harness_);
     return result == null ? ai.stigmer.agentic.session.v1.Harness.UNRECOGNIZED : result;
-  }
-
-  public static final int WORKSPACE_ENTRIES_FIELD_NUMBER = 4;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.session.v1.WorkspaceEntry> workspaceEntries_;
-  /**
-   * <pre>
-   * Workspace the run's session operates on. Empty means no workspace.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.session.v1.WorkspaceEntry> getWorkspaceEntriesList() {
-    return workspaceEntries_;
-  }
-  /**
-   * <pre>
-   * Workspace the run's session operates on. Empty means no workspace.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder> 
-      getWorkspaceEntriesOrBuilderList() {
-    return workspaceEntries_;
-  }
-  /**
-   * <pre>
-   * Workspace the run's session operates on. Empty means no workspace.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public int getWorkspaceEntriesCount() {
-    return workspaceEntries_.size();
-  }
-  /**
-   * <pre>
-   * Workspace the run's session operates on. Empty means no workspace.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.session.v1.WorkspaceEntry getWorkspaceEntries(int index) {
-    return workspaceEntries_.get(index);
-  }
-  /**
-   * <pre>
-   * Workspace the run's session operates on. Empty means no workspace.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder getWorkspaceEntriesOrBuilder(
-      int index) {
-    return workspaceEntries_.get(index);
   }
 
   public static final int VAULTS_FIELD_NUMBER = 7;
@@ -423,6 +362,82 @@ private static final long serialVersionUID = 0L;
     return environmentRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : environmentRef_;
   }
 
+  public static final int RESOURCES_FIELD_NUMBER = 9;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.session.v1.SessionResource> resources_;
+  /**
+   * <pre>
+   * What each run's conversation holds: Files and git repositories (a
+   * routine's runs have no machine of the person's to read a folder from).
+   * Each run's conversation gets its own copy of each File, made when the
+   * run starts, so every nightly run finds the same q3-ledger.xlsx.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.session.v1.SessionResource> getResourcesList() {
+    return resources_;
+  }
+  /**
+   * <pre>
+   * What each run's conversation holds: Files and git repositories (a
+   * routine's runs have no machine of the person's to read a folder from).
+   * Each run's conversation gets its own copy of each File, made when the
+   * run starts, so every nightly run finds the same q3-ledger.xlsx.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.session.v1.SessionResourceOrBuilder> 
+      getResourcesOrBuilderList() {
+    return resources_;
+  }
+  /**
+   * <pre>
+   * What each run's conversation holds: Files and git repositories (a
+   * routine's runs have no machine of the person's to read a folder from).
+   * Each run's conversation gets its own copy of each File, made when the
+   * run starts, so every nightly run finds the same q3-ledger.xlsx.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public int getResourcesCount() {
+    return resources_.size();
+  }
+  /**
+   * <pre>
+   * What each run's conversation holds: Files and git repositories (a
+   * routine's runs have no machine of the person's to read a folder from).
+   * Each run's conversation gets its own copy of each File, made when the
+   * run starts, so every nightly run finds the same q3-ledger.xlsx.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.SessionResource getResources(int index) {
+    return resources_.get(index);
+  }
+  /**
+   * <pre>
+   * What each run's conversation holds: Files and git repositories (a
+   * routine's runs have no machine of the person's to read a folder from).
+   * Each run's conversation gets its own copy of each File, made when the
+   * run starts, so every nightly run finds the same q3-ledger.xlsx.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.SessionResourceOrBuilder getResourcesOrBuilder(
+      int index) {
+    return resources_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -446,9 +461,6 @@ private static final long serialVersionUID = 0L;
     if (harness_ != ai.stigmer.agentic.session.v1.Harness.HARNESS_UNSPECIFIED.getNumber()) {
       output.writeEnum(3, harness_);
     }
-    for (int i = 0; i < workspaceEntries_.size(); i++) {
-      output.writeMessage(4, workspaceEntries_.get(i));
-    }
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(6, getRunConfig());
     }
@@ -457,6 +469,9 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(8, getEnvironmentRef());
+    }
+    for (int i = 0; i < resources_.size(); i++) {
+      output.writeMessage(9, resources_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -478,15 +493,6 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(3, harness_);
     }
-
-        {
-          final int count = workspaceEntries_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(workspaceEntries_.get(i));
-          }
-          size += 1 * count;
-        }
     if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(6, getRunConfig());
@@ -504,6 +510,15 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(8, getEnvironmentRef());
     }
+
+        {
+          final int count = resources_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(resources_.get(i));
+          }
+          size += 1 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -527,8 +542,6 @@ private static final long serialVersionUID = 0L;
     if (!getMessage()
         .equals(other.getMessage())) return false;
     if (harness_ != other.harness_) return false;
-    if (!getWorkspaceEntriesList()
-        .equals(other.getWorkspaceEntriesList())) return false;
     if (!getVaultsList()
         .equals(other.getVaultsList())) return false;
     if (hasRunConfig() != other.hasRunConfig()) return false;
@@ -541,6 +554,8 @@ private static final long serialVersionUID = 0L;
       if (!getEnvironmentRef()
           .equals(other.getEnvironmentRef())) return false;
     }
+    if (!getResourcesList()
+        .equals(other.getResourcesList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -560,10 +575,6 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getMessage().hashCode();
     hash = (37 * hash) + HARNESS_FIELD_NUMBER;
     hash = (53 * hash) + harness_;
-    if (getWorkspaceEntriesCount() > 0) {
-      hash = (37 * hash) + WORKSPACE_ENTRIES_FIELD_NUMBER;
-      hash = (53 * hash) + getWorkspaceEntriesList().hashCode();
-    }
     if (getVaultsCount() > 0) {
       hash = (37 * hash) + VAULTS_FIELD_NUMBER;
       hash = (53 * hash) + getVaultsList().hashCode();
@@ -575,6 +586,10 @@ private static final long serialVersionUID = 0L;
     if (hasEnvironmentRef()) {
       hash = (37 * hash) + ENVIRONMENT_REF_FIELD_NUMBER;
       hash = (53 * hash) + getEnvironmentRef().hashCode();
+    }
+    if (getResourcesCount() > 0) {
+      hash = (37 * hash) + RESOURCES_FIELD_NUMBER;
+      hash = (53 * hash) + getResourcesList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -718,10 +733,10 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetAgentRefFieldBuilder();
-        internalGetWorkspaceEntriesFieldBuilder();
         internalGetVaultsFieldBuilder();
         internalGetRunConfigFieldBuilder();
         internalGetEnvironmentRefFieldBuilder();
+        internalGetResourcesFieldBuilder();
       }
     }
     @java.lang.Override
@@ -735,20 +750,13 @@ private static final long serialVersionUID = 0L;
       }
       message_ = "";
       harness_ = 0;
-      if (workspaceEntriesBuilder_ == null) {
-        workspaceEntries_ = java.util.Collections.emptyList();
-      } else {
-        workspaceEntries_ = null;
-        workspaceEntriesBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000008);
       if (vaultsBuilder_ == null) {
         vaults_ = java.util.Collections.emptyList();
       } else {
         vaults_ = null;
         vaultsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000008);
       runConfig_ = null;
       if (runConfigBuilder_ != null) {
         runConfigBuilder_.dispose();
@@ -759,6 +767,13 @@ private static final long serialVersionUID = 0L;
         environmentRefBuilder_.dispose();
         environmentRefBuilder_ = null;
       }
+      if (resourcesBuilder_ == null) {
+        resources_ = java.util.Collections.emptyList();
+      } else {
+        resources_ = null;
+        resourcesBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000040);
       return this;
     }
 
@@ -792,23 +807,23 @@ private static final long serialVersionUID = 0L;
     }
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.run.v1.AgentInvocation result) {
-      if (workspaceEntriesBuilder_ == null) {
-        if (((bitField0_ & 0x00000008) != 0)) {
-          workspaceEntries_ = java.util.Collections.unmodifiableList(workspaceEntries_);
-          bitField0_ = (bitField0_ & ~0x00000008);
-        }
-        result.workspaceEntries_ = workspaceEntries_;
-      } else {
-        result.workspaceEntries_ = workspaceEntriesBuilder_.build();
-      }
       if (vaultsBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0)) {
+        if (((bitField0_ & 0x00000008) != 0)) {
           vaults_ = java.util.Collections.unmodifiableList(vaults_);
-          bitField0_ = (bitField0_ & ~0x00000010);
+          bitField0_ = (bitField0_ & ~0x00000008);
         }
         result.vaults_ = vaults_;
       } else {
         result.vaults_ = vaultsBuilder_.build();
+      }
+      if (resourcesBuilder_ == null) {
+        if (((bitField0_ & 0x00000040) != 0)) {
+          resources_ = java.util.Collections.unmodifiableList(resources_);
+          bitField0_ = (bitField0_ & ~0x00000040);
+        }
+        result.resources_ = resources_;
+      } else {
+        result.resources_ = resourcesBuilder_.build();
       }
     }
 
@@ -827,13 +842,13 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.harness_ = harness_;
       }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.runConfig_ = runConfigBuilder_ == null
             ? runConfig_
             : runConfigBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
+      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.environmentRef_ = environmentRefBuilder_ == null
             ? environmentRef_
             : environmentRefBuilder_.build();
@@ -865,37 +880,11 @@ private static final long serialVersionUID = 0L;
       if (other.harness_ != 0) {
         setHarnessValue(other.getHarnessValue());
       }
-      if (workspaceEntriesBuilder_ == null) {
-        if (!other.workspaceEntries_.isEmpty()) {
-          if (workspaceEntries_.isEmpty()) {
-            workspaceEntries_ = other.workspaceEntries_;
-            bitField0_ = (bitField0_ & ~0x00000008);
-          } else {
-            ensureWorkspaceEntriesIsMutable();
-            workspaceEntries_.addAll(other.workspaceEntries_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.workspaceEntries_.isEmpty()) {
-          if (workspaceEntriesBuilder_.isEmpty()) {
-            workspaceEntriesBuilder_.dispose();
-            workspaceEntriesBuilder_ = null;
-            workspaceEntries_ = other.workspaceEntries_;
-            bitField0_ = (bitField0_ & ~0x00000008);
-            workspaceEntriesBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetWorkspaceEntriesFieldBuilder() : null;
-          } else {
-            workspaceEntriesBuilder_.addAllMessages(other.workspaceEntries_);
-          }
-        }
-      }
       if (vaultsBuilder_ == null) {
         if (!other.vaults_.isEmpty()) {
           if (vaults_.isEmpty()) {
             vaults_ = other.vaults_;
-            bitField0_ = (bitField0_ & ~0x00000010);
+            bitField0_ = (bitField0_ & ~0x00000008);
           } else {
             ensureVaultsIsMutable();
             vaults_.addAll(other.vaults_);
@@ -908,7 +897,7 @@ private static final long serialVersionUID = 0L;
             vaultsBuilder_.dispose();
             vaultsBuilder_ = null;
             vaults_ = other.vaults_;
-            bitField0_ = (bitField0_ & ~0x00000010);
+            bitField0_ = (bitField0_ & ~0x00000008);
             vaultsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetVaultsFieldBuilder() : null;
@@ -922,6 +911,32 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasEnvironmentRef()) {
         mergeEnvironmentRef(other.getEnvironmentRef());
+      }
+      if (resourcesBuilder_ == null) {
+        if (!other.resources_.isEmpty()) {
+          if (resources_.isEmpty()) {
+            resources_ = other.resources_;
+            bitField0_ = (bitField0_ & ~0x00000040);
+          } else {
+            ensureResourcesIsMutable();
+            resources_.addAll(other.resources_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.resources_.isEmpty()) {
+          if (resourcesBuilder_.isEmpty()) {
+            resourcesBuilder_.dispose();
+            resourcesBuilder_ = null;
+            resources_ = other.resources_;
+            bitField0_ = (bitField0_ & ~0x00000040);
+            resourcesBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetResourcesFieldBuilder() : null;
+          } else {
+            resourcesBuilder_.addAllMessages(other.resources_);
+          }
+        }
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -966,24 +981,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 24
-            case 34: {
-              ai.stigmer.agentic.session.v1.WorkspaceEntry m =
-                  input.readMessage(
-                      ai.stigmer.agentic.session.v1.WorkspaceEntry.parser(),
-                      extensionRegistry);
-              if (workspaceEntriesBuilder_ == null) {
-                ensureWorkspaceEntriesIsMutable();
-                workspaceEntries_.add(m);
-              } else {
-                workspaceEntriesBuilder_.addMessage(m);
-              }
-              break;
-            } // case 34
             case 50: {
               input.readMessage(
                   internalGetRunConfigFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000010;
               break;
             } // case 50
             case 58: {
@@ -1003,9 +1005,22 @@ private static final long serialVersionUID = 0L;
               input.readMessage(
                   internalGetEnvironmentRefFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000020;
               break;
             } // case 66
+            case 74: {
+              ai.stigmer.agentic.session.v1.SessionResource m =
+                  input.readMessage(
+                      ai.stigmer.agentic.session.v1.SessionResource.parser(),
+                      extensionRegistry);
+              if (resourcesBuilder_ == null) {
+                ensureResourcesIsMutable();
+                resources_.add(m);
+              } else {
+                resourcesBuilder_.addMessage(m);
+              }
+              break;
+            } // case 74
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1395,324 +1410,12 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.util.List<ai.stigmer.agentic.session.v1.WorkspaceEntry> workspaceEntries_ =
-      java.util.Collections.emptyList();
-    private void ensureWorkspaceEntriesIsMutable() {
-      if (!((bitField0_ & 0x00000008) != 0)) {
-        workspaceEntries_ = new java.util.ArrayList<ai.stigmer.agentic.session.v1.WorkspaceEntry>(workspaceEntries_);
-        bitField0_ |= 0x00000008;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.session.v1.WorkspaceEntry, ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder, ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder> workspaceEntriesBuilder_;
-
-    /**
-     * <pre>
-     * Workspace the run's session operates on. Empty means no workspace.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-     */
-    public java.util.List<ai.stigmer.agentic.session.v1.WorkspaceEntry> getWorkspaceEntriesList() {
-      if (workspaceEntriesBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(workspaceEntries_);
-      } else {
-        return workspaceEntriesBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * Workspace the run's session operates on. Empty means no workspace.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-     */
-    public int getWorkspaceEntriesCount() {
-      if (workspaceEntriesBuilder_ == null) {
-        return workspaceEntries_.size();
-      } else {
-        return workspaceEntriesBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * Workspace the run's session operates on. Empty means no workspace.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.agentic.session.v1.WorkspaceEntry getWorkspaceEntries(int index) {
-      if (workspaceEntriesBuilder_ == null) {
-        return workspaceEntries_.get(index);
-      } else {
-        return workspaceEntriesBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * Workspace the run's session operates on. Empty means no workspace.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder setWorkspaceEntries(
-        int index, ai.stigmer.agentic.session.v1.WorkspaceEntry value) {
-      if (workspaceEntriesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureWorkspaceEntriesIsMutable();
-        workspaceEntries_.set(index, value);
-        onChanged();
-      } else {
-        workspaceEntriesBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace the run's session operates on. Empty means no workspace.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder setWorkspaceEntries(
-        int index, ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder builderForValue) {
-      if (workspaceEntriesBuilder_ == null) {
-        ensureWorkspaceEntriesIsMutable();
-        workspaceEntries_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        workspaceEntriesBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace the run's session operates on. Empty means no workspace.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addWorkspaceEntries(ai.stigmer.agentic.session.v1.WorkspaceEntry value) {
-      if (workspaceEntriesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureWorkspaceEntriesIsMutable();
-        workspaceEntries_.add(value);
-        onChanged();
-      } else {
-        workspaceEntriesBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace the run's session operates on. Empty means no workspace.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addWorkspaceEntries(
-        int index, ai.stigmer.agentic.session.v1.WorkspaceEntry value) {
-      if (workspaceEntriesBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureWorkspaceEntriesIsMutable();
-        workspaceEntries_.add(index, value);
-        onChanged();
-      } else {
-        workspaceEntriesBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace the run's session operates on. Empty means no workspace.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addWorkspaceEntries(
-        ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder builderForValue) {
-      if (workspaceEntriesBuilder_ == null) {
-        ensureWorkspaceEntriesIsMutable();
-        workspaceEntries_.add(builderForValue.build());
-        onChanged();
-      } else {
-        workspaceEntriesBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace the run's session operates on. Empty means no workspace.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addWorkspaceEntries(
-        int index, ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder builderForValue) {
-      if (workspaceEntriesBuilder_ == null) {
-        ensureWorkspaceEntriesIsMutable();
-        workspaceEntries_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        workspaceEntriesBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace the run's session operates on. Empty means no workspace.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addAllWorkspaceEntries(
-        java.lang.Iterable<? extends ai.stigmer.agentic.session.v1.WorkspaceEntry> values) {
-      if (workspaceEntriesBuilder_ == null) {
-        ensureWorkspaceEntriesIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, workspaceEntries_);
-        onChanged();
-      } else {
-        workspaceEntriesBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace the run's session operates on. Empty means no workspace.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder clearWorkspaceEntries() {
-      if (workspaceEntriesBuilder_ == null) {
-        workspaceEntries_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000008);
-        onChanged();
-      } else {
-        workspaceEntriesBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace the run's session operates on. Empty means no workspace.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder removeWorkspaceEntries(int index) {
-      if (workspaceEntriesBuilder_ == null) {
-        ensureWorkspaceEntriesIsMutable();
-        workspaceEntries_.remove(index);
-        onChanged();
-      } else {
-        workspaceEntriesBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Workspace the run's session operates on. Empty means no workspace.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder getWorkspaceEntriesBuilder(
-        int index) {
-      return internalGetWorkspaceEntriesFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * Workspace the run's session operates on. Empty means no workspace.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder getWorkspaceEntriesOrBuilder(
-        int index) {
-      if (workspaceEntriesBuilder_ == null) {
-        return workspaceEntries_.get(index);  } else {
-        return workspaceEntriesBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * Workspace the run's session operates on. Empty means no workspace.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-     */
-    public java.util.List<? extends ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder> 
-         getWorkspaceEntriesOrBuilderList() {
-      if (workspaceEntriesBuilder_ != null) {
-        return workspaceEntriesBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(workspaceEntries_);
-      }
-    }
-    /**
-     * <pre>
-     * Workspace the run's session operates on. Empty means no workspace.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder addWorkspaceEntriesBuilder() {
-      return internalGetWorkspaceEntriesFieldBuilder().addBuilder(
-          ai.stigmer.agentic.session.v1.WorkspaceEntry.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Workspace the run's session operates on. Empty means no workspace.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-     */
-    public ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder addWorkspaceEntriesBuilder(
-        int index) {
-      return internalGetWorkspaceEntriesFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.session.v1.WorkspaceEntry.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Workspace the run's session operates on. Empty means no workspace.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 4 [json_name = "workspaceEntries", (.buf.validate.field) = { ... }</code>
-     */
-    public java.util.List<ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder> 
-         getWorkspaceEntriesBuilderList() {
-      return internalGetWorkspaceEntriesFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.session.v1.WorkspaceEntry, ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder, ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder> 
-        internalGetWorkspaceEntriesFieldBuilder() {
-      if (workspaceEntriesBuilder_ == null) {
-        workspaceEntriesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.session.v1.WorkspaceEntry, ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder, ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder>(
-                workspaceEntries_,
-                ((bitField0_ & 0x00000008) != 0),
-                getParentForChildren(),
-                isClean());
-        workspaceEntries_ = null;
-      }
-      return workspaceEntriesBuilder_;
-    }
-
     private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> vaults_ =
       java.util.Collections.emptyList();
     private void ensureVaultsIsMutable() {
-      if (!((bitField0_ & 0x00000010) != 0)) {
+      if (!((bitField0_ & 0x00000008) != 0)) {
         vaults_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(vaults_);
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000008;
        }
     }
 
@@ -1950,7 +1653,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearVaults() {
       if (vaultsBuilder_ == null) {
         vaults_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000010);
+        bitField0_ = (bitField0_ & ~0x00000008);
         onChanged();
       } else {
         vaultsBuilder_.clear();
@@ -2083,7 +1786,7 @@ private static final long serialVersionUID = 0L;
         vaultsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
                 vaults_,
-                ((bitField0_ & 0x00000010) != 0),
+                ((bitField0_ & 0x00000008) != 0),
                 getParentForChildren(),
                 isClean());
         vaults_ = null;
@@ -2105,7 +1808,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the runConfig field is set.
      */
     public boolean hasRunConfig() {
-      return ((bitField0_ & 0x00000020) != 0);
+      return ((bitField0_ & 0x00000010) != 0);
     }
     /**
      * <pre>
@@ -2142,7 +1845,7 @@ private static final long serialVersionUID = 0L;
       } else {
         runConfigBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -2162,7 +1865,7 @@ private static final long serialVersionUID = 0L;
       } else {
         runConfigBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -2177,7 +1880,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeRunConfig(ai.stigmer.agentic.run.v1.RunConfig value) {
       if (runConfigBuilder_ == null) {
-        if (((bitField0_ & 0x00000020) != 0) &&
+        if (((bitField0_ & 0x00000010) != 0) &&
           runConfig_ != null &&
           runConfig_ != ai.stigmer.agentic.run.v1.RunConfig.getDefaultInstance()) {
           getRunConfigBuilder().mergeFrom(value);
@@ -2188,7 +1891,7 @@ private static final long serialVersionUID = 0L;
         runConfigBuilder_.mergeFrom(value);
       }
       if (runConfig_ != null) {
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000010;
         onChanged();
       }
       return this;
@@ -2203,7 +1906,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 6 [json_name = "runConfig"];</code>
      */
     public Builder clearRunConfig() {
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000010);
       runConfig_ = null;
       if (runConfigBuilder_ != null) {
         runConfigBuilder_.dispose();
@@ -2222,7 +1925,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 6 [json_name = "runConfig"];</code>
      */
     public ai.stigmer.agentic.run.v1.RunConfig.Builder getRunConfigBuilder() {
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return internalGetRunConfigFieldBuilder().getBuilder();
     }
@@ -2280,7 +1983,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the environmentRef field is set.
      */
     public boolean hasEnvironmentRef() {
-      return ((bitField0_ & 0x00000040) != 0);
+      return ((bitField0_ & 0x00000020) != 0);
     }
     /**
      * <pre>
@@ -2317,7 +2020,7 @@ private static final long serialVersionUID = 0L;
       } else {
         environmentRefBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2337,7 +2040,7 @@ private static final long serialVersionUID = 0L;
       } else {
         environmentRefBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2352,7 +2055,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeEnvironmentRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
       if (environmentRefBuilder_ == null) {
-        if (((bitField0_ & 0x00000040) != 0) &&
+        if (((bitField0_ & 0x00000020) != 0) &&
           environmentRef_ != null &&
           environmentRef_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
           getEnvironmentRefBuilder().mergeFrom(value);
@@ -2363,7 +2066,7 @@ private static final long serialVersionUID = 0L;
         environmentRefBuilder_.mergeFrom(value);
       }
       if (environmentRef_ != null) {
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000020;
         onChanged();
       }
       return this;
@@ -2378,7 +2081,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 8 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
      */
     public Builder clearEnvironmentRef() {
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000020);
       environmentRef_ = null;
       if (environmentRefBuilder_ != null) {
         environmentRefBuilder_.dispose();
@@ -2397,7 +2100,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference environment_ref = 8 [json_name = "environmentRef", (.ai.stigmer.commons.apiresource.reference_kind) = environment];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getEnvironmentRefBuilder() {
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return internalGetEnvironmentRefFieldBuilder().getBuilder();
     }
@@ -2439,6 +2142,372 @@ private static final long serialVersionUID = 0L;
         environmentRef_ = null;
       }
       return environmentRefBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.session.v1.SessionResource> resources_ =
+      java.util.Collections.emptyList();
+    private void ensureResourcesIsMutable() {
+      if (!((bitField0_ & 0x00000040) != 0)) {
+        resources_ = new java.util.ArrayList<ai.stigmer.agentic.session.v1.SessionResource>(resources_);
+        bitField0_ |= 0x00000040;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.session.v1.SessionResource, ai.stigmer.agentic.session.v1.SessionResource.Builder, ai.stigmer.agentic.session.v1.SessionResourceOrBuilder> resourcesBuilder_;
+
+    /**
+     * <pre>
+     * What each run's conversation holds: Files and git repositories (a
+     * routine's runs have no machine of the person's to read a folder from).
+     * Each run's conversation gets its own copy of each File, made when the
+     * run starts, so every nightly run finds the same q3-ledger.xlsx.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.agentic.session.v1.SessionResource> getResourcesList() {
+      if (resourcesBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(resources_);
+      } else {
+        return resourcesBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * What each run's conversation holds: Files and git repositories (a
+     * routine's runs have no machine of the person's to read a folder from).
+     * Each run's conversation gets its own copy of each File, made when the
+     * run starts, so every nightly run finds the same q3-ledger.xlsx.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public int getResourcesCount() {
+      if (resourcesBuilder_ == null) {
+        return resources_.size();
+      } else {
+        return resourcesBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * What each run's conversation holds: Files and git repositories (a
+     * routine's runs have no machine of the person's to read a folder from).
+     * Each run's conversation gets its own copy of each File, made when the
+     * run starts, so every nightly run finds the same q3-ledger.xlsx.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.session.v1.SessionResource getResources(int index) {
+      if (resourcesBuilder_ == null) {
+        return resources_.get(index);
+      } else {
+        return resourcesBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * What each run's conversation holds: Files and git repositories (a
+     * routine's runs have no machine of the person's to read a folder from).
+     * Each run's conversation gets its own copy of each File, made when the
+     * run starts, so every nightly run finds the same q3-ledger.xlsx.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setResources(
+        int index, ai.stigmer.agentic.session.v1.SessionResource value) {
+      if (resourcesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureResourcesIsMutable();
+        resources_.set(index, value);
+        onChanged();
+      } else {
+        resourcesBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What each run's conversation holds: Files and git repositories (a
+     * routine's runs have no machine of the person's to read a folder from).
+     * Each run's conversation gets its own copy of each File, made when the
+     * run starts, so every nightly run finds the same q3-ledger.xlsx.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setResources(
+        int index, ai.stigmer.agentic.session.v1.SessionResource.Builder builderForValue) {
+      if (resourcesBuilder_ == null) {
+        ensureResourcesIsMutable();
+        resources_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        resourcesBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What each run's conversation holds: Files and git repositories (a
+     * routine's runs have no machine of the person's to read a folder from).
+     * Each run's conversation gets its own copy of each File, made when the
+     * run starts, so every nightly run finds the same q3-ledger.xlsx.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addResources(ai.stigmer.agentic.session.v1.SessionResource value) {
+      if (resourcesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureResourcesIsMutable();
+        resources_.add(value);
+        onChanged();
+      } else {
+        resourcesBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What each run's conversation holds: Files and git repositories (a
+     * routine's runs have no machine of the person's to read a folder from).
+     * Each run's conversation gets its own copy of each File, made when the
+     * run starts, so every nightly run finds the same q3-ledger.xlsx.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addResources(
+        int index, ai.stigmer.agentic.session.v1.SessionResource value) {
+      if (resourcesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureResourcesIsMutable();
+        resources_.add(index, value);
+        onChanged();
+      } else {
+        resourcesBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What each run's conversation holds: Files and git repositories (a
+     * routine's runs have no machine of the person's to read a folder from).
+     * Each run's conversation gets its own copy of each File, made when the
+     * run starts, so every nightly run finds the same q3-ledger.xlsx.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addResources(
+        ai.stigmer.agentic.session.v1.SessionResource.Builder builderForValue) {
+      if (resourcesBuilder_ == null) {
+        ensureResourcesIsMutable();
+        resources_.add(builderForValue.build());
+        onChanged();
+      } else {
+        resourcesBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What each run's conversation holds: Files and git repositories (a
+     * routine's runs have no machine of the person's to read a folder from).
+     * Each run's conversation gets its own copy of each File, made when the
+     * run starts, so every nightly run finds the same q3-ledger.xlsx.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addResources(
+        int index, ai.stigmer.agentic.session.v1.SessionResource.Builder builderForValue) {
+      if (resourcesBuilder_ == null) {
+        ensureResourcesIsMutable();
+        resources_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        resourcesBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What each run's conversation holds: Files and git repositories (a
+     * routine's runs have no machine of the person's to read a folder from).
+     * Each run's conversation gets its own copy of each File, made when the
+     * run starts, so every nightly run finds the same q3-ledger.xlsx.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addAllResources(
+        java.lang.Iterable<? extends ai.stigmer.agentic.session.v1.SessionResource> values) {
+      if (resourcesBuilder_ == null) {
+        ensureResourcesIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, resources_);
+        onChanged();
+      } else {
+        resourcesBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What each run's conversation holds: Files and git repositories (a
+     * routine's runs have no machine of the person's to read a folder from).
+     * Each run's conversation gets its own copy of each File, made when the
+     * run starts, so every nightly run finds the same q3-ledger.xlsx.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder clearResources() {
+      if (resourcesBuilder_ == null) {
+        resources_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000040);
+        onChanged();
+      } else {
+        resourcesBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What each run's conversation holds: Files and git repositories (a
+     * routine's runs have no machine of the person's to read a folder from).
+     * Each run's conversation gets its own copy of each File, made when the
+     * run starts, so every nightly run finds the same q3-ledger.xlsx.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder removeResources(int index) {
+      if (resourcesBuilder_ == null) {
+        ensureResourcesIsMutable();
+        resources_.remove(index);
+        onChanged();
+      } else {
+        resourcesBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What each run's conversation holds: Files and git repositories (a
+     * routine's runs have no machine of the person's to read a folder from).
+     * Each run's conversation gets its own copy of each File, made when the
+     * run starts, so every nightly run finds the same q3-ledger.xlsx.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.session.v1.SessionResource.Builder getResourcesBuilder(
+        int index) {
+      return internalGetResourcesFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * What each run's conversation holds: Files and git repositories (a
+     * routine's runs have no machine of the person's to read a folder from).
+     * Each run's conversation gets its own copy of each File, made when the
+     * run starts, so every nightly run finds the same q3-ledger.xlsx.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.session.v1.SessionResourceOrBuilder getResourcesOrBuilder(
+        int index) {
+      if (resourcesBuilder_ == null) {
+        return resources_.get(index);  } else {
+        return resourcesBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * What each run's conversation holds: Files and git repositories (a
+     * routine's runs have no machine of the person's to read a folder from).
+     * Each run's conversation gets its own copy of each File, made when the
+     * run starts, so every nightly run finds the same q3-ledger.xlsx.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.session.v1.SessionResourceOrBuilder> 
+         getResourcesOrBuilderList() {
+      if (resourcesBuilder_ != null) {
+        return resourcesBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(resources_);
+      }
+    }
+    /**
+     * <pre>
+     * What each run's conversation holds: Files and git repositories (a
+     * routine's runs have no machine of the person's to read a folder from).
+     * Each run's conversation gets its own copy of each File, made when the
+     * run starts, so every nightly run finds the same q3-ledger.xlsx.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.session.v1.SessionResource.Builder addResourcesBuilder() {
+      return internalGetResourcesFieldBuilder().addBuilder(
+          ai.stigmer.agentic.session.v1.SessionResource.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * What each run's conversation holds: Files and git repositories (a
+     * routine's runs have no machine of the person's to read a folder from).
+     * Each run's conversation gets its own copy of each File, made when the
+     * run starts, so every nightly run finds the same q3-ledger.xlsx.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.session.v1.SessionResource.Builder addResourcesBuilder(
+        int index) {
+      return internalGetResourcesFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.session.v1.SessionResource.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * What each run's conversation holds: Files and git repositories (a
+     * routine's runs have no machine of the person's to read a folder from).
+     * Each run's conversation gets its own copy of each File, made when the
+     * run starts, so every nightly run finds the same q3-ledger.xlsx.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.session.v1.SessionResource resources = 9 [json_name = "resources", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.agentic.session.v1.SessionResource.Builder> 
+         getResourcesBuilderList() {
+      return internalGetResourcesFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.session.v1.SessionResource, ai.stigmer.agentic.session.v1.SessionResource.Builder, ai.stigmer.agentic.session.v1.SessionResourceOrBuilder> 
+        internalGetResourcesFieldBuilder() {
+      if (resourcesBuilder_ == null) {
+        resourcesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.session.v1.SessionResource, ai.stigmer.agentic.session.v1.SessionResource.Builder, ai.stigmer.agentic.session.v1.SessionResourceOrBuilder>(
+                resources_,
+                ((bitField0_ & 0x00000040) != 0),
+                getParentForChildren(),
+                isClean());
+        resources_ = null;
+      }
+      return resourcesBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.run.v1.AgentInvocation)

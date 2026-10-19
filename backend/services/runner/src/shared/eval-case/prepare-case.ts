@@ -42,7 +42,7 @@ import { join, posix } from "node:path";
 import type { EvalCaseContext } from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
 import { parseTranscript, type TranscriptMessage } from "@stigmer/eval-runtime";
 import { AgentExecError, agentFs, agentPathExists } from "../agent-fs.js";
-import type { ResolvedAttachment } from "../attachment-resolver.js";
+import type { ListedFile } from "../file-mount.js";
 import { buildShellEnv } from "../shell-env.js";
 import { getPlatformDir } from "../workspace/platform-dir.js";
 import { ensureStigmerSymlink, STIGMER_LOCAL_STATE_DIR } from "../workspace/stigmer-link.js";
@@ -68,8 +68,8 @@ const FAILURE_OUTPUT_BYTES = 600;
 
 /** What the try runs with beyond its message. */
 export interface PreparedEvalCase {
-  /** The reference folders' files, listed to the agent beside any attachment. */
-  readonly referenceInputs: readonly ResolvedAttachment[];
+  /** The reference folders' files, listed to the agent after the conversation's Files. */
+  readonly referenceInputs: readonly ListedFile[];
   /** The recorded conversation the native engine resumes; absent when the case has none. */
   readonly history: readonly TranscriptMessage[] | undefined;
   /** The case's `EVAL_*` variables. */
@@ -194,10 +194,10 @@ async function writeReferenceDirs(
   archive: CaseArchive,
   platformDir: string,
   primaryDir: string,
-): Promise<readonly ResolvedAttachment[]> {
+): Promise<readonly ListedFile[]> {
   if (context.addDirs.length === 0) return [];
   await ensureStigmerSymlink(primaryDir, platformDir);
-  const inputs: ResolvedAttachment[] = [];
+  const inputs: ListedFile[] = [];
   for (const dir of context.addDirs) {
     const target = join(platformDir, INPUTS_SUBDIR, dir);
     await agentFs().rm(target, { recursive: true, force: true });

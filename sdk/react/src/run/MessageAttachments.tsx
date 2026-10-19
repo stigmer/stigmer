@@ -1,41 +1,82 @@
 "use client";
 
+/**
+ * The row of files on a person's message: what was given with the turn,
+ * read from the run's `status.messageFiles` (or, before the run exists,
+ * from the chat box's hand-off).
+ *
+ * Trade-offs:
+ * - A chip carries only a File id and its kind; the name and size are the
+ *   File's own, read through `stigmer.file.get` and cached by id, so a chip
+ *   always shows the name the File was uploaded under.
+ * - A link to the bytes expires, so a document's is minted on click and an
+ *   image's only for its tile, never stored with the message.
+ */
+
 import { useState } from "react";
 import { cn } from "@stigmer/design-tokens";
+import type { ContentBlock } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 import { AttachmentImageLightbox } from "../attachment/AttachmentImageLightbox.js";
+import { formatFileSize } from "../attachment/attachment-utils.js";
+import { useFile, useFileDownload, useFileDownloadUrl } from "../file/useFile.js";
 import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { TruncatedText } from "../internal/truncated-text.js";
-import { useArtifactDownload } from "./useArtifactDownload.js";
-import { useArtifactDownloadUrl } from "./useArtifactDownloadUrl.js";
 
 /**
- * The minimal display shape of a submitted attachment.
+ * One file given with a message, as the thread shows it.
  *
- * Structurally satisfied by BOTH sources a human turn can carry — the
- * `Attachment` proto on a persisted run's `spec.attachments` and the
- * `AttachmentInput` a just-submitted (pending) turn holds — so the thread
- * renders either without conversion code or a duplicated type.
+ * Built from a run's `status.messageFiles` ({@link messageFileViews}) for a
+ * turn the server recorded, and from the chat box's hand-off
+ * (`FileHandOff.attachments`) for the optimistic bubble.
  */
 export interface MessageAttachmentView {
-  /** Original filename, e.g. `"screenshot.png"`. */
+  /** The File's id (`"file_01j…"`): what its name, size and link are read by. */
+  readonly fileId?: string;
+  /** The filename, when known without reading the File. */
   readonly filename?: string;
-  /** MIME type, e.g. `"image/png"`. Drives the image-vs-document treatment. */
-  readonly contentType?: string;
-  /** Storage key (`attachments/{ulid}/{filename}`) minted at upload time. */
-  readonly storageKey?: string;
+  /** `"image"` shows a preview tile; `"document"` a click-to-download chip. */
+  readonly kind: "image" | "document";
+}
+
+const NO_VIEWS: readonly MessageAttachmentView[] = [];
+const viewsByBlocks = new WeakMap<readonly ContentBlock[], readonly MessageAttachmentView[]>();
+
+/**
+ * The chips of a turn's `RunStatus.message_files`: one per image or
+ * document block whose source is a File, in the message's order.
+ *
+ * The result is cached by the blocks' identity, so a thread rebuilt on
+ * every streamed frame hands the memoised message rows the same array and
+ * only the changing row re-renders.
+ */
+export function messageFileViews(blocks: readonly ContentBlock[]): readonly MessageAttachmentView[] {
+  if (blocks.length === 0) return NO_VIEWS;
+  const cached = viewsByBlocks.get(blocks);
+  if (cached) return cached;
+  const views = blocks.flatMap((block): MessageAttachmentView[] => {
+    const fileId = block.source?.type === "file" ? block.source.fileId : "";
+    if (!fileId) return [];
+    return [
+      {
+        fileId,
+        filename: block.title || undefined,
+        kind: block.type === "image" ? "image" : "document",
+      },
+    ];
+  });
+  viewsByBlocks.set(blocks, views);
+  return views;
 }
 
 /** Props for {@link MessageAttachments}. */
 export interface MessageAttachmentsProps {
-  /** The turn's submitted attachments, in submission order. */
+  /** The turn's files, in the message's order. */
   readonly attachments: readonly MessageAttachmentView[];
   /**
-   * The run the attachments were submitted to. Enables the byte-backed
-   * affordances — image previews (presigned URL) and document downloads.
-   * Omit for the optimistic pending bubble (no run record yet) and the
-   * failed-send bubble (no record ever): images render as inert glyph tiles
-   * and documents as inert chips until a real turn brings the presign seam.
+   * The run the files were given with. Its presence makes the chips live:
+   * image previews and document downloads. Omit for the optimistic bubble
+   * and a failed send, where the chips are inert evidence of what was sent.
    */
   readonly runId?: string;
   /** Additional CSS class names for the row container. */
@@ -43,39 +84,27 @@ export interface MessageAttachmentsProps {
 }
 
 /**
- * The attachment row on a human turn: the durable evidence of what files were
- * sent with the message (stigmer/stigmer#372).
+ * The file row on a person's message: the durable evidence of what files
+ * were sent with it (stigmer/stigmer#372).
  *
- * Image attachments render as preview-only thumbnail tiles — the image IS the
- * chip, no filename text (the name stays in the tooltip, the accessible
- * label, and the lightbox header), click-to-open in the shared
- * {@link AttachmentImageLightbox} — and documents as compact click-to-download
- * filename chips. Both follow the composer chip grammar
- * ({@link AttachmentChipList}) so a file looks the same before and after
- * send, but this is deliberately a separate component: the composer chip is
- * interactive and upload-phase-bound over a local `File`, while this row is
- * read-only over the run record, with bytes resolved on demand from
- * the stable storage key via presigned URLs (the `OutputRefImage` pattern —
- * the local `File` is gone after submit).
+ * Images render as preview-only thumbnail tiles (the name stays in the
+ * tooltip, the accessible label and the lightbox header), click-to-open in
+ * the shared {@link AttachmentImageLightbox}; documents as compact
+ * click-to-download chips with their size. Both follow the composer chip
+ * grammar ({@link AttachmentChipList}) so a file looks the same before and
+ * after send.
  *
- * Purely presentational plus on-demand URL minting — no required wiring.
  * All visual properties flow through `--stgm-*` tokens.
  */
-export function MessageAttachments({
-  attachments,
-  runId: executionId,
-  className,
-}: MessageAttachmentsProps) {
-  // One lightbox instance serves the whole row, tracked by storage key
-  // (direct identity). It mounts OUTSIDE the role="list" container — a
-  // <dialog> is not valid inside the chips' <span> elements, and a
-  // non-listitem child inside the list would break its a11y ownership
-  // (same reasoning as the composer's chip list).
-  const [previewKey, setPreviewKey] = useState<string | null>(null);
+export function MessageAttachments({ attachments, runId, className }: MessageAttachmentsProps) {
+  // One lightbox serves the row, tracked by File id. It mounts outside the
+  // role="list" container: a <dialog> is not valid inside the chips'
+  // <span> elements, and a non-listitem child would break the list's
+  // accessibility ownership.
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const live = runId !== undefined;
   const previewed =
-    previewKey !== null
-      ? (attachments.find((a) => a.storageKey === previewKey) ?? null)
-      : null;
+    previewId !== null ? (attachments.find((a) => a.fileId === previewId) ?? null) : null;
 
   if (attachments.length === 0) return null;
 
@@ -90,87 +119,73 @@ export function MessageAttachments({
         aria-label="Submitted attachments"
       >
         {attachments.map((attachment, i) => {
-          const isImage = attachment.contentType?.startsWith("image/") ?? false;
-          const key = attachment.storageKey ?? `${displayName(attachment)}-${i}`;
-          if (isImage && executionId && attachment.storageKey) {
+          const key = attachment.fileId ?? `${attachment.filename ?? "file"}-${i}`;
+          if (attachment.kind === "image" && live && attachment.fileId) {
+            const fileId = attachment.fileId;
             return (
               <ImagePreviewChip
                 key={key}
                 attachment={attachment}
-                executionId={executionId}
-                onPreview={() => setPreviewKey(attachment.storageKey!)}
+                fileId={fileId}
+                onPreview={() => setPreviewId(fileId)}
               />
             );
           }
-          if (isImage && !executionId) {
-            // No run record — the optimistic pending bubble or a
-            // failed send. The tile keeps the image grammar but stays
-            // STATIC (a glyph, not a pulse): a failed send never gets an
-            // executionId, so a pulse here would be a permanent false
-            // "loading" signal. On the pending bubble the real turn lands
-            // under the same bridge key and brings the presign seam.
-            return <ImageGlyphTile key={key} name={displayName(attachment)} />;
+          if (attachment.kind === "image") {
+            // No run record: the optimistic bubble or a failed send. The
+            // tile keeps the image grammar but stays static (a glyph, not a
+            // pulse): a failed send never gets a run, so a pulse would be
+            // a permanent false "loading" signal.
+            return <ImageGlyphTile key={key} name={attachment.filename ?? "image"} />;
           }
-          return (
-            <DocumentChip
-              key={key}
-              attachment={attachment}
-              executionId={executionId}
-            />
-          );
+          return <DocumentChip key={key} attachment={attachment} live={live} />;
         })}
       </div>
-      {previewed && executionId && previewed.storageKey && (
+      {previewed?.fileId && (
         <AttachmentPreviewLightbox
           attachment={previewed}
-          executionId={executionId}
-          onClose={() => setPreviewKey(null)}
+          fileId={previewed.fileId}
+          onClose={() => setPreviewId(null)}
         />
       )}
     </>
   );
 }
 
-/**
- * Display name for an attachment: the filename, falling back to the storage
- * key's basename (`attachments/{ulid}/{filename}` always ends in it).
- */
-function displayName(attachment: MessageAttachmentView): string {
-  if (attachment.filename) return attachment.filename;
-  const key = attachment.storageKey ?? "";
-  const base = key.slice(key.lastIndexOf("/") + 1);
-  return base || "attachment";
+/** The chip's name: the File's own, else the name the chip carries. */
+function useDisplayName(attachment: MessageAttachmentView, live: boolean): {
+  readonly name: string;
+  readonly sizeBytes: number | null;
+} {
+  const { file } = useFile(live ? (attachment.fileId ?? null) : null);
+  const name = file?.spec?.filename || attachment.filename || "file";
+  const size = file?.status?.sizeBytes;
+  return { name, sizeBytes: size !== undefined ? Number(size) : null };
 }
 
 // ---------------------------------------------------------------------------
-// Image attachment — a preview-only tile mirroring the composer's grammar
+// Image — a preview-only tile mirroring the composer's grammar
 // ---------------------------------------------------------------------------
 
 /**
- * The preview-only image tile: the thumbnail IS the chip, minted from the
- * stable storage key at view time — no filename text (the name stays in the
- * tooltip, the accessible label, and the lightbox header). If the URL can't
- * be resolved (revoked storage, transient API failure), the chip degrades to
- * the document treatment — a generic icon with the download affordance —
- * never a broken-image glyph.
+ * The preview-only image tile, its thumbnail minted from the File at view
+ * time. If no link can be minted (the File is gone, the API failed), the
+ * chip degrades to the document treatment, never a broken-image glyph.
  */
 function ImagePreviewChip({
   attachment,
-  executionId,
+  fileId,
   onPreview,
 }: {
   readonly attachment: MessageAttachmentView;
-  readonly executionId: string;
+  readonly fileId: string;
   readonly onPreview: () => void;
 }) {
-  const { url, error } = useArtifactDownloadUrl(
-    executionId,
-    attachment.storageKey ?? null,
-  );
-  const name = displayName(attachment);
+  const { url, error } = useFileDownloadUrl(fileId);
+  const { name } = useDisplayName(attachment, true);
 
   if (error) {
-    return <DocumentChip attachment={attachment} executionId={executionId} />;
+    return <DocumentChip attachment={attachment} live />;
   }
 
   return (
@@ -179,8 +194,7 @@ function ImagePreviewChip({
         render={<span role="listitem" aria-label={name} className="stg:inline-flex" />}
       >
         {/* The whole tile is the preview target. UNSTYLED_BUTTON adds the
-            pointer cursor — the image tile carries no other clickability
-            cue. */}
+            pointer cursor, the tile's only clickability cue. */}
         <button
           type="button"
           onClick={onPreview}
@@ -199,9 +213,8 @@ function ImagePreviewChip({
               className="stg:h-full stg:w-full stg:object-cover"
             />
           ) : (
-            // Pulse placeholder while the presigned URL is minted — pulse
-            // means work is genuinely in flight (contrast ImageGlyphTile).
-            // Same footprint as the image, so no layout shift.
+            // Pulse while the link is minted: work is in flight. Same
+            // footprint as the image, so no layout shift.
             <span
               className="stg:block stg:h-full stg:w-full stg:animate-pulse stg:bg-muted"
               aria-hidden="true"
@@ -217,10 +230,9 @@ function ImagePreviewChip({
 }
 
 /**
- * The inert image tile for a turn with no run record yet (optimistic
- * pending bubble) or ever (failed send). Keeps the image grammar — same
- * footprint as {@link ImagePreviewChip} — but shows a STATIC glyph, not a
- * pulse: a pulse promises bytes that, on a failed send, will never arrive.
+ * The inert image tile for a turn with no run record yet (the optimistic
+ * bubble) or ever (a failed send): the image grammar with a static glyph,
+ * since a pulse would promise bytes that may never arrive.
  */
 function ImageGlyphTile({ name }: { readonly name: string }) {
   return (
@@ -244,31 +256,33 @@ function ImageGlyphTile({ name }: { readonly name: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Document attachment — compact chip, click-to-download
+// Document — compact chip, click-to-download
 // ---------------------------------------------------------------------------
 
 /**
- * The compact treatment for documents (and for any attachment before its
- * run record exists). With a run id, the chip is a download
- * button — a fresh URL is minted at click time via {@link useArtifactDownload},
- * saved under the original filename. Without one (pending bubble), it is an
- * inert label: evidence the file was sent, affordances once the record lands.
+ * The compact treatment for documents. Live, the chip is a download button
+ * whose link is minted at click time and saved under the File's name, with
+ * the File's size beside it. Inert (no run yet), it is a label: evidence
+ * the file was sent.
  */
 function DocumentChip({
   attachment,
-  executionId,
+  live,
 }: {
   readonly attachment: MessageAttachmentView;
-  readonly executionId?: string;
+  readonly live: boolean;
 }) {
-  const { download, isDownloading } = useArtifactDownload(executionId ?? null);
-  const name = displayName(attachment);
-  const downloadable = executionId != null && !!attachment.storageKey;
+  const { download, isDownloading } = useFileDownload();
+  const { name, sizeBytes } = useDisplayName(attachment, live);
+  const fileId = live ? attachment.fileId : undefined;
 
   const content = (
     <>
       <FileGlyph />
       <TruncatedText text={name} className="stg:min-w-0" />
+      {sizeBytes !== null && (
+        <span className="stg:shrink-0 stg:text-muted-foreground">{formatFileSize(sizeBytes)}</span>
+      )}
     </>
   );
 
@@ -278,10 +292,10 @@ function DocumentChip({
       aria-label={name}
       className="stg:inline-flex stg:max-w-[200px] stg:items-center stg:rounded-md stg:bg-muted-subtle stg:px-2 stg:py-0.5 stg:text-xs stg:text-foreground"
     >
-      {downloadable ? (
+      {fileId ? (
         <button
           type="button"
-          onClick={() => void download(attachment.storageKey!, name)}
+          onClick={() => void download(fileId, name)}
           disabled={isDownloading}
           aria-label={`Download ${name}`}
           className={cn(
@@ -304,33 +318,23 @@ function DocumentChip({
 // ---------------------------------------------------------------------------
 
 /**
- * Feeds the previewed attachment's presigned URL to the shared
- * {@link AttachmentImageLightbox}. The URL hook is cross-mount cached by
- * storage key, so opening the lightbox reuses the thumbnail's minted
- * URL instead of a second RPC; `src` is `null` for at most the first frame.
+ * Feeds the previewed image's link to the shared
+ * {@link AttachmentImageLightbox}. The link is cached by File id, so the
+ * lightbox reuses the thumbnail's instead of minting a second.
  */
 function AttachmentPreviewLightbox({
   attachment,
-  executionId,
+  fileId,
   onClose,
 }: {
   readonly attachment: MessageAttachmentView;
-  readonly executionId: string;
+  readonly fileId: string;
   readonly onClose: () => void;
 }) {
-  const { url } = useArtifactDownloadUrl(
-    executionId,
-    attachment.storageKey ?? null,
-  );
+  const { url } = useFileDownloadUrl(fileId);
+  const { name } = useDisplayName(attachment, true);
 
-  return (
-    <AttachmentImageLightbox
-      src={url}
-      filename={displayName(attachment)}
-      open
-      onClose={onClose}
-    />
-  );
+  return <AttachmentImageLightbox src={url} filename={name} open onClose={onClose} />;
 }
 
 /** Generic picture glyph for the inert {@link ImageGlyphTile}. */

@@ -18,9 +18,9 @@ import { type ControllerFn, createAgentRun } from "../resources/run/create.js";
 import { prepareAgentExec } from "../resources/run/prepare.js";
 import { VERSION } from "../version.js";
 
-// prepareAgentExec touches client.run only to upload attachments; these
-// runs attach nothing.
-const STUB_CLIENT = { run: {} } as unknown as Stigmer;
+// These runs name no vault, plugin or environment by id and attach nothing,
+// so prepareAgentExec asks the client nothing.
+const STUB_CLIENT = {} as unknown as Stigmer;
 
 function RUN_HINT(option: string): string {
   return RETIRED_OPTIONS.get("run")?.get(option) ?? `no retired run option ${option}`;
@@ -312,9 +312,9 @@ describe("buildProgram", () => {
         vaults: prepared.vaults,
         includeMyVault: prepared.includeMyVault,
         plugins: prepared.plugins,
-        attachments: [],
+        fileIds: [],
         workspaceFileRefs: [],
-        workspaceEntries: [],
+        resources: [],
         model: "",
         mode: "",
         serviceTier: "",
@@ -360,9 +360,9 @@ describe("buildProgram", () => {
       includeMyVault: prepared.includeMyVault,
       plugins: prepared.plugins,
       ...(prepared.environment === undefined ? {} : { environment: prepared.environment }),
-      attachments: [],
+      fileIds: [],
       workspaceFileRefs: [],
-      workspaceEntries: [],
+      resources: [],
       model: "",
       mode: "",
       serviceTier: "",

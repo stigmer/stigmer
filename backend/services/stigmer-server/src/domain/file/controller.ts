@@ -108,7 +108,9 @@ import {
   FILE_REFUSED_UPDATE_PATHS,
   fileNameOf,
   newAuthorizeUploadStep,
+  newGuardFileUnreferencedStep,
   newKeepFileDescriptionStep,
+  newRemoveFromConversationStep,
   newPersistUploadedFileStep,
   newStampFileStatusStep,
 } from "./steps.js";
@@ -260,8 +262,10 @@ async function deleteFile(deps: FileControllerDeps, input: FileId, ctx: HandlerC
     .addStep(newValidateProtoStep())
     .addStep(newExtractResourceIdStep())
     .addStep(newLoadExistingForDeleteStep(deps.store, FileSchema))
+    .addStep(newGuardFileUnreferencedStep(deps.store))
     .addStep(newSweepExpiredBlobsStep(deps.blobs))
     .addStep(newDeleteResourceStep(deps.store, (id) => deps.blobs.removeFile(id)))
+    .addStep(newRemoveFromConversationStep(deps.store))
     .addStep(newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger))
     .build()
     .execute(reqCtx);

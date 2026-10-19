@@ -38,7 +38,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import {
   cadenceToCron,
   cronToCadence,
@@ -683,7 +683,7 @@ export function RoutineDetailView({
               read view keeps every stored entry visible. */}
           <DetailRow label="Workspace">
             <WorkspaceSummary
-              entries={target?.workspaceEntries ?? []}
+              resources={target?.resources ?? []}
             />
           </DetailRow>
           <DetailRow label="Engine & model">
@@ -1695,12 +1695,16 @@ function BudgetSummary({
   );
 }
 
-/** The git workspace each fire clones, or the em-dash when none. */
+/**
+ * The git workspace each fire clones, or the em-dash when none. The
+ * invocation's Files are not workspace entries and are not listed here.
+ */
 function WorkspaceSummary({
-  entries,
+  resources,
 }: {
-  readonly entries: readonly WorkspaceEntry[];
+  readonly resources: readonly SessionResource[];
 }) {
+  const entries = resources.filter((r) => r.resource.case !== "file");
   if (entries.length === 0) {
     return <span className="stg:text-sm stg:text-muted-foreground">—</span>;
   }
@@ -1708,8 +1712,8 @@ function WorkspaceSummary({
     <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:gap-0.5")}>
       {entries.map((entry, i) => {
         const git =
-          entry.source?.source?.case === "gitRepo"
-            ? entry.source.source.value
+          entry.resource.case === "gitRepository"
+            ? entry.resource.value
             : undefined;
         return (
           <li key={`${entry.name}-${i}`} className="stg:text-xs stg:text-foreground">

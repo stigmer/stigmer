@@ -133,7 +133,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — file-review capture on a g
     });
     const record = cursorExecutionRecord({
       message: USER_MESSAGE,
-      workspaceEntries: [localPathEntry("notes", repo)],
+      resources: [localPathEntry("notes", repo)],
       fileReview: true,
     });
     const scenario = beginCursorScenario({
@@ -241,7 +241,7 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — file-review capture on a g
         ],
       ],
     });
-    const record = cursorExecutionRecord({ message: USER_MESSAGE, workspaceEntries: [localPathEntry("notes", repo)] });
+    const record = cursorExecutionRecord({ message: USER_MESSAGE, resources: [localPathEntry("notes", repo)] });
     const scenario = beginCursorScenario({ env, clock, record, sdk: { agents: [agent], catalog: SDK_CATALOG } });
 
     const invocation = await runCursorTurn(scenario);

@@ -1,7 +1,9 @@
 /**
  * Pins the workspace provisioner's dispatch (empty, local path, git), that
- * a git entry receives only its own repository token, matched by name and
- * URL, and the local backend's command, file and per-command env behavior.
+ * a File is no part of the workspace (it neither provisions nor counts
+ * toward the per-resource subdirectories), that a git repository receives
+ * only its own repository token, matched by name and URL, and the local
+ * backend's command, file and per-command env behavior.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readlinkSync } from "node:fs";
@@ -26,23 +28,14 @@ describe("WorkspaceProvisioner", () => {
   });
 
   describe("empty workspace", () => {
-    it("returns EMPTY source type when no source is provided", async () => {
+    it("returns EMPTY source type when no resource type is set", async () => {
       const root = makeTempDir();
       const backend = new LocalWorkspaceBackend(root);
-      const result = await provisioner.provision({ name: "" }, backend, [], true);
+      const result = await provisioner.provision({ name: "", resource: { case: undefined } }, backend, [], true);
       expect(result.sourceType).toBe("empty");
       expect(result.rootDir).toBe(root);
     });
 
-    it("returns EMPTY when source case is undefined", async () => {
-      const root = makeTempDir();
-      const backend = new LocalWorkspaceBackend(root);
-      const result = await provisioner.provision(
-        { name: "", source: { source: { case: undefined, value: undefined } } },
-        backend, [], true,
-      );
-      expect(result.sourceType).toBe("empty");
-    });
   });
 
   describe("local path", () => {
@@ -51,7 +44,7 @@ describe("WorkspaceProvisioner", () => {
       const projectDir = makeTempDir();
       const backend = new LocalWorkspaceBackend(root);
       const result = await provisioner.provision(
-        { name: "", source: { source: { case: "localPath", value: { path: projectDir } } } },
+        { name: "", resource: { case: "localPath", value: { path: projectDir } } },
         backend, [], true,
       );
       expect(result.sourceType).toBe("local_path");
@@ -63,7 +56,7 @@ describe("WorkspaceProvisioner", () => {
       const first = makeTempDir();
       const second = makeTempDir();
       const backend = new LocalWorkspaceBackend(root);
-      const entry = (path: string) => ({ name: "app", source: { source: { case: "localPath" as const, value: { path } } } });
+      const entry = (path: string) => ({ name: "app", resource: { case: "localPath" as const, value: { path } } });
       await provisioner.provision(entry(first), backend, [], true, { targetSubdir: "app" });
       expect(readlinkSync(join(root, "app"))).toBe(first);
       await provisioner.provision(entry(first), backend, [], true, { targetSubdir: "app" });
@@ -77,7 +70,7 @@ describe("WorkspaceProvisioner", () => {
       const backend = new LocalWorkspaceBackend(root);
       await expect(
         provisioner.provision(
-          { name: "", source: { source: { case: "localPath", value: { path: "relative/path" } } } },
+          { name: "", resource: { case: "localPath", value: { path: "relative/path" } } },
           backend, [], true,
         ),
       ).rejects.toThrow(WorkspaceProvisionError);
@@ -88,7 +81,7 @@ describe("WorkspaceProvisioner", () => {
       const backend = new LocalWorkspaceBackend(root);
       await expect(
         provisioner.provision(
-          { name: "", source: { source: { case: "localPath", value: { path: root } } } },
+          { name: "", resource: { case: "localPath", value: { path: root } } },
           backend, [], false,
         ),
       ).rejects.toThrow("only supported in local mode");
@@ -99,7 +92,7 @@ describe("WorkspaceProvisioner", () => {
       const backend = new LocalWorkspaceBackend(root);
       await expect(
         provisioner.provision(
-          { name: "", source: { source: { case: "localPath", value: { path: "/nonexistent/path" } } } },
+          { name: "", resource: { case: "localPath", value: { path: "/nonexistent/path" } } },
           backend, [], true,
         ),
       ).rejects.toThrow("does not exist");
@@ -118,12 +111,40 @@ describe("WorkspaceProvisioner", () => {
       const root = makeTempDir();
       const backend = new LocalWorkspaceBackend(root);
       const results = await provisioner.provisionAll(
-        [{ name: "app", source: undefined }],
+        [{ name: "app", resource: { case: undefined } }],
         backend, [], true,
       );
       expect(results).toHaveLength(1);
       expect(results[0].entryName).toBe("app");
       expect(results[0].sourceType).toBe("empty");
+    });
+  });
+
+  describe("a File among the resources", () => {
+    it("is left out: a folder beside it is provisioned in place, as the only workspace resource", async () => {
+      const root = makeTempDir();
+      const projectDir = makeTempDir();
+      const backend = new LocalWorkspaceBackend(root);
+      const results = await provisioner.provisionAll(
+        [
+          { name: "", resource: { case: "file", value: { fileId: "file_1", mountPath: "a.txt" } } },
+          { name: "app", resource: { case: "localPath", value: { path: projectDir } } },
+        ],
+        backend, [], true,
+      );
+      expect(results).toHaveLength(1);
+      expect(results[0]!.entryName).toBe("app");
+      expect(results[0]!.rootDir, "one workspace resource is used where it is, not linked under a subdirectory").toBe(projectDir);
+      expect(existsSync(join(root, "app"))).toBe(false);
+    });
+
+    it("leaves a session holding only Files with no workspace resource", async () => {
+      const backend = new LocalWorkspaceBackend(makeTempDir());
+      const results = await provisioner.provisionAll(
+        [{ name: "", resource: { case: "file", value: { fileId: "file_1", mountPath: "a.txt" } } }],
+        backend, [], true,
+      );
+      expect(results).toEqual([]);
     });
   });
 
@@ -144,7 +165,7 @@ describe("WorkspaceProvisioner", () => {
       ];
 
       await provisioner.provisionAll(
-        [{ name: "app", source: { source: { case: "gitRepo", value: { url, branch: "main" } } } }],
+        [{ name: "app", resource: { case: "gitRepository", value: { url, branch: "main" } } }],
         backend, repositories, false, true,
       );
 

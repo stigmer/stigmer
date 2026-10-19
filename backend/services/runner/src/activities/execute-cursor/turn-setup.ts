@@ -6,11 +6,11 @@
  * Everything harness-agnostic has already happened when these run: the
  * execution, session and blueprint are fetched, the workspace is provisioned
  * and locked, the MCP servers, the approval default and the agent's tool
- * scope are resolved, the skills are mounted, the attachments are resolved.
+ * scope are resolved, the skills are mounted, the conversation's Files are mounted.
  * What remains is Cursor's own reading of that record: the cursor mode; the
  * tool-list checks this engine can and cannot honour; the row facts beside the
  * runtime's approval verdicts; the SDK's MCP config and tool restriction; the
- * prompt-shaped view of the attachments; the agent's hooks (the evaluator,
+ * prompt-shaped view of the turn's files; the agent's hooks (the evaluator,
  * the workspace hook files a person's own folder may not carry, the tools
  * a hook would answer for that Cursor never shows one); the HITL gate (hook
  * script, approval state, grants, the hook server, denial watcher, and the
@@ -37,6 +37,7 @@ import { CursorMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb"
 import type { Config } from "../../config.js";
 import type { TurnInput, TurnSink } from "../../harness/types.js";
 import { toCursorImages } from "../../shared/attachment-vision.js";
+import { workspaceResourcesOf } from "../../shared/workspace/provisioner.js";
 import { emitTimingLog } from "../../shared/cold-start-timing.js";
 import { isUnattendedApprovalMode } from "../../shared/approval-policy.js";
 import { excludeAppliedFromGrants } from "../../shared/exact-apply.js";
@@ -191,7 +192,7 @@ export interface CursorPrompt {
  * disabled — even one that was created when cloud was enabled.
  */
 export function resolveCursorMode(input: TurnInput, config: CursorAdapterConfig): { cursorMode: CursorMode; agentMode: CursorAgentMode } {
-  const cursorMode = determineCursorMode(input.blueprint.sessionSpec.workspaceEntries, config.cloudModeEnabled);
+  const cursorMode = determineCursorMode(input.blueprint.sessionSpec.resources, config.cloudModeEnabled);
   return { cursorMode, agentMode: isCloudMode(cursorMode) ? "cloud" : "local" };
 }
 
@@ -403,7 +404,7 @@ export async function prepareHooks(
  * The real path an excluded `Read` may still reach files inside
  * (`HookToolScope.readRoot`): the platform dir's, on a turn whose workspace
  * `.stigmer` is the link to it (`stigmerSymlinkPointsAt`), else "". A turn
- * that mounted no skill and no attachment made no link and has no platform
+ * that mounted no skill and no File made no link and has no platform
  * content, so a `.stigmer` there is the repository's own and admits nothing.
  */
 export async function platformReadRoot(primaryDir: string, platformDir: string): Promise<string> {
@@ -800,7 +801,7 @@ export async function resolveEngine(
     cursor_mode: agentMode,
     mcp_server_count: declaredServerCount(input.mcp.servers),
     skill_count: blueprint.mergedSkillRefs.length,
-    workspace_entry_count: session.spec?.workspaceEntries?.length ?? 0,
+    workspace_entry_count: workspaceResourcesOf(session.spec?.resources ?? []).length,
   }, sink.setupTiming);
 
   // A NEW agent's id is bound at once, before anything else runs, so a crash
@@ -853,7 +854,7 @@ export async function createFreshAgent(engine: CursorEngine): Promise<AgentResol
  * the turn's appended system prompt) and the vision payload policy.
  */
 export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: CursorEngine, rows: AdjudicatedRows): Promise<CursorPrompt> {
-  const { executionId, blueprint, standing, attachments, workspace, approvalDecisions, appliedToolCallIds, structuredOutputSchema } = input;
+  const { executionId, blueprint, standing, files, workspace, approvalDecisions, appliedToolCallIds, structuredOutputSchema } = input;
   const spec = input.execution.spec!;
   const interactionMode = spec.interactionMode ?? InteractionMode.UNSPECIFIED;
   const buildFromPlan = spec.buildFromPlan ?? false;
@@ -869,8 +870,8 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
     subAgents,
     workspaceDirs: [...workspace.dirs],
     workspaceFileRefs: spec.workspaceFileRefs ?? [],
-    attachments: attachments.results,
-    vision: visionPromptInfoOf(attachments),
+    files,
+    vision: visionPromptInfoOf(files),
     appendSystemPrompt: input.appendSystemPrompt,
     pendingApprovals: rows.adjudicatedApprovals,
     appliedToolCallIds,
@@ -924,10 +925,10 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
   // empty conversation re-delivers them — the ordinary first/fresh-agent
   // primary send, the HITL primary send after a resolution-time resume
   // failure, and both mid-send recovery retries (which always run on a fresh
-  // agent, so their sites pass turnImages unconditionally). Attachments
-  // re-resolve on every invocation, so the bytes are in hand even on a
-  // re-invocation.
-  const turnImages = toCursorImages(attachments.visionImages);
+  // agent, so their sites pass turnImages unconditionally). The message's
+  // images are offered again on every invocation, so the bytes are in hand
+  // even on a re-invocation.
+  const turnImages = toCursorImages(files.visionImages);
   const primarySendImages = primarySendCarriesImages(approvalDecisions, engine.resolution.reason) ? turnImages : [];
   const toSendMessage = (sendPrompt: string, images: { data: string; mimeType: string }[]): string | SDKUserMessage =>
     images.length > 0 ? { text: sendPrompt, images } : sendPrompt;

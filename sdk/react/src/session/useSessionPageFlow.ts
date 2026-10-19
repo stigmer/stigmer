@@ -569,16 +569,18 @@ export function useSessionPageFlow(
 
     const spec = conv.session.spec;
 
-    // Workspace entries, each git repository under its stored name: a
-    // follow-up that rewrites the workspace keeps a repository's stored
-    // token only for the same name and URL (see sendFollowUp).
-    const protoEntries = spec?.workspaceEntries ?? [];
-    for (const entry of protoEntries) {
-      if (entry.source?.source.case === "gitRepo") {
-        const { url, branch } = entry.source.source.value;
-        workspace.addGitRepo(url, branch || undefined, entry.name || undefined);
-      } else if (entry.source?.source.case === "localPath") {
-        workspace.addLocalPath(entry.source.source.value.path);
+    // The conversation's repositories and folders, each repository under
+    // its stored name: a follow-up that rewrites the workspace keeps a
+    // repository's stored token only for the same name and URL (see
+    // sendFollowUp). Its Files are not workspace entries; a follow-up
+    // keeps them as stored.
+    for (const stored of spec?.resources ?? []) {
+      const resource = stored.resource;
+      if (resource.case === "gitRepository") {
+        const { url, branch } = resource.value;
+        workspace.addGitRepo(url, branch || undefined, stored.name || undefined);
+      } else if (resource.case === "localPath") {
+        workspace.addLocalPath(resource.value.path);
       }
     }
 
@@ -623,7 +625,9 @@ export function useSessionPageFlow(
       if (!canDecide) {
         await conv.sendFollowUp(message, {
           modelName: pinnedModelName ?? selectedModel ?? modelId,
+          fileIds: context?.fileIds,
           attachments: context?.attachments,
+          releaseFiles: context?.releaseFiles,
           interactionMode: context?.interactionMode,
           serviceTier: pinnedModelName ? pinnedServiceTier : context?.serviceTier,
           thinkingMode: pinnedModelName ? pinnedThinkingMode : context?.thinkingMode,
@@ -643,7 +647,7 @@ export function useSessionPageFlow(
         // layer that chose the model (the agent's defaults, the operator
         // profile) keeps its own.
         modelName: pinnedModelName ?? selectedModel ?? modelId,
-        workspaceEntries: workspace.hasEntries
+        resources: workspace.hasEntries
           ? workspace.toInput()
           : undefined,
         plugins: pluginRefs.length > 0 ? pluginRefs : undefined,
@@ -653,7 +657,9 @@ export function useSessionPageFlow(
         // guest's runs use.
         vaults: isGuest ? undefined : context?.vaults,
         includeMyVault: isGuest ? undefined : context?.includeMyVault,
+        fileIds: context?.fileIds,
         attachments: context?.attachments,
+        releaseFiles: context?.releaseFiles,
         interactionMode: context?.interactionMode,
         serviceTier: pinnedModelName ? pinnedServiceTier : context?.serviceTier,
         thinkingMode: pinnedModelName ? pinnedThinkingMode : context?.thinkingMode,
@@ -676,12 +682,11 @@ export function useSessionPageFlow(
   const allRuns = conv.runs;
 
   const sandboxWorkspaceRoot = useMemo(() => {
-    const entries = conv.workspaceEntries;
-    const hasGitRepo = entries.some(
-      (e) => e.source?.source.case === "gitRepo",
+    const hasGitRepo = conv.resources.some(
+      (r) => r.resource.case === "gitRepository",
     );
     return hasGitRepo ? DAYTONA_WORKSPACE_ROOT : undefined;
-  }, [conv.workspaceEntries]);
+  }, [conv.resources]);
 
   return {
     conv,

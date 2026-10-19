@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -41,7 +42,11 @@ func (f *fakeFileUploadTransport) CreateUploadUrl(_ context.Context, in *filev1.
 	return &filev1.FileUploadUrl{Url: f.mintURL, UploadRef: "fup_t", TtlSeconds: 900}, nil
 }
 
+// receivedPut is what the upload server last received. Its handler locks it:
+// a PUT the client abandons mid-body can still be in its handler when the
+// next case's PUT arrives on another connection.
 type receivedPut struct {
+	mu            sync.Mutex
 	method        string
 	requestURI    string
 	contentLength int64
@@ -53,6 +58,8 @@ type receivedPut struct {
 func uploadServer(t *testing.T, status int, body string, got *receivedPut) *httptest.Server {
 	t.Helper()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got.mu.Lock()
+		defer got.mu.Unlock()
 		got.method = r.Method
 		got.requestURI = r.RequestURI
 		got.contentLength = r.ContentLength

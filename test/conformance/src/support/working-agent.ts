@@ -28,7 +28,7 @@
 // workspace, so the agent under measurement is the product's, not invented.
 //
 // Every name this module chooses that can reach the model's prompt is FIXED:
-// the skill, subagent, plugin and MCP server names, the workspace entry and its host
+// the skill, subagent, plugin and MCP server names, the workspace resource and its host
 // path, the facts, the instructions. Each provisioning gets a fresh
 // Organization, which is what makes fixed names legal, and fixed names are
 // what keep the prompt identical from session to session. A user's names and
@@ -56,7 +56,7 @@ import { LOOKUP_ORDER_TOOL_NAME, type FixtureTool } from "../harness/mcp-server"
 import { type AgentRefInit, agentRefOf, createSubagents, makeAgent, subagentSlugsOf } from "./agents";
 import { oneServerPlugin, pushPlugin } from "./plugins";
 import { provisionOrgWithFacts } from "./memories";
-import { localWorkspaceEntries, type LocalWorkspaceOption } from "./sessions";
+import { localWorkspaceResources, type LocalWorkspaceOption } from "./sessions";
 import { zipFiles } from "./skills";
 
 /** The checked-in fixture tree: a plugin, its `skills/<name>/SKILL.md` and its `evals/` suite (the quality arm's). */
@@ -71,7 +71,7 @@ export const WORKING_AGENT_PLUGIN_NAME = "orders-api";
 export const WORKING_AGENT_MCP_SERVER_NAME = "orders";
 export const WORKING_AGENT_SUB_AGENT_NAME = "reviewer";
 
-/** The workspace entry's name, and the basename every seeded workspace directory must carry. */
+/** The workspace resource's name, and the basename every seeded workspace directory must carry. */
 export const WORKING_AGENT_WORKSPACE_NAME = "orders-sync";
 
 /** The fixture tools the agent's MCP server exposes. */
@@ -181,7 +181,7 @@ export function workingAgentSessionSpec(
   harness: Harness,
   subject: string,
 ): MessageInitShape<typeof SessionSpecSchema> {
-  return { harness, subject, workspaceEntries: localWorkspaceEntries([agent.workspace]) };
+  return { harness, subject, resources: localWorkspaceResources([agent.workspace]) };
 }
 
 /**
