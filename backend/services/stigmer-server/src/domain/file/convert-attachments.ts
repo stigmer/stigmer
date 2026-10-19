@@ -10,15 +10,24 @@
  *
  * Converted Files are not added to the conversation's resources: they were
  * a past message's inputs, listed and downloadable, not mounted on later
- * turns. An attachment whose bytes are gone is logged and skipped. A run or
- * conversation that is gone takes its conversion with it.
+ * turns. A row that cannot become a File is logged and forgotten, never a
+ * reason to stop a boot:
+ *   - a run or a conversation that is gone;
+ *   - a key not of the shape the removed upload minted for this row's
+ *     filename (`attachments/<ULID>/<filename>`): a run's create once
+ *     stored any non-empty key, so a key is trusted only in that shape,
+ *     which names nothing outside the attachments folder;
+ *   - a key whose blob row is another organization's, or staged;
+ *   - bytes that are gone, or a blob that turns unavailable before its
+ *     File is written.
  *
  * Idempotent, so a boot that stops halfway converges on the next one: a
- * File's id is derived from its run and position, a stored blob is not
- * recorded twice, an id already held is not inserted twice, its access is
- * written again (idempotently), and a block already on the run is not
- * added twice; the conversion row goes last.
- * A storage or store fault stops the boot loudly (the role reconcile's
+ * File's id is derived from its run and position, a blob the last pass
+ * recorded and whose lease ran out is recorded again, a row another
+ * server records first is used as it is, an id already held is not
+ * inserted twice, its access is written again (idempotently), and a block
+ * already on the run is not added twice; the conversion row goes last. A
+ * storage or store fault stops the boot loudly (the role reconcile's
  * posture), and an empty table costs one query.
  *
  * Proven by __tests__/convert-attachments.test.ts.
@@ -32,6 +41,7 @@ import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 
 import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import { ArtifactStorageNotFoundError } from "../../artifactstorage/artifact-storage.js";
@@ -41,6 +51,7 @@ import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-a
 import { getIdPrefix } from "../../pipeline/apiresource-meta.js";
 import { resolveResourceCreatedEvent } from "../../pipeline/steps/authorization-tuples.js";
 import { setAuditFieldsForCreate } from "../../pipeline/steps/defaults.js";
+import { FileBlobUnavailableError } from "../../store/file-blobs.js";
 import type { AttachmentConversion } from "../../store/file-blobs.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
@@ -48,6 +59,15 @@ import { BLOB_WRITE_LEASE_MS } from "./constants.js";
 import { contentBlockFor } from "./message-files.js";
 import { fileMimeType } from "./mime.js";
 import { fileNameOf } from "./steps.js";
+
+/** The key the removed upload minted: the attachments folder, an upper-case ULID, the bare filename. */
+const MINTED_KEY = /^attachments\/[0-9A-HJKMNP-TV-Z]{26}\/([^/\\\u0000]+)$/;
+
+/** Whether `key` is the one the removed upload would have minted for `filename`. */
+export function isMintedAttachmentKey(key: string, filename: string): boolean {
+  const name = MINTED_KEY.exec(key)?.[1];
+  return name !== undefined && name === filename && name !== "." && name !== "..";
+}
 
 /** How many conversion rows one read takes. */
 const CONVERSION_PAGE = 100;
@@ -96,34 +116,58 @@ export async function convertStoredAttachments(deps: ConvertAttachmentsDeps): Pr
 
 async function convertOne(deps: ConvertAttachmentsDeps, row: AttachmentConversion): Promise<boolean> {
   const { store, storage, logger } = deps;
-  let run;
-  try {
-    run = await store.getResource(ApiResourceKind.run, row.runId, RunSchema);
-  } catch (error) {
-    if (error instanceof ResourceNotFoundError) {
-      return false;
-    }
-    throw error;
+  const skip = (why: string): false => {
+    logger.warn(`a stored attachment is not converted: ${why}`, { runId: row.runId, filename: row.filename });
+    return false;
+  };
+  const run = await loadOrUndefined(() => store.getResource(ApiResourceKind.run, row.runId, RunSchema));
+  if (run === undefined) {
+    return false;
   }
   if (row.sessionId === "") {
-    logger.warn("a stored attachment's run is in no conversation; it is not converted", {
-      runId: row.runId,
-      filename: row.filename,
-    });
-    return false;
+    return skip("its run is in no conversation");
+  }
+  if ((await loadOrUndefined(() => store.getResource(ApiResourceKind.session, row.sessionId, SessionSchema))) === undefined) {
+    return skip("its conversation is gone");
+  }
+  if (!isMintedAttachmentKey(row.storageKey, row.filename)) {
+    return skip("its key is not one an upload minted");
   }
   let sizeBytes: number;
   try {
     sizeBytes = await storage.size(row.storageKey);
   } catch (error) {
     if (error instanceof ArtifactStorageNotFoundError) {
-      logger.warn("a stored attachment's bytes are gone; it is not converted", {
-        runId: row.runId,
-        filename: row.filename,
-      });
-      return false;
+      return skip("its bytes are gone");
     }
     throw error;
+  }
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const leaseUntil = nowSeconds + Math.ceil(BLOB_WRITE_LEASE_MS / 1000);
+  const record = { blobKey: row.storageKey, org: row.org, state: "orphaned" as const, sizeBytes, expiresAt: leaseUntil };
+  let blob = await store.files.getBlob(row.storageKey);
+  if (blob !== undefined && blob.state === "orphaned" && blob.expiresAt <= nowSeconds && blob.org === row.org) {
+    // The last pass recorded it and stopped before its File: lease it again.
+    await store.files.forgetBlob(row.storageKey, nowSeconds);
+    blob = undefined;
+  }
+  if (blob === undefined) {
+    try {
+      await store.files.recordBlob(record);
+    } catch (error) {
+      // Another server draining at once recorded it first; its row is used as it is.
+      blob = await store.files.getBlob(row.storageKey);
+      if (blob === undefined) {
+        throw error;
+      }
+    }
+  }
+  if (blob !== undefined && blob.org !== row.org) {
+    return skip("its key's bytes are another organization's");
+  }
+  if (blob !== undefined && blob.state === "staged") {
+    return skip("its key is a staged upload's");
   }
 
   const id = convertedFileId(row.runId, row.position);
@@ -143,24 +187,21 @@ async function convertOne(deps: ConvertAttachmentsDeps, row: AttachmentConversio
   });
   setAuditFieldsForCreate(FileSchema, file, caller);
 
-  const nowSeconds = Math.floor(Date.now() / 1000);
-  if ((await store.files.getBlob(row.storageKey)) === undefined) {
-    await store.files.recordBlob({
-      blobKey: row.storageKey,
-      org: row.org,
-      state: "orphaned",
-      sizeBytes,
-      expiresAt: nowSeconds + Math.ceil(BLOB_WRITE_LEASE_MS / 1000),
-    });
+  try {
+    await store.files.insert(
+      ApiResourceKind.file,
+      id,
+      FileSchema,
+      file,
+      { blobKey: row.storageKey, org: row.org, sizeBytes },
+      nowSeconds,
+    );
+  } catch (error) {
+    if (error instanceof FileBlobUnavailableError) {
+      return skip(error.message);
+    }
+    throw error;
   }
-  await store.files.insert(
-    ApiResourceKind.file,
-    id,
-    FileSchema,
-    file,
-    { blobKey: row.storageKey, org: row.org, sizeBytes },
-    nowSeconds,
-  );
   // Written on every pass, not only the one that inserted: a boot that
   // stopped between the row and its access converges, and the writes are
   // idempotent.
@@ -178,4 +219,16 @@ async function convertOne(deps: ConvertAttachmentsDeps, row: AttachmentConversio
     }
   });
   return true;
+}
+
+/** The read's answer, or undefined when the resource is gone; any other fault is raised. */
+async function loadOrUndefined<T>(read: () => Promise<T>): Promise<T | undefined> {
+  try {
+    return await read();
+  } catch (error) {
+    if (error instanceof ResourceNotFoundError) {
+      return undefined;
+    }
+    throw error;
+  }
 }

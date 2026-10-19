@@ -138,6 +138,26 @@ describe("the download route", () => {
     expect(await response.text()).toBe("kept bytes");
   });
 
+  it("refuses a signed key that climbs out of the attachments folder", async () => {
+    const key = "attachments/../files/org_01bbbbbbbbbbbbbbbbbbbbbbbb/blob";
+    mkdirSync(path.join(root, "files/org_01bbbbbbbbbbbbbbbbbbbbbbbb"), { recursive: true });
+    writeFileSync(path.join(root, "files/org_01bbbbbbbbbbbbbbbbbbbbbbbb/blob"), "another organization's bytes");
+    // fetch would resolve the `..` before sending; the raw request keeps it, as a hostile client would.
+    const link = new URL(await signedLink(key));
+    const status = await new Promise<number>((resolve, reject) => {
+      const request = http.request(
+        { host: link.hostname, port: link.port, path: `/v1/file-transfer/${key}${link.search}`, method: "GET" },
+        (response) => {
+          response.resume();
+          resolve(response.statusCode ?? 0);
+        },
+      );
+      request.on("error", reject);
+      request.end();
+    });
+    expect(status).toBe(404);
+  });
+
   it("answers a HEAD with the length and no body", async () => {
     const response = await fetch(await signedLink(BLOB_KEY), { method: "HEAD" });
     expect(response.status).toBe(200);

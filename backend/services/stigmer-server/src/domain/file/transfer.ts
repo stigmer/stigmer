@@ -51,9 +51,9 @@ const UPLOADS_SEGMENT = "/uploads/";
 /** Where a File's bytes may live: a minted blob, or a converted attachment's key. */
 const CONVERTED_ATTACHMENT_PREFIX = "attachments/";
 
-/** Whether a key may be a File's blob, never a staged upload's. */
+/** Whether a key may be a File's blob: never a staged upload's, never one that climbs out of its folder. */
 function isFileBlobKey(key: string): boolean {
-  if (key.startsWith(STAGING_KEY_PREFIX)) {
+  if (key.startsWith(STAGING_KEY_PREFIX) || key.split("/").some((segment) => segment === "." || segment === "..")) {
     return false;
   }
   return key.startsWith(BLOB_KEY_PREFIX) || key.startsWith(CONVERTED_ATTACHMENT_PREFIX);

@@ -8,8 +8,15 @@
  *     gains its block; the row goes;
  *   - a second pass over the same row converges: one File, one block, its
  *     access written again;
- *   - an attachment whose bytes are gone, whose run is gone, or whose run
- *     is in no conversation is skipped and its row forgotten;
+ *   - an attachment whose bytes are gone, whose run or conversation is
+ *     gone, or whose run is in no conversation is skipped and its row
+ *     forgotten;
+ *   - so is one whose key is not the minted `attachments/<ULID>/<filename>`
+ *     for its own filename (a traversal, another name, a lower-case id),
+ *     and one whose key's blob row is another organization's or staged;
+ *   - a blob a stopped pass recorded, whose lease ran out, is leased again
+ *     and converted; a blob another server records first is used as it
+ *     is, and one that turns unavailable before its File is skipped;
  *   - a storage or store fault stops the pass with the row kept;
  *   - a converted File's id is derived from its run and position, shaped
  *     as a minted one.
@@ -24,6 +31,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 import type { ArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
@@ -31,14 +39,20 @@ import { LocalArtifactStorage } from "../../../artifactstorage/artifact-storage.
 import { testUrlSigner } from "../../../artifactstorage/__test-utils__/url-signer.js";
 import type { ResourceAuthorizationLifecycle, ResourceCreatedEvent } from "../../../extensions/resource-authorization.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
+import { FileBlobUnavailableError } from "../../../store/file-blobs.js";
 import type { AttachmentConversion } from "../../../store/file-blobs.js";
+import type { Store } from "../../../store/interface.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
-import { convertStoredAttachments, convertedFileId } from "../convert-attachments.js";
+import { convertStoredAttachments, convertedFileId, isMintedAttachmentKey } from "../convert-attachments.js";
 
 const ORG = "org_01aaaaaaaaaaaaaaaaaaaaaaaa";
 const SESSION = "ses_01convertconvertconvert";
 const CREATOR = "acc_01creatorcreatorcreatorc";
+/** The ULIDs the removed upload minted into its keys. */
+const ULID_A = "01J9ZQ6V8W3X4Y5Z6A7B8C9D0E";
+const ULID_B = "01J9ZQ7A1B2C3D4E5F6G7H8J9K";
+const keyOf = (ulid: string, filename: string) => `attachments/${ulid}/${filename}`;
 
 let fx: TempStore;
 let root: string;
@@ -54,8 +68,14 @@ const lifecycle: ResourceAuthorizationLifecycle = {
   onVisibilityChanged: () => Promise.resolve(),
 };
 
-beforeEach(() => {
+beforeEach(async () => {
   fx = tempStore();
+  await fx.store.saveResource(
+    ApiResourceKind.session,
+    SESSION,
+    SessionSchema,
+    create(SessionSchema, { metadata: { id: SESSION, org: ORG } }),
+  );
   root = mkdtempSync(path.join(tmpdir(), "convert-attachments-"));
   storage = new LocalArtifactStorage(root, "http://files.test", testUrlSigner());
   created = [];
@@ -72,7 +92,7 @@ function seedConversion(conversion: Partial<AttachmentConversion> & Pick<Attachm
     org: ORG,
     sessionId: SESSION,
     filename: "brief.pdf",
-    storageKey: `attachments/01key/${conversion.filename ?? "brief.pdf"}`,
+    storageKey: keyOf(ULID_A, conversion.filename ?? "brief.pdf"),
     contentType: "",
     createdAt: "2026-10-01T08:30:00.000000000Z",
     ...conversion,
@@ -112,8 +132,8 @@ function convert(over: Partial<{ storage: ArtifactStorage }> = {}): Promise<numb
 
 describe("converting stored attachments", () => {
   it("makes each a File of the run's conversation over its bytes, owned by the run's creator, and records its block", async () => {
-    await storage.upload("attachments/01key/brief.pdf", new TextEncoder().encode("%PDF-1"), "application/pdf");
-    await storage.upload("attachments/01key/shot.png", new Uint8Array([137, 80, 78, 71]), "image/png");
+    await storage.upload(keyOf(ULID_A, "brief.pdf"), new TextEncoder().encode("%PDF-1"), "application/pdf");
+    await storage.upload(keyOf(ULID_A, "shot.png"), new Uint8Array([137, 80, 78, 71]), "image/png");
     await seedRun("run_01convert");
     seedConversion({ runId: "run_01convert" });
     seedConversion({ runId: "run_01convert", position: 1, filename: "shot.png" });
@@ -130,8 +150,8 @@ describe("converting stored attachments", () => {
       SESSION,
     ]);
     expect(brief.status?.audit?.specAudit?.createdBy?.id).toBe(CREATOR);
-    expect(await fx.store.files.blobKeyOf(briefId)).toBe("attachments/01key/brief.pdf");
-    expect((await fx.store.files.getBlob("attachments/01key/brief.pdf"))?.state).toBe("stored");
+    expect(await fx.store.files.blobKeyOf(briefId)).toBe(keyOf(ULID_A, "brief.pdf"));
+    expect((await fx.store.files.getBlob(keyOf(ULID_A, "brief.pdf")))?.state).toBe("stored");
 
     const run = await fx.store.getResource(ApiResourceKind.run, "run_01convert", RunSchema);
     expect(run.status?.messageFiles.map((block) => [block.type, block.source?.fileId])).toEqual([
@@ -146,7 +166,7 @@ describe("converting stored attachments", () => {
   });
 
   it("converges when a pass stopped after the File was made: one File, one block, its access rewritten", async () => {
-    await storage.upload("attachments/01key/brief.pdf", new Uint8Array([1]), "");
+    await storage.upload(keyOf(ULID_A, "brief.pdf"), new Uint8Array([1]), "");
     await seedRun("run_01again");
     seedConversion({ runId: "run_01again" });
     await convert();
@@ -162,14 +182,139 @@ describe("converting stored attachments", () => {
   it("skips and forgets an attachment whose bytes, run or conversation is gone", async () => {
     await seedRun("run_01nobytes");
     seedConversion({ runId: "run_01nobytes" });
-    seedConversion({ runId: "run_01norun", storageKey: "attachments/01other/x.txt" });
-    await storage.upload("attachments/01lone/y.txt", new Uint8Array([1]), "");
+    seedConversion({ runId: "run_01norun", storageKey: keyOf(ULID_B, "x.txt"), filename: "x.txt" });
+    await storage.upload(keyOf(ULID_B, "y.txt"), new Uint8Array([1]), "");
     await seedRun("run_01lonely");
-    seedConversion({ runId: "run_01lonely", sessionId: "", storageKey: "attachments/01lone/y.txt" });
+    seedConversion({ runId: "run_01lonely", sessionId: "", filename: "y.txt", storageKey: keyOf(ULID_B, "y.txt") });
 
     expect(await convert()).toBe(0);
     expect(await conversionCount()).toBe(0);
     expect(created).toEqual([]);
+  });
+
+  it("skips and forgets a conversation that is gone", async () => {
+    await storage.upload(keyOf(ULID_A, "brief.pdf"), new Uint8Array([1]), "");
+    await fx.store.saveResource(
+      ApiResourceKind.run,
+      "run_01orphan",
+      RunSchema,
+      create(RunSchema, { metadata: { id: "run_01orphan", org: ORG }, spec: { target: { case: "sessionId", value: "ses_01gone" } } }),
+    );
+    seedConversion({ runId: "run_01orphan", sessionId: "ses_01gone" });
+    expect(await convert()).toBe(0);
+    expect(await conversionCount()).toBe(0);
+  });
+
+  it("trusts a key only as the upload minted it for the row's own filename", async () => {
+    await seedRun("run_01keys");
+    const keys: Array<[string, string]> = [
+      ["attachments/../files/org_01other/blob", "blob"],
+      [keyOf(ULID_A, "other.pdf"), "brief.pdf"],
+      [`attachments/${ULID_A.toLowerCase()}/brief.pdf`, "brief.pdf"],
+      [`files/${ORG}/0123456789abcdef`, "0123456789abcdef"],
+    ];
+    for (const [position, [storageKey, filename]] of keys.entries()) {
+      seedConversion({ runId: "run_01keys", position, storageKey, filename });
+    }
+    expect(await convert()).toBe(0);
+    expect(await conversionCount()).toBe(0);
+    expect(created).toEqual([]);
+    expect(isMintedAttachmentKey(keyOf(ULID_A, "brief.pdf"), "brief.pdf")).toBe(true);
+    expect(isMintedAttachmentKey(keyOf(ULID_A, ".."), "..")).toBe(false);
+  });
+
+  it("skips a key whose blob row is another organization's, or a staged upload's", async () => {
+    await storage.upload(keyOf(ULID_A, "brief.pdf"), new Uint8Array([1]), "");
+    await storage.upload(keyOf(ULID_B, "brief.pdf"), new Uint8Array([1]), "");
+    await fx.store.files.recordBlob({
+      blobKey: keyOf(ULID_A, "brief.pdf"),
+      org: "org_01bbbbbbbbbbbbbbbbbbbbbbbb",
+      state: "stored",
+      sizeBytes: 1,
+      expiresAt: 0,
+    });
+    await fx.store.files.recordBlob({
+      blobKey: keyOf(ULID_B, "brief.pdf"),
+      org: ORG,
+      state: "staged",
+      sizeBytes: 1,
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    });
+    await seedRun("run_01blobs");
+    seedConversion({ runId: "run_01blobs" });
+    seedConversion({ runId: "run_01blobs", position: 1, storageKey: keyOf(ULID_B, "brief.pdf") });
+    expect(await convert()).toBe(0);
+    expect(await conversionCount()).toBe(0);
+  });
+
+  it("leases again a blob a stopped pass recorded, and converts it", async () => {
+    await storage.upload(keyOf(ULID_A, "brief.pdf"), new Uint8Array([1, 2]), "");
+    await fx.store.files.recordBlob({
+      blobKey: keyOf(ULID_A, "brief.pdf"),
+      org: ORG,
+      state: "orphaned",
+      sizeBytes: 2,
+      expiresAt: Math.floor(Date.now() / 1000) - 7200,
+    });
+    await seedRun("run_01lapsed");
+    seedConversion({ runId: "run_01lapsed" });
+    expect(await convert()).toBe(1);
+    expect((await fx.store.files.getBlob(keyOf(ULID_A, "brief.pdf")))?.state).toBe("stored");
+  });
+
+  /** The test store with some of its File door's methods replaced. */
+  function withFiles(overrides: Partial<Store["files"]>): Store {
+    const files = new Proxy(fx.store.files, {
+      get(target, property, receiver) {
+        const own = (overrides as Record<string | symbol, unknown>)[property];
+        if (own !== undefined) {
+          return own;
+        }
+        const value: unknown = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(target) : value;
+      },
+    });
+    return new Proxy(fx.store, {
+      get(target, property, receiver) {
+        if (property === "files") {
+          return files;
+        }
+        const value: unknown = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(target) : value;
+      },
+    });
+  }
+
+  it("uses a blob row another server recorded first, and stops when none is there", async () => {
+    await storage.upload(keyOf(ULID_A, "brief.pdf"), new Uint8Array([1]), "");
+    await seedRun("run_01race");
+    seedConversion({ runId: "run_01race" });
+    const raced = withFiles({
+      recordBlob: async (blob) => {
+        await fx.store.files.recordBlob(blob);
+        throw new Error("duplicate key value violates unique constraint");
+      },
+    });
+    expect(await convertStoredAttachments({ store: raced, storage, lifecycle, logger: silentLogger })).toBe(1);
+
+    await storage.upload(keyOf(ULID_B, "brief.pdf"), new Uint8Array([1]), "");
+    seedConversion({ runId: "run_01race", position: 1, storageKey: keyOf(ULID_B, "brief.pdf") });
+    const broken = withFiles({ recordBlob: () => Promise.reject(new Error("database unreachable")) });
+    await expect(convertStoredAttachments({ store: broken, storage, lifecycle, logger: silentLogger })).rejects.toThrow(
+      "database unreachable",
+    );
+    expect(await conversionCount()).toBe(1);
+  });
+
+  it("skips a blob that turns unavailable before its File is written", async () => {
+    await storage.upload(keyOf(ULID_A, "brief.pdf"), new Uint8Array([1]), "");
+    await seedRun("run_01gone");
+    seedConversion({ runId: "run_01gone" });
+    const store = withFiles({
+      insert: () => Promise.reject(new FileBlobUnavailableError(keyOf(ULID_A, "brief.pdf"), "it is orphaned past its expiry")),
+    });
+    expect(await convertStoredAttachments({ store, storage, lifecycle, logger: silentLogger })).toBe(0);
+    expect(await conversionCount()).toBe(0);
   });
 
   it("stops on a storage fault, keeping the row for the next boot", async () => {
