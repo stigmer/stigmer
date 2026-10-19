@@ -14,7 +14,15 @@ import { context as otelContext, propagation } from "@opentelemetry/api";
 import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
 import { VaultValueController, FetchExecutionValuesInputSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
-import { FileMountController, MountRunFilesInputSchema, type FileMount } from "@stigmer/apis/ai/stigmer/agentic/file/v1/mount_pb";
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import {
+  CreateOutputUploadsInputSchema,
+  MountRunFilesInputSchema,
+  RegisterOutputsInputSchema,
+  RunFileController,
+  type FileMount,
+  type OutputUpload,
+} from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
 import type { ExecutionValues } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
 import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
@@ -160,7 +168,7 @@ export class StigmerClient {
   private readonly executionQuery: Client<typeof RunQueryController>;
   private readonly executionCommand: Client<typeof RunCommandController>;
   private readonly vaultValues: Client<typeof VaultValueController>;
-  private readonly fileMounts: Client<typeof FileMountController>;
+  private readonly runFiles: Client<typeof RunFileController>;
   private readonly sessionQuery: Client<typeof SessionQueryController>;
   private readonly sessionCommand: Client<typeof SessionCommandController>;
   private readonly agentQuery: Client<typeof AgentQueryController>;
@@ -237,7 +245,7 @@ export class StigmerClient {
             req.method.name === PlatformQueryController.method.getRunnerBootstrapConfig.name;
           const usesRunnerCredential =
             req.service.typeName === VaultValueController.typeName ||
-            req.service.typeName === FileMountController.typeName ||
+            req.service.typeName === RunFileController.typeName ||
             (req.service.typeName === PlatformQueryController.typeName &&
               req.method.name === PlatformQueryController.method.getRunnerScopedToken.name);
           const token =
@@ -256,7 +264,7 @@ export class StigmerClient {
     this.executionQuery = createClient(RunQueryController, this.transport);
     this.executionCommand = createClient(RunCommandController, this.transport);
     this.vaultValues = createClient(VaultValueController, this.transport);
-    this.fileMounts = createClient(FileMountController, this.transport);
+    this.runFiles = createClient(RunFileController, this.transport);
     this.sessionQuery = createClient(SessionQueryController, this.transport);
     this.sessionCommand = createClient(SessionCommandController, this.transport);
     this.agentQuery = createClient(AgentQueryController, this.transport);
@@ -348,11 +356,46 @@ export class StigmerClient {
    * credential acting for this very run.
    */
   async mountRunFiles(runId: string, scopedToken?: string): Promise<FileMount[]> {
-    const answer = await this.fileMounts.mount(
+    const answer = await this.runFiles.mount(
       create(MountRunFilesInputSchema, { runId }),
       scopedToken ? { headers: { authorization: `Bearer ${scopedToken}` } } : undefined,
     );
     return answer.entries;
+  }
+
+  /**
+   * One upload link per output a turn saved (`shared/outputs.ts`), in the
+   * request's order. Authenticated as {@link mountRunFiles} is.
+   */
+  async createOutputUploads(
+    runId: string,
+    entries: ReadonlyArray<{ readonly outputPath: string; readonly sizeBytes: number }>,
+    scopedToken?: string,
+  ): Promise<OutputUpload[]> {
+    const answer = await this.runFiles.createOutputUploads(
+      create(CreateOutputUploadsInputSchema, {
+        runId,
+        entries: entries.map((entry) => ({ outputPath: entry.outputPath, sizeBytes: BigInt(entry.sizeBytes) })),
+      }),
+      scopedToken ? { headers: { authorization: `Bearer ${scopedToken}` } } : undefined,
+    );
+    return answer.entries;
+  }
+
+  /**
+   * Makes each uploaded output a File of the run's conversation, in the
+   * request's order. Authenticated as {@link mountRunFiles} is.
+   */
+  async registerOutputs(
+    runId: string,
+    entries: ReadonlyArray<{ readonly outputPath: string; readonly uploadRef: string; readonly contentSha256: string }>,
+    scopedToken?: string,
+  ): Promise<File[]> {
+    const answer = await this.runFiles.registerOutputs(
+      create(RegisterOutputsInputSchema, { runId, entries: entries.map((entry) => ({ ...entry })) }),
+      scopedToken ? { headers: { authorization: `Bearer ${scopedToken}` } } : undefined,
+    );
+    return answer.files;
   }
 
   /**

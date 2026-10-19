@@ -15,16 +15,16 @@ import (
 
 // FileClient provides operations on file resources.
 type FileClient struct {
-	command   filev1.FileCommandControllerClient
-	fileMount filev1.FileMountControllerClient
-	query     filev1.FileQueryControllerClient
+	command filev1.FileCommandControllerClient
+	query   filev1.FileQueryControllerClient
+	runFile filev1.RunFileControllerClient
 }
 
 func NewFileClient(conn grpc.ClientConnInterface) *FileClient {
 	return &FileClient{
-		command:   filev1.NewFileCommandControllerClient(conn),
-		fileMount: filev1.NewFileMountControllerClient(conn),
-		query:     filev1.NewFileQueryControllerClient(conn),
+		command: filev1.NewFileCommandControllerClient(conn),
+		query:   filev1.NewFileQueryControllerClient(conn),
+		runFile: filev1.NewRunFileControllerClient(conn),
 	}
 }
 
@@ -53,11 +53,6 @@ func (f *FileClient) UpdateVisibility(ctx context.Context, input *apiresource.Up
 
 func (f *FileClient) Delete(ctx context.Context, id string) (*filev1.File, error) {
 	resp, err := f.command.Delete(ctx, &filev1.FileId{Value: id})
-	return resp, wrapErr(err)
-}
-
-func (f *FileClient) Mount(ctx context.Context, input *filev1.MountRunFilesInput) (*filev1.RunFileMounts, error) {
-	resp, err := f.fileMount.Mount(ctx, input)
 	return resp, wrapErr(err)
 }
 
@@ -102,6 +97,26 @@ func (f *FileClient) ListAll(ctx context.Context, input *filev1.ListFilesRequest
 
 func (f *FileClient) GetDownloadUrl(ctx context.Context, id string) (*filev1.FileDownloadUrl, error) {
 	resp, err := f.query.GetDownloadUrl(ctx, &filev1.FileId{Value: id})
+	return resp, wrapErr(err)
+}
+
+func (f *FileClient) GetContent(ctx context.Context, input *filev1.GetFileContentInput) (*filev1.FileContent, error) {
+	resp, err := f.query.GetContent(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (f *FileClient) Mount(ctx context.Context, input *filev1.MountRunFilesInput) (*filev1.RunFileMounts, error) {
+	resp, err := f.runFile.Mount(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (f *FileClient) CreateOutputUploads(ctx context.Context, input *filev1.CreateOutputUploadsInput) (*filev1.OutputUploads, error) {
+	resp, err := f.runFile.CreateOutputUploads(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (f *FileClient) RegisterOutputs(ctx context.Context, input *filev1.RegisterOutputsInput) (*filev1.RegisteredOutputs, error) {
+	resp, err := f.runFile.RegisterOutputs(ctx, input)
 	return resp, wrapErr(err)
 }
 

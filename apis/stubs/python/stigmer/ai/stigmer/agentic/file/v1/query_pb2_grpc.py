@@ -31,6 +31,11 @@ class FileQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_file_dot_v1_dot_io__pb2.FileId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_file_dot_v1_dot_io__pb2.FileDownloadUrl.FromString,
                 _registered_method=True)
+        self.getContent = channel.unary_unary(
+                '/ai.stigmer.agentic.file.v1.FileQueryController/getContent',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_file_dot_v1_dot_io__pb2.GetFileContentInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_file_dot_v1_dot_io__pb2.FileContent.FromString,
+                _registered_method=True)
 
 
 class FileQueryControllerServicer(object):
@@ -60,6 +65,14 @@ class FileQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getContent(self, request, context):
+        """The start of a File's bytes, read through the server: at most 512 KB,
+        enough to show a text File without a download.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_FileQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -77,6 +90,11 @@ def add_FileQueryControllerServicer_to_server(servicer, server):
                     servicer.getDownloadUrl,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_file_dot_v1_dot_io__pb2.FileId.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_file_dot_v1_dot_io__pb2.FileDownloadUrl.SerializeToString,
+            ),
+            'getContent': grpc.unary_unary_rpc_method_handler(
+                    servicer.getContent,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_file_dot_v1_dot_io__pb2.GetFileContentInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_file_dot_v1_dot_io__pb2.FileContent.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -161,6 +179,33 @@ class FileQueryController(object):
             '/ai.stigmer.agentic.file.v1.FileQueryController/getDownloadUrl',
             ai_dot_stigmer_dot_agentic_dot_file_dot_v1_dot_io__pb2.FileId.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_file_dot_v1_dot_io__pb2.FileDownloadUrl.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getContent(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.file.v1.FileQueryController/getContent',
+            ai_dot_stigmer_dot_agentic_dot_file_dot_v1_dot_io__pb2.GetFileContentInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_file_dot_v1_dot_io__pb2.FileContent.FromString,
             options,
             channel_credentials,
             insecure,

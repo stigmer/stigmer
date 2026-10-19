@@ -29,3 +29,13 @@ breaking:
   except:
     - EXTENSION_NO_DELETE
     - FIELD_SAME_DEFAULT
+  # One pull request turns the runner's File mount service into the runner's
+  # one door to Files, which also takes back what a turn saved in its outputs
+  # folder: mount.proto becomes run_files.proto and FileMountController
+  # becomes RunFileController. No released client calls it (runner and
+  # server ship together). This block exists for that pull request and the
+  # one after it that retires run artifacts; the pull request that removes it
+  # lands straight after the second merge.
+  ignore_only:
+    FILE_NO_DELETE:
+      - ai/stigmer/agentic/file/v1/mount.proto

@@ -108,6 +108,37 @@ public final class FileQueryControllerGrpc {
     return getGetDownloadUrlMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.file.v1.GetFileContentInput,
+      ai.stigmer.agentic.file.v1.FileContent> getGetContentMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getContent",
+      requestType = ai.stigmer.agentic.file.v1.GetFileContentInput.class,
+      responseType = ai.stigmer.agentic.file.v1.FileContent.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.file.v1.GetFileContentInput,
+      ai.stigmer.agentic.file.v1.FileContent> getGetContentMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.file.v1.GetFileContentInput, ai.stigmer.agentic.file.v1.FileContent> getGetContentMethod;
+    if ((getGetContentMethod = FileQueryControllerGrpc.getGetContentMethod) == null) {
+      synchronized (FileQueryControllerGrpc.class) {
+        if ((getGetContentMethod = FileQueryControllerGrpc.getGetContentMethod) == null) {
+          FileQueryControllerGrpc.getGetContentMethod = getGetContentMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.file.v1.GetFileContentInput, ai.stigmer.agentic.file.v1.FileContent>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getContent"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.file.v1.GetFileContentInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.file.v1.FileContent.getDefaultInstance()))
+              .setSchemaDescriptor(new FileQueryControllerMethodDescriptorSupplier("getContent"))
+              .build();
+        }
+      }
+    }
+    return getGetContentMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -205,6 +236,17 @@ public final class FileQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.file.v1.FileDownloadUrl> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetDownloadUrlMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * The start of a File's bytes, read through the server: at most 512 KB,
+     * enough to show a text File without a download.
+     * </pre>
+     */
+    default void getContent(ai.stigmer.agentic.file.v1.GetFileContentInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.file.v1.FileContent> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetContentMethod(), responseObserver);
+    }
   }
 
   /**
@@ -274,6 +316,18 @@ public final class FileQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetDownloadUrlMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * The start of a File's bytes, read through the server: at most 512 KB,
+     * enough to show a text File without a download.
+     * </pre>
+     */
+    public void getContent(ai.stigmer.agentic.file.v1.GetFileContentInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.file.v1.FileContent> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetContentMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -326,6 +380,17 @@ public final class FileQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetDownloadUrlMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * The start of a File's bytes, read through the server: at most 512 KB,
+     * enough to show a text File without a download.
+     * </pre>
+     */
+    public ai.stigmer.agentic.file.v1.FileContent getContent(ai.stigmer.agentic.file.v1.GetFileContentInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetContentMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -377,6 +442,17 @@ public final class FileQueryControllerGrpc {
     public ai.stigmer.agentic.file.v1.FileDownloadUrl getDownloadUrl(ai.stigmer.agentic.file.v1.FileId request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetDownloadUrlMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * The start of a File's bytes, read through the server: at most 512 KB,
+     * enough to show a text File without a download.
+     * </pre>
+     */
+    public ai.stigmer.agentic.file.v1.FileContent getContent(ai.stigmer.agentic.file.v1.GetFileContentInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetContentMethod(), getCallOptions(), request);
     }
   }
 
@@ -433,11 +509,24 @@ public final class FileQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetDownloadUrlMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * The start of a File's bytes, read through the server: at most 512 KB,
+     * enough to show a text File without a download.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.file.v1.FileContent> getContent(
+        ai.stigmer.agentic.file.v1.GetFileContentInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetContentMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_LIST = 1;
   private static final int METHODID_GET_DOWNLOAD_URL = 2;
+  private static final int METHODID_GET_CONTENT = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -467,6 +556,10 @@ public final class FileQueryControllerGrpc {
         case METHODID_GET_DOWNLOAD_URL:
           serviceImpl.getDownloadUrl((ai.stigmer.agentic.file.v1.FileId) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.file.v1.FileDownloadUrl>) responseObserver);
+          break;
+        case METHODID_GET_CONTENT:
+          serviceImpl.getContent((ai.stigmer.agentic.file.v1.GetFileContentInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.file.v1.FileContent>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -507,6 +600,13 @@ public final class FileQueryControllerGrpc {
               ai.stigmer.agentic.file.v1.FileId,
               ai.stigmer.agentic.file.v1.FileDownloadUrl>(
                 service, METHODID_GET_DOWNLOAD_URL)))
+        .addMethod(
+          getGetContentMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.file.v1.GetFileContentInput,
+              ai.stigmer.agentic.file.v1.FileContent>(
+                service, METHODID_GET_CONTENT)))
         .build();
   }
 
@@ -558,6 +658,7 @@ public final class FileQueryControllerGrpc {
               .addMethod(getGetMethod())
               .addMethod(getListMethod())
               .addMethod(getGetDownloadUrlMethod())
+              .addMethod(getGetContentMethod())
               .build();
         }
       }

@@ -22,7 +22,7 @@ vi.mock("@connectrpc/connect", () => ({
 import { StigmerClient } from "../stigmer-client.js";
 import { withRunCredential } from "../../shared/run-credential-store.js";
 import { VaultValueController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/values_pb";
-import { FileMountController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/mount_pb";
+import { RunFileController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
 import { PlatformQueryController } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 
 function makeRequest(
@@ -189,7 +189,7 @@ describe("StigmerClient", () => {
         runnerTokenRef: { current: "runner-tok" },
       });
 
-      const req = makeRequest(FileMountController.typeName, "mount");
+      const req = makeRequest(RunFileController.typeName, "mount");
       await runInterceptor(req);
       expect(req.header.get("authorization")).toBe("Bearer runner-tok");
     });

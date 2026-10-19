@@ -26,30 +26,36 @@ var File_ai_stigmer_agentic_file_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_file_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"&ai/stigmer/agentic/file/v1/query.proto\x12\x1aai.stigmer.agentic.file.v1\x1a$ai/stigmer/agentic/file/v1/api.proto\x1a#ai/stigmer/agentic/file/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x89\x03\n" +
+	"&ai/stigmer/agentic/file/v1/query.proto\x12\x1aai.stigmer.agentic.file.v1\x1a$ai/stigmer/agentic/file/v1/api.proto\x1a#ai/stigmer/agentic/file/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x9b\x04\n" +
 	"\x13FileQueryController\x12v\n" +
 	"\x03get\x12\".ai.stigmer.agentic.file.v1.FileId\x1a .ai.stigmer.agentic.file.v1.File\")¸\x18%\b\x01\x10I\"\x05value*\x18unauthorized to get file\x12`\n" +
 	"\x04list\x12,.ai.stigmer.agentic.file.v1.ListFilesRequest\x1a$.ai.stigmer.agentic.file.v1.FileList\"\x04и\x18\x01\x12\x91\x01\n" +
-	"\x0egetDownloadUrl\x12\".ai.stigmer.agentic.file.v1.FileId\x1a+.ai.stigmer.agentic.file.v1.FileDownloadUrl\".¸\x18*\b\x01\x10I\"\x05value*\x1dunauthorized to download file\x1a\x04\xa0\xff+IB\xf4\x01\n" +
+	"\x0egetDownloadUrl\x12\".ai.stigmer.agentic.file.v1.FileId\x1a+.ai.stigmer.agentic.file.v1.FileDownloadUrl\".¸\x18*\b\x01\x10I\"\x05value*\x1dunauthorized to download file\x12\x8f\x01\n" +
+	"\n" +
+	"getContent\x12/.ai.stigmer.agentic.file.v1.GetFileContentInput\x1a'.ai.stigmer.agentic.file.v1.FileContent\"'¸\x18#\b\x01\x10I\"\x02id*\x19unauthorized to read file\x1a\x04\xa0\xff+IB\xf4\x01\n" +
 	"\x1ecom.ai.stigmer.agentic.file.v1B\n" +
 	"QueryProtoP\x01Z9go.stigmer.ai/sdk/proto/ai/stigmer/agentic/file/v1;filev1\xa2\x02\x04ASAF\xaa\x02\x1aAi.Stigmer.Agentic.File.V1\xca\x02\x1aAi\\Stigmer\\Agentic\\File\\V1\xe2\x02&Ai\\Stigmer\\Agentic\\File\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Agentic::File::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_file_v1_query_proto_goTypes = []any{
-	(*FileId)(nil),           // 0: ai.stigmer.agentic.file.v1.FileId
-	(*ListFilesRequest)(nil), // 1: ai.stigmer.agentic.file.v1.ListFilesRequest
-	(*File)(nil),             // 2: ai.stigmer.agentic.file.v1.File
-	(*FileList)(nil),         // 3: ai.stigmer.agentic.file.v1.FileList
-	(*FileDownloadUrl)(nil),  // 4: ai.stigmer.agentic.file.v1.FileDownloadUrl
+	(*FileId)(nil),              // 0: ai.stigmer.agentic.file.v1.FileId
+	(*ListFilesRequest)(nil),    // 1: ai.stigmer.agentic.file.v1.ListFilesRequest
+	(*GetFileContentInput)(nil), // 2: ai.stigmer.agentic.file.v1.GetFileContentInput
+	(*File)(nil),                // 3: ai.stigmer.agentic.file.v1.File
+	(*FileList)(nil),            // 4: ai.stigmer.agentic.file.v1.FileList
+	(*FileDownloadUrl)(nil),     // 5: ai.stigmer.agentic.file.v1.FileDownloadUrl
+	(*FileContent)(nil),         // 6: ai.stigmer.agentic.file.v1.FileContent
 }
 var file_ai_stigmer_agentic_file_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.file.v1.FileQueryController.get:input_type -> ai.stigmer.agentic.file.v1.FileId
 	1, // 1: ai.stigmer.agentic.file.v1.FileQueryController.list:input_type -> ai.stigmer.agentic.file.v1.ListFilesRequest
 	0, // 2: ai.stigmer.agentic.file.v1.FileQueryController.getDownloadUrl:input_type -> ai.stigmer.agentic.file.v1.FileId
-	2, // 3: ai.stigmer.agentic.file.v1.FileQueryController.get:output_type -> ai.stigmer.agentic.file.v1.File
-	3, // 4: ai.stigmer.agentic.file.v1.FileQueryController.list:output_type -> ai.stigmer.agentic.file.v1.FileList
-	4, // 5: ai.stigmer.agentic.file.v1.FileQueryController.getDownloadUrl:output_type -> ai.stigmer.agentic.file.v1.FileDownloadUrl
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	2, // 3: ai.stigmer.agentic.file.v1.FileQueryController.getContent:input_type -> ai.stigmer.agentic.file.v1.GetFileContentInput
+	3, // 4: ai.stigmer.agentic.file.v1.FileQueryController.get:output_type -> ai.stigmer.agentic.file.v1.File
+	4, // 5: ai.stigmer.agentic.file.v1.FileQueryController.list:output_type -> ai.stigmer.agentic.file.v1.FileList
+	5, // 6: ai.stigmer.agentic.file.v1.FileQueryController.getDownloadUrl:output_type -> ai.stigmer.agentic.file.v1.FileDownloadUrl
+	6, // 7: ai.stigmer.agentic.file.v1.FileQueryController.getContent:output_type -> ai.stigmer.agentic.file.v1.FileContent
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

@@ -18,7 +18,7 @@
           "argsPreview": "{\"command\":\"rm -rf build\"}",
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_HOOK",
-          "policyEngineVersion": "hooks-2",
+          "policyEngineVersion": "hooks-3",
           "approvalPolicyHook": "safety"
         }
       ]
@@ -41,7 +41,7 @@
           "argsPreview": "{\"command\":\"ls\"}",
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_HOOK",
-          "policyEngineVersion": "hooks-2",
+          "policyEngineVersion": "hooks-3",
           "approvalPolicyHook": "safety"
         }
       ]
@@ -65,7 +65,7 @@
           "argsPreview": "{\"command\":\"echo publish\"}",
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_HOOK",
-          "policyEngineVersion": "hooks-2",
+          "policyEngineVersion": "hooks-3",
           "approvalPolicyHook": "safety"
         }
       ]

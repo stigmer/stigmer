@@ -3,14 +3,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 /**
  * Pins the run-scoped calls the client composes for the control plane: the
  * run's status write, which names the run by `run_id`, the wire field
- * the run rename settled on; and the File mount, which names the run the
- * same way and authenticates with the scoped token it is handed. The transport and the generated clients are
+ * the run rename settled on; and the runner's File door (the mount and a
+ * turn's outputs), which names the run the same way and authenticates with
+ * the scoped token it is handed. The transport and the generated clients are
  * replaced at their module seams, so the request the method builds is
  * observed without a server.
  */
 
 const runUpdateStatus = vi.fn();
 const fileMount = vi.fn();
+const createOutputUploads = vi.fn();
+const registerOutputs = vi.fn();
 
 vi.mock("@connectrpc/connect-node", () => ({
   createGrpcTransport: () => ({}),
@@ -24,8 +27,8 @@ vi.mock("@connectrpc/connect", async (importOriginal) => {
       switch (service.typeName) {
         case "ai.stigmer.agentic.run.v1.RunCommandController":
           return { updateStatus: runUpdateStatus };
-        case "ai.stigmer.agentic.file.v1.FileMountController":
-          return { mount: fileMount };
+        case "ai.stigmer.agentic.file.v1.RunFileController":
+          return { mount: fileMount, createOutputUploads, registerOutputs };
         default:
           return {};
       }
@@ -46,6 +49,8 @@ function newClient(): StigmerClient {
 beforeEach(() => {
   runUpdateStatus.mockReset();
   fileMount.mockReset();
+  createOutputUploads.mockReset();
+  registerOutputs.mockReset();
 });
 
 describe("StigmerClient.updateStatus", () => {
@@ -86,5 +91,34 @@ describe("StigmerClient.mountRunFiles", () => {
     fileMount.mockResolvedValue({ entries: [] });
     await newClient().mountRunFiles("aex_1");
     expect(fileMount.mock.calls[0]![1]).toBeUndefined();
+  });
+});
+
+describe("StigmerClient's output calls", () => {
+  it("names the run and each output, and authenticates with the scoped token", async () => {
+    const uploads = [{ outputPath: "reports/a.md", uploadRef: "fup_1", url: "http://x", ttlSeconds: 60 }];
+    createOutputUploads.mockResolvedValue({ entries: uploads });
+    const files = [{ metadata: { id: "file_1" } }];
+    registerOutputs.mockResolvedValue({ files });
+    const client = newClient();
+
+    expect(await client.createOutputUploads("aex_1", [{ outputPath: "reports/a.md", sizeBytes: 12 }], "scoped-tok")).toBe(uploads);
+    const [minted, mintOptions] = createOutputUploads.mock.calls[0]! as [
+      { runId: string; entries: Array<{ outputPath: string; sizeBytes: bigint }> },
+      { headers: Record<string, string> },
+    ];
+    expect(minted.runId).toBe("aex_1");
+    expect(minted.entries.map((entry) => [entry.outputPath, entry.sizeBytes])).toEqual([["reports/a.md", 12n]]);
+    expect(mintOptions.headers.authorization).toBe("Bearer scoped-tok");
+
+    const entry = { outputPath: "reports/a.md", uploadRef: "fup_1", contentSha256: "a".repeat(64) };
+    expect(await client.registerOutputs("aex_1", [entry], "scoped-tok")).toBe(files);
+    const [registered, registerOptions] = registerOutputs.mock.calls[0]! as [
+      { runId: string; entries: Array<typeof entry> },
+      { headers: Record<string, string> },
+    ];
+    expect(registered.runId).toBe("aex_1");
+    expect(registered.entries.map((e) => ({ outputPath: e.outputPath, uploadRef: e.uploadRef, contentSha256: e.contentSha256 }))).toEqual([entry]);
+    expect(registerOptions.headers.authorization).toBe("Bearer scoped-tok");
   });
 });

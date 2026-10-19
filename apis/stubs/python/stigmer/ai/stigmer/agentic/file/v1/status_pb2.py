@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from ai.stigmer.commons.apiresource import status_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_status__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'ai/stigmer/agentic/file/v1/status.proto\x12\x1a\x61i.stigmer.agentic.file.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xa9\x01\n\nFileStatus\x12\x1d\n\nsize_bytes\x18\x01 \x01(\x03R\tsizeBytes\x12\x1d\n\nsession_id\x18\x02 \x01(\tR\tsessionId\x12\x15\n\x06run_id\x18\x03 \x01(\tR\x05runId\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61uditB\xba\x01\n\x1e\x63om.ai.stigmer.agentic.file.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAF\xaa\x02\x1a\x41i.Stigmer.Agentic.File.V1\xca\x02\x1a\x41i\\Stigmer\\Agentic\\File\\V1\xe2\x02&Ai\\Stigmer\\Agentic\\File\\V1\\GPBMetadata\xea\x02\x1e\x41i::Stigmer::Agentic::File::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'ai/stigmer/agentic/file/v1/status.proto\x12\x1a\x61i.stigmer.agentic.file.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xca\x01\n\nFileStatus\x12\x1d\n\nsize_bytes\x18\x01 \x01(\x03R\tsizeBytes\x12\x1d\n\nsession_id\x18\x02 \x01(\tR\tsessionId\x12\x15\n\x06run_id\x18\x03 \x01(\tR\x05runId\x12\x1f\n\x0boutput_path\x18\x04 \x01(\tR\noutputPath\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61uditB\xba\x01\n\x1e\x63om.ai.stigmer.agentic.file.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAF\xaa\x02\x1a\x41i.Stigmer.Agentic.File.V1\xca\x02\x1a\x41i\\Stigmer\\Agentic\\File\\V1\xe2\x02&Ai\\Stigmer\\Agentic\\File\\V1\\GPBMetadata\xea\x02\x1e\x41i::Stigmer::Agentic::File::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,5 +34,5 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\036com.ai.stigmer.agentic.file.v1B\013StatusProtoP\001\242\002\004ASAF\252\002\032Ai.Stigmer.Agentic.File.V1\312\002\032Ai\\Stigmer\\Agentic\\File\\V1\342\002&Ai\\Stigmer\\Agentic\\File\\V1\\GPBMetadata\352\002\036Ai::Stigmer::Agentic::File::V1'
   _globals['_FILESTATUS']._serialized_start=117
-  _globals['_FILESTATUS']._serialized_end=286
+  _globals['_FILESTATUS']._serialized_end=319
 # @@protoc_insertion_point(module_scope)

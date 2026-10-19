@@ -54,7 +54,8 @@ import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
 import type { ToolScopeConfig } from "../../middleware/tool-scope.js";
 import type { ToolScope } from "../../shared/tool-lists.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
-import { mountPlatformRoute } from "./platform-route.js";
+import { mountPlatformRoute, OUTPUTS_ROUTE_PREFIX as NATIVE_OUTPUTS_FOLDER } from "./platform-route.js";
+import { outputsFolderInstruction } from "../../shared/prompt-sections.js";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
 import type { CostAdvisoryMiddleware, StigmerMiddleware } from "../../middleware/index.js";
 import { createWebFetchTool, type GuardPosture } from "../../tools/index.js";
@@ -148,6 +149,7 @@ same files.
 - Do not begin responses with phrases like \
 "Below is the complete content", \
 "Here are the contents of the files", or similar.
+- ${outputsFolderInstruction(NATIVE_OUTPUTS_FOLDER)}
 `;
 
 // =========================================================================

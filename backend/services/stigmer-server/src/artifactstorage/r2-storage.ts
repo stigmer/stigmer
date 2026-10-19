@@ -163,6 +163,31 @@ export class R2ArtifactStorage implements ArtifactStorage {
     return body;
   }
 
+  async readRange(key: string, offset: number, length: number): Promise<Uint8Array> {
+    if (length <= 0) {
+      return new Uint8Array();
+    }
+    try {
+      const result = await this.client.send(
+        new GetObjectCommand({ Bucket: this.bucket, Key: key, Range: `bytes=${offset}-${offset + length - 1}` }),
+        { abortSignal: AbortSignal.timeout(R2_CALL_TIMEOUT_MS) },
+      );
+      if (result.Body === undefined) {
+        throw new Error("empty response body");
+      }
+      return await result.Body.transformToByteArray();
+    } catch (error) {
+      if (isNotFoundError(error)) {
+        throw new ArtifactStorageNotFoundError(key);
+      }
+      // A range past the end of a non-empty object: nothing left to read.
+      if (isRangeNotSatisfiable(error)) {
+        return new Uint8Array();
+      }
+      throw new Error(`r2 ranged download failed: ${errorText(error)}`, { cause: error });
+    }
+  }
+
   async size(key: string): Promise<number> {
     try {
       const result = await this.client.send(
@@ -288,6 +313,16 @@ export class R2ArtifactStorage implements ArtifactStorage {
  * the SDK's structured errors instead of Go's string matching): the S3
  * NotFound/NoSuchKey names, an HTTP 404, or the legacy text forms.
  */
+/** A ranged GET past the end of an object (HTTP 416, S3's InvalidRange). */
+function isRangeNotSatisfiable(error: unknown): boolean {
+  if (error === null || error === undefined) {
+    return false;
+  }
+  const name = (error as { name?: string }).name ?? "";
+  const statusCode = (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
+  return name === "InvalidRange" || statusCode === 416;
+}
+
 export function isNotFoundError(error: unknown): boolean {
   if (error === null || error === undefined) {
     return false;

@@ -96,8 +96,11 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.file.v1.FileMount.file_id` | stamped id |
 | `ai.stigmer.agentic.file.v1.FileStatus.run_id` | stamped id |
 | `ai.stigmer.agentic.file.v1.FileStatus.session_id` | stamped id |
+| `ai.stigmer.agentic.file.v1.CreateOutputUploadsInput.run_id` | stamped id |
+| `ai.stigmer.agentic.file.v1.ListFilesRequest.run_id` | stamped id |
 | `ai.stigmer.agentic.file.v1.ListFilesRequest.session_id` | stamped id |
 | `ai.stigmer.agentic.file.v1.MountRunFilesInput.run_id` | stamped id |
+| `ai.stigmer.agentic.file.v1.RegisterOutputsInput.run_id` | stamped id |
 | `ai.stigmer.agentic.file.v1.UploadFileInput.session_id` | stamped id |
 
 ## `ai.stigmer.agentic.memory.v1`

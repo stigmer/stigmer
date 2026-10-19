@@ -1,5 +1,5 @@
 /**
- * Pins the runner's File mount (../mount.ts) over the SQLite store, the
+ * Pins the runner's File mount (../mount.ts, registered by ../run-files.ts) over the SQLite store, the
  * real local driver and a real runner credential service:
  *   - the runner acting for the run gets its conversation's Files, in the
  *     list's order, each with its mount path, name, type, size and a link
@@ -28,8 +28,8 @@ import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
-import { MountRunFilesInputSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/mount_pb";
-import type { MountRunFilesInput, RunFileMounts } from "@stigmer/apis/ai/stigmer/agentic/file/v1/mount_pb";
+import { MountRunFilesInputSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
+import type { MountRunFilesInput, RunFileMounts } from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
@@ -49,8 +49,9 @@ import { UploadSlots } from "../../skill/transfer/slots.js";
 import { newFileBlobs } from "../blobs.js";
 import type { FileBlobs } from "../blobs.js";
 import { STAGED_FILE_NAME, STAGING_KEY_PREFIX } from "../constants.js";
-import { NOT_THE_RUNS_RUNNER_MOUNT_MESSAGE, mountRunFiles, registerFileMountService } from "../mount.js";
+import { NOT_THE_RUNS_RUNNER_MOUNT_MESSAGE, mountRunFiles } from "../mount.js";
 import type { FileMountDeps } from "../mount.js";
+import { registerRunFileService } from "../run-files.js";
 import { fileTransferServeUrl, newFileTransferLane } from "../transfer.js";
 
 const ORG = "org_01aaaaaaaaaaaaaaaaaaaaaaaa";
@@ -158,7 +159,7 @@ async function refusal(promise: Promise<unknown>): Promise<ConnectError> {
   return error as ConnectError;
 }
 
-describe("FileMountController.mount", () => {
+describe("RunFileController.mount", () => {
   it("hands the run's runner its conversation's own Files, in order, with links that serve them", async () => {
     await seedFile("file_01a", "a.txt", "alpha");
     await seedFile("file_01b", "b.txt", "bravo");
@@ -201,7 +202,7 @@ describe("FileMountController.mount", () => {
         return router;
       },
     } as unknown as ConnectRouter;
-    registerFileMountService(router, deps());
+    registerRunFileService(router, { ...deps(), lifecycle: undefined });
     const answer = await served!.mount(
       create(MountRunFilesInputSchema, { runId: "run_01lonely" }),
       bearer(auth.mintRunCredential("run_01lonely")),

@@ -297,6 +297,14 @@ export interface ApprovalStateFile {
    * hard-block and fail-closed arms are mode-independent and unchanged.
    */
   unattendedSkip: boolean;
+  /**
+   * The outputs folder's real path (`shared/outputs.ts`), "" on a turn
+   * whose workspace link does not reach the platform folder. A built-in
+   * write or delete whose real path lies inside it flows unreviewed in
+   * capture mode or with file review off, and is never staged for review:
+   * it comes back as a File. The classic deny-gate still asks.
+   */
+  outputsRoot: string;
 }
 
 /**
@@ -595,6 +603,7 @@ function parseArgs(argsPreview: string): Record<string, unknown> | undefined {
  * - toolScope: the agent's tool lists, compiled (`hook-scope.ts`)
  * - captureMode / fileReview / captureIgnored / gitWorkspace: how file edits
  *   flow this turn (captured for review, flowing unreviewed, or gated)
+ * - outputsRoot: the outputs folder, whose writes are never reviewed
  *
  * The static gated built-in set and its category mapping are baked into the
  * generated hook script (from approval-policy.ts), not carried here.
@@ -610,6 +619,7 @@ export function buildApprovalState(
   unattendedSkip = false,
   toolScope: HookToolScope = UNRESTRICTED_HOOK_SCOPE,
   fileReview = true,
+  outputsRoot = "",
 ): ApprovalStateFile {
   const approvedGrants = grants ?? [];
 
@@ -642,6 +652,7 @@ export function buildApprovalState(
     captureIgnored,
     gitWorkspace,
     unattendedSkip,
+    outputsRoot,
   };
 }
 

@@ -141,6 +141,10 @@
  *    b. otherwise → record denial, deny
  *    (every other MCP tool falls through → allow; a server lease leaves its
  *     server out of both, so its tools fall through)
+ * 2b. preToolUse event → a built-in write or delete inside the outputs
+ *    folder (`outputsRoot`), in capture mode or with file review off: a
+ *    secret-like write → record kind "secret", deny; otherwise allow,
+ *    uncaptured (it comes back as a File). Before the capture arms.
  * 3. preToolUse event → gated built-in (category non-empty):
  *    0. a git-tracked write or delete in capture mode, or with file review
  *       off → allow; a secret-like write left → record kind "secret", deny;
@@ -558,12 +562,43 @@ function unlistedMessage(toolNameExpression: string): string {
   return UNLISTED_MCP_APPROVAL_MESSAGE.replace("{{tool_name}}", toolNameExpression);
 }
 
+/**
+ * The Node snippet that answers whether a file call's path lies inside the
+ * outputs folder: `yes` or `no` on stdout. It reads the state file
+ * (`process.argv[1]`) for `outputsRoot`, the folder's real path ("" when
+ * the turn has none), and the path from stdin, resolved against the baked
+ * workspace root (`process.argv[2]`) when relative. A file the call is about
+ * to create has no real path yet, so the nearest existing ancestor's real
+ * path is taken and the rest appended: a link anywhere on the way is
+ * followed, and a path that leads out of the folder through one is not
+ * inside it. Any failure answers `no`, which leaves the call to every other
+ * arm. No single quote: the script is embedded in a single-quoted argument.
+ */
+export function buildOutputsPathScript(): string {
+  return [
+    `const fs=require("fs"),p=require("path");`,
+    `let ans="no";`,
+    `try{`,
+    `const st=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));`,
+    `const root=typeof st.outputsRoot==="string"?st.outputsRoot:"";`,
+    `const s=fs.readFileSync(0,"utf8");`,
+    `if(root!==""&&s!==""){`,
+    `let cur=p.resolve(process.argv[2]||"/",s);const rest=[];let real="";`,
+    `for(;;){try{real=fs.realpathSync(cur);break;}catch(e){const up=p.dirname(cur);if(up===cur)break;rest.unshift(p.basename(cur));cur=up;}}`,
+    `if(real!==""){const full=p.join(real,...rest);if(full.startsWith(root+p.sep))ans="yes";}`,
+    `}`,
+    `}catch(e){ans="no";}`,
+    `process.stdout.write(ans);`,
+  ].join("");
+}
+
 export function generateHookScript(activePointerPath: string, workspaceRoot = ""): string {
   const salientFields = SALIENT_ARG_FIELDS.join(" ");
   const categoryCaseArms = buildCategoryCaseArms();
   const nodeIdentityScript = buildNodeIdentityScript();
   const observationStagingScript = buildObservationStagingScript();
   const secretClassifyScript = buildSecretClassifyScript();
+  const outputsPathScript = buildOutputsPathScript();
   const hookClientScript = buildHookClientScript();
   const nodeBin = process.execPath;
   return `#!/bin/bash
@@ -1010,6 +1045,28 @@ if [ -n "$HOOK_SOCKET" ] && { [ "$HOOK_EVENT" = "beforeMCPExecution" ] || { [ "$
       exit 0
       ;;
   esac
+fi
+
+# --- The outputs folder: the agent's deliverables ----------------------------
+# A built-in write or delete whose real path lies inside the outputs folder
+# (the state's outputsRoot) is never captured for review: it comes back as a
+# File when the turn ends (shared/outputs.ts). Where a workspace edit would
+# flow unasked (capture mode, or file review off) it flows, a secret-like
+# write still blocked; under the classic gate it falls through to the
+# deny-gate and asks, as every write does there. Before the capture arms,
+# which would otherwise stage a gitignored write for review (.stigmer is
+# git-excluded).
+if [ -n "$SALIENT" ] && { [ "$CATEGORY" = "write" ] || [ "$CATEGORY" = "delete" ]; } && { [ "$CAPTURE_MODE" = "true" ] || [ "$FILE_REVIEW" = "false" ]; }; then
+  IN_OUTPUTS=$(printf '%s' "$SALIENT" | ELECTRON_RUN_AS_NODE=1 "$NODE_BIN" -e '${outputsPathScript}' "$STATE_FILE" "$GIT_ROOT" 2>/dev/null || echo no)
+  if [ "$IN_OUTPUTS" = "yes" ]; then
+    if __stigmer_secret_write; then
+      record_denial "$PRIMARY_TOKEN" "secret"
+      echo '{"permission":"deny","agent_message":"${SECRET_BLOCKED_AGENT_MESSAGE}","user_message":"Blocked for security: this file matches a secret-like path and was not written."}'
+      exit 0
+    fi
+    __stigmer_allow
+    exit 0
+  fi
 fi
 
 # --- Capture mode: observe CAS-owned writes for review ----------------------

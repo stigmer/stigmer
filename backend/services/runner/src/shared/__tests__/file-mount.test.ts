@@ -35,7 +35,7 @@ import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSy
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
-import { FileMountSchema, type FileMount } from "@stigmer/apis/ai/stigmer/agentic/file/v1/mount_pb";
+import { FileMountSchema, type FileMount } from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
 import { ContentBlockSchema, ContentSourceSchema, type ContentBlock } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";

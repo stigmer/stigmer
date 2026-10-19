@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { FileDownloadUrl, FileId, FileList, ListFilesRequest } from "./io_pbjs";
+import { FileContent, FileDownloadUrl, FileId, FileList, GetFileContentInput, ListFilesRequest } from "./io_pbjs";
 import { File } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -48,6 +48,18 @@ export const FileQueryController = {
       name: "getDownloadUrl",
       I: FileId,
       O: FileDownloadUrl,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * The start of a File's bytes, read through the server: at most 512 KB,
+     * enough to show a text File without a download.
+     *
+     * @generated from rpc ai.stigmer.agentic.file.v1.FileQueryController.getContent
+     */
+    getContent: {
+      name: "getContent",
+      I: GetFileContentInput,
+      O: FileContent,
       kind: MethodKind.Unary,
     },
   }

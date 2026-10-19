@@ -842,6 +842,8 @@ describe("extension composition (driver substitution)", () => {
               download: (key) =>
                 Promise.resolve(blobs.get(key) ?? new Uint8Array()),
               size: (key) => Promise.resolve(blobs.get(key)?.length ?? 0),
+              readRange: (key, offset, length) =>
+                Promise.resolve((blobs.get(key) ?? new Uint8Array()).slice(offset, offset + length)),
               presignPut: () => Promise.reject(new Error("not exercised here")),
               getSignedUrl: () => Promise.resolve("https://blob.invalid"),
               copy: (fromKey, toKey) => {

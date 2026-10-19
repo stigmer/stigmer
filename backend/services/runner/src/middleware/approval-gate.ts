@@ -59,9 +59,11 @@
  *     input replaces the arguments. No decision falls through.
  *  3. Capture mode keeps its flow-and-review bookkeeping for whatever runs:
  *     capture is review, not approval, so a hook's `allow` never skips it.
- *     With no hook deciding, a built-in write or delete then flows when the
- *     turn's file review is off (`file_review_off`), or when capture would
- *     review it (`file_capture`).
+ *     With no hook deciding, a built-in write or delete then flows when it
+ *     lies inside the outputs folder and a workspace edit would flow
+ *     (`outputs`: never captured, it comes back as a File), when the turn's
+ *     file review is off (`file_review_off`), or when capture would review
+ *     it (`file_capture`).
  *  4. The default, only when no hook decided: for a built-in write or
  *     delete that means a turn with review on and nothing to capture it.
  *  5. The handler; when it succeeds, PostToolUse. Every hook's context, and
@@ -110,6 +112,7 @@ import { TOOL_REFUSED_EVENT, customStreamWriterOf, type ToolRefusedPayload } fro
 import { toolApprovalCategory, type ToolApprovalCategory } from "../shared/tool-kind.js";
 import { extractFilePath } from "../shared/file-tools.js";
 import { isSecretLikePath } from "../shared/filereview/secret-paths.js";
+import { isInOutputsFolder } from "../shared/outputs.js";
 import {
   computeApprovalFingerprint,
   type FingerprintKey,
@@ -541,11 +544,14 @@ async function secretWriteBlock(
 
 /**
  * Whether a built-in file write or delete flows unasked, and under which
- * source: `file_review_off` when the turn's review is off (nothing is
- * captured; a secret-like write was already blocked), `file_capture` when
- * capture reviews it ({@link captureFlows}). `undefined` sends the call to
- * the default: shell and MCP tools always, and a file edit in a turn with
- * review on that capture cannot hold.
+ * source: `outputs` for one inside the outputs folder wherever a workspace
+ * edit would flow unasked (capture mode, or review off), never captured,
+ * since it comes back as a File; `file_review_off` when the turn's review is
+ * off (nothing is captured; a secret-like write was already blocked);
+ * `file_capture` when capture reviews it ({@link captureFlows}). `undefined`
+ * sends the call to the default: shell and MCP tools always, and a file
+ * edit in a turn with review on that capture cannot hold, an outputs one
+ * included (the classic gate asks a person for every write).
  */
 async function fileEditFlows(
   config: ApprovalGateConfig,
@@ -554,6 +560,7 @@ async function fileEditFlows(
   category: ToolApprovalCategory | undefined,
 ): Promise<PolicySource | undefined> {
   if (serverSlug || (category !== "write" && category !== "delete")) return undefined;
+  if ((config.fileReviewOff || config.fileCaptureMode) && inOutputsFolder(toolCall)) return "outputs";
   if (config.fileReviewOff) return "file_review_off";
   return (await captureFlows(config, toolCall, serverSlug, category)) ? "file_capture" : undefined;
 }
@@ -574,7 +581,9 @@ async function fileEditFlows(
  *    them). A secret-like delete stays on the interrupt gate: a human may
  *    approve it, but its bytes must never enter CAS.
  *
- * Any other gate answers false, and the default decides.
+ * Any other gate answers false, and the default decides. A path inside the
+ * outputs folder is never captured: it comes back as a File, and review
+ * would hold nothing the person does not already get.
  */
 async function captureFlows(
   config: ApprovalGateConfig,
@@ -585,7 +594,7 @@ async function captureFlows(
   if (!config.fileCaptureMode || !config.isCapturablePath || serverSlug) return false;
   if (category !== "write" && category !== "delete") return false;
   const path = extractFilePath(toolCall.args);
-  if (path === null) return false;
+  if (path === null || isInOutputsFolder(path)) return false;
   if (await config.isCapturablePath(path)) return true;
   if (!config.captureIgnored) return false;
   if (category === "write") return true;
@@ -594,6 +603,12 @@ async function captureFlows(
     return true;
   }
   return false;
+}
+
+/** Whether a built-in file call's path lies inside the outputs folder (`shared/outputs.ts`). */
+function inOutputsFolder(toolCall: ToolCallRequest["toolCall"]): boolean {
+  const path = extractFilePath(toolCall.args);
+  return path !== null && isInOutputsFolder(path);
 }
 
 /** A hook's refusal: the handler never runs, the model reads why, and the row opens and fails with the hook named. */

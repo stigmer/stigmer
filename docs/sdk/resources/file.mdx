@@ -56,13 +56,16 @@ File file = client.files().get("file_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | Method | Description |
 |--------|-------------|
 | [`get`](#get) | Get a File by its id. |
+| [`getContent`](#getcontent) | The start of a File's bytes, read through the server: at most 512 KB, enough to show a text File without a download. |
 | [`getDownloadUrl`](#getdownloadurl) | A link to download a File's bytes, valid for an hour. |
 | [`list`](#list) | List an organization's Files, newest first: every File of the org the caller may see, or with session_id only that conversation's. |
 | [`update`](#update) | Update a File's labels and tags: the fields update_mask names change, every other field keeps its stored value. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of a File. |
 | [`delete`](#delete) | Delete a File. |
+| [`createOutputUploads`](#createoutputuploads) | One upload link per file the turn saved in .stigmer/outputs/ and changed since it was last returned, each valid for an hour. |
 | [`createUploadUrl`](#createuploadurl) | Mint a short-lived, single-use URL to put a file's bytes to, for a file too large to upload inline. |
 | [`mount`](#mount) | The Files a run's conversation holds (SessionSpec.resources), each with where the agent finds it under .stigmer/uploads/ and a link to its bytes, valid for an hour. |
+| [`registerOutputs`](#registeroutputs) | Makes each uploaded output a File of the run's conversation: written by the run, owned by the person who started it, named by its filename, with where it was saved in output_path. |
 | [`upload`](#upload) | Upload a File: its bytes inline, or the reference of bytes already put to a URL createUploadUrl returned. |
 
 ### get
@@ -99,6 +102,49 @@ File file = client.files().get(id);
 | `id` | `string` | File identifier. |
 
 **Returns**: [`File`](#file)
+
+### getContent
+
+The start of a File's bytes, read through the server: at most 512 KB, enough to show a text File without a download.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const fileContent = await stigmer.file.getContent({
+  id: "...",
+  maxBytes: 0,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+fileContent, err := client.File.GetContent(ctx, &stigmer.GetFileContentInput{
+  Id:       "...",
+  MaxBytes: 0,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+file_content = client.files.get_content(GetFileContentInput(
+    id="...",
+    max_bytes=0,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+FileContent fileContent = client.files().getContent(GetFileContentInput.builder()
+    .id("...")
+    .maxBytes(0)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetFileContentInput`](#getfilecontentinput)
+
+**Returns**: [`FileContent`](#filecontent)
 
 ### getDownloadUrl
 
@@ -148,6 +194,7 @@ const result = await stigmer.file.list({
   pageSize: 0,
   pageToken: "...",
   labels: {},
+  runId: "...",
 });
 ```
 </Tab>
@@ -159,6 +206,7 @@ result, err := client.File.List(ctx, &stigmer.ListFilesRequest{
   PageSize:  0,
   PageToken: "...",
   Labels:    map[string]string{},
+  RunId:     "...",
 })
 ```
 </Tab>
@@ -170,6 +218,7 @@ result = client.files.list(ListFilesRequest(
     page_size=0,
     page_token="...",
     labels={},
+    run_id="...",
 ))
 ```
 </Tab>
@@ -181,6 +230,7 @@ FileList result = client.files().list(ListFilesRequest.builder()
     .pageSize(0)
     .pageToken("...")
     .labels(Map.of())
+    .runId("...")
     .build());
 ```
 </Tab>
@@ -323,6 +373,49 @@ File file = client.files().delete(id);
 
 **Returns**: [`File`](#file)
 
+### createOutputUploads
+
+One upload link per file the turn saved in .stigmer/outputs/ and changed since it was last returned, each valid for an hour. The runner puts each file's bytes to its link, then registers them.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const outputUploads = await stigmer.file.createOutputUploads({
+  runId: "...",
+  entries: [],
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+outputUploads, err := client.File.CreateOutputUploads(ctx, &stigmer.CreateOutputUploadsInput{
+  RunId:   "...",
+  Entries: []stigmer.OutputUploadRequestInput{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+output_uploads = client.files.create_output_uploads(CreateOutputUploadsInput(
+    run_id="...",
+    entries=[],
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+OutputUploads outputUploads = client.files().createOutputUploads(CreateOutputUploadsInput.builder()
+    .runId("...")
+    .entries(List.of())
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`CreateOutputUploadsInput`](#createoutputuploadsinput)
+
+**Returns**: [`OutputUploads`](#outputuploads)
+
 ### createUploadUrl
 
 Mint a short-lived, single-use URL to put a file's bytes to, for a file too large to upload inline. Then PUT exactly size_bytes bytes to the URL and call upload with the returned upload_ref.
@@ -410,6 +503,49 @@ RunFileMounts runFileMounts = client.files().mount(MountRunFilesInput.builder()
 **Parameters**: [`MountRunFilesInput`](#mountrunfilesinput)
 
 **Returns**: [`RunFileMounts`](#runfilemounts)
+
+### registerOutputs
+
+Makes each uploaded output a File of the run's conversation: written by the run, owned by the person who started it, named by its filename, with where it was saved in output_path.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const registeredOutputs = await stigmer.file.registerOutputs({
+  runId: "...",
+  entries: [],
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+registeredOutputs, err := client.File.RegisterOutputs(ctx, &stigmer.RegisterOutputsInput{
+  RunId:   "...",
+  Entries: []stigmer.OutputToRegisterInput{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+registered_outputs = client.files.register_outputs(RegisterOutputsInput(
+    run_id="...",
+    entries=[],
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+RegisteredOutputs registeredOutputs = client.files().registerOutputs(RegisterOutputsInput.builder()
+    .runId("...")
+    .entries(List.of())
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`RegisterOutputsInput`](#registeroutputsinput)
+
+**Returns**: [`RegisteredOutputs`](#registeredoutputs)
 
 ### upload
 
@@ -552,26 +688,6 @@ Input for updating the visibility of any API resource.
   }}
 />
 
-### MountRunFilesInput
-
-Which run's Files to mount.
-
-<TypeTable
-  type={{
-    runId: { type: "string", description: "The run's id." },
-  }}
-/>
-
-### RunFileMounts
-
-RunFileMounts are the Files a run's conversation holds, ready to mount.
-
-<TypeTable
-  type={{
-    entries: { type: "FileMountInput[]", description: "One per File the conversation holds, in its resources' order." },
-  }}
-/>
-
 ### ListFilesRequest
 
 Input for listing an organization's Files, newest first.
@@ -583,6 +699,7 @@ Input for listing an organization's Files, newest first.
     pageSize: { type: "number", description: "The most entries to return: 0 asks for the default page of 50, and a size above 100 is read as 100." },
     pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
     labels: { type: "Record<string, string>", description: "Only Files carrying every label given, each matched exactly (AND)." },
+    runId: { type: "string", description: "Only the Files this run wrote: the files one turn saved in its outputs folder." },
   }}
 />
 
@@ -605,6 +722,90 @@ FileDownloadUrl is a short-lived link to a File's bytes.
   type={{
     url: { type: "string", description: "URL to HTTP GET the bytes from." },
     expiresAt: { type: "string", description: "When the link stops working." },
+  }}
+/>
+
+### GetFileContentInput
+
+Input for reading a File's bytes through the server.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "The File's id." },
+    maxBytes: { type: "number", description: "The most bytes to return: 0 asks for the default of 512 KB, and a value above 512 KB is read as 512 KB." },
+  }}
+/>
+
+### FileContent
+
+The start of a File's bytes.
+
+<TypeTable
+  type={{
+    data: { type: "Uint8Array", description: "The File's first bytes, at most the request's max_bytes." },
+    truncated: { type: "boolean", description: "Whether the File holds more bytes than data carries." },
+  }}
+/>
+
+### MountRunFilesInput
+
+Which run's Files to mount.
+
+<TypeTable
+  type={{
+    runId: { type: "string", description: "The run's id." },
+  }}
+/>
+
+### RunFileMounts
+
+RunFileMounts are the Files a run's conversation holds, ready to mount.
+
+<TypeTable
+  type={{
+    entries: { type: "FileMountInput[]", description: "One per File the conversation holds, in its resources' order." },
+  }}
+/>
+
+### CreateOutputUploadsInput
+
+The files a turn saved in its outputs folder, to upload.
+
+<TypeTable
+  type={{
+    runId: { type: "string", description: "The run's id." },
+    entries: { type: "OutputUploadRequestInput[]", description: "One per output to upload, at most 500 a turn." },
+  }}
+/>
+
+### OutputUploads
+
+OutputUploads are the upload links for one turn's outputs.
+
+<TypeTable
+  type={{
+    entries: { type: "OutputUploadInput[]", description: "One per requested output, in the request's order." },
+  }}
+/>
+
+### RegisterOutputsInput
+
+The uploaded outputs of a turn, to make Files of.
+
+<TypeTable
+  type={{
+    runId: { type: "string", description: "The run's id." },
+    entries: { type: "OutputToRegisterInput[]", description: "One per uploaded output, at most 500 a turn." },
+  }}
+/>
+
+### RegisteredOutputs
+
+RegisteredOutputs are the Files a turn's outputs became.
+
+<TypeTable
+  type={{
+    files: { type: "FileInput[]", description: "One per registered output, in the request's order.", typeDescriptionLink: "#fileinput" },
   }}
 />
 
@@ -631,6 +832,7 @@ FileStatus is what the server records about a File.
     sizeBytes: { type: "number", description: "The file's size in bytes." },
     sessionId: { type: "string", description: "The conversation the File belongs to, when it was uploaded into one or given to one." },
     runId: { type: "string", description: "The turn that wrote the File, for a file an agent saved." },
+    outputPath: { type: "string", description: "Where the agent saved the File, for a file an agent saved: its path relative to .stigmer/outputs/, \"/\"-separated, the last segment its filename." },
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
   }}
 />

@@ -51,21 +51,6 @@
       ]
     },
     {
-      "name": "FileMountController",
-      "role": "fileMount",
-      "protoFile": "ai/stigmer/agentic/file/v1/mount.proto",
-      "methods": [
-        {
-          "name": "Mount",
-          "inputType": "MountRunFilesInput",
-          "inputFullType": "ai.stigmer.agentic.file.v1.MountRunFilesInput",
-          "outputType": "RunFileMounts",
-          "outputFullType": "ai.stigmer.agentic.file.v1.RunFileMounts",
-          "description": "The Files a run's conversation holds (SessionSpec.resources), each with\n where the agent finds it under .stigmer/uploads/ and a link to its\n bytes, valid for an hour."
-        }
-      ]
-    },
-    {
       "name": "FileQueryController",
       "role": "query",
       "protoFile": "ai/stigmer/agentic/file/v1/query.proto",
@@ -93,6 +78,45 @@
           "outputType": "FileDownloadUrl",
           "outputFullType": "ai.stigmer.agentic.file.v1.FileDownloadUrl",
           "description": "A link to download a File's bytes, valid for an hour. A browser\n opening it saves the file under its filename."
+        },
+        {
+          "name": "GetContent",
+          "inputType": "GetFileContentInput",
+          "inputFullType": "ai.stigmer.agentic.file.v1.GetFileContentInput",
+          "outputType": "FileContent",
+          "outputFullType": "ai.stigmer.agentic.file.v1.FileContent",
+          "description": "The start of a File's bytes, read through the server: at most 512 KB,\n enough to show a text File without a download."
+        }
+      ]
+    },
+    {
+      "name": "RunFileController",
+      "role": "runFile",
+      "protoFile": "ai/stigmer/agentic/file/v1/run_files.proto",
+      "methods": [
+        {
+          "name": "Mount",
+          "inputType": "MountRunFilesInput",
+          "inputFullType": "ai.stigmer.agentic.file.v1.MountRunFilesInput",
+          "outputType": "RunFileMounts",
+          "outputFullType": "ai.stigmer.agentic.file.v1.RunFileMounts",
+          "description": "The Files a run's conversation holds (SessionSpec.resources), each with\n where the agent finds it under .stigmer/uploads/ and a link to its\n bytes, valid for an hour."
+        },
+        {
+          "name": "CreateOutputUploads",
+          "inputType": "CreateOutputUploadsInput",
+          "inputFullType": "ai.stigmer.agentic.file.v1.CreateOutputUploadsInput",
+          "outputType": "OutputUploads",
+          "outputFullType": "ai.stigmer.agentic.file.v1.OutputUploads",
+          "description": "One upload link per file the turn saved in .stigmer/outputs/ and\n changed since it was last returned, each valid for an hour. The runner\n puts each file's bytes to its link, then registers them."
+        },
+        {
+          "name": "RegisterOutputs",
+          "inputType": "RegisterOutputsInput",
+          "inputFullType": "ai.stigmer.agentic.file.v1.RegisterOutputsInput",
+          "outputType": "RegisteredOutputs",
+          "outputFullType": "ai.stigmer.agentic.file.v1.RegisteredOutputs",
+          "description": "Makes each uploaded output a File of the run's conversation: written by\n the run, owned by the person who started it, named by its filename,\n with where it was saved in output_path."
         }
       ]
     }
@@ -334,49 +358,6 @@
       ]
     },
     {
-      "name": "MountRunFilesInput",
-      "description": "Which run's Files to mount.",
-      "protoType": "ai.stigmer.agentic.file.v1.MountRunFilesInput",
-      "protoFile": "apis/ai/stigmer/agentic/file/v1/mount.proto",
-      "fields": [
-        {
-          "name": "RunId",
-          "jsonName": "runId",
-          "protoField": "run_id",
-          "type": {
-            "kind": "string"
-          },
-          "description": "The run's id.",
-          "required": false,
-          "validation": {
-            "minLength": 1
-          }
-        }
-      ]
-    },
-    {
-      "name": "RunFileMounts",
-      "description": "RunFileMounts are the Files a run's conversation holds, ready to mount.",
-      "protoType": "ai.stigmer.agentic.file.v1.RunFileMounts",
-      "protoFile": "apis/ai/stigmer/agentic/file/v1/mount.proto",
-      "fields": [
-        {
-          "name": "Entries",
-          "jsonName": "entries",
-          "protoField": "entries",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "FileMount"
-            }
-          },
-          "description": "One per File the conversation holds, in its resources' order.",
-          "required": false
-        }
-      ]
-    },
-    {
       "name": "ListFilesRequest",
       "description": "Input for listing an organization's Files, newest first.",
       "protoType": "ai.stigmer.agentic.file.v1.ListFilesRequest",
@@ -443,6 +424,16 @@
           },
           "description": "Only Files carrying every label given, each matched exactly (AND). A\n selective filter may answer short pages, even empty ones, that still\n carry a token.",
           "required": false
+        },
+        {
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Only the Files this run wrote: the files one turn saved in its outputs\n folder. Empty lists Files written by any run or uploaded.",
+          "required": false
         }
       ]
     },
@@ -502,6 +493,230 @@
             "kind": "timestamp"
           },
           "description": "When the link stops working.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetFileContentInput",
+      "description": "Input for reading a File's bytes through the server.",
+      "protoType": "ai.stigmer.agentic.file.v1.GetFileContentInput",
+      "protoFile": "apis/ai/stigmer/agentic/file/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The File's id.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "MaxBytes",
+          "jsonName": "maxBytes",
+          "protoField": "max_bytes",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "The most bytes to return: 0 asks for the default of 512 KB, and a value\n above 512 KB is read as 512 KB. A larger File is read through its\n download link.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "FileContent",
+      "description": "The start of a File's bytes.",
+      "protoType": "ai.stigmer.agentic.file.v1.FileContent",
+      "protoFile": "apis/ai/stigmer/agentic/file/v1/io.proto",
+      "fields": [
+        {
+          "name": "Data",
+          "jsonName": "data",
+          "protoField": "data",
+          "type": {
+            "kind": "bytes"
+          },
+          "description": "The File's first bytes, at most the request's max_bytes.",
+          "required": false
+        },
+        {
+          "name": "Truncated",
+          "jsonName": "truncated",
+          "protoField": "truncated",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether the File holds more bytes than data carries.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "MountRunFilesInput",
+      "description": "Which run's Files to mount.",
+      "protoType": "ai.stigmer.agentic.file.v1.MountRunFilesInput",
+      "protoFile": "apis/ai/stigmer/agentic/file/v1/run_files.proto",
+      "fields": [
+        {
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The run's id.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "RunFileMounts",
+      "description": "RunFileMounts are the Files a run's conversation holds, ready to mount.",
+      "protoType": "ai.stigmer.agentic.file.v1.RunFileMounts",
+      "protoFile": "apis/ai/stigmer/agentic/file/v1/run_files.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "FileMount"
+            }
+          },
+          "description": "One per File the conversation holds, in its resources' order.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "CreateOutputUploadsInput",
+      "description": "The files a turn saved in its outputs folder, to upload.",
+      "protoType": "ai.stigmer.agentic.file.v1.CreateOutputUploadsInput",
+      "protoFile": "apis/ai/stigmer/agentic/file/v1/run_files.proto",
+      "fields": [
+        {
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The run's id.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "OutputUploadRequest"
+            }
+          },
+          "description": "One per output to upload, at most 500 a turn.",
+          "required": false,
+          "validation": {
+            "minItems": 1,
+            "maxItems": 500
+          }
+        }
+      ]
+    },
+    {
+      "name": "OutputUploads",
+      "description": "OutputUploads are the upload links for one turn's outputs.",
+      "protoType": "ai.stigmer.agentic.file.v1.OutputUploads",
+      "protoFile": "apis/ai/stigmer/agentic/file/v1/run_files.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "OutputUpload"
+            }
+          },
+          "description": "One per requested output, in the request's order.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "RegisterOutputsInput",
+      "description": "The uploaded outputs of a turn, to make Files of.",
+      "protoType": "ai.stigmer.agentic.file.v1.RegisterOutputsInput",
+      "protoFile": "apis/ai/stigmer/agentic/file/v1/run_files.proto",
+      "fields": [
+        {
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The run's id.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "OutputToRegister"
+            }
+          },
+          "description": "One per uploaded output, at most 500 a turn.",
+          "required": false,
+          "validation": {
+            "minItems": 1,
+            "maxItems": 500
+          }
+        }
+      ]
+    },
+    {
+      "name": "RegisteredOutputs",
+      "description": "RegisteredOutputs are the Files a turn's outputs became.",
+      "protoType": "ai.stigmer.agentic.file.v1.RegisteredOutputs",
+      "protoFile": "apis/ai/stigmer/agentic/file/v1/run_files.proto",
+      "fields": [
+        {
+          "name": "Files",
+          "jsonName": "files",
+          "protoField": "files",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "File"
+            }
+          },
+          "description": "One per registered output, in the request's order.",
           "required": false
         }
       ]
@@ -571,6 +786,16 @@
           "kind": "string"
         },
         "description": "The turn that wrote the File, for a file an agent saved. Empty for an\n uploaded File.",
+        "required": false
+      },
+      {
+        "name": "OutputPath",
+        "jsonName": "outputPath",
+        "protoField": "output_path",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Where the agent saved the File, for a file an agent saved: its path\n relative to .stigmer/outputs/, \"/\"-separated, the last segment its\n filename. Two files of the same name saved in two folders are two Files\n told apart by it. Empty for an uploaded File.",
         "required": false
       },
       {

@@ -131,6 +131,28 @@ describe("the File controller (trusted-local, composed server)", () => {
     expect(await response.text()).toBe("a,b\n1,2\n");
   });
 
+  it("reads a File's first bytes through the server, at most 512 KB, and says when there is more", async () => {
+    const text = "line one\nline two\n";
+    const file = await command.upload({
+      org: ORG,
+      filename: "notes.md",
+      source: { case: "data", value: new TextEncoder().encode(text) },
+    });
+    const id = file.metadata!.id;
+    const whole = await query.getContent({ id });
+    expect(new TextDecoder().decode(whole.data)).toBe(text);
+    expect(whole.truncated).toBe(false);
+    const head = await query.getContent({ id, maxBytes: 4n });
+    expect(new TextDecoder().decode(head.data)).toBe("line");
+    expect(head.truncated).toBe(true);
+    expect((await errorOf(() => query.getContent({ id: "file_01nothingnothingnothingn" }))).code).toBe(Code.NotFound);
+  });
+
+  it("lists only the Files a run wrote when asked for a run's", async () => {
+    await command.upload({ org: ORG, filename: "mine.txt", source: { case: "data", value: new Uint8Array([1]) } });
+    expect((await query.list({ org: ORG, runId: "run_01nonenonenonenonenonen" })).entries).toEqual([]);
+  });
+
   it("uploads through an upload URL: the same File, and the reference spent", async () => {
     const bytes = new Uint8Array(20_000).fill(7);
     const url = await command.createUploadUrl({ org: ORG, sizeBytes: BigInt(bytes.length) });

@@ -48,8 +48,25 @@ export function remoteAgentFs(host: FsHost): AgentFs {
     }
   };
 
+  const readRange = async (path: string, offset: number, length: number): Promise<Buffer> => {
+    const parts: Buffer[] = [];
+    let read = 0;
+    while (read < length) {
+      const range = (await call({ op: "read", path, offset: offset + read, length: Math.min(length - read, FS_CHUNK_BYTES) })) as {
+        readonly data: string;
+        readonly size: number;
+      };
+      const bytes = Buffer.from(range.data, "base64");
+      if (bytes.length === 0) break;
+      parts.push(bytes);
+      read += bytes.length;
+    }
+    return Buffer.concat(parts);
+  };
+
   return {
     readFile: read,
+    readRange,
     writeFile: async (path, data, options) => {
       const bytes = typeof data === "string" ? Buffer.from(data, "utf8") : Buffer.from(data);
       let offset = 0;

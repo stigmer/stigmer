@@ -78,6 +78,7 @@ function spiedDriver(overrides: Partial<ArtifactStorage> = {}): ArtifactStorage 
       return local.download(key);
     },
     size: (key) => local.size(key),
+    readRange: (key, offset, length) => local.readRange(key, offset, length),
     getSignedUrl: (key, ttl, name, reader) => local.getSignedUrl(key, ttl, name, reader),
     presignPut: (key, size, ttl) => local.presignPut(key, size, ttl),
     copy: (from, to) => local.copy(from, to),

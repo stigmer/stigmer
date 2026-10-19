@@ -18,7 +18,7 @@
           "argsPreview": "{\"command\":\"echo hermetic-a\"}",
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
-          "policyEngineVersion": "hooks-2"
+          "policyEngineVersion": "hooks-3"
         }
       ]
     },

@@ -22,10 +22,12 @@
  * declared size. update changes labels and tags only (steps.ts
  * FILE_REFUSED_UPDATE_PATHS). delete sweeps expired blobs first, then
  * removes the row and its ref, then the bytes when no other File shares
- * them. getDownloadUrl signs a person's link for an hour.
+ * them. getDownloadUrl signs a person's link for an hour; getContent reads
+ * a File's first bytes through the server (at most 512 KB), so a text File
+ * is shown without a download.
  *
- * list narrows the organization's Files, or one conversation's, through
- * the composed list read scope to the ones a `get` would return. Not
+ * list narrows the organization's Files, or one conversation's, or one
+ * turn's outputs, through the composed list read scope to the ones a `get` would return. Not
  * search-indexed: the kind declares not_search_indexed. Per-RPC posture:
  * docs/authorization-coverage.md.
  *
@@ -40,16 +42,19 @@ import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { FileCommandController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/command_pb";
 import {
+  FileContentSchema,
   FileDownloadUrlSchema,
   FileListSchema,
   FileUploadUrlSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
 import type {
   CreateFileUploadUrlInput,
+  FileContent,
   FileDownloadUrl,
   FileId,
   FileList,
   FileUploadUrl,
+  GetFileContentInput,
   ListFilesRequest,
   UpdateFileInput,
   UploadFileInput,
@@ -143,6 +148,7 @@ export function registerFileServices(router: ConnectRouter, deps: FileController
     get: (id, ctx) => get(deps, id, ctx),
     list: (req, ctx) => list(deps, req, ctx),
     getDownloadUrl: (id, ctx) => getDownloadUrl(deps, id, ctx),
+    getContent: (input, ctx) => getContent(deps, input, ctx),
   });
 }
 
@@ -412,6 +418,46 @@ async function getDownloadUrl(deps: FileControllerDeps, id: FileId, ctx: Handler
   return reqCtx.get(DOWNLOAD_URL_KEY) as FileDownloadUrl;
 }
 
+/** The most getContent answers, and what it answers when max_bytes is 0. */
+export const MAX_FILE_CONTENT_BYTES = 512 * 1024;
+
+const CONTENT_KEY = "fileContent";
+
+/** GetContent — the File as `get` loads it, then its first bytes through the server. */
+async function getContent(deps: FileControllerDeps, input: GetFileContentInput, ctx: HandlerContext): Promise<FileContent> {
+  const reqCtx = new RequestContext(
+    FileQueryController.method.getContent.input,
+    input,
+    callerIdentityOf(ctx),
+    kindOf(ctx),
+  );
+  await newPipeline<typeof FileQueryController.method.getContent.input>("file-get-content", deps.logger)
+    .addStep(newAuthorizeStep(FileQueryController.method.getContent, deps.authorizer))
+    .addStep(newValidateProtoStep())
+    .addStep({
+      name: "ReadFileContent",
+      async execute(step: RequestContext<typeof FileQueryController.method.getContent.input>): Promise<void> {
+        let file: File;
+        try {
+          file = await deps.store.getResource(ApiResourceKind.file, step.input.id, FileSchema);
+        } catch (error) {
+          if (error instanceof ResourceNotFoundError) {
+            throw notFoundError(FILE_NOUN, step.input.id);
+          }
+          throw internalError(error, "failed to load file");
+        }
+        const asked = Number(step.input.maxBytes);
+        const maxBytes = asked <= 0 || asked > MAX_FILE_CONTENT_BYTES ? MAX_FILE_CONTENT_BYTES : asked;
+        const sizeBytes = Number(file.status?.sizeBytes ?? 0n);
+        const data = await deps.blobs.readHead(file.metadata?.id ?? "", Math.min(sizeBytes, maxBytes));
+        step.set(CONTENT_KEY, create(FileContentSchema, { data, truncated: sizeBytes > data.length }));
+      },
+    })
+    .build()
+    .execute(reqCtx);
+  return reqCtx.get(CONTENT_KEY) as FileContent;
+}
+
 const LIST_RESULT_KEY = "listResult";
 
 /** List — the Files of an organization, or of one conversation, the caller may view, newest first. */
@@ -435,24 +481,31 @@ function newListStep(
   return {
     name: "ListByOrg",
     async execute(ctx: RequestContext<typeof FileQueryController.method.list.input>): Promise<void> {
-      const { org, sessionId } = ctx.input;
+      const { org, sessionId, runId } = ctx.input;
+      // One key reads the index: a run's, the narrower, when both are given;
+      // `keep` holds a row to both.
+      const query =
+        runId !== ""
+          ? { org, anyKey: [{ name: "run" as const, value: runId }] }
+          : sessionId !== ""
+            ? { org, anyKey: [{ name: "session" as const, value: sessionId }] }
+            : { org };
       const page = await readListPage({
         store,
         declaration: fileListIndex,
-        query:
-          sessionId === ""
-            ? { org }
-            : { org, anyKey: [{ name: "session", value: sessionId }] },
+        query,
         request: { pageSize: ctx.input.pageSize, pageToken: ctx.input.pageToken },
         fingerprint: listPageFingerprint({
           org,
           session: sessionId,
+          run: runId,
           labels: sortedLabels(ctx.input.labels),
         }),
         decode: decodeOrSkip<File>(FileSchema, { logger, message: "Failed to unmarshal File, skipping" }),
         keep: (file) =>
           (file.metadata?.org ?? "") === org &&
           (sessionId === "" || (file.status?.sessionId ?? "") === sessionId) &&
+          (runId === "" || (file.status?.runId ?? "") === runId) &&
           matchesAllLabels(file.metadata?.labels ?? {}, ctx.input.labels),
         scope: (rows) => restrictListByReadScope(listReadScope, ctx.callerIdentity, ApiResourceKind.file, rows, ""),
         failure: "failed to list Files",

@@ -9,10 +9,10 @@ import grpc
 
 from ai.stigmer.agentic.file.v1 import api_pb2
 from ai.stigmer.agentic.file.v1 import command_pb2_grpc
-from ai.stigmer.agentic.file.v1 import mount_pb2_grpc
 from ai.stigmer.agentic.file.v1 import query_pb2_grpc
+from ai.stigmer.agentic.file.v1 import run_files_pb2_grpc
 from ai.stigmer.agentic.file.v1 import io_pb2
-from ai.stigmer.agentic.file.v1 import mount_pb2
+from ai.stigmer.agentic.file.v1 import run_files_pb2
 from ai.stigmer.agentic.file.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from google.protobuf import field_mask_pb2
@@ -25,8 +25,8 @@ class FileClient:
 
     def __init__(self, channel: grpc.Channel) -> None:
         self._command = command_pb2_grpc.FileCommandControllerStub(channel)
-        self._fileMount = mount_pb2_grpc.FileMountControllerStub(channel)
         self._query = query_pb2_grpc.FileQueryControllerStub(channel)
+        self._runFile = run_files_pb2_grpc.RunFileControllerStub(channel)
 
     def upload(self, input: io_pb2.UploadFileInput) -> api_pb2.File:
         try:
@@ -60,12 +60,6 @@ class FileClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def mount(self, input: mount_pb2.MountRunFilesInput) -> mount_pb2.RunFileMounts:
-        try:
-            return self._fileMount.mount(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
     def get(self, id: str) -> api_pb2.File:
         try:
             return self._query.get(io_pb2.FileId(value=id))
@@ -93,6 +87,30 @@ class FileClient:
     def get_download_url(self, id: str) -> io_pb2.FileDownloadUrl:
         try:
             return self._query.getDownloadUrl(io_pb2.FileId(value=id))
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_content(self, input: io_pb2.GetFileContentInput) -> io_pb2.FileContent:
+        try:
+            return self._query.getContent(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def mount(self, input: run_files_pb2.MountRunFilesInput) -> run_files_pb2.RunFileMounts:
+        try:
+            return self._runFile.mount(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def create_output_uploads(self, input: run_files_pb2.CreateOutputUploadsInput) -> run_files_pb2.OutputUploads:
+        try:
+            return self._runFile.createOutputUploads(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def register_outputs(self, input: run_files_pb2.RegisterOutputsInput) -> run_files_pb2.RegisteredOutputs:
+        try:
+            return self._runFile.registerOutputs(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

@@ -6,7 +6,9 @@
  * Pinned:
  *  - every operation the runtime uses round-trips with the local
  *    implementation's results: bytes exact, a body larger than one message
- *    crossing in ranges, links, listings (recursive too), stats; an append
+ *    crossing in ranges, links, listings (recursive too), stats; a range
+ *    of a file read from an offset, across more than one message and short
+ *    at its end, the local implementation's answer exactly; an append
  *    adds to the end and creates the file, a body larger than one message
  *    included;
  *  - a filesystem error comes back with its errno `code`, `syscall` and
@@ -68,6 +70,22 @@ describe("the agent's file operations, performed by the host", () => {
     await fs.appendFile(join(dir, "grown.bin"), Buffer.from("head:"));
     await fs.appendFile(join(dir, "grown.bin"), big);
     expect(readFileSync(join(dir, "grown.bin")).equals(Buffer.concat([Buffer.from("head:"), big]))).toBe(true);
+    close();
+  });
+
+  it("reads a range from an offset, across messages and short at the end, as the local implementation does", async () => {
+    const { fs, close } = hostedFs();
+    const dir = mkdtempSync(join(tmpdir(), "remote-fs-"));
+    const big = Buffer.alloc(FS_CHUNK_BYTES * 2 + 11);
+    for (let i = 0; i < big.length; i += 4096) big[i] = i % 251;
+    writeFileSync(join(dir, "big.bin"), big);
+    for (const [offset, length] of [[0, 10], [5, FS_CHUNK_BYTES + 3], [FS_CHUNK_BYTES * 2, 100], [big.length, 10], [0, 0]] as const) {
+      const remote = await fs.readRange(join(dir, "big.bin"), offset, length);
+      const local = await localAgentFs.readRange(join(dir, "big.bin"), offset, length);
+      expect(remote.equals(local), `${offset}+${length}`).toBe(true);
+      expect(remote.equals(big.subarray(offset, offset + length)), `${offset}+${length}`).toBe(true);
+    }
+    await expect(fs.readRange(join(dir, "missing.bin"), 0, 1)).rejects.toMatchObject({ code: "ENOENT" });
     close();
   });
 

@@ -17,16 +17,30 @@
  * platform dir is mounted instead through deepagents' own router,
  * `CompositeBackend`, at exactly the prefix the prompts name.
  *
- * WHY READ-ONLY
- * -------------
- * Nothing legitimately writes platform content from a turn: inputs are
- * presented as read-only and plan mode denies every write. A writable mount
- * would also be dangerous and unreviewed: `CompositeBackend.delete` fans a
- * delete out to every route beneath its target, so a delete of `/` or of
- * `/.stigmer` would empty the platform dir, and a routed write would reach
+ * WHY READ-ONLY, BUT FOR THE OUTPUTS FOLDER
+ * -----------------------------------------
+ * Nothing legitimately writes platform content from a turn: skills and
+ * inputs are presented as read-only and plan mode denies every write. A
+ * writable mount would also be dangerous and unreviewed: `CompositeBackend.delete`
+ * fans a delete out to every route beneath its target, so a delete of `/` or
+ * of `/.stigmer` would empty the platform dir, and a routed write would reach
  * the platform dir without passing the CAS observer that file review reads.
  * Every mutation through the mount therefore fails, which also makes the
  * composite refuse any fan-out that touches it.
+ *
+ * The one exception is `.stigmer/outputs/` ({@link OUTPUTS_ROUTE_PREFIX}):
+ * the agent's own deliverables, which the runtime returns to the person as
+ * Files when the turn ends (`shared/outputs.ts`). It is a route of its own,
+ * longer than the platform's, and `CompositeBackend` routes a path to the
+ * longest prefix that holds it, so every path under it reaches
+ * {@link OutputsBackend} and every other path under `.stigmer/` still
+ * reaches the read-only one. Writes, edits and deletes inside it are
+ * allowed; a delete of the folder itself is refused, so it is never emptied
+ * whole or removed. A delete of `/` or `/.stigmer` still stops at the first
+ * refusal: the composite asks the path's own backend first (the workspace's
+ * or the read-only platform's) and stops there, before the outputs route
+ * beneath it. Outputs are deliberately outside file review: they come back
+ * as Files, so a review would hold nothing the person does not already get.
  *
  * WHEN IT IS MOUNTED
  * ------------------
@@ -36,14 +50,16 @@
  * on any other turn made a real directory in the user's tree that the next
  * link displaced. What the route exposes follows the link, so the file tools
  * reach exactly what the shell reaches on the same turn:
- * - on a turn whose skill or File phase made the link, the platform dir
- *   ({@link PlatformContentBackend});
- * - on any other turn, nothing ({@link NoPlatformContentBackend}): the dir
- *   still holds earlier turns' skills and inputs, which this turn's shell
- *   cannot reach, so the file tools must not either. The root listing then
- *   leaves `.stigmer/` out, as the tree does.
- * The link itself stays: shell commands (a skill's own scripts among them)
- * run in the workspace and resolve `.stigmer/…` through it.
+ * - when the link points at the platform dir, the platform dir
+ *   ({@link PlatformContentBackend}) and its outputs folder. The runtime
+ *   links every turn of a session with a platform dir, since the outputs
+ *   folder is there on every turn, and holds the dir to this turn's own
+ *   skills and plugins (`harness/run-turn.ts`, its outputs phase);
+ * - otherwise, nothing ({@link NoPlatformContentBackend}): a turn the link
+ *   could not be made on reaches nothing through the shell either. The root
+ *   listing then leaves `.stigmer/` out, as the tree does.
+ * Shell commands (a skill's own scripts among them) run in the workspace
+ * and resolve `.stigmer/…` through the link.
  */
 
 import { lstat, realpath } from "node:fs/promises";
@@ -63,10 +79,14 @@ import type {
   ReadResult,
   WriteResult,
 } from "deepagents";
+import { OUTPUTS_SUBDIR } from "../../shared/outputs.js";
 import { STIGMER_LOCAL_STATE_DIR, stigmerSymlinkPointsAt } from "../../shared/workspace/stigmer-link.js";
 
 /** The route prefix, with the trailing slash `CompositeBackend` needs to match `/.stigmer/x` but never `/.stigmerx`. */
 export const PLATFORM_ROUTE_PREFIX = `/${STIGMER_LOCAL_STATE_DIR}/`;
+
+/** The outputs folder's route: longer than the platform's, so every path under it is routed here. */
+export const OUTPUTS_ROUTE_PREFIX = `${PLATFORM_ROUTE_PREFIX}${OUTPUTS_SUBDIR}/`;
 
 /**
  * Where deepagents (1.14) writes a tool result too large to keep in context,
@@ -128,14 +148,14 @@ export function confinedReadAdmission(workspaceDir: string): (virtualPath: strin
 }
 
 /** The path as the agent named it: the route hands its backend the path with the prefix stripped. */
-function agentPath(routedPath: string): string {
-  return `${PLATFORM_ROUTE_PREFIX.slice(0, -1)}${routedPath}`;
+function agentPath(routedPath: string, prefix = PLATFORM_ROUTE_PREFIX): string {
+  return `${prefix.slice(0, -1)}${routedPath}`;
 }
 
 function readOnly(routedPath: string): string {
   return (
     `Error: '${agentPath(routedPath)}' is platform content (skills, attached inputs, the approved plan) ` +
-    "and is read-only; write your own files in the workspace"
+    `and is read-only; write your own files in the workspace, or save a result for the user in ${OUTPUTS_ROUTE_PREFIX.slice(1)}`
   );
 }
 
@@ -166,6 +186,28 @@ export class PlatformContentBackend extends FilesystemBackend {
 
   override async uploadFiles(files: Array<[string, Uint8Array]>): Promise<FileUploadResponse[]> {
     return files.map(([path]) => ({ path, error: "permission_denied" }));
+  }
+}
+
+/**
+ * The outputs folder, virtual-rooted like every native backend: the agent
+ * writes, edits and deletes inside it as in the workspace, and the folder
+ * itself is never deleted (the module header).
+ */
+export class OutputsBackend extends FilesystemBackend {
+  constructor(outputsDir: string) {
+    super({ rootDir: outputsDir, virtualMode: true });
+  }
+
+  override async delete(filePath: string): Promise<DeleteResult> {
+    if (posix.normalize(filePath) === "/") {
+      return {
+        error:
+          `Error: '${agentPath("/", OUTPUTS_ROUTE_PREFIX)}' is the outputs folder and stays; ` +
+          "delete the files inside it instead",
+      };
+    }
+    return super.delete(filePath);
   }
 }
 
@@ -220,7 +262,8 @@ export class NoPlatformContentBackend implements BackendProtocolV2 {
 
 /**
  * The workspace backend with `.stigmer/` routed to {@link PLATFORM_ROUTE_PREFIX}'s
- * backend for this turn.
+ * backend for this turn, and, when the platform is exposed, `.stigmer/outputs/`
+ * to {@link OutputsBackend}.
  *
  * One behaviour differs from the stock router: listing `/`. The composite
  * adds each route to the root listing whatever the route holds. With the
@@ -233,8 +276,15 @@ export class NoPlatformContentBackend implements BackendProtocolV2 {
 export class PlatformRoutedBackend extends CompositeBackend {
   private readonly exposesPlatform: boolean;
 
-  constructor(backend: AnyBackendProtocol, platform: PlatformContentBackend | NoPlatformContentBackend) {
-    super(backend, { [PLATFORM_ROUTE_PREFIX]: platform });
+  constructor(
+    backend: AnyBackendProtocol,
+    platform: PlatformContentBackend | NoPlatformContentBackend,
+    outputs?: OutputsBackend,
+  ) {
+    super(backend, {
+      [PLATFORM_ROUTE_PREFIX]: platform,
+      ...(outputs === undefined ? {} : { [OUTPUTS_ROUTE_PREFIX]: outputs }),
+    });
     this.exposesPlatform = platform instanceof PlatformContentBackend;
   }
 
@@ -265,8 +315,9 @@ export interface PlatformRouteOptions {
 
 /**
  * Mount the `.stigmer/` route over `backend` for this turn: the platform dir
- * when the workspace link points at it, the empty route otherwise. Only a
- * session without a platform dir gets `backend` back unchanged. `execute`
+ * and its writable outputs folder when the workspace link points at it, the
+ * empty route otherwise. Only a session without a platform dir gets
+ * `backend` back unchanged. `execute`
  * and the sandbox identity stay the workspace backend's (`CompositeBackend`
  * delegates both to its default), so a shell-capable graph keeps its
  * `execute` tool and a plan-mode graph stays without one.
@@ -277,8 +328,12 @@ export async function mountPlatformRoute(
 ): Promise<AnyBackendProtocol> {
   const { workspaceDir, platformDir } = options;
   if (platformDir === undefined) return backend;
-  const platform = (await stigmerSymlinkPointsAt(workspaceDir, platformDir))
-    ? new PlatformContentBackend(platformDir)
-    : new NoPlatformContentBackend();
-  return new PlatformRoutedBackend(backend, platform);
+  if (!(await stigmerSymlinkPointsAt(workspaceDir, platformDir))) {
+    return new PlatformRoutedBackend(backend, new NoPlatformContentBackend());
+  }
+  return new PlatformRoutedBackend(
+    backend,
+    new PlatformContentBackend(platformDir),
+    new OutputsBackend(join(platformDir, OUTPUTS_SUBDIR)),
+  );
 }

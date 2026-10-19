@@ -13,10 +13,15 @@
 //  - on a turn without the link, `.stigmer/` still the platform's: nothing
 //    readable, every write refused and nothing created in the workspace (the
 //    write that used to make a real directory there, #1123), and the root
-//    listing without it.
+//    listing without it;
+//  - the outputs folder, `.stigmer/outputs/`, the one writable corner: the
+//    file tools write, edit, read and delete inside it, while every other
+//    path under `.stigmer/` stays read-only, a `..` out of it reaches
+//    nothing, a link inside it is not written through, and a delete of `/`,
+//    `/.stigmer` or the folder itself removes nothing.
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { lstat, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, lstat, mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FilesystemBackend, isSandboxBackend } from "deepagents";
@@ -24,7 +29,7 @@ import type { AnyBackendProtocol, BackendProtocolV2 } from "deepagents";
 
 import { createCasCaptureBackend } from "../cas-capture-backend.js";
 import { CasCaptureObserver } from "../cas-capture-observer.js";
-import { PLATFORM_ROUTE_PREFIX, PlatformRoutedBackend, mountPlatformRoute } from "../platform-route.js";
+import { OUTPUTS_ROUTE_PREFIX, PLATFORM_ROUTE_PREFIX, PlatformRoutedBackend, mountPlatformRoute } from "../platform-route.js";
 import { LocalWorkspaceBackend } from "../../../shared/workspace/local-backend.js";
 import { ensureStigmerSymlink } from "../../../shared/workspace/stigmer-link.js";
 
@@ -156,6 +161,60 @@ describe("platform route", () => {
       const backend = await productionBackend(mode);
       expect(isSandboxBackend(backend)).toBe(mode === "shell");
     });
+  });
+
+  describe.each(["shell", "plan"] as const)("the %s backend's outputs folder", (mode) => {
+    const outputsDir = () => join(platformDir, "outputs");
+
+    beforeEach(async () => {
+      await mkdir(outputsDir(), { recursive: true });
+      await ensureStigmerSymlink(workspaceDir, platformDir);
+    });
+
+    it("writes, edits, reads and deletes inside it, in subfolders too", async () => {
+      const backend = v2(await productionBackend(mode));
+      expect((await backend.write(`${OUTPUTS_ROUTE_PREFIX}reports/q3.md`, "# Q3\n")).error).toBeUndefined();
+      expect(await readFile(join(outputsDir(), "reports/q3.md"), "utf8")).toBe("# Q3\n");
+      expect((await backend.edit(`${OUTPUTS_ROUTE_PREFIX}reports/q3.md`, "Q3", "Q3 variance")).error).toBeUndefined();
+      expect((await backend.read(`${OUTPUTS_ROUTE_PREFIX}reports/q3.md`)).content).toContain("Q3 variance");
+      expect((await backend.delete!(`${OUTPUTS_ROUTE_PREFIX}reports/q3.md`)).error).toBeUndefined();
+      await expect(access(join(outputsDir(), "reports/q3.md"))).rejects.toThrow();
+    });
+
+    it("keeps every other path under .stigmer/ read-only", async () => {
+      const backend = v2(await productionBackend(mode));
+      expect((await backend.write(`/${SKILL}`, "x")).error).toMatch(/read-only/);
+      expect((await backend.write(`${PLATFORM_ROUTE_PREFIX}uploads/a.txt`, "x")).error).toMatch(/read-only/);
+      expect((await backend.write(`${PLATFORM_ROUTE_PREFIX}outputs.md`, "x")).error, "a sibling named like the folder").toMatch(/read-only/);
+      expect((await backend.write(`${PLATFORM_ROUTE_PREFIX}new.md`, "x")).error).toMatch(/outputs/);
+      expect(await readFile(join(platformDir, "skills/my-skill/SKILL.md"), "utf8")).toContain("My Skill");
+    });
+
+    it("reaches nothing outside it through `..` or through a link inside it", async () => {
+      const backend = v2(await productionBackend(mode));
+      expect((await backend.write(`${OUTPUTS_ROUTE_PREFIX}../skills/my-skill/SKILL.md`, "hijacked")).error).toBeDefined();
+      await symlink(join(platformDir, "skills"), join(outputsDir(), "skills-link"));
+      expect((await backend.write(`${OUTPUTS_ROUTE_PREFIX}skills-link/my-skill/SKILL.md`, "hijacked")).error).toBeDefined();
+      expect(await readFile(join(platformDir, "skills/my-skill/SKILL.md"), "utf8")).toContain("My Skill");
+    });
+
+    it("removes nothing on a delete of /, /.stigmer or the folder itself", async () => {
+      await writeFile(join(outputsDir(), "keep.md"), "kept\n");
+      const backend = v2(await productionBackend(mode));
+      for (const target of ["/", "/.stigmer", PLATFORM_ROUTE_PREFIX, OUTPUTS_ROUTE_PREFIX.slice(0, -1), OUTPUTS_ROUTE_PREFIX]) {
+        expect((await backend.delete!(target)).error, target).toBeDefined();
+      }
+      expect(await readdir(outputsDir())).toEqual(["keep.md"]);
+      expect(await readFile(join(workspaceDir, "main.go"), "utf8")).toBe("package main\n");
+      expect(await readFile(join(platformDir, "skills/my-skill/SKILL.md"), "utf8")).toContain("My Skill");
+    });
+  });
+
+  it("refuses an outputs write on a turn without the link, and creates nothing", async () => {
+    const backend = v2(await productionBackend("shell"));
+    expect((await backend.write(`${OUTPUTS_ROUTE_PREFIX}report.md`, "x")).error).toMatch(/read-only/);
+    await expect(lstat(join(workspaceDir, ".stigmer"))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(access(join(platformDir, "outputs/report.md"))).rejects.toThrow();
   });
 
   it("exposes nothing when the link points somewhere else", async () => {

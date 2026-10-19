@@ -412,7 +412,10 @@ type ListFilesRequest struct {
 	// Only Files carrying every label given, each matched exactly (AND). A
 	// selective filter may answer short pages, even empty ones, that still
 	// carry a token.
-	Labels        map[string]string `protobuf:"bytes,5,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Labels map[string]string `protobuf:"bytes,5,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Only the Files this run wrote: the files one turn saved in its outputs
+	// folder. Empty lists Files written by any run or uploaded.
+	RunId         string `protobuf:"bytes,6,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -480,6 +483,13 @@ func (x *ListFilesRequest) GetLabels() map[string]string {
 		return x.Labels
 	}
 	return nil
+}
+
+func (x *ListFilesRequest) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
 }
 
 // One page of an organization's Files.
@@ -594,6 +604,118 @@ func (x *FileDownloadUrl) GetExpiresAt() *timestamppb.Timestamp {
 	return nil
 }
 
+// Input for reading a File's bytes through the server.
+type GetFileContentInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The File's id.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// The most bytes to return: 0 asks for the default of 512 KB, and a value
+	// above 512 KB is read as 512 KB. A larger File is read through its
+	// download link.
+	MaxBytes      int64 `protobuf:"varint,2,opt,name=max_bytes,json=maxBytes,proto3" json:"max_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetFileContentInput) Reset() {
+	*x = GetFileContentInput{}
+	mi := &file_ai_stigmer_agentic_file_v1_io_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetFileContentInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetFileContentInput) ProtoMessage() {}
+
+func (x *GetFileContentInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_file_v1_io_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetFileContentInput.ProtoReflect.Descriptor instead.
+func (*GetFileContentInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_file_v1_io_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetFileContentInput) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *GetFileContentInput) GetMaxBytes() int64 {
+	if x != nil {
+		return x.MaxBytes
+	}
+	return 0
+}
+
+// The start of a File's bytes.
+type FileContent struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The File's first bytes, at most the request's max_bytes.
+	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	// Whether the File holds more bytes than data carries.
+	Truncated     bool `protobuf:"varint,2,opt,name=truncated,proto3" json:"truncated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FileContent) Reset() {
+	*x = FileContent{}
+	mi := &file_ai_stigmer_agentic_file_v1_io_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FileContent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FileContent) ProtoMessage() {}
+
+func (x *FileContent) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_file_v1_io_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FileContent.ProtoReflect.Descriptor instead.
+func (*FileContent) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_file_v1_io_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *FileContent) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *FileContent) GetTruncated() bool {
+	if x != nil {
+		return x.Truncated
+	}
+	return false
+}
+
 var File_ai_stigmer_agentic_file_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_file_v1_io_proto_rawDesc = "" +
@@ -628,7 +750,7 @@ const file_ai_stigmer_agentic_file_v1_io_proto_rawDesc = "" +
 	"\bresource\x18\x01 \x01(\v2 .ai.stigmer.agentic.file.v1.FileB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"updateMask:\xbc\x01\xbaH\xb8\x01\x1a\xb5\x01\n" +
-	"\x17update_names_its_target\x12Dresource.metadata.id is required: an update names the file by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''\"\xa8\x02\n" +
+	"\x17update_names_its_target\x12Dresource.metadata.id is required: an update names the file by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''\"\xbf\x02\n" +
 	"\x10ListFilesRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12\x1d\n" +
 	"\n" +
@@ -636,7 +758,8 @@ const file_ai_stigmer_agentic_file_v1_io_proto_rawDesc = "" +
 	"\tpage_size\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\bpageSize\x12'\n" +
 	"\n" +
 	"page_token\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12P\n" +
-	"\x06labels\x18\x05 \x03(\v28.ai.stigmer.agentic.file.v1.ListFilesRequest.LabelsEntryR\x06labels\x1a9\n" +
+	"\x06labels\x18\x05 \x03(\v28.ai.stigmer.agentic.file.v1.ListFilesRequest.LabelsEntryR\x06labels\x12\x15\n" +
+	"\x06run_id\x18\x06 \x01(\tR\x05runId\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"n\n" +
@@ -646,7 +769,13 @@ const file_ai_stigmer_agentic_file_v1_io_proto_rawDesc = "" +
 	"\x0fFileDownloadUrl\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x129\n" +
 	"\n" +
-	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAtB\xf1\x01\n" +
+	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"T\n" +
+	"\x13GetFileContentInput\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12$\n" +
+	"\tmax_bytes\x18\x02 \x01(\x03B\a\xbaH\x04\"\x02(\x00R\bmaxBytes\"?\n" +
+	"\vFileContent\x12\x12\n" +
+	"\x04data\x18\x01 \x01(\fR\x04data\x12\x1c\n" +
+	"\ttruncated\x18\x02 \x01(\bR\ttruncatedB\xf1\x01\n" +
 	"\x1ecom.ai.stigmer.agentic.file.v1B\aIoProtoP\x01Z9go.stigmer.ai/sdk/proto/ai/stigmer/agentic/file/v1;filev1\xa2\x02\x04ASAF\xaa\x02\x1aAi.Stigmer.Agentic.File.V1\xca\x02\x1aAi\\Stigmer\\Agentic\\File\\V1\xe2\x02&Ai\\Stigmer\\Agentic\\File\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Agentic::File::V1b\x06proto3"
 
 var (
@@ -661,7 +790,7 @@ func file_ai_stigmer_agentic_file_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_file_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_file_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ai_stigmer_agentic_file_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_ai_stigmer_agentic_file_v1_io_proto_goTypes = []any{
 	(*FileId)(nil),                   // 0: ai.stigmer.agentic.file.v1.FileId
 	(*UploadFileInput)(nil),          // 1: ai.stigmer.agentic.file.v1.UploadFileInput
@@ -671,17 +800,19 @@ var file_ai_stigmer_agentic_file_v1_io_proto_goTypes = []any{
 	(*ListFilesRequest)(nil),         // 5: ai.stigmer.agentic.file.v1.ListFilesRequest
 	(*FileList)(nil),                 // 6: ai.stigmer.agentic.file.v1.FileList
 	(*FileDownloadUrl)(nil),          // 7: ai.stigmer.agentic.file.v1.FileDownloadUrl
-	nil,                              // 8: ai.stigmer.agentic.file.v1.ListFilesRequest.LabelsEntry
-	(*File)(nil),                     // 9: ai.stigmer.agentic.file.v1.File
-	(*fieldmaskpb.FieldMask)(nil),    // 10: google.protobuf.FieldMask
-	(*timestamppb.Timestamp)(nil),    // 11: google.protobuf.Timestamp
+	(*GetFileContentInput)(nil),      // 8: ai.stigmer.agentic.file.v1.GetFileContentInput
+	(*FileContent)(nil),              // 9: ai.stigmer.agentic.file.v1.FileContent
+	nil,                              // 10: ai.stigmer.agentic.file.v1.ListFilesRequest.LabelsEntry
+	(*File)(nil),                     // 11: ai.stigmer.agentic.file.v1.File
+	(*fieldmaskpb.FieldMask)(nil),    // 12: google.protobuf.FieldMask
+	(*timestamppb.Timestamp)(nil),    // 13: google.protobuf.Timestamp
 }
 var file_ai_stigmer_agentic_file_v1_io_proto_depIdxs = []int32{
-	9,  // 0: ai.stigmer.agentic.file.v1.UpdateFileInput.resource:type_name -> ai.stigmer.agentic.file.v1.File
-	10, // 1: ai.stigmer.agentic.file.v1.UpdateFileInput.update_mask:type_name -> google.protobuf.FieldMask
-	8,  // 2: ai.stigmer.agentic.file.v1.ListFilesRequest.labels:type_name -> ai.stigmer.agentic.file.v1.ListFilesRequest.LabelsEntry
-	9,  // 3: ai.stigmer.agentic.file.v1.FileList.entries:type_name -> ai.stigmer.agentic.file.v1.File
-	11, // 4: ai.stigmer.agentic.file.v1.FileDownloadUrl.expires_at:type_name -> google.protobuf.Timestamp
+	11, // 0: ai.stigmer.agentic.file.v1.UpdateFileInput.resource:type_name -> ai.stigmer.agentic.file.v1.File
+	12, // 1: ai.stigmer.agentic.file.v1.UpdateFileInput.update_mask:type_name -> google.protobuf.FieldMask
+	10, // 2: ai.stigmer.agentic.file.v1.ListFilesRequest.labels:type_name -> ai.stigmer.agentic.file.v1.ListFilesRequest.LabelsEntry
+	11, // 3: ai.stigmer.agentic.file.v1.FileList.entries:type_name -> ai.stigmer.agentic.file.v1.File
+	13, // 4: ai.stigmer.agentic.file.v1.FileDownloadUrl.expires_at:type_name -> google.protobuf.Timestamp
 	5,  // [5:5] is the sub-list for method output_type
 	5,  // [5:5] is the sub-list for method input_type
 	5,  // [5:5] is the sub-list for extension type_name
@@ -705,7 +836,7 @@ func file_ai_stigmer_agentic_file_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_file_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_file_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

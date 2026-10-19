@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/file/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_file_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvZmlsZS92MS9zdGF0dXMucHJvdG8SGmFpLnN0aWdtZXIuYWdlbnRpYy5maWxlLnYxIoUBCgpGaWxlU3RhdHVzEhIKCnNpemVfYnl0ZXMYASABKAMSEgoKc2Vzc2lvbl9pZBgCIAEoCRIOCgZydW5faWQYAyABKAkSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdGIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_status]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvZmlsZS92MS9zdGF0dXMucHJvdG8SGmFpLnN0aWdtZXIuYWdlbnRpYy5maWxlLnYxIpoBCgpGaWxlU3RhdHVzEhIKCnNpemVfYnl0ZXMYASABKAMSEgoKc2Vzc2lvbl9pZBgCIAEoCRIOCgZydW5faWQYAyABKAkSEwoLb3V0cHV0X3BhdGgYBCABKAkSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdGIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_status]);
 
 /**
  * FileStatus is what the server records about a File.
@@ -44,6 +44,16 @@ export type FileStatus = Message<"ai.stigmer.agentic.file.v1.FileStatus"> & {
    * @generated from field: string run_id = 3;
    */
   runId: string;
+
+  /**
+   * Where the agent saved the File, for a file an agent saved: its path
+   * relative to .stigmer/outputs/, "/"-separated, the last segment its
+   * filename. Two files of the same name saved in two folders are two Files
+   * told apart by it. Empty for an uploaded File.
+   *
+   * @generated from field: string output_path = 4;
+   */
+  outputPath: string;
 
   /**
    * Standard audit information (created_at, updated_at, created_by, etc.)

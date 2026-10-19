@@ -63,7 +63,7 @@ class UpdateFileInput(_message.Message):
     def __init__(self, resource: _Optional[_Union[_api_pb2.File, _Mapping]] = ..., update_mask: _Optional[_Union[_field_mask_pb2.FieldMask, _Mapping]] = ...) -> None: ...
 
 class ListFilesRequest(_message.Message):
-    __slots__ = ("org", "session_id", "page_size", "page_token", "labels")
+    __slots__ = ("org", "session_id", "page_size", "page_token", "labels", "run_id")
     class LabelsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -76,12 +76,14 @@ class ListFilesRequest(_message.Message):
     PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
     PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     LABELS_FIELD_NUMBER: _ClassVar[int]
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
     org: str
     session_id: str
     page_size: int
     page_token: str
     labels: _containers.ScalarMap[str, str]
-    def __init__(self, org: _Optional[str] = ..., session_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    run_id: str
+    def __init__(self, org: _Optional[str] = ..., session_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ..., run_id: _Optional[str] = ...) -> None: ...
 
 class FileList(_message.Message):
     __slots__ = ("entries", "next_page_token")
@@ -98,3 +100,19 @@ class FileDownloadUrl(_message.Message):
     url: str
     expires_at: _timestamp_pb2.Timestamp
     def __init__(self, url: _Optional[str] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+
+class GetFileContentInput(_message.Message):
+    __slots__ = ("id", "max_bytes")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    MAX_BYTES_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    max_bytes: int
+    def __init__(self, id: _Optional[str] = ..., max_bytes: _Optional[int] = ...) -> None: ...
+
+class FileContent(_message.Message):
+    __slots__ = ("data", "truncated")
+    DATA_FIELD_NUMBER: _ClassVar[int]
+    TRUNCATED_FIELD_NUMBER: _ClassVar[int]
+    data: bytes
+    truncated: bool
+    def __init__(self, data: _Optional[bytes] = ..., truncated: bool = ...) -> None: ...

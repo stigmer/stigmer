@@ -41,7 +41,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "gentic/file/v1/io.proto\0328ai/stigmer/comm" +
       "ons/apiresource/rpc_service_options.prot" +
       "o\032+ai/stigmer/commons/rpc/method_options" +
-      ".proto2\211\003\n\023FileQueryController\022v\n\003get\022\"." +
+      ".proto2\233\004\n\023FileQueryController\022v\n\003get\022\"." +
       "ai.stigmer.agentic.file.v1.FileId\032 .ai.s" +
       "tigmer.agentic.file.v1.File\")\302\270\030%\010\001\020I\"\005v" +
       "alue*\030unauthorized to get file\022`\n\004list\022," +
@@ -50,12 +50,15 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "st\"\004\320\270\030\001\022\221\001\n\016getDownloadUrl\022\".ai.stigmer" +
       ".agentic.file.v1.FileId\032+.ai.stigmer.age" +
       "ntic.file.v1.FileDownloadUrl\".\302\270\030*\010\001\020I\"\005" +
-      "value*\035unauthorized to download file\032\004\240\377" +
-      "+IB\231\001B\nQueryProtoP\001\242\002\004ASAF\252\002\032Ai.Stigmer." +
-      "Agentic.File.V1\312\002\032Ai\\Stigmer\\Agentic\\Fil" +
-      "e\\V1\342\002&Ai\\Stigmer\\Agentic\\File\\V1\\GPBMet" +
-      "adata\352\002\036Ai::Stigmer::Agentic::File::V1b\006" +
-      "proto3"
+      "value*\035unauthorized to download file\022\217\001\n" +
+      "\ngetContent\022/.ai.stigmer.agentic.file.v1" +
+      ".GetFileContentInput\032\'.ai.stigmer.agenti" +
+      "c.file.v1.FileContent\"\'\302\270\030#\010\001\020I\"\002id*\031una" +
+      "uthorized to read file\032\004\240\377+IB\231\001B\nQueryPr" +
+      "otoP\001\242\002\004ASAF\252\002\032Ai.Stigmer.Agentic.File.V" +
+      "1\312\002\032Ai\\Stigmer\\Agentic\\File\\V1\342\002&Ai\\Stig" +
+      "mer\\Agentic\\File\\V1\\GPBMetadata\352\002\036Ai::St" +
+      "igmer::Agentic::File::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

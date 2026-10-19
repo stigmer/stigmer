@@ -70,6 +70,32 @@ public interface FileStatusOrBuilder extends
 
   /**
    * <pre>
+   * Where the agent saved the File, for a file an agent saved: its path
+   * relative to .stigmer/outputs/, "/"-separated, the last segment its
+   * filename. Two files of the same name saved in two folders are two Files
+   * told apart by it. Empty for an uploaded File.
+   * </pre>
+   *
+   * <code>string output_path = 4 [json_name = "outputPath"];</code>
+   * @return The outputPath.
+   */
+  java.lang.String getOutputPath();
+  /**
+   * <pre>
+   * Where the agent saved the File, for a file an agent saved: its path
+   * relative to .stigmer/outputs/, "/"-separated, the last segment its
+   * filename. Two files of the same name saved in two folders are two Files
+   * told apart by it. Empty for an uploaded File.
+   * </pre>
+   *
+   * <code>string output_path = 4 [json_name = "outputPath"];</code>
+   * @return The bytes for outputPath.
+   */
+  com.google.protobuf.ByteString
+      getOutputPathBytes();
+
+  /**
+   * <pre>
    * Standard audit information (created_at, updated_at, created_by, etc.)
    * </pre>
    *

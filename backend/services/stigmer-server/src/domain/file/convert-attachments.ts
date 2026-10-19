@@ -77,7 +77,17 @@ const BASE32 = "0123456789abcdefghjkmnpqrstvwxyz";
 
 /** A File id derived from its run and position: the same on every boot, shaped as a minted one. */
 export function convertedFileId(runId: string, position: number): string {
-  const digest = createHash("sha256").update(`${runId}\u0000${position}`).digest();
+  return derivedFileId(`${runId}\u0000${position}`);
+}
+
+/**
+ * A File id derived from `material`, shaped as a minted one. Each caller
+ * gives its material a form no other caller's can take, so two derivations
+ * never meet: a conversion's begins with a run id, an output's with its
+ * own tag (outputs.ts).
+ */
+export function derivedFileId(material: string): string {
+  const digest = createHash("sha256").update(material).digest();
   let body = "";
   for (let i = 0; i < 26; i++) {
     body += BASE32[(digest[i] ?? 0) % 32];

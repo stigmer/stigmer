@@ -34,6 +34,10 @@
  * (`startEnvironmentInstall` with a stand-in command runner) and forgotten
  * after each arm.
  *
+ * The outputs folder is collected here, on every outcome of a turn whose
+ * engine ran, before its final write, and never for a turn settled before
+ * its engine: the rule lives in `run-turn.ts`, so its proof lives here.
+ *
  * The hermetic environment is created at module level because the subject's
  * `config` is read at collection time; the forks pool keeps it private to
  * this file.
@@ -45,6 +49,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { getPlatformDir } from "../../shared/workspace/platform-dir.js";
+import { acquireWorkspaceLock } from "../../shared/workspace/workspace-lock.js";
 
 vi.mock("../../client/stigmer-client.js", async () =>
   (await import("../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
@@ -221,6 +227,64 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       expect(slimOf(subject, first).phase).toBe("RUN_COMPLETED");
       expect(driver.record.lastFullRows?.structuredOutput, "resolved on the completion write").toEqual({ answer: 42 });
       expect(driver.record.lastFullRows?.fileReviewEventStream?.events.map((e) => e.payload.case)).toEqual(["baselineCaptured", "candidateCaptured"]);
+    });
+  });
+
+  describe("the outputs folder", () => {
+    beforeAll(async () => {
+      await subject.adapter.boot(subject.config);
+    });
+
+    /** Put a file in the session's outputs folder, as the agent would have saved it. */
+    function saveOutput(driver: RuntimeExecutionDriver, outputPath: string, content: string): void {
+      const path = join(getPlatformDir(driver.sessionId), "outputs", outputPath);
+      mkdirSync(join(path, ".."), { recursive: true });
+      writeFileSync(path, content, "utf-8");
+    }
+
+    function assertReturnedBeforeTheFinalWrite(driver: RuntimeExecutionDriver, outputPath: string): void {
+      expect(driver.record.registeredOutputs.map((o) => o.outputPath)).toEqual([outputPath]);
+      const [output] = driver.record.registeredOutputs;
+      expect(output!.persistedBefore, "registered before the turn's final write").toBeLessThan(driver.record.persisted.length);
+    }
+
+    it.each([
+      ["completed", [scenario.say("Saved the report.")], "RUN_COMPLETED"],
+      ["waiting for an approval", [scenario.propose("fake-outputs-shell", { kind: "shell", resource: "make report" })], "RUN_WAITING_FOR_APPROVAL"],
+      ["failed", [scenario.fail("the engine broke", "engine")], "RUN_FAILED"],
+      ["at its tool-call limit", [scenario.limit()], "RUN_TERMINATED"],
+    ] as const)("a turn %s returns what was saved", async (label, turn, phase) => {
+      clock.reset();
+      const driver = new RuntimeExecutionDriver(harness, `fake-outputs-${label.replace(/ /g, "-")}`);
+      saveOutput(driver, "reports/summary.md", "# Summary\n");
+      const invocation = await driver.turn([...turn]);
+      expect(slimOf(subject, invocation).phase).toBe(phase);
+      assertReturnedBeforeTheFinalWrite(driver, "reports/summary.md");
+    });
+
+    it("a turn a person stopped returns what was saved before the stop", async () => {
+      clock.reset();
+      const driver = new RuntimeExecutionDriver(harness, "fake-outputs-stopped");
+      saveOutput(driver, "draft.md", "half done\n");
+      let controls: { cancel(): void } | undefined;
+      void subject.whenHanging().then(() => controls!.cancel());
+      await driver.turn([scenario.say("Starting."), scenario.hang()], { onControls: (c) => (controls = c) });
+      assertReturnedBeforeTheFinalWrite(driver, "draft.md");
+    });
+
+    it("a turn settled before its engine ran returns nothing", async () => {
+      clock.reset();
+      const driver = new RuntimeExecutionDriver(harness, "fake-outputs-lock-timeout");
+      saveOutput(driver, "earlier.md", "from an earlier turn\n");
+      mkdirSync(driver.workspaceDir, { recursive: true });
+      const release = await acquireWorkspaceLock(driver.workspaceDir);
+      try {
+        const invocation = await driver.turn([scenario.say("never")], { config: { workspaceLockTimeoutMs: 500 } });
+        expect(slimOf(subject, invocation).phase).toBe("RUN_FAILED");
+      } finally {
+        await release();
+      }
+      expect(driver.record.registeredOutputs).toEqual([]);
     });
   });
 

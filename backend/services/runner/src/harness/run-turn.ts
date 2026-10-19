@@ -16,7 +16,8 @@
  * the resolution phases (`turn-context.ts`) composed into the `TurnInput`;
  * the sink the adapter is handed; the terminal table (`terminal-table.ts`)
  * with its throw-vs-return rule, applied by `settleWith`, the one writer of
- * a terminal; the completion epilogue (final text,
+ * a terminal; the outputs collection, on every outcome once the engine ran
+ * (`shared/outputs.ts`); the completion epilogue (final text,
  * structured output, plan artifact, write-back); the finally that releases
  * the workspace lock last. The adapter owns its SDK slice inside `runTurn`
  * and its own teardown inside its own `finally`, which runs BEFORE this
@@ -54,6 +55,7 @@ import { TimingRecorder } from "../shared/cold-start-timing.js";
 import { runWithExecutionContext } from "../shared/execution-context.js";
 import { startHeartbeat } from "../shared/heartbeat.js";
 import { describeExecutionError } from "../shared/model-error.js";
+import { collectOutputs } from "../shared/outputs.js";
 import { publishPlanArtifact } from "../shared/plan-artifact.js";
 import { readEvalFiles } from "../shared/eval-case/read-files.js";
 import { StallTimeoutError, startStallWatchdog, type StallWatchdog } from "../shared/stall-watchdog.js";
@@ -237,6 +239,8 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
   let usage: UsageAccumulator | undefined;
   /** The turn's capture once the baseline is pinned (capture mode only); the chokepoint reads its progress at every write. */
   let capture: TurnCapture | undefined;
+  /** The conversation whose outputs folder this turn returns, set once the engine starts; collected once, at settle. */
+  let outputsSessionId: string | undefined;
   let heartbeatPhase = "setup";
   let lastActivityDetail: string | undefined;
   let watchdog: StallWatchdog | undefined;
@@ -297,6 +301,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
    */
   const settleWith = async (arm: TerminalArm, failure?: CancelledFailure): Promise<Settled> => {
     events.skipRootRows(applyTerminalArm(status, rows, arm));
+    await returnOutputs();
     await recordEvalFiles();
     if (arm.disposition.kind === "return") {
       await chokepoint.write({ final: true });
@@ -306,6 +311,20 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     await chokepoint.write({ final: true });
     return { kind: "throw", error: failure ?? new CancelledFailure(arm.disposition.message) };
   };
+
+  /**
+   * What the agent saved in its outputs folder comes back as Files of the
+   * conversation (`shared/outputs.ts`), on every outcome of a turn whose
+   * engine ran, before the final write: so the conversation lists them
+   * before the turn reads as idle. Once per turn; never throws.
+   */
+  async function returnOutputs(): Promise<void> {
+    const sessionId = outputsSessionId;
+    if (sessionId === undefined) return;
+    outputsSessionId = undefined;
+    heartbeatPhase = "outputs";
+    await collectOutputs({ client, executionId, sessionId });
+  }
 
   /**
    * A eval-run try's graders read the files they name as the turn left
@@ -477,6 +496,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     });
 
     heartbeatPhase = "harness";
+    outputsSessionId = turn.sessionId;
     const outcome = await adapter.runTurn(turn, sink);
     armedWatchdog.stop();
     heartbeatPhase = "epilogue";
@@ -661,6 +681,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     }
 
     // NOW persist: the structured output reaches the log before the status that completes the turn.
+    await returnOutputs();
     await recordEvalFiles();
     await chokepoint.write({ final: true });
     console.log(
