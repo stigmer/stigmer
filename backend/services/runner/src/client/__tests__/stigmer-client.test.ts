@@ -457,6 +457,19 @@ describe("StigmerClient", () => {
       ).rejects.toThrow(/exchange failed for agent execution aex_1: permission denied/);
     });
 
+    it("acquireScopedRunnerCredential carries an exchange token's lifetime, and none for an ambient or absent one", async () => {
+      const exchanging = clientWithRunnerCredential(null);
+      vi.spyOn(exchanging, "getRunnerScopedToken").mockResolvedValue({ token: "clocked", expiresInSeconds: 3600 });
+      expect(await exchanging.acquireScopedRunnerCredential({ agentExecutionId: "aex_1" })).toEqual({ token: "clocked", expiresInSeconds: 3600 });
+
+      const unclocked = clientWithRunnerCredential(null);
+      vi.spyOn(unclocked, "getRunnerScopedToken").mockResolvedValue({ token: "no-expiry" });
+      expect(await unclocked.acquireScopedRunnerCredential({ agentExecutionId: "aex_1" })).toEqual({ token: "no-expiry" });
+
+      const ambient = clientWithRunnerCredential(fakeTokenOfType("sandbox"));
+      expect(await ambient.acquireScopedRunnerCredential({ agentExecutionId: "aex_1" })).toEqual({ token: undefined });
+    });
+
     it("treats a non-JWT process token as no runner credential (the harness/proxy token shape)", async () => {
       // e.g. the conformance harness boots the runner with a mock proxy
       // token that is not a Stigmer-minted JWT; the best-effort arm must

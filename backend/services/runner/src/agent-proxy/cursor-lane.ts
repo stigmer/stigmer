@@ -54,6 +54,13 @@
  * Of Cursor's `aiserver.v1` surface, only the methods the SDK itself calls
  * are relayed ({@link CURSOR_SIDE_CALLS}): the rest, which carry the real
  * token just the same, include one that mints an API key from it.
+ *
+ * Diagnostics: a relayed stream that ends cut off (reset, or abandoned by
+ * the host) logs one line naming which side closed first, the HTTP/2 code
+ * and the stream's age, and an upstream connection's GOAWAY logs its code.
+ * A live Cursor turn was once cancelled at its sixtieth minute (#2436), and
+ * nothing said whether Cursor or this lane closed the stream. The lines
+ * carry the path, stream ids, codes and times, never a header or a token.
  */
 
 import { randomBytes } from "node:crypto";
@@ -75,6 +82,31 @@ import type { Config } from "../config.js";
 import { LaneRefusal, laneUrl } from "./lanes.js";
 import { mintLoopbackCertificate } from "./loopback-certificate.js";
 import { RequestTooLargeError, bearerOf, forwardableHeaders, readBody, relay, requestWhole, type RelayResponse, type Upstream } from "./relay.js";
+
+/** The HTTP/2 error codes by number (RFC 9113 section 7), for a diagnostic line a person can read. */
+const H2_CODE_NAMES: readonly string[] = [
+  "NO_ERROR",
+  "PROTOCOL_ERROR",
+  "INTERNAL_ERROR",
+  "FLOW_CONTROL_ERROR",
+  "SETTINGS_TIMEOUT",
+  "STREAM_CLOSED",
+  "FRAME_SIZE_ERROR",
+  "REFUSED_STREAM",
+  "CANCEL",
+  "COMPRESSION_ERROR",
+  "CONNECT_ERROR",
+  "ENHANCE_YOUR_CALM",
+  "INADEQUATE_SECURITY",
+  "HTTP_1_1_REQUIRED",
+];
+
+/** `CANCEL(8)`, or the bare number for a code outside the table. */
+export function h2CodeName(code: number | undefined): string {
+  if (code === undefined) return "none";
+  const name = H2_CODE_NAMES[code];
+  return name === undefined ? String(code) : `${name}(${code})`;
+}
 
 /** Cursor's own hosts: the only ones the REST lane reaches. */
 const CURSOR_HOSTS = ["api2.cursor.sh", "api.cursor.com", "api.cursor.sh"];
@@ -321,11 +353,15 @@ export class CursorLane {
         [http2Constants.HTTP2_HEADER_PATH]: `${url.pathname}${url.search}`,
       };
       const upstream = session.request(outgoing);
+      const openedAt = Date.now();
+      // Which side ended the stream first, for the diagnostic line below.
+      let closedFirst: "host" | "upstream" | undefined;
       // A host that drops its stream abandons the run: cancel it at Cursor
       // rather than let the request's end read as "nothing more to send".
       // (`res.writableFinished` reads true once the host's stream is gone,
       // so the upstream's own state decides.)
       const abandon = (): void => {
+        closedFirst ??= "host";
         if (!upstream.closed) upstream.close(http2Constants.NGHTTP2_CANCEL);
       };
       res.on("close", abandon);
@@ -359,17 +395,27 @@ export class CursorLane {
         res.stream.close(code !== undefined && code !== http2Constants.NGHTTP2_NO_ERROR ? code : http2Constants.NGHTTP2_CANCEL);
       };
       upstream.on("end", () => {
+        closedFirst ??= "upstream";
         const code = upstream.rstCode;
         if (upstream.aborted || (code !== undefined && code !== http2Constants.NGHTTP2_NO_ERROR)) reset();
         else if (!res.writableEnded) res.end();
       });
       res.once("close", () => resolve());
       upstream.on("close", () => {
+        closedFirst ??= "upstream";
         res.off("close", abandon);
+        const code = upstream.rstCode;
+        if (closedFirst === "host" || upstream.aborted || (code !== undefined && code !== http2Constants.NGHTTP2_NO_ERROR)) {
+          console.warn(
+            `[agent-proxy] the Cursor stream ${url.pathname} ended cut off: stream=${upstream.id ?? "none"}, ` +
+              `closedFirst=${closedFirst}, code=${h2CodeName(code)}, ageMs=${Date.now() - openedAt}`,
+          );
+        }
         reset();
         resolve();
       });
       upstream.on("error", (err) => {
+        closedFirst ??= "upstream";
         failed = true;
         res.off("close", abandon);
         console.warn(`[agent-proxy] the Cursor stream ${url.pathname} failed upstream: ${err.message}`);
@@ -398,6 +444,14 @@ export class CursorLane {
     if (open && !open.closed && !open.destroyed) return open;
     const session = connectHttp2(origin);
     session.unref();
+    const openedAt = Date.now();
+    // The connection's own end, beside each stream's (the module header).
+    session.on("goaway", (errorCode: number, lastStreamId: number) => {
+      console.warn(
+        `[agent-proxy] the Cursor upstream ${origin} sent GOAWAY: code=${h2CodeName(errorCode)}, ` +
+          `lastStream=${lastStreamId}, sessionAgeMs=${Date.now() - openedAt}`,
+      );
+    });
     const sessions = byOrigin;
     const forget = (): void => {
       if (sessions.get(origin) === session) sessions.delete(origin);
