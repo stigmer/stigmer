@@ -6,8 +6,10 @@
  *     whether more are left, and once none is left removes every blob the
  *     organization still holds (an upload URL nobody used included), so
  *     the census finds nothing; another organization's Files stay;
- *   - a store fault while authorizing an upload into a conversation, and
- *     while a conversation's delete lists its Files, answers Internal.
+ *   - a store fault while authorizing an upload into a conversation, while
+ *     a conversation's delete lists its Files, and while updateVisibility
+ *     loads or saves a File answers Internal; a File deleted between that
+ *     load and save answers NOT_FOUND.
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -18,9 +20,12 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { FileCommandController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/command_pb";
 import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionIdSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { UpdateVisibilityInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 
 import { LocalArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
 import { testUrlSigner } from "../../../artifactstorage/__test-utils__/url-signer.js";
@@ -34,6 +39,11 @@ import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { newFileBlobs } from "../blobs.js";
 import type { FileBlobs } from "../blobs.js";
+import {
+  UPDATE_VISIBILITY_FILE_KEY,
+  newLoadFileForVisibilityUpdateStep,
+  newPersistFileVisibilityStep,
+} from "../controller.js";
 import { newFilePurge } from "../purge.js";
 import { newCascadeDeleteSessionFilesStep } from "../session-files.js";
 import { authorizeFileUpload } from "../steps.js";
@@ -115,6 +125,35 @@ describe("the File purge", () => {
 });
 
 describe("store faults", () => {
+  function visibilityContext(): RequestContext<typeof FileCommandController.method.updateVisibility.input> {
+    return new RequestContext(
+      FileCommandController.method.updateVisibility.input,
+      create(UpdateVisibilityInputSchema, { resourceId: "file_01v", visibility: ApiResourceVisibility.visibility_org }),
+      CALLER,
+      ApiResourceKind.file,
+    );
+  }
+
+  it("answers a fault loading a File for updateVisibility as Internal", async () => {
+    const step = newLoadFileForVisibilityUpdateStep(faulting(fx.store, "getResource"));
+    const error = await Promise.resolve(step.execute(visibilityContext())).catch((e: unknown) => e);
+    expect((error as ConnectError).code).toBe(Code.Internal);
+  });
+
+  it("answers a File deleted before updateVisibility saves NOT_FOUND, and a save fault Internal", async () => {
+    const ctx = visibilityContext();
+    ctx.set(UPDATE_VISIBILITY_FILE_KEY, create(FileSchema, { metadata: { id: "file_01gone", org: ORG } }));
+    const gone = await Promise.resolve(newPersistFileVisibilityStep(fx.store).execute(ctx)).catch((e: unknown) => e);
+    expect((gone as ConnectError).code).toBe(Code.NotFound);
+
+    const failing = new Proxy(fx.store, {
+      get: (target, key) =>
+        key === "updateResource" ? () => Promise.reject(new Error("store down")) : Reflect.get(target, key),
+    });
+    const fault = await Promise.resolve(newPersistFileVisibilityStep(failing).execute(ctx)).catch((e: unknown) => e);
+    expect((fault as ConnectError).code).toBe(Code.Internal);
+  });
+
   it("answers a fault reading the conversation an upload names as Internal", async () => {
     const allowing: Authorizer = { authorize: () => Promise.resolve({ kind: "allow" }) } as unknown as Authorizer;
     const error = await authorizeFileUpload(

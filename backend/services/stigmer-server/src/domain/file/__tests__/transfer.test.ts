@@ -11,13 +11,14 @@
  *     malformed path, a staged upload's key, a key outside the File store,
  *     a key that escapes the root, a key naming nothing and a directory
  *     are each the one 404; a signed link to a File's blob streams its
- *     bytes, named for download when the link carries a filename, and a
- *     HEAD answers the length with no body;
+ *     bytes, named for download when the link carries a filename, a HEAD
+ *     answers the length with no body, and bytes that cannot be read once
+ *     the answer began drop the connection and are logged;
  *   - a path outside the lane's prefix, reaching the handler directly, is
  *     404, and a handler that fails after answering is logged, never an
  *     unhandled rejection.
  */
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import http from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
@@ -132,6 +133,27 @@ describe("the download route", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-length")).toBe("10");
     expect(await response.text()).toBe("");
+  });
+
+  it("drops the connection and logs when the bytes cannot be read after the answer began", async () => {
+    const key = "files/org_01aaaaaaaaaaaaaaaaaaaaaaaa/unreadable";
+    writeFileSync(path.join(root, key), "secret");
+    chmodSync(path.join(root, key), 0o000);
+    const error = vi.fn();
+    const lane = newFileTransferLane({ slots, root, signer, logger: { ...silentLogger, error } as Logger });
+    const unreadable = http.createServer((req, res) => lane(req, res));
+    await new Promise<void>((resolve) => unreadable.listen(0, "127.0.0.1", resolve));
+    try {
+      const port = (unreadable.address() as AddressInfo).port;
+      const link = `http://127.0.0.1:${port}/v1/file-transfer/${key}?${signer.signedQuery(key, 60_000, "")}`;
+      await expect(fetch(link).then((r) => r.text())).rejects.toThrow();
+      await vi.waitFor(() =>
+        expect(error).toHaveBeenCalledWith("file download stream failed", expect.objectContaining({ key })),
+      );
+    } finally {
+      chmodSync(path.join(root, key), 0o600);
+      await new Promise<void>((resolve) => unreadable.close(() => resolve()));
+    }
   });
 
   it("refuses any method but GET and HEAD with 405", async () => {

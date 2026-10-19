@@ -274,7 +274,7 @@ async function deleteFile(deps: FileControllerDeps, input: FileId, ctx: HandlerC
 // before level validation so NOT_FOUND wins.
 // ─────────────────────────────────────────────────────────────────────────
 
-const UPDATE_VISIBILITY_FILE_KEY = "updateVisibilityFile";
+export const UPDATE_VISIBILITY_FILE_KEY = "updateVisibilityFile";
 
 type UpdateVisibilityDesc = typeof FileCommandController.method.updateVisibility.input;
 
@@ -304,7 +304,7 @@ async function updateVisibility(
 }
 
 /** Loads the File by resource_id; a missing one answers NotFound, a store fault Internal. */
-function newLoadFileForVisibilityUpdateStep(store: Store): PipelineStep<UpdateVisibilityDesc> {
+export function newLoadFileForVisibilityUpdateStep(store: Store): PipelineStep<UpdateVisibilityDesc> {
   return {
     name: "LoadFileForVisibilityUpdate",
     async execute(ctx: RequestContext<UpdateVisibilityDesc>): Promise<void> {
@@ -341,7 +341,7 @@ function newSetFileVisibilityStep(): PipelineStep<UpdateVisibilityDesc> {
  * inside the store's atomic write, so a label update that landed since the
  * load stays.
  */
-function newPersistFileVisibilityStep(store: Store): PipelineStep<UpdateVisibilityDesc> {
+export function newPersistFileVisibilityStep(store: Store): PipelineStep<UpdateVisibilityDesc> {
   return {
     name: "PersistFileForVisibilityUpdate",
     async execute(ctx: RequestContext<UpdateVisibilityDesc>): Promise<void> {
