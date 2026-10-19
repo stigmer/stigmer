@@ -29,6 +29,7 @@ import {
   DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
   DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,
   DEFAULT_OPEN_OPERATION_MAX_MS,
+  DEFAULT_SHELL_TIMEOUT_MAX_SECONDS,
   DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
 } from "./config.js";
 import type { WorkerActivities } from "./worker.js";
@@ -119,6 +120,9 @@ export interface RunnerManagerOptions {
 
   /** The backstop for one open operation (ms): an operation open this long is stopped and the turn fails. @default 3600000 */
   readonly openOperationMaxMs?: number;
+
+  /** The most the native shell's model may raise one command's timeout to (seconds). @default 3300 */
+  readonly shellTimeoutMaxSeconds?: number;
 
   /** Bound for Cursor Agent.create/resume (ms). @default 120000 */
   readonly agentResolveTimeoutMs?: number;
@@ -678,6 +682,7 @@ export function mapManagerOptionsToConfig(
     cursorStreamStallTimeoutMs:
       options.cursorStreamStallTimeoutMs ?? DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,
     openOperationMaxMs: options.openOperationMaxMs ?? DEFAULT_OPEN_OPERATION_MAX_MS,
+    shellTimeoutMaxSeconds: options.shellTimeoutMaxSeconds ?? DEFAULT_SHELL_TIMEOUT_MAX_SECONDS,
     agentResolveTimeoutMs:
       options.agentResolveTimeoutMs ?? DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
     workspaceLockTimeoutMs:

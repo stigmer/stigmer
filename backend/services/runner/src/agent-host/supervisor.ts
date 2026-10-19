@@ -273,6 +273,7 @@ export class AgentHostSupervisor {
       mcpBridgeEndpoint: config.mcpBridgeEndpoint,
       mcpPublicEndpoint: config.mcpPublicEndpoint,
       cursorStreamStallTimeoutMs: config.cursorStreamStallTimeoutMs,
+      shellTimeoutMaxSeconds: config.shellTimeoutMaxSeconds,
       agentResolveTimeoutMs: config.agentResolveTimeoutMs,
       workspaceLockTimeoutMs: config.workspaceLockTimeoutMs,
       proxyEndpoint: this.options.proxy.endpoint,

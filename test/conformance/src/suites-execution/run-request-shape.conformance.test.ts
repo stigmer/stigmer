@@ -31,8 +31,9 @@
 //   one are two facts, not one fact twice.
 // - The tool surface in wire order — name, description, input_schema. No
 //   source file states it whole: deepagents binds its built-ins per backend
-//   capability at call time and the runner's tool-intent middleware reshapes
-//   the `execute` schema at the same hook. The golden is the only photograph.
+//   capability at call time, and the runner's shell middleware (its
+//   `timeout`) and tool-intent middleware (its `description`) reshape the
+//   `execute` schema at the same hook. The golden is the only photograph.
 //   The platform's memory-capture tool `remember` is NOT on a bare agent's
 //   surface: recall is an organization preference that defaults off
 //   (stigmer-server domain/run/create-steps.ts,

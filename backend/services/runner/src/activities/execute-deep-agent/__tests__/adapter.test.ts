@@ -41,6 +41,7 @@ const CONFIG: Config = {
   primaryModel: "anthropic/claude-sonnet-4-5",
   cursorStreamStallTimeoutMs: 180_000,
   openOperationMaxMs: 3_600_000,
+  shellTimeoutMaxSeconds: 3_300,
   agentResolveTimeoutMs: 120_000,
   workspaceLockTimeoutMs: 900_000,
 };
@@ -71,7 +72,7 @@ describe("createDeepAgentAdapter", () => {
     await expect(adapter.releaseSession("ses_unknown")).resolves.toBeUndefined();
   });
 
-  it("the config slice is the six fields the engine slice reads and nothing else", () => {
+  it("the config slice is the seven fields the engine slice reads and nothing else", () => {
     expect(resolveDeepAgentConfig(CONFIG)).toEqual({
       checkpointerType: "memory",
       checkpointerProxyEndpoint: null,
@@ -79,6 +80,7 @@ describe("createDeepAgentAdapter", () => {
       proxyEndpoint: null,
       mode: "local",
       cursorStreamStallTimeoutMs: CONFIG.cursorStreamStallTimeoutMs,
+      shellTimeoutMaxSeconds: CONFIG.shellTimeoutMaxSeconds,
     });
   });
 });

@@ -138,4 +138,16 @@ export interface MiddlewareStackConfig {
    * the repair seam that keeps model-supplied paths canonical.
    */
   readonly pathNormalization?: PathNormalizationConfig | null;
+  /**
+   * The runner's shell for this graph (`middleware/shell.ts`): the
+   * executable `execute` tool every `execute` call runs. Present only on a
+   * graph whose backend can run a shell; absent, deepagents binds no
+   * `execute` and none is supplied.
+   */
+  readonly shell?: ShellMiddlewareConfig | null;
+}
+
+export interface ShellMiddlewareConfig {
+  /** The graph's `execute` tool (`execute-deep-agent/shell-tool.ts` `createShellTool`). */
+  readonly tool: unknown;
 }

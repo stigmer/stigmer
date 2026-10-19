@@ -1,8 +1,8 @@
 /**
  * The operator's bounds on a turn, as both boot paths in `main.ts` hand them
- * to their root: the stall window, the open-operation backstop, the
- * workspace lock wait and the Cursor agent resolve, read from the
- * environment by `loadConfig`.
+ * to their root: the stall window, the open-operation backstop, the native
+ * shell's timeout ceiling, the workspace lock wait and the Cursor agent
+ * resolve, read from the environment by `loadConfig`.
  *
  * Why one function: each boot path builds its root's options field by
  * field, and both once left these four out, so `CURSOR_STREAM_STALL_TIMEOUT_MS`,
@@ -18,6 +18,7 @@ import type { Config } from "./config.js";
 export interface OperatorBounds {
   readonly cursorStreamStallTimeoutMs: number;
   readonly openOperationMaxMs: number;
+  readonly shellTimeoutMaxSeconds: number;
   readonly workspaceLockTimeoutMs: number;
   readonly agentResolveTimeoutMs: number;
 }
@@ -26,6 +27,7 @@ export function operatorBounds(config: Config): OperatorBounds {
   return {
     cursorStreamStallTimeoutMs: config.cursorStreamStallTimeoutMs,
     openOperationMaxMs: config.openOperationMaxMs,
+    shellTimeoutMaxSeconds: config.shellTimeoutMaxSeconds,
     workspaceLockTimeoutMs: config.workspaceLockTimeoutMs,
     agentResolveTimeoutMs: config.agentResolveTimeoutMs,
   };

@@ -86,7 +86,9 @@ import { backstopRecursionLimit, resolveToolRoundLimit } from "../../shared/tool
 import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
 import { skillContentReadCheck } from "../../shared/skill-mount.js";
 import { CasCaptureObserver } from "./cas-capture-observer.js";
-import { createCasCaptureBackend } from "./cas-capture-backend.js";
+import { CasCaptureShellBackend, createCasCaptureBackend } from "./cas-capture-backend.js";
+import { createShellTool } from "./shell-tool.js";
+import { loadStreamingConfig } from "../../shared/streaming-scheduler.js";
 import { confinedReadAdmission, mountPlatformRoute } from "./platform-route.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { resumedMessages, threadIsEmpty } from "./resumed-history.js";
@@ -109,7 +111,7 @@ import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb
  */
 export type DeepAgentAdapterConfig = Pick<
   Config,
-  "checkpointerType" | "checkpointerProxyEndpoint" | "stigmerTokenRef" | "proxyEndpoint" | "mode" | "cursorStreamStallTimeoutMs"
+  "checkpointerType" | "checkpointerProxyEndpoint" | "stigmerTokenRef" | "proxyEndpoint" | "mode" | "cursorStreamStallTimeoutMs" | "shellTimeoutMaxSeconds"
 >;
 
 /**
@@ -567,9 +569,22 @@ export async function buildEngine(
     });
   }
 
+  // File capture point: the CAS-observing backend — git-tracked edits flow to
+  // disk (the boundary's git diff is authoritative) and the shared observer
+  // records the pre-turn bytes of every CAS-owned path. Gate-independent, so
+  // it holds even under the global bypass. Built before the stack, because a
+  // shell-capable backend is what the runner's shell tool runs through
+  // (`middleware/shell.ts`); plan mode's is filesystem-only and gets none.
+  const workspaceBackend = await createCasCaptureBackend({ rootDir: primaryDir, observer: workspace.casObserver, shellEnv });
+  const shellStreaming = { maxTimeoutSeconds: config.shellTimeoutMaxSeconds, floorMs: loadStreamingConfig().minIntervalMs };
+  const shell = workspaceBackend instanceof CasCaptureShellBackend
+    ? { tool: createShellTool({ backend: workspaceBackend, ...shellStreaming }) }
+    : null;
+
   const maxCostUsd = runConfig?.maxCostUsd ?? 0;
   const toolRoundLimit = resolveToolRoundLimit(runConfig?.maxToolRounds);
   const { middleware, costAdvisory } = buildMiddlewareStack({
+    shell,
     loopDetection: { historySize: 20, consecutiveThreshold: 7, totalThreshold: 20 },
     executionBudget: { maxToolRounds: toolRoundLimit, warningPct: 80 },
     toolTruncation: { maxChars: runConfig?.maxToolResultChars || 30_000 },
@@ -619,6 +634,7 @@ export async function buildEngine(
     costAdvisory: costAdvisory ?? undefined,
     modelFactory: buildModelFor,
     shellEnv,
+    shellStreaming,
     ...(planModePermissions ? { permissions: planModePermissions } : {}),
   });
   sink.setupTiming.mark("compile_subagents");
@@ -644,17 +660,14 @@ export async function buildEngine(
       ? providerStrategy({ schema: transformJSONSchema(outputSchema) as ObjectJsonSchema })
       : jsonSchemaToZod(outputSchema);
 
-  // File capture point: the CAS-observing backend — git-tracked edits flow to
-  // disk (the boundary's git diff is authoritative) and the shared observer
-  // records the pre-turn bytes of every CAS-owned path. Gate-independent, so
-  // it holds even under the global bypass. Platform content (skills, inputs,
-  // the approved plan) is mounted over it read-only at `.stigmer/`
-  // (`platform-route.ts`): the virtual-rooted backend refuses to follow the
-  // workspace link out of the root.
-  const fileBackend = await mountPlatformRoute(
-    await createCasCaptureBackend({ rootDir: primaryDir, observer: workspace.casObserver, shellEnv }),
-    { workspaceDir: primaryDir, platformDir: workspace.backend.platformDir },
-  );
+  // Platform content (skills, inputs, the approved plan) is mounted over the
+  // workspace backend read-only at `.stigmer/` (`platform-route.ts`): the
+  // virtual-rooted backend refuses to follow the workspace link out of the
+  // root.
+  const fileBackend = await mountPlatformRoute(workspaceBackend, {
+    workspaceDir: primaryDir,
+    platformDir: workspace.backend.platformDir,
+  });
   const graph = await createDeepAgent({
     model,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -60,6 +60,8 @@ import { createLoopDetectionMiddleware } from "../../middleware/loop-detection.j
 import { createToolTruncationMiddleware } from "../../middleware/tool-truncation.js";
 import { createExecutionBudgetMiddleware } from "../../middleware/execution-budget.js";
 import { createToolIntentMiddleware } from "../../middleware/tool-intent.js";
+import { createShellMiddleware } from "../../middleware/shell.js";
+import type { ShellMiddlewareConfig } from "../../middleware/types.js";
 import {
   createApprovalGateMiddleware,
   type ApprovalGateConfig,
@@ -103,6 +105,8 @@ export interface SubAgentMiddlewareOptions {
   readonly toolScope?: ToolScopeConfig;
   /** Which MCP server each tool belongs to, for the tool spans. */
   readonly otelSpans?: Partial<OtelSpansConfig>;
+  /** This sub-agent's shell (`middleware/shell.ts`), over its own backend; absent when it has none (plan mode). */
+  readonly shell?: ShellMiddlewareConfig;
 }
 
 /**
@@ -110,7 +114,7 @@ export interface SubAgentMiddlewareOptions {
  *
  * Returns an ordered array mirroring the parent composition:
  * [path normalization] → loop detection → execution budget (periodic) →
- * tool intent → tool truncation → [tool scope] → [approval gate] → cost
+ * [shell] → tool intent → tool truncation → [tool scope] → [approval gate] → cost
  * cap view → error hints → OTel spans.
  * Normalization is outermost so everything downstream observes canonical
  * workspace-absolute paths (matching the parent). The gate sits before the
@@ -137,6 +141,7 @@ export function buildSubAgentMiddleware(
 
   // Sub-agent shell rows render in the same thread as the parent's and must
   // carry the same model-authored intent titles (issue #276).
+  if (options.shell) stack.push(createShellMiddleware(options.shell));
   stack.push(createToolIntentMiddleware());
 
   stack.push(createToolTruncationMiddleware(options.toolTruncation));

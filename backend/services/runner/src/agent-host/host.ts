@@ -194,6 +194,7 @@ function hostConfig(wire: HostConfigWire): Config {
     // The backstop is the turn runtime's, which runs in the runner, never
     // here: the host reads it nowhere, so it does not cross the wire.
     openOperationMaxMs: DEFAULT_OPEN_OPERATION_MAX_MS,
+    shellTimeoutMaxSeconds: wire.shellTimeoutMaxSeconds,
     agentResolveTimeoutMs: wire.agentResolveTimeoutMs,
     workspaceLockTimeoutMs: wire.workspaceLockTimeoutMs,
   };

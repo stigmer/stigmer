@@ -639,6 +639,7 @@ describe("loadArtifactStorageConfig", () => {
     primaryModel: "gpt-4.1",
     cursorStreamStallTimeoutMs: 180000,
     openOperationMaxMs: 3600000,
+    shellTimeoutMaxSeconds: 3300,
     agentResolveTimeoutMs: 120000,
     workspaceLockTimeoutMs: 900000,
   };

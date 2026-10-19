@@ -75,6 +75,9 @@ import { DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./shared/workspace/workspace-
 // The same for the open-operation backstop, whose owner is the turn runtime.
 export { DEFAULT_OPEN_OPERATION_MAX_MS } from "./harness/open-operations.js";
 import { DEFAULT_OPEN_OPERATION_MAX_MS } from "./harness/open-operations.js";
+// And the native shell's timeout ceiling, which the shell's bounds own.
+export { DEFAULT_SHELL_TIMEOUT_MAX_SECONDS } from "./shared/shell/limits.js";
+import { DEFAULT_SHELL_TIMEOUT_MAX_SECONDS } from "./shared/shell/limits.js";
 import { getRunnerSecret } from "./shared/runner-credential-store.js";
 import { loadTemporalConnectionConfig } from "@stigmer/temporal-codecs";
 import type { TemporalConnectionConfig } from "@stigmer/temporal-codecs";
@@ -184,6 +187,14 @@ export interface Config {
    * which runs in the runner's own process, never in the agent host.
    */
   readonly openOperationMaxMs: number;
+  /**
+   * The most the native shell's model may raise one command's timeout to
+   * (seconds, STIGMER_SHELL_TIMEOUT_MAX_SECONDS, the `shellTimeoutMaxSeconds`
+   * option); a larger request is clamped and the result says so
+   * (`activities/execute-deep-agent/shell-tool.ts`). Crosses to the agent
+   * host, where the shell runs.
+   */
+  readonly shellTimeoutMaxSeconds: number;
   /**
    * Bound (milliseconds) for Cursor Agent.create/Agent.resume. On expiry the
    * execution fails fast with an explicit transport diagnosis instead of
@@ -307,6 +318,10 @@ export function loadConfig(): Config {
     ? parseInt(process.env.STIGMER_OPEN_OPERATION_MAX_MS, 10)
     : DEFAULT_OPEN_OPERATION_MAX_MS;
 
+  const shellTimeoutMaxSeconds = process.env.STIGMER_SHELL_TIMEOUT_MAX_SECONDS
+    ? parseInt(process.env.STIGMER_SHELL_TIMEOUT_MAX_SECONDS, 10)
+    : DEFAULT_SHELL_TIMEOUT_MAX_SECONDS;
+
   const workspaceLockTimeoutMs = process.env.WORKSPACE_LOCK_TIMEOUT_MS
     ? parseInt(process.env.WORKSPACE_LOCK_TIMEOUT_MS, 10)
     : DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS;
@@ -337,6 +352,7 @@ export function loadConfig(): Config {
     primaryModel,
     cursorStreamStallTimeoutMs,
     openOperationMaxMs,
+    shellTimeoutMaxSeconds,
     agentResolveTimeoutMs,
     workspaceLockTimeoutMs,
   };

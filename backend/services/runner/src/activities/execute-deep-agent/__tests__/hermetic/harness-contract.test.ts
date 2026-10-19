@@ -71,7 +71,7 @@ vi.mock("../../../../client/stigmer-client.js", async () =>
 
 import { ExecutionDriver, describeHarnessContract } from "../../../../__test-utils__/harness-contract/contract.js";
 import { describeHarnessRuntimeContract } from "../../../../__test-utils__/harness-contract/runtime-contract.js";
-import { KIT_SUBAGENT_SLUG, scenario } from "../../../../__test-utils__/harness-contract/types.js";
+import { scenario } from "../../../../__test-utils__/harness-contract/types.js";
 import { ScriptedClock, createHermeticEnvironment } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { findToolCallRow } from "../../../../__test-utils__/proto-helpers.js";
@@ -82,11 +82,16 @@ import { ApprovalAction, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/
 /** The abort reason the native stream loop stops a graph run with (`turn-stream.ts`), as the orphan carries it. */
 const NATIVE_STOP_REASON = "stopped by the runtime";
 
-/** An orphan a native turn stopped mid-step leaves: the run's abort itself, or the aborted kit helper's failure. */
+/**
+ * The orphan a native turn stopped mid-step leaves: the run's abort itself,
+ * which the backstop and drain arms cause on purpose. The kit helper no
+ * longer fails when its parent is stopped: its work is a shell that stops
+ * with the turn, so its failure is not an orphan any arm leaves.
+ */
 function isNativeStopOrphan(reason: unknown): boolean {
   if (reason === NATIVE_STOP_REASON) return true;
   if (!(reason instanceof Error)) return false;
-  return reason.message === NATIVE_STOP_REASON || reason.message === `Subagent ${KIT_SUBAGENT_SLUG} failed`;
+  return reason.message === NATIVE_STOP_REASON;
 }
 
 const env = createHermeticEnvironment();
@@ -113,7 +118,6 @@ describe("ExecuteDeepAgent hermetic — the harness contract kit against the rea
     failureSurfaces: ["internal"],
     engineCancel: false,
     knownGaps: {
-      "streamed-output": "stigmer/stigmer#2415",
       "no-resent-task": "stigmer/stigmer#2417",
     },
     stopOrphans: isNativeStopOrphan,
