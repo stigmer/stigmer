@@ -102,6 +102,7 @@ export async function driveLongTurn(options: DriveOptions): Promise<LongTurnRepo
           stoppedByBudget,
           transcript: transcriptCheckOf(seqs),
           reply: turnOf(foldSession(log), runId)?.answer ?? "",
+          ...(options.counts === undefined ? {} : options.counts()),
         },
       };
       await writeLongTurnReport(out, report);
