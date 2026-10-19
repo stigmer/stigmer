@@ -13,13 +13,13 @@
  * the enhanced prompt on a first execution with every section populated
  * (three skills, two sub-agents — one with a model override —, two
  * workspace dirs plus one runner-internal dir the sanitizer drops,
- * referenced files, three input files with a rename and a download
- * URL, the vision disclosure, channel templates, all five standing sections,
+ * referenced files, two Files sent with the message and one shared earlier
+ * in the conversation, the vision disclosure, channel templates, all five standing sections,
  * the catchup); the enhanced prompt with no instructions (the built-in
  * assistant's words in this harness's framing, with the response rules);
  * the enhanced prompt in plan mode; a resumed agent's raw
  * follow-up; a resumed agent's prefixed follow-up (build-from-plan, this
- * turn's attachments, the catchup); the decisions-only HITL reinvocation on a
+ * turn's files, the catchup); the decisions-only HITL reinvocation on a
  * resumed agent (an APPROVE, an already-applied APPROVE, a SKIP and a REJECT);
  * and the HITL recovery on a fresh agent mid-HITL.
  *
@@ -40,6 +40,15 @@
  *  - 2026-10-10. Two new goldens for a turn's `append_system_prompt`, which
  *    ends whichever shape is sent: the enhanced prompt with no instructions
  *    and a resumed agent's raw follow-up. No existing golden moved.
+ *  - 2026-10-19. A turn's files are the conversation's Files, mounted under
+ *    `.stigmer/uploads/`: `<input_files>` lists this message's Files under
+ *    "Sent with this message:" and the conversation's others under "Shared
+ *    earlier in this conversation:", and a bullet carries no rename and no
+ *    download URL any more (the server names each File's place, and a File's
+ *    link never reaches the agent). The six goldens that carry files moved
+ *    (`enhanced.everything`, `enhanced.no-instructions`, `enhanced.append`,
+ *    `enhanced.plan-mode`, `resumed.prefixed`, `hitl.recovery`); the
+ *    build-from-plan directive names the plan's new path.
  *
  * Regenerate with `npx vitest run -u <this file>` only under such a ruling.
  */
@@ -49,7 +58,8 @@ import { create } from "@bufbuild/protobuf";
 import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { ChannelTemplate, MessagingChannel } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/message_io_pb";
 
-import type { ResolvedAttachment } from "../../../shared/attachment-resolver.js";
+import type { ListedFile } from "../../../shared/file-mount.js";
+import type { InputFileGroups } from "../../../shared/prompt-sections.js";
 import type { SkillMetadata } from "../../../shared/skill-resolver.js";
 import { buildPrompt, type BuildPromptInput, type PromptSubagent } from "../prompt-builder.js";
 import type { AgentResolution, AgentResolutionReason } from "../session-lifecycle.js";
@@ -93,26 +103,26 @@ const SUB_AGENTS: PromptSubagent[] = [
   subAgent("writer", "Drafts release notes from a change list"),
 ];
 
-const ATTACHMENTS: readonly ResolvedAttachment[] = [
-  { filename: "spec.pdf", relativePath: ".stigmer/inputs/spec.pdf", sizeBytes: 204800 },
-  { filename: "report (2).pdf", relativePath: ".stigmer/inputs/report (2).pdf", sizeBytes: 1024, renamedFrom: "report.pdf" },
-  {
-    filename: "diagram.png",
-    relativePath: ".stigmer/inputs/diagram.png",
-    sizeBytes: 4096,
-    downloadUrl: "https://storage.example.test/diagram.png?sig=abc",
-  },
-];
+const FILES: InputFileGroups = {
+  message: [
+    { filename: "diagram.png", relativePath: ".stigmer/uploads/diagram.png", sizeBytes: 4096 },
+    { filename: "spec.pdf", relativePath: ".stigmer/uploads/spec.pdf", sizeBytes: 204800 },
+  ],
+  conversation: [{ filename: "ledger.xlsx", relativePath: ".stigmer/uploads/q3/ledger.xlsx", sizeBytes: 1024 }],
+  references: [],
+};
 
-const PLAN_ATTACHMENT: ResolvedAttachment = {
+const NO_FILES: InputFileGroups = { message: [], conversation: [], references: [] };
+
+const PLAN_FILE: ListedFile = {
   filename: "release_aex1.plan.md",
-  relativePath: ".stigmer/inputs/release_aex1.plan.md",
+  relativePath: ".stigmer/uploads/release_aex1.plan.md",
   sizeBytes: 2048,
 };
 
 const VISION: BuildPromptInput["vision"] = {
   inlineFilenames: ["diagram.png"],
-  notViewable: [{ path: ".stigmer/inputs/huge.png", reason: "too_large" }],
+  notViewable: [{ path: ".stigmer/uploads/huge.png", reason: "too_large" }],
 };
 
 const CHANNEL_MESSAGING = [
@@ -165,7 +175,7 @@ function everything(reason: AgentResolutionReason, overrides: Partial<BuildPromp
     subAgents: SUB_AGENTS,
     workspaceDirs: ["/ws/app", "/ws/docs", "/Users/me/.stigmer/runtimes/cursor-runner/dist/main.js"],
     workspaceFileRefs: ["app/src/deploy.ts", "docs/RELEASES.md"],
-    attachments: ATTACHMENTS,
+    files: FILES,
     vision: VISION,
     pendingApprovals: [],
     contextBridge: "Earlier the user asked for a staging deploy; it succeeded.",
@@ -214,7 +224,7 @@ describe("Cursor prompt goldens", () => {
   it("a turn's appended system prompt ends a resumed agent's raw follow-up too", async () => {
     const prompt = buildPrompt(
       everything("resumed_successfully", {
-        attachments: [],
+        files: NO_FILES,
         vision: undefined,
         conversationCatchup: undefined,
         appendSystemPrompt: "Always answer in exactly one sentence.",
@@ -230,16 +240,16 @@ describe("Cursor prompt goldens", () => {
 
   it("a resumed agent's raw follow-up: the message alone", async () => {
     const prompt = buildPrompt(
-      everything("resumed_successfully", { attachments: [], vision: undefined, conversationCatchup: undefined }),
+      everything("resumed_successfully", { files: NO_FILES, vision: undefined, conversationCatchup: undefined }),
     );
     await expect(prompt).toMatchFileSnapshot("./goldens/prompt.resumed.raw.prompt.md");
   });
 
-  it("a resumed agent's prefixed follow-up: build-from-plan, this turn's attachments, the catchup", async () => {
+  it("a resumed agent's prefixed follow-up: build-from-plan, this turn's files, the catchup", async () => {
     const prompt = buildPrompt(
       everything("resumed_successfully", {
         buildFromPlan: true,
-        attachments: [...ATTACHMENTS, PLAN_ATTACHMENT],
+        files: { ...FILES, message: [...FILES.message, PLAN_FILE] },
       }),
     );
     await expect(prompt).toMatchFileSnapshot("./goldens/prompt.resumed.prefixed.prompt.md");

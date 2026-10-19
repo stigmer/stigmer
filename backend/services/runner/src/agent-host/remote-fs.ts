@@ -59,6 +59,12 @@ export function remoteAgentFs(host: FsHost): AgentFs {
         offset += chunk.length;
       } while (offset < bytes.length);
     },
+    appendFile: async (path, data) => {
+      const bytes = Buffer.from(data);
+      for (let offset = 0; offset < bytes.length; offset += FS_CHUNK_BYTES) {
+        await call({ op: "write", path, data: bytes.subarray(offset, offset + FS_CHUNK_BYTES).toString("base64"), append: true, mode: null });
+      }
+    },
     mkdir: async (path, options) => {
       await call({ op: "mkdir", path, recursive: options?.recursive ?? false, mode: options?.mode ?? null });
     },

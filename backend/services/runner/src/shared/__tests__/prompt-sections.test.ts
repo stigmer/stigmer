@@ -1,6 +1,6 @@
 /**
  * The shared prompt glue (`shared/prompt-sections.ts`): the standing order
- * and the input-files lines. What each harness renders AROUND these is pinned whole by
+ * and the input-files lines, grouped and in order. What each harness renders AROUND these is pinned whole by
  * the two builders' prompt goldens (`execute-deep-agent/__tests__/
  * prompt-goldens.test.ts`, `execute-cursor/__tests__/prompt-goldens.test.ts`);
  * this file pins the glue's own contract, harness-free.
@@ -8,13 +8,14 @@
 
 import { describe, it, expect } from "vitest";
 import {
+  hasInputFiles,
   inputFileLines,
   standingContextSections,
   visionPromptInfoOf,
+  type InputFileGroups,
   type StandingSectionKind,
 } from "../prompt-sections.js";
-import { DOWNLOAD_URL_DISCLOSURE } from "../attachment-download-urls.js";
-import type { ResolvedAttachment } from "../attachment-resolver.js";
+import type { ListedFile } from "../file-mount.js";
 import { formatDeclaredPreferencesText } from "../declared-preferences.js";
 
 describe("standingContextSections", () => {
@@ -55,43 +56,59 @@ describe("standingContextSections", () => {
 });
 
 describe("inputFileLines", () => {
-  const file = (relativePath: string, extra: Partial<ResolvedAttachment> = {}): ResolvedAttachment => ({
+  const file = (relativePath: string): ListedFile => ({
     filename: relativePath.split("/").pop()!,
     relativePath,
     sizeBytes: 1024,
-    ...extra,
   });
+  const NONE: InputFileGroups = { message: [], conversation: [], references: [] };
 
-  it("one bullet per file with the size, the rename disclosure and the download URL", () => {
+  it("lists this message's Files first, then the conversation's other Files, then the eval references, each under its label", () => {
     const { entries } = inputFileLines(
-      [
-        file(".stigmer/inputs/spec.pdf"),
-        file(".stigmer/inputs/report-2.pdf", { renamedFrom: "report.pdf" }),
-        file(".stigmer/inputs/diagram.png", { downloadUrl: "https://r2.example/d?sig=1" }),
-      ],
+      {
+        references: [file(".stigmer/inputs/fixtures/a.json")],
+        conversation: [file(".stigmer/uploads/q3/ledger.xlsx")],
+        message: [file(".stigmer/uploads/photo.png"), file(".stigmer/uploads/spec.pdf")],
+      },
       undefined,
     );
     expect(entries).toEqual([
-      "- `.stigmer/inputs/spec.pdf` (1024 bytes)",
-      "- `.stigmer/inputs/report-2.pdf` (1024 bytes) (renamed from duplicate 'report.pdf')",
-      "- `.stigmer/inputs/diagram.png` (1024 bytes) — download URL: https://r2.example/d?sig=1",
+      "Sent with this message:",
+      "- `.stigmer/uploads/photo.png` (1024 bytes)",
+      "- `.stigmer/uploads/spec.pdf` (1024 bytes)",
+      "Shared earlier in this conversation:",
+      "- `.stigmer/uploads/q3/ledger.xlsx` (1024 bytes)",
+      "Reference files:",
+      "- `.stigmer/inputs/fixtures/a.json` (1024 bytes)",
     ]);
   });
 
-  it("renders the URL hand-off line only when a listed file carries a URL", () => {
-    const withUrl = [file("a.pdf", { downloadUrl: "https://r2.example/a" })];
-    expect(inputFileLines(withUrl, undefined).urlHandoff).toBe(DOWNLOAD_URL_DISCLOSURE);
-    expect(inputFileLines([file("a.pdf")], undefined).urlHandoff).toBeUndefined();
+  it("leaves out a group that has no file, label and all", () => {
+    expect(inputFileLines({ ...NONE, conversation: [file(".stigmer/uploads/a.txt")] }, undefined).entries).toEqual([
+      "Shared earlier in this conversation:",
+      "- `.stigmer/uploads/a.txt` (1024 bytes)",
+    ]);
   });
 
   it("renders the vision lines only when the turn carries vision facts", () => {
-    expect(inputFileLines([file("a.png")], undefined).vision).toEqual([]);
+    const groups = { ...NONE, message: [file(".stigmer/uploads/a.png")] };
+    expect(inputFileLines(groups, undefined).vision).toEqual([]);
     const { vision } = inputFileLines(
-      [file("a.png")],
-      { inlineFilenames: ["a.png"], notViewable: [{ path: ".stigmer/inputs/big.png", reason: "too_large" }] },
+      groups,
+      { inlineFilenames: ["a.png"], notViewable: [{ path: ".stigmer/uploads/big.png", reason: "too_large" }] },
     );
     expect(vision.some((l) => l.includes("a.png"))).toBe(true);
     expect(vision.some((l) => l.includes("big.png"))).toBe(true);
+  });
+});
+
+describe("hasInputFiles", () => {
+  it("is true when any group has a file, and false when none does", () => {
+    const one = { filename: "a", relativePath: ".stigmer/uploads/a", sizeBytes: 1 };
+    expect(hasInputFiles({ message: [], conversation: [], references: [] })).toBe(false);
+    expect(hasInputFiles({ message: [one], conversation: [], references: [] })).toBe(true);
+    expect(hasInputFiles({ message: [], conversation: [one], references: [] })).toBe(true);
+    expect(hasInputFiles({ message: [], conversation: [], references: [one] })).toBe(true);
   });
 });
 
@@ -103,11 +120,11 @@ describe("visionPromptInfoOf", () => {
   it("names the inline images in send order and carries the degraded entries", () => {
     const info = visionPromptInfoOf({
       visionImages: [{ filename: "b.png" }, { filename: "a.jpg" }],
-      visionNotViewable: [{ path: ".stigmer/inputs/big.png", reason: "too_large" }],
+      visionNotViewable: [{ path: ".stigmer/uploads/big.png", reason: "too_large" }],
     });
     expect(info).toEqual({
       inlineFilenames: ["b.png", "a.jpg"],
-      notViewable: [{ path: ".stigmer/inputs/big.png", reason: "too_large" }],
+      notViewable: [{ path: ".stigmer/uploads/big.png", reason: "too_large" }],
     });
   });
 });

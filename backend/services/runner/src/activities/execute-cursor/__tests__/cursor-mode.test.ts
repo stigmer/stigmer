@@ -2,12 +2,11 @@ import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { CursorMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import {
-  WorkspaceEntrySchema,
-  WorkspaceSourceSchema,
-  GitRepoSourceSchema,
-  LocalPathSourceSchema,
-} from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
-import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+  GitRepositoryResourceSchema,
+  LocalPathResourceSchema,
+  SessionResourceSchema,
+  type SessionResource,
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { determineCursorMode, isCloudMode } from "../cursor-mode.js";
 
 /**
@@ -20,36 +19,26 @@ import { determineCursorMode, isCloudMode } from "../cursor-mode.js";
  * re-armed by an environment flag or a git-only workspace.
  */
 
-function gitRepoEntry(url: string, branch = "main"): WorkspaceEntry {
-  return create(WorkspaceEntrySchema, {
+function gitRepoEntry(url: string, branch = "main"): SessionResource {
+  return create(SessionResourceSchema, {
     name: "repo",
-    source: create(WorkspaceSourceSchema, {
-      source: {
-        case: "gitRepo",
-        value: create(GitRepoSourceSchema, { url, branch }),
-      },
-    }),
+    resource: { case: "gitRepository", value: create(GitRepositoryResourceSchema, { url, branch }) },
   });
 }
 
-function localPathEntry(path: string): WorkspaceEntry {
-  return create(WorkspaceEntrySchema, {
+function localPathEntry(path: string): SessionResource {
+  return create(SessionResourceSchema, {
     name: "local",
-    source: create(WorkspaceSourceSchema, {
-      source: {
-        case: "localPath",
-        value: create(LocalPathSourceSchema, { path }),
-      },
-    }),
+    resource: { case: "localPath", value: create(LocalPathResourceSchema, { path }) },
   });
 }
 
 describe("determineCursorMode", () => {
-  it("returns LOCAL when no workspace entries (flag off)", () => {
+  it("returns LOCAL when the session has no repository or folder (flag off)", () => {
     expect(determineCursorMode([], false)).toBe(CursorMode.LOCAL);
   });
 
-  it("returns LOCAL when no workspace entries (flag on)", () => {
+  it("returns LOCAL when the session has no repository or folder (flag on)", () => {
     expect(determineCursorMode([], true)).toBe(CursorMode.LOCAL);
   });
 

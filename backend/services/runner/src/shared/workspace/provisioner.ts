@@ -1,14 +1,19 @@
 /**
- * Workspace provisioner — dispatches on WorkspaceSource proto type to
+ * Workspace provisioner — dispatches on a session resource's type to
  * populate a workspace directory.
  *
- * Supports three source variants:
- * - git_repo: clone a repository
+ * Supports three resource variants:
+ * - git_repository: clone a repository
  * - local_path: use an existing host directory
- * - empty: create an empty workspace
+ * - none set: create an empty workspace
  *
- * Multi-entry sessions provision each WorkspaceEntry into its own
- * subdirectory of the workspace root.
+ * A file resource is not part of the workspace: the File mount places it
+ * under `.stigmer/uploads/` (`../file-mount.ts`), so
+ * {@link workspaceResourcesOf} leaves it out before anything here counts
+ * or provisions the resources.
+ *
+ * Multi-resource sessions provision each repository or folder into its own
+ * subdirectory of the workspace root, named by the resource's `name`.
  *
  * Scope: the local backend only; there is no remote (sandbox-hosted)
  * backend.
@@ -20,34 +25,44 @@ import { provisionLocalPath } from "./sources/local-path.js";
 import { provisionGit } from "./sources/git.js";
 import { repositoryTokenFor, type RepositoryToken } from "../run-values.js";
 
-export interface WorkspaceEntry {
-  name: string;
-  source?: WorkspaceSource;
+/**
+ * A session resource as provisioning reads it: structurally the contract's
+ * `SessionResource`, narrowed to the fields read here so a caller (or a
+ * test) passes the message or a plain object alike.
+ */
+export interface WorkspaceResource {
+  readonly name: string;
+  readonly resource:
+    | { readonly case: "gitRepository"; readonly value: GitRepositorySource }
+    | { readonly case: "localPath"; readonly value: LocalPathSource }
+    | { readonly case: "file"; readonly value: unknown }
+    | { readonly case: undefined; readonly value?: undefined };
 }
 
-export interface WorkspaceSource {
-  source: { case: "gitRepo"; value: GitRepoSource }
-    | { case: "localPath"; value: LocalPathSource }
-    | { case: undefined; value?: undefined };
-}
-
-export interface GitRepoSource {
-  url: string;
-  branch?: string;
+export interface GitRepositorySource {
+  readonly url: string;
+  readonly branch?: string;
+  readonly commit?: string;
 }
 
 export interface LocalPathSource {
-  path: string;
+  readonly path: string;
+}
+
+/** The resources that make up the workspace: every one but a File. */
+export function workspaceResourcesOf<R extends WorkspaceResource>(resources: readonly R[]): R[] {
+  return resources.filter((resource) => resource.resource.case !== "file");
 }
 
 export class WorkspaceProvisioner {
   /**
-   * Provisions one entry. A git entry's token is its own repository value,
-   * matched by the entry's name and URL together; no other run value
-   * reaches provisioning.
+   * Provisions one repository or folder. A repository's token is its own
+   * repository value, matched by the resource's name and URL together; no
+   * other run value reaches provisioning. A resource with no type set
+   * gets an empty workspace.
    */
   async provision(
-    entry: WorkspaceEntry,
+    entry: WorkspaceResource,
     backend: WorkspaceBackend,
     repositories: readonly RepositoryToken[],
     isLocalMode: boolean,
@@ -56,17 +71,13 @@ export class WorkspaceProvisioner {
       writeBack?: boolean;
     },
   ): Promise<ProvisionResult> {
-    const workspaceSource = entry.source;
-    if (!workspaceSource || !workspaceSource.source?.case) {
-      return provisionEmpty(backend);
-    }
-
-    switch (workspaceSource.source.case) {
-      case "gitRepo": {
-        const gitSource = workspaceSource.source.value;
+    switch (entry.resource.case) {
+      case "gitRepository": {
+        const gitSource = entry.resource.value;
         return provisionGit({
           url: gitSource.url,
           branch: gitSource.branch,
+          commit: gitSource.commit,
           backend,
           token: repositoryTokenFor(repositories, entry.name, gitSource.url),
           isLocalMode,
@@ -76,7 +87,7 @@ export class WorkspaceProvisioner {
       }
 
       case "localPath": {
-        const localSource = workspaceSource.source.value;
+        const localSource = entry.resource.value;
         return provisionLocalPath({
           path: localSource.path,
           isLocalMode,
@@ -91,12 +102,13 @@ export class WorkspaceProvisioner {
   }
 
   async provisionAll(
-    entries: WorkspaceEntry[],
+    resources: readonly WorkspaceResource[],
     backend: WorkspaceBackend,
     repositories: readonly RepositoryToken[],
     isLocalMode: boolean,
     writeBack = false,
   ): Promise<ProvisionResult[]> {
+    const entries = workspaceResourcesOf(resources);
     if (entries.length === 0) return [];
 
     const useSubdirs = entries.length > 1;

@@ -33,7 +33,7 @@ import { RunConfigSchema, type RunConfig } from "@stigmer/apis/ai/stigmer/agenti
 import { ApprovalMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionSchema, type Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
-import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { AgentSchema, type Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { AgentSpecSchema, type HookSource } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -69,8 +69,8 @@ export interface ExecutionRecordOptions {
   readonly message: string;
   /** The agent's instructions (system prompt body). */
   readonly instructions?: string;
-  /** Session workspace entries (a `local_path` entry gives the turn a substrate to capture into). */
-  readonly workspaceEntries?: WorkspaceEntry[];
+  /** The session's resources (a `local_path` folder gives the turn a substrate to capture into). */
+  readonly resources?: SessionResource[];
   /** `SessionSpec.file_review`: the turn's edits are offered for review after it. Off when omitted, as on the wire. */
   readonly fileReview?: boolean;
   /** The model the turn runs with (`status.run_config.model_name`); the pinned fixture model when omitted. */
@@ -169,7 +169,7 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
       agentRef: builtIn
         ? undefined
         : create(ApiResourceReferenceSchema, { kind: ApiResourceKind.agent, org: ids.org, slug: ids.agentName }),
-      workspaceEntries: options.workspaceEntries ?? [],
+      resources: options.resources ?? [],
       fileReview: options.fileReview ?? false,
     }),
     status: {

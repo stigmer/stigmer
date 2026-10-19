@@ -37,14 +37,13 @@ export interface ArtifactStorage {
   /**
    * A presigned, time-limited, single-object URL a remote service can fetch
    * the object at — offered only by a backend that has one to give (proxy).
-   * Absent on the local backend: the attachment hand-off
-   * (attachment-download-urls.ts) then lists the path alone.
+   * Absent on the local backend, which reads the object off its own disk.
    */
   presignedDownloadUrl?(key: string): Promise<string>;
   /**
    * Read an artifact's raw bytes by key — the inverse of {@link upload} and the
    * single read path for all runner read-back (CAS reconcile, exact-apply,
-   * claimcheck decode, attachment injection).
+   * claimcheck decode).
    *
    * Returns the exact stored bytes, or throws a descriptive, key-scoped `Error`
    * when the object is missing or the transport fails. Per-backend semantics:
@@ -115,7 +114,7 @@ export class LocalArtifactStorage implements ArtifactStorage {
 
   /**
    * Map a storage key to an absolute path and guarantee it stays inside
-   * `basePath`. Storage keys embed a caller-influenced attachment filename, and
+   * `basePath`. Storage keys embed caller-influenced filenames, and
    * `join` *cleans* `..` rather than rejecting it — so without this guard a
    * crafted key escapes the store and reads or writes arbitrary paths. Mirrors
    * the Go `LocalStorage` containment check so both implementations of the one
@@ -458,7 +457,7 @@ async function isLocalPathWritable(basePath: string): Promise<boolean> {
  * An absent store is a first-class, already-supported state: capture
  * degrades to the deny-gate (via {@link deriveCaptureMode}'s `hasArtifactStorage`
  * argument), tool-output offload is disabled (the aggregate size guard still
- * applies), and attachment / plan-artifact publishing surface a clear error.
+ * applies), and plan-artifact publishing surfaces a clear error.
  * This is the fail-safe: without a store, nothing secret can be persisted.
  *
  * NOTE: this resolver is for the capture/offload path only. Claimcheck (Temporal
@@ -484,7 +483,7 @@ export async function resolveUsableArtifactStorage(
   if (cfg.type === "local" && !(await isLocalPathWritable(cfg.localPath))) {
     console.warn(
       `[artifact-storage] local path not writable — file capture degrades to the ` +
-      `deny-gate, tool-output offload is disabled, and storage-backed attachments ` +
+      `deny-gate, tool-output offload is disabled, and storage-backed reads ` +
       `will fail: execution=${ctx.executionId}, path=${cfg.localPath}. ` +
       `Set LOCAL_ARTIFACT_PATH to a writable directory that equals the stigmer-server's ` +
       `ARTIFACT_LOCAL_BASE_PATH (default '~/.stigmer/data/artifacts').`,

@@ -90,7 +90,7 @@ import type { HookFormatName } from "../shared/hooks/hook-set.js";
 import type { HookServerName } from "../shared/hooks/tool-view.js";
 import type { McpToolListing } from "../shared/mcp-tool-listing.js";
 import type { HookGroup } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
-import type { ResolvedAttachment } from "../shared/attachment-resolver.js";
+import type { ListedFile, MessageFile, MountedFile } from "../shared/file-mount.js";
 import type { NotViewableEntry, VisionImage } from "../shared/attachment-vision.js";
 import type { EffectiveServiceTier } from "../shared/service-tier.js";
 import type { EffectiveThinkingMode } from "../shared/thinking-mode.js";
@@ -330,12 +330,22 @@ export interface TurnHooks {
   readonly serverNames: ReadonlyMap<string, HookServerName>;
 }
 
-/** The turn's explicit inputs (phase 5b), resolved into the workspace with the vision facts derived once. */
-export interface TurnAttachments {
-  readonly results: readonly ResolvedAttachment[];
-  /** The images the model sees inline, in attachment order. */
+/**
+ * The turn's files (phase 5b): the conversation's Files as the File mount
+ * placed them (`shared/file-mount.ts`), split into this message's and the
+ * rest, an eval case's reference files, and the vision facts derived once
+ * from this message's images.
+ */
+export interface TurnFiles {
+  /** The Files this turn's message carried (`status.message_files`), in its order. */
+  readonly message: readonly MessageFile[];
+  /** The conversation's other Files, in its resources' order. */
+  readonly conversation: readonly MountedFile[];
+  /** An eval case's reference folders' files, under `.stigmer/inputs/`; empty on every other run. */
+  readonly references: readonly ListedFile[];
+  /** The message's images the model sees inline, in the message's order. */
   readonly visionImages: readonly VisionImage[];
-  /** The image-shaped attachments that degraded to path-only, disclosed in the prompt. */
+  /** The message's images that degraded to path-only, disclosed in the prompt. */
   readonly visionNotViewable: readonly NotViewableEntry[];
 }
 
@@ -433,7 +443,7 @@ export interface TurnInput extends NormalizedActivityInput {
   readonly hooks: TurnHooks;
   /** The saved agents the turn's agent lists, each resolved as an agent of its own, in its order. */
   readonly subagents: readonly TurnSubagent[];
-  readonly attachments: TurnAttachments;
+  readonly files: TurnFiles;
   /** Approved whole-file writes the runtime applied itself this turn (exact-apply); the harness issues no grant for them. */
   readonly appliedToolCallIds: ReadonlySet<string>;
   readonly model: TurnModelPreferences;

@@ -8,7 +8,7 @@
  * execution, session and blueprint are fetched, the workspace is provisioned
  * and locked, the MCP servers are resolved with the approval default's MCP
  * half and the agent's tool scope, the skills
- * are mounted per owner, the attachments are resolved, the transcript is
+ * are mounted per owner, the conversation's Files are mounted, the transcript is
  * seeded. What remains is this engine's own reading of that record: the
  * checkpointer; the deepagents backend and the CAS observer, rooted at the
  * tree the runtime locked; the MCP connection that turns resolved servers
@@ -81,6 +81,7 @@ import { visionPromptInfoOf } from "../../shared/prompt-sections.js";
 import { findApprovedPlanPath } from "../../shared/implement-plan-prompt.js";
 import type { RecalledMemoriesContent } from "../../shared/recalled-memories.js";
 import { toLangChainImageBlocks } from "../../shared/attachment-vision.js";
+import { workspaceResourcesOf } from "../../shared/workspace/provisioner.js";
 import { backstopRecursionLimit, resolveToolRoundLimit } from "../../shared/tool-rounds.js";
 import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
 import { skillContentReadCheck } from "../../shared/skill-mount.js";
@@ -183,7 +184,7 @@ export type DeepAgentGraphInput =
  * turn's resolved settings name none — the runtime is the one reader of
  * `status.runConfig.modelName`, and the Cursor adapter reads the same
  * value), or the registry's default for `"default"`.
- * The same reading the runtime's attachment phase made for the vision budget,
+ * The same reading the runtime's File phase made for the vision budget,
  * so the model that sees the images is the model that runs. (Until #1096 this
  * read the spec field beside the runtime's resolved copy.)
  */
@@ -358,7 +359,7 @@ export function refusalsOf(
  * Nothing here reads the turn's message or payload: the system prompt is the
  * session's (`prompt-builder.ts` says why), so every mounted skill is
  * described and the turn's files ride its message (`composeTurnMessage`).
- * The approved plan's path is the one fact taken from the attachments, and
+ * The approved plan's path is the one fact taken from the message's files, and
  * only on a build-from-plan turn, where the mode already changes the prompt.
  */
 export function composeSystemPrompt(input: TurnInput, recalledMemories: RecalledMemoriesContent | undefined): string {
@@ -377,7 +378,7 @@ export function composeSystemPrompt(input: TurnInput, recalledMemories: Recalled
     interactionMode: spec.interactionMode,
     buildFromPlan: spec.buildFromPlan,
     ...(spec.buildFromPlan
-      ? { approvedPlanPath: findApprovedPlanPath(input.attachments.results.map((f) => f.relativePath)) }
+      ? { approvedPlanPath: findApprovedPlanPath(input.files.message.map((f) => f.relativePath)) }
       : {}),
     contextBridge: input.standing.contextBridge,
     senderIdentity: input.standing.senderIdentity,
@@ -400,8 +401,8 @@ export function composeTurnMessage(input: TurnInput): string {
   return composeUserMessage({
     message: spec.message,
     conversationCatchup: input.standing.conversationCatchup,
-    inputFiles: input.attachments.results,
-    vision: visionPromptInfoOf(input.attachments),
+    inputFiles: input.files,
+    vision: visionPromptInfoOf(input.files),
     workspaceFileRefs: spec.workspaceFileRefs ?? [],
   });
 }
@@ -691,7 +692,7 @@ export async function buildEngine(
     harness: "native",
     mcp_server_count: declaredServerCount(input.mcp.servers),
     skill_count: blueprint.mergedSkillRefs.length,
-    workspace_entry_count: input.session.spec?.workspaceEntries?.length ?? 0,
+    workspace_entry_count: workspaceResourcesOf(input.session.spec?.resources ?? []).length,
   }, sink.setupTiming);
   sink.recordActivity();
 
@@ -823,7 +824,7 @@ export async function composeGraphInput(input: TurnInput, engine: DeepAgentEngin
   if (engine.hasStructuredOutput) {
     userMessage += `\n\n---\nIMPORTANT: When your analysis is complete, provide your findings as structured output matching the required schema. The system will capture your structured response automatically.`;
   }
-  const { visionImages } = input.attachments;
+  const { visionImages } = input.files;
   const history = input.resumedHistory !== undefined && threadIsEmpty(graphState.values) ? resumedMessages(input.resumedHistory) : [];
   return {
     kind: "message",

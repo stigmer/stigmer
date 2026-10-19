@@ -20,7 +20,7 @@
  * the user reviews, whoever wrote it — the engine, a sub-agent, a recovery
  * retry, a stdio MCP server the engine spawned. So the runtime pins the
  * baseline as its LAST act before `adapter.runTurn` (after its own writes
- * into the tree — the owed undos, the skill and attachment mounts — so they
+ * into the tree — the owed undos, the skill and File mounts — so they
  * cancel out of the diff) and captures ONCE after `runTurn` returns, over
  * the whole turn. Anything written into the tree after the pin is the
  * turn's change. An adapter needs neither the baseline nor the change-set

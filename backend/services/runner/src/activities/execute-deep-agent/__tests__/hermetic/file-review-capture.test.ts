@@ -142,7 +142,7 @@ describe("ExecuteDeepAgent hermetic — file-review capture", () => {
     initGitWorkspace(repo, { [FILE]: BEFORE });
     const record = deepAgentExecutionRecord({
       message: "Append a second line to notes.md.",
-      workspaceEntries: [localPathEntry("notes", repo)],
+      resources: [localPathEntry("notes", repo)],
       fileReview: true,
     });
     const scenario = beginDeepAgentScenario({
@@ -268,7 +268,7 @@ describe("ExecuteDeepAgent hermetic — file-review capture", () => {
     initGitWorkspace(repo, { [FILE]: BEFORE });
     const record = deepAgentExecutionRecord({
       message: "Append a second line to notes.md.",
-      workspaceEntries: [localPathEntry("notes", repo)],
+      resources: [localPathEntry("notes", repo)],
     });
     const scenario = beginDeepAgentScenario({
       env,

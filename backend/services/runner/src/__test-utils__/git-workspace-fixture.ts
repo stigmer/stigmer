@@ -1,5 +1,5 @@
 /**
- * A hermetic git work tree and the session workspace entry that mounts it —
+ * A hermetic git work tree and the session resource that mounts it —
  * the substrate every file-review (capture-mode) scenario stands on, whatever
  * harness runs the turn.
  *
@@ -16,11 +16,10 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import {
-  LocalPathSourceSchema,
-  WorkspaceEntrySchema,
-  WorkspaceSourceSchema,
-  type WorkspaceEntry,
-} from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+  LocalPathResourceSchema,
+  SessionResourceSchema,
+  type SessionResource,
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 
 /** A git work tree with the given files committed once, on `main`. */
 export function initGitWorkspace(root: string, files: Record<string, string>): void {
@@ -47,12 +46,10 @@ export function initGitWorkspace(root: string, files: Record<string, string>): v
   git(["commit", "-q", "-m", "initial"]);
 }
 
-/** A session workspace entry mounting an absolute local path (local mode only). */
-export function localPathEntry(name: string, path: string): WorkspaceEntry {
-  return create(WorkspaceEntrySchema, {
+/** A session resource mounting an absolute local path (local mode only). */
+export function localPathEntry(name: string, path: string): SessionResource {
+  return create(SessionResourceSchema, {
     name,
-    source: create(WorkspaceSourceSchema, {
-      source: { case: "localPath", value: create(LocalPathSourceSchema, { path }) },
-    }),
+    resource: { case: "localPath", value: create(LocalPathResourceSchema, { path }) },
   });
 }

@@ -1,18 +1,20 @@
 /**
- * Vision delivery policy for execution attachments — the single owner of every
- * rule that decides whether an attached image rides the model input inline.
+ * Vision delivery policy for the images a message carries — the single owner
+ * of every rule that decides whether an attached image rides the model input
+ * inline.
  *
- * Both harnesses (Cursor and deep-agent) materialize attachments to disk and
- * hand the model a file path; that story is unchanged and this module never
- * touches it. What this module adds is the *inline* story: image bytes,
+ * Every File of the conversation is mounted on disk and listed to the model
+ * by its path (`file-mount.ts`); that story is unchanged and this module
+ * never touches it. What this module adds is the *inline* story: image bytes,
  * bounded by a budget, delivered as vision payload alongside the user's turn
- * message. The harnesses call {@link VisionBudget.offer} as they materialize
- * each attachment and adapt the accepted images to their transport shape via
+ * message. The runtime's File phase offers each image the message carried to
+ * {@link VisionBudget.offer} (`file-mount.ts` `offerMountedImage`), and the
+ * harnesses adapt the accepted images to their transport shape via
  * {@link toCursorImages} / {@link toLangChainImageBlocks}. No eligibility or
  * budget rule lives anywhere else.
  *
- * Trust model: `Attachment.content_type` is a client-supplied hint that the
- * server never verifies against the bytes, so the magic-byte sniff here is
+ * Trust model: a File's `mime_type` is the uploader's declaration, never
+ * verified against the bytes, so the magic-byte sniff here is
  * authoritative. A declared image whose bytes are not a recognizable image
  * degrades to the file-pointer story instead of shipping a mislabeled payload.
  *
@@ -174,22 +176,6 @@ export function sniffImageMime(bytes: Buffer): VisionMimeType | undefined {
   return undefined;
 }
 
-/** Extensions treated as image-shaped when no content type was declared. */
-const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp", "gif"]);
-
-/**
- * Cheap pre-filter for callers that have NOT read the bytes yet (the Cursor
- * resolver's local-path fast branch copies files without reading them; this
- * decides whether the extra read is worth doing). Callers that already hold
- * the bytes should just call {@link VisionBudget.offer} — the sniff decides.
- */
-export function isVisionCandidate(declaredType: string, filename: string): boolean {
-  if (declaredType.toLowerCase().startsWith("image/")) return true;
-  const dot = filename.lastIndexOf(".");
-  if (dot < 0) return false;
-  return IMAGE_EXTENSIONS.has(filename.slice(dot + 1).toLowerCase());
-}
-
 // ---------------------------------------------------------------------------
 // The budget
 // ---------------------------------------------------------------------------
@@ -304,9 +290,9 @@ export class VisionBudget {
 
   /**
    * True when the model is explicitly flagged as unable to see images, so no
-   * candidate can ever be accepted. Callers on a no-read path (the Cursor
-   * local-file fast branch) check this BEFORE stat/size logic — a blind
-   * model's oversized image must report {@link offerBlind}'s honest reason,
+   * candidate can ever be accepted. Callers on a no-read path (the File
+   * phase, which holds only a mounted image's size) check this BEFORE size
+   * logic — a blind model's oversized image must report {@link offerBlind}'s honest reason,
    * never `too_large`'s "resend smaller" advice — then record the outcome
    * via {@link offerBlind}, mirroring the exceedsImageCap/offerOversized
    * pattern.

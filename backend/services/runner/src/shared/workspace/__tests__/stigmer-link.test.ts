@@ -20,7 +20,7 @@ import { LocalWorkspaceBackend } from "../local-backend.js";
 
 /**
  * The `.stigmer` symlink is the bridge that makes platform-mounted content
- * (approved plan, skills, attachment inputs) readable at `.stigmer/…` by
+ * (approved plan, skills, the conversation's Files) readable at `.stigmer/…` by
  * whatever reads from the workspace: the Cursor SDK and shell commands on
  * both harnesses. The lifecycle tests pin the ownership contract (ensure
  * moves a real entry out of the workspace and never deletes one, refuses a
@@ -233,27 +233,27 @@ describe("stigmer-link", () => {
       }
     }
 
-    it("an approved plan mounted under .stigmer/inputs is readable from the workspace once the link exists", async () => {
+    it("an approved plan mounted under .stigmer/uploads is readable from the workspace once the link exists", async () => {
       const planFileName = "notes_ab12cd34.plan.md";
       const planText = "# The Approved Plan\n\nStep 1: do the thing.\n";
 
-      // Write path: the attachment lands in the platform dir at the mount
-      // path the implement-plan directive tells the model to read — here
-      // through the platform-routing backend, the same physical write
-      // `shared/attachment-resolver.ts` performs (it ensures the link itself,
-      // which is why the link's absence is staged by hand below).
+      // Write path: the File lands in the platform dir at the mount path
+      // the implement-plan directive tells the model to read — here through
+      // the platform-routing backend, the same physical place
+      // `shared/file-mount.ts` writes (it ensures the link itself, which is
+      // why the link's absence is staged by hand below).
       const workspaceBackend = new LocalWorkspaceBackend(workspaceDir, platformDir);
-      await workspaceBackend.writeFile(`.stigmer/inputs/${planFileName}`, planText);
+      await workspaceBackend.writeFile(`.stigmer/uploads/${planFileName}`, planText);
 
       // Without the symlink nothing in the workspace can see the plan — the
       // bug this module fixes. Pinned so the link stays load-bearing in
       // reviewers' and agents' mental models.
-      const before = await agentRead(`.stigmer/inputs/${planFileName}`);
+      const before = await agentRead(`.stigmer/uploads/${planFileName}`);
       expect(before.content ?? "").not.toContain("The Approved Plan");
 
       await ensureStigmerSymlink(workspaceDir, platformDir);
 
-      const after = await agentRead(`.stigmer/inputs/${planFileName}`);
+      const after = await agentRead(`.stigmer/uploads/${planFileName}`);
       expect(after.error).toBeUndefined();
       expect(after.content).toContain("The Approved Plan");
     });

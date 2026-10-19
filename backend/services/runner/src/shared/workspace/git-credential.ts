@@ -34,11 +34,12 @@
  * (`core.alternateRefsCommand`, a URL-scoped proxy or TLS setting that
  * outranks any generic pin, an include, a credential helper, a filter), and
  * a list of the dangerous ones is never complete, so the list kept is of
- * the safe ones. `origin` must hold exactly one URL, the workspace entry's,
+ * the safe ones. `origin` must hold exactly one URL, the repository resource's,
  * so the token never pushes or fetches where the agent pointed it.
  *
- * The network commands are the five the workspace runs: the clone's fetch
- * and `remote set-head --auto` (sources/git.ts), and write-back's
+ * The network commands are the ones the workspace runs: the clone's fetch,
+ * `remote set-head --auto` and the fetch of a named commit no branch holds
+ * (sources/git.ts), and write-back's
  * `ls-remote`, `fetch` and `push` (writeback-coordinator.ts). Every other
  * git command runs without the token.
  *

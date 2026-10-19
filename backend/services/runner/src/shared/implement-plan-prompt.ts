@@ -11,8 +11,9 @@
  * The directive has two variants, chosen by whether the approved plan document
  * actually materialized in the workspace:
  * - Attached (the normal case): the client uploaded the approved plan text
- *   (edited or not) and attached it, mounted under `.stigmer/inputs/` as the
- *   plan's own file (`<slug>_<id>.plan.md`). The directive points the model at
+ *   (edited or not) as a File and sent it with the message, mounted under
+ *   `.stigmer/uploads/` as the plan's own file (`<slug>_<id>.plan.md`). The
+ *   directive points the model at
  *   that file and names it authoritative —
  *   the user may have refined the document after the plan turn, so the
  *   conversation's version can be stale.
@@ -52,18 +53,18 @@ const TRACK_PROGRESS_INSTRUCTION = [
 ].join("\n");
 
 /**
- * Find the approved plan document among the workspace paths the harness
- * injected for this execution's attachments. Detection keys on the plan
+ * Find the approved plan document among the workspace paths of the Files
+ * this turn's message carried — never the conversation's earlier Files,
+ * where an older plan may still sit. Detection keys on the plan
  * filename convention ({@link isPlanArtifactName} — the legacy `plan.md` or any
  * `*.plan.md`), the same convention the UI uses to detect the plan artifact.
- * Returns `undefined` when no plan attachment landed (upload failed, or the
- * attachment itself failed to inject), which selects the conversation-only
- * directive variant.
+ * Returns `undefined` when the message carried no plan (the upload failed),
+ * which selects the conversation-only directive variant.
  */
 export function findApprovedPlanPath(
-  attachmentPaths: readonly string[],
+  messageFilePaths: readonly string[],
 ): string | undefined {
-  return attachmentPaths.find((p) => {
+  return messageFilePaths.find((p) => {
     const name = p.split("/").pop();
     return name !== undefined && isPlanArtifactName(name);
   });

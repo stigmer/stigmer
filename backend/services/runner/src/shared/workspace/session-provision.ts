@@ -5,14 +5,17 @@
  * adapters (the native orchestrator's twin, `provisionWorkspace`, retired
  * with it in #1096, which also carried its one difference). Agents run LOCAL
  * (cloud is disabled — see execute-cursor/cursor-mode.ts), so the runner
- * must clone git-repo workspace entries itself and mount local-path entries
- * before the agent runs. Cloud agents previously cloned git repos
- * server-side; that path is no longer used.
+ * must clone the session's git repositories itself and mount its local
+ * folders before the agent runs. Cloud agents previously cloned git repos
+ * server-side; that path is no longer used. The session's Files are
+ * resources too, but not the workspace's: the File mount places them
+ * (`../file-mount.ts`), and provisioning reads only the rest
+ * (`provisioner.ts` `workspaceResourcesOf`).
  */
 
 import type { Config } from "../../config.js";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
-import { WorkspaceProvisioner } from "./provisioner.js";
+import { WorkspaceProvisioner, workspaceResourcesOf } from "./provisioner.js";
 import type { ProvisionResult, WorkspaceBackend } from "./types.js";
 import { LocalWorkspaceBackend } from "./local-backend.js";
 import { ensurePlatformDir } from "./platform-dir.js";
@@ -34,9 +37,9 @@ export interface SessionWorkspaceProvision {
   /** The directories the agent should operate in (never empty). */
   readonly workspaceDirs: string[];
   /**
-   * Per-entry provision outcomes — carries the git metadata (repo URL, base
-   * branch, credential state) the write-back coordinator needs. Empty for a
-   * session with no workspace entries.
+   * Per-resource provision outcomes — carries the git metadata (repo URL,
+   * base branch, credential state) the write-back coordinator needs. Empty
+   * for a session with no repository or folder.
    */
   readonly provisionResults: ProvisionResult[];
   /**
@@ -47,14 +50,14 @@ export interface SessionWorkspaceProvision {
 }
 
 /**
- * Provision the session's workspace entries for a LOCAL agent.
+ * Provision the session's repositories and folders for a LOCAL agent.
  *
- * Clones git-repo entries (each with its own repository token from the
+ * Clones git repositories (each with its own repository token from the
  * run's values, handed to the clone's network commands alone) and mounts
- * local-path entries, then returns the
+ * local folders, then returns the
  * directories the agent should operate in — along with the provision results
  * and backend the git write-back coordinator needs. A session with no
- * workspace entries gets its own empty per-session directory (see
+ * repository or folder gets its own empty per-session directory (see
  * session-root.ts) — never the shared root, which would leak other sessions'
  * files into it.
  *
@@ -67,7 +70,7 @@ export async function provisionSessionWorkspace(
   repositories: readonly RepositoryToken[],
   sessionId: string,
 ): Promise<SessionWorkspaceProvision> {
-  const entries = session.spec?.workspaceEntries ?? [];
+  const entries = workspaceResourcesOf(session.spec?.resources ?? []);
   const platformDir = await ensurePlatformDir(sessionId);
 
   if (entries.length === 0) {
@@ -85,7 +88,7 @@ export async function provisionSessionWorkspace(
 
   const provisioner = new WorkspaceProvisioner();
   const results = await provisioner.provisionAll(
-    entries.map((entry) => ({ name: entry.name, source: entry.source })),
+    entries,
     backend,
     repositories,
     config.mode === "local",

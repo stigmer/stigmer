@@ -7,7 +7,7 @@
  * runner makes carries `x-stigmer-execution-id` from this store (the Cursor
  * fetch and HTTP/2 interceptors stamp it; `rejection-capture.ts` correlates
  * unhandled rejections by it), and a large share of those requests are made
- * OUTSIDE any engine stretch — attachment downloads and status offload
+ * OUTSIDE any engine stretch — File downloads and status offload
  * through the artifact proxy, the memory selection, the structured-output
  * extraction and the plan-artifact publish in the epilogue, and in a cloud
  * sandbox the control-plane writes themselves. Under `maxConcurrentActivities

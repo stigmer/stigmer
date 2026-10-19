@@ -17,7 +17,7 @@
  * micromatch against the raw tool-call path (dot:true) after the
  * path-normalization middleware has canonicalized it (relative → "/"-rooted;
  * see middleware/path-normalization.ts). The legitimate platform-dir reads
- * (skills, attachments, the approved plan) keep working exactly as before:
+ * (skills, Files, the approved plan) keep working exactly as before:
  * they are addressed through the `{workspace}/.stigmer` symlink
  * (shared/workspace/stigmer-link.ts), an in-root path string in either
  * dialect.

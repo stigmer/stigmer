@@ -21,7 +21,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
-import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import { GitRepositoryResourceSchema, SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import {
@@ -382,10 +382,10 @@ env >> ${loot}
     execFileSync("git", ["config", "core.hooksPath", ownHooks], { cwd: workspace, stdio: "pipe" });
     writeFileSync(join(workspace, "change.txt"), "agent work\n");
     vi.stubGlobal("fetch", vi.fn(async () => new Response("[]", { status: 200 })));
-    const entry = {
+    const entry = create(SessionResourceSchema, {
       name: "app",
-      source: { source: { case: "gitRepo", value: { url: REPO_URL, writeBackMode: GitWriteBackMode.GIT_WRITE_BACK_BRANCH_AND_PR } } },
-    } as unknown as WorkspaceEntry;
+      resource: { case: "gitRepository", value: create(GitRepositoryResourceSchema, { url: REPO_URL, writeBackMode: GitWriteBackMode.GIT_WRITE_BACK_BRANCH_AND_PR }) },
+    });
 
     await new WriteBackCoordinator({
       writeBacks: new TranscriptBuilder("exec-hook", create(TurnRowsSchema), create(RunStatusSchema, {})),
@@ -393,7 +393,7 @@ env >> ${loot}
       sessionId: "ses-hook",
       repositories: [{ name: "app", url: REPO_URL, token: TOKEN }],
       provisionResults: [{ ...provisioned, entryName: "app" }],
-      workspaceEntries: [entry],
+      resources: [entry],
       workspaceBackend: backend,
     }).finalize();
 
@@ -449,10 +449,10 @@ env >> ${loot}
     const provisioned = await provisionGit({ url: REPO_URL, branch: "main", backend, token: TOKEN, isLocalMode: false, writeBack: true });
     writeFileSync(join(workspace, "change.txt"), "agent work\n");
     vi.stubGlobal("fetch", vi.fn(async () => new Response("[]", { status: 200 })));
-    const entry = {
+    const entry = create(SessionResourceSchema, {
       name: "app",
-      source: { source: { case: "gitRepo", value: { url: REPO_URL, writeBackMode: GitWriteBackMode.GIT_WRITE_BACK_BRANCH_AND_PR } } },
-    } as unknown as WorkspaceEntry;
+      resource: { case: "gitRepository", value: create(GitRepositoryResourceSchema, { url: REPO_URL, writeBackMode: GitWriteBackMode.GIT_WRITE_BACK_BRANCH_AND_PR }) },
+    });
 
     await new WriteBackCoordinator({
       writeBacks: new TranscriptBuilder("exec-cred", create(TurnRowsSchema), create(RunStatusSchema, {})),
@@ -460,7 +460,7 @@ env >> ${loot}
       sessionId: "ses-cred",
       repositories: [{ name: "app", url: REPO_URL, token: TOKEN }],
       provisionResults: [{ ...provisioned, entryName: "app" }],
-      workspaceEntries: [entry],
+      resources: [entry],
       workspaceBackend: backend,
     }).finalize();
 

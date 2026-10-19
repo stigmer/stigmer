@@ -3,7 +3,7 @@
  *
  * The contract's input is the runtime's entire resolved record (`harness/
  * types.ts`): the execution and session protos, the blueprint, the
- * run's values, the workspace, the tool surface, the attachments, the model
+ * run's values, the workspace, the tool surface, the turn's files, the model
  * preferences, the standing context. A test that drives an adapter WITHOUT
  * the runtime — the harness contract kit's `ExecutionDriver`, a unit test of
  * one adapter step — needs a record that type-checks and is inert: empty
@@ -148,7 +148,7 @@ export function turnInputFixture(overrides: TurnInputFixtureOverrides = {}): Tur
     skills: overrides.skills ?? { root: [], bySubAgent: new Map() },
     hooks: overrides.hooks ?? { sources: [], serverNames: new Map() },
     subagents: overrides.subagents ?? [],
-    attachments: overrides.attachments ?? { results: [], visionImages: [], visionNotViewable: [] },
+    files: overrides.files ?? { message: [], conversation: [], references: [], visionImages: [], visionNotViewable: [] },
     appliedToolCallIds: overrides.appliedToolCallIds ?? new Set(),
     model: overrides.model ?? { requested: "default", serviceTier: ServiceTier.STANDARD, thinkingMode: ThinkingMode.DISABLED },
     structuredOutputSchema: overrides.structuredOutputSchema,

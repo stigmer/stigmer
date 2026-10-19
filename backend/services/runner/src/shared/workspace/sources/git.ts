@@ -12,6 +12,12 @@
  * - Token is never logged; sanitized in error messages
  * - Reuse scrubs what earlier runners stored: a token in the origin URL, a
  *   repo-local `.git-credentials` file and the `store` helper naming it
+ * - Commit: a commit the resource names is checked out on the branch after
+ *   the fetch, fetched by id first when no branch holds it; the clone then
+ *   sits on the branch at that commit, so write-back still has a base
+ *   branch to open its pull request against. A reused clone is left where
+ *   the agent's work put it: the commit is where a conversation starts, not
+ *   where each turn is reset to.
  * - Multi-entry mode: clones into target_subdir
  * - Every value interpolated into a git command is shell-quoted (shellQuote)
  */
@@ -28,6 +34,8 @@ import { maskToken, runNetworkGit } from "../git-credential.js";
 export interface GitProvisionOptions {
   url: string;
   branch?: string;
+  /** The commit to check out after the clone; empty or absent for the branch's tip. */
+  commit?: string;
   backend: WorkspaceBackend;
   /** The repository's token from the run's values; absent for a public clone. */
   token?: string;
@@ -44,7 +52,7 @@ const GITHUB_HOST = "github.com";
 const LEGACY_CREDENTIAL_FILE = ".git-credentials";
 
 export async function provisionGit(options: GitProvisionOptions): Promise<ProvisionResult> {
-  const { url, branch, backend, targetSubdir, writeBack } = options;
+  const { url, branch, commit, backend, targetSubdir, writeBack } = options;
 
   const cloneDir = targetSubdir
     ? join(backend.rootDir, targetSubdir)
@@ -60,7 +68,7 @@ export async function provisionGit(options: GitProvisionOptions): Promise<Provis
   }
 
   try {
-    await cloneInPlace(backend, cloneDir, stripToken(url), branch, token);
+    await cloneInPlace(backend, cloneDir, stripToken(url), { branch, commit }, token);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     throw new WorkspaceProvisionError(
@@ -161,32 +169,41 @@ async function scrubStoredCredentials(backend: WorkspaceBackend, cloneDir: strin
  * ships a `lost+found` directory at its root. We therefore reproduce clone
  * semantics in place: init the repo, add the (clean) origin remote, fetch
  * all branches, and check out the requested branch (or the remote's default
- * branch when none is requested). The result is identical to a clone — a
- * working tree on a tracking branch — but tolerant of pre-existing content.
- * The token reaches the two commands that talk to the network, and only them.
+ * branch when none is requested); then, when a commit is named, put the
+ * branch at that commit (see the module header). The result is identical
+ * to a clone — a working tree on a tracking branch — but tolerant of
+ * pre-existing content. The token reaches the commands that talk to the
+ * network, and only them.
  */
 async function cloneInPlace(
   backend: WorkspaceBackend,
   cloneDir: string,
   cloneUrl: string,
-  branch: string | undefined,
+  target: { readonly branch: string | undefined; readonly commit: string | undefined },
   token: string,
 ): Promise<void> {
   await backend.execute(`git init -q ${shellQuote(cloneDir)}`);
 
   const exec = (cmd: string) => backend.execute(cmd, { cwd: cloneDir });
+  const network = (cmd: string) => runNetworkGit(backend, cmd, { cwd: cloneDir, remoteUrl: cloneUrl, token });
   await exec(`git remote add origin ${shellQuote(cloneUrl)}`);
-  await runNetworkGit(backend, "git fetch --quiet origin", { cwd: cloneDir, remoteUrl: cloneUrl, token });
+  await network("git fetch --quiet origin");
 
-  const targetBranch = branch && branch.length > 0
-    ? branch
-    : await resolveDefaultBranch(backend, cloneDir, cloneUrl, token);
+  const targetBranch = target.branch && target.branch.length > 0
+    ? target.branch
+    : await resolveDefaultBranch(backend, cloneDir, network);
 
   // No target branch means the remote has no branches (empty repository).
   // Leave the initialized repo as-is, matching `git clone` of an empty repo.
   if (!targetBranch) return;
 
   await exec(`git checkout ${shellQuote(targetBranch)}`);
+  if (!target.commit) return;
+
+  const commit = target.commit;
+  const present = await exec(`git cat-file -e ${shellQuote(`${commit}^{commit}`)}`).then(() => true, () => false);
+  if (!present) await network(`git fetch --quiet origin ${shellQuote(commit)}`);
+  await exec(`git reset --quiet --hard ${shellQuote(commit)}`);
 }
 
 /**
@@ -197,11 +214,10 @@ async function cloneInPlace(
 async function resolveDefaultBranch(
   backend: WorkspaceBackend,
   cloneDir: string,
-  cloneUrl: string,
-  token: string,
+  network: (cmd: string) => Promise<string>,
 ): Promise<string> {
   try {
-    await runNetworkGit(backend, "git remote set-head origin --auto", { cwd: cloneDir, remoteUrl: cloneUrl, token });
+    await network("git remote set-head origin --auto");
     const ref = (await backend.execute("git symbolic-ref --short refs/remotes/origin/HEAD", { cwd: cloneDir })).trim();
     return ref.replace(/^origin\//, "");
   } catch {
@@ -236,7 +252,7 @@ async function extractGitMetadata(
 
 /**
  * Working-tree entries the agent should never see as untracked changes:
- * - `.stigmer` — platform-managed namespace (skills, inputs, attachments)
+ * - `.stigmer` — platform-managed namespace (skills, uploads, inputs)
  * - `lost+found` — present at the root of a freshly provisioned ext4
  *   PersistentVolume, which is where single-entry sessions clone in place
  */

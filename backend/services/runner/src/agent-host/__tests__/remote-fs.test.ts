@@ -6,7 +6,9 @@
  * Pinned:
  *  - every operation the runtime uses round-trips with the local
  *    implementation's results: bytes exact, a body larger than one message
- *    crossing in ranges, links, listings (recursive too), stats;
+ *    crossing in ranges, links, listings (recursive too), stats; an append
+ *    adds to the end and creates the file, a body larger than one message
+ *    included;
  *  - a filesystem error comes back with its errno `code`, `syscall` and
  *    `path`, so a caller's `code === "ENOENT"` still holds;
  *  - a process's output comes back as bytes, standard input reaches it, an
@@ -59,6 +61,16 @@ function hostedFs() {
 }
 
 describe("the agent's file operations, performed by the host", () => {
+  it("appends to the end of a file, creating it, a body larger than one message included", async () => {
+    const { fs, close } = hostedFs();
+    const dir = mkdtempSync(join(tmpdir(), "remote-fs-"));
+    const big = Buffer.alloc(FS_CHUNK_BYTES + 7, 3);
+    await fs.appendFile(join(dir, "grown.bin"), Buffer.from("head:"));
+    await fs.appendFile(join(dir, "grown.bin"), big);
+    expect(readFileSync(join(dir, "grown.bin")).equals(Buffer.concat([Buffer.from("head:"), big]))).toBe(true);
+    close();
+  });
+
   it("round-trips every operation the runtime uses, a body larger than one message included", async () => {
     const { fs, close } = hostedFs();
     const dir = mkdtempSync(join(tmpdir(), "remote-fs-"));

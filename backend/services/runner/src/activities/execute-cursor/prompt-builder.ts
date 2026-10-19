@@ -40,9 +40,10 @@ import {
 import type { SenderIdentity } from "../../shared/sender-identity.js";
 import type { DeclaredPreferencesContent } from "../../shared/declared-preferences.js";
 import type { RecalledMemoriesContent } from "../../shared/recalled-memories.js";
-import type { ResolvedAttachment } from "../../shared/attachment-resolver.js";
 import {
+  hasInputFiles,
   inputFileLines,
+  type InputFileGroups,
   standingContextSections,
   type StandingSectionKind,
   type VisionPromptInfo,
@@ -71,13 +72,11 @@ const RUNNER_PATH_MARKERS = [
   "/dist/main.js",
 ] as const;
 
-// The prompt renders the attachment resolver's own result type — a local
-// structural twin (`AttachmentPromptEntry`) lived here until #1096 and the
-// projection into it was the one reason `turn-setup.ts` had a
-// `prepareAttachmentPrompt` step; the twin dropped the size, so this
-// harness's input-files line never carried it. One type, one truth: the
-// runtime's `ResolvedAttachment`; the vision facts are the shared
-// `VisionPromptInfo` (prompt-sections.ts) for the same reason.
+// The prompt renders the runtime's own record of the turn's files
+// (`InputFileGroups`, the `TurnInput.files` shape) — a local structural
+// twin lived here until #1096 and dropped the size. One type, one truth;
+// the vision facts are the shared `VisionPromptInfo` (prompt-sections.ts)
+// for the same reason.
 
 export type { VisionPromptInfo };
 
@@ -108,8 +107,8 @@ export interface EnhancedPromptOptions {
   subAgents: readonly PromptSubagent[];
   workspaceDirs: string[];
   workspaceFileRefs: string[];
-  /** This turn's resolved input files, as the runtime's attachment phase returns them. */
-  attachments: readonly ResolvedAttachment[];
+  /** This turn's files, as the runtime's File phase returns them. */
+  files: InputFileGroups;
   /** Inline/degraded image facts for the input-files section. */
   vision?: VisionPromptInfo;
   interactionMode?: InteractionMode;
@@ -191,7 +190,7 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
 
   const implementPlan = formatImplementPlanSection(
     options.buildFromPlan,
-    options.attachments,
+    options.files.message,
   );
   if (implementPlan) {
     sections.push(implementPlan);
@@ -230,8 +229,8 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
     sections.push(formatWorkspaceContext(safeDirs));
   }
 
-  if (options.attachments.length > 0) {
-    sections.push(formatInputFiles(options.attachments, options.vision));
+  if (hasInputFiles(options.files)) {
+    sections.push(formatInputFiles(options.files, options.vision));
   }
 
   if (options.workspaceFileRefs.length > 0) {
@@ -572,15 +571,14 @@ export function formatWorkspaceContext(dirs: string[]): string {
  * the twin this builder rendered from had dropped it.
  */
 export function formatInputFiles(
-  attachments: readonly ResolvedAttachment[],
+  files: InputFileGroups,
   vision?: VisionPromptInfo,
 ): string {
-  const lines = inputFileLines(attachments, vision);
+  const lines = inputFileLines(files, vision);
   return [
     "<input_files>",
     "The following files have been provided as inputs. Read them when relevant to the task:",
     ...lines.entries,
-    ...(lines.urlHandoff !== undefined ? [lines.urlHandoff] : []),
     ...lines.vision,
     "</input_files>",
   ].join("\n");
@@ -622,7 +620,7 @@ export function formatInteractionModePrefix(
  * execution, or `undefined` otherwise. The directive body is the shared
  * {@link buildImplementPlanDirective} (same words as the native harness)
  * wrapped in this harness's XML-tag framing; the variant is picked by whether
- * the approved plan document is among the resolved attachment paths.
+ * the approved plan document is among the files this message carried.
  *
  * Like the interaction-mode prefix, this rides BOTH prompt paths — the fresh
  * enhanced prompt and a resumed turn's prefix — because build_from_plan is
@@ -630,14 +628,14 @@ export function formatInteractionModePrefix(
  */
 export function formatImplementPlanSection(
   buildFromPlan: boolean | undefined,
-  attachments: readonly ResolvedAttachment[],
+  messageFiles: readonly { readonly relativePath: string }[],
 ): string | undefined {
   if (!buildFromPlan) {
     return undefined;
   }
 
   const directive = buildImplementPlanDirective(
-    findApprovedPlanPath(attachments.map((a) => a.relativePath)),
+    findApprovedPlanPath(messageFiles.map((f) => f.relativePath)),
   );
   return ["<implement_plan>", directive, "</implement_plan>"].join("\n");
 }
@@ -777,10 +775,10 @@ export interface BuildPromptInput {
   subAgents: readonly PromptSubagent[];
   workspaceDirs: string[];
   workspaceFileRefs: string[];
-  /** This turn's resolved input files for the `<input_files>` section, as the runtime's attachment phase returns them. */
-  attachments: readonly ResolvedAttachment[];
+  /** This turn's files for the `<input_files>` section, as the runtime's File phase returns them. */
+  files: InputFileGroups;
   /**
-   * Vision facts for the input-files section: which attachments the
+   * Vision facts for the input-files section: which of the message's images the
    * model sees inline and which degraded to path-only. PER-TURN like the
    * catchup — it rides both the enhanced prompt and a resumed turn's prefix.
    */
@@ -972,7 +970,7 @@ function promptShape(input: BuildPromptInput): string {
     subAgents,
     workspaceDirs,
     workspaceFileRefs,
-    attachments,
+    files,
     interactionMode,
     buildFromPlan,
     conversationCatchup,
@@ -998,7 +996,7 @@ function promptShape(input: BuildPromptInput): string {
           subAgents,
           workspaceDirs,
           workspaceFileRefs,
-          attachments,
+          files,
           vision: input.vision,
           interactionMode,
           buildFromPlan,
@@ -1032,9 +1030,9 @@ function promptShape(input: BuildPromptInput): string {
   // session's first turn: the interaction-mode prefix (a follow-up can switch
   // Agent→Plan mid-session, and for Cursor the prompt is the only plan-mode
   // enforcement), the implement-plan directive (the build turn is usually a
-  // follow-up on a resumed agent), THIS turn's attachments (spec.attachments
-  // is per-execution — a file sent on a follow-up turn materializes for this
-  // turn and would otherwise never be announced at all), and the conversation
+  // follow-up on a resumed agent), THIS turn's files (a file sent on a
+  // follow-up turn is mounted for this turn and would otherwise never be
+  // announced at all), and the conversation
   // catchup (handback ALWAYS lands mid-session on a resumed agent — this
   // prefix is the property the metadata lane structurally cannot deliver).
   // Catchup last: it is context, and context sits closest to
@@ -1043,9 +1041,9 @@ function promptShape(input: BuildPromptInput): string {
   if (!promptCarriesStandingContext(resolution.reason)) {
     const prefixes = [
       formatInteractionModePrefix(interactionMode),
-      formatImplementPlanSection(buildFromPlan, attachments),
-      attachments.length > 0
-        ? formatInputFiles(attachments, input.vision)
+      formatImplementPlanSection(buildFromPlan, files.message),
+      hasInputFiles(files)
+        ? formatInputFiles(files, input.vision)
         : undefined,
       conversationCatchup !== undefined
         ? formatConversationCatchupSection(conversationCatchup)
@@ -1067,7 +1065,7 @@ function promptShape(input: BuildPromptInput): string {
     subAgents,
     workspaceDirs,
     workspaceFileRefs,
-    attachments,
+    files,
     vision: input.vision,
     interactionMode,
     buildFromPlan,

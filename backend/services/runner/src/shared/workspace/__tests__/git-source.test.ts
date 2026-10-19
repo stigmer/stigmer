@@ -1,5 +1,7 @@
 /**
- * Pins the git workspace source: the clone-in-place flow, default-branch
+ * Pins the git workspace source: the clone-in-place flow (a named commit
+ * checked out on its branch, fetched by id when no branch holds it, a
+ * reused clone never reset), default-branch
  * resolution, idempotent reuse, and how a repository's token reaches git —
  * through the environment of the two network commands only, for a
  * github.com URL only, never in a remote URL, argv or a file — plus the
@@ -16,7 +18,8 @@ import { WorkspaceProvisionError } from "../types.js";
  * Command-routing mock for `backend.execute`.
  *
  * The git source clones in place via a sequence of git commands
- * (init → remote add → fetch → [set-head → symbolic-ref] → checkout) followed
+ * (init → remote add → fetch → [set-head → symbolic-ref] → checkout
+ * → [cat-file → fetch → reset]) followed
  * by metadata extraction and optional credential setup. Rather than couple each
  * test to the exact call order, we route responses by command content and let
  * tests inspect `mock.calls` for the assertions they care about.
@@ -127,6 +130,39 @@ describe("provisionGit", () => {
 
     const cmds = calls(backend);
     expect(cmds.some((c) => c.includes("git checkout"))).toBe(false);
+  });
+
+  // ── A named commit ────────────────────────────────────────────────
+
+  it("puts the branch at a named commit a fetched branch holds, fetching nothing more", async () => {
+    const backend = mockWorkspaceBackend({ execute: routingExecute() });
+    await provisionGit(makeOptions({ backend, branch: "main", commit: "c0ffee" }));
+
+    const cmds = calls(backend);
+    expect(cmds.filter((c) => c.startsWith("git fetch"))).toEqual(["git fetch --quiet origin"]);
+    expect(cmds).toContain("git reset --quiet --hard 'c0ffee'");
+    expect(cmds.indexOf("git checkout 'main'")).toBeLessThan(cmds.indexOf("git reset --quiet --hard 'c0ffee'"));
+  });
+
+  it("fetches a named commit by id when no branch holds it, then checks it out", async () => {
+    const backend = mockWorkspaceBackend({
+      execute: routingExecute({ fail: (cmd) => (cmd.startsWith("git cat-file") ? new Error("missing") : undefined) }),
+    });
+    await provisionGit(makeOptions({ backend, branch: "main", commit: "c0ffee", token: "ghp_commit" }));
+
+    const runsWithEnv = (backend.execute as ReturnType<typeof vi.fn>).mock.calls
+      .filter((call) => (call[1] as { env?: unknown } | undefined)?.env !== undefined)
+      .map((call) => call[0] as string);
+    expect(runsWithEnv).toEqual(["git fetch --quiet origin", "git fetch --quiet origin 'c0ffee'"]);
+    const cmds = calls(backend);
+    expect(cmds.indexOf("git fetch --quiet origin 'c0ffee'")).toBeLessThan(cmds.indexOf("git reset --quiet --hard 'c0ffee'"));
+  });
+
+  it("leaves a reused clone where the agent's work put it: no named commit is checked out again", async () => {
+    const backend = mockWorkspaceBackend({ execute: routingExecute(), exists: vi.fn(async () => true) });
+    await provisionGit(makeOptions({ backend, branch: "main", commit: "c0ffee" }));
+
+    expect(calls(backend).some((c) => c.includes("reset") || c.includes("git fetch"))).toBe(false);
   });
 
   // ── Idempotent re-clone ───────────────────────────────────────────

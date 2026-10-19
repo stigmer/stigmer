@@ -75,10 +75,8 @@ import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/api
 import { ToolCallOutputRefSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
 
 import type { ApprovalAsk } from "../harness/approval-answers.js";
-import type { TurnInput, TurnHookSource, TurnSubagent } from "../harness/types.js";
+import type { TurnFiles, TurnInput, TurnHookSource, TurnSubagent } from "../harness/types.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
-import type { ResolvedAttachment } from "../shared/attachment-resolver.js";
-import type { NotViewableEntry, VisionImage } from "../shared/attachment-vision.js";
 import type { CloudRepo, PluginSubagent } from "../shared/blueprint-resolver.js";
 import type { CasTouchedSnapshot } from "../shared/filereview/cas-touched.js";
 import type { HookFormatName } from "../shared/hooks/hook-set.js";
@@ -120,9 +118,6 @@ export function decodeRunEvents(wire: readonly string[]): SessionEvent[] {
 }
 
 // ─── The turn input ────────────────────────────────────────────────────────
-
-/** A `ResolvedAttachment` whose vision image is an index into `visionImages` when it is one of them. */
-type WireAttachment = Omit<ResolvedAttachment, "vision"> & { readonly vision?: number | VisionImage };
 
 /** A hook source as it crosses: its plugin's facts without the verify, which the host rebuilds. */
 interface WireHookSource {
@@ -219,11 +214,8 @@ export interface WireTurnInput {
     readonly toolScope: ToolScopeWire;
     readonly hooks: readonly WireHookSource[];
   })[];
-  readonly attachments: {
-    readonly results: readonly WireAttachment[];
-    readonly visionImages: readonly VisionImage[];
-    readonly visionNotViewable: readonly NotViewableEntry[];
-  };
+  /** Plain data already: each image's bytes cross once, in `visionImages`. */
+  readonly files: TurnFiles;
   readonly appliedToolCallIds: readonly string[];
   readonly model: {
     readonly requested: string;
@@ -247,8 +239,7 @@ export interface WireTurnInput {
 }
 
 export function encodeTurnInput(input: TurnInput): WireTurnInput {
-  const { blueprint, workspace, mcp, hooks, attachments, standing } = input;
-  const visionIndex = new Map(attachments.visionImages.map((image, i) => [image, i] as const));
+  const { blueprint, workspace, mcp, hooks, standing } = input;
   return {
     executionId: input.executionId,
     threadId: input.threadId,
@@ -326,15 +317,7 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
       toolScope: subagent.toolScope.toWire(),
       hooks: subagent.hooks.map(encodeHookSource),
     })),
-    attachments: {
-      results: attachments.results.map((r): WireAttachment => {
-        if (r.vision === undefined) return r;
-        const index = visionIndex.get(r.vision);
-        return { ...r, vision: index ?? r.vision };
-      }),
-      visionImages: attachments.visionImages,
-      visionNotViewable: attachments.visionNotViewable,
-    },
+    files: input.files,
     appliedToolCallIds: [...input.appliedToolCallIds],
     model: { requested: input.model.requested, serviceTier: input.model.serviceTier, thinkingMode: input.model.thinkingMode },
     structuredOutputSchema: input.structuredOutputSchema ?? null,
@@ -365,7 +348,6 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
   session.spec = sessionSpec;
   const agentSpec: AgentSpec | undefined = wire.blueprint.agent ? decodeMessage(AgentSpecSchema, wire.blueprint.agent.spec) : undefined;
   const leasedServers = new Set(wire.mcp.leases.servers);
-  const visionImages = wire.attachments.visionImages;
 
   return {
     executionId: wire.executionId,
@@ -449,15 +431,7 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
       toolScope: ToolScope.fromWire(subagent.toolScope),
       hooks: subagent.hooks.map((source) => decodeHookSource(source, services)),
     })),
-    attachments: {
-      results: wire.attachments.results.map((r): ResolvedAttachment => {
-        if (r.vision === undefined) return r as ResolvedAttachment;
-        const vision = typeof r.vision === "number" ? visionImages[r.vision] : r.vision;
-        return { ...r, vision };
-      }),
-      visionImages,
-      visionNotViewable: wire.attachments.visionNotViewable,
-    },
+    files: wire.files,
     appliedToolCallIds: new Set(wire.appliedToolCallIds),
     model: wire.model,
     structuredOutputSchema: wire.structuredOutputSchema ?? undefined,

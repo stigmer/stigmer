@@ -15,8 +15,8 @@
  *    with the same answers, its hook sources with a verify that calls back;
  *  - the behaviour members are the host's stand-ins: the memory selection,
  *    the artifact upload and a plugin's verify call back, never run locally;
- *  - a vision image crosses once even when an attachment and the vision
- *    list share it;
+ *  - the turn's files cross whole: this message's, the conversation's, an
+ *    eval case's references and the message's vision facts;
  *  - a eval-run try's recorded conversation crosses whole, and a turn
  *    without one crosses none;
  *  - the adapter-owned projection replaces the runtime's fields IN PLACE
@@ -103,6 +103,17 @@ const RUN_EVENT = create(SessionEventSchema, {
 function crossed(input: ReturnType<typeof turnInputFixture>, services = noServices()) {
   return decodeTurnInput(JSON.parse(JSON.stringify(encodeTurnInput(input))), services);
 }
+
+
+/** A conversation's File as the mount placed it. */
+const NOTES = {
+  fileId: "file_1",
+  mountPath: "notes.txt",
+  filename: "notes.txt",
+  mimeType: "text/plain",
+  sizeBytes: 4,
+  relativePath: ".stigmer/uploads/notes.txt",
+};
 
 describe("the turn input across the pipe", () => {
   it("keeps every protobuf message, Map and Set, and rebuilds the runtime's aliases", () => {
@@ -194,9 +205,9 @@ describe("the turn input across the pipe", () => {
     expect(crossed(turnInputFixture()).mcp.listing).toBeUndefined();
   });
 
-  it("carries every list the runtime resolved: plugins, skill references, channels and their templates, plugin subagents and saved subagents, plain attachments", () => {
+  it("carries every list the runtime resolved: plugins, skill references, channels and their templates, plugin subagents and saved subagents, the conversation's Files", () => {
     const input = turnInputFixture({
-      attachments: { results: [{ filename: "notes.txt", relativePath: ".stigmer/inputs/notes.txt", sizeBytes: 4 }], visionImages: [], visionNotViewable: [] },
+      files: { message: [], conversation: [NOTES], references: [], visionImages: [], visionNotViewable: [] },
     });
     const mcp = {
       ...input.mcp,
@@ -244,7 +255,7 @@ describe("the turn input across the pipe", () => {
     ]);
     expect(decoded.blueprint.mergedSkillRefs.map((r) => r.slug)).toEqual(["review"]);
     expect(decoded.mcp.channelMessaging.map((c) => [c.channel.channel, c.templates.map((t) => t.name)])).toEqual([["chn_1", ["welcome"]]]);
-    expect(decoded.attachments.results).toEqual([{ filename: "notes.txt", relativePath: ".stigmer/inputs/notes.txt", sizeBytes: 4 }]);
+    expect(decoded.files.conversation).toEqual([NOTES]);
   });
 
   it("rebuilds the tool scope with the same answers", () => {
@@ -345,16 +356,20 @@ describe("the turn input across the pipe", () => {
     expect(crossed(turnInputFixture()).artifactStorage).toBeUndefined();
   });
 
-  it("sends a vision image once when an attachment and the vision list share it", () => {
+  it("carries the turn's files whole, each image's bytes once", () => {
     const image = { filename: "a.png", mimeType: "image/png" as const, base64: "iVBORw0KGgo=", byteSize: 8 };
-    const input = turnInputFixture({
-      attachments: { results: [{ filename: "a.png", relativePath: ".stigmer/inputs/a.png", sizeBytes: 8, vision: image }], visionImages: [image], visionNotViewable: [] },
-    });
+    const photo = { ...NOTES, fileId: "file_2", mountPath: "a.png", filename: "a.png", mimeType: "image/png", relativePath: ".stigmer/uploads/a.png", kind: "image" as const };
+    const files = {
+      message: [photo],
+      conversation: [NOTES],
+      references: [{ filename: "case.json", relativePath: ".stigmer/inputs/fixtures/case.json", sizeBytes: 2 }],
+      visionImages: [image],
+      visionNotViewable: [{ path: ".stigmer/uploads/big.png", reason: "too_large" as const }],
+    };
 
-    const wire = JSON.stringify(encodeTurnInput(input));
+    const wire = JSON.stringify(encodeTurnInput(turnInputFixture({ files })));
     expect(wire.split(image.base64).length - 1, "the image's bytes appear once on the wire").toBe(1);
-    const decoded = decodeTurnInput(JSON.parse(wire), noServices());
-    expect(decoded.attachments.results[0]!.vision, "and the attachment points at the same image again").toBe(decoded.attachments.visionImages[0]);
+    expect(decodeTurnInput(JSON.parse(wire), noServices()).files).toEqual(files);
   });
 });
 

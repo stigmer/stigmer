@@ -34,6 +34,8 @@
  *     subagent lists it, a subagent's copy included whether the turn's
  *     merge already held it or the subagent's reference read it afresh;
  *     its agents are not the turn's; the plugins kept keep their order.
+ *   - cloud repos: each git repository among the session's resources, as
+ *     the Cursor SDK names one, folders and Files passed over.
  *
  * `mergeSkillRefs` carried from `skill-writer.test.ts` in #1096, when the
  * native orchestrator's byte-twin of this function was deleted with its
@@ -50,7 +52,13 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { PluginSchema, type Plugin } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
-import { mergePluginRefs, mergeSkillRefs, pluginAgentName, pluginSubagents, resolveBlueprint } from "../blueprint-resolver.js";
+import { mergePluginRefs, mergeSkillRefs, pluginAgentName, pluginSubagents, resolveBlueprint, resolveCloudRepos } from "../blueprint-resolver.js";
+import {
+  FileResourceSchema,
+  GitRepositoryResourceSchema,
+  LocalPathResourceSchema,
+  SessionResourceSchema,
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { JUDGE_INSTRUCTIONS } from "@stigmer/eval-runtime/judge";
 import {
   BUILT_IN_JUDGE_DISALLOWED_TOOLS,
@@ -625,5 +633,26 @@ describe("mergeSkillRefs", () => {
 
   it("ignores a ref with no slug (nothing to key it by)", () => {
     expect(mergeSkillRefs([makeRef("")], [])).toEqual([]);
+  });
+});
+
+describe("resolveCloudRepos", () => {
+  it("names each git repository with its branch as the starting ref, and passes over folders and Files", () => {
+    const repos = resolveCloudRepos([
+      create(SessionResourceSchema, { resource: { case: "file", value: create(FileResourceSchema, { fileId: "file_1" }) } }),
+      create(SessionResourceSchema, {
+        name: "app",
+        resource: { case: "gitRepository", value: create(GitRepositoryResourceSchema, { url: "https://github.com/acme/app", branch: "dev" }) },
+      }),
+      create(SessionResourceSchema, { name: "here", resource: { case: "localPath", value: create(LocalPathResourceSchema, { path: "/tmp" }) } }),
+      create(SessionResourceSchema, {
+        name: "lib",
+        resource: { case: "gitRepository", value: create(GitRepositoryResourceSchema, { url: "https://github.com/acme/lib" }) },
+      }),
+    ]);
+    expect(repos).toEqual([
+      { url: "https://github.com/acme/app", startingRef: "dev" },
+      { url: "https://github.com/acme/lib", startingRef: undefined },
+    ]);
   });
 });

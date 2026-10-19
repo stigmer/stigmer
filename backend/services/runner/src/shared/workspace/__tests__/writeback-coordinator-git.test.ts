@@ -22,6 +22,7 @@ import { create } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { WorkspaceWriteBackPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 import { GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { GitRepositoryResourceSchema, SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { WriteBackCoordinator } from "../writeback-coordinator.js";
 import { LocalWorkspaceBackend } from "../local-backend.js";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
@@ -77,16 +78,14 @@ function makeCoordinator(
     sessionId: SESSION_ID,
     repositories: [{ name: "repo", url: REPO_URL, token: "ghp_test" }],
     provisionResults: [provisionResult],
-    workspaceEntries: [
-      {
+    resources: [
+      create(SessionResourceSchema, {
         name: "repo",
-        source: {
-          source: {
-            case: "gitRepo" as const,
-            value: { writeBackMode: GitWriteBackMode.GIT_WRITE_BACK_BRANCH_AND_PR, url: REPO_URL },
-          },
+        resource: {
+          case: "gitRepository",
+          value: create(GitRepositoryResourceSchema, { writeBackMode: GitWriteBackMode.GIT_WRITE_BACK_BRANCH_AND_PR, url: REPO_URL }),
         },
-      } as any,
+      }),
     ],
     workspaceBackend: new LocalWorkspaceBackend(workDir),
   });

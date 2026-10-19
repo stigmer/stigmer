@@ -49,7 +49,7 @@ export interface ToolValueGroup {
 
 /** One cloned repository's token. */
 export interface RepositoryToken {
-  /** The workspace entry's name, as the session carries it. */
+  /** The repository resource's name, as the session carries it. */
   readonly name: string;
   readonly url: string;
   readonly token: string;
@@ -104,7 +104,7 @@ export function runValuesOf(answer: ExecutionValues): RunValues {
   };
 }
 
-/** The token of the repository a workspace entry clones, matched by its name and URL together. */
+/** The token of the repository a session resource clones, matched by its name and URL together. */
 export function repositoryTokenFor(
   repositories: readonly RepositoryToken[],
   name: string,

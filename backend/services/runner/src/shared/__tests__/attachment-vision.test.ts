@@ -6,7 +6,6 @@ import {
   MAX_VISION_IMAGE_BYTES,
   MAX_VISION_TOTAL_BYTES,
   VisionBudget,
-  isVisionCandidate,
   sniffImageMime,
   toCursorImages,
   toLangChainImageBlocks,
@@ -71,20 +70,6 @@ describe("sniffImageMime", () => {
     ).toBeUndefined();
     // "RIFF" alone, shorter than the 12 bytes WebP needs.
     expect(sniffImageMime(Buffer.from("RIFF", "ascii"))).toBeUndefined();
-  });
-});
-
-describe("isVisionCandidate", () => {
-  it("accepts declared image types regardless of extension", () => {
-    expect(isVisionCandidate("image/png", "photo.dat")).toBe(true);
-    expect(isVisionCandidate("IMAGE/JPEG", "upper.case")).toBe(true);
-  });
-
-  it("falls back to the extension when no useful type is declared", () => {
-    expect(isVisionCandidate("", "photo.jpg")).toBe(true);
-    expect(isVisionCandidate("application/octet-stream", "shot.PNG")).toBe(true);
-    expect(isVisionCandidate("", "notes.pdf")).toBe(false);
-    expect(isVisionCandidate("", "no-extension")).toBe(false);
   });
 });
 

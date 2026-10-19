@@ -14,18 +14,18 @@
  */
 
 import { CursorMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
-import type { WorkspaceEntry } from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 
 /**
  * Determine the CursorMode for a session.
  *
  * Always returns LOCAL while cloud Cursor agents are disabled (see the
  * file-level note). The parameters are retained so the previous
- * workspace/flag-based mode-selection logic (preserved in git history) can be
+ * resource/flag-based mode-selection logic (preserved in git history) can be
  * restored when cloud is re-enabled.
  */
 export function determineCursorMode(
-  _workspaceEntries: WorkspaceEntry[],
+  _resources: readonly SessionResource[],
   _cloudModeEnabled: boolean,
 ): CursorMode {
   return CursorMode.LOCAL;
