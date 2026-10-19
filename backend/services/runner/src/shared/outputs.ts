@@ -80,10 +80,12 @@ export const PUT_TIMEOUT_MS = 15 * 60 * 1000;
 /**
  * Whether a native file tool's path (virtual-rooted at the workspace,
  * `/.stigmer/outputs/…`) names something inside the outputs folder, the
- * folder itself excluded. The path is normalized first, so a `..` that
- * climbs out of the folder is not inside it.
+ * folder itself excluded. A path with any `..` segment is not: text
+ * normalization would drop `<link>/..` before the filesystem resolves the
+ * link, so such a path is left to the gates' other arms.
  */
 export function isInOutputsFolder(virtualPath: string): boolean {
+  if (virtualPath.split("/").includes("..")) return false;
   const normalized = posix.normalize(virtualPath.startsWith("/") ? virtualPath : `/${virtualPath}`);
   return normalized.startsWith(OUTPUTS_VIRTUAL_PREFIX) && normalized.length > OUTPUTS_VIRTUAL_PREFIX.length;
 }

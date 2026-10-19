@@ -115,6 +115,15 @@ export const HERMETIC_UPLOAD_ORIGIN = "http://hermetic-uploads.invalid";
 /** What each hermetic upload link received, by its path. Cleared by {@link stubRegistryFetch}. */
 export const hermeticUploads = new Map<string, Uint8Array>();
 
+/** A URL's origin, or "" for one that does not parse. */
+function originOf(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return "";
+  }
+}
+
 async function bodyBytes(body: RequestInit["body"]): Promise<Uint8Array> {
   if (body === undefined || body === null) return new Uint8Array();
   return new Uint8Array(await new Response(body).arrayBuffer());
@@ -139,7 +148,7 @@ export function stubRegistryFetch(options: StubRegistryFetchOptions = {}): { rea
       if (url.includes("/model-registry")) {
         return { ok: true, status: 200, json: async () => document } as unknown as Response;
       }
-      if (url.startsWith(HERMETIC_UPLOAD_ORIGIN)) {
+      if (originOf(url) === HERMETIC_UPLOAD_ORIGIN) {
         hermeticUploads.set(new URL(url).pathname, await bodyBytes(init?.body));
         return new Response(null, { status: 200 });
       }

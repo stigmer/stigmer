@@ -16,11 +16,11 @@
 
 import { describe, it, expect, onTestFinished } from "vitest";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, symlinkSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, realpathSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { buildHookClientScript, generateHookScript } from "../hook-script.js";
+import { buildHookClientScript, buildOutputsPathScript, generateHookScript } from "../hook-script.js";
 import { create as createMessage } from "@bufbuild/protobuf";
 import { HookGroupSchema, HookHandlerSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/hooks_pb";
 import { HookEvaluator } from "../../../shared/hooks/evaluate.js";
@@ -977,6 +977,30 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
       const d = h.decide(hookWrite(join(h.root, ".stigmer/outputs/.env"), "API_KEY=abc"));
       expect(d.permission).toBe("deny");
       expect(h.ledger().map((e) => e.kind)).toEqual(["secret"]);
+    });
+
+    it("the hook's path test: inside the folder by real path, never through a `..` segment or a link out", () => {
+      const ws = mkdtempSync(join(tmpdir(), "outputs-path-ws-"));
+      const platform = mkdtempSync(join(tmpdir(), "outputs-path-platform-"));
+      onTestFinished(() => {
+        rmSync(ws, { recursive: true, force: true });
+        rmSync(platform, { recursive: true, force: true });
+      });
+      mkdirSync(join(platform, "outputs", "reports"), { recursive: true });
+      mkdirSync(join(platform, "skills"));
+      symlinkSync(platform, join(ws, ".stigmer"), "dir");
+      symlinkSync(join(platform, "skills"), join(platform, "outputs", "out-link"), "dir");
+      const state = join(ws, "state.json");
+      writeFileSync(state, JSON.stringify({ outputsRoot: realpathSync(join(platform, "outputs")) }), "utf-8");
+      const inside = (path: string): string =>
+        execFileSync(process.execPath, ["-e", buildOutputsPathScript(), state, ws], { input: path }).toString();
+      expect(inside(".stigmer/outputs/reports/new.md"), "a file not yet written, by its parent's real path").toBe("yes");
+      expect(inside(join(ws, ".stigmer/outputs/top.md"))).toBe("yes");
+      expect(inside(".stigmer/outputs/reports/../new.md"), "a `..` segment, even one that stays inside").toBe("no");
+      expect(inside(".stigmer/outputs/out-link/x.md"), "through a link that leads out").toBe("no");
+      expect(inside(".stigmer/skills/x.md")).toBe("no");
+      writeFileSync(state, JSON.stringify({ outputsRoot: "" }), "utf-8");
+      expect(inside(".stigmer/outputs/reports/new.md"), "a turn with no outputs root").toBe("no");
     });
 
     it("a path that climbs out of the folder takes the other arms", () => {

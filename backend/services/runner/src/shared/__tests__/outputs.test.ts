@@ -63,7 +63,7 @@ beforeAll(async () => {
       const body = Buffer.concat(parts);
       if (refusePut.has(ref) || Number(req.headers["content-length"]) !== body.length) {
         res.statusCode = 403;
-        res.end(`refused ${req.url}`);
+        res.end("refused");
         return;
       }
       received.set(ref, body);
@@ -405,7 +405,7 @@ describe("collectOutputs at its edges", () => {
 });
 
 describe("isInOutputsFolder", () => {
-  it("names a path inside the folder, normalized, and not the folder itself or a sibling", () => {
+  it("names a path inside the folder, and not the folder itself, a sibling, or a path with a `..` segment", () => {
     expect(isInOutputsFolder("/.stigmer/outputs/report.md")).toBe(true);
     expect(isInOutputsFolder(".stigmer/outputs/reports/q3.md")).toBe(true);
     expect(isInOutputsFolder("/.stigmer/outputs")).toBe(false);
@@ -413,5 +413,6 @@ describe("isInOutputsFolder", () => {
     expect(isInOutputsFolder("/.stigmer/outputs/../skills/x.md")).toBe(false);
     expect(isInOutputsFolder("/.stigmer/outputs.md")).toBe(false);
     expect(isInOutputsFolder("/src/.stigmer/outputs/x.md")).toBe(false);
+    expect(isInOutputsFolder("/.stigmer/outputs/a/../b.md"), "any `..` segment, even one that stays inside").toBe(false);
   });
 });

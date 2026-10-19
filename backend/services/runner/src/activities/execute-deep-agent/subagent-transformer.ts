@@ -153,8 +153,18 @@ same files.
 - Do not begin responses with phrases like \
 "Below is the complete content", \
 "Here are the contents of the files", or similar.
-- ${outputsFolderInstruction(NATIVE_OUTPUTS_FOLDER)}
 `;
+
+/**
+ * A sub-agent's prompt as it is compiled: its own, and, when it may save a
+ * file for the person, the outputs folder's line closing its response
+ * rules. Not under plan mode, whose rules deny every write, and not on the
+ * read-only `explore` agent, whose prompt forbids writing.
+ */
+export function compiledPrompt(spec: TransformedSubagent, writesAllowed: boolean): string {
+  if (!writesAllowed || spec.name === "explore") return spec.systemPrompt;
+  return `${spec.systemPrompt}- ${outputsFolderInstruction(NATIVE_OUTPUTS_FOLDER)}\n`;
+}
 
 // =========================================================================
 // Types
@@ -560,7 +570,7 @@ export async function compileSubagents(
       // (`subAgentInvocationId`).
       const buildGraph = (invocationId: string) => createDeepAgent({
         model,
-        systemPrompt: spec.systemPrompt,
+        systemPrompt: compiledPrompt(spec, opts.permissions === undefined),
         tools: spec.tools.length > 0 ? spec.tools : undefined,
         middleware: buildSubAgentMiddleware({
           costAdvisory: opts.costAdvisory,

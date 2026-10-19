@@ -571,8 +571,10 @@ function unlistedMessage(toolNameExpression: string): string {
  * to create has no real path yet, so the nearest existing ancestor's real
  * path is taken and the rest appended: a link anywhere on the way is
  * followed, and a path that leads out of the folder through one is not
- * inside it. Any failure answers `no`, which leaves the call to every other
- * arm. No single quote: the script is embedded in a single-quoted argument.
+ * inside it. A path with any `..` segment answers `no`: resolving it as
+ * text would drop `<link>/..` before the filesystem follows the link. Any
+ * failure answers `no`, which leaves the call to every other arm. No single
+ * quote: the script is embedded in a single-quoted argument.
  */
 export function buildOutputsPathScript(): string {
   return [
@@ -582,7 +584,7 @@ export function buildOutputsPathScript(): string {
     `const st=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));`,
     `const root=typeof st.outputsRoot==="string"?st.outputsRoot:"";`,
     `const s=fs.readFileSync(0,"utf8");`,
-    `if(root!==""&&s!==""){`,
+    `if(root!==""&&s!==""&&!s.split(/[\\\\/]/).includes("..")){`,
     `let cur=p.resolve(process.argv[2]||"/",s);const rest=[];let real="";`,
     `for(;;){try{real=fs.realpathSync(cur);break;}catch(e){const up=p.dirname(cur);if(up===cur)break;rest.unshift(p.basename(cur));cur=up;}}`,
     `if(real!==""){const full=p.join(real,...rest);if(full.startsWith(root+p.sep))ans="yes";}`,
