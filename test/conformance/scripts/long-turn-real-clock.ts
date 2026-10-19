@@ -61,8 +61,11 @@ async function main(): Promise<void> {
 
   const target = new LocalExecutionTarget();
   console.log(`[long-turn] booting the stack; the report goes to ${out}`);
-  await target.setup();
   try {
+    // Inside the try: a stack whose boot fails (a runner not built yet, say)
+    // is torn down with what it started, and the script exits instead of
+    // hanging on the Temporal and server children it left running.
+    await target.setup();
     const clients = target.clients();
     const mock = target.llmProxy();
     const { org } = await target.provisionTenancy();

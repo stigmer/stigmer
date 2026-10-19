@@ -69,6 +69,10 @@ describe("the summary", () => {
     expect(whole, "no reply line when the turn wrote none").not.toContain("Reply:");
     const replied = renderSummary({ ...running, end: { phase: "RUN_COMPLETED", error: "", elapsedMinutes: 1, atStep: undefined, stepsEnded: 0, stoppedByBudget: false, transcript: undefined, reply: "I won't run that." } });
     expect(replied).toContain("Reply: I won't run that.");
+    expect(replied, "no counts line on a live run").not.toContain("compactions:");
+    const counted = renderSummary({ ...running, end: { phase: "RUN_COMPLETED", error: "", elapsedMinutes: 0.2, atStep: undefined, stepsEnded: 0, stoppedByBudget: false, transcript: undefined, modelCalls: 69, compactions: 3 } });
+    expect(counted).toContain("Model calls: 69; compactions: 3.");
+    expect(renderSummary({ ...running, end: { phase: "RUN_COMPLETED", error: "", elapsedMinutes: 0.2, atStep: undefined, stepsEnded: 0, stoppedByBudget: false, transcript: undefined, compactions: 0 } })).toContain("Model calls: 0; compactions: 0.");
     const long = renderSummary({ ...running, end: { phase: "RUN_COMPLETED", error: "", elapsedMinutes: 1, atStep: undefined, stepsEnded: 0, stoppedByBudget: false, transcript: undefined, reply: "x".repeat(700) } });
     expect(long).toContain(`Reply: ${"x".repeat(600)}…`);
     expect(renderSummary({ ...running, end: { phase: "RUN_FAILED", error: "", elapsedMinutes: 1, atStep: "x", stepsEnded: 0, stoppedByBudget: false, transcript: transcriptCheckOf([1, 2, 3, 6]) } })).toContain("gaps 4-5.");

@@ -69,6 +69,9 @@ export interface LongTurnReport {
     readonly transcript: TranscriptCheck | undefined;
     /** The agent's final reply on the turn (its last message's text), "" when it wrote none: what a live model answered instead of acting, when it did. */
     readonly reply?: string;
+    /** The mock's counts at the end (absent on a live run): a run shorter than a minute has no sample to carry them. */
+    readonly modelCalls?: number;
+    readonly compactions?: number;
   };
 }
 
@@ -106,6 +109,7 @@ export function renderSummary(report: LongTurnReport): string {
       ? `stopped by the run's budget at minute ${end.elapsedMinutes}`
       : `ended ${end.phase} at minute ${end.elapsedMinutes}`;
     lines.push(`**Outcome**: ${outcome}, at step \`${end.atStep ?? "none"}\`, ${end.stepsEnded} of ${report.steps.length} steps ended.`);
+    if (end.compactions !== undefined) lines.push("", `Model calls: ${end.modelCalls ?? 0}; compactions: ${end.compactions}.`);
     if (end.error !== "") lines.push("", `Error: ${end.error}`);
     if (end.reply !== undefined && end.reply !== "") lines.push("", `Reply: ${end.reply.length > 600 ? `${end.reply.slice(0, 600)}…` : end.reply}`);
     if (end.transcript !== undefined) {

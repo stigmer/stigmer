@@ -53,11 +53,12 @@ const COMPACTION_TRIGGER_TOKENS = 170_000;
 const COMPACTION_KEEP_TOKENS = 20_000;
 
 /**
- * One bulk read's size: under deepagents' 80,000-character truncation of a
- * single tool result (TOOL_RESULT_TOKEN_LIMIT × 4), so every byte reaches
- * the conversation, and under the shell's 100 KB output cap.
+ * One bulk read's size: under the runner's own cut of a single tool result
+ * (30,000 characters by default, `middleware/tool-truncation.ts`), so every
+ * byte reaches the conversation. At 60,000 half of each read was cut, and
+ * the reads the profile counted on for three compactions made one.
  */
-export const BULK_BYTES = 60_000;
+export const BULK_BYTES = 28_000;
 
 /** How many bulk reads cross the trigger `compactions` times, counting what each compaction keeps. */
 export function bulkReadsFor(compactions: number): number {
