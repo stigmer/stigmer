@@ -4,7 +4,10 @@
  * cascades the session's runs: each File's row, its ref and, when no other
  * File shares them, its bytes, then its access, while the session still
  * links it to its organization. Children before the parent, so a delete
- * that stops halfway converges when it is retried.
+ * that stops halfway converges when it is retried. It runs once more after
+ * the session's row is gone, for an upload that landed between the first
+ * pass and that delete: an upload that lands later finds the conversation
+ * gone and takes its File back itself (steps.ts PersistUploadedFile).
  *
  * The Files are read through the File list index's `session` key, every
  * page of it: a conversation holds at most a few hundred Files.

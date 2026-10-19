@@ -11,12 +11,6 @@
  */
 export const DEFAULT_FILE_MAX_BYTES = 500 * 1024 * 1024;
 
-/**
- * The largest File uploaded inline: the transport caps a whole request
- * at 10 MiB, and the request's other fields need room.
- */
-export const MAX_INLINE_FILE_BYTES = 10 * 1024 * 1024 - 64 * 1024;
-
 /** Where an upload URL's bytes land: `files/staging/<hex>`. */
 export const STAGING_KEY_PREFIX = "files/staging/";
 

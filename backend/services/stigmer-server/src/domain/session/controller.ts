@@ -576,6 +576,16 @@ async function deleteSession(
     )
     .addStep(newDeleteSessionEventsStep(deps.store))
     .addStep(newDeleteResourceStep(deps.store))
+    // Again once the row is gone, for an upload that landed in between
+    // (domain/file/session-files.ts).
+    .addStep(
+      newCascadeDeleteSessionFilesStep(
+        deps.store,
+        deps.fileBlobs,
+        deps.authorizationLifecycle,
+        deps.logger,
+      ),
+    )
     .addStep(newReleaseNamesStep(deps.store, deps.logger, ApiResourceKind.session))
     .addStep(
       newCleanupGrantsStep(deps.authorizationLifecycle, deps.logger),

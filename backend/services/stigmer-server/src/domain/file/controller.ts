@@ -11,7 +11,9 @@
  * upload URL's staging key by a copy inside the store (staged), and the
  * second chain builds the File the server names (BuildNewState mints its
  * id and audit; StampFileStatus writes its size and conversation), stores
- * its row with its blob's ref in one transaction, and writes its access:
+ * its row with its blob's ref in one transaction (PersistUploadedFile,
+ * which takes back a File whose conversation was deleted meanwhile), and
+ * writes its access:
  * its uploader as owner, its organization, and the conversation it
  * belongs to as its parent. A failure after the bytes leaves a leased,
  * orphaned blob that the sweep deletes.
@@ -109,6 +111,7 @@ import {
   newGuardFileUnreferencedStep,
   newKeepFileDescriptionStep,
   newRemoveFromConversationStep,
+  newPersistUploadedFileStep,
   newStampFileStatusStep,
 } from "./steps.js";
 
@@ -185,11 +188,7 @@ async function upload(deps: FileControllerDeps, input: UploadFileInput, ctx: Han
     .addStep(newBuildNewStateStep())
     .addStep(newStampFileStatusStep(blob, input.sessionId))
     .addStep(newValidateProtoStep({ of: "state" }))
-    .addStep(
-      newPersistStep(deps.store, deps.credentialBinding, (state) =>
-        deps.blobs.insertFile(state.metadata?.id ?? "", FileSchema, state, blob),
-      ),
-    )
+    .addStep(newPersistUploadedFileStep(deps, blob, input.sessionId))
     .addStep(newCreateAuthorizationTuplesStep(deps.authorizationLifecycle, deps.logger))
     .build()
     .execute(reqCtx);
