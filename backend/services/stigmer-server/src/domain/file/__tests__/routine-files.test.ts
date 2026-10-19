@@ -97,6 +97,24 @@ describe("a routine's named Files", () => {
     expect(((await check(["file_01mine"], denying)) as ConnectError).code).toBe(Code.PermissionDenied);
   });
 
+  it("answers INTERNAL when a File cannot be read", async () => {
+    const store = new Proxy(fx.store, {
+      get(target, property, receiver) {
+        if (property === "getResource") {
+          return () => Promise.reject(new Error("database unreachable"));
+        }
+        const value: unknown = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(target) : value;
+      },
+    });
+    const ctx = new RequestContext(RoutineSchema, routineNaming(["file_01mine"]), CALLER, ApiResourceKind.routine);
+    const error = await Promise.resolve(newCheckRoutineFilesStep({ store, authorizer: allowing }).execute(ctx)).then(
+      () => undefined,
+      (e: unknown) => e,
+    );
+    expect((error as ConnectError).code).toBe(Code.Internal);
+  });
+
   it("asks only about the Files an update newly names", async () => {
     expect(await check(["file_01mine", "file_01also"], allowing, ["file_01mine"])).toBeUndefined();
     expect(asked).toEqual(["file_01also"]);

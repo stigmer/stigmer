@@ -315,6 +315,14 @@ describe("converting stored attachments", () => {
     });
     expect(await convertStoredAttachments({ store, storage, lifecycle, logger: silentLogger })).toBe(0);
     expect(await conversionCount()).toBe(0);
+
+    await storage.upload(keyOf(ULID_B, "brief.pdf"), new Uint8Array([1]), "");
+    seedConversion({ runId: "run_01gone", position: 1, storageKey: keyOf(ULID_B, "brief.pdf") });
+    const faulty = withFiles({ insert: () => Promise.reject(new Error("database unreachable")) });
+    await expect(convertStoredAttachments({ store: faulty, storage, lifecycle, logger: silentLogger })).rejects.toThrow(
+      "database unreachable",
+    );
+    expect(await conversionCount()).toBe(1);
   });
 
   it("stops on a storage fault, keeping the row for the next boot", async () => {
