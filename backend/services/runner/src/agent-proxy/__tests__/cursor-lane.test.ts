@@ -33,19 +33,22 @@
  *  - in forward mode a side call's execution id, which no live-turn check
  *    covered, is not forwarded;
  *  - a host that drops its connection mid-stream has its run cancelled at
- *    Cursor, and a drop mid-stream or mid-handshake leaves the lane serving.
+ *    Cursor, and a drop mid-stream or mid-handshake leaves the lane serving;
+ *  - a stream that ends cut off logs which side closed first, its code and
+ *    its age, and a clean end logs nothing; an upstream GOAWAY logs its code
+ *    (#2436). No line carries a token.
  */
 
 import { request as httpsRequest } from "node:https";
 import { connect as tlsConnect } from "node:tls";
 import { connect, createServer as createH2cServer, type ClientHttp2Session, type Http2Server, type IncomingHttpHeaders, type ServerHttp2Stream } from "node:http2";
 import type { AddressInfo } from "node:net";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { FakeUpstream } from "../../__test-utils__/fake-upstream.js";
 import type { Config } from "../../config.js";
-import { CURSOR_SIDE_CALLS } from "../cursor-lane.js";
+import { CURSOR_SIDE_CALLS, h2CodeName } from "../cursor-lane.js";
 import { AgentProxy } from "../server.js";
 
 const HOST_TOKEN = "host-token-cursor-lane";
@@ -76,12 +79,18 @@ class FakeConnectHost {
    * stream's native handle, a test's means to a frame the API does not send.
    */
   cancelMidAnswer = false;
+  /** Send GOAWAY with this code on each stream's connection as the stream opens. */
+  goawayCode: number | undefined;
   url = "";
   private server: Http2Server | undefined;
 
   async start(): Promise<void> {
     this.server = createH2cServer();
     this.server.on("session", () => (this.sessions += 1));
+    this.server.on("stream", (stream: ServerHttp2Stream) => {
+      // Sent while the stream is open, as a server draining its connection does: the stream itself still finishes.
+      if (this.goawayCode !== undefined) stream.session?.goaway(this.goawayCode, stream.id);
+    });
     this.server.on("stream", (stream: ServerHttp2Stream, headers: IncomingHttpHeaders) => {
       this.streams.push({ path: String(headers[":path"]), headers });
       stream.on("close", () => this.closedCodes.push(stream.rstCode));
@@ -463,6 +472,70 @@ describe("terminate: a runner that calls Cursor itself", () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(connectHost.closedCodes, "the abandoned run is cancelled at Cursor").toEqual([8]);
     expect((await stream(RUN, { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY }, ["after"])).data).toBe("echo:after");
+  });
+
+  it("logs which side cut a stream off, its code and its age, and nothing for a clean end (#2436)", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const standIn = await exchange();
+    setEnv({ CURSOR_BACKEND_URL: connectHost.url });
+    const headers = { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY };
+    const cutLines = () => warn.mock.calls.map((call) => String(call[0])).filter((line) => line.includes("ended cut off"));
+
+    expect((await stream(RUN, headers, ["clean"])).data).toBe("echo:clean");
+    expect(cutLines(), "a clean end logs nothing").toEqual([]);
+
+    connectHost.cancelMidAnswer = true;
+    await new Promise<void>((resolve) => {
+      const session = connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
+      session.on("error", () => {});
+      const req = session.request({ ":method": "POST", ":path": RUN, ...headers });
+      req.on("error", () => {});
+      req.on("close", () => {
+        session.close();
+        resolve();
+      });
+      req.resume();
+      req.write("x");
+    });
+    await vi.waitFor(() => expect(cutLines()).toHaveLength(1));
+    expect(cutLines()[0]).toMatch(/^\[agent-proxy\] the Cursor stream \/agent\.v1\.AgentService\/Run ended cut off: stream=\d+, closedFirst=upstream, code=CANCEL\(8\), ageMs=\d+$/);
+    connectHost.cancelMidAnswer = false;
+
+    const session = connect(proxy.cursorEndpoint, { ca: proxy.cursorCertificate });
+    session.on("error", () => {});
+    const dropped = session.request({ ":method": "POST", ":path": RUN, ...headers });
+    dropped.on("error", () => {});
+    dropped.write("half");
+    await new Promise((resolve) => dropped.once("data", resolve));
+    session.destroy();
+    await vi.waitFor(() => expect(cutLines()).toHaveLength(2));
+    expect(cutLines()[1]).toContain("closedFirst=host");
+
+    for (const line of warn.mock.calls.map((call) => String(call[0]))) {
+      expect(line).not.toContain(standIn);
+      expect(line).not.toContain(REAL_TOKEN);
+    }
+    warn.mockRestore();
+  });
+
+  it("logs an upstream connection's GOAWAY with its code", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const standIn = await exchange();
+    setEnv({ CURSOR_BACKEND_URL: connectHost.url });
+    connectHost.goawayCode = 0;
+    expect((await stream(RUN, { authorization: `Bearer ${standIn}`, "x-stigmer-execution-id": EXECUTION, "x-stigmer-turn-key": TURN_KEY }, ["x"])).data).toBe("echo:x");
+    await vi.waitFor(() =>
+      expect(warn.mock.calls.map((call) => String(call[0]))).toContainEqual(expect.stringMatching(/sent GOAWAY: code=NO_ERROR\(0\), lastStream=\d+, sessionAgeMs=\d+$/)),
+    );
+    connectHost.goawayCode = undefined;
+    warn.mockRestore();
+  });
+
+  it("names an HTTP/2 code it knows, and prints any other as its number", () => {
+    expect(h2CodeName(8)).toBe("CANCEL(8)");
+    expect(h2CodeName(0)).toBe("NO_ERROR(0)");
+    expect(h2CodeName(99)).toBe("99");
+    expect(h2CodeName(undefined)).toBe("none");
   });
 
   it("resets the host's stream when Cursor's fails after its headers", async () => {
