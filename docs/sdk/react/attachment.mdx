@@ -32,7 +32,7 @@ function useFileUploads(options?: UseFileUploadsOptions): UseFileUploadsReturn
 
 <TypeTable
   type={{
-    addFiles: { type: "(files: FileList | File[], addOptions?: AddFilesOptions) => void", description: "Add one or more files. Each is validated and uploaded at once; a file refused (too large) is reported through `onValidationError` and not added." },
+    addFiles: { type: "(files: FileList | File[], addOptions?: AddFilesOptions) => void", description: "Add one or more files. Each is validated and uploaded at once; a file refused (too large, or past MAX_MESSAGE_FILES entries) is reported through `onValidationError` and not added." },
     allReady: { type: "boolean", description: "True when there are entries and every one is ready." },
     clear: { type: "() => void", description: "Remove every entry and delete every File the entries uploaded." },
     entries: { type: "readonly FileUploadEntry[]", description: "Current entries (preparing, uploading, ready or failed)." },
@@ -320,6 +320,12 @@ refused before any bytes move. An operator may set a lower limit, which
 the server enforces when the upload URL is requested.
 
 
+### MAX_MESSAGE_FILES
+
+The most Files one message carries: the server refuses a run naming more
+in `file_ids`. [`useFileUploads`](#usefileuploads) holds no more entries than this.
+
+
 ### MAX_VISION_LONG_EDGE_PX
 
 Maximum long-edge length, mirroring Anthropic's standard-tier limit.
@@ -390,7 +396,7 @@ Options for [`useFileUploads`](#usefileuploads).
 
 <TypeTable
   type={{
-    onValidationError: { type: "(message: string) => void", description: "Called when a file is refused while it is added (for example, it exceeds the size limit). Use it for a toast." },
+    onValidationError: { type: "(message: string) => void", description: "Called when a file is refused while it is added (for example, it exceeds the size limit, or the chat box already holds MAX_MESSAGE_FILES files). Use it for a toast." },
     org: { type: "string", description: "Organization the Files belong to, by id or slug; inside a conversation, the conversation's organization. Without it a file cannot be uploaded and its entry ends in the `error` phase." },
     sessionId: { type: "string", description: "The conversation the Files go into. Omit it before the first message: the Files are then the person's own until the run names them." },
   }}

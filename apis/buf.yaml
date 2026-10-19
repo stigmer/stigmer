@@ -37,7 +37,7 @@ breaking:
   # names) with workspace.proto, whose shapes became SessionResource. This
   # block exists for that one pull request. While it stays, buf breaking does
   # not report these rules on the listed files, so the pull request that
-  # removes it lands straight after the merge.
+  # removes it lands straight after the merge (stigmer#2452).
   ignore_only:
     FILE_NO_DELETE:
       - ai/stigmer/agentic/session/v1/workspace.proto
