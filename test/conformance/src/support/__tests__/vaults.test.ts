@@ -86,15 +86,15 @@ describe("the vaults option of the surface builders", () => {
     });
     const invocation = routine.spec?.agent;
     expect(invocation?.vaults).toEqual(VAULT_REFS);
-    expect(invocation?.workspaceEntries?.[0]?.source?.source).toEqual({
-      case: "gitRepo",
+    expect(invocation?.resources?.[0]?.resource).toEqual({
+      case: "gitRepository",
       value: { url: "https://github.com/acme/app", token: "ghp-1" },
     });
     const tokenless = makeRoutine("acme", "n", "bot", {
       repositories: [{ name: "app", url: "https://github.com/acme/app" }],
     }).spec?.agent;
-    expect(tokenless?.workspaceEntries?.[0]?.source?.source).toEqual({
-      case: "gitRepo",
+    expect(tokenless?.resources?.[0]?.resource).toEqual({
+      case: "gitRepository",
       value: { url: "https://github.com/acme/app", token: "" },
     });
   });

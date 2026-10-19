@@ -118,12 +118,24 @@ stigmer run my-agent -w ./frontend -w ./backend
 
 ### File attachments
 
-Attach files as input to the agent. Files under 4 MB are embedded inline;
-larger files are uploaded to the artifact store automatically.
+Give the agent files with your message. Each attached file is uploaded as a
+File and sent with the message: the model sees an image as an image and any
+other file as a document, and the agent finds every one under
+`.stigmer/uploads/` on this turn and every later one. A message carries at most
+20 files.
+
+Attach a folder to give the conversation a whole tree: every file in it is
+uploaded and kept under `.stigmer/uploads/<folder>/` with its relative path,
+without being shown in the message. Hidden files and symbolic links are skipped,
+and a conversation holds at most 500 files.
+
+A file inside a local `--workspace` folder is not uploaded: the agent is pointed
+to it where it is.
 
 ```bash
 stigmer run data-analyzer --attach ./report.csv -m "Analyze this data"
 stigmer run my-agent --attach ./image.png --attach ./spec.pdf
+stigmer run my-agent --attach ./q3-ledgers -m "Reconcile these"
 ```
 
 ### Output modes

@@ -1,61 +1,111 @@
-// Attachment processing for runs.
+// What `--attach` gives a run: each path is a file the message carries, a
+// folder the conversation holds, or a mention of a file already in a local
+// workspace.
 //
-// Ports the Go CLI's run_attachments.go + run_attachments_zip.go. Each `--attach`
-// path is either recorded as a workspace-relative reference (when it lives inside
-// a local workspace root — no upload, the agent reads it directly) or uploaded
-// via the UploadAttachment RPC and returned as an Attachment proto. Directories
-// are zipped (hidden entries and symlinks skipped) and capped at 10 MB to match
-// the server's gRPC receive limit.
+// A file outside every local workspace is uploaded as a File and named in the
+// run's file_ids: the model sees it with the message (an image as an image,
+// anything else as a document) and the agent finds it under .stigmer/uploads/.
+// A folder is uploaded file by file and joins the conversation's resources,
+// each File's mount_path keeping its place under the folder's name, so the
+// tree arrives as it was without a message block per file. A path inside a
+// local workspace root is a workspace_file_refs mention: the agent reads it
+// where it is, and nothing is uploaded.
+//
+// Trade-offs:
+// - Planning and uploading are two steps. planAttachments only reads the
+//   disk, so a missing path, an empty folder or a count over the limits fails
+//   before any byte moves; stageAttachments uploads once the run's target is
+//   known.
+// - Into an existing conversation a File is uploaded with its session id and
+//   is the conversation's at once. A new conversation does not exist until
+//   its first run does, so each File is uploaded as the person's own and the
+//   server copies it into the conversation when the run names it. The
+//   originals are then deleted (deleteFiles), the conversation's copies
+//   keeping the bytes; they are deleted as well when the run is never
+//   created, since nothing names them.
+// - Files stream from disk (uploadFileFromPath), so a large file is never
+//   read into memory, and a few upload at a time. When one fails, the Files
+//   already uploaded are deleted before the error surfaces.
+// - Inside a folder, hidden entries (and their subtrees) and symbolic links
+//   are skipped: a folder's dotfiles are usually tool state or credentials,
+//   and a link can reach outside the folder.
+// - Two folders with one name (`--attach a/data --attach b/data`), or a
+//   folder named like one the conversation already holds, would claim the
+//   same mount paths, so the later one is renamed data-2 and the rename is
+//   reported.
 
-import { readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
-import { extname, join, relative, resolve, sep } from "node:path";
+import { readdirSync, realpathSync, type Stats, statSync } from "node:fs";
+import { basename, join, relative, resolve, sep } from "node:path";
 import { create } from "@bufbuild/protobuf";
-import { zipSync } from "fflate";
-import { type Attachment, AttachmentSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import {
-  type UploadAttachmentRequest,
-  UploadAttachmentRequestSchema,
-  type UploadAttachmentResponse,
-} from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+  FileResourceSchema,
+  type SessionResource,
+  SessionResourceSchema,
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
+import type { Stigmer } from "@stigmer/client";
+import { uploadFileFromPath } from "@stigmer/client/node";
 import { UsageError } from "../../errors/index.js";
 
-// Must match the server's grpc.MaxRecvMsgSize (Go: maxAttachmentSize).
-const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB
-
-/** A sink for human progress/warning lines (attachments are not byte-parity output). */
+/** A sink for human progress and warning lines. */
 export type ProgressSink = (line: string) => void;
 
-/** The minimal UploadAttachment RPC surface, injectable for testing. */
-export interface AttachmentUploader {
-  uploadAttachment(req: UploadAttachmentRequest): Promise<UploadAttachmentResponse>;
+/** The most Files one message carries (RunSpec.file_ids). */
+export const MAX_MESSAGE_FILES = 20;
+
+/** The most Files a conversation holds (SessionSpec.resources). */
+export const MAX_CONVERSATION_FILES = 500;
+
+const UPLOAD_CONCURRENCY = 4;
+
+/** A file on disk to upload. */
+export interface LocalFile {
+  /** Absolute path. */
+  readonly path: string;
+  readonly size: number;
 }
 
-/**
- * The split result of processing `--attach` paths. Mirrors Go's
- * AttachmentResult: in-workspace files become relative references, everything
- * else becomes an uploaded Attachment.
- */
-export interface AttachmentResult {
-  readonly attachments: Attachment[];
-  readonly workspaceFileRefs: string[];
+/** A file inside an attached folder, by its slash-separated path under the folder. */
+export interface FolderFile extends LocalFile {
+  readonly relativePath: string;
 }
 
+/** An attached folder and every file it gives. */
+export interface AttachedFolder {
+  /** The folder's own name: the first segment of each of its Files' mount paths. */
+  readonly name: string;
+  readonly files: readonly FolderFile[];
+}
+
+/** What the `--attach` paths resolved to, before anything is uploaded. */
+export interface AttachmentPlan {
+  /** Files the message carries, in the order given. */
+  readonly messageFiles: readonly LocalFile[];
+  /** Folders the conversation holds, in the order given. */
+  readonly folders: readonly AttachedFolder[];
+  /** Workspace-relative paths of files already in a local workspace. */
+  readonly workspaceFileRefs: readonly string[];
+}
+
+/** A plan that attaches nothing. */
+export const NO_ATTACHMENTS: AttachmentPlan = { messageFiles: [], folders: [], workspaceFileRefs: [] };
+
 /**
- * Process `--attach` paths against the local workspace roots. The first root a
- * path falls inside wins and yields a workspace-relative reference; otherwise
- * the path is uploaded. Mirrors Go's AttachmentProcessor.ProcessFiles.
+ * Resolve `--attach` paths against the local workspace roots without
+ * uploading anything. The first root a path falls inside makes it a
+ * workspace-relative mention; any other file is carried by the message; a
+ * folder is walked for the files it gives.
  */
-export async function processAttachments(
-  uploader: AttachmentUploader,
+export function planAttachments(
   paths: readonly string[],
   workspaceRoots: readonly string[],
   progress?: ProgressSink,
-): Promise<AttachmentResult> {
-  const attachments: Attachment[] = [];
+): AttachmentPlan {
+  const messageFiles: LocalFile[] = [];
+  const folders: AttachedFolder[] = [];
   const workspaceFileRefs: string[] = [];
-  if (paths.length === 0) return { attachments, workspaceFileRefs };
+  const budget = { remaining: MAX_CONVERSATION_FILES };
 
-  const takenDirNames = new Set<string>();
   for (const path of paths) {
     const rel = matchWorkspaceRoot(path, workspaceRoots);
     if (rel !== null) {
@@ -63,15 +113,192 @@ export async function processAttachments(
       workspaceFileRefs.push(rel);
       continue;
     }
-    attachments.push(await processFile(uploader, path, takenDirNames, progress));
+    const abs = resolve(path);
+    const stat = statAttachment(path);
+    if (stat.isDirectory()) {
+      folders.push(readFolder(abs, budget, progress));
+    } else if (stat.isFile()) {
+      messageFiles.push({ path: abs, size: stat.size });
+    } else {
+      throw new UsageError(`cannot attach "${path}": not a file or a folder`);
+    }
   }
 
-  return { attachments, workspaceFileRefs };
+  if (messageFiles.length > MAX_MESSAGE_FILES) {
+    throw new UsageError(
+      `--attach names ${messageFiles.length} files; a message carries at most ${MAX_MESSAGE_FILES} (attach a folder to give more)`,
+    );
+  }
+  const total = messageFiles.length + folders.reduce((n, folder) => n + folder.files.length, 0);
+  if (total > MAX_CONVERSATION_FILES) {
+    throw new UsageError(`--attach gives ${total} files; a conversation holds at most ${MAX_CONVERSATION_FILES}`);
+  }
+  return { messageFiles, folders, workspaceFileRefs };
 }
 
-// Returns the workspace-relative path if `path` is inside any root (first match
-// wins), else null. Mirrors Go's matchWorkspaceRoot + workspaceRelativePath:
-// both sides are resolved through realpath to prevent symlink escapes.
+/** Where the attached Files go: the run's organization, and its conversation when it exists. */
+export interface StageTarget {
+  readonly org: string;
+  /** The existing conversation the run continues; omitted for a new one. */
+  readonly sessionId?: string;
+}
+
+/** The uploaded Files, ready for the run that names them. */
+export interface StagedAttachments {
+  /** The Files the message carries, for RunSpec.file_ids. */
+  readonly fileIds: readonly string[];
+  /**
+   * The folders' Files as resources for a new conversation's session_spec.
+   * Empty for an existing conversation, whose resources already hold them.
+   */
+  readonly resources: readonly SessionResource[];
+  /** The person's own Files uploaded for a new conversation: delete them once the run exists. */
+  readonly originals: readonly string[];
+}
+
+const NOTHING_STAGED: StagedAttachments = { fileIds: [], resources: [], originals: [] };
+
+interface UploadJob {
+  readonly path: string;
+  readonly filename: string;
+}
+
+/**
+ * Upload what the plan attaches. Into an existing conversation, the Files are
+ * the conversation's and the folders' Files join its resources through a
+ * masked update that keeps every resource it holds. For a new one, the Files
+ * are the person's own, returned as originals for the caller to delete once
+ * the run exists.
+ */
+export async function stageAttachments(
+  client: Stigmer,
+  plan: AttachmentPlan,
+  target: StageTarget,
+  progress?: ProgressSink,
+): Promise<StagedAttachments> {
+  if (plan.messageFiles.length === 0 && plan.folders.length === 0) return NOTHING_STAGED;
+  const sessionId = target.sessionId ?? "";
+  const session = sessionId === "" ? undefined : await client.session.get(sessionId);
+
+  const taken = new Set(session === undefined ? [] : heldTopLevelNames(session));
+  const jobs: UploadJob[] = plan.messageFiles.map((file) => ({ path: file.path, filename: basename(file.path) }));
+  for (const file of plan.messageFiles) {
+    progress?.(`Uploading ${basename(file.path)} (${formatFileSize(file.size)})...`);
+  }
+  const mountPaths: string[] = [];
+  for (const folder of plan.folders) {
+    const name = uniquifyName(folder.name, taken);
+    taken.add(name);
+    if (name !== folder.name) {
+      progress?.(
+        `Attaching second '${folder.name}/' as '${name}/' (a folder named '${folder.name}' is already attached)`,
+      );
+    }
+    const size = folder.files.reduce((n, file) => n + file.size, 0);
+    progress?.(`Uploading folder ${name}/ (${folder.files.length} files, ${formatFileSize(size)})...`);
+    for (const file of folder.files) {
+      jobs.push({ path: file.path, filename: basename(file.path) });
+      mountPaths.push(`${name}/${file.relativePath}`);
+    }
+  }
+
+  const ids = await uploadAll(client, jobs, { org: target.org, sessionId }, progress);
+  const fileIds = ids.slice(0, plan.messageFiles.length);
+  const resources = ids.slice(plan.messageFiles.length).map((fileId, i) =>
+    create(SessionResourceSchema, {
+      resource: { case: "file", value: create(FileResourceSchema, { fileId, mountPath: mountPaths[i] }) },
+    }),
+  );
+
+  if (session === undefined) return { fileIds, resources, originals: ids };
+  if (resources.length > 0) {
+    try {
+      await client.session.update(
+        {
+          metadata: { id: sessionId, etag: session.metadata?.etag ?? "" },
+          spec: { resources: [...(session.spec?.resources ?? []), ...resources] },
+        },
+        ["spec.resources"],
+      );
+    } catch (err) {
+      await deleteFiles(client, ids, progress);
+      throw new UsageError(`failed to add the attached folders to the conversation: ${errorMessage(err)}`);
+    }
+  }
+  return { fileIds, resources: [], originals: [] };
+}
+
+/**
+ * Delete Files the run no longer needs, reporting each one that could not be
+ * deleted rather than failing: the run already holds what it needs.
+ */
+export async function deleteFiles(
+  client: Stigmer,
+  ids: readonly string[],
+  warn?: ProgressSink,
+): Promise<void> {
+  await Promise.all(
+    ids.map(async (id) => {
+      try {
+        await client.file.delete(id);
+      } catch (err) {
+        warn?.(`Could not delete the uploaded File ${id}: ${errorMessage(err)}`);
+      }
+    }),
+  );
+}
+
+// Upload every job a few at a time, keeping the jobs' order in the ids. On
+// the first failure no new upload starts; once the ones in flight settle,
+// every File uploaded is deleted and the failure surfaces.
+async function uploadAll(
+  client: Stigmer,
+  jobs: readonly UploadJob[],
+  target: { readonly org: string; readonly sessionId: string },
+  progress?: ProgressSink,
+): Promise<string[]> {
+  const ids = jobs.map(() => "");
+  let next = 0;
+  let failure: UsageError | undefined;
+  const worker = async (): Promise<void> => {
+    while (failure === undefined && next < jobs.length) {
+      const index = next++;
+      const job = jobs[index];
+      try {
+        const file = await uploadFileFromPath(client.file, { ...target, path: job.path, filename: job.filename });
+        ids[index] = file.metadata?.id ?? "";
+      } catch (err) {
+        failure ??= new UsageError(`failed to upload "${job.path}": ${errorMessage(err)}`);
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(UPLOAD_CONCURRENCY, jobs.length) }, worker));
+  if (failure !== undefined) {
+    await deleteFiles(
+      client,
+      ids.filter((id) => id !== ""),
+      progress,
+    );
+    throw failure;
+  }
+  return ids;
+}
+
+// The first path segment of every File the conversation holds: the names a
+// newly attached folder must not take.
+function heldTopLevelNames(session: Session): string[] {
+  const names: string[] = [];
+  for (const resource of session.spec?.resources ?? []) {
+    if (resource.resource.case !== "file") continue;
+    const mountPath = resource.resource.value.mountPath;
+    if (mountPath !== "") names.push(mountPath.split("/")[0]);
+  }
+  return names;
+}
+
+// Returns the workspace-relative path if `path` is inside any root (first
+// match wins), else null. Both sides are resolved through realpath so a
+// symbolic link cannot pass a file outside the root off as inside it.
 function matchWorkspaceRoot(path: string, roots: readonly string[]): string | null {
   for (const root of roots) {
     let evalFile: string;
@@ -80,190 +307,74 @@ function matchWorkspaceRoot(path: string, roots: readonly string[]): string | nu
       evalFile = realpathSync(resolve(path));
       evalRoot = realpathSync(root);
     } catch {
-      continue; // unresolvable path is treated as outside this root
+      continue; // an unresolvable path is outside this root
     }
     if (evalFile === evalRoot || evalFile.startsWith(evalRoot + sep)) {
-      return toSlash(relative(evalRoot, evalFile));
+      return relative(evalRoot, evalFile).split(sep).join("/");
     }
   }
   return null;
 }
 
-// Stat the path, then upload a file or zip+upload a directory. Mirrors Go's
-// processFile.
-async function processFile(
-  uploader: AttachmentUploader,
-  path: string,
-  takenDirNames: Set<string>,
-  progress?: ProgressSink,
-): Promise<Attachment> {
-  let stat: ReturnType<typeof statSync>;
+function statAttachment(path: string): Stats {
   try {
-    stat = statSync(path);
+    return statSync(path);
   } catch (err) {
     const e = err as NodeJS.ErrnoException;
     if (e.code === "ENOENT") throw new UsageError(`file not found: ${path}`);
     throw new UsageError(`failed to stat attachment "${path}": ${e.message}`);
   }
-
-  if (stat.isDirectory()) return processDirectory(uploader, path, takenDirNames, progress);
-
-  const absPath = resolve(path);
-  const filename = basenameOf(path);
-  const contentType = detectContentType(filename);
-  progress?.(`Uploading ${filename} (${formatFileSize(stat.size)})...`);
-  const attachment = await uploadBytes(uploader, readFileSync(path), filename, contentType, progress);
-  attachment.localPath = absPath;
-  return attachment;
 }
 
-// Zip a directory (extract=true so the runner unpacks it at mount_path) and
-// upload it as one archive. Mirrors Go's processDirectory.
-async function processDirectory(
-  uploader: AttachmentUploader,
-  path: string,
-  takenDirNames: Set<string>,
+// Every regular file under the folder, hidden entries and symbolic links
+// skipped. Stops as soon as the files found exceed the conversation's limit,
+// so attaching a large tree by mistake fails fast instead of walking it all.
+function readFolder(
+  abs: string,
+  budget: { remaining: number },
   progress?: ProgressSink,
-): Promise<Attachment> {
-  const absPath = resolve(path);
-  // Two same-named directories (`--attach a/data --attach b/data`) would
-  // derive the SAME explicit mount path, which the runner rejects as a user
-  // contradiction (attachment-injector.ts resolveMountPaths). The CLI derives
-  // these names mechanically from basenames, so it owns the rename — the same
-  // principle as the React composer's client-side uniquify (sdk/react
-  // attachment-utils.ts). Duplicate FILE attachments need no CLI handling:
-  // they carry no mountPath, so the runner renames them itself.
-  const requestedName = basenameOf(absPath);
-  const dirname = uniquifyDirName(requestedName, takenDirNames);
-  takenDirNames.add(dirname);
-  if (dirname !== requestedName) {
-    progress?.(
-      `Attaching second '${requestedName}/' as '${dirname}/' (a directory ` +
-        `named '${requestedName}' is already attached)`,
-    );
-  }
-
-  const { bytes, fileCount, originalSize } = zipDirectory(absPath, progress);
-  const zipSize = bytes.byteLength;
-  progress?.(
-    `Zipping directory: ${dirname}/ (${fileCount} files, ` +
-      `${formatFileSize(originalSize)} -> ${formatFileSize(zipSize)} compressed)`,
-  );
-  if (zipSize > MAX_ATTACHMENT_SIZE) {
-    throw new UsageError(
-      `zipped directory too large (${formatFileSize(zipSize)}). ` +
-        `Maximum attachment size is ${formatFileSize(MAX_ATTACHMENT_SIZE)}`,
-    );
-  }
-
-  const attachment = await uploadBytes(uploader, bytes, `${dirname}.zip`, "application/zip", progress);
-  attachment.extract = true;
-  attachment.mountPath = `inputs/${dirname}/`;
-  attachment.localPath = absPath;
-  return attachment;
-}
-
-// Upload raw bytes via the RPC and build an Attachment. Mirrors Go's uploadBytes.
-async function uploadBytes(
-  uploader: AttachmentUploader,
-  content: Uint8Array,
-  filename: string,
-  contentType: string,
-  progress?: ProgressSink,
-): Promise<Attachment> {
-  const req = create(UploadAttachmentRequestSchema, { filename, content, contentType });
-  let resp: UploadAttachmentResponse;
-  try {
-    resp = await uploader.uploadAttachment(req);
-  } catch (err) {
-    throw new UsageError(`failed to upload attachment "${filename}": ${(err as Error).message}`);
-  }
-  progress?.(`Uploaded ${filename}`);
-  return create(AttachmentSchema, { filename, storageKey: resp.storageKey, contentType });
-}
-
-interface ZipResult {
-  readonly bytes: Uint8Array;
-  readonly fileCount: number;
-  readonly originalSize: number;
-}
-
-// Build a zip of dirPath's contents, skipping hidden entries (and their
-// subtrees) and symlinks. Mirrors Go's zipDirectory.
-function zipDirectory(dirPath: string, progress?: ProgressSink): ZipResult {
-  const files: Record<string, Uint8Array> = {};
-  let fileCount = 0;
-  let originalSize = 0;
-
+): AttachedFolder {
+  const files: FolderFile[] = [];
   const walk = (current: string, prefix: string): void => {
-    const entries = readdirSync(current, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.name.startsWith(".")) continue; // hidden entry (and subtree if dir)
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      if (entry.name.startsWith(".")) continue;
       const rel = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
       const full = join(current, entry.name);
       if (entry.isSymbolicLink()) {
         progress?.(`Skipping symlink: ${full}`);
-        continue;
-      }
-      if (entry.isDirectory()) {
+      } else if (entry.isDirectory()) {
         walk(full, rel);
-        continue;
+      } else if (entry.isFile()) {
+        budget.remaining -= 1;
+        if (budget.remaining < 0) {
+          throw new UsageError(
+            `--attach gives more than ${MAX_CONVERSATION_FILES} files; a conversation holds at most ${MAX_CONVERSATION_FILES}`,
+          );
+        }
+        files.push({ path: full, size: statSync(full).size, relativePath: rel });
       }
-      if (!entry.isFile()) continue;
-      const content = new Uint8Array(readFileSync(full));
-      files[rel] = content;
-      fileCount++;
-      originalSize += content.byteLength;
     }
   };
-  walk(dirPath, "");
-
-  if (fileCount === 0) {
-    throw new UsageError(`directory contains no attachable files: ${dirPath}`);
+  walk(abs, "");
+  if (files.length === 0) {
+    throw new UsageError(`directory contains no attachable files: ${abs}`);
   }
-
-  return { bytes: zipSync(files, { level: 6 }), fileCount, originalSize };
+  const name = basename(abs);
+  return { name: name === "" ? "folder" : name, files };
 }
 
-// MIME by extension. Go consults the OS mime DB first (non-deterministic across
-// hosts) and falls back to a fixed switch; we use a curated table so the result
-// is deterministic. content_type is advisory — the server re-guesses from the
-// filename when absent — so exact parity with Go's OS DB is not required.
-const MIME_BY_EXT: Readonly<Record<string, string>> = {
-  ".md": "text/markdown",
-  ".markdown": "text/markdown",
-  ".yaml": "application/x-yaml",
-  ".yml": "application/x-yaml",
-  ".toml": "application/toml",
-  ".csv": "text/csv",
-  ".tsv": "text/tab-separated-values",
-  ".log": "text/plain",
-  ".sql": "application/sql",
-  ".parquet": "application/vnd.apache.parquet",
-  ".avro": "application/avro",
-  ".json": "application/json",
-  ".txt": "text/plain",
-  ".pdf": "application/pdf",
-  ".html": "text/html",
-  ".htm": "text/html",
-  ".xml": "text/xml",
-  ".zip": "application/zip",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".svg": "image/svg+xml",
-  ".js": "text/javascript",
-  ".ts": "text/plain",
-};
-
-function detectContentType(filename: string): string {
-  const ext = extname(filename).toLowerCase();
-  if (ext === "") return "application/octet-stream";
-  return MIME_BY_EXT[ext] ?? "application/octet-stream";
+// Returns `name` unchanged when free, otherwise the first free `name-2`,
+// `name-3`, ... variant. Extension-blind: a folder name has no extension
+// ("reports.2024" becomes "reports.2024-2").
+function uniquifyName(name: string, taken: ReadonlySet<string>): string {
+  if (!taken.has(name)) return name;
+  for (let n = 2; ; n++) {
+    const candidate = `${name}-${n}`;
+    if (!taken.has(candidate)) return candidate;
+  }
 }
 
-// Human-readable byte size. Mirrors Go's formatFileSize (1024-based, one decimal).
+// Human-readable byte size: 1024-based, one decimal.
 function formatFileSize(bytes: number): string {
   const KB = 1024;
   const MB = KB * 1024;
@@ -274,27 +385,6 @@ function formatFileSize(bytes: number): string {
   return `${bytes} B`;
 }
 
-// Returns `name` unchanged when free, otherwise the first free `name-2`,
-// `name-3`, … variant. Deliberately extension-blind — directory names have no
-// extension semantics ("reports.2024" becomes "reports.2024-2", not
-// "reports-2.2024"), unlike the filename uniquify in the runner and React SDK
-// (shared/attachment-naming.ts / attachment-utils.ts) this mirrors.
-function uniquifyDirName(name: string, taken: ReadonlySet<string>): string {
-  if (!taken.has(name)) return name;
-  for (let n = 2; ; n++) {
-    const candidate = `${name}-${n}`;
-    if (!taken.has(candidate)) return candidate;
-  }
-}
-
-// path.basename, but resilient to trailing slashes (matches Go filepath.Base
-// semantics closely enough for display/name derivation).
-function basenameOf(p: string): string {
-  const cleaned = p.replace(/[/\\]+$/, "");
-  const idx = Math.max(cleaned.lastIndexOf("/"), cleaned.lastIndexOf("\\"));
-  return idx === -1 ? cleaned : cleaned.slice(idx + 1);
-}
-
-function toSlash(p: string): string {
-  return p.split(sep).join("/");
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }

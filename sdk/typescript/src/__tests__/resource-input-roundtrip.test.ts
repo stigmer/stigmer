@@ -157,26 +157,44 @@ const PLUGIN_REFS = [
   { org: "acme", slug: "github", version: "v3", kind: ApiResourceKind.plugin },
 ];
 
-const WORKSPACE_ENTRIES = [
+// A conversation's resources, one of each arm: a repository whose token a
+// read returns redacted, a folder on the person's machine, and a File.
+const RESOURCES = [
   {
     name: "repo",
-    source: {
-      source: {
-        case: "gitRepo" as const,
-        value: {
-          url: "https://github.com/acme/app.git",
-          branch: "main",
-          commit: "abc123",
-          depth: 1,
-          writeBackMode: GitWriteBackMode.GIT_WRITE_BACK_BRANCH_AND_PR,
-          token: "***REDACTED***",
-        },
+    resource: {
+      case: "gitRepository" as const,
+      value: {
+        url: "https://github.com/acme/app.git",
+        branch: "main",
+        commit: "abc123",
+        writeBackMode: GitWriteBackMode.GIT_WRITE_BACK_BRANCH_AND_PR,
+        token: "***REDACTED***",
       },
     },
   },
   {
     name: "scratch",
-    source: { source: { case: "localPath" as const, value: { path: "/tmp/scratch" } } },
+    resource: { case: "localPath" as const, value: { path: "/tmp/scratch" } },
+  },
+  {
+    name: "",
+    resource: { case: "file" as const, value: { fileId: "file_01", mountPath: "q3/ledger.xlsx" } },
+  },
+];
+
+// A routine's resources: no folder and no token, which a routine refuses.
+const ROUTINE_RESOURCES = [
+  {
+    name: "repo",
+    resource: {
+      case: "gitRepository" as const,
+      value: { url: "https://github.com/acme/app.git", branch: "main" },
+    },
+  },
+  {
+    name: "",
+    resource: { case: "file" as const, value: { fileId: "file_01", mountPath: "" } },
   },
 ];
 
@@ -357,7 +375,7 @@ describe("toAgentExecutionInput", () => {
             agentRef: { org: "acme", slug: "fixer", kind: ApiResourceKind.agent },
             subject: "Fix the flaky test",
             metadata: { "stigmer.ai/context": "embedded" },
-            workspaceEntries: WORKSPACE_ENTRIES,
+            resources: RESOURCES,
             plugins: PLUGIN_REFS,
             skillRefs: [
               { org: "acme", slug: "triage", version: "v2", kind: ApiResourceKind.skill },
@@ -376,16 +394,7 @@ describe("toAgentExecutionInput", () => {
         tools: ["Read", "Grep"],
         disallowedTools: ["Skill"],
         appendSystemPrompt: "Answer in one paragraph.",
-        attachments: [
-          {
-            filename: "spec.pdf",
-            storageKey: "att/spec.pdf",
-            mountPath: "/work/spec.pdf",
-            contentType: "application/pdf",
-            extract: true,
-            localPath: "/tmp/spec.pdf",
-          },
-        ],
+        fileIds: ["file_01", "file_02"],
         workspaceFileRefs: ["src/app.ts"],
         supersedesRunId: "exec-0",
         conversationCatchup: {
@@ -731,7 +740,7 @@ describe("toRoutineInput", () => {
           agentRef: { org: "acme", slug: "support-bot", kind: ApiResourceKind.agent },
           message: "Weekly triage.",
           harness: Harness.NATIVE,
-          workspaceEntries: WORKSPACE_ENTRIES,
+          resources: ROUTINE_RESOURCES,
           vaults: [
             { org: "acme", slug: "prod", kind: ApiResourceKind.vault },
           ],
@@ -771,7 +780,7 @@ describe("toSessionInput", () => {
         agentRef: { org: "acme", slug: "fixer", kind: ApiResourceKind.agent },
         subject: "Fix the flaky test",
         metadata: { "stigmer.ai/context": "embedded" },
-        workspaceEntries: WORKSPACE_ENTRIES,
+        resources: RESOURCES,
         plugins: PLUGIN_REFS,
         skillRefs: [
           { org: "acme", slug: "triage", version: "v2", kind: ApiResourceKind.skill },
@@ -820,7 +829,7 @@ describe("toSessionInput", () => {
       ...toSessionInput(original),
       subject: "New subject",
     });
-    expect(rebuilt.spec?.workspaceEntries).toEqual(original.spec?.workspaceEntries);
+    expect(rebuilt.spec?.resources).toEqual(original.spec?.resources);
     expect(rebuilt.spec?.subject).toBe("New subject");
   });
 });

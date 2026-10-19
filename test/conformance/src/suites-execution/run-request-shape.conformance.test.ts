@@ -1,6 +1,6 @@
 // Conformance suite for the shape of the request the native harness sends the
 // model: for a BARE agent (one instruction sentence; no skills, workspace
-// entries, attachments, channel, sub-agents or standing context), the bytes
+// resources, files, channel, sub-agents or standing context), the bytes
 // the provider receives on the first model call, photographed as file
 // goldens, and the facts about them that the platform's later work moves
 // deliberately.
@@ -83,9 +83,7 @@
 //
 // A golden moves only under a ruling quoted in the PR that moves it, with
 // every hunk explained; never a quiet `vitest -u`.
-import { create } from "@bufbuild/protobuf";
 import { RunPhase, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { UploadAttachmentRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceClients } from "../harness/clients";
@@ -140,7 +138,7 @@ async function runAgentTurn(
   sessionId?: string,
   turn: {
     message?: string;
-    attachments?: Parameters<typeof makeAgentExecution>[0]["attachments"];
+    fileIds?: string[];
     workspaceFileRefs?: string[];
     runConfig?: Parameters<typeof makeAgentExecution>[0]["runConfig"];
     structuredOutputSchema?: Parameters<typeof makeAgentExecution>[0]["structuredOutputSchema"];
@@ -156,7 +154,7 @@ async function runAgentTurn(
       ...(sessionId === undefined ? { agentRef } : { sessionId }),
       message: turn.message ?? BARE_AGENT_MESSAGE,
       autoApproveAll: true,
-      ...(turn.attachments !== undefined ? { attachments: turn.attachments } : {}),
+      ...(turn.fileIds !== undefined ? { fileIds: turn.fileIds } : {}),
       ...(turn.workspaceFileRefs !== undefined ? { workspaceFileRefs: turn.workspaceFileRefs } : {}),
       ...(turn.runConfig !== undefined ? { runConfig: turn.runConfig } : {}),
       ...(turn.structuredOutputSchema !== undefined ? { structuredOutputSchema: turn.structuredOutputSchema } : {}),
@@ -307,20 +305,25 @@ async function createAgentWithSkills(): Promise<{ org: string; agentRef: AgentRe
 }
 
 describe("Run request shape — the system prompt is the session's, the payload the turn's", () => {
-  it("nine skills, three turns with different messages, an attachment and a referenced file: system and tools stay byte-identical", async () => {
+  it("nine skills, three turns with different messages, a File and a referenced file: system and tools stay byte-identical", async () => {
     const { org, agentRef } = await createAgentWithSkills();
     const filename = "cross-turn-notes.txt";
-    const uploaded = await clients.agentExecutionCommand.uploadAttachment(
-      create(UploadAttachmentRequestSchema, { filename, content: Buffer.from("cross-turn attachment"), contentType: "text/plain" }),
-    );
     const referenced = "docs/glossary.md";
 
     const first = await runAgentTurn(org, agentRef, undefined, { message: CROSS_TURN_MESSAGES[0] });
     const sessionId = sessionIdOf(first.final);
     expect(sessionId, "the first turn's session is where the later turns run").toBeTruthy();
+    // A File uploaded into the conversation, then given with the second
+    // message: the conversation deletes it with itself.
+    const file = await clients.fileCommand.upload({
+      org,
+      sessionId,
+      filename,
+      source: { case: "data", value: new TextEncoder().encode("cross-turn file") },
+    });
     const second = await runAgentTurn(org, agentRef, sessionId, {
       message: CROSS_TURN_MESSAGES[1],
-      attachments: [{ filename, storageKey: uploaded.storageKey }],
+      fileIds: [file.metadata!.id],
     });
     const third = await runAgentTurn(org, agentRef, sessionId, { message: CROSS_TURN_MESSAGES[2], workspaceFileRefs: [referenced] });
 
@@ -336,7 +339,7 @@ describe("Run request shape — the system prompt is the session's, the payload 
     for (const skill of CROSS_TURN_SKILLS) {
       expect(system, `every mounted skill is described on every turn: ${skill.name}`).toContain(skill.description);
     }
-    expect(readLastUserText(second.body), "the attachment is named in the message of the turn that carries it").toContain(filename);
+    expect(readLastUserText(second.body), "the File is named in the message of the turn that carries it").toContain(filename);
     expect(readLastUserText(third.body), "the referenced path is named in the message of the turn that references it").toContain(
       referenced,
     );

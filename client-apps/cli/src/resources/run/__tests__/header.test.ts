@@ -1,7 +1,8 @@
 import { create } from "@bufbuild/protobuf";
 import {
-  WorkspaceEntrySchema,
-} from "@stigmer/apis/ai/stigmer/agentic/session/v1/workspace_pb";
+  FileResourceSchema,
+  SessionResourceSchema,
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { describe, expect, it } from "vitest";
 import { renderSessionHeader, workspaceNames } from "../header.js";
 
@@ -69,11 +70,17 @@ describe("renderSessionHeader", () => {
 });
 
 describe("workspaceNames", () => {
-  it("extracts the derived name from each entry", () => {
-    const entries = [
-      create(WorkspaceEntrySchema, { name: "app" }),
-      create(WorkspaceEntrySchema, { name: "infra" }),
+  it("lists the repositories and folders by name, leaving the conversation's Files out", () => {
+    const resources = [
+      create(SessionResourceSchema, { name: "app", resource: { case: "localPath", value: { path: "/src/app" } } }),
+      create(SessionResourceSchema, {
+        resource: { case: "file", value: create(FileResourceSchema, { fileId: "file_1", mountPath: "a.csv" }) },
+      }),
+      create(SessionResourceSchema, {
+        name: "infra",
+        resource: { case: "gitRepository", value: { url: "https://github.com/acme/infra" } },
+      }),
     ];
-    expect(workspaceNames(entries)).toEqual(["app", "infra"]);
+    expect(workspaceNames(resources)).toEqual(["app", "infra"]);
   });
 });

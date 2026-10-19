@@ -38,6 +38,7 @@ import { ChannelAppQueryController } from "@stigmer/apis/ai/stigmer/agentic/chan
 import { EnvironmentCommandController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/command_pb";
 import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/query_pb";
 import { FileCommandController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/command_pb";
+import { FileMountController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/mount_pb";
 import { FileQueryController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/query_pb";
 import { MemoryCommandController } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/command_pb";
 import { MemoryQueryController } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/query_pb";
@@ -106,6 +107,8 @@ export interface ConformanceClients {
   environmentQuery: Client<typeof EnvironmentQueryController>;
   fileCommand: Client<typeof FileCommandController>;
   fileQuery: Client<typeof FileQueryController>;
+  // The runner's File mount: a suite sends it only to pin who is refused.
+  fileMount: Client<typeof FileMountController>;
   channelCommand: Client<typeof ChannelCommandController>;
   channelConversationCommand: Client<
     typeof ChannelConversationCommandController
@@ -226,6 +229,7 @@ export function makeClients(transport: Transport): ConformanceClients {
     environmentQuery: createClient(EnvironmentQueryController, transport),
     fileCommand: createClient(FileCommandController, transport),
     fileQuery: createClient(FileQueryController, transport),
+    fileMount: createClient(FileMountController, transport),
     channelCommand: createClient(ChannelCommandController, transport),
     channelConversationCommand: createClient(
       ChannelConversationCommandController,

@@ -233,7 +233,6 @@ export {
 export {
   RunClient,
   type RunInput,
-  type AttachmentInput,
 } from "./gen/run.js";
 export {
   ApiKeyClient,
@@ -367,10 +366,10 @@ export {
   SessionClient,
   buildSessionProto,
   type SessionInput,
-  type WorkspaceEntryInput,
-  type WorkspaceSourceInput,
-  type GitRepoSourceInput,
-  type LocalPathSourceInput,
+  type SessionResourceInput,
+  type FileResourceInput,
+  type GitRepositoryResourceInput,
+  type LocalPathResourceInput,
 } from "./gen/session.js";
 
 // Session utilities (hand-written)

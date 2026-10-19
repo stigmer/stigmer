@@ -1,9 +1,14 @@
 // Unit tests for the prelude orchestrator: flag validation helpers, the
 // vaults the new conversation uses (My vault unless --no-my-vault, then each
 // --vault in order), and the layered engine/model seeds (flag, the
-// agent's run defaults, the account preference). Attachment uploading is covered in
-// attachments.test.ts, so these tests use no attachments.
+// agent's run defaults, the account preference), and the attachment plan:
+// an attached file inside a --workspace folder is a mention, any other is
+// carried by the message, and nothing is uploaded here. Uploading is covered
+// in attachments.test.ts and agent-exec.test.ts.
 
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 import { AgentSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -87,9 +92,9 @@ const BASE_FLAGS: AgentExecFlags = {
   harness: "",
 };
 
-// prepareAgentExec only touches client.run for attachment uploads;
-// with no attachments a bare stub suffices.
-const STUB_CLIENT = { run: {} } as unknown as Stigmer;
+// prepareAgentExec asks the client only for what a flag names by id or by
+// the account's defaults; nothing is uploaded, so a bare stub suffices.
+const STUB_CLIENT = {} as unknown as Stigmer;
 
 /** The shape of IdentityAccountPreferences the stubs below expose. */
 interface StubPreferences {
@@ -140,6 +145,30 @@ function countingClient(preferences: StubPreferences): { client: Stigmer; calls:
 
 /** prepareAgentExec options as `run` passes them: the kind is served here. */
 const SERVED_RUN_OPTIONS = { accountPreferencesAvailable: true } as const;
+
+describe("prepareAgentExec attachments", () => {
+  it("mentions a file in a --workspace folder, carries any other, and uploads nothing", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "prepare-attach-"));
+    try {
+      mkdirSync(join(dir, "repo"));
+      writeFileSync(join(dir, "repo", "main.ts"), "x");
+      writeFileSync(join(dir, "notes.md"), "y");
+      const prepared = await prepareAgentExec(
+        {
+          ...BASE_FLAGS,
+          workspace: [join(dir, "repo")],
+          attach: [join(dir, "repo", "main.ts"), join(dir, "notes.md")],
+        },
+        STUB_CLIENT,
+      );
+      expect(prepared.resources.map((r) => r.name)).toEqual(["repo"]);
+      expect(prepared.attachments.workspaceFileRefs).toEqual(["main.ts"]);
+      expect(prepared.attachments.messageFiles.map((f) => f.path)).toEqual([join(dir, "notes.md")]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
 
 describe("prepareAgentExec vaults", () => {
   it("includes the person's My vault and names no shared vault by default", async () => {

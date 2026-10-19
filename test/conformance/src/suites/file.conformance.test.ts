@@ -15,7 +15,11 @@
 //   - update changes labels and refuses the filename, naming the door that
 //     writes it; updateVisibility widens it to the organization; delete
 //     removes it;
-//   - deleting a conversation deletes the Files uploaded into it.
+//   - deleting a conversation deletes the Files uploaded into it;
+//   - the mount that hands a runner a conversation's Files with links to
+//     their bytes answers only the runner acting for the run: a person's
+//     own credential is refused. The runner's own mount, on real turns, is
+//     the execution suite's (suites-execution/run.conformance.test.ts).
 //
 // Deliberately out of scope: the size cap (an operator setting the server's
 // own suite pins), the blob store's sharing and sweeps (the server's unit
@@ -202,5 +206,16 @@ describe("File conformance — changes and deletes", () => {
       Code.NotFound,
       "a conversation's File goes with it",
     );
+  });
+});
+
+describe("File conformance — the runner's mount", () => {
+  it("[rpc:FileMountController.mount] a person's own credential is no runner's: mounting a run's Files is refused", async () => {
+    const refused = await expectGrpcCode(
+      () => clients.fileMount.mount({ runId: "run_01conformancenotarunner" }),
+      Code.PermissionDenied,
+      "mount with a signed-in person's credential",
+    );
+    expect(refused.rawMessage).toBe("only the runner acting for this run may mount its files");
   });
 });

@@ -119,7 +119,7 @@ export interface RoutineOptions {
   message?: string;
   // Vault slugs the routine's runs use (spec.agent.vaults).
   vaults?: string[];
-  // Repositories each run's conversation clones (spec.agent.workspace_entries).
+  // Repositories each run's conversation clones (spec.agent.resources).
   repositories?: Array<{ name: string; url: string; token?: string }>;
 }
 
@@ -149,13 +149,11 @@ export function makeRoutine(
           : {}),
         ...(options.repositories !== undefined
           ? {
-              workspaceEntries: options.repositories.map((repository) => ({
+              resources: options.repositories.map((repository) => ({
                 name: repository.name,
-                source: {
-                  source: {
-                    case: "gitRepo" as const,
-                    value: { url: repository.url, token: repository.token ?? "" },
-                  },
+                resource: {
+                  case: "gitRepository" as const,
+                  value: { url: repository.url, token: repository.token ?? "" },
                 },
               })),
             }

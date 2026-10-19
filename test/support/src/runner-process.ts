@@ -231,8 +231,8 @@ export interface RunningRunner {
   // line for an execution that ran minutes ago.
   logFile: string;
   // The runner's HOME for this run — where its `~/.stigmer/sessions/<id>/…`
-  // tree lands (session checkpoints, the platform dir attachments materialize
-  // into). A suite that reads what the runner wrote to disk reads under this,
+  // tree lands (session checkpoints, the platform dir a conversation's Files
+  // are mounted into). A suite that reads what the runner wrote to disk reads under this,
   // never under the test process's own home.
   homeDir: string;
   // The public address this runner was launched with
