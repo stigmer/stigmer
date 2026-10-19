@@ -53,8 +53,7 @@ interface DeclaredTool {
   readonly schema: unknown;
 }
 
-function isDeclaredTool(candidate: unknown): candidate is DeclaredTool {
-  if (candidate == null || typeof candidate !== "object") return false;
+function isDeclaredTool(candidate: object): candidate is DeclaredTool {
   const t = candidate as Record<string, unknown>;
   return typeof t.name === "string" && typeof t.description === "string" && "schema" in t;
 }
@@ -65,7 +64,7 @@ function isDeclaredTool(candidate: unknown): candidate is DeclaredTool {
  * its schema is not an object (a mangled schema would break the shell for
  * the whole turn; an unextended one only loses the raisable timeout).
  */
-function declareShell(original: unknown): unknown {
+function declareShell(original: object): unknown {
   if (!isDeclaredTool(original) || original.name !== SHELL_TOOL_NAME) return original;
   let object: { readonly properties?: Record<string, unknown> };
   try {
