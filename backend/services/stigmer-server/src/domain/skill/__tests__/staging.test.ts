@@ -121,7 +121,6 @@ function fakeDriver(
         : Promise.resolve(data);
     },
     size: (key) => Promise.resolve(blobs.get(key)?.length ?? 0),
-    readRange: (key, offset, length) => Promise.resolve((blobs.get(key) ?? new Uint8Array()).slice(offset, offset + length)),
     presignPut: (key, declaredSizeBytes, ttlMs) => {
       recorded.presignPut.push({ key, declaredSizeBytes, ttlMs });
       return Promise.resolve({

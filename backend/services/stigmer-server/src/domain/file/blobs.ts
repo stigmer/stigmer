@@ -360,7 +360,11 @@ export function newFileBlobs(deps: FileBlobsDeps): FileBlobs {
         throw internalError(new Error(`file ${fileId} names no stored blob`), "the file's bytes are missing");
       }
       try {
-        return await storage.readRange(blobKey, 0, maxBytes);
+        if (storage.readRange !== undefined) {
+          return await storage.readRange(blobKey, 0, maxBytes);
+        }
+        // A registered driver without ranged reads: the whole blob, cut.
+        return (await storage.download(blobKey)).slice(0, maxBytes);
       } catch (error) {
         throw internalError(error, "failed to read the file");
       }

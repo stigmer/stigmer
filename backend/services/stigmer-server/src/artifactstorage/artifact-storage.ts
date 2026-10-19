@@ -99,9 +99,11 @@ export interface ArtifactStorage {
    * At most `length` bytes of the stored blob from `offset`, fewer at its
    * end, without loading the rest: a File's first bytes are shown without
    * reading a large File whole. A key addressing no stored blob throws
-   * ArtifactStorageNotFoundError.
+   * ArtifactStorageNotFoundError. Optional, so a driver an extension
+   * registers keeps compiling: without it a caller reads the blob whole
+   * (download) and takes the range itself. Both built-in drivers have it.
    */
-  readRange(key: string, offset: number, length: number): Promise<Uint8Array>;
+  readRange?(key: string, offset: number, length: number): Promise<Uint8Array>;
   /**
    * A time-limited download URL for `reader` (SignedUrlReader), valid for
    * `expiresInMs` clamped to MAX_SIGNED_URL_TTL_MS on every backend.

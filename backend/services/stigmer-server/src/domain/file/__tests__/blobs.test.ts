@@ -10,6 +10,8 @@
  *     two) are swept once the lease lapses, row and bytes;
  *   - a blob two Files share goes only with the last of them;
  *   - an upload URL never used is swept after it expires;
+ *   - a File's first bytes are read by range, never whole, and a driver
+ *     without ranged reads gives the range of the whole;
  *   - an organization's purge leaves none of its blobs, bytes or rows, a
  *     page at a time, and touches no other organization's;
  *   - a reference this server could not have minted is unknown, and staged
@@ -195,6 +197,20 @@ describe("promoting a staged upload", () => {
     nowMs += BLOB_WRITE_LEASE_MS + 1000;
     await blobs.sweep();
     expect(await fx.store.files.getBlob(stagingKeyOf(minted.ref) ?? "")).toBeUndefined();
+  });
+});
+
+describe("reading a File's first bytes", () => {
+  it("reads only the range asked, and from a driver without ranged reads takes the range of the whole", async () => {
+    const bytes = new TextEncoder().encode("0123456789");
+    const blob = await blobs.storeInline(ORG, bytes, "text/plain");
+    await insert("file_01head", blob);
+    expect(new TextDecoder().decode(await blobs.readHead("file_01head", 4))).toBe("0123");
+    expect(downloads, "a ranged read loads nothing whole").toEqual([]);
+
+    const plain = blobsWith({ storage: { readRange: undefined } });
+    expect(new TextDecoder().decode(await plain.readHead("file_01head", 4))).toBe("0123");
+    expect(downloads).toEqual([blob.blobKey]);
   });
 });
 

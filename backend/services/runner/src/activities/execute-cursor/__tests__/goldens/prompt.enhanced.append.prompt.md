@@ -72,6 +72,12 @@ The user has referenced the following workspace files. Read them when relevant:
 
 ---
 
+<outputs_folder>
+To give the user a file, save it in `.stigmer/outputs/`; everything there is returned to them when the turn ends. Files you edit in the workspace are not returned this way.
+</outputs_folder>
+
+---
+
 <conversation_sender>
 You are talking with a user whose channel-verified WhatsApp phone number is: 15550001111
 

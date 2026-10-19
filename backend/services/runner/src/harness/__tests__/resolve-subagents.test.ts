@@ -258,7 +258,7 @@ function ready(result: Awaited<ReturnType<typeof run>>["result"]) {
 describe("resolveSubagents: what a subagent runs with", () => {
   it("resolves nothing, and reports nothing, for a turn whose agent lists no subagent", async () => {
     const { result, labels } = await run([]);
-    expect(result).toEqual({ kind: "ready", subagents: [], loadedSkills: [] });
+    expect(result).toEqual({ kind: "ready", subagents: [], loadedSkills: [], mounts: { skills: [], plugins: [] } });
     expect(labels).toEqual([]);
   });
 
@@ -268,7 +268,7 @@ describe("resolveSubagents: what a subagent runs with", () => {
       c,
       capabilities: { harness: Harness.NATIVE, subAgents: false },
     });
-    expect(result).toEqual({ kind: "ready", subagents: [], loadedSkills: [] });
+    expect(result).toEqual({ kind: "ready", subagents: [], loadedSkills: [], mounts: { skills: [], plugins: [] } });
     expect(labels).toEqual([]);
     expect(fetches).toEqual([]);
   });
@@ -371,6 +371,10 @@ describe("resolveSubagents: what a subagent runs with", () => {
     expect(loaded.map((r) => [r.org, r.id, r.version]), "its own skill by id at its version; its plugin's is named by the digest").toEqual([
       ["acme", "skill-alpha", "hash-alpha"],
     ]);
+    expect(result.kind === "ready" ? result.mounts : undefined, "what it mounted, which the platform folder keeps").toEqual({
+      skills: ["alpha"],
+      plugins: [DIGEST],
+    });
   });
 
   it("mounts a skill the main agent also has once: the second resolution hits the hash-keyed marker", async () => {
