@@ -66,12 +66,23 @@ function anthropicUsage(usage: TokenUsageOptions): AnthropicUsage {
   return shaped;
 }
 
+// Each canned response's message id, unique as a provider's are. A repeated id
+// is not cosmetic: LangGraph's message reducer replaces a message whose id it
+// already holds, so a mock that answered every turn as `msg_mock_10` made the
+// native runner's conversation forget each round as the next arrived
+// (stigmer#2437).
+let messageSeq = 0;
+function nextMessageId(): string {
+  messageSeq += 1;
+  return `msg_mock_${messageSeq}`;
+}
+
 // A canned Anthropic text turn that ends the agent loop (stop_reason end_turn).
 // The model name maps to the Anthropic provider path; token counts default to
 // cosmetic values and are set explicitly by the usage-extraction arms.
 export function anthropicText(text: string, usage: TokenUsageOptions = {}): AnthropicMessageBody {
   return {
-    id: `msg_mock_${usage.inputTokens ?? 10}`,
+    id: nextMessageId(),
     type: "message",
     role: "assistant",
     model: "claude-sonnet-4-6",
@@ -107,7 +118,7 @@ export function anthropicToolUse(
 // contract (resolve every co-pending gate with a single decision).
 export function anthropicToolUses(blocks: ToolUseBlock[], usage: TokenUsageOptions = {}): AnthropicMessageBody {
   return {
-    id: `msg_mock_${usage.inputTokens ?? 10}`,
+    id: nextMessageId(),
     type: "message",
     role: "assistant",
     model: "claude-sonnet-4-6",

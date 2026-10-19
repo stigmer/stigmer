@@ -11,8 +11,26 @@
 // reads: one entry per message with its role and block types in order, a
 // string content as one `text` block, and a missing `messages`, a roleless
 // message or a non-block content refused by name.
+//
+// And for the canned responses: every one carries its own message id, as a
+// provider's do, whatever usage it states (stigmer#2437: a repeated id made
+// the native runner's reducer replace each round with the next).
 import { describe, expect, it } from "vitest";
-import { readLastUserText, readTurnShapes } from "../llm-wire.ts";
+import { anthropicText, anthropicToolUse, anthropicToolUses, readLastUserText, readTurnShapes } from "../llm-wire.ts";
+
+describe("the canned responses' message ids", () => {
+  it("are unique across text and tool-use turns, with or without stated usage", () => {
+    const ids = [
+      anthropicText("a").id,
+      anthropicText("b").id,
+      anthropicToolUse("t1", "echo", {}).id,
+      anthropicToolUses([{ toolCallId: "t2", toolName: "echo", toolInput: {} }], { inputTokens: 10 }).id,
+      anthropicText("c", { inputTokens: 10 }).id,
+    ];
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const id of ids) expect(id).toMatch(/^msg_mock_\d+$/);
+  });
+});
 
 describe("readTurnShapes", () => {
   it("reads each message's role and block types in order, a string content as one text block", () => {
