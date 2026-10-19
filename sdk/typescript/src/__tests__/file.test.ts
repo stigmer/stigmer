@@ -224,6 +224,29 @@ describe("RoutedFileClient.uploadFile size routing", () => {
     expect(message).not.toContain("stage.invalid");
   });
 
+  it("sends upload() with small inline data as it is", async () => {
+    const captured: Captured = { uploads: [], mints: [] };
+    const client = new RoutedFileClient(fakeTransport(captured, "http://stage.invalid/u"));
+    await client.upload(
+      create(UploadFileInputSchema, { org: "acme", filename: "a.txt", source: { case: "data", value: new Uint8Array([1]) } }),
+    );
+    expect(captured.mints).toHaveLength(0);
+    expect(captured.uploads[0].source).toEqual({ case: "data", value: new Uint8Array([1]) });
+  });
+
+  it("reports a rejected PUT whose body cannot be read by its status alone", async () => {
+    const captured: Captured = { uploads: [], mints: [] };
+    const unreadable: typeof globalThis.fetch = async () =>
+      ({ ok: false, status: 500, text: () => Promise.reject(new Error("socket reset")) }) as unknown as Response;
+    const client = new RoutedFileClient(fakeTransport(captured, "http://stage.invalid/u?sig=s3cret"), unreadable);
+
+    const err = await client
+      .uploadFile({ org: "acme", filename: "big.bin", content: patterned(MAX_INLINE_ARTIFACT_BYTES + 1) })
+      .catch((e: unknown) => e);
+
+    expect((err as StigmerError).message).toBe("file upload rejected with HTTP 500");
+  });
+
   it("reports an unreachable upload URL without naming it", async () => {
     const captured: Captured = { uploads: [], mints: [] };
     const failingFetch: typeof globalThis.fetch = async () => {

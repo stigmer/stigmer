@@ -233,6 +233,7 @@ export async function uploadFileFromPath(
   // Read off the namespace, not imported by name: a Node without
   // openAsBlob would otherwise fail to load this whole module.
   const openAsBlob: typeof fs.openAsBlob | undefined = fs.openAsBlob;
+  /* v8 ignore next -- @preserve: the package admits Node 18, which lacks openAsBlob; every Node this repository tests on has it */
   if (typeof openAsBlob !== "function") {
     throw new Error("uploadFileFromPath needs fs.openAsBlob (Node 19.8 or later)");
   }
