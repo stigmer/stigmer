@@ -11,7 +11,9 @@
  *   - making a conversation's copy answers NOT_FOUND for a File that is
  *     gone, FAILED_PRECONDITION when its bytes went (no ref, or a blob
  *     being orphaned), INTERNAL on any other store fault, and takes the
- *     copy back when its access cannot be written.
+ *     copy back when its access cannot be written;
+ *   - a runner's link to a File is INTERNAL when the store or the signer
+ *     fails.
  * Their working paths run in session-resources.test.ts and
  * message-files.test.ts.
  */
@@ -33,6 +35,8 @@ import type { Authorizer } from "../../../extensions/authorizer.js";
 import type { ResourceAuthorizationLifecycle } from "../../../extensions/resource-authorization.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import { FileBlobUnavailableError } from "../../../store/file-blobs.js";
+import type { ArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
+import { newFileBlobs } from "../blobs.js";
 import type { FileBlobs } from "../blobs.js";
 import { discardQuietly, newFileInstances } from "../instances.js";
 import type { FileInstances } from "../instances.js";
@@ -177,5 +181,26 @@ describe("making a conversation's copy when the store fails", () => {
     expect(removed).toHaveLength(1);
     expect(removed[0]).toMatch(/^file_/);
     expect(removed[0]).not.toBe("file_01orig");
+  });
+});
+
+describe("a runner's link to a File when the store or the signer fails", () => {
+  function blobsOver(blobKeyOf: () => Promise<string | undefined>, getSignedUrl: () => Promise<string>): FileBlobs {
+    const store = stubStore({ files: { blobKeyOf } as unknown as Store["files"] });
+    const storage = { getSignedUrl } as unknown as ArtifactStorage;
+    return newFileBlobs({ store, storage, logger: silentLogger, maxBytes: 1024 });
+  }
+
+  it("answers INTERNAL when the File's storage cannot be read, and when the link cannot be signed", async () => {
+    const unreadable = blobsOver(
+      () => Promise.reject(new Error("database unreachable")),
+      () => Promise.resolve("https://files.test/x"),
+    );
+    expect((await refusal(unreadable.mountUrl("file_01a"))).code).toBe(Code.Internal);
+    const unsigned = blobsOver(
+      () => Promise.resolve("files/org_01a/blob"),
+      () => Promise.reject(new Error("signer unavailable")),
+    );
+    expect((await refusal(unsigned.mountUrl("file_01a"))).code).toBe(Code.Internal);
   });
 });

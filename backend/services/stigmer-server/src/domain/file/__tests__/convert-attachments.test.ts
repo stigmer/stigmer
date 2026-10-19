@@ -10,7 +10,7 @@
  *     access written again;
  *   - an attachment whose bytes are gone, whose run is gone, or whose run
  *     is in no conversation is skipped and its row forgotten;
- *   - a storage fault stops the pass with the row kept;
+ *   - a storage or store fault stops the pass with the row kept;
  *   - a converted File's id is derived from its run and position, shaped
  *     as a minted one.
  */
@@ -179,6 +179,23 @@ describe("converting stored attachments", () => {
       size: () => Promise.reject(new Error("bucket unreachable")),
     });
     await expect(convert({ storage: faulty })).rejects.toThrow("bucket unreachable");
+    expect(await conversionCount()).toBe(1);
+  });
+
+  it("stops on a store fault reading the run, keeping the row", async () => {
+    seedConversion({ runId: "run_01unreadable" });
+    const store = new Proxy(fx.store, {
+      get(target, property, receiver) {
+        if (property === "getResource") {
+          return () => Promise.reject(new Error("database unreachable"));
+        }
+        const value: unknown = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(target) : value;
+      },
+    });
+    await expect(
+      convertStoredAttachments({ store, storage, lifecycle, logger: silentLogger }),
+    ).rejects.toThrow("database unreachable");
     expect(await conversionCount()).toBe(1);
   });
 
