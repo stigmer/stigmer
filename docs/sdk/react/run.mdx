@@ -1617,6 +1617,7 @@ compose custom tool UIs.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    live: { type: "boolean", description: "The tool is still running and the view holds its output so far. A terminal keeps its newest lines in view as they arrive (TerminalSession's `live`); every other view ignores it." },
     showFileName: { type: "boolean", description: "Whether the file/diff variants render the filename header. Defaults to `true`. Set to `false` where an ancestor already names the file (a tool-call row whose header shows the path) so the body is not captioned with a path the user just read; the `+N -M` stats still render." },
     showStats: { type: "boolean", description: "Whether the result body renders its headline summary stat — the diff's `+N -M`, or a search/list's `N files` / `N matches` / `N items` count. Defaults to `true`. Set to `false` where an ancestor row already shows the summary (a tool-call row that renders `summarizeResultView`) so the body does not repeat the count the user just read. A search/list still surfaces a truncation note when suppressed, since that is information the row header does not carry. Orthogonal to showFileName: the approval gate suppresses the name but keeps the stats." },
     view: { type: "ToolResultView", description: "The normalized result view to render.", required: true },
@@ -1703,6 +1704,7 @@ platform builders composing custom tool UIs.
     className: { type: "string", description: "Additional CSS class names for the root container." },
     command: { type: "string", description: "The command that was run, shown as the `$ <command>` prompt line. Omit for a pure-output render; the pre-execution approval gate passes only this (no output exists yet)." },
     exitCode: { type: "number", description: "Process exit code. A non-zero code renders a trailing `exit N` badge." },
+    live: { type: "boolean", description: "The command is still running and `stdout` is what it has printed so far: the newest lines stay in view as the output grows (the oldest fold into a `… +N lines` marker), the way a terminal scrolls. Once the command returns, the row renders its finished session instead." },
     stderr: { type: "string", description: "Standard error, rendered in the destructive color." },
     stdout: { type: "string", description: "Standard output." },
   }}
