@@ -34,7 +34,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { driveLongTurn } from "../src/long-turn/drive";
-import { parseLongTurnFlags, profileOf, shellCommandOf, type StepFiles } from "../src/long-turn/profile";
+import { parseLongTurnFlags, profileOf, shellCommandOf, timeoutSecondsOf, type LongTurnStep, type StepFiles } from "../src/long-turn/profile";
 import type { LongTurnReport } from "../src/long-turn/report";
 import { agentRefOf, makeAgent } from "../src/support/agents";
 import { uniqueName } from "../src/support/naming";
@@ -72,13 +72,19 @@ async function main(): Promise<void> {
     const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("long-turn-agent") }));
 
     // One scripted model turn per step, then the closing answer. A subagent's
-    // own model call is the next queued turn, held for the step's seconds.
+    // own model calls are the next queued turns: its shell (the step's work,
+    // its timeout raised as a model raises it), then its answer.
+    const shellCall = (id: string, step: LongTurnStep) => {
+      const timeout = timeoutSecondsOf(step);
+      return anthropicToolUse(id, "execute", { command: shellCommandOf(step, files), ...(timeout === undefined ? {} : { timeout }) });
+    };
     for (const step of profile.steps) {
       if (step.kind === "subagent") {
-        mock.enqueue(anthropicToolUse(`call_${step.id}`, "task", { description: "Think about what a careful code review checks.", subagent_type: "general-purpose" }));
-        mock.enqueue(anthropicText("A careful review checks correctness, tests and names."), { delayMs: step.seconds * 1_000 });
+        mock.enqueue(anthropicToolUse(`call_${step.id}`, "task", { description: "Run the step's shell command and answer done.", subagent_type: "general-purpose" }));
+        mock.enqueue(shellCall(`call_${step.id}_work`, step));
+        mock.enqueue(anthropicText("done"));
       } else {
-        mock.enqueue(anthropicToolUse(`call_${step.id}`, "execute", { command: shellCommandOf(step, files)! }));
+        mock.enqueue(shellCall(`call_${step.id}`, step));
       }
     }
     mock.enqueue(anthropicText("Every step of the long turn is done."));

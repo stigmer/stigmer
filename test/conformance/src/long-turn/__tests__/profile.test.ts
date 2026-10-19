@@ -21,6 +21,7 @@ import {
   parseLongTurnFlags,
   profileOf,
   shellCommandOf,
+  timeoutSecondsOf,
   stepProgressOf,
   type StepFiles,
 } from "../profile";
@@ -85,17 +86,17 @@ describe("the step shells", () => {
 
   it("a silent, a streamed and a bulk step mark their start and end, and print what they promise", () => {
     const files = stepFiles();
-    expect(run(shellCommandOf({ kind: "silent", id: "s", seconds: 0 }, files)!)).toBe("");
-    const streamed = run(shellCommandOf({ kind: "streamed", id: "t", seconds: 2, everySeconds: 1, bytesPerLine: 40 }, files)!);
+    expect(run(shellCommandOf({ kind: "silent", id: "s", seconds: 0 }, files))).toBe("");
+    const streamed = run(shellCommandOf({ kind: "streamed", id: "t", seconds: 2, everySeconds: 1, bytesPerLine: 40 }, files));
     expect(streamed.split("\n").filter((l) => l.startsWith("line ")).map((l) => l.length)).toEqual([27, 27]);
-    expect(run(shellCommandOf({ kind: "streamed", id: "u", seconds: 1, everySeconds: 1, bytesPerLine: 10 }, files)!)).toBe("line 1\n");
-    expect(run(shellCommandOf({ kind: "bulk", id: "b", bytes: 1_000 }, files)!).trim()).toHaveLength(1_000);
+    expect(run(shellCommandOf({ kind: "streamed", id: "u", seconds: 1, everySeconds: 1, bytesPerLine: 10 }, files))).toBe("line 1\n");
+    expect(run(shellCommandOf({ kind: "bulk", id: "b", bytes: 1_000 }, files)).trim()).toHaveLength(1_000);
     expect(stepProgressOf(readFileSync(files.markers, "utf8"))).toEqual({ started: ["s", "t", "u", "b"], ended: ["s", "t", "u", "b"], open: undefined });
   });
 
   it("a held step waits for its release file; until then it is the open step", async () => {
     const files = stepFiles();
-    const held = shellCommandOf({ kind: "drain", id: "d" }, files)!;
+    const held = shellCommandOf({ kind: "drain", id: "d" }, files);
     const child = (await import("node:child_process")).spawn("sh", ["-c", held]);
     const exited = new Promise((resolve) => child.on("exit", resolve));
     const deadline = Date.now() + 5_000;
@@ -107,11 +108,28 @@ describe("the step shells", () => {
     expect(shellCommandOf({ kind: "kill", id: "k" }, files)).toContain(files.releaseOf("k"));
   });
 
-  it("a subagent is a task, not a shell, and the live narration says so", () => {
+  it("a subagent's work is a silent shell its subagent runs, and the live narration hands that shell over", () => {
     const files = stepFiles();
-    expect(shellCommandOf({ kind: "subagent", id: "a", seconds: 240 }, files)).toBeUndefined();
-    expect(narrateStep({ kind: "subagent", id: "a", seconds: 240 }, files)).toMatch(/general-purpose subagent/);
-    expect(narrateStep({ kind: "silent", id: "s", seconds: 600 }, files)).toContain("sleep 600");
+    expect(run(shellCommandOf({ kind: "subagent", id: "a", seconds: 0 }, files))).toBe("");
+    expect(stepProgressOf(readMarkers(files))).toMatchObject({ started: ["a"], ended: ["a"] });
+    const narrated = narrateStep({ kind: "subagent", id: "a", seconds: 240 }, files);
+    expect(narrated).toMatch(/^Hand this to a general-purpose subagent with the task tool/);
+    expect(narrated).toContain("with a timeout of 360 seconds");
+    expect(narrated).toContain("sleep 240");
+    expect(narrated.match(/"/g), "the quoted task holds no inner double quote").toHaveLength(2);
+  });
+
+  it("names a timeout past each long step's length, a long one for a held step, and none for a bulk read", () => {
+    expect(timeoutSecondsOf({ kind: "silent", id: "s", seconds: 600 })).toBe(720);
+    expect(timeoutSecondsOf({ kind: "streamed", id: "t", seconds: 600, everySeconds: 30, bytesPerLine: 80 })).toBe(720);
+    expect(timeoutSecondsOf({ kind: "kill", id: "k" })).toBe(3_000);
+    expect(timeoutSecondsOf({ kind: "drain", id: "d" })).toBe(3_000);
+    expect(timeoutSecondsOf({ kind: "bulk", id: "b", bytes: 1 })).toBeUndefined();
+    const files = stepFiles();
+    expect(narrateStep({ kind: "silent", id: "s", seconds: 600 }, files)).toBe(
+      `Run exactly this shell command, with a timeout of 720 seconds, and wait for it to finish: ${shellCommandOf({ kind: "silent", id: "s", seconds: 600 }, files)}`,
+    );
+    expect(narrateStep({ kind: "bulk", id: "b", bytes: 1 }, files)).toMatch(/^Run exactly this shell command and wait for it to finish: /);
   });
 
   it("reads the open step as the latest one begun more often than it ended, ignoring other lines", () => {
