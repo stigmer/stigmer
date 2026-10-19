@@ -209,13 +209,65 @@ describe("File conformance — changes and deletes", () => {
   });
 });
 
-describe("File conformance — the runner's mount", () => {
-  it("[rpc:FileMountController.mount] a person's own credential is no runner's: mounting a run's Files is refused", async () => {
+describe("File conformance — the runner's door", () => {
+  it("[rpc:RunFileController.mount] a person's own credential is no runner's: mounting a run's Files is refused", async () => {
     const refused = await expectGrpcCode(
-      () => clients.fileMount.mount({ runId: "run_01conformancenotarunner" }),
+      () => clients.runFiles.mount({ runId: "run_01conformancenotarunner" }),
       Code.PermissionDenied,
       "mount with a signed-in person's credential",
     );
     expect(refused.rawMessage).toBe("only the runner acting for this run may mount its files");
+  });
+
+  it("[rpc:RunFileController.createOutputUploads] [rpc:RunFileController.registerOutputs] a person's own credential returns no run's outputs", async () => {
+    const minted = await expectGrpcCode(
+      () => clients.runFiles.createOutputUploads({ runId: "run_01conformancenotarunner", entries: [{ outputPath: "report.md", sizeBytes: 3n }] }),
+      Code.PermissionDenied,
+      "minting an output's upload with a signed-in person's credential",
+    );
+    expect(minted.rawMessage).toBe("only the runner acting for this run may return its outputs");
+    const registered = await expectGrpcCode(
+      () =>
+        clients.runFiles.registerOutputs({
+          runId: "run_01conformancenotarunner",
+          entries: [{ outputPath: "report.md", uploadRef: "fup_00000000000000000000000000000000", contentSha256: "0".repeat(64) }],
+        }),
+      Code.PermissionDenied,
+      "registering an output with a signed-in person's credential",
+    );
+    expect(registered.rawMessage).toBe("only the runner acting for this run may return its outputs");
+  });
+
+  it("[rpc:RunFileController.createOutputUploads] refuses a path that is not one under the outputs folder before anything else", async () => {
+    await expectGrpcCode(
+      () => clients.runFiles.createOutputUploads({ runId: "run_01conformancenotarunner", entries: [{ outputPath: "../escape.md", sizeBytes: 3n }] }),
+      Code.InvalidArgument,
+      "a path that climbs out of the folder",
+    );
+  });
+});
+
+describe("File conformance — reading and listing", () => {
+  it("[rpc:FileQueryController.getContent] reads a File's first bytes through the server, and says when there is more", async () => {
+    const { org } = await target.provisionTenancy();
+    const text = "line one\nline two\n";
+    const file = await clients.fileCommand.upload({ org, filename: "notes.md", source: { case: "data", value: new TextEncoder().encode(text) } });
+    const id = file.metadata!.id;
+    fixtures.defer(() => clients.fileCommand.delete({ value: id }).catch(() => undefined));
+
+    const whole = await clients.fileQuery.getContent({ id });
+    expect(new TextDecoder().decode(whole.data)).toBe(text);
+    expect(whole.truncated).toBe(false);
+    const head = await clients.fileQuery.getContent({ id, maxBytes: 4n });
+    expect(new TextDecoder().decode(head.data)).toBe("line");
+    expect(head.truncated).toBe(true);
+  });
+
+  it("[rpc:FileQueryController.list] lists only the Files a run wrote when asked for a run's", async () => {
+    const { org } = await target.provisionTenancy();
+    const file = await clients.fileCommand.upload({ org, filename: "mine.txt", source: { case: "data", value: new Uint8Array([1]) } });
+    fixtures.defer(() => clients.fileCommand.delete({ value: file.metadata!.id }).catch(() => undefined));
+    const listed = await clients.fileQuery.list({ org, runId: "run_01conformancenoturnsfiles" });
+    expect(listed.entries).toEqual([]);
   });
 });
