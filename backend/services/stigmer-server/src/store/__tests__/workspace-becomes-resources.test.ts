@@ -13,11 +13,15 @@
  *     conversation, position and spec creation instant;
  *   - a row without the retired field is left alone (undefined);
  *   - bytes that do not decode, or an entry with no source, throw, and the
- *     step's error names the row.
+ *     step's error names the row;
+ *   - fields no release defined are carried or skipped, never refused: in
+ *     an entry and its source they are skipped, a git source's own are kept
+ *     beside the dropped depth, and an invocation's or a run spec's are
+ *     kept.
  */
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import { WireType } from "@bufbuild/protobuf/wire";
+import { BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { describe, expect, it } from "vitest";
 
@@ -235,5 +239,72 @@ describe("liftRunAttachments", () => {
 
   it("throws on bytes that do not decode", () => {
     expect(() => liftRunAttachments(new Uint8Array([0xff, 0xff, 0xff]))).toThrow();
+  });
+});
+
+describe("fields no release defined", () => {
+  /** The numbers of the unknown fields a message kept. */
+  const unknownNumbers = (message: { $unknown?: Array<{ no: number }> } | undefined): number[] =>
+    (message?.$unknown ?? []).map((field) => field.no);
+
+  it("skips them in an entry and its source, and keeps a git source's own beside the dropped depth", () => {
+    const git = new BinaryWriter();
+    git.tag(1, WireType.LengthDelimited).string("https://github.com/acme/app");
+    git.tag(4, WireType.Varint).int32(3);
+    git.tag(9, WireType.LengthDelimited).string("kept");
+    const source = new BinaryWriter();
+    source.tag(1, WireType.LengthDelimited).bytes(git.finish());
+    source.tag(3, WireType.Varint).int32(1);
+    source.tag(4, WireType.LengthDelimited).string("future source");
+    const entry = new BinaryWriter();
+    entry.tag(1, WireType.LengthDelimited).string("app");
+    entry.tag(7, WireType.Varint).int32(1);
+    entry.tag(8, WireType.LengthDelimited).string("future entry");
+    entry.tag(2, WireType.LengthDelimited).bytes(source.finish());
+
+    const session = create(SessionSchema, conversation);
+    session.spec!.$unknown = [
+      { no: 6, wireType: WireType.LengthDelimited, data: new BinaryWriter().bytes(entry.finish()).finish() },
+    ];
+    const migrated = migrateSessionResourcesRow(toBinary(SessionSchema, session));
+    const resource = fromBinary(SessionSchema, migrated!).spec?.resources[0];
+    expect(resource?.name).toBe("app");
+    expect(resource?.resource.case).toBe("gitRepository");
+    const repo = resource?.resource.case === "gitRepository" ? resource.resource.value : undefined;
+    expect(repo?.url).toBe("https://github.com/acme/app");
+    expect(unknownNumbers(repo), "depth goes, the git source's own field stays").toEqual([9]);
+  });
+
+  it("keeps an invocation's own beside its moved entries", () => {
+    const routine = fromBinary(
+      RoutineSchema,
+      routineRowWithEntries(
+        { metadata: { id: "rtn_2", org: ORG }, spec: { agent: { message: "Triage." } } },
+        [{ name: "notes", localPath: "/Users/ana/notes" }],
+      ),
+    );
+    routine.spec!.agent!.$unknown = [
+      ...(routine.spec!.agent!.$unknown ?? []),
+      { no: 99, wireType: WireType.Varint, data: new BinaryWriter().int32(1).finish() },
+    ];
+    const migrated = fromBinary(RoutineSchema, migrateRoutineResourcesRow(toBinary(RoutineSchema, routine))!);
+    expect(migrated.spec?.agent?.resources.map((r) => r.name)).toEqual(["notes"]);
+    expect(unknownNumbers(migrated.spec?.agent)).toEqual([99]);
+  });
+
+  it("keeps a run spec's own beside its lifted attachments", () => {
+    const run = fromBinary(
+      RunSchema,
+      runRowWithAttachments({ metadata: { id: "run_3", org: ORG }, spec: {} }, [
+        { filename: "a.txt", storageKey: "attachments/01d/a.txt" },
+      ]),
+    );
+    run.spec!.$unknown = [
+      ...(run.spec!.$unknown ?? []),
+      { no: 99, wireType: WireType.Varint, data: new BinaryWriter().int32(1).finish() },
+    ];
+    const lifted = liftRunAttachments(toBinary(RunSchema, run));
+    expect(lifted?.attachments).toHaveLength(1);
+    expect(unknownNumbers(fromBinary(RunSchema, lifted!.data).spec)).toEqual([99]);
   });
 });

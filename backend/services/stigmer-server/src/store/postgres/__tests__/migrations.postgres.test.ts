@@ -221,7 +221,9 @@ import {
   WORKSPACE_STEP_EXPECTED,
   WORKSPACE_STEP_ROWS,
   conversionOfRow,
+  sessionRowWithEntries,
 } from "../../__tests__/retired-workspace-rows.js";
+import { WORKSPACE_RESOURCES_PAGE_SIZE } from "../../workspace-becomes-resources.js";
 import { agentExecutionListIndex } from "../../../domain/run/list-index.js";
 import { grantListIndex } from "../../../domain/grant/list-index.js";
 import { newResourceGrantStore } from "../../../domain/grant/resource-store.js";
@@ -5134,6 +5136,47 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           expect(tables).not.toContain("file_conversions");
           const session = await client.query<{ data: Buffer }>(`SELECT data FROM resources WHERE id = 'ses_step'`);
           expect(new Uint8Array(session.rows[0]!.data)).toEqual(WORKSPACE_STEP_ROWS[0]!.data);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a session that does not decode fails the step the same way, naming it", async () => {
+        const client = await v39Client();
+        try {
+          await client.query(
+            `INSERT INTO resources (kind, id, data, updated_at) VALUES ('session', 'ses_broken', $1, now())`,
+            [Buffer.from([0xff, 0xff, 0xff])],
+          );
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_40)).rejects.toThrow(
+            "session 'ses_broken' cannot be read to turn its workspace entries into resources",
+          );
+          expect(await version(client)).toBe(SCHEMA_VERSION_39);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reads sessions across keyset pages, missing none past the first page", async () => {
+        const client = await v39Client();
+        try {
+          const ids: string[] = [];
+          for (let i = 0; i <= WORKSPACE_RESOURCES_PAGE_SIZE; i++) {
+            const id = `ses_page${String(i).padStart(4, "0")}`;
+            ids.push(id);
+            await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('session', $1, $2, $3)`, [
+              id,
+              Buffer.from(sessionRowWithEntries({ metadata: { id }, spec: {} }, [{ name: "notes", localPath: "/notes" }])),
+              storedAt,
+            ]);
+          }
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_40);
+          for (const id of ids) {
+            const row = await client.query<{ data: Buffer }>(`SELECT data FROM resources WHERE kind = 'session' AND id = $1`, [id]);
+            expect(fromBinary(SessionSchema, new Uint8Array(row.rows[0]!.data)).spec?.resources.map((r) => r.name), id).toEqual([
+              "notes",
+            ]);
+          }
         } finally {
           await client.end();
         }

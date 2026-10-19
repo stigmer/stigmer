@@ -222,7 +222,9 @@ import {
   WORKSPACE_STEP_EXPECTED,
   WORKSPACE_STEP_ROWS,
   conversionOfRow,
+  sessionRowWithEntries,
 } from "../../__tests__/retired-workspace-rows.js";
+import { WORKSPACE_RESOURCES_PAGE_SIZE } from "../../workspace-becomes-resources.js";
 import { agentExecutionListIndex } from "../../../domain/run/list-index.js";
 import { grantListIndex } from "../../../domain/grant/list-index.js";
 import { newResourceGrantStore } from "../../../domain/grant/resource-store.js";
@@ -4827,5 +4829,38 @@ describe("v44: workspace entries become resources, and run attachments wait to b
     expect(tableNames(db)).not.toContain("file_conversions");
     const session = db.prepare(`SELECT data FROM resources WHERE id = 'ses_step'`).get() as { data: Uint8Array };
     expect(new Uint8Array(session.data)).toEqual(WORKSPACE_STEP_ROWS[0]!.data);
+  });
+
+  it("a session that does not decode fails the step the same way, naming it", () => {
+    const db = v43Database();
+    db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('session', 'ses_broken', ?, ?)`).run(
+      new Uint8Array([0xff, 0xff, 0xff]),
+      STORED_AT,
+    );
+    expect(() => runMigrations(db, SCHEMA_VERSION_44)).toThrow(
+      "session 'ses_broken' cannot be read to turn its workspace entries into resources",
+    );
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_43);
+  });
+
+  it("reads sessions across keyset pages, missing none past the first page", () => {
+    const db = v43Database();
+    const insert = db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('session', ?, ?, ?)`);
+    const ids: string[] = [];
+    for (let i = 0; i <= WORKSPACE_RESOURCES_PAGE_SIZE; i++) {
+      const id = `ses_page${String(i).padStart(4, "0")}`;
+      ids.push(id);
+      insert.run(
+        id,
+        sessionRowWithEntries({ metadata: { id }, spec: {} }, [{ name: "notes", localPath: "/notes" }]),
+        STORED_AT,
+      );
+    }
+    runMigrations(db, SCHEMA_VERSION_44);
+    const read = db.prepare(`SELECT data FROM resources WHERE kind = 'session' AND id = ?`);
+    for (const id of ids) {
+      const row = read.get(id) as { data: Uint8Array };
+      expect(fromBinary(SessionSchema, new Uint8Array(row.data)).spec?.resources.map((r) => r.name), id).toEqual(["notes"]);
+    }
   });
 });
