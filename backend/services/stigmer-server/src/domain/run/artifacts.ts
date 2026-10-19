@@ -56,8 +56,6 @@ export interface ArtifactRpcDeps {
   /**
    * The composed authorization seam — the two artifact READ surfaces
    * evaluate their can_view annotations before the ownership checks.
-   * uploadAttachment stays checkless by
-   * annotation (is_skip_authorization — the storage_key is the capability).
    */
   readonly authorizer: Authorizer;
 }
@@ -328,9 +326,9 @@ export async function getArtifactDownloadUrl(
     req,
   );
 
-  // Load BEFORE the key check: the attachment arm needs spec.attachments,
-  // and this doubles as the existence check (a missing execution is
-  // NotFound; any other store failure is an infrastructure fault).
+  // Load BEFORE the key check: this is the existence check (a missing
+  // execution is NotFound; any other store failure is an infrastructure
+  // fault).
   let execution: Run;
   try {
     execution = await deps.store.getResource(

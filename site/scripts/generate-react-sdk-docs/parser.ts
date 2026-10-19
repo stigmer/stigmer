@@ -201,7 +201,12 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
   attachment: {
     title: "Attachment",
     description:
-      "Hooks and components for file upload handling and chip display.",
+      "Hooks and components for the chat box's uploads as Files and chip display.",
+  },
+  file: {
+    title: "File",
+    description:
+      "Hooks for a File by id: its name, type and size, and a download link minted when asked.",
   },
   billing: {
     title: "Billing",

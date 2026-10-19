@@ -88,29 +88,14 @@ A turn's secrets and logins come from vaults; neither a run nor a conversation c
 |---|---|---|---|
 | `auto_approve_all` | `bool` | `false` | When `true`, bypasses all HITL approval gates for this run. Use in trusted CI/CD pipelines. See [hitl-approvals.md](hitl-approvals.md). |
 
-### File Attachments
+### Files
 
 | Field | Type | Description |
 |---|---|---|
-| `attachments` | `repeated Attachment` | Files to inject into the agent sandbox before the run begins. See [attachments-and-artifacts.md](attachments-and-artifacts.md). |
+| `file_ids` | `repeated string` | Files this message carries, by id (at most 20, each once). Each must be a File of the run's organization the sender may view; the server makes it the conversation's own and lists it in the conversation's resources. `message` may be empty when files are named. See [attachments-and-artifacts.md](attachments-and-artifacts.md). |
 | `workspace_file_refs` | `repeated string` | Workspace-relative paths for files already inside the session's workspace. The agent reads these directly — no upload, no injection. |
 
----
-
-## Attachment Fields (`Attachment`)
-
-Defined in `ai/stigmer/agentic/run/v1/spec.proto`.
-
-Files must be pre-uploaded via `uploadAttachment` RPC before creating the run. The returned `storage_key` is then referenced here.
-
-| Field | Type | Validation | Description |
-|---|---|---|---|
-| `filename` | `string` | min_len: 1 | Original filename. Used for display and default mount path derivation. Example: `"config.yaml"`. |
-| `storage_key` | `string` | min_len: 1 | Reference to the pre-uploaded file. Obtained from `uploadAttachment` RPC. Format: `"attachments/{ulid}/{filename}"`. |
-| `mount_path` | `string` | — | Path in sandbox where the file is placed. Defaults to `/inputs/{filename}` if omitted. |
-| `content_type` | `string` | — | MIME type for content negotiation. Example: `"application/yaml"`, `"text/plain"`. |
-| `extract` | `bool` | — | When `true`, the attachment is a ZIP archive to be extracted at `mount_path`. Set automatically by the CLI for directory attachments. |
-| `local_path` | `string` | — | Absolute path on the CLI host. When set in local mode, the runner reads directly from this path instead of downloading from storage. Ignored in cloud mode. |
+The server records the message's file blocks on `status.message_files`: an `image` block for JPEG, PNG, GIF and WebP Files, a `document` block otherwise, each naming the conversation's File.
 
 ---
 

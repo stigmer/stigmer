@@ -122,7 +122,7 @@ const stubConv = {
   activeTurn: null as Turn | null,
   activeRun: null as Run | null,
   pendingUserMessage: null,
-  workspaceEntries: [],
+  resources: [],
   fileReviewSets: [],
   fileChangeCaptures: new Map(),
   reviewFileChanges: vi.fn(),

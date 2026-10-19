@@ -536,7 +536,7 @@ describe("useSessionPageFlow — a participant's follow-up (canDecide false)", (
     const [message, sent] = mockSendFollowUp.mock.calls[0] as [string, Record<string, unknown>];
     expect(message).toBe("a question from a participant");
     expect(sent.autoApproveAll).toBeUndefined();
-    for (const setting of ["agentRef", "workspaceEntries", "mcpServerUsages", "skillRefs", "vaults", "includeMyVault"]) {
+    for (const setting of ["agentRef", "resources", "mcpServerUsages", "skillRefs", "vaults", "includeMyVault"]) {
       expect(sent, setting).not.toHaveProperty(setting);
     }
     expect(sent.modelName).toBe("model-x");

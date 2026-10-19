@@ -29,7 +29,7 @@ Run is more than a log record. It provides active runtime control:
 - **Lifecycle control**: pause, resume, terminate, or recover from failure without losing completed work; the session's `interrupt` stops a conversation's unfinished turns
 - **Human-in-the-Loop (HITL) approvals**: a turn waits at a tool that needs a person's answer (`RUN_WAITING_FOR_APPROVAL`) until the session's `confirmToolUse` or `grantPermission` answers it
 - **File record**: `status.file_changes` keeps the change sets each turn captured (contents before and after, the diff, the snapshots); keeping or undoing them is the session's file review
-- **File attachments**: inject input files into the agent's sandbox before the run starts
+- **Files**: name uploaded Files by id in a message; the agent finds them under `.stigmer/uploads/`
 - **Run artifacts**: download files and directories created by the agent during the run
 - **Run settings**: one `run_config` per message (model, speed tier, thinking, cost and tool limits), resolved with the agent's defaults and recorded on `status.run_config`; see [run-resource-guide.md](run-resource-guide.md#run-settings-run_config)
 - **Context management**: automatic context window summarization for long-running conversations, by the model's Model Registry entry
@@ -43,7 +43,7 @@ Run is more than a log record. It provides active runtime control:
 | [run-resource-guide.md](run-resource-guide.md) | Complete spec and status schema reference — all fields, types, and CLI commands |
 | [run-lifecycle.md](run-lifecycle.md) | Phase state machine — interrupt, terminate, pause/resume, recover |
 | [hitl-approvals.md](hitl-approvals.md) | Human-in-the-Loop approval gates — what asks, answering on the session, approve all, unattended turns |
-| [attachments-and-artifacts.md](attachments-and-artifacts.md) | Input file attachments and output run artifacts |
+| [attachments-and-artifacts.md](attachments-and-artifacts.md) | A message's Files and output run artifacts |
 | [examples.md](examples.md) | Complete examples from minimal trigger to full-featured run |
 
 ## Proto Source
@@ -53,7 +53,7 @@ All types in this package are defined in `ai/stigmer/agentic/run/v1/`:
 | File | Contents |
 |---|---|
 | `api.proto` | `Run`, `RunStatus`, `LoadedVersions`, `RunCredentials`, `RunValueSource`, `RunValueDeclarer`, `SetupProgress` |
-| `spec.proto` | `RunSpec`, `Attachment`, `ConversationCatchup`, `DeclaredPreferences`, `RecalledMemories`, `RecalledMemoryFact` |
+| `spec.proto` | `RunSpec`, `ConversationCatchup`, `DeclaredPreferences`, `RecalledMemories`, `RecalledMemoryFact` |
 | `invocation.proto` | `RunConfig` (the settings message every run, routine, channel and agent uses), `AgentInvocation` |
 | `enum.proto` | `RunPhase`, `RunArtifactKind`, `RunControlSignal`, `InteractionMode`, `ApprovalMode`, `ServiceTier`, `ThinkingMode`, the file-record enums (`FileChangeKind`, `FileCaptureClass`, `DiffCompleteness`, `SnapshotKind`, `FileReviewBlockReason`), `RunValueDeclarerKind`, `RunValueOrigin` |
 | `filereview.proto` | The file record: `FileChangeSet`, `CapturedFileChange`, `SnapshotRef`, `GitTreeRef`, `CasManifestRef`, `TurnCommandProvenance`; the live `FileChangeProgress` |
@@ -62,6 +62,6 @@ All types in this package are defined in `ai/stigmer/agentic/run/v1/`:
 | `writeback.proto` | `WorkspaceWriteBack`, `WorkspaceWriteBackPhase` |
 | `usage.proto` | `StreamingUsageSummary`, `LlmCallUsageRecord`, `TokenUsage`, `ModelUsage` and the usage report aggregates |
 | `eval_case.proto` | `EvalCaseContext`, `EvalFiles` and the mock server types an eval case's turn runs with |
-| `command.proto` | `RunCommandController` — create, update, updateStatus, delete, terminate, recover, pause, resume, uploadAttachment |
+| `command.proto` | `RunCommandController` — create, update, updateStatus, delete, terminate, recover, pause, resume |
 | `query.proto` | `RunQueryController` — get, list, listBySession, getArtifactDownloadUrl, getArtifactContent, the usage reports (run, session, agent, org), getRunSummary |
 | `io.proto` | Input/output messages for all RPCs |

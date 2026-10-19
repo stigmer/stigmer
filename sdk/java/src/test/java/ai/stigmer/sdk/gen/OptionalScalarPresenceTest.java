@@ -1,6 +1,5 @@
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.agentic.session.v1.GitRepoSource;
 import ai.stigmer.billing.plan.v1.PlanTerms;
 import ai.stigmer.platform.v1.EntitlementLimits;
 import org.junit.jupiter.api.Test;
@@ -13,8 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Inputs keep a proto3 {@code optional} scalar's presence.
  *
  * <p>An {@code optional} scalar has explicit presence: unset and zero differ
- * on the wire. An absent entitlement limit is no limit and zero is refused;
- * an absent clone depth is a shallow clone and 0 is the full history. The
+ * on the wire. An absent entitlement limit is no limit and zero is refused. The
  * generated inputs used to store these fields as primitives and always call
  * their setters, so a limit the caller never set arrived as zero and was
  * refused. Each such field is now stored boxed and set only when the caller
@@ -60,27 +58,5 @@ class OptionalScalarPresenceTest {
         assertTrue(terms.hasAnnualPriceMicros());
         assertFalse(terms.hasMonthlyMinimumMicros());
         assertFalse(terms.hasPerExtraOrgMicros());
-    }
-
-    @Test
-    void gitSource_anUnsetDepth_staysAbsentForTheShallowDefault() {
-        GitRepoSource source = SessionInput.GitRepoSourceInput.builder()
-            .url("https://example.com/repo.git")
-            .build()
-            .toProto();
-
-        assertFalse(source.hasDepth());
-    }
-
-    @Test
-    void gitSource_aDepthOfZero_isSentForTheFullHistory() {
-        GitRepoSource source = SessionInput.GitRepoSourceInput.builder()
-            .url("https://example.com/repo.git")
-            .depth(0)
-            .build()
-            .toProto();
-
-        assertTrue(source.hasDepth());
-        assertEquals(0, source.getDepth());
     }
 }

@@ -125,7 +125,7 @@ export type SessionCreatorProvider = () => SessionCreator;
  * Builds the spec for an auto-created session (Go
  * buildAutoCreateSessionSpec): a caller-provided spec (the one-call
  * bootstrap, stigmer/stigmer#249) is CLONED and forwarded so the session
- * carries its agent, workspace_entries, harness, execution_target, MCP
+ * carries its agent, resources, harness, execution_target, MCP
  * servers, and skills from a single create call; the subject sentinel
  * fills an empty subject. No spec at all is the built-in assistant.
  */

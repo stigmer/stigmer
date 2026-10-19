@@ -154,9 +154,7 @@ const run = await stigmer.run.create({
   message: "Customize the landing page",
   sessionSpec: {
     agentRef: { org: "acme", slug: "site-builder" },
-    workspaceEntries: [
-      { name: "site", source: { localPath: { path: "/Users/me/site" } } },
-    ],
+    resources: [{ name: "site", localPath: { path: "/Users/me/site" } }],
     executionTarget: ExecutionTarget.LOCAL,
   },
 });

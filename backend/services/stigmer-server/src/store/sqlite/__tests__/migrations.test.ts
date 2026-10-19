@@ -2964,14 +2964,12 @@ describe("v23: a conversation's retired own secrets and connections leave every 
     spec: {
       vaults: [{ kind: ApiResourceKind.vault, org: ORG, slug: "team" }],
       includeMyVault: true,
-      workspaceEntries: [
+      resources: [
         {
           name: "app",
-          source: {
-            source: {
-              case: "gitRepo" as const,
-              value: { url: "https://github.com/acme/app", token: "enc:v1:repo" },
-            },
+          resource: {
+            case: "gitRepository" as const,
+            value: { url: "https://github.com/acme/app", token: "enc:v1:repo" },
           },
         },
       ],
