@@ -46,7 +46,8 @@ type RunSpec struct {
 	Target isRunSpec_Target `protobuf_oneof:"target"`
 	// User input message that triggers this run.
 	// Each run represents one user message and the agent's response.
-	// Required unless reconcile_file_review is set.
+	// Required unless reconcile_file_review is set or file_ids names a file
+	// (a message may be files alone).
 	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
 	// The settings this message asks for (optional): a model, a speed tier,
 	// thinking, and run bounds. Zero or empty fields are not set here.
@@ -654,7 +655,7 @@ var File_ai_stigmer_agentic_run_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/agentic/run/v1/spec.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a)ai/stigmer/agentic/run/v1/eval_case.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8c\r\n" +
+	"$ai/stigmer/agentic/run/v1/spec.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a)ai/stigmer/agentic/run/v1/eval_case.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xcb\r\n" +
 	"\aRunSpec\x12\x1f\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tH\x00R\tsessionId\x12O\n" +
@@ -677,8 +678,8 @@ const file_ai_stigmer_agentic_run_v1_spec_proto_rawDesc = "" +
 	"\x15reconcile_file_review\x18\x1a \x01(\bR\x13reconcileFileReview\x12C\n" +
 	"\x13excluded_plugin_ids\x18\x1b \x03(\tB\x13\xbaH\x10\x92\x01\r\x10\b\x18\x01\"\ar\x05\x10\x01\x18\x80\x01R\x11excludedPluginIds\x12+\n" +
 	"\bfile_ids\x18\x1c \x03(\tB\x10\xbaH\r\x92\x01\n" +
-	"\x10\x14\x18\x01\"\x04r\x02\x10\x01R\afileIds:f\xbaHc\x1aa\n" +
-	"\x14run.message_required\x12\x13message is required\x1a4this.reconcile_file_review || size(this.message) > 0B\b\n" +
+	"\x10\x14\x18\x01\"\x04r\x02\x10\x01R\afileIds:\xa4\x01\xbaH\xa0\x01\x1a\x9d\x01\n" +
+	"\x14run.message_required\x124message is required unless the message carries files\x1aOthis.reconcile_file_review || size(this.message) > 0 || size(this.file_ids) > 0B\b\n" +
 	"\x06targetJ\x04\b\x02\x10\x03J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\v\x10\fJ\x04\b\x11\x10\x12J\x04\b\x0f\x10\x10J\x04\b\x10\x10\x11J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\t\x10\n" +
 	"R\bagent_idR\x0ecallback_tokenR\x12parent_workflow_idR\x13activity_task_queueR\x06parentR\x14declared_preferencesR\x11recalled_memoriesR\x10execution_configR\vruntime_envR\vattachments\"h\n" +
 	"\x13ConversationCatchup\x12\x16\n" +

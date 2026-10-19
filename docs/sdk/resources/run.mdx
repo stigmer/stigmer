@@ -65,7 +65,7 @@ Run run = client.runs().get("run_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`get`](#get) | Get a single run by ID. |
 | [`getAgentUsageReport`](#getagentusagereport) | Get a usage report for an agent within an organization. |
 | [`getArtifactContent`](#getartifactcontent) | Read the raw content of a run artifact. |
-| [`getArtifactDownloadUrl`](#getartifactdownloadurl) | Get a presigned download URL for a run artifact or attachment. |
+| [`getArtifactDownloadUrl`](#getartifactdownloadurl) | Get a presigned download URL for a run artifact. |
 | [`getOrgUsageReport`](#getorgusagereport) | Get a usage report for an organization. |
 | [`getRunSummary`](#getrunsummary) | Get aggregated run statistics for an organization's runs. |
 | [`getRunUsageReport`](#getrunusagereport) | Get a usage report for a single run. |
@@ -226,9 +226,9 @@ GetArtifactContentResponse getArtifactContentResponse = client.runs().getArtifac
 
 ### getArtifactDownloadUrl
 
-Get a presigned download URL for a run artifact or attachment.
+Get a presigned download URL for a run artifact.
 
-Returns a time-limited URL for downloading an artifact published by an agent during the run, or an attachment submitted with the run. The URL can be used with a simple HTTP GET request without authentication.
+Returns a time-limited URL for downloading an artifact published by an agent during the run. The URL can be used with a simple HTTP GET request without authentication. A file given with the message is a File: its link comes from FileQueryController.getDownloadUrl.
 
 <SDKTabs>
 <Tab value="TypeScript">

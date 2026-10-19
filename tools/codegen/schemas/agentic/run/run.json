@@ -34,7 +34,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "User input message that triggers this run.\n Each run represents one user message and the agent's response.\n Required unless reconcile_file_review is set.",
+      "description": "User input message that triggers this run.\n Each run represents one user message and the agent's response.\n Required unless reconcile_file_review is set or file_ids names a file\n (a message may be files alone).",
       "required": false
     },
     {

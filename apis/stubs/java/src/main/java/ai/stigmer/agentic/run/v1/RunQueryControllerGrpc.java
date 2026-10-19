@@ -423,11 +423,11 @@ public final class RunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a presigned download URL for a run artifact or attachment.
+     * Get a presigned download URL for a run artifact.
      * Returns a time-limited URL for downloading an artifact published by
-     * an agent during the run, or an attachment submitted with the
-     * run. The URL can be used with a simple HTTP GET request without
-     * authentication.
+     * an agent during the run. The URL can be used with a simple HTTP GET
+     * request without authentication. A file given with the message is a
+     * File: its link comes from FileQueryController.getDownloadUrl.
      * </pre>
      */
     default void getArtifactDownloadUrl(ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlRequest request,
@@ -581,11 +581,11 @@ public final class RunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a presigned download URL for a run artifact or attachment.
+     * Get a presigned download URL for a run artifact.
      * Returns a time-limited URL for downloading an artifact published by
-     * an agent during the run, or an attachment submitted with the
-     * run. The URL can be used with a simple HTTP GET request without
-     * authentication.
+     * an agent during the run. The URL can be used with a simple HTTP GET
+     * request without authentication. A file given with the message is a
+     * File: its link comes from FileQueryController.getDownloadUrl.
      * </pre>
      */
     public void getArtifactDownloadUrl(ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlRequest request,
@@ -729,11 +729,11 @@ public final class RunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a presigned download URL for a run artifact or attachment.
+     * Get a presigned download URL for a run artifact.
      * Returns a time-limited URL for downloading an artifact published by
-     * an agent during the run, or an attachment submitted with the
-     * run. The URL can be used with a simple HTTP GET request without
-     * authentication.
+     * an agent during the run. The URL can be used with a simple HTTP GET
+     * request without authentication. A file given with the message is a
+     * File: its link comes from FileQueryController.getDownloadUrl.
      * </pre>
      */
     public ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlResponse getArtifactDownloadUrl(ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlRequest request) throws io.grpc.StatusException {
@@ -870,11 +870,11 @@ public final class RunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a presigned download URL for a run artifact or attachment.
+     * Get a presigned download URL for a run artifact.
      * Returns a time-limited URL for downloading an artifact published by
-     * an agent during the run, or an attachment submitted with the
-     * run. The URL can be used with a simple HTTP GET request without
-     * authentication.
+     * an agent during the run. The URL can be used with a simple HTTP GET
+     * request without authentication. A file given with the message is a
+     * File: its link comes from FileQueryController.getDownloadUrl.
      * </pre>
      */
     public ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlResponse getArtifactDownloadUrl(ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlRequest request) {
@@ -1014,11 +1014,11 @@ public final class RunQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get a presigned download URL for a run artifact or attachment.
+     * Get a presigned download URL for a run artifact.
      * Returns a time-limited URL for downloading an artifact published by
-     * an agent during the run, or an attachment submitted with the
-     * run. The URL can be used with a simple HTTP GET request without
-     * authentication.
+     * an agent during the run. The URL can be used with a simple HTTP GET
+     * request without authentication. A file given with the message is a
+     * File: its link comes from FileQueryController.getDownloadUrl.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlResponse> getArtifactDownloadUrl(

@@ -130,7 +130,8 @@ public interface RunSpecOrBuilder extends
    * <pre>
    * User input message that triggers this run.
    * Each run represents one user message and the agent's response.
-   * Required unless reconcile_file_review is set.
+   * Required unless reconcile_file_review is set or file_ids names a file
+   * (a message may be files alone).
    * </pre>
    *
    * <code>string message = 3 [json_name = "message"];</code>
@@ -141,7 +142,8 @@ public interface RunSpecOrBuilder extends
    * <pre>
    * User input message that triggers this run.
    * Each run represents one user message and the agent's response.
-   * Required unless reconcile_file_review is set.
+   * Required unless reconcile_file_review is set or file_ids names a file
+   * (a message may be files alone).
    * </pre>
    *
    * <code>string message = 3 [json_name = "message"];</code>

@@ -223,7 +223,7 @@ service SessionCommandController {
   // Skip-authorization: a permission cannot tell a runner from the person
   // it acts for. The handler admits only a runner credential for this run,
   // decided by the composed RunnerCredentialProvider (its
-  // authorizeRunEventsAppend capability, else the execution-scoped binding).
+  // authorizeRunnerForRun capability, else the execution-scoped binding).
   rpc appendEvents(AppendSessionEventsInput) returns (AppendSessionEventsResponse) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }

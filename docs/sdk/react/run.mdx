@@ -450,7 +450,7 @@ const { sessionId } = await create({
   message: "Customize the landing page",
   sessionSpec: {
     agentRef: { org: "acme", slug: "site-builder" },
-    workspaceEntries: [{ name: "site", source: { localPath: { path: "/repos/site" } } }],
+    resources: [{ name: "site", localPath: { path: "/repos/site" } }],
     executionTarget: "local",
   },
 });
@@ -1580,6 +1580,7 @@ All visual properties flow through `--stgm-*` tokens.
     pendingUserMessage: { type: "string | null", description: "Optimistic user message shown at the end of the thread before the session's events carry it. Rendered as a person's message with a sending indicator. Clear this prop once the turn appears." },
     planActionsDisabled: { type: "boolean", description: "Disables the plan completion card's actions (Implement / Review). Defense in depth for the brief windows where a follow-up cannot be sent (e.g. a turn is working); the composer also no-ops a disabled submit." },
     planBuildPending: { type: "boolean", description: "True while the approved plan is being uploaded ahead of the build turn." },
+    resources: { type: "readonly SessionResource[]", description: "The conversation's resources from the session spec. When provided, file paths in tool call rendering become interactive: a path in a git repository opens on GitHub, a path in a local folder offers copy-to-clipboard.  Passed to FilePathContext for consumption by FilePathLink components deep in the tree." },
     runs: { type: "readonly Run[]", description: "The turns' runs, for what the run record holds and the events do not: the message's attachments and mode, the plan artifact, the agent and skill versions a turn ran, its setup progress, and the captured bytes of its file changes. Matched to turns by run id; a turn whose run is absent renders from its events alone." },
     runScores: { type: "boolean", description: "Show run scores: thumbs up and down on each completed turn's final answer and the run-health flags beside them. The thread then reads the session's scores once (and again shortly after a turn completes, while it is graded). Off by default, and a thread with it off makes no score request; `SessionViewer` sets it from its audience." },
     sandboxWorkspaceRoot: { type: "string", description: "Absolute sandbox workspace root (e.g. `/home/daytona/workspace`). When provided, shell commands and tool output normalize absolute sandbox paths to workspace-relative display paths.  Pass an empty string or omit for local sessions where paths are the user's own filesystem (no normalization needed)." },
@@ -1588,7 +1589,6 @@ All visual properties flow through `--stgm-*` tokens.
     slots: { type: "MessageThreadSlots", description: "Component overrides for the thread's chrome — see MessageThreadSlots. Omitted slots render the built-ins; omitting the prop entirely changes nothing.", typeDescriptionLink: "#messagethreadslots" },
     turns: { type: "readonly Turn[]", description: "The conversation's turns, in order: the session's events folded (`useSessionConversation().turns`, or `useSessionEvents().fold.turns`). Each turn renders its person's message, the agent's items, its asks, to-dos and file reviews. A turn that has not ended is the live one.", required: true },
     virtualized: { type: "boolean", description: "Enable virtualized rendering for long conversations. Requires `react-virtuoso` to be installed as a peer dependency. When enabled, only visible items are rendered in the DOM, improving performance for threads with 100+ items." },
-    workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries from the session spec. When provided, file paths in tool call rendering become interactive — git-sourced paths open on GitHub, local paths offer copy-to-clipboard.  Passed to FilePathContext for consumption by FilePathLink components deep in the tree." },
   }}
 />
 
@@ -2158,11 +2158,11 @@ Omit it for a conversation with the built-in assistant.
     includeMyVault: { type: "boolean", description: "Whether each turn also uses its sender's own My vault, first, ahead of vaults. Off unless set: each person who sends a turn uses their own My vault, never another's." },
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs stored on the created session's `SessionSpec.metadata`.  A passthrough for embedder-owned keys (correlation IDs, tenant tags) and for platform-reserved `stigmer.ai/*` keys set explicitly. For the common case — standing user context injected into the agent's prompt — prefer the typed sessionContext field, which maps onto the reserved `stigmer.ai/session-context` key and wins over a raw entry under that key when both are provided." },
     plugins: { type: "ResourceRef[]", description: "Plugins the conversation uses, each whole: their skills, agents, hooks and MCP servers." },
+    resources: { type: "SessionResourceInput[]", description: "What the conversation holds: git repositories and local folders (each named), and Files (`{ file: { fileId } }`), found under `.stigmer/uploads/`. A File given with the first message belongs in `fileIds` instead, which also shows it to the model with the message." },
     sessionContext: { type: "string", description: "Standing, per-user context the agent receives on every turn but the conversation UI never renders — who the caller is, their experience level, their standing instructions (stigmer/stigmer#286).  Stored on the created session's `SessionSpec.metadata` under `stigmer.ai/session-context`; the agent runner injects it into the system prompt as already-known background, so agents can greet the user by name and calibrate depth/defaults from the first turn without a visible context preamble.  Personalization, not authorization: anyone who can create the session can set this (the same trust level as authoring the first message). Hidden from the conversation thread, not from the API — `session.get` returns it, so never put secrets here; secrets belong in a vault. Large values bloat every prompt." },
     skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for runs in this session." },
     subject: { type: "string", description: "Initial conversation subject. Omit for an async LLM-generated title." },
     vaults: { type: "ResourceRef[]", description: "The vaults the conversation's runs use, in order: the first holding a key or login wins. The conversation uses exactly these, after the sender's My vault when includeMyVault is set." },
-    workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace source entries to attach to the session." },
   }}
 />
 
@@ -2485,7 +2485,7 @@ Context that supplies workspace file-path metadata for display-time path resolut
 
 ### FilePathContextValue
 
-Context value that carries workspace entries and an optional click
+Context value that carries the conversation's resources and an optional click
 handler to [`FilePathLink`](#filepathlink) components deep in the tree.
 
 Provided by [`MessageThread`](#messagethread) (or a platform builder's custom
@@ -2495,7 +2495,7 @@ copy-to-clipboard for all paths.
 <TypeTable
   type={{
     onFilePathClick: { type: "(path: string, resolved: ResolvedPathAction) => boolean | void", description: "Optional override for the default click behavior. When provided, `FilePathLink` delegates to this callback instead of opening a URL or copying to clipboard. Platform builders use this to integrate their own file viewer or navigation.  Return `false` to **decline** a specific path — `FilePathLink` then falls back to its default action (open the GitHub link / copy the path), so a handler that can only open *some* paths (e.g. resolvable workspace files) leaves the rest behaving as before. Returning `true` or `void` means the click was fully handled and the default is suppressed — preserving the behavior of existing `void`-returning handlers." },
-    workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries from the session spec, used for path resolution.", required: true },
+    resources: { type: "readonly SessionResource[]", description: "The conversation's resources from the session spec; its repositories and folders resolve paths.", required: true },
   }}
 />
 
@@ -2937,13 +2937,13 @@ Props for [`MessageEntry`](#messageentry).
 <TypeTable
   type={{
     actions: { type: "ReactNode", description: "Extra controls for an agent message's quiet actions row, rendered beside copy once the message settles. The thread passes a completed run's `RunScores` here on its final answer. Ignored for other message types." },
-    attachments: { type: "readonly MessageAttachmentView[]", description: "The turn's submitted attachments, stamped by the thread builder on a person's message from the run's `spec.attachments` (or the pending submit context). Renders as a MessageAttachments row above the prose. Ignored for other messages.  A `MessageEntry` slot override that delegates to the built-in inherits attachment rendering; one that ignores this prop renders text only." },
+    attachments: { type: "readonly MessageAttachmentView[]", description: "The turn's submitted attachments, stamped by the thread builder on a person's message from the run's `status.messageFiles` (or the pending submit context). Renders as a MessageAttachments row above the prose. Ignored for other messages.  A `MessageEntry` slot override that delegates to the built-in inherits attachment rendering; one that ignores this prop renders text only." },
     className: { type: "string", description: "Additional CSS class names for the root container." },
     interactionMode: { type: "InteractionMode", description: "The turn's interaction mode, stamped by the thread builder on the person's message. Renders the InteractionModeBadge for non-default modes (a \"Plan\" pill), so the transcript reads unambiguously after mode switches. Ignored for other messages." },
     isPlanDocument: { type: "boolean", description: "Renders an agent message as a first-class plan document (PlanDocumentMessage) instead of a chat bubble. Set by the thread builder only on the NO-ARTIFACT fallback path: a completed Plan turn that never published `plan.md` (older runs, failed upload) keeps its plan inline — the message is the only copy of the plan. A turn that published the artifact collapses the message into the compact plan card instead (the document lives in the panel's plan tab). Ignored for other messages." },
     message: { type: "ThreadMessage", description: "The message to render.", required: true, typeDescriptionLink: "#threadmessage" },
     onEdit: { type: "() => void", description: "When provided on a person's message, a hover-revealed \"Edit\" button appears on the bubble. Clicking it invokes this callback — the session chat uses it to stop the in-flight turn and pre-fill the composer with this message for editing. Ignored for other messages." },
-    runId: { type: "string", description: "The run the attachments belong to — enables their byte-backed affordances (image previews, document downloads) via presigned URLs. Absent on the optimistic pending bubble, where attachments render as inert chips until the real run record replaces it." },
+    runId: { type: "string", description: "The run the attachments belong to — enables their byte-backed affordances (image previews, document downloads), each link minted from the File when it is needed. Absent on the optimistic pending bubble, where attachments render as inert chips until the real run record replaces it." },
   }}
 />
 
@@ -3287,7 +3287,8 @@ Resolves a tool-call file path to a user action.
 Resolution strategy (mirrors the CLI's `buildHyperlinkedPath`):
 
 1. **Platform paths** (`.stigmer/` prefix) → copy raw path.
-2. **Workspace paths** → match against workspace entries:
+2. **Workspace paths** → match against the conversation's repositories
+   and folders (its Files live under `.stigmer/uploads/`, a platform path):
    - Single entry: treat path as relative to that entry.
    - Multiple entries: scan path segments for an entry name match
      (handles org-prefixed paths like `plantonhq/agent-fleet/...`).
@@ -3297,7 +3298,7 @@ Resolution strategy (mirrors the CLI's `buildHyperlinkedPath`):
 5. **Fallback** → copy the raw path.
 
 ```tsx
-function resolvePathAction(path: string, workspaceEntries: readonly WorkspaceEntry[]): ResolvedPathAction
+function resolvePathAction(path: string, resources: readonly SessionResource[]): ResolvedPathAction
 ```
 
 
@@ -3418,7 +3419,7 @@ Operates in three modes (highest-priority first):
    server-reported `setup_progress.current_phase` label directly.
 
 3. **Timer-based fallback** — neither of the above. Cycles through
-   contextual status messages derived from `workspaceEntries`.
+   contextual status messages derived from `resources`.
 
 All visual properties flow through `--stgm-*` tokens.
 
@@ -3430,7 +3431,7 @@ All visual properties flow through `--stgm-*` tokens.
 <SetupProgress serverPhase={run.status?.setupProgress?.currentPhase} />
 
 // Timer fallback (PENDING, no server phase available)
-<SetupProgress workspaceEntries={session.spec?.workspaceEntries} />
+<SetupProgress resources={session.spec?.resources} />
 ```
 
 
@@ -3442,8 +3443,8 @@ Props for [`SetupProgress`](#setupprogress).
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     isAwaitingResponse: { type: "boolean", description: "When `true`, the run has moved past `PENDING` into `IN_PROGRESS` but the agent has not yet produced any agent messages. Renders a static \"Thinking\\u2026\" label instead of the setup phase sequence or server-reported phase." },
-    serverPhase: { type: "string", description: "Server-reported setup phase label from `RunStatus.setup_progress.current_phase`.  When non-empty, rendered directly — the timer-based fallback is bypassed.  When absent or empty (older backends that don't emit setup progress), the component falls back to the time-based step sequence derived from `workspaceEntries`." },
-    workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries from the session spec. When git-sourced entries are present, the fallback indicator shows workspace-specific messaging (e.g. \"Setting up workspace...\")." },
+    resources: { type: "readonly SessionResource[]", description: "The conversation's resources from the session spec. When a git repository is among them, the fallback indicator shows workspace-specific messaging (e.g. \"Setting up workspace...\")." },
+    serverPhase: { type: "string", description: "Server-reported setup phase label from `RunStatus.setup_progress.current_phase`.  When non-empty, rendered directly — the timer-based fallback is bypassed.  When absent or empty (older backends that don't emit setup progress), the component falls back to the time-based step sequence derived from `resources`." },
   }}
 />
 
@@ -3454,9 +3455,9 @@ Fields shared by both variants of [`CreateRunInput`](#createruninput).
 
 <TypeTable
   type={{
-    attachments: { type: "AttachmentInput[]", description: "Pre-uploaded file attachments injected into the agent sandbox.  Each entry must include a `storageKey` obtained from `run.uploadAttachment()`. The agent can read attached files from their mount paths (default `/inputs/{filename}`)." },
     autoApproveAll: { type: "boolean", description: "Auto-approve every tool call for this run.  When `true`, the human-in-the-loop approval gate is bypassed and no tool waits for approval. When `false` (default), mutating/destructive tools require approval per the configured policies. Maps to `RunSpec.auto_approve_all` in the proto." },
     buildFromPlan: { type: "boolean", description: "Marks this run as a Build-from-plan turn: the user approved a plan from a prior Plan-mode run and asked the agent to implement it. The runner injects the implement-plan directive (pointing at the attached approved plan when present); the thread hides the turn's machine-written message entirely — the plan card above it is the visible cause. Surfaces without that treatment (the CLI, history) show the message text as-is.  Maps to `RunSpec.build_from_plan` in the proto." },
+    fileIds: { type: "string[]", description: "Files given with this message, by id (`\"file_01j…\"`), at most 20: `stigmer.file.uploadFile` returns them. Each that is not yet the conversation's becomes its own copy and joins the conversation's resources, so the agent finds it under `.stigmer/uploads/` on this turn and every later one; the message shows an image to the model as an image and any other file as a document. Maps to `RunSpec.file_ids`." },
     interactionMode: { type: "\"agent\" | \"plan\"", description: "Interaction mode for this run.  - `\"agent\"` (default): full tool access. - `\"plan\"`: read-only analysis, no file mutations.  Maps to `RunSpec.interaction_mode` in the proto." },
     message: { type: "string", description: "User message that initiates the run.", required: true },
     modelName: { type: "string", description: "The model this message asks for. Omit it to run the model a less specific layer chooses: the agent's run defaults when the conversation runs the agent's engine, else the operator profile, else the engine's own default. Maps to `RunConfig.model_name` on `RunSpec.run_config`." },

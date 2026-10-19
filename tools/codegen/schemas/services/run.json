@@ -109,7 +109,7 @@
           "inputFullType": "ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlRequest",
           "outputType": "GetArtifactDownloadUrlResponse",
           "outputFullType": "ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlResponse",
-          "description": "Get a presigned download URL for a run artifact or attachment.\n\n Returns a time-limited URL for downloading an artifact published by\n an agent during the run, or an attachment submitted with the\n run. The URL can be used with a simple HTTP GET request without\n authentication."
+          "description": "Get a presigned download URL for a run artifact.\n\n Returns a time-limited URL for downloading an artifact published by\n an agent during the run. The URL can be used with a simple HTTP GET\n request without authentication. A file given with the message is a\n File: its link comes from FileQueryController.getDownloadUrl."
         },
         {
           "name": "GetArtifactContent",

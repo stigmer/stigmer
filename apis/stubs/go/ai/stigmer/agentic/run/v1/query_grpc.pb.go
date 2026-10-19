@@ -43,12 +43,12 @@ type RunQueryControllerClient interface {
 	List(ctx context.Context, in *ListRunsRequest, opts ...grpc.CallOption) (*RunList, error)
 	// List all runs in a specific session.
 	ListBySession(ctx context.Context, in *ListRunsBySessionRequest, opts ...grpc.CallOption) (*RunList, error)
-	// Get a presigned download URL for a run artifact or attachment.
+	// Get a presigned download URL for a run artifact.
 	//
 	// Returns a time-limited URL for downloading an artifact published by
-	// an agent during the run, or an attachment submitted with the
-	// run. The URL can be used with a simple HTTP GET request without
-	// authentication.
+	// an agent during the run. The URL can be used with a simple HTTP GET
+	// request without authentication. A file given with the message is a
+	// File: its link comes from FileQueryController.getDownloadUrl.
 	GetArtifactDownloadUrl(ctx context.Context, in *GetArtifactDownloadUrlRequest, opts ...grpc.CallOption) (*GetArtifactDownloadUrlResponse, error)
 	// Read the raw content of a run artifact.
 	//
@@ -208,12 +208,12 @@ type RunQueryControllerServer interface {
 	List(context.Context, *ListRunsRequest) (*RunList, error)
 	// List all runs in a specific session.
 	ListBySession(context.Context, *ListRunsBySessionRequest) (*RunList, error)
-	// Get a presigned download URL for a run artifact or attachment.
+	// Get a presigned download URL for a run artifact.
 	//
 	// Returns a time-limited URL for downloading an artifact published by
-	// an agent during the run, or an attachment submitted with the
-	// run. The URL can be used with a simple HTTP GET request without
-	// authentication.
+	// an agent during the run. The URL can be used with a simple HTTP GET
+	// request without authentication. A file given with the message is a
+	// File: its link comes from FileQueryController.getDownloadUrl.
 	GetArtifactDownloadUrl(context.Context, *GetArtifactDownloadUrlRequest) (*GetArtifactDownloadUrlResponse, error)
 	// Read the raw content of a run artifact.
 	//

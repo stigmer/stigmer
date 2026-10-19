@@ -68,7 +68,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "er/agentic/session/v1/spec.proto\032\033buf/va" +
       "lidate/validate.proto\032\034google/protobuf/s" +
       "truct.proto\032\037google/protobuf/timestamp.p" +
-      "roto\"\214\r\n\007RunSpec\022\037\n\nsession_id\030\001 \001(\tH\000R\t" +
+      "roto\"\313\r\n\007RunSpec\022\037\n\nsession_id\030\001 \001(\tH\000R\t" +
       "sessionId\022O\n\014session_spec\030\r \001(\0132*.ai.sti" +
       "gmer.agentic.session.v1.SessionSpecH\000R\013s" +
       "essionSpec\022\030\n\007message\030\003 \001(\tR\007message\022C\n\n" +
@@ -101,29 +101,31 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "e_review\030\032 \001(\010R\023reconcileFileReview\022C\n\023e" +
       "xcluded_plugin_ids\030\033 \003(\tB\023\272H\020\222\001\r\020\010\030\001\"\007r\005" +
       "\020\001\030\200\001R\021excludedPluginIds\022+\n\010file_ids\030\034 \003" +
-      "(\tB\020\272H\r\222\001\n\020\024\030\001\"\004r\002\020\001R\007fileIds:f\272Hc\032a\n\024ru" +
-      "n.message_required\022\023message is required\032" +
-      "4this.reconcile_file_review || size(this" +
-      ".message) > 0B\010\n\006targetJ\004\010\002\020\003J\004\010\006\020\007J\004\010\010\020" +
-      "\tJ\004\010\013\020\014J\004\010\021\020\022J\004\010\017\020\020J\004\010\020\020\021J\004\010\004\020\005J\004\010\005\020\006J\004\010" +
-      "\t\020\nR\010agent_idR\016callback_tokenR\022parent_wo" +
-      "rkflow_idR\023activity_task_queueR\006parentR\024" +
-      "declared_preferencesR\021recalled_memoriesR" +
-      "\020execution_configR\013runtime_envR\013attachme" +
-      "nts\"h\n\023ConversationCatchup\022\026\n\006digest\030\001 \001" +
-      "(\tR\006digest\0229\n\nwindow_end\030\002 \001(\0132\032.google." +
-      "protobuf.TimestampR\twindowEnd\"Y\n\023Declare" +
-      "dPreferences\022\037\n\013org_context\030\001 \001(\tR\norgCo" +
-      "ntext\022!\n\014user_context\030\002 \001(\tR\013userContext" +
-      "\"q\n\020RecalledMemories\022\030\n\007enabled\030\001 \001(\010R\007e" +
-      "nabled\022C\n\005facts\030\002 \003(\0132-.ai.stigmer.agent" +
-      "ic.run.v1.RecalledMemoryFactR\005facts\"K\n\022R" +
-      "ecalledMemoryFact\022\033\n\tmemory_id\030\001 \001(\tR\010me" +
-      "moryId\022\030\n\007content\030\002 \001(\tR\007contentB\224\001B\tSpe" +
-      "cProtoP\001\242\002\004ASAR\252\002\031Ai.Stigmer.Agentic.Run" +
-      ".V1\312\002\031Ai\\Stigmer\\Agentic\\Run\\V1\342\002%Ai\\Sti" +
-      "gmer\\Agentic\\Run\\V1\\GPBMetadata\352\002\035Ai::St" +
-      "igmer::Agentic::Run::V1b\006proto3"
+      "(\tB\020\272H\r\222\001\n\020\024\030\001\"\004r\002\020\001R\007fileIds:\244\001\272H\240\001\032\235\001\n" +
+      "\024run.message_required\0224message is requir" +
+      "ed unless the message carries files\032Othi" +
+      "s.reconcile_file_review || size(this.mes" +
+      "sage) > 0 || size(this.file_ids) > 0B\010\n\006" +
+      "targetJ\004\010\002\020\003J\004\010\006\020\007J\004\010\010\020\tJ\004\010\013\020\014J\004\010\021\020\022J\004\010\017" +
+      "\020\020J\004\010\020\020\021J\004\010\004\020\005J\004\010\005\020\006J\004\010\t\020\nR\010agent_idR\016ca" +
+      "llback_tokenR\022parent_workflow_idR\023activi" +
+      "ty_task_queueR\006parentR\024declared_preferen" +
+      "cesR\021recalled_memoriesR\020execution_config" +
+      "R\013runtime_envR\013attachments\"h\n\023Conversati" +
+      "onCatchup\022\026\n\006digest\030\001 \001(\tR\006digest\0229\n\nwin" +
+      "dow_end\030\002 \001(\0132\032.google.protobuf.Timestam" +
+      "pR\twindowEnd\"Y\n\023DeclaredPreferences\022\037\n\013o" +
+      "rg_context\030\001 \001(\tR\norgContext\022!\n\014user_con" +
+      "text\030\002 \001(\tR\013userContext\"q\n\020RecalledMemor" +
+      "ies\022\030\n\007enabled\030\001 \001(\010R\007enabled\022C\n\005facts\030\002" +
+      " \003(\0132-.ai.stigmer.agentic.run.v1.Recalle" +
+      "dMemoryFactR\005facts\"K\n\022RecalledMemoryFact" +
+      "\022\033\n\tmemory_id\030\001 \001(\tR\010memoryId\022\030\n\007content" +
+      "\030\002 \001(\tR\007contentB\224\001B\tSpecProtoP\001\242\002\004ASAR\252\002" +
+      "\031Ai.Stigmer.Agentic.Run.V1\312\002\031Ai\\Stigmer\\" +
+      "Agentic\\Run\\V1\342\002%Ai\\Stigmer\\Agentic\\Run\\" +
+      "V1\\GPBMetadata\352\002\035Ai::Stigmer::Agentic::R" +
+      "un::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

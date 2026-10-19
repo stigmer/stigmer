@@ -31,7 +31,7 @@
     {
       "slug": "attachment",
       "title": "Attachment",
-      "description": "Hooks and components for file upload handling and chip display.",
+      "description": "Hooks and components for the chat box's uploads as Files and chip display.",
       "hooks": 1,
       "components": 1
     },
@@ -139,6 +139,13 @@
       "description": "Hooks and components for registering federation issuers, the outside issuers whose tokens Stigmer accepts.",
       "hooks": 5,
       "components": 5
+    },
+    {
+      "slug": "file",
+      "title": "File",
+      "description": "Hooks for a File by id: its name, type and size, and a download link minted when asked.",
+      "hooks": 3,
+      "components": 0
     },
     {
       "slug": "file-reference",

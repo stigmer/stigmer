@@ -54,12 +54,12 @@ export const RunQueryController: GenService<{
     output: typeof RunListSchema;
   },
   /**
-   * Get a presigned download URL for a run artifact or attachment.
+   * Get a presigned download URL for a run artifact.
    *
    * Returns a time-limited URL for downloading an artifact published by
-   * an agent during the run, or an attachment submitted with the
-   * run. The URL can be used with a simple HTTP GET request without
-   * authentication.
+   * an agent during the run. The URL can be used with a simple HTTP GET
+   * request without authentication. A file given with the message is a
+   * File: its link comes from FileQueryController.getDownloadUrl.
    *
    * @generated from rpc ai.stigmer.agentic.run.v1.RunQueryController.getArtifactDownloadUrl
    */
