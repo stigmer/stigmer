@@ -37,6 +37,8 @@ import { ChannelAppCommandController } from "@stigmer/apis/ai/stigmer/agentic/ch
 import { ChannelAppQueryController } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { EnvironmentCommandController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/command_pb";
 import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/query_pb";
+import { FileCommandController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/command_pb";
+import { FileQueryController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/query_pb";
 import { MemoryCommandController } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/command_pb";
 import { MemoryQueryController } from "@stigmer/apis/ai/stigmer/agentic/memory/v1/query_pb";
 import { RoutineCommandController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/command_pb";
@@ -102,6 +104,8 @@ export interface ConformanceClients {
   channelAppQuery: Client<typeof ChannelAppQueryController>;
   environmentCommand: Client<typeof EnvironmentCommandController>;
   environmentQuery: Client<typeof EnvironmentQueryController>;
+  fileCommand: Client<typeof FileCommandController>;
+  fileQuery: Client<typeof FileQueryController>;
   channelCommand: Client<typeof ChannelCommandController>;
   channelConversationCommand: Client<
     typeof ChannelConversationCommandController
@@ -220,6 +224,8 @@ export function makeClients(transport: Transport): ConformanceClients {
     channelAppQuery: createClient(ChannelAppQueryController, transport),
     environmentCommand: createClient(EnvironmentCommandController, transport),
     environmentQuery: createClient(EnvironmentQueryController, transport),
+    fileCommand: createClient(FileCommandController, transport),
+    fileQuery: createClient(FileQueryController, transport),
     channelCommand: createClient(ChannelCommandController, transport),
     channelConversationCommand: createClient(
       ChannelConversationCommandController,
