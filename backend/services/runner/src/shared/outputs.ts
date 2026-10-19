@@ -369,14 +369,13 @@ class OutputDoor {
 /** Stream one output to its link; its declared size is signed into a bucket's link, so the length is sent. */
 async function put(output: ChangedOutput, upload: OutputUpload): Promise<void> {
   const source = pieces(output.absolutePath, output.sizeBytes);
+  // Each piece opens and closes the file, so a body the upload abandons
+  // holds nothing open.
   const body = new ReadableStream<Uint8Array>({
     async pull(controller) {
       const next = await source.next();
       if (next.done) controller.close();
       else controller.enqueue(new Uint8Array(next.value));
-    },
-    async cancel() {
-      await source.return(undefined);
     },
   });
   const response = await fetch(upload.url, {

@@ -11,6 +11,11 @@
  *   - an output over the count cap is left for the next turn, and a door
  *     that refuses one output's link or registration returns the rest;
  *     collection never throws, and no error carries a link's query;
+ *   - an output over the size cap, one that stops being a regular file or
+ *     leaves the folder between the listing and its read, and one that
+ *     shrinks while it is read are skipped; an index that cannot be read
+ *     costs a hash of everything, never a turn; a reference spent with no
+ *     File is uploaded once more;
  *   - the folder and the link are made by the phase before skills.
  */
 
@@ -18,7 +23,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { createHash } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, symlinkSync, truncateSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
@@ -32,6 +37,7 @@ import { installAgentFs, localAgentFs } from "../agent-fs.js";
 import {
   collectOutputs,
   isInOutputsFolder,
+  MAX_OUTPUT_BYTES,
   MAX_OUTPUTS_PER_TURN,
   OUTPUTS_INDEX_FILE,
   OUTPUTS_SUBDIR,
@@ -84,9 +90,17 @@ interface Door {
   readonly registered: Array<Array<{ outputPath: string; uploadRef: string; contentSha256: string }>>;
 }
 
-function door(options: { readonly refuseMint?: (path: string) => boolean; readonly refuseRegister?: (path: string) => boolean } = {}): Door {
+function door(
+  options: {
+    readonly refuseMint?: (path: string) => boolean;
+    readonly refuseRegister?: (path: string) => boolean;
+    /** Paths whose first upload reference is spent with no File behind it. */
+    readonly spentFirst?: ReadonlySet<string>;
+  } = {},
+): Door {
   const minted: string[][] = [];
   const registered: Door["registered"] = [];
+  const firstRef = new Map<string, string>();
   let next = 0;
   const client = mockStigmerClient({
     acquireScopedRunnerToken: vi.fn().mockResolvedValue("scoped"),
@@ -97,6 +111,7 @@ function door(options: { readonly refuseMint?: (path: string) => boolean; readon
       }
       return entries.map((entry): OutputUpload => {
         const ref = `fup_${next++}`;
+        if (!firstRef.has(entry.outputPath)) firstRef.set(entry.outputPath, ref);
         return create(OutputUploadSchema, { outputPath: entry.outputPath, uploadRef: ref, url: `${base}/${ref}?${SECRET}`, ttlSeconds: 60 });
       });
     }),
@@ -104,6 +119,10 @@ function door(options: { readonly refuseMint?: (path: string) => boolean; readon
       registered.push(entries.map((entry) => ({ ...entry })));
       if (entries.some((entry) => options.refuseRegister?.(entry.outputPath))) {
         throw new ConnectError("refused", Code.Internal);
+      }
+      const spent = entries.find((entry) => options.spentFirst?.has(entry.outputPath) && firstRef.get(entry.outputPath) === entry.uploadRef);
+      if (spent !== undefined) {
+        throw new ConnectError("upload reference unknown or expired", Code.FailedPrecondition);
       }
       return entries.map(
         (entry): File =>
@@ -308,6 +327,80 @@ describe("collectOutputs", () => {
     const d = door();
     expect((await collect(d)).returned.size).toBe(0);
     expect(d.minted).toEqual([]);
+  });
+});
+
+describe("collectOutputs at its edges", () => {
+  it("skips an output over the size cap without reading it", async () => {
+    save("huge.bin", "");
+    truncateSync(join(outputsDir(), "huge.bin"), MAX_OUTPUT_BYTES + 1);
+    save("small.txt", "small\n");
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const collected = await collect(door());
+    expect([...collected.returned.keys()]).toEqual(["small.txt"]);
+    expect(collected.skipped[0]?.reason).toContain("over the");
+  });
+
+  it("skips what stops being a regular file or leaves the folder between the listing and its read, and what shrinks while read", async () => {
+    save("swapped.txt", "x\n");
+    save("escaped.txt", "y\n");
+    save("vanished.txt", "v\n");
+    save("shrinking.txt", "zzzz\n");
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const restore = installAgentFs({
+      ...localAgentFs,
+      lstat: async (path) => {
+        const stats = await localAgentFs.lstat(path);
+        return path.endsWith("swapped.txt") ? { ...stats, isFile: () => false, isDirectory: () => false, isSymbolicLink: () => true } : stats;
+      },
+      realpath: async (path) => {
+        if (path.endsWith("escaped.txt")) return join(root, "elsewhere.txt");
+        if (path.endsWith("vanished.txt")) throw Object.assign(new Error("gone"), { code: "ENOENT" });
+        return localAgentFs.realpath(path);
+      },
+      readRange: async (path, offset, length) => (path.endsWith("shrinking.txt") ? Buffer.alloc(0) : localAgentFs.readRange(path, offset, length)),
+    });
+    try {
+      const d = door();
+      const collected = await collect(d);
+      expect(collected.skipped.slice(0, 3).map((skip) => [skip.outputPath, skip.reason])).toEqual([
+        ["escaped.txt", "it is not inside the outputs folder"],
+        ["swapped.txt", "it is not a regular file"],
+        ["vanished.txt", "it is not inside the outputs folder"],
+      ]);
+      // A file that shrank to nothing is put short of its declared size, and its upload fails.
+      expect(collected.returned.size).toBe(0);
+      expect(collected.skipped[3]?.outputPath).toBe("shrinking.txt");
+      expect(collected.skipped[3]?.reason).toContain("its upload failed");
+    } finally {
+      restore();
+    }
+  });
+
+  it("reads past an index it cannot parse, hashing everything again", async () => {
+    save("report.md", "kept\n");
+    writeFileSync(join(getPlatformDir(SESSION), OUTPUTS_INDEX_FILE), "{ not json");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect((await collect(door())).returned.size).toBe(1);
+    expect(warn.mock.calls.map((call) => String(call[0])).join("\n")).toContain("could not be read");
+  });
+
+  it("uploads an output once more when its reference was spent with no File, and names one it still cannot return", async () => {
+    save("a.md", "a\n");
+    save("b.md", "b\n");
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const d = door({ spentFirst: new Set(["a.md"]) });
+    const collected = await collect(d);
+    expect([...collected.returned.keys()].sort()).toEqual(["a.md", "b.md"]);
+    expect(d.minted.flat().filter((path) => path === "a.md"), "a.md minted twice").toHaveLength(2);
+
+    save("c.md", "c\n");
+    let mints = 0;
+    const second = door({ spentFirst: new Set(["c.md"]), refuseMint: () => mints++ > 0 });
+    const lost = await collect(second);
+    expect(lost.returned.size).toBe(0);
+    expect(lost.skipped.map((skip) => skip.outputPath)).toEqual(["c.md"]);
+    expect(lost.skipped[0]?.reason).toContain("could not be registered");
   });
 });
 
