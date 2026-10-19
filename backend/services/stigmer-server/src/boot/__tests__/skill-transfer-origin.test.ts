@@ -74,6 +74,7 @@ describe("assessSkillTransferOrigin", () => {
           configured,
           relaysThroughServer: true,
           requireAuthentication: false,
+          containerRunners: false,
         }),
       ).toEqual({ kind: "loopback-local" });
     },
@@ -92,10 +93,22 @@ describe("assessSkillTransferOrigin", () => {
           configured,
           relaysThroughServer: true,
           requireAuthentication: true,
+          containerRunners: false,
         }),
       ).toEqual({ kind: "loopback-hosted", baseUrl: configured });
     },
   );
+
+  it("loopback with runners in containers is the warning without the require-authentication posture", () => {
+    expect(
+      assessSkillTransferOrigin({
+        configured: "",
+        relaysThroughServer: true,
+        requireAuthentication: false,
+        containerRunners: true,
+      }),
+    ).toEqual({ kind: "loopback-hosted", baseUrl: UNSET_BASE_URL_NOTE });
+  });
 
   it("an unset base under the require-authentication posture is the warning, naming it unset", () => {
     expect(
@@ -103,6 +116,7 @@ describe("assessSkillTransferOrigin", () => {
         configured: "",
         relaysThroughServer: true,
         requireAuthentication: true,
+        containerRunners: false,
       }),
     ).toEqual({ kind: "loopback-hosted", baseUrl: UNSET_BASE_URL_NOTE });
   });
@@ -114,6 +128,7 @@ describe("assessSkillTransferOrigin", () => {
           configured: "https://api.example.com",
           relaysThroughServer: true,
           requireAuthentication,
+          containerRunners: false,
         }),
       ).toEqual({ kind: "reachable" });
     }
@@ -126,6 +141,7 @@ describe("assessSkillTransferOrigin", () => {
           configured,
           relaysThroughServer: false,
           requireAuthentication: true,
+          containerRunners: false,
         }),
       ).toEqual({ kind: "unused" });
     }
@@ -137,6 +153,7 @@ describe("assessSkillTransferOrigin", () => {
         configured: "not a url",
         relaysThroughServer: true,
         requireAuthentication: true,
+        containerRunners: false,
       }),
     ).toEqual({ kind: "reachable" });
   });

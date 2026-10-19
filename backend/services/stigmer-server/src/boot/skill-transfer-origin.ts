@@ -30,7 +30,10 @@
  *
  * The hosted signal is the require-authentication posture (boot/compose.ts
  * combines its two sources): a server that requires credentials serves
- * callers it does not share a machine with. A bucket driver signs URLs
+ * callers it does not share a machine with. A sandbox driver that starts
+ * its runner in an image is the other: the runner fetches a conversation's
+ * Files from these URLs on every turn, and a container's loopback is not
+ * the server's. A bucket driver signs URLs
  * straight to its bucket and never renders the base URL, so the verdict
  * is moot there and says so rather than warning about a knob nothing
  * reads.
@@ -88,7 +91,7 @@ export type SkillTransferOriginVerdict =
   | { readonly kind: "reachable" }
   /** Loopback on a single-operator install: the default, and correct. */
   | { readonly kind: "loopback-local" }
-  /** Loopback on a server that requires authentication: minted URLs are dead on arrival. */
+  /** Loopback on a server that requires authentication, or whose runners run in containers: minted URLs are dead on arrival. */
   | { readonly kind: "loopback-hosted"; readonly baseUrl: string }
   /** The blob driver signs its own URLs; the base URL is never rendered. */
   | { readonly kind: "unused" };
@@ -100,6 +103,8 @@ export interface SkillTransferOriginInputs {
   readonly relaysThroughServer: boolean;
   /** The composed require-authentication posture. */
   readonly requireAuthentication: boolean;
+  /** Whether the sandbox driver starts its runner in an image (any but "" and local-process). */
+  readonly containerRunners: boolean;
 }
 
 export function assessSkillTransferOrigin(
@@ -111,7 +116,7 @@ export function assessSkillTransferOrigin(
   if (inputs.configured !== "" && !namesLoopback(inputs.configured)) {
     return { kind: "reachable" };
   }
-  return inputs.requireAuthentication
+  return inputs.requireAuthentication || inputs.containerRunners
     ? {
         kind: "loopback-hosted",
         baseUrl:

@@ -280,6 +280,7 @@ import { builtInSandboxProvisionerFactories } from "../sandbox/builtins.js";
 import { newSandboxLane } from "../sandbox/lane.js";
 import {
   newSandboxProvisioner,
+  SANDBOX_DRIVERS_WITHOUT_RUNNER_IMAGE,
   type SandboxBackgroundHandle,
 } from "../sandbox/provisioner.js";
 import { newStoreSessionActivityReader } from "../sandbox/session-activity.js";
@@ -1525,10 +1526,11 @@ export async function composeServer(
     configured: config.skillTransferBaseUrl,
     relaysThroughServer: skillType === "local" || filesLocal,
     requireAuthentication,
+    containerRunners: !SANDBOX_DRIVERS_WITHOUT_RUNNER_IMAGE.includes(config.sandboxProvisionerType),
   });
   if (transferOrigin.kind === "loopback-hosted") {
     logger.warn(
-      "the skill and file transfer lanes mint capability URLs on the server's own loopback while the server requires authentication; pushes and uploads above the gRPC message cap and sandbox downloads will fail — set SKILL_TRANSFER_BASE_URL to the origin callers reach this server on",
+      "the skill and file transfer lanes mint capability URLs on the server's own loopback while the server requires authentication or runs its runners in containers; pushes and uploads above the gRPC message cap, and a sandbox's skills and Files, will fail — set SKILL_TRANSFER_BASE_URL to the origin callers reach this server on",
       { baseUrl: transferOrigin.baseUrl },
     );
   }

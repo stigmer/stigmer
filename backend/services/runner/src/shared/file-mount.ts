@@ -288,7 +288,12 @@ async function download(
     }
   } catch (err) {
     await agentFs().rm(dest, { force: true });
-    throw new FileMountError(path, `could not be fetched: ${scrubbed(errorText(err), entry.url)}`);
+    // A refused connection says only "fetch failed": name the origin the
+    // link points at, never its path (the blob's key) or its query.
+    const text = scrubbed(errorText(err), entry.url);
+    const origin = originOf(entry.url);
+    const where = origin !== "" && !text.includes(origin) ? ` (from ${origin})` : "";
+    throw new FileMountError(path, `could not be fetched: ${text}${where}`);
   }
   const stats = await agentFs().lstat(dest);
   return { fileId: entry.fileId, sizeBytes: stats.size, mtimeMs: stats.mtimeMs };
@@ -365,6 +370,16 @@ async function lstatOrUndefined(path: string): Promise<AgentStats | undefined> {
  * error that carries it may reach a run's status (`archive-mount.ts` keeps
  * the same rule for an archive's link).
  */
+/** A link's scheme, host and port; empty when it does not parse or names no host. */
+function originOf(url: string): string {
+  try {
+    const origin = new URL(url).origin;
+    return origin === "null" ? "" : origin;
+  } catch {
+    return "";
+  }
+}
+
 function withoutQuery(url: string): string {
   try {
     const parsed = new URL(url);

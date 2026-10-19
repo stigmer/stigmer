@@ -14,7 +14,7 @@
  *  - an empty File mounts as an empty file;
  *  - a size mismatch, a refused or broken download, an unparsable link and
  *    a missing one end the mount with an error that never carries the link's query, and
- *    leave no partial file;
+ *    leave no partial file; a refused connection names the link's origin;
  *  - a body larger than the flush size is written in pieces, never whole;
  *  - a mount path outside `uploads/`, or two Files at one path, is refused;
  *  - an unreadable index costs a refetch, never a failure;
@@ -271,6 +271,18 @@ describe("mountFiles", () => {
     const err = await refusal([entry]);
     expect(err.message).not.toContain(SECRET);
     expect(existsSync(uploads("a.txt"))).toBe(false);
+  });
+
+  it("names the origin a refused connection was to, without the link's path or query", async () => {
+    const closed = createServer();
+    await new Promise<void>((resolve) => closed.listen(0, "127.0.0.1", resolve));
+    const port = (closed.address() as AddressInfo).port;
+    await new Promise<void>((resolve) => closed.close(() => resolve()));
+    const url = `http://127.0.0.1:${port}/files/org_01a/blob?${SECRET}`;
+    const err = await refusal([create(FileMountSchema, { fileId: "file_a", mountPath: "a.txt", sizeBytes: 1n, url })]);
+    expect(err.message).toContain(`(from http://127.0.0.1:${port})`);
+    expect(err.message).not.toContain("org_01a/blob");
+    expect(err.message).not.toContain(SECRET);
   });
 
   it("never carries the query of a link that cannot even be parsed", async () => {
