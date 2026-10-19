@@ -5,9 +5,9 @@
  * execution's `target` oneof, `session_id` wins over `session_spec`, so a
  * follow-up turn never silently starts a new conversation; and an empty
  * `session_id` is unset, never a member that claims the oneof. A nested
- * oneof (the workspace source inside a session spec) follows the same
- * rule: `git_repo` wins over `local_path`, wherever the generator writes the
- * shared workspace types. Checked on what the Java and
+ * oneof (a conversation's resource) follows the same rule: `file` wins over
+ * `git_repository`, which wins over `local_path`, wherever the generator
+ * writes the shared resource types. Checked on what the Java and
  * Python generators write over the real schemas (the Go generator's output
  * is pinned by go-scalar-oneof-member.test.ts).
  */
@@ -39,7 +39,8 @@ function holding(dir: string, marker: string): string {
 let root: string;
 let java: string;
 let python: string;
-let pythonWorkspace: string;
+let javaResource: string;
+let pythonResource: string;
 
 beforeAll(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), "codegen-oneof-"));
@@ -49,7 +50,8 @@ beforeAll(() => {
   runSDKClientPythonGeneration(SCHEMAS, pythonOut);
   java = fs.readFileSync(path.join(javaOut, "RunInput.java"), "utf8");
   python = fs.readFileSync(path.join(pythonOut, "_run.py"), "utf8");
-  pythonWorkspace = holding(pythonOut, "class WorkspaceSourceInput");
+  javaResource = holding(javaOut, "class SessionResourceInput");
+  pythonResource = holding(pythonOut, "class SessionResourceInput");
 });
 
 afterAll(() => {
@@ -67,15 +69,19 @@ describe("the Java input's target oneof", () => {
 });
 
 describe("a nested oneof", () => {
-  it("assigns git_repo after local_path in Java and Python, so it wins", () => {
-    const javaSource = java.slice(java.indexOf("class WorkspaceSourceInput"));
+  it("assigns file last in Java and Python, after git_repository and local_path, so it wins", () => {
+    const javaSource = javaResource.slice(javaResource.indexOf("class SessionResourceInput"));
     const javaLocal = javaSource.indexOf("builder.setLocalPath(");
+    const javaGit = javaSource.indexOf("builder.setGitRepository(");
     expect(javaLocal).toBeGreaterThan(-1);
-    expect(javaSource.indexOf("builder.setGitRepo(")).toBeGreaterThan(javaLocal);
-    const pySource = pythonWorkspace.slice(pythonWorkspace.indexOf("class WorkspaceSourceInput"));
+    expect(javaGit).toBeGreaterThan(javaLocal);
+    expect(javaSource.indexOf("builder.setFile(")).toBeGreaterThan(javaGit);
+    const pySource = pythonResource.slice(pythonResource.indexOf("class SessionResourceInput"));
     const pyLocal = pySource.indexOf("msg.local_path.CopyFrom(");
+    const pyGit = pySource.indexOf("msg.git_repository.CopyFrom(");
     expect(pyLocal).toBeGreaterThan(-1);
-    expect(pySource.indexOf("msg.git_repo.CopyFrom(")).toBeGreaterThan(pyLocal);
+    expect(pyGit).toBeGreaterThan(pyLocal);
+    expect(pySource.indexOf("msg.file.CopyFrom(")).toBeGreaterThan(pyGit);
   });
 });
 

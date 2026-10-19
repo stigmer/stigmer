@@ -10,7 +10,7 @@
  * first-declared member wins, as in the TypeScript input: `session_id` is
  * assigned after `session_spec`, so a follow-up turn never silently starts
  * a new conversation (firstMemberWinsOrder). The generator runs over the
- * real schemas and the test reads what it wrote, the shared workspace types
+ * real schemas and the test reads what it wrote, the shared resource types
  * from whichever file the generator put them in.
  */
 import * as fs from "node:fs";
@@ -42,7 +42,7 @@ function holding(dir: string, marker: string): string {
 describe("the Go generator's scalar oneof member", () => {
   let root: string;
   let go: string;
-  let goWorkspace: string;
+  let goResource: string;
 
   beforeAll(() => {
     // The generator writes the package's re-export files two levels above
@@ -52,7 +52,7 @@ describe("the Go generator's scalar oneof member", () => {
     const output = path.join(root, "internal", "gen");
     runSDKClientGeneration(SCHEMAS, output);
     go = fs.readFileSync(path.join(output, "run.go"), "utf8");
-    goWorkspace = holding(output, "func (i *WorkspaceSourceInput) toProto()");
+    goResource = holding(output, "func (i *SessionResourceInput) toProto()");
   });
 
   afterAll(() => {
@@ -77,12 +77,14 @@ describe("the Go generator's scalar oneof member", () => {
     expect(id).toBeGreaterThan(spec);
   });
 
-  it("orders a nested oneof the same way: the first-declared member, git_repo, wins", () => {
-    const fn = goWorkspace.slice(goWorkspace.indexOf("func (i *WorkspaceSourceInput) toProto()"));
-    const local = fn.indexOf("p.Source = &sessionv1.WorkspaceSource_LocalPath{");
-    const git = fn.indexOf("p.Source = &sessionv1.WorkspaceSource_GitRepo{");
+  it("orders a nested oneof the same way: the first-declared member, file, wins", () => {
+    const fn = goResource.slice(goResource.indexOf("func (i *SessionResourceInput) toProto()"));
+    const local = fn.indexOf("p.Resource = &sessionv1.SessionResource_LocalPath{");
+    const git = fn.indexOf("p.Resource = &sessionv1.SessionResource_GitRepository{");
+    const file = fn.indexOf("p.Resource = &sessionv1.SessionResource_File{");
     expect(local).toBeGreaterThan(-1);
     expect(git).toBeGreaterThan(local);
+    expect(file).toBeGreaterThan(git);
   });
 
   it("reads the member back through its getter", () => {

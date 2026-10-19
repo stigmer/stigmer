@@ -206,7 +206,7 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
   file: {
     title: "File",
     description:
-      "Hooks for a File by id: its name, type and size, and a download link minted when asked.",
+      "Hooks that read a File by id (its name, type and size) and mint its download link when asked.",
   },
   billing: {
     title: "Billing",
