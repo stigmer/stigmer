@@ -158,6 +158,19 @@ describe("PlanArtifactCard — compact document card", () => {
     expect(onImplement).not.toHaveBeenCalled();
   });
 
+  it("reads the plan once while a copy is in flight (Copy is disabled meanwhile)", () => {
+    const getContent = vi.fn().mockReturnValue(new Promise(() => {}));
+    const stigmer = { file: { getContent, getDownloadUrl: vi.fn() } } as unknown as Stigmer;
+    render(withStigmer(<PlanArtifactCard file={planArtifact} org="acme" />, stigmer));
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy plan" }));
+    const copying = screen.getByRole("button", { name: "Copying…" }) as HTMLButtonElement;
+    expect(copying.disabled).toBe(true);
+    fireEvent.click(copying);
+
+    expect(getContent).toHaveBeenCalledTimes(1);
+  });
+
   it("copies the plan text to the clipboard on demand", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", { clipboard: { writeText } });

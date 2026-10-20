@@ -1,10 +1,11 @@
 /**
  * The preview's Build action (a plan's): shown only when the host passes
- * onImplement, and run before the modal closes.
+ * onImplement, and run before the modal closes; its Download saves the File
+ * by id under its filename.
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
@@ -80,5 +81,24 @@ describe("ArtifactPreviewContent — Build action", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     // Run the plan action before tearing down the modal.
     expect(calls).toEqual(["implement", "close"]);
+  });
+});
+
+describe("ArtifactPreviewContent — Download", () => {
+  it("downloads the File by its id and filename when Download is clicked", async () => {
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    const getDownloadUrl = vi.fn().mockResolvedValue({ url: "https://files.test/report.bin" });
+    render(
+      <StigmerContext.Provider value={{ file: { getDownloadUrl } } as unknown as Stigmer}>
+        <ArtifactPreviewContent file={binaryArtifact} org="acme" isTerminal onClose={() => {}} />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.click(screen.getByText("Download"));
+
+    expect(getDownloadUrl).toHaveBeenCalledWith("file_report");
+    await waitFor(() => expect(anchorClick).toHaveBeenCalledTimes(1));
+    expect(anchorClick.mock.contexts[0]).toMatchObject({ download: "report.bin" });
+    anchorClick.mockRestore();
   });
 });

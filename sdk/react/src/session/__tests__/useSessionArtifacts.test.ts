@@ -80,4 +80,18 @@ describe("useSessionArtifacts", () => {
     );
     expect(result.current.artifacts[0].isTerminal).toBe(false);
   });
+
+  it("ignores a run with no id: its Files rank as an unloaded run's and count as ended", () => {
+    const files = [
+      file({ id: "late", filename: "a.md", runId: "aex_2", outputPath: "a.md" }),
+      file({ id: "early", filename: "a.md", runId: "aex_1", outputPath: "a.md" }),
+    ];
+    const nameless = create(RunSchema, { status: { phase: RunPhase.RUN_IN_PROGRESS } });
+    const { result } = renderHook(() => useSessionArtifacts(files, [nameless, run("aex_2")]));
+
+    // aex_1 is not among the loaded runs (the id-less run never stands in for
+    // it), so aex_2's File wins the shared path; aex_1 still counts as ended.
+    expect(result.current.artifacts.map((e) => e.file.metadata?.id)).toEqual(["late"]);
+    expect(result.current.artifacts[0].isTerminal).toBe(true);
+  });
 });

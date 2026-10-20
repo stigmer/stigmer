@@ -86,6 +86,27 @@ describe("useArtifactInspection — content + copy", () => {
 });
 
 describe("useArtifactInspection — detection + apply", () => {
+  it("applies nothing when the content is not a Stigmer resource", async () => {
+    const getContent = vi.fn().mockResolvedValue(contentResult("just some notes"));
+    const apply = vi.fn();
+    const stigmer = { file: { getContent }, manifest: { apply } } as unknown as Stigmer;
+    const onApplied = vi.fn();
+
+    const { result } = renderHook(
+      () => useArtifactInspection(fileArtifact("notes.txt"), "acme", { onApplied }),
+      { wrapper: wrapperFor(stigmer) },
+    );
+    await waitFor(() => expect(result.current.content).toBe("just some notes"));
+
+    await act(async () => {
+      await result.current.apply();
+    });
+
+    expect(apply).not.toHaveBeenCalled();
+    expect(onApplied).not.toHaveBeenCalled();
+    expect(result.current.applyResult).toBeNull();
+  });
+
   it("labels a detected Agent YAML and offers an Apply CTA", async () => {
     const getContent = vi.fn().mockResolvedValue(contentResult(AGENT_YAML));
     const stigmer = { file: { getContent } } as unknown as Stigmer;

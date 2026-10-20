@@ -184,7 +184,8 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
 
 /**
  * Copies a File's text at click time: the card is content-free until the
- * person acts, so the bytes are read only then.
+ * person acts, so the bytes are read only then. The Copy button is disabled
+ * while a read is in flight, so a click never starts a second one.
  */
 function useFileTextCopy() {
   const stigmer = useStigmer();
@@ -192,7 +193,6 @@ function useFileTextCopy() {
   const [isCopying, setIsCopying] = useState(false);
   const copy = useCallback(
     async (fileId: string) => {
-      if (!fileId || isCopying) return;
       setIsCopying(true);
       try {
         const result = await stigmer.file.getContent(create(GetFileContentInputSchema, { id: fileId }));
@@ -203,7 +203,7 @@ function useFileTextCopy() {
         setIsCopying(false);
       }
     },
-    [stigmer, writeClipboard, isCopying],
+    [stigmer, writeClipboard],
   );
   return { copy, isCopying, copied };
 }

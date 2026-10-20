@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, cleanup, waitFor } from "@testing-library/react";
+import { render, screen, cleanup, waitFor, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
@@ -80,5 +80,18 @@ describe("ArtifactDocument", () => {
     expect(screen.getByText("Download")).toBeTruthy();
     expect(screen.queryByText("Copy")).toBeNull();
     expect((stigmer.file.getContent as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(0);
+  });
+
+  it("downloads the File by its id and filename when Download is clicked", async () => {
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    const getDownloadUrl = vi.fn().mockResolvedValue({ url: "https://files.test/notes.txt" });
+    const stigmer = { file: { getContent: vi.fn().mockReturnValue(new Promise(() => {})), getDownloadUrl } } as unknown as Stigmer;
+    renderDoc(stigmer);
+
+    fireEvent.click(screen.getByText("Download"));
+
+    expect(getDownloadUrl).toHaveBeenCalledWith("file_notes_txt");
+    await waitFor(() => expect(anchorClick).toHaveBeenCalledTimes(1));
+    anchorClick.mockRestore();
   });
 });
