@@ -31,6 +31,22 @@
  * The server upserts the record by set id, so a set an earlier invocation
  * of the same run captured stays on the run without being sent again: each
  * invocation's ledger is its own.
+ *
+ * WHICH SET AN INVOCATION CAPTURES INTO ({@link changeSetIdForInvocation})
+ * -----------------------------------------------------------------------
+ * A turn is one change set however many invocations it takes. An invocation
+ * that runs the turn on, after a drain, a lost runner, a stall the model
+ * owed or a Temporal retry, adopts the run's newest set while it is still
+ * open (pinned, no candidate yet): its baseline is already the turn's, so
+ * pinning again would fold the earlier invocation's edits into a second
+ * baseline (#1115). The workflow re-runs a recovered turn at `turnSeq` 0,
+ * and a retry at its own, so an invocation whose `turnSeq` is not past the
+ * newest set's cycle is that set's turn; one past it is a new approval
+ * cycle, which mints `<run>:<turnSeq>` as before, even when the cycle
+ * before it changed nothing and so captured no candidate. A minted id an
+ * earlier set already holds (a recovery after a captured cycle) takes the
+ * first free `.n` suffix, so no invocation writes into a set it does not
+ * continue.
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -105,3 +121,37 @@ export class FileRecordSender {
     for (const set of sets) this.sent.set(set.id, set.candidateSnapshot !== undefined);
   }
 }
+
+/**
+ * The change set this invocation captures into: the run's newest set when
+ * this invocation continues it, else a fresh id (the module header).
+ */
+export function changeSetIdForInvocation(executionId: string, turnSeq: number, record: readonly FileChangeSet[]): string {
+  const newest = record.at(-1);
+  if (newest !== undefined && isOpen(newest) && turnSeq <= cycleOf(executionId, newest.id)) return newest.id;
+  const minted = `${executionId}:${turnSeq}`;
+  const taken = new Set(record.map((set) => set.id));
+  if (!taken.has(minted)) return minted;
+  let n = 1;
+  while (taken.has(`${minted}.${n}`)) n += 1;
+  return `${minted}.${n}`;
+}
+
+/** The set an invocation continues under `changeSetId`: open on the run's record, so its baseline is already pinned. */
+export function adoptedChangeSetOf(changeSetId: string, record: readonly FileChangeSet[]): FileChangeSet | undefined {
+  return record.find((set) => set.id === changeSetId && isOpen(set));
+}
+
+/** Pinned and not yet captured. */
+function isOpen(set: FileChangeSet): boolean {
+  return set.baselineSnapshot !== undefined && set.candidateSnapshot === undefined;
+}
+
+/** The cycle a set of this run was minted for (`<run>:<turnSeq>`, optionally `.n`); -1 for an id of another shape. */
+function cycleOf(executionId: string, id: string): number {
+  const prefix = `${executionId}:`;
+  if (!id.startsWith(prefix)) return -1;
+  const match = /^(\d+)(?:\.\d+)?$/.exec(id.slice(prefix.length));
+  return match === null ? -1 : Number(match[1]);
+}
+

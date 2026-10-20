@@ -8,11 +8,11 @@
  * are `pause-vs-shutdown.test.ts`; these are the three RETURN arms, side by
  * side because they differ in every column of that table:
  *
- *  | arm           | phase      | run.cancel() | agent handle |
- *  |---------------|------------|--------------|--------------|
- *  | stall         | FAILED     | yes          | parked       |
- *  | cost cap      | TERMINATED | yes          | parked       |
- *  | platform stop | COMPLETED  | yes          | parked       |
+ *  | arm                  | phase      | run.cancel() | agent handle |
+ *  |----------------------|------------|--------------|--------------|
+ *  | stall (nothing owed) | FAILED     | yes          | parked       |
+ *  | cost cap             | TERMINATED | yes          | parked       |
+ *  | platform stop        | COMPLETED  | yes          | parked       |
  *
  * All three RETURN because a Temporal retry would re-run the identical prompt:
  * a wedged agent would wedge again, an exhausted budget would be burnt again,
@@ -128,7 +128,7 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     env.dispose();
   });
 
-  it("a stall fails the turn with the watchdog's idle time and drops the handle", async () => {
+  it("a stall with nothing owed fails the turn with the watchdog's idle time and parks the agent", async () => {
     // ── Arrange ──────────────────────────────────────────────────────────────
     clock.reset(); // every golden in this file reads from :00
     const agentId = "agent-hermetic-stall-0001";
@@ -141,13 +141,11 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
       turns: [
         [
           step.event(ev.init()),
-          step.event(ev.assistant("Running the suite.")),
-          // A tool call that finishes, then a stream that says nothing more
-          // with nothing open: the shape of a real wedge (a model connection
-          // that silently died), and the detail the stall copy carries
-          // (`last tool: shell`). A call still running would hold the window.
-          step.event(ev.toolCall("call-hermetic-stall-0001", "shell", "running", { command: "npm test" })),
-          step.event(ev.toolCall("call-hermetic-stall-0001", "shell", "completed", { command: "npm test" }, "12 passing")),
+          // A stream that says nothing after it starts: nothing open and no
+          // reply owed, the shape of an engine wedged before it did anything.
+          // A stall while the turn waits on its model (a tool's result
+          // unanswered, a message still open) continues instead: the kit's
+          // model-stall arm. A call still running would hold the window.
           step.effect("the stream goes silent past the stall window", async ({ run }) => {
             const cancelled = untilCancelled(run);
             clock.tick(STALL_TIMEOUT_MS);
@@ -182,12 +180,12 @@ describe("ExecuteCursor hermetic — the stream loop's self-stop arms", () => {
     const finalRows = record.rowsOf(final);
     // Idle = the 1 s step tick before the effect + the effect's own tick: 3 s.
     expect(final.error).toBe(
-      "[StallTimeoutError] Agent stream stalled: no activity for 3s (last tool: shell). Retry or resume.",
+      "[StallTimeoutError] Agent stream stalled: no activity for 3s. Retry or resume.",
     );
     expect(final.completedAt).not.toBe("");
     expect(systemMessages(record.rowsOf(final))).toEqual([
       "Execution failed: the agent made no progress for too long and was stopped " +
-        "(Agent stream stalled: no activity for 3s (last tool: shell)). You can retry or resume.",
+        "(Agent stream stalled: no activity for 3s). You can retry or resume.",
     ]);
     expect(finalRows.messages.some((m) => m.content === NEVER_SEEN), "nothing after the stall is processed").toBe(false);
 

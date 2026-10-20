@@ -99,6 +99,7 @@ import {
   orchestratorStopArm,
   platformStopArm,
   stallArm,
+  modelStallArm,
   TERMINAL_COPY,
   TURN_CONTINUES_FAILURE_TYPE,
   toolCallLimitArm,
@@ -180,14 +181,14 @@ type Settled =
 
 /**
  * The failure a continuing turn throws: typed, so the workflow matches it by
- * name and never by wording, with the cause as its one detail. BENIGN: the
- * turn did what it was asked, and the worker logs it at debug, not as a
- * failed activity.
+ * name and never by wording, with the cause as its one detail; its message
+ * is the arm's, or the shared copy. BENIGN: the turn did what it was asked,
+ * and the worker logs it at debug, not as a failed activity.
  */
-function turnContinuesFailure(cause: ContinuationCause): ApplicationFailure {
+function turnContinuesFailure(cause: ContinuationCause, message: string | undefined): ApplicationFailure {
   return ApplicationFailure.create({
     type: TURN_CONTINUES_FAILURE_TYPE,
-    message: TERMINAL_COPY.continuation.failureMessage,
+    message: message ?? TERMINAL_COPY.continuation.failureMessage,
     details: [cause],
     category: ApplicationFailureCategory.BENIGN,
   });
@@ -380,7 +381,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     }
     cancelInProgressSubAgentProtos(rows.subAgentRuns);
     await chokepoint.write({ final: true });
-    if (disposition.kind === "continue") return { kind: "throw", error: turnContinuesFailure(disposition.cause) };
+    if (disposition.kind === "continue") return { kind: "throw", error: turnContinuesFailure(disposition.cause, disposition.message) };
     return { kind: "throw", error: failure ?? new CancelledFailure(disposition.message) };
   };
 
@@ -518,7 +519,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
         console.warn(
           `${activityName} stall detected: execution=${executionId}, idleMs=${idleMs}, lastTool=${lastActivityDetail ?? "none"}`,
         );
-        stop.stop({ kind: "stall", error });
+        stop.stop({ kind: "stall", error, owedByModel: operations.awaitingModel() });
       },
       {
         held: () => operations.held(),
@@ -586,6 +587,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
       workspace: turn.workspace,
       fileReview: adapter.capabilities.fileReview,
       artifactStorage: turn.artifactStorage,
+      fileRecord: turn.execution.status?.fileChanges ?? [],
     });
 
     // A continued turn whose log does not say why it stopped (its runner was
@@ -627,13 +629,16 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     });
 
     // The capture boundary, ONCE, over whatever the whole turn left on the
-    // tree — unless a stop fired mid-turn (`interrupted`: the tree may be
-    // mid-edit and the pause or drain reinvokes this same turn). Before the
-    // decisions settle below, so the stamp reads the rows as the engine
-    // left them. A captured change set never holds the turn: the turn takes
-    // its own arm below with the edits applied, and the change set waits on
-    // the run's ledger and in the log for a Keep or an Undo (stigmer#1471).
-    if (capture !== undefined && outcome.kind !== "interrupted") {
+    // tree. An interrupted turn captures only once its arm is known
+    // (`settleInterrupted`): one that continues or is stopped by the
+    // workflow leaves its edits to the invocation that runs it on, which
+    // adopts the same change set. Before the decisions settle below, so the
+    // stamp reads the rows as the engine left them. A captured change set
+    // never holds the turn: the turn takes its own arm below with the edits
+    // applied, and the change set waits on the run's ledger and in the log
+    // for a Keep or an Undo (stigmer#1471).
+    const captureBoundary = async (): Promise<void> => {
+      if (capture === undefined) return;
       await captureCandidate({
         rows,
         executionId,
@@ -643,7 +648,8 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
         capture,
         globalBypass: turn.mcp.leases.global,
       });
-    }
+    };
+    if (outcome.kind !== "interrupted") await captureBoundary();
 
     // The rows whose decision never runs the tool (SKIP, REJECT) are settled
     // by the runtime, once, now that the adapter has had its look at them and
@@ -677,7 +683,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
         return settledFailure;
       }
       case "interrupted":
-        return settleInterrupted(maxCostUsd, accumulator);
+        return settleInterrupted(maxCostUsd, accumulator, captureBoundary);
       default: {
         const exhaustive: never = outcome;
         throw new Error(`${activityName}: unknown turn outcome ${JSON.stringify(exhaustive)}`);
@@ -687,7 +693,8 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
 
   /**
    * The table for an `interrupted` outcome, in the orchestrator's precedence:
-   * a stall (FAILED, return) outranks everything, and the backstop's
+   * a stall outranks everything: one that came while the turn waited on its
+   * model continues (the provider's), any other is FAILED (return), and the backstop's
    * operation limit (FAILED, return) stands beside it; a eval-case mock's abort
    * (TERMINATED, return); a cost cap (TERMINATED, return); then Temporal's cancellation as the signal's reason reads it —
    * the runner's drain past its grace, the orchestrator's stop, an
@@ -697,26 +704,38 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
    * (a user's pause during a drain is the user's), and a platform stop
    * outranks it because a run the platform ended must not run on.
    */
-  async function settleInterrupted(maxCostUsd: number, accumulator: UsageAccumulator): Promise<Settled> {
+  async function settleInterrupted(maxCostUsd: number, accumulator: UsageAccumulator, captureBoundary: () => Promise<void>): Promise<Settled> {
     const evidence = stop.evidence;
+    // An arm that RETURNS ends the turn here: nothing runs it on, so what it
+    // left on the tree is captured now, as a completed turn's is (#1115).
+    // An arm that throws or continues leaves the tree to the invocation that
+    // runs the turn on.
+    const settleReturning = async (arm: TerminalArm): Promise<Settled> => {
+      if (arm.disposition.kind === "return") await captureBoundary();
+      return settleWith(arm);
+    };
+    if (evidence.stall && evidence.stallOwedByModel) {
+      console.warn(`${activityName} stalled waiting on its model; continuing: execution=${executionId}, ${evidence.stall.message}`);
+      return settleWith(modelStallArm(evidence.stall));
+    }
     if (evidence.stall) {
-      const outcome = await settleWith(stallArm(evidence.stall));
+      const outcome = await settleReturning(stallArm(evidence.stall));
       console.warn(`${activityName} stalled: execution=${executionId}, error=${status.error}`);
       return outcome;
     }
     if (evidence.operationLimit) {
-      const outcome = await settleWith(operationLimitArm(evidence.operationLimit));
+      const outcome = await settleReturning(operationLimitArm(evidence.operationLimit));
       console.warn(`${activityName} stopped at the operation limit: execution=${executionId}, error=${status.error}`);
       return outcome;
     }
     if (evidence.mockAbort) {
-      const outcome = await settleWith(mockAbortArm(evidence.mockAbort));
+      const outcome = await settleReturning(mockAbortArm(evidence.mockAbort));
       console.warn(`${activityName} stopped by an eval mock: execution=${executionId}, error=${status.error}`);
       return outcome;
     }
     if (evidence.costCapExceeded) {
       const estimated = accumulator.snapshot().estimatedCostUsd;
-      const outcome = await settleWith(costCapArm(maxCostUsd, estimated));
+      const outcome = await settleReturning(costCapArm(maxCostUsd, estimated));
       console.warn(
         `${activityName} terminated (cost cap): execution=${executionId}, ` +
           `estimatedCostUsd=${estimated.toFixed(4)}, maxCostUsd=${maxCostUsd.toFixed(2)}`,
@@ -743,7 +762,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     }
     if (evidence.platformStop) {
       console.log(`${activityName} completed (platform stop): execution=${executionId}`);
-      return settleWith(platformStopArm());
+      return settleReturning(platformStopArm());
     }
     if (evidence.yieldCause !== undefined) {
       console.log(`${activityName} yielded to continue (${evidence.yieldCause}): execution=${executionId}`);

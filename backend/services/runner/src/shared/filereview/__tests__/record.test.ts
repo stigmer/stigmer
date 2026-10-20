@@ -6,10 +6,11 @@
  */
 
 import { create } from "@bufbuild/protobuf";
+import { FileChangeSetSchema, type FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import { describe, expect, it } from "vitest";
 
 import { FileChangeKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { FileRecordSender, fileRecordOf } from "../record.js";
+import { FileRecordSender, adoptedChangeSetOf, changeSetIdForInvocation, fileRecordOf } from "../record.js";
 import { TurnRowsSchema, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { FileReviewEventType } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 import { FileReviewEventSchema, FileReviewEventStreamSchema } from "../../../gen/turn/ai/stigmer/runner/turn/v1/ledger_pb.js";
@@ -124,3 +125,44 @@ describe("FileRecordSender", () => {
     expect(sender.pending(rows), "nothing was written").toHaveLength(1);
   });
 });
+
+describe("changeSetIdForInvocation: which set an invocation captures into", () => {
+  const RUN = "run_1";
+  const open = (id: string): FileChangeSet => create(FileChangeSetSchema, { id, baselineSnapshot: { git: { treeOid: "base" } } });
+  const captured = (id: string): FileChangeSet =>
+    create(FileChangeSetSchema, { id, baselineSnapshot: { git: { treeOid: "base" } }, candidateSnapshot: { git: { treeOid: "after" } } });
+
+  it("mints <run>:<turnSeq> for a run with no record", () => {
+    expect(changeSetIdForInvocation(RUN, 0, [])).toBe("run_1:0");
+  });
+
+  it("adopts the newest set while it is open and the invocation is its turn: a recovery at 0, a retry at its own cycle", () => {
+    expect(changeSetIdForInvocation(RUN, 0, [open("run_1:0")]), "a recovered first turn").toBe("run_1:0");
+    expect(changeSetIdForInvocation(RUN, 0, [captured("run_1:0"), open("run_1:1")]), "a recovery during the second cycle, re-run at 0").toBe("run_1:1");
+    expect(changeSetIdForInvocation(RUN, 1, [captured("run_1:0"), open("run_1:1")]), "a retry of the second cycle").toBe("run_1:1");
+  });
+
+  it("mints a new approval cycle's own id, even after a cycle that changed nothing", () => {
+    expect(changeSetIdForInvocation(RUN, 1, [captured("run_1:0")])).toBe("run_1:1");
+    expect(changeSetIdForInvocation(RUN, 1, [open("run_1:0")]), "an open set of an earlier cycle is that cycle's").toBe("run_1:1");
+  });
+
+  it("never writes into a captured set: a recovery after a captured cycle takes the first free suffix", () => {
+    expect(changeSetIdForInvocation(RUN, 0, [captured("run_1:0")])).toBe("run_1:0.1");
+    expect(changeSetIdForInvocation(RUN, 0, [captured("run_1:0"), captured("run_1:0.1")])).toBe("run_1:0.2");
+    expect(changeSetIdForInvocation(RUN, 0, [captured("run_1:0"), open("run_1:0.1")]), "and adopts that suffix while it is open").toBe("run_1:0.1");
+  });
+
+  it("does not adopt a set of another shape", () => {
+    expect(changeSetIdForInvocation(RUN, 0, [open("legacy-set")])).toBe("run_1:0");
+    expect(changeSetIdForInvocation(RUN, 0, [open("run_1:x")])).toBe("run_1:0");
+  });
+
+  it("adoptedChangeSetOf finds the open set under its id, and nothing for a captured or unknown one", () => {
+    const record = [captured("run_1:0"), open("run_1:1")];
+    expect(adoptedChangeSetOf("run_1:1", record)?.id).toBe("run_1:1");
+    expect(adoptedChangeSetOf("run_1:0", record)).toBeUndefined();
+    expect(adoptedChangeSetOf("run_1:2", record)).toBeUndefined();
+  });
+});
+

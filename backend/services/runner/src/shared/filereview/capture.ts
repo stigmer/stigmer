@@ -170,6 +170,32 @@ export async function captureBaselineToLedger(opts: {
 }
 
 /**
+ * Turn start, for an invocation that continues the run's open change set
+ * (`record.ts` `changeSetIdForInvocation`): the set's baseline is already
+ * pinned, so nothing is snapshotted and the baseline ref keeps the turn's
+ * real "before". The set's BASELINE_CAPTURED is seeded onto this
+ * invocation's ledger from the run's record (the event id is derived from
+ * the set id, so it is the same event), because each invocation's ledger is
+ * its own and the candidate the boundary captures joins it. Returns the
+ * baseline tree the boundary diffs against: the whole turn, earlier
+ * invocations' edits included; "" on a non-git workspace, whose CAS
+ * observations are this invocation's own.
+ */
+export function adoptBaselineToLedger(opts: {
+  readonly rows: LedgerHolder;
+  readonly executionId: string;
+  readonly changeSet: FileChangeSet;
+}): string {
+  const { rows, executionId, changeSet } = opts;
+  const event = buildBaselineCapturedEvent(
+    { changeSetId: changeSet.id, turnId: changeSet.turnId, harnessId: changeSet.harnessId, timestamp: utcTimestamp() },
+    changeSet.baselineSnapshot,
+  );
+  appendFileReviewEvents(rows, executionId, [event]);
+  return changeSet.baselineSnapshot?.git?.treeOid ?? "";
+}
+
+/**
  * Turn end: capture the change set, LEAVE the working tree in its applied
  * ("after") state (the user reviews the real change; nothing is committed and
  * the turn ends normally), and author the CANDIDATE_CAPTURED event. The pinned

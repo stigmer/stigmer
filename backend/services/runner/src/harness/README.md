@@ -347,7 +347,10 @@ runner, or a drain after an approved call ran) never hands the engine the
 task or the decision again. A continued turn says once why it paused, carries
 the run's cost count, and settles with no model call when its engine had
 already finished. A `checkpoint` engine also continues a run lost before
-anything of it reached the log, from its own save. They drive
+anything of it reached the log, from its own save. A stall while the turn
+waits on its model continues (the provider's); one with nothing owed fails
+as before. A turn of many invocations is one change set, and a turn stopped
+by an arm that returns still leaves its edits to keep or undo. They drive
 the `open` and `compact` steps of `__test-utils__/harness-contract/types.ts`
 through the subject's `longTurn` controls, timed on the scripted clock. An arm
 that is not true on a harness today is a known gap: its registration names the

@@ -86,6 +86,8 @@ import { resolveBlueprint, type ResolvedBlueprint } from "../shared/blueprint-re
 import { fetchTurnValues, RunValuesRefusedError, type RepositoryToken, type RunValues } from "../shared/run-values.js";
 import { provisionSessionWorkspace } from "../shared/workspace/session-provision.js";
 import { WriteBackCoordinator } from "../shared/workspace/writeback-coordinator.js";
+import { changeSetIdForInvocation } from "../shared/filereview/record.js";
+import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 import { isGitWorkTree } from "../shared/filereview/git-substrate.js";
 import { type CaseArchive, fetchCaseArchive } from "../shared/eval-case/case-archive.js";
 import { prepareEvalCase, type PreparedEvalCase } from "../shared/eval-case/prepare-case.js";
@@ -603,9 +605,11 @@ export async function fetchValues(deps: ResolutionDeps): Promise<ValuesOutcome> 
  * whether one exists (the secret-path rule's input), `captureMode` whether
  * capture runs.
  *
- * The change-set id is minted from the workflow-threaded turn index so it is
- * stable across a Temporal retry (idempotent ledger authoring) and unique per
- * turn; a "wasted" id on a turn that captures nothing is harmless.
+ * The change-set id is the run's newest open set when this invocation
+ * continues it (a recovery, a retry), else minted from the workflow-threaded
+ * turn index, unique per turn (`shared/filereview/record.ts`
+ * `changeSetIdForInvocation`); a "wasted" id on a turn that captures
+ * nothing is harmless.
  */
 export async function provisionWorkspace(
   deps: ResolutionDeps,
@@ -615,6 +619,8 @@ export async function provisionWorkspace(
     readonly repositories: readonly RepositoryToken[];
     /** Whether this turn's edits are offered for review ({@link fileReviewOn}). */
     readonly review: boolean;
+    /** The run's file record as fetched (`RunStatus.file_changes`): which set this invocation captures into. */
+    readonly fileRecord: readonly FileChangeSet[];
   },
 ): Promise<{ readonly workspace: TurnWorkspace; readonly writeback: WriteBackCoordinator | null }> {
   deps.enterPhase("provision_workspace");
@@ -638,7 +644,7 @@ export async function provisionWorkspace(
   const gitWorkspace = primaryDir ? await isGitWorkTree(primaryDir) : false;
   const captureSubstrate = deriveCaptureSubstrate(primaryDir, gitWorkspace, !!deps.artifactStorage);
   const captureMode = deriveCaptureMode(primaryDir, gitWorkspace, !!deps.artifactStorage, args.review);
-  const changeSetId = `${deps.input.executionId}:${deps.input.turnSeq}`;
+  const changeSetId = changeSetIdForInvocation(deps.input.executionId, deps.input.turnSeq, args.fileRecord);
 
   return {
     workspace: {
@@ -1977,6 +1983,7 @@ export async function resolveTurnContext(
     sessionId,
     repositories: values.repositories,
     review: fileReviewOn(session, spec),
+    fileRecord: execution.status?.fileChanges ?? [],
   });
   let { workspace } = provisioned;
   const { writeback } = provisioned;
@@ -2132,6 +2139,7 @@ export async function resolveReconcileTurn(
     sessionId,
     repositories: fetched.values.repositories,
     review: false,
+    fileRecord: [],
   });
   frame.primaryDir = workspace.primaryDir;
   frame.writeback = writeback;

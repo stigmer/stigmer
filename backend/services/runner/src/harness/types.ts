@@ -221,7 +221,11 @@ export interface TurnWorkspace {
    * see `shared/filereview/capture.ts` `deriveCaptureMode`.
    */
   readonly captureMode: boolean;
-  /** `${executionId}:${turnSeq}`: the deterministic id of the change set this turn may produce. */
+  /**
+   * The id of the change set this turn may produce: the run's open set when
+   * this invocation continues it, else `${executionId}:${turnSeq}`
+   * (`shared/filereview/record.ts` `changeSetIdForInvocation`).
+   */
   readonly changeSetId: string;
   readonly provision: SessionWorkspaceProvision;
 }

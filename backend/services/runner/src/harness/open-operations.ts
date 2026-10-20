@@ -38,6 +38,16 @@
  *     sub-agent's own calls are what count, so a sub-agent whose model hangs
  *     with nothing open is caught at the window like the root's.
  *
+ * Whether the turn is waiting on its model ({@link OpenOperations.awaitingModel})
+ * is the stall's second question: a stall owed by the model provider is
+ * recoverable, and any other is the engine's (`run-turn.ts`). It is true
+ * while a model round is open (a `message_start` with no `message_finish`),
+ * or while the newest fact folded is a tool's result that nothing has
+ * answered yet (no call started, no round opened since) and nothing is open:
+ * the engine handed the model a result and the model has not replied. A
+ * turn that has folded nothing yet is not waiting on its model by this
+ * reading: the stall may be in the engine's own setup.
+ *
  * The oldest open call, with its age, is what the runtime's backstop reads:
  * an operation open longer than `Config.openOperationMaxMs` is stopped
  * ({@link OperationLimitError}), because some operations have no bound of
@@ -86,6 +96,10 @@ export class OpenOperations {
   private readonly open = new Map<string, OpenOperation>();
   private readonly closed = new Set<string>();
   private readonly delegating = new Set<string>();
+  /** The model rounds open now, by the run id their `message_start` named. */
+  private readonly openRounds = new Set<string>();
+  /** The newest fact folded is a tool's result nothing has answered yet. */
+  private resultUnanswered = false;
   private readonly now: () => number;
 
   constructor(private readonly options: OpenOperationsOptions) {
@@ -96,6 +110,7 @@ export class OpenOperations {
   observe(event: TranscriptEvent): void {
     switch (event.kind) {
       case "tool_started": {
+        this.resultUnanswered = false;
         if (this.closed.has(event.callId) || this.open.has(event.callId)) return;
         this.open.set(event.callId, {
           callId: event.callId,
@@ -107,8 +122,19 @@ export class OpenOperations {
       }
       case "tool_finished":
       case "tool_error":
+        this.close(event.callId);
+        this.resultUnanswered = true;
+        return;
       case "approval_proposed":
         this.close(event.callId);
+        this.resultUnanswered = false;
+        return;
+      case "message_start":
+        this.openRounds.add(event.runId);
+        this.resultUnanswered = false;
+        return;
+      case "message_finish":
+        this.openRounds.delete(event.runId);
         return;
       case "sub_agent_started": {
         const wasHeld = this.held();
@@ -127,6 +153,11 @@ export class OpenOperations {
       if (this.counts(operation)) return true;
     }
     return false;
+  }
+
+  /** Whether the turn is waiting on its model's reply now (the module header). */
+  awaitingModel(): boolean {
+    return this.openRounds.size > 0 || (this.resultUnanswered && !this.held());
   }
 
   /** The counted operation open longest, or `undefined` when none is. */

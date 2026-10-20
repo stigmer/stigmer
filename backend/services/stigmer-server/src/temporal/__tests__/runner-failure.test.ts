@@ -12,6 +12,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   endsAsWorkerShutdown,
+  modelStallCopyOf,
   isTurnContinuation,
   isWorkerShutdown,
   turnContinuationCauseOf,
@@ -107,3 +108,23 @@ describe("endsAsWorkerShutdown", () => {
     expect(endsAsWorkerShutdown(new Error("agent blew up"))).toBe(false);
   });
 });
+
+describe("modelStallCopyOf", () => {
+  const STALL = "[StallTimeoutError] Agent stream stalled: no activity for 180s. Retry or resume.";
+
+  it("reads the runner's own stall copy off a model stall's continuation, however wrapped", () => {
+    expect(modelStallCopyOf(continues("model-stall", STALL))).toBe(STALL);
+    expect(modelStallCopyOf(new Error("activity 'ExecuteDeepAgent' failed", { cause: continues("model-stall", STALL) }))).toBe(STALL);
+  });
+
+  it("is undefined for a drain's continuation and for any other failure", () => {
+    expect(modelStallCopyOf(continues("drain"))).toBeUndefined();
+    expect(modelStallCopyOf(new Error("agent blew up"))).toBeUndefined();
+    expect(modelStallCopyOf(ApplicationFailure.create({ type: "Other", message: STALL, details: ["model-stall"] }))).toBeUndefined();
+  });
+
+  it("is not a worker shutdown's ending", () => {
+    expect(endsAsWorkerShutdown(continues("model-stall", STALL))).toBe(false);
+  });
+});
+
