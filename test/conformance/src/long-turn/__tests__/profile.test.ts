@@ -16,7 +16,6 @@ import {
   bulkReadsFor,
   enduranceProfile,
   goalProfile,
-  liveStepsOf,
   narrateStep,
   parseLongTurnFlags,
   profileOf,
@@ -62,12 +61,6 @@ describe("the profiles", () => {
     expect(bytes).toBeGreaterThan(bulkReadsFor(3) * BULK_BYTES);
     expect(endurance.budgetMs).toBe(210 * 60_000);
     expect(enduranceProfile(1).steps).toHaveLength(1);
-  });
-
-  it("a live run leaves out the steps that need a runner restart door", () => {
-    expect(liveStepsOf(goalProfile().steps).map((s) => s.kind)).not.toContain("kill");
-    expect(liveStepsOf(goalProfile().steps).map((s) => s.kind)).not.toContain("drain");
-    expect(liveStepsOf(goalProfile().steps)).toHaveLength(goalProfile().steps.length - 2);
   });
 
   it("names a profile by flag, keeps a subset of its steps in order, and refuses what it does not know", () => {

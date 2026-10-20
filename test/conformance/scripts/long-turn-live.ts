@@ -19,9 +19,11 @@
 // Defaults: $10 a run on native, $20 on Cursor (which bills the Cursor
 // account).
 //
-// The benchmark stack has no door to restart its runner, so the profile's
-// `kill` and `drain` steps are left out here and the report says so; the
-// real-clock run plays them against the mock.
+// The profile's `kill` and `drain` steps end the runner through the stack's
+// door (`restartRunner`, src/benchmark/run.ts), as the real-clock run does
+// against the mock: a SIGKILL while the step's shell runs, or a SIGTERM and
+// the step's release a moment later. `--steps` picks the steps a run plays,
+// so an opening leaves them out and a kill-and-drain run names them.
 //
 // Needs: the `temporal` CLI on PATH; ANTHROPIC_API_KEY for native,
 // CURSOR_API_KEY for Cursor; the `stigmer` CLI (`make install-cli-shim`).
@@ -35,7 +37,7 @@ import { PARITY_MODEL } from "../src/benchmark/cells";
 import type { BenchmarkHarness } from "../src/benchmark/report";
 import { bootBenchmarkStack } from "../src/benchmark/run";
 import { driveLongTurn } from "../src/long-turn/drive";
-import { liveStepsOf, narrateStep, parseLongTurnFlags, profileOf, type StepFiles } from "../src/long-turn/profile";
+import { narrateStep, parseLongTurnFlags, profileOf, type StepFiles } from "../src/long-turn/profile";
 import type { LongTurnReport } from "../src/long-turn/report";
 import { agentRefOf, makeAgent } from "../src/support/agents";
 import { uniqueName } from "../src/support/naming";
@@ -70,13 +72,12 @@ async function main(): Promise<void> {
   if (!(maxCostUsd > 0)) throw new Error(`--max-cost-usd must be a positive number`);
 
   const full = profileOf(flags.profile, { minutes: flags.minutes, steps: flags.steps });
-  const profile = { ...full, model: PARITY_MODEL[harness], steps: liveStepsOf(full.steps) };
+  const profile = { ...full, model: PARITY_MODEL[harness] };
   const startedAt = new Date();
   const out = resolve(flags.out ?? join(".test-output", "long-turn-live", `${harness}-${profile.name}-${startedAt.toISOString().replace(/[:.]/g, "-")}`));
   mkdirSync(out, { recursive: true });
   const files: StepFiles = { markers: join(out, "markers.log"), releaseOf: (id) => join(out, `release-${id}`) };
   writeFileSync(files.markers, "");
-  const left = full.steps.filter((s) => !profile.steps.includes(s)).map((s) => s.id);
   const report: LongTurnReport = {
     profile: `${profile.name} (live, ${harness})`,
     model: profile.model,
@@ -84,7 +85,6 @@ async function main(): Promise<void> {
     steps: profile.steps.map((s) => s.id),
     notes: [
       `The run's ceiling is the product's cost cap: max_cost_usd ${maxCostUsd}.`,
-      ...(left.length > 0 ? [`Left out (the benchmark stack has no runner restart door; the real-clock run plays them): ${left.join(", ")}.`] : []),
       "A live run has no mock, so model calls and compactions are not counted here.",
     ],
     samples: [],
@@ -114,7 +114,16 @@ async function main(): Promise<void> {
         runConfig: { modelName: profile.model, maxCostUsd },
       }),
     );
-    await driveLongTurn({ clients, runId: created.metadata!.id, profile, files, out, report, startedAtMs: startedAt.getTime() });
+    await driveLongTurn({
+      clients,
+      runId: created.metadata!.id,
+      profile,
+      files,
+      out,
+      report,
+      startedAtMs: startedAt.getTime(),
+      restartRunner: (signal) => stack.restartRunner(signal),
+    });
   } finally {
     await stack.stop();
   }
