@@ -173,7 +173,7 @@ public enum InteractionMode
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(3);
+    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(2);
   }
 
   private static final InteractionMode[] VALUES = values();

@@ -55,10 +55,9 @@ All types in this package are defined in `ai/stigmer/agentic/run/v1/`:
 | `api.proto` | `Run`, `RunStatus`, `LoadedVersions`, `RunCredentials`, `RunValueSource`, `RunValueDeclarer`, `SetupProgress` |
 | `spec.proto` | `RunSpec`, `ConversationCatchup`, `DeclaredPreferences`, `RecalledMemories`, `RecalledMemoryFact` |
 | `invocation.proto` | `RunConfig` (the settings message every run, routine, channel and agent uses), `AgentInvocation` |
-| `enum.proto` | `RunPhase`, `RunArtifactKind`, `RunControlSignal`, `InteractionMode`, `ApprovalMode`, `ServiceTier`, `ThinkingMode`, the file-record enums (`FileChangeKind`, `FileCaptureClass`, `DiffCompleteness`, `SnapshotKind`, `FileReviewBlockReason`), `RunValueDeclarerKind`, `RunValueOrigin` |
+| `enum.proto` | `RunPhase`, `RunControlSignal`, `InteractionMode`, `ApprovalMode`, `ServiceTier`, `ThinkingMode`, the file-record enums (`FileChangeKind`, `FileCaptureClass`, `DiffCompleteness`, `SnapshotKind`, `FileReviewBlockReason`), `RunValueDeclarerKind`, `RunValueOrigin` |
 | `filereview.proto` | The file record: `FileChangeSet`, `CapturedFileChange`, `SnapshotRef`, `GitTreeRef`, `CasManifestRef`, `TurnCommandProvenance`; the live `FileChangeProgress` |
 | `message.proto` | `ToolCallOutputRef`, `FileContent` — the inline-or-stored content envelope the file record uses |
-| `artifact.proto` | `RunArtifact` |
 | `writeback.proto` | `WorkspaceWriteBack`, `WorkspaceWriteBackPhase` |
 | `usage.proto` | `StreamingUsageSummary`, `LlmCallUsageRecord`, `TokenUsage`, `ModelUsage` and the usage report aggregates |
 | `eval_case.proto` | `EvalCaseContext`, `EvalFiles` and the mock server types an eval case's turn runs with |

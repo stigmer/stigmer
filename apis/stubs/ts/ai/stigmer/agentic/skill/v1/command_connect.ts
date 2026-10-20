@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CreateSkillArtifactUploadUrlRequest, PushSkillFromRunArtifactRequest, PushSkillRequest, SkillArtifactUploadUrl, SkillId } from "./io_pbjs";
+import { CreateSkillArtifactUploadUrlRequest, PushSkillFromFileRequest, PushSkillRequest, SkillArtifactUploadUrl, SkillId } from "./io_pbjs";
 import { Skill } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
@@ -49,15 +49,15 @@ export const SkillCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Push a skill from a run artifact already in storage.
-     * Use this when a run has already produced a skill artifact
-     * and you want to publish it without downloading and re-uploading the ZIP.
+     * Push a skill from a File holding its ZIP archive.
+     * Use this when an agent saved a skill archive as a File, or one was
+     * uploaded, to publish it without downloading and re-uploading the bytes.
      *
-     * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.pushFromRunArtifact
+     * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.pushFromFile
      */
-    pushFromRunArtifact: {
-      name: "pushFromRunArtifact",
-      I: PushSkillFromRunArtifactRequest,
+    pushFromFile: {
+      name: "pushFromFile",
+      I: PushSkillFromFileRequest,
       O: Skill,
       kind: MethodKind.Unary,
     },

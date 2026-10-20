@@ -7,7 +7,7 @@ import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { SkillSchema, type Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillCommandController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/command_pb";
-import { SkillIdSchema, PushSkillRequestSchema, CreateSkillArtifactUploadUrlRequestSchema, SkillArtifactUploadUrlSchema, PushSkillFromRunArtifactRequestSchema, ListSkillsRequestSchema, SkillListSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, SkillArtifactDownloadUrlSchema, ListSkillVersionsInputSchema, ListSkillVersionsResponseSchema, type PushSkillRequest, type CreateSkillArtifactUploadUrlRequest, type SkillArtifactUploadUrl, type PushSkillFromRunArtifactRequest, type ListSkillsRequest, type SkillList, type GetArtifactRequest, type GetArtifactResponse, type SkillArtifactDownloadUrl, type ListSkillVersionsInput, type ListSkillVersionsResponse } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
+import { SkillIdSchema, PushSkillRequestSchema, CreateSkillArtifactUploadUrlRequestSchema, SkillArtifactUploadUrlSchema, PushSkillFromFileRequestSchema, ListSkillsRequestSchema, SkillListSchema, GetArtifactRequestSchema, GetArtifactResponseSchema, SkillArtifactDownloadUrlSchema, ListSkillVersionsInputSchema, ListSkillVersionsResponseSchema, type PushSkillRequest, type CreateSkillArtifactUploadUrlRequest, type SkillArtifactUploadUrl, type PushSkillFromFileRequest, type ListSkillsRequest, type SkillList, type GetArtifactRequest, type GetArtifactResponse, type SkillArtifactDownloadUrl, type ListSkillVersionsInput, type ListSkillVersionsResponse } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 import { SkillQueryController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/query_pb";
 import { SkillSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -37,9 +37,9 @@ export class SkillClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async pushFromRunArtifact(input: PushSkillFromRunArtifactRequest): Promise<Skill> {
+  async pushFromFile(input: PushSkillFromFileRequest): Promise<Skill> {
     try {
-      return await this.command.pushFromRunArtifact(input);
+      return await this.command.pushFromFile(input);
     } catch (e) { throw wrapError(e); }
   }
 

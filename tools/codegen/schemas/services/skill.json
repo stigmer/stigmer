@@ -25,12 +25,12 @@
           "description": "Mint a short-lived, single-use upload URL for staging a skill artifact\n that exceeds the gRPC message-size cap (10MB). Flow:\n\n 1. createArtifactUploadUrl(org, size_bytes) → { url, artifact_upload_ref }\n 2. HTTP PUT the ZIP bytes to url\n 3. push(PushSkillRequest{ artifact_upload_ref }) — same pipeline,\n    validation, and versioning as an inline push\n\n The server refuses over-limit size_bytes here, before any bytes move."
         },
         {
-          "name": "PushFromRunArtifact",
-          "inputType": "PushSkillFromRunArtifactRequest",
-          "inputFullType": "ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest",
+          "name": "PushFromFile",
+          "inputType": "PushSkillFromFileRequest",
+          "inputFullType": "ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest",
           "outputType": "Skill",
           "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
-          "description": "Push a skill from a run artifact already in storage.\n Use this when a run has already produced a skill artifact\n and you want to publish it without downloading and re-uploading the ZIP."
+          "description": "Push a skill from a File holding its ZIP archive.\n Use this when an agent saved a skill archive as a File, or one was\n uploaded, to publish it without downloading and re-uploading the bytes."
         },
         {
           "name": "UpdateVisibility",
@@ -271,9 +271,9 @@
       ]
     },
     {
-      "name": "PushSkillFromRunArtifactRequest",
-      "description": "PushSkillFromRunArtifactRequest publishes a skill from a run\n artifact already in storage, without downloading and re-uploading the ZIP.",
-      "protoType": "ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest",
+      "name": "PushSkillFromFileRequest",
+      "description": "PushSkillFromFileRequest publishes a skill from a File holding its ZIP\n archive, without downloading and re-uploading the bytes.",
+      "protoType": "ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest",
       "protoFile": "apis/ai/stigmer/agentic/skill/v1/io.proto",
       "fields": [
         {
@@ -290,26 +290,13 @@
           }
         },
         {
-          "name": "RunId",
-          "jsonName": "runId",
-          "protoField": "run_id",
+          "name": "FileId",
+          "jsonName": "fileId",
+          "protoField": "file_id",
           "type": {
             "kind": "string"
           },
-          "description": "ID of the run that produced the artifact (e.g., \"run_abc123xyz456\").",
-          "required": false,
-          "validation": {
-            "minLength": 1
-          }
-        },
-        {
-          "name": "StorageKey",
-          "jsonName": "storageKey",
-          "protoField": "storage_key",
-          "type": {
-            "kind": "string"
-          },
-          "description": "Storage key of the directory artifact (ZIP) to push as a skill.\n Obtain this from RunArtifact.storage_key in the run status.",
+          "description": "The File holding the skill's ZIP archive: \"file_01j…\". A File of the\n same organization the caller may view.",
           "required": false,
           "validation": {
             "minLength": 1

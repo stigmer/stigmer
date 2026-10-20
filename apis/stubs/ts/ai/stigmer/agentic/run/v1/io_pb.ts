@@ -584,10 +584,10 @@ export type GetArtifactDownloadUrlRequest = Message<"ai.stigmer.agentic.run.v1.G
    * is validated to start with "artifacts/{run_id}/" to prevent
    * access to other runs' artifacts.
    *
-   * Obtain this value from RunArtifact.storage_key in the run status.
+   * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
    *
    * Format: "artifacts/{run_id}/{filename}"
-   * Example: "artifacts/run_abc123xyz456/generated-skill.zip"
+   * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
    *
    * Validation: Required, minimum 1 character
    *
@@ -744,10 +744,10 @@ export type GetArtifactContentRequest = Message<"ai.stigmer.agentic.run.v1.GetAr
    * is validated to start with "artifacts/{run_id}/" to prevent
    * access to other runs' artifacts.
    *
-   * Obtain this value from RunArtifact.storage_key in the run status.
+   * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
    *
    * Format: "artifacts/{run_id}/{filename}"
-   * Example: "artifacts/run_abc123xyz456/pr-review-agent.yaml"
+   * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
    *
    * Validation: Required, minimum 1 character
    *
@@ -778,7 +778,7 @@ export type GetArtifactContentRequest = Message<"ai.stigmer.agentic.run.v1.GetAr
    * When set for a FILE artifact, this field is ignored.
    *
    * The path must match an entry in the archive exactly (case-sensitive).
-   * Use the paths from RunArtifact.entries to discover valid values.
+   * List the archive's entries to discover valid values.
    *
    * Example: "SKILL.md", "scripts/init_skill.py"
    *

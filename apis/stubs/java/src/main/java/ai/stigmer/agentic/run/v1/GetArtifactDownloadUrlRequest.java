@@ -162,10 +162,10 @@ private static final long serialVersionUID = 0L;
    * is validated to start with "artifacts/{run_id}/" to prevent
    * access to other runs' artifacts.
    *
-   * Obtain this value from RunArtifact.storage_key in the run status.
+   * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
    *
    * Format: "artifacts/{run_id}/{filename}"
-   * Example: "artifacts/run_abc123xyz456/generated-skill.zip"
+   * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
    *
    * Validation: Required, minimum 1 character
    * </pre>
@@ -194,10 +194,10 @@ private static final long serialVersionUID = 0L;
    * is validated to start with "artifacts/{run_id}/" to prevent
    * access to other runs' artifacts.
    *
-   * Obtain this value from RunArtifact.storage_key in the run status.
+   * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
    *
    * Format: "artifacts/{run_id}/{filename}"
-   * Example: "artifacts/run_abc123xyz456/generated-skill.zip"
+   * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
    *
    * Validation: Required, minimum 1 character
    * </pre>
@@ -767,10 +767,10 @@ private static final long serialVersionUID = 0L;
      * is validated to start with "artifacts/{run_id}/" to prevent
      * access to other runs' artifacts.
      *
-     * Obtain this value from RunArtifact.storage_key in the run status.
+     * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
      *
      * Format: "artifacts/{run_id}/{filename}"
-     * Example: "artifacts/run_abc123xyz456/generated-skill.zip"
+     * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
      *
      * Validation: Required, minimum 1 character
      * </pre>
@@ -798,10 +798,10 @@ private static final long serialVersionUID = 0L;
      * is validated to start with "artifacts/{run_id}/" to prevent
      * access to other runs' artifacts.
      *
-     * Obtain this value from RunArtifact.storage_key in the run status.
+     * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
      *
      * Format: "artifacts/{run_id}/{filename}"
-     * Example: "artifacts/run_abc123xyz456/generated-skill.zip"
+     * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
      *
      * Validation: Required, minimum 1 character
      * </pre>
@@ -830,10 +830,10 @@ private static final long serialVersionUID = 0L;
      * is validated to start with "artifacts/{run_id}/" to prevent
      * access to other runs' artifacts.
      *
-     * Obtain this value from RunArtifact.storage_key in the run status.
+     * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
      *
      * Format: "artifacts/{run_id}/{filename}"
-     * Example: "artifacts/run_abc123xyz456/generated-skill.zip"
+     * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
      *
      * Validation: Required, minimum 1 character
      * </pre>
@@ -858,10 +858,10 @@ private static final long serialVersionUID = 0L;
      * is validated to start with "artifacts/{run_id}/" to prevent
      * access to other runs' artifacts.
      *
-     * Obtain this value from RunArtifact.storage_key in the run status.
+     * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
      *
      * Format: "artifacts/{run_id}/{filename}"
-     * Example: "artifacts/run_abc123xyz456/generated-skill.zip"
+     * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
      *
      * Validation: Required, minimum 1 character
      * </pre>
@@ -883,10 +883,10 @@ private static final long serialVersionUID = 0L;
      * is validated to start with "artifacts/{run_id}/" to prevent
      * access to other runs' artifacts.
      *
-     * Obtain this value from RunArtifact.storage_key in the run status.
+     * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
      *
      * Format: "artifacts/{run_id}/{filename}"
-     * Example: "artifacts/run_abc123xyz456/generated-skill.zip"
+     * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
      *
      * Validation: Required, minimum 1 character
      * </pre>

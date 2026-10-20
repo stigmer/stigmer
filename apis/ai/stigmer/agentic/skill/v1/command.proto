@@ -56,19 +56,20 @@ service SkillCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to push skill in this organization";
   }
 
-  // Push a skill from a run artifact already in storage.
-  // Use this when a run has already produced a skill artifact
-  // and you want to publish it without downloading and re-uploading the ZIP.
+  // Push a skill from a File holding its ZIP archive.
+  // Use this when an agent saved a skill archive as a File, or one was
+  // uploaded, to publish it without downloading and re-uploading the bytes.
   //
   // @internal
-  // Server-side equivalent of push() — reads the ZIP directly from artifact
-  // storage instead of receiving bytes from the client. This eliminates
-  // CORS concerns for SDK consumers.
+  // Server-side equivalent of push(): the server reads the File's bytes from
+  // its own store, so a browser never reads them cross-origin.
   //
-  // Authorization:
-  // - Requires can_view on the referenced run (to read the artifact)
-  // - Requires can_create_skill in the target organization (to push the skill)
-  rpc pushFromRunArtifact(PushSkillFromRunArtifactRequest) returns (Skill) {
+  // Authorization, every question asked before a byte is read:
+  // - can_create_skill in the target organization (this annotation)
+  // - the File must belong to that organization; another organization's
+  //   File answers not-found before access is asked
+  // - can_view on the File
+  rpc pushFromFile(PushSkillFromFileRequest) returns (Skill) {
     option (ai.stigmer.commons.rpc.config).resource_kind = organization;
     option (ai.stigmer.commons.rpc.config).permission = can_create_skill;
     option (ai.stigmer.commons.rpc.config).field_path = "org";

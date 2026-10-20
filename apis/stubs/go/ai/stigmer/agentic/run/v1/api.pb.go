@@ -136,17 +136,6 @@ type RunStatus struct {
 	// ISO 8601 timestamp when the run completed, failed, or was cancelled.
 	// Only populated for terminal states.
 	CompletedAt string `protobuf:"bytes,8,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
-	// Files/directories published by the agent for download.
-	//
-	// When an agent creates artifacts (e.g., generated code, reports, skills),
-	// it can call the publish_artifact tool to make them downloadable.
-	// Each artifact includes a pre-signed URL for direct download.
-	//
-	// Artifacts are stored in R2 and URLs expire after a configured period.
-	// Use the run download endpoint to refresh expired URLs.
-	//
-	// Ordered by creation time (oldest first).
-	Artifacts []*RunArtifact `protobuf:"bytes,15,rep,name=artifacts,proto3" json:"artifacts,omitempty"`
 	// Git write-back outcomes for workspace entries that had changes.
 	//
 	// One entry per git repository the conversation holds where the agent
@@ -303,13 +292,6 @@ func (x *RunStatus) GetCompletedAt() string {
 		return x.CompletedAt
 	}
 	return ""
-}
-
-func (x *RunStatus) GetArtifacts() []*RunArtifact {
-	if x != nil {
-		return x.Artifacts
-	}
-	return nil
 }
 
 func (x *RunStatus) GetWorkspaceWriteBacks() []*WorkspaceWriteBack {
@@ -822,7 +804,7 @@ var File_ai_stigmer_agentic_run_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"#ai/stigmer/agentic/run/v1/api.proto\x12\x19ai.stigmer.agentic.run.v1\x1a(ai/stigmer/agentic/run/v1/artifact.proto\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a)ai/stigmer/agentic/run/v1/eval_case.proto\x1a*ai/stigmer/agentic/run/v1/filereview.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a$ai/stigmer/agentic/run/v1/spec.proto\x1a%ai/stigmer/agentic/run/v1/usage.proto\x1a)ai/stigmer/agentic/run/v1/writeback.proto\x1a1ai/stigmer/agentic/session/v1/event_content.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xb3\x02\n" +
+	"#ai/stigmer/agentic/run/v1/api.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a)ai/stigmer/agentic/run/v1/eval_case.proto\x1a*ai/stigmer/agentic/run/v1/filereview.proto\x1a*ai/stigmer/agentic/run/v1/invocation.proto\x1a$ai/stigmer/agentic/run/v1/spec.proto\x1a%ai/stigmer/agentic/run/v1/usage.proto\x1a)ai/stigmer/agentic/run/v1/writeback.proto\x1a1ai/stigmer/agentic/session/v1/event_content.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xb3\x02\n" +
 	"\x03Run\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15agentic.stigmer.ai/v1R\n" +
@@ -832,15 +814,14 @@ const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"\x03RunR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x126\n" +
 	"\x04spec\x18\x04 \x01(\v2\".ai.stigmer.agentic.run.v1.RunSpecR\x04spec\x12<\n" +
-	"\x06status\x18\x05 \x01(\v2$.ai.stigmer.agentic.run.v1.RunStatusR\x06status\"\xfc\x0e\n" +
+	"\x06status\x18\x05 \x01(\v2$.ai.stigmer.agentic.run.v1.RunStatusR\x06status\"\xc7\x0e\n" +
 	"\tRunStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12C\n" +
 	"\x05phase\x18\x02 \x01(\x0e2#.ai.stigmer.agentic.run.v1.RunPhaseB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05phase\x12\x14\n" +
 	"\x05error\x18\x06 \x01(\tR\x05error\x12\x1d\n" +
 	"\n" +
 	"started_at\x18\a \x01(\tR\tstartedAt\x12!\n" +
-	"\fcompleted_at\x18\b \x01(\tR\vcompletedAt\x12D\n" +
-	"\tartifacts\x18\x0f \x03(\v2&.ai.stigmer.agentic.run.v1.RunArtifactR\tartifacts\x12a\n" +
+	"\fcompleted_at\x18\b \x01(\tR\vcompletedAt\x12a\n" +
 	"\x15workspace_write_backs\x18\x11 \x03(\v2-.ai.stigmer.agentic.run.v1.WorkspaceWriteBackR\x13workspaceWriteBacks\x12O\n" +
 	"\x0esetup_progress\x18\x12 \x01(\v2(.ai.stigmer.agentic.run.v1.SetupProgressR\rsetupProgress\x12Y\n" +
 	"\x0fstreaming_usage\x18\x14 \x01(\v20.ai.stigmer.agentic.run.v1.StreamingUsageSummaryR\x0estreamingUsage\x12_\n" +
@@ -861,7 +842,7 @@ const file_ai_stigmer_agentic_run_v1_api_proto_rawDesc = "" +
 	"stop_cause\x18# \x01(\tBz\xbaHw\xd8\x01\x01rrR\x0ebudget_reachedR\atimeoutR\x0einfrastructureR\rplatform_stopR\x04userR\vmodel_errorR\x06failedR\feval_stoppedR\x0freview_resolvedR\tstopCause\x12P\n" +
 	"\rmessage_files\x18& \x03(\v2+.ai.stigmer.agentic.session.v1.ContentBlockR\fmessageFilesJ\x04\b\x01\x10\x02J\x04\b\x04\x10\x05J\x04\b\t\x10\n" +
 	"J\x04\b\x0e\x10\x0fJ\x04\b\x10\x10\x11J\x04\b\x15\x10\x16J\x04\b\x16\x10\x17J\x04\b\x17\x10\x18J\x04\b\x18\x10\x19J\x04\b\x1a\x10\x1bJ\x04\b\n" +
-	"\x10\vJ\x04\b\f\x10\rR\bmessagesR\x0esub_agent_runsR\x05todosR\fcontext_infoR\x11pending_approvalsR\x11structured_outputR\x15approval_event_streamR\x10file_change_setsR\x18file_review_event_streamR\x18recalled_memories_reportR\x0ecallback_tokenR\x10resolved_context\"\xe4\x02\n" +
+	"\x10\vJ\x04\b\f\x10\rJ\x04\b\x0f\x10\x10R\bmessagesR\x0esub_agent_runsR\x05todosR\fcontext_infoR\x11pending_approvalsR\x11structured_outputR\x15approval_event_streamR\x10file_change_setsR\x18file_review_event_streamR\x18recalled_memories_reportR\x0ecallback_tokenR\x10resolved_contextR\tartifacts\"\xe4\x02\n" +
 	"\x0eLoadedVersions\x12\xa5\x01\n" +
 	"\x06skills\x18\x01 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBW\xbaHP\x92\x01M\"K\xba\x01H\n" +
 	"\x18loaded_versions.skill_id\x12\x1da loaded skill is named by id\x1a\rthis.id != ''\xe0\x85,+R\x06skills\x12\xa9\x01\n" +
@@ -918,20 +899,19 @@ var file_ai_stigmer_agentic_run_v1_api_proto_goTypes = []any{
 	(*RunSpec)(nil),                          // 8: ai.stigmer.agentic.run.v1.RunSpec
 	(*apiresource.ApiResourceAudit)(nil),     // 9: ai.stigmer.commons.apiresource.ApiResourceAudit
 	(RunPhase)(0),                            // 10: ai.stigmer.agentic.run.v1.RunPhase
-	(*RunArtifact)(nil),                      // 11: ai.stigmer.agentic.run.v1.RunArtifact
-	(*WorkspaceWriteBack)(nil),               // 12: ai.stigmer.agentic.run.v1.WorkspaceWriteBack
-	(*StreamingUsageSummary)(nil),            // 13: ai.stigmer.agentic.run.v1.StreamingUsageSummary
-	(*FileChangeProgress)(nil),               // 14: ai.stigmer.agentic.run.v1.FileChangeProgress
-	(*FileChangeSet)(nil),                    // 15: ai.stigmer.agentic.run.v1.FileChangeSet
-	(*DeclaredPreferences)(nil),              // 16: ai.stigmer.agentic.run.v1.DeclaredPreferences
-	(*RecalledMemories)(nil),                 // 17: ai.stigmer.agentic.run.v1.RecalledMemories
-	(*RunConfig)(nil),                        // 18: ai.stigmer.agentic.run.v1.RunConfig
-	(ApprovalMode)(0),                        // 19: ai.stigmer.agentic.run.v1.ApprovalMode
-	(*EvalFiles)(nil),                        // 20: ai.stigmer.agentic.run.v1.EvalFiles
-	(*v1.ContentBlock)(nil),                  // 21: ai.stigmer.agentic.session.v1.ContentBlock
-	(*apiresource.ApiResourceReference)(nil), // 22: ai.stigmer.commons.apiresource.ApiResourceReference
-	(RunValueOrigin)(0),                      // 23: ai.stigmer.agentic.run.v1.RunValueOrigin
-	(RunValueDeclarerKind)(0),                // 24: ai.stigmer.agentic.run.v1.RunValueDeclarerKind
+	(*WorkspaceWriteBack)(nil),               // 11: ai.stigmer.agentic.run.v1.WorkspaceWriteBack
+	(*StreamingUsageSummary)(nil),            // 12: ai.stigmer.agentic.run.v1.StreamingUsageSummary
+	(*FileChangeProgress)(nil),               // 13: ai.stigmer.agentic.run.v1.FileChangeProgress
+	(*FileChangeSet)(nil),                    // 14: ai.stigmer.agentic.run.v1.FileChangeSet
+	(*DeclaredPreferences)(nil),              // 15: ai.stigmer.agentic.run.v1.DeclaredPreferences
+	(*RecalledMemories)(nil),                 // 16: ai.stigmer.agentic.run.v1.RecalledMemories
+	(*RunConfig)(nil),                        // 17: ai.stigmer.agentic.run.v1.RunConfig
+	(ApprovalMode)(0),                        // 18: ai.stigmer.agentic.run.v1.ApprovalMode
+	(*EvalFiles)(nil),                        // 19: ai.stigmer.agentic.run.v1.EvalFiles
+	(*v1.ContentBlock)(nil),                  // 20: ai.stigmer.agentic.session.v1.ContentBlock
+	(*apiresource.ApiResourceReference)(nil), // 21: ai.stigmer.commons.apiresource.ApiResourceReference
+	(RunValueOrigin)(0),                      // 22: ai.stigmer.agentic.run.v1.RunValueOrigin
+	(RunValueDeclarerKind)(0),                // 23: ai.stigmer.agentic.run.v1.RunValueDeclarerKind
 }
 var file_ai_stigmer_agentic_run_v1_api_proto_depIdxs = []int32{
 	7,  // 0: ai.stigmer.agentic.run.v1.Run.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
@@ -939,31 +919,30 @@ var file_ai_stigmer_agentic_run_v1_api_proto_depIdxs = []int32{
 	1,  // 2: ai.stigmer.agentic.run.v1.Run.status:type_name -> ai.stigmer.agentic.run.v1.RunStatus
 	9,  // 3: ai.stigmer.agentic.run.v1.RunStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
 	10, // 4: ai.stigmer.agentic.run.v1.RunStatus.phase:type_name -> ai.stigmer.agentic.run.v1.RunPhase
-	11, // 5: ai.stigmer.agentic.run.v1.RunStatus.artifacts:type_name -> ai.stigmer.agentic.run.v1.RunArtifact
-	12, // 6: ai.stigmer.agentic.run.v1.RunStatus.workspace_write_backs:type_name -> ai.stigmer.agentic.run.v1.WorkspaceWriteBack
-	6,  // 7: ai.stigmer.agentic.run.v1.RunStatus.setup_progress:type_name -> ai.stigmer.agentic.run.v1.SetupProgress
-	13, // 8: ai.stigmer.agentic.run.v1.RunStatus.streaming_usage:type_name -> ai.stigmer.agentic.run.v1.StreamingUsageSummary
-	14, // 9: ai.stigmer.agentic.run.v1.RunStatus.file_change_progress:type_name -> ai.stigmer.agentic.run.v1.FileChangeProgress
-	15, // 10: ai.stigmer.agentic.run.v1.RunStatus.file_changes:type_name -> ai.stigmer.agentic.run.v1.FileChangeSet
-	2,  // 11: ai.stigmer.agentic.run.v1.RunStatus.loaded_versions:type_name -> ai.stigmer.agentic.run.v1.LoadedVersions
-	16, // 12: ai.stigmer.agentic.run.v1.RunStatus.declared_preferences:type_name -> ai.stigmer.agentic.run.v1.DeclaredPreferences
-	17, // 13: ai.stigmer.agentic.run.v1.RunStatus.recalled_memories:type_name -> ai.stigmer.agentic.run.v1.RecalledMemories
-	18, // 14: ai.stigmer.agentic.run.v1.RunStatus.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
-	19, // 15: ai.stigmer.agentic.run.v1.RunStatus.approval_mode:type_name -> ai.stigmer.agentic.run.v1.ApprovalMode
-	3,  // 16: ai.stigmer.agentic.run.v1.RunStatus.credentials:type_name -> ai.stigmer.agentic.run.v1.RunCredentials
-	20, // 17: ai.stigmer.agentic.run.v1.RunStatus.eval_files:type_name -> ai.stigmer.agentic.run.v1.EvalFiles
-	21, // 18: ai.stigmer.agentic.run.v1.RunStatus.message_files:type_name -> ai.stigmer.agentic.session.v1.ContentBlock
-	22, // 19: ai.stigmer.agentic.run.v1.LoadedVersions.skills:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	22, // 20: ai.stigmer.agentic.run.v1.LoadedVersions.plugins:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	4,  // 21: ai.stigmer.agentic.run.v1.RunCredentials.sources:type_name -> ai.stigmer.agentic.run.v1.RunValueSource
-	5,  // 22: ai.stigmer.agentic.run.v1.RunValueSource.declarer:type_name -> ai.stigmer.agentic.run.v1.RunValueDeclarer
-	23, // 23: ai.stigmer.agentic.run.v1.RunValueSource.origin:type_name -> ai.stigmer.agentic.run.v1.RunValueOrigin
-	24, // 24: ai.stigmer.agentic.run.v1.RunValueDeclarer.kind:type_name -> ai.stigmer.agentic.run.v1.RunValueDeclarerKind
-	25, // [25:25] is the sub-list for method output_type
-	25, // [25:25] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	11, // 5: ai.stigmer.agentic.run.v1.RunStatus.workspace_write_backs:type_name -> ai.stigmer.agentic.run.v1.WorkspaceWriteBack
+	6,  // 6: ai.stigmer.agentic.run.v1.RunStatus.setup_progress:type_name -> ai.stigmer.agentic.run.v1.SetupProgress
+	12, // 7: ai.stigmer.agentic.run.v1.RunStatus.streaming_usage:type_name -> ai.stigmer.agentic.run.v1.StreamingUsageSummary
+	13, // 8: ai.stigmer.agentic.run.v1.RunStatus.file_change_progress:type_name -> ai.stigmer.agentic.run.v1.FileChangeProgress
+	14, // 9: ai.stigmer.agentic.run.v1.RunStatus.file_changes:type_name -> ai.stigmer.agentic.run.v1.FileChangeSet
+	2,  // 10: ai.stigmer.agentic.run.v1.RunStatus.loaded_versions:type_name -> ai.stigmer.agentic.run.v1.LoadedVersions
+	15, // 11: ai.stigmer.agentic.run.v1.RunStatus.declared_preferences:type_name -> ai.stigmer.agentic.run.v1.DeclaredPreferences
+	16, // 12: ai.stigmer.agentic.run.v1.RunStatus.recalled_memories:type_name -> ai.stigmer.agentic.run.v1.RecalledMemories
+	17, // 13: ai.stigmer.agentic.run.v1.RunStatus.run_config:type_name -> ai.stigmer.agentic.run.v1.RunConfig
+	18, // 14: ai.stigmer.agentic.run.v1.RunStatus.approval_mode:type_name -> ai.stigmer.agentic.run.v1.ApprovalMode
+	3,  // 15: ai.stigmer.agentic.run.v1.RunStatus.credentials:type_name -> ai.stigmer.agentic.run.v1.RunCredentials
+	19, // 16: ai.stigmer.agentic.run.v1.RunStatus.eval_files:type_name -> ai.stigmer.agentic.run.v1.EvalFiles
+	20, // 17: ai.stigmer.agentic.run.v1.RunStatus.message_files:type_name -> ai.stigmer.agentic.session.v1.ContentBlock
+	21, // 18: ai.stigmer.agentic.run.v1.LoadedVersions.skills:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	21, // 19: ai.stigmer.agentic.run.v1.LoadedVersions.plugins:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	4,  // 20: ai.stigmer.agentic.run.v1.RunCredentials.sources:type_name -> ai.stigmer.agentic.run.v1.RunValueSource
+	5,  // 21: ai.stigmer.agentic.run.v1.RunValueSource.declarer:type_name -> ai.stigmer.agentic.run.v1.RunValueDeclarer
+	22, // 22: ai.stigmer.agentic.run.v1.RunValueSource.origin:type_name -> ai.stigmer.agentic.run.v1.RunValueOrigin
+	23, // 23: ai.stigmer.agentic.run.v1.RunValueDeclarer.kind:type_name -> ai.stigmer.agentic.run.v1.RunValueDeclarerKind
+	24, // [24:24] is the sub-list for method output_type
+	24, // [24:24] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_run_v1_api_proto_init() }
@@ -971,7 +950,6 @@ func file_ai_stigmer_agentic_run_v1_api_proto_init() {
 	if File_ai_stigmer_agentic_run_v1_api_proto != nil {
 		return
 	}
-	file_ai_stigmer_agentic_run_v1_artifact_proto_init()
 	file_ai_stigmer_agentic_run_v1_enum_proto_init()
 	file_ai_stigmer_agentic_run_v1_eval_case_proto_init()
 	file_ai_stigmer_agentic_run_v1_filereview_proto_init()

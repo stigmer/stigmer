@@ -189,7 +189,7 @@ public enum RunValueOrigin
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(13);
+    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(12);
   }
 
   private static final RunValueOrigin[] VALUES = values();

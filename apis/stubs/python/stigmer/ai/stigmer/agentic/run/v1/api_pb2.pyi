@@ -1,4 +1,3 @@
-from ai.stigmer.agentic.run.v1 import artifact_pb2 as _artifact_pb2
 from ai.stigmer.agentic.run.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.run.v1 import eval_case_pb2 as _eval_case_pb2
 from ai.stigmer.agentic.run.v1 import filereview_pb2 as _filereview_pb2
@@ -35,13 +34,12 @@ class Run(_message.Message):
     def __init__(self, api_version: _Optional[str] = ..., kind: _Optional[str] = ..., metadata: _Optional[_Union[_metadata_pb2.ApiResourceMetadata, _Mapping]] = ..., spec: _Optional[_Union[_spec_pb2.RunSpec, _Mapping]] = ..., status: _Optional[_Union[RunStatus, _Mapping]] = ...) -> None: ...
 
 class RunStatus(_message.Message):
-    __slots__ = ("audit", "phase", "error", "started_at", "completed_at", "artifacts", "workspace_write_backs", "setup_progress", "streaming_usage", "file_change_progress", "file_changes", "agent_id", "agent_version_hash", "loaded_versions", "declared_preferences", "recalled_memories", "run_config", "approval_mode", "credentials", "eval_files", "stop_cause", "message_files")
+    __slots__ = ("audit", "phase", "error", "started_at", "completed_at", "workspace_write_backs", "setup_progress", "streaming_usage", "file_change_progress", "file_changes", "agent_id", "agent_version_hash", "loaded_versions", "declared_preferences", "recalled_memories", "run_config", "approval_mode", "credentials", "eval_files", "stop_cause", "message_files")
     AUDIT_FIELD_NUMBER: _ClassVar[int]
     PHASE_FIELD_NUMBER: _ClassVar[int]
     ERROR_FIELD_NUMBER: _ClassVar[int]
     STARTED_AT_FIELD_NUMBER: _ClassVar[int]
     COMPLETED_AT_FIELD_NUMBER: _ClassVar[int]
-    ARTIFACTS_FIELD_NUMBER: _ClassVar[int]
     WORKSPACE_WRITE_BACKS_FIELD_NUMBER: _ClassVar[int]
     SETUP_PROGRESS_FIELD_NUMBER: _ClassVar[int]
     STREAMING_USAGE_FIELD_NUMBER: _ClassVar[int]
@@ -63,7 +61,6 @@ class RunStatus(_message.Message):
     error: str
     started_at: str
     completed_at: str
-    artifacts: _containers.RepeatedCompositeFieldContainer[_artifact_pb2.RunArtifact]
     workspace_write_backs: _containers.RepeatedCompositeFieldContainer[_writeback_pb2.WorkspaceWriteBack]
     setup_progress: SetupProgress
     streaming_usage: _usage_pb2.StreamingUsageSummary
@@ -80,7 +77,7 @@ class RunStatus(_message.Message):
     eval_files: _eval_case_pb2.EvalFiles
     stop_cause: str
     message_files: _containers.RepeatedCompositeFieldContainer[_event_content_pb2.ContentBlock]
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., phase: _Optional[_Union[_enum_pb2.RunPhase, str]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., artifacts: _Optional[_Iterable[_Union[_artifact_pb2.RunArtifact, _Mapping]]] = ..., workspace_write_backs: _Optional[_Iterable[_Union[_writeback_pb2.WorkspaceWriteBack, _Mapping]]] = ..., setup_progress: _Optional[_Union[SetupProgress, _Mapping]] = ..., streaming_usage: _Optional[_Union[_usage_pb2.StreamingUsageSummary, _Mapping]] = ..., file_change_progress: _Optional[_Union[_filereview_pb2.FileChangeProgress, _Mapping]] = ..., file_changes: _Optional[_Iterable[_Union[_filereview_pb2.FileChangeSet, _Mapping]]] = ..., agent_id: _Optional[str] = ..., agent_version_hash: _Optional[str] = ..., loaded_versions: _Optional[_Union[LoadedVersions, _Mapping]] = ..., declared_preferences: _Optional[_Union[_spec_pb2.DeclaredPreferences, _Mapping]] = ..., recalled_memories: _Optional[_Union[_spec_pb2.RecalledMemories, _Mapping]] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., approval_mode: _Optional[_Union[_enum_pb2.ApprovalMode, str]] = ..., credentials: _Optional[_Union[RunCredentials, _Mapping]] = ..., eval_files: _Optional[_Union[_eval_case_pb2.EvalFiles, _Mapping]] = ..., stop_cause: _Optional[str] = ..., message_files: _Optional[_Iterable[_Union[_event_content_pb2.ContentBlock, _Mapping]]] = ...) -> None: ...
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., phase: _Optional[_Union[_enum_pb2.RunPhase, str]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., workspace_write_backs: _Optional[_Iterable[_Union[_writeback_pb2.WorkspaceWriteBack, _Mapping]]] = ..., setup_progress: _Optional[_Union[SetupProgress, _Mapping]] = ..., streaming_usage: _Optional[_Union[_usage_pb2.StreamingUsageSummary, _Mapping]] = ..., file_change_progress: _Optional[_Union[_filereview_pb2.FileChangeProgress, _Mapping]] = ..., file_changes: _Optional[_Iterable[_Union[_filereview_pb2.FileChangeSet, _Mapping]]] = ..., agent_id: _Optional[str] = ..., agent_version_hash: _Optional[str] = ..., loaded_versions: _Optional[_Union[LoadedVersions, _Mapping]] = ..., declared_preferences: _Optional[_Union[_spec_pb2.DeclaredPreferences, _Mapping]] = ..., recalled_memories: _Optional[_Union[_spec_pb2.RecalledMemories, _Mapping]] = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ..., approval_mode: _Optional[_Union[_enum_pb2.ApprovalMode, str]] = ..., credentials: _Optional[_Union[RunCredentials, _Mapping]] = ..., eval_files: _Optional[_Union[_eval_case_pb2.EvalFiles, _Mapping]] = ..., stop_cause: _Optional[str] = ..., message_files: _Optional[_Iterable[_Union[_event_content_pb2.ContentBlock, _Mapping]]] = ...) -> None: ...
 
 class LoadedVersions(_message.Message):
     __slots__ = ("skills", "plugins")

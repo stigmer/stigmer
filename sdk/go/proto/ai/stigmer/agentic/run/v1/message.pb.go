@@ -25,11 +25,10 @@ const (
 // storage: a tool call's full output, or one side of a captured file change
 // too large to keep inline.
 //
-// This is deliberately distinct from RunArtifact (a file the agent
-// publishes for the user to download via publish_artifact): an output ref is
-// internal spillover of a tool's result, not a user-facing deliverable. The
-// bytes live in artifact storage (R2 in the cloud, locally served in dev);
-// only this reference is persisted in the run status.
+// This is deliberately not a File (what an agent saves for the person to
+// download): an output ref is internal spillover of a tool's result, not a
+// deliverable. The bytes live in artifact storage (R2 in the cloud, locally
+// served in dev); only this reference is persisted in the run status.
 type ToolCallOutputRef struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Storage location of the full output bytes.

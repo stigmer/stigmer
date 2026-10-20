@@ -553,10 +553,10 @@ func (x *UpdateStatusResponse) GetSignalReason() string {
 //
 // ## Example
 //
-//	{
-//	  "id": "run_abc123xyz456",
-//	  "reason": "Agent stuck in infinite loop, not responding to cancel"
-//	}
+// 	{
+// 	  "id": "run_abc123xyz456",
+// 	  "reason": "Agent stuck in infinite loop, not responding to cancel"
+// 	}
 type TerminateRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Run ID to terminate.
@@ -653,9 +653,9 @@ func (x *TerminateRunInput) GetReason() string {
 //
 // ## Example
 //
-//	{
-//	  "id": "run_abc123xyz456"
-//	}
+// 	{
+// 	  "id": "run_abc123xyz456"
+// 	}
 type RecoverRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Run ID to recover.
@@ -729,10 +729,10 @@ func (x *RecoverRunInput) GetId() string {
 //
 // ## Example
 //
-//	{
-//	  "id": "run_abc123xyz456",
-//	  "reason": "Pausing to review progress before continuing"
-//	}
+// 	{
+// 	  "id": "run_abc123xyz456",
+// 	  "reason": "Pausing to review progress before continuing"
+// 	}
 type PauseRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Run ID to pause.
@@ -822,13 +822,13 @@ func (x *PauseRunInput) GetReason() string {
 //
 // ## Example
 //
-//	{
-//	  "id": "run_abc123xyz456"
-//	}
+// 	{
+// 	  "id": "run_abc123xyz456"
+// 	}
 //
-//	{
-//	  "id": "run_abc123xyz456"
-//	}
+// 	{
+// 	  "id": "run_abc123xyz456"
+// 	}
 type ResumeRunInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Run ID to resume.
@@ -938,10 +938,10 @@ type GetArtifactDownloadUrlRequest struct {
 	// is validated to start with "artifacts/{run_id}/" to prevent
 	// access to other runs' artifacts.
 	//
-	// Obtain this value from RunArtifact.storage_key in the run status.
+	// Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
 	//
 	// Format: "artifacts/{run_id}/{filename}"
-	// Example: "artifacts/run_abc123xyz456/generated-skill.zip"
+	// Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
 	//
 	// Validation: Required, minimum 1 character
 	StorageKey string `protobuf:"bytes,2,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
@@ -1156,10 +1156,10 @@ type GetArtifactContentRequest struct {
 	// is validated to start with "artifacts/{run_id}/" to prevent
 	// access to other runs' artifacts.
 	//
-	// Obtain this value from RunArtifact.storage_key in the run status.
+	// Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
 	//
 	// Format: "artifacts/{run_id}/{filename}"
-	// Example: "artifacts/run_abc123xyz456/pr-review-agent.yaml"
+	// Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
 	//
 	// Validation: Required, minimum 1 character
 	StorageKey string `protobuf:"bytes,2,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
@@ -1180,7 +1180,7 @@ type GetArtifactContentRequest struct {
 	// When set for a FILE artifact, this field is ignored.
 	//
 	// The path must match an entry in the archive exactly (case-sensitive).
-	// Use the paths from RunArtifact.entries to discover valid values.
+	// List the archive's entries to discover valid values.
 	//
 	// Example: "SKILL.md", "scripts/init_skill.py"
 	EntryPath     string `protobuf:"bytes,4,opt,name=entry_path,json=entryPath,proto3" json:"entry_path,omitempty"`
