@@ -215,11 +215,6 @@ export function narrateStep(step: LongTurnStep, files: StepFiles): string {
   return run;
 }
 
-/** The steps a live run can play: all but `kill` and `drain`, which need a door to restart the runner. */
-export function liveStepsOf(steps: readonly LongTurnStep[]): LongTurnStep[] {
-  return steps.filter((step) => step.kind !== "kill" && step.kind !== "drain");
-}
-
 /** The flags both long-turn scripts read. */
 export interface LongTurnFlags {
   readonly profile: string;

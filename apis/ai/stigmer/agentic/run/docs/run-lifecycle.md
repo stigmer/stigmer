@@ -32,8 +32,9 @@ Every Run moves through a defined set of phases. The phase is stored in `status.
            │
     resume()│                             ┌────────────────────────────────┐
            │                              │       RUN_FAILED               │
-           └──────────────────────────►   │  (error or crash)              │
-                    (back to IN_PROGRESS) └───────────────┬────────────────┘
+           └──────────────────────────►   │  (an error, a stall, or a      │
+                    (back to IN_PROGRESS) │   recovery given up)           │
+                                          └───────────────┬────────────────┘
                                                           │ recover()
                                                           ▼
                                              (back to IN_PROGRESS,
@@ -41,8 +42,8 @@ Every Run moves through a defined set of phases. The phase is stored in `status.
 
           ┌────────────────────────────────────────────────────────────────┐
           │                    RUN_TERMINATED                               │
-          │  (stopped by the platform: a stall, the cost cap or tool-call   │
-          │   limit, or a force-kill via terminate())                       │
+          │  (stopped by the platform: the cost cap or the tool-call limit, │
+          │   or a force-kill via terminate())                              │
           └────────────────────────────────────────────────────────────────┘
 
           ┌────────────────────────────────────────────────────────────────┐
@@ -62,11 +63,11 @@ The session's `interrupt` also stops a turn that is pending, waiting for an answ
 | `RUN_PENDING` | 1 | No | Created, waiting for a worker to start processing. |
 | `RUN_IN_PROGRESS` | 2 | No | Agent is actively processing the message. |
 | `RUN_COMPLETED` | 3 | **Yes** | Agent finished successfully. |
-| `RUN_FAILED` | 4 | **Yes** | Agent encountered an error. Can be recovered. |
+| `RUN_FAILED` | 4 | **Yes** | Agent encountered an error, stalled with nothing owed by its model, or ran out of recoveries (see [A turn outlives its runner](#a-turn-outlives-its-runner)). Can be recovered. |
 | `RUN_CANCELLED` | 5 | **Yes** | Stopped by the session's `interrupt`. Cannot be recovered. |
 | `RUN_WAITING_FOR_APPROVAL` | 6 | No | A tool call waits for a person's answer. See [hitl-approvals.md](hitl-approvals.md). |
 | `RUN_PAUSED` | 7 | No | Temporarily stopped via `pause`. Checkpoint saved. Can be resumed. |
-| `RUN_TERMINATED` | 8 | **Yes** | Stopped by the platform: a stall, the cost cap or tool-call limit, or a force-kill via `terminate`. Cannot be recovered. |
+| `RUN_TERMINATED` | 8 | **Yes** | Stopped by the platform: the cost cap or the tool-call limit, or a force-kill via `terminate`. Cannot be recovered. |
 
 **Terminal states** — once reached, the phase does not change again:
 - `COMPLETED`, `FAILED`, `CANCELLED`, `TERMINATED`
@@ -76,6 +77,18 @@ The session's `interrupt` also stops a turn that is pending, waiting for an answ
 
 `status.stop_cause` says in one word why a turn stopped (`budget_reached`, `timeout`, `infrastructure`, `platform_stop`, `user`, `model_error`, `failed`, `eval_stopped`, `review_resolved`); it is empty while the turn works and when it ended on its own.
 
+
+### A turn outlives its runner
+
+A turn is not ended by what happens to the machine running it. When its runner drains (a deploy, the platform moving it), dies, or loses its model provider mid-reply, the turn stays `RUN_IN_PROGRESS` and continues on the next runner from where it was:
+
+- **The step that was running finishes, when the runner can wait for it.** A draining runner lets its running tool finish within its grace and stops at the next step boundary. A runner killed outright loses the step it was in, and the next runner runs that step again.
+- **The agent is never handed the task again.** It resumes its own saved work, or gets a summary of what the run already did, never the original request a second time.
+- **The conversation says once why the turn paused.** Examples: "The runner is restarting; this turn continues on the next one." or "The model stopped answering; this turn continues from where it was."
+- **The spending limit covers the whole task.** A run continuing after a restart, a lost runner or a stall keeps its cost count; see `RunConfig.max_cost_usd`.
+- **The turn's file changes stay one change set,** to keep or undo as a whole.
+
+The platform keeps continuing a turn while it recovers fewer than ten times within any hour. Past that, or when no runner picks the turn up within five minutes, the run ends `RUN_FAILED`, and its error and stop cause say why: `infrastructure` after a drain, and the stall's own error with `timeout` after a stall its model owed. A stall with nothing owed by the model (an engine wedged before it did anything) ends `RUN_FAILED` at once, with stop cause `timeout`.
 ---
 
 ## Lifecycle Control Operations

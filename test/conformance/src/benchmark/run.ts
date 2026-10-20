@@ -26,7 +26,7 @@
 //
 // Nothing aborts the run but the stack itself. A provisioning or create error
 // fails its attempt with `failure.stage: "create"`, and the run goes on.
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { MessageInitShape } from "@bufbuild/protobuf";
@@ -38,7 +38,7 @@ import { createTransport, makeClients } from "../harness/clients";
 import { McpToolFixture } from "../harness/mcp-server";
 import { fetchModelRegistryDocument, type ModelRegistryDocument } from "../harness/model-registry";
 import { ensureRunnerBuilt } from "@stigmer/test-support/runner-build";
-import { spawnRunner, type RunningRunner } from "@stigmer/test-support/runner-process";
+import { makeRunnerDirs, spawnRunner, type RunnerOptions, type RunningRunner } from "@stigmer/test-support/runner-process";
 import { spawnServer, type RunningServer } from "@stigmer/test-support/server-process";
 import { spawnTemporal, type RunningTemporal } from "@stigmer/test-support/temporal";
 import { ensureLibraryServerEntry } from "@stigmer/test-support/ts-build";
@@ -87,6 +87,14 @@ export interface BenchmarkStack extends SessionStack {
   serverBaseUrl: string;
   /** The tool fixture the working agent's MCP server points at. */
   mcpFixture: McpToolFixture;
+  /**
+   * Ends the runner by `signal` and returns once a replacement serves, on the
+   * same HOME and workspace root, as a pod restarted on a durable volume
+   * does: the replacement sees the checkpoints and the workspace lock the
+   * ended one left (the local execution target's door, `targets/local-execution.ts`).
+   * Its output goes to `runner-<n>.log` beside the first runner's.
+   */
+  restartRunner(signal: "SIGKILL" | "SIGTERM"): Promise<void>;
   stop(): Promise<void>;
 }
 
@@ -99,42 +107,61 @@ export async function bootBenchmarkStack(runDir: string): Promise<BenchmarkStack
   const serverEntry = await ensureLibraryServerEntry();
   const runnerEntry = await ensureRunnerBuilt();
 
+  /* v8 ignore start -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
   const mcpFixture = new McpToolFixture();
   await mcpFixture.start();
+  // The runner's directories are the stack's, so a replacement runs on them.
+  const runnerDirs = await makeRunnerDirs();
   let temporal: RunningTemporal | undefined;
   let server: RunningServer | undefined;
   let runner: RunningRunner | undefined;
+  let runnerOptions: RunnerOptions | undefined;
+  let restarts = 0;
   const stop = async (): Promise<void> => {
     await runner?.stop();
     await server?.stop();
     await temporal?.stop();
     await mcpFixture.close();
+    await rm(runnerDirs.homeDir, { recursive: true, force: true });
+    await rm(runnerDirs.workspaceDir, { recursive: true, force: true });
+  };
+  const restartRunner = async (signal: "SIGKILL" | "SIGTERM"): Promise<void> => {
+    if (runner === undefined || runnerOptions === undefined) throw new Error("bootBenchmarkStack: no runner to restart");
+    const ended = runner;
+    runner = undefined;
+    await ended.kill(signal);
+    restarts += 1;
+    runner = await spawnRunner({ ...runnerOptions, logFile: join(runDir, `runner-${restarts + 1}.log`) });
   };
   try {
     temporal = await spawnTemporal();
     server = await spawnServer(process.execPath, { args: [serverEntry], temporalHostPort: temporal.hostPort });
     const clients = makeClients(createTransport(server.baseUrl));
     await awaitGrpcReady(clients, () => server?.logTail() ?? "(no server)");
-    runner = await spawnRunner({
+    runnerOptions = {
       entryPath: runnerEntry,
       temporalHostPort: temporal.hostPort,
       backendEndpoint: server.baseUrl,
       registryOrigin: server.baseUrl,
       artifactDir: server.artifactBaseDir,
       logFile: join(runDir, "runner.log"),
-    });
+      dirs: runnerDirs,
+    };
+    runner = await spawnRunner(runnerOptions);
     return {
       clients,
       serverBaseUrl: server.baseUrl,
       temporal: { hostPort: temporal.hostPort, namespace: temporal.namespace },
       runnerLogFile: runner.logFile,
       mcpFixture,
+      restartRunner,
       stop,
     };
   } catch (error) {
     await stop();
     throw error;
   }
+  /* v8 ignore stop */
 }
 
 export interface RunIo {
