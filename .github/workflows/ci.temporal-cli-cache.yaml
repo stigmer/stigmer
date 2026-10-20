@@ -64,7 +64,7 @@ jobs:
     name: Write the Temporal CLI cache
     # The only runner the reading lanes use; the key names its asset
     # (temporal-cli-temporal_cli_<version>_linux_amd64.tar.gz).
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout

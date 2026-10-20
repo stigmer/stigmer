@@ -78,7 +78,7 @@ jobs:
   # lines and never triggered this workflow). dorny/paths-filter queries the
   # API for the real changed-file set, so it works regardless of push size.
   detect-changes:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       should_build: ${{ steps.decide.outputs.should_build }}
     steps:

@@ -42,7 +42,7 @@ env:
 jobs:
   rust:
     name: fmt / clippy / build / test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Sized for an archive-cache miss in .github/actions/tauri-linux-deps:
     # its download from Ubuntu's mirror has taken 20 min 17 s (#1529).
     timeout-minutes: 45
@@ -98,7 +98,7 @@ jobs:
 
   ipc-fixtures:
     name: IPC fixture freshness
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Checkout

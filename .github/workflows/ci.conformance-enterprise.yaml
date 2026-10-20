@@ -41,7 +41,7 @@ env:
 jobs:
   conformance-enterprise:
     name: Conformance (enterprise)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     # Every server the target spawns gets its own throwaway database here;
     # the pinned major is the one the compose stack ships.

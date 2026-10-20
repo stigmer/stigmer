@@ -59,7 +59,7 @@ env:
 jobs:
   targets:
     name: Read the targets
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       targets: ${{ steps.list.outputs.targets }}
     steps:
@@ -81,7 +81,7 @@ jobs:
   sweep:
     name: Sweep ${{ matrix.target.name }}
     needs: targets
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # A first week confirms every finding; the script's budget (below) stops
     # the confirm step in time for the upload.
     timeout-minutes: 345
@@ -184,7 +184,7 @@ jobs:
   self-test:
     name: Sweep one file end to end
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -219,7 +219,7 @@ jobs:
     # A target whose job failed has no record, so its issue is left as the
     # last good run wrote it.
     if: always() && needs.targets.result == 'success' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       # The checkout.
       contents: read

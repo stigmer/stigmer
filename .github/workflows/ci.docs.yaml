@@ -47,7 +47,7 @@ permissions:
 jobs:
   lint-and-build:
     name: Lint & Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -121,7 +121,7 @@ jobs:
 
   sdk-docs-freshness:
     name: SDK Docs Freshness
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -163,7 +163,7 @@ jobs:
 
   links:
     name: Links (Lychee)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     # Non-blocking: external links are inherently flaky in CI due to rate
     # limiting, transient failures, and geo-blocks. Exclusions for known

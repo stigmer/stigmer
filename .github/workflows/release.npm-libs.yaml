@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   determine-version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -36,7 +36,7 @@ jobs:
 
   publish:
     needs: determine-version
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -131,7 +131,7 @@ jobs:
   # pinned dependency resolves with no cross-workflow race.
   publish-runner:
     needs: [determine-version, publish]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -244,7 +244,7 @@ jobs:
   # zip-structure and plugin-package to this release's registry versions.
   publish-server:
     needs: [determine-version, publish]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -306,7 +306,7 @@ jobs:
   # server failed to (and the server's own `needs` brings the libraries).
   publish-enterprise:
     needs: [determine-version, publish-server]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -364,7 +364,7 @@ jobs:
   # bundles everything, so it has no registry dependency on @stigmer/apis.
   publish-server-slim:
     needs: [determine-version, publish]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -506,7 +506,7 @@ jobs:
   # each platform it claims.
   publish-server-image:
     needs: [determine-version, publish-server-slim]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # A healthy build is a few minutes — the Dockerfile is COPY-only, so
     # nothing executes under QEMU. Cap the job so a stalled buildx/QEMU
     # step fails fast (the release.mcp-server ~1h hang on v3.1.11).
@@ -574,7 +574,7 @@ jobs:
   # clean SIGTERM. No QEMU: each arch proves itself on its own runner.
   smoke-server-image-amd64:
     needs: [determine-version, publish-server-image]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -633,7 +633,7 @@ jobs:
     # stable). imagetools create re-points the manifest list without
     # rebuilding, so `latest` is bit-identical to the smoked version tag.
     if: ${{ !contains(needs.determine-version.outputs.version, '-') }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       packages: write
@@ -665,7 +665,7 @@ jobs:
   # the same version and bundled defaults.
   stage-enterprise-image-trees:
     needs: [determine-version, publish]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -752,7 +752,7 @@ jobs:
   # (the runner image's rule below).
   publish-enterprise-image:
     needs: [determine-version, publish-enterprise, stage-enterprise-image-trees]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # COPY-only, as the server image: nothing executes under QEMU.
     timeout-minutes: 25
     permissions:
@@ -811,7 +811,7 @@ jobs:
   # cannot verify refusing the boot.
   smoke-enterprise-image-amd64:
     needs: [determine-version, publish-enterprise-image]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -867,7 +867,7 @@ jobs:
     needs: [determine-version, smoke-enterprise-image-amd64, smoke-enterprise-image-arm64]
     # Stable only, as the server image (promote-server-image-latest).
     if: ${{ !contains(needs.determine-version.outputs.version, '-') }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       packages: write
@@ -908,7 +908,7 @@ jobs:
   # (stigmer/stigmer#1831).
   publish-runner-image-amd64:
     needs: [determine-version, publish]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -999,7 +999,7 @@ jobs:
 
   publish-runner-image:
     needs: [determine-version, publish-runner-image-amd64, publish-runner-image-arm64]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       packages: write
@@ -1030,7 +1030,7 @@ jobs:
   # release commit instead; see the note after promote-runner-image-latest).
   smoke-compose-amd64:
     needs: [determine-version, publish-server-image, publish-runner-image]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
@@ -1107,7 +1107,7 @@ jobs:
     # images' `latest` wait for it. amd64 only: the per-arch smokes prove
     # each image runs; what survives an upgrade does not depend on the arch.
     needs: [determine-version, publish-server-image, publish-runner-image]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -1145,7 +1145,7 @@ jobs:
     # stronger proof: `latest` moves only after the full compose stack ran
     # end-to-end on both arches from the pushed tags.
     if: ${{ !contains(needs.determine-version.outputs.version, '-') }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       packages: write
@@ -1185,7 +1185,7 @@ jobs:
   # ---------------------------------------------------------------------------
   stage-all-in-one:
     needs: [determine-version, publish]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -1237,7 +1237,7 @@ jobs:
   # version whose npm packages the same run did not publish.
   publish-all-in-one-image-amd64:
     needs: [determine-version, stage-all-in-one, publish-runner, publish-server-slim]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -1313,7 +1313,7 @@ jobs:
 
   publish-all-in-one-image:
     needs: [determine-version, publish-all-in-one-image-amd64, publish-all-in-one-image-arm64]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       packages: write
@@ -1339,7 +1339,7 @@ jobs:
 
   smoke-all-in-one-amd64:
     needs: [determine-version, publish-all-in-one-image]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
@@ -1409,7 +1409,7 @@ jobs:
     # The all-in-one user's upgrade (a new tag on the same volume), from the
     # newest stable release; `latest` waits for it.
     needs: [determine-version, publish-all-in-one-image]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -1446,7 +1446,7 @@ jobs:
     # Stable only — the server and runner images' channel policy: `latest`
     # moves only after the pushed tag ran the full smoke on both arches.
     if: ${{ !contains(needs.determine-version.outputs.version, '-') }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       packages: write
@@ -1502,7 +1502,7 @@ jobs:
   # ---------------------------------------------------------------------------
   package-helm-chart:
     needs: [determine-version, publish-server-image, publish-runner-image]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -1550,7 +1550,7 @@ jobs:
 
   smoke-helm-amd64:
     needs: [determine-version, package-helm-chart]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -1637,7 +1637,7 @@ jobs:
     # packaged chart, before it is pushed: the push waits for it, prereleases
     # included, since the chart publishes on every release.
     needs: [determine-version, package-helm-chart]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
       contents: read
@@ -1686,7 +1686,7 @@ jobs:
 
   publish-helm-chart:
     needs: [determine-version, smoke-helm-amd64, smoke-helm-arm64, rehearse-helm]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -1725,7 +1725,7 @@ jobs:
     # the next release train reads it. The install waits until npm serves
     # the version (test/install/lib/install-cli.mjs).
     needs: [determine-version, publish, publish-runner, publish-server-slim]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -1754,7 +1754,7 @@ jobs:
     # the next release train reads it. The install waits until npm serves
     # the version (test/install/lib/install-cli.mjs).
     needs: [determine-version, publish, publish-runner, publish-server-slim]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read

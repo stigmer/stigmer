@@ -58,7 +58,7 @@ env:
 jobs:
   server:
     name: Server Gate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # About 3x the job's time: without it a hung step would hold a runner for
     # GitHub's six-hour default.
     timeout-minutes: 20
@@ -222,7 +222,7 @@ jobs:
   # wait for the artifact chain above.
   server-tests:
     name: Server Tests (${{ matrix.shard }}/2)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
       fail-fast: false
