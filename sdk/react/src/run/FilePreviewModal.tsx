@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, type ReactNode } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
@@ -8,6 +8,7 @@ import { useFileDownload } from "../file/useFile.js";
 import { formatArtifactSize } from "./artifact-utils.js";
 import { FileBody } from "./FileBody.js";
 import { FileApplyButton } from "./FileApplyButton.js";
+import { FileAddAsSkillAction, FileDeleteAction } from "./FileActions.js";
 import { useFileInspection } from "./useFileInspection.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 
@@ -44,15 +45,27 @@ export interface FilePreviewContentProps {
    * non-actionable Files.
    */
   readonly onImplement?: () => void;
+  /**
+   * Called once the File is deleted. When provided, the action bar offers
+   * Delete to a caller holding `can_delete` on the File; the host re-reads
+   * its list (the content stays mounted until the host closes it).
+   */
+  readonly onDeleted?: () => void;
+  /**
+   * Host-owned controls for who may see the File (the Library's visibility
+   * and Manage access), rendered in the action bar's leading group.
+   */
+  readonly accessSlot?: ReactNode;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
 
 /**
- * Output-File preview content with detection pipeline and Apply CTA.
+ * One File's preview content with detection pipeline and Apply CTA.
  *
  * Renders the header (name, size, detection badge, close button),
- * content body, and action bar (copy, download, Apply). The parent is responsible for rendering
+ * content body, and action bar (copy, download, add as skill, delete,
+ * Apply). The parent is responsible for rendering
  * it inside a `<dialog>`, modal, sheet, overlay, or inline context as
  * needed.
  *
@@ -92,6 +105,8 @@ export function FilePreviewContent({
   onClose,
   onApplied,
   onImplement,
+  onDeleted,
+  accessSlot,
   className,
 }: FilePreviewContentProps) {
   // The whole inspect-and-act pipeline (content, detection, apply, copy)
@@ -139,6 +154,9 @@ export function FilePreviewContent({
         applyError={inspection.applyError}
         onApply={inspection.apply}
         onImplement={onImplement ? handleImplement : undefined}
+        onApplied={onApplied}
+        onDeleted={onDeleted}
+        accessSlot={accessSlot}
       />
 
       <div
@@ -187,12 +205,16 @@ export interface FilePreviewModalProps {
    * `onImplement` then closes the modal.
    */
   readonly onImplement?: () => void;
+  /** See {@link FilePreviewContentProps.onDeleted}. */
+  readonly onDeleted?: () => void;
+  /** See {@link FilePreviewContentProps.accessSlot}. */
+  readonly accessSlot?: ReactNode;
   /** Additional CSS classes for the dialog element. */
   readonly className?: string;
 }
 
 /**
- * Full preview modal for an output File using a native `<dialog>`.
+ * Full preview modal for one File using a native `<dialog>`.
  *
  * Thin shell around {@link FilePreviewContent} that adds
  * `showModal()` / `close()` lifecycle, `::backdrop` overlay, focus
@@ -230,6 +252,8 @@ export function FilePreviewModal({
   onClose,
   onApplied,
   onImplement,
+  onDeleted,
+  accessSlot,
   className,
 }: FilePreviewModalProps) {
   const handleOpenChange = useCallback(
@@ -259,6 +283,8 @@ export function FilePreviewModal({
           onClose={onClose}
           onApplied={onApplied}
           onImplement={onImplement}
+          onDeleted={onDeleted}
+          accessSlot={accessSlot}
         />
       )}
     </DialogShell>
@@ -347,6 +373,9 @@ function ActionBar({
   applyError,
   onApply,
   onImplement,
+  onApplied,
+  onDeleted,
+  accessSlot,
 }: {
   readonly file: StigmerFile;
   readonly hasContent: boolean;
@@ -360,11 +389,14 @@ function ActionBar({
   readonly applyError: Error | null;
   readonly onApply: () => void;
   readonly onImplement?: () => void;
+  readonly onApplied?: (result: ApplyResourceResult) => void;
+  readonly onDeleted?: () => void;
+  readonly accessSlot?: ReactNode;
 }) {
   const { download, isDownloading } = useFileDownload();
   return (
-    <div className="stg:flex stg:items-center stg:justify-between stg:gap-3 stg:border-t stg:border-border stg:px-4 stg:py-3">
-      <div className="stg:flex stg:items-center stg:gap-3">
+    <div className="stg:flex stg:flex-wrap stg:items-center stg:justify-between stg:gap-3 stg:border-t stg:border-border stg:px-4 stg:py-3">
+      <div className="stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-3">
         {hasContent && (
           <button
             type="button"
@@ -395,6 +427,9 @@ function ActionBar({
           <DownloadIcon />
           {isDownloading ? "Preparing…" : "Download"}
         </button>
+        <FileAddAsSkillAction file={file} onAdded={onApplied} />
+        {onDeleted && <FileDeleteAction file={file} onDeleted={onDeleted} />}
+        {accessSlot}
       </div>
 
       <div className="stg:flex stg:shrink-0 stg:items-center stg:gap-3">

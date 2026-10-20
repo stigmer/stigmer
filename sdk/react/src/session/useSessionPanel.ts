@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { isTerminalPhase } from "../run/run-phases.js";
 import {
   useWorkspaceEditorsStoreRef,
@@ -11,7 +10,6 @@ import {
 } from "../internal/store/index.js";
 import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "./plan-document.js";
 import { FILE_DOCUMENT_ENTRY_ID } from "../run/file-document.js";
-import { outputKey } from "./useSessionOutputs.js";
 
 /** Options for {@link useSessionPanel}. */
 export interface UseSessionPanelOptions {
@@ -160,29 +158,30 @@ export interface SessionPanelController {
    * evict the plan — and it activates, replacing the focused tab: the plan is
    * the deliverable being reviewed. Fired by the thread cards' "Open plan"
    * (the live `PlanStreamingCard` and the settled `PlanArtifactCard`), the
-   * Artifacts facet's `plan.md`, and the new-plan auto-open — which triggers
+   * Files facet's `plan.md`, and the new-plan auto-open — which triggers
    * both when a plan STARTS STREAMING and when it publishes (see `planKey`).
    */
   readonly openPlanDocument: () => void;
   /**
-   * Open (or focus) an artifact as an editor-pane document tab and expand the
-   * panel. Uses the PREVIEW slot — like files and content-search hits, casual
-   * artifact browsing reuses one tab (single-click), and double-clicking the
-   * tab pins it. Distinct from `openPlanDocument`, which pins its single tab: a
-   * plan is the turn's deliverable, artifacts are browsable outputs. The
-   * artifact's {@link outputKey} is the tab identity, shared with the
+   * Open (or focus) one of the conversation's Files as an editor-pane
+   * document tab and expand the panel. Uses the PREVIEW slot — like files and
+   * content-search hits, casual browsing reuses one tab (single-click), and
+   * double-clicking the tab pins it. Distinct from `openPlanDocument`, which
+   * pins its single tab: a plan is the turn's deliverable, Files are
+   * browsable. The document key (`outputKey` for what the agent saved,
+   * `givenKey` for what was given) is the tab identity, shared with the
    * `SurfaceVirtualDocument` the viewer builds for the open tab.
    */
-  readonly openArtifact: (file: StigmerFile) => void;
+  readonly openFileDocument: (documentKey: string) => void;
   /**
-   * Pin an artifact's tab (clear its preview state) — the double-click half of
-   * the open/activate split, the encapsulated sibling of {@link openArtifact}.
+   * Pin a File's tab (clear its preview state) — the double-click half of
+   * the open/activate split, the encapsulated sibling of {@link openFileDocument}.
    * Delegates to the editors store's generic `pin`, exactly as the file tree
    * pins via `pinEditor`: the leading single-click of the double-click has
    * already opened the preview tab, so this promotes it to a persistent tab. A
-   * no-op if the artifact is not open.
+   * no-op if the File is not open.
    */
-  readonly pinArtifact: (file: StigmerFile) => void;
+  readonly pinFileDocument: (documentKey: string) => void;
 }
 
 /**
@@ -319,17 +318,17 @@ export function useSessionPanel({
     [editorsStore, requestOpenChange],
   );
 
-  const openArtifact = useCallback(
-    (file: StigmerFile) => {
-      editorsStore.openPreview(FILE_DOCUMENT_ENTRY_ID, outputKey(file));
+  const openFileDocument = useCallback(
+    (documentKey: string) => {
+      editorsStore.openPreview(FILE_DOCUMENT_ENTRY_ID, documentKey);
       requestOpenChange(true);
     },
     [editorsStore, requestOpenChange],
   );
 
-  const pinArtifact = useCallback(
-    (file: StigmerFile) => {
-      editorsStore.pin(FILE_DOCUMENT_ENTRY_ID, outputKey(file));
+  const pinFileDocument = useCallback(
+    (documentKey: string) => {
+      editorsStore.pin(FILE_DOCUMENT_ENTRY_ID, documentKey);
     },
     [editorsStore],
   );
@@ -362,8 +361,8 @@ export function useSessionPanel({
       pinEditor,
       closeEditor,
       openPlanDocument,
-      openArtifact,
-      pinArtifact,
+      openFileDocument,
+      pinFileDocument,
     }),
     [
       editorsStore,
@@ -377,8 +376,8 @@ export function useSessionPanel({
       pinEditor,
       closeEditor,
       openPlanDocument,
-      openArtifact,
-      pinArtifact,
+      openFileDocument,
+      pinFileDocument,
     ],
   );
 }

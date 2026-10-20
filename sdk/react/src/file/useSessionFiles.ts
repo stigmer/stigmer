@@ -6,11 +6,13 @@
  * returned grouped by run id.
  *
  * Trade-offs:
- * - A turn's outputs register when the turn ends, and nothing streams them,
- *   so the list re-reads when the host says the set of ended turns changed
- *   (`settledKey`, the joined ids of the session's terminal runs). That key
- *   moves exactly when the host's runs refetch shows a turn ended, so Files
- *   follow the runs with no second trigger and no polling.
+ * - Files join a conversation at two moments, and nothing streams either:
+ *   the Files sent with a message become the conversation's when its turn
+ *   starts, and a turn's outputs register when it ends. So the list re-reads
+ *   when the host says a turn started or ended (`refreshKey`, each run's id
+ *   with whether it has ended). That key moves exactly when the host's runs
+ *   refetch shows either, so Files follow the runs with no second trigger,
+ *   no callback threaded through the send path, and no polling.
  * - A re-read keeps the previous list on screen (stale-while-revalidate);
  *   only a different conversation resets it.
  * - The server lists newest first, and both fields keep that order.
@@ -45,19 +47,19 @@ export interface UseSessionFilesReturn {
  *
  * @param org - The conversation's organization, or `null` to skip.
  * @param sessionId - The conversation's id, or `null` to skip.
- * @param settledKey - Any string that changes when a turn ends (the joined
- *   ids of the session's terminal runs); a change re-reads the list.
+ * @param refreshKey - Any string that changes when a turn starts or ends
+ *   (each run's id with whether it has ended); a change re-reads the list.
  *
  * @example
  * ```tsx
- * const settledKey = runs.filter(isSettled).map((r) => r.metadata?.id).join(",");
- * const { outputsByRun } = useSessionFiles(org, sessionId, settledKey);
+ * const refreshKey = runs.map((r) => `${r.metadata?.id}:${isSettled(r)}`).join(",");
+ * const { outputsByRun } = useSessionFiles(org, sessionId, refreshKey);
  * ```
  */
 export function useSessionFiles(
   org: string | null,
   sessionId: string | null,
-  settledKey: string,
+  refreshKey: string,
 ): UseSessionFilesReturn {
   const stigmer = useStigmer();
   const active = !!org && !!sessionId;
@@ -78,12 +80,12 @@ export function useSessionFiles(
 
   // A changed key re-reads in place; the first render's key is the mount's
   // own read, so it never doubles it.
-  const lastKey = useRef(settledKey);
+  const lastKey = useRef(refreshKey);
   useEffect(() => {
-    if (lastKey.current === settledKey) return;
-    lastKey.current = settledKey;
+    if (lastKey.current === refreshKey) return;
+    lastKey.current = refreshKey;
     refetch();
-  }, [settledKey, refetch]);
+  }, [refreshKey, refetch]);
 
   const outputsByRun = useMemo(() => {
     const byRun = new Map<string, StigmerFile[]>();

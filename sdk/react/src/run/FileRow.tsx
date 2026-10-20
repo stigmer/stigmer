@@ -1,6 +1,6 @@
 "use client";
 
-// Session-model artifact list row: adapts an output File and its download
+// A conversation's File row: adapts a File, its place and its download
 // wiring onto the shared, data-model-agnostic FileRowView.
 
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
@@ -11,8 +11,14 @@ import { useFileDownload } from "../file/useFile.js";
 
 /** Props for {@link FileRow}. */
 export interface FileRowProps {
-  /** The File a turn returned. */
+  /** The File: one a turn returned, or one given to the conversation. */
   readonly file: StigmerFile;
+  /**
+   * Where the agent finds the File, relative to its folder, when it is not
+   * the output path: a given File's settled mount path. The row is named
+   * by its last segment.
+   */
+  readonly place?: string;
   /**
    * When `true`, another row shares this File's filename at a different
    * output path; the row renders the path's folder as a muted subtitle to
@@ -32,7 +38,7 @@ export interface FileRowProps {
 }
 
 /**
- * The output-File host of the shared {@link FileRowView}: it owns the
+ * The File host of the shared {@link FileRowView}: it owns the
  * download mechanics (a link minted per click via {@link useFileDownload})
  * and maps the File onto the view-model.
  *
@@ -40,6 +46,7 @@ export interface FileRowProps {
  */
 export function FileRow({
   file,
+  place,
   hasNameCollision = false,
   onOpen,
   onActivate,
@@ -48,8 +55,8 @@ export function FileRow({
   const { download, isDownloading } = useFileDownload();
 
   const item = useMemo<FileRowItem>(
-    () => fromFile(file, hasNameCollision),
-    [file, hasNameCollision],
+    () => fromFile(file, hasNameCollision, place),
+    [file, hasNameCollision, place],
   );
 
   return (

@@ -5,13 +5,14 @@ import { cn } from "@stigmer/design-tokens";
 import { useFileInspection } from "./useFileInspection.js";
 import { FileBody } from "./FileBody.js";
 import { FileApplyButton } from "./FileApplyButton.js";
+import { FileAddAsSkillAction, FileDeleteAction } from "./FileActions.js";
 import { useFileDownload } from "../file/useFile.js";
 import { formatArtifactSize } from "./artifact-utils.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 
 /** Props for {@link FileDocument}. */
 export interface FileDocumentProps {
-  /** The File a turn returned. */
+  /** The File: one a turn returned, or one given to the conversation. */
   readonly file: StigmerFile;
   /** Organization for the "Apply to [org]" CTA. */
   readonly org: string;
@@ -21,17 +22,23 @@ export interface FileDocumentProps {
    */
   readonly isTerminal: boolean;
   /**
-   * Called after a resource is applied — the same host
-   * callback the preview modal fires, so a document-apply behaves identically
-   * (toast / Library refresh).
+   * Called after a resource is applied, or a `.zip` File is added as a
+   * skill — the same host callback the preview modal fires, so a
+   * document-apply behaves identically (toast / Library refresh).
    */
   readonly onApplied?: (result: ApplyResourceResult) => void;
+  /**
+   * Called once the File is deleted. When provided, the toolbar offers
+   * Delete to a caller holding `can_delete` on the File; the host re-reads
+   * its list and closes the document.
+   */
+  readonly onDeleted?: () => void;
   /** Additional CSS classes for the root element. */
   readonly className?: string;
 }
 
 /**
- * The editor-pane rendering of a single output File — the
+ * The editor-pane rendering of a single File — the
  * {@link SurfaceVirtualDocument} counterpart of the {@link FilePreviewModal}
  * popup, mounted as an artifact-family virtual document under
  * {@link FILE_DOCUMENT_ENTRY_ID}. Opening an artifact from the session
@@ -42,7 +49,8 @@ export interface FileDocumentProps {
  * {@link useFileInspection} (content + detection + apply + copy) and
  * {@link FileBody} (loading / error / binary / text) —
  * so the two surfaces can never drift. Only the chrome differs: a document
- * toolbar (name + size + detection badge; Copy / Download / Apply) over the
+ * toolbar (name + size + detection badge; Copy / Download / Add as skill /
+ * Delete / Apply) over the
  * shared body, instead of the modal's header + footer action bar.
  *
  * Holds no must-survive local state: the panel region unmounts on collapse and
@@ -57,6 +65,7 @@ export function FileDocument({
   org,
   isTerminal,
   onApplied,
+  onDeleted,
   className,
 }: FileDocumentProps) {
   const inspection = useFileInspection(file, org, { onApplied });
@@ -68,7 +77,7 @@ export function FileDocument({
   return (
     <div
       role="article"
-      aria-label={`Artifact ${name}`}
+      aria-label={`File ${name}`}
       className={cn("stg:flex stg:min-h-0 stg:min-w-0 stg:flex-1 stg:flex-col", className)}
     >
       {/* Toolbar sticks to the top of the editor pane's scroll container so the
@@ -129,6 +138,8 @@ export function FileDocument({
             <DownloadIcon />
             {isDownloading ? "Preparing\u2026" : "Download"}
           </button>
+          <FileAddAsSkillAction file={file} onAdded={onApplied} />
+          {onDeleted && <FileDeleteAction file={file} onDeleted={onDeleted} />}
           <ApplyCluster
             isDetected={inspection.isDetected}
             ctaLabel={inspection.ctaLabel}

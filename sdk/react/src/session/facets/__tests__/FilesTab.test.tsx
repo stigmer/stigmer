@@ -1,8 +1,10 @@
 /**
- * The session panel's Artifacts facet over the conversation's output Files:
- * one dense row per output; a plan routes to the plan tab, any other File to
- * an editor tab or, in a panel-less host, the preview modal (with Build for a
- * plan); a double-click pins; opening the facet re-reads the Files once.
+ * The session panel's Files facet over the conversation's Files: two groups,
+ * what the agent saved (one dense row per output path, its earlier versions
+ * behind a disclosure) and what was given (each named by its place); a plan
+ * routes to the plan tab, any other File to an editor tab by its document
+ * key or, in a panel-less host, the preview modal (with Build for a plan); a
+ * double-click pins; opening the facet re-reads the Files once.
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -14,13 +16,14 @@ import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerContext } from "../../../context";
 import { FilesTab, type FilesTabProps } from "../FilesTab";
-import { deriveSessionOutputs, type SessionOutputEntry } from "../../useSessionOutputs";
+import { deriveSessionOutputs } from "../../useSessionOutputs";
+import { givenKey, type SessionGivenEntry } from "../../useSessionGivenFiles";
 
-function output(filename: string) {
+function output(filename: string, runId = "aex_1", id = `file_${filename.replace(/\W/g, "_")}`) {
   return create(FileSchema, {
-    metadata: { id: `file_${filename.replace(/\W/g, "_")}` },
+    metadata: { id },
     spec: { filename },
-    status: { sizeBytes: 1024n, runId: "aex_1", outputPath: filename },
+    status: { sizeBytes: 1024n, runId, outputPath: filename },
   });
 }
 
@@ -29,7 +32,15 @@ const execution = create(RunSchema, {
   status: { phase: RunPhase.RUN_COMPLETED },
 });
 
-const ENTRIES = deriveSessionOutputs([output("plan.md"), output("notes.md")], [execution]).artifacts;
+const ENTRIES = deriveSessionOutputs([output("plan.md"), output("notes.md")], [execution]).outputs;
+
+/** A File given to the conversation, at the place its resources settled. */
+const GIVEN: readonly SessionGivenEntry[] = [
+  {
+    file: create(FileSchema, { metadata: { id: "file_ledger" }, spec: { filename: "ledger.csv" }, status: { sizeBytes: 64n } }),
+    place: "q3/ledger.csv",
+  },
+];
 
 /** Modal content read — keep pending so nothing rejects during the test. */
 function createStigmerMock(): Stigmer {
@@ -43,17 +54,17 @@ function createStigmerMock(): Stigmer {
 function renderTab(props: Partial<FilesTabProps> = {}) {
   return render(
     <StigmerContext.Provider value={createStigmerMock()}>
-      <FilesTab artifacts={ENTRIES} org="acme" {...props} />
+      <FilesTab outputs={ENTRIES} given={[]} org="acme" {...props} />
     </StigmerContext.Provider>,
   );
 }
 
-/** Click the open target of a row by its artifact name. */
+/** Click the open target of a row by its name. */
 function openRow(name: string) {
   fireEvent.click(screen.getByText(name));
 }
 
-/** Double-click the open target of a row by its artifact name (the pin gesture). */
+/** Double-click the open target of a row by its name (the pin gesture). */
 function activateRow(name: string) {
   fireEvent.doubleClick(screen.getByText(name));
 }
@@ -61,8 +72,8 @@ function activateRow(name: string) {
 afterEach(cleanup);
 
 describe("FilesTab — dense row list", () => {
-  it("renders one row per artifact with a Download control (no old 'Preview' button)", () => {
-    renderTab({ onOpenArtifact: vi.fn() });
+  it("renders one row per output path with a Download control (no old 'Preview' button)", () => {
+    renderTab({ onOpenFileDocument: vi.fn() });
 
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
     expect(screen.getByText("plan.md")).toBeTruthy();
@@ -72,13 +83,49 @@ describe("FilesTab — dense row list", () => {
     expect(screen.getByLabelText("Download notes.md")).toBeTruthy();
   });
 
-  it("renders the empty state with no artifacts", () => {
+  it("renders the empty state with no Files", () => {
     render(
       <StigmerContext.Provider value={createStigmerMock()}>
-        <FilesTab artifacts={[]} org="acme" />
+        <FilesTab outputs={[]} given={[]} org="acme" />
       </StigmerContext.Provider>,
     );
-    expect(screen.getByText(/No artifacts yet/)).toBeTruthy();
+    expect(screen.getByText(/No files yet/)).toBeTruthy();
+  });
+
+  it("groups what the agent saved apart from what was given, naming a given File by its place", () => {
+    renderTab({ given: GIVEN });
+
+    const saved = screen.getByRole("region", { name: "Saved by the agent" });
+    const given = screen.getByRole("region", { name: "Given to the conversation" });
+    expect(within(saved).getByText("notes.md")).toBeTruthy();
+    expect(within(given).getByText("ledger.csv")).toBeTruthy();
+    expect(within(given).queryByText("notes.md")).toBeNull();
+    // The download keeps the File's own name.
+    expect(within(given).getByLabelText("Download ledger.csv")).toBeTruthy();
+  });
+
+  it("shows only the group that has Files", () => {
+    renderTab({ outputs: [], given: GIVEN });
+    expect(screen.queryByRole("region", { name: "Saved by the agent" })).toBeNull();
+    expect(screen.getByRole("region", { name: "Given to the conversation" })).toBeTruthy();
+  });
+
+  it("puts a path's earlier versions behind a disclosure, each opening in the preview", () => {
+    const later = create(RunSchema, { metadata: { id: "aex_2" }, status: { phase: RunPhase.RUN_COMPLETED } });
+    const outputs = deriveSessionOutputs(
+      [output("report.md", "aex_2", "file_v2"), output("report.md", "aex_1", "file_v1")],
+      [execution, later],
+    ).outputs;
+    renderTab({ outputs, onOpenFileDocument: vi.fn() });
+
+    expect(screen.getAllByText("report.md")).toHaveLength(1);
+    const disclosure = screen.getByRole("button", { name: "Show 1 earlier version" });
+    expect(disclosure.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(disclosure);
+
+    const earlier = screen.getByRole("list", { name: "Earlier versions of report.md" });
+    fireEvent.click(within(earlier).getByText("report.md"));
+    expect(document.querySelector("dialog")).toBeTruthy();
   });
 
   it("re-reads the conversation's Files once when the facet opens", () => {
@@ -86,7 +133,7 @@ describe("FilesTab — dense row list", () => {
     const { rerender } = renderTab({ onShown });
     rerender(
       <StigmerContext.Provider value={createStigmerMock()}>
-        <FilesTab artifacts={ENTRIES} org="acme" onShown={() => onShown()} />
+        <FilesTab outputs={ENTRIES} given={[]} org="acme" onShown={() => onShown()} />
       </StigmerContext.Provider>,
     );
     expect(onShown).toHaveBeenCalledTimes(1);
@@ -94,30 +141,39 @@ describe("FilesTab — dense row list", () => {
 });
 
 describe("FilesTab — open routing", () => {
-  it("routes a non-plan artifact to onOpenArtifact (no modal) when provided", () => {
-    const onOpenArtifact = vi.fn<(entry: SessionOutputEntry) => void>();
-    renderTab({ onOpenArtifact, onOpenPlan: vi.fn() });
+  it("routes a non-plan output to onOpenFileDocument by its output key (no modal) when provided", () => {
+    const onOpenFileDocument = vi.fn<(documentKey: string) => void>();
+    renderTab({ onOpenFileDocument, onOpenPlan: vi.fn() });
 
     openRow("notes.md");
 
-    expect(onOpenArtifact).toHaveBeenCalledTimes(1);
-    expect(onOpenArtifact.mock.calls[0][0].file.spec?.filename).toBe("notes.md");
+    expect(onOpenFileDocument).toHaveBeenCalledWith("notes.md");
     expect(document.querySelector("dialog")).toBeNull();
   });
 
-  it("routes plan.md to onOpenPlan (never onOpenArtifact) when both are provided", () => {
-    const onOpenArtifact = vi.fn();
+  it("routes a given File to onOpenFileDocument by its place under the uploads folder", () => {
+    const onOpenFileDocument = vi.fn<(documentKey: string) => void>();
+    renderTab({ given: GIVEN, onOpenFileDocument });
+
+    openRow("ledger.csv");
+
+    expect(onOpenFileDocument).toHaveBeenCalledWith(givenKey(GIVEN[0]!));
+    expect(givenKey(GIVEN[0]!)).toBe(".stigmer/uploads/q3/ledger.csv");
+  });
+
+  it("routes plan.md to onOpenPlan (never onOpenFileDocument) when both are provided", () => {
+    const onOpenFileDocument = vi.fn();
     const onOpenPlan = vi.fn();
-    renderTab({ onOpenArtifact, onOpenPlan });
+    renderTab({ onOpenFileDocument, onOpenPlan });
 
     openRow("plan.md");
 
     expect(onOpenPlan).toHaveBeenCalledWith("aex_1");
-    expect(onOpenArtifact).not.toHaveBeenCalled();
+    expect(onOpenFileDocument).not.toHaveBeenCalled();
     expect(document.querySelector("dialog")).toBeNull();
   });
 
-  it("falls back to the modal for a non-plan artifact when onOpenArtifact is omitted", () => {
+  it("falls back to the modal for a non-plan output when onOpenFileDocument is omitted", () => {
     renderTab({ onOpenPlan: vi.fn() });
 
     openRow("notes.md");
@@ -125,7 +181,7 @@ describe("FilesTab — open routing", () => {
     expect(document.querySelector("dialog")).toBeTruthy();
   });
 
-  it("falls back to the modal for plan.md when neither onOpenPlan nor onOpenArtifact is provided", () => {
+  it("falls back to the modal for plan.md when neither onOpenPlan nor onOpenFileDocument is provided", () => {
     renderTab();
 
     openRow("plan.md");
@@ -135,40 +191,39 @@ describe("FilesTab — open routing", () => {
 });
 
 describe("FilesTab — pin (double-click) routing", () => {
-  it("routes a non-plan double-click to onActivateArtifact (pin)", () => {
-    const onActivateArtifact = vi.fn<(entry: SessionOutputEntry) => void>();
-    renderTab({ onOpenArtifact: vi.fn(), onActivateArtifact, onOpenPlan: vi.fn() });
+  it("routes a non-plan double-click to onActivateFileDocument (pin)", () => {
+    const onActivateFileDocument = vi.fn<(documentKey: string) => void>();
+    renderTab({ onOpenFileDocument: vi.fn(), onActivateFileDocument, onOpenPlan: vi.fn() });
 
     activateRow("notes.md");
 
-    expect(onActivateArtifact).toHaveBeenCalledTimes(1);
-    expect(onActivateArtifact.mock.calls[0][0].file.spec?.filename).toBe("notes.md");
+    expect(onActivateFileDocument).toHaveBeenCalledWith("notes.md");
   });
 
-  it("routes a plan.md double-click to onOpenPlan (its tab is already pinned), never onActivateArtifact", () => {
-    const onActivateArtifact = vi.fn();
+  it("routes a plan.md double-click to onOpenPlan (its tab is already pinned), never onActivateFileDocument", () => {
+    const onActivateFileDocument = vi.fn();
     const onOpenPlan = vi.fn();
-    renderTab({ onOpenArtifact: vi.fn(), onActivateArtifact, onOpenPlan });
+    renderTab({ onOpenFileDocument: vi.fn(), onActivateFileDocument, onOpenPlan });
 
     activateRow("plan.md");
 
     expect(onOpenPlan).toHaveBeenCalledWith("aex_1");
-    expect(onActivateArtifact).not.toHaveBeenCalled();
+    expect(onActivateFileDocument).not.toHaveBeenCalled();
   });
 
-  it("binds no double-click when onActivateArtifact is omitted (panel-less host) — a double-click is harmless", () => {
-    const onOpenArtifact = vi.fn();
-    renderTab({ onOpenArtifact });
+  it("binds no double-click when onActivateFileDocument is omitted (panel-less host) — a double-click is harmless", () => {
+    const onOpenFileDocument = vi.fn();
+    renderTab({ onOpenFileDocument });
 
     // With no pin handler the row binds no onDoubleClick, so a dblclick fires
     // nothing (in a real browser the leading single-clicks still preview).
     expect(() => activateRow("notes.md")).not.toThrow();
-    expect(onOpenArtifact).not.toHaveBeenCalled();
+    expect(onOpenFileDocument).not.toHaveBeenCalled();
   });
 });
 
 describe("FilesTab — modal fallback plan 'Build' wiring", () => {
-  it("shows 'Build' in the modal preview of a plan.md artifact (panel-less host)", () => {
+  it("shows 'Build' in the modal preview of a plan.md output (panel-less host)", () => {
     renderTab({ onImplementPlan: vi.fn() });
 
     openRow("plan.md");
@@ -177,7 +232,7 @@ describe("FilesTab — modal fallback plan 'Build' wiring", () => {
     expect(within(dialog).getByText("Build")).toBeTruthy();
   });
 
-  it("does not show 'Build' in the modal preview of a non-plan artifact", () => {
+  it("does not show 'Build' in the modal preview of a non-plan output", () => {
     renderTab({ onImplementPlan: vi.fn() });
 
     openRow("notes.md");

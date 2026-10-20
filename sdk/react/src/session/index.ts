@@ -59,6 +59,12 @@ export type {
   UseSessionOutputsReturn,
 } from "./useSessionOutputs.js";
 
+export { useSessionGivenFiles, givenKey, UPLOADS_FOLDER } from "./useSessionGivenFiles.js";
+export type {
+  SessionGivenEntry,
+  UseSessionGivenFilesReturn,
+} from "./useSessionGivenFiles.js";
+
 export { useSessionWriteBacks } from "./useSessionWriteBacks.js";
 export type {
   SessionWriteBackEntry,
@@ -141,7 +147,7 @@ export type {
 // icons, badges, and contextual-visibility rules. Exported so custom
 // session surfaces inherit the rail by construction instead of
 // re-declaring it.
-export { useSessionRailViews } from "./useSessionRailViews.js";
+export { useSessionRailViews, CONVERSATION_FILES_VIEW_ID } from "./useSessionRailViews.js";
 export type { UseSessionRailViewsOptions } from "./useSessionRailViews.js";
 
 // Plan draft — viewer-owned in-place edit of the session's current plan

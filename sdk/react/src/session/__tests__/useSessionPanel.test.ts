@@ -226,7 +226,7 @@ describe("useSessionPanel — plan document tab", () => {
   });
 });
 
-describe("useSessionPanel — artifact document tabs", () => {
+describe("useSessionPanel — File document tabs", () => {
   function artifact(outputPath: string, filename: string) {
     return create(FileSchema, {
       metadata: { id: `file_${filename}` },
@@ -235,10 +235,10 @@ describe("useSessionPanel — artifact document tabs", () => {
     });
   }
 
-  it("openArtifact opens the panel with a PREVIEW tab keyed by outputKey", () => {
+  it("openFileDocument opens the panel with a PREVIEW tab keyed by the document key", () => {
     const { result } = renderPanel();
     const a = artifact(".stigmer/notes.md", "notes.md");
-    act(() => result.current.openArtifact(a));
+    act(() => result.current.openFileDocument(outputKey(a)));
 
     expect(result.current.isOpen).toBe(true);
     expect(result.current.editorsStore.getSnapshot().editors).toEqual([
@@ -246,10 +246,10 @@ describe("useSessionPanel — artifact document tabs", () => {
     ]);
   });
 
-  it("reuses the single preview slot as different artifacts are browsed", () => {
+  it("reuses the single preview slot as different Files are browsed", () => {
     const { result } = renderPanel();
-    act(() => result.current.openArtifact(artifact(".stigmer/a.md", "a.md")));
-    act(() => result.current.openArtifact(artifact(".stigmer/b.md", "b.md")));
+    act(() => result.current.openFileDocument(outputKey(artifact(".stigmer/a.md", "a.md"))));
+    act(() => result.current.openFileDocument(outputKey(artifact(".stigmer/b.md", "b.md"))));
 
     // VS Code preview semantics: single-click browsing reuses one tab.
     expect(result.current.editorsStore.getSnapshot().editors).toEqual([
@@ -257,10 +257,10 @@ describe("useSessionPanel — artifact document tabs", () => {
     ]);
   });
 
-  it("does not evict a pinned plan tab when an artifact opens", () => {
+  it("does not evict a pinned plan tab when a File opens", () => {
     const { result } = renderPanel();
     act(() => result.current.openPlanDocument());
-    act(() => result.current.openArtifact(artifact(".stigmer/a.md", "a.md")));
+    act(() => result.current.openFileDocument(outputKey(artifact(".stigmer/a.md", "a.md"))));
 
     expect(result.current.editorsStore.getSnapshot().editors).toEqual([
       { entryId: PLAN_DOCUMENT_ENTRY_ID, path: PLAN_DOCUMENT_PATH, preview: false },
@@ -268,21 +268,21 @@ describe("useSessionPanel — artifact document tabs", () => {
     ]);
   });
 
-  it("pinArtifact promotes an open artifact preview to a persistent tab", () => {
+  it("pinFileDocument promotes an open File preview to a persistent tab", () => {
     const { result } = renderPanel();
     const a = artifact(".stigmer/notes.md", "notes.md");
     // The single-click open leaves a preview tab; the double-click pins it.
-    act(() => result.current.openArtifact(a));
-    act(() => result.current.pinArtifact(a));
+    act(() => result.current.openFileDocument(outputKey(a)));
+    act(() => result.current.pinFileDocument(outputKey(a)));
 
     expect(result.current.editorsStore.getSnapshot().editors).toEqual([
       { entryId: FILE_DOCUMENT_ENTRY_ID, path: outputKey(a), preview: false },
     ]);
   });
 
-  it("pinArtifact is a no-op when the artifact is not open (mirrors the store's generic pin)", () => {
+  it("pinFileDocument is a no-op when the File is not open (mirrors the store's generic pin)", () => {
     const { result } = renderPanel();
-    act(() => result.current.pinArtifact(artifact(".stigmer/x.md", "x.md")));
+    act(() => result.current.pinFileDocument(outputKey(artifact(".stigmer/x.md", "x.md"))));
     expect(result.current.editorsStore.getSnapshot().editors).toEqual([]);
   });
 });

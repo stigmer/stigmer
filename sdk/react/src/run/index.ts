@@ -300,7 +300,9 @@ export type { ArtifactContentRendererProps } from "./ArtifactContentRenderer.js"
 export { ArtifactFileContent } from "./ArtifactFileContent.js";
 export type { ArtifactFileContentProps } from "./ArtifactFileContent.js";
 
-export { FileBody } from "./FileBody.js";
+export { FileBody, isImageFile } from "./FileBody.js";
+export { FileDeleteAction, FileAddAsSkillAction, isZipFile } from "./FileActions.js";
+export type { FileDeleteActionProps, FileAddAsSkillActionProps } from "./FileActions.js";
 export type { FileBodyProps } from "./FileBody.js";
 
 export { FileDocument } from "./FileDocument.js";

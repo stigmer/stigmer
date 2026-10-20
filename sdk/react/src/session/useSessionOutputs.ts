@@ -1,15 +1,18 @@
 "use client";
 
 /**
- * Pure derivation of the conversation's Artifacts list: the Files its turns
+ * Pure derivation of what a conversation's agent saved: the Files its turns
  * returned (what agents saved in their outputs folder), one entry per output
- * path, newest turn winning.
+ * path, newest turn winning, with the earlier versions behind it.
  *
  * Trade-offs:
  * - Only Files a turn returned are listed; a person's uploads carry no run
- *   id and stay out (they are the conversation's inputs, not its outputs).
+ *   id and stay out (they are the conversation's inputs, listed by
+ *   `useSessionGivenFiles`).
  * - Identity is the output path, so a later turn saving `reports/q3.md` again
- *   replaces the earlier entry, the way a folder shows one file per path.
+ *   takes the entry, the way a folder shows one file per path; the earlier
+ *   Files at that path stay reachable in `earlier`, so no turn's output is
+ *   lost from view.
  */
 
 import { useMemo } from "react";
@@ -23,8 +26,13 @@ import { isTerminalPhase } from "../run/run-phases.js";
  * turn that returned it.
  */
 export interface SessionOutputEntry {
-  /** The File the turn returned. */
+  /** The File the latest turn to save at this path returned. */
   readonly file: StigmerFile;
+  /**
+   * The older Files saved at the same output path by earlier turns, newest
+   * first (the oldest last). Empty when one turn saved the path.
+   */
+  readonly earlier: readonly StigmerFile[];
   /** ID of the run that returned this File. */
   readonly runId: string;
   /** Whether the run that returned it has ended. */
@@ -39,11 +47,11 @@ export interface SessionOutputEntry {
 /** Return value of {@link useSessionOutputs}. */
 export interface UseSessionOutputsReturn {
   /** One entry per output path, sorted by filename. */
-  readonly artifacts: readonly SessionOutputEntry[];
+  readonly outputs: readonly SessionOutputEntry[];
   /** `true` when at least one turn returned a File. */
-  readonly hasArtifacts: boolean;
-  /** Number of entries. */
-  readonly artifactCount: number;
+  readonly hasOutputs: boolean;
+  /** Number of entries (output paths, not versions). */
+  readonly outputCount: number;
 }
 
 /**
@@ -77,8 +85,8 @@ export function outputKey(file: StigmerFile): string {
  *
  * @example
  * ```tsx
- * const { files } = useSessionFiles(org, sessionId, settledKey);
- * const { artifacts } = useSessionOutputs(files, runs);
+ * const { files } = useSessionFiles(org, sessionId, refreshKey);
+ * const { outputs } = useSessionOutputs(files, runs);
  * ```
  */
 export function useSessionOutputs(
@@ -121,8 +129,11 @@ export function deriveSessionOutputs(
 
   const entryMap = new Map<string, SessionOutputEntry>();
   for (const { file, runId } of outputs) {
-    entryMap.set(outputKey(file), {
+    const key = outputKey(file);
+    const previous = entryMap.get(key);
+    entryMap.set(key, {
       file,
+      earlier: previous ? [previous.file, ...previous.earlier] : [],
       runId,
       isTerminal: runOrder.get(runId)?.terminal ?? true,
       hasNameCollision: false,
@@ -139,16 +150,16 @@ export function deriveSessionOutputs(
     const lower = filenameOf(entry.file).toLowerCase();
     nameCount.set(lower, (nameCount.get(lower) ?? 0) + 1);
   }
-  const artifacts = entries.map((entry) =>
+  const result = entries.map((entry) =>
     (nameCount.get(filenameOf(entry.file).toLowerCase()) ?? 0) > 1
       ? { ...entry, hasNameCollision: true }
       : entry,
   );
 
   return {
-    artifacts,
-    hasArtifacts: artifacts.length > 0,
-    artifactCount: artifacts.length,
+    outputs: result,
+    hasOutputs: result.length > 0,
+    outputCount: result.length,
   };
 }
 
