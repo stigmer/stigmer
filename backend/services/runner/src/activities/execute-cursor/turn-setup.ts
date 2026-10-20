@@ -100,6 +100,8 @@ import {
   type CreateCloudAgentOptions,
 } from "./session-lifecycle.js";
 import { readTurnRecoveryDigest } from "../../harness/continuation-digest.js";
+import { NOTHING_HELD, readHeldRun, type HeldRun } from "./held-run.js";
+import { resolveSessionStoreLocation, sessionStore } from "./session-store.js";
 import type { TurnStreamState } from "./turn-stream.js";
 import { buildCursorSubAgentDefinitions, subagentNamesInScope, subagentsInScope } from "./subagent-config.js";
 import { CursorUsagePricer } from "./usage-pricing.js";
@@ -170,6 +172,10 @@ export interface CursorEngine {
   resolution: AgentResolution;
   readonly modelParams: Awaited<ReturnType<typeof resolveServiceTierParams>>;
   readonly usagePricer: CursorUsagePricer;
+  /** What the resumed local agent holds from the process before this one (`held-run.ts`); nothing for any other resolution. */
+  readonly heldRun: HeldRun;
+  /** Where a local agent's sends are recorded (`held-run.ts` `recordSentRun`): the session's SDK state root. Absent in cloud mode. */
+  readonly sentRunRoot: string | undefined;
 }
 
 /** The prompt this turn sends, and the facts every send site (primary and both recoveries) needs. */
@@ -184,10 +190,10 @@ export interface CursorPrompt {
   /** The fresh-agent recovery prompt, composed at recovery time from the transcript as it then stands. */
   readonly buildRecoveryPrompt: (fresh: AgentResolution) => Promise<string>;
   /**
-   * The primary send continues a run the resumed local agent may still hold
-   * open: a process that died left it active. The send expires that run
-   * before starting (`@cursor/sdk` `LocalSendOptions.force`), so the
-   * continuation is not refused or folded into a wedged run.
+   * The resumed local agent still holds a run open: a process that died left
+   * it active (`held-run.ts`). The primary send expires that run before
+   * starting (`@cursor/sdk` `LocalSendOptions.force`), so the turn is not
+   * refused ("already has active run") or folded into a wedged run.
    */
   readonly continuesHeldRun: boolean;
 }
@@ -852,6 +858,16 @@ export async function resolveEngine(
     console.log(`Stored Cursor agentId=${resolution.agentId} as harness_state_id, cursorMode=${CursorMode[cursorMode]} (not stored) on session ${sessionId}`);
   }
 
+  // A resumed local agent may hold what a killed process left: a run still
+  // active in its store, and the send this run already made (stigmer#2487).
+  const sentRunRoot = agentMode === "local" ? resolveSessionStoreLocation(sessionId, config.workspaceRootDir).stateRoot : undefined;
+  const heldRun = sentRunRoot !== undefined && resolution.reason === "resumed_successfully"
+    ? await readHeldRun(await sessionStore(sessionId, config.workspaceRootDir), sentRunRoot, resolution.agentId, executionId)
+    : NOTHING_HELD;
+  if (heldRun.open || heldRun.sentForThisRun) {
+    console.log(`ExecuteCursor resumed agent holds: execution=${executionId}, agentId=${resolution.agentId}, openRun=${heldRun.open}, sentForThisRun=${heldRun.sentForThisRun}`);
+  }
+
   return {
     agentMode,
     cursorMode,
@@ -863,6 +879,8 @@ export async function resolveEngine(
     resolution,
     modelParams,
     usagePricer: new CursorUsagePricer(validatedModel, input.model.serviceTier, modelParams),
+    heldRun,
+    sentRunRoot,
   };
 }
 
@@ -886,6 +904,11 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
   const buildFromPlan = spec.buildFromPlan ?? false;
 
   const subAgents = await subagentsInScope(input);
+  // This invocation continues the run: the runtime read it from the log, or
+  // the runner's own record says this agent was sent the run already, which
+  // a runner killed before the log heard of the run leaves (stigmer#2487).
+  // Either way the agent's conversation holds the task.
+  const continuation = input.continuation ?? (engine.heldRun.sentForThisRun ? {} : undefined);
   const shared = (): Omit<BuildPromptInput, "resolution" | "recalledMemories" | "turnRecoveryDigest"> => ({
     approvalDecisions,
     approvalDenyMessages: input.approvalDenyMessages,
@@ -908,7 +931,7 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
     sessionContext: standing.sessionContext,
     declaredPreferences: standing.declaredPreferences,
     conversationCatchup: standing.conversationCatchup,
-    ...(input.continuation !== undefined ? { continuation: input.continuation } : {}),
+    ...(continuation !== undefined ? { continuation } : {}),
   });
 
   // The memory selection is the runtime's memoized thunk; whether THIS prompt
@@ -956,7 +979,7 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
   // images are offered again on every invocation, so the bytes are in hand
   // even on a re-invocation.
   const turnImages = toCursorImages(files.visionImages);
-  const primarySendImages = primarySendCarriesImages(approvalDecisions, engine.resolution.reason, input.continuation) ? turnImages : [];
+  const primarySendImages = primarySendCarriesImages(approvalDecisions, engine.resolution.reason, continuation) ? turnImages : [];
   const toSendMessage = (sendPrompt: string, images: { data: string; mimeType: string }[]): string | SDKUserMessage =>
     images.length > 0 ? { text: sendPrompt, images } : sendPrompt;
 
@@ -977,7 +1000,7 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
     // Same per-turn directive rule as buildFromPlan: a structured-output turn
     // keeps its output contract on the rebuilt prompt (the transport retry
     // re-sends effectivePrompt and inherits it without help).
-    continuesHeldRun: input.continuation !== undefined && engine.resolution.reason === "resumed_successfully" && engine.agentMode === "local",
+    continuesHeldRun: engine.heldRun.open,
     buildRecoveryPrompt: async (fresh) =>
       appendStructuredOutputDirective(
         buildPrompt({

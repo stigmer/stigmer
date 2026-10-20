@@ -62,6 +62,7 @@ import {
 } from "./turn-stream.js";
 import type { AdjudicatedRows, CursorEngine, CursorGate, CursorPrompt } from "./turn-setup.js";
 import { createFreshAgent } from "./turn-setup.js";
+import { recordSentRun } from "./held-run.js";
 import { declaredServerCount } from "../../shared/mcp-resolver.js";
 import type { CursorTurnObserver } from "./run-telemetry.js";
 
@@ -103,6 +104,12 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   // The raw recording of both SDK channels, on only when the env names a dir
   // (the recorder reads no process state itself, so its tests need no env).
   const eventRecorder = createCursorEventRecorder(executionId, process.env.CURSOR_EVENT_RECORD_DIR);
+
+  // The runner's record of the run each send started (`held-run.ts`): from
+  // here on, a runner killed before the log hears of the run continues it on
+  // the next invocation instead of sending the task again (stigmer#2487).
+  const recordSend = (agentId: string, sent: Run): Promise<void> =>
+    engine.sentRunRoot === undefined ? Promise.resolve() : recordSentRun(engine.sentRunRoot, { executionId, agentId, runId: sent.id });
 
   // The two recovery retries (poisoned-handle / transport-timeout) below run at
   // most once per turn; this guard is the latch.
@@ -151,11 +158,12 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
       }
       primaryOnDelta(event);
     },
-    // A continuation on a resumed local agent expires the run a dead process
-    // left active before it starts (`CursorPrompt.continuesHeldRun`).
+    // A resumed local agent's send expires the run a dead process left
+    // active before it starts (`CursorPrompt.continuesHeldRun`).
     ...(prompt.continuesHeldRun ? { local: { force: true } } : {}),
   });
   sink.recordActivity();
+  await recordSend(engine.resolution.agentId, run);
   // Normally send() resolves before any delta arrives, making send_returned
   // the first segment; if a delta beat it, the line is already emitted and
   // adding a mark now would be meaningless.
@@ -300,6 +308,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
       onDelta: makeCursorTurnOnDelta(onDeltaDeps),
     });
     sink.recordActivity();
+    await recordSend(freshAgent.agentId, retryRun);
     const reason = await consumeCursorTurnStream(retryRun, streamDeps);
     await finalizeStreamPhase();
     if (reason === "interrupted") return { proceeded: false, outcome: { kind: "interrupted" } };

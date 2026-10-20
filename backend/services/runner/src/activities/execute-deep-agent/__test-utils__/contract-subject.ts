@@ -237,6 +237,8 @@ class DeepAgentSubject implements DeepAgentContractSubject {
         return (transcript ?? []).filter((m) => isHumanMessage(m) && !isSummaryMessage(m) && m.text.includes(message)).length;
       },
       compactions: (sessionId) => this.summaries.get(this.executionsBySession.get(sessionId) ?? "") ?? 0,
+      // The saver holds what the graph saved; nothing else outlives the process.
+      loseRunner: () => {},
     };
     // The production path: the remote adapter in front, the real one in an
     // agent host behind the pipe (`__test-utils__/loopback-host.ts`).

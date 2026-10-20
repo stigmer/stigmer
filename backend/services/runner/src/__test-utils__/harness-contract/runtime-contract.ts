@@ -1565,7 +1565,10 @@ export async function assertLostRunnerIsNotedOnce(harness: RuntimeContractHarnes
   const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
   const id = `${label}-parse`;
   let invocationControls: InvocationControls | undefined;
-  void controls.whenOpen(id).then(() => invocationControls!.cancelTimedOut());
+  void controls.whenOpen(id).then(() => {
+    controls.loseRunner(driver.sessionId);
+    invocationControls!.cancelTimedOut();
+  });
   const first = await driver.turn([scenario.say("Starting on the parser."), scenario.open(id), scenario.say(NEVER_SEEN)], { onControls: (c) => (invocationControls = c) });
   await controls.release(id);
   expect(threwCancelledFailure(first.outcome), `${subject.name}: the lost invocation throws as cancelled`).toBe(true);
@@ -1621,9 +1624,11 @@ export async function assertContinuationCarriesTheRunsCount(harness: RuntimeCont
  * A runner lost after its engine took the run's input, before anything of
  * the run reached the session's log: a process killed while its first
  * writes were still in flight. The runtime cannot tell this run from a first
- * invocation, so only the engine's own memory can: a `checkpoint` engine
- * continues from its save, without the task (stigmer#2417). Nothing the
- * first invocation wrote lands, as nothing a killed process wrote does.
+ * invocation, so only the adapter's own memory of its engine can: a
+ * `checkpoint` engine continues from its save, and a `digest` engine
+ * continues the conversation it was sent the run in, both without the task
+ * (stigmer#2417, stigmer#2487). Nothing the first invocation wrote lands, as
+ * nothing a killed process wrote does.
  */
 export async function assertLostBeforeTheLogKnewContinuesFromTheEngine(harness: RuntimeContractHarness, label = "rt-lost-before-log"): Promise<RuntimeArmResult> {
   const { subject } = harness;
@@ -1632,7 +1637,10 @@ export async function assertLostBeforeTheLogKnewContinuesFromTheEngine(harness: 
   const id = `${label}-build`;
   const neverLands: Partial<StigmerClient> = { appendSessionEvents: async () => create(AppendSessionEventsResponseSchema) };
   let invocationControls: InvocationControls | undefined;
-  void controls.whenOpen(id).then(() => invocationControls!.cancelTimedOut());
+  void controls.whenOpen(id).then(() => {
+    controls.loseRunner(driver.sessionId);
+    invocationControls!.cancelTimedOut();
+  });
   const first = await driver.turn([scenario.say("Building."), scenario.open(id), scenario.say(NEVER_SEEN)], {
     clientOverrides: neverLands,
     onControls: (c) => (invocationControls = c),
@@ -1986,7 +1994,7 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
         clock.reset();
         await withStopOrphans(subject.name, orphans, () => assertContinuationCarriesTheRunsCount(harness));
       });
-      it.skipIf(subject.adapter.capabilities.continuation !== "checkpoint")("a runner lost before anything of the run reached the log continues from the engine's save, without the task", async () => {
+      it("a runner lost before anything of the run reached the log continues from the engine's own memory, without the task", async () => {
         clock.reset();
         await withStopOrphans(subject.name, orphans, () => assertLostBeforeTheLogKnewContinuesFromTheEngine(harness));
       });

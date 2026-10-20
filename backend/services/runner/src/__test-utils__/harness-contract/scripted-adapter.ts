@@ -52,13 +52,14 @@
  * A continued invocation is never handed the task: the engine picks the
  * turn up from its memory, the rule every harness keeps (stigmer#2417). The
  * fake records what each invocation was handed, the task or a continuation,
- * so the kit can count it. Declared a `digest` engine, it reads the
- * continuation from the runtime (`input.continuation`). Declared a
- * `checkpoint` engine, it reads it from its own memory, as a saved state
- * stamped with its run does: it remembers which runs' input it took and
- * which runs it finished, so a run it already took is never handed again,
- * even when nothing of it reached the session's log, and a run it finished
- * runs nothing.
+ * so the kit can count it. Either kind remembers which runs' input it
+ * took, so a run it already took is never handed again, even when nothing
+ * of it reached the session's log. Declared a `checkpoint` engine, that
+ * memory alone decides, as a saved state stamped with its run does, and it
+ * also remembers which runs it finished, so a run it finished runs nothing.
+ * Declared a `digest` engine, the continuation is the runtime's
+ * (`input.continuation`) or that memory, as an engine-minted conversation
+ * the adapter keeps its own record of sending the run to (stigmer#2487).
  *
  * A yield (`sink.yieldSignal`) is taken at the next step boundary: every
  * step here is durable the moment it ends (the engine's memory is this
@@ -139,7 +140,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   private readonly released = new Set<string>();
   /** How many times each operation began. */
   private readonly opens = new Map<string, number>();
-  /** The executions whose input this engine took: a `checkpoint` engine's saved run stamp. */
+  /** The executions whose input this engine took: a `checkpoint` engine's saved run stamp, a `digest` adapter's record of its sends. */
   private readonly tookRuns = new Set<string>();
   /** The executions whose turn this engine finished: a `checkpoint` engine's saved "done". */
   private readonly finishedRuns = new Set<string>();
@@ -262,11 +263,12 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
     // A first invocation hands the engine the execution's message as a new
     // request; a continued one never does (the header).
     const checkpoint = this.capabilities.continuation === "checkpoint";
-    const continued = checkpoint ? this.tookRuns.has(input.executionId) : input.continuation !== undefined;
+    const tookIt = this.tookRuns.has(input.executionId);
+    const continued = checkpoint ? tookIt : input.continuation !== undefined || tookIt;
     if (!continued) {
       this.handed.set(input.sessionId, [...(this.handed.get(input.sessionId) ?? []), input.execution.spec?.message ?? ""]);
     }
-    if (checkpoint) this.tookRuns.add(input.executionId);
+    this.tookRuns.add(input.executionId);
 
     // A checkpoint engine that already finished this run has nothing left to run.
     if (checkpoint && this.finishedRuns.has(input.executionId)) {
@@ -547,5 +549,7 @@ function scriptedLongTurn(adapter: ScriptedHarnessAdapter): LongTurnControls {
     opened: (toolCallId) => adapter.opened(toolCallId),
     tasksHanded: (sessionId, message) => adapter.tasksHanded(sessionId, message),
     compactions: () => 0,
+    // What it keeps between invocations is already as a killed process leaves it.
+    loseRunner: () => {},
   };
 }

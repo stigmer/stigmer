@@ -41,6 +41,13 @@
  * ends at the next step, `wait()` resolves `{ status: "cancelled" }` — because
  * the deny-and-retry path depends on exactly that ordering.
  *
+ * The held run: the SDK's store keeps an agent's newest run active until it
+ * ends, and refuses a new send while it is ("Agent <id> already has active
+ * run", `createFollowUpRun`), unless the send passes `local.force`, which
+ * expires it first. A run whose process was killed never ends, so it stays
+ * held: {@link ScriptedCursorAgent.strand} plays that, and the store double
+ * (`scripted-sdk.ts`) reads what is held.
+ *
  * Every `send()` consumes the NEXT script in the agent's queue: turn 1, then
  * the resumed turn 2 on the same parked agent. A `send()` with no script left
  * is a test bug and throws. A golden scenario declares every script up front
@@ -65,7 +72,7 @@ import type {
   SendOptions,
   TurnEndedUpdate,
 } from "@cursor/sdk";
-import type { ConversationTurn } from "@cursor/sdk";
+import type { ConversationTurn, LocalAgentRunStatus } from "@cursor/sdk";
 
 // ---------------------------------------------------------------------------
 // Script steps
@@ -159,6 +166,10 @@ export class ScriptedRun implements Run {
   readonly agentId: string;
   private _status: RunStatus = "running";
   private cancelled = false;
+  /** The process driving the run was killed: nothing it did on its way out reached the store. */
+  private stranded = false;
+  /** A later send expired the run (`local.force`). */
+  private expired = false;
   private scriptedResult: Omit<RunResult, "id"> | undefined;
   private streamed = false;
   private readonly statusListeners = new Set<(status: RunStatus) => void>();
@@ -270,6 +281,27 @@ export class ScriptedRun implements Run {
     this.setStatus("cancelled");
   }
 
+  /**
+   * What the store says of the run: active until it ends, and for good once
+   * its process was killed. The killed process's own view of the run (its
+   * `status`, its listeners) still ends, so the in-process harness settles as
+   * a dead one never would; only the store keeps what a SIGKILL leaves.
+   */
+  get storeStatus(): LocalAgentRunStatus {
+    if (this.expired) return "expired";
+    return this.stranded ? "running" : this._status;
+  }
+
+  /** The process driving the run was killed: the run stays active in the store, whatever the harness does to it next. */
+  strand(): void {
+    this.stranded = true;
+  }
+
+  /** A send with `local.force` expired the run before it started. */
+  expire(): void {
+    this.expired = true;
+  }
+
   private setStatus(status: RunStatus): void {
     this._status = status;
     for (const l of this.statusListeners) l(status);
@@ -332,6 +364,16 @@ export class ScriptedCursorAgent implements SDKAgent {
     this.turns[this.nextTurn] = script;
   }
 
+  /** The agent's newest run, which the store holds active until it ends. */
+  get heldRun(): ScriptedRun | undefined {
+    return this.runs.at(-1);
+  }
+
+  /** The process driving this agent's run was killed: the run stays active in the store (a SIGKILL leaves it so). */
+  strand(): void {
+    this.heldRun?.strand();
+  }
+
   async send(message: string | SDKUserMessage, options?: SendOptions): Promise<Run> {
     const script = this.turns[this.nextTurn];
     if (!script) {
@@ -340,9 +382,15 @@ export class ScriptedCursorAgent implements SDKAgent {
           `(the scenario declared ${this.turns.length})`,
       );
     }
+    const force = options?.local?.force === true;
+    const held = this.heldRun;
+    if (held?.storeStatus === "running") {
+      if (!force) throw new Error(`Agent ${this.agentId} already has active run`);
+      held.expire();
+    }
     const runId = this.nextRunId;
     this.nextTurn++;
-    this.sends.push({ message, hasOnDelta: !!options?.onDelta, force: options?.local?.force === true });
+    this.sends.push({ message, hasOnDelta: !!options?.onDelta, force });
     if (options?.model) this.model = options.model;
     const run = new ScriptedRun(
       this,

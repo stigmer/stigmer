@@ -1,8 +1,8 @@
 /**
  * The `@cursor/sdk` module a hermetic `ExecuteCursor` run imports — every
  * runtime surface the activity path touches, backed by scripted agents — and
- * the `@cursor/sdk/sqlite` module beside it, backed by a store that holds
- * nothing.
+ * the `@cursor/sdk/sqlite` module beside it, backed by a store that keeps
+ * nothing of its own and reads what the scripted agents hold.
  *
  * The activity reaches the SDK at four runtime sites and nowhere else:
  *
@@ -48,10 +48,12 @@
  *  - `SqliteLocalAgentStore.open` hands out a {@link ScriptedLocalAgentStore}
  *    carrying the ref and root it was asked for, and records the open; its
  *    `dispose()` is recorded too, so a scenario can assert the adapter's
- *    session-store lifetime (`releaseSession`, `shutdown`).
+ *    session-store lifetime (`releaseSession`, `shutdown`). Its `agents.get`
+ *    and `runs.get` answer what the agents hold: each agent's newest run, and
+ *    whether it is still active.
  */
 
-import type { AgentOptions, ModelListItem, SDKAgent } from "@cursor/sdk";
+import type { AgentOptions, LocalAgentDocument, LocalAgentRunDocument, ModelListItem, SDKAgent } from "@cursor/sdk";
 import type { SqliteLocalAgentStore, SqliteLocalAgentStoreOptions } from "@cursor/sdk/sqlite";
 import type { ScriptedCursorAgent } from "./scripted-agent.js";
 
@@ -105,10 +107,13 @@ function workspaceRefOf(options: AgentOptions): string | undefined {
 
 /**
  * The `@cursor/sdk/sqlite` store the adapter opens per session, holding
- * nothing: the scripted agents carry their own state, so the store only has
- * to be the thing `Agent.create` / `Agent.resume` are handed and the thing
- * `releaseSession` / `shutdown` dispose. `open` and `dispose` are recorded on
- * the bound {@link ScriptedCursorSdk} for lifetime assertions.
+ * nothing of its own: the scripted agents carry their state, so the store is
+ * the thing `Agent.create` / `Agent.resume` are handed, the thing
+ * `releaseSession` / `shutdown` dispose, and a read of what the agents hold
+ * (`agents.get`, `runs.get`: an agent's active run and its status, the rows
+ * the adapter reads to tell a run a dead process left active). `open` and
+ * `dispose` are recorded on the bound {@link ScriptedCursorSdk} for lifetime
+ * assertions.
  */
 export class ScriptedLocalAgentStore {
   disposeCalls = 0;
@@ -117,6 +122,22 @@ export class ScriptedLocalAgentStore {
     readonly workspaceRef: string,
     readonly stateRoot: string,
   ) {}
+
+  readonly agents = {
+    get: async ({ agentId }: { readonly agentId: string }): Promise<LocalAgentDocument | null> => {
+      const agent = current().agentById(agentId);
+      if (!agent) return null;
+      const held = agent.heldRun;
+      return { agentId, cwd: "", status: held?.storeStatus === "running" ? "running" : "idle", activeRunId: held?.id ?? null, createdAt: 0, updatedAt: 0 };
+    },
+  };
+
+  readonly runs = {
+    get: async ({ agentId, runId }: { readonly agentId: string; readonly runId: string }): Promise<LocalAgentRunDocument | null> => {
+      const run = current().agentById(agentId)?.runs.find((r) => r.id === runId);
+      return run ? { runId, agentId, turnNumber: 0, status: run.storeStatus, createdAt: 0, updatedAt: 0 } : null;
+    },
+  };
 
   static async open(options: SqliteLocalAgentStoreOptions): Promise<ScriptedLocalAgentStore> {
     const store = new ScriptedLocalAgentStore(options.workspaceRef, options.stateRoot ?? "");
@@ -183,6 +204,11 @@ export class ScriptedCursorSdk {
 
   listModels(): readonly ModelListItem[] {
     return this.options.catalog;
+  }
+
+  /** The agent with that id, if the scenario declared it or handed it out. */
+  agentById(agentId: string): ScriptedCursorAgent | undefined {
+    return this.byId.get(agentId);
   }
 }
 
