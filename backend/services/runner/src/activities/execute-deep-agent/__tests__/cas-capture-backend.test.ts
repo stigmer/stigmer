@@ -182,7 +182,7 @@ describe("CasCaptureShellBackend (shell + CAS adapter)", () => {
  * The issue #754 regression pins: the backends are virtual-rooted, so a
  * leading-"/" tool path resolves INSIDE the workspace — never onto the host
  * filesystem — and the CAS observer sees it under the same key the
- * turn-boundary capture and InlinePublisher resolve. Before the fix, an
+ * turn-boundary capture resolve. Before the fix, an
  * absolute `write_file("/tmp/x")` landed in the REAL /tmp: outside the
  * workspace, outside CAS capture, outside the file_review ledger — an
  * auto-approved, unreviewed host write.

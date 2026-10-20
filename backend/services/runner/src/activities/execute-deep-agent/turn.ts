@@ -27,10 +27,7 @@
  * agent's author's, not the runner's; any other exception — a provider error unwrapped from LangChain's middleware
  * wrapper, an MCP connect failure, an empty stream — is `failed` on the
  * `internal` surface with `describeExecutionError`'s sentence as
- * `status.error` whole, and it returns only after the inline publishes the
- * turn already fired have landed on the status (the drain in the `finally`),
- * so an artifact the agent wrote before the throw is on the terminal status
- * the runtime then persists (stigmer#1116). Never branches on why `stopSignal`
+ * `status.error` whole. Never branches on why `stopSignal`
  * aborted, never writes a phase or a terminal copy, never imports
  * `@temporalio/*` (`__tests__/adapter-is-temporal-free.test.ts`).
  *
@@ -63,7 +60,7 @@ import {
   resolveModelName,
   type DeepAgentAdapterConfig,
 } from "./turn-setup.js";
-import { consumeDeepAgentStream, createDeepAgentTranscript, type DeepAgentTranscript } from "./turn-stream.js";
+import { consumeDeepAgentStream, createDeepAgentTranscript } from "./turn-stream.js";
 import { settleDeepAgentTurn } from "./turn-settle.js";
 
 export async function runDeepAgentTurn(input: TurnInput, sink: TurnSink, config: DeepAgentAdapterConfig): Promise<TurnOutcome> {
@@ -72,7 +69,6 @@ export async function runDeepAgentTurn(input: TurnInput, sink: TurnSink, config:
   let checkpointer: BaseCheckpointSaver | undefined;
   let connection: McpConnectionResult | undefined;
   let modelName: string | undefined;
-  let transcript: DeepAgentTranscript | undefined;
 
   try {
     modelName = await resolveModelName(input);
@@ -92,16 +88,12 @@ export async function runDeepAgentTurn(input: TurnInput, sink: TurnSink, config:
     const graphInput = await composeGraphInput(input, engine);
     sink.recordActivity();
 
-    transcript = createDeepAgentTranscript(input, sink, engine, workspace);
+    const transcript = createDeepAgentTranscript(engine);
     const stream = await consumeDeepAgentStream({ input, sink, engine, graphInput, transcript });
-    return await settleDeepAgentTurn({ input, sink, engine, transcript, stream });
+    return await settleDeepAgentTurn({ input, sink, engine, stream });
   } catch (err) {
     return classifyThrown(err, input, config, modelName);
   } finally {
-    // First, on every exit: the runtime persists the terminal status as soon
-    // as this returns, so an upload still in flight must land before then.
-    // A settled turn already drained in its settle; this is then a no-op.
-    await transcript?.sideEffects.drainPublishes();
     await closeQuietly(input.executionId, "MCP connection", () => connection?.client.close());
     // Only the durable sqlite saver holds an OS handle (an open DB file);
     // memory/http savers have no close(), so this is duck-typed.

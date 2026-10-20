@@ -13,16 +13,18 @@
  *    listing included;
  *  - each saved subagent's context crosses whole: its tool scope rebuilt
  *    with the same answers, its hook sources with a verify that calls back;
- *  - the behaviour members are the host's stand-ins: the memory selection,
- *    the artifact upload and a plugin's verify call back, never run locally;
+ *  - the behaviour members are the host's stand-ins: the memory selection
+ *    and a plugin's verify call back, never run locally; the artifact store
+ *    crosses as its presence alone and refuses every use on the host;
  *  - the turn's files cross whole: this message's, the conversation's, an
  *    eval case's references and the message's vision facts;
  *  - a eval-run try's recorded conversation crosses whole, and a turn
  *    without one crosses none;
- *  - the adapter-owned projection replaces the runtime's fields IN PLACE
- *    (the builder holds the arrays), and touches no runtime-owned field;
- *  - the runtime-owned fields cross back only when they changed, and never
- *    the adapter's;
+ *  - the adapter-owned projection replaces the adapter's rows IN PLACE
+ *    (the builder holds the arrays), and touches no status field and no
+ *    runtime row;
+ *  - every status field is the runtime's, and crosses back only when it
+ *    changed;
  *  - the CAS snapshot's bytes cross exactly, `null` (an added path) included.
  */
 
@@ -49,7 +51,6 @@ import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import { hookServerNamesOf } from "../../shared/hooks/tool-view.js";
 import {
   ADAPTER_OWNED_ROW_FIELDS,
-  ADAPTER_OWNED_STATUS_FIELDS,
   RUNTIME_OWNED_STATUS_FIELDS,
   RuntimeFieldTracker,
   applyAdapterProjection,
@@ -66,23 +67,13 @@ import {
 import { AgentMessageSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { ApprovalAction, MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
 
 function noServices(calls: string[] = []): HostTurnServices {
-  const storage: ArtifactStorage = {
-    upload: async (key) => {
-      calls.push(`upload ${key}`);
-      return key;
-    },
-    download: async () => Buffer.alloc(0),
-    exists: async () => false,
-  };
   return {
     selectRecalledMemories: async () => {
       calls.push("recall");
       return { facts: ["remembered"] };
     },
-    artifactStorage: storage,
     verifyPlugin: async (slug) => {
       calls.push(`verify ${slug}`);
     },
@@ -313,21 +304,31 @@ describe("the turn input across the pipe", () => {
     expect(calls, "the host's verify calls back, never the runner's closure").toEqual(["verify guard"]);
   });
 
-  it("calls back to the runner for the memory selection, the upload, a plugin's verify and the run's events", async () => {
+  it("calls back to the runner for the memory selection, a plugin's verify and the run's events, and serves no artifact store", async () => {
     const calls: string[] = [];
+    const runnerStorage: ArtifactStorage = {
+      upload: async (key) => {
+        calls.push(`local upload ${key}`);
+        return key;
+      },
+      download: async () => Buffer.alloc(0),
+      exists: async () => false,
+    };
     const input = turnInputFixture({
       hooks: { sources: [{ plugin: { id: "plg_lint", slug: "lint", name: "Lint", root: "/r", data: "/d", verify: async () => void calls.push("local verify") }, format: "claude-code", groups: [] }], serverNames: new Map() },
-      artifactStorage: noServices().artifactStorage,
+      artifactStorage: runnerStorage,
     });
     const decoded = crossed(input, noServices(calls));
 
     expect(await decoded.standing.selectRecalledMemories()).toEqual({ facts: ["remembered"] });
-    await decoded.artifactStorage!.upload("artifacts/x/a.txt", Buffer.from("a"));
+    expect(decoded.artifactStorage, "present, as the runner's is").toBeDefined();
+    await expect(decoded.artifactStorage!.upload("artifacts/x/a.txt", Buffer.from("a"))).rejects.toThrow(/the runner's/);
+    await expect(decoded.artifactStorage!.download("artifacts/x/a.txt")).rejects.toThrow(/the runner's/);
     expect(decoded.hooks.sources[0]!.plugin!.id, "the id a plugin's hook values are grouped by").toBe("plg_lint");
     await decoded.hooks.sources[0]!.plugin!.verify();
     const events = await decoded.readRunEvents();
     expect(events.map((event) => toBinary(SessionEventSchema, event)), "each event crosses whole").toEqual([toBinary(SessionEventSchema, RUN_EVENT)]);
-    expect(calls).toEqual(["recall", "upload artifacts/x/a.txt", "verify lint", "events"]);
+    expect(calls).toEqual(["recall", "verify lint", "events"]);
   });
 
   it("carries the turn's appended system prompt and a turn layer that hides skills", () => {
@@ -374,9 +375,9 @@ describe("the turn input across the pipe", () => {
 });
 
 describe("the turn's fields, split by owner", () => {
-  it("owns every field exactly once", () => {
+  it("gives the runtime every status field", () => {
     const all = RunStatusSchema.fields.map((f) => f.localName);
-    expect([...ADAPTER_OWNED_STATUS_FIELDS, ...RUNTIME_OWNED_STATUS_FIELDS].sort()).toEqual([...all].sort());
+    expect([...RUNTIME_OWNED_STATUS_FIELDS].sort()).toEqual([...all].sort());
   });
 
   it("names the rows the adapter owns; the turn's other rows are the runtime's and never cross", () => {
@@ -385,9 +386,9 @@ describe("the turn's fields, split by owner", () => {
     expect(rows.filter((name) => !(ADAPTER_OWNED_ROW_FIELDS as readonly string[]).includes(name)).sort()).toEqual(["fileReviewEventStream", "recalledMemoriesReport"]);
   });
 
-  it("replaces the adapter's rows and artifacts in place and leaves the runtime's fields and rows alone", () => {
+  it("replaces the adapter's rows in place and leaves the status and the runtime's rows alone", () => {
     const target = {
-      status: create(RunStatusSchema, { phase: RunPhase.RUN_IN_PROGRESS, error: "runtime's", artifacts: [{ name: "stale.md" }] }),
+      status: create(RunStatusSchema, { phase: RunPhase.RUN_IN_PROGRESS, error: "runtime's" }),
       rows: create(TurnRowsSchema, {
         todos: { stale: { content: "old" } },
         recalledMemoriesReport: { selectionActive: true },
@@ -395,9 +396,8 @@ describe("the turn's fields, split by owner", () => {
       }),
     };
     const messages = target.rows.messages;
-    const artifacts = target.status.artifacts;
     const host = {
-      status: create(RunStatusSchema, { phase: RunPhase.RUN_FAILED, error: "host's", artifacts: [{ name: "report.md" }] }),
+      status: create(RunStatusSchema, { phase: RunPhase.RUN_FAILED, error: "host's" }),
       rows: create(TurnRowsSchema, {
         messages: [create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, content: "from the host" })],
         todos: { fresh: { content: "new" } },
@@ -412,27 +412,23 @@ describe("the turn's fields, split by owner", () => {
     expect(target.rows.messages.map((m) => m.content)).toEqual(["from the host"]);
     expect(Object.keys(target.rows.todos)).toEqual(["fresh"]);
     expect(target.rows.structuredOutput).toEqual({ answer: 42 });
-    expect(target.status.artifacts, "the status's own array").toBe(artifacts);
-    expect(target.status.artifacts.map((a) => a.name)).toEqual(["report.md"]);
     expect(target.rows.recalledMemoriesReport?.selectionActive, "a runtime row the host sent is ignored").toBe(true);
     expect(target.rows.fileReviewEventStream?.runId).toBe("runtime's ledger");
-    expect(target.status.phase, "a runtime field the host sent is ignored").toBe(RunPhase.RUN_IN_PROGRESS);
+    expect(target.status.phase, "a status field the host holds never crosses").toBe(RunPhase.RUN_IN_PROGRESS);
     expect(target.status.error).toBe("runtime's");
   });
 
-  it("sends back only the runtime fields that changed, and never an adapter field", () => {
+  it("sends back only the status fields that changed", () => {
     const status = create(RunStatusSchema, { phase: RunPhase.RUN_IN_PROGRESS, startedAt: "t0" });
     const tracker = new RuntimeFieldTracker(status);
     const host = create(RunStatusSchema, { phase: RunPhase.RUN_IN_PROGRESS, startedAt: "t0" });
 
     expect(tracker.changes(status).fields, "nothing changed yet").toEqual([]);
     status.startedAt = "t1";
-    status.artifacts.push(create(RunArtifactSchema, { name: "the runtime's plan" }));
     const changes = tracker.changes(status);
     expect(changes.fields).toEqual(["startedAt"]);
     applyRuntimeFields(host, changes);
     expect(host.startedAt).toBe("t1");
-    expect(host.artifacts, "an adapter field never crosses back").toEqual([]);
     expect(tracker.changes(status).fields, "and a field crosses once per change").toEqual([]);
   });
 });

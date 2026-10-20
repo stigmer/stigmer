@@ -28,7 +28,7 @@
  * them (the resolution labels are the runtime's).
  *
  * One root for everything: the deepagents backend, the CAS
- * observer, the gate's path normalization and the publisher are all rooted
+ * observer and the gate's path normalization are all rooted
  * at `workspace.primaryDir` — the same tree the runtime locks, links and
  * captures. For zero or one workspace entry this is byte-identical to the
  * orchestrator's `workspaceBackend.rootDir`.

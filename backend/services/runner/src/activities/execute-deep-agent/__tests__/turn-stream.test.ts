@@ -38,13 +38,10 @@ import { join } from "node:path";
 import { MemorySaver } from "@langchain/langgraph";
 
 import { RecordingTurnSink } from "../../../__test-utils__/harness-contract/recording-sink.js";
-import { makeInMemoryArtifactStorage } from "../../../__test-utils__/fake-artifact-storage.js";
 import { turnInputFixture } from "../../../__test-utils__/turn-input-fixture.js";
-import type { WorkspaceBackend } from "../../../shared/workspace/types.js";
 import type { ModelPricing } from "../../../shared/model-pricing.js";
-import { CasCaptureObserver } from "../cas-capture-observer.js";
-import type { DeepAgentEngine, DeepAgentGateState, DeepAgentGraphInput, DeepAgentWorkspace } from "../turn-setup.js";
-import { consumeDeepAgentStream, createDeepAgentTranscript, type DeepAgentTranscript, type StreamableRun } from "../turn-stream.js";
+import type { DeepAgentEngine, DeepAgentGateState, DeepAgentGraphInput } from "../turn-setup.js";
+import { consumeDeepAgentStream, createDeepAgentTranscript, type StreamableRun } from "../turn-stream.js";
 import type { V3ProtocolEvent } from "../v3-event-recorder.js";
 import {
   makeMessageFinish,
@@ -78,27 +75,6 @@ function openGate(overrides: Partial<DeepAgentGateState> = {}): DeepAgentGateSta
   };
 }
 
-/** A workspace whose files are the given map; the publisher reads through it. */
-function workspaceOver(files: Record<string, string>): DeepAgentWorkspace {
-  const backend: WorkspaceBackend = {
-    rootDir: "/workspace",
-    execute: vi.fn(async () => ""),
-    readFile: vi.fn(async (path: string) => {
-      const content = files[path];
-      if (content === undefined) throw new Error(`File not found: ${path}`);
-      return content;
-    }),
-    writeFile: vi.fn(async () => undefined),
-    writeFileBuffer: vi.fn(async () => undefined),
-    exists: vi.fn(async (path: string) => path in files),
-  };
-  return {
-    backend,
-    casObserver: new CasCaptureObserver({ rootDir: "/workspace", isIgnored: async () => false }),
-    isCapturablePath: async () => false,
-  };
-}
-
 interface ScriptedRunOptions {
   /** The final state `run.output` resolves to; a function so a rejection is created when the run is. */
   readonly output?: () => Promise<unknown>;
@@ -128,17 +104,11 @@ interface Harness {
   readonly sink: RecordingTurnSink;
   readonly engine: DeepAgentEngine;
   readonly streamEvents: ReturnType<typeof vi.fn>;
-  readonly blobs: Map<string, Buffer>;
-  /** The transcript the last `run` streamed into; its side effects hold the turn's publishes. */
-  readonly transcript: () => DeepAgentTranscript;
   run(run: StreamableRun): ReturnType<typeof consumeDeepAgentStream>;
 }
 
-function harness(options: { gate?: DeepAgentGateState; files?: Record<string, string> } = {}): Harness {
-  // Artifact storage is part of the turn's input; the publisher uploads there
-  // and registers the artifact on the status, or does nothing at all without it.
-  const { storage, blobs } = makeInMemoryArtifactStorage();
-  const input = turnInputFixture({ message: "Say hello.", artifactStorage: storage });
+function harness(options: { gate?: DeepAgentGateState } = {}): Harness {
+  const input = turnInputFixture({ message: "Say hello." });
   const sink = new RecordingTurnSink();
   const streamEvents = vi.fn();
   const engine: DeepAgentEngine = {
@@ -150,22 +120,14 @@ function harness(options: { gate?: DeepAgentGateState; files?: Record<string, st
     gate: options.gate ?? openGate(),
     hasStructuredOutput: false,
   };
-  const workspace = workspaceOver(options.files ?? {});
   const graphInput: DeepAgentGraphInput = { kind: "message", input: { messages: [{ role: "user", content: "Say hello." }] } };
-  let transcript: DeepAgentTranscript | undefined;
   return {
     sink,
     engine,
     streamEvents,
-    blobs,
-    transcript: () => {
-      if (transcript === undefined) throw new Error("harness: no run yet");
-      return transcript;
-    },
     run(run) {
       streamEvents.mockResolvedValue(run);
-      transcript = createDeepAgentTranscript(input, sink, engine, workspace);
-      return consumeDeepAgentStream({ input, sink, engine, graphInput, transcript });
+      return consumeDeepAgentStream({ input, sink, engine, graphInput, transcript: createDeepAgentTranscript(engine) });
     },
   };
 }
@@ -248,23 +210,6 @@ describe("consumeDeepAgentStream — what each event becomes", () => {
     expect(h.sink.persistRequests, "the tool start and the tool finish each force a persist").toBeGreaterThanOrEqual(2);
     const order = h.sink.events.map((e) => e.kind);
     expect(order.indexOf("persist"), "the first persist follows the events that forced it, never precedes them").toBeGreaterThan(0);
-  });
-
-  it("publishes a file-modifying tool's target as an artifact on the status when the call finishes", async () => {
-    const h = harness({ files: { "src/main.ts": "console.log('hi');" } });
-    await h.run(
-      scriptedRun([
-        ...textTurn("run-1", "Writing."),
-        makeToolStarted("toolu_w", "write_file", { file_path: "src/main.ts", content: "console.log('hi');" }),
-        makeToolFinished("toolu_w", "written"),
-      ]),
-    );
-
-    const { sideEffects } = h.transcript();
-    expect(sideEffects.pendingPublishPromises, "one publish fired mid-turn, held by the transcript for the drain").toHaveLength(1);
-    await sideEffects.drainPublishes();
-    expect(h.sink.status.artifacts.map((a) => a.sandboxPath)).toEqual(["src/main.ts"]);
-    expect([...h.blobs.keys()], "the bytes were uploaded under the execution's artifact key").toEqual(["artifacts/aex_fixture_0001/main.ts"]);
   });
 });
 

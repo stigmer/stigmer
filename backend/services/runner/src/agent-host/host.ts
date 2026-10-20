@@ -35,7 +35,6 @@ import { DEFAULT_OPEN_OPERATION_MAX_MS } from "../harness/open-operations.js";
 import type { TurnOutcome } from "../harness/types.js";
 import { runWithExecutionContext } from "../shared/execution-context.js";
 import { withTraceparent } from "../shared/trace-context.js";
-import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import { Peer, type LineChannel } from "./channel.js";
 import { serveExec, serveFs } from "./fs-service.js";
 import { decodeRunEvents, decodeTurnInput, encodeAdapterProjection, encodeCasSnapshot } from "./codec.js";
@@ -119,7 +118,6 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
     const adapter = harnessRowFor(rows, harness).adapter;
     const input = decodeTurnInput(wireInput, {
       selectRecalledMemories: async () => (await peer.call("selectRecalledMemories", { turnId })) ?? undefined,
-      artifactStorage: remoteArtifactStorage(peer, turnId),
       verifyPlugin: async (slug) => {
         await peer.call("verifyPlugin", { turnId, slug });
       },
@@ -201,21 +199,6 @@ function hostConfig(wire: HostConfigWire): Config {
     shellTimeoutMaxSeconds: wire.shellTimeoutMaxSeconds,
     agentResolveTimeoutMs: wire.agentResolveTimeoutMs,
     workspaceLockTimeoutMs: wire.workspaceLockTimeoutMs,
-  };
-}
-
-/**
- * The turn's artifact store as the host sees it: uploads go to the runner,
- * which holds the store's credential and confines the key to the turn's
- * own prefix (`remote-adapter.ts`). The engines only upload; a read is
- * refused here rather than given a path to the runner's whole store.
- */
-function remoteArtifactStorage(peer: HostPeer, turnId: string): ArtifactStorage {
-  return {
-    upload: (key, content, contentType) =>
-      peer.call("uploadArtifact", { turnId, key, content: content.toString("base64"), contentType: contentType ?? null }),
-    download: (key) => Promise.reject(new Error(`agent host: artifact reads are not served (${key})`)),
-    exists: (key) => Promise.reject(new Error(`agent host: artifact reads are not served (${key})`)),
   };
 }
 

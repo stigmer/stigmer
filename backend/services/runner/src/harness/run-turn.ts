@@ -25,7 +25,7 @@
  * with its throw-vs-return rule, applied by `settleWith`, the one writer of
  * a terminal; the outputs collection, on every outcome once the engine ran
  * (`shared/outputs.ts`); the completion epilogue (final text,
- * structured output, plan artifact, write-back); the finally that releases
+ * structured output, the plan saved as an output, write-back); the finally that releases
  * the workspace lock last. The adapter owns its SDK slice inside `runTurn`
  * and its own teardown inside its own `finally`, which runs BEFORE this
  * module's (the gate is torn down before the lock is released, as it always
@@ -64,7 +64,7 @@ import { runWithExecutionContext } from "../shared/execution-context.js";
 import { startHeartbeat } from "../shared/heartbeat.js";
 import { describeExecutionError } from "../shared/model-error.js";
 import { collectOutputs } from "../shared/outputs.js";
-import { publishPlanArtifact } from "../shared/plan-artifact.js";
+import { savePlanOutput } from "../shared/plan-artifact.js";
 import { readEvalFiles } from "../shared/eval-case/read-files.js";
 import { StallTimeoutError, startStallWatchdog, type StallWatchdog } from "../shared/stall-watchdog.js";
 import { loadStreamingConfig } from "../shared/streaming-scheduler.js";
@@ -273,7 +273,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
   const setupTiming = new TimingRecorder(originMs);
 
   // Artifact storage for offloading oversized tool outputs out of the
-  // persisted status and for publishing the plan artifact. Resolved once so
+  // persisted status and for the file record's blobs. Resolved once so
   // every persist sees it. Best-effort: `undefined`, never a throw, when no
   // substrate works; an absent store disables offload (the aggregate size cap
   // still applies) and flips capture mode off (deny-gate fallback).
@@ -752,7 +752,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
    * (CANCELLED): the final text from the last AI row (or the run's newest
    * logged answer, `lastAssistantText`); the structured output the
    * execution asked for, extracted from that text unless the adapter
-   * already folded it onto the rows; the plan artifact in plan mode; the
+   * already folded it onto the rows; the plan saved as an output in plan mode; the
    * write-back safety net; the one persist that writes the structured
    * output to the log and then COMPLETED; the slim return.
    */
@@ -767,15 +767,16 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
       runSpan.answer(finalText);
       await resolveStructuredOutput(turn, finalText);
 
-      // Plan mode: publish the final plan message as a plan artifact (named
-      // from the plan's title); the only artifact path a harness without an
-      // auto-publish pipeline has.
+      // Plan mode: the final message is the plan. Written into the outputs
+      // folder (named from the plan's title), so the collector below returns
+      // it as a File of the turn, as it returns anything the agent saved.
+      // A plan that cannot be written never fails the turn.
       const interactionMode = turn.execution.spec?.interactionMode ?? InteractionMode.UNSPECIFIED;
-      if (interactionMode === InteractionMode.PLAN && finalText && turn.artifactStorage) {
+      if (interactionMode === InteractionMode.PLAN && finalText && outputsSessionId !== undefined) {
         try {
-          await publishPlanArtifact({ status, executionId, planText: finalText, artifactStorage: turn.artifactStorage });
+          await savePlanOutput({ sessionId: outputsSessionId, planText: finalText });
         } catch (err) {
-          console.warn(`${activityName} plan artifact publish skipped (non-fatal): execution=${executionId}, error=${err}`);
+          console.warn(`${activityName} plan not saved (non-fatal): execution=${executionId}, error=${err}`);
         }
       }
 

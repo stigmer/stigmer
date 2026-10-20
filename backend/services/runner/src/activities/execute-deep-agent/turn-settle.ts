@@ -2,8 +2,7 @@
  * The native deep-agent harness's settle — from a consumed stream to a
  * `TurnOutcome`.
  *
- * In order: drain the inline publishes the stream fired and, on a finished
- * turn, run the auto-publish safety net; settle the gate's unattended skips
+ * In order: settle the gate's unattended skips
  * (the one settlement whose evidence exists only inside this harness); on
  * the runtime's stop, mark in-flight sub-agent rows through the shared act
  * and settle `interrupted` with nothing further; the graph's
@@ -42,37 +41,22 @@ import type { TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import { cancelInProgressSubAgentProtos } from "../../shared/subagent-rows.js";
 import { redactSensitiveArgs } from "../../shared/args-preview.js";
 import { captureApprovalArtifacts } from "./approval-file-change.js";
-import { autoPublishWrittenFiles } from "./auto-publish.js";
 import { detectPendingInterrupts, reconcileUnattendedSkips, type GraphStateSnapshot } from "./hitl.js";
 import type { DeepAgentEngine } from "./turn-setup.js";
-import type { DeepAgentStreamResult, DeepAgentTranscript } from "./turn-stream.js";
+import type { DeepAgentStreamResult } from "./turn-stream.js";
 
 export interface DeepAgentSettleDeps {
   readonly input: TurnInput;
   readonly sink: TurnSink;
   readonly engine: DeepAgentEngine;
-  readonly transcript: DeepAgentTranscript;
   readonly stream: DeepAgentStreamResult;
 }
 
 export async function settleDeepAgentTurn(deps: DeepAgentSettleDeps): Promise<TurnOutcome> {
-  const { input, sink, engine, transcript, stream } = deps;
+  const { input, sink, engine, stream } = deps;
   const { executionId } = input;
   const { rows } = sink;
 
-  // Drain the publishes the stream fired (fire-and-forget completions) BEFORE
-  // the safety net: its publisher skips a file only when the file's row is
-  // already on the status, so an upload still in flight would be sent twice.
-  // The net scans tool calls for files the stream missed and runs only on a
-  // finished turn, as it always did.
-  await transcript.sideEffects.drainPublishes();
-  if (stream.reason === "completed") {
-    try {
-      await autoPublishWrittenFiles(rows, transcript.publisher);
-    } catch (err) {
-      console.warn(`[turn-settle] execution=${executionId} — auto-publish safety net error: ${err}`);
-    }
-  }
   sink.recordActivity();
 
   // Terminalize every tool call the gate auto-skipped under UNATTENDED

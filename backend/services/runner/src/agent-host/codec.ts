@@ -19,29 +19,29 @@
  *    its hook sources as the main agent's do. The members that are behaviour, not
  *    data, are rebuilt in the host over calls back to the runner, which
  *    keeps the authority each one needs: the recalled-memory selection (a
- *    network call that writes the runtime's status), the artifact upload
- *    (the runner's storage credential), and a plugin's verify (the archive
- *    the runner verified). The tool scope is rebuilt from its lists
+ *    network call that writes the runtime's status) and a plugin's verify
+ *    (the archive the runner verified). The artifact store crosses as its
+ *    presence only: the engines read whether the runtime has one, and every
+ *    use of it is the runner's. The tool scope is rebuilt from its lists
  *    (`ToolScope.toWire`), and the workspace backend from its two
  *    directories.
  *
- *  - The adapter-owned fields ({@link WireProjection}), host to runner, on
+ *  - The adapter-owned rows ({@link WireProjection}), host to runner, on
  *    every persist and at settle: the turn's rows the adapter writes
  *    ({@link ADAPTER_OWNED_ROW_FIELDS}, a `TurnRows`: messages, sub-agent
- *    rows, todos and the structured output) and the status's artifacts
- *    ({@link ADAPTER_OWNED_STATUS_FIELDS}, a `RunStatus`). The field
- *    ownership is `TurnSink`'s (`harness/types.ts`): the adapter creates and
- *    amends those while its turn runs; the runtime writes every other field,
- *    and edits the adapter's rows only before `runTurn` or after it returns.
- *    So while a turn runs, the host's copy of those five fields is the only
- *    writer, and the runner replaces its copy wholesale. Arrays are replaced
+ *    rows, todos and the structured output). The field ownership is
+ *    `TurnSink`'s (`harness/types.ts`): the adapter creates and amends those
+ *    while its turn runs; the runtime writes every other row and every
+ *    status field, and edits the adapter's rows only before `runTurn` or
+ *    after it returns. So while a turn runs, the host's copy of those four
+ *    fields is the only writer, and the runner replaces its copy wholesale. Arrays are replaced
  *    in place (`splice`), never reassigned: the runtime's transcript builder
  *    and its chokepoint hold the rows' and the status's own arrays
  *    (`harness/transcript/state.ts`). The turn's rows the runtime writes
  *    (the file-review ledger, the memory report) never cross: no adapter
  *    reads them.
  *
- *  - The runtime-owned status fields, runner to host, field by field and
+ *  - The status fields, all the runtime's, runner to host, field by field and
  *    only what changed, so an adapter that reads one (the Cursor harness
  *    reads `startedAt` and `streamingUsage`) sees the runtime's current
  *    value.
@@ -232,7 +232,7 @@ export interface WireTurnInput {
     readonly declaredPreferences: DeclaredPreferencesContent | null;
     readonly conversationCatchup: string | null;
   };
-  /** Whether the runtime resolved a store; the host's stand-in forwards uploads to it. */
+  /** Whether the runtime resolved a store; the host's engines read only that. */
   readonly artifactStorage: boolean;
   /** A eval-run try's recorded conversation (`TurnInput.resumedHistory`), or `null` for none. Plain JSON already. */
   readonly resumedHistory: readonly TranscriptMessage[] | null;
@@ -337,10 +337,21 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
 /** The behaviour the host rebuilds over calls to the runner (the module header). */
 export interface HostTurnServices {
   readonly selectRecalledMemories: () => Promise<RecalledMemoriesContent | undefined>;
-  readonly artifactStorage: ArtifactStorage;
   readonly verifyPlugin: (slug: string) => Promise<void>;
   readonly readRunEvents: () => Promise<readonly SessionEvent[]>;
 }
+
+/**
+ * The runtime's artifact store as the host's engines see it: present when
+ * the runner's is, so an engine reads the same `captureIgnored` it reads
+ * in-process, and refusing every operation, since every use of the store
+ * (the file record's blobs, a tool output's offload) is the runner's.
+ */
+const RUNNER_HELD_ARTIFACT_STORAGE: ArtifactStorage = {
+  upload: (key) => Promise.reject(new Error(`agent host: the artifact store is the runner's (${key})`)),
+  download: (key) => Promise.reject(new Error(`agent host: the artifact store is the runner's (${key})`)),
+  exists: (key) => Promise.reject(new Error(`agent host: the artifact store is the runner's (${key})`)),
+};
 
 export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices): TurnInput {
   const session = decodeMessage(SessionSchema, wire.session);
@@ -444,7 +455,7 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
       conversationCatchup: wire.standing.conversationCatchup ?? undefined,
       selectRecalledMemories: services.selectRecalledMemories,
     },
-    artifactStorage: wire.artifactStorage ? services.artifactStorage : undefined,
+    artifactStorage: wire.artifactStorage ? RUNNER_HELD_ARTIFACT_STORAGE : undefined,
     readRunEvents: services.readRunEvents,
     ...(wire.resumedHistory === null ? {} : { resumedHistory: wire.resumedHistory }),
   };
@@ -458,36 +469,26 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
  */
 export const ADAPTER_OWNED_ROW_FIELDS = ["messages", "subAgentRuns", "todos", "structuredOutput"] as const;
 
-/**
- * The status fields an adapter writes while its turn runs: the artifacts it
- * publishes. Every other status field is the runtime's.
- */
-export const ADAPTER_OWNED_STATUS_FIELDS = ["artifacts"] as const;
+/** Every status field is the runtime's; an adapter reads them and never writes one. */
+const RUNTIME_OWNED_FIELDS: readonly DescField[] = RunStatusSchema.fields;
 
-const ADAPTER_OWNED: ReadonlySet<string> = new Set(ADAPTER_OWNED_STATUS_FIELDS);
-
-const RUNTIME_OWNED_FIELDS: readonly DescField[] = RunStatusSchema.fields.filter((f) => !ADAPTER_OWNED.has(f.localName));
-
-/** The runtime-owned fields, by their generated names. */
+/** The runtime-owned status fields, by their generated names: every one. */
 export const RUNTIME_OWNED_STATUS_FIELDS: readonly string[] = RUNTIME_OWNED_FIELDS.map((f) => f.localName);
 
-/** What an adapter wrote, as it crosses: the adapter-owned rows and the adapter-owned status fields, each as base64. */
+/** What an adapter wrote, as it crosses: the adapter-owned rows, as base64. */
 export interface WireProjection {
   /** base64 `TurnRows` holding only {@link ADAPTER_OWNED_ROW_FIELDS}. */
   readonly rows: string;
-  /** base64 `RunStatus` holding only {@link ADAPTER_OWNED_STATUS_FIELDS}. */
-  readonly status: string;
 }
 
-/** The turn's rows and status, the two halves a projection is read from and applied to. */
+/** The turn's rows, which a projection is read from and applied to. */
 export interface TurnFields {
   readonly rows: TurnRows;
-  readonly status: RunStatus;
 }
 
-/** The adapter-owned fields of a turn (the module header). */
+/** The adapter-owned rows of a turn (the module header). */
 export function encodeAdapterProjection(turn: TurnFields): WireProjection {
-  const { rows, status } = turn;
+  const { rows } = turn;
   return {
     rows: encodeMessage(
       TurnRowsSchema,
@@ -498,18 +499,16 @@ export function encodeAdapterProjection(turn: TurnFields): WireProjection {
         ...(rows.structuredOutput !== undefined ? { structuredOutput: rows.structuredOutput } : {}),
       }),
     ),
-    status: encodeMessage(RunStatusSchema, create(RunStatusSchema, { artifacts: status.artifacts })),
   };
 }
 
 /**
- * Replace `target`'s adapter-owned fields with a projection's. Every array
+ * Replace `target`'s adapter-owned rows with a projection's. Every array
  * and the todo map are replaced IN PLACE: their identity is what the
  * runtime's builder and chokepoint hold.
  */
 export function applyAdapterProjection(target: TurnFields, projection: WireProjection): void {
   const rows = decodeMessage(TurnRowsSchema, projection.rows);
-  const status = decodeMessage(RunStatusSchema, projection.status);
   target.rows.messages.splice(0, target.rows.messages.length, ...rows.messages);
   target.rows.subAgentRuns.splice(0, target.rows.subAgentRuns.length, ...rows.subAgentRuns);
   for (const id of Object.keys(target.rows.todos)) {
@@ -517,7 +516,6 @@ export function applyAdapterProjection(target: TurnFields, projection: WireProje
   }
   Object.assign(target.rows.todos, rows.todos);
   target.rows.structuredOutput = rows.structuredOutput as JsonObject | undefined;
-  target.status.artifacts.splice(0, target.status.artifacts.length, ...status.artifacts);
 }
 
 /** The runtime-owned fields the host has not seen yet: their names, and a `RunStatus` holding their values. */

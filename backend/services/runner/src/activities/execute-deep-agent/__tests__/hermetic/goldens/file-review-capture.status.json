@@ -2,17 +2,6 @@
   "phase": "RUN_COMPLETED",
   "startedAt": "2026-01-01T00:00:00.000Z",
   "completedAt": "2026-01-01T00:00:02.000Z",
-  "artifacts": [
-    {
-      "name": "notes.md",
-      "sandboxPath": "notes.md",
-      "kind": "RUN_ARTIFACT_KIND_FILE",
-      "sizeBytes": "22",
-      "storageKey": "artifacts/aex_hermetic_0001/notes.md",
-      "createdAt": "2026-01-01T00:00:01.000Z",
-      "contentHash": "e4cdd09e8ca79e376a6ec5766d190754bc8ee4a2d6c5c7f4d86a9dc7fdf25a0f"
-    }
-  ],
   "streamingUsage": {
     "inputTokens": "2800",
     "outputTokens": "70",

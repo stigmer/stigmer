@@ -3,7 +3,7 @@
  * `TranscriptBuilder` is building into, held as one {@link Transcript} per
  * scope: the root's over `rows.messages`, and one per sub-agent over its
  * row's `messages`. Beside them the run's status, where the builder
- * registers the turn's artifacts and write-backs.
+ * registers the turn's write-backs.
  *
  * Indexes, not copies: every map value is the live proto object (a ToolCall
  * inside a message's repeated field, an AgentMessage inside a `messages`
@@ -98,7 +98,7 @@ export class TranscriptState {
   /** The rows being built. */
   readonly rows: TurnRows;
 
-  /** The run's status: the builder registers artifacts and write-backs on it. */
+  /** The run's status: the builder registers write-backs on it. */
   readonly status: RunStatus;
 
   /** The root transcript, over `rows.messages`. */

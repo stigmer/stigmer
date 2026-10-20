@@ -52,7 +52,6 @@ import { join } from "node:path";
 import { RunControlSignal, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { create } from "@bufbuild/protobuf";
 import { type RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
 import { StreamingUsageSummarySchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 import { WorkspaceWriteBackPhase, WorkspaceWriteBackSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
@@ -583,8 +582,8 @@ export async function assertToolCallLimitTerminates(harness: RuntimeContractHarn
 
 /**
  * What a reinvocation carries forward, and what it does not. The status's
- * own outputs the prior invocation persisted — the artifacts, the write-back
- * rows, the usage summary — are on the completed status of the resumed
+ * own outputs the prior invocation persisted — the write-back rows, the
+ * usage summary — are on the completed status of the resumed
  * turn, because the server takes each list a write carries as the whole
  * list, so a write holding only the resumed turn's own would erase the prior
  * turn's. The transcript is not carried: the resumed turn's rows hold the
@@ -614,7 +613,6 @@ export async function assertReinvocationCarriesThePersistedStatus(harness: Runti
   expect(slimOf(subject, second).phase, `${subject.name}: the resumed turn completes`).toBe("RUN_COMPLETED");
   const final = finalStatusOf(harness, driver);
   const rows = driver.record.rowsOf(final);
-  expect(final.artifacts.map((a) => a.name), `${subject.name}: the prior turn's artifacts survive the resume`).toContain(planted.artifactName);
   expect(final.workspaceWriteBacks.map((w) => w.workspaceEntryName), `${subject.name}: the prior turn's write-back rows survive the resume`).toContain(planted.writeBackEntry);
   expect(final.streamingUsage?.inputTokens, `${subject.name}: the usage summary carries until the resumed turn reports its own`).toBe(planted.inputTokens);
   expect(rows.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === id), `${subject.name}: the gated row is seeded once, not duplicated`).toHaveLength(1);
@@ -626,11 +624,10 @@ export async function assertReinvocationCarriesThePersistedStatus(harness: Runti
 export async function assertFirstTurnSeedsNothing(harness: RuntimeContractHarness, label = "rt-seed-first"): Promise<RuntimeArmResult> {
   const { subject } = harness;
   const driver = new RuntimeExecutionDriver(harness, label);
-  const planted = plantPriorTurnOutputs(driver.record.status ?? (driver.record.execution.status = emptyStatus()), label);
+  plantPriorTurnOutputs(driver.record.status ?? (driver.record.execution.status = emptyStatus()), label);
   const invocation = await driver.turn([scenario.say("Fresh start.")]);
   expect(slimOf(subject, invocation).phase).toBe("RUN_COMPLETED");
   const final = finalStatusOf(harness, driver);
-  expect(final.artifacts.map((a) => a.name), `${subject.name}: a first turn carries no artifacts`).not.toContain(planted.artifactName);
   expect(final.workspaceWriteBacks, `${subject.name}: a first turn carries no write-back rows`).toHaveLength(0);
   expect(driver.record.rowsOf(final).messages.flatMap((m) => m.toolCalls), `${subject.name}: a first turn seeds no rows`).toHaveLength(0);
   return { driver, invocations: [invocation], final };
@@ -639,11 +636,9 @@ export async function assertFirstTurnSeedsNothing(harness: RuntimeContractHarnes
 /** Write the prior turn's outputs onto the server-held status, as its writes would have left them. */
 function plantPriorTurnOutputs(held: RunStatus, label: string) {
   const planted = {
-    artifactName: `${label}-report.md`,
     writeBackEntry: `${label}-repo`,
     inputTokens: 4_242n,
   };
-  held.artifacts.push(create(RunArtifactSchema, { name: planted.artifactName }));
   held.workspaceWriteBacks.push(create(WorkspaceWriteBackSchema, { workspaceEntryName: planted.writeBackEntry, phase: WorkspaceWriteBackPhase.WORKSPACE_WRITE_BACK_COMMITTED }));
   held.streamingUsage = create(StreamingUsageSummarySchema, { inputTokens: planted.inputTokens, totalTokens: planted.inputTokens });
   return planted;

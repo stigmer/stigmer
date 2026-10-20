@@ -216,7 +216,6 @@ export class AgentHostSupervisor {
     peer.handle("reportProgress", async (args) => endpointFor(args.turnId).calls.reportProgress(args));
     peer.handle("bindHarnessState", async (args) => endpointFor(args.turnId).calls.bindHarnessState(args));
     peer.handle("selectRecalledMemories", async (args) => endpointFor(args.turnId).calls.selectRecalledMemories(args));
-    peer.handle("uploadArtifact", async (args) => endpointFor(args.turnId).calls.uploadArtifact(args));
     peer.handle("verifyPlugin", async (args) => endpointFor(args.turnId).calls.verifyPlugin(args));
     peer.handle("readRunEvents", async (args) => endpointFor(args.turnId).calls.readRunEvents(args));
     // A notice for a turn that already settled is late, and dropped.

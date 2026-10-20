@@ -39,7 +39,7 @@ export function bytesLookBinary(bytes: Uint8Array): boolean {
  *
  * `virtualRoot` distinguishes the two harness path conventions:
  *  - native (deepagents) addresses files against a virtual root where a leading
- *    "/" denotes the workspace root — mirrors `InlinePublisher.normalizePath`;
+ *    "/" denotes the workspace root;
  *  - Cursor passes real filesystem paths that may be absolute.
  *
  * A path that is absolute but outside `rootDir` is displayed as-is (we never

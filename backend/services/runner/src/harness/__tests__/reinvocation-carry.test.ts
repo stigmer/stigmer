@@ -1,6 +1,6 @@
 /**
  * What a reinvocation carries over that is not a row (`turn-context.ts`):
- * the status's own outputs (artifacts, write-backs, usage) the server takes
+ * the status's own outputs (write-backs, usage) the server takes
  * as whole lists, and the memory selection an earlier invocation recorded,
  * replayed onto the turn's rows rather than selected again.
  */
@@ -16,26 +16,24 @@ import type { ResolvedBlueprint } from "../../shared/blueprint-resolver.js";
 import { RecalledMemoriesReportSchema, TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 describe("seedStatusOutputs", () => {
-  it("carries the persisted artifacts, write-backs and usage onto the turn's status, as copies", () => {
+  it("carries the persisted write-backs and usage onto the turn's status, as copies", () => {
     const persisted = create(RunStatusSchema, {
-      artifacts: [{ name: "report.md" }],
       workspaceWriteBacks: [{ workspaceEntryName: "repo" }],
       streamingUsage: { inputTokens: 7n },
     });
     const execution = create(RunSchema, { status: persisted });
-    const status = create(RunStatusSchema, { artifacts: [{ name: "this-turn.md" }] });
+    const status = create(RunStatusSchema, { workspaceWriteBacks: [{ workspaceEntryName: "this-turn" }] });
     seedStatusOutputs(status, execution);
-    expect(status.artifacts.map((a) => a.name)).toEqual(["this-turn.md", "report.md"]);
-    expect(status.workspaceWriteBacks.map((w) => w.workspaceEntryName)).toEqual(["repo"]);
+    expect(status.workspaceWriteBacks.map((w) => w.workspaceEntryName)).toEqual(["this-turn", "repo"]);
     expect(status.streamingUsage?.inputTokens).toBe(7n);
-    expect(status.artifacts[1], "a copy, the input execution stays as it was").not.toBe(persisted.artifacts[0]);
+    expect(status.workspaceWriteBacks[1], "a copy, the input execution stays as it was").not.toBe(persisted.workspaceWriteBacks[0]);
   });
 
   it("carries nothing from an execution with no status, and keeps a usage the persisted status lacks", () => {
     const status = create(RunStatusSchema, { streamingUsage: { inputTokens: 3n } });
     seedStatusOutputs(status, create(RunSchema));
     seedStatusOutputs(status, create(RunSchema, { status: {} }));
-    expect(status.artifacts).toEqual([]);
+    expect(status.workspaceWriteBacks).toEqual([]);
     expect(status.streamingUsage?.inputTokens).toBe(3n);
   });
 });
