@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { cn } from "@stigmer/design-tokens";
+import { useFile } from "../file/useFile.js";
 import { UNSTYLED_LIST } from "../internal/element-resets.js";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
@@ -685,6 +686,11 @@ export function RoutineDetailView({
             <WorkspaceSummary
               resources={target?.resources ?? []}
             />
+          </DetailRow>
+          {/* Files, like the workspace, are named in the creation form
+              (or YAML) and read here. */}
+          <DetailRow label="Files">
+            <FilesSummary resources={target?.resources ?? []} />
           </DetailRow>
           <DetailRow label="Engine & model">
             {editable && target ? (
@@ -1728,6 +1734,45 @@ function WorkspaceSummary({
         );
       })}
     </ul>
+  );
+}
+
+/**
+ * The Library Files each fire is handed, by name, or the em-dash when none.
+ * Each name is read per id; a File the reader may not see (private to the
+ * routine's owner) is listed by id and says how to share it. The routine
+ * still runs, as its owner.
+ */
+function FilesSummary({ resources }: { readonly resources: readonly SessionResource[] }) {
+  const fileIds = resources.flatMap((r) => (r.resource.case === "file" ? [r.resource.value.fileId] : []));
+  if (fileIds.length === 0) {
+    return <span className="stg:text-sm stg:text-muted-foreground">—</span>;
+  }
+  return (
+    <ul className={cn(UNSTYLED_LIST, "stg:flex stg:flex-col stg:gap-0.5")}>
+      {fileIds.map((fileId) => (
+        <FileSummaryRow key={fileId} fileId={fileId} />
+      ))}
+    </ul>
+  );
+}
+
+function FileSummaryRow({ fileId }: { readonly fileId: string }) {
+  const { file, isLoading, error } = useFile(fileId);
+  if (file) {
+    return <li className="stg:text-xs stg:font-medium stg:text-foreground">{file.spec?.filename}</li>;
+  }
+  return (
+    <li className="stg:text-xs stg:text-muted-foreground">
+      {isLoading ? (
+        "Loading\u2026"
+      ) : (
+        <>
+          A file you cannot see <span className="stg:font-mono">{fileId}</span>
+          {error ? ". Its owner can share it with the organization." : ""}
+        </>
+      )}
+    </li>
   );
 }
 

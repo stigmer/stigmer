@@ -22,6 +22,7 @@ import { Switch } from "../switch/Switch.js";
 import { useStigmerPortalContainer } from "../portal-container.js";
 import { useWorkspaceEntries } from "../workspace/useWorkspaceEntries.js";
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor.js";
+import { FilePicker } from "../file/FilePicker.js";
 import { CadenceField } from "./CadenceField.js";
 import { TimeZoneField, browserTimeZone } from "./TimeZoneField.js";
 import { useCreateRoutine } from "./useCreateRoutine.js";
@@ -153,6 +154,11 @@ export function RoutineForm({
   const workspace = useWorkspaceEntries();
   const gitHub = useGitHubConnection(org);
 
+  // Library Files every run is handed: each fire's conversation makes its
+  // own copy, found under .stigmer/uploads/ at the File's name (a file
+  // entry carries no name and, here, no mount path: the server's default).
+  const [fileIds, setFileIds] = useState<string[]>([]);
+
   const trimmedName = name.trim();
   const trimmedMessage = message.trim();
   const cron = cadenceToCron(cadence).trim();
@@ -193,8 +199,13 @@ export function RoutineForm({
             ...(modelName !== ""
               ? { harness: toProtoHarness(modelHarness) }
               : {}),
-            ...(workspace.hasEntries
-              ? { resources: workspace.toInput() }
+            ...(workspace.hasEntries || fileIds.length > 0
+              ? {
+                  resources: [
+                    ...workspace.toInput(),
+                    ...fileIds.map((fileId) => ({ file: { fileId } })),
+                  ],
+                }
               : {}),
             ...(vaults.length > 0 ? { vaults } : {}),
             ...(environmentRef ? { environmentRef } : {}),
@@ -225,6 +236,7 @@ export function RoutineForm({
       thinkingMode,
       budgetUsd,
       workspace,
+      fileIds,
       onComplete,
     ],
   );
@@ -336,6 +348,20 @@ export function RoutineForm({
           Each run clones these repositories fresh. Private repositories need
           a <code className="stg:font-mono">github.com</code> login in one of
           this routine&rsquo;s vaults; public ones need nothing.
+        </p>
+      </div>
+
+      {/* Files — Library Files each run is handed, found under
+          .stigmer/uploads/ by name. */}
+      <div className="stg:space-y-1">
+        <span className={labelClasses}>
+          Files{" "}
+          <span className="stg:font-normal stg:text-muted-foreground">(optional)</span>
+        </span>
+        <FilePicker org={org} value={fileIds} onChange={setFileIds} disabled={isCreating} />
+        <p className={hintClasses}>
+          Every run gets its own copy of these files in{" "}
+          <code className="stg:font-mono">.stigmer/uploads/</code>.
         </p>
       </div>
 

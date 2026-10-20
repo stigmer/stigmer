@@ -12,6 +12,7 @@ export const collect = (value: string, previous: string[]): string[] => [...prev
 export interface AgentExecOptions {
   message?: string;
   attach: string[];
+  fileId: string[];
   approveDefault?: string;
   verbose?: boolean;
   detach?: boolean;
@@ -36,6 +37,7 @@ export function addAgentExecFlags(command: Command): Command {
   return command
     .option("-m, --message <text>", "initial message/prompt for the run")
     .option("--attach <path>", "a file sent with the message (at most 20), or a folder whose files the conversation keeps under .stigmer/uploads/; a file inside a --workspace folder is pointed to where it is (repeatable)", collect, [])
+    .option("--file-id <id>", "a File already uploaded (stigmer file upload, or the console's Library) sent with the message, counted with --attach toward its 20 (repeatable)", collect, [])
     .option("--approve-default <action>", "answer every tool call that asks, in headless mode: allow, deny, or allow-all (allow it and every waiting call of its kind for the rest of the turn); unset denies each one")
     .option("-v, --verbose", "show run IDs and phase transitions")
     .option("--detach", "start the run and return immediately without streaming")
@@ -59,6 +61,7 @@ export function toAgentExecFlags(options: AgentExecOptions): AgentExecFlags {
   return {
     message: options.message ?? "",
     attach: options.attach,
+    fileIds: options.fileId,
     approveDefault: options.approveDefault ?? "",
     verbose: options.verbose === true,
     detach: options.detach === true,

@@ -223,6 +223,13 @@ function createClient(overrides?: {
       }),
     },
     organization: { get: vi.fn().mockResolvedValue({ metadata: { id: "isc" }, spec: {} }) },
+    // The Files field offers the Library's Files.
+    file: {
+      list: vi.fn().mockResolvedValue({
+        entries: [{ metadata: { id: "file_ledger", org: "isc" }, spec: { filename: "q3-ledger.xlsx" }, status: {} }],
+        nextPageToken: "",
+      }),
+    },
     environment: {
       list: vi.fn().mockResolvedValue({
         entries: [
@@ -390,6 +397,34 @@ describe("RoutineForm", () => {
         gitRepository: { url: "https://github.com/isc/fee-data.git", branch: "main" },
       },
     ]);
+  });
+
+  it("names the Library Files picked as file resources, each with no name and no mount path", async () => {
+    const apply = vi.fn().mockResolvedValue(CREATED);
+    const client = createClient({ apply });
+    const onComplete = vi.fn();
+
+    render(<RoutineForm org="isc" onComplete={onComplete} />, {
+      wrapper: wrapper(client),
+    });
+
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "nightly-ledger" },
+    });
+    fireEvent.change(screen.getByLabelText("Message"), {
+      target: { value: "Reconcile the ledger." },
+    });
+    await pickAgent();
+
+    await screen.findByRole("option", { name: "q3-ledger.xlsx" });
+    fireEvent.change(screen.getByLabelText("Add a file"), { target: { value: "file_ledger" } });
+    expect(within(screen.getByRole("list", { name: "Chosen files" })).getByText("q3-ledger.xlsx")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Create routine" }));
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
+    expect(client.file.list.mock.calls[0]![0]).toMatchObject({ org: "isc", withoutSession: true });
+    expect(apply.mock.calls[0][0].agent.resources).toEqual([{ file: { fileId: "file_ledger" } }]);
   });
 
   it("picking a model pins the engine it belongs to (harness + model travel together)", async () => {

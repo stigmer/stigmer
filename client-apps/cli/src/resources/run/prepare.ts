@@ -53,6 +53,8 @@ export type HarnessFlag = "" | "native" | "cursor";
 export interface AgentExecFlags {
   readonly message: string;
   readonly attach: readonly string[];
+  /** The `--file-id` Files the message names, in the order given. */
+  readonly fileIds: readonly string[];
   readonly approveDefault: string;
   readonly verbose: boolean;
   readonly detach: boolean;
@@ -91,7 +93,7 @@ export interface PreparedRun {
   readonly plugins: readonly ApiResourceReference[];
   /** The Environment the new conversation names; undefined leaves its agent's or organization's default. */
   readonly environment?: ApiResourceReference;
-  /** What `--attach` resolved to, uploaded by the create step. */
+  /** What `--attach` and `--file-id` resolved to, uploaded by the create step. */
   readonly attachments: AttachmentPlan;
   readonly message: string;
   readonly detach: boolean;
@@ -211,7 +213,7 @@ export async function prepareAgentExec(
   const plugins = await resolveRunPlugins(client, flags.plugin, options?.org ?? "");
   const environment = await resolveRunEnvironment(client, flags.environment, options?.org ?? "");
 
-  const attachments = planAttachments(flags.attach, localWorkspaceRoots(resources), progress);
+  const attachments = planAttachments(flags.attach, localWorkspaceRoots(resources), progress, flags.fileIds);
 
   return {
     approveDefault,

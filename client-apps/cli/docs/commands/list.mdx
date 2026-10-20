@@ -37,6 +37,7 @@ stigmer list skills --output json
 | Channel | `channels`, `channel`, `chn` |
 | Channel App | `channel-apps`, `channel-app`, `chapp` |
 | Environment | `environments`, `environment`, `env` |
+| File | `files`, `file` |
 | Organization | `organizations`, `organization`, `org` |
 | Routine | `routines`, `routine`, `rtn` |
 | Run | `runs`, `run` |
@@ -45,6 +46,13 @@ stigmer list skills --output json
 | Vault | `vaults`, `vault`, `vlt` |
 
 Both singular and plural forms are accepted.
+
+`stigmer list files` lists the Files you keep for reuse: uploaded with
+`stigmer file upload`, the API or the console's Library, and never given to a
+conversation. `stigmer list files --session <id>` lists one conversation's
+Files instead, what was given to it and what its turns saved, with the place
+each output was saved under the outputs folder. `--session` applies to files
+only.
 
 ### Listing resource types
 

@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js"
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { useStigmer } from "../hooks.js";
 import { useFileDownload } from "../file/useFile.js";
-import { ArtifactPreviewModal } from "./ArtifactPreviewModal.js";
+import { FilePreviewModal } from "./FilePreviewModal.js";
 import { formatArtifactSize } from "./artifact-utils.js";
 import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey.js";
 
@@ -25,7 +25,7 @@ export interface PlanArtifactCardProps {
   readonly title?: string;
   /**
    * Organization id (a slug is also accepted). Required for the open-in-modal fallback (the shared
-   * {@link ArtifactPreviewModal} uses it for its detection/apply pipeline and
+   * {@link FilePreviewModal} uses it for its detection/apply pipeline and
    * to fetch the content). When omitted, that fallback is hidden — the
    * prominent "Build" action and the download icon remain.
    */
@@ -169,7 +169,7 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
           the single place that fetches/renders plan content (with Copy +
           Source/Rendered). */}
       {org && previewOpen && (
-        <ArtifactPreviewModal
+        <FilePreviewModal
           file={file}
           org={org}
           isTerminal

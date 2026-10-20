@@ -1,6 +1,8 @@
-// What `--attach` gives a run: each path is a file the message carries, a
-// folder the conversation holds, or a mention of a file already in a local
-// workspace.
+// What `--attach` and `--file-id` give a run: each path is a file the
+// message carries, a folder the conversation holds, or a mention of a file
+// already in a local workspace; each id names a File already uploaded
+// (`stigmer file upload`, the console's Library), which the message carries
+// without sending its bytes again.
 //
 // A file outside every local workspace is uploaded as a File and named in the
 // run's file_ids: the model sees it with the message (an image as an image,
@@ -15,7 +17,9 @@
 // - Planning and uploading are two steps. planAttachments only reads the
 //   disk, so a missing path, an empty folder or a count over the limits fails
 //   before any byte moves; stageAttachments uploads once the run's target is
-//   known.
+//   known. A File named by id counts toward the message's limit with the
+//   files the message uploads, and is never deleted here: it is the
+//   person's, and the server gives the conversation its own copy.
 // - Into an existing conversation a File is uploaded with its session id and
 //   is the conversation's at once. A new conversation does not exist until
 //   its first run does, so each File is uploaded as the person's own and the
@@ -77,10 +81,12 @@ export interface AttachedFolder {
   readonly files: readonly FolderFile[];
 }
 
-/** What the `--attach` paths resolved to, before anything is uploaded. */
+/** What `--attach` and `--file-id` resolved to, before anything is uploaded. */
 export interface AttachmentPlan {
   /** Files the message carries, in the order given. */
   readonly messageFiles: readonly LocalFile[];
+  /** Files already uploaded that the message names, by id, in the order given. */
+  readonly fileIds: readonly string[];
   /** Folders the conversation holds, in the order given. */
   readonly folders: readonly AttachedFolder[];
   /** Workspace-relative paths of files already in a local workspace. */
@@ -88,19 +94,26 @@ export interface AttachmentPlan {
 }
 
 /** A plan that attaches nothing. */
-export const NO_ATTACHMENTS: AttachmentPlan = { messageFiles: [], folders: [], workspaceFileRefs: [] };
+export const NO_ATTACHMENTS: AttachmentPlan = { messageFiles: [], fileIds: [], folders: [], workspaceFileRefs: [] };
 
 /**
  * Resolve `--attach` paths against the local workspace roots without
  * uploading anything. The first root a path falls inside makes it a
  * workspace-relative mention; any other file is carried by the message; a
- * folder is walked for the files it gives.
+ * folder is walked for the files it gives. `fileIds` are the `--file-id`
+ * Files the message also carries.
  */
 export function planAttachments(
   paths: readonly string[],
   workspaceRoots: readonly string[],
   progress?: ProgressSink,
+  fileIds: readonly string[] = [],
 ): AttachmentPlan {
+  for (const id of fileIds) {
+    if (!/^file_[^\s/]+$/.test(id)) {
+      throw new UsageError(`--file-id takes a File's id (file_…), not "${id}"; to send a file on disk, use --attach`);
+    }
+  }
   const messageFiles: LocalFile[] = [];
   const folders: AttachedFolder[] = [];
   const workspaceFileRefs: string[] = [];
@@ -129,11 +142,16 @@ export function planAttachments(
       `--attach names ${messageFiles.length} files; a message carries at most ${MAX_MESSAGE_FILES} (attach a folder to give more)`,
     );
   }
+  if (messageFiles.length + fileIds.length > MAX_MESSAGE_FILES) {
+    throw new UsageError(
+      `--attach and --file-id name ${messageFiles.length + fileIds.length} files; a message carries at most ${MAX_MESSAGE_FILES}`,
+    );
+  }
   const total = messageFiles.length + folders.reduce((n, folder) => n + folder.files.length, 0);
   if (total > MAX_CONVERSATION_FILES) {
     throw new UsageError(`--attach gives ${total} files; a conversation holds at most ${MAX_CONVERSATION_FILES}`);
   }
-  return { messageFiles, folders, workspaceFileRefs };
+  return { messageFiles, fileIds: [...fileIds], folders, workspaceFileRefs };
 }
 
 /** Where the attached Files go: the run's organization, and its conversation when it exists. */
@@ -145,7 +163,7 @@ export interface StageTarget {
 
 /** The uploaded Files, ready for the run that names them. */
 export interface StagedAttachments {
-  /** The Files the message carries, for RunSpec.file_ids. */
+  /** The Files the message carries, uploaded then named, for RunSpec.file_ids. */
   readonly fileIds: readonly string[];
   /**
    * The folders' Files as resources for a new conversation's session_spec.
@@ -156,9 +174,8 @@ export interface StagedAttachments {
   readonly originals: readonly string[];
 }
 
-const NOTHING_STAGED: StagedAttachments = { fileIds: [], resources: [], originals: [] };
-
-interface UploadJob {
+/** A file on disk to upload, and the name its File takes. */
+export interface UploadJob {
   readonly path: string;
   readonly filename: string;
 }
@@ -176,7 +193,9 @@ export async function stageAttachments(
   target: StageTarget,
   progress?: ProgressSink,
 ): Promise<StagedAttachments> {
-  if (plan.messageFiles.length === 0 && plan.folders.length === 0) return NOTHING_STAGED;
+  if (plan.messageFiles.length === 0 && plan.folders.length === 0) {
+    return { fileIds: plan.fileIds, resources: [], originals: [] };
+  }
   const sessionId = target.sessionId ?? "";
   const session = sessionId === "" ? undefined : await client.session.get(sessionId);
 
@@ -203,7 +222,7 @@ export async function stageAttachments(
   }
 
   const ids = await uploadAll(client, jobs, { org: target.org, sessionId }, progress);
-  const fileIds = ids.slice(0, plan.messageFiles.length);
+  const fileIds = [...ids.slice(0, plan.messageFiles.length), ...plan.fileIds];
   const resources = ids.slice(plan.messageFiles.length).map((fileId, i) =>
     create(SessionResourceSchema, {
       resource: { case: "file", value: create(FileResourceSchema, { fileId, mountPath: mountPaths[i] }) },
@@ -212,20 +231,40 @@ export async function stageAttachments(
 
   if (session === undefined) return { fileIds, resources, originals: ids };
   if (resources.length > 0) {
-    try {
-      await client.session.update(
-        {
-          metadata: { id: sessionId, etag: session.metadata?.etag ?? "" },
-          spec: { resources: [...(session.spec?.resources ?? []), ...resources] },
-        },
-        ["spec.resources"],
-      );
-    } catch (err) {
-      await deleteFiles(client, ids, progress);
-      throw new UsageError(`failed to add the attached folders to the conversation: ${errorMessage(err)}`);
-    }
+    await giveFilesToSession(client, session, resources, ids, "the attached folders", progress);
   }
   return { fileIds, resources: [], originals: [] };
+}
+
+/**
+ * Give Files already uploaded into a conversation to that conversation: a
+ * masked update that appends them to its resources and keeps every
+ * resource it holds, under the etag `session` was read at. A File the
+ * resources do not name is never mounted for the agent, so uploading into
+ * a conversation is not enough by itself. On a refused update the Files
+ * are deleted, so none is left as the conversation's without being given
+ * to it.
+ */
+export async function giveFilesToSession(
+  client: Stigmer,
+  session: Session,
+  resources: readonly SessionResource[],
+  uploaded: readonly string[],
+  what: string,
+  progress?: ProgressSink,
+): Promise<void> {
+  try {
+    await client.session.update(
+      {
+        metadata: { id: session.metadata?.id ?? "", etag: session.metadata?.etag ?? "" },
+        spec: { resources: [...(session.spec?.resources ?? []), ...resources] },
+      },
+      ["spec.resources"],
+    );
+  } catch (err) {
+    await deleteFiles(client, uploaded, progress);
+    throw new UsageError(`failed to add ${what} to the conversation: ${errorMessage(err)}`);
+  }
 }
 
 /**
@@ -248,10 +287,14 @@ export async function deleteFiles(
   );
 }
 
-// Upload every job a few at a time, keeping the jobs' order in the ids. On
-// the first failure no new upload starts; once the ones in flight settle,
-// every File uploaded is deleted and the failure surfaces.
-async function uploadAll(
+/**
+ * Upload every job a few at a time, keeping the jobs' order in the ids. On
+ * the first failure no new upload starts; once the ones in flight settle,
+ * every File uploaded is deleted and the failure surfaces, so a failed
+ * batch leaves nothing behind. An empty `sessionId` uploads the person's
+ * own Files.
+ */
+export async function uploadAll(
   client: Stigmer,
   jobs: readonly UploadJob[],
   target: { readonly org: string; readonly sessionId: string },

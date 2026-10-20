@@ -201,18 +201,20 @@ const result = await stigmer.file.list({
   pageToken: "...",
   labels: {},
   runId: "...",
+  withoutSession: false,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 result, err := client.File.List(ctx, &stigmer.ListFilesRequest{
-  Org:       "...",
-  SessionId: "...",
-  PageSize:  0,
-  PageToken: "...",
-  Labels:    map[string]string{},
-  RunId:     "...",
+  Org:            "...",
+  SessionId:      "...",
+  PageSize:       0,
+  PageToken:      "...",
+  Labels:         map[string]string{},
+  RunId:          "...",
+  WithoutSession: false,
 })
 ```
 </Tab>
@@ -225,6 +227,7 @@ result = client.files.list(ListFilesRequest(
     page_token="...",
     labels={},
     run_id="...",
+    without_session=False,
 ))
 ```
 </Tab>
@@ -237,6 +240,7 @@ FileList result = client.files().list(ListFilesRequest.builder()
     .pageToken("...")
     .labels(Map.of())
     .runId("...")
+    .withoutSession(false)
     .build());
 ```
 </Tab>
@@ -706,6 +710,7 @@ Input for listing an organization's Files, newest first.
     pageToken: { type: "string", description: "The previous response's next_page_token, to continue that list; every other field must equal that request's, or the call is refused." },
     labels: { type: "Record<string, string>", description: "Only Files carrying every label given, each matched exactly (AND)." },
     runId: { type: "string", description: "Only the Files this run wrote: the files one turn saved in its outputs folder." },
+    withoutSession: { type: "boolean", description: "Only Files that belong to no conversation: uploaded through the API, the CLI or the Library, and never given to a conversation." },
   }}
 />
 

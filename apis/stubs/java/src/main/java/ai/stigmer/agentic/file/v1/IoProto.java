@@ -121,28 +121,34 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "equired: an update names the file by its" +
       " id\032Thas(this.resource) && has(this.reso" +
       "urce.metadata) && this.resource.metadata" +
-      ".id != \'\'\"\277\002\n\020ListFilesRequest\022\031\n\003org\030\001 " +
+      ".id != \'\'\"\305\004\n\020ListFilesRequest\022\031\n\003org\030\001 " +
       "\001(\tB\007\272H\004r\002\020\001R\003org\022\035\n\nsession_id\030\002 \001(\tR\ts" +
       "essionId\022$\n\tpage_size\030\003 \001(\005B\007\272H\004\032\002(\000R\010pa" +
       "geSize\022\'\n\npage_token\030\004 \001(\tB\010\272H\005r\003\030\200\010R\tpa" +
       "geToken\022P\n\006labels\030\005 \003(\01328.ai.stigmer.age" +
       "ntic.file.v1.ListFilesRequest.LabelsEntr" +
-      "yR\006labels\022\025\n\006run_id\030\006 \001(\tR\005runId\0329\n\013Labe" +
-      "lsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\t" +
-      "R\005value:\0028\001\"n\n\010FileList\022:\n\007entries\030\001 \003(\013" +
-      "2 .ai.stigmer.agentic.file.v1.FileR\007entr" +
-      "ies\022&\n\017next_page_token\030\002 \001(\tR\rnextPageTo" +
-      "ken\"^\n\017FileDownloadUrl\022\020\n\003url\030\001 \001(\tR\003url" +
-      "\0229\n\nexpires_at\030\002 \001(\0132\032.google.protobuf.T" +
-      "imestampR\texpiresAt\"T\n\023GetFileContentInp" +
-      "ut\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\022$\n\tmax_bytes" +
-      "\030\002 \001(\003B\007\272H\004\"\002(\000R\010maxBytes\"?\n\013FileContent" +
-      "\022\022\n\004data\030\001 \001(\014R\004data\022\034\n\ttruncated\030\002 \001(\010R" +
-      "\ttruncatedB\226\001B\007IoProtoP\001\242\002\004ASAF\252\002\032Ai.Sti" +
-      "gmer.Agentic.File.V1\312\002\032Ai\\Stigmer\\Agenti" +
-      "c\\File\\V1\342\002&Ai\\Stigmer\\Agentic\\File\\V1\\G" +
-      "PBMetadata\352\002\036Ai::Stigmer::Agentic::File:" +
-      ":V1b\006proto3"
+      "yR\006labels\022\025\n\006run_id\030\006 \001(\tR\005runId\022\'\n\017with" +
+      "out_session\030\007 \001(\010R\016withoutSession\0329\n\013Lab" +
+      "elsEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(" +
+      "\tR\005value:\0028\001:\332\001\272H\326\001\032\323\001\n%without_session_" +
+      "lists_no_conversation\022cwithout_session l" +
+      "ists the Files of no conversation: it ca" +
+      "nnot be combined with session_id or run_" +
+      "id\032E!this.without_session || (this.sessi" +
+      "on_id == \'\' && this.run_id == \'\')\"n\n\010Fil" +
+      "eList\022:\n\007entries\030\001 \003(\0132 .ai.stigmer.agen" +
+      "tic.file.v1.FileR\007entries\022&\n\017next_page_t" +
+      "oken\030\002 \001(\tR\rnextPageToken\"^\n\017FileDownloa" +
+      "dUrl\022\020\n\003url\030\001 \001(\tR\003url\0229\n\nexpires_at\030\002 \001" +
+      "(\0132\032.google.protobuf.TimestampR\texpiresA" +
+      "t\"T\n\023GetFileContentInput\022\027\n\002id\030\001 \001(\tB\007\272H" +
+      "\004r\002\020\001R\002id\022$\n\tmax_bytes\030\002 \001(\003B\007\272H\004\"\002(\000R\010m" +
+      "axBytes\"?\n\013FileContent\022\022\n\004data\030\001 \001(\014R\004da" +
+      "ta\022\034\n\ttruncated\030\002 \001(\010R\ttruncatedB\226\001B\007IoP" +
+      "rotoP\001\242\002\004ASAF\252\002\032Ai.Stigmer.Agentic.File." +
+      "V1\312\002\032Ai\\Stigmer\\Agentic\\File\\V1\342\002&Ai\\Sti" +
+      "gmer\\Agentic\\File\\V1\\GPBMetadata\352\002\036Ai::S" +
+      "tigmer::Agentic::File::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -187,7 +193,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_file_v1_ListFilesRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_file_v1_ListFilesRequest_descriptor,
-        new java.lang.String[] { "Org", "SessionId", "PageSize", "PageToken", "Labels", "RunId", });
+        new java.lang.String[] { "Org", "SessionId", "PageSize", "PageToken", "Labels", "RunId", "WithoutSession", });
     internal_static_ai_stigmer_agentic_file_v1_ListFilesRequest_LabelsEntry_descriptor =
       internal_static_ai_stigmer_agentic_file_v1_ListFilesRequest_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_file_v1_ListFilesRequest_LabelsEntry_fieldAccessorTable = new

@@ -144,8 +144,8 @@
       "slug": "file",
       "title": "File",
       "description": "Hooks that read a File by id (its name, type and size) and mint its download link when asked.",
-      "hooks": 5,
-      "components": 0
+      "hooks": 7,
+      "components": 3
     },
     {
       "slug": "file-reference",
@@ -264,7 +264,7 @@
       "title": "Run",
       "description": "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
       "hooks": 19,
-      "components": 33
+      "components": 35
     },
     {
       "slug": "score",
@@ -291,7 +291,7 @@
       "slug": "session",
       "title": "Session",
       "description": "Hooks for session lifecycle, message history, conversation state, and usage tracking.",
-      "hooks": 22,
+      "hooks": 23,
       "components": 8
     },
     {

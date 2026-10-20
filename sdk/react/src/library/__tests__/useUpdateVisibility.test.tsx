@@ -1,7 +1,8 @@
 /**
  * useUpdateVisibility sends a shared vault's visibility change through the
  * vault service's `updateVisibility`, naming the vault by id, and keeps a
- * refused change as its error. The other kinds take the same path through
+ * refused change as its error; a File's goes through the File service. The
+ * other kinds take the same path through
  * their own services; the selector's gating is pinned in
  * `ResourceVisibilityControl.test.tsx`.
  */
@@ -14,6 +15,8 @@ import { Stigmer } from "@stigmer/client";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
 import { VaultCommandController } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/command_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { FileCommandController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/command_pb";
 import { StigmerContext } from "../../context";
 import { useUpdateVisibility } from "../useUpdateVisibility";
 
@@ -29,6 +32,12 @@ function wrapperFor(calls: string[], refuse: boolean) {
           if (refuse) throw new ConnectError("not the owner", Code.PermissionDenied);
           calls.push(`${req.resourceId}:${ApiResourceVisibility[req.visibility]}`);
           return create(VaultSchema, {});
+        },
+      });
+      service(FileCommandController, {
+        updateVisibility: (req) => {
+          calls.push(`file ${req.resourceId}:${ApiResourceVisibility[req.visibility]}`);
+          return create(FileSchema, {});
         },
       });
     }),
@@ -60,5 +69,16 @@ describe("useUpdateVisibility for a shared vault", () => {
       ).rejects.toThrow(/not the owner/);
     });
     expect(result.current.error?.message).toMatch(/not the owner/);
+  });
+});
+
+describe("useUpdateVisibility for a File", () => {
+  it("names the File by id on the File service", async () => {
+    const calls: string[] = [];
+    const { result } = renderHook(() => useUpdateVisibility("file", "file_ledger"), {
+      wrapper: wrapperFor(calls, false),
+    });
+    await act(() => result.current.updateVisibility(ApiResourceVisibility.visibility_org));
+    expect(calls).toEqual(["file file_ledger:visibility_org"]);
   });
 });

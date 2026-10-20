@@ -27,7 +27,7 @@ export interface AttachmentImageLightboxProps {
  * for composer attachment chips (stigmer/stigmer#371).
  *
  * A thin modal shell following the SDK's established dialog pattern
- * ({@link ArtifactPreviewModal}): `showModal()`/`close()` driven by the
+ * ({@link FilePreviewModal}): `showModal()`/`close()` driven by the
  * `open` prop, Escape via the intercepted `cancel` event, focus trap and
  * top layer native — no portal plumbing, no `@base-ui/react` dependency.
  * Backdrop click closes via the canonical `e.target === dialog` check

@@ -6,6 +6,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   skills: "Skills",
   routines: "Routines",
   environments: "Environments",
+  files: "Files",
 };
 
 export function LibraryBreadcrumb() {

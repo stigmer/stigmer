@@ -5,55 +5,68 @@ import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { SurfaceRailView } from "../workspace/WorkspaceSurface.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
-import type { SessionArtifactEntry } from "./useSessionArtifacts.js";
+import type { SessionOutputEntry } from "./useSessionOutputs.js";
+import type { SessionGivenEntry } from "./useSessionGivenFiles.js";
 import { SetupTab, type SetupTabProps } from "./facets/SetupTab.js";
 import { ChangesTab } from "./facets/ChangesTab.js";
-import { ArtifactsTab } from "./facets/ArtifactsTab.js";
+import { FilesTab } from "./facets/FilesTab.js";
 import { UsageTab } from "./facets/UsageTab.js";
 
-const NO_ARTIFACTS: readonly SessionArtifactEntry[] = [];
+const NO_OUTPUTS: readonly SessionOutputEntry[] = [];
+const NO_GIVEN: readonly SessionGivenEntry[] = [];
+
+/**
+ * The rail id of the conversation's Files view. Not `files`: that id, and
+ * the files icon, are the workspace surface's own Explorer (the repository
+ * tree), which a conversation's Files are not part of.
+ */
+export const CONVERSATION_FILES_VIEW_ID = "conversation-files";
 
 /** Options for {@link useSessionRailViews}. */
 export interface UseSessionRailViewsOptions {
   /** All runs in the session — drives Changes/Usage. */
   readonly allRuns: readonly Run[];
   /**
-   * The session's outputs (`useSessionArtifacts` over the session's Files):
-   * drives the Artifacts facet and its badge.
+   * What the agent saved (`useSessionOutputs` over the session's Files):
+   * with {@link given}, drives the Files facet and its badge.
    */
-  readonly artifacts?: readonly SessionArtifactEntry[];
+  readonly outputs?: readonly SessionOutputEntry[];
+  /** What was given to the conversation (`useSessionGivenFiles`). */
+  readonly given?: readonly SessionGivenEntry[];
   /**
-   * Re-read the session's Files when the Artifacts facet opens (a stopped
+   * Re-read the session's Files when the Files facet opens (a stopped
    * turn's outputs register after its end).
    */
-  readonly onArtifactsShown?: () => void;
-  /** Organization id for artifact Apply CTA (a slug is also accepted). */
+  readonly onFilesShown?: () => void;
+  /** Re-read the session's Files once one is deleted from a preview. */
+  readonly onFileDeleted?: () => void;
+  /** Organization id for the Apply CTA (a slug is also accepted). */
   readonly org: string;
   /** Session configuration for the Config facet. */
   readonly sessionConfig: SetupTabProps | undefined;
-  /** Called after a resource is applied from the Artifacts facet. */
+  /** Called after a resource is applied, or a skill added, from the Files facet. */
   readonly onApplied?: (result: ApplyResourceResult) => void;
-  /** Implement a plan — the Artifacts facet's preview action for `plan.md`. */
+  /** Implement a plan — the Files facet's preview action for `plan.md`. */
   readonly onImplementPlan?: () => void;
   /**
-   * Open a plan in the panel's plan document tab. Routed to the Artifacts
+   * Open a plan in the panel's plan document tab. Routed to the Files
    * facet so clicking `plan.md` there opens the editor-area document instead
    * of the preview modal.
    */
   readonly onOpenPlan?: (executionId: string) => void;
   /**
-   * Open a (non-plan) artifact as an editor-pane document tab. Routed to the
-   * Artifacts facet so clicking an artifact opens it in the editor area (VS
-   * Code "each file is a tab") instead of the preview modal.
+   * Open a (non-plan) File as an editor-pane document tab, by its document
+   * key. Routed to the Files facet so clicking a File opens it in the editor
+   * area (VS Code "each file is a tab") instead of the preview modal.
    */
-  readonly onOpenArtifact?: (entry: SessionArtifactEntry) => void;
+  readonly onOpenFileDocument?: (documentKey: string) => void;
   /**
-   * Pin a (non-plan) artifact's document tab — the double-click half of the
-   * Artifacts facet's open/activate split. Routed through to the facet's rows.
+   * Pin a (non-plan) File's document tab — the double-click half of the
+   * Files facet's open/activate split. Routed through to the facet's rows.
    */
-  readonly onActivateArtifact?: (entry: SessionArtifactEntry) => void;
+  readonly onActivateFileDocument?: (documentKey: string) => void;
   /**
-   * Whether to offer the execution-derived facets (Changes / Artifacts /
+   * Whether to offer the execution-derived facets (Changes / Files /
    * Usage). The launcher passes `false` — before a session exists there are no
    * runs to aggregate, so only Config applies.
    * @default true
@@ -77,33 +90,34 @@ export interface UseSessionRailViewsOptions {
 }
 
 /**
- * Composes the session facets (Config / Changes / Artifacts / Usage)
+ * Composes the session facets (Config / Changes / Files / Usage)
  * as {@link SurfaceRailView}s for the workspace surface's activity rail.
  *
  * This is the session-domain half of the unified panel: the surface stays a
  * domain-pure workspace organism and these views are injected into its rail
  * (composition by injection). Contextual visibility mirrors the retired
- * inspector's tab rules — Changes/Artifacts surface only when data exists
+ * inspector's tab rules — Changes/Files surface only when data exists
  * (with count badges).
  */
 export function useSessionRailViews({
   allRuns,
-  artifacts = NO_ARTIFACTS,
-  onArtifactsShown,
+  outputs = NO_OUTPUTS,
+  given = NO_GIVEN,
+  onFilesShown,
+  onFileDeleted,
   org,
   sessionConfig,
   onApplied,
   onImplementPlan,
   onOpenPlan,
-  onOpenArtifact,
-  onActivateArtifact,
+  onOpenFileDocument,
+  onActivateFileDocument,
   includeRunFacets = true,
   expectsWriteBack = false,
   changesSettled = false,
 }: UseSessionRailViewsOptions): readonly SurfaceRailView[] {
   const { hasWriteBacks, writeBackCount } = useSessionWriteBacks(allRuns);
-  const artifactCount = artifacts.length;
-  const hasArtifacts = artifactCount > 0;
+  const fileCount = outputs.length + given.length;
 
   return useMemo(() => {
     const views: SurfaceRailView[] = [];
@@ -137,22 +151,24 @@ export function useSessionRailViews({
         });
       }
 
-      if (hasArtifacts) {
+      if (fileCount > 0) {
         views.push({
-          id: "artifacts",
-          label: "Artifacts",
-          icon: <ArtifactsIcon />,
-          badge: artifactCount,
+          id: CONVERSATION_FILES_VIEW_ID,
+          label: "Files",
+          icon: <ConversationFilesIcon />,
+          badge: fileCount,
           content: (
-            <ArtifactsTab
-              artifacts={artifacts}
-              onShown={onArtifactsShown}
+            <FilesTab
+              outputs={outputs}
+              given={given}
+              onShown={onFilesShown}
               org={org}
               onApplied={onApplied}
+              onDeleted={onFileDeleted}
               onImplementPlan={onImplementPlan}
               onOpenPlan={onOpenPlan}
-              onOpenArtifact={onOpenArtifact}
-              onActivateArtifact={onActivateArtifact}
+              onOpenFileDocument={onOpenFileDocument}
+              onActivateFileDocument={onActivateFileDocument}
             />
           ),
         });
@@ -174,17 +190,18 @@ export function useSessionRailViews({
     changesSettled,
     hasWriteBacks,
     writeBackCount,
-    hasArtifacts,
-    artifactCount,
-    artifacts,
-    onArtifactsShown,
+    fileCount,
+    outputs,
+    given,
+    onFilesShown,
+    onFileDeleted,
     allRuns,
     org,
     onApplied,
     onImplementPlan,
     onOpenPlan,
-    onOpenArtifact,
-    onActivateArtifact,
+    onOpenFileDocument,
+    onActivateFileDocument,
   ]);
 }
 
@@ -215,12 +232,14 @@ function ChangesIcon() {
   );
 }
 
-function ArtifactsIcon() {
+/** A stack of papers: the conversation's Files, apart from the Explorer's single file. */
+function ConversationFilesIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M21 8l-9-5-9 5v8l9 5 9-5z" />
-      <path d="M3 8l9 5 9-5" />
-      <path d="M12 13v9" />
+      <path d="M8 7V4.5A1.5 1.5 0 0 1 9.5 3H15l5 5v9.5a1.5 1.5 0 0 1-1.5 1.5H16" />
+      <path d="M15 3v5h5" />
+      <path d="M5.5 7H11l5 5v7.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 4 19.5v-11A1.5 1.5 0 0 1 5.5 7z" />
+      <path d="M11 7v5h5" />
     </svg>
   );
 }

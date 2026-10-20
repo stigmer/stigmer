@@ -111,6 +111,12 @@ message UpdateFileInput {
 
 // Input for listing an organization's Files, newest first.
 message ListFilesRequest {
+  option (buf.validate.message).cel = {
+    id: "without_session_lists_no_conversation"
+    message: "without_session lists the Files of no conversation: it cannot be combined with session_id or run_id"
+    expression: "!this.without_session || (this.session_id == '' && this.run_id == '')"
+  };
+
   // Organization whose Files to list, by id or slug.
   string org = 1 [(buf.validate.field).string.min_len = 1];
 
@@ -134,6 +140,12 @@ message ListFilesRequest {
   // Only the Files this run wrote: the files one turn saved in its outputs
   // folder. Empty lists Files written by any run or uploaded.
   string run_id = 6;
+
+  // Only Files that belong to no conversation: uploaded through the API,
+  // the CLI or the Library, and never given to a conversation. A
+  // conversation's uploads and outputs are left out. Refused beside
+  // session_id or run_id.
+  bool without_session = 7;
 }
 
 // One page of an organization's Files.

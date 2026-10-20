@@ -50,8 +50,8 @@ import { usePlanDraft, planDraftKey, type PlanDraftController } from "./usePlanD
 import { PlanEditor } from "./PlanEditor.js";
 import { PlanStreamingDocument } from "./PlanStreamingDocument.js";
 import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "./plan-document.js";
-import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../run/artifact-document.js";
-import { ArtifactDocument } from "../run/ArtifactDocument.js";
+import { FILE_DOCUMENT_ENTRY_ID } from "../run/file-document.js";
+import { FileDocument } from "../run/FileDocument.js";
 import { useSessionRailViews } from "./useSessionRailViews.js";
 import { useSessionPanel, type SessionPanelController } from "./useSessionPanel.js";
 import { SessionPanelChip } from "./SessionPanelChip.js";
@@ -62,10 +62,15 @@ import { agentRefOfSession, isSameAgent } from "./agentRefOfSession.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
 import { useWorkspaceReadRefs } from "./useWorkspaceReadRefs.js";
 import {
-  useSessionArtifacts,
-  artifactKey,
-  type SessionArtifactEntry,
-} from "./useSessionArtifacts.js";
+  useSessionOutputs,
+  outputKey,
+  type SessionOutputEntry,
+} from "./useSessionOutputs.js";
+import {
+  useSessionGivenFiles,
+  givenKey,
+  type SessionGivenEntry,
+} from "./useSessionGivenFiles.js";
 import type { SetupTabProps } from "./facets/SetupTab.js";
 import { conversationEnvironment } from "./conversation-environment.js";
 import { environmentsNotApplying } from "../environment/resolve.js";
@@ -259,7 +264,7 @@ export interface SessionViewerProps {
   readonly defaultPanelOpen?: boolean;
   /**
    * Controlled open state of the session panel. When provided, the host owns
-   * the panel: the chip toggle, file/plan/artifact opens, and plan-mode
+   * the panel: the chip toggle, file/plan/File-document opens, and plan-mode
    * auto-open surface through {@link SessionViewerProps.onPanelOpenChange}
    * instead of flipping state, and the panel follows this value. Leave
    * `undefined` for the self-managing default.
@@ -299,7 +304,7 @@ export interface SessionViewerProps {
    * configuration, not a moment-to-moment action (slot injection).
    */
   readonly accessSlot?: ReactNode;
-  /** Called after a resource is applied from the Artifacts tab. */
+  /** Called after a resource is applied, or a skill added, from the Files tab. */
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
    * Component overrides for the conversation thread's chrome (message
@@ -322,7 +327,7 @@ export interface SessionViewerProps {
  *   banners + `SessionComposer`
  * - **Session panel** (secondary): the unified `WorkspaceSurface` — explorer,
  *   search, read-only editor, and the session facets (Config, Changes,
- *   Artifacts, Usage) as injected rail views. Collapsed by default
+ *   Files, Usage) as injected rail views. Collapsed by default
  *   to a top-right chip; opening a file (tree, search, or a transcript path)
  *   expands it.
  *
@@ -395,7 +400,7 @@ export function SessionViewer({
   });
   const { conv } = flow;
   // Everything org-scoped below acts in the session's own organization once
-  // it has loaded (the pickers, artifacts, plan actions and the reply), so a
+  // it has loaded (the pickers, Files, plan actions and the reply), so a
   // session opened while another organization is active never files its
   // turns there (stigmer/stigmer#1580).
   const org = conv.org;
@@ -452,23 +457,28 @@ export function SessionViewer({
   const hasPhase = phase !== RunPhase.RUN_PHASE_UNSPECIFIED;
 
   // The conversation's Files, read once per conversation and again whenever
-  // a turn ends (the runs refetch shows it): what its turns returned feeds
-  // the Artifacts facet, the plan card and the plan tab.
-  const settledKey = useMemo(
+  // a turn starts or ends (the runs refetch shows both): a turn starts when
+  // the Files sent with its message become the conversation's, and its
+  // outputs register when it ends. They feed the Files facet, the plan card
+  // and the plan tab.
+  const refreshKey = useMemo(
     () =>
       flow.allRuns
-        .filter((run) => isTerminalPhase(run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED))
-        .map((run) => run.metadata?.id ?? "")
+        .map((run) => {
+          const ended = isTerminalPhase(run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED);
+          return `${run.metadata?.id ?? ""}:${ended ? "ended" : "started"}`;
+        })
         .join(","),
     [flow.allRuns],
   );
-  const sessionFiles = useSessionFiles(org || null, sessionId || null, settledKey);
+  const sessionFiles = useSessionFiles(org || null, sessionId || null, refreshKey);
   const files = sessionFiles.files;
 
   // Facet arrival counts: rail badges inside the panel, the chip's dot-count
   // while collapsed. Arrivals never auto-open the panel (badge-only signal).
   const { hasWriteBacks, writeBackCount } = useSessionWriteBacks(flow.allRuns);
-  const { artifacts: sessionArtifacts, artifactCount } = useSessionArtifacts(files, flow.allRuns);
+  const { outputs: sessionOutputs, outputCount } = useSessionOutputs(files, flow.allRuns);
+  const { given: sessionGiven, givenCount } = useSessionGivenFiles(files, conv.resources);
 
   // The session's current plan (the latest Plan-mode turn's plan File) and
   // its viewer-owned draft. Ownership at this level is deliberate: the
@@ -615,7 +625,7 @@ export function SessionViewer({
     })();
   }, [setInteractionMode, sessionPlan, planDraft.readDraft, stigmer, org, sessionId]);
 
-  // "Open plan" (a thread plan card, or the Artifacts facet's plan.md) → the
+  // "Open plan" (a thread plan card, or the Files facet's plan.md) → the
   // panel's plan document tab. Opening the LATEST plan clears the historical
   // selection (the tab shows the editable current plan); any other run
   // id opens that turn's plan read-only in the same tab.
@@ -631,27 +641,14 @@ export function SessionViewer({
     [sessionPlan, panel.openPlanDocument],
   );
 
-  // "Open artifact" (an Artifacts-facet row) → an editor-pane document tab.
+  // A Files-facet row → an editor-pane document tab, by its document key.
   // Writing the editors store re-renders only the panel subtree (which
   // subscribes), never this streaming column. Plan Files are routed to the
-  // plan tab upstream (in ArtifactsTab), so they never reach here.
-  const handleOpenArtifact = useCallback(
-    (entry: SessionArtifactEntry) => {
-      panel.openArtifact(entry.file);
-    },
-    [panel.openArtifact],
-  );
-
-  // Double-click an artifact row → pin its tab (the leading single click already
-  // opened the preview via `handleOpenArtifact`). Mirrors the file tree's
-  // preview/pin split; plan Files are routed to the plan tab upstream (in
-  // ArtifactsTab) and never reach here.
-  const handleActivateArtifact = useCallback(
-    (entry: SessionArtifactEntry) => {
-      panel.pinArtifact(entry.file);
-    },
-    [panel.pinArtifact],
-  );
+  // plan tab upstream (in FilesTab), so they never reach here; a double
+  // click pins the tab the leading single click opened, as the file tree
+  // does.
+  const handleOpenFileDocument = panel.openFileDocument;
+  const handleActivateFileDocument = panel.pinFileDocument;
 
   // Open a transcript tool-call file path in the panel's read-only editor.
   // Resolves the (possibly absolute / subdir-prefixed) path to a
@@ -722,7 +719,7 @@ export function SessionViewer({
           <SessionPanelChip
             isOpen={panel.isOpen}
             onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
-            badgeCount={writeBackCount + artifactCount}
+            badgeCount={writeBackCount + outputCount + givenCount}
           />
         ) : undefined
       }
@@ -779,14 +776,15 @@ export function SessionViewer({
             }
             sessionPlan={sessionPlan}
             sessionFiles={files}
-            sessionArtifacts={sessionArtifacts}
-            onArtifactsShown={sessionFiles.refetch}
+            sessionOutputs={sessionOutputs}
+            sessionGiven={sessionGiven}
+            onFilesShown={sessionFiles.refetch}
             streamingPlan={streamingPlan}
             planDraft={planDraft}
             openPlanExecutionId={openPlanExecutionId}
             onOpenPlan={handleOpenPlan}
-            onOpenArtifact={handleOpenArtifact}
-            onActivateArtifact={handleActivateArtifact}
+            onOpenFileDocument={handleOpenFileDocument}
+            onActivateFileDocument={handleActivateFileDocument}
             enableLocal={enableLocal}
             onBrowseLocalFolder={onBrowseLocalFolder}
             workspaceFileLister={workspaceFileLister}
@@ -1226,17 +1224,19 @@ interface SessionPanelRegionProps {
   /** Host access management control, surfaced in the Config facet. */
   readonly accessSlot?: ReactNode;
   readonly onApplied?: (result: ApplyResourceResult) => void;
-  /** Implement a plan (plan tab primary + Artifacts preview action). */
+  /** Implement a plan (plan tab primary + Files preview action). */
   readonly onImplementPlan?: () => void;
   readonly implementPlanDisabled?: boolean;
   /** The session's latest plan — the plan tab's editable content. */
   readonly sessionPlan?: SessionPlan;
   /** The conversation's Files, newest first — a superseded plan's File is found here. */
   readonly sessionFiles: readonly StigmerFile[];
-  /** The conversation's outputs, one per output path (the Artifacts facet and its tabs). */
-  readonly sessionArtifacts: readonly SessionArtifactEntry[];
-  /** Re-read the conversation's Files when the Artifacts facet opens. */
-  readonly onArtifactsShown: () => void;
+  /** What the agent saved, one entry per output path (the Files facet and its tabs). */
+  readonly sessionOutputs: readonly SessionOutputEntry[];
+  /** What was given to the conversation (the Files facet and its tabs). */
+  readonly sessionGiven: readonly SessionGivenEntry[];
+  /** Re-read the conversation's Files (the Files facet opened, or a File was deleted). */
+  readonly onFilesShown: () => void;
   /**
    * The plan the active turn is writing right now. While present it OWNS the
    * plan tab: the tab renders the live document (`PlanStreamingDocument`)
@@ -1252,12 +1252,12 @@ interface SessionPanelRegionProps {
    * or a run id whose historical plan renders read-only.
    */
   readonly openPlanExecutionId: string | null;
-  /** Opens a plan in the plan tab (routed to the Artifacts facet's plan.md). */
+  /** Opens a plan in the plan tab (routed to the Files facet's plan.md). */
   readonly onOpenPlan: (executionId: string) => void;
-  /** Opens an artifact as an editor-pane document (routed to the Artifacts facet). */
-  readonly onOpenArtifact: (entry: SessionArtifactEntry) => void;
-  /** Pins an artifact's document tab — the double-click half of the open/pin split. */
-  readonly onActivateArtifact: (entry: SessionArtifactEntry) => void;
+  /** Opens a File as an editor-pane document by its document key (routed to the Files facet). */
+  readonly onOpenFileDocument: (documentKey: string) => void;
+  /** Pins a File's document tab — the double-click half of the open/pin split. */
+  readonly onActivateFileDocument: (documentKey: string) => void;
   readonly enableLocal: boolean;
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   readonly workspaceFileLister?: WorkspaceFileLister;
@@ -1288,14 +1288,15 @@ function SessionPanelRegion({
   implementPlanDisabled,
   sessionPlan,
   sessionFiles,
-  sessionArtifacts,
-  onArtifactsShown,
+  sessionOutputs,
+  sessionGiven,
+  onFilesShown,
   streamingPlan,
   planDraft,
   openPlanExecutionId,
   onOpenPlan,
-  onOpenArtifact,
-  onActivateArtifact,
+  onOpenFileDocument,
+  onActivateFileDocument,
   enableLocal,
   onBrowseLocalFolder,
   workspaceFileLister,
@@ -1384,47 +1385,53 @@ function SessionPanelRegion({
     implementPlanDisabled,
   ]);
 
-  // The open artifact document tabs (the artifact virtual-document FAMILY).
-  // Built in a SEPARATE memo from the plan doc so artifact-tab churn never
+  // The open File document tabs (the File virtual-document FAMILY).
+  // Built in a SEPARATE memo from the plan doc so File-tab churn never
   // recreates the plan doc (and vice versa). Bounded to what is actually open:
-  // one document per editor whose entry id is the artifact family's, resolved
-  // back to its `SessionArtifactEntry` by the same `artifactKey` used to open
-  // it (single source of truth for artifact identity). Only the ACTIVE doc's
-  // `content` is mounted by the surface, so building these elements is cheap;
-  // keying on the File's id remounts a tab whose path a later turn saved
-  // again. A tab whose File no longer exists degrades to an
-  // honest notice rather than vanishing.
-  const artifactByKey = useMemo(
-    () =>
-      new Map(sessionArtifacts.map((entry) => [artifactKey(entry.file), entry])),
-    [sessionArtifacts],
-  );
-  const artifactVirtualDocuments = useMemo<readonly SurfaceVirtualDocument[]>(() => {
+  // one document per editor whose entry id is the File family's, resolved
+  // back to its File by the same document key used to open it (`outputKey`
+  // for what the agent saved, `givenKey` for what was given; the two cannot
+  // alias). Only the ACTIVE doc's `content` is mounted by the surface, so
+  // building these elements is cheap; keying on the File's id remounts a
+  // tab whose path a later turn saved again. A tab whose File no longer
+  // exists degrades to an honest notice rather than vanishing.
+  const fileByKey = useMemo(() => {
+    const byKey = new Map<string, { readonly file: StigmerFile; readonly isTerminal: boolean }>();
+    for (const entry of sessionOutputs) byKey.set(outputKey(entry.file), entry);
+    for (const entry of sessionGiven) byKey.set(givenKey(entry), { file: entry.file, isTerminal: true });
+    return byKey;
+  }, [sessionOutputs, sessionGiven]);
+  const closeEditor = panel.closeEditor;
+  const fileVirtualDocuments = useMemo<readonly SurfaceVirtualDocument[]>(() => {
     return editors
-      .filter((editor) => editor.entryId === ARTIFACT_DOCUMENT_ENTRY_ID)
+      .filter((editor) => editor.entryId === FILE_DOCUMENT_ENTRY_ID)
       .map((editor) => {
-        const entry = artifactByKey.get(editor.path);
+        const entry = fileByKey.get(editor.path);
         return {
-          entryId: ARTIFACT_DOCUMENT_ENTRY_ID,
+          entryId: FILE_DOCUMENT_ENTRY_ID,
           path: editor.path,
           content: entry ? (
-            <ArtifactDocument
+            <FileDocument
               key={entry.file.metadata?.id || editor.path}
               file={entry.file}
               org={org}
               isTerminal={entry.isTerminal}
               onApplied={onApplied}
+              onDeleted={() => {
+                closeEditor(FILE_DOCUMENT_ENTRY_ID, editor.path);
+                onFilesShown();
+              }}
             />
           ) : (
-            <ArtifactUnavailableNotice />
+            <FileUnavailableNotice />
           ),
         };
       });
-  }, [editors, artifactByKey, org, onApplied]);
+  }, [editors, fileByKey, org, onApplied, closeEditor, onFilesShown]);
 
   const virtualDocuments = useMemo<readonly SurfaceVirtualDocument[]>(
-    () => [planVirtualDocument, ...artifactVirtualDocuments],
-    [planVirtualDocument, artifactVirtualDocuments],
+    () => [planVirtualDocument, ...fileVirtualDocuments],
+    [planVirtualDocument, fileVirtualDocuments],
   );
 
   // Dropping the agent is a real change of the conversation's binding, not a
@@ -1532,19 +1539,21 @@ function SessionPanelRegion({
     flow.displayRun?.status?.phase ??
     RunPhase.RUN_PHASE_UNSPECIFIED;
 
-  // The session facets (Config / Changes / Artifacts / Usage) as
+  // The session facets (Config / Changes / Files / Usage) as
   // injected rail views — the full inspector feature set inside one panel.
   const railViews = useSessionRailViews({
     allRuns: flow.allRuns,
-    artifacts: sessionArtifacts,
-    onArtifactsShown,
+    outputs: sessionOutputs,
+    given: sessionGiven,
+    onFilesShown,
+    onFileDeleted: onFilesShown,
     org,
     sessionConfig,
     onApplied,
     onImplementPlan,
     onOpenPlan,
-    onOpenArtifact,
-    onActivateArtifact,
+    onOpenFileDocument,
+    onActivateFileDocument,
     expectsWriteBack,
     changesSettled: isTerminalPhase(displayPhase),
   });
@@ -1655,22 +1664,21 @@ function PlanUnavailableNotice() {
 }
 
 /**
- * Shown in an artifact document tab whose artifact is no longer among the
- * session's outputs (an edge only reachable if the runs backing the tab
- * changed underneath it). The tab stays closable; the content is honest rather
- * than blank.
+ * Shown in a File document tab whose File is no longer among the
+ * conversation's (deleted, or replaced at its path by a later turn's). The
+ * tab stays closable; the content is honest rather than blank.
  */
-function ArtifactUnavailableNotice() {
+function FileUnavailableNotice() {
   return (
     <div
       role="status"
       className="stg:mx-auto stg:flex stg:w-full stg:max-w-3xl stg:flex-col stg:items-center stg:gap-1 stg:px-4 stg:py-8 stg:text-center"
     >
       <p className="stg:text-xs stg:font-medium stg:text-foreground">
-        This artifact is no longer available.
+        This file is no longer available.
       </p>
       <p className="stg:text-xs stg:text-muted-foreground">
-        It may have been replaced by a newer version of this session.
+        It may have been deleted, or replaced by a newer version.
       </p>
     </div>
   );

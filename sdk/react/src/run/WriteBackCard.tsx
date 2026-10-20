@@ -28,7 +28,7 @@ export interface WriteBackCardProps {
  * caption), a pull-request row that opens the PR on the remote, a branch row
  * with a hover-revealed copy control, and an aggregate change-stat line.
  *
- * Row geometry, hover, and focus treatment match {@link ArtifactRow}, so the
+ * Row geometry, hover, and focus treatment match {@link FileRow}, so the
  * session panel's Changes and Artifacts facets read as one surface. The PR
  * link and the copy control are SIBLING interactive elements, never nested
  * (axe `nested-interactive`, WCAG 4.1.2).

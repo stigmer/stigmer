@@ -29,7 +29,7 @@ const SKELETON_LINE_WIDTHS = [85, 72, 90, 65, 78, 88, 70, 82] as const;
  * "not available for preview" (binary / unfetched), or the rendered text via
  * {@link ArtifactContentRenderer}.
  *
- * Extracted from `ArtifactContentBody` (the output-File bodies, modal +
+ * Extracted from `FileBody` (the output-File bodies, modal +
  * document). Deliberately takes plain fields, not an artifact type,
  * so a host with its own content model can render file content identically.
  */

@@ -13,9 +13,12 @@
  * children, so the assertions are about which question the control asks,
  * per kind, and which levels it offers.
  *
- * It also pins the gate on the child-organizations level: offered for a
- * blueprint only when the server holds more than one organization and the
- * owning organization is not itself a child.
+ * It also pins the gate on the child-organizations level: offered only on
+ * a kind whose contract declares it (`kind_meta`'s visibility), and then
+ * only when the server holds more than one organization and the owning
+ * organization is not itself a child. A kind that declares the
+ * organization level alone (a vault, a File) offers Private and
+ * Organization by that declaration, never by its name.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
@@ -96,6 +99,7 @@ const KINDS: ReadonlyArray<[VisibilityResourceKind, string]> = [
   ["agent", "agent"],
   ["skill", "skill"],
   ["plugin", "plugin"],
+  ["file", "file"],
 ];
 
 describe("ResourceVisibilityControl", () => {
@@ -154,5 +158,24 @@ describe("ResourceVisibilityControl's child-organizations level", () => {
   it("is not offered while the owning organization is unknown", () => {
     state.owner = null;
     expect(offered()).toEqual(["Private", "Organization"]);
+  });
+
+  // Every kind the control serves, with the levels its contract declares.
+  const DECLARED: ReadonlyArray<[VisibilityResourceKind, readonly string[]]> = [
+    ["agent", ["Private", "Organization", "Child organizations"]],
+    ["skill", ["Private", "Organization", "Child organizations"]],
+    ["plugin", ["Private", "Organization", "Child organizations"]],
+    ["environment", ["Private", "Organization", "Child organizations"]],
+    ["vault", ["Private", "Organization"]],
+    ["file", ["Private", "Organization"]],
+  ];
+
+  it.each(DECLARED)("offers %s the levels its contract declares", (kind, levels) => {
+    state.owner = organization("");
+    expect(offered(kind)).toEqual(levels);
+    if (levels.length === 2) {
+      // No child level to gate, so the owning organization is never read.
+      expect(state.ownerLookups.every((id) => id === null)).toBe(true);
+    }
   });
 });

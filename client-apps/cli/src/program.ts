@@ -19,6 +19,7 @@ import { registerDelete } from "./commands/delete.js";
 import { registerDown } from "./commands/down.js";
 import { registerDownload } from "./commands/download.js";
 import { registerEval } from "./commands/eval.js";
+import { registerFile } from "./commands/file.js";
 import { registerGet } from "./commands/get.js";
 import { registerInstall } from "./commands/install.js";
 import { registerInternalDaemon } from "./commands/internal-daemon.js";
@@ -182,6 +183,7 @@ export function buildProgram(): Command {
   registerTag(program);
   registerChannel(program);
   registerRoutine(program);
+  registerFile(program);
   registerVault(program);
   registerUsage(program);
   registerPush(program);

@@ -381,6 +381,24 @@ java.lang.String defaultValue) {
     }
   }
 
+  public static final int WITHOUT_SESSION_FIELD_NUMBER = 7;
+  private boolean withoutSession_ = false;
+  /**
+   * <pre>
+   * Only Files that belong to no conversation: uploaded through the API,
+   * the CLI or the Library, and never given to a conversation. A
+   * conversation's uploads and outputs are left out. Refused beside
+   * session_id or run_id.
+   * </pre>
+   *
+   * <code>bool without_session = 7 [json_name = "withoutSession"];</code>
+   * @return The withoutSession.
+   */
+  @java.lang.Override
+  public boolean getWithoutSession() {
+    return withoutSession_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -415,6 +433,9 @@ java.lang.String defaultValue) {
         5);
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 6, runId_);
+    }
+    if (withoutSession_ != false) {
+      output.writeBool(7, withoutSession_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -451,6 +472,10 @@ java.lang.String defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(6, runId_);
     }
+    if (withoutSession_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(7, withoutSession_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -478,6 +503,8 @@ java.lang.String defaultValue) {
         other.internalGetLabels())) return false;
     if (!getRunId()
         .equals(other.getRunId())) return false;
+    if (getWithoutSession()
+        != other.getWithoutSession()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -503,6 +530,9 @@ java.lang.String defaultValue) {
     }
     hash = (37 * hash) + RUN_ID_FIELD_NUMBER;
     hash = (53 * hash) + getRunId().hashCode();
+    hash = (37 * hash) + WITHOUT_SESSION_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getWithoutSession());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -666,6 +696,7 @@ java.lang.String defaultValue) {
       pageToken_ = "";
       internalGetMutableLabels().clear();
       runId_ = "";
+      withoutSession_ = false;
       return this;
     }
 
@@ -718,6 +749,9 @@ java.lang.String defaultValue) {
       if (((from_bitField0_ & 0x00000020) != 0)) {
         result.runId_ = runId_;
       }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.withoutSession_ = withoutSession_;
+      }
     }
 
     @java.lang.Override
@@ -757,6 +791,9 @@ java.lang.String defaultValue) {
         runId_ = other.runId_;
         bitField0_ |= 0x00000020;
         onChanged();
+      }
+      if (other.getWithoutSession() != false) {
+        setWithoutSession(other.getWithoutSession());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -818,6 +855,11 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000020;
               break;
             } // case 50
+            case 56: {
+              withoutSession_ = input.readBool();
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 56
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1430,6 +1472,59 @@ java.lang.String defaultValue) {
       checkByteStringIsUtf8(value);
       runId_ = value;
       bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+
+    private boolean withoutSession_ ;
+    /**
+     * <pre>
+     * Only Files that belong to no conversation: uploaded through the API,
+     * the CLI or the Library, and never given to a conversation. A
+     * conversation's uploads and outputs are left out. Refused beside
+     * session_id or run_id.
+     * </pre>
+     *
+     * <code>bool without_session = 7 [json_name = "withoutSession"];</code>
+     * @return The withoutSession.
+     */
+    @java.lang.Override
+    public boolean getWithoutSession() {
+      return withoutSession_;
+    }
+    /**
+     * <pre>
+     * Only Files that belong to no conversation: uploaded through the API,
+     * the CLI or the Library, and never given to a conversation. A
+     * conversation's uploads and outputs are left out. Refused beside
+     * session_id or run_id.
+     * </pre>
+     *
+     * <code>bool without_session = 7 [json_name = "withoutSession"];</code>
+     * @param value The withoutSession to set.
+     * @return This builder for chaining.
+     */
+    public Builder setWithoutSession(boolean value) {
+
+      withoutSession_ = value;
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Only Files that belong to no conversation: uploaded through the API,
+     * the CLI or the Library, and never given to a conversation. A
+     * conversation's uploads and outputs are left out. Refused beside
+     * session_id or run_id.
+     * </pre>
+     *
+     * <code>bool without_session = 7 [json_name = "withoutSession"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearWithoutSession() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      withoutSession_ = false;
       onChanged();
       return this;
     }

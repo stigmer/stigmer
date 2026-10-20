@@ -140,6 +140,9 @@ interface MockClient {
   agent: { getByReference: ReturnType<typeof vi.fn> };
   organization: { get: ReturnType<typeof vi.fn> };
   environment: { list: ReturnType<typeof vi.fn> };
+  // The Files row reads each named File by id: the ledger is the viewer's
+  // to see, any other File is not.
+  file: { get: ReturnType<typeof vi.fn> };
 }
 
 /** The identity every test views the routine as. */
@@ -188,6 +191,12 @@ function makeClient(routine: Routine): MockClient {
     },
     vault: {
       list: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
+    },
+    file: {
+      get: vi.fn(async (id: string) => {
+        if (id === "file_ledger") return { metadata: { id }, spec: { filename: "q3-ledger.xlsx" } };
+        throw new Error("permission denied");
+      }),
     },
     identityAccount: {
       whoAmI: vi.fn().mockResolvedValue({ metadata: { id: VIEWER_ID } }),
@@ -276,21 +285,29 @@ describe("RoutineDetailView", () => {
     expect(screen.queryByText("Paused by the platform")).toBeNull();
   });
 
-  it("lists the repositories each fire clones in the Workspace row, never its Files", async () => {
+  it("lists the repositories each fire clones in the Workspace row, and its Files by name in the Files row", async () => {
     const routine = makeRoutine();
     routine.spec!.agent!.resources = [
       create(SessionResourceSchema, {
         name: "isc/fee-data",
         resource: { case: "gitRepository", value: { url: "https://github.com/isc/fee-data.git", branch: "main" } },
       }),
-      create(SessionResourceSchema, { resource: { case: "file", value: { fileId: "file_ledger", mountPath: "q3-ledger.xlsx" } } }),
+      create(SessionResourceSchema, { resource: { case: "file", value: { fileId: "file_ledger" } } }),
+      create(SessionResourceSchema, { resource: { case: "file", value: { fileId: "file_private" } } }),
     ];
     renderView(makeClient(routine));
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
-    expect(screen.getByText("isc/fee-data")).toBeTruthy();
-    expect(screen.getByText("https://github.com/isc/fee-data.git@main")).toBeTruthy();
-    expect(screen.queryByText(/q3-ledger|file_ledger/)).toBeNull();
+    const workspace = screen.getByText("Workspace").closest("div")!;
+    expect(within(workspace).getByText("isc/fee-data")).toBeTruthy();
+    expect(within(workspace).getByText("https://github.com/isc/fee-data.git@main")).toBeTruthy();
+    expect(within(workspace).queryByText(/q3-ledger|file_ledger/)).toBeNull();
+
+    const files = screen.getByText("Files", { selector: "dt" }).closest("div")!;
+    expect(await within(files).findByText("q3-ledger.xlsx")).toBeTruthy();
+    // A File private to the routine's owner is listed by id, with the cure.
+    expect(await within(files).findByText("file_private")).toBeTruthy();
+    expect(within(files).getByText(/share it with the organization/)).toBeTruthy();
   });
 
   it("renders the disabled banner with an inline Enable remedy", async () => {

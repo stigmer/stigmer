@@ -3,7 +3,7 @@
 // Shared visual vocabulary for the session-panel facets (Config / Changes /
 // Artifacts / Usage): one dense, VS Code-style row-and-section language so the
 // facets read as one surface instead of three eras of styling. The Artifacts
-// facet's `ArtifactRowView` set the idiom — compact rows, quiet metadata,
+// facet's `FileRowView` set the idiom — compact rows, quiet metadata,
 // hover/focus-revealed actions — and these primitives carry it to the
 // non-file-list facets. All visual properties flow through `--stgm-*`
 // tokens.
@@ -85,7 +85,7 @@ export function FacetRow({
 
 /**
  * Class string for a whole-row interactive facet action (the
- * `ArtifactRowView` open-button idiom): dense row metrics plus hover and
+ * `FileRowView` open-button idiom): dense row metrics plus hover and
  * focus-visible treatments. A string constant (not a component) so callers
  * keep their own element type and extra classes.
  */
@@ -98,7 +98,7 @@ export const FACET_ROW_BUTTON = cn(
 
 /**
  * Hover/focus-revealed remove control for a {@link FacetRow} — the
- * `ArtifactRowView` download-button reveal pattern applied to removal.
+ * `FileRowView` download-button reveal pattern applied to removal.
  * Always reachable by keyboard (focus reveals it without hover).
  */
 export function FacetRemoveButton({

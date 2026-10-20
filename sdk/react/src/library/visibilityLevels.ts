@@ -162,6 +162,15 @@ export function vaultVisibilityLevels(): readonly VisibilityLevelOption[] {
 }
 
 /**
+ * The levels a kind that declares the organization level alone offers (a
+ * File), in escalation order: Private / Organization. Organization lets
+ * every member of the owning organization see and use it.
+ */
+export function orgVisibilityLevels(): readonly VisibilityLevelOption[] {
+  return [PRIVATE_OPTION, ORG_OPTION];
+}
+
+/**
  * Canonical option for a visibility value, independent of any kind's offered
  * list. Used to render the current level even when it is not offerable in
  * the current context (e.g. a blueprint shared with child organizations,

@@ -7,6 +7,42 @@ description: Hooks that read a File by id (its name, type and size) and mint its
 
 ## Hooks
 
+### useCanCreateFile
+
+Mirrors the server's File upload bar, `can_create_file` on the
+organization (its members and guests hold it), so an Upload affordance
+never appears to someone whose upload would be refused.
+
+`allowed` stays `false` while the check is in flight, so the button never
+shows and then vanishes; after that the check's fail-open answer holds,
+so an outage of the check never hides the affordance, and the server
+refuses an upload the answer missed. On a server without sign-in every
+check answers allowed.
+
+Pass `null` for `org` while it loads: `allowed` stays `false`.
+
+**Signature**
+
+```tsx
+function useCanCreateFile(org: string | null): UseCanCreateFileReturn
+```
+
+<TypeTable
+  type={{
+    org: { type: "string | null", description: "The organization's id, or `null` while loading.", required: true },
+  }}
+/>
+
+**Returns** — `UseCanCreateFileReturn`
+
+<TypeTable
+  type={{
+    allowed: { type: "boolean", description: "Whether the viewer may upload a File to the organization; `false` until the server has answered." },
+    isLoading: { type: "boolean", description: "`true` while the server's answer is in flight." },
+  }}
+/>
+
+
 ### useFile
 
 Data hook that reads one File's record through `stigmer.file.get`: its
@@ -32,6 +68,7 @@ function useFile(fileId: string | null): UseFileReturn
     error: { type: "Error | null", description: "Error from the last failed read, or `null`." },
     file: { type: "File | null", description: "The File's record, or `null` while loading, when skipped, or on failure." },
     isLoading: { type: "boolean", description: "True while the first read is in flight." },
+    refetch: { type: "() => void", description: "Read the record again, past the cache (after its visibility or labels changed)." },
   }}
 />
 
@@ -72,6 +109,47 @@ function useFileContent(fileId: string | null): UseFileContentReturn
 
 ```tsx
 const { content, isLoading } = useFileContent(file.metadata?.id ?? null);
+```
+
+
+### useFileCount
+
+Data hook that counts the Library's Files (those of no conversation) the
+caller can view in an organization, for the Library landing card.
+
+Files are not in search, so no per-kind count exists for them: the hook
+reads the list's largest page and counts it, with `isLowerBound` set when
+more follow (the Environment count's shape).
+
+Pass `null` as `org` to skip fetching (stable no-op).
+
+**Signature**
+
+```tsx
+function useFileCount(org: string | null, options?: UseFileCountOptions): UseFileCountReturn
+```
+
+<TypeTable
+  type={{
+    org: { type: "string | null", description: "", required: true },
+    options: { type: "UseFileCountOptions", description: "" },
+  }}
+/>
+
+**Returns** — `UseFileCountReturn`
+
+<TypeTable
+  type={{
+    count: { type: "number | undefined", description: "The Files a first page holds, up to 100. `undefined` until the first successful fetch completes." },
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the count fetch is in flight." },
+    isLowerBound: { type: "boolean", description: "`true` when more Files follow that page: a card reads \"100+\"." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the count from the server." },
+  }}
+/>
+
+```tsx
+const { count, isLowerBound, isLoading } = useFileCount("acme");
 ```
 
 
@@ -140,14 +218,14 @@ outputs by run id.
 **Signature**
 
 ```tsx
-function useSessionFiles(org: string | null, sessionId: string | null, settledKey: string): UseSessionFilesReturn
+function useSessionFiles(org: string | null, sessionId: string | null, refreshKey: string): UseSessionFilesReturn
 ```
 
 <TypeTable
   type={{
     org: { type: "string | null", description: "The conversation's organization, or `null` to skip.", required: true },
     sessionId: { type: "string | null", description: "The conversation's id, or `null` to skip.", required: true },
-    settledKey: { type: "string", description: "Any string that changes when a turn ends (the joined   ids of the session's terminal runs); a change re-reads the list.", required: true },
+    refreshKey: { type: "string", description: "Any string that changes when a turn starts or ends   (each run's id with whether it has ended); a change re-reads the list.", required: true },
   }}
 />
 
@@ -164,7 +242,178 @@ function useSessionFiles(org: string | null, sessionId: string | null, settledKe
 />
 
 ```tsx
-const settledKey = runs.filter(isSettled).map((r) => r.metadata?.id).join(",");
-const { outputsByRun } = useSessionFiles(org, sessionId, settledKey);
+const refreshKey = runs.map((r) => `${r.metadata?.id}:${isSettled(r)}`).join(",");
+const { outputsByRun } = useSessionFiles(org, sessionId, refreshKey);
 ```
+
+
+## Components
+
+### FilePicker
+
+Multi-select over the Library's Files, with an upload that picks what it
+uploaded.
+
+**Props** — `FilePickerProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    disabled: { type: "boolean", description: "Disable all interactions." },
+    onChange: { type: "(fileIds: string[]) => void", description: "Called when the choice changes.", required: true },
+    org: { type: "string", description: "Organization id to list Files from (a slug is also accepted).", required: true },
+    value: { type: "readonly string[]", description: "The chosen Files' ids.", required: true },
+  }}
+/>
+
+```tsx
+<FilePicker org="acme" value={fileIds} onChange={setFileIds} />
+```
+
+
+### FileUploadButton
+
+A button and drop target that uploads the chosen files as Files of the
+organization, four at a time, with a status entry per file still
+uploading or failed.
+
+**Props** — `FileUploadButtonProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Classes for the button." },
+    label: { type: "string", description: "The button's label." },
+    onUploaded: { type: "(file: File) => void", description: "Called once per File the server stored, in the order they finish." },
+    org: { type: "string", description: "The organization the Files are uploaded to, by id or slug.", required: true },
+  }}
+/>
+
+
+### LibraryFilePreview
+
+One Library File in the preview modal, with Manage access and Delete.
+
+**Props** — `LibraryFilePreviewProps`
+
+<TypeTable
+  type={{
+    file: { type: "File", description: "The File to show.", required: true },
+    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a zip File is added as a skill: the host's link to it." },
+    onChanged: { type: "() => void", description: "Called after the File's visibility changes or it is deleted: re-read the list.", required: true },
+    onClose: { type: "() => void", description: "Called when the preview should close.", required: true },
+  }}
+/>
+
+
+## Types
+
+### createFileColumns
+
+Column set for the Library's Files workbench, shared by every console so
+the list renders identically everywhere: the File's name, its type, its
+size, who can see it, and when it was uploaded. Each row is a full
+`File` from the direct query (`createFileListFn`).
+
+Columns are not sortable: the direct query has one fixed server-side
+order (newest first), and a sort affordance that did nothing would lie.
+
+```tsx
+function createFileColumns(): WorkbenchColumnDef<File>[]
+```
+
+
+### createFileListFn
+
+Build a `ResourceWorkbench` data source over the Library's Files.
+Consumers type their workbench as `ResourceWorkbench<File>` and pass
+`getItemId={(f) => f.metadata?.id}`.
+
+`request.query` is ignored: Files have no server-side text search
+(render the workbench with `searchable={false}`).
+
+```tsx
+function createFileListFn(client: FileListClient): WorkbenchListFn<File>
+```
+
+
+### describeFileType
+
+A File's media type in a list's few words: "image/png", or "—" when it has none.
+
+```tsx
+function describeFileType(file: File): string
+```
+
+
+### describeUploaded
+
+When a File was uploaded, in a list's few words: "3h", "Jul 12".
+
+```tsx
+function describeUploaded(file: File): string
+```
+
+
+### FileListClient
+
+The slice of the Stigmer client this module needs (mockable in tests).
+
+<TypeTable
+  type={{
+    file: { type: "{ list: unknown }", description: "", required: true },
+  }}
+/>
+
+
+### FilePage
+
+One page of the Library's Files, newest first.
+
+<TypeTable
+  type={{
+    entries: { type: "readonly File[]", description: "The Files in the page.", required: true },
+    nextPageToken: { type: "string", description: "Set when more Files follow; `\"\"` on the last page.", required: true },
+  }}
+/>
+
+
+### FileUploadStatus
+
+One file the button is uploading, or failed to.
+
+<TypeTable
+  type={{
+    error: { type: "string | null", description: "", required: true },
+    filename: { type: "string", description: "", required: true },
+    id: { type: "string", description: "", required: true },
+    phase: { type: "\"failed\" | \"uploading\" | \"queued\"", description: "", required: true },
+  }}
+/>
+
+
+### LIBRARY_UPLOAD_CONCURRENCY
+
+How many uploads run at once.
+
+
+### listLibraryFilesPage
+
+Fetch one page of the Files of no conversation the caller can view in
+`org`: the page `pageToken` names (`""` for the first), at most
+`pageSize`.
+
+```tsx
+function listLibraryFilesPage(client: FileListClient, org: string, page: { pageSize?: number; pageToken?: string }): Promise<FilePage>
+```
+
+
+### UseFileCountOptions
+
+Options for [`useFileCount`](#usefilecount).
+
+<TypeTable
+  type={{
+    refetchToken: { type: "unknown", description: "Opaque token that forces a recount when its value changes." },
+  }}
+/>
 

@@ -53,11 +53,17 @@ export type {
 export { TranscriptExportMenu } from "./TranscriptExportMenu.js";
 export type { TranscriptExportMenuProps } from "./TranscriptExportMenu.js";
 
-export { useSessionArtifacts, artifactKey } from "./useSessionArtifacts.js";
+export { useSessionOutputs, outputKey } from "./useSessionOutputs.js";
 export type {
-  SessionArtifactEntry,
-  UseSessionArtifactsReturn,
-} from "./useSessionArtifacts.js";
+  SessionOutputEntry,
+  UseSessionOutputsReturn,
+} from "./useSessionOutputs.js";
+
+export { useSessionGivenFiles, givenKey, UPLOADS_FOLDER } from "./useSessionGivenFiles.js";
+export type {
+  SessionGivenEntry,
+  UseSessionGivenFilesReturn,
+} from "./useSessionGivenFiles.js";
 
 export { useSessionWriteBacks } from "./useSessionWriteBacks.js";
 export type {
@@ -141,7 +147,7 @@ export type {
 // icons, badges, and contextual-visibility rules. Exported so custom
 // session surfaces inherit the rail by construction instead of
 // re-declaring it.
-export { useSessionRailViews } from "./useSessionRailViews.js";
+export { useSessionRailViews, CONVERSATION_FILES_VIEW_ID } from "./useSessionRailViews.js";
 export type { UseSessionRailViewsOptions } from "./useSessionRailViews.js";
 
 // Plan draft — viewer-owned in-place edit of the session's current plan
@@ -162,7 +168,7 @@ export {
 
 // Artifact document tab identity — lives in run/; re-exported here so
 // session-path importers reach it beside the plan document identity.
-export { ARTIFACT_DOCUMENT_ENTRY_ID } from "../run/artifact-document.js";
+export { FILE_DOCUMENT_ENTRY_ID } from "../run/file-document.js";
 
 // Session facet components — the panel's rail views (Config et al.), also
 // independently importable.

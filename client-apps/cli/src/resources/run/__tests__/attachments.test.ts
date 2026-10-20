@@ -1,6 +1,8 @@
-// Unit tests for `--attach`: what each path resolves to (a workspace mention,
-// a file the message carries, a folder the conversation holds), the limits
-// that fail before any upload, and how the Files are uploaded for a new
+// Unit tests for `--attach` and `--file-id`: what each path resolves to (a
+// workspace mention, a file the message carries, a folder the conversation
+// holds), the Files already uploaded that the message names by id (counted
+// toward its limit, never uploaded or deleted), the limits that fail before
+// any upload, and how the Files are uploaded for a new
 // conversation (the person's own, returned as originals to delete) and for an
 // existing one (uploaded into it, its folders joining its resources through a
 // masked update that keeps what it holds). Uploads that fail, and an update
@@ -161,6 +163,24 @@ describe("planAttachments", () => {
     expect(() => planAttachments(files, [])).toThrow(/a message carries at most 20/);
   });
 
+  it("carries Files named by id with the message, counted with the files it uploads toward its limit", () => {
+    const report = write(join(dir, "report.pdf"), "pdf");
+    const plan = planAttachments([report], [], undefined, ["file_kept1", "file_kept2"]);
+    expect(plan.fileIds).toEqual(["file_kept1", "file_kept2"]);
+    expect(plan.messageFiles).toHaveLength(1);
+
+    const files = Array.from({ length: MAX_MESSAGE_FILES - 1 }, (_, i) => write(join(dir, `f${i}.txt`)));
+    expect(() => planAttachments(files, [], undefined, ["file_a", "file_b"])).toThrow(
+      "--attach and --file-id name 21 files; a message carries at most 20",
+    );
+  });
+
+  it("refuses a --file-id that is not a File's id, pointing at --attach", () => {
+    expect(() => planAttachments([], [], undefined, ["./report.pdf"])).toThrow(
+      '--file-id takes a File\'s id (file_…), not "./report.pdf"; to send a file on disk, use --attach',
+    );
+  });
+
   it("refuses more files than a conversation holds, counting the message's with the folders'", () => {
     const folder = join(dir, "many");
     for (let i = 0; i < MAX_CONVERSATION_FILES - 1; i++) write(join(folder, `f${i}.txt`));
@@ -222,6 +242,30 @@ describe("stageAttachments, a new conversation", () => {
     expect(server.deletes.sort()).toEqual(
       server.uploads.map((u, i) => `file_${i + 1}_${u.filename}`).sort(),
     );
+  });
+});
+
+describe("stageAttachments, Files named by id", () => {
+  it("names them after the files it uploads, uploads nothing for them, and never returns them as originals", async () => {
+    const server = fakeServer();
+    const report = write(join(dir, "report.pdf"), "pdf");
+    const staged = await stageAttachments(
+      server.client,
+      planAttachments([report], [], undefined, ["file_kept"]),
+      { org: "acme" },
+    );
+    expect(server.uploads.map((u) => u.filename)).toEqual(["report.pdf"]);
+    expect(staged.fileIds).toEqual([expect.stringMatching(/_report\.pdf$/), "file_kept"]);
+    expect(staged.originals).toEqual([staged.fileIds[0]]);
+  });
+
+  it("asks nothing of the server when the message only names Files", async () => {
+    const server = fakeServer();
+    const staged = await stageAttachments(server.client, planAttachments([], [], undefined, ["file_kept"]), {
+      org: "acme",
+    });
+    expect(staged).toEqual({ fileIds: ["file_kept"], resources: [], originals: [] });
+    expect(server.uploads).toHaveLength(0);
   });
 });
 

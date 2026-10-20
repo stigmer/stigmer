@@ -1,0 +1,45 @@
+Upload files once and name them by id from then on.
+
+A File is a file uploaded to Stigmer and named by the id the upload mints
+(`file_…`). Its bytes never change. Upload one to keep it for reuse: a new
+conversation names it with `stigmer run --file-id <id>`, and a routine or the
+console's Library can name it too, without sending the bytes again. With
+`--session <id>` the Files are given to that conversation instead: they are its
+own from the start, and its agent finds each under `.stigmer/uploads/` by its
+filename on its next turn.
+
+`stigmer file upload` takes files, not folders: a folder only means something
+inside a conversation, where `stigmer run --attach <folder>` keeps its tree. The
+uploads are all or nothing: when one fails, the Files already uploaded are
+deleted, so the same command can be run again.
+
+Everything else rides the generic verbs: `stigmer list files` lists the Files
+you keep for reuse, `stigmer list files --session <id>` one conversation's,
+`stigmer get file <id>` reads one, `stigmer download file <id>` writes its bytes
+under its filename, and `stigmer delete file <id>` deletes it (refused while a
+routine names it).
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Upload a spreadsheet to reuse, and see the id it is named by
+stigmer file upload q3-ledger.xlsx
+
+# Start a conversation that is given it
+stigmer run finance-analyst --file-id file_01abc123 -m "Explain the Q3 variance"
+
+# Upload into a conversation you already have
+stigmer file upload notes.md --session ses_01abc123
+
+# Capture the ids in a script
+stigmer file upload a.csv b.csv --json | jq -r '.data.files[].id'
+
+# List the Files you keep for reuse
+stigmer list files
+```
+
+{/* AUTO_SUBCOMMANDS */}
+
+{/* AUTO_GLOBAL_FLAGS */}

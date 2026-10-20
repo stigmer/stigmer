@@ -103,6 +103,9 @@ export const DELETE_HANDLERS: ReadonlyMap<ApiResourceKind, DeleteFn> = new Map<
   // Deleting an eval run deletes its tries' conversations, runs and
   // scores; the server refuses a pending or running one and names cancel.
   [ApiResourceKind.eval_run, (c, id) => c.evalrun.delete(id)],
+  // Refused while a routine names it (the refusal names the routine); a
+  // conversation's File also leaves that conversation's resources.
+  [ApiResourceKind.file, (c, id) => c.file.delete(id)],
 ]);
 
 // The deletable-types list for the unknown-type error, derived from the
@@ -293,6 +296,9 @@ function buildDeleteWarning(
   if (info.kind === ApiResourceKind.api_key) {
     return buildApiKeyWarning(message);
   }
+  if (info.kind === ApiResourceKind.file) {
+    return buildFileWarning(message, orgLabel);
+  }
 
   const meta = metaOf(message);
   const warning = CommandResult.warning(
@@ -350,6 +356,30 @@ function buildApiKeyWarning(message: HasMetadata): CommandResult {
   return warning;
 }
 
+// The structural slice of a File the delete UI reads: its name is the
+// upload's filename, and a File given to a conversation belongs to it.
+interface FileShape extends HasMetadata {
+  readonly spec?: { readonly filename?: string };
+  readonly status?: { readonly sessionId?: string; readonly outputPath?: string };
+}
+
+function buildFileWarning(message: HasMetadata, orgLabel: string | undefined): CommandResult {
+  const file = message as FileShape;
+  const meta = metaOf(message);
+  const warning = CommandResult.warning("You are about to delete the following file:");
+  const section = warning
+    .addSection("")
+    .field("ID", meta.id)
+    .field("Name", file.spec?.filename ?? "");
+  if (orgLabel !== undefined) section.field("Org", orgLabel);
+  const sessionId = file.status?.sessionId ?? "";
+  if (sessionId !== "") {
+    warning.hint(`It belongs to conversation ${sessionId} and leaves it too.`);
+  }
+  warning.hint("This action cannot be undone.");
+  return warning;
+}
+
 function buildDeleteSuccess(
   info: TypeInfo,
   deleted: HasMetadata,
@@ -362,6 +392,10 @@ function buildDeleteSuccess(
 
   if (info.kind === ApiResourceKind.api_key) {
     if (meta.name) section.field("Name", meta.name);
+    return out;
+  }
+  if (info.kind === ApiResourceKind.file) {
+    section.field("Name", (deleted as FileShape).spec?.filename ?? "");
     return out;
   }
 

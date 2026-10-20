@@ -7,6 +7,7 @@ import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
 import { UsageError } from "../errors/index.js";
 import type { OutputFlags } from "../output/index.js";
 import { renderTable } from "../output/index.js";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ALL_VERBS, defaultRegistry, Verb } from "../registry/index.js";
 import { addReadFlags, globalOrg, readFormat } from "./shared.js";
 
@@ -16,6 +17,7 @@ interface ListFlags extends OutputFlags {
   limit?: string;
   verb?: string;
   label?: string[];
+  session?: string;
 }
 
 export function registerList(program: Command): void {
@@ -30,6 +32,7 @@ export function registerList(program: Command): void {
       collectLabel,
       [],
     )
+    .option("--session <id>", "files: list one conversation's Files, what was given to it and what its turns saved (only for 'list files')")
     .action((type: string, options: ListFlags, command: Command) => runList(type, options, command));
   addReadFlags(list);
 }
@@ -38,6 +41,9 @@ async function runList(type: string, options: ListFlags, command: Command): Prom
   if (isTypesAlias(type)) {
     if ((options.label ?? []).length > 0) {
       throw new UsageError("--label filters resources; 'list types' has none to filter");
+    }
+    if (options.session !== undefined) {
+      throw new UsageError("--session names a conversation whose Files to list; 'list types' has none");
     }
     process.stdout.write(renderTypes(options.verb, readFormat(options)));
     return;
@@ -52,7 +58,9 @@ async function runList(type: string, options: ListFlags, command: Command): Prom
   // this; sessions shipped works-but-unadvertised through exactly such a
   // bypass for two months (stigmer/stigmer#469).
   const { isRunAlias } = await import("../resources/runs.js");
+  const sessionId = options.session ?? "";
   if (isRunAlias(type)) {
+    if (options.session !== undefined) throw sessionFilterRefusal(type);
     await runListRuns(options, command, labels);
     return;
   }
@@ -63,6 +71,15 @@ async function runList(type: string, options: ListFlags, command: Command): Prom
   }
   if (!info.supportedVerbs.has(Verb.List)) {
     throw new UsageError(`${info.displayName} does not support 'list'`);
+  }
+  // A conversation holds Files and nothing else a list names, so the
+  // filter is refused for every other type rather than ignored.
+  if (options.session !== undefined) {
+    if (info.kind !== ApiResourceKind.file) throw sessionFilterRefusal(type);
+    const { isSessionId } = await import("../resources/reference.js");
+    if (!isSessionId(sessionId)) {
+      throw new UsageError(`invalid session ID: ${sessionId}\n\nA conversation is named by its ID (e.g., ses_01abc123)`);
+    }
   }
 
   const [{ connectBackend }, { listResources }] = await Promise.all([
@@ -79,9 +96,13 @@ async function runList(type: string, options: ListFlags, command: Command): Prom
     org,
     parseLimit(options.limit),
     readFormat(options),
-    labels,
+    { labels, sessionId },
   );
   process.stdout.write(rendered);
+}
+
+function sessionFilterRefusal(type: string): UsageError {
+  return new UsageError(`--session lists one conversation's Files; 'list ${type}' takes no conversation (use 'list files --session <id>')`);
 }
 
 // Runs bypass the registry: they're listed by their own controller. Results are

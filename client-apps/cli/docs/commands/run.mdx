@@ -138,6 +138,15 @@ stigmer run my-agent --attach ./image.png --attach ./spec.pdf
 stigmer run my-agent --attach ./q3-ledgers -m "Reconcile these"
 ```
 
+A file already uploaded (`stigmer file upload`, or the console's Library) is
+named by its id with `--file-id`, without sending its bytes again. The
+conversation gets its own copy, and the File stays yours to name again. Files
+named this way count toward the message's 20 with the attached ones.
+
+```bash
+stigmer run finance-analyst --file-id file_01abc123 -m "Explain the Q3 variance"
+```
+
 ### Output modes
 
 | Flag | Behavior |

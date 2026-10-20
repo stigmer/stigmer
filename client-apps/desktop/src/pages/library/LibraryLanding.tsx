@@ -1,12 +1,13 @@
 import { useReducer, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Blocks, Bot, Box, CalendarClock, FileCode2, Sparkles } from "lucide-react";
+import { Blocks, Bot, Box, CalendarClock, FileCode2, Files, Sparkles } from "lucide-react";
 import { cn } from "@stigmer/design-tokens";
 import {
   ApplyManifestDialog,
   useAgentCount,
   useRoutineCount,
   useEnvironmentCount,
+  useFileCount,
   useSkillCount,
   usePluginCount,
   ResourceCountCard,
@@ -23,6 +24,7 @@ export default function LibraryLanding() {
   const routines = useRoutineCount(org, { refetchToken });
   const plugins = usePluginCount(org, { refetchToken });
   const environments = useEnvironmentCount(org, { refetchToken });
+  const files = useFileCount(org, { refetchToken });
   const [applyYamlOpen, setApplyYamlOpen] = useState(false);
 
   return (
@@ -65,6 +67,14 @@ export default function LibraryLanding() {
           countIsLowerBound={environments.isLowerBound}
           isLoading={environments.isLoading}
           onClick={() => navigate("/library/environments")}
+        />
+        <ResourceCountCard
+          icon={<Files className="size-5" aria-hidden="true" />}
+          label="Files"
+          count={files.count}
+          countIsLowerBound={files.isLowerBound}
+          isLoading={files.isLoading}
+          onClick={() => navigate("/library/files")}
         />
       </div>
 

@@ -5,8 +5,10 @@
  * type, size), a link to its bytes, and a click-to-save action.
  *
  * Trade-offs:
- * - A File's record never changes after upload, so it is cached across
- *   mounts by id: a thread that re-renders its chips reads the record once.
+ * - A File's bytes and name never change after upload, so its record is
+ *   cached across mounts by id: a thread that re-renders its chips reads it
+ *   once. Its visibility and labels can change; a view that changes them
+ *   re-reads with {@link UseFileReturn.refetch}.
  * - A link expires, so {@link useFileDownloadUrl} mints one only while it
  *   is enabled (an image tile on screen) and {@link useFileDownload} mints
  *   a fresh one per click, never baking a link into rendered state that
@@ -28,6 +30,8 @@ export interface UseFileReturn {
   readonly isLoading: boolean;
   /** Error from the last failed read, or `null`. */
   readonly error: Error | null;
+  /** Read the record again, past the cache (after its visibility or labels changed). */
+  readonly refetch: () => void;
 }
 
 /**
@@ -45,13 +49,13 @@ export interface UseFileReturn {
  */
 export function useFile(fileId: string | null): UseFileReturn {
   const stigmer = useStigmer();
-  const { data, isLoading, error } = useFetch<StigmerFile | null>(
+  const { data, isLoading, error, refetch } = useFetch<StigmerFile | null>(
     fileId ? () => stigmer.file.get(fileId) : null,
     [fileId, stigmer],
     null,
     { cacheKey: fileId ? `file:${fileId}` : undefined },
   );
-  return useMemo(() => ({ file: data, isLoading, error }), [data, isLoading, error]);
+  return useMemo(() => ({ file: data, isLoading, error, refetch }), [data, isLoading, error, refetch]);
 }
 
 /** Return value of {@link useFileDownloadUrl}. */

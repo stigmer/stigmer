@@ -110,7 +110,18 @@ export const VERB_SUPPORT: ReadonlyMap<
   // working-but-unadvertised through a pre-gate bypass. get/delete remain
   // deliberately unpromised until a real read/ops story exists
   // (stigmer/stigmer#354) — resume-style flows go through `stigmer session`.
-  [ApiResourceKind.session, new Set<Verb>([Verb.Apply, Verb.List])],
+  // `download session` writes what the conversation's turns saved in their
+  // outputs folder, newest per path.
+  [ApiResourceKind.session, new Set<Verb>([Verb.Apply, Verb.List, Verb.Download])],
+  // A File is uploaded once and named by its id; its bytes never change, so
+  // there is nothing to apply. `list files` shows the Files kept for reuse
+  // (those of no conversation), and `list files --session <id>` one
+  // conversation's. Uploading is `stigmer file upload`, the one act no verb
+  // here names.
+  [
+    ApiResourceKind.file,
+    new Set<Verb>([Verb.Get, Verb.List, Verb.Delete, Verb.Download]),
+  ],
   // A score is written by a person rating a run in the console or by the
   // platform's checks, never as a manifest, and is read by id; a run's
   // scores are listed by `stigmer runs scores <run-id>`.

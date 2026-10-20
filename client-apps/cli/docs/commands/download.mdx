@@ -1,9 +1,13 @@
-Download artifacts produced by a run, or an eval's folder at a version.
+Download artifacts produced by a run or a session, a file, or an eval's folder
+at a version.
 
-`stigmer download run` retrieves files that an agent created during a run.
-Artifacts are stored in the Stigmer artifact store and can be downloaded after
-the run completes. `stigmer download eval` retrieves the `evals/` folder one
-version of an eval was pushed as.
+`stigmer download run` retrieves the files an agent saved in its outputs folder
+during one run, each written at its place in that folder.
+`stigmer download session` retrieves what every turn of a conversation saved
+there, the newest turn's file winning when two saved the same path; the files
+given to the conversation stay out. `stigmer download file` writes one File's
+bytes under its filename. `stigmer download eval` retrieves the `evals/` folder
+one version of an eval was pushed as.
 
 {/* AUTO_USAGE */}
 
@@ -18,6 +22,12 @@ stigmer download run run_01abc123 --output-dir ./results/
 
 # Download a specific artifact by name
 stigmer download run run_01abc123 --artifact report.pdf
+
+# Download everything a conversation's turns saved
+stigmer download session ses_01abc123 -o reports/
+
+# Download one File under its filename
+stigmer download file file_01abc123
 
 # Get the eval version tagged stable back as a folder
 stigmer download eval support-agent-evals@stable -o ./evals
@@ -45,6 +55,22 @@ stigmer download run run_01abc123 -o ./output/
 
 ```bash
 stigmer download run run_01abc123 --artifact generated-agent.yaml
+```
+
+### Download a conversation's outputs
+
+```bash
+stigmer download session ses_01abc123 -o reports/
+stigmer download session ses_01abc123 --artifact reports/q3.md
+```
+
+Each output is written at its place under the outputs folder. When two turns
+saved the same path, the later turn's file is the one written.
+
+### Download a file
+
+```bash
+stigmer download file file_01abc123 -o ./inputs/
 ```
 
 ### Download an eval

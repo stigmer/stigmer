@@ -170,4 +170,17 @@ java.lang.String defaultValue);
    */
   com.google.protobuf.ByteString
       getRunIdBytes();
+
+  /**
+   * <pre>
+   * Only Files that belong to no conversation: uploaded through the API,
+   * the CLI or the Library, and never given to a conversation. A
+   * conversation's uploads and outputs are left out. Refused beside
+   * session_id or run_id.
+   * </pre>
+   *
+   * <code>bool without_session = 7 [json_name = "withoutSession"];</code>
+   * @return The withoutSession.
+   */
+  boolean getWithoutSession();
 }
