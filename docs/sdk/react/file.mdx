@@ -41,6 +41,40 @@ return <span>{file?.spec?.filename ?? "file"}</span>;
 ```
 
 
+### useFileContent
+
+Data hook that reads a File's text through `stigmer.file.getContent`.
+
+**Signature**
+
+```tsx
+function useFileContent(fileId: string | null): UseFileContentReturn
+```
+
+<TypeTable
+  type={{
+    fileId: { type: "string | null", description: "The File's id (`\"file_01j…\"`), or `null` to skip.", required: true },
+  }}
+/>
+
+**Returns** — `UseFileContentReturn`
+
+<TypeTable
+  type={{
+    content: { type: "string | null", description: "The File's text, or `null` while loading, when skipped, or on failure." },
+    error: { type: "Error | null", description: "Error from the last failed read, or `null`." },
+    isLoading: { type: "boolean", description: "True while the first read is in flight." },
+    isRefetching: { type: "boolean", description: "True while a background re-read is in flight." },
+    isTruncated: { type: "boolean", description: "Whether the server cut the bytes at its read cap." },
+    refetch: { type: "() => void", description: "Read the File again." },
+  }}
+/>
+
+```tsx
+const { content, isLoading } = useFileContent(file.metadata?.id ?? null);
+```
+
+
 ### useFileDownload
 
 Behaviour hook that saves a File on click: the link is minted at click
@@ -96,4 +130,41 @@ function useFileDownloadUrl(fileId: string | null, options?: { enabled?: boolean
     url: { type: "string | null", description: "A link to the File's bytes, or `null` while minting, when skipped, or on failure." },
   }}
 />
+
+
+### useSessionFiles
+
+Data hook that lists a conversation's Files and groups each turn's
+outputs by run id.
+
+**Signature**
+
+```tsx
+function useSessionFiles(org: string | null, sessionId: string | null, settledKey: string): UseSessionFilesReturn
+```
+
+<TypeTable
+  type={{
+    org: { type: "string | null", description: "The conversation's organization, or `null` to skip.", required: true },
+    sessionId: { type: "string | null", description: "The conversation's id, or `null` to skip.", required: true },
+    settledKey: { type: "string", description: "Any string that changes when a turn ends (the joined   ids of the session's terminal runs); a change re-reads the list.", required: true },
+  }}
+/>
+
+**Returns** — `UseSessionFilesReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed read, or `null`." },
+    files: { type: "readonly File[]", description: "Every File of the conversation, newest first." },
+    isLoading: { type: "boolean", description: "True while the first read is in flight." },
+    outputsByRun: { type: "ReadonlyMap<string, readonly File[]>", description: "The Files each turn returned, by run id, newest first." },
+    refetch: { type: "() => void", description: "Read the list again (a stopped turn's outputs arrive after its end)." },
+  }}
+/>
+
+```tsx
+const settledKey = runs.filter(isSettled).map((r) => r.metadata?.id).join(",");
+const { outputsByRun } = useSessionFiles(org, sessionId, settledKey);
+```
 

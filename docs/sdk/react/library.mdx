@@ -11,9 +11,9 @@ description: Hooks and components for resource browsing, YAML detection, apply f
 
 Behavior hook for applying detected Stigmer resources to an organization.
 
-Bridges the detection layer ([`detectStigmerResource`](#detectstigmerresource),
-[`useDetectSkillPackage`](#usedetectskillpackage)) to the apply action — the user clicks
-"Apply to [org]" and the resource is created or updated.
+Bridges the detection layer ([`detectStigmerResource`](#detectstigmerresource)) to the apply
+action — the user clicks "Apply to [org]" and the resource is created or
+updated.
 
 Handles two parallel apply paths:
 
@@ -21,8 +21,9 @@ Handles two parallel apply paths:
    against the generated proto schema (SDK manifest engine) and applies
    it through the kind's `apply` RPC.
 
-2. **Skill packages** (directory artifacts): `pushSkillPackage(params)`
-   delegates to the server-side `pushFromRunArtifact` RPC.
+2. **Skill archives** (a File holding a skill's ZIP):
+   `pushSkillFromFile(params)` delegates to the server-side `pushFromFile`
+   RPC.
 
 Follows the established mutation hook pattern: `isApplying` + `error` +
 `clearError`. The result is returned from the promise (not stored in
@@ -43,12 +44,12 @@ function useApplyResource(): UseApplyResourceReturn
     clearError: { type: "() => void", description: "Clear the error state (e.g., when the user dismisses an error message)." },
     error: { type: "Error | null", description: "Error from the last failed operation, or `null` when healthy." },
     isApplying: { type: "boolean", description: "`true` while an apply or push operation is in-flight." },
-    pushSkillPackage: { type: "(params: PushSkillParams) => Promise<ApplyResourceResult>", description: "Push a skill package from a run artifact to an organization.  Uses the server-side `pushFromRunArtifact` RPC — the server reads the ZIP from run storage and pushes it as a skill. No ZIP download reaches the browser." },
+    pushSkillFromFile: { type: "(params: PushSkillParams) => Promise<ApplyResourceResult>", description: "Push a skill from a File holding its ZIP archive to an organization.  Uses the server-side `pushFromFile` RPC — the server reads the File's bytes and pushes them as a skill. No ZIP download reaches the browser." },
   }}
 />
 
 ```tsx
-const { applyYamlResource, pushSkillPackage, isApplying, error, clearError } =
+const { applyYamlResource, pushSkillFromFile, isApplying, error, clearError } =
   useApplyResource();
 const [result, setResult] = useState<ApplyResourceResult | null>(null);
 
@@ -57,12 +58,8 @@ const handleApply = async () => {
   try {
     if (yamlDetection.detected) {
       setResult(await applyYamlResource(content!, activeOrg));
-    } else if (skillDetection.detected) {
-      setResult(await pushSkillPackage({
-        org: activeOrg,
-        executionId,
-        storageKey: artifact.storageKey,
-      }));
+    } else if (skillArchiveId) {
+      setResult(await pushSkillFromFile({ org: activeOrg, fileId: skillArchiveId }));
     }
   } catch {
     // error state is set by the hook
@@ -97,62 +94,6 @@ breadcrumb after the resource data has loaded. Returns a stable
 
 ```tsx
 function useBreadcrumbOverride(): { setLabel: (label: string | null) => void }
-```
-
-
-### useDetectSkillPackage
-
-Detects whether a run artifact is a skill package and extracts
-its metadata from SKILL.md.
-
-Combines the synchronous `isSkillPackage()` check (via `entries`) with
-a lazy content fetch of the SKILL.md file from the ZIP archive. The
-SKILL.md content is fetched via the `getArtifactContent` RPC with
-`entry_path`, so no ZIP download reaches the browser.
-
-Pass `null` for either parameter to skip detection entirely.
-
-Detection only triggers a network call when the artifact looks like a
-skill package (`kind === DIRECTORY` with `SKILL.md` in `entries`).
-For all other artifacts, returns `{ detected: false }` immediately.
-
-**Signature**
-
-```tsx
-function useDetectSkillPackage(artifact: RunArtifact | null, executionId: string | null): UseDetectSkillPackageReturn
-```
-
-<TypeTable
-  type={{
-    artifact: { type: "RunArtifact | null", description: "The run artifact to inspect, or `null` to skip.", required: true },
-    executionId: { type: "string | null", description: "Run that produced the artifact, or `null` to skip.", required: true },
-  }}
-/>
-
-**Returns** — `UseDetectSkillPackageReturn`
-
-<TypeTable
-  type={{
-    detection: { type: "SkillPackageDetection", description: "The detection result — check `detection.detected` to narrow the type.", typeDescriptionLink: "#skillpackagedetection" },
-    error: { type: "Error | null", description: "Error message from the SKILL.md fetch, or `null` when healthy." },
-    isLoading: { type: "boolean", description: "`true` while the SKILL.md content is being fetched from the archive. Only relevant when the artifact is a skill package — `false` immediately for non-skill artifacts." },
-  }}
-/>
-
-```tsx
-const { detection, isLoading } = useDetectSkillPackage(artifact, executionId);
-
-if (isLoading) return <Spinner />;
-
-if (detection.detected) {
-  return (
-    <div>
-      <Badge>Skill Package</Badge>
-      <span>{detection.skillName}</span>
-      <span>{detection.fileCount} files</span>
-    </div>
-  );
-}
 ```
 
 
@@ -509,31 +450,6 @@ const listFn = useMemo(() => createLibraryListFn(stigmer, ApiResourceKind.agent)
 ```
 
 
-### detectSkillPackage
-
-Detects a skill package and extracts metadata from its SKILL.md content.
-
-Call this after fetching the SKILL.md content from the ZIP via
-`useArtifactContent(executionId, storageKey, "SKILL.md")`. The function
-parses the YAML frontmatter to extract `name` and `description`.
-
-**Resilient by design** — any parse failure, missing field, or unexpected
-structure returns `{ detected: false }`. This function never throws.
-
-```tsx
-function detectSkillPackage(artifact: RunArtifact, skillMdContent: string): SkillPackageDetection
-```
-
-```tsx
-const { content } = useArtifactContent(executionId, storageKey, "SKILL.md");
-const detection = detectSkillPackage(artifact, content);
-
-if (detection.detected) {
-  console.log(`Skill: ${detection.skillName} (${detection.fileCount} files)`);
-}
-```
-
-
 ### detectStigmerResource
 
 Detects whether a YAML content string represents a Stigmer platform resource.
@@ -568,23 +484,20 @@ scanned newest-first (the array is chronological), mirroring the thread's
 latest-plan-owns-the-build-action rule so every surface agrees on which
 plan is current.
 
-Returns `undefined` when no run in the session published a plan.
+Returns `undefined` when no run in the session returned a plan.
 
 ```tsx
-function findLatestSessionPlan(executions: readonly Run[]): SessionPlan | undefined
+function findLatestSessionPlan(files: readonly File[], runs: readonly Run[]): SessionPlan | undefined
 ```
 
 
-### findPlanArtifact
+### findPlanFile
 
-Finds the plan artifact on a completed run, or `undefined` when none
-was published (older runs, or a plan that failed to upload).
-
-Returns the latest `plan.md` if more than one is present — the runner
-replaces rather than appends, so this is defensive.
+Finds the plan File a Plan-mode run returned, or `undefined` when the run
+is not a Plan-mode run or returned no plan.
 
 ```tsx
-function findPlanArtifact(execution: Run | null | undefined): RunArtifact | undefined
+function findPlanFile(files: readonly File[], run: Run | null | undefined): File | undefined
 ```
 
 
@@ -595,13 +508,13 @@ Detects the plan a live Plan-mode turn is currently writing, or
 
 This is the third leg of the plan convention, alongside the runner's prompt
 directive ("your FINAL message IS the plan, starting with a single `#`
-title" — `plan-mode-prompt.ts`) and the completion-time artifact detection
-by filename ([`isPlanArtifact`](#isplanartifact)). Completion makes the plan unambiguous
-(the published `plan.md` artifact); mid-stream it must be inferred, and the
+title" — `plan-mode-prompt.ts`) and the completion-time plan File detection
+by filename ([`isPlanFile`](#isplanfile)). Completion makes the plan unambiguous
+(the plan File the turn returns); mid-stream it must be inferred, and the
 directive's mandated shape is the inference:
 
 - the turn's run runs in Plan mode and the turn has **not ended** (a
-  completed turn is owned by the artifact path; a stopped/failed turn has
+  completed turn is owned by the plan File; a stopped/failed turn has
   no live plan),
 - the candidate is the turn's **last content-bearing agent message** (live
   or stored) — the exact selection rule the runner's `extractFinalPlanText`
@@ -621,54 +534,25 @@ function findStreamingPlan(turn: Turn | null | undefined, run: Run | null | unde
 ```
 
 
-### isPlanArtifact
-
-Returns `true` when an artifact is the published plan: a FILE artifact whose
-name satisfies [`isPlanArtifactName`](#isplanartifactname).
-
-Detection is by convention — the same lightweight, content-free approach used
-for skill packages ([`isSkillPackage`](#isskillpackage)) — so the UI never needs an extra
-RPC to know a plan exists. The plan's text is fetched on demand via
-[`useArtifactContent`](/docs/sdk/react/run#useartifactcontent) only when the user expands the Plan card.
-
-```tsx
-function isPlanArtifact(artifact: RunArtifact): boolean
-```
-
-
 ### isPlanArtifactName
 
 Returns `true` when a filename is a plan's: the legacy exact `plan.md`, or
-any `*.plan.md`. Accepting the legacy name keeps plans published before named
-artifacts existed detectable.
+any `*.plan.md`.
 
 ```tsx
 function isPlanArtifactName(name: string): boolean
 ```
 
 
-### isSkillPackage
+### isPlanFile
 
-Checks whether a run artifact is a skill package (directory
-artifact whose archive contains `SKILL.md`).
-
-This is a pure, synchronous check that requires no network call — it
-inspects the `entries` field populated by the agent runner at ZIP
-creation time.
-
-Returns `false` for:
-- FILE artifacts (regardless of name)
-- DIRECTORY artifacts without `entries` (older artifacts before this field was added)
-- DIRECTORY artifacts whose entries do not include `SKILL.md`
+Returns `true` when a File is a turn's plan: a File some run returned
+(`status.run_id` set) whose filename satisfies [`isPlanArtifactName`](#isplanartifactname).
+Whether that run ran in Plan mode is [`findPlanFile`](#findplanfile)'s check, which
+has the run.
 
 ```tsx
-function isSkillPackage(artifact: RunArtifact): boolean
-```
-
-```tsx
-if (isSkillPackage(artifact)) {
-  // Show "Push Skill" CTA
-}
+function isPlanFile(file: File): boolean
 ```
 
 
@@ -685,34 +569,39 @@ The kinds the Library lists and searches.
 ### PLAN_ARTIFACT_NAME
 
 Legacy plan filename. Detection-only: [`isPlanArtifactName`](#isplanartifactname) still
-accepts this exact name so plans published before named artifacts existed
-keep working. The runner never freshly emits it (a titleless plan falls back
-to a bare `<id>.plan.md`). Kept in sync with the runner's
-`PLAN_ARTIFACT_NAME` (shared/plan-artifact.ts).
+accepts this exact name so plans written before named plans existed keep
+working. The runner never freshly emits it (a titleless plan falls back to
+a bare `<id>.plan.md`).
 
 
 ### PLAN_ARTIFACT_SUFFIX
 
-Suffix every named plan artifact carries (`<slug>_<id>.plan.md`, or a bare
+Suffix every named plan carries (`<slug>_<id>.plan.md`, or a bare
 `<id>.plan.md` when untitled). The runner derives the slug from the plan's
 title and the `<id>` from its content hash; detection keys on this suffix.
-Kept in sync with the runner's `PLAN_ARTIFACT_SUFFIX` (shared/plan-artifact.ts)
-— the runner and browser SDK have disjoint module graphs, so the constant is
-duplicated by design, mirroring [`PLAN_ARTIFACT_NAME`](#plan_artifact_name).
+
+
+### planFilesByRun
+
+Each Plan-mode run's plan File, by run id: what the message thread takes
+as its `planFiles` so a completed plan collapses into its card.
+
+```tsx
+function planFilesByRun(files: readonly File[], runs: readonly Run[]): ReadonlyMap<string, File>
+```
 
 
 ### PushSkillParams
 
-Parameters for pushing a skill package from a run artifact.
+Parameters for pushing a skill from a File holding its ZIP archive.
 
-The server reads the directory artifact (ZIP) from run storage
-and pushes it as a skill — no ZIP download reaches the browser.
+The server reads the File's bytes from its own store and pushes them as a
+skill — no ZIP download reaches the browser.
 
 <TypeTable
   type={{
+    fileId: { type: "string", description: "The File holding the skill's ZIP archive (`\"file_01j…\"`), one the caller may view.", required: true },
     org: { type: "string", description: "Organization that will own the skill.", required: true },
-    runId: { type: "string", description: "ID of the run that produced the artifact (format: `run_{ulid}`).", required: true },
-    storageKey: { type: "string", description: "Storage key of the directory artifact. Must start with `artifacts/{executionId}/`.", required: true },
     tag: { type: "string", description: "Optional version tag (e.g., `\"stable\"`, `\"v1.0\"`)." },
   }}
 />
@@ -720,30 +609,15 @@ and pushes it as a skill — no ZIP download reaches the browser.
 
 ### SessionPlan
 
-The session's current plan: the published plan artifact (a `*.plan.md` FILE)
-of the most recent run that produced one, plus the run it belongs
-to (artifact content RPCs are execution-scoped).
+The session's current plan: the plan File of the most recent Plan-mode run
+that returned one, plus that run's id.
 
 <TypeTable
   type={{
-    artifact: { type: "RunArtifact", description: "The published plan artifact (`*.plan.md`).", required: true },
-    runId: { type: "string", description: "ID of the run that published the plan.", required: true },
+    file: { type: "File", description: "The plan File (`*.plan.md`).", required: true },
+    runId: { type: "string", description: "ID of the run that returned the plan.", required: true },
   }}
 />
-
-
-### SkillPackageDetection
-
-Result of detecting whether a run artifact is a pushable skill package.
-
-Uses a discriminated union on the `detected` field — identical pattern
-to [`StigmerResourceDetection`](#stigmerresourcedetection) — so consumers can narrow with a
-simple `if (result.detected)` check.
-
-Skill detection is a **parallel** path to YAML resource detection:
-
-- **YAML detection** (`detectStigmerResource`): Agents — applied via `apply()`
-- **Package detection** (`detectSkillPackage`): Skill packages (directory with SKILL.md) — pushed via `pushFromRunArtifact()`
 
 
 ### StigmerResourceDetection
@@ -764,9 +638,7 @@ YAML file artifacts and be applied to an organization via `apply()`:
 - `"Agent"` — agent blueprint (`apiVersion: agentic.stigmer.ai/v1`, `kind: Agent`)
 
 Skills and plugins are **not** included here — they are package-based
-(directory artifacts) and are pushed, never applied; a skill uses a
-separate detection path via [`isSkillPackage`](#isskillpackage) /
-[`detectSkillPackage`](#detectskillpackage).
+(a ZIP archive) and are pushed, never applied.
 
 
 ### StreamingPlan

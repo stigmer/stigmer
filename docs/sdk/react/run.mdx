@@ -72,40 +72,19 @@ if (approval) {
 
 ### useArtifactContent
 
-Data hook that fetches the text content of a single run artifact
-via `stigmer.run.getArtifactContent()`.
+Data hook that fetches the text content stored under a run's storage key
+via `stigmer.run.getArtifactContent()`: a tool call's offloaded output, or
+one side of a captured file change too large to keep inline. A File the
+agent saved for the person is read with `useFileContent` instead.
 
-The server reads the artifact from R2 and returns the bytes through the
-Stigmer API, eliminating CORS concerns for SDK consumers who need to
-read artifact content programmatically (YAML detection, preview
-rendering, resource type identification).
+The server reads the bytes from storage and returns them through the
+Stigmer API, so a browser never reads storage cross-origin.
 
-Pass `null` for either parameter to skip fetching — consistent with
-the `useSessionEvents(null)` convention. The caller controls when
-to fetch based on artifact metadata (e.g., only for text artifacts
-below a size threshold):
-
-```tsx
-const shouldFetch = isTextArtifact(artifact) && Number(artifact.sizeBytes) < MAX_SIZE;
-const { content } = useArtifactContent(
-  shouldFetch ? executionId : null,
-  shouldFetch ? artifact.storageKey : null,
-);
-```
-
-For directory artifacts (ZIPs), pass `entryPath` to extract a specific
-file from the archive instead of returning the raw ZIP bytes:
-
-```tsx
-const { content } = useArtifactContent(executionId, storageKey, "SKILL.md");
-```
+Pass `null` for either parameter to skip fetching.
 
 The server enforces a content size limit (default 512 KB). Content
-exceeding this limit is truncated — check `isTruncated` and offer
-a full download via the pre-signed URL for large artifacts.
-
-The returned `content` is decoded from UTF-8 bytes. For binary
-artifacts, use `getArtifactDownloadUrl` instead of this hook.
+exceeding this limit is truncated — check `isTruncated` and offer a full
+download via [`useArtifactDownloadUrl`](#useartifactdownloadurl).
 
 **Signature**
 
@@ -115,11 +94,11 @@ function useArtifactContent(executionId: string | null, storageKey: string | nul
 
 <TypeTable
   type={{
-    executionId: { type: "string | null", description: "Run that produced the artifact, or `null` to skip.", required: true },
-    storageKey: { type: "string | null", description: "Storage key from `RunArtifact.storageKey`, or `null` to skip.", required: true },
-    entryPath: { type: "string | null", description: "For directory artifacts: relative path of a file within   the archive to extract. `null` returns the full artifact (existing behavior)." },
-    contentHash: { type: "string", description: "SHA-256 hex digest from `RunArtifact.contentHash`.   When the same file is overwritten during run, the `storageKey` stays   stable but `contentHash` changes, triggering a re-fetch so the UI never   shows stale content. Pass `undefined` or omit for backwards compatibility." },
-    cacheKey: { type: "string", description: "Optional cross-mount cache key. When set, a remount   with the same key renders the previously-fetched content instantly and   refetches in the background (no skeleton flash) — used by the artifact   document so switching back to a recently-viewed tab is instant. Omit for the   default fetch-on-mount behavior (card / modal / plan callers are unchanged)." },
+    executionId: { type: "string | null", description: "Run whose storage key it is, or `null` to skip.", required: true },
+    storageKey: { type: "string | null", description: "Storage key from a `ToolCallOutputRef`, or `null` to skip.", required: true },
+    entryPath: { type: "string | null", description: "For a ZIP stored under the key: relative path of a file   within the archive to extract. `null` returns the stored bytes." },
+    contentHash: { type: "string", description: "Digest of the stored bytes. When the same key is   overwritten, the hash changes and triggers a re-fetch so the UI never   shows stale content." },
+    cacheKey: { type: "string", description: "Optional cross-mount cache key. When set, a remount   with the same key renders the previously-fetched content instantly and   refetches in the background (no skeleton flash)." },
   }}
 />
 
@@ -138,34 +117,7 @@ function useArtifactContent(executionId: string | null, storageKey: string | nul
 />
 
 ```tsx
-function ArtifactViewer({ executionId, artifact }: {
-  executionId: string;
-  artifact: RunArtifact;
-}) {
-  const shouldFetch = isTextArtifact(artifact)
-    && Number(artifact.sizeBytes) < 512_000;
-
-  const { content, contentType, isTruncated, isLoading } = useArtifactContent(
-    shouldFetch ? executionId : null,
-    shouldFetch ? artifact.storageKey : null,
-  );
-
-  if (isLoading) return <Skeleton />;
-  if (!content) return null;
-
-  return (
-    <ArtifactContentRenderer
-      content={content}
-      contentType={contentType}
-      isTruncated={isTruncated}
-    />
-  );
-}
-```
-
-```tsx
-// Extract a single file from a directory artifact
-const { content } = useArtifactContent(executionId, storageKey, "SKILL.md");
+const { content, isLoading } = useArtifactContent(executionId, outputRef.storageKey);
 ```
 
 
@@ -319,32 +271,19 @@ return url ? <img src={url} alt="Tool output" /> : null;
 
 ### useArtifactInspection
 
-Headless behavior hook consolidating the artifact inspect-and-act pipeline
-that was previously inlined per artifact surface: content fetch,
-Agent YAML detection, skill-package detection, the Apply/Push
-mutation, and in-memory clipboard copy.
-
-It is the single writer of this pipeline's derived state, consumed by every
-artifact chrome — the modal action bar and the editor-area
-`ArtifactDocument` toolbar (headless-first). Because there is exactly
-one place computing `detectionLabel` / `ctaLabel` / the apply flow, the two
-surfaces cannot drift.
-
-All four underlying hooks are called unconditionally with null-gated
-arguments (their documented skip contract), so this composition is
-React-rules-clean regardless of the artifact kind.
+Headless behavior hook over one output File: content fetch, Agent YAML
+detection, the Apply mutation, and in-memory clipboard copy.
 
 **Signature**
 
 ```tsx
-function useArtifactInspection(artifact: RunArtifact, executionId: string, org: string, options?: UseArtifactInspectionOptions): ArtifactInspection
+function useArtifactInspection(file: File, org: string, options?: UseArtifactInspectionOptions): ArtifactInspection
 ```
 
 <TypeTable
   type={{
-    artifact: { type: "RunArtifact", description: "The artifact to inspect.", required: true },
-    executionId: { type: "string", description: "Run that produced it (content + skill fetching).", required: true },
-    org: { type: "string", description: "Organization for the \"Apply to [org]\" / \"Push Skill to [org]\" CTA.", required: true },
+    file: { type: "File", description: "The File to inspect.", required: true },
+    org: { type: "string", description: "Organization for the \"Apply to [org]\" CTA.", required: true },
     options: { type: "UseArtifactInspectionOptions", description: "UseArtifactInspectionOptions." },
   }}
 />
@@ -724,55 +663,6 @@ const actions = useRunActions(executionId, {
 ```
 
 
-### useRunArtifacts
-
-Pure derivation hook that extracts artifact metadata from an
-`Run` snapshot.
-
-Follows the same pattern as [`useSessionUsage`](/docs/sdk/react/session#usesessionusage): a `useMemo`-based
-derivation with no side effects and no data fetching. The run
-object (typically from [`useLiveRun`](#useliverun)) is the single input.
-
-Returns an empty array when the run is `null` or has no artifacts,
-eliminating null-checking at every consumer call site.
-
-For reading artifact *content* (e.g., for YAML detection or preview
-rendering), compose with [`useArtifactContent`](#useartifactcontent) on a per-artifact
-basis. For determining whether an artifact is text-based, use
-[`isTextArtifact`](#istextartifact).
-
-**Signature**
-
-```tsx
-function useRunArtifacts(execution: Run | null): UseRunArtifactsReturn
-```
-
-<TypeTable
-  type={{
-    execution: { type: "Run | null", description: "", required: true },
-  }}
-/>
-
-**Returns** — `UseRunArtifactsReturn`
-
-<TypeTable
-  type={{
-    artifactCount: { type: "number", description: "Total number of artifacts." },
-    artifacts: { type: "readonly RunArtifact[]", description: "Artifacts published by the agent during run. Ordered by creation time (oldest first)." },
-    hasArtifacts: { type: "boolean", description: "`true` when the run has at least one artifact." },
-  }}
-/>
-
-```tsx
-const { run } = useLiveRun(executionId);
-const { artifacts, hasArtifacts } = useRunArtifacts(run);
-
-if (hasArtifacts) {
-  artifacts.forEach((a) => console.log(a.name, a.sizeBytes));
-}
-```
-
-
 ### useToolOutputContent
 
 Behavior hook that resolves the full text of a tool output that the runner
@@ -838,8 +728,7 @@ function useToolPresentation(toolUse: ToolUse): ToolPresentation
 Pure derivation hook that extracts workspace write-back data from an
 `Run` snapshot.
 
-Follows the same `useMemo`-based derivation pattern as
-[`useRunArtifacts`](#userunartifacts): no side effects, no data fetching.
+A `useMemo`-based derivation: no side effects, no data fetching.
 The run object (typically from [`useLiveRun`](#useliverun)) is
 the single input.
 
@@ -928,15 +817,13 @@ The primary argument and intent are read from the ask's sanitized preview
 
 ### ArtifactContentBody
 
-The shared, chrome-agnostic body of an artifact view: the file-content
-states (loading / error / binary / text via [`ArtifactContentRenderer`](#artifactcontentrenderer))
-for FILE artifacts, or the file listing + skill banner for DIRECTORY
-artifacts.
+The shared body of an output File's view: the file-content states
+(loading / error / binary / text via [`ArtifactContentRenderer`](#artifactcontentrenderer)).
 
-Extracted so the preview modal and the editor-area `ArtifactDocument` render
-artifact bodies identically — only the surrounding chrome (modal header +
-action bar vs. document toolbar) differs. Pair with
-[`useArtifactInspection`](#useartifactinspection), which supplies every prop here.
+Shared so the preview modal and the editor-area `ArtifactDocument` render
+bodies identically — only the surrounding chrome (modal header + action
+bar vs. document toolbar) differs. Pair with [`useArtifactInspection`](#useartifactinspection),
+which supplies every prop here.
 
 All visual properties flow through `--stgm-*` tokens.
 
@@ -944,14 +831,13 @@ All visual properties flow through `--stgm-*` tokens.
 
 <TypeTable
   type={{
-    artifact: { type: "RunArtifact", description: "The artifact whose body is rendered.", required: true },
     className: { type: "string", description: "Additional CSS classes for the root element." },
-    content: { type: "string | null", description: "Decoded text content, or `null` (directory / binary / loading / error).", required: true },
-    contentType: { type: "string | null", description: "Server-detected content type (rendering-strategy fallback).", required: true },
+    content: { type: "string | null", description: "Decoded text content, or `null` (binary / loading / error).", required: true },
+    contentType: { type: "string | null", description: "The File's media type (rendering-strategy fallback).", required: true },
     error: { type: "Error | null", description: "Content-fetch error, or `null`.", required: true },
+    file: { type: "File", description: "The File whose body is rendered.", required: true },
     isLoading: { type: "boolean", description: "`true` while the content request is in-flight.", required: true },
     isTruncated: { type: "boolean", description: "Whether the fetched content was truncated by the server's size cap.", required: true },
-    skillDetection: { type: "SkillPackageDetection", description: "Skill-package detection for directory artifacts.", required: true, typeDescriptionLink: "/docs/sdk/react/library#skillpackagedetection" },
   }}
 />
 
@@ -1006,7 +892,7 @@ function MyArtifactPanel({ executionId, storageKey, fileName }) {
 
 ### ArtifactDocument
 
-The editor-pane rendering of a single run artifact — the
+The editor-pane rendering of a single output File — the
 [`SurfaceVirtualDocument`](/docs/sdk/react/workspace#surfacevirtualdocument) counterpart of the [`ArtifactPreviewModal`](#artifactpreviewmodal)
 popup, mounted as an artifact-family virtual document under
 [`ARTIFACT_DOCUMENT_ENTRY_ID`](#artifact_document_entry_id). Opening an artifact from the session
@@ -1014,16 +900,16 @@ panel's Artifacts facet lands here (VS Code "each file is a tab") rather than
 a modal.
 
 Shares the modal's exact behavior and body via the two extracted pieces —
-[`useArtifactInspection`](#useartifactinspection) (content + detection + apply/push + copy) and
-[`ArtifactContentBody`](#artifactcontentbody) (loading / error / binary / text / directory) —
+[`useArtifactInspection`](#useartifactinspection) (content + detection + apply + copy) and
+[`ArtifactContentBody`](#artifactcontentbody) (loading / error / binary / text) —
 so the two surfaces can never drift. Only the chrome differs: a document
 toolbar (name + size + detection badge; Copy / Download / Apply) over the
 shared body, instead of the modal's header + footer action bar.
 
 Holds no must-survive local state: the panel region unmounts on collapse and
 switching tabs remounts the active document, resetting transient apply/copy
-state exactly as the modal resets on close. A `cacheKey` on the content fetch
-keeps reopening a recently-viewed artifact instant.
+state exactly as the modal resets on close. The content read is cached by
+the File's id, so reopening a recently-viewed File is instant.
 
 All visual properties flow through `--stgm-*` tokens.
 
@@ -1031,12 +917,11 @@ All visual properties flow through `--stgm-*` tokens.
 
 <TypeTable
   type={{
-    artifact: { type: "RunArtifact", description: "The artifact to render.", required: true },
     className: { type: "string", description: "Additional CSS classes for the root element." },
-    isTerminal: { type: "boolean", description: "Whether the producing run is terminal. Gates the Apply/Push action (a mid-run artifact's content may still change).", required: true },
-    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is applied or a skill pushed — the same host callback the preview modal fires, so a document-apply behaves identically (toast / Library refresh)." },
-    org: { type: "string", description: "Organization for the \"Apply to [org]\" / \"Push Skill to [org]\" CTA.", required: true },
-    runId: { type: "string", description: "Run that produced this artifact version (content + skill fetching).", required: true },
+    file: { type: "File", description: "The File a turn returned.", required: true },
+    isTerminal: { type: "boolean", description: "Whether the run that returned the File has ended. Gates the Apply action (a later turn may still save over the same path).", required: true },
+    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is applied — the same host callback the preview modal fires, so a document-apply behaves identically (toast / Library refresh)." },
+    org: { type: "string", description: "Organization for the \"Apply to [org]\" CTA.", required: true },
   }}
 />
 
@@ -1047,8 +932,8 @@ The file-content states of an artifact body: loading skeleton, error,
 "not available for preview" (binary / unfetched), or the rendered text via
 [`ArtifactContentRenderer`](#artifactcontentrenderer).
 
-Extracted from `ArtifactContentBody` (the session's `RunArtifact` bodies,
-modal + document). Deliberately takes plain fields, not an artifact type,
+Extracted from `ArtifactContentBody` (the output-File bodies, modal +
+document). Deliberately takes plain fields, not an artifact type,
 so a host with its own content model can render file content identically.
 
 **Props** — `ArtifactFileContentProps`
@@ -1067,24 +952,19 @@ so a host with its own content model can render file content identically.
 
 ### ArtifactPreviewContent
 
-Artifact preview content with detection pipeline and Apply/Push CTA.
+Output-File preview content with detection pipeline and Apply CTA.
 
 Renders the header (name, size, detection badge, close button),
-content body (file content or directory listing), and action bar
-(copy, download, Apply/Push). The parent is responsible for rendering
+content body, and action bar (copy, download, Apply). The parent is responsible for rendering
 it inside a `<dialog>`, modal, sheet, overlay, or inline context as
 needed.
 
 Orchestrates the shared detection pipeline (see [`useArtifactInspection`](#useartifactinspection)):
 
-- **FILE artifacts**: Fetches text content via [`useArtifactContent`](#useartifactcontent),
-  renders via [`ArtifactContentRenderer`](#artifactcontentrenderer) (markdown, YAML, JSON, or
-  plain text based on file type), and detects Agent resources
-  via [`useDetectStigmerResource`](/docs/sdk/react/library#usedetectstigmerresource).
-
-- **DIRECTORY artifacts**: Shows the file listing from
-  `artifact.entries` and detects skill packages via
-  [`useDetectSkillPackage`](/docs/sdk/react/library#usedetectskillpackage).
+it reads a text File via `useFileContent`, renders it via
+[`ArtifactContentRenderer`](#artifactcontentrenderer) (markdown, YAML, JSON, or plain text based
+on file type), and detects Agent resources via
+[`useDetectStigmerResource`](/docs/sdk/react/library#usedetectstigmerresource).
 
 Content fetching begins immediately on mount. Unmounting the component
 resets all internal state (detection, apply result, clipboard). For
@@ -1095,22 +975,20 @@ mount this component rather than passing an `active` flag.
 
 <TypeTable
   type={{
-    artifact: { type: "RunArtifact", description: "The run artifact to preview.", required: true },
     className: { type: "string", description: "Additional CSS classes for the root container." },
-    isTerminal: { type: "boolean", description: "Whether the run is in a terminal phase (completed, failed, cancelled, terminated). Controls Apply/Push CTA availability:  - `true` — CTA renders as an enabled primary button - `false` — CTA renders as a disabled secondary button", required: true },
-    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied or a skill package is pushed. The consumer can use this for post-apply behavior such as showing a toast or navigating to the Library." },
+    file: { type: "File", description: "The File to preview.", required: true },
+    isTerminal: { type: "boolean", description: "Whether the run that returned the File has ended. Controls Apply CTA availability:  - `true` — CTA renders as an enabled primary button - `false` — CTA renders as a disabled secondary button", required: true },
+    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied. The consumer can use this for post-apply behavior such as showing a toast or navigating to the Library." },
     onClose: { type: "() => void", description: "Called when the close button is clicked.", required: true },
-    onImplement: { type: "() => void", description: "Optional plan-build action. When provided, a \"Build\" primary button appears in the action bar (used for plan artifacts: turn the plan into a Run). Clicking it calls `onImplement` then closes the modal. Omit for non-actionable artifacts." },
-    org: { type: "string", description: "Organization id for the \"Apply to [org]\" / \"Push Skill to [org]\" CTA (a slug is also accepted).", required: true },
-    runId: { type: "string", description: "ID of the run that produced this artifact.", required: true },
+    onImplement: { type: "() => void", description: "Optional plan-build action. When provided, a \"Build\" primary button appears in the action bar (used for a plan: turn the plan into a Run). Clicking it calls `onImplement` then closes the modal. Omit for non-actionable Files." },
+    org: { type: "string", description: "Organization id for the \"Apply to [org]\" CTA (a slug is also accepted).", required: true },
   }}
 />
 
 ```tsx
 // Inside a dialog, modal, or overlay:
 <ArtifactPreviewContent
-  artifact={artifact}
-  runId={run.id}
+  file={file}
   org={activeOrg}
   isTerminal={isTerminalPhase(run.status?.phase)}
   onClose={() => setOpen(false)}
@@ -1121,7 +999,7 @@ mount this component rather than passing an `active` flag.
 
 ### ArtifactPreviewModal
 
-Full preview modal for run artifacts using a native `<dialog>`.
+Full preview modal for an output File using a native `<dialog>`.
 
 Thin shell around [`ArtifactPreviewContent`](#artifactpreviewcontent) that adds
 `showModal()` / `close()` lifecycle, `::backdrop` overlay, focus
@@ -1136,30 +1014,27 @@ automatically when the dialog closes.
 
 <TypeTable
   type={{
-    artifact: { type: "RunArtifact", description: "The run artifact to preview.", required: true },
     className: { type: "string", description: "Additional CSS classes for the dialog element." },
-    isTerminal: { type: "boolean", description: "Whether the run is in a terminal phase (completed, failed, cancelled, terminated). Controls Apply/Push CTA availability:  - `true` — CTA renders as an enabled primary button - `false` — CTA renders as a disabled secondary button", required: true },
-    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied or a skill package is pushed. The consumer can use this for post-apply behavior such as showing a toast or navigating to the Library." },
+    file: { type: "File", description: "The File to preview.", required: true },
+    isTerminal: { type: "boolean", description: "Whether the run that returned the File has ended. Controls Apply CTA availability:  - `true` — CTA renders as an enabled primary button - `false` — CTA renders as a disabled secondary button", required: true },
+    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied. The consumer can use this for post-apply behavior such as showing a toast or navigating to the Library." },
     onClose: { type: "() => void", description: "Called when the modal should close (Escape key or close button).", required: true },
     onImplement: { type: "() => void", description: "Optional plan-build action (see ArtifactPreviewContentProps.onImplement). When provided, a \"Build\" primary button appears; clicking it calls `onImplement` then closes the modal." },
     open: { type: "boolean", description: "Controls modal visibility. `true` opens the dialog via `showModal()`.", required: true },
-    org: { type: "string", description: "Organization id for the \"Apply to [org]\" / \"Push Skill to [org]\" CTA (a slug is also accepted).", required: true },
-    runId: { type: "string", description: "ID of the run that produced this artifact.", required: true },
+    org: { type: "string", description: "Organization id for the \"Apply to [org]\" CTA (a slug is also accepted).", required: true },
   }}
 />
 
 ```tsx
-const [previewArtifact, setPreviewArtifact] =
-  useState<RunArtifact | null>(null);
+const [previewFile, setPreviewFile] = useState<File | null>(null);
 
-{previewArtifact && (
+{previewFile && (
   <ArtifactPreviewModal
-    artifact={previewArtifact}
-    runId={run.id}
+    file={previewFile}
     org={activeOrg}
     isTerminal={isTerminalPhase(run.status?.phase)}
     open
-    onClose={() => setPreviewArtifact(null)}
+    onClose={() => setPreviewFile(null)}
     onApplied={(result) => toast(`${result.kind} applied`)}
   />
 )}
@@ -1168,21 +1043,19 @@ const [previewArtifact, setPreviewArtifact] =
 
 ### ArtifactRow
 
-The `RunArtifact` host of the shared [`ArtifactRowView`](#artifactrowview): it owns
-the session model's identity and download mechanics (presigned URL minted
-by `executionId` + `storageKey` via [`useArtifactDownload`](#useartifactdownload)) and maps
-the artifact onto the view-model.
+The output-File host of the shared [`ArtifactRowView`](#artifactrowview): it owns the
+download mechanics (a link minted per click via [`useFileDownload`](/docs/sdk/react/file#usefiledownload))
+and maps the File onto the view-model.
 
 **Props** — `ArtifactRowProps`
 
 <TypeTable
   type={{
-    artifact: { type: "RunArtifact", description: "The run artifact to render.", required: true },
     className: { type: "string", description: "Additional CSS classes for the row's `<li>`." },
-    hasNameCollision: { type: "boolean", description: "When `true`, another artifact in the list shares this artifact's display `name` but has a different `sandbox_path`; the row renders the parent directory as a muted subtitle to disambiguate. Typically supplied from SessionArtifactEntry.hasNameCollision." },
-    onActivate: { type: "() => void", description: "Double click: promote the artifact to a persistent (pinned) tab — see ArtifactRowViewProps.onActivate. Omit in panel-less hosts." },
-    onOpen: { type: "() => void", description: "Single click / Enter / Space: open the artifact (a preview tab, or a modal).", required: true },
-    runId: { type: "string", description: "ID of the run that produced this artifact — used to mint its download URL.", required: true },
+    file: { type: "File", description: "The File a turn returned.", required: true },
+    hasNameCollision: { type: "boolean", description: "When `true`, another row shares this File's filename at a different output path; the row renders the path's folder as a muted subtitle to disambiguate. Typically supplied from SessionArtifactEntry.hasNameCollision." },
+    onActivate: { type: "() => void", description: "Double click: promote the File to a persistent (pinned) tab — see ArtifactRowViewProps.onActivate. Omit in panel-less hosts." },
+    onOpen: { type: "() => void", description: "Single click / Enter / Space: open the File (a preview tab, or a modal).", required: true },
   }}
 />
 
@@ -1215,50 +1088,6 @@ All visual properties flow through `--stgm-*` tokens.
     onOpen: { type: "() => void", description: "Single click / Enter / Space: open the artifact (a preview tab, or a modal).", required: true },
   }}
 />
-
-
-### ArtifactsWidget
-
-Right-sidebar widget that surfaces all artifacts produced during a
-session as a unified, alphabetically-sorted file listing.
-
-Artifacts from multiple runs are aggregated and deduplicated
-by `sandbox_path` (latest run wins), presenting the user with
-a file-explorer-like view of the conversation's output — no
-execution/turn concepts are exposed.
-
-The panel-less counterpart of the session panel's Artifacts facet: it
-renders the same dense [`ArtifactRow`](#artifactrow) list, but — having no editor pane
-to open document tabs into — a click opens the [`ArtifactPreviewModal`](#artifactpreviewmodal)
-(the review-before-apply popup, and the sole home of the Apply/Push CTA).
-This is the embeddable path a platform builder drops into their own sidebar.
-
-Returns `null` when the runs list is empty or no run
-has artifacts, matching the conditional-render pattern of
-[`RunProgress`](#runprogress) and [`UsageWidget`](#usagewidget).
-
-All visual properties flow through `--stgm-*` tokens.
-
-**Props** — `ArtifactsWidgetProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS classes for the root element." },
-    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied or a skill package is pushed from the preview modal. The consumer can use this for post-apply behavior such as showing a toast or navigating to the Library." },
-    org: { type: "string", description: "Organization id for the \"Apply to [org]\" CTA in the preview modal (a slug is also accepted).", required: true },
-    runs: { type: "readonly Run[]", description: "All runs for the current session — both completed and actively streaming. The widget aggregates artifacts across every run, deduplicates by `sandbox_path` (latest wins), and sorts alphabetically by name.  Renders nothing when the list is empty or no run has artifacts.", required: true },
-  }}
-/>
-
-```tsx
-const conv = useSessionConversation(sessionId, org);
-
-<ArtifactsWidget
-  runs={conv.runs}
-  org={activeOrg}
-  onApplied={(result) => toast(`${result.kind} applied`)}
-/>
-```
 
 
 ### EmptyChangeNotice
@@ -1580,8 +1409,9 @@ All visual properties flow through `--stgm-*` tokens.
     pendingUserMessage: { type: "string | null", description: "Optimistic user message shown at the end of the thread before the session's events carry it. Rendered as a person's message with a sending indicator. Clear this prop once the turn appears." },
     planActionsDisabled: { type: "boolean", description: "Disables the plan completion card's actions (Implement / Review). Defense in depth for the brief windows where a follow-up cannot be sent (e.g. a turn is working); the composer also no-ops a disabled submit." },
     planBuildPending: { type: "boolean", description: "True while the approved plan is being uploaded ahead of the build turn." },
+    planFiles: { type: "ReadonlyMap<string, File>", description: "Each completed Plan-mode turn's plan File, by run id (`planFilesByRun` over the conversation's Files). A turn with a plan File collapses its plan message into the plan card; a turn without one (or a host that passes none) renders the plan message as the document itself." },
     resources: { type: "readonly SessionResource[]", description: "The conversation's resources from the session spec. When provided, file paths in tool call rendering become interactive: a path in a git repository opens on GitHub, a path in a local folder offers copy-to-clipboard.  Passed to FilePathContext for consumption by FilePathLink components deep in the tree." },
-    runs: { type: "readonly Run[]", description: "The turns' runs, for what the run record holds and the events do not: the message's attachments and mode, the plan artifact, the agent and skill versions a turn ran, its setup progress, and the captured bytes of its file changes. Matched to turns by run id; a turn whose run is absent renders from its events alone." },
+    runs: { type: "readonly Run[]", description: "The turns' runs, for what the run record holds and the events do not: the message's attachments and mode, the agent and skill versions a turn ran, its setup progress, and the captured bytes of its file changes. Matched to turns by run id; a turn whose run is absent renders from its events alone." },
     runScores: { type: "boolean", description: "Show run scores: thumbs up and down on each completed turn's final answer and the run-health flags beside them. The thread then reads the session's scores once (and again shortly after a turn completes, while it is graded). Off by default, and a thread with it off makes no score request; `SessionViewer` sets it from its audience." },
     sandboxWorkspaceRoot: { type: "string", description: "Absolute sandbox workspace root (e.g. `/home/daytona/workspace`). When provided, shell commands and tool output normalize absolute sandbox paths to workspace-relative display paths.  Pass an empty string or omit for local sessions where paths are the user's own filesystem (no normalization needed)." },
     scrollOnSend: { type: "boolean", description: "Scroll to the reader's own message when they send one from a scrolled-up position (the WhatsApp convention: showing the result of the reader's own action is Nielsen #1 system-status feedback). The send moment is the pendingUserMessage transition from empty to present; the pin re-engages follow mode, so the optimistic bubble and the streamed reply stay in view. Incoming content is unaffected — it still never moves a scrolled-up reader.  Default `true` on all three SDK thread surfaces at once — a deliberate exception to opt-in defaults: cross-surface consistency is the point, and a per-surface opt-in would re-create the inconsistency it fixes. Set `false` to keep today's leave-the-reader-alone behavior." },
@@ -1883,8 +1713,7 @@ metered call count, the prompt/completion and cache split, and who
 served the tokens when that is known.
 
 Returns `null` when the session has no usage, matching the
-conditional-render pattern of [`ArtifactsWidget`](#artifactswidget) and
-[`WriteBacksWidget`](#writebackswidget).
+conditional-render pattern of [`WriteBacksWidget`](#writebackswidget).
 
 All visual properties flow through `--stgm-*` tokens. Zero
 Console dependencies.
@@ -1965,8 +1794,7 @@ presenting the user with a flat list of PRs — one per workspace
 entry.
 
 Returns `null` when no run has write-backs, matching the
-conditional-render pattern of [`ArtifactsWidget`](#artifactswidget) and
-[`RunProgress`](#runprogress).
+conditional-render pattern of [`RunProgress`](#runprogress).
 
 All visual properties flow through `--stgm-*` tokens.  Zero
 Console dependencies.
@@ -2077,29 +1905,27 @@ never collide with the plan tab's `"plan"` kind.
 ### ArtifactInspection
 
 Everything a chrome (the modal action bar, the document toolbar, the content
-body) needs to inspect and act on one artifact: fetched content, resource
-detection, the Apply/Push action, and clipboard copy.
+body) needs to inspect and act on one output File: fetched content, resource
+detection, the Apply action, and clipboard copy.
 
 <TypeTable
   type={{
-    apply: { type: "() => Promise<void>", description: "Apply the detected resource / push the detected skill.", required: true },
-    applyError: { type: "Error | null", description: "Apply/push error, or `null`.", required: true },
+    apply: { type: "() => Promise<void>", description: "Apply the detected resource.", required: true },
+    applyError: { type: "Error | null", description: "Apply error, or `null`.", required: true },
     applyResult: { type: "ApplyResourceResult | null", description: "The successful apply result, or `null`.", required: true },
-    content: { type: "string | null", description: "Decoded text content, or `null` (directory / binary / loading / error).", required: true },
-    contentType: { type: "string | null", description: "Server-detected content type, or `null`.", required: true },
+    content: { type: "string | null", description: "Decoded text content, or `null` (binary / loading / error).", required: true },
+    contentType: { type: "string | null", description: "The File's media type, or `null` when it has none.", required: true },
     copied: { type: "boolean", description: "`true` for a short window after a successful copy.", required: true },
     copy: { type: "() => void", description: "Copy the in-memory content to the clipboard. No-op without content.", required: true },
-    ctaLabel: { type: "string | null", description: "Apply/Push CTA label (`\"Apply to org\"`, `\"Push Skill to org\"`), or `null`.", required: true },
-    detectionLabel: { type: "string | null", description: "Detection badge label (`\"Agent detected\"`, `\"Skill · N files\"`), or `null`.", required: true },
+    ctaLabel: { type: "string | null", description: "Apply CTA label (`\"Apply to org\"`), or `null`.", required: true },
+    detectionLabel: { type: "string | null", description: "Detection badge label (`\"Agent detected\"`), or `null`.", required: true },
     error: { type: "Error | null", description: "Content-fetch error, or `null`.", required: true },
-    isApplying: { type: "boolean", description: "`true` while an apply/push is in-flight.", required: true },
-    isDetected: { type: "boolean", description: "`true` when the artifact is a recognized Stigmer resource or skill.", required: true },
-    isDetecting: { type: "boolean", description: "`true` while detection is still resolving (content / skill fetch).", required: true },
-    isDirectory: { type: "boolean", description: "Whether the artifact is a directory (skill package candidate).", required: true },
+    isApplying: { type: "boolean", description: "`true` while an apply is in-flight.", required: true },
+    isDetected: { type: "boolean", description: "`true` when the File is a recognized Stigmer resource.", required: true },
+    isDetecting: { type: "boolean", description: "`true` while detection is still resolving (content fetch).", required: true },
     isLoading: { type: "boolean", description: "`true` while the content request is in-flight (first load).", required: true },
     isTruncated: { type: "boolean", description: "Whether the fetched content was truncated by the server's size cap.", required: true },
-    refetch: { type: "() => void", description: "Re-fetch the artifact content.", required: true },
-    skillDetection: { type: "SkillPackageDetection", description: "Skill-package detection for directory artifacts.", required: true, typeDescriptionLink: "/docs/sdk/react/library#skillpackagedetection" },
+    refetch: { type: "() => void", description: "Re-fetch the content.", required: true },
   }}
 />
 
@@ -2120,19 +1946,17 @@ rendering logic based on file type.
 
 ### ArtifactRowItem
 
-What an artifact row displays, mapped from the session's `RunArtifact`
-(embedded in `Run.status.artifacts`).
+What an artifact row displays, mapped from an output File.
 
 The view-model carries no identity; list keys and open/download behavior
 stay with the hosts that render the row.
 
 <TypeTable
   type={{
-    isDirectory: { type: "boolean", description: "Directory artifacts render a folder icon, a `/` suffix, and ZIP download copy.", required: true },
-    name: { type: "string", description: "Display label (file or directory name).", required: true },
+    name: { type: "string", description: "Display label (the filename).", required: true },
     sizeBytes: { type: "number | bigint", description: "Content size in bytes (protobuf `int64` is `bigint`).", required: true },
-    subtitlePath: { type: "string | null", description: "Disambiguation subtitle rendered after the name when another row shares the same display name: the artifact's parent directory. `null` when not needed.", required: true },
-    tooltip: { type: "string", description: "House-tooltip content — the fullest location/name known for the artifact.", required: true },
+    subtitlePath: { type: "string | null", description: "Disambiguation subtitle rendered after the name when another row shares the same filename: the output path's folder. `null` when not needed.", required: true },
+    tooltip: { type: "string", description: "House-tooltip content: the output path, the fullest location known.", required: true },
   }}
 />
 
@@ -2684,7 +2508,7 @@ function findActiveTodo(todos: readonly Todo[]): Todo | null
 Formats a byte count as a human-readable file size string.
 
 Accepts both `bigint` (from protobuf `int64` fields like
-`RunArtifact.sizeBytes`) and `number`.
+`FileStatus.sizeBytes`) and `number`.
 
 Uses base-1024 (binary) units with one decimal place.
 
@@ -2720,29 +2544,28 @@ function formatTokenCount(count: number): string
 ```
 
 
-### fromRunArtifact
+### fromFile
 
-Adapts a session `RunArtifact` to a row item.
+Adapts an output File to a row item.
 
 ```tsx
-function fromRunArtifact(artifact: RunArtifact, hasNameCollision: boolean): ArtifactRowItem
+function fromFile(file: File, hasNameCollision: boolean): ArtifactRowItem
 ```
 
 
 ### getArtifactExtension
 
-Extracts the lowercase file extension from an artifact's name.
+Extracts the lowercase file extension from a File's filename.
 
-Returns `null` when the name has no extension or is empty.
+Returns `null` when the filename has no extension or is empty.
 Delegates to [`getFileExtension`](#getfileextension) for the actual parsing.
 
 ```tsx
-function getArtifactExtension(artifact: RunArtifact): string | null
+function getArtifactExtension(file: File): string | null
 ```
 
 ```tsx
-getArtifactExtension(artifact); // "yaml"
-getArtifactExtension(noExtArtifact); // null
+getArtifactExtension(file); // "yaml"
 ```
 
 
@@ -2774,7 +2597,7 @@ Extracts the lowercase file extension from a file name string.
 
 Returns `null` when the name has no extension or is empty.
 Unlike [`getArtifactExtension`](#getartifactextension), this operates on a plain
-string — usable without a full `RunArtifact` object.
+string — usable without a File.
 
 ```tsx
 function getFileExtension(fileName: string): string | null
@@ -2850,22 +2673,18 @@ function isTerminalPhase(phase: RunPhase): boolean
 
 ### isTextArtifact
 
-Determines whether an artifact likely contains human-readable text.
+Determines whether a File likely holds human-readable text: a `text/*`
+media type, or a filename extension in the `TEXT_EXTENSIONS` set.
 
-Returns `false` for directory artifacts (which are stored as ZIP files)
-regardless of name. For file artifacts, checks whether the file
-extension is in the `TEXT_EXTENSIONS` set.
-
-Use this to decide whether to call [`useArtifactContent`](#useartifactcontent) for
-a given artifact. Binary or unknown-extension artifacts should use
-the download URL instead.
+Use this to decide whether to read a File's text with `useFileContent`.
+Binary or unknown Files are downloaded instead.
 
 ```tsx
-function isTextArtifact(artifact: RunArtifact): boolean
+function isTextArtifact(file: File): boolean
 ```
 
 ```tsx
-const shouldFetch = isTextArtifact(artifact) && Number(artifact.sizeBytes) < MAX_SIZE;
+const shouldFetch = isTextArtifact(file);
 ```
 
 
@@ -2972,8 +2791,8 @@ render defeats that for its rows.
     ApprovalCard: { type: "ComponentType<ApprovalCardProps>", description: "The card for a tool use that waits for a person, when it has no row of its own." },
     LivenessStatusLine: { type: "ComponentType<LivenessStatusLineProps>", description: "The ambient-liveness status line at the thread's tail while the active turn is live between visible events (stigmer#277). Override to supply a host-voiced label or richer treatment; the emission policy (when the line appears at all) stays with the thread." },
     MessageEntry: { type: "ComponentType<MessageEntryProps>", description: "All message bubbles — a person's messages, the agent's messages, thinking, and platform notes. Also wraps the failed-send bubble (the inline Retry chrome around it stays built-in)." },
-    PlanArtifactCard: { type: "ComponentType<PlanArtifactCardProps>", description: "Completed Plan turn that published a plan artifact." },
-    PlanCompletionCard: { type: "ComponentType<PlanCompletionCardProps>", description: "Completed Plan turn without an artifact — the bare Implement CTA." },
+    PlanArtifactCard: { type: "ComponentType<PlanArtifactCardProps>", description: "Completed Plan turn that returned a plan File." },
+    PlanCompletionCard: { type: "ComponentType<PlanCompletionCardProps>", description: "Completed Plan turn without a plan File — the bare Implement CTA." },
     PlanStreamingCard: { type: "ComponentType<PlanStreamingCardProps>", description: "Live stand-in card while a Plan turn is writing its document." },
     RecalledMemoriesCard: { type: "ComponentType<RecalledMemoriesCardProps>", description: "The retriever transparency card at a selection-active turn's segment start — \"Recalled N of M memories\"." },
     RunErrorNotice: { type: "ComponentType<RunErrorNoticeProps>", description: "The terminal turn-failure notice. Receives the raw server-reported reason and the retry wiring, so a host can turn the failure into its own recovery moment (classify the reason, offer an alternate engine, link support) instead of the built-in Show more / Retry treatment." },
@@ -3066,14 +2885,13 @@ Props for [`PlanArtifactCard`](#planartifactcard).
 
 <TypeTable
   type={{
-    artifact: { type: "RunArtifact", description: "The published `plan.md` artifact (from `findPlanArtifact`).", required: true },
     buildPending: { type: "boolean", description: "When true, the primary button reads \"Starting build…\" (upload in flight)." },
     className: { type: "string", description: "Additional CSS classes for the root element." },
     disabled: { type: "boolean", description: "Disables the primary CTA (e.g., while a run is active)." },
+    file: { type: "File", description: "The plan File the Plan-mode turn returned (from `findPlanFile`).", required: true },
     onImplement: { type: "() => void", description: "Called when the user clicks \"Build\". Hidden when omitted." },
     onOpenPlan: { type: "() => void", description: "Opens the plan in the session panel's plan document tab — the side-by-side review/refine surface. When provided it REPLACES the modal-based open fallback (one review affordance, not two). When omitted (hosts without a session panel) the same \"Open plan\" icon opens the preview modal instead." },
     org: { type: "string", description: "Organization id (a slug is also accepted). Required for the open-in-modal fallback (the shared ArtifactPreviewModal uses it for its detection/apply pipeline and to fetch the content). When omitted, that fallback is hidden — the prominent \"Build\" action and the download icon remain." },
-    runId: { type: "string", description: "Run that produced the plan — used to fetch the plan content.", required: true },
     title: { type: "string", description: "The plan's title (its leading `# H1`). The card is the plan's compact stand-in in the thread, so the title is what makes it recognizable. Falls back to \"Plan\" when omitted." },
   }}
 />
@@ -3918,8 +3736,7 @@ Options for [`useArtifactInspection`](#useartifactinspection).
 
 <TypeTable
   type={{
-    cacheKey: { type: "string", description: "Cross-mount cache key for the content fetch. Set it so a remount with the same key renders the previously-fetched content instantly and refetches in the background — the artifact document passes it so switching back to a recently-viewed tab is instant. Omit for fetch-on-mount (the modal, which resets on every open)." },
-    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied or a skill package pushed. The consumer uses it for post-apply behavior (toast, navigate to Library)." },
+    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied. The consumer uses it for post-apply behavior (toast, navigate to Library)." },
   }}
 />
 
