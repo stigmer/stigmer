@@ -1,6 +1,6 @@
 /**
- * useApplyResource's skill path: pushSkillPackage asks the server to push the
- * run's directory artifact (run id, storage key, tag defaulting to empty) and
+ * useApplyResource's skill path: pushSkillFromFile asks the server to push a
+ * File holding the skill's archive (file id, tag defaulting to empty) and
  * returns the skill's metadata as an apply result; a refused push sets the
  * hook's error, rethrows it, and clears isApplying.
  */
@@ -16,28 +16,26 @@ function wrapper(client: unknown) {
   };
 }
 
-describe("useApplyResource.pushSkillPackage", () => {
-  it("pushes the run's artifact as a skill and returns its metadata", async () => {
-    const pushFromRunArtifact = vi
+describe("useApplyResource.pushSkillFromFile", () => {
+  it("pushes the File as a skill and returns its metadata", async () => {
+    const pushFromFile = vi
       .fn()
       .mockResolvedValue({ metadata: { name: "Code Review", org: "acme", slug: "code-review" } });
     const { result } = renderHook(() => useApplyResource(), {
-      wrapper: wrapper({ skill: { pushFromRunArtifact } }),
+      wrapper: wrapper({ skill: { pushFromFile } }),
     });
 
     let applied: unknown;
     await act(async () => {
-      applied = await result.current.pushSkillPackage({
+      applied = await result.current.pushSkillFromFile({
         org: "acme",
-        runId: "aex_1",
-        storageKey: "artifacts/aex_1/skill",
+        fileId: "file_1",
       });
     });
 
-    expect(pushFromRunArtifact.mock.calls[0]![0]).toMatchObject({
+    expect(pushFromFile.mock.calls[0]![0]).toMatchObject({
       org: "acme",
-      runId: "aex_1",
-      storageKey: "artifacts/aex_1/skill",
+      fileId: "file_1",
       tag: "",
     });
     expect(applied).toEqual({ kind: "Skill", name: "Code Review", org: "acme", slug: "code-review" });
@@ -46,39 +44,38 @@ describe("useApplyResource.pushSkillPackage", () => {
   });
 
   it("falls back to the requested org and empty names when the skill has no metadata", async () => {
-    const pushFromRunArtifact = vi.fn().mockResolvedValue({});
+    const pushFromFile = vi.fn().mockResolvedValue({});
     const { result } = renderHook(() => useApplyResource(), {
-      wrapper: wrapper({ skill: { pushFromRunArtifact } }),
+      wrapper: wrapper({ skill: { pushFromFile } }),
     });
 
     let applied: unknown;
     await act(async () => {
-      applied = await result.current.pushSkillPackage({
+      applied = await result.current.pushSkillFromFile({
         org: "acme",
-        runId: "aex_1",
-        storageKey: "artifacts/aex_1/skill",
+        fileId: "file_1",
         tag: "stable",
       });
     });
 
-    expect(pushFromRunArtifact.mock.calls[0]![0]).toMatchObject({ tag: "stable" });
+    expect(pushFromFile.mock.calls[0]![0]).toMatchObject({ tag: "stable" });
     expect(applied).toEqual({ kind: "Skill", name: "", org: "acme", slug: "" });
   });
 
   it("sets and rethrows the error when the push is refused", async () => {
-    const refusal = new Error("artifact is not a skill package");
-    const pushFromRunArtifact = vi.fn().mockRejectedValue(refusal);
+    const refusal = new Error("the File is not a skill archive");
+    const pushFromFile = vi.fn().mockRejectedValue(refusal);
     const { result } = renderHook(() => useApplyResource(), {
-      wrapper: wrapper({ skill: { pushFromRunArtifact } }),
+      wrapper: wrapper({ skill: { pushFromFile } }),
     });
 
     await act(async () => {
       await expect(
-        result.current.pushSkillPackage({ org: "acme", runId: "aex_1", storageKey: "artifacts/aex_1/x" }),
+        result.current.pushSkillFromFile({ org: "acme", fileId: "file_1" }),
       ).rejects.toBe(refusal);
     });
 
-    expect(result.current.error?.message).toBe("artifact is not a skill package");
+    expect(result.current.error?.message).toBe("the File is not a skill archive");
     expect(result.current.isApplying).toBe(false);
 
     act(() => result.current.clearError());

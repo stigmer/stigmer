@@ -33,7 +33,7 @@ export interface UseSessionFileChangesReturn {
  * `displayFileChangeSets`), the net-diff collapse, and the file-list ordering
  * are all documented on the core.
  *
- * @param runs - All runs for a session, in chronological order.
+ * @param executions - All runs for a session, in chronological order.
  *   Pass both completed and active-stream runs. Ordering matters: the
  *   net collapse anchors on each path's first and last change.
  *

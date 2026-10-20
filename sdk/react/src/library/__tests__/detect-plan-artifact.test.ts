@@ -1,39 +1,35 @@
+/**
+ * Plan detection over the conversation's Files: a Plan-mode turn's plan is the
+ * File it returned under the plan filename convention. Pins that only a File
+ * the turn returned counts (a person's upload of the same name does not), that
+ * only a Plan-mode run has a plan, that the newest match wins, and that the
+ * session's latest plan walks the runs newest first.
+ */
+
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
+import { FileSchema, type File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
-  RunSchema,
-  RunStatusSchema,
-} from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
-import {
-  isPlanArtifact,
   isPlanArtifactName,
-  findPlanArtifact,
+  isPlanFile,
+  findPlanFile,
   findLatestSessionPlan,
+  planFilesByRun,
   PLAN_ARTIFACT_NAME,
 } from "../detect-plan-artifact";
 
-function artifact(opts: { name: string; kind?: RunArtifactKind; storageKey?: string }) {
-  return create(RunArtifactSchema, {
-    name: opts.name,
-    kind: opts.kind ?? RunArtifactKind.FILE,
-    storageKey: opts.storageKey ?? `artifacts/exec/${opts.name}`,
+function file(id: string, filename: string, runId = ""): StigmerFile {
+  return create(FileSchema, {
+    metadata: { id },
+    spec: { filename },
+    status: { runId, outputPath: runId ? filename : "" },
   });
 }
 
-function executionWith(...artifacts: ReturnType<typeof artifact>[]) {
-  return create(RunSchema, {
-    status: create(RunStatusSchema, { artifacts }),
-  });
-}
-
-function executionWithId(id: string, ...artifacts: ReturnType<typeof artifact>[]) {
-  return create(RunSchema, {
-    metadata: create(ApiResourceMetadataSchema, { id }),
-    status: create(RunStatusSchema, { artifacts }),
-  });
+function run(id: string, mode: InteractionMode = InteractionMode.PLAN) {
+  return create(RunSchema, { metadata: { id }, spec: { interactionMode: mode } });
 }
 
 describe("isPlanArtifactName", () => {
@@ -52,93 +48,77 @@ describe("isPlanArtifactName", () => {
   });
 });
 
-describe("isPlanArtifact", () => {
-  it("is true for a FILE artifact named plan.md", () => {
-    expect(isPlanArtifact(artifact({ name: PLAN_ARTIFACT_NAME }))).toBe(true);
+describe("isPlanFile", () => {
+  it("is true for a File a run returned under a plan name", () => {
+    expect(isPlanFile(file("f1", "plan-card-ux-cleanup_a1b2c3d4.plan.md", "r1"))).toBe(true);
   });
 
-  it("is true for a FILE artifact named <slug>_<id>.plan.md", () => {
-    expect(isPlanArtifact(artifact({ name: "plan-card-ux-cleanup_a1b2c3d4.plan.md" }))).toBe(true);
+  it("is false for a person's upload of the same name", () => {
+    expect(isPlanFile(file("f1", "plan-card-ux-cleanup_a1b2c3d4.plan.md"))).toBe(false);
   });
 
-  it("is false for a directory named plan.md", () => {
-    expect(
-      isPlanArtifact(artifact({ name: "plan.md", kind: RunArtifactKind.DIRECTORY })),
-    ).toBe(false);
-  });
-
-  it("is false for other file names", () => {
-    expect(isPlanArtifact(artifact({ name: "report.md" }))).toBe(false);
-    expect(isPlanArtifact(artifact({ name: "plan.txt" }))).toBe(false);
+  it("is false for other filenames", () => {
+    expect(isPlanFile(file("f1", "report.md", "r1"))).toBe(false);
   });
 });
 
-describe("findPlanArtifact", () => {
-  it("returns undefined for null/empty executions", () => {
-    expect(findPlanArtifact(null)).toBeUndefined();
-    expect(findPlanArtifact(undefined)).toBeUndefined();
-    expect(findPlanArtifact(executionWith())).toBeUndefined();
+describe("findPlanFile", () => {
+  it("returns undefined for a missing run or no Files", () => {
+    expect(findPlanFile([], null)).toBeUndefined();
+    expect(findPlanFile([], undefined)).toBeUndefined();
+    expect(findPlanFile([], run("r1"))).toBeUndefined();
   });
 
-  it("finds the plan.md among other artifacts", () => {
-    const exec = executionWith(
-      artifact({ name: "notes.txt" }),
-      artifact({ name: PLAN_ARTIFACT_NAME, storageKey: "artifacts/exec/plan.md" }),
-      artifact({ name: "data.json" }),
-    );
-    const plan = findPlanArtifact(exec);
-    expect(plan?.name).toBe(PLAN_ARTIFACT_NAME);
-    expect(plan?.storageKey).toBe("artifacts/exec/plan.md");
+  it("finds the run's plan among its other outputs and other runs' plans", () => {
+    const files = [
+      file("f3", "data.json", "r1"),
+      file("f2", "other_11111111.plan.md", "r2"),
+      file("f1", "mine_22222222.plan.md", "r1"),
+    ];
+    expect(findPlanFile(files, run("r1"))?.metadata?.id).toBe("f1");
   });
 
-  it("returns the latest plan.md when more than one is present", () => {
-    const exec = executionWith(
-      artifact({ name: PLAN_ARTIFACT_NAME, storageKey: "artifacts/exec/plan.md#old" }),
-      artifact({ name: PLAN_ARTIFACT_NAME, storageKey: "artifacts/exec/plan.md#new" }),
-    );
-    expect(findPlanArtifact(exec)?.storageKey).toBe("artifacts/exec/plan.md#new");
+  it("returns the newest plan File when the run returned more than one", () => {
+    // The list is newest first.
+    const files = [file("new", "a_1.plan.md", "r1"), file("old", "a_0.plan.md", "r1")];
+    expect(findPlanFile(files, run("r1"))?.metadata?.id).toBe("new");
   });
 
-  it("returns undefined when no plan artifact exists", () => {
-    expect(findPlanArtifact(executionWith(artifact({ name: "report.md" })))).toBeUndefined();
+  it("finds no plan on a run that did not run in Plan mode", () => {
+    const files = [file("f1", "a_1.plan.md", "r1")];
+    expect(findPlanFile(files, run("r1", InteractionMode.AGENT))).toBeUndefined();
   });
 });
 
 describe("findLatestSessionPlan", () => {
-  it("returns undefined when no execution published a plan", () => {
-    const execs = [
-      executionWithId("e1", artifact({ name: "report.md" })),
-      executionWithId("e2"),
-    ];
-    expect(findLatestSessionPlan(execs)).toBeUndefined();
-    expect(findLatestSessionPlan([])).toBeUndefined();
+  it("returns undefined when no run returned a plan", () => {
+    const files = [file("f1", "report.md", "r1")];
+    expect(findLatestSessionPlan(files, [run("r1"), run("r2")])).toBeUndefined();
+    expect(findLatestSessionPlan([], [])).toBeUndefined();
   });
 
-  it("returns the newest plan across executions, with its execution id", () => {
-    const execs = [
-      executionWithId("e1", artifact({ name: PLAN_ARTIFACT_NAME, storageKey: "artifacts/e1/plan.md" })),
-      executionWithId("e2", artifact({ name: "notes.txt" })),
-      executionWithId("e3", artifact({ name: PLAN_ARTIFACT_NAME, storageKey: "artifacts/e3/plan.md" })),
+  it("returns the newest plan across runs, with its run id", () => {
+    const files = [
+      file("f3", "b_3.plan.md", "r3"),
+      file("f2", "notes.txt", "r2"),
+      file("f1", "a_1.plan.md", "r1"),
     ];
-
-    const plan = findLatestSessionPlan(execs);
-    expect(plan?.runId).toBe("e3");
-    expect(plan?.artifact.storageKey).toBe("artifacts/e3/plan.md");
+    const plan = findLatestSessionPlan(files, [run("r1"), run("r2"), run("r3")]);
+    expect(plan?.runId).toBe("r3");
+    expect(plan?.file.metadata?.id).toBe("f3");
   });
 
-  it("skips a newer plan-less execution and returns the older plan", () => {
-    const execs = [
-      executionWithId("e1", artifact({ name: PLAN_ARTIFACT_NAME })),
-      executionWithId("e2", artifact({ name: "data.json" })),
-    ];
-    expect(findLatestSessionPlan(execs)?.runId).toBe("e1");
+  it("skips a newer plan-less run and returns the older plan", () => {
+    const files = [file("f2", "data.json", "r2"), file("f1", "a_1.plan.md", "r1")];
+    expect(findLatestSessionPlan(files, [run("r1"), run("r2")])?.runId).toBe("r1");
   });
+});
 
-  it("skips an execution whose plan artifact lacks a usable execution id", () => {
-    const execs = [
-      executionWithId("e1", artifact({ name: PLAN_ARTIFACT_NAME })),
-      executionWith(artifact({ name: PLAN_ARTIFACT_NAME })),
-    ];
-    expect(findLatestSessionPlan(execs)?.runId).toBe("e1");
+describe("planFilesByRun", () => {
+  it("maps each Plan-mode run to its plan File", () => {
+    const files = [file("f2", "b_2.plan.md", "r2"), file("f1", "a_1.plan.md", "r1")];
+    const byRun = planFilesByRun(files, [run("r1"), run("r2", InteractionMode.AGENT)]);
+    expect([...byRun.keys()]).toEqual(["r1"]);
+    expect(byRun.get("r1")?.metadata?.id).toBe("f1");
   });
 });

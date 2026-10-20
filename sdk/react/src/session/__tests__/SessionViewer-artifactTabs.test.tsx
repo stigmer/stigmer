@@ -1,12 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, act, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, act, fireEvent, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-import {
-  RunArtifactKind,
-  RunPhase,
-} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../../run/artifact-document";
 import { artifactKey, type SessionArtifactEntry } from "../useSessionArtifacts";
 
@@ -48,24 +45,27 @@ vi.mock("../../composer", async (importOriginal) => {
   };
 });
 
-const artifact = create(RunArtifactSchema, {
-  name: "agent.yaml",
-  kind: RunArtifactKind.FILE,
-  sizeBytes: 512n,
-  sandboxPath: ".stigmer/agent.yaml",
-  storageKey: "artifacts/aex_1/agent.yaml",
+// What the turn returned: a File it saved in its outputs folder.
+const artifact = create(FileSchema, {
+  metadata: { id: "file_agent" },
+  spec: { filename: "agent.yaml" },
+  status: { sizeBytes: 512n, sessionId: "ses_1", runId: "aex_1", outputPath: "configs/agent.yaml" },
+});
+
+// A person's upload: a File of the conversation that no turn returned.
+const upload = create(FileSchema, {
+  metadata: { id: "file_brief" },
+  spec: { filename: "brief.pdf" },
+  status: { sizeBytes: 64n, sessionId: "ses_1" },
 });
 
 const artifactExecution = create(RunSchema, {
   metadata: { id: "aex_1" },
-  status: {
-    phase: RunPhase.RUN_COMPLETED,
-    artifacts: [artifact],
-  },
+  status: { phase: RunPhase.RUN_COMPLETED },
 });
 
 const entry: SessionArtifactEntry = {
-  artifact,
+  file: artifact,
   runId: "aex_1",
   isTerminal: true,
   hasNameCollision: false,
@@ -159,14 +159,17 @@ vi.mock("../useSessionAccess", () => ({
   useSessionAccess: () => ({ canSend: true, canDecide: true }),
 }));
 
+// One client for every render, as the provider gives: a new object per call
+// would re-read the conversation's Files on every render.
+const client = vi.hoisted(() => ({
+  // Server info answers the Environment row: a server that predates the field.
+  platform: { getServerInfo: async () => ({}) },
+  file: { listAll: vi.fn(), getContent: vi.fn() },
+}));
+const listAll = client.file.listAll;
+
 vi.mock("../../hooks", () => ({
-  useStigmer: () => ({
-    // Server info answers the Environment row: a server that predates the field.
-    platform: { getServerInfo: async () => ({}) },
-    run: {
-      getArtifactContent: vi.fn(),
-    },
-  }),
+  useStigmer: () => client,
 }));
 
 import { SessionViewer } from "../SessionViewer";
@@ -180,21 +183,35 @@ function latestEditors(): ReadonlyArray<{
   return (surfaceProps.at(-1)?.editors ?? []) as never;
 }
 
-/** Read a callback off the rail-view <ArtifactsTab> element the surface received. */
-function artifactsTabCallback(
-  name: "onOpenArtifact" | "onActivateArtifact",
-): (entry: SessionArtifactEntry) => void {
+/** The props of the rail-view <ArtifactsTab> element the surface received. */
+function artifactsTabProps(): CapturedProps {
   const views = surfaceProps.at(-1)?.extraViews as
     | ReadonlyArray<{ id: string; content: { props: CapturedProps } }>
     | undefined;
   const artifactsView = views?.find((v) => v.id === "artifacts");
   if (!artifactsView) throw new Error("Artifacts rail view not present");
-  return artifactsView.content.props[name] as (e: SessionArtifactEntry) => void;
+  return artifactsView.content.props;
+}
+
+/** Read a callback off the rail-view <ArtifactsTab> element the surface received. */
+function artifactsTabCallback(
+  name: "onOpenArtifact" | "onActivateArtifact",
+): (entry: SessionArtifactEntry) => void {
+  return artifactsTabProps()[name] as (e: SessionArtifactEntry) => void;
+}
+
+/** Shows the panel once the conversation's Files are listed. */
+async function showPanelWithArtifacts() {
+  fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
+  await waitFor(() => expect(() => artifactsTabProps()).not.toThrow());
 }
 
 beforeEach(() => {
   threadProps.length = 0;
   surfaceProps.length = 0;
+  listAll.mockImplementation(async function* () {
+    yield* [upload, artifact];
+  });
 });
 
 afterEach(() => {
@@ -203,17 +220,17 @@ afterEach(() => {
 });
 
 describe("SessionViewer — Artifacts facet open/pin wiring", () => {
-  it("threads onOpenArtifact + onActivateArtifact into the Artifacts rail view", () => {
+  it("threads onOpenArtifact + onActivateArtifact into the Artifacts rail view", async () => {
     render(<SessionViewer sessionId="ses_1" org="acme" />);
-    fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
+    await showPanelWithArtifacts();
 
     expect(typeof artifactsTabCallback("onOpenArtifact")).toBe("function");
     expect(typeof artifactsTabCallback("onActivateArtifact")).toBe("function");
   });
 
-  it("opening an artifact lands a PREVIEW tab; activating it pins the tab", () => {
+  it("opening an artifact lands a PREVIEW tab; activating it pins the tab", async () => {
     render(<SessionViewer sessionId="ses_1" org="acme" />);
-    fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
+    await showPanelWithArtifacts();
 
     // Single-click preview → one preview tab keyed by the artifact identity.
     act(() => artifactsTabCallback("onOpenArtifact")(entry));
@@ -226,5 +243,27 @@ describe("SessionViewer — Artifacts facet open/pin wiring", () => {
     expect(latestEditors()).toEqual([
       { entryId: ARTIFACT_DOCUMENT_ENTRY_ID, path: artifactKey(artifact), preview: false },
     ]);
+  });
+});
+
+describe("SessionViewer — the Artifacts facet lists the conversation's output Files", () => {
+  it("lists the Files a turn returned, by output path, and leaves a person's uploads out", async () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    await showPanelWithArtifacts();
+
+    expect(listAll.mock.calls[0]![0]).toEqual({ org: "acme", sessionId: "ses_1" });
+    const entries = artifactsTabProps().artifacts as readonly SessionArtifactEntry[];
+    expect(entries.map((e) => e.file.metadata?.id)).toEqual(["file_agent"]);
+    expect(artifactKey(entries[0]!.file)).toBe("configs/agent.yaml");
+  });
+
+  it("re-reads the conversation's Files when the facet opens", async () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    await showPanelWithArtifacts();
+    const reads = listAll.mock.calls.length;
+
+    act(() => (artifactsTabProps().onShown as () => void)());
+
+    await waitFor(() => expect(listAll.mock.calls.length).toBe(reads + 1));
   });
 });

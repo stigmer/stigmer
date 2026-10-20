@@ -1,10 +1,9 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { create } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/design-tokens";
 import { getUserMessage, type ResourceRef } from "@stigmer/client";
-import { GetArtifactContentRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
 import type { WorkspaceFileReader } from "../workspace/WorkspaceFileReader.js";
@@ -35,9 +34,11 @@ import { SecretFlowErrorGuide, isSecretFlowError } from "../error/index.js";
 import { useStigmer } from "../hooks.js";
 import {
   findLatestSessionPlan,
-  findPlanArtifact,
+  findPlanFile,
+  planFilesByRun,
   type SessionPlan,
 } from "../library/detect-plan-artifact.js";
+import { useSessionFiles } from "../file/useSessionFiles.js";
 import { findStreamingPlan } from "../library/detect-streaming-plan.js";
 import { useSessionAccess } from "./useSessionAccess.js";
 import { useSessionPageFlow } from "./useSessionPageFlow.js";
@@ -97,28 +98,6 @@ interface SessionStreamingPlan {
   readonly executionId: string;
   /** The live plan text (fence-stripped display projection). */
   readonly displayText: string;
-}
-
-/**
- * Reads the published plan's full text for the build handoff. Refuses a
- * truncated read (content RPC caps at 512 KB): attaching a partial plan would
- * silently implement half a document — the caller falls back to
- * conversation-history implement instead.
- */
-async function fetchPlanText(
-  stigmer: ReturnType<typeof useStigmer>,
-  plan: SessionPlan,
-): Promise<string> {
-  const result = await stigmer.run.getArtifactContent(
-    create(GetArtifactContentRequestSchema, {
-      runId: plan.runId,
-      storageKey: plan.artifact.storageKey,
-    }),
-  );
-  if (result.truncated) {
-    throw new Error("plan content truncated — not attaching a partial plan");
-  }
-  return new TextDecoder().decode(result.content);
 }
 
 /**
@@ -472,20 +451,35 @@ export function SessionViewer({
     RunPhase.RUN_PHASE_UNSPECIFIED;
   const hasPhase = phase !== RunPhase.RUN_PHASE_UNSPECIFIED;
 
+  // The conversation's Files, read once per conversation and again whenever
+  // a turn ends (the runs refetch shows it): what its turns returned feeds
+  // the Artifacts facet, the plan card and the plan tab.
+  const settledKey = useMemo(
+    () =>
+      flow.allRuns
+        .filter((run) => isTerminalPhase(run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED))
+        .map((run) => run.metadata?.id ?? "")
+        .join(","),
+    [flow.allRuns],
+  );
+  const sessionFiles = useSessionFiles(org || null, sessionId || null, settledKey);
+  const files = sessionFiles.files;
+
   // Facet arrival counts: rail badges inside the panel, the chip's dot-count
   // while collapsed. Arrivals never auto-open the panel (badge-only signal).
   const { hasWriteBacks, writeBackCount } = useSessionWriteBacks(flow.allRuns);
-  const { artifactCount } = useSessionArtifacts(flow.allRuns);
+  const { artifacts: sessionArtifacts, artifactCount } = useSessionArtifacts(files, flow.allRuns);
 
-  // The session's current plan (latest published plan.md across runs)
-  // and its viewer-owned draft. Ownership at this level is deliberate: the
+  // The session's current plan (the latest Plan-mode turn's plan File) and
+  // its viewer-owned draft. Ownership at this level is deliberate: the
   // panel unmounts facet content on every view switch, so a facet-local
   // draft would silently lose the user's edits (see usePlanDraft).
   const stigmer = useStigmer();
   const sessionPlan = useMemo(
-    () => findLatestSessionPlan(flow.allRuns),
-    [flow.allRuns],
+    () => findLatestSessionPlan(files, flow.allRuns),
+    [files, flow.allRuns],
   );
+  const planFiles = useMemo(() => planFilesByRun(files, flow.allRuns), [files, flow.allRuns]);
   const planDraft = usePlanDraft(sessionPlan);
 
   // The plan the LIVE turn is writing right now (the H1 convention — see
@@ -510,7 +504,8 @@ export function SessionViewer({
 
   // The plan tab's identity across both plan lifecycles: while a plan
   // streams, the in-flight turn owns the tab (`<executionId>:streaming`);
-  // once published, the artifact identity (planDraftKey) takes over. Each
+  // once the turn returns its plan File, that File's identity (planDraftKey)
+  // takes over. Each
   // transition is a NEW identity, so useSessionPanel's planKey trigger
   // auto-opens the tab the moment a plan starts streaming AND (idempotently)
   // when it settles into the published plan.
@@ -543,6 +538,10 @@ export function SessionViewer({
     // without a panel (guest, or panel="none") suppresses the trigger
     // along with the chip.
     planKey: panelEnabled ? panelPlanKey : null,
+    // Plans are found among the conversation's Files, read after mount: the
+    // plan present when that first read lands is an old one, never a reason
+    // to open the panel.
+    planKeyReady: !sessionFiles.isLoading,
     // With the panel disabled the controller is pinned controlled-closed
     // and unobserved — airtight inertness, not just hidden UI: no intent
     // can flip state or reach the host's callback.
@@ -570,37 +569,41 @@ export function SessionViewer({
       });
     };
 
-    // No published artifact (the bare-CTA fallback card) — nothing to attach.
+    // No plan File (the bare-CTA fallback card) — nothing to hand over.
     if (!sessionPlan) {
       submitImplementTurn();
       return;
     }
 
-    // Deterministic handoff: upload the APPROVED plan (draft if edited, else
-    // the artifact text, one uniform path) as a File of the conversation
-    // and name it on the implement run. The published artifact itself stays
-    // immutable; the approved copy is a new input on the build turn
-    // (edit-as-input provenance).
+    // Deterministic handoff. An unedited plan is the plan File itself: the
+    // build turn names it, and the server makes it a resource of the
+    // conversation with no second upload. An edited plan is uploaded as a
+    // new File of the conversation (edit-as-input); the plan File stays
+    // immutable.
+    const draftText = planDraft.readDraft();
+    if (draftText === null) {
+      const planFileId = sessionPlan.file.metadata?.id;
+      submitImplementTurn(planFileId ? [planFileId] : undefined);
+      return;
+    }
     setIsBuildingFromPlan(true);
-    // The approved copy keeps the published plan's filename: the runner
-    // finds it among the conversation's uploads by the plan filename
-    // convention (`isPlanArtifactName`), and the download and the plan card
-    // agree on one name.
-    const planFileName = sessionPlan.artifact.name;
+    // The edited copy keeps the plan's filename: the runner finds it among
+    // the conversation's Files by the plan filename convention
+    // (`isPlanArtifactName`), and the download and the plan card agree on
+    // one name.
+    const planFileName = sessionPlan.file.spec?.filename ?? "plan.md";
     void (async () => {
       try {
-        const approvedText =
-          planDraft.readDraft() ?? (await fetchPlanText(stigmer, sessionPlan));
         const planFile = await stigmer.file.uploadFile({
           org,
           sessionId,
           filename: planFileName,
           mimeType: "text/markdown",
-          content: new TextEncoder().encode(approvedText),
+          content: new TextEncoder().encode(draftText),
         });
-        const planFileId = planFile.metadata?.id;
-        if (!planFileId) throw new Error("the uploaded plan came back without an id");
-        submitImplementTurn([planFileId]);
+        const editedFileId = planFile.metadata?.id;
+        if (!editedFileId) throw new Error("the uploaded plan came back without an id");
+        submitImplementTurn([editedFileId]);
       } catch {
         // Attachment plumbing must never block the build: implement from
         // conversation history alone, and say so (non-blocking notice).
@@ -630,22 +633,22 @@ export function SessionViewer({
 
   // "Open artifact" (an Artifacts-facet row) → an editor-pane document tab.
   // Writing the editors store re-renders only the panel subtree (which
-  // subscribes), never this streaming column. Plan artifacts are routed to the
+  // subscribes), never this streaming column. Plan Files are routed to the
   // plan tab upstream (in ArtifactsTab), so they never reach here.
   const handleOpenArtifact = useCallback(
     (entry: SessionArtifactEntry) => {
-      panel.openArtifact(entry.artifact);
+      panel.openArtifact(entry.file);
     },
     [panel.openArtifact],
   );
 
   // Double-click an artifact row → pin its tab (the leading single click already
   // opened the preview via `handleOpenArtifact`). Mirrors the file tree's
-  // preview/pin split; plan artifacts are routed to the plan tab upstream (in
+  // preview/pin split; plan Files are routed to the plan tab upstream (in
   // ArtifactsTab) and never reach here.
   const handleActivateArtifact = useCallback(
     (entry: SessionArtifactEntry) => {
-      panel.pinArtifact(entry.artifact);
+      panel.pinArtifact(entry.file);
     },
     [panel.pinArtifact],
   );
@@ -740,6 +743,7 @@ export function SessionViewer({
           onBrowseLocalFolder={onBrowseLocalFolder}
           onBuildFromPlan={handleBuildFromPlan}
           onOpenPlan={handleOpenPlan}
+          planFiles={planFiles}
           isBuildingFromPlan={isBuildingFromPlan}
           planAttachFailed={planAttachFailed}
           onDismissPlanAttachFailed={() => setPlanAttachFailed(false)}
@@ -774,6 +778,9 @@ export function SessionViewer({
               isReader || !conv.canSendFollowUp || isBuildingFromPlan
             }
             sessionPlan={sessionPlan}
+            sessionFiles={files}
+            sessionArtifacts={sessionArtifacts}
+            onArtifactsShown={sessionFiles.refetch}
             streamingPlan={streamingPlan}
             planDraft={planDraft}
             openPlanExecutionId={openPlanExecutionId}
@@ -819,7 +826,9 @@ interface ConversationColumnProps {
   readonly onBuildFromPlan: () => void;
   /** Opens a plan in the panel's plan document tab (thread card "Open plan"). */
   readonly onOpenPlan: (executionId: string) => void;
-  /** True while the approved plan is being uploaded ahead of the build turn. */
+  /** Each Plan-mode turn's plan File, by run id, for the thread's plan cards. */
+  readonly planFiles: ReadonlyMap<string, StigmerFile>;
+  /** True while the edited plan is being uploaded ahead of the build turn. */
   readonly isBuildingFromPlan: boolean;
   /** True when the last build fell back to a message-only implement. */
   readonly planAttachFailed: boolean;
@@ -880,6 +889,7 @@ const ConversationColumn = memo(function ConversationColumn({
   onBrowseLocalFolder,
   onBuildFromPlan,
   onOpenPlan,
+  planFiles,
   isBuildingFromPlan,
   planAttachFailed,
   onDismissPlanAttachFailed,
@@ -1010,6 +1020,7 @@ const ConversationColumn = memo(function ConversationColumn({
       <MessageThread
         turns={conv.turns}
         runs={conv.runs}
+        planFiles={planFiles}
         pendingUserMessage={conv.pendingUserMessage}
         pendingAttachments={conv.pendingAttachments}
         pendingMessageFailed={!!conv.sendError && !!conv.pendingUserMessage}
@@ -1220,6 +1231,12 @@ interface SessionPanelRegionProps {
   readonly implementPlanDisabled?: boolean;
   /** The session's latest plan — the plan tab's editable content. */
   readonly sessionPlan?: SessionPlan;
+  /** The conversation's Files, newest first — a superseded plan's File is found here. */
+  readonly sessionFiles: readonly StigmerFile[];
+  /** The conversation's outputs, one per output path (the Artifacts facet and its tabs). */
+  readonly sessionArtifacts: readonly SessionArtifactEntry[];
+  /** Re-read the conversation's Files when the Artifacts facet opens. */
+  readonly onArtifactsShown: () => void;
   /**
    * The plan the active turn is writing right now. While present it OWNS the
    * plan tab: the tab renders the live document (`PlanStreamingDocument`)
@@ -1270,6 +1287,9 @@ function SessionPanelRegion({
   onImplementPlan,
   implementPlanDisabled,
   sessionPlan,
+  sessionFiles,
+  sessionArtifacts,
+  onArtifactsShown,
   streamingPlan,
   planDraft,
   openPlanExecutionId,
@@ -1288,10 +1308,6 @@ function SessionPanelRegion({
   const { editors, activeKey, activeFile, reveal } = useWorkspaceEditors(
     panel.editorsStore,
   );
-  // Session artifacts, deduped by identity — the source both the Artifacts
-  // rail-view badge and the open artifact document tabs resolve against.
-  const { artifacts: sessionArtifacts } = useSessionArtifacts(flow.allRuns);
-
   // Honor a pending jump-to-line reveal only while it targets the active editor
   // (an EditorReveal is structurally a RevealTarget). Switching tabs changes
   // activeKey, so a stale reveal for another tab is naturally ignored.
@@ -1313,7 +1329,7 @@ function SessionPanelRegion({
   // Resolve WHICH plan the plan document tab shows: the latest (editable,
   // buildable, draft-backed) unless a historical run id was opened —
   // that plan renders read-only. A stale id (run gone, or its plan
-  // artifact missing) degrades to the latest rather than an empty tab.
+  // File missing) degrades to the latest rather than an empty tab.
   const openPlan = useMemo<SessionPlan | undefined>(() => {
     if (
       openPlanExecutionId === null ||
@@ -1324,11 +1340,9 @@ function SessionPanelRegion({
     const execution = flow.allRuns.find(
       (e) => e.metadata?.id === openPlanExecutionId,
     );
-    const artifact = findPlanArtifact(execution);
-    return artifact
-      ? { runId: openPlanExecutionId, artifact }
-      : sessionPlan;
-  }, [openPlanExecutionId, sessionPlan, flow.allRuns]);
+    const file = findPlanFile(sessionFiles, execution);
+    return file ? { runId: openPlanExecutionId, file } : sessionPlan;
+  }, [openPlanExecutionId, sessionPlan, sessionFiles, flow.allRuns]);
 
   // The plan document tab (SurfaceVirtualDocument): the panel's editor-area
   // rendering of the session's plan. Three states, in precedence order:
@@ -1377,12 +1391,12 @@ function SessionPanelRegion({
   // back to its `SessionArtifactEntry` by the same `artifactKey` used to open
   // it (single source of truth for artifact identity). Only the ACTIVE doc's
   // `content` is mounted by the surface, so building these elements is cheap;
-  // keying on `contentHash` remounts a tab whose artifact was overwritten by a
-  // later run. A tab whose artifact no longer exists degrades to an
+  // keying on the File's id remounts a tab whose path a later turn saved
+  // again. A tab whose File no longer exists degrades to an
   // honest notice rather than vanishing.
   const artifactByKey = useMemo(
     () =>
-      new Map(sessionArtifacts.map((entry) => [artifactKey(entry.artifact), entry])),
+      new Map(sessionArtifacts.map((entry) => [artifactKey(entry.file), entry])),
     [sessionArtifacts],
   );
   const artifactVirtualDocuments = useMemo<readonly SurfaceVirtualDocument[]>(() => {
@@ -1395,9 +1409,8 @@ function SessionPanelRegion({
           path: editor.path,
           content: entry ? (
             <ArtifactDocument
-              key={entry.artifact.contentHash || editor.path}
-              artifact={entry.artifact}
-              runId={entry.runId}
+              key={entry.file.metadata?.id || editor.path}
+              file={entry.file}
               org={org}
               isTerminal={entry.isTerminal}
               onApplied={onApplied}
@@ -1523,6 +1536,8 @@ function SessionPanelRegion({
   // injected rail views — the full inspector feature set inside one panel.
   const railViews = useSessionRailViews({
     allRuns: flow.allRuns,
+    artifacts: sessionArtifacts,
+    onArtifactsShown,
     org,
     sessionConfig,
     onApplied,

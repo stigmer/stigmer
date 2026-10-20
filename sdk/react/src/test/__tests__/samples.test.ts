@@ -9,7 +9,7 @@
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { RunPhase, RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { formatDuration } from "../../run/ToolCallDetail";
 import { samples, SAMPLE_INSTANT, sampleInstant, sampleDate } from "../samples";
@@ -56,19 +56,17 @@ describe("samples", () => {
       expect(ex.spec?.target).toEqual({ case: "sessionId", value: "ses-00000000-0000-0000-0000-000000000001" });
     });
 
-    it("uses the provided id, phase, message and artifacts", () => {
+    it("uses the provided id, phase and message", () => {
       const ex = samples.run({
         id: "run_x",
         sessionId: "ses-x",
         phase: RunPhase.RUN_IN_PROGRESS,
         message: "test input",
-        artifacts: [samples.artifact("a.md")],
       });
       expect(ex.metadata?.id).toBe("run_x");
       expect(ex.spec?.target.value).toBe("ses-x");
       expect(ex.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
       expect(ex.spec?.message).toBe("test input");
-      expect(ex.status?.artifacts).toHaveLength(1);
     });
   });
 
@@ -220,12 +218,12 @@ describe("samples", () => {
     });
   });
 
-  describe("artifact primitive", () => {
-    it("artifact defaults to FILE kind", () => {
-      const a = samples.artifact("report.md");
-      expect(a.name).toBe("report.md");
-      expect(a.kind).toBe(RunArtifactKind.FILE);
-      expect(a.storageKey).toContain("demo-artifact-");
+  describe("output File primitive", () => {
+    it("is a File the demo run returned, saved at its filename by default", () => {
+      const f = samples.outputFile("report.md");
+      expect(f.spec?.filename).toBe("report.md");
+      expect(f.status?.runId).toBe(samples.run().metadata?.id);
+      expect(f.status?.outputPath).toBe("report.md");
     });
   });
 
@@ -311,7 +309,7 @@ describe("samples determinism", () => {
     toolUse: () => samples.toolUse("lookup_order", "{}"),
     sessionEventList: () => samples.sessionEventList(samples.turnEvents()),
     eventFrame: () => samples.eventFrame(samples.userMessageEvent("x")),
-    artifact: () => samples.artifact("report.md"),
+    outputFile: () => samples.outputFile("report.md"),
     sessionList: () => samples.sessionList(),
     runList: () => samples.runList(),
     searchResponse: () => samples.searchResponse(),
@@ -346,7 +344,6 @@ describe("samples determinism", () => {
   it("stamps the frozen instant on every timestamped primitive", () => {
     expect(samples.userMessageEvent("x").event.value?.processedAt).toBe(SAMPLE_INSTANT);
     expect(samples.agentMessageEvent("x").event.value?.processedAt).toBe(SAMPLE_INSTANT);
-    expect(samples.artifact("x").createdAt).toBe(SAMPLE_INSTANT);
     expect(samples.toolUse("x", "y").processedAt).toBe(SAMPLE_INSTANT);
     expect(samples.agentMessageEvent("x", { processedAt: sampleInstant(5_000) }).event.value?.processedAt).toBe(
       sampleInstant(5_000),

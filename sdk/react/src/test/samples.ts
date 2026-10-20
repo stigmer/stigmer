@@ -8,14 +8,8 @@ import {
   RunStatusSchema,
   type Run,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  RunArtifactSchema,
-  type RunArtifact,
-} from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-import {
-  RunArtifactKind,
-  RunPhase,
-} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileSchema, type File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
   RunListSchema,
   type RunList,
@@ -189,7 +183,15 @@ export interface RunOverrides {
   readonly phase?: RunPhase;
   /** The message the run (turn) was started with (`spec.message`). */
   readonly message?: string;
-  readonly artifacts?: RunArtifact[];
+}
+
+export interface OutputFileOverrides {
+  /** The run (turn) that returned it. Defaults to the demo run. */
+  readonly runId?: string;
+  /** Where the agent saved it under the outputs folder. Defaults to the filename. */
+  readonly outputPath?: string;
+  readonly sizeBytes?: bigint;
+  readonly mimeType?: string;
 }
 
 /** Where a session event is filed, shared by every event builder. */
@@ -434,7 +436,7 @@ export const samples = {
   },
 
   /**
-   * A run: one turn's lifecycle record (its spec, phase and artifacts).
+   * A run: one turn's lifecycle record (its spec and phase).
    * What the agent did in the turn is the session's events — see
    * {@link samples.turnEvents}.
    * Default: a completed run started with a short greeting.
@@ -459,7 +461,6 @@ export const samples = {
       status: create(RunStatusSchema, {
         agentId: o?.agentId ?? "agt-00000000-0000-0000-0000-000000000001",
         phase: o?.phase ?? RunPhase.RUN_COMPLETED,
-        artifacts: o?.artifacts ?? [],
       }),
     });
   },
@@ -770,13 +771,29 @@ export const samples = {
     return create(StreamSessionEventsResponseSchema, { frame: { case: "event", value: event } });
   },
 
-  /** A file artifact produced by a run, stamped at {@link SAMPLE_INSTANT}. */
-  artifact(name: string, kind?: RunArtifactKind): RunArtifact {
-    return create(RunArtifactSchema, {
-      name,
-      kind: kind ?? RunArtifactKind.FILE,
-      storageKey: `demo-artifact-${name}`,
-      createdAt: SAMPLE_INSTANT,
+  /**
+   * A File a run returned (what the agent saved in its outputs folder), in
+   * the demo session. The id derives from the run and output path, so two
+   * calls with the same arguments build the same File.
+   */
+  outputFile(filename: string, o?: OutputFileOverrides): StigmerFile {
+    const runId = o?.runId ?? SAMPLE_RUN_ID;
+    const outputPath = o?.outputPath ?? filename;
+    return create(FileSchema, {
+      apiVersion: "agentic.stigmer.ai/v1",
+      kind: "File",
+      metadata: {
+        id: `file_${runId}_${outputPath.replace(/[^A-Za-z0-9]/g, "_")}`,
+        org: "demo",
+        name: filename,
+      },
+      spec: { filename, mimeType: o?.mimeType ?? "" },
+      status: {
+        sizeBytes: o?.sizeBytes ?? 0n,
+        sessionId: SAMPLE_SESSION_ID,
+        runId,
+        outputPath,
+      },
     });
   },
 

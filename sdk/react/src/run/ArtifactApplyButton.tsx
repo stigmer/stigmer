@@ -5,7 +5,7 @@ import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
 
 /** Props for {@link ArtifactApplyButton}. */
 export interface ArtifactApplyButtonProps {
-  /** CTA label (`"Apply to org"` / `"Push Skill to org"`). */
+  /** CTA label (`"Apply to org"`). */
   readonly label: string;
   /**
    * Whether the producing run is terminal. The apply/push action is only
@@ -20,7 +20,7 @@ export interface ArtifactApplyButtonProps {
 }
 
 /**
- * The primary "Apply to [org]" / "Push Skill to [org]" action for a detected
+ * The primary "Apply to [org]" action for a detected
  * artifact resource, shared by every artifact chrome (the preview modal's
  * action bar and the editor-area `ArtifactDocument` toolbar) so its
  * terminal-gating, in-flight, and disabled states are single-source.

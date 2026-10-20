@@ -1,40 +1,41 @@
+/**
+ * The session panel's Artifacts facet over the conversation's output Files:
+ * one dense row per output; a plan routes to the plan tab, any other File to
+ * an editor tab or, in a panel-less host, the preview modal (with Build for a
+ * plan); a double-click pins; opening the facet re-reads the Files once.
+ */
+
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-import {
-  RunArtifactKind,
-  RunPhase,
-} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerContext } from "../../../context";
 import { ArtifactsTab, type ArtifactsTabProps } from "../ArtifactsTab";
-import type { SessionArtifactEntry } from "../../useSessionArtifacts";
+import { deriveSessionArtifacts, type SessionArtifactEntry } from "../../useSessionArtifacts";
 
-function artifact(name: string) {
-  return create(RunArtifactSchema, {
-    name,
-    kind: RunArtifactKind.FILE,
-    sizeBytes: 1024n,
-    sandboxPath: `.stigmer/${name}`,
-    storageKey: `artifacts/aex_1/${name}`,
+function output(filename: string) {
+  return create(FileSchema, {
+    metadata: { id: `file_${filename.replace(/\W/g, "_")}` },
+    spec: { filename },
+    status: { sizeBytes: 1024n, runId: "aex_1", outputPath: filename },
   });
 }
 
 const execution = create(RunSchema, {
   metadata: { id: "aex_1" },
-  status: {
-    phase: RunPhase.RUN_COMPLETED,
-    artifacts: [artifact("plan.md"), artifact("notes.md")],
-  },
+  status: { phase: RunPhase.RUN_COMPLETED },
 });
 
-/** Modal content fetch — keep pending so nothing rejects during the test. */
+const ENTRIES = deriveSessionArtifacts([output("plan.md"), output("notes.md")], [execution]).artifacts;
+
+/** Modal content read — keep pending so nothing rejects during the test. */
 function createStigmerMock(): Stigmer {
   return {
-    run: {
-      getArtifactContent: vi.fn().mockReturnValue(new Promise(() => {})),
+    file: {
+      getContent: vi.fn().mockReturnValue(new Promise(() => {})),
     },
   } as unknown as Stigmer;
 }
@@ -42,7 +43,7 @@ function createStigmerMock(): Stigmer {
 function renderTab(props: Partial<ArtifactsTabProps> = {}) {
   return render(
     <StigmerContext.Provider value={createStigmerMock()}>
-      <ArtifactsTab runs={[execution]} org="acme" {...props} />
+      <ArtifactsTab artifacts={ENTRIES} org="acme" {...props} />
     </StigmerContext.Provider>,
   );
 }
@@ -74,10 +75,21 @@ describe("ArtifactsTab — dense row list", () => {
   it("renders the empty state with no artifacts", () => {
     render(
       <StigmerContext.Provider value={createStigmerMock()}>
-        <ArtifactsTab runs={[]} org="acme" />
+        <ArtifactsTab artifacts={[]} org="acme" />
       </StigmerContext.Provider>,
     );
     expect(screen.getByText(/No artifacts yet/)).toBeTruthy();
+  });
+
+  it("re-reads the conversation's Files once when the facet opens", () => {
+    const onShown = vi.fn();
+    const { rerender } = renderTab({ onShown });
+    rerender(
+      <StigmerContext.Provider value={createStigmerMock()}>
+        <ArtifactsTab artifacts={ENTRIES} org="acme" onShown={() => onShown()} />
+      </StigmerContext.Provider>,
+    );
+    expect(onShown).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -89,7 +101,7 @@ describe("ArtifactsTab — open routing", () => {
     openRow("notes.md");
 
     expect(onOpenArtifact).toHaveBeenCalledTimes(1);
-    expect(onOpenArtifact.mock.calls[0][0].artifact.name).toBe("notes.md");
+    expect(onOpenArtifact.mock.calls[0][0].file.spec?.filename).toBe("notes.md");
     expect(document.querySelector("dialog")).toBeNull();
   });
 
@@ -130,7 +142,7 @@ describe("ArtifactsTab — pin (double-click) routing", () => {
     activateRow("notes.md");
 
     expect(onActivateArtifact).toHaveBeenCalledTimes(1);
-    expect(onActivateArtifact.mock.calls[0][0].artifact.name).toBe("notes.md");
+    expect(onActivateArtifact.mock.calls[0][0].file.spec?.filename).toBe("notes.md");
   });
 
   it("routes a plan.md double-click to onOpenPlan (its tab is already pinned), never onActivateArtifact", () => {

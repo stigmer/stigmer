@@ -6,10 +6,10 @@
 // - "Open plan" on a turn picks which plan the plan tab shows: an earlier
 //   turn's plan opens read-only, the latest plan (or a turn with no plan)
 //   opens the editable current plan.
-// - "Build from plan" reads the published plan by its run and storage key,
-//   uploads it as the approved copy, a File of the conversation, and
-//   submits the build turn naming it; a truncated read never attaches a
-//   partial plan, the turn goes on without it and the viewer says so.
+// - "Build from plan" on an unedited plan names the plan File the turn
+//   returned on the build turn, with no read and no second upload; an edited
+//   plan is uploaded as one new File of the conversation and named instead;
+//   an upload that answers no File builds without it and the viewer says so.
 //
 // The thread, the composer and the workspace surface are prop-capturing
 // probes; the composer probe exposes the imperative `submit` handle.
@@ -20,16 +20,13 @@ import { render, screen, cleanup, act, fireEvent, waitFor } from "@testing-libra
 import { useImperativeHandle, type ReactElement, type Ref } from "react";
 import { create } from "@bufbuild/protobuf";
 import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-import {
-  InteractionMode,
-  RunArtifactKind,
-  RunPhase,
-} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileSchema, type File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { InteractionMode, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Turn } from "@stigmer/client";
 import { samples } from "../../test/samples";
 import type { SessionComposerHandle } from "../../composer";
 import type { SessionPlan } from "../../library/detect-plan-artifact";
+import type { PlanDraftController } from "../usePlanDraft";
 import { PLAN_DOCUMENT_ENTRY_ID } from "../plan-document";
 
 type CapturedProps = Record<string, unknown>;
@@ -69,11 +66,10 @@ vi.mock("../../composer", async (importOriginal) => {
 const client = vi.hoisted(() => ({
   // Server info answers the Environment row: a server that predates the field.
   platform: { getServerInfo: async () => ({}) },
-  run: {
-    getArtifactContent: vi.fn(),
-  },
   file: {
     uploadFile: vi.fn(),
+    getContent: vi.fn(),
+    listAll: vi.fn(),
   },
 }));
 // The reader's own access to the conversation: an owner's, unless a case
@@ -86,31 +82,28 @@ vi.mock("../../hooks", () => ({
   useStigmer: () => client,
 }));
 
-function planArtifact(runId: string) {
-  return create(RunArtifactSchema, {
-    name: "plan.md",
-    kind: RunArtifactKind.FILE,
-    sizeBytes: 64n,
-    sandboxPath: ".stigmer/plan.md",
-    storageKey: `artifacts/${runId}/plan.md`,
-    contentHash: `hash-${runId}`,
+function planFile(runId: string): StigmerFile {
+  return create(FileSchema, {
+    metadata: { id: `file_plan_${runId}` },
+    spec: { filename: "rollout_1a2b3c4d.plan.md", mimeType: "text/markdown" },
+    status: { sizeBytes: 64n, sessionId: "ses_1", runId, outputPath: "rollout_1a2b3c4d.plan.md" },
   });
 }
 
-function completedRun(id: string, withPlan: boolean) {
+function completedRun(id: string, mode: InteractionMode) {
   return create(RunSchema, {
     metadata: { id },
-    status: {
-      phase: RunPhase.RUN_COMPLETED,
-      artifacts: withPlan ? [planArtifact(id)] : [],
-    },
+    spec: { interactionMode: mode },
+    status: { phase: RunPhase.RUN_COMPLETED },
   });
 }
 
-const earlierPlanRun = completedRun("aex_early", true);
-const chatRun = completedRun("aex_chat", false);
-const latestPlanRun = completedRun("aex_latest", true);
+const earlierPlanRun = completedRun("aex_early", InteractionMode.PLAN);
+const chatRun = completedRun("aex_chat", InteractionMode.AGENT);
+const latestPlanRun = completedRun("aex_latest", InteractionMode.PLAN);
 const runs = [earlierPlanRun, chatRun, latestPlanRun];
+// The conversation's Files, newest first: each Plan-mode turn's plan File.
+const sessionFiles = [planFile("aex_latest"), planFile("aex_early")];
 
 const stubConv = {
   org: "acme",
@@ -199,19 +192,35 @@ function lastThread(): CapturedProps {
   return threadProps.at(-1)!;
 }
 
+interface PlanEditorProbe {
+  plan: SessionPlan;
+  readOnly: boolean;
+  draft?: PlanDraftController;
+}
+
 /** The plan the plan document tab renders, read off the surface's virtual document. */
-function planTabEditor(): { plan: SessionPlan; readOnly: boolean } {
+function planTabEditor(): PlanEditorProbe {
   const docs = surfaceProps.at(-1)?.virtualDocuments as
-    | ReadonlyArray<{ entryId: string; content: ReactElement<{ plan: SessionPlan; readOnly: boolean }> }>
+    | ReadonlyArray<{ entryId: string; content: ReactElement<PlanEditorProbe> }>
     | undefined;
   const planDoc = docs?.find((d) => d.entryId === PLAN_DOCUMENT_ENTRY_ID);
   if (!planDoc) throw new Error("plan document not present");
   return planDoc.content.props;
 }
 
+/** Waits until the conversation's Files have been listed and the plans found. */
+async function plansLoaded() {
+  await waitFor(() =>
+    expect((lastThread().planFiles as ReadonlyMap<string, StigmerFile> | undefined)?.size).toBe(2),
+  );
+}
+
 beforeEach(() => {
   threadProps.length = 0;
   surfaceProps.length = 0;
+  client.file.listAll.mockImplementation(async function* () {
+    yield* sessionFiles;
+  });
 });
 
 afterEach(() => {
@@ -243,9 +252,21 @@ describe("SessionViewer — a plan being written", () => {
   });
 });
 
-describe("SessionViewer — Open plan picks the plan tab's plan", () => {
-  it("opens an earlier turn's plan read-only and the latest plan editable", () => {
+describe("SessionViewer — an old plan on load", () => {
+  it("leaves the panel closed when the session's plan arrives with the first Files read", async () => {
     render(<SessionViewer sessionId="ses_1" org="acme" />);
+    await plansLoaded();
+    // Let the panel's effects settle before reading its state.
+    await act(async () => {});
+
+    expect(screen.getByRole("button", { name: "Show panel" })).toBeTruthy();
+  });
+});
+
+describe("SessionViewer — Open plan picks the plan tab's plan", () => {
+  it("opens an earlier turn's plan read-only and the latest plan editable", async () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    await plansLoaded();
     fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
 
     const onOpenPlan = lastThread().onOpenPlan as (runId: string) => void;
@@ -258,8 +279,9 @@ describe("SessionViewer — Open plan picks the plan tab's plan", () => {
     expect(planTabEditor().readOnly).toBe(false);
   });
 
-  it("falls back to the latest plan for a turn that published none", () => {
+  it("falls back to the latest plan for a turn that published none", async () => {
     render(<SessionViewer sessionId="ses_1" org="acme" />);
+    await plansLoaded();
     fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
 
     act(() => (lastThread().onOpenPlan as (runId: string) => void)("aex_chat"));
@@ -268,23 +290,34 @@ describe("SessionViewer — Open plan picks the plan tab's plan", () => {
   });
 });
 
-describe("SessionViewer — Build from plan attaches the approved plan", () => {
-  it("reads the latest plan, uploads it into the conversation, and submits the build turn naming it", async () => {
-    client.run.getArtifactContent.mockResolvedValue({
-      content: new TextEncoder().encode("# Plan\n\n1. Do it\n"),
-      contentType: "text/markdown",
-      truncated: false,
-    });
-    client.file.uploadFile.mockResolvedValue({ metadata: { id: "file_plan" }, status: { sessionId: "ses_1" } });
+describe("SessionViewer — Build from plan hands the build turn the plan", () => {
+  it("names the unedited plan File on the build turn, with no read and no upload", async () => {
     render(<SessionViewer sessionId="ses_1" org="acme" />);
+    await plansLoaded();
 
     act(() => (lastThread().onBuildFromPlan as () => void)());
 
     await waitFor(() => expect(composerSubmit).toHaveBeenCalledOnce());
-    expect(client.run.getArtifactContent.mock.calls[0]![0]).toMatchObject({
-      runId: "aex_latest",
-      storageKey: "artifacts/aex_latest/plan.md",
+    expect(client.file.uploadFile).not.toHaveBeenCalled();
+    expect(client.file.getContent).not.toHaveBeenCalled();
+    expect(composerSubmit).toHaveBeenCalledWith("Build from plan", {
+      interactionMode: "agent",
+      buildFromPlan: true,
+      fileIds: ["file_plan_aex_latest"],
     });
+  });
+
+  it("uploads an edited plan as one File of the conversation and names it", async () => {
+    client.file.uploadFile.mockResolvedValue({ metadata: { id: "file_edited" }, status: { sessionId: "ses_1" } });
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    await plansLoaded();
+    fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
+    act(() => planTabEditor().draft!.setDraft("# Plan\n\n1. Do it, edited\n"));
+
+    act(() => (lastThread().onBuildFromPlan as () => void)());
+
+    await waitFor(() => expect(composerSubmit).toHaveBeenCalledOnce());
+    expect(client.file.uploadFile).toHaveBeenCalledOnce();
     const upload = client.file.uploadFile.mock.calls[0]![0] as {
       sessionId: string;
       filename: string;
@@ -292,48 +325,26 @@ describe("SessionViewer — Build from plan attaches the approved plan", () => {
       mimeType: string;
     };
     expect(upload.sessionId).toBe("ses_1");
-    expect(upload.filename).toBe("plan.md");
+    expect(upload.filename).toBe("rollout_1a2b3c4d.plan.md");
     expect(upload.mimeType).toBe("text/markdown");
-    expect(new TextDecoder().decode(upload.content)).toBe("# Plan\n\n1. Do it\n");
+    expect(new TextDecoder().decode(upload.content)).toBe("# Plan\n\n1. Do it, edited\n");
     expect(composerSubmit).toHaveBeenCalledWith("Build from plan", {
       interactionMode: "agent",
       buildFromPlan: true,
-      fileIds: ["file_plan"],
+      fileIds: ["file_edited"],
     });
   });
 
   it("builds without the plan and says so when the upload answers no File", async () => {
-    client.run.getArtifactContent.mockResolvedValue({
-      content: new TextEncoder().encode("# Plan\n"),
-      contentType: "text/markdown",
-      truncated: false,
-    });
     client.file.uploadFile.mockResolvedValue({ metadata: undefined, status: undefined });
     render(<SessionViewer sessionId="ses_1" org="acme" />);
+    await plansLoaded();
+    fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
+    act(() => planTabEditor().draft!.setDraft("# Plan, edited\n"));
 
     act(() => (lastThread().onBuildFromPlan as () => void)());
 
     await waitFor(() => expect(composerSubmit).toHaveBeenCalledOnce());
-    expect(composerSubmit).toHaveBeenCalledWith("Build from plan", {
-      interactionMode: "agent",
-      buildFromPlan: true,
-      fileIds: undefined,
-    });
-    await screen.findByText(/attach plan\.md/);
-  });
-
-  it("builds without an attachment and says so when the plan read is truncated", async () => {
-    client.run.getArtifactContent.mockResolvedValue({
-      content: new Uint8Array(),
-      contentType: "text/markdown",
-      truncated: true,
-    });
-    render(<SessionViewer sessionId="ses_1" org="acme" />);
-
-    act(() => (lastThread().onBuildFromPlan as () => void)());
-
-    await waitFor(() => expect(composerSubmit).toHaveBeenCalledOnce());
-    expect(client.file.uploadFile).not.toHaveBeenCalled();
     expect(composerSubmit).toHaveBeenCalledWith("Build from plan", {
       interactionMode: "agent",
       buildFromPlan: true,

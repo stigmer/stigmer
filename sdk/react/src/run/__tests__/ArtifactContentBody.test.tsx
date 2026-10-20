@@ -1,28 +1,16 @@
+/**
+ * The output File body's states: loading, error, binary (unavailable) and
+ * rendered text.
+ */
+
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { ArtifactContentBody } from "../ArtifactContentBody";
-import type { SkillPackageDetection } from "../../library/detect-skill-package";
 
-const NOT_SKILL: SkillPackageDetection = { detected: false };
-
-function fileArtifact(name: string) {
-  return create(RunArtifactSchema, {
-    name,
-    kind: RunArtifactKind.FILE,
-    sizeBytes: 64n,
-  });
-}
-
-function dirArtifact(name: string, entries: string[]) {
-  return create(RunArtifactSchema, {
-    name,
-    kind: RunArtifactKind.DIRECTORY,
-    sizeBytes: 512n,
-    entries,
-  });
+function fileArtifact(filename: string) {
+  return create(FileSchema, { spec: { filename }, status: { sizeBytes: 64n, runId: "r1" } });
 }
 
 afterEach(cleanup);
@@ -31,13 +19,12 @@ describe("ArtifactContentBody — file states", () => {
   it("renders a loading skeleton", () => {
     render(
       <ArtifactContentBody
-        artifact={fileArtifact("notes.txt")}
+        file={fileArtifact("notes.txt")}
         content={null}
         contentType={null}
         isLoading
         error={null}
         isTruncated={false}
-        skillDetection={NOT_SKILL}
       />,
     );
     expect(screen.getByText("Loading content")).toBeTruthy();
@@ -46,13 +33,12 @@ describe("ArtifactContentBody — file states", () => {
   it("renders an error message", () => {
     render(
       <ArtifactContentBody
-        artifact={fileArtifact("notes.txt")}
+        file={fileArtifact("notes.txt")}
         content={null}
         contentType={null}
         isLoading={false}
         error={new Error("boom")}
         isTruncated={false}
-        skillDetection={NOT_SKILL}
       />,
     );
     expect(screen.getByText("boom")).toBeTruthy();
@@ -61,13 +47,12 @@ describe("ArtifactContentBody — file states", () => {
   it("renders the binary / unavailable state when content is null and settled", () => {
     render(
       <ArtifactContentBody
-        artifact={fileArtifact("image.bin")}
+        file={fileArtifact("image.bin")}
         content={null}
         contentType={null}
         isLoading={false}
         error={null}
         isTruncated={false}
-        skillDetection={NOT_SKILL}
       />,
     );
     expect(screen.getByText(/Content not available for preview/)).toBeTruthy();
@@ -76,56 +61,14 @@ describe("ArtifactContentBody — file states", () => {
   it("renders text content", () => {
     render(
       <ArtifactContentBody
-        artifact={fileArtifact("notes.txt")}
+        file={fileArtifact("notes.txt")}
         content={"hello from the artifact"}
         contentType={"text/plain"}
         isLoading={false}
         error={null}
         isTruncated={false}
-        skillDetection={NOT_SKILL}
       />,
     );
     expect(screen.getByText(/hello from the artifact/)).toBeTruthy();
-  });
-});
-
-describe("ArtifactContentBody — directory state", () => {
-  it("lists directory entries", () => {
-    render(
-      <ArtifactContentBody
-        artifact={dirArtifact("pack", ["SKILL.md", "run.sh"])}
-        content={null}
-        contentType={null}
-        isLoading={false}
-        error={null}
-        isTruncated={false}
-        skillDetection={NOT_SKILL}
-      />,
-    );
-    expect(screen.getByText("Files (2)")).toBeTruthy();
-    expect(screen.getByText("SKILL.md")).toBeTruthy();
-    expect(screen.getByText("run.sh")).toBeTruthy();
-  });
-
-  it("shows the skill banner when a skill package is detected", () => {
-    const detection = {
-      detected: true,
-      skillName: "My Skill",
-      skillDescription: "does things",
-      fileCount: 2,
-    } as unknown as SkillPackageDetection;
-    render(
-      <ArtifactContentBody
-        artifact={dirArtifact("pack", ["SKILL.md"])}
-        content={null}
-        contentType={null}
-        isLoading={false}
-        error={null}
-        isTruncated={false}
-        skillDetection={detection}
-      />,
-    );
-    expect(screen.getByText("My Skill")).toBeTruthy();
-    expect(screen.getByText("does things")).toBeTruthy();
   });
 });

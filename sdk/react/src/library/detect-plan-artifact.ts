@@ -1,79 +1,81 @@
+/**
+ * Finds a Plan-mode turn's plan among the conversation's Files.
+ *
+ * A Plan-mode turn returns its plan as a File it saved in its outputs folder,
+ * named by the plan filename convention (`<slug>_<id>.plan.md`). Detection is
+ * by that name on a File the turn produced (its `run_id`), on a run that ran
+ * in Plan mode — content-free, so no surface needs a read to know a plan
+ * exists. A person's upload carries no run id, so an edited copy of a plan
+ * is never taken for the plan itself.
+ *
+ * The filename constants mirror the runner's (shared/plan-artifact.ts): the
+ * runner and the browser SDK have disjoint module graphs, so they are
+ * duplicated by design.
+ */
+
+import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 /**
- * The session's current plan: the published plan artifact (a `*.plan.md` FILE)
- * of the most recent run that produced one, plus the run it belongs
- * to (artifact content RPCs are execution-scoped).
+ * The session's current plan: the plan File of the most recent Plan-mode run
+ * that returned one, plus that run's id.
  */
 export interface SessionPlan {
-  /** ID of the run that published the plan. */
+  /** ID of the run that returned the plan. */
   readonly runId: string;
-  /** The published plan artifact (`*.plan.md`). */
-  readonly artifact: RunArtifact;
+  /** The plan File (`*.plan.md`). */
+  readonly file: StigmerFile;
 }
 
 /**
  * Legacy plan filename. Detection-only: {@link isPlanArtifactName} still
- * accepts this exact name so plans published before named artifacts existed
- * keep working. The runner never freshly emits it (a titleless plan falls back
- * to a bare `<id>.plan.md`). Kept in sync with the runner's
- * `PLAN_ARTIFACT_NAME` (shared/plan-artifact.ts).
+ * accepts this exact name so plans written before named plans existed keep
+ * working. The runner never freshly emits it (a titleless plan falls back to
+ * a bare `<id>.plan.md`).
  */
 export const PLAN_ARTIFACT_NAME = "plan.md";
 
 /**
- * Suffix every named plan artifact carries (`<slug>_<id>.plan.md`, or a bare
+ * Suffix every named plan carries (`<slug>_<id>.plan.md`, or a bare
  * `<id>.plan.md` when untitled). The runner derives the slug from the plan's
  * title and the `<id>` from its content hash; detection keys on this suffix.
- * Kept in sync with the runner's `PLAN_ARTIFACT_SUFFIX` (shared/plan-artifact.ts)
- * — the runner and browser SDK have disjoint module graphs, so the constant is
- * duplicated by design, mirroring {@link PLAN_ARTIFACT_NAME}.
  */
 export const PLAN_ARTIFACT_SUFFIX = ".plan.md";
 
 /**
  * Returns `true` when a filename is a plan's: the legacy exact `plan.md`, or
- * any `*.plan.md`. Accepting the legacy name keeps plans published before named
- * artifacts existed detectable.
+ * any `*.plan.md`.
  */
 export function isPlanArtifactName(name: string): boolean {
   return name === PLAN_ARTIFACT_NAME || name.endsWith(PLAN_ARTIFACT_SUFFIX);
 }
 
 /**
- * Returns `true` when an artifact is the published plan: a FILE artifact whose
- * name satisfies {@link isPlanArtifactName}.
- *
- * Detection is by convention — the same lightweight, content-free approach used
- * for skill packages ({@link isSkillPackage}) — so the UI never needs an extra
- * RPC to know a plan exists. The plan's text is fetched on demand via
- * {@link useArtifactContent} only when the user expands the Plan card.
+ * Returns `true` when a File is a turn's plan: a File some run returned
+ * (`status.run_id` set) whose filename satisfies {@link isPlanArtifactName}.
+ * Whether that run ran in Plan mode is {@link findPlanFile}'s check, which
+ * has the run.
  */
-export function isPlanArtifact(artifact: RunArtifact): boolean {
-  return (
-    artifact.kind === RunArtifactKind.FILE &&
-    isPlanArtifactName(artifact.name)
-  );
+export function isPlanFile(file: StigmerFile): boolean {
+  return !!file.status?.runId && isPlanArtifactName(file.spec?.filename ?? "");
 }
 
 /**
- * Finds the plan artifact on a completed run, or `undefined` when none
- * was published (older runs, or a plan that failed to upload).
+ * Finds the plan File a Plan-mode run returned, or `undefined` when the run
+ * is not a Plan-mode run or returned no plan.
  *
- * Returns the latest `plan.md` if more than one is present — the runner
- * replaces rather than appends, so this is defensive.
+ * @param files - The conversation's Files, newest first (the server's list
+ *   order, as `useSessionFiles` keeps it).
+ * @param run - The run whose plan to find.
  */
-export function findPlanArtifact(
-  execution: Run | null | undefined,
-): RunArtifact | undefined {
-  const artifacts = execution?.status?.artifacts;
-  if (!artifacts || artifacts.length === 0) return undefined;
-  for (let i = artifacts.length - 1; i >= 0; i--) {
-    if (isPlanArtifact(artifacts[i])) return artifacts[i];
-  }
-  return undefined;
+export function findPlanFile(
+  files: readonly StigmerFile[],
+  run: Run | null | undefined,
+): StigmerFile | undefined {
+  const runId = run?.metadata?.id;
+  if (!runId || run?.spec?.interactionMode !== InteractionMode.PLAN) return undefined;
+  return files.find((file) => file.status?.runId === runId && isPlanFile(file));
 }
 
 /**
@@ -83,18 +85,34 @@ export function findPlanArtifact(
  * latest-plan-owns-the-build-action rule so every surface agrees on which
  * plan is current.
  *
- * Returns `undefined` when no run in the session published a plan.
+ * Returns `undefined` when no run in the session returned a plan.
  */
 export function findLatestSessionPlan(
-  executions: readonly Run[],
+  files: readonly StigmerFile[],
+  runs: readonly Run[],
 ): SessionPlan | undefined {
-  for (let i = executions.length - 1; i >= 0; i--) {
-    const execution = executions[i];
-    const artifact = findPlanArtifact(execution);
-    const executionId = execution.metadata?.id;
-    if (artifact && executionId) {
-      return { runId: executionId, artifact };
-    }
+  for (let i = runs.length - 1; i >= 0; i--) {
+    const run = runs[i];
+    const file = findPlanFile(files, run);
+    const runId = run.metadata?.id;
+    if (file && runId) return { runId, file };
   }
   return undefined;
+}
+
+/**
+ * Each Plan-mode run's plan File, by run id: what the message thread takes
+ * as its `planFiles` so a completed plan collapses into its card.
+ */
+export function planFilesByRun(
+  files: readonly StigmerFile[],
+  runs: readonly Run[],
+): ReadonlyMap<string, StigmerFile> {
+  const byRun = new Map<string, StigmerFile>();
+  for (const run of runs) {
+    const file = findPlanFile(files, run);
+    const runId = run.metadata?.id;
+    if (file && runId) byRun.set(runId, file);
+  }
+  return byRun;
 }

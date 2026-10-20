@@ -1,44 +1,37 @@
+/**
+ * The output-File list row: icon, filename and size; the output path's folder
+ * as a subtitle only on a name collision; Download a sibling of the open
+ * target and minted per click from the File's id; open on click, activate on
+ * double-click.
+ */
+
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { ArtifactRow } from "../ArtifactRow";
 
-function fileArtifact(name: string, sandboxPath = `.stigmer/${name}`) {
-  return create(RunArtifactSchema, {
-    name,
-    kind: RunArtifactKind.FILE,
-    sizeBytes: 2048n,
-    sandboxPath,
-    storageKey: `artifacts/aex_1/${name}`,
+function fileArtifact(filename: string, outputPath = filename) {
+  return create(FileSchema, {
+    metadata: { id: `file_${filename.replace(/\W/g, "_")}` },
+    spec: { filename },
+    status: { sizeBytes: 2048n, runId: "aex_1", outputPath },
   });
 }
 
-function dirArtifact(name: string) {
-  return create(RunArtifactSchema, {
-    name,
-    kind: RunArtifactKind.DIRECTORY,
-    sizeBytes: 4096n,
-    sandboxPath: `.stigmer/${name}`,
-    storageKey: `artifacts/aex_1/${name}`,
-  });
-}
-
-const getArtifactDownloadUrl = vi.fn().mockResolvedValue({ downloadUrl: "" });
+const getDownloadUrl = vi.fn().mockResolvedValue({ url: "" });
 
 function createStigmerMock(): Stigmer {
   return {
-    run: { getArtifactDownloadUrl },
+    file: { getDownloadUrl },
   } as unknown as Stigmer;
 }
 
 function renderRow(props: Partial<Parameters<typeof ArtifactRow>[0]> = {}) {
   const merged = {
-    artifact: fileArtifact("notes.md"),
-    runId: "aex_1",
+    file: fileArtifact("notes.md"),
     onOpen: vi.fn(),
     ...props,
   } as Parameters<typeof ArtifactRow>[0];
@@ -53,32 +46,26 @@ function renderRow(props: Partial<Parameters<typeof ArtifactRow>[0]> = {}) {
 
 afterEach(() => {
   cleanup();
-  getArtifactDownloadUrl.mockClear();
+  getDownloadUrl.mockClear();
 });
 
 describe("ArtifactRow — presentation", () => {
   it("renders a file-type icon, the name, and the formatted size", () => {
-    renderRow({ artifact: fileArtifact("notes.md") });
+    renderRow({ file: fileArtifact("notes.md") });
     const open = screen.getByText("notes.md").closest("button")!;
     expect(open.querySelector("svg")).toBeTruthy();
     expect(screen.getByText("2.0 KB")).toBeTruthy();
   });
 
-  it("appends a trailing slash for a directory artifact", () => {
-    renderRow({ artifact: dirArtifact("return-policy") });
-    // The name span's own text is "return-policy" + "/".
-    expect(screen.getByText("return-policy/")).toBeTruthy();
-  });
-
   it("shows the parent-directory subtitle only on a name collision", () => {
-    const artifact = fileArtifact("agent.yaml", "/workspace/configs/agent.yaml");
-    const { rerender } = renderRow({ artifact, hasNameCollision: true });
+    const artifact = fileArtifact("agent.yaml", "configs/agent.yaml");
+    const { rerender } = renderRow({ file: artifact, hasNameCollision: true });
     expect(screen.getByText("configs/")).toBeTruthy();
 
     rerender(
       <StigmerContext.Provider value={createStigmerMock()}>
         <ul>
-          <ArtifactRow artifact={artifact} runId="aex_1" onOpen={vi.fn()} />
+          <ArtifactRow file={artifact} onOpen={vi.fn()} />
         </ul>
       </StigmerContext.Provider>,
     );
@@ -88,7 +75,7 @@ describe("ArtifactRow — presentation", () => {
 
 describe("ArtifactRow — nested-interactive avoidance", () => {
   it("renders the Download control as a SIBLING of the open button, never nested", () => {
-    renderRow({ artifact: fileArtifact("notes.md") });
+    renderRow({ file: fileArtifact("notes.md") });
     const open = screen.getByText("notes.md").closest("button")!;
     const download = screen.getByLabelText("Download notes.md");
     expect(download.tagName).toBe("BUTTON");
@@ -122,22 +109,16 @@ describe("ArtifactRow — open / activate interaction (file-tree parity)", () =>
 });
 
 describe("ArtifactRow — download", () => {
-  it("mints a download URL for the artifact's storage key on Download click", () => {
-    renderRow({ artifact: fileArtifact("notes.md") });
+  it("mints a download link for the File's id on Download click", () => {
+    renderRow({ file: fileArtifact("notes.md") });
     fireEvent.click(screen.getByLabelText("Download notes.md"));
-    expect(getArtifactDownloadUrl).toHaveBeenCalledTimes(1);
-    expect(getArtifactDownloadUrl.mock.calls[0][0]).toMatchObject({
-      runId: "aex_1",
-      storageKey: "artifacts/aex_1/notes.md",
-    });
+    expect(getDownloadUrl).toHaveBeenCalledTimes(1);
+    expect(getDownloadUrl.mock.calls[0][0]).toBe("file_notes_md");
   });
 
-  it("renders the directory Download control with no native title", () => {
-    renderRow({ artifact: dirArtifact("return-policy") });
-    // The "Download ZIP" copy moved to the house tooltip (native titles
-    // are banned); its reveal is pinned in the
-    // real-browser suite (artifact-row-tooltips.layout.browser.test.tsx).
-    expect(screen.getByLabelText("Download return-policy")).toBeTruthy();
+  it("renders the Download control with no native title", () => {
+    renderRow({ file: fileArtifact("notes.md") });
+    expect(screen.getByLabelText("Download notes.md")).toBeTruthy();
     expect(document.querySelector("[title]")).toBeNull();
   });
 });

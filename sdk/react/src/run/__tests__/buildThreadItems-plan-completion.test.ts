@@ -1,8 +1,8 @@
 /**
  * buildThreadItems and Plan-mode turns: a completed Plan turn closes its
  * segment with a plan card (only the newest plan holds the build action; a
- * superseded plan without an artifact is skipped), collapses its plan
- * message behind the card when the plan artifact was published (lifting the
+ * superseded plan without a plan File is skipped), collapses its plan
+ * message behind the card when the turn returned its plan File (lifting the
  * plan's H1 as the card's title) or promotes it to an inline plan document
  * when it was not; the live Plan turn's plan being written collapses behind
  * a plan-writing card that shares the completion card's key; a
@@ -13,10 +13,9 @@
 import { describe, it, expect } from "vitest";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  InteractionMode,
-  RunArtifactKind,
-} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { create } from "@bufbuild/protobuf";
+import { FileSchema, type File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { TurnPhase } from "@stigmer/client";
 import { buildThreadItems, type BuildThreadItemsOptions, type ThreadItem } from "../MessageThread";
 import { runOf, said, status, turnsOf, user } from "./__fixtures__/thread-events";
@@ -47,17 +46,32 @@ function runFor(t: TurnFixture): Run {
       interactionMode: t.mode ?? InteractionMode.UNSPECIFIED,
       buildFromPlan: t.buildFromPlan ?? false,
     },
-    status: {
-      error: t.error ?? "",
-      artifacts: t.withPlanArtifact
-        ? [{ name: "plan.md", kind: RunArtifactKind.FILE, storageKey: `artifacts/${t.id}/plan.md` }]
-        : [],
-    },
+    status: { error: t.error ?? "" },
   });
 }
 
+/** The plan File a fixture's turn returned, when it returned one. */
+function planFiles(fixtures: readonly TurnFixture[]): ReadonlyMap<string, StigmerFile> {
+  const byRun = new Map<string, StigmerFile>();
+  for (const t of fixtures) {
+    if (!t.withPlanArtifact) continue;
+    byRun.set(
+      t.id,
+      create(FileSchema, {
+        metadata: { id: `file_${t.id}` },
+        spec: { filename: "plan.md" },
+        status: { runId: t.id, outputPath: "plan.md" },
+      }),
+    );
+  }
+  return byRun;
+}
+
 function build(fixtures: readonly TurnFixture[], options: BuildThreadItemsOptions = {}): ThreadItem[] {
-  return buildThreadItems(turnsOf(...fixtures.map(turnEvents)), fixtures.map(runFor), options);
+  return buildThreadItems(turnsOf(...fixtures.map(turnEvents)), fixtures.map(runFor), {
+    planFiles: planFiles(fixtures),
+    ...options,
+  });
 }
 
 const PLAN = InteractionMode.PLAN;
@@ -119,7 +133,7 @@ describe("buildThreadItems plan-completion variant", () => {
       ["a-plan-completion", false],
       ["b-plan-completion", true],
     ]);
-    expect(cards[0]!.planArtifact?.name).toBe("plan.md");
+    expect(cards[0]!.planFile?.spec?.filename).toBe("plan.md");
   });
 
   it("skips a superseded plan that never published an artifact", () => {
@@ -132,7 +146,7 @@ describe("buildThreadItems plan-completion variant", () => {
 
     expect(cards).toHaveLength(1);
     expect(cards[0]!.key).toBe("b-plan-completion");
-    expect(cards[0]!.planArtifact).toBeUndefined();
+    expect(cards[0]!.planFile).toBeUndefined();
   });
 });
 

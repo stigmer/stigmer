@@ -16,16 +16,11 @@ export type {
 export { useDetectStigmerResource } from "./useDetectStigmerResource.js";
 
 export {
-  isSkillPackage,
-  detectSkillPackage,
-} from "./detect-skill-package.js";
-export type { SkillPackageDetection } from "./detect-skill-package.js";
-
-export {
-  isPlanArtifact,
   isPlanArtifactName,
-  findPlanArtifact,
+  isPlanFile,
+  findPlanFile,
   findLatestSessionPlan,
+  planFilesByRun,
   PLAN_ARTIFACT_NAME,
   PLAN_ARTIFACT_SUFFIX,
 } from "./detect-plan-artifact.js";
@@ -33,9 +28,6 @@ export type { SessionPlan } from "./detect-plan-artifact.js";
 
 export { findStreamingPlan } from "./detect-streaming-plan.js";
 export type { StreamingPlan } from "./detect-streaming-plan.js";
-
-export { useDetectSkillPackage } from "./useDetectSkillPackage.js";
-export type { UseDetectSkillPackageReturn } from "./useDetectSkillPackage.js";
 
 export { useApplyResource } from "./useApplyResource.js";
 export type {

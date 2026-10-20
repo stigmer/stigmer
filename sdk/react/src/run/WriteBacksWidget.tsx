@@ -32,8 +32,7 @@ export interface WriteBacksWidgetProps {
  * entry.
  *
  * Returns `null` when no run has write-backs, matching the
- * conditional-render pattern of {@link ArtifactsWidget} and
- * {@link RunProgress}.
+ * conditional-render pattern of {@link RunProgress}.
  *
  * All visual properties flow through `--stgm-*` tokens.  Zero
  * Console dependencies.

@@ -4,7 +4,7 @@ import { lazy, memo, Suspense, useCallback, useContext, useEffect, useMemo, useR
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { RecalledMemoryFact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
-import type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
+import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import {
   InteractionMode,
   RunPhase,
@@ -49,7 +49,6 @@ import { PlanArtifactCard, type PlanArtifactCardProps } from "./PlanArtifactCard
 import { PlanStreamingCard, type PlanStreamingCardProps } from "./PlanStreamingCard.js";
 import { TodoCard, type TodoCardProps } from "./TodoCard.js";
 import type { TodoRowProps } from "./TodoList.js";
-import { findPlanArtifact } from "../library/detect-plan-artifact.js";
 import { findStreamingPlan } from "../library/detect-streaming-plan.js";
 import { extractPrimaryArg, isInternalTool, resolveToolCategoryFromCall } from "./tool-categories.js";
 import { fileForRowPath } from "./file-review-status.js";
@@ -113,9 +112,9 @@ export interface MessageThreadSlots {
    * {@link TodoCardProps.TodoRow} and may forward or ignore it).
    */
   readonly TodoRow?: ComponentType<TodoRowProps>;
-  /** Completed Plan turn that published a plan artifact. */
+  /** Completed Plan turn that returned a plan File. */
   readonly PlanArtifactCard?: ComponentType<PlanArtifactCardProps>;
-  /** Completed Plan turn without an artifact — the bare Implement CTA. */
+  /** Completed Plan turn without a plan File — the bare Implement CTA. */
   readonly PlanCompletionCard?: ComponentType<PlanCompletionCardProps>;
   /** Live stand-in card while a Plan turn is writing its document. */
   readonly PlanStreamingCard?: ComponentType<PlanStreamingCardProps>;
@@ -153,12 +152,19 @@ export interface MessageThreadProps {
   readonly turns: readonly Turn[];
   /**
    * The turns' runs, for what the run record holds and the events do not:
-   * the message's attachments and mode, the plan artifact, the agent and
+   * the message's attachments and mode, the agent and
    * skill versions a turn ran, its setup progress, and the captured bytes
    * of its file changes. Matched to turns by run id; a turn whose run is
    * absent renders from its events alone.
    */
   readonly runs?: readonly Run[];
+  /**
+   * Each completed Plan-mode turn's plan File, by run id (`planFilesByRun`
+   * over the conversation's Files). A turn with a plan File collapses its
+   * plan message into the plan card; a turn without one (or a host that
+   * passes none) renders the plan message as the document itself.
+   */
+  readonly planFiles?: ReadonlyMap<string, StigmerFile>;
   /**
    * Optimistic user message shown at the end of the thread before the
    * session's events carry it. Rendered as a person's message with a
@@ -432,11 +438,11 @@ export type ThreadItem =
       readonly kind: "plan-completion";
       readonly key: string;
       readonly executionId: string;
-      readonly planArtifact?: RunArtifact;
+      readonly planFile?: StigmerFile;
       /**
        * The plan's title (its leading `# H1`), lifted from the plan message at
-       * build time — no fetch. Present only when the turn published an
-       * artifact (the collapsed-card path); the card falls back to "Plan".
+       * build time — no fetch. Present only when the turn returned a plan
+       * File (the collapsed-card path); the card falls back to "Plan".
        */
       readonly planTitle?: string;
       /**
@@ -490,6 +496,8 @@ export interface BuildThreadItemsOptions {
   readonly collapseStreamingPlan?: boolean;
   readonly pendingAttachments?: readonly MessageAttachmentView[] | null;
   readonly agentVersionLabel?: (versionHash: string) => string;
+  /** Each Plan-mode turn's plan File, by run id. */
+  readonly planFiles?: ReadonlyMap<string, StigmerFile>;
 }
 
 /** The phases a turn ends with a badge for: everything but a completion. */
@@ -549,9 +557,9 @@ function isCompletedPlanTurn(turn: Turn, run: Run | undefined): boolean {
 
 /**
  * The id of the message that IS a turn's plan, or of its final answer: the
- * last agent message with content — the SAME selection rule the runner's
- * `extractFinalPlanText` uses to publish `plan.md`, so the message promoted
- * to a document in the thread is byte-identical to the published artifact.
+ * last agent message with content — the SAME selection rule the runner uses
+ * to write the plan File, so the message promoted to a document in the
+ * thread is byte-identical to the plan File.
  * `undefined` when the turn wrote none.
  */
 function lastMessageId(items: ReadonlyArray<TurnItem>): string | undefined {
@@ -678,6 +686,7 @@ export function buildThreadItems(
     collapseStreamingPlan = false,
     pendingAttachments,
     agentVersionLabel,
+    planFiles,
   } = options;
   const runsById = new Map<string, Run>();
   for (const run of runs) {
@@ -723,14 +732,14 @@ export function buildThreadItems(
     // card (the plan-completion item): the document lives in the panel's plan
     // tab, not the thread. While the plan is being written, the same
     // treatment applies live when the host has a plan surface (streamingPlan
-    // below). Collapse of a COMPLETED plan is gated on the ARTIFACT existing:
-    // a plan that never published exists only in the message, so that path
+    // below). Collapse of a COMPLETED plan is gated on the plan FILE existing:
+    // a plan with no File exists only in the message, so that path
     // keeps the inline document promotion (isPlanDocument) — collapsing it
     // would orphan the plan behind a card with nothing to open.
     const isCompletedPlan = isCompletedPlanTurn(turn, run);
     const planMessageId = isCompletedPlan ? lastMessageId(turn.items) : undefined;
-    const planArtifact = isCompletedPlan && run ? findPlanArtifact(run) : undefined;
-    const collapsePlanMessage = planMessageId !== undefined && planArtifact !== undefined;
+    const planFile = isCompletedPlan ? planFiles?.get(runId) : undefined;
+    const collapsePlanMessage = planMessageId !== undefined && planFile !== undefined;
 
     // A completed turn's final answer carries its scores (thumbs and the
     // run-health flags): the last agent message with content, unless it is
@@ -909,17 +918,17 @@ export function buildThreadItems(
 
     // A completed Plan turn closes its segment with the plan card. Every
     // plan stays reviewable; only the latest carries the build authority. A
-    // superseded plan that never published an artifact is skipped — with no
-    // artifact and no build CTA it would render an empty shell.
+    // superseded plan that returned no File is skipped — with no File and
+    // no build CTA it would render an empty shell.
     if (isCompletedPlan) {
       const isLatestPlan = runId === latestPlanRunId;
-      if (planArtifact || isLatestPlan) {
+      if (planFile || isLatestPlan) {
         const planMessage = turn.items.find((item) => item.id === planMessageId);
         items.push({
           kind: "plan-completion",
           key: `${runId}-plan-completion`,
           executionId: runId,
-          planArtifact,
+          planFile,
           planTitle:
             collapsePlanMessage && planMessage?.kind === "message"
               ? extractPlanTitle(planMessage.text)
@@ -1100,6 +1109,7 @@ function fileReviewContextOf(turns: readonly Turn[], runs: readonly Run[]): File
 export function MessageThread({
   turns,
   runs = EMPTY_RUNS,
+  planFiles,
   pendingUserMessage,
   pendingAttachments,
   pendingMessageFailed = false,
@@ -1147,8 +1157,9 @@ export function MessageThread({
         collapseStreamingPlan,
         pendingAttachments,
         agentVersionLabel,
+        planFiles,
       }),
-    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingAttachments, agentVersionLabel],
+    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingAttachments, agentVersionLabel, planFiles],
   );
 
   useKeyStability(items);
@@ -1570,17 +1581,16 @@ export function ThreadItemRenderer({
       return <Todos todos={item.todos} className="stg:mx-4" TodoRow={slots?.TodoRow} />;
     }
     case "plan-completion": {
-      // When the plan was published as an artifact, show the richer reviewable
+      // When the turn returned its plan as a File, show the richer reviewable
       // card (preview / copy / download / implement). Otherwise fall back to the
-      // bare Implement CTA (older runs, or a plan that failed to publish).
+      // bare Implement CTA (a plan the turn could not save).
       // Only the latest plan receives the build action — a superseded plan's
       // card is review-only, so a stale plan can never be implemented from it.
       const Artifact = slots?.PlanArtifactCard ?? PlanArtifactCard;
       const Completion = slots?.PlanCompletionCard ?? PlanCompletionCard;
-      return item.planArtifact && item.executionId ? (
+      return item.planFile && item.executionId ? (
         <Artifact
-          runId={item.executionId}
-          artifact={item.planArtifact}
+          file={item.planFile}
           title={item.planTitle}
           org={org}
           onImplement={item.isLatestPlan ? onBuildFromPlan : undefined}

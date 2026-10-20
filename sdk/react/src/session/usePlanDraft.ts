@@ -4,14 +4,13 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import type { SessionPlan } from "../library/detect-plan-artifact.js";
 
 /**
- * Identity of a plan for draft scoping: the run that published it plus
- * the artifact's content hash. A refined plan (new run) or a republished
- * plan (same key, new hash) produces a NEW identity, which orphans any draft
- * of the previous plan — a draft of plan N must never silently ride along
- * once plan N+1 exists.
+ * Identity of a plan for draft scoping: the plan File's id. A File's bytes
+ * never change after upload, so its id names its text; a refined plan is a
+ * new File with a new id, which orphans any draft of the previous plan — a
+ * draft of plan N must never silently ride along once plan N+1 exists.
  */
 export function planDraftKey(plan: SessionPlan): string {
-  return `${plan.runId}:${plan.artifact.contentHash}`;
+  return plan.file.metadata?.id || plan.runId;
 }
 
 /** Controller returned by {@link usePlanDraft}. */
@@ -46,10 +45,10 @@ interface DraftState {
 
 /**
  * Owns the local draft of the session's current plan (Phase: refine before
- * build). The draft is a client-side overlay — the published `plan.md`
- * artifact is immutable and is never written back (edit-as-input, not
- * artifact mutation). The approved plan (draft if edited, else the artifact
- * text) is delivered to the implement run as an attachment.
+ * build). The draft is a client-side overlay — the plan File is immutable
+ * and is never written back (edit-as-input). An unedited plan is handed to
+ * the implement run as that very File; an edited one as a new upload of the
+ * draft.
  *
  * Ownership lives at the viewer level, NOT inside the plan document tab's
  * editor: the panel subtree unmounts wholesale on collapse (and the editor

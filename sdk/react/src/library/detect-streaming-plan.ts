@@ -60,13 +60,13 @@ function unwrapStreamingPlanFence(content: string): string {
  *
  * This is the third leg of the plan convention, alongside the runner's prompt
  * directive ("your FINAL message IS the plan, starting with a single `#`
- * title" — `plan-mode-prompt.ts`) and the completion-time artifact detection
- * by filename ({@link isPlanArtifact}). Completion makes the plan unambiguous
- * (the published `plan.md` artifact); mid-stream it must be inferred, and the
+ * title" — `plan-mode-prompt.ts`) and the completion-time plan File detection
+ * by filename ({@link isPlanFile}). Completion makes the plan unambiguous
+ * (the plan File the turn returns); mid-stream it must be inferred, and the
  * directive's mandated shape is the inference:
  *
  * - the turn's run runs in Plan mode and the turn has **not ended** (a
- *   completed turn is owned by the artifact path; a stopped/failed turn has
+ *   completed turn is owned by the plan File; a stopped/failed turn has
  *   no live plan),
  * - the candidate is the turn's **last content-bearing agent message** (live
  *   or stored) — the exact selection rule the runner's `extractFinalPlanText`

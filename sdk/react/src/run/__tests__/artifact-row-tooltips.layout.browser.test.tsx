@@ -18,7 +18,6 @@ const ITEM = {
   tooltip: "/workspace/output/report.pdf",
   subtitlePath: null,
   sizeBytes: 2048,
-  isDirectory: false,
 };
 
 function renderRow() {
@@ -80,34 +79,6 @@ describe("ArtifactRowView tooltips", () => {
     await userEvent.hover(download!.parentElement!);
     await vi.waitFor(
       () => expect(portaledText(pane)).toContain("Download"),
-      { timeout: 3000, interval: 50 },
-    );
-    await userEvent.unhover(download!.parentElement!);
-  });
-
-  it("says 'Download ZIP' for a directory", async () => {
-    const pane = document.createElement("div");
-    pane.className = "stgm";
-    pane.style.width = "320px";
-    document.body.appendChild(pane);
-    render(
-      <ul>
-        <ArtifactRowView
-          item={{ ...ITEM, name: "bundle", tooltip: "bundle", isDirectory: true }}
-          onOpen={() => {}}
-          onDownload={() => {}}
-          isDownloading={false}
-        />
-      </ul>,
-      { container: pane },
-    );
-
-    const download = Array.from(pane.querySelectorAll("button")).find(
-      (el) => el.getAttribute("aria-label") === "Download bundle",
-    );
-    await userEvent.hover(download!.parentElement!);
-    await vi.waitFor(
-      () => expect(portaledText(pane)).toContain("Download ZIP"),
       { timeout: 3000, interval: 50 },
     );
     await userEvent.unhover(download!.parentElement!);

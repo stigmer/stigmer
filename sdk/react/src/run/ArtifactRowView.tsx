@@ -4,7 +4,7 @@
 // Domain: run (renders the ArtifactRowItem view-model).
 
 import { cn } from "@stigmer/design-tokens";
-import { FileTypeIcon, FolderTypeIcon } from "../internal/file-icons/index.js";
+import { FileTypeIcon } from "../internal/file-icons/index.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import type { ArtifactRowItem } from "./artifact-row-item.js";
 import { formatArtifactSize } from "./artifact-utils.js";
@@ -78,15 +78,10 @@ export function ArtifactRowView({
           }
         >
           <span className="stg:shrink-0 stg:text-muted-foreground">
-            {item.isDirectory ? (
-              <FolderTypeIcon open={false} />
-            ) : (
-              <FileTypeIcon fileName={item.name} />
-            )}
+            <FileTypeIcon fileName={item.name} />
           </span>
           <span className="stg:min-w-0 stg:flex-1 stg:truncate stg:text-foreground">
             {item.name}
-            {item.isDirectory && "/"}
             {item.subtitlePath && (
               <span className="stg:ml-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
                 {item.subtitlePath}
@@ -121,7 +116,7 @@ export function ArtifactRowView({
           </button>
         </TooltipTrigger>
         <TooltipContent side="top">
-          {item.isDirectory ? "Download ZIP" : "Download"}
+          Download
         </TooltipContent>
       </Tooltip>
     </li>

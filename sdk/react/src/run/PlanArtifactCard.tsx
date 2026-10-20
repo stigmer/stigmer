@@ -1,21 +1,22 @@
 "use client";
 
-import { memo, useState, type ReactNode } from "react";
+import { memo, useCallback, useState, type ReactNode } from "react";
+import { create } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/design-tokens";
-import type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
+import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { GetFileContentInputSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { useCopyFeedback } from "../internal/useCopyFeedback.js";
+import { useStigmer } from "../hooks.js";
+import { useFileDownload } from "../file/useFile.js";
 import { ArtifactPreviewModal } from "./ArtifactPreviewModal.js";
 import { formatArtifactSize } from "./artifact-utils.js";
-import { useArtifactCopy } from "./useArtifactCopy.js";
-import { useArtifactDownload } from "./useArtifactDownload.js";
 import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey.js";
 
 /** Props for {@link PlanArtifactCard}. */
 export interface PlanArtifactCardProps {
-  /** Run that produced the plan — used to fetch the plan content. */
-  readonly runId: string;
-  /** The published `plan.md` artifact (from `findPlanArtifact`). */
-  readonly artifact: RunArtifact;
+  /** The plan File the Plan-mode turn returned (from `findPlanFile`). */
+  readonly file: StigmerFile;
   /**
    * The plan's title (its leading `# H1`). The card is the plan's compact
    * stand-in in the thread, so the title is what makes it recognizable.
@@ -72,8 +73,7 @@ export interface PlanArtifactCardProps {
  * self-contained and embeddable.
  */
 export const PlanArtifactCard = memo(function PlanArtifactCard({
-  runId: executionId,
-  artifact,
+  file,
   title,
   org,
   onImplement,
@@ -84,8 +84,10 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
 }: PlanArtifactCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const handleKeyDown = useBuildFromPlanHotkey(onImplement, disabled);
-  const { copy, isCopying, copied } = useArtifactCopy(executionId);
-  const { download, isDownloading } = useArtifactDownload(executionId);
+  const { copy, isCopying, copied } = useFileTextCopy();
+  const { download, isDownloading } = useFileDownload();
+  const fileId = file.metadata?.id ?? "";
+  const name = file.spec?.filename ?? "";
 
   return (
     <div
@@ -104,10 +106,10 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
           {title ?? "Plan"}
         </div>
         <div className="stg:text-[0.65rem] stg:text-muted-foreground-faint">
-          {artifact.name}
+          {name}
           <span aria-hidden="true"> · </span>
           <span className="stg:tabular-nums">
-            {formatArtifactSize(artifact.sizeBytes)}
+            {formatArtifactSize(file.status?.sizeBytes ?? 0n)}
           </span>
         </div>
       </div>
@@ -130,13 +132,13 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
         )}
         <IconAction
           label={copied ? "Copied" : isCopying ? "Copying…" : "Copy plan"}
-          onClick={() => copy(artifact.storageKey)}
+          onClick={() => copy(fileId)}
           disabled={isCopying}
           icon={copied ? <CheckIcon /> : <CopyIcon />}
         />
         <IconAction
-          label={isDownloading ? "Preparing…" : `Download ${artifact.name}`}
-          onClick={() => download(artifact.storageKey, artifact.name)}
+          label={isDownloading ? "Preparing…" : `Download ${name}`}
+          onClick={() => download(fileId, name)}
           disabled={isDownloading}
           icon={<DownloadIcon />}
         />
@@ -168,8 +170,7 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
           Source/Rendered). */}
       {org && previewOpen && (
         <ArtifactPreviewModal
-          artifact={artifact}
-          runId={executionId}
+          file={file}
           org={org}
           isTerminal
           open
@@ -180,6 +181,32 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
     </div>
   );
 });
+
+/**
+ * Copies a File's text at click time: the card is content-free until the
+ * person acts, so the bytes are read only then.
+ */
+function useFileTextCopy() {
+  const stigmer = useStigmer();
+  const { copy: writeClipboard, copied } = useCopyFeedback();
+  const [isCopying, setIsCopying] = useState(false);
+  const copy = useCallback(
+    async (fileId: string) => {
+      if (!fileId || isCopying) return;
+      setIsCopying(true);
+      try {
+        const result = await stigmer.file.getContent(create(GetFileContentInputSchema, { id: fileId }));
+        await writeClipboard(new TextDecoder().decode(result.data));
+      } catch {
+        // A failed read leaves `copied` false: the affordance never claims a copy.
+      } finally {
+        setIsCopying(false);
+      }
+    },
+    [stigmer, writeClipboard, isCopying],
+  );
+  return { copy, isCopying, copied };
+}
 
 const FOCUS_RING =
   "stg:focus-visible:outline-none stg:focus-visible:ring-2 stg:focus-visible:ring-ring stg:focus-visible:rounded-sm";

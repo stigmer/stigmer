@@ -44,8 +44,6 @@ export type { PlanStreamingCardProps } from "./PlanStreamingCard.js";
 export { PlanDocumentMessage } from "./PlanDocumentMessage.js";
 export type { PlanDocumentMessageProps } from "./PlanDocumentMessage.js";
 
-export { useRunArtifacts } from "./useRunArtifacts.js";
-export type { UseRunArtifactsReturn } from "./useRunArtifacts.js";
 
 export { useArtifactContent } from "./useArtifactContent.js";
 export type { UseArtifactContentReturn } from "./useArtifactContent.js";
@@ -291,7 +289,7 @@ export type { ArtifactRowProps } from "./ArtifactRow.js";
 export { ArtifactRowView } from "./ArtifactRowView.js";
 export type { ArtifactRowViewProps } from "./ArtifactRowView.js";
 
-export { fromRunArtifact } from "./artifact-row-item.js";
+export { fromFile } from "./artifact-row-item.js";
 export type { ArtifactRowItem } from "./artifact-row-item.js";
 
 export { ARTIFACT_DOCUMENT_ENTRY_ID } from "./artifact-document.js";
@@ -317,8 +315,6 @@ export type {
 export { ArtifactPreviewContent, ArtifactPreviewModal } from "./ArtifactPreviewModal.js";
 export type { ArtifactPreviewContentProps, ArtifactPreviewModalProps } from "./ArtifactPreviewModal.js";
 
-export { ArtifactsWidget } from "./ArtifactsWidget.js";
-export type { ArtifactsWidgetProps } from "./ArtifactsWidget.js";
 
 export { WriteBacksWidget } from "./WriteBacksWidget.js";
 export type { WriteBacksWidgetProps } from "./WriteBacksWidget.js";

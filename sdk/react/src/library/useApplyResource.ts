@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
-import { PushSkillFromRunArtifactRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
+import { PushSkillFromFileRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 import { parseManifest } from "@stigmer/client";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
@@ -25,18 +25,16 @@ export interface ApplyResourceResult {
 }
 
 /**
- * Parameters for pushing a skill package from a run artifact.
+ * Parameters for pushing a skill from a File holding its ZIP archive.
  *
- * The server reads the directory artifact (ZIP) from run storage
- * and pushes it as a skill — no ZIP download reaches the browser.
+ * The server reads the File's bytes from its own store and pushes them as a
+ * skill — no ZIP download reaches the browser.
  */
 export interface PushSkillParams {
   /** Organization that will own the skill. */
   readonly org: string;
-  /** ID of the run that produced the artifact (format: `run_{ulid}`). */
-  readonly runId: string;
-  /** Storage key of the directory artifact. Must start with `artifacts/{executionId}/`. */
-  readonly storageKey: string;
+  /** The File holding the skill's ZIP archive (`"file_01j…"`), one the caller may view. */
+  readonly fileId: string;
   /** Optional version tag (e.g., `"stable"`, `"v1.0"`). */
   readonly tag?: string;
 }
@@ -62,15 +60,14 @@ export interface UseApplyResourceReturn {
   ) => Promise<ApplyResourceResult>;
 
   /**
-   * Push a skill package from a run artifact to an organization.
+   * Push a skill from a File holding its ZIP archive to an organization.
    *
-   * Uses the server-side `pushFromRunArtifact` RPC — the server reads
-   * the ZIP from run storage and pushes it as a skill. No ZIP download
-   * reaches the browser.
+   * Uses the server-side `pushFromFile` RPC — the server reads the File's
+   * bytes and pushes them as a skill. No ZIP download reaches the browser.
    *
    * @throws Re-throws the original error after setting `error` state.
    */
-  readonly pushSkillPackage: (
+  readonly pushSkillFromFile: (
     params: PushSkillParams,
   ) => Promise<ApplyResourceResult>;
 
@@ -87,9 +84,9 @@ export interface UseApplyResourceReturn {
 /**
  * Behavior hook for applying detected Stigmer resources to an organization.
  *
- * Bridges the detection layer ({@link detectStigmerResource},
- * {@link useDetectSkillPackage}) to the apply action — the user clicks
- * "Apply to [org]" and the resource is created or updated.
+ * Bridges the detection layer ({@link detectStigmerResource}) to the apply
+ * action — the user clicks "Apply to [org]" and the resource is created or
+ * updated.
  *
  * Handles two parallel apply paths:
  *
@@ -97,8 +94,9 @@ export interface UseApplyResourceReturn {
  *    against the generated proto schema (SDK manifest engine) and applies
  *    it through the kind's `apply` RPC.
  *
- * 2. **Skill packages** (directory artifacts): `pushSkillPackage(params)`
- *    delegates to the server-side `pushFromRunArtifact` RPC.
+ * 2. **Skill archives** (a File holding a skill's ZIP):
+ *    `pushSkillFromFile(params)` delegates to the server-side `pushFromFile`
+ *    RPC.
  *
  * Follows the established mutation hook pattern: `isApplying` + `error` +
  * `clearError`. The result is returned from the promise (not stored in
@@ -107,7 +105,7 @@ export interface UseApplyResourceReturn {
  *
  * @example
  * ```tsx
- * const { applyYamlResource, pushSkillPackage, isApplying, error, clearError } =
+ * const { applyYamlResource, pushSkillFromFile, isApplying, error, clearError } =
  *   useApplyResource();
  * const [result, setResult] = useState<ApplyResourceResult | null>(null);
  *
@@ -116,12 +114,8 @@ export interface UseApplyResourceReturn {
  *   try {
  *     if (yamlDetection.detected) {
  *       setResult(await applyYamlResource(content!, activeOrg));
- *     } else if (skillDetection.detected) {
- *       setResult(await pushSkillPackage({
- *         org: activeOrg,
- *         executionId,
- *         storageKey: artifact.storageKey,
- *       }));
+ *     } else if (skillArchiveId) {
+ *       setResult(await pushSkillFromFile({ org: activeOrg, fileId: skillArchiveId }));
  *     }
  *   } catch {
  *     // error state is set by the hook
@@ -131,7 +125,6 @@ export interface UseApplyResourceReturn {
  *
  * @see {@link parseManifest} for the YAML-to-proto conversion
  * @see {@link detectStigmerResource} for YAML resource detection
- * @see {@link useDetectSkillPackage} for skill package detection
  */
 export function useApplyResource(): UseApplyResourceReturn {
   const stigmer = useStigmer();
@@ -171,20 +164,19 @@ export function useApplyResource(): UseApplyResourceReturn {
     [stigmer],
   );
 
-  const pushSkillPackage = useCallback(
+  const pushSkillFromFile = useCallback(
     async (params: PushSkillParams): Promise<ApplyResourceResult> => {
       setIsApplying(true);
       setError(null);
 
       try {
-        const request = create(PushSkillFromRunArtifactRequestSchema, {
+        const request = create(PushSkillFromFileRequestSchema, {
           org: params.org,
-          runId: params.runId,
-          storageKey: params.storageKey,
+          fileId: params.fileId,
           tag: params.tag ?? "",
         });
 
-        const skill = await stigmer.skill.pushFromRunArtifact(request);
+        const skill = await stigmer.skill.pushFromFile(request);
         return {
           kind: "Skill",
           name: skill.metadata?.name ?? "",
@@ -201,5 +193,5 @@ export function useApplyResource(): UseApplyResourceReturn {
     [stigmer],
   );
 
-  return { applyYamlResource, pushSkillPackage, isApplying, error, clearError };
+  return { applyYamlResource, pushSkillFromFile, isApplying, error, clearError };
 }

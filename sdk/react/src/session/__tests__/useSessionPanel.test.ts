@@ -1,11 +1,8 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { renderHook, act, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import {
-  RunArtifactKind,
-  RunPhase,
-} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { useSessionPanel, type UseSessionPanelOptions } from "../useSessionPanel";
 import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "../plan-document";
 import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../../run/artifact-document";
@@ -207,6 +204,19 @@ describe("useSessionPanel — plan document tab", () => {
     expect(planEditors(result)).toEqual([]);
   });
 
+  it("does not open for the plan present when the plan key first becomes known", () => {
+    // A host whose plans arrive after mount (read from the conversation's
+    // Files) holds planKeyReady false until that read lands.
+    const { result, rerender } = renderPanel({ planKey: null, planKeyReady: false });
+    rerender({ phase: null, hasChanges: false, planKey: "file_old", planKeyReady: true });
+    expect(result.current.isOpen).toBe(false);
+    expect(planEditors(result)).toEqual([]);
+    // A plan arriving after that is new, and opens the tab.
+    rerender({ phase: null, hasChanges: false, planKey: "file_new", planKeyReady: true });
+    expect(result.current.isOpen).toBe(true);
+    expect(planEditors(result)).toHaveLength(1);
+  });
+
   it("leaves the rail view alone (the tab lives in the editor area)", () => {
     const { result, rerender } = renderPanel();
     act(() => result.current.openPanel());
@@ -217,12 +227,11 @@ describe("useSessionPanel — plan document tab", () => {
 });
 
 describe("useSessionPanel — artifact document tabs", () => {
-  function artifact(sandboxPath: string, name: string) {
-    return create(RunArtifactSchema, {
-      name,
-      kind: RunArtifactKind.FILE,
-      sandboxPath,
-      storageKey: `artifacts/aex_1/${name}`,
+  function artifact(outputPath: string, filename: string) {
+    return create(FileSchema, {
+      metadata: { id: `file_${filename}` },
+      spec: { filename },
+      status: { runId: "aex_1", outputPath },
     });
   }
 

@@ -9,7 +9,7 @@ import {
   extractLeadingH1,
   unwrapEnclosingMarkdownFence,
 } from "../internal/markdown-components.js";
-import { useArtifactContent } from "../run/useArtifactContent.js";
+import { useFileContent } from "../file/useFileContent.js";
 import { useBuildFromPlanHotkey } from "../run/use-build-from-plan-hotkey.js";
 import { formatArtifactSize } from "../run/artifact-utils.js";
 import type { SessionPlan } from "../library/detect-plan-artifact.js";
@@ -22,7 +22,7 @@ export interface PlanEditorProps {
   /**
    * Draft controller owned by the viewer (survives panel collapse/unmounts).
    * Consulted only when editable — a read-only (superseded) plan renders its
-   * own artifact text, never the current plan's draft.
+   * own text, never the current plan's draft.
    */
   readonly draft?: PlanDraftController;
   /** Builds from the plan — the same action as the thread card's primary. */
@@ -49,12 +49,12 @@ type PlanEditorView = "rendered" | "source" | "edit";
  *   plan rendering, title lifted from the leading H1).
  * - **Source** — the raw markdown.
  * - **Edit** — a plain-textarea editor over a LOCAL draft
- *   ({@link PlanDraftController}); the published artifact is never mutated.
+ *   ({@link PlanDraftController}); the plan File is never mutated.
  *   Building from an edited plan delivers the draft to the implement
  *   run (edit-as-input).
  *
  * All views show the *effective* plan — the draft when one exists, the
- * published artifact otherwise — so what the user reviews is exactly what
+ * plan File otherwise — so what the user reviews is exactly what
  * Build will implement. An "Edited" indicator plus Revert makes the overlay
  * visible and reversible.
  *
@@ -84,12 +84,7 @@ export function PlanEditor({
   );
 
   const { content, isTruncated, isLoading, error, refetch } =
-    useArtifactContent(
-      plan.runId,
-      plan.artifact.storageKey,
-      undefined,
-      plan.artifact.contentHash,
-    );
+    useFileContent(plan.file.metadata?.id ?? null);
 
   const activeDraft = readOnly ? undefined : draft;
   const effectiveText = activeDraft?.draftText ?? content;
@@ -157,7 +152,7 @@ export function PlanEditor({
           )}
         </div>
         <span className="stg:text-[0.65rem] stg:tabular-nums stg:text-muted-foreground-faint">
-          {formatArtifactSize(plan.artifact.sizeBytes)}
+          {formatArtifactSize(plan.file.status?.sizeBytes ?? 0n)}
         </span>
         {/* The reason the Edit tab is disabled must be visible text: a
             disabled tab leaves the tab order and drops pointer events, so
@@ -238,7 +233,7 @@ export function PlanEditor({
 
       {isTruncated && (
         <p role="status" className="stg:text-[0.65rem] stg:text-muted-foreground">
-          Preview truncated — download the artifact for the full plan.
+          Preview truncated — download the plan for the full text.
         </p>
       )}
     </PlanEditorFrame>

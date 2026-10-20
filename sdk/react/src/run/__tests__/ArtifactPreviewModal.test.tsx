@@ -1,20 +1,23 @@
+/**
+ * The preview's Build action (a plan's): shown only when the host passes
+ * onImplement, and run before the modal closes.
+ */
+
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { ArtifactPreviewContent } from "../ArtifactPreviewModal";
 
-// A non-text artifact: ArtifactPreviewContent skips the content fetch, so the
+// A non-text File: ArtifactPreviewContent skips the content read, so the
 // test exercises the Implement action without any network mocking.
-const binaryArtifact = create(RunArtifactSchema, {
-  name: "report.bin",
-  kind: RunArtifactKind.FILE,
-  sizeBytes: 128n,
-  storageKey: "artifacts/aex_1/report.bin",
+const binaryArtifact = create(FileSchema, {
+  metadata: { id: "file_report" },
+  spec: { filename: "report.bin" },
+  status: { sizeBytes: 128n, runId: "aex_1", outputPath: "report.bin" },
 });
 
 function withStigmer(children: ReactNode) {
@@ -31,8 +34,7 @@ describe("ArtifactPreviewContent — Build action", () => {
     const { rerender } = render(
       withStigmer(
         <ArtifactPreviewContent
-          artifact={binaryArtifact}
-          runId="aex_1"
+          file={binaryArtifact}
           org="acme"
           isTerminal
           onClose={() => {}}
@@ -44,8 +46,7 @@ describe("ArtifactPreviewContent — Build action", () => {
     rerender(
       withStigmer(
         <ArtifactPreviewContent
-          artifact={binaryArtifact}
-          runId="aex_1"
+          file={binaryArtifact}
           org="acme"
           isTerminal
           onClose={() => {}}
@@ -64,8 +65,7 @@ describe("ArtifactPreviewContent — Build action", () => {
     render(
       withStigmer(
         <ArtifactPreviewContent
-          artifact={binaryArtifact}
-          runId="aex_1"
+          file={binaryArtifact}
           org="acme"
           isTerminal
           onClose={onClose}

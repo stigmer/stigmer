@@ -1,10 +1,12 @@
-import type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+// Classification and formatting helpers for output Files: whether a File reads
+// as text, how its text renders, and how its size reads. Domain: run.
+
+import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 
 /**
  * File extensions recognized as human-readable text content.
  *
- * Used by {@link isTextArtifact} to determine whether an artifact's
+ * Used by {@link isTextArtifact} to determine whether a File's
  * content can be fetched and displayed as text (YAML preview, resource
  * detection, syntax-highlighted preview).
  *
@@ -38,46 +40,36 @@ const TEXT_EXTENSIONS = new Set([
 ]);
 
 /**
- * Extracts the lowercase file extension from an artifact's name.
+ * Extracts the lowercase file extension from a File's filename.
  *
- * Returns `null` when the name has no extension or is empty.
+ * Returns `null` when the filename has no extension or is empty.
  * Delegates to {@link getFileExtension} for the actual parsing.
  *
  * @example
  * ```ts
- * getArtifactExtension(artifact); // "yaml"
- * getArtifactExtension(noExtArtifact); // null
+ * getArtifactExtension(file); // "yaml"
  * ```
  */
-export function getArtifactExtension(
-  artifact: RunArtifact,
-): string | null {
-  return getFileExtension(artifact.name);
+export function getArtifactExtension(file: StigmerFile): string | null {
+  return getFileExtension(file.spec?.filename ?? "");
 }
 
 /**
- * Determines whether an artifact likely contains human-readable text.
+ * Determines whether a File likely holds human-readable text: a `text/*`
+ * media type, or a filename extension in the {@link TEXT_EXTENSIONS} set.
  *
- * Returns `false` for directory artifacts (which are stored as ZIP files)
- * regardless of name. For file artifacts, checks whether the file
- * extension is in the {@link TEXT_EXTENSIONS} set.
- *
- * Use this to decide whether to call {@link useArtifactContent} for
- * a given artifact. Binary or unknown-extension artifacts should use
- * the download URL instead.
+ * Use this to decide whether to read a File's text with `useFileContent`.
+ * Binary or unknown Files are downloaded instead.
  *
  * @example
  * ```ts
- * const shouldFetch = isTextArtifact(artifact) && Number(artifact.sizeBytes) < MAX_SIZE;
+ * const shouldFetch = isTextArtifact(file);
  * ```
  */
-export function isTextArtifact(artifact: RunArtifact): boolean {
-  if (artifact.kind === RunArtifactKind.DIRECTORY) return false;
-
-  const ext = getArtifactExtension(artifact);
-  if (ext === null) return false;
-
-  return TEXT_EXTENSIONS.has(ext);
+export function isTextArtifact(file: StigmerFile): boolean {
+  if ((file.spec?.mimeType ?? "").startsWith("text/")) return true;
+  const ext = getArtifactExtension(file);
+  return ext !== null && TEXT_EXTENSIONS.has(ext);
 }
 
 // ---------------------------------------------------------------------------
@@ -107,7 +99,7 @@ const MARKDOWN_EXTENSIONS = new Set(["md", "mdx"]);
  *
  * Returns `null` when the name has no extension or is empty.
  * Unlike {@link getArtifactExtension}, this operates on a plain
- * string — usable without a full `RunArtifact` object.
+ * string — usable without a File.
  *
  * @example
  * ```ts
@@ -172,7 +164,7 @@ const SIZE_UNITS = ["B", "KB", "MB", "GB", "TB"] as const;
  * Formats a byte count as a human-readable file size string.
  *
  * Accepts both `bigint` (from protobuf `int64` fields like
- * `RunArtifact.sizeBytes`) and `number`.
+ * `FileStatus.sizeBytes`) and `number`.
  *
  * Uses base-1024 (binary) units with one decimal place.
  *

@@ -1,9 +1,14 @@
+/**
+ * The plan document tab: the plan File's text rendered, viewed as source or
+ * edited as a draft; Build from its primary action; read-only when superseded;
+ * edit refused for a truncated read; an error state with retry.
+ */
+
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { StigmerContext } from "../../context";
 import type { SessionPlan } from "../../library/detect-plan-artifact";
 import type { PlanDraftController } from "../usePlanDraft";
@@ -15,21 +20,18 @@ const PLAN_TEXT = "# Rollout Plan\n\n## Phase 1\n\nDo the first thing.";
 
 const plan: SessionPlan = {
   runId: "aex_1",
-  artifact: create(RunArtifactSchema, {
-    name: "plan.md",
-    kind: RunArtifactKind.FILE,
-    sizeBytes: 128n,
-    storageKey: "artifacts/aex_1/plan.md",
-    contentHash: "hash-a",
+  file: create(FileSchema, {
+    metadata: { id: "file_plan_a" },
+    spec: { filename: "plan.md", mimeType: "text/markdown" },
+    status: { sizeBytes: 128n, runId: "aex_1", outputPath: "plan.md" },
   }),
 };
 
 function stigmerMock(opts?: { text?: string; truncated?: boolean }): Stigmer {
   return {
-    run: {
-      getArtifactContent: vi.fn().mockResolvedValue({
-        content: new TextEncoder().encode(opts?.text ?? PLAN_TEXT),
-        contentType: "text/markdown",
+    file: {
+      getContent: vi.fn().mockResolvedValue({
+        data: new TextEncoder().encode(opts?.text ?? PLAN_TEXT),
         truncated: opts?.truncated ?? false,
       }),
     },
@@ -161,8 +163,8 @@ describe("PlanEditor", () => {
 
   it("renders an error state with retry when the content fetch fails", async () => {
     const failing = {
-      run: {
-        getArtifactContent: vi.fn().mockRejectedValue(new Error("boom")),
+      file: {
+        getContent: vi.fn().mockRejectedValue(new Error("boom")),
       },
     } as unknown as Stigmer;
 

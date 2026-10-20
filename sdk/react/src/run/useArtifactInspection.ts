@@ -1,13 +1,24 @@
 "use client";
 
+/**
+ * The inspect-and-act pipeline over one output File, shared by every chrome
+ * that shows one (the preview modal, the editor-area document): its text,
+ * Stigmer resource detection, the Apply action, and clipboard copy.
+ *
+ * Trade-offs:
+ * - One writer of the derived state, so the modal and the document cannot
+ *   drift on labels or the apply flow.
+ * - Only text Files are read (`isTextArtifact`); anything else shows its
+ *   download, never a byte read through the API.
+ * - A File's bytes never change, so the read is cached by its id and a
+ *   reopened tab renders at once.
+ */
+
 import { useCallback, useMemo, useState } from "react";
-import type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { useArtifactContent } from "./useArtifactContent.js";
+import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { useFileContent } from "../file/useFileContent.js";
 import { isTextArtifact } from "./artifact-utils.js";
 import { useDetectStigmerResource } from "../library/useDetectStigmerResource.js";
-import { useDetectSkillPackage } from "../library/useDetectSkillPackage.js";
-import type { SkillPackageDetection } from "../library/detect-skill-package.js";
 import {
   useApplyResource,
   type ApplyResourceResult,
@@ -18,29 +29,21 @@ import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 /** Options for {@link useArtifactInspection}. */
 export interface UseArtifactInspectionOptions {
   /**
-   * Cross-mount cache key for the content fetch. Set it so a remount
-   * with the same key renders the previously-fetched content instantly and
-   * refetches in the background — the artifact document passes it so switching
-   * back to a recently-viewed tab is instant. Omit for fetch-on-mount (the
-   * modal, which resets on every open).
-   */
-  readonly cacheKey?: string;
-  /**
-   * Called after a resource is successfully applied or a skill package pushed.
-   * The consumer uses it for post-apply behavior (toast, navigate to Library).
+   * Called after a resource is successfully applied. The consumer uses it for
+   * post-apply behavior (toast, navigate to Library).
    */
   readonly onApplied?: (result: ApplyResourceResult) => void;
 }
 
 /**
  * Everything a chrome (the modal action bar, the document toolbar, the content
- * body) needs to inspect and act on one artifact: fetched content, resource
- * detection, the Apply/Push action, and clipboard copy.
+ * body) needs to inspect and act on one output File: fetched content, resource
+ * detection, the Apply action, and clipboard copy.
  */
 export interface ArtifactInspection {
-  /** Decoded text content, or `null` (directory / binary / loading / error). */
+  /** Decoded text content, or `null` (binary / loading / error). */
   readonly content: string | null;
-  /** Server-detected content type, or `null`. */
+  /** The File's media type, or `null` when it has none. */
   readonly contentType: string | null;
   /** Whether the fetched content was truncated by the server's size cap. */
   readonly isTruncated: boolean;
@@ -48,30 +51,25 @@ export interface ArtifactInspection {
   readonly isLoading: boolean;
   /** Content-fetch error, or `null`. */
   readonly error: Error | null;
-  /** Re-fetch the artifact content. */
+  /** Re-fetch the content. */
   readonly refetch: () => void;
 
-  /** Whether the artifact is a directory (skill package candidate). */
-  readonly isDirectory: boolean;
-  /** Skill-package detection for directory artifacts. */
-  readonly skillDetection: SkillPackageDetection;
-
-  /** `true` when the artifact is a recognized Stigmer resource or skill. */
+  /** `true` when the File is a recognized Stigmer resource. */
   readonly isDetected: boolean;
-  /** `true` while detection is still resolving (content / skill fetch). */
+  /** `true` while detection is still resolving (content fetch). */
   readonly isDetecting: boolean;
-  /** Detection badge label (`"Agent detected"`, `"Skill · N files"`), or `null`. */
+  /** Detection badge label (`"Agent detected"`), or `null`. */
   readonly detectionLabel: string | null;
 
-  /** Apply/Push CTA label (`"Apply to org"`, `"Push Skill to org"`), or `null`. */
+  /** Apply CTA label (`"Apply to org"`), or `null`. */
   readonly ctaLabel: string | null;
-  /** Apply the detected resource / push the detected skill. */
+  /** Apply the detected resource. */
   readonly apply: () => Promise<void>;
-  /** `true` while an apply/push is in-flight. */
+  /** `true` while an apply is in-flight. */
   readonly isApplying: boolean;
   /** The successful apply result, or `null`. */
   readonly applyResult: ApplyResourceResult | null;
-  /** Apply/push error, or `null`. */
+  /** Apply error, or `null`. */
   readonly applyError: Error | null;
 
   /** Copy the in-memory content to the clipboard. No-op without content. */
@@ -81,121 +79,50 @@ export interface ArtifactInspection {
 }
 
 /**
- * Headless behavior hook consolidating the artifact inspect-and-act pipeline
- * that was previously inlined per artifact surface: content fetch,
- * Agent YAML detection, skill-package detection, the Apply/Push
- * mutation, and in-memory clipboard copy.
+ * Headless behavior hook over one output File: content fetch, Agent YAML
+ * detection, the Apply mutation, and in-memory clipboard copy.
  *
- * It is the single writer of this pipeline's derived state, consumed by every
- * artifact chrome — the modal action bar and the editor-area
- * `ArtifactDocument` toolbar (headless-first). Because there is exactly
- * one place computing `detectionLabel` / `ctaLabel` / the apply flow, the two
- * surfaces cannot drift.
- *
- * All four underlying hooks are called unconditionally with null-gated
- * arguments (their documented skip contract), so this composition is
- * React-rules-clean regardless of the artifact kind.
- *
- * @param artifact - The artifact to inspect.
- * @param executionId - Run that produced it (content + skill fetching).
- * @param org - Organization for the "Apply to [org]" / "Push Skill to [org]" CTA.
+ * @param file - The File to inspect.
+ * @param org - Organization for the "Apply to [org]" CTA.
  * @param options - {@link UseArtifactInspectionOptions}.
  */
 export function useArtifactInspection(
-  artifact: RunArtifact,
-  executionId: string,
+  file: StigmerFile,
   org: string,
   options?: UseArtifactInspectionOptions,
 ): ArtifactInspection {
   const slugForOrg = useOrgSlugForId();
-  const isDirectory = artifact.kind === RunArtifactKind.DIRECTORY;
-  const canFetchContent = !isDirectory && isTextArtifact(artifact);
+  const canFetchContent = isTextArtifact(file);
+  const contentType = file.spec?.mimeType || null;
 
-  const {
-    content,
-    contentType,
-    isTruncated,
-    isLoading,
-    error,
-    refetch,
-  } = useArtifactContent(
-    canFetchContent ? executionId : null,
-    canFetchContent ? artifact.storageKey : null,
-    undefined,
-    artifact.contentHash || undefined,
-    options?.cacheKey,
+  const { content, isTruncated, isLoading, error, refetch } = useFileContent(
+    canFetchContent ? file.metadata?.id ?? null : null,
   );
 
-  const yamlDetection = useDetectStigmerResource(
-    canFetchContent ? content : null,
-  );
+  const yamlDetection = useDetectStigmerResource(canFetchContent ? content : null);
 
-  const { detection: skillDetection, isLoading: isSkillLoading } =
-    useDetectSkillPackage(
-      isDirectory ? artifact : null,
-      isDirectory ? executionId : null,
-    );
+  const isDetected = yamlDetection.detected;
+  const isDetecting = canFetchContent && isLoading;
+  const detectionLabel = yamlDetection.detected ? `${yamlDetection.displayName} detected` : null;
+  const ctaLabel = yamlDetection.detected ? `Apply to ${slugForOrg(org)}` : null;
 
-  const isDetected = yamlDetection.detected || skillDetection.detected;
-  const isDetecting =
-    (canFetchContent && isLoading) || (isDirectory && isSkillLoading);
+  // --- Apply ----------------------------------------------------------------
 
-  let detectionLabel: string | null = null;
-  if (yamlDetection.detected) {
-    detectionLabel = `${yamlDetection.displayName} detected`;
-  } else if (skillDetection.detected) {
-    const count = skillDetection.fileCount;
-    detectionLabel = `Skill \u00B7 ${count} ${count === 1 ? "file" : "files"}`;
-  }
-
-  let ctaLabel: string | null = null;
-  if (yamlDetection.detected) {
-    ctaLabel = `Apply to ${slugForOrg(org)}`;
-  } else if (skillDetection.detected) {
-    ctaLabel = `Push Skill to ${slugForOrg(org)}`;
-  }
-
-  // --- Apply / Push ---------------------------------------------------------
-
-  const { applyYamlResource, pushSkillPackage, isApplying, error: applyError, clearError } =
-    useApplyResource();
-  const [applyResult, setApplyResult] = useState<ApplyResourceResult | null>(
-    null,
-  );
+  const { applyYamlResource, isApplying, error: applyError, clearError } = useApplyResource();
+  const [applyResult, setApplyResult] = useState<ApplyResourceResult | null>(null);
   const onApplied = options?.onApplied;
 
   const apply = useCallback(async () => {
     clearError();
+    if (!yamlDetection.detected || !content) return;
     try {
-      let result: ApplyResourceResult;
-      if (yamlDetection.detected && content) {
-        result = await applyYamlResource(content, org);
-      } else if (skillDetection.detected) {
-        result = await pushSkillPackage({
-          org,
-          runId: executionId,
-          storageKey: artifact.storageKey,
-        });
-      } else {
-        return;
-      }
+      const result = await applyYamlResource(content, org);
       setApplyResult(result);
       onApplied?.(result);
     } catch {
       // error state is owned by useApplyResource
     }
-  }, [
-    yamlDetection.detected,
-    skillDetection.detected,
-    content,
-    org,
-    executionId,
-    artifact.storageKey,
-    applyYamlResource,
-    pushSkillPackage,
-    clearError,
-    onApplied,
-  ]);
+  }, [yamlDetection.detected, content, org, applyYamlResource, clearError, onApplied]);
 
   // --- Copy -----------------------------------------------------------------
 
@@ -213,8 +140,6 @@ export function useArtifactInspection(
       isLoading,
       error,
       refetch,
-      isDirectory,
-      skillDetection,
       isDetected,
       isDetecting,
       detectionLabel,
@@ -233,8 +158,6 @@ export function useArtifactInspection(
       isLoading,
       error,
       refetch,
-      isDirectory,
-      skillDetection,
       isDetected,
       isDetecting,
       detectionLabel,

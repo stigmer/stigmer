@@ -1,29 +1,27 @@
 "use client";
 
-import type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
+import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
 import { useArtifactInspection } from "./useArtifactInspection.js";
 import { ArtifactContentBody } from "./ArtifactContentBody.js";
 import { ArtifactApplyButton } from "./ArtifactApplyButton.js";
-import { useArtifactDownload } from "./useArtifactDownload.js";
+import { useFileDownload } from "../file/useFile.js";
 import { formatArtifactSize } from "./artifact-utils.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 
 /** Props for {@link ArtifactDocument}. */
 export interface ArtifactDocumentProps {
-  /** The artifact to render. */
-  readonly artifact: RunArtifact;
-  /** Run that produced this artifact version (content + skill fetching). */
-  readonly runId: string;
-  /** Organization for the "Apply to [org]" / "Push Skill to [org]" CTA. */
+  /** The File a turn returned. */
+  readonly file: StigmerFile;
+  /** Organization for the "Apply to [org]" CTA. */
   readonly org: string;
   /**
-   * Whether the producing run is terminal. Gates the Apply/Push action
-   * (a mid-run artifact's content may still change).
+   * Whether the run that returned the File has ended. Gates the Apply action
+   * (a later turn may still save over the same path).
    */
   readonly isTerminal: boolean;
   /**
-   * Called after a resource is applied or a skill pushed — the same host
+   * Called after a resource is applied — the same host
    * callback the preview modal fires, so a document-apply behaves identically
    * (toast / Library refresh).
    */
@@ -33,7 +31,7 @@ export interface ArtifactDocumentProps {
 }
 
 /**
- * The editor-pane rendering of a single run artifact — the
+ * The editor-pane rendering of a single output File — the
  * {@link SurfaceVirtualDocument} counterpart of the {@link ArtifactPreviewModal}
  * popup, mounted as an artifact-family virtual document under
  * {@link ARTIFACT_DOCUMENT_ENTRY_ID}. Opening an artifact from the session
@@ -41,43 +39,36 @@ export interface ArtifactDocumentProps {
  * a modal.
  *
  * Shares the modal's exact behavior and body via the two extracted pieces —
- * {@link useArtifactInspection} (content + detection + apply/push + copy) and
- * {@link ArtifactContentBody} (loading / error / binary / text / directory) —
+ * {@link useArtifactInspection} (content + detection + apply + copy) and
+ * {@link ArtifactContentBody} (loading / error / binary / text) —
  * so the two surfaces can never drift. Only the chrome differs: a document
  * toolbar (name + size + detection badge; Copy / Download / Apply) over the
  * shared body, instead of the modal's header + footer action bar.
  *
  * Holds no must-survive local state: the panel region unmounts on collapse and
  * switching tabs remounts the active document, resetting transient apply/copy
- * state exactly as the modal resets on close. A `cacheKey` on the content fetch
- * keeps reopening a recently-viewed artifact instant.
+ * state exactly as the modal resets on close. The content read is cached by
+ * the File's id, so reopening a recently-viewed File is instant.
  *
  * All visual properties flow through `--stgm-*` tokens.
  */
 export function ArtifactDocument({
-  artifact,
-  runId: executionId,
+  file,
   org,
   isTerminal,
   onApplied,
   className,
 }: ArtifactDocumentProps) {
-  // Instant reopen: cache the content per (run, storage key, version).
-  // contentHash is included so a later overwrite of the same path never serves
-  // a stale cached body.
-  const cacheKey = `artifact-doc:${executionId}:${artifact.storageKey}:${artifact.contentHash}`;
-  const inspection = useArtifactInspection(artifact, executionId, org, {
-    cacheKey,
-    onApplied,
-  });
-  const { download, isDownloading } = useArtifactDownload(executionId);
+  const inspection = useArtifactInspection(file, org, { onApplied });
+  const { download, isDownloading } = useFileDownload();
+  const name = file.spec?.filename ?? "";
 
-  const showCopy = !inspection.isDirectory && inspection.content !== null;
+  const showCopy = inspection.content !== null;
 
   return (
     <div
       role="article"
-      aria-label={`Artifact ${artifact.name}`}
+      aria-label={`Artifact ${name}`}
       className={cn("stg:flex stg:min-h-0 stg:min-w-0 stg:flex-1 stg:flex-col", className)}
     >
       {/* Toolbar sticks to the top of the editor pane's scroll container so the
@@ -86,14 +77,13 @@ export function ArtifactDocument({
           horizontal scrollbar, so the toolbar reflows on any pane width. */}
       <div className="stg:sticky stg:top-0 stg:z-10 stg:flex stg:min-w-0 stg:flex-wrap stg:items-center stg:gap-x-3 stg:gap-y-1.5 stg:border-b stg:border-border stg:bg-background stg:px-4 stg:py-2">
         <span className="stg:shrink-0 stg:text-muted-foreground">
-          {inspection.isDirectory ? <FolderIcon /> : <FileIcon />}
+          <FileIcon />
         </span>
         <span className="stg:truncate stg:text-sm stg:font-medium stg:text-foreground">
-          {artifact.name}
-          {inspection.isDirectory && "/"}
+          {name}
         </span>
         <span className="stg:shrink-0 stg:text-[0.65rem] stg:tabular-nums stg:text-muted-foreground-faint">
-          {formatArtifactSize(artifact.sizeBytes)}
+          {formatArtifactSize(file.status?.sizeBytes ?? 0n)}
         </span>
         {inspection.isDetecting && !inspection.detectionLabel && (
           <span
@@ -129,7 +119,7 @@ export function ArtifactDocument({
           )}
           <button
             type="button"
-            onClick={() => download(artifact.storageKey, artifact.name)}
+            onClick={() => download(file.metadata?.id ?? "", name)}
             disabled={isDownloading}
             className={cn(
               "stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:disabled:opacity-50",
@@ -137,11 +127,7 @@ export function ArtifactDocument({
             )}
           >
             <DownloadIcon />
-            {isDownloading
-              ? "Preparing\u2026"
-              : inspection.isDirectory
-                ? "Download ZIP"
-                : "Download"}
+            {isDownloading ? "Preparing\u2026" : "Download"}
           </button>
           <ApplyCluster
             isDetected={inspection.isDetected}
@@ -156,13 +142,12 @@ export function ArtifactDocument({
       </div>
 
       <ArtifactContentBody
-        artifact={artifact}
+        file={file}
         content={inspection.content}
         contentType={inspection.contentType}
         isLoading={inspection.isLoading}
         error={inspection.error}
         isTruncated={inspection.isTruncated}
-        skillDetection={inspection.skillDetection}
         className="stg:min-w-0"
       />
 
@@ -174,7 +159,7 @@ export function ArtifactDocument({
 }
 
 /**
- * The Apply/Push affordance: the terminal-gated {@link ArtifactApplyButton}, or
+ * The Apply affordance: the terminal-gated {@link ArtifactApplyButton}, or
  * the post-apply success / error-with-retry states. Mirrors the modal action
  * bar's apply cluster so both surfaces read identically.
  */
@@ -261,24 +246,6 @@ function FileIcon() {
     >
       <path d="M9.5 1.5H5C4.17 1.5 3.5 2.17 3.5 3V13C3.5 13.83 4.17 14.5 5 14.5H11C11.83 14.5 12.5 13.83 12.5 13V4.5L9.5 1.5Z" />
       <path d="M9.5 1.5V4.5H12.5" />
-    </svg>
-  );
-}
-
-function FolderIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M14.5 12.5C14.5 13.33 13.83 14 13 14H3C2.17 14 1.5 13.33 1.5 12.5V3.5C1.5 2.67 2.17 2 3 2H6L8 4.5H13C13.83 4.5 14.5 5.17 14.5 6V12.5Z" />
     </svg>
   );
 }
