@@ -36,7 +36,7 @@ env:
 jobs:
   # Determine version for this build
   determine-version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
       should_release: ${{ steps.version.outputs.should_release }}
@@ -78,7 +78,7 @@ jobs:
 
   release:
     needs: [determine-version]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Pushes the release tag and creates the GitHub release.
     permissions:
       contents: write

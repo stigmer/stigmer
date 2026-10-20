@@ -55,7 +55,7 @@ jobs:
     name: Write the Tauri package cache
     # The only runner the reading lanes use; its key prefix
     # (tauri-apt-ubuntu24.04-amd64-) is the one they restore from.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # On a miss this job downloads from the same mirror the lanes do.
     timeout-minutes: 30
     steps:

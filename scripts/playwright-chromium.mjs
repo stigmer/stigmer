@@ -6,7 +6,7 @@
  * Playwright's headless Chromium. They used to run
  * `npx playwright install --with-deps chromium`, and `--with-deps` runs
  * `apt-get update` and `apt-get install` against Ubuntu's mirror. On
- * ubuntu-latest that fetched about 32 MB no test reads: the fonts
+ * ubuntu-24.04 (then `ubuntu-latest`) that fetched about 32 MB no test reads: the fonts
  * Playwright's own dependency table files under "tools", not under
  * "chromium", and upgrades of four mesa packages the image already carries.
  * Every library Chromium loads is already on the image. The mirror is

@@ -77,7 +77,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(inputs.dev_version == '' && '[{"arch":"amd64","runner":"ubuntu-latest"},{"arch":"arm64","runner":"ubuntu-24.04-arm"}]' || '[{"arch":"amd64","runner":"ubuntu-latest"}]') }}
+        include: ${{ fromJSON(inputs.dev_version == '' && '[{"arch":"amd64","runner":"ubuntu-24.04"},{"arch":"arm64","runner":"ubuntu-24.04-arm"}]' || '[{"arch":"amd64","runner":"ubuntu-24.04"}]') }}
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
@@ -429,7 +429,7 @@ jobs:
   publish-layer-and-base:
     needs: build-and-push
     if: inputs.dev_version == ''
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       packages: write
     steps:

@@ -48,7 +48,7 @@ concurrency:
 jobs:
   real-clock:
     name: Long turn, real clock (${{ github.event_name == 'pull_request' && 'boot check' || inputs.profile }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Endurance's three hours, its 30-minute budget margin, and the stack's boot.
     timeout-minutes: 230
     steps:

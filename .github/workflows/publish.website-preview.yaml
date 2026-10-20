@@ -64,7 +64,7 @@ jobs:
       github.event_name == 'workflow_run' &&
       github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.conclusion == 'success'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: read
@@ -116,7 +116,7 @@ jobs:
   approve:
     needs: resolve
     if: needs.resolve.outputs.number != '' && needs.resolve.outputs.fork == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions: {}
     environment:
@@ -134,7 +134,7 @@ jobs:
     if: >-
       !cancelled() && needs.resolve.result == 'success' && needs.resolve.outputs.number != '' &&
       (needs.approve.result == 'success' || needs.approve.result == 'skipped')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -240,7 +240,7 @@ jobs:
   # A pull request that never had one, or whose site is already closed, stops here.
   closing:
     if: github.event_name == 'pull_request_target'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: read
@@ -269,7 +269,7 @@ jobs:
   close:
     needs: closing
     if: needs.closing.outputs.open == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -321,7 +321,7 @@ jobs:
 
   sweep:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read

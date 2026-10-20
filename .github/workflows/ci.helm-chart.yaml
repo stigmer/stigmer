@@ -50,7 +50,7 @@ env:
 jobs:
   chart-checks:
     name: Chart lint, schema and render tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -84,7 +84,7 @@ jobs:
 
   kind-gate:
     name: Kind Gate (build-from-source)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - name: Checkout

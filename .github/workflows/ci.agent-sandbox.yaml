@@ -68,7 +68,7 @@ env:
 jobs:
   live:
     name: agent-sandbox live test (kind)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Checkout
