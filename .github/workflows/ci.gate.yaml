@@ -32,11 +32,12 @@
 # cancelled `coverage` as a failure. scripts/ci-coverage.test.mjs holds the
 # uploads and this job's needs to one shape.
 #
-# Every GitHub-hosted job here and in every lane runs on `ubuntu-24.04`, named,
-# never `ubuntu-latest`: on 2026-10-20 GitHub moved `ubuntu-latest` to Ubuntu
-# 26.04, on which the pinned Playwright installs no Chromium and the chart's
-# render goldens differ, so every pull request's gate failed for reasons
-# outside its code (#2473). The image moves when a change moves it.
+# Every GitHub-hosted Linux x64 job names its image, `ubuntu-24.04`, never
+# `ubuntu-latest` (other labels, such as the desktop release's matrix, are
+# their own): on 2026-10-20 GitHub moved `ubuntu-latest` to Ubuntu 26.04, on
+# which the pinned Playwright installs no Chromium and the chart's render
+# goldens differ, so every pull request's gate failed for reasons outside its
+# code (#2473). The image moves when a change moves it.
 #
 # Every job here and in every lane carries `timeout-minutes`, sized from its
 # measured wall time and at most 45. A hung step then fails at its cap, red
