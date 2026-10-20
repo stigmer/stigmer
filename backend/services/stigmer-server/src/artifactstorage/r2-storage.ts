@@ -48,10 +48,11 @@ export interface R2StorageConfig {
   /**
    * The address runners dial the store at, when it is not `endpoint`: a
    * local cluster's sandboxes reach a store on the host's loopback by
-   * another name. A download URL minted for a runner is signed for it,
-   * since a presigned URL's host is part of its signature; uploads, the
-   * server's own reads and a person's links keep `endpoint`. Empty or
-   * absent: `endpoint` for every reader.
+   * another name. A URL minted for a runner (a download, or an upload of
+   * an output it saved) is signed for it, since a presigned URL's host is
+   * part of its signature; the server's own reads and writes and a
+   * person's links keep `endpoint`. Empty or absent: `endpoint` for every
+   * reader.
    */
   readonly runnerEndpoint?: string;
 }
@@ -59,7 +60,7 @@ export interface R2StorageConfig {
 /** Test seam: the AWS clients, injectable for hermetic unit tests. */
 export interface R2Clients {
   readonly client: S3Client;
-  /** Signs a runner's download links; `client` when absent. */
+  /** Signs a runner's links; `client` when absent. */
   readonly runnerClient?: S3Client;
   readonly presign: typeof presignGetObject;
 }
@@ -79,7 +80,7 @@ export function newR2ArtifactStorage(config: R2StorageConfig): ArtifactStorage {
 
 export class R2ArtifactStorage implements ArtifactStorage {
   private readonly client: S3Client;
-  /** Signs a runner's download links (`R2StorageConfig.runnerEndpoint`); never dialled. */
+  /** Signs a runner's links (`R2StorageConfig.runnerEndpoint`); never dialled. */
   private readonly runnerClient: S3Client;
   private readonly presign: typeof presignGetObject;
   private readonly bucket: string;
@@ -206,6 +207,7 @@ export class R2ArtifactStorage implements ArtifactStorage {
     key: string,
     declaredSizeBytes: number,
     ttlMs: number,
+    reader: SignedUrlReader,
   ): Promise<PresignedUpload> {
     const clampedMs = Math.min(ttlMs, R2_MAX_EXPIRATION_MS);
     // The key is the caller's: the domain names its staging prefix (the
@@ -220,7 +222,7 @@ export class R2ArtifactStorage implements ArtifactStorage {
       ContentLength: declaredSizeBytes,
     });
     try {
-      const url = await this.presign(this.client, command, {
+      const url = await this.presign(reader === "runner" ? this.runnerClient : this.client, command, {
         expiresIn: Math.floor(clampedMs / 1000),
       });
       return { url, ttlMs: clampedMs };

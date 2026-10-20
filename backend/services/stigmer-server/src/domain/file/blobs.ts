@@ -32,7 +32,7 @@ import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
 
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
-import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
+import type { ArtifactStorage, SignedUrlReader } from "../../artifactstorage/artifact-storage.js";
 import { ArtifactStorageNotFoundError } from "../../artifactstorage/artifact-storage.js";
 import type { Logger } from "../../boot/logger.js";
 import {
@@ -80,8 +80,12 @@ export interface FileDownloadLink {
 export interface FileBlobs {
   /** The ceiling on a File's size (FILE_MAX_BYTES). */
   readonly maxBytes: number;
-  /** Mints an upload URL for exactly `sizeBytes` of `org`'s, after a sweep. */
-  mintUpload(org: string, sizeBytes: number): Promise<MintedUpload>;
+  /**
+   * Mints an upload URL for exactly `sizeBytes` of `org`'s, after a sweep,
+   * signed for whoever puts the bytes: a runner returning an output or a
+   * person's client.
+   */
+  mintUpload(org: string, sizeBytes: number, reader: SignedUrlReader): Promise<MintedUpload>;
   /** Writes inline bytes to a new blob of `org`. */
   storeInline(org: string, data: Uint8Array, contentType: string): Promise<NewBlob>;
   /** Promotes the bytes put to an upload URL into a new blob of `org`. */
@@ -220,7 +224,7 @@ export function newFileBlobs(deps: FileBlobsDeps): FileBlobs {
   return {
     maxBytes,
 
-    async mintUpload(org, sizeBytes) {
+    async mintUpload(org, sizeBytes, reader) {
       refuseOverLimit(sizeBytes);
       await sweep();
       const hex = randomBytes(UPLOAD_REF_BYTE_LEN).toString("hex");
@@ -236,7 +240,7 @@ export function newFileBlobs(deps: FileBlobsDeps): FileBlobs {
           sizeBytes,
           expiresAt: nowSeconds() + Math.ceil(UPLOAD_URL_TTL_MS / 1000),
         });
-        const presigned = await storage.presignPut(stagingKey, sizeBytes, UPLOAD_URL_TTL_MS);
+        const presigned = await storage.presignPut(stagingKey, sizeBytes, UPLOAD_URL_TTL_MS, reader);
         return { ref, url: presigned.url, ttlMs: presigned.ttlMs };
       } catch (error) {
         throw internalError(error, "failed to mint an upload URL");

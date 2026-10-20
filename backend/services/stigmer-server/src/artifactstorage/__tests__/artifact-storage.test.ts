@@ -285,7 +285,7 @@ describe("LocalArtifactStorage", () => {
 
     it("presignPut without a wired lane is the explicit not-configured throw, never a silent no-op", async () => {
       await expect(
-        storage.presignPut("skills/staging/deadbeef.zip", 16, 60_000),
+        storage.presignPut("skills/staging/deadbeef.zip", 16, 60_000, "person"),
       ).rejects.toThrow("local presigned uploads not configured");
     });
   });
@@ -319,7 +319,7 @@ describe("LocalArtifactStorage presignPut over the transfer-lane slots", () => {
 
   it("presignPut(key) → PUT (lane receive) → download(key) round-trips the bytes", async () => {
     const bytes = Buffer.from("staged artifact bytes");
-    const upload = await driver.presignPut(KEY, bytes.length, 999_999_999);
+    const upload = await driver.presignPut(KEY, bytes.length, 999_999_999, "person");
 
     // The URL is the lane's wire shape and the ref is its last segment —
     // exactly how the lane handler dispatches a PUT.
@@ -339,13 +339,13 @@ describe("LocalArtifactStorage presignPut over the transfer-lane slots", () => {
   });
 
   it("an unreceived key is honest about absence", async () => {
-    await driver.presignPut(KEY, 4, 60_000);
+    await driver.presignPut(KEY, 4, 60_000, "person");
     await expect(driver.download(KEY)).rejects.toThrow(ArtifactStorageNotFoundError);
   });
 
   it("refuses a key that would stage outside the driver root before the lane sees it", async () => {
     await expect(
-      driver.presignPut("../outside.zip", 4, 60_000),
+      driver.presignPut("../outside.zip", 4, 60_000, "person"),
     ).rejects.toThrow("resolves outside the artifact storage root");
   });
 });

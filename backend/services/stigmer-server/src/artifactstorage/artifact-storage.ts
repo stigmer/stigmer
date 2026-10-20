@@ -72,12 +72,13 @@ export interface PresignedUpload {
 }
 
 /**
- * Who reads a signed download URL. A store can have one address for the
- * people and servers outside it and another for the runners inside a
- * deployment (a local cluster whose sandboxes reach the host by another
- * name), and a presigned URL's host is part of its signature, so a link
- * is signed for its reader: `"runner"` for an archive or file a runner
- * downloads, `"person"` for everything a person's client or browser opens.
+ * Who uses a signed URL. A store can have one address for the people and
+ * servers outside it and another for the runners inside a deployment (a
+ * local cluster whose sandboxes reach the host by another name), and a
+ * presigned URL's host is part of its signature, so a link is signed for
+ * its user: `"runner"` for an archive or file a runner downloads and an
+ * output a runner uploads, `"person"` for everything a person's client or
+ * browser opens or puts.
  */
 export type SignedUrlReader = "person" | "runner";
 
@@ -130,12 +131,14 @@ export interface ArtifactStorage {
    * lane wired — unwired instances throw the explicit not-configured
    * error, never a silent no-op. The R2 backend presigns a PUT
    * (repeatable within its TTL, size enforced by the signed
-   * Content-Length header, TTL clamped to the 7-day R2 maximum).
+   * Content-Length header, TTL clamped to the 7-day R2 maximum), signed
+   * for `reader`'s address as getSignedUrl's links are.
    */
   presignPut(
     key: string,
     declaredSizeBytes: number,
     ttlMs: number,
+    reader: SignedUrlReader,
   ): Promise<PresignedUpload>;
   /**
    * Copies the blob at fromKey to toKey inside the store, without its
@@ -334,10 +337,13 @@ export class LocalArtifactStorage implements ArtifactStorage {
     }
   }
 
+  // The reader is not part of the link, as for getSignedUrl below: the
+  // lane renders its one configured address.
   async presignPut(
     key: string,
     declaredSizeBytes: number,
     _ttlMs: number,
+    _reader: SignedUrlReader,
   ): Promise<PresignedUpload> {
     if (this.stagedUploadLane === undefined) {
       throw new Error(

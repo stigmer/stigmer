@@ -155,8 +155,8 @@ export interface ServerConfig {
   /**
    * R2_RUNNER_ENDPOINT: the address runners dial the store at, when it is
    * not R2_ENDPOINT (a local cluster whose sandboxes reach a store on the
-   * host's loopback by another name). Download links a runner reads are
-   * signed for it; "" signs every link for R2_ENDPOINT.
+   * host's loopback by another name). Links a runner downloads or uploads
+   * through are signed for it; "" signs every link for R2_ENDPOINT.
    */
   readonly r2RunnerEndpoint: string;
   /**

@@ -147,6 +147,7 @@ export function newArchiveStaging(
         key,
         declaredSizeBytes,
         DEFAULT_SLOT_TTL_MS,
+        "person",
       );
       return { ref, url: presigned.url, ttlMs: presigned.ttlMs };
     },

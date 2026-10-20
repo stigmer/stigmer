@@ -221,7 +221,7 @@ async function createUploadUrl(
     .addStep(newAuthorizeUploadStep<MintDesc>(deps, (request) => request))
     .build()
     .execute(reqCtx);
-  const minted = await deps.blobs.mintUpload(input.org, Number(input.sizeBytes));
+  const minted = await deps.blobs.mintUpload(input.org, Number(input.sizeBytes), "person");
   return create(FileUploadUrlSchema, {
     url: minted.url,
     uploadRef: minted.ref,

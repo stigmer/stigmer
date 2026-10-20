@@ -5,8 +5,9 @@
  * required-config copy, the 7-day presign clamp, the signed
  * Content-Disposition, the not-found mapping, and the widened surface
  * (typed not-found on download/size, presigned-PUT under the caller's key
- * with the signed Content-Length), a runner's links signed for the
- * runner's address when one is set, and the server-side copy.
+ * with the signed Content-Length), a runner's links (downloads and
+ * uploads) signed for the runner's address when one is set, and the
+ * server-side copy.
  */
 import { describe, expect, it } from "vitest";
 
@@ -75,10 +76,12 @@ describe("R2ArtifactStorage links by reader", () => {
     expect(person.startsWith(`${VALID.endpoint}/${VALID.bucket}/plugins/abc.zip?`)).toBe(true);
   });
 
-  it("keeps uploads on the endpoint when a runner's address is set", async () => {
+  it("signs a runner's upload for the runner's address and a person's for the endpoint", async () => {
     const storage = new R2ArtifactStorage({ ...VALID, runnerEndpoint: RUNNER_ENDPOINT });
-    const upload = await storage.presignPut("skills/staging/ref.zip", 10, 60_000);
-    expect(upload.url.startsWith(`${VALID.endpoint}/${VALID.bucket}/skills/staging/ref.zip?`)).toBe(true);
+    const runner = await storage.presignPut("files/staging/ref", 10, 60_000, "runner");
+    const person = await storage.presignPut("skills/staging/ref.zip", 10, 60_000, "person");
+    expect(runner.url.startsWith(`${RUNNER_ENDPOINT}/${VALID.bucket}/files/staging/ref?`)).toBe(true);
+    expect(person.url.startsWith(`${VALID.endpoint}/${VALID.bucket}/skills/staging/ref.zip?`)).toBe(true);
   });
 
   it.each([undefined, ""])("signs every reader's link for the endpoint with no runner address (%j)", async (runnerEndpoint) => {
@@ -94,7 +97,7 @@ describe("R2ArtifactStorage widened surface", () => {
   it("presignPut signs a PUT under the caller's key, clamps the TTL, and signs the declared size", async () => {
     const storage = new R2ArtifactStorage(VALID);
     const key = "skills/staging/0123456789abcdef0123456789abcdef.zip";
-    const upload = await storage.presignPut(key, 1234, R2_MAX_EXPIRATION_MS * 5);
+    const upload = await storage.presignPut(key, 1234, R2_MAX_EXPIRATION_MS * 5, "person");
 
     expect(upload.ttlMs).toBe(R2_MAX_EXPIRATION_MS);
     expect(
@@ -108,8 +111,8 @@ describe("R2ArtifactStorage widened surface", () => {
 
   it("the key is the caller's verbatim — the driver invents none of its own", async () => {
     const storage = new R2ArtifactStorage(VALID);
-    const a = await storage.presignPut("staging/a.zip", 1, 60_000);
-    const b = await storage.presignPut("staging/b.zip", 1, 60_000);
+    const a = await storage.presignPut("staging/a.zip", 1, 60_000, "person");
+    const b = await storage.presignPut("staging/b.zip", 1, 60_000, "person");
     expect(a.url).toContain(`/${VALID.bucket}/staging/a.zip?`);
     expect(b.url).toContain(`/${VALID.bucket}/staging/b.zip?`);
   });
