@@ -63,7 +63,7 @@ jobs:
   # scripts/ci-shards.test.mjs holds the shard matrix to the indices 1 and 2.
   e2e-interactive:
     name: Interactive E2E (full stack, ${{ matrix.shard }}/2)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The Playwright config has no globalTimeout, so this is the only
     # wall-clock cap. Measured on hosted runners: 5.5 to 5.7 min for the
     # whole suite once built, after about 3 min of builds (two npm trees +
@@ -159,7 +159,7 @@ jobs:
   # independently and re-run independently — same builds, ~4 extra minutes.
   e2e-approval:
     name: Approval E2E (mock LLM, two stack shapes)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -231,7 +231,7 @@ jobs:
   # precedent); no runner is needed, but the stack boots one.
   e2e-console-login:
     name: Console login E2E (OIDC posture, hermetic issuer)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -293,7 +293,7 @@ jobs:
   # its own job.
   e2e-single-org:
     name: Single-organization E2E (the shipped entry)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -370,7 +370,7 @@ jobs:
   # scripts/ci-shards.test.mjs holds the shard matrix to the indices 1 and 2.
   e2e-functional:
     name: Functional E2E (plain stack, ${{ matrix.shard }}/2)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -431,7 +431,7 @@ jobs:
 
   e2e-functional-oauth:
     name: Functional E2E (OAuth MCP stack)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Checkout

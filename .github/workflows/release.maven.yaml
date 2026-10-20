@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   determine-version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -36,7 +36,7 @@ jobs:
 
   publish-protos:
     needs: determine-version
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -107,7 +107,7 @@ jobs:
 
   publish-sdk:
     needs: [determine-version, publish-protos]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0

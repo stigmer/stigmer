@@ -114,7 +114,7 @@ jobs:
   # run-everything cases, and no package's suite covers them.
   changes:
     name: Detect affected packages
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
       packages: ${{ steps.verdict.outputs.packages }}
@@ -161,7 +161,7 @@ jobs:
   # extension-less relative specifier crashes under plain Node ESM).
   libs:
     name: Libs build + tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     needs: changes
     if: needs.changes.outputs.libs == 'true'
@@ -234,7 +234,7 @@ jobs:
   # job, `desktop-rust`, below.
   verify:
     name: Lint + Typecheck
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     needs: changes
     if: needs.changes.outputs.packages != '[]'
@@ -279,7 +279,7 @@ jobs:
   # the SHIPPED stylesheet.
   a11y-audit:
     name: Browser Suite (A11y Audit + Layout Contracts)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     needs: changes
     if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/react-sdk')
@@ -315,7 +315,7 @@ jobs:
   # `react-vm-tests` below runs the same suite on the pool developers run.
   react-tests:
     name: React SDK Tests (coverage)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     needs: changes
     if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/react-sdk')
@@ -358,7 +358,7 @@ jobs:
   # own runner, beside `react-tests`, so neither waits for the other.
   react-vm-tests:
     name: React SDK Tests (vmForks)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     needs: changes
     if: contains(fromJSON(needs.changes.outputs.packages), '@stigmer/react-sdk')
@@ -385,7 +385,7 @@ jobs:
 
   web-tests:
     name: Web Console Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     needs: changes
     if: contains(fromJSON(needs.changes.outputs.packages), 'web')
@@ -424,7 +424,7 @@ jobs:
 
   desktop-tests:
     name: Desktop App Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     needs: changes
     if: contains(fromJSON(needs.changes.outputs.packages), 'desktop')
@@ -470,7 +470,7 @@ jobs:
   # install: it compiles Rust only and reads no frontend build.
   desktop-rust:
     name: Desktop Rust Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Sized for an archive-cache miss in .github/actions/tauri-linux-deps:
     # its download from Ubuntu's mirror has taken 20 min 17 s (#1529).
     timeout-minutes: 45
@@ -505,7 +505,7 @@ jobs:
   # but a run per SDK change is the cadence that has caught it so far.
   typecheck-clean-room:
     name: typecheck (clean-room resolution)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     needs: changes
     if: needs.changes.outputs.libs == 'true'

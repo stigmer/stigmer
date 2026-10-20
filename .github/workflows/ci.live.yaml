@@ -74,7 +74,7 @@ permissions:
 jobs:
   release:
     name: Resolve the release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.event == 'push' &&
@@ -140,7 +140,7 @@ jobs:
     name: Runner live suites
     needs: release
     if: needs.release.outputs.run == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: provider-integration
     timeout-minutes: 20
     steps:
@@ -183,7 +183,7 @@ jobs:
     name: Published CLI on a real model
     needs: release
     if: needs.release.outputs.run == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: provider-integration
     timeout-minutes: 20
     steps:

@@ -46,7 +46,7 @@ permissions:
 jobs:
   e2e-smoke:
     name: E2E Smoke Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Skip if the triggering workflow failed (workflow_run)
     if: >
       github.event_name != 'workflow_run' ||

@@ -61,7 +61,7 @@ jobs:
   # refused with exit 78 and the line that names the contract.
   layer-start-as-root:
     name: Runner layer start script (as root)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -99,7 +99,7 @@ jobs:
 
   runner-vitest:
     name: Runner Vitest
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Checkout

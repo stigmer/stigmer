@@ -6,7 +6,7 @@
 # No apt. `npx playwright install --with-deps chromium` used to run
 # `apt-get update` and `apt-get install` against Ubuntu's mirror for about
 # 32 MB no test reads: fonts Playwright files under "tools", and upgrades of
-# mesa packages ubuntu-latest already carries. Every library Chromium loads
+# mesa packages ubuntu-24.04 already carries. Every library Chromium loads
 # is already on the image. The mirror trickled at 50 to 90 kB/s on one
 # install in twenty (3 to 11 minutes), and once hung in `apt-get update` for
 # 27 minutes until the job was cancelled and a good change was ejected from

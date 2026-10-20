@@ -43,7 +43,7 @@ env:
 jobs:
   conformance-execution-local:
     name: Conformance Execution (local-execution, ${{ matrix.shard }}/4)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # About 3x a shard's time: without it a hung shard would hold a runner for
     # GitHub's six-hour default.
     timeout-minutes: 20
@@ -124,7 +124,7 @@ jobs:
   # certify the driver everywhere except where it is most at risk.
   conformance-execution-local-postgres:
     name: Conformance Execution (local-postgres-execution, ${{ matrix.shard }}/4)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
       fail-fast: false

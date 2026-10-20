@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   determine-version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -36,7 +36,7 @@ jobs:
 
   publish-protos:
     needs: determine-version
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write
@@ -104,7 +104,7 @@ jobs:
 
   publish-sdk:
     needs: [determine-version, publish-protos]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write

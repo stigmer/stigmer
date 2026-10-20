@@ -52,7 +52,7 @@ env:
 jobs:
   ee:
     name: Enterprise Gate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # About 3x the job's measured time (3 min 42 s on its first run, before
     # coverage), rounded up to 5: without it a hung step would hold a runner
     # for GitHub's six-hour default.
@@ -168,7 +168,7 @@ jobs:
   # pushed tag.
   ee-image:
     name: Enterprise Image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The server gate's budget: its own image steps run about as long.
     timeout-minutes: 20
     services:
