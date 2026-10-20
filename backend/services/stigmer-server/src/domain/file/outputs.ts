@@ -168,7 +168,7 @@ export async function createOutputUploads(
   const org = run.metadata?.org ?? "";
   const entries: OutputUpload[] = [];
   for (const entry of input.entries) {
-    const minted = await deps.blobs.mintUpload(org, Number(entry.sizeBytes));
+    const minted = await deps.blobs.mintUpload(org, Number(entry.sizeBytes), "runner");
     entries.push(
       create(OutputUploadSchema, {
         outputPath: entry.outputPath,

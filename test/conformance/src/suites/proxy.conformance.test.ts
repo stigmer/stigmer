@@ -487,7 +487,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
   });
 
   describe("storage lanes", () => {
-    it("[proxy.artifact.presign-by-key-shape-and-permission] artifact presigns are authorized by the execution id inside the key; attachments need only authentication", async () => {
+    it("[proxy.artifact.presign-by-key-shape-and-permission] artifact presigns are authorized by the execution id inside the key", async () => {
       const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
       const upload = await proxyFetch("/v1/proxy/artifacts/presigned-upload-url", {
@@ -502,12 +502,6 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
         body: JSON.stringify({ key: `artifacts/${executionId}/out.txt` }),
       });
       expect(download.status).toBe(200);
-      const attachment = await proxyFetch("/v1/proxy/artifacts/presigned-upload-url", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ key: `attachments/${uniqueName("att")}/in.txt`, content_type: "text/plain" }),
-      });
-      expect(attachment.status).toBe(200);
       const token = await mintOutsiderToken();
       const foreign = await proxyFetch("/v1/proxy/artifacts/presigned-upload-url", {
         method: "POST",
@@ -521,7 +515,7 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
     it("[proxy.artifact.key-rules-and-mime] artifact keys and content types are validated before authorization", async () => {
       const { org } = await keyedOrg();
       const executionId = await ownedExecution(org);
-      const badKeys = ["", `artifacts/${executionId}/../escape`, `artifacts/${executionId}//double`, "other/prefix/x", `artifacts/${executionId}/${"k".repeat(1100)}`, `artifacts/${executionId}/bad char`];
+      const badKeys = ["", `artifacts/${executionId}/../escape`, `artifacts/${executionId}//double`, "other/prefix/x", `attachments/${uniqueName("att")}/in.txt`, `artifacts/${executionId}/${"k".repeat(1100)}`, `artifacts/${executionId}/bad char`];
       for (const key of badKeys) {
         const response = await proxyFetch("/v1/proxy/artifacts/presigned-upload-url", {
           method: "POST",

@@ -7,6 +7,7 @@
  *     filename, typed by its extension, with where it was saved; two files
  *     of one name in two folders are two Files; a turn's outputs list by
  *     the run;
+ *   - each output's upload link is signed for the runner, which puts it;
  *   - a retried registration answers the File it made and promotes
  *     nothing again; a reference spent with no File is FAILED_PRECONDITION;
  *     an output's id is never an attachment conversion's;
@@ -266,6 +267,19 @@ describe("RunFileController.createOutputUploads and registerOutputs", () => {
       files.map((file) => [file.metadata?.id, CREATOR]),
     );
     expect((await filesOfRun(RUN)).map((file) => file.status?.outputPath).sort()).toEqual(Object.keys(outputs).sort());
+  });
+
+  it("signs each output's upload for the runner, which puts the bytes", async () => {
+    const readers: string[] = [];
+    const recording: FileBlobs = {
+      ...blobs,
+      mintUpload: (org, sizeBytes, reader) => {
+        readers.push(reader);
+        return blobs.mintUpload(org, sizeBytes, reader);
+      },
+    };
+    await mint({ "a.md": "a", "b.md": "b" }, RUN, auth.mintRunCredential(RUN), { blobs: recording });
+    expect(readers).toEqual(["runner", "runner"]);
   });
 
   it("answers a retried registration with the File it made, promoting nothing again", async () => {

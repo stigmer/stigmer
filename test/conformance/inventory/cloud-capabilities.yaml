@@ -1346,7 +1346,7 @@ rows:
     lane: >-
       artifact
     behavior: >-
-      presigned-upload-url for artifacts/<execution_id>/... needs can_edit on that execution; presigned-download-url needs can_view; attachments/... keys need only authentication; a foreign execution's key answers 403.
+      presigned-upload-url for artifacts/<execution_id>/... needs can_edit on that execution; presigned-download-url needs can_view; a foreign execution's key answers 403. No key outside a run is signed: a file enters a session as a File, whose links the server mints.
     class: behavior
     disposition: conformance
     observability: launcher
@@ -1357,7 +1357,7 @@ rows:
     lane: >-
       artifact
     behavior: >-
-      A key that is blank, longer than 1024, with characters outside [a-zA-Z0-9/_-.], containing .. or //, or not prefixed artifacts/ or attachments/ answers 400 with the validator's reason; an upload content type not matching the MIME pattern answers 400.
+      A key that is blank, longer than 1024, with characters outside [a-zA-Z0-9/_-.], containing .. or //, or not prefixed artifacts/ (attachments/ included, retired with the attachment lane) answers 400 with the validator's reason; an upload content type not matching the MIME pattern answers 400.
     class: adversarial
     disposition: conformance
     observability: launcher

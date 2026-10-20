@@ -82,7 +82,7 @@ function spiedDriver(overrides: Partial<ArtifactStorage> = {}): ArtifactStorage 
     size: (key) => local.size(key),
     readRange: (key, offset, length) => local.readRange(key, offset, length),
     getSignedUrl: (key, ttl, name, reader) => local.getSignedUrl(key, ttl, name, reader),
-    presignPut: (key, size, ttl) => local.presignPut(key, size, ttl),
+    presignPut: (key, size, ttl, reader) => local.presignPut(key, size, ttl, reader),
     copy: (from, to) => local.copy(from, to),
     delete: (key) => local.delete(key),
     exists: (key) => local.exists(key),
@@ -169,7 +169,7 @@ afterEach(async () => {
 
 describe("promoting a staged upload", () => {
   it("copies inside the store: no read-back, the staging key gone, the File's bytes the uploaded ones", async () => {
-    const minted = await blobs.mintUpload(ORG, 5);
+    const minted = await blobs.mintUpload(ORG, 5, "person");
     await putStaged(minted.ref, new TextEncoder().encode("hello"));
     const blob = await blobs.promote(ORG, minted.ref);
     await insert("file_01a", blob);
@@ -183,7 +183,7 @@ describe("promoting a staged upload", () => {
   });
 
   it("promotes a reference once, and refuses one of another organization or never minted", async () => {
-    const minted = await blobs.mintUpload(ORG, 3);
+    const minted = await blobs.mintUpload(ORG, 3, "person");
     await putStaged(minted.ref, new Uint8Array([1, 2, 3]));
     expect(await codeOf(() => blobs.promote(OTHER_ORG, minted.ref))).toBe(Code.FailedPrecondition);
     await blobs.promote(ORG, minted.ref);
@@ -192,7 +192,7 @@ describe("promoting a staged upload", () => {
   });
 
   it("refuses a reference whose bytes never arrived, and sweeps the staged row after the lease", async () => {
-    const minted = await blobs.mintUpload(ORG, 3);
+    const minted = await blobs.mintUpload(ORG, 3, "person");
     expect(await codeOf(() => blobs.promote(ORG, minted.ref))).toBe(Code.FailedPrecondition);
     nowMs += BLOB_WRITE_LEASE_MS + 1000;
     await blobs.sweep();
@@ -228,7 +228,7 @@ describe("reading a File's first bytes", () => {
 
 describe("the size cap", () => {
   it("refuses an upload URL and an inline upload over the cap, before any byte is stored", async () => {
-    expect(await codeOf(() => blobs.mintUpload(ORG, MAX_BYTES + 1))).toBe(Code.InvalidArgument);
+    expect(await codeOf(() => blobs.mintUpload(ORG, MAX_BYTES + 1, "person"))).toBe(Code.InvalidArgument);
     expect(await codeOf(() => blobs.storeInline(ORG, new Uint8Array(MAX_BYTES + 1), ""))).toBe(Code.InvalidArgument);
     expect(await fx.store.files.listBlobKeysByOrg(ORG, "", 10)).toEqual([]);
   });
@@ -248,7 +248,7 @@ describe("blobs nobody names", () => {
   });
 
   it("sweeps an upload URL nobody used once it expires", async () => {
-    const minted = await blobs.mintUpload(ORG, 4);
+    const minted = await blobs.mintUpload(ORG, 4, "person");
     await putStaged(minted.ref, new Uint8Array([1, 2, 3, 4]));
     nowMs += UPLOAD_URL_TTL_MS + 1000;
     expect(await blobs.sweep()).toBe(1);
@@ -277,7 +277,7 @@ describe("an organization's purge", () => {
     const stored = await blobs.storeInline(ORG, new Uint8Array([1]), "");
     await insert("file_01a", stored);
     await fx.store.files.remove(ApiResourceKind.file, "file_01a");
-    const minted = await blobs.mintUpload(ORG, 1);
+    const minted = await blobs.mintUpload(ORG, 1, "person");
     await putStaged(minted.ref, new Uint8Array([2]));
     const kept = await blobs.storeInline(OTHER_ORG, new Uint8Array([3]), "");
     await insert("file_01other", kept);
@@ -311,7 +311,7 @@ describe("references", () => {
 
 describe("a staged upload that is not what was declared", () => {
   it("refuses bytes of another size than the declaration", async () => {
-    const minted = await blobs.mintUpload(ORG, 5);
+    const minted = await blobs.mintUpload(ORG, 5, "person");
     await storage.upload(stagingKeyOf(minted.ref) ?? "", new Uint8Array(3), "");
     const error = await blobs.promote(ORG, minted.ref).catch((e: unknown) => e);
     expect((error as ConnectError).code).toBe(Code.FailedPrecondition);
@@ -336,7 +336,7 @@ describe("faults", () => {
   it.each([
     ["recording the blob", () => blobsWith({ files: { recordBlob: boom } }).storeInline(ORG, new Uint8Array([1]), "")],
     ["writing inline bytes", () => blobsWith({ storage: { upload: boom } }).storeInline(ORG, new Uint8Array([1]), "")],
-    ["minting an upload URL", () => blobsWith({ storage: { presignPut: boom } }).mintUpload(ORG, 1)],
+    ["minting an upload URL", () => blobsWith({ storage: { presignPut: boom } }).mintUpload(ORG, 1, "person")],
     ["claiming a staged upload", () => blobsWith({ files: { claimStaged: boom } }).promote(ORG, `fup_${"ab".repeat(16)}`)],
     ["removing a File", () => blobsWith({ files: { remove: boom } }).removeFile("file_01a")],
     ["reading a File's blob", () => blobsWith({ files: { blobKeyOf: boom } }).downloadUrl("file_01a", "a.txt")],
@@ -345,18 +345,18 @@ describe("faults", () => {
   });
 
   it("answers Internal when the staged bytes cannot be read or copied", async () => {
-    const minted = await blobs.mintUpload(ORG, 2);
+    const minted = await blobs.mintUpload(ORG, 2, "person");
     await putStaged(minted.ref, new Uint8Array([1, 2]));
     expect(await codeOf(() => blobsWith({ storage: { size: boom } }).promote(ORG, minted.ref))).toBe(Code.Internal);
 
-    const second = await blobs.mintUpload(ORG, 2);
+    const second = await blobs.mintUpload(ORG, 2, "person");
     await putStaged(second.ref, new Uint8Array([1, 2]));
     expect(await codeOf(() => blobsWith({ storage: { copy: boom } }).promote(ORG, second.ref))).toBe(Code.Internal);
   });
 
   it("promotes when the staged bytes cannot be deleted, logging them for the sweep", async () => {
     const warn = vi.fn();
-    const minted = await blobs.mintUpload(ORG, 2);
+    const minted = await blobs.mintUpload(ORG, 2, "person");
     await putStaged(minted.ref, new Uint8Array([1, 2]));
     const blob = await blobsWith({ storage: { delete: boom }, logger: { ...silentLogger, warn } as Logger }).promote(
       ORG,
