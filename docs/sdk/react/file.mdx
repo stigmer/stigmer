@@ -68,6 +68,7 @@ function useFile(fileId: string | null): UseFileReturn
     error: { type: "Error | null", description: "Error from the last failed read, or `null`." },
     file: { type: "File | null", description: "The File's record, or `null` while loading, when skipped, or on failure." },
     isLoading: { type: "boolean", description: "True while the first read is in flight." },
+    refetch: { type: "() => void", description: "Read the record again, past the cache (after its visibility or labels changed)." },
   }}
 />
 
