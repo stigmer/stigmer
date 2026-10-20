@@ -15,7 +15,9 @@
  * when it arrives after mount and never over a pick; with
  * `rememberPluginPicks` the person's last picks start it instead of an
  * empty list and each pick is remembered, a seed never; a guest takes
- * neither.
+ * neither. The chat box's Files ride the first run's `fileIds`, and the
+ * person's originals are released once the run exists, and on a failed
+ * start too, so no File of theirs outlives the attempt.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
@@ -391,6 +393,38 @@ describe("useNewSessionFlow", () => {
       // for — the session spec names no agent.
       expect(execInput.sessionSpec.agentRef).toBeUndefined();
       expect(execInput.sessionId).toBeUndefined();
+    });
+
+    it("names the chat box's Files in the first run, then releases the person's originals", async () => {
+      const opts = defaultOptions();
+      const releaseFiles = vi.fn().mockResolvedValue(undefined);
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Look at these", undefined, { fileIds: ["file_1", "file_2"], releaseFiles });
+      });
+
+      expect(mockCreateExecution.mock.calls[0][0].fileIds).toEqual(["file_1", "file_2"]);
+      // The run exists and the conversation holds its copies before the
+      // originals go.
+      expect(releaseFiles).toHaveBeenCalledOnce();
+      expect(mockCreateExecution.mock.invocationCallOrder[0]).toBeLessThan(releaseFiles.mock.invocationCallOrder[0]!);
+      expect(opts.onSessionCreated).toHaveBeenCalledWith("sess-new");
+    });
+
+    it("releases the person's Files when the start fails too, so none is left behind", async () => {
+      const opts = defaultOptions();
+      const releaseFiles = vi.fn().mockResolvedValue(undefined);
+      mockCreateExecution.mockRejectedValueOnce(new Error("refused"));
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Look at this", undefined, { fileIds: ["file_1"], releaseFiles });
+      });
+
+      expect(releaseFiles).toHaveBeenCalledOnce();
+      expect(opts.onSessionCreated).not.toHaveBeenCalled();
+      expect(opts.onError).toHaveBeenCalledOnce();
     });
 
     it("turns file review on for the conversation it starts", async () => {

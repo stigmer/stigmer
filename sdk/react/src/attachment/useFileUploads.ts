@@ -18,8 +18,13 @@
  *   backing store, never read whole into memory.
  * - A chip removed before sending deletes its File, and so does
  *   {@link UseFileUploadsReturn.clear}: a File nobody sent is not left
- *   behind. Deletion is best effort; a failed delete is not the person's to
- *   act on, so it is not surfaced.
+ *   behind. So does a chat box that goes away with chips unsent (a
+ *   conversation switched away from, a launcher closed), since nothing
+ *   keeps a draft of them: in a conversation the File would otherwise stay
+ *   among its Files as given though nobody sent it. A tab closed outright
+ *   runs no cleanup, and its Files stay, visible where the person's own
+ *   Files are listed. Deletion is best effort; a failed delete is not the
+ *   person's to act on, so it is not surfaced.
  * - Sending is a hand-off, not a clear: {@link UseFileUploadsReturn.handOff}
  *   empties the chips without deleting anything, because the run that
  *   names the Files does not exist yet.
@@ -28,7 +33,7 @@
  *   the send (and every retry of it) would be refused.
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import type { MessageAttachmentView } from "../run/MessageAttachments.js";
@@ -279,6 +284,24 @@ export function useFileUploads(options?: UseFileUploadsOptions): UseFileUploadsR
       stigmer.file.delete(fileId).catch(() => undefined);
     },
     [stigmer],
+  );
+
+  // Going away deletes what was never sent: the entries still held, the
+  // same set clear() deletes (a hand-off empties the ref first, so a sent
+  // File is never touched). The ref is read at cleanup time, so React's
+  // development double mount, whose cleanup runs before any file is added,
+  // deletes nothing. An upload still in flight is aborted, and its File is
+  // deleted when it lands.
+  const deleteFileRef = useRef(deleteFile);
+  deleteFileRef.current = deleteFile;
+  useEffect(
+    () => () => {
+      for (const entry of entriesRef.current) {
+        abortControllers.current.get(entry.id)?.abort();
+        if (entry.fileId) deleteFileRef.current(entry.fileId);
+      }
+    },
+    [],
   );
 
   const upload = useCallback(
