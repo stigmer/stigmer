@@ -346,11 +346,11 @@ A deny does not end the run: the agent reads the comment and continues. The answ
 ## Downloading Artifacts
 
 ```bash
-# Wait for the run to complete, then list its artifacts
-stigmer get run "$RUN_ID" -o json | jq '.status.artifacts[]'
+# Wait for the run to complete, then download what it saved in its outputs folder
+stigmer download run "$RUN_ID"
 
-# Download a specific artifact
-stigmer download run "$RUN_ID" --artifact quarterly-report
+# Download one file, by its name or its path in the outputs folder
+stigmer download run "$RUN_ID" --artifact reports/quarterly-report.md
 
 # Or download every artifact when the run completes
 stigmer run report-generator -m "Generate quarterly analysis report" --download ./out
