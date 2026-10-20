@@ -51,7 +51,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { InteractionMode, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { isPlanArtifactName, planArtifactName } from "../../shared/plan-artifact.js";
+import { isPlanArtifactName, PLAN_STAGING_FILE, planArtifactName } from "../../shared/plan-artifact.js";
 import { getPlatformDir } from "../../shared/workspace/platform-dir.js";
 import { acquireWorkspaceLock } from "../../shared/workspace/workspace-lock.js";
 
@@ -299,6 +299,25 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       } finally {
         if (saved === undefined) delete process.env.ARTIFACT_STORAGE_TYPE;
         else process.env.ARTIFACT_STORAGE_TYPE = saved;
+      }
+    });
+
+    it("a Plan-mode turn whose plan cannot be saved still completes, returns no plan and warns once", async () => {
+      clock.reset();
+      const driver = new RuntimeExecutionDriver(harness, "fake-outputs-plan-unsaved");
+      driver.record.execution.spec!.interactionMode = InteractionMode.PLAN;
+      // A directory where the plan is staged: the save's write fails for real.
+      mkdirSync(join(getPlatformDir(driver.sessionId), PLAN_STAGING_FILE), { recursive: true });
+      const warn = vi.spyOn(console, "warn");
+      try {
+        const invocation = await driver.turn([scenario.say("# Migrate billing\n\n1. Move the ledger.\n")]);
+        expect(slimOf(subject, invocation).phase).toBe("RUN_COMPLETED");
+        expect(driver.record.registeredOutputs, "no plan File").toEqual([]);
+        const unsaved = warn.mock.calls.map((args) => String(args[0])).filter((line) => line.includes("plan not saved"));
+        expect(unsaved).toHaveLength(1);
+        expect(unsaved[0]).toContain(`execution=${driver.record.executionId}`);
+      } finally {
+        warn.mockRestore();
       }
     });
 
