@@ -642,6 +642,7 @@ describe("loadArtifactStorageConfig", () => {
     shellTimeoutMaxSeconds: 3300,
     agentResolveTimeoutMs: 120000,
     workspaceLockTimeoutMs: 900000,
+    drainGraceMs: 0,
   };
 
   afterEach(() => {

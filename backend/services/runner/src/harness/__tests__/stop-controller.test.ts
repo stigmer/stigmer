@@ -103,3 +103,30 @@ describe("a eval-case mock's stop", () => {
     expect(parseTryStop(arm.error ?? "")).toEqual({ kind: "scaffold-failed", detail: "exit 3: no such repository" });
   });
 });
+
+describe("a drain's yield", () => {
+  it("is not a stop: the yield signal aborts, the stop signal stays live, and the evidence names the cause", () => {
+    const stop = new StopController();
+    stop.requestYield("drain");
+    stop.requestYield("drain");
+    expect(stop.yieldSignal.aborted).toBe(true);
+    expect(stop.signal.aborted).toBe(false);
+    expect(stop.evidence.yieldCause).toBe("drain");
+  });
+
+  it("a yield that cannot wait stops the turn now and keeps the yield's cause", () => {
+    const stop = new StopController();
+    stop.requestYield("drain");
+    stop.stop({ kind: "yield-now" });
+    expect(stop.signal.aborted).toBe(true);
+    expect(stop.signal.reason).toBe("yield-now");
+    expect(stop.evidence).toMatchObject({ yieldCause: "drain", cancellation: false });
+  });
+
+  it("a turn never asked to yield has no yield cause", () => {
+    const stop = new StopController();
+    stop.stop({ kind: "cancellation" });
+    expect(stop.evidence.yieldCause).toBeUndefined();
+    expect(stop.yieldSignal.aborted).toBe(false);
+  });
+});

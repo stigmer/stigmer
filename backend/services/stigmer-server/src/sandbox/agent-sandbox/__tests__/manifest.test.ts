@@ -12,6 +12,8 @@
  *     refusal reaches the pod's last-state message, the 600-second grace
  *     period, the resource shape, no service-account token;
  *   - the environment contract: MODE=local, the queue, the endpoints, the
+ *     runner's drain grace (the pod's grace less a minute for its exit,
+ *     so a turn in flight finishes its step before the pod is killed), the
  *     public address and the server's release only when set, the
  *     operator's plain settings as values, and STIGMER_SANDBOX_ENVIRONMENT
  *     (the runner's half of the session's Environment, as JSON) only when
@@ -157,6 +159,7 @@ describe("the runner container", () => {
     );
     expect(byName.get("TEMPORAL_NAMESPACE")?.value).toBe("stigmer");
     expect(byName.get("WORKSPACE_ROOT_DIR")?.value).toBe("/workspace");
+    expect(byName.get("STIGMER_DRAIN_GRACE_MS")?.value).toBe("540000");
     expect(byName.get("STIGMER_MCP_PUBLIC_ENDPOINT")?.value).toBe(
       config.mcpPublicEndpoint,
     );

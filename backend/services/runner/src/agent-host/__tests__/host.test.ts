@@ -39,7 +39,7 @@ const STORE: ArtifactStorage = {
   exists: async () => false,
 };
 
-function served(runTurn: HarnessAdapter["runTurn"]) {
+function served(runTurn: HarnessAdapter["runTurn"], yielded = false) {
   const [runnerEnd, hostEnd] = loopbackChannels();
   const adapter: HarnessAdapter = {
     name: "probe",
@@ -61,6 +61,7 @@ function served(runTurn: HarnessAdapter["runTurn"]) {
       timing: new TimingRecorder().toWire(),
       fingerprintKey: Buffer.alloc(32).toString("base64"),
       stopped: null,
+      yielded,
       turnKey: "turn-key-test",
       traceparent: null,
     });
@@ -68,6 +69,23 @@ function served(runTurn: HarnessAdapter["runTurn"]) {
 }
 
 describe("the agent host's server", () => {
+  it("hands the adapter a yield the runtime asked before the turn, and one it asks mid-turn", async () => {
+    const before = served(async (_input, sink) => (sink.yieldSignal.aborted ? { kind: "interrupted" } : { kind: "completed" }), true);
+    expect((await before.call()).outcome).toEqual({ kind: "interrupted" });
+
+    let entered: () => void = () => {};
+    const inTurn = new Promise<void>((resolve) => (entered = resolve));
+    const during = served(async (_input, sink) => {
+      entered();
+      await new Promise<void>((resolve) => sink.yieldSignal.addEventListener("abort", () => resolve(), { once: true }));
+      return { kind: "interrupted" };
+    });
+    const settling = during.call();
+    await inTurn;
+    during.runner.notify("yieldTurn", { turnId: "t1" });
+    expect((await settling).outcome).toEqual({ kind: "interrupted" });
+  });
+
   it("answers a CAS read for a turn with no bound reader with an error", async () => {
     const { runner } = served(async () => ({ kind: "completed" }));
     await expect(runner.call("readCasObservations", { turnId: "t-none" })).rejects.toThrow("agent host: no CAS observations bound for turn t-none");

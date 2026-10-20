@@ -33,5 +33,12 @@
         }
       ]
     }
+  },
+  {
+    "run_id": "aex_hermetic_0001",
+    "stigmer_harness_note": {
+      "id": "aex_hermetic_0001.root.n1",
+      "text": "The runner is restarting; this turn continues on the next one."
+    }
   }
 ]

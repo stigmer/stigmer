@@ -4,7 +4,8 @@
  * The kit is the runtime stand-in, and this is the runtime's face during one
  * turn: it owns the `AbortController` behind `stopSignal` (so a test can stop
  * the turn from the outside, exactly as the runtime's watchdog, accounting or
- * heartbeat would), and it keeps ONE ordered log of every call the adapter
+ * heartbeat would) and the one behind `yieldSignal` (so a test can drain the
+ * runner as the runtime would), and it keeps ONE ordered log of every call the adapter
  * made. Counts and lists are derived from the log on read rather than kept
  * as parallel counters, because the invariants care about ORDER as much as
  * about counts ("bind before the first persist" is an ordering claim).
@@ -55,9 +56,11 @@ export class RecordingTurnSink implements TurnSink {
   /** The one builder over `rows`, as the runtime hands every adapter; the fake creates its rows through it. */
   readonly transcript: TranscriptBuilder;
   readonly stopSignal: AbortSignal;
+  readonly yieldSignal: AbortSignal;
   readonly setupTiming = new TimingRecorder();
 
   private readonly controller = new AbortController();
+  private readonly yieldController = new AbortController();
   private readonly log: SinkEvent[] = [];
   private readonly bindRejectsWith: Error | undefined;
 
@@ -66,6 +69,7 @@ export class RecordingTurnSink implements TurnSink {
     this.rows = options.rows ?? create(TurnRowsSchema);
     this.transcript = new TranscriptBuilder(options.executionId ?? "kit-exec", this.rows, this.status);
     this.stopSignal = this.controller.signal;
+    this.yieldSignal = this.yieldController.signal;
     this.bindRejectsWith = options.bindRejectsWith;
   }
 
@@ -80,6 +84,11 @@ export class RecordingTurnSink implements TurnSink {
   /** Stop the turn from the outside, the way the runtime would. */
   abort(reason?: unknown): void {
     this.controller.abort(reason);
+  }
+
+  /** Ask the turn to yield at its next durable step boundary, the way a draining runtime would. */
+  requestYield(): void {
+    this.yieldController.abort();
   }
 
   async requestPersist(): Promise<void> {

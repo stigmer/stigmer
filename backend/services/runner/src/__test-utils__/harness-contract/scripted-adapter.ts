@@ -45,7 +45,15 @@
  * An `open` operation is a latch the kit releases: the row starts, the
  * operation parks on the latch or the stop signal (never a timer), each line
  * the kit emits is a `tool_output_delta` with an activity mark — the least a
- * harness owes for output it streams — and the release finishes the row. The
+ * harness owes for output it streams — and the release finishes the row. A
+ * finished operation is in the engine's memory, so a turn that continues
+ * does not run it again; one the stop cut is not.
+ *
+ * A yield (`sink.yieldSignal`) is taken at the next step boundary: every
+ * step here is durable the moment it ends (the engine's memory is this
+ * object), so the boundary between two steps is where a real engine's
+ * saved step would be. An open operation is never cut to yield; it finishes
+ * first. The
  * fake has no subagents and no context, so `open(…, { as: "subagent" })` and
  * `compact()` are refused as test bugs; its registrations declare both off.
  *
@@ -116,6 +124,8 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   private readonly openWaiters = new Map<string, Array<() => void>>();
   /** The ids the kit has released: an operation opened under one of them later finishes at once. */
   private readonly released = new Set<string>();
+  /** How many times each operation began. */
+  private readonly opens = new Map<string, number>();
   /** Per session, every message the engine was handed as a new request. */
   private readonly handed = new Map<string, string[]>();
   private mintCounter = 0;
@@ -185,6 +195,11 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
     operation?.release();
   }
 
+  /** How many times the operation behind `toolCallId` began. */
+  opened(toolCallId: string): number {
+    return this.opens.get(toolCallId) ?? 0;
+  }
+
   /** How many times the session's engine was handed `message` as a new request. */
   tasksHanded(sessionId: string, message: string): number {
     return (this.handed.get(sessionId) ?? []).filter((m) => m === message).length;
@@ -221,8 +236,8 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
     if (!turn) throw new Error(`${this.name}: runTurn called with no scenario arranged for session '${input.sessionId}' (test bug)`);
     this.arranged.delete(input.sessionId);
 
-    // The signal may be aborted before the turn is entered; do no work then.
-    if (sink.stopSignal.aborted) return { kind: "interrupted" };
+    // The signals may be aborted before the turn is entered; do no work then.
+    if (sink.stopSignal.aborted || sink.yieldSignal.aborted) return { kind: "interrupted" };
 
     const resumed = await this.resolveEngineState(input, sink);
     if (resumed.kind !== "ok") return resumed.outcome;
@@ -231,8 +246,8 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
     this.handed.set(input.sessionId, [...(this.handed.get(input.sessionId) ?? []), input.execution.spec?.message ?? ""]);
 
     for (const step of turn) {
-      // Stop at every step boundary — the Cursor loop's per-event isCancelled().
-      if (sink.stopSignal.aborted) return { kind: "interrupted" };
+      // Stop, or yield, at every step boundary — the Cursor loop's per-event isCancelled().
+      if (sink.stopSignal.aborted || sink.yieldSignal.aborted) return { kind: "interrupted" };
       const ended = await this.play(step, input, sink);
       if (ended) return ended;
     }
@@ -325,7 +340,8 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
         return { kind: "tool_call_limit" };
       case "open":
         if (step.as === "subagent") throw new Error(`${this.name}: open(…, { as: "subagent" }) is not producible by this fake (it has no subagents); test bug`);
-        return this.openOperation(step.toolCallId, sink);
+        if (this.hasSettled(input.sessionId, step.toolCallId)) return undefined;
+        return this.openOperation(step.toolCallId, input.sessionId, sink);
       case "compact":
         throw new Error(`${this.name}: compact() is not producible by this fake (it keeps no context); test bug`);
       default: {
@@ -341,7 +357,8 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
    * event), the operation parks on the release or the stop signal, and the
    * release finishes the row.
    */
-  private async openOperation(toolCallId: string, sink: TurnSink): Promise<TurnOutcome | undefined> {
+  private async openOperation(toolCallId: string, sessionId: string, sink: TurnSink): Promise<TurnOutcome | undefined> {
+    this.opens.set(toolCallId, this.opened(toolCallId) + 1);
     sink.transcript.apply({ kind: "tool_started", callId: toolCallId, name: "shell", input: { command: `kit operation ${toolCallId}` }, mcpServerSlug: "" });
     sink.recordActivity("shell");
     await sink.requestPersist();
@@ -359,6 +376,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
     if (sink.stopSignal.aborted) return { kind: "interrupted" };
     sink.transcript.apply({ kind: "tool_finished", callId: toolCallId, result: "done" });
     this.executions.set(toolCallId, this.executionCount(toolCallId) + 1);
+    this.settle(sessionId, toolCallId);
     sink.recordActivity("shell");
     await sink.requestPersist();
     return undefined;
@@ -494,6 +512,7 @@ function scriptedLongTurn(adapter: ScriptedHarnessAdapter): LongTurnControls {
     whenOpen: (toolCallId) => adapter.whenOpen(toolCallId),
     emit: (toolCallId, line) => adapter.emit(toolCallId, line),
     release: (toolCallId) => adapter.release(toolCallId),
+    opened: (toolCallId) => adapter.opened(toolCallId),
     tasksHanded: (sessionId, message) => adapter.tasksHanded(sessionId, message),
     compactions: () => 0,
   };

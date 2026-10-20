@@ -64,6 +64,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     shellTimeoutMaxSeconds: DEFAULT_SHELL_TIMEOUT_MAX_SECONDS,
     agentResolveTimeoutMs: DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
     workspaceLockTimeoutMs: DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
+    drainGraceMs: 0,
     ...overrides,
   };
 }

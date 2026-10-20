@@ -39,8 +39,10 @@ describe("invoke-agent-execution replay determinism", () => {
   it("has committed histories to replay (the gate cannot be empty)", () => {
     // 3 originals (happy, HITL, pause/resume) + the runner-failed and
     // user-cancel histories captured before stigmer#980 changed the
-    // payloads (never the command sequence) of those two paths.
-    expect(historyFiles.length).toBeGreaterThanOrEqual(5);
+    // payloads (never the command sequence) of those two paths + a drain
+    // recovered before recoveries were counted per hour (no
+    // recovery-window marker) and a drained turn continued after it.
+    expect(historyFiles.length).toBeGreaterThanOrEqual(7);
   });
 
   it("replays every committed history deterministically", async () => {

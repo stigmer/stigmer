@@ -17,6 +17,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import proto from "@temporalio/proto";
+import { ApplicationFailure } from "@temporalio/common";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 
@@ -210,6 +211,53 @@ async function main(): Promise<void> {
     },
   );
   releaseCancelHold?.();
+
+  // 6. A drained turn recovered: the runner's worker stops the turn past
+  //    its drain grace (Temporal's core reports it as its own WorkerShutdown
+  //    failure), the workflow persists IN_PROGRESS, backs off and re-invokes,
+  //    and the turn completes. Captured before recoveries were counted per
+  //    sliding hour, so it carries no recovery-window marker and pins the
+  //    lifetime count's command shape.
+  executeBehaviors = [
+    async () => {
+      throw ApplicationFailure.create({
+        type: "WorkerShutdown",
+        message: "Worker is shutting down and this activity did not complete in time",
+      });
+    },
+    async () => slim("EXECUTION_COMPLETED"),
+  ];
+  gateCounts = [];
+  await capture(
+    "drain-recovered",
+    { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1" },
+    async (handle) => {
+      await handle.result();
+    },
+  );
+
+  // 7. A drained turn that yielded and continued: the runner's engine
+  //    stopped at a step boundary and threw the typed continuation
+  //    (StigmerTurnContinues, cause drain), which the workflow recovers
+  //    under the recovery-window patch; the next turn completes.
+  executeBehaviors = [
+    async () => {
+      throw ApplicationFailure.create({
+        type: "StigmerTurnContinues",
+        message: "The turn continues on the next invocation",
+        details: ["drain"],
+      });
+    },
+    async () => slim("EXECUTION_COMPLETED"),
+  ];
+  gateCounts = [];
+  await capture(
+    "drain-continued",
+    { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1" },
+    async (handle) => {
+      await handle.result();
+    },
+  );
 
   worker.shutdown();
   await runPromise.catch(() => {});

@@ -81,7 +81,7 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
   // Deprecated; its removal is #1132.
   setInterceptorExecutionId(executionId);
 
-  if (sink.stopSignal.aborted) return { kind: "interrupted" };
+  if (stopsBeforeTheEngine(sink)) return { kind: "interrupted" };
 
   let engine: CursorEngine | undefined;
   let gate: CursorGate | undefined;
@@ -102,7 +102,9 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
 
     engine = await resolveEngine(input, sink, config, mode, hooks);
     sink.recordActivity();
-    if (sink.stopSignal.aborted) return (outcome = { kind: "interrupted" });
+    // The last boundary before the message is sent: a yield asked during
+    // setup (a drain while the agent resolved) sends nothing.
+    if (stopsBeforeTheEngine(sink)) return (outcome = { kind: "interrupted" });
 
     const prompt = await buildTurnPrompt(input, sink, engine, rows);
 
@@ -165,6 +167,14 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
 
     if (engine) disposeEngine(engine, sessionId, outcome);
   }
+}
+
+/**
+ * A stop, or a yield, before the message is sent: nothing of the turn is in
+ * the engine yet, so this is a durable boundary too.
+ */
+function stopsBeforeTheEngine(sink: TurnSink): boolean {
+  return sink.stopSignal.aborted || sink.yieldSignal.aborted;
 }
 
 /**

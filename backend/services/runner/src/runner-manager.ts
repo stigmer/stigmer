@@ -578,8 +578,10 @@ async function buildStigmerRunnerManager(
       // activity cancelled by the drain classifies it as a worker shutdown
       // rather than a user pause (issue #776 — a SIGTERM'd sandbox used
       // to persist RUN_PAUSED and let raw Temporal drain text reach
-      // status.error). Aborting is classification-only: it stops nothing;
-      // worker.shutdown() below still owns the drain. This is deliberately
+      // status.error). It also asks each in-flight turn to yield at its next
+      // step boundary (harness/run-turn.ts); these workers have no drain
+      // grace, so worker.shutdown() below stops them at once either way and
+      // the turns continue when the app returns. This is deliberately
       // NOT done in teardownManaged — single-worker teardowns only run once
       // the queue is idle, and aborting there is the old view-close bug.
       for (const session of sessions.values()) {
@@ -687,6 +689,9 @@ export function mapManagerOptionsToConfig(
       options.agentResolveTimeoutMs ?? DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
     workspaceLockTimeoutMs:
       options.workspaceLockTimeoutMs ?? DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
+    // None: the manager's workers exit at once on its host's quit (issue
+    // #177); their turns continue when the app returns.
+    drainGraceMs: 0,
   };
 }
 

@@ -251,6 +251,8 @@ export interface LongTurnControls {
    * one that never started or already ended.
    */
   release(toolCallId: string): Promise<void>;
+  /** How many times the operation behind `toolCallId` began, across every invocation: a step the engine repeated began twice. */
+  opened(toolCallId: string): number;
   /** How many times the session's engine was handed `message` as a new request, across every invocation. */
   tasksHanded(sessionId: string, message: string): number;
   /** How many times the session's engine compacted its context, across every invocation. */

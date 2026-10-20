@@ -257,6 +257,94 @@ describe("consumeCursorTurnStream", () => {
     });
   });
 
+  describe("a drained turn's yield", () => {
+    it("with nothing open, the run is cancelled at once and nothing is folded", async () => {
+      const sink = new RecordingTurnSink();
+      sink.requestYield();
+      const { deps } = buildDeps({ sink });
+      const run = mockRun([sdk.assistant("never folded")]);
+
+      const reason = await consumeCursorTurnStream(run, deps);
+
+      expect(reason).toBe("interrupted");
+      expect(run.cancel).toHaveBeenCalledTimes(1);
+      expect(sink.rows.messages).toHaveLength(0);
+    });
+
+    it("waits for the open tool's result, then cancels before the next event", async () => {
+      const sink = new RecordingTurnSink();
+      const { deps } = buildDeps({ sink });
+      async function* gen(): AsyncIterable<SDKMessage> {
+        yield sdk.toolCall("sh-1", "shell", "running", { command: "make" });
+        // The drain lands while the command runs.
+        sink.requestYield();
+        yield sdk.assistant("Still building.");
+        yield sdk.toolCall("sh-1", "shell", "completed", { command: "make" }, "built");
+        yield sdk.assistant("Never folded.");
+      }
+      const run: MockRun = { stream: () => gen(), supports: () => true, cancel: vi.fn(async () => {}) };
+
+      const reason = await consumeCursorTurnStream(run, deps);
+
+      expect(reason).toBe("interrupted");
+      expect(run.cancel).toHaveBeenCalledTimes(1);
+      expect(rows(sink).map((r) => r.status), "the running command finished, never cut").toEqual([ToolCallStatus.TOOL_CALL_COMPLETED]);
+      expect(sink.rows.messages.map((m) => m.content)).not.toContain("Never folded.");
+      expect(sink.stopSignal.aborted, "a yield is not a stop").toBe(false);
+    });
+
+    it("a yield that arrives while the pull waits with nothing open ends the run then", async () => {
+      const sink = new RecordingTurnSink();
+      const { deps } = buildDeps({ sink });
+      let unblock: (() => void) | undefined;
+      async function* gen(): AsyncIterable<SDKMessage> {
+        yield sdk.assistant("Thinking.");
+        await new Promise<void>((resolve) => (unblock = resolve));
+        yield sdk.assistant("Never folded.");
+      }
+      const run: MockRun = {
+        stream: () => gen(),
+        supports: () => true,
+        cancel: vi.fn(async () => unblock?.()),
+      };
+      const settled = consumeCursorTurnStream(run, deps);
+      await vi.waitFor(() => expect(unblock).toBeDefined());
+      sink.requestYield();
+
+      expect(await settled).toBe("interrupted");
+      expect(run.cancel).toHaveBeenCalledTimes(1);
+      expect(sink.rows.messages.map((m) => m.content)).toEqual(["Thinking."]);
+    });
+  });
+
+  describe("a drained turn's yield, when the SDK's cancel misbehaves", () => {
+    it("a cancel that rejects is logged and the turn still yields", async () => {
+      const sink = new RecordingTurnSink();
+      sink.requestYield();
+      const { deps } = buildDeps({ sink });
+      const run: MockRun = { stream: () => asyncIter([sdk.assistant("never folded")]), supports: () => true, cancel: vi.fn(async () => { throw new Error("cancel refused"); }) };
+
+      expect(await consumeCursorTurnStream(run, deps)).toBe("interrupted");
+      expect(run.cancel).toHaveBeenCalledTimes(1);
+    });
+
+    it("a stream that throws as the yield cancels it is the yield, not a failure", async () => {
+      const sink = new RecordingTurnSink();
+      const { deps } = buildDeps({ sink });
+      let fail: ((err: Error) => void) | undefined;
+      async function* gen(): AsyncIterable<SDKMessage> {
+        yield sdk.assistant("Thinking.");
+        await new Promise<void>((_resolve, reject) => (fail = reject));
+      }
+      const run: MockRun = { stream: () => gen(), supports: () => true, cancel: vi.fn(async () => fail?.(new Error("stream torn down"))) };
+      const settled = consumeCursorTurnStream(run, deps);
+      await vi.waitFor(() => expect(fail).toBeDefined());
+      sink.requestYield();
+
+      expect(await settled).toBe("interrupted");
+    });
+  });
+
   describe("the runtime's stop signal", () => {
     it("a signal aborted before the stream starts: the run is cancelled and nothing is processed", async () => {
       const sink = new RecordingTurnSink();

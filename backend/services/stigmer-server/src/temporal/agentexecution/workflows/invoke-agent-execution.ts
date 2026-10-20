@@ -33,9 +33,12 @@
  *     back undone files and sends no message) runs neither it nor the
  *     session-subject generation.
  *   - Bounded auto-recovery: heartbeat-timeout / infra-cancellation /
- *     worker-shutdown (#776) interruptions re-invoke from persisted
- *     checkpoint state with linear backoff, IN_PROGRESS persisted so the
- *     UI never flashes FAILED.
+ *     worker-shutdown (#776) interruptions, and a turn that stopped itself
+ *     to continue (a drained runner's yield, stigmer#2428), re-invoke from
+ *     persisted checkpoint state with linear backoff, IN_PROGRESS persisted
+ *     so the UI never flashes FAILED. Recoveries are counted within a
+ *     sliding hour (RECOVERY_WINDOW_PATCH_ID), so a turn that crosses many
+ *     deploys over hours is not ended by their sum.
  *   - Cancellation cleanup on a non-cancellable scope (Go's disconnected
  *     context): CANCELLED persist (quiet terminal, NO status.error —
  *     stigmer#282), and the retired cleanup call for runs started before
@@ -58,9 +61,10 @@
  *
  * WORKFLOW-BUNDLE IMPORT DISCIPLINE: this file runs in Temporal's
  * deterministic sandbox. Only @temporalio/workflow, @temporalio/common,
- * @bufbuild/protobuf, generated protos, and verified-pure domain modules
+ * @bufbuild/protobuf, generated protos, and verified-pure modules
  * (filereview/gate.js by DIRECT path — its sibling digest.ts pulls
- * node:crypto) may be imported. The SDK bundler hard-fails otherwise.
+ * node:crypto; ../recovery-window.js) may be imported. The SDK bundler
+ * hard-fails otherwise.
  */
 import { create, toJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
@@ -91,9 +95,12 @@ import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import { unresolvedGateCountOfJson } from "../../../domain/run/filereview/gate.js";
 import {
+  endsAsWorkerShutdown,
+  isTurnContinuation,
   isWorkerShutdown,
   WORKER_SHUTDOWN_STATUS_ERROR,
 } from "../../runner-failure.js";
+import { countRecovery } from "../recovery-window.js";
 import {
   CLOSE_FILE_REVIEW_ACTIVITY_NAME,
   CLOSE_FILE_REVIEW_PATCH_ID,
@@ -107,6 +114,7 @@ import {
   MEMO_ACTIVITY_TASK_QUEUE,
   OPEN_GATES_FROM_LOG_PATCH_ID,
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
+  RECOVERY_WINDOW_PATCH_ID,
   RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
   SIGNAL_APPROVAL_GATE_RESOLVED,
   SIGNAL_PAUSE,
@@ -144,9 +152,25 @@ const MAX_PAUSE_CYCLES = 100;
 /**
  * Bounds auto-resume attempts for interrupted activities (worker died /
  * machine slept / worker shut down mid-run, #776) before surfacing the
- * failure. Mirrors the other caps as a loop-safety bound.
+ * failure. Mirrors the other caps as a loop-safety bound. Counted within
+ * the sliding hour of `../recovery-window.ts` behind
+ * RECOVERY_WINDOW_PATCH_ID; over the run's whole life before it.
  */
 const MAX_RECOVERY_CYCLES = 10;
+
+/**
+ * Record one recovery and return the count it is bounded and backed off by:
+ * the recoveries within the last hour of workflow time (`Date.now()` is
+ * workflow time here, so a replay counts the same), or, for a run whose
+ * history predates RECOVERY_WINDOW_PATCH_ID, every recovery of its life,
+ * `lifetime`.
+ */
+function recoveriesCounted(instants: number[], lifetime: number): number {
+  if (!patched(RECOVERY_WINDOW_PATCH_ID)) {
+    return lifetime;
+  }
+  return countRecovery(instants, Date.now());
+}
 
 /**
  * Delay before re-invoking an interrupted activity: a short, capped,
@@ -689,6 +713,7 @@ async function runWithPauseAndRecovery(
   let finalResult: RunnerActivityResult;
   let pauseCycle = 0;
   let recoveryCycle = 0;
+  const recoveryInstants: number[] = [];
 
   for (;;) {
     const attempt = await runPausableAttempt(
@@ -749,21 +774,24 @@ async function runWithPauseAndRecovery(
       // cancelled so external cancellation is never swallowed.
       if (!isWorkflowCancelled() && isRecoverableActivityError(attempt.error)) {
         recoveryCycle++;
-        if (recoveryCycle > MAX_RECOVERY_CYCLES) {
+        const counted = recoveriesCounted(recoveryInstants, recoveryCycle);
+        if (counted > MAX_RECOVERY_CYCLES) {
           log.error("Max recovery cycles reached, surfacing failure", {
             executionId,
             cycles: recoveryCycle,
+            counted,
           });
           throw wrapActivityError(activityLabel, attempt.error);
         }
         log.warn("Execution interrupted (recoverable), resuming from checkpoint", {
           executionId,
           recoveryCycle,
+          counted,
           error: errorMessage(attempt.error),
         });
         await persistInterruptedStatus(executionId);
         try {
-          await sleep(recoveryBackoffMs(recoveryCycle));
+          await sleep(recoveryBackoffMs(counted));
         } catch {
           // Sleep only rejects on cancellation — surface the ORIGINAL
           // interruption, exactly Go's sleepErr branch.
@@ -991,7 +1019,9 @@ async function executeWithHitlLoop(
  * internals ("Worker is shutting down and this activity did not complete
  * in time" reached users in the 2026-08-08 incident, #776) — the raw text
  * stays in the workflow log; status.error is a user surface, and the
- * phase with its stop's cause is the turn's end in the session's log.
+ * phase with its stop's cause is the turn's end in the session's log. A
+ * drained turn the workflow gave up continuing ends the same way: the
+ * runner wrote no ending of its own (stigmer#2428), so this is it.
  */
 async function updateStatusOnFailure(
   executionId: string,
@@ -999,7 +1029,8 @@ async function updateStatusOnFailure(
 ): Promise<void> {
   log.info("Updating execution status to FAILED", { executionId });
 
-  const statusError = isWorkerShutdown(originalError)
+  const shutdown = endsAsWorkerShutdown(originalError);
+  const statusError = shutdown
     ? WORKER_SHUTDOWN_STATUS_ERROR
     : errorMessage(originalError);
 
@@ -1008,7 +1039,7 @@ async function updateStatusOnFailure(
   const stopCause =
     originalError instanceof RunnerReportedFailure
       ? ""
-      : isWorkerShutdown(originalError)
+      : shutdown
         ? "infrastructure"
         : "failed";
   const failedStatus = create(RunStatusSchema, {
@@ -1092,10 +1123,12 @@ async function persistFinalStatus(
 }
 
 /**
- * Overwrites any transient FAILED the interrupted activity may have
- * written with IN_PROGRESS, so the UI shows the execution as resuming
- * rather than flashing failed while the workflow re-invokes. Phase-only
- * (no appended message) to stay idempotent across recovery cycles.
+ * Re-asserts IN_PROGRESS while the workflow re-invokes an interrupted
+ * turn. A runner no longer writes an ending for an interruption the
+ * workflow continues (stigmer#2428); this write is the defence for one
+ * that did (an older runner), and the server's merge keeps a terminal
+ * phase it already holds. Phase-only (no appended message) to stay
+ * idempotent across recovery cycles.
  */
 async function persistInterruptedStatus(executionId: string): Promise<void> {
   await persistFinalStatus(
@@ -1207,7 +1240,8 @@ async function retiredContextCleanup(executionId: string): Promise<void> {
  * because it crashed, slept, or was reaped mid-run), an infrastructure
  * cancellation that is NOT a user pause (the pause branch handles those)
  * and NOT an external workflow cancellation (the caller guards on the
- * workflow-cancelled flag), and a worker-shutdown drain (#776). NOT
+ * workflow-cancelled flag), a worker-shutdown drain (#776), and a turn that
+ * stopped itself so the workflow continues it (stigmer#2428). NOT
  * recoverable: SCHEDULE_TO_START / START_TO_CLOSE timeouts
  * and application errors — re-invoking those would not change the
  * outcome.
@@ -1217,7 +1251,7 @@ function isRecoverableActivityError(error: unknown): boolean {
   if (timeout !== undefined) {
     return timeout.timeoutType === TimeoutType.HEARTBEAT;
   }
-  return isCancellation(error) || isWorkerShutdown(error);
+  return isCancellation(error) || isWorkerShutdown(error) || isTurnContinuation(error);
 }
 
 /**

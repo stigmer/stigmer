@@ -27,14 +27,14 @@
  *     (`pause.loop.mid-tool`, the cancel arriving on the persist that carried
  *     the row).
  *  2. WORKER SHUTDOWN: the queue's shutdown signal is aborted before the
- *     cancel, so the interruption is RUN_FAILED with the interrupted
- *     copy and one row, thrown as
+ *     cancel (a drain past its grace), so the interruption is thrown as
  *     `CancelledFailure("Activity cancelled (worker shutdown, not user pause)")`
  *     (#776) — the workflow re-invokes instead of waiting for a resume. The
- *     copy is unchanged; what changed in #1096 (the runtime's arm
- *     wins) is that the runtime's arm KEEPS the transcript the turn produced
- *     and appends the row, where the orchestrator's `buildWorkerShutdownStatus`
- *     replaced the whole status with the row alone.
+ *     turn continues there, so the runtime's arm writes no ending (no phase,
+ *     no error, no completion stamp; stigmer#2428) and appends one note, the
+ *     drain's, which the session's log carries. Since #1096 the arm KEEPS the
+ *     transcript the turn produced, where the orchestrator's
+ *     `buildWorkerShutdownStatus` replaced the whole status with a row.
  *
  * Every interruption is staged deterministically — from a model turn or from
  * a persist, never from a timer.
@@ -172,7 +172,7 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
     });
   });
 
-  it("worker shutdown: FAILED with the interrupted copy, thrown as a shutdown", async () => {
+  it("worker shutdown: no ending, the drain's note, thrown as a shutdown", async () => {
     clock.reset();
     const record = deepAgentExecutionRecord({ message: "Look at my notes." });
     const scenario = beginDeepAgentScenario({
@@ -194,19 +194,19 @@ describe("ExecuteDeepAgent hermetic — pause vs worker shutdown", () => {
     expect((invocation.outcome as { error: Error }).error.message).toBe(
       "Activity cancelled (worker shutdown, not user pause)",
     );
-    expect(record.persistedPhases.at(-1)).toBe(RunPhase.RUN_FAILED);
-    const final = record.lastFullStatus!;
+    expect(record.persistedPhases.at(-1), "no ending: the run is still working").toBe(RunPhase.RUN_IN_PROGRESS);
+    // The settle write: it carries no phase, so it is not a "full" status.
+    const final = record.persisted.at(-1)!;
     const finalRows = record.rowsOf(final);
-    expect(final.error).toBe("Execution interrupted: runner worker was shut down. Retry or resume.");
-    // The transcript the turn produced is kept and the row appended (the
-    // runtime's arm); the tool row sits on the message whose text
+    expect(final.phase).toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
+    expect(final.error).toBe("");
+    expect(final.completedAt).toBe("");
+    // The transcript the turn produced is kept and the drain's note appended
+    // (the runtime's arm); the tool row sits on the message whose text
     // proposed it (since #1097 — until then on its own empty message).
     expect(finalRows.messages.map((m) => [m.type, m.content])).toEqual([
       [MessageType.MESSAGE_AI, "Let me look."],
-      [
-        MessageType.MESSAGE_SYSTEM,
-        "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
-      ],
+      [MessageType.MESSAGE_SYSTEM, "The runner is restarting; this turn continues on the next one."],
     ]);
     expect(finalRows.messages.flatMap((m) => m.toolCalls).map((tc) => tc.name), "the read that landed before the drain is kept").toEqual(["read_file"]);
     expect(registry.urls.every((u) => u.includes("/model-registry"))).toBe(true);

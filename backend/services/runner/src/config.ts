@@ -67,6 +67,15 @@ export const DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS = 180_000;
  */
 export const DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS = 120_000;
 
+/**
+ * Default drain grace of a static runner's worker (ms), `Config.drainGraceMs`:
+ * how long a shutdown waits for in-flight turns to reach a step boundary
+ * before Temporal stops them. Under Kubernetes' default 30 s termination
+ * grace, so a pod that sets none still exits before it is killed; a host
+ * that knows its own longer grace sets it (the agent sandbox's manifest).
+ */
+export const DEFAULT_DRAIN_GRACE_MS = 25_000;
+
 // Re-exported so the runner/manager options mappers default the lock-wait
 // bound from the same constant the lock module owns (no drift across the
 // three construction sites — mirrors DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS).
@@ -209,6 +218,17 @@ export interface Config {
    */
   readonly workspaceLockTimeoutMs: number;
   /**
+   * How long the worker's shutdown waits for in-flight turns (milliseconds,
+   * STIGMER_DRAIN_GRACE_MS, the `drainGraceMs` option; Temporal's
+   * `shutdownGraceTime`): each turn yields at its engine's next durable step
+   * boundary and continues on the next runner, so a step running when the
+   * drain began finishes instead of being cut and repeated (stigmer#2428).
+   * Past it Temporal stops the turn mid-step, which continues too. Static
+   * mode only: the desktop manager exits at once by design (issue #177).
+   * See {@link DEFAULT_DRAIN_GRACE_MS}.
+   */
+  readonly drainGraceMs: number;
+  /**
    * Shared reference to the runner credential (the roots bind it): the
    * server-minted runner token once adopted, tracking the control-plane token
    * in lockstep before that. StigmerClient authenticates value fetches with
@@ -326,6 +346,10 @@ export function loadConfig(): Config {
     ? parseInt(process.env.WORKSPACE_LOCK_TIMEOUT_MS, 10)
     : DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS;
 
+  const drainGraceMs = process.env.STIGMER_DRAIN_GRACE_MS
+    ? parseInt(process.env.STIGMER_DRAIN_GRACE_MS, 10)
+    : DEFAULT_DRAIN_GRACE_MS;
+
   const agentResolveTimeoutMs = process.env.CURSOR_AGENT_RESOLVE_TIMEOUT_MS
     ? parseInt(process.env.CURSOR_AGENT_RESOLVE_TIMEOUT_MS, 10)
     : DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS;
@@ -355,6 +379,7 @@ export function loadConfig(): Config {
     shellTimeoutMaxSeconds,
     agentResolveTimeoutMs,
     workspaceLockTimeoutMs,
+    drainGraceMs,
   };
 }
 

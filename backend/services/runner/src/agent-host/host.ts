@@ -108,6 +108,7 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
   });
 
   peer.onNotice("stopTurn", ({ turnId, reason }) => turns.get(turnId)?.stop(reason));
+  peer.onNotice("yieldTurn", ({ turnId }) => turns.get(turnId)?.yield());
 
   // The runtime's operations on the agent's paths, performed with the agent's rights.
   peer.handle("fs", (request) => serveFs(request));
@@ -128,6 +129,7 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
     turns.set(turnId, turn);
     keys.set(input.executionId, Buffer.from(args.fingerprintKey, "base64"));
     if (args.stopped !== null) turn.stop(args.stopped);
+    if (args.yielded) turn.yield();
 
     let outcome: TurnOutcome | undefined;
     let thrown: unknown;
@@ -194,6 +196,8 @@ function hostConfig(wire: HostConfigWire): Config {
     // The backstop is the turn runtime's, which runs in the runner, never
     // here: the host reads it nowhere, so it does not cross the wire.
     openOperationMaxMs: DEFAULT_OPEN_OPERATION_MAX_MS,
+    // The worker is the runner's; the host has no worker to drain.
+    drainGraceMs: 0,
     shellTimeoutMaxSeconds: wire.shellTimeoutMaxSeconds,
     agentResolveTimeoutMs: wire.agentResolveTimeoutMs,
     workspaceLockTimeoutMs: wire.workspaceLockTimeoutMs,

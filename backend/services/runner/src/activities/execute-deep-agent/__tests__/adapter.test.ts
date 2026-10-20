@@ -44,6 +44,7 @@ const CONFIG: Config = {
   shellTimeoutMaxSeconds: 3_300,
   agentResolveTimeoutMs: 120_000,
   workspaceLockTimeoutMs: 900_000,
+  drainGraceMs: 0,
 };
 
 describe("createDeepAgentAdapter", () => {

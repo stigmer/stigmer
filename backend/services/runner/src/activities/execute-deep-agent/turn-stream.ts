@@ -20,6 +20,15 @@
  * this loop never does). An error the aborted run throws is the abort itself
  * and settles `interrupted`, never `failed`.
  *
+ * A yield (`sink.yieldSignal`, a draining runner) is taken at one boundary
+ * only: the start of the root's next model round. The graph saves each step
+ * before the next one runs (`durability: "sync"`, `turn-setup.ts`), so by
+ * the time a round starts, the tools step before it is saved, and the next
+ * runner's resume runs nothing again. A sub-agent's rounds are not that
+ * boundary: its work is saved only when its `task` step ends. The round the
+ * yield lands on is aborted before its message is folded, so it leaves no
+ * empty row; the next runner asks it again.
+ *
  * WHEN the run is aborted: on the arrival of the next
  * event — the graph's own step boundary — or after {@link STOP_GRACE_MS} if
  * no event arrives. A LangGraph run aborted while a step is in flight leaves
@@ -46,6 +55,7 @@
  * way (`failed` on the `internal` surface).
  */
 
+import type { TranscriptEvent } from "../../harness/transcript/events.js";
 import type { TurnInput, TurnSink } from "../../harness/types.js";
 import { shouldPersistStreamingStatus } from "../../shared/persist-decision.js";
 import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/streaming-scheduler.js";
@@ -163,6 +173,11 @@ export interface DeepAgentStreamDeps {
   readonly transcript: DeepAgentTranscript;
 }
 
+/** The start of one of the root's model rounds: where a drained turn yields (the header). */
+function isRootRoundStart(event: TranscriptEvent): boolean {
+  return event.kind === "message_start" && event.subAgentId === undefined;
+}
+
 /**
  * Start the graph run and consume it to the end, folding every event into
  * the transcript. Returns why it ended; throws only what `turn.ts`
@@ -196,7 +211,7 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
   };
 
   try {
-    if (sink.stopSignal.aborted) return interrupted();
+    if (sink.stopSignal.aborted || sink.yieldSignal.aborted) return interrupted();
 
     const run = (await engine.graph.streamEvents(
       graphInput.kind === "resume" ? graphInput.command : graphInput.input,
@@ -216,6 +231,7 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
         recorder?.record(event, eventsProcessed);
         let detail: string | undefined;
         for (const normalized of translator.translate(event)) {
+          if (sink.yieldSignal.aborted && isRootRoundStart(normalized)) return interrupted();
           builder.apply(normalized);
           sideEffects.onEvent(normalized);
           if (normalized.kind === "tool_started") detail = normalized.name;

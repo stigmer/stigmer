@@ -331,8 +331,11 @@ runs the kit, every fence, the boot-order test and this file's own test.
 The "long turn" arms in `__test-utils__/harness-contract/runtime-contract.ts`
 state what a turn that works for hours owes the user: a silent operation and a
 working subagent outlive the stall window, a running command's output reaches
-the session as it prints, a turn completes through three compactions, and a
-turn continued after a drain never hands the engine the task again. They drive
+the session as it prints, a turn completes through three compactions, a
+drained turn lets its running tool finish and yields at the boundary after it
+(`TurnSink.yieldSignal`) with no ending written, a second signal stops it at
+once and it still continues, and a turn continued after a drain never hands
+the engine the task again. They drive
 the `open` and `compact` steps of `__test-utils__/harness-contract/types.ts`
 through the subject's `longTurn` controls, timed on the scripted clock. An arm
 that is not true on a harness today is a known gap: its registration names the

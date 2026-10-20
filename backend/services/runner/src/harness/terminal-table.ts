@@ -17,15 +17,31 @@
  * one grammar whichever arm wrote it. The interruption arms' `Execution
  * interrupted:` errors are a different outcome, one the user resumes.
  *
- * The throw-vs-return rule, unchanged from the orchestrator it replaces:
+ * The throw-vs-return rule, from the orchestrator it replaces, with a third
+ * disposition since a drained turn continues (stigmer#2428):
  *  - RETURN when a Temporal retry would only repeat the outcome — a stall
  *    would wedge again, an exhausted budget would burn again, a platform
  *    stop is the platform's decision, a failed engine would fail the same
  *    prompt the same way, a completed turn is complete.
  *  - THROW `CancelledFailure` when the workflow must see the activity as
- *    cancelled — the orchestrator's pause, the runner's own drain, and an
- *    infrastructure cancel it delivered — with the message the control
- *    planes recognise.
+ *    cancelled — the orchestrator's pause, the runner's drain past its
+ *    grace, and an infrastructure cancel it delivered — with the message the
+ *    control planes recognise.
+ *  - CONTINUE when the turn stopped itself so the workflow runs it on: a
+ *    drain the engine yielded to at a step boundary. No cancellation was
+ *    delivered, so a thrown `CancelledFailure` would reach the workflow as a
+ *    plain failure (Temporal reports one as cancelled only after it asked);
+ *    the runtime throws the typed failure {@link TURN_CONTINUES_FAILURE_TYPE}
+ *    instead, which the workflow matches by name.
+ *
+ * An arm the workflow continues writes NO ending: no phase, no error, no
+ * completion stamp, no stop cause. The run is still working, and the
+ * server's merge keeps a terminal phase for good (a FAILED written here once
+ * made the workflow's recovery unable to bring the run back, and the
+ * session's log refused the continued turn's events, stigmer#2428). The
+ * workflow writes the outcome only when it gives up, as it does for the
+ * orchestrator's stop below. Such an arm may append one {@link TerminalArm.note}
+ * that tells the user why the turn moved.
  *
  * One stop has no copy here: the orchestrator's (a Pause or a Cancel, which
  * reach the activity as the same workflow-requested cancellation). The turn
@@ -80,8 +96,24 @@ export type StopCause =
   | "eval_stopped"
   | "review_resolved";
 
+/**
+ * Why a turn stops so that the workflow continues it on the next
+ * invocation. Crosses to the workflow as the typed failure's one detail.
+ */
+export type ContinuationCause = "drain";
+
+/**
+ * The `ApplicationFailure` type a continuing turn throws, which the invoke
+ * workflow matches by name (`backend/services/stigmer-server/src/temporal/runner-failure.ts`
+ * `TURN_CONTINUES_FAILURE_TYPE`). Wire vocabulary: byte-pinned on both sides.
+ */
+export const TURN_CONTINUES_FAILURE_TYPE = "StigmerTurnContinues";
+
 /** How the activity ends after the arm is written and persisted. */
-export type TerminalDisposition = { readonly kind: "return" } | { readonly kind: "throw"; readonly message: string };
+export type TerminalDisposition =
+  | { readonly kind: "return" }
+  | { readonly kind: "throw"; readonly message: string }
+  | { readonly kind: "continue"; readonly cause: ContinuationCause };
 
 /** One arm of the table: what to write, and how to end. */
 export interface TerminalArm {
@@ -91,6 +123,13 @@ export interface TerminalArm {
   readonly error?: string;
   /** System rows appended in order, each exactly once. */
   readonly rows: readonly string[];
+  /**
+   * One row an arm whose turn continues appends after its rows, saying why
+   * the turn moved. Unlike `rows`, the session's log carries it as the
+   * harness's note: no status event says this stop, because the run has
+   * not stopped.
+   */
+  readonly note?: string;
   /** Stamp `completedAt`; a paused turn is not complete. */
   readonly completes: boolean;
   /** `status.stop_cause`; `null` for an arm whose turn waits rather than stops. */
@@ -107,15 +146,19 @@ export const TERMINAL_COPY = {
     throwMessageAfterError: "Activity paused by orchestrator (error during pause)",
   },
   workerShutdown: {
-    error: "Execution interrupted: runner worker was shut down. Retry or resume.",
-    row: "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
     throwMessage: "Activity cancelled (worker shutdown, not user pause)",
   },
   infrastructureCancel: {
-    error: "Execution interrupted: agent was unresponsive (heartbeat timeout). Retry or resume.",
-    row: "Execution interrupted: the agent was unresponsive for too long. You can retry or resume.",
     throwMessage: "Activity cancelled (heartbeat timeout, not user pause)",
     throwMessageAfterError: "Activity cancelled (infrastructure, not user pause)",
+  },
+  continuation: {
+    /** The message of the typed failure; the workflow reads its type and detail, never this. */
+    failureMessage: "The turn continues on the next invocation",
+    /** The note a continuing turn leaves, by cause. */
+    notes: {
+      drain: "The runner is restarting; this turn continues on the next one.",
+    } satisfies Record<ContinuationCause, string>,
   },
   platformStop: {
     row: "Execution stopped by the platform.",
@@ -238,15 +281,39 @@ export function toolCallLimitArm(): TerminalArm {
   };
 }
 
-/** The runner is draining. Not a user's stop: FAILED with the shutdown copy, thrown as cancelled. */
+/**
+ * The runner drained past its grace and Temporal stopped the turn mid-step.
+ * Not an ending (the module header): the workflow continues the turn on the
+ * next runner, so nothing terminal is written, and the drain's note says
+ * why it moved. Thrown as cancelled, with the message the control planes
+ * match; on a drain Temporal's core reports the activity as its own
+ * `WorkerShutdown` failure, which they match too.
+ */
 export function workerShutdownArm(): TerminalArm {
   return {
-    phase: RunPhase.RUN_FAILED,
-    error: TERMINAL_COPY.workerShutdown.error,
-    rows: [TERMINAL_COPY.workerShutdown.row],
-    completes: true,
-    stopCause: "infrastructure",
+    phase: RunPhase.RUN_PHASE_UNSPECIFIED,
+    rows: [],
+    note: TERMINAL_COPY.continuation.notes.drain,
+    completes: false,
+    stopCause: null,
     disposition: { kind: "throw", message: TERMINAL_COPY.workerShutdown.throwMessage },
+  };
+}
+
+/**
+ * The engine yielded at a durable step boundary so the turn continues on the
+ * next invocation (a drain, `TurnSink.yieldSignal`). Nothing terminal is
+ * written; the note says why the turn moved; the typed failure tells the
+ * workflow to continue it (the module header).
+ */
+export function continueArm(cause: ContinuationCause): TerminalArm {
+  return {
+    phase: RunPhase.RUN_PHASE_UNSPECIFIED,
+    rows: [],
+    note: TERMINAL_COPY.continuation.notes[cause],
+    completes: false,
+    stopCause: null,
+    disposition: { kind: "continue", cause },
   };
 }
 
@@ -266,14 +333,18 @@ export function orchestratorStopArm(): TerminalArm {
   };
 }
 
-/** Temporal cancelled for its own reason (a heartbeat timeout). FAILED with the unresponsive copy, thrown as cancelled. */
+/**
+ * Temporal cancelled for its own reason (a heartbeat timeout): the workflow
+ * has already counted the activity lost and continues the turn on a runner
+ * that answers. Not an ending (the module header), and no note: this runner
+ * may be the one that stopped answering. Thrown as cancelled.
+ */
 export function infrastructureCancelArm(): TerminalArm {
   return {
-    phase: RunPhase.RUN_FAILED,
-    error: TERMINAL_COPY.infrastructureCancel.error,
-    rows: [TERMINAL_COPY.infrastructureCancel.row],
-    completes: true,
-    stopCause: "infrastructure",
+    phase: RunPhase.RUN_PHASE_UNSPECIFIED,
+    rows: [],
+    completes: false,
+    stopCause: null,
     disposition: { kind: "throw", message: TERMINAL_COPY.infrastructureCancel.throwMessage },
   };
 }
@@ -393,11 +464,12 @@ function appendSystemRows(rows: Pick<TurnRows, "messages">, contents: readonly s
 
 /**
  * Write an arm onto the status (phase, error, completion stamp, stop cause)
- * and its rows onto the turn's rows. The caller persists and disposes.
- * Returns the root positions of the rows it appended: they repeat the stop
- * the session's status events and the stop cause already say, so the
- * session event emitter is told never to write them as notes of the harness
- * (`events/emitter.ts`).
+ * and its rows and note onto the turn's rows. The caller persists and
+ * disposes. Returns the root positions of the rows it appended: they repeat
+ * the stop the session's status events and the stop cause already say, so
+ * the session event emitter is told never to write them as notes of the
+ * harness (`events/emitter.ts`). The note is not among them: it is the
+ * harness's note, the one word the log has on a turn that moved.
  */
 export function applyTerminalArm(status: RunStatus, rows: Pick<TurnRows, "messages">, arm: TerminalArm): readonly number[] {
   status.phase = arm.phase;
@@ -406,5 +478,6 @@ export function applyTerminalArm(status: RunStatus, rows: Pick<TurnRows, "messag
   if (arm.stopCause !== null) status.stopCause = arm.stopCause;
   const first = rows.messages.length;
   appendSystemRows(rows, arm.rows);
+  if (arm.note !== undefined) appendSystemRows(rows, [arm.note]);
   return arm.rows.map((_, index) => first + index);
 }

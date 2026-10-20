@@ -73,6 +73,7 @@ import {
   ExecutionRecord,
   ScriptedClock,
   bindHermeticClient,
+  continuationCauseOf,
   runActivityHermetically,
   threwCancelledFailure,
   type ActivityInvocation,
@@ -693,11 +694,40 @@ export async function assertOrchestratorStopSettlesAndThrows(
 }
 
 /**
- * A worker shutdown: the queue's shutdown signal aborts, then Temporal
- * cancels (the runner-manager's drain). FAILED with the shutdown copy, the
- * row exactly once, stamped, and the shutdown `CancelledFailure` thrown.
+ * What every arm whose turn the workflow continues owes (`terminal-table.ts`,
+ * "CONTINUE"): the settle write carries no phase, no error, no completion
+ * stamp and no stop cause, so the run is still working and nothing terminal
+ * reaches the server; and the session's log holds the turn's `note` (a
+ * harness note) exactly once, or no note at all. Returns the settle write.
  */
-export async function assertWorkerShutdownPersistsAndThrows(harness: RuntimeContractHarness, label = "rt-shutdown"): Promise<RuntimeArmResult> {
+function expectContinuesWithoutAnEnding(harness: RuntimeContractHarness, driver: RuntimeExecutionDriver, note: string | undefined): RunStatus {
+  const { subject } = harness;
+  expect(driver.record.persistedPhases.at(-1), `${subject.name}: no ending is written; the last phase is the turn's own`).toBe(RunPhase.RUN_IN_PROGRESS);
+  const settle = driver.record.persisted.at(-1);
+  if (!settle) throw new Error(`${subject.name}: the runtime persisted nothing`);
+  expect(settle.phase, `${subject.name}: the settle write carries no phase`).toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
+  assertTranscriptStreamsNothing(subject.name, driver.record.rowsOf(settle));
+  expect(settle.error, `${subject.name}: a turn that continues is not an error`).toBe("");
+  expect(settle.completedAt, `${subject.name}: a turn that continues is not complete`).toBe("");
+  expect(settle.stopCause, `${subject.name}: a turn that continues has not stopped`).toBe("");
+  expect(systemMessages(driver.record.rowsOf(settle)), `${subject.name}: the turn's note and no stop row`).toEqual(note === undefined ? [] : [note]);
+  expect(harnessNotesOf(driver), `${subject.name}: the session's log says why the turn moved, once`).toEqual(note === undefined ? [] : [note]);
+  return settle;
+}
+
+/** The texts of the harness notes on the run's session log, in order. */
+function harnessNotesOf(driver: RuntimeExecutionDriver): string[] {
+  return driver.record.sessionEvents.flatMap((e) => (e.event.case === "stigmerHarnessNote" ? [e.event.value.text] : []));
+}
+
+/**
+ * A worker shutdown past the drain grace: the queue's drain signal aborts,
+ * then Temporal stops the turn mid-step (the cancellation the drain's
+ * signal marks). The workflow continues the turn on the next runner, so
+ * nothing terminal is written (stigmer#2428), the drain's note says why the
+ * turn moved, and the shutdown `CancelledFailure` is thrown.
+ */
+export async function assertWorkerShutdownContinuesAndThrows(harness: RuntimeContractHarness, label = "rt-shutdown"): Promise<RuntimeArmResult> {
   const { subject } = harness;
   const driver = new RuntimeExecutionDriver(harness, label);
   let controls: InvocationControls | undefined;
@@ -711,23 +741,20 @@ export async function assertWorkerShutdownPersistsAndThrows(harness: RuntimeCont
   expect(threwCancelledFailure(invocation.outcome), `${subject.name}: a shutdown THROWS a CancelledFailure`).toBe(true);
   if (!threwCancelledFailure(invocation.outcome)) throw new Error("unreachable");
   expect(invocation.outcome.error.message).toBe(TERMINAL_COPY.workerShutdown.throwMessage);
-  expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_FAILED);
-  const final = finalStatusOf(harness, driver);
-  expect(final.error).toBe(TERMINAL_COPY.workerShutdown.error);
-  expect(final.completedAt).not.toBe("");
-  expect(systemMessages(driver.record.rowsOf(final)), `${subject.name}: the shutdown row, exactly once`).toEqual([TERMINAL_COPY.workerShutdown.row]);
-  expect(aiMessages(driver.record.rowsOf(final))).not.toContain(NEVER_SEEN);
-  return { driver, invocations: [invocation], final };
+  const settle = expectContinuesWithoutAnEnding(harness, driver, TERMINAL_COPY.continuation.notes.drain);
+  expect(aiMessages(driver.record.rowsOf(settle))).not.toContain(NEVER_SEEN);
+  return { driver, invocations: [invocation], final: settle };
 }
 
 /**
  * An infrastructure cancel: Temporal cancels for its own reason (a heartbeat
  * timeout, `TIMED_OUT`), neither the workflow's stop nor the runner's drain.
- * FAILED with the unresponsive copy, the row exactly once, stamped, and the
- * heartbeat-timeout `CancelledFailure` thrown so the workflow sees the
- * activity cancelled.
+ * The workflow has already counted the activity lost and continues the turn
+ * elsewhere, so nothing terminal is written and no note (this runner may be
+ * the one that stopped answering); the heartbeat-timeout `CancelledFailure`
+ * is thrown.
  */
-export async function assertInfrastructureCancelPersistsAndThrows(
+export async function assertInfrastructureCancelContinuesAndThrows(
   harness: RuntimeContractHarness,
   label = "rt-infrastructure-cancel",
 ): Promise<RuntimeArmResult> {
@@ -741,13 +768,9 @@ export async function assertInfrastructureCancelPersistsAndThrows(
   expect(threwCancelledFailure(invocation.outcome), `${subject.name}: an infrastructure cancel THROWS a CancelledFailure`).toBe(true);
   if (!threwCancelledFailure(invocation.outcome)) throw new Error("unreachable");
   expect(invocation.outcome.error.message).toBe(TERMINAL_COPY.infrastructureCancel.throwMessage);
-  expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_FAILED);
-  const final = finalStatusOf(harness, driver);
-  expect(final.error).toBe(TERMINAL_COPY.infrastructureCancel.error);
-  expect(final.completedAt).not.toBe("");
-  expect(systemMessages(driver.record.rowsOf(final)), `${subject.name}: the unresponsive row, exactly once`).toEqual([TERMINAL_COPY.infrastructureCancel.row]);
-  expect(aiMessages(driver.record.rowsOf(final))).not.toContain(NEVER_SEEN);
-  return { driver, invocations: [invocation], final };
+  const settle = expectContinuesWithoutAnEnding(harness, driver, undefined);
+  expect(aiMessages(driver.record.rowsOf(settle))).not.toContain(NEVER_SEEN);
+  return { driver, invocations: [invocation], final: settle };
 }
 
 /** How often the stall arm's clock advances once the engine is parked; real time between scripted windows. */
@@ -1239,6 +1262,79 @@ export async function assertTurnSurvivesThreeCompactions(harness: RuntimeContrac
 }
 
 /**
+ * Let the drain's yield reach the engine before the arm moves on. A hosted
+ * subject's engine runs behind the agent host's pipe, which delivers each
+ * message on a microtask (`agent-host/channel.ts` `loopbackChannels`), so one
+ * macrotask turn after the signal has delivered it; an in-process engine
+ * saw it at once. Not a wait for the engine to act: the order of two facts
+ * the arm decides (the yield is asked, then the tool is let finish).
+ */
+function theYieldHasCrossed(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve));
+}
+
+/**
+ * A drained turn yields at the next step boundary (stigmer#2428): the runner
+ * drains while a tool runs, the tool is let finish, and the engine stops at
+ * the boundary after it, before the text that follows, rather than cutting
+ * the tool. Nothing terminal is written, the session's log says why the
+ * turn moved, and the typed continuation is thrown for the workflow. The
+ * next invocation completes the turn, and the tool began once across both.
+ */
+export async function assertDrainedTurnYieldsAtTheNextBoundary(harness: RuntimeContractHarness, label = "rt-drain-yields"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const controls = longTurnOf(subject);
+  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
+  const id = `${label}-build`;
+  let invocationControls: InvocationControls | undefined;
+  const draining = controls.whenOpen(id).then(async () => {
+    invocationControls!.signalWorkerShutdown();
+    await theYieldHasCrossed();
+    await controls.release(id);
+  });
+
+  const first = await driver.turn([scenario.say("Building."), scenario.open(id), scenario.say(NEVER_SEEN)], { onControls: (c) => (invocationControls = c) });
+  await draining;
+
+  expect(continuationCauseOf(first.outcome), `${subject.name}: the drained invocation throws the typed continuation, cause drain`).toBe("drain");
+  const settle = expectContinuesWithoutAnEnding(harness, driver, TERMINAL_COPY.continuation.notes.drain);
+  expect(aiMessages(driver.record.rowsOf(settle)), `${subject.name}: the engine stopped at the boundary after the tool`).not.toContain(NEVER_SEEN);
+  expect(controls.opened(id), `${subject.name}: the running step finished, never cut`).toBe(1);
+
+  const second = await driver.turn([scenario.open(id), scenario.say("Picked up where I left off.")]);
+  expectCompleted(harness, driver, second, "Picked up where I left off.");
+  expect(controls.opened(id), `${subject.name}: the step ran once across both invocations`).toBe(1);
+  return { driver, invocations: [first, second], final: finalStatusOf(harness, driver) };
+}
+
+/**
+ * The runner is signalled a second time while a drained turn's tool still
+ * runs: the turn stops now instead of waiting for its boundary, and it
+ * still continues (nothing terminal, the drain's note, the typed
+ * continuation). The step it cut runs again on the next invocation, the
+ * honest price of a stop nobody could wait for.
+ */
+export async function assertSecondSignalStopsTheDrainNow(harness: RuntimeContractHarness, label = "rt-drain-now"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const controls = longTurnOf(subject);
+  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
+  const id = `${label}-build`;
+  let invocationControls: InvocationControls | undefined;
+  void controls.whenOpen(id).then(() => {
+    invocationControls!.signalWorkerShutdown();
+    invocationControls!.signalWorkerStopNow();
+  });
+
+  const first = await driver.turn([scenario.say("Building."), scenario.open(id), scenario.say(NEVER_SEEN)], { onControls: (c) => (invocationControls = c) });
+
+  expect(continuationCauseOf(first.outcome), `${subject.name}: the stopped drain still continues, cause drain`).toBe("drain");
+  const settle = expectContinuesWithoutAnEnding(harness, driver, TERMINAL_COPY.continuation.notes.drain);
+  expect(aiMessages(driver.record.rowsOf(settle))).not.toContain(NEVER_SEEN);
+  await controls.release(id);
+  return { driver, invocations: [first], final: settle };
+}
+
+/**
  * A continued turn never re-sends the task: a runner drained while a tool
  * runs, then reinvoked, picks the turn up where it was. Across both
  * invocations the engine is handed the user's message as a new request
@@ -1409,13 +1505,13 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       clock.reset();
       await assertOrchestratorStopSettlesAndThrows(harness);
     });
-    it("a worker shutdown persists FAILED with the shutdown copy once and throws the shutdown CancelledFailure", async () => {
+    it("a worker shutdown past the grace writes no ending, notes the drain once and throws the shutdown CancelledFailure", async () => {
       clock.reset();
-      await assertWorkerShutdownPersistsAndThrows(harness);
+      await assertWorkerShutdownContinuesAndThrows(harness);
     });
-    it("an infrastructure cancel persists FAILED with the unresponsive copy once and throws the heartbeat-timeout CancelledFailure", async () => {
+    it("an infrastructure cancel writes no ending and no note, and throws the heartbeat-timeout CancelledFailure", async () => {
       clock.reset();
-      await assertInfrastructureCancelPersistsAndThrows(harness);
+      await assertInfrastructureCancelContinuesAndThrows(harness);
     });
     it("a stall fails the turn with the watchdog's idle time", async () => {
       clock.reset();
@@ -1478,6 +1574,14 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       it.skipIf(options.compaction === false)("a turn completes through three compactions", async () => {
         clock.reset();
         await withStopOrphans(subject.name, orphans, () => assertTurnSurvivesThreeCompactions(harness, gaps["three-compactions"]));
+      });
+      it("a drained turn yields at the step boundary after its running tool, writes no ending, and the continuation completes", async () => {
+        clock.reset();
+        await withStopOrphans(subject.name, orphans, () => assertDrainedTurnYieldsAtTheNextBoundary(harness));
+      });
+      it("a second signal stops a drained turn now, and it still continues", async () => {
+        clock.reset();
+        await withStopOrphans(subject.name, orphans, () => assertSecondSignalStopsTheDrainNow(harness));
       });
       it("a turn continued after a drain never hands the engine the task again", async () => {
         clock.reset();

@@ -23,7 +23,8 @@
  *  - `result`: the answer to one call, a value or a {@link WireError}.
  *  - `notify`: a one-way fact ({@link HostNotices}, {@link RunnerNotices}),
  *    for the high-rate signals that need no answer (activity, usage, the
- *    transcript events the runtime's timeline observes) and for the stop.
+ *    transcript events the runtime's timeline observes) and for the stop
+ *    and the yield.
  *
  * `runTurn` is a call whose result is the turn's settlement: the host
  * answers it when the adapter settles, so one pending call is the whole
@@ -51,7 +52,7 @@ import type { TimingRecorderWire } from "../shared/cold-start-timing.js";
 import type { TelemetrySettings } from "../otel-export.js";
 import type { RuntimeFieldsWire, WireOffload, WireProjection, WireTurnInput } from "./codec.js";
 
-export const AGENT_HOST_PROTOCOL_VERSION = 11;
+export const AGENT_HOST_PROTOCOL_VERSION = 12;
 
 /**
  * The largest single message either side sends or accepts. A turn's input
@@ -185,6 +186,8 @@ export interface HostCalls {
       readonly fingerprintKey: string;
       /** The reason, when the runtime's stop had already fired before the call. */
       readonly stopped: string | null;
+      /** Whether the runtime had already asked the turn to yield before the call (`TurnSink.yieldSignal`). */
+      readonly yielded: boolean;
       /** This turn's key at the runner's local proxy, stamped on every call the turn makes there (`shared/execution-context.ts`). */
       readonly turnKey: string;
       /** The run span's W3C `traceparent`, which the host runs the turn under; `null` with tracing off (`shared/trace-context.ts`). */
@@ -335,6 +338,8 @@ export interface HostNotices {
 export interface RunnerNotices {
   /** The runtime's stop signal fired; the reason is diagnostic only. */
   readonly stopTurn: { readonly turnId: string; readonly reason: string };
+  /** The runtime asked the turn to yield at its engine's next durable step boundary (`TurnSink.yieldSignal`). */
+  readonly yieldTurn: { readonly turnId: string };
 }
 
 // ─── Envelopes ─────────────────────────────────────────────────────────────

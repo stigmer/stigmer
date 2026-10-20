@@ -688,6 +688,12 @@ export async function buildEngine(
 
   const langgraphConfig: Record<string, unknown> = {
     configurable: { thread_id: input.threadId },
+    // Each step is saved before the next one starts (LangGraph's default
+    // saves while the next step runs). A drained turn yields as its next
+    // model round starts (`turn-stream.ts`), and only a synchronous save
+    // makes the step before that round durable by then, so the next runner
+    // resumes after it instead of repeating it. One awaited put per step.
+    durability: "sync",
     // max_tool_rounds is enforced by the execution budget middleware, round
     // by round; this is only its backstop against a graph that loops without
     // calling the model (`shared/tool-rounds.ts`). Unset = unlimited = none.
