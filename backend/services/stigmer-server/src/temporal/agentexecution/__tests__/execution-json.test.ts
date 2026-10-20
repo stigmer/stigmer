@@ -12,9 +12,10 @@
  *   `AgentRun`, the kind value `agent_run`) read as their current names in
  *   one hop;
  * - a field the contract reserved since (the run's transcript, which the
- *   workflow's own stop and failure writes once carried) is dropped, under
- *   its current or its retired spelling, while a status write's other
- *   unknown fields are refused;
+ *   workflow's own stop and failure writes once carried, and the files a
+ *   status write once carried by storage key) is dropped, under its
+ *   current or its retired spelling, while a status write's other unknown
+ *   fields are refused;
  * - a field set under both its retired and its current name is refused,
  *   not decided by its place in the payload;
  * - the runner result's phase lookup reads a retired phase name;
@@ -118,9 +119,17 @@ describe("the run JSON recorded before a release", () => {
     expect(
       renameRetiredRunJson(RunSchema, {
         kind: "AgentExecution",
-        status: { artifacts: [{ kind: "AgentExecution" }] },
+        status: { loadedVersions: { skills: [{ kind: "AgentExecution" }] } },
       }),
-    ).toEqual({ kind: "Run", status: { artifacts: [{ kind: "AgentExecution" }] } });
+    ).toEqual({ kind: "Run", status: { loadedVersions: { skills: [{ kind: "AgentExecution" }] } } });
+  });
+
+  it("drops the files a status write once carried by storage key, now a reserved field", () => {
+    const status = decodeRunStatusJson(RunStatusSchema, {
+      phase: "RUN_COMPLETED",
+      artifacts: [{ name: "notes.md", storageKey: "artifacts/run_a/notes.md", kind: "RUN_ARTIFACT_KIND_FILE" }],
+    });
+    expect(status.phase).toBe(RunPhase.RUN_COMPLETED);
   });
 
   it("refuses a field set under its retired and its current name, whichever comes first", () => {

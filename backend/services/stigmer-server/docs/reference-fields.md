@@ -208,7 +208,7 @@ Rows read `| \`Message.field\` | class |`.
 | Field | Class |
 |---|---|
 | `ai.stigmer.agentic.skill.v1.ListSkillVersionsInput.slug` | request reference |
-| `ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest.run_id` | stamped id |
+| `ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest.file_id` | stamped id |
 
 ## `ai.stigmer.agentic.vault.v1`
 

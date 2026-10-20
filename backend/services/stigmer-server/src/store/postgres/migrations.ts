@@ -222,6 +222,12 @@ import {
   unreadableWorkspaceRowError,
 } from "../workspace-becomes-resources.js";
 import {
+  RUN_ARTIFACTS_PAGE_SIZE,
+  RUN_ARTIFACTS_RUN_KIND,
+  liftRunArtifacts,
+  unreadableRunArtifactsRowError,
+} from "../run-artifacts-become-files.js";
+import {
   SESSION_HARNESS_KIND,
   SESSION_HARNESS_PAGE_SIZE,
   migrateSessionHarnessRow,
@@ -338,8 +344,11 @@ export const SCHEMA_VERSION_39 = 39;
 /** v40: a conversation's workspace entries become its resources, and a run's attachments wait to become Files. */
 export const SCHEMA_VERSION_40 = 40;
 
+/** v41: the files the native engine uploaded for a run wait to become Files of the run. */
+export const SCHEMA_VERSION_41 = 41;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_40;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_41;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -420,6 +429,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_38, migrateToV38],
       [SCHEMA_VERSION_39, migrateToV39],
       [SCHEMA_VERSION_40, migrateToV40],
+      [SCHEMA_VERSION_41, migrateToV41],
     ];
 
     for (const [version, migrate] of chain) {
@@ -2925,4 +2935,79 @@ async function migrateToV40(client: PoolClient): Promise<void> {
       );
     }
   });
+}
+
+/**
+ * v41: the files the native engine uploaded for a run are lifted off its
+ * status to become Files of the run (../run-artifacts-become-files.ts says
+ * what each row becomes).
+ *
+ * - `output_conversions` holds one row per lifted file, keyed by its run
+ *   and its index there, read oldest run first by the file domain
+ *   (`(created_at, run_id, position)`) and purged by organization. It sits
+ *   beside `file_conversions`, not in it: its keys are trusted by another
+ *   shape.
+ * - Every run row is read in keyset pages on `(kind, id)` and rewritten
+ *   only when it holds the retired field, its `updated_at` left alone; its
+ *   files are inserted beside its rewrite.
+ *
+ * Runs write no audit snapshots. The chain's advisory lock keeps a second
+ * instance's boot out of the step, and the transaction makes it whole or
+ * nothing.
+ */
+async function migrateToV41(client: PoolClient): Promise<void> {
+  await client.query(`
+    CREATE TABLE output_conversions (
+      run_id TEXT COLLATE "C" NOT NULL,
+      position INTEGER NOT NULL,
+      org TEXT NOT NULL,
+      session_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      storage_key TEXT NOT NULL,
+      created_at TEXT COLLATE "C" NOT NULL,
+      PRIMARY KEY (run_id, position)
+    );
+    CREATE INDEX idx_output_conversions_order ON output_conversions (created_at, run_id, position);
+    CREATE INDEX idx_output_conversions_org ON output_conversions (org);
+  `);
+
+  for (let after = ""; ; ) {
+    const rows = (
+      await client.query<{ id: string; data: Buffer }>(
+        `SELECT id, data FROM resources
+         WHERE kind = $1 AND id > $2
+         ORDER BY id
+         LIMIT $3`,
+        [RUN_ARTIFACTS_RUN_KIND, after, RUN_ARTIFACTS_PAGE_SIZE],
+      )
+    ).rows;
+    for (const row of rows) {
+      let lifted: ReturnType<typeof liftRunArtifacts>;
+      try {
+        lifted = liftRunArtifacts(new Uint8Array(row.data));
+      } catch (error) {
+        throw unreadableRunArtifactsRowError(row.id, error);
+      }
+      if (lifted === undefined) {
+        continue;
+      }
+      await client.query(`UPDATE resources SET data = $1 WHERE kind = $2 AND id = $3`, [
+        Buffer.from(lifted.data),
+        RUN_ARTIFACTS_RUN_KIND,
+        row.id,
+      ]);
+      for (const output of lifted.outputs) {
+        await client.query(
+          `INSERT INTO output_conversions
+             (run_id, position, org, session_id, name, storage_key, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [row.id, output.position, output.org, output.sessionId, output.name, output.storageKey, output.createdAt],
+        );
+      }
+    }
+    if (rows.length < RUN_ARTIFACTS_PAGE_SIZE) {
+      return;
+    }
+    after = rows[rows.length - 1]!.id;
+  }
 }

@@ -192,6 +192,7 @@ import {
 } from "../domain/skill/transfer/handler.js";
 import { UploadSlots } from "../domain/skill/transfer/slots.js";
 import { convertStoredAttachments } from "../domain/file/convert-attachments.js";
+import { convertStoredOutputs } from "../domain/file/convert-outputs.js";
 import { newFileBlobs, uploadRefOf as fileUploadRefOf } from "../domain/file/blobs.js";
 import {
   STAGED_FILE_NAME,
@@ -1498,6 +1499,15 @@ export async function composeServer(
     lifecycle: authorizationLifecycle,
     logger,
   });
+  // The same for the files the native engine uploaded for a run before
+  // what a turn returns became Files (domain/file/convert-outputs.ts): each
+  // becomes an output File of its run, over the bytes where they are.
+  await convertStoredOutputs({
+    store,
+    storage: artifactStorage,
+    lifecycle: authorizationLifecycle,
+    logger,
+  });
   const fileTransferLane =
     fileUploadSlots === undefined
       ? undefined
@@ -2148,9 +2158,7 @@ export async function composeServer(
       authorizationLifecycle,
       listReadScope,
       artifactStorage: skillArtifactStorage,
-      // The agentexecution blob store (server.go:362-363) — read side of
-      // pushFromRunArtifact.
-      executionArtifactStorage: artifactStorage,
+      fileBlobs,
       staging: skillArchiveStaging,
     });
     registerEvalServices(router, {

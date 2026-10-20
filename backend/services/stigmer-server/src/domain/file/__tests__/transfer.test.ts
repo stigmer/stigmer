@@ -9,7 +9,9 @@
  *   - a download is a GET (or HEAD) of a link the File driver signed: any
  *     other method is 405, and an unsigned, tampered or expired link, a
  *     malformed path, a staged upload's key, a key outside the File store
- *     (a converted attachment's kept key is inside it),
+ *     (a converted attachment's kept key is inside it, and so is a converted
+ *     run file's, but never file review's or a tool output's deeper in the
+ *     run's folder),
  *     a key that escapes the root, a key naming nothing and a directory
  *     are each the one 404; a signed link to a File's blob streams its
  *     bytes, named for download when the link carries a filename, a HEAD
@@ -136,6 +138,24 @@ describe("the download route", () => {
     const response = await fetch(await signedLink(key));
     expect(response.status).toBe(200);
     expect(await response.text()).toBe("kept bytes");
+  });
+
+  it("serves a converted run file's File from the key it kept, and nothing deeper in the run's folder", async () => {
+    const kept = "artifacts/run_01keptkeptkeptkeptkeptkept/report.md";
+    const deeper = [
+      "artifacts/run_01keptkeptkeptkeptkeptkept/filereview/cas/blobs/abc",
+      "artifacts/run_01keptkeptkeptkeptkeptkept/toolcalls/call_1.txt",
+    ];
+    for (const key of [kept, ...deeper]) {
+      mkdirSync(path.join(root, path.dirname(key)), { recursive: true });
+      writeFileSync(path.join(root, key), "run bytes");
+    }
+    const response = await fetch(await signedLink(kept));
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("run bytes");
+    for (const key of deeper) {
+      expect((await fetch(await signedLink(key))).status, key).toBe(404);
+    }
   });
 
   it("refuses a signed key that climbs out of the attachments folder", async () => {

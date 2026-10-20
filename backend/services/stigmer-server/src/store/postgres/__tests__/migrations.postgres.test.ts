@@ -171,6 +171,7 @@ import {
   SCHEMA_VERSION_38,
   SCHEMA_VERSION_39,
   SCHEMA_VERSION_40,
+  SCHEMA_VERSION_41,
   runMigrations,
 } from "../migrations.js";
 import { LABEL_TAG_REPORT_PAGE_SIZE } from "../../label-tag-report.js";
@@ -224,6 +225,14 @@ import {
   sessionRowWithEntries,
 } from "../../__tests__/retired-workspace-rows.js";
 import { WORKSPACE_RESOURCES_PAGE_SIZE } from "../../workspace-becomes-resources.js";
+import {
+  RUN_ARTIFACTS_STEP_CONVERSIONS,
+  RUN_ARTIFACTS_STEP_EXPECTED,
+  RUN_ARTIFACTS_STEP_ROWS,
+  outputConversionOfRow,
+  runRowWithArtifacts,
+} from "../../__tests__/retired-run-artifact-rows.js";
+import { RUN_ARTIFACTS_PAGE_SIZE } from "../../run-artifacts-become-files.js";
 import { agentExecutionListIndex } from "../../../domain/run/list-index.js";
 import { grantListIndex } from "../../../domain/grant/list-index.js";
 import { newResourceGrantStore } from "../../../domain/grant/resource-store.js";
@@ -5177,6 +5186,110 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
               "notes",
             ]);
           }
+        } finally {
+          await client.end();
+        }
+      });
+    });
+
+    describe("v41: a run's stored files wait to become Files of the run", () => {
+      const storedAt = new Date("2026-10-02T00:00:00Z");
+
+      /** A v40 database holding the scenario's rows, and a client on it. */
+      async function v40Client(): Promise<pg.Client> {
+        await migrateTo(db.databaseUrl, SCHEMA_VERSION_40);
+        const client = new pg.Client({ connectionString: db.databaseUrl });
+        await client.connect();
+        for (const row of RUN_ARTIFACTS_STEP_ROWS) {
+          await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ($1, $2, $3, $4)`, [
+            row.kind,
+            row.id,
+            Buffer.from(row.data),
+            storedAt,
+          ]);
+        }
+        return client;
+      }
+
+      async function version(client: pg.Client): Promise<number> {
+        const result = await client.query(`SELECT COALESCE(MAX(version), 0) AS version FROM schema_version`);
+        return Number(result.rows[0].version);
+      }
+
+      it("rewrites every run holding the retired field, lifts each file, and leaves the rest and updated_at alone", async () => {
+        const client = await v40Client();
+        try {
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_41);
+          expect(await version(client)).toBe(SCHEMA_VERSION_41);
+
+          const rows = (
+            await client.query<{ id: string; data: Buffer; updated_at: Date }>(
+              `SELECT id, data, updated_at FROM resources ORDER BY id COLLATE "C"`,
+            )
+          ).rows;
+          expect(rows.map((row) => row.id)).toEqual([...RUN_ARTIFACTS_STEP_EXPECTED.keys()].sort());
+          for (const row of rows) {
+            expect(new Uint8Array(row.data), row.id).toEqual(RUN_ARTIFACTS_STEP_EXPECTED.get(row.id));
+            expect(row.updated_at.getTime(), row.id).toBe(storedAt.getTime());
+          }
+          const conversions = (
+            await client.query<Record<string, unknown>>(`SELECT * FROM output_conversions ORDER BY run_id, position`)
+          ).rows;
+          expect(conversions.map(outputConversionOfRow)).toEqual(RUN_ARTIFACTS_STEP_CONVERSIONS);
+          const indexes = (
+            await client.query<{ indexname: string }>(
+              `SELECT indexname FROM pg_indexes WHERE tablename = 'output_conversions' ORDER BY indexname`,
+            )
+          ).rows.map((row) => row.indexname);
+          expect(indexes).toEqual(["idx_output_conversions_order", "idx_output_conversions_org", "output_conversions_pkey"]);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("a run that does not decode fails the step, names the run, and leaves the database at v40", async () => {
+        const client = await v40Client();
+        try {
+          await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('run', 'run_broken', $1, now())`, [
+            Buffer.from([0xff, 0xff, 0xff]),
+          ]);
+          await expect(migrateTo(db.databaseUrl, SCHEMA_VERSION_41)).rejects.toThrow(
+            "run 'run_broken' cannot be read to turn its stored files into Files",
+          );
+          expect(await version(client)).toBe(SCHEMA_VERSION_40);
+          const tables = (
+            await client.query<{ table_name: string }>(
+              `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`,
+            )
+          ).rows.map((row) => row.table_name);
+          expect(tables).not.toContain("output_conversions");
+          const run = await client.query<{ data: Buffer }>(`SELECT data FROM resources WHERE id = 'run_step'`);
+          expect(new Uint8Array(run.rows[0]!.data)).toEqual(RUN_ARTIFACTS_STEP_ROWS[0]!.data);
+        } finally {
+          await client.end();
+        }
+      });
+
+      it("reads runs across keyset pages, missing none past the first page", async () => {
+        const client = await v40Client();
+        try {
+          const ids: string[] = [];
+          for (let i = 0; i <= RUN_ARTIFACTS_PAGE_SIZE; i++) {
+            const id = `run_page${String(i).padStart(4, "0")}`;
+            ids.push(id);
+            await client.query(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('run', $1, $2, $3)`, [
+              id,
+              Buffer.from(
+                runRowWithArtifacts({ metadata: { id }, status: {} }, [{ name: "a.md", kind: 1, storageKey: `artifacts/${id}/a.md` }]),
+              ),
+              storedAt,
+            ]);
+          }
+          await migrateTo(db.databaseUrl, SCHEMA_VERSION_41);
+          const lifted = await client.query<{ run_id: string }>(
+            `SELECT run_id FROM output_conversions WHERE run_id LIKE 'run_page%' ORDER BY run_id COLLATE "C"`,
+          );
+          expect(lifted.rows.map((row) => row.run_id)).toEqual(ids);
         } finally {
           await client.end();
         }

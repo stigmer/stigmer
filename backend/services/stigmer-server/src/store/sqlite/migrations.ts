@@ -217,6 +217,12 @@ import {
   unreadableWorkspaceRowError,
 } from "../workspace-becomes-resources.js";
 import {
+  RUN_ARTIFACTS_PAGE_SIZE,
+  RUN_ARTIFACTS_RUN_KIND,
+  liftRunArtifacts,
+  unreadableRunArtifactsRowError,
+} from "../run-artifacts-become-files.js";
+import {
   SESSION_HARNESS_KIND,
   SESSION_HARNESS_PAGE_SIZE,
   migrateSessionHarnessRow,
@@ -331,8 +337,11 @@ export const SCHEMA_VERSION_43 = 43;
 /** v44: a conversation's workspace entries become its resources, and a run's attachments wait to become Files. */
 export const SCHEMA_VERSION_44 = 44;
 
+/** v45: the files the native engine uploaded for a run wait to become Files of the run. */
+export const SCHEMA_VERSION_45 = 45;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_44;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_45;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -402,6 +411,7 @@ export function runMigrations(
     [SCHEMA_VERSION_42, migrateToV42],
     [SCHEMA_VERSION_43, migrateToV43],
     [SCHEMA_VERSION_44, migrateToV44],
+    [SCHEMA_VERSION_45, migrateToV45],
   ];
 
   for (const [version, migrate] of chain) {
@@ -2733,5 +2743,74 @@ function migrateToV44(db: DatabaseSync): void {
         attachment.createdAt,
       );
     }
+  }
+}
+
+/**
+ * v45: the files the native engine uploaded for a run are lifted off its
+ * status to become Files of the run; the Postgres driver's v41 in this
+ * engine's terms (../run-artifacts-become-files.ts says what each row
+ * becomes). `output_conversions` holds one row per lifted file, read oldest
+ * run first and purged by organization, beside `file_conversions` and not
+ * in it: its keys are trusted by another shape. Every run row is read in
+ * keyset pages and rewritten only when it holds the retired field, its
+ * `updated_at` left alone. Runs write no audit snapshots. Runs inside
+ * applyInTransaction's BEGIN, so a throw rolls the whole step back.
+ */
+function migrateToV45(db: DatabaseSync): void {
+  db.exec(`
+    CREATE TABLE output_conversions (
+      run_id      TEXT NOT NULL,
+      position    INTEGER NOT NULL,
+      org         TEXT NOT NULL,
+      session_id  TEXT NOT NULL,
+      name        TEXT NOT NULL,
+      storage_key TEXT NOT NULL,
+      created_at  TEXT NOT NULL,
+      PRIMARY KEY (run_id, position)
+    ) WITHOUT ROWID;
+    CREATE INDEX idx_output_conversions_order ON output_conversions (created_at, run_id, position);
+    CREATE INDEX idx_output_conversions_org ON output_conversions (org);
+  `);
+
+  const page = db.prepare(`SELECT id, data FROM resources WHERE kind = ? AND id > ? ORDER BY id LIMIT ?`);
+  const rewrite = db.prepare(`UPDATE resources SET data = ? WHERE kind = ? AND id = ?`);
+  const convert = db.prepare(
+    `INSERT INTO output_conversions
+       (run_id, position, org, session_id, name, storage_key, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  );
+  for (let after = ""; ; ) {
+    const rows = page.all(RUN_ARTIFACTS_RUN_KIND, after, RUN_ARTIFACTS_PAGE_SIZE) as Array<{
+      id: string;
+      data: Uint8Array;
+    }>;
+    for (const row of rows) {
+      let lifted: ReturnType<typeof liftRunArtifacts>;
+      try {
+        lifted = liftRunArtifacts(row.data);
+      } catch (error) {
+        throw unreadableRunArtifactsRowError(row.id, error);
+      }
+      if (lifted === undefined) {
+        continue;
+      }
+      rewrite.run(lifted.data, RUN_ARTIFACTS_RUN_KIND, row.id);
+      for (const output of lifted.outputs) {
+        convert.run(
+          row.id,
+          output.position,
+          output.org,
+          output.sessionId,
+          output.name,
+          output.storageKey,
+          output.createdAt,
+        );
+      }
+    }
+    if (rows.length < RUN_ARTIFACTS_PAGE_SIZE) {
+      return;
+    }
+    after = rows[rows.length - 1]!.id;
   }
 }

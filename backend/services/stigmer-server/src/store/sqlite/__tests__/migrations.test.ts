@@ -169,6 +169,7 @@ import {
   SCHEMA_VERSION_42,
   SCHEMA_VERSION_43,
   SCHEMA_VERSION_44,
+  SCHEMA_VERSION_45,
   SCHEMA_VERSION_7,
   getSchemaVersion,
   runMigrations,
@@ -225,6 +226,14 @@ import {
   sessionRowWithEntries,
 } from "../../__tests__/retired-workspace-rows.js";
 import { WORKSPACE_RESOURCES_PAGE_SIZE } from "../../workspace-becomes-resources.js";
+import {
+  RUN_ARTIFACTS_STEP_CONVERSIONS,
+  RUN_ARTIFACTS_STEP_EXPECTED,
+  RUN_ARTIFACTS_STEP_ROWS,
+  outputConversionOfRow,
+  runRowWithArtifacts,
+} from "../../__tests__/retired-run-artifact-rows.js";
+import { RUN_ARTIFACTS_PAGE_SIZE } from "../../run-artifacts-become-files.js";
 import { agentExecutionListIndex } from "../../../domain/run/list-index.js";
 import { grantListIndex } from "../../../domain/grant/list-index.js";
 import { newResourceGrantStore } from "../../../domain/grant/resource-store.js";
@@ -4862,5 +4871,82 @@ describe("v44: workspace entries become resources, and run attachments wait to b
       const row = read.get(id) as { data: Uint8Array };
       expect(fromBinary(SessionSchema, new Uint8Array(row.data)).spec?.resources.map((r) => r.name), id).toEqual(["notes"]);
     }
+  });
+});
+
+describe("v45: a run's stored files wait to become Files of the run", () => {
+  const STORED_AT = "2026-10-02 00:00:00";
+
+  /** A v44 database holding the scenario's rows. */
+  function v44Database(): DatabaseSync {
+    const db = new DatabaseSync(tempDbPath());
+    cleanups.push(() => db.close());
+    runMigrations(db, SCHEMA_VERSION_44);
+    const insert = db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, ?)`);
+    for (const row of RUN_ARTIFACTS_STEP_ROWS) {
+      insert.run(row.kind, row.id, row.data, STORED_AT);
+    }
+    return db;
+  }
+
+  it("rewrites every run holding the retired field, lifts each file, and leaves the rest and updated_at alone", () => {
+    const db = v44Database();
+    runMigrations(db, SCHEMA_VERSION_45);
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_45);
+
+    const rows = db.prepare(`SELECT id, data, updated_at FROM resources ORDER BY id`).all() as Array<{
+      id: string;
+      data: Uint8Array;
+      updated_at: string;
+    }>;
+    expect(rows.map((row) => row.id)).toEqual([...RUN_ARTIFACTS_STEP_EXPECTED.keys()].sort());
+    for (const row of rows) {
+      expect(new Uint8Array(row.data), row.id).toEqual(RUN_ARTIFACTS_STEP_EXPECTED.get(row.id));
+      expect(row.updated_at, row.id).toBe(STORED_AT);
+    }
+    const conversions = db.prepare(`SELECT * FROM output_conversions ORDER BY run_id, position`).all() as Array<
+      Record<string, unknown>
+    >;
+    expect(conversions.map(outputConversionOfRow)).toEqual(RUN_ARTIFACTS_STEP_CONVERSIONS);
+    expect(
+      (
+        db
+          .prepare(`SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'output_conversions' AND sql IS NOT NULL ORDER BY name`)
+          .all() as Array<{ name: string }>
+      ).map((row) => row.name),
+    ).toEqual(["idx_output_conversions_order", "idx_output_conversions_org"]);
+  });
+
+  it("a run that does not decode fails the step, names the run, and leaves the database at v44", () => {
+    const db = v44Database();
+    db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('run', 'run_broken', ?, ?)`).run(
+      new Uint8Array([0xff, 0xff, 0xff]),
+      STORED_AT,
+    );
+    expect(() => runMigrations(db, SCHEMA_VERSION_45)).toThrow("run 'run_broken' cannot be read to turn its stored files into Files");
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION_44);
+    expect(tableNames(db)).not.toContain("output_conversions");
+    const run = db.prepare(`SELECT data FROM resources WHERE id = 'run_step'`).get() as { data: Uint8Array };
+    expect(new Uint8Array(run.data)).toEqual(RUN_ARTIFACTS_STEP_ROWS[0]!.data);
+  });
+
+  it("reads runs across keyset pages, missing none past the first page", () => {
+    const db = v44Database();
+    const insert = db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES ('run', ?, ?, ?)`);
+    const ids: string[] = [];
+    for (let i = 0; i <= RUN_ARTIFACTS_PAGE_SIZE; i++) {
+      const id = `run_page${String(i).padStart(4, "0")}`;
+      ids.push(id);
+      insert.run(
+        id,
+        runRowWithArtifacts({ metadata: { id }, status: {} }, [{ name: "a.md", kind: 1, storageKey: `artifacts/${id}/a.md` }]),
+        STORED_AT,
+      );
+    }
+    runMigrations(db, SCHEMA_VERSION_45);
+    const lifted = db.prepare(`SELECT run_id FROM output_conversions WHERE run_id LIKE 'run_page%' ORDER BY run_id`).all() as Array<{
+      run_id: string;
+    }>;
+    expect(lifted.map((row) => row.run_id)).toEqual(ids);
   });
 });

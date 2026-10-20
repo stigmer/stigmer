@@ -68,6 +68,8 @@ A File's bytes live in a blob store under a key the server mints, and that key i
 
 A third table, `file_conversions`, holds the attachments runs carried before a message's files became Files. The step that turned a conversation's workspace entries into its resources (Postgres v40, SQLite v44, `workspace-becomes-resources.ts`) lifted each one off its run into a row keyed by the run and its position, and the file domain reads them oldest run first (`Store.files.listConversions`), makes each a File of the run's conversation, and forgets it (`forgetConversion`). An organization's purge removes its rows with its blobs.
 
+A fourth, `output_conversions`, holds the files the native engine uploaded for a run before what a turn returns became Files. The step that retired them (Postgres v41, SQLite v45, `run-artifacts-become-files.ts`) lifted each file entry off its run's status into a row keyed the same way, and the file domain makes each a File of the run, with the run's id and the file's name as its output path (`Store.files.listOutputConversions`, `forgetOutputConversion`). It is a table of its own because its keys are trusted by another shape and its rows become a run's outputs, not a message's files. An organization's purge removes its rows too.
+
 ## The permission history
 
 Every change to an access row can be recorded in `grant_history`

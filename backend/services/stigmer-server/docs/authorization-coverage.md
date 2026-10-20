@@ -317,7 +317,7 @@ The conversation surface is a cloud capability; OSS serves edition stubs, all di
 |---|---|---|
 | SkillCommandController.push | config: can_create_skill on organization (field org), error_msg yes | chain-with-Authorize |
 | SkillCommandController.createArtifactUploadUrl | config: can_create_skill on organization (field org), error_msg yes | chain-with-Authorize |
-| SkillCommandController.pushFromRunArtifact | config: can_create_skill on organization (field org), error_msg yes | chain-with-Authorize BY DELEGATION: the handler validates the storage-key ownership prefix directly, downloads the run artifact, then calls the shared push pipeline WITH ITS OWN method descriptor (the runLifecyclePipeline pattern — the pipeline's authorizing descriptor is a caller-supplied parameter), so this method's own annotation is the one evaluated. |
+| SkillCommandController.pushFromFile | config: can_create_skill on organization (field org), error_msg yes | direct, then chain-with-Authorize BY DELEGATION: the handler asks every question before it reads a byte: this method's own annotation (`authorizeDirect`), then the File's load, where a File of another organization answers NOT_FOUND before access is asked, then `FileQueryController.get`'s annotation on the File (can_view), then the archive cap. It reads the File and calls the shared push pipeline WITH ITS OWN method descriptor (the runLifecyclePipeline pattern — the pipeline's authorizing descriptor is a caller-supplied parameter), so this method's own annotation is evaluated again there. |
 | SkillCommandController.updateVisibility | config: can_manage_audience on skill (field resource_id), error_msg yes | chain-with-Authorize |
 | SkillCommandController.delete | config: can_delete on skill (field value), error_msg yes | chain-with-Authorize |
 | SkillQueryController.get | config: can_view on skill (field value), error_msg yes | chain-with-Authorize |
@@ -479,7 +479,7 @@ These 25 methods declare a `(ai.stigmer.commons.rpc.config)` annotation and run 
 
 ## Descriptor mismatches found
 
-- `SkillCommandController.pushFromRunArtifact` delegates into the shared push pipeline. This WAS a descriptor mismatch (the delegated pipeline hardcoded `method.push`); the inventory pass caught it and the pipeline now takes the authorizing descriptor from its caller, so each of the two RPCs authorizes under its own annotation. Recorded here because the trap shape — shared pipeline, hardcoded descriptor — is the one thing a future delegating handler must not reintroduce.
+- `SkillCommandController.pushFromFile` delegates into the shared push pipeline, as the run-artifact import it replaced did. That import WAS a descriptor mismatch (the delegated pipeline hardcoded `method.push`); the inventory pass caught it and the pipeline now takes the authorizing descriptor from its caller, so each of the two RPCs authorizes under its own annotation. Recorded here because the trap shape — shared pipeline, hardcoded descriptor — is the one thing a future delegating handler must not reintroduce.
 
 No other mismatch exists: every other `newAuthorizeStep` call site passes the descriptor of the RPC it serves, including all four lifecycle RPCs (shared builder, per-method descriptor) and memory confirm/reject (shared transition helper, per-method descriptor).
 

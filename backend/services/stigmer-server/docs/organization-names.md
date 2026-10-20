@@ -168,7 +168,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 |---|---|
 | SkillCommandController.createArtifactUploadUrl | `org` |
 | SkillCommandController.push | `org` |
-| SkillCommandController.pushFromRunArtifact | `org` |
+| SkillCommandController.pushFromFile | `org` |
 | SkillQueryController.getByReference | `org` |
 | SkillQueryController.list | `org` |
 | SkillQueryController.listVersions | `org` |

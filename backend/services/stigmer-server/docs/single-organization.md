@@ -155,7 +155,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 |---|---|
 | SkillCommandController.createArtifactUploadUrl | org |
 | SkillCommandController.push | org |
-| SkillCommandController.pushFromRunArtifact | org |
+| SkillCommandController.pushFromFile | org |
 | SkillQueryController.getByReference | org |
 | SkillQueryController.list | org |
 | SkillQueryController.listVersions | org |

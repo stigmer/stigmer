@@ -23,7 +23,7 @@
  * updateVisibility set, since a push names no visibility. The
  * organization's skills list newest first, one page at a time.
  */
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import http2 from "node:http2";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -38,6 +38,7 @@ import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import type { Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillCommandController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/command_pb";
 import { SkillQueryController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/query_pb";
+import { FileCommandController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/command_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -66,6 +67,7 @@ type QueryClient = Client<typeof SkillQueryController>;
 let server: ComposedServer;
 let command: CommandClient;
 let query: QueryClient;
+let files: Client<typeof FileCommandController>;
 let baseUrl: string;
 let dir: string;
 
@@ -98,6 +100,7 @@ beforeAll(async () => {
   OTHER_ORG_ID = organizationId(ids, OTHER_ORG);
   command = createClient(SkillCommandController, transport);
   query = createClient(SkillQueryController, transport);
+  files = createClient(FileCommandController, transport);
 });
 
 afterAll(async () => {
@@ -760,81 +763,55 @@ describe("delete", () => {
   });
 });
 
-describe("pushFromRunArtifact — validation surface", () => {
-  it("rejects missing required fields — the protovalidate interceptor answers on the wire (both editions run it before the handler's manual arms)", async () => {
+describe("pushFromFile — a skill from a File", () => {
+  async function uploadZip(org: string, data: Uint8Array): Promise<string> {
+    const file = await files.upload({
+      org,
+      filename: "my-skill.zip",
+      mimeType: "application/zip",
+      source: { case: "data", value: data },
+    });
+    return file.metadata?.id ?? "";
+  }
+
+  it("rejects missing required fields — the protovalidate interceptor answers on the wire", async () => {
     const cases: Array<[Record<string, string>, string]> = [
-      [
-        { storageKey: "artifacts/aex_x/skill.zip", org: ORG },
-        "run_id: must be at least 1 characters [string.min_len]",
-      ],
-      [
-        { runId: "aex_x", org: ORG },
-        "storage_key: must be at least 1 characters [string.min_len]",
-      ],
-      [
-        { runId: "aex_x", storageKey: "artifacts/aex_x/skill.zip" },
-        "org: value is required [required]",
-      ],
+      [{ org: ORG }, "file_id: must be at least 1 characters [string.min_len]"],
+      [{ fileId: "file_x" }, "org: value is required [required]"],
     ];
     for (const [request, message] of cases) {
-      const err = await expectCode(
-        command.pushFromRunArtifact(request),
-        Code.InvalidArgument,
-        message,
-      );
+      const err = await expectCode(command.pushFromFile(request), Code.InvalidArgument, message);
       expect(err.rawMessage).toBe(message);
     }
   });
 
-  it("rejects a storage key outside the execution's namespace (traversal guard)", async () => {
-    const err = await expectCode(
-      command.pushFromRunArtifact({
-        org: ORG,
-        runId: "aex_example",
-        storageKey: "artifacts/aex_other/skill.zip",
-      }),
-      Code.InvalidArgument,
-      "prefix guard",
-    );
-    expect(err.rawMessage).toBe("storage_key does not belong to this execution");
-  });
-});
-
-describe("pushFromRunArtifact — reading the run's artifact", () => {
-  it("pushes the directory artifact a run stored as a skill in the named org", async () => {
+  it("pushes the ZIP a File holds as a skill in the named org", async () => {
     const name = uniqueName();
-    const storageKey = "artifacts/aex_push_source/skill.zip";
-    // The run's blob store is the local driver rooted at
-    // ARTIFACT_LOCAL_BASE_PATH; a key is a path under it.
-    const filePath = path.join(dir, "artifacts", storageKey);
-    mkdirSync(path.dirname(filePath), { recursive: true });
-    writeFileSync(filePath, makeArtifact(name));
+    const fileId = await uploadZip(ORG, makeArtifact(name));
 
-    const skill = await command.pushFromRunArtifact({
-      org: ORG,
-      runId: "aex_push_source",
-      storageKey,
-      tag: "from-run",
-    });
+    const skill = await command.pushFromFile({ org: ORG, fileId, tag: "from-file" });
 
     expect(skill.metadata?.name).toBe(name);
     expect(skill.metadata?.org).toBe(ORG_ID);
-    expect(skill.spec?.tag).toBe("from-run");
+    expect(skill.spec?.tag).toBe("from-file");
     const fetched = await query.get({ value: skill.metadata?.id ?? "" });
     expect(fetched.status?.versionHash).toBe(skill.status?.versionHash);
   });
 
-  it("answers a sanitized Internal when the run's artifact cannot be read", async () => {
+  it("answers not-found for a File that does not exist", async () => {
     const err = await expectCode(
-      command.pushFromRunArtifact({
-        org: ORG,
-        runId: "aex_push_missing",
-        storageKey: "artifacts/aex_push_missing/skill.zip",
-      }),
-      Code.Internal,
-      "download failure",
+      command.pushFromFile({ org: ORG, fileId: "file_missing" }),
+      Code.NotFound,
+      "missing file",
     );
-    expect(err.rawMessage).toBe("failed to download execution artifact");
+    expect(err.rawMessage).toBe("file not found: file_missing");
+  });
+
+  it("answers not-found for another organization's File, saying nothing about it", async () => {
+    const fileId = await uploadZip(OTHER_ORG, makeArtifact(uniqueName()));
+
+    const err = await expectCode(command.pushFromFile({ org: ORG, fileId }), Code.NotFound, "foreign file");
+    expect(err.rawMessage).toBe(`file not found: ${fileId}`);
   });
 });
 

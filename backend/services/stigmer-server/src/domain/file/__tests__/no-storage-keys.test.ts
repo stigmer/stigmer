@@ -1,16 +1,15 @@
 /**
  * Pins that no field a person or a client writes holds a storage key: the
  * contract walks every message reachable from Run, Session and Routine
- * (so RunSpec, SessionSpec and AgentInvocation) and from every File
- * message, the runner's door included (a turn's outputs travel by upload
- * reference and link, never by key), and finds a key-holding field only
- * where it is named here.
+ * (so RunSpec, SessionSpec and AgentInvocation), from every File message,
+ * the runner's door included (a turn's outputs travel by upload reference
+ * and link, never by key), and from every request the skill commands take
+ * (a skill is imported from a File by id), and finds a key-holding field
+ * only where it is named here.
  *
- * Two are named, each kept on purpose:
- *   - RunArtifact.storage_key, under RunStatus.artifacts: what the agent
- *     wrote back, still addressed by key until outputs become Files;
- *   - ToolCallOutputRef.storage_key, the offload and file-review reference,
- *     which a client only reads back and resolves through the run.
+ * One is named, kept on purpose: ToolCallOutputRef.storage_key, the
+ * offload and file-review reference, which a client only reads back and
+ * resolves through the run.
  *
  * A signed link carries its key inside its URL; a url field is not a
  * key-holding field, because nothing accepts it back as an address.
@@ -24,12 +23,13 @@ import * as runFiles from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { SkillCommandController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/command_pb";
 
 /** A field name that says it holds where bytes are stored. */
 const KEY_FIELD = /(^|_)(storage|blob|object)_key$/;
 
 /** The key-holding fields kept on purpose (module header). */
-const KEPT = ["ai.stigmer.agentic.run.v1.RunArtifact.storage_key", "ai.stigmer.agentic.run.v1.ToolCallOutputRef.storage_key"];
+const KEPT = ["ai.stigmer.agentic.run.v1.ToolCallOutputRef.storage_key"];
 
 function messagesOf(module: Record<string, unknown>): DescMessage[] {
   return Object.values(module).filter(
@@ -67,11 +67,20 @@ function keyFields(roots: readonly DescMessage[]): string[] {
 
 describe("no field a client writes holds a storage key", () => {
   it("finds key-holding fields only where they are kept on purpose", () => {
-    const roots = [RunSchema, SessionSchema, RoutineSchema, ...messagesOf(fileApi), ...messagesOf(fileIo), ...messagesOf(runFiles)];
+    const skillCommands = SkillCommandController.methods.map((method) => method.input);
+    const roots = [
+      RunSchema,
+      SessionSchema,
+      RoutineSchema,
+      ...messagesOf(fileApi),
+      ...messagesOf(fileIo),
+      ...messagesOf(runFiles),
+      ...skillCommands,
+    ];
     expect(keyFields(roots)).toEqual([...KEPT].sort());
   });
 
   it("would find one: the walk reaches a nested key-holding field", () => {
-    expect(keyFields([RunSchema])).toContain("ai.stigmer.agentic.run.v1.RunArtifact.storage_key");
+    expect(keyFields([RunSchema])).toContain("ai.stigmer.agentic.run.v1.ToolCallOutputRef.storage_key");
   });
 });
