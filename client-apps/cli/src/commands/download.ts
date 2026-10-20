@@ -54,14 +54,14 @@ async function runDownload(type: string, ref: string, options: DownloadFlags, co
     return;
   }
 
+  // A type downloads when the verb matrix promises it and a handler serves
+  // it; the registry's conformance suite holds the two equal, so one
+  // refusal answers both.
   const info = defaultRegistry().getByAlias(type);
-  if (info === undefined || !info.supportedVerbs.has(Verb.Download)) {
-    throw new UsageError(`download not supported for type: ${type}\n\nThe types that download: ${downloadTypes()}`);
-  }
   const { DOWNLOAD_HANDLERS } = await import("../resources/download.js");
-  const handler = DOWNLOAD_HANDLERS.get(info.kind);
-  if (handler === undefined) {
-    throw new UsageError(`download not implemented for ${info.displayName}`);
+  const handler = info?.supportedVerbs.has(Verb.Download) === true ? DOWNLOAD_HANDLERS.get(info.kind) : undefined;
+  if (info === undefined || handler === undefined) {
+    throw new UsageError(`download not supported for type: ${type}\n\nThe types that download: ${downloadTypes()}`);
   }
   if (handler.answers === "files") refuseResultFlags(options, `a ${info.displayName.toLowerCase()}'s`);
 
@@ -75,18 +75,11 @@ async function runDownload(type: string, ref: string, options: DownloadFlags, co
     outputDir: options.outputDir,
   };
 
-  switch (handler.answers) {
-    case "result":
-      renderResult(await handler.download(client.stigmer, request), resultFormat(options));
-      return;
-    case "files":
-      printOutcome(await handler.download(client.stigmer, request, stderrSink), handler.noun, `${info.singular}: ${ref}`);
-      return;
-    default: {
-      const unreachable: never = handler;
-      throw new Error(`unhandled download answer: ${JSON.stringify(unreachable)}`);
-    }
+  if (handler.answers === "result") {
+    renderResult(await handler.download(client.stigmer, request), resultFormat(options));
+    return;
   }
+  printOutcome(await handler.download(client.stigmer, request, stderrSink), handler.noun, `${info.singular}: ${ref}`);
 }
 
 async function runDownloadRun(id: string, options: DownloadFlags): Promise<void> {

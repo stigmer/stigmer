@@ -13,7 +13,11 @@
 // pointer to `get run`. downloadSessionOutputs lists the conversation's
 // Files in its own organization and writes only what its turns saved, one
 // File per place with the newest turn's winning, never a File given to the
-// conversation; downloadFile writes one File under its filename.
+// conversation; downloadFile writes one File under its filename, and reports
+// a File whose bytes cannot be fetched as not downloaded. The download
+// handlers for a session and a File refuse a reference that is not an id
+// (and a File refuses --artifact) before any call, and write through the
+// same functions.
 
 import { createServer as createHttpServer, type Server as HttpServer } from "node:http";
 import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
@@ -39,7 +43,9 @@ import type { Stigmer } from "@stigmer/client";
 import { unzipSync } from "fflate";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { CliExitError, ExitCode } from "../../errors/index.js";
-import { downloadFile, downloadRunArtifacts, downloadSessionOutputs } from "../download.js";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { UsageError } from "../../errors/index.js";
+import { DOWNLOAD_HANDLERS, downloadFile, downloadRunArtifacts, downloadSessionOutputs } from "../download.js";
 import { pushSkill } from "../skill.js";
 
 const SKILL_MD = ["---", "name: my-skill", "---", "# My Skill"].join("\n");
@@ -167,7 +173,7 @@ beforeAll(async () => {
               : runFiles.filter((f) => req.org === "acme" && f.status?.runId === req.runId),
         }),
       get: (req) => {
-        const file = sessionFiles.find((f) => f.metadata?.id === req.value);
+        const file = [...sessionFiles, ...runFiles].find((f) => f.metadata?.id === req.value);
         if (file === undefined) throw new ConnectError("file not found", Code.NotFound);
         return file;
       },
@@ -407,6 +413,64 @@ describe("downloadFile", () => {
       const outcome = await downloadFile(client, "file_upload", out);
       expect(outcome).toEqual({ total: 1, downloaded: 1, noArtifacts: false });
       expect(readFileSync(join(out, "upload.csv"), "utf8")).toBe("a,b");
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
+
+  it("reports a File whose bytes cannot be fetched as not downloaded, naming it", async () => {
+    const progress: string[] = [];
+    const out = mkdtempSync(join(tmpdir(), "dl-it-"));
+    try {
+      const outcome = await downloadFile(client, "file_missing", out, (line) => progress.push(line));
+      expect(outcome).toEqual({ total: 1, downloaded: 0, noArtifacts: false });
+      expect(progress.some((line) => line.startsWith("  Failed to download broken.txt"))).toBe(true);
+      expect(existsSync(join(out, "broken.txt"))).toBe(false);
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("the download handlers for a session and a File", () => {
+  const session = DOWNLOAD_HANDLERS.get(ApiResourceKind.session)!;
+  const file = DOWNLOAD_HANDLERS.get(ApiResourceKind.file)!;
+  const noProgress = () => undefined;
+
+  it("download a conversation's outputs, and refuse a reference that is not its id", async () => {
+    const out = mkdtempSync(join(tmpdir(), "dl-it-"));
+    try {
+      const outcome = await session.download(
+        client,
+        { ref: "ses_conv", org: "acme", artifactName: "notes/today.md", outputDir: out },
+        noProgress,
+      );
+      expect(outcome).toEqual({ total: 1, downloaded: 1, noArtifacts: false });
+      expect(readFileSync(join(out, "notes", "today.md"), "utf8")).toBe("notes");
+      await expect(
+        session.download(client, { ref: "my-chat", org: "acme", artifactName: "", outputDir: out }, noProgress),
+      ).rejects.toThrow(new UsageError("invalid session ID: my-chat\n\nA conversation is named by its ID (e.g., ses_01abc123)"));
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
+
+  it("download a File by its id, and refuse --artifact and a reference that is not an id", async () => {
+    const out = mkdtempSync(join(tmpdir(), "dl-it-"));
+    try {
+      const outcome = await file.download(
+        client,
+        { ref: "file_upload", org: "acme", artifactName: "", outputDir: out },
+        noProgress,
+      );
+      expect(outcome).toEqual({ total: 1, downloaded: 1, noArtifacts: false });
+      expect(readFileSync(join(out, "upload.csv"), "utf8")).toBe("a,b");
+      await expect(
+        file.download(client, { ref: "file_upload", org: "acme", artifactName: "x.csv", outputDir: out }, noProgress),
+      ).rejects.toThrow(/--artifact picks among a run's or a session's outputs/);
+      await expect(
+        file.download(client, { ref: "ledger", org: "acme", artifactName: "", outputDir: out }, noProgress),
+      ).rejects.toThrow("a File is named by its ID (e.g., file_01abc123), not 'ledger'");
     } finally {
       rmSync(out, { recursive: true, force: true });
     }

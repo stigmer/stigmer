@@ -143,6 +143,13 @@ describe("stigmer file upload", () => {
     expect(server.uploads).toEqual([]);
   });
 
+  it("refuses a path it cannot read, and one that is neither a file nor a folder", async () => {
+    const plain = write("plain.csv");
+    await expect(upload(join(plain, "inside.csv"))).rejects.toThrow(/cannot read ".*plain\.csv\/inside\.csv": ENOTDIR/);
+    await expect(upload("/dev/null")).rejects.toThrow(new UsageError('cannot upload "/dev/null": not a file'));
+    expect(server.uploads).toEqual([]);
+  });
+
   it("deletes the Files the batch uploaded when one upload fails, and names the file", async () => {
     server.refuse.add("bad.csv");
     await expect(upload(write("good.csv"), write("bad.csv"))).rejects.toThrow(/failed to upload ".*bad\.csv": .*too large/);
