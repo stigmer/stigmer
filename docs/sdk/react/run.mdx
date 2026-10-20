@@ -269,26 +269,6 @@ return url ? <img src={url} alt="Tool output" /> : null;
 ```
 
 
-### useArtifactInspection
-
-Headless behavior hook over one output File: content fetch, Agent YAML
-detection, the Apply mutation, and in-memory clipboard copy.
-
-**Signature**
-
-```tsx
-function useArtifactInspection(file: File, org: string, options?: UseArtifactInspectionOptions): ArtifactInspection
-```
-
-<TypeTable
-  type={{
-    file: { type: "File", description: "The File to inspect.", required: true },
-    org: { type: "string", description: "Organization for the \"Apply to [org]\" CTA.", required: true },
-    options: { type: "UseArtifactInspectionOptions", description: "UseArtifactInspectionOptions." },
-  }}
-/>
-
-
 ### useChangeSetCapture
 
 Data hook that loads the captured bytes of one change set on demand: the
@@ -438,6 +418,26 @@ function useFileChangeContent(change: DisplayFileChange): UseFileChangeContentRe
     isBinary: { type: "boolean", description: "`true` when either side is binary — render \"binary file changed\", not a diff." },
     isLoading: { type: "boolean", description: "`true` while an offloaded side's content request is in flight." },
     isTruncated: { type: "boolean", description: "`true` when an offloaded side exceeded the server's content-size limit and was truncated — the inline diff would be incomplete; offer downloadUrl." },
+  }}
+/>
+
+
+### useFileInspection
+
+Headless behavior hook over one output File: content fetch, Agent YAML
+detection, the Apply mutation, and in-memory clipboard copy.
+
+**Signature**
+
+```tsx
+function useFileInspection(file: File, org: string, options?: UseFileInspectionOptions): FileInspection
+```
+
+<TypeTable
+  type={{
+    file: { type: "File", description: "The File to inspect.", required: true },
+    org: { type: "string", description: "Organization for the \"Apply to [org]\" CTA.", required: true },
+    options: { type: "UseFileInspectionOptions", description: "UseFileInspectionOptions." },
   }}
 />
 
@@ -815,33 +815,6 @@ The primary argument and intent are read from the ask's sanitized preview
 />
 
 
-### ArtifactContentBody
-
-The shared body of an output File's view: the file-content states
-(loading / error / binary / text via [`ArtifactContentRenderer`](#artifactcontentrenderer)).
-
-Shared so the preview modal and the editor-area `ArtifactDocument` render
-bodies identically — only the surrounding chrome (modal header + action
-bar vs. document toolbar) differs. Pair with [`useArtifactInspection`](#useartifactinspection),
-which supplies every prop here.
-
-All visual properties flow through `--stgm-*` tokens.
-
-**Props** — `ArtifactContentBodyProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS classes for the root element." },
-    content: { type: "string | null", description: "Decoded text content, or `null` (binary / loading / error).", required: true },
-    contentType: { type: "string | null", description: "The File's media type (rendering-strategy fallback).", required: true },
-    error: { type: "Error | null", description: "Content-fetch error, or `null`.", required: true },
-    file: { type: "File", description: "The File whose body is rendered.", required: true },
-    isLoading: { type: "boolean", description: "`true` while the content request is in-flight.", required: true },
-    isTruncated: { type: "boolean", description: "Whether the fetched content was truncated by the server's size cap.", required: true },
-  }}
-/>
-
-
 ### ArtifactContentRenderer
 
 File-type-aware content renderer for run artifacts.
@@ -864,7 +837,7 @@ is self-contained and works identically in the Stigmer Console and
 in a third-party host application.
 
 Platform builders who want to render artifact content outside of
-[`ArtifactPreviewModal`](#artifactpreviewmodal) can import this component directly:
+[`FilePreviewModal`](#filepreviewmodal) can import this component directly:
 
 **Props** — `ArtifactContentRendererProps`
 
@@ -890,49 +863,13 @@ function MyArtifactPanel({ executionId, storageKey, fileName }) {
 ```
 
 
-### ArtifactDocument
-
-The editor-pane rendering of a single output File — the
-[`SurfaceVirtualDocument`](/docs/sdk/react/workspace#surfacevirtualdocument) counterpart of the [`ArtifactPreviewModal`](#artifactpreviewmodal)
-popup, mounted as an artifact-family virtual document under
-[`ARTIFACT_DOCUMENT_ENTRY_ID`](#artifact_document_entry_id). Opening an artifact from the session
-panel's Artifacts facet lands here (VS Code "each file is a tab") rather than
-a modal.
-
-Shares the modal's exact behavior and body via the two extracted pieces —
-[`useArtifactInspection`](#useartifactinspection) (content + detection + apply + copy) and
-[`ArtifactContentBody`](#artifactcontentbody) (loading / error / binary / text) —
-so the two surfaces can never drift. Only the chrome differs: a document
-toolbar (name + size + detection badge; Copy / Download / Apply) over the
-shared body, instead of the modal's header + footer action bar.
-
-Holds no must-survive local state: the panel region unmounts on collapse and
-switching tabs remounts the active document, resetting transient apply/copy
-state exactly as the modal resets on close. The content read is cached by
-the File's id, so reopening a recently-viewed File is instant.
-
-All visual properties flow through `--stgm-*` tokens.
-
-**Props** — `ArtifactDocumentProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS classes for the root element." },
-    file: { type: "File", description: "The File a turn returned.", required: true },
-    isTerminal: { type: "boolean", description: "Whether the run that returned the File has ended. Gates the Apply action (a later turn may still save over the same path).", required: true },
-    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is applied — the same host callback the preview modal fires, so a document-apply behaves identically (toast / Library refresh)." },
-    org: { type: "string", description: "Organization for the \"Apply to [org]\" CTA.", required: true },
-  }}
-/>
-
-
 ### ArtifactFileContent
 
 The file-content states of an artifact body: loading skeleton, error,
 "not available for preview" (binary / unfetched), or the rendered text via
 [`ArtifactContentRenderer`](#artifactcontentrenderer).
 
-Extracted from `ArtifactContentBody` (the output-File bodies, modal +
+Extracted from `FileBody` (the output-File bodies, modal +
 document). Deliberately takes plain fields, not an artifact type,
 so a host with its own content model can render file content identically.
 
@@ -946,146 +883,6 @@ so a host with its own content model can render file content identically.
     fileName: { type: "string", description: "File name driving the render-mode dispatch (markdown / yaml / json / text).", required: true },
     isLoading: { type: "boolean", description: "`true` while the content request is in-flight.", required: true },
     isTruncated: { type: "boolean", description: "Whether the fetched content was truncated by the server's size cap.", required: true },
-  }}
-/>
-
-
-### ArtifactPreviewContent
-
-Output-File preview content with detection pipeline and Apply CTA.
-
-Renders the header (name, size, detection badge, close button),
-content body, and action bar (copy, download, Apply). The parent is responsible for rendering
-it inside a `<dialog>`, modal, sheet, overlay, or inline context as
-needed.
-
-Orchestrates the shared detection pipeline (see [`useArtifactInspection`](#useartifactinspection)):
-
-it reads a text File via `useFileContent`, renders it via
-[`ArtifactContentRenderer`](#artifactcontentrenderer) (markdown, YAML, JSON, or plain text based
-on file type), and detects Agent resources via
-[`useDetectStigmerResource`](/docs/sdk/react/library#usedetectstigmerresource).
-
-Content fetching begins immediately on mount. Unmounting the component
-resets all internal state (detection, apply result, clipboard). For
-gated rendering (e.g. only when a dialog is open), conditionally
-mount this component rather than passing an `active` flag.
-
-**Props** — `ArtifactPreviewContentProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS classes for the root container." },
-    file: { type: "File", description: "The File to preview.", required: true },
-    isTerminal: { type: "boolean", description: "Whether the run that returned the File has ended. Controls Apply CTA availability:  - `true` — CTA renders as an enabled primary button - `false` — CTA renders as a disabled secondary button", required: true },
-    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied. The consumer can use this for post-apply behavior such as showing a toast or navigating to the Library." },
-    onClose: { type: "() => void", description: "Called when the close button is clicked.", required: true },
-    onImplement: { type: "() => void", description: "Optional plan-build action. When provided, a \"Build\" primary button appears in the action bar (used for a plan: turn the plan into a Run). Clicking it calls `onImplement` then closes the modal. Omit for non-actionable Files." },
-    org: { type: "string", description: "Organization id for the \"Apply to [org]\" CTA (a slug is also accepted).", required: true },
-  }}
-/>
-
-```tsx
-// Inside a dialog, modal, or overlay:
-<ArtifactPreviewContent
-  file={file}
-  org={activeOrg}
-  isTerminal={isTerminalPhase(run.status?.phase)}
-  onClose={() => setOpen(false)}
-  onApplied={(result) => toast(`${result.kind} applied`)}
-/>
-```
-
-
-### ArtifactPreviewModal
-
-Full preview modal for an output File using a native `<dialog>`.
-
-Thin shell around [`ArtifactPreviewContent`](#artifactpreviewcontent) that adds
-`showModal()` / `close()` lifecycle, `::backdrop` overlay, focus
-trap, and Escape key handling — with no dependency on
-`@base-ui/react`.
-
-The content component is conditionally mounted when `open` is true,
-so all internal state (detection, apply result, clipboard) resets
-automatically when the dialog closes.
-
-**Props** — `ArtifactPreviewModalProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS classes for the dialog element." },
-    file: { type: "File", description: "The File to preview.", required: true },
-    isTerminal: { type: "boolean", description: "Whether the run that returned the File has ended. Controls Apply CTA availability:  - `true` — CTA renders as an enabled primary button - `false` — CTA renders as a disabled secondary button", required: true },
-    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied. The consumer can use this for post-apply behavior such as showing a toast or navigating to the Library." },
-    onClose: { type: "() => void", description: "Called when the modal should close (Escape key or close button).", required: true },
-    onImplement: { type: "() => void", description: "Optional plan-build action (see ArtifactPreviewContentProps.onImplement). When provided, a \"Build\" primary button appears; clicking it calls `onImplement` then closes the modal." },
-    open: { type: "boolean", description: "Controls modal visibility. `true` opens the dialog via `showModal()`.", required: true },
-    org: { type: "string", description: "Organization id for the \"Apply to [org]\" CTA (a slug is also accepted).", required: true },
-  }}
-/>
-
-```tsx
-const [previewFile, setPreviewFile] = useState<File | null>(null);
-
-{previewFile && (
-  <ArtifactPreviewModal
-    file={previewFile}
-    org={activeOrg}
-    isTerminal={isTerminalPhase(run.status?.phase)}
-    open
-    onClose={() => setPreviewFile(null)}
-    onApplied={(result) => toast(`${result.kind} applied`)}
-  />
-)}
-```
-
-
-### ArtifactRow
-
-The output-File host of the shared [`ArtifactRowView`](#artifactrowview): it owns the
-download mechanics (a link minted per click via [`useFileDownload`](/docs/sdk/react/file#usefiledownload))
-and maps the File onto the view-model.
-
-**Props** — `ArtifactRowProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS classes for the row's `<li>`." },
-    file: { type: "File", description: "The File a turn returned.", required: true },
-    hasNameCollision: { type: "boolean", description: "When `true`, another row shares this File's filename at a different output path; the row renders the path's folder as a muted subtitle to disambiguate. Typically supplied from SessionArtifactEntry.hasNameCollision." },
-    onActivate: { type: "() => void", description: "Double click: promote the File to a persistent (pinned) tab — see ArtifactRowViewProps.onActivate. Omit in panel-less hosts." },
-    onOpen: { type: "() => void", description: "Single click / Enter / Space: open the File (a preview tab, or a modal).", required: true },
-  }}
-/>
-
-
-### ArtifactRowView
-
-One dense, VS Code-style artifact row: a full-width open button (shared
-file-type icon + name + optional disambiguation subtitle + size) with a
-sibling, hover/focus-revealed Download button.
-
-The open target and the Download control are SIBLINGS, never nested — a
-`<button>` inside a `<button>` is an axe `nested-interactive` (WCAG 4.1.2)
-violation. This mirrors `ExplorerRoot`'s header + remove-control pattern.
-
-It renders an [`ArtifactRowItem`](#artifactrowitem) view-model and takes
-open/activate/download closures; the host (`ArtifactRow`, the session
-facets) owns identity, the adapter, and download wiring.
-
-All visual properties flow through `--stgm-*` tokens.
-
-**Props** — `ArtifactRowViewProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS classes for the row's `<li>`." },
-    isDownloading: { type: "boolean", description: "`true` while the host's download is in flight — disables the control.", required: true },
-    item: { type: "ArtifactRowItem", description: "The view-model to render (see ArtifactRowItem adapters).", required: true, typeDescriptionLink: "#artifactrowitem" },
-    onActivate: { type: "() => void", description: "Double click: promote the artifact to a persistent (pinned) tab. Mirrors the file tree's `onOpenFile` (preview) / `onActivateFile` (pin) split — the leading single click of the double click has already opened the preview, so this promotes it. Omit in panel-less hosts (e.g. the modal-only widget): with no handler the row binds no `onDoubleClick`, so a double click is just two harmless single clicks, exactly as `FileTreeNode` behaves." },
-    onDownload: { type: "() => void", description: "Download the artifact (each host owns its own download mechanics).", required: true },
-    onOpen: { type: "() => void", description: "Single click / Enter / Space: open the artifact (a preview tab, or a modal).", required: true },
   }}
 />
 
@@ -1112,6 +909,56 @@ border + muted surface, tokens only).
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     kind: { type: "EmptyChangeKind", description: "The empty-change state to describe.", required: true, typeDescriptionLink: "#emptychangekind" },
+  }}
+/>
+
+
+### FileAddAsSkillAction
+
+"Add as skill": pushes a `.zip` File as a skill of the File's
+organization, with an optional tag. Offered only for a `.zip` File and
+only when the caller holds `can_create_skill` there; the server checks
+the archive, the size cap and the caller's view of the File.
+
+**Props** — `FileAddAsSkillActionProps`
+
+<TypeTable
+  type={{
+    file: { type: "File", description: "The File holding the skill's zip archive.", required: true },
+    onAdded: { type: "(result: ApplyResourceResult) => void", description: "Called with the new skill once the server has pushed it: the host's link to it (a toast, a navigation), as after an Apply." },
+  }}
+/>
+
+
+### FileBody
+
+The shared body of one File's view: an image drawn from its download
+link, or the file-content states (loading / error / binary / text via
+[`ArtifactContentRenderer`](#artifactcontentrenderer)).
+
+Shared so the preview modal and the editor-area `FileDocument` render
+bodies identically — only the surrounding chrome (modal header + action
+bar vs. document toolbar) differs. Pair with [`useFileInspection`](#usefileinspection),
+which supplies every prop here.
+
+An image is shown the way a message's image chip is: through a link the
+server mints for the File, so its bytes never pass through the API. The
+image branch lives here, not in the renderer below it, because only a
+File has a link to mint; the renderer stays free of any data model.
+
+All visual properties flow through `--stgm-*` tokens.
+
+**Props** — `FileBodyProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root element." },
+    content: { type: "string | null", description: "Decoded text content, or `null` (binary / loading / error).", required: true },
+    contentType: { type: "string | null", description: "The File's media type (rendering-strategy fallback).", required: true },
+    error: { type: "Error | null", description: "Content-fetch error, or `null`.", required: true },
+    file: { type: "File", description: "The File whose body is rendered.", required: true },
+    isLoading: { type: "boolean", description: "`true` while the content request is in-flight.", required: true },
+    isTruncated: { type: "boolean", description: "Whether the fetched content was truncated by the server's size cap.", required: true },
   }}
 />
 
@@ -1169,6 +1016,61 @@ const { fileChanges } = useSessionFileChanges(allRuns);
 ```
 
 
+### FileDeleteAction
+
+Delete, with an inline confirmation: offered only when the caller holds
+`can_delete` on the File. A File given to a conversation also leaves the
+conversation's resources; a File a routine names is refused by the
+server, and its sentence is toasted.
+
+**Props** — `FileDeleteActionProps`
+
+<TypeTable
+  type={{
+    file: { type: "File", description: "The File to delete.", required: true },
+    onDeleted: { type: "() => void", description: "Called once the server has deleted the File.", required: true },
+  }}
+/>
+
+
+### FileDocument
+
+The editor-pane rendering of a single File — the
+[`SurfaceVirtualDocument`](/docs/sdk/react/workspace#surfacevirtualdocument) counterpart of the [`FilePreviewModal`](#filepreviewmodal)
+popup, mounted as an artifact-family virtual document under
+[`FILE_DOCUMENT_ENTRY_ID`](#file_document_entry_id). Opening an artifact from the session
+panel's Artifacts facet lands here (VS Code "each file is a tab") rather than
+a modal.
+
+Shares the modal's exact behavior and body via the two extracted pieces —
+[`useFileInspection`](#usefileinspection) (content + detection + apply + copy) and
+[`FileBody`](#filebody) (loading / error / binary / text) —
+so the two surfaces can never drift. Only the chrome differs: a document
+toolbar (name + size + detection badge; Copy / Download / Add as skill /
+Delete / Apply) over the
+shared body, instead of the modal's header + footer action bar.
+
+Holds no must-survive local state: the panel region unmounts on collapse and
+switching tabs remounts the active document, resetting transient apply/copy
+state exactly as the modal resets on close. The content read is cached by
+the File's id, so reopening a recently-viewed File is instant.
+
+All visual properties flow through `--stgm-*` tokens.
+
+**Props** — `FileDocumentProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root element." },
+    file: { type: "File", description: "The File: one a turn returned, or one given to the conversation.", required: true },
+    isTerminal: { type: "boolean", description: "Whether the run that returned the File has ended. Gates the Apply action (a later turn may still save over the same path).", required: true },
+    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is applied, or a `.zip` File is added as a skill — the same host callback the preview modal fires, so a document-apply behaves identically (toast / Library refresh)." },
+    onDeleted: { type: "() => void", description: "Called once the File is deleted. When provided, the toolbar offers Delete to a caller holding `can_delete` on the File; the host re-reads its list and closes the document." },
+    org: { type: "string", description: "Organization for the \"Apply to [org]\" CTA.", required: true },
+  }}
+/>
+
+
 ### FilePathLink
 
 Interactive file path display that replaces inert `<span>` path
@@ -1203,6 +1105,102 @@ Platform builders can override the default behavior via the
 ```tsx
 <FilePathLink path="src/main.go" />              // shows "main.go"
 <FilePathLink path="src/main.go" dirDisplay="dim" /> // shows "src/main.go"
+```
+
+
+### FilePreviewContent
+
+One File's preview content with detection pipeline and Apply CTA.
+
+Renders the header (name, size, detection badge, close button),
+content body, and action bar (copy, download, add as skill, delete,
+Apply). The parent is responsible for rendering
+it inside a `<dialog>`, modal, sheet, overlay, or inline context as
+needed.
+
+Orchestrates the shared detection pipeline (see [`useFileInspection`](#usefileinspection)):
+
+it reads a text File via `useFileContent`, renders it via
+[`ArtifactContentRenderer`](#artifactcontentrenderer) (markdown, YAML, JSON, or plain text based
+on file type), and detects Agent resources via
+[`useDetectStigmerResource`](/docs/sdk/react/library#usedetectstigmerresource).
+
+Content fetching begins immediately on mount. Unmounting the component
+resets all internal state (detection, apply result, clipboard). For
+gated rendering (e.g. only when a dialog is open), conditionally
+mount this component rather than passing an `active` flag.
+
+**Props** — `FilePreviewContentProps`
+
+<TypeTable
+  type={{
+    accessSlot: { type: "ReactNode", description: "Host-owned controls for who may see the File (the Library's visibility and Manage access), rendered in the action bar's leading group." },
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    file: { type: "File", description: "The File to preview.", required: true },
+    isTerminal: { type: "boolean", description: "Whether the run that returned the File has ended. Controls Apply CTA availability:  - `true` — CTA renders as an enabled primary button - `false` — CTA renders as a disabled secondary button", required: true },
+    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied. The consumer can use this for post-apply behavior such as showing a toast or navigating to the Library." },
+    onClose: { type: "() => void", description: "Called when the close button is clicked.", required: true },
+    onDeleted: { type: "() => void", description: "Called once the File is deleted. When provided, the action bar offers Delete to a caller holding `can_delete` on the File; the host re-reads its list (the content stays mounted until the host closes it)." },
+    onImplement: { type: "() => void", description: "Optional plan-build action. When provided, a \"Build\" primary button appears in the action bar (used for a plan: turn the plan into a Run). Clicking it calls `onImplement` then closes the modal. Omit for non-actionable Files." },
+    org: { type: "string", description: "Organization id for the \"Apply to [org]\" CTA (a slug is also accepted).", required: true },
+  }}
+/>
+
+```tsx
+// Inside a dialog, modal, or overlay:
+<FilePreviewContent
+  file={file}
+  org={activeOrg}
+  isTerminal={isTerminalPhase(run.status?.phase)}
+  onClose={() => setOpen(false)}
+  onApplied={(result) => toast(`${result.kind} applied`)}
+/>
+```
+
+
+### FilePreviewModal
+
+Full preview modal for one File using a native `<dialog>`.
+
+Thin shell around [`FilePreviewContent`](#filepreviewcontent) that adds
+`showModal()` / `close()` lifecycle, `::backdrop` overlay, focus
+trap, and Escape key handling — with no dependency on
+`@base-ui/react`.
+
+The content component is conditionally mounted when `open` is true,
+so all internal state (detection, apply result, clipboard) resets
+automatically when the dialog closes.
+
+**Props** — `FilePreviewModalProps`
+
+<TypeTable
+  type={{
+    accessSlot: { type: "ReactNode", description: "See FilePreviewContentProps.accessSlot." },
+    className: { type: "string", description: "Additional CSS classes for the dialog element." },
+    file: { type: "File", description: "The File to preview.", required: true },
+    isTerminal: { type: "boolean", description: "Whether the run that returned the File has ended. Controls Apply CTA availability:  - `true` — CTA renders as an enabled primary button - `false` — CTA renders as a disabled secondary button", required: true },
+    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied. The consumer can use this for post-apply behavior such as showing a toast or navigating to the Library." },
+    onClose: { type: "() => void", description: "Called when the modal should close (Escape key or close button).", required: true },
+    onDeleted: { type: "() => void", description: "See FilePreviewContentProps.onDeleted." },
+    onImplement: { type: "() => void", description: "Optional plan-build action (see FilePreviewContentProps.onImplement). When provided, a \"Build\" primary button appears; clicking it calls `onImplement` then closes the modal." },
+    open: { type: "boolean", description: "Controls modal visibility. `true` opens the dialog via `showModal()`.", required: true },
+    org: { type: "string", description: "Organization id for the \"Apply to [org]\" CTA (a slug is also accepted).", required: true },
+  }}
+/>
+
+```tsx
+const [previewFile, setPreviewFile] = useState<File | null>(null);
+
+{previewFile && (
+  <FilePreviewModal
+    file={previewFile}
+    org={activeOrg}
+    isTerminal={isTerminalPhase(run.status?.phase)}
+    open
+    onClose={() => setPreviewFile(null)}
+    onApplied={(result) => toast(`${result.kind} applied`)}
+  />
+)}
 ```
 
 
@@ -1260,6 +1258,56 @@ const conv = useSessionConversation(sessionId, org);
   decisionErrors={conv.fileDecisionErrors}
 />
 ```
+
+
+### FileRow
+
+The File host of the shared [`FileRowView`](#filerowview): it owns the
+download mechanics (a link minted per click via [`useFileDownload`](/docs/sdk/react/file#usefiledownload))
+and maps the File onto the view-model.
+
+**Props** — `FileRowProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the row's `<li>`." },
+    file: { type: "File", description: "The File: one a turn returned, or one given to the conversation.", required: true },
+    hasNameCollision: { type: "boolean", description: "When `true`, another row shares this File's filename at a different output path; the row renders the path's folder as a muted subtitle to disambiguate. Typically supplied from SessionOutputEntry.hasNameCollision." },
+    onActivate: { type: "() => void", description: "Double click: promote the File to a persistent (pinned) tab — see FileRowViewProps.onActivate. Omit in panel-less hosts." },
+    onOpen: { type: "() => void", description: "Single click / Enter / Space: open the File (a preview tab, or a modal).", required: true },
+    place: { type: "string", description: "Where the agent finds the File, relative to its folder, when it is not the output path: a given File's settled mount path. The row is named by its last segment." },
+  }}
+/>
+
+
+### FileRowView
+
+One dense, VS Code-style artifact row: a full-width open button (shared
+file-type icon + name + optional disambiguation subtitle + size) with a
+sibling, hover/focus-revealed Download button.
+
+The open target and the Download control are SIBLINGS, never nested — a
+`<button>` inside a `<button>` is an axe `nested-interactive` (WCAG 4.1.2)
+violation. This mirrors `ExplorerRoot`'s header + remove-control pattern.
+
+It renders an [`FileRowItem`](#filerowitem) view-model and takes
+open/activate/download closures; the host (`FileRow`, the session
+facets) owns identity, the adapter, and download wiring.
+
+All visual properties flow through `--stgm-*` tokens.
+
+**Props** — `FileRowViewProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the row's `<li>`." },
+    isDownloading: { type: "boolean", description: "`true` while the host's download is in flight — disables the control.", required: true },
+    item: { type: "FileRowItem", description: "The view-model to render (see FileRowItem adapters).", required: true, typeDescriptionLink: "#filerowitem" },
+    onActivate: { type: "() => void", description: "Double click: promote the artifact to a persistent (pinned) tab. Mirrors the file tree's `onOpenFile` (preview) / `onActivateFile` (pin) split — the leading single click of the double click has already opened the preview, so this promotes it. Omit in panel-less hosts (e.g. the modal-only widget): with no handler the row binds no `onDoubleClick`, so a double click is just two harmless single clicks, exactly as `FileTreeNode` behaves." },
+    onDownload: { type: "() => void", description: "Download the artifact (each host owns its own download mechanics).", required: true },
+    onOpen: { type: "() => void", description: "Single click / Enter / Space: open the artifact (a preview tab, or a modal).", required: true },
+  }}
+/>
 
 
 ### FollowUpInput
@@ -1743,7 +1791,7 @@ Source-Control-style row group: a header (workspace name + quiet phase
 caption), a pull-request row that opens the PR on the remote, a branch row
 with a hover-revealed copy control, and an aggregate change-stat line.
 
-Row geometry, hover, and focus treatment match [`ArtifactRow`](#artifactrow), so the
+Row geometry, hover, and focus treatment match [`FileRow`](#filerow), so the
 session panel's Changes and Artifacts facets read as one surface. The PR
 link and the copy control are SIBLING interactive elements, never nested
 (axe `nested-interactive`, WCAG 4.1.2).
@@ -1890,46 +1938,6 @@ decision UI is shown (a read-only transcript).
 />
 
 
-### ARTIFACT_DOCUMENT_ENTRY_ID
-
-Virtual entry id of the artifact document FAMILY. Unlike the plan (one tab
-per session), artifacts are many: every opened artifact shares this one
-entry id and is distinguished by its identity-derived `path` (the session's
-`artifactKey`), so
-`editorKey(ARTIFACT_DOCUMENT_ENTRY_ID, path)` yields one tab per artifact —
-the VS Code "each file is a tab" model. The NUL-namespaced virtual id can
-never alias a real workspace entry, and its distinct `"artifact"` kind can
-never collide with the plan tab's `"plan"` kind.
-
-
-### ArtifactInspection
-
-Everything a chrome (the modal action bar, the document toolbar, the content
-body) needs to inspect and act on one output File: fetched content, resource
-detection, the Apply action, and clipboard copy.
-
-<TypeTable
-  type={{
-    apply: { type: "() => Promise<void>", description: "Apply the detected resource.", required: true },
-    applyError: { type: "Error | null", description: "Apply error, or `null`.", required: true },
-    applyResult: { type: "ApplyResourceResult | null", description: "The successful apply result, or `null`.", required: true },
-    content: { type: "string | null", description: "Decoded text content, or `null` (binary / loading / error).", required: true },
-    contentType: { type: "string | null", description: "The File's media type, or `null` when it has none.", required: true },
-    copied: { type: "boolean", description: "`true` for a short window after a successful copy.", required: true },
-    copy: { type: "() => void", description: "Copy the in-memory content to the clipboard. No-op without content.", required: true },
-    ctaLabel: { type: "string | null", description: "Apply CTA label (`\"Apply to org\"`), or `null`.", required: true },
-    detectionLabel: { type: "string | null", description: "Detection badge label (`\"Agent detected\"`), or `null`.", required: true },
-    error: { type: "Error | null", description: "Content-fetch error, or `null`.", required: true },
-    isApplying: { type: "boolean", description: "`true` while an apply is in-flight.", required: true },
-    isDetected: { type: "boolean", description: "`true` when the File is a recognized Stigmer resource.", required: true },
-    isDetecting: { type: "boolean", description: "`true` while detection is still resolving (content fetch).", required: true },
-    isLoading: { type: "boolean", description: "`true` while the content request is in-flight (first load).", required: true },
-    isTruncated: { type: "boolean", description: "Whether the fetched content was truncated by the server's size cap.", required: true },
-    refetch: { type: "() => void", description: "Re-fetch the content.", required: true },
-  }}
-/>
-
-
 ### ArtifactRenderMode
 
 Content rendering strategy for artifact file preview.
@@ -1942,23 +1950,6 @@ rendering logic based on file type.
 - `"yaml"` — CSS-only YAML syntax highlighting
 - `"json"` — pretty-printed JSON with key/value coloring
 - `"text"` — monospace plain text with line numbers
-
-
-### ArtifactRowItem
-
-What an artifact row displays, mapped from an output File.
-
-The view-model carries no identity; list keys and open/download behavior
-stay with the hosts that render the row.
-
-<TypeTable
-  type={{
-    name: { type: "string", description: "Display label (the filename).", required: true },
-    sizeBytes: { type: "number | bigint", description: "Content size in bytes (protobuf `int64` is `bigint`).", required: true },
-    subtitlePath: { type: "string | null", description: "Disambiguation subtitle rendered after the name when another row shares the same filename: the output path's folder. `null` when not needed.", required: true },
-    tooltip: { type: "string", description: "House-tooltip content: the output path, the fullest location known.", required: true },
-  }}
-/>
 
 
 ### BootstrapSessionSpec
@@ -2209,6 +2200,18 @@ function extractShellIntentFromPreview(toolName: string, argsPreview: string, mc
 ```
 
 
+### FILE_DOCUMENT_ENTRY_ID
+
+Virtual entry id of the artifact document FAMILY. Unlike the plan (one tab
+per session), artifacts are many: every opened artifact shares this one
+entry id and is distinguished by its identity-derived `path` (the session's
+`outputKey`), so
+`editorKey(FILE_DOCUMENT_ENTRY_ID, path)` yields one tab per artifact —
+the VS Code "each file is a tab" model. The NUL-namespaced virtual id can
+never alias a real workspace entry, and its distinct `"artifact"` kind can
+never collide with the plan tab's `"plan"` kind.
+
+
 ### FileBlockReason
 
 Why an `"unavailable"` file cannot be reviewed.
@@ -2302,6 +2305,34 @@ Presentation-only — never a correlation key.
 ```tsx
 function fileForRowPath(set: Pick<FileReviewSet, "files">, rowPath: string): FileReviewFile | null
 ```
+
+
+### FileInspection
+
+Everything a chrome (the modal action bar, the document toolbar, the content
+body) needs to inspect and act on one output File: fetched content, resource
+detection, the Apply action, and clipboard copy.
+
+<TypeTable
+  type={{
+    apply: { type: "() => Promise<void>", description: "Apply the detected resource.", required: true },
+    applyError: { type: "Error | null", description: "Apply error, or `null`.", required: true },
+    applyResult: { type: "ApplyResourceResult | null", description: "The successful apply result, or `null`.", required: true },
+    content: { type: "string | null", description: "Decoded text content, or `null` (binary / loading / error).", required: true },
+    contentType: { type: "string | null", description: "The File's media type, or `null` when it has none.", required: true },
+    copied: { type: "boolean", description: "`true` for a short window after a successful copy.", required: true },
+    copy: { type: "() => void", description: "Copy the in-memory content to the clipboard. No-op without content.", required: true },
+    ctaLabel: { type: "string | null", description: "Apply CTA label (`\"Apply to org\"`), or `null`.", required: true },
+    detectionLabel: { type: "string | null", description: "Detection badge label (`\"Agent detected\"`), or `null`.", required: true },
+    error: { type: "Error | null", description: "Content-fetch error, or `null`.", required: true },
+    isApplying: { type: "boolean", description: "`true` while an apply is in-flight.", required: true },
+    isDetected: { type: "boolean", description: "`true` when the File is a recognized Stigmer resource.", required: true },
+    isDetecting: { type: "boolean", description: "`true` while detection is still resolving (content fetch).", required: true },
+    isLoading: { type: "boolean", description: "`true` while the content request is in-flight (first load).", required: true },
+    isTruncated: { type: "boolean", description: "Whether the fetched content was truncated by the server's size cap.", required: true },
+    refetch: { type: "() => void", description: "Re-fetch the content.", required: true },
+  }}
+/>
 
 
 ### FilePathContext
@@ -2493,6 +2524,23 @@ guessing: a turn with no review yet, or a row whose file is absent from it
 - `"failed"` — the undo failed; the workspace is not as decided.
 
 
+### FileRowItem
+
+What a File row displays, mapped from a File and where the agent finds it.
+
+The view-model carries no identity; list keys and open/download behavior
+stay with the hosts that render the row.
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "Display label: the last segment of the File's place (its filename by default).", required: true },
+    sizeBytes: { type: "number | bigint", description: "Content size in bytes (protobuf `int64` is `bigint`).", required: true },
+    subtitlePath: { type: "string | null", description: "Disambiguation subtitle rendered after the name when another row shares the same name: the place's folder. `null` when not needed.", required: true },
+    tooltip: { type: "string", description: "House-tooltip content: the File's place, the fullest location known.", required: true },
+  }}
+/>
+
+
 ### findActiveTodo
 
 Returns the first in-progress to-do, or `null`. Used by [`TodoCard`](#todocard) to
@@ -2546,10 +2594,10 @@ function formatTokenCount(count: number): string
 
 ### fromFile
 
-Adapts an output File to a row item.
+Adapts a File to a row item.
 
 ```tsx
-function fromFile(file: File, hasNameCollision: boolean): ArtifactRowItem
+function fromFile(file: File, hasNameCollision: boolean, place?: string): FileRowItem
 ```
 
 
@@ -2661,6 +2709,15 @@ Props for [`InteractionModeBadge`](#interactionmodebadge).
 />
 
 
+### isImageFile
+
+Whether a File is an image the browser draws from its download link.
+
+```tsx
+function isImageFile(file: File): boolean
+```
+
+
 ### isTerminalPhase
 
 Returns `true` when the given phase represents a final, immutable
@@ -2671,7 +2728,7 @@ function isTerminalPhase(phase: RunPhase): boolean
 ```
 
 
-### isTextArtifact
+### isTextFile
 
 Determines whether a File likely holds human-readable text: a `text/*`
 media type, or a filename extension in the `TEXT_EXTENSIONS` set.
@@ -2680,11 +2737,20 @@ Use this to decide whether to read a File's text with `useFileContent`.
 Binary or unknown Files are downloaded instead.
 
 ```tsx
-function isTextArtifact(file: File): boolean
+function isTextFile(file: File): boolean
 ```
 
 ```tsx
-const shouldFetch = isTextArtifact(file);
+const shouldFetch = isTextFile(file);
+```
+
+
+### isZipFile
+
+Whether a File's name says it holds a zip archive, the shape a skill is pushed in.
+
+```tsx
+function isZipFile(file: File): boolean
 ```
 
 
@@ -2891,7 +2957,7 @@ Props for [`PlanArtifactCard`](#planartifactcard).
     file: { type: "File", description: "The plan File the Plan-mode turn returned (from `findPlanFile`).", required: true },
     onImplement: { type: "() => void", description: "Called when the user clicks \"Build\". Hidden when omitted." },
     onOpenPlan: { type: "() => void", description: "Opens the plan in the session panel's plan document tab — the side-by-side review/refine surface. When provided it REPLACES the modal-based open fallback (one review affordance, not two). When omitted (hosts without a session panel) the same \"Open plan\" icon opens the preview modal instead." },
-    org: { type: "string", description: "Organization id (a slug is also accepted). Required for the open-in-modal fallback (the shared ArtifactPreviewModal uses it for its detection/apply pipeline and to fetch the content). When omitted, that fallback is hidden — the prominent \"Build\" action and the download icon remain." },
+    org: { type: "string", description: "Organization id (a slug is also accepted). Required for the open-in-modal fallback (the shared FilePreviewModal uses it for its detection/apply pipeline and to fetch the content). When omitted, that fallback is hidden — the prominent \"Build\" action and the download icon remain." },
     title: { type: "string", description: "The plan's title (its leading `# H1`). The card is the plan's compact stand-in in the thread, so the title is what makes it recognizable. Falls back to \"Plan\" when omitted." },
   }}
 />
@@ -3730,9 +3796,9 @@ Options for [`useArtifactDownloadUrl`](#useartifactdownloadurl).
 />
 
 
-### UseArtifactInspectionOptions
+### UseFileInspectionOptions
 
-Options for [`useArtifactInspection`](#useartifactinspection).
+Options for [`useFileInspection`](#usefileinspection).
 
 <TypeTable
   type={{
