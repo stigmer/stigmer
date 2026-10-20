@@ -4,7 +4,9 @@
  * hosting returned (the hosted harnesses' remote adapters among them),
  * binds the activities over those same rows, and after the worker drains
  * releases the harnesses and then closes the local proxy; a boot that fails
- * once the host is up releases them the same way and rethrows.
+ * once the host is up releases them the same way and rethrows. Its shutdown
+ * drains once, with the drain grace, and a second call stops the queue's
+ * turns now.
  *
  * Temporal, the bootstrap, the preflight, the registry and the hosting are
  * replaced at their module seams, so the root's own wiring runs in-process.
@@ -20,17 +22,23 @@ const fakes = vi.hoisted(() => ({
   booted: [] as unknown[],
   bound: [] as unknown[],
   release: () => {},
+  workerShutdowns: 0,
+  drainGraces: [] as number[],
   bootstrapFails: false,
   runFails: false,
 }));
 
 vi.mock("../worker.js", () => ({
-  startWorker: async () => {
+  startWorker: async ({ config }: { config: { drainGraceMs: number } }) => {
+    fakes.drainGraces.push(config.drainGraceMs);
     const drained = new Promise<void>((resolve) => {
       fakes.release = resolve;
     });
     return {
-      worker: { run: () => (fakes.runFails ? Promise.reject(new Error("the worker died")) : drained), shutdown: () => fakes.release() },
+      worker: { run: () => (fakes.runFails ? Promise.reject(new Error("the worker died")) : drained), shutdown: () => {
+        fakes.workerShutdowns += 1;
+        fakes.release();
+      } },
       connection: { close: async () => void fakes.order.push("connection closed") },
     };
   },
@@ -69,6 +77,8 @@ vi.mock("../harness/registry.js", () => ({
 }));
 
 import { createStigmerRunner } from "../runner.js";
+import { DEFAULT_DRAIN_GRACE_MS } from "../config.js";
+import { getShutdownSignalForQueue, getStopNowSignalForQueue } from "../shared/worker-shutdown.js";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -93,6 +103,28 @@ describe("the static root runs the hosted table", () => {
     runner.shutdown();
     await started;
     expect(fakes.order).toEqual(["harnesses shut down", "proxy closed", "connection closed"]);
+  });
+
+  it("drains once with the default grace, and a second shutdown stops the queue's turns now without draining again", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    fakes.workerShutdowns = 0;
+    const runner = await createStigmerRunner({
+      taskQueue: "stigmer_runner_twice",
+      stigmerEndpoint: "localhost:7234",
+      temporalAddress: "127.0.0.1:7233",
+      workspaceRootDir: join(tmpdir(), "stigmer-runner-hosting-test"),
+    });
+    expect(fakes.drainGraces.at(-1), "the worker drains for the default grace").toBe(DEFAULT_DRAIN_GRACE_MS);
+
+    const started = runner.start();
+    runner.shutdown();
+    expect(getShutdownSignalForQueue("stigmer_runner_twice")?.aborted, "the first asks every turn to yield").toBe(true);
+    expect(getStopNowSignalForQueue("stigmer_runner_twice")?.aborted).toBe(false);
+    runner.shutdown();
+    expect(getStopNowSignalForQueue("stigmer_runner_twice")?.aborted, "the second stops them now").toBe(true);
+    expect(fakes.workerShutdowns, "the worker is drained once").toBe(1);
+    await started;
   });
 
   it("releases the hosted harnesses, the proxy and the connection when the worker's run fails", async () => {

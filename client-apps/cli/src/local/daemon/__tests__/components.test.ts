@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { RUNNER_READY_MARKER, RUNNER_TASK_QUEUE } from "../../constants.js";
 import type { DaemonConfig } from "../env.js";
 import { buildComponents, buildRunnerEnv, buildServerEnv } from "../components.js";
+import { GRACEFUL_STOP_TIMEOUT_MS } from "../supervisor.js";
 
 const config: DaemonConfig = {
   dataDir: "/home/u/.stigmer/data",
@@ -48,6 +49,13 @@ describe("buildServerEnv", () => {
 });
 
 describe("buildRunnerEnv", () => {
+  it("keeps the runner's drain grace under the supervisor's stop bound, whatever the shell exported", () => {
+    const env = buildRunnerEnv(config, { STIGMER_DRAIN_GRACE_MS: "600000" });
+    const grace = Number(env.STIGMER_DRAIN_GRACE_MS);
+    expect(grace).toBeGreaterThan(0);
+    expect(grace).toBeLessThan(GRACEFUL_STOP_TIMEOUT_MS);
+  });
+
   it("configures static mode with the workspace and pinned queue", () => {
     const env = buildRunnerEnv(config, {});
     expect(env.MODE).toBe("local");

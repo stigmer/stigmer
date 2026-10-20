@@ -90,8 +90,11 @@ export function isWorkerShutdown(err: unknown): boolean {
 /**
  * The cause a runner named when its turn stopped to continue (anywhere in
  * the cause chain), or `undefined` when `err` is no such failure. A cause
- * this server does not know still reads as a continuation, as its string;
- * the runner and this workflow ship in one release, so it does not arise.
+ * this server does not know (a newer runner's) still reads as a
+ * continuation, as its string. The other skew, a runner that throws this
+ * failure to a server that predates it, ends the drained turn FAILED with
+ * the failure's message, as a drain did before: so the server is upgraded
+ * no later than its runners (a desktop or self-hosted runner can be newer).
  */
 export function turnContinuationCauseOf(err: unknown): TurnContinuationCause | string | undefined {
   for (

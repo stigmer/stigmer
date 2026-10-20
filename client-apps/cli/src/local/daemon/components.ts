@@ -13,6 +13,14 @@ import { ARTIFACTS_SUBDIR } from "../paths.js";
 import { waitForTcp } from "../net/tcp.js";
 import type { DaemonConfig } from "./env.js";
 import type { ComponentSpec, ReadinessGate } from "./types.js";
+import { GRACEFUL_STOP_TIMEOUT_MS } from "./supervisor.js";
+
+/**
+ * What the runner keeps of the supervisor's stop bound for its own exit
+ * after its worker drains (releasing the harnesses, closing the Temporal
+ * connection, flushing telemetry), so the drain ends before the kill.
+ */
+const RUNNER_EXIT_MARGIN_MS = 2_000;
 
 /** How long the server has to open its gRPC port before startup aborts. */
 const SERVER_GATE_TIMEOUT_MS = 30_000;
@@ -71,6 +79,11 @@ export function buildRunnerEnv(config: DaemonConfig, base: NodeJS.ProcessEnv = p
     // serve URL.
     ARTIFACT_STORAGE_TYPE: "local",
     LOCAL_ARTIFACT_PATH: join(config.dataDir, ARTIFACTS_SUBDIR),
+    // The runner's drain grace (how long its shutdown lets a running turn
+    // reach a step boundary) is kept under this supervisor's stop bound, after
+    // which it is killed: a killed runner writes nothing, and its turn waits
+    // out the workflow's heartbeat timeout before it continues.
+    STIGMER_DRAIN_GRACE_MS: String(GRACEFUL_STOP_TIMEOUT_MS - RUNNER_EXIT_MARGIN_MS),
   };
   if (config.cursorApiKey !== undefined) env.CURSOR_API_KEY = config.cursorApiKey;
   // Explicit set (after the base spread) so the launcher-resolved key wins over any

@@ -90,6 +90,10 @@ describe("applying an arm", () => {
     expect(arm.disposition).toEqual({ kind: "continue", cause: "drain" });
   });
 
+  it("pins the continuing turn's failure type, which the invoke workflow matches by name", () => {
+    expect(table.TURN_CONTINUES_FAILURE_TYPE).toBe("StigmerTurnContinues");
+  });
+
   it("the arms the workflow continues write no ending; the drain's says why the turn moved", () => {
     for (const arm of [table.workerShutdownArm(), table.infrastructureCancelArm(), table.continueArm("drain")]) {
       expect([arm.phase, arm.error, arm.completes, arm.stopCause, arm.rows]).toEqual([RunPhase.RUN_PHASE_UNSPECIFIED, undefined, false, null, []]);

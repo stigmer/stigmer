@@ -72,6 +72,7 @@ vi.mock("../../../../client/stigmer-client.js", async () =>
 import {
   ScriptedClock,
   createHermeticEnvironment,
+  continuationCauseOf,
   threwCancelledFailure,
   type HermeticEnvironment,
   type InvocationControls,
@@ -173,6 +174,38 @@ describe("ExecuteCursor hermetic — orchestrator stop vs worker shutdown", () =
     await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/pause.status.json");
     await expect(rowsGolden(record.rowsOf(final))).toMatchFileSnapshot(rowsGoldenPath("./goldens/pause.status.json"));
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/pause.events.json");
+  });
+
+  it("a drain while the agent resolves sends it nothing, and the turn continues", async () => {
+    clock.reset();
+    let controls: InvocationControls | undefined;
+    const ev = sdkEvents("agent-hermetic-drain-setup-0001", "run-hermetic-drain-setup-0001");
+    const agent = new ScriptedCursorAgent({
+      agentId: "agent-hermetic-drain-setup-0001",
+      runIds: ["run-hermetic-drain-setup-0001"],
+      observeStep: () => clock.tick(),
+      turns: [[step.event(ev.init()), step.event(ev.assistant(NEVER_SEEN)), step.finished({ result: NEVER_SEEN })]],
+    });
+    const record = cursorExecutionRecord({ message: USER_MESSAGE });
+    const scenario = beginCursorScenario({
+      env,
+      clock,
+      record,
+      sdk: {
+        agents: [],
+        catalog: SDK_CATALOG,
+        // The runner drains while the agent is being created.
+        agentForWorkspaceRef: () => {
+          controls!.signalWorkerShutdown();
+          return agent;
+        },
+      },
+    });
+
+    const invocation = await runCursorTurn(scenario, { onControls: (c) => (controls = c) });
+
+    expect(continuationCauseOf(invocation.outcome), "the turn continues on the next runner").toBe("drain");
+    expect(agent.sends, "nothing was sent to the agent").toHaveLength(0);
   });
 
   it("a worker shutdown writes no ending, notes the drain and throws CancelledFailure", async () => {

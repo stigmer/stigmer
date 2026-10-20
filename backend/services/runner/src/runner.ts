@@ -416,13 +416,11 @@ async function buildStigmerRunner(
       }
     },
     shutdown() {
-      /* v8 ignore start -- @preserve: a live worker's second shutdown, which no unit test boots; the stop-now signal it raises is shared/worker-shutdown.ts's, tested there, and the turn's answer to it is harness/__tests__/run-turn.test.ts's */
       if (shutdownController.signal.aborted) {
         // Asked again: the drain cannot wait for the turns' boundaries.
         signalWorkerStopNow(config.taskQueue);
         return;
       }
-      /* v8 ignore stop */
       tokenRenewal?.stop();
       runnerTokenCoordinator.stop();
       // The signal first, the drain second: every in-flight turn yields at

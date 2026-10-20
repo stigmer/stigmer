@@ -102,7 +102,9 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
 
     engine = await resolveEngine(input, sink, config, mode, hooks);
     sink.recordActivity();
-    if (sink.stopSignal.aborted) return (outcome = { kind: "interrupted" });
+    // The last boundary before the message is sent: a yield asked during
+    // setup (a drain while the agent resolved) sends nothing.
+    if (stopsBeforeTheEngine(sink)) return (outcome = { kind: "interrupted" });
 
     const prompt = await buildTurnPrompt(input, sink, engine, rows);
 
@@ -168,9 +170,8 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
 }
 
 /**
- * A stop, or a yield, before the turn begins: nothing of it is in the engine
- * yet, so this is a durable boundary too. A yield asked during setup is taken
- * by the stream's own first check, before anything is sent.
+ * A stop, or a yield, before the message is sent: nothing of the turn is in
+ * the engine yet, so this is a durable boundary too.
  */
 function stopsBeforeTheEngine(sink: TurnSink): boolean {
   return sink.stopSignal.aborted || sink.yieldSignal.aborted;
