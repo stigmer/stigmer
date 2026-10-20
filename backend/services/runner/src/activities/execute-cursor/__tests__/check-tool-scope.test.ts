@@ -7,8 +7,9 @@
  * saved subagent that brings its own plugins, hooks, MCP servers or tool
  * lists (one
  * sentence, naming it). Also the read root an excluded `Read`
- * is confined to (`platformReadRoot`) and the root a hidden skill's read is
- * refused under (`platformRealRoot`). The hermetic
+ * is confined to (`platformReadRoot`), the root a hidden skill's read is
+ * refused under (`platformRealRoot`), and the outputs folder whose writes
+ * are never reviewed (`platformOutputsRoot`). The hermetic
  * tool-lists test pins the settled status for the two refusals a local
  * session can reach; the cloud refusal is pinned here, because the runner
  * routes every session local today.
@@ -17,7 +18,14 @@
 import { describe, expect, it, onTestFinished } from "vitest";
 import type { TurnInput, TurnSubagent } from "../../../harness/types.js";
 import { ToolListResolutionError, ToolScope, type ToolLists } from "../../../shared/tool-lists.js";
-import { CursorToolListRefusal, checkToolScope, platformReadRoot, platformRealRoot, subagentBringsOwnMessage } from "../turn-setup.js";
+import {
+  CursorToolListRefusal,
+  checkToolScope,
+  platformOutputsRoot,
+  platformReadRoot,
+  platformRealRoot,
+  subagentBringsOwnMessage,
+} from "../turn-setup.js";
 import { mkdtempSync, mkdirSync, realpathSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -286,5 +294,27 @@ describe("platformReadRoot", () => {
     mkdirSync(join(workspace, "elsewhere"));
     symlinkSync(join(workspace, "elsewhere"), join(workspace, ".stigmer"), "dir");
     expect(await platformReadRoot(workspace, platform)).toBe("");
+  });
+});
+
+describe("platformOutputsRoot", () => {
+  it("is the outputs folder's real path only when .stigmer is the link to the platform dir", async () => {
+    const workspace = mkdtempSync(join(tmpdir(), "outputs-root-ws-"));
+    const platform = mkdtempSync(join(tmpdir(), "outputs-root-platform-"));
+    onTestFinished(() => {
+      rmSync(workspace, { recursive: true, force: true });
+      rmSync(platform, { recursive: true, force: true });
+    });
+    expect(await platformOutputsRoot(workspace, platform), "no link").toBe("");
+    symlinkSync(platform, join(workspace, ".stigmer"), "dir");
+    expect(await platformOutputsRoot(workspace, platform), "the link, but no outputs folder made").toBe("");
+    rmSync(join(workspace, ".stigmer"));
+    mkdirSync(join(platform, "outputs"));
+    mkdirSync(join(workspace, "repo-state"));
+    symlinkSync(join(workspace, "repo-state"), join(workspace, ".stigmer"), "dir");
+    expect(await platformOutputsRoot(workspace, platform), "the repository's own .stigmer").toBe("");
+    rmSync(join(workspace, ".stigmer"));
+    symlinkSync(platform, join(workspace, ".stigmer"), "dir");
+    expect(await platformOutputsRoot(workspace, platform)).toBe(realpathSync(join(platform, "outputs")));
   });
 });

@@ -42,16 +42,17 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n\'ai/stigmer/agentic/file/v1/status.prot" +
       "o\022\032ai.stigmer.agentic.file.v1\032+ai/stigme" +
-      "r/commons/apiresource/status.proto\"\251\001\n\nF" +
+      "r/commons/apiresource/status.proto\"\312\001\n\nF" +
       "ileStatus\022\035\n\nsize_bytes\030\001 \001(\003R\tsizeBytes" +
       "\022\035\n\nsession_id\030\002 \001(\tR\tsessionId\022\025\n\006run_i" +
-      "d\030\003 \001(\tR\005runId\022F\n\005audit\030c \001(\01320.ai.stigm" +
-      "er.commons.apiresource.ApiResourceAuditR" +
-      "\005auditB\232\001B\013StatusProtoP\001\242\002\004ASAF\252\002\032Ai.Sti" +
-      "gmer.Agentic.File.V1\312\002\032Ai\\Stigmer\\Agenti" +
-      "c\\File\\V1\342\002&Ai\\Stigmer\\Agentic\\File\\V1\\G" +
-      "PBMetadata\352\002\036Ai::Stigmer::Agentic::File:" +
-      ":V1b\006proto3"
+      "d\030\003 \001(\tR\005runId\022\037\n\013output_path\030\004 \001(\tR\nout" +
+      "putPath\022F\n\005audit\030c \001(\01320.ai.stigmer.comm" +
+      "ons.apiresource.ApiResourceAuditR\005auditB" +
+      "\232\001B\013StatusProtoP\001\242\002\004ASAF\252\002\032Ai.Stigmer.Ag" +
+      "entic.File.V1\312\002\032Ai\\Stigmer\\Agentic\\File\\" +
+      "V1\342\002&Ai\\Stigmer\\Agentic\\File\\V1\\GPBMetad" +
+      "ata\352\002\036Ai::Stigmer::Agentic::File::V1b\006pr" +
+      "oto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -63,7 +64,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_file_v1_FileStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_file_v1_FileStatus_descriptor,
-        new java.lang.String[] { "SizeBytes", "SessionId", "RunId", "Audit", });
+        new java.lang.String[] { "SizeBytes", "SessionId", "RunId", "OutputPath", "Audit", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();
   }

@@ -34,6 +34,7 @@ private static final long serialVersionUID = 0L;
   private FileStatus() {
     sessionId_ = "";
     runId_ = "";
+    outputPath_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -172,6 +173,59 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int OUTPUT_PATH_FIELD_NUMBER = 4;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object outputPath_ = "";
+  /**
+   * <pre>
+   * Where the agent saved the File, for a file an agent saved: its path
+   * relative to .stigmer/outputs/, "/"-separated, the last segment its
+   * filename. Two files of the same name saved in two folders are two Files
+   * told apart by it. Empty for an uploaded File.
+   * </pre>
+   *
+   * <code>string output_path = 4 [json_name = "outputPath"];</code>
+   * @return The outputPath.
+   */
+  @java.lang.Override
+  public java.lang.String getOutputPath() {
+    java.lang.Object ref = outputPath_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      outputPath_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Where the agent saved the File, for a file an agent saved: its path
+   * relative to .stigmer/outputs/, "/"-separated, the last segment its
+   * filename. Two files of the same name saved in two folders are two Files
+   * told apart by it. Empty for an uploaded File.
+   * </pre>
+   *
+   * <code>string output_path = 4 [json_name = "outputPath"];</code>
+   * @return The bytes for outputPath.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getOutputPathBytes() {
+    java.lang.Object ref = outputPath_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      outputPath_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   public static final int AUDIT_FIELD_NUMBER = 99;
   private ai.stigmer.commons.apiresource.ApiResourceAudit audit_;
   /**
@@ -233,6 +287,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, runId_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(outputPath_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, outputPath_);
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
     }
@@ -254,6 +311,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, runId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(outputPath_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, outputPath_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -280,6 +340,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getSessionId())) return false;
     if (!getRunId()
         .equals(other.getRunId())) return false;
+    if (!getOutputPath()
+        .equals(other.getOutputPath())) return false;
     if (hasAudit() != other.hasAudit()) return false;
     if (hasAudit()) {
       if (!getAudit()
@@ -303,6 +365,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getSessionId().hashCode();
     hash = (37 * hash) + RUN_ID_FIELD_NUMBER;
     hash = (53 * hash) + getRunId().hashCode();
+    hash = (37 * hash) + OUTPUT_PATH_FIELD_NUMBER;
+    hash = (53 * hash) + getOutputPath().hashCode();
     if (hasAudit()) {
       hash = (37 * hash) + AUDIT_FIELD_NUMBER;
       hash = (53 * hash) + getAudit().hashCode();
@@ -451,6 +515,7 @@ private static final long serialVersionUID = 0L;
       sizeBytes_ = 0L;
       sessionId_ = "";
       runId_ = "";
+      outputPath_ = "";
       audit_ = null;
       if (auditBuilder_ != null) {
         auditBuilder_.dispose();
@@ -498,8 +563,11 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.runId_ = runId_;
       }
-      int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.outputPath_ = outputPath_;
+      }
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.audit_ = auditBuilder_ == null
             ? audit_
             : auditBuilder_.build();
@@ -531,6 +599,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getRunId().isEmpty()) {
         runId_ = other.runId_;
         bitField0_ |= 0x00000004;
+        onChanged();
+      }
+      if (!other.getOutputPath().isEmpty()) {
+        outputPath_ = other.outputPath_;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       if (other.hasAudit()) {
@@ -577,11 +650,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
+            case 34: {
+              outputPath_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 34
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000008;
+              bitField0_ |= 0x00000010;
               break;
             } // case 794
             default: {
@@ -849,6 +927,113 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
+    private java.lang.Object outputPath_ = "";
+    /**
+     * <pre>
+     * Where the agent saved the File, for a file an agent saved: its path
+     * relative to .stigmer/outputs/, "/"-separated, the last segment its
+     * filename. Two files of the same name saved in two folders are two Files
+     * told apart by it. Empty for an uploaded File.
+     * </pre>
+     *
+     * <code>string output_path = 4 [json_name = "outputPath"];</code>
+     * @return The outputPath.
+     */
+    public java.lang.String getOutputPath() {
+      java.lang.Object ref = outputPath_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        outputPath_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Where the agent saved the File, for a file an agent saved: its path
+     * relative to .stigmer/outputs/, "/"-separated, the last segment its
+     * filename. Two files of the same name saved in two folders are two Files
+     * told apart by it. Empty for an uploaded File.
+     * </pre>
+     *
+     * <code>string output_path = 4 [json_name = "outputPath"];</code>
+     * @return The bytes for outputPath.
+     */
+    public com.google.protobuf.ByteString
+        getOutputPathBytes() {
+      java.lang.Object ref = outputPath_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        outputPath_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Where the agent saved the File, for a file an agent saved: its path
+     * relative to .stigmer/outputs/, "/"-separated, the last segment its
+     * filename. Two files of the same name saved in two folders are two Files
+     * told apart by it. Empty for an uploaded File.
+     * </pre>
+     *
+     * <code>string output_path = 4 [json_name = "outputPath"];</code>
+     * @param value The outputPath to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOutputPath(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      outputPath_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Where the agent saved the File, for a file an agent saved: its path
+     * relative to .stigmer/outputs/, "/"-separated, the last segment its
+     * filename. Two files of the same name saved in two folders are two Files
+     * told apart by it. Empty for an uploaded File.
+     * </pre>
+     *
+     * <code>string output_path = 4 [json_name = "outputPath"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOutputPath() {
+      outputPath_ = getDefaultInstance().getOutputPath();
+      bitField0_ = (bitField0_ & ~0x00000008);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Where the agent saved the File, for a file an agent saved: its path
+     * relative to .stigmer/outputs/, "/"-separated, the last segment its
+     * filename. Two files of the same name saved in two folders are two Files
+     * told apart by it. Empty for an uploaded File.
+     * </pre>
+     *
+     * <code>string output_path = 4 [json_name = "outputPath"];</code>
+     * @param value The bytes for outputPath to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOutputPathBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      outputPath_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+
     private ai.stigmer.commons.apiresource.ApiResourceAudit audit_;
     private com.google.protobuf.SingleFieldBuilder<
         ai.stigmer.commons.apiresource.ApiResourceAudit, ai.stigmer.commons.apiresource.ApiResourceAudit.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditOrBuilder> auditBuilder_;
@@ -861,7 +1046,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the audit field is set.
      */
     public boolean hasAudit() {
-      return ((bitField0_ & 0x00000008) != 0);
+      return ((bitField0_ & 0x00000010) != 0);
     }
     /**
      * <pre>
@@ -894,7 +1079,7 @@ private static final long serialVersionUID = 0L;
       } else {
         auditBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -912,7 +1097,7 @@ private static final long serialVersionUID = 0L;
       } else {
         auditBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -925,7 +1110,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeAudit(ai.stigmer.commons.apiresource.ApiResourceAudit value) {
       if (auditBuilder_ == null) {
-        if (((bitField0_ & 0x00000008) != 0) &&
+        if (((bitField0_ & 0x00000010) != 0) &&
           audit_ != null &&
           audit_ != ai.stigmer.commons.apiresource.ApiResourceAudit.getDefaultInstance()) {
           getAuditBuilder().mergeFrom(value);
@@ -936,7 +1121,7 @@ private static final long serialVersionUID = 0L;
         auditBuilder_.mergeFrom(value);
       }
       if (audit_ != null) {
-        bitField0_ |= 0x00000008;
+        bitField0_ |= 0x00000010;
         onChanged();
       }
       return this;
@@ -949,7 +1134,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
      */
     public Builder clearAudit() {
-      bitField0_ = (bitField0_ & ~0x00000008);
+      bitField0_ = (bitField0_ & ~0x00000010);
       audit_ = null;
       if (auditBuilder_ != null) {
         auditBuilder_.dispose();
@@ -966,7 +1151,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceAudit.Builder getAuditBuilder() {
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       onChanged();
       return internalGetAuditFieldBuilder().getBuilder();
     }

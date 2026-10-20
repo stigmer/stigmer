@@ -91,6 +91,8 @@ export class AgentExecError extends Error {
 
 export interface AgentFs {
   readFile(path: string): Promise<Buffer>;
+  /** At most `length` bytes of `path` from `offset`, fewer at its end: how a file too large to hold whole is read piece by piece. */
+  readRange(path: string, offset: number, length: number): Promise<Buffer>;
   writeFile(path: string, data: string | Uint8Array, options?: { readonly mode?: number }): Promise<void>;
   /** Adds `data` to the end of `path`, creating it when absent: how a body too large to hold whole is written piece by piece. */
   appendFile(path: string, data: Uint8Array): Promise<void>;
@@ -118,6 +120,7 @@ export const DEFAULT_EXEC_MAX_BUFFER = 1024 * 1024;
 /** The operations, performed by this process. */
 export const localAgentFs: AgentFs = {
   readFile: (path) => fs.readFile(path),
+  readRange: (path, offset, length) => readRangeLocally(path, offset, length),
   writeFile: (path, data, options) => fs.writeFile(path, data, options?.mode === undefined ? undefined : { mode: options.mode }),
   appendFile: (path, data) => fs.appendFile(path, data),
   mkdir: async (path, options) => {
@@ -164,6 +167,7 @@ export function refusingAgentFs(reason: string): AgentFs {
   const refuse = (): Promise<never> => Promise.reject(new Error(reason));
   return {
     readFile: refuse,
+    readRange: refuse,
     writeFile: refuse,
     appendFile: refuse,
     mkdir: refuse,
@@ -265,4 +269,20 @@ function execLocally(file: string, args: readonly string[], options: AgentExecOp
     );
     if (options.input !== undefined) child.stdin?.end(options.input);
   });
+}
+
+async function readRangeLocally(path: string, offset: number, length: number): Promise<Buffer> {
+  const handle = await fs.open(path, "r");
+  try {
+    const buffer = Buffer.alloc(Math.max(0, length));
+    let filled = 0;
+    while (filled < buffer.length) {
+      const { bytesRead } = await handle.read(buffer, filled, buffer.length - filled, offset + filled);
+      if (bytesRead === 0) break;
+      filled += bytesRead;
+    }
+    return buffer.subarray(0, filled);
+  } finally {
+    await handle.close();
+  }
 }

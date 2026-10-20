@@ -35,6 +35,11 @@ type FileStatus struct {
 	// The turn that wrote the File, for a file an agent saved. Empty for an
 	// uploaded File.
 	RunId string `protobuf:"bytes,3,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	// Where the agent saved the File, for a file an agent saved: its path
+	// relative to .stigmer/outputs/, "/"-separated, the last segment its
+	// filename. Two files of the same name saved in two folders are two Files
+	// told apart by it. Empty for an uploaded File.
+	OutputPath string `protobuf:"bytes,4,opt,name=output_path,json=outputPath,proto3" json:"output_path,omitempty"`
 	// Standard audit information (created_at, updated_at, created_by, etc.)
 	Audit         *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -92,6 +97,13 @@ func (x *FileStatus) GetRunId() string {
 	return ""
 }
 
+func (x *FileStatus) GetOutputPath() string {
+	if x != nil {
+		return x.OutputPath
+	}
+	return ""
+}
+
 func (x *FileStatus) GetAudit() *apiresource.ApiResourceAudit {
 	if x != nil {
 		return x.Audit
@@ -103,14 +115,16 @@ var File_ai_stigmer_agentic_file_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_file_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/agentic/file/v1/status.proto\x12\x1aai.stigmer.agentic.file.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xa9\x01\n" +
+	"'ai/stigmer/agentic/file/v1/status.proto\x12\x1aai.stigmer.agentic.file.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xca\x01\n" +
 	"\n" +
 	"FileStatus\x12\x1d\n" +
 	"\n" +
 	"size_bytes\x18\x01 \x01(\x03R\tsizeBytes\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x02 \x01(\tR\tsessionId\x12\x15\n" +
-	"\x06run_id\x18\x03 \x01(\tR\x05runId\x12F\n" +
+	"\x06run_id\x18\x03 \x01(\tR\x05runId\x12\x1f\n" +
+	"\voutput_path\x18\x04 \x01(\tR\n" +
+	"outputPath\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\xf5\x01\n" +
 	"\x1ecom.ai.stigmer.agentic.file.v1B\vStatusProtoP\x01Z9go.stigmer.ai/sdk/proto/ai/stigmer/agentic/file/v1;filev1\xa2\x02\x04ASAF\xaa\x02\x1aAi.Stigmer.Agentic.File.V1\xca\x02\x1aAi\\Stigmer\\Agentic\\File\\V1\xe2\x02&Ai\\Stigmer\\Agentic\\File\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Agentic::File::V1b\x06proto3"
 

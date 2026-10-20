@@ -56,7 +56,9 @@ Rows read `| \`package.Service.method\` | class |`.
 | `ai.stigmer.agentic.channel.v1.ChannelQueryController.listByAgent` | paged |
 | `ai.stigmer.agentic.channelapp.v1.ChannelAppQueryController.list` | paged |
 | `ai.stigmer.agentic.environment.v1.EnvironmentQueryController.list` | paged |
-| `ai.stigmer.agentic.file.v1.FileMountController.mount` | exempt: the Files of one run's conversation, at most 500, answered whole to the runner each turn |
+| `ai.stigmer.agentic.file.v1.RunFileController.createOutputUploads` | exempt: one upload link per output the runner names, at most 500, answered whole |
+| `ai.stigmer.agentic.file.v1.RunFileController.mount` | exempt: the Files of one run's conversation, at most 500, answered whole to the runner each turn |
+| `ai.stigmer.agentic.file.v1.RunFileController.registerOutputs` | exempt: one File per output the runner names, at most 500, answered whole |
 | `ai.stigmer.agentic.file.v1.FileQueryController.list` | paged |
 | `ai.stigmer.agentic.eval.v1.EvalQueryController.list` | paged |
 | `ai.stigmer.agentic.eval.v1.EvalQueryController.listVersions` | paged |

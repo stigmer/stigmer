@@ -106,13 +106,38 @@ export interface StubRegistryFetchOptions {
 }
 
 /**
- * Stub `fetch` to answer the registry document and — by default — refuse
- * everything else. Returns the URLs fetched, for the "no other network"
+ * Where a hermetic server double mints the links a turn puts its outputs to
+ * (`hermetic-activity.ts`): the stub keeps each body here, by the link's
+ * path, and answers 200, so a turn's outputs travel without a network.
+ */
+export const HERMETIC_UPLOAD_ORIGIN = "http://hermetic-uploads.invalid";
+
+/** What each hermetic upload link received, by its path. Cleared by {@link stubRegistryFetch}. */
+export const hermeticUploads = new Map<string, Uint8Array>();
+
+/** A URL's origin, or "" for one that does not parse. */
+function originOf(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return "";
+  }
+}
+
+async function bodyBytes(body: RequestInit["body"]): Promise<Uint8Array> {
+  if (body === undefined || body === null) return new Uint8Array();
+  return new Uint8Array(await new Response(body).arrayBuffer());
+}
+
+/**
+ * Stub `fetch` to answer the registry document, keep what is put to a
+ * hermetic upload link, and — by default — refuse everything else. Returns the URLs fetched, for the "no other network"
  * assertion (and, in the live posture, for the record of what a real turn
  * dialled).
  */
 export function stubRegistryFetch(options: StubRegistryFetchOptions = {}): { readonly urls: string[]; restore(): void } {
   const urls: string[] = [];
+  hermeticUploads.clear();
   const networkFetch = globalThis.fetch;
   const document = options.document ?? REGISTRY_DOCUMENT;
   vi.stubGlobal(
@@ -122,6 +147,10 @@ export function stubRegistryFetch(options: StubRegistryFetchOptions = {}): { rea
       urls.push(url);
       if (url.includes("/model-registry")) {
         return { ok: true, status: 200, json: async () => document } as unknown as Response;
+      }
+      if (originOf(url) === HERMETIC_UPLOAD_ORIGIN) {
+        hermeticUploads.set(new URL(url).pathname, await bodyBytes(init?.body));
+        return new Response(null, { status: 200 });
       }
       if (options.live) {
         return networkFetch(input, init);

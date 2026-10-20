@@ -43,6 +43,7 @@ import { isUnattendedApprovalMode } from "../../shared/approval-policy.js";
 import { excludeAppliedFromGrants } from "../../shared/exact-apply.js";
 import { executionFingerprintKey } from "../../shared/fingerprint-secret.js";
 import { realpath } from "node:fs/promises";
+import { join } from "node:path";
 import { CURSOR_SDK_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import {
   checkMainToolListResolution,
@@ -52,6 +53,7 @@ import {
 } from "../../shared/tool-lists.js";
 import { declaredServerCount, type ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import type { McpToolListing } from "../../shared/mcp-tool-listing.js";
+import { OUTPUTS_SUBDIR } from "../../shared/outputs.js";
 import { ensureHitlDir, getPlatformDir } from "../../shared/workspace/platform-dir.js";
 import type { HookEvaluator } from "../../shared/hooks/evaluate.js";
 import { buildHookEvaluator, HookSetupError, hookPermissionMode } from "../../shared/hooks/setup.js";
@@ -413,6 +415,21 @@ export async function platformReadRoot(primaryDir: string, platformDir: string):
 }
 
 /**
+ * The outputs folder's real path (`ApprovalStateFile.outputsRoot`), on a
+ * turn whose workspace `.stigmer` is the link to the platform dir, else "":
+ * the agent reaches the folder only through the link, and a `.stigmer` that
+ * is not it is the repository's own.
+ */
+export async function platformOutputsRoot(primaryDir: string, platformDir: string): Promise<string> {
+  if (!(await stigmerSymlinkPointsAt(primaryDir, platformDir))) return "";
+  try {
+    return await realpath(join(platformDir, OUTPUTS_SUBDIR));
+  } catch {
+    return "";
+  }
+}
+
+/**
  * The platform dir's real path whatever the link says, for the hidden-skill
  * refusal (`HookToolScope.skillRoot`): a skill an earlier turn mounted stays
  * refused even on a turn that made no link. "" when the dir does not exist,
@@ -565,6 +582,8 @@ export async function installGate(
     // With the turn's file review off, a built-in write or delete flows
     // unreviewed (the hook's review-off arm); the secret-like block stays.
     workspace.fileReview,
+    // The outputs folder: its writes come back as Files, never reviewed.
+    await platformOutputsRoot(primaryDir, getPlatformDir(sessionId)),
   );
   // The agent's hooks run inside the runner; the gate's script reaches them
   // on a local socket the pointer names (`hook-server.ts`), which closes with

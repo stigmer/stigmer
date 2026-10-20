@@ -28,7 +28,7 @@ from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_sti
 from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/file/v1/query.proto\x12\x1a\x61i.stigmer.agentic.file.v1\x1a$ai/stigmer/agentic/file/v1/api.proto\x1a#ai/stigmer/agentic/file/v1/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x89\x03\n\x13\x46ileQueryController\x12v\n\x03get\x12\".ai.stigmer.agentic.file.v1.FileId\x1a .ai.stigmer.agentic.file.v1.File\")\xc2\xb8\x18%\x08\x01\x10I\"\x05value*\x18unauthorized to get file\x12`\n\x04list\x12,.ai.stigmer.agentic.file.v1.ListFilesRequest\x1a$.ai.stigmer.agentic.file.v1.FileList\"\x04\xd0\xb8\x18\x01\x12\x91\x01\n\x0egetDownloadUrl\x12\".ai.stigmer.agentic.file.v1.FileId\x1a+.ai.stigmer.agentic.file.v1.FileDownloadUrl\".\xc2\xb8\x18*\x08\x01\x10I\"\x05value*\x1dunauthorized to download file\x1a\x04\xa0\xff+IB\xb9\x01\n\x1e\x63om.ai.stigmer.agentic.file.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SAF\xaa\x02\x1a\x41i.Stigmer.Agentic.File.V1\xca\x02\x1a\x41i\\Stigmer\\Agentic\\File\\V1\xe2\x02&Ai\\Stigmer\\Agentic\\File\\V1\\GPBMetadata\xea\x02\x1e\x41i::Stigmer::Agentic::File::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n&ai/stigmer/agentic/file/v1/query.proto\x12\x1a\x61i.stigmer.agentic.file.v1\x1a$ai/stigmer/agentic/file/v1/api.proto\x1a#ai/stigmer/agentic/file/v1/io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x9b\x04\n\x13\x46ileQueryController\x12v\n\x03get\x12\".ai.stigmer.agentic.file.v1.FileId\x1a .ai.stigmer.agentic.file.v1.File\")\xc2\xb8\x18%\x08\x01\x10I\"\x05value*\x18unauthorized to get file\x12`\n\x04list\x12,.ai.stigmer.agentic.file.v1.ListFilesRequest\x1a$.ai.stigmer.agentic.file.v1.FileList\"\x04\xd0\xb8\x18\x01\x12\x91\x01\n\x0egetDownloadUrl\x12\".ai.stigmer.agentic.file.v1.FileId\x1a+.ai.stigmer.agentic.file.v1.FileDownloadUrl\".\xc2\xb8\x18*\x08\x01\x10I\"\x05value*\x1dunauthorized to download file\x12\x8f\x01\n\ngetContent\x12/.ai.stigmer.agentic.file.v1.GetFileContentInput\x1a\'.ai.stigmer.agentic.file.v1.FileContent\"\'\xc2\xb8\x18#\x08\x01\x10I\"\x02id*\x19unauthorized to read file\x1a\x04\xa0\xff+IB\xb9\x01\n\x1e\x63om.ai.stigmer.agentic.file.v1B\nQueryProtoP\x01\xa2\x02\x04\x41SAF\xaa\x02\x1a\x41i.Stigmer.Agentic.File.V1\xca\x02\x1a\x41i\\Stigmer\\Agentic\\File\\V1\xe2\x02&Ai\\Stigmer\\Agentic\\File\\V1\\GPBMetadata\xea\x02\x1e\x41i::Stigmer::Agentic::File::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -44,6 +44,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_FILEQUERYCONTROLLER'].methods_by_name['list']._serialized_options = b'\320\270\030\001'
   _globals['_FILEQUERYCONTROLLER'].methods_by_name['getDownloadUrl']._loaded_options = None
   _globals['_FILEQUERYCONTROLLER'].methods_by_name['getDownloadUrl']._serialized_options = b'\302\270\030*\010\001\020I\"\005value*\035unauthorized to download file'
+  _globals['_FILEQUERYCONTROLLER'].methods_by_name['getContent']._loaded_options = None
+  _globals['_FILEQUERYCONTROLLER'].methods_by_name['getContent']._serialized_options = b'\302\270\030#\010\001\020I\"\002id*\031unauthorized to read file'
   _globals['_FILEQUERYCONTROLLER']._serialized_start=249
-  _globals['_FILEQUERYCONTROLLER']._serialized_end=642
+  _globals['_FILEQUERYCONTROLLER']._serialized_end=788
 # @@protoc_insertion_point(module_scope)

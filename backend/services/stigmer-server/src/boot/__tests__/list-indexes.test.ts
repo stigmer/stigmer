@@ -94,7 +94,7 @@ const PINNED: Readonly<
   oauth_app: { revision: 1, fingerprint: "oauth_app{}" },
   channel_app: { revision: 1, fingerprint: "channel_app{}" },
   environment: { revision: 1, fingerprint: "environment{}" },
-  file: { revision: 1, fingerprint: "file{session=field:status.session_id}" },
+  file: { revision: 2, fingerprint: "file{run=field:status.run_id,session=field:status.session_id}" },
 };
 
 describe("the list-indexed surface", () => {

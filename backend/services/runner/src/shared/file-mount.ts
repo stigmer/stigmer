@@ -3,7 +3,7 @@
  * platform `uploads/` folder once per turn, where the agent finds each at
  * `.stigmer/uploads/<mount_path>` through the workspace `.stigmer` link.
  *
- * The server names everything: `FileMountController.mount` answers the
+ * The server names everything: `RunFileController.mount` answers the
  * Files the run's conversation holds (`SessionSpec.resources`), each with
  * its mount path, its size and a short-lived link to its bytes signed for
  * this runner. The runner asks once per turn, under the run's credential,
@@ -43,7 +43,7 @@
  */
 
 import { dirname, join, posix, relative, sep } from "node:path";
-import type { FileMount } from "@stigmer/apis/ai/stigmer/agentic/file/v1/mount_pb";
+import type { FileMount } from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
 import type { ContentBlock } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 
 import type { StigmerClient } from "../client/stigmer-client.js";
@@ -400,7 +400,7 @@ function originOf(url: string): string {
   }
 }
 
-function withoutQuery(url: string): string {
+export function withoutQuery(url: string): string {
   try {
     const parsed = new URL(url);
     return `${parsed.origin}${parsed.pathname}`;
@@ -410,7 +410,7 @@ function withoutQuery(url: string): string {
 }
 
 /** `text` with the link, and its query, replaced wherever they appear. */
-function scrubbed(text: string, url: string): string {
+export function scrubbed(text: string, url: string): string {
   let out = url === "" ? text : text.split(url).join(withoutQuery(url));
   const query = queryOf(url);
   if (query !== "") out = out.split(query).join("");

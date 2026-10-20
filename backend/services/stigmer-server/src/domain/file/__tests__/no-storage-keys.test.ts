@@ -2,7 +2,9 @@
  * Pins that no field a person or a client writes holds a storage key: the
  * contract walks every message reachable from Run, Session and Routine
  * (so RunSpec, SessionSpec and AgentInvocation) and from every File
- * message, and finds a key-holding field only where it is named here.
+ * message, the runner's door included (a turn's outputs travel by upload
+ * reference and link, never by key), and finds a key-holding field only
+ * where it is named here.
  *
  * Two are named, each kept on purpose:
  *   - RunArtifact.storage_key, under RunStatus.artifacts: what the agent
@@ -18,7 +20,7 @@ import { describe, expect, it } from "vitest";
 
 import * as fileApi from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import * as fileIo from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
-import * as fileMount from "@stigmer/apis/ai/stigmer/agentic/file/v1/mount_pb";
+import * as runFiles from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
@@ -65,7 +67,7 @@ function keyFields(roots: readonly DescMessage[]): string[] {
 
 describe("no field a client writes holds a storage key", () => {
   it("finds key-holding fields only where they are kept on purpose", () => {
-    const roots = [RunSchema, SessionSchema, RoutineSchema, ...messagesOf(fileApi), ...messagesOf(fileIo), ...messagesOf(fileMount)];
+    const roots = [RunSchema, SessionSchema, RoutineSchema, ...messagesOf(fileApi), ...messagesOf(fileIo), ...messagesOf(runFiles)];
     expect(keyFields(roots)).toEqual([...KEPT].sort());
   });
 

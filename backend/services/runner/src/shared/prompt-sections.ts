@@ -157,6 +157,19 @@ export function visionPromptInfoOf(files: {
 }
 
 /**
+ * The outputs folder's standing instruction (`shared/outputs.ts`), with the
+ * folder as the engine's file tools name it: what the agent saves there
+ * comes back to the person as Files when the turn ends, and nothing else
+ * does. Every engine says it, outside plan mode, where writes are denied.
+ */
+export function outputsFolderInstruction(folderPath: string): string {
+  return (
+    `To give the user a file, save it in \`${folderPath}\`; everything there is returned to them when the turn ends. ` +
+    "Files you edit in the workspace are not returned this way."
+  );
+}
+
+/**
  * The files a turn's prompt lists, in the order it lists them: this
  * message's Files, the conversation's other Files, then an eval case's
  * reference files (the `TurnInput.files` shape, structurally).

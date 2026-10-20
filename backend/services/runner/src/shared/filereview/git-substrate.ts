@@ -31,7 +31,12 @@
  * deep-agent-specific knowledge: the runner-owned files a harness writes into the
  * workspace (e.g. the Cursor gate's `.cursor/hooks.json`) are passed in as
  * `excludePaths` so they never pollute the captured diff, rather than being
- * hard-coded here. Both harnesses author IDENTICAL ledger entries through the
+ * hard-coded here. The one name left out of every capture here is the
+ * platform's own, the workspace `.stigmer` link (`workspace/stigmer-link.ts`):
+ * the runtime makes it on every turn, for every harness, and removes it at
+ * the turn's end, and a workspace that is a person's own folder carries no
+ * git exclude for it, so without this its target (a path under the runner's
+ * home) would enter every tree. Both harnesses author IDENTICAL ledger entries through the
  * shared producer (events.ts) on top of this substrate. A future CAS substrate
  * (for ignored / non-git paths) sits beside this module.
  *
@@ -63,6 +68,7 @@
 
 import { dirname, join } from "node:path";
 import { agentFs } from "../agent-fs.js";
+import { STIGMER_LOCAL_STATE_DIR } from "../workspace/stigmer-link.js";
 import { bytesLookBinary } from "../file-change.js";
 import { sha256Bytes } from "./digest.js";
 import type { CapturedContent } from "./events.js";
@@ -221,7 +227,7 @@ async function resolveGitDir(gitRoot: string): Promise<string> {
  * Using a temp index with `git add -A` records every present file as the tree's
  * content; files absent from the working tree are simply absent from the tree,
  * so the result is an exact snapshot of "what files exist right now and their
- * bytes". `.stigmer` and other ignored paths are never staged.
+ * bytes". `.stigmer`, ignored or not, and other ignored paths are never in it.
  */
 async function writeWorkingTree(
   gitRoot: string,
@@ -235,6 +241,10 @@ async function writeWorkingTree(
     await agentFs().rm(tmpIndex, { force: true });
     const env = { GIT_INDEX_FILE: tmpIndex };
     await git(gitRoot, ["add", "-A", "--", ".", ...excludePathspecs(excludePaths)], env);
+    // The platform's link, staged when nothing ignores it; dropped from the
+    // index rather than excluded by pathspec, which git refuses for a path
+    // its ignore rules already cover.
+    await git(gitRoot, ["rm", "-r", "-q", "--cached", "--ignore-unmatch", "--", STIGMER_LOCAL_STATE_DIR], env);
     return (await git(gitRoot, ["write-tree"], env)).trim();
   } finally {
     await agentFs().rm(tmpIndex, { force: true });

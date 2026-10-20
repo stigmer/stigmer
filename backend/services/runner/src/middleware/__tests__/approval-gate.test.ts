@@ -2,8 +2,10 @@
  * Pins the native approval gate: what interrupts (mutating built-ins, MCP
  * tools their server marks destructive), what a lease clears, the user's
  * approve/skip/reject arms (a denied call never runs its handler), capture
- * mode's flows and secret blocks, unattended skips, and the shadow receipt
- * with its provenance and engine version. `interrupt()` is mocked.
+ * mode's flows and secret blocks, unattended skips, the outputs folder's
+ * writes (flowing uncaptured wherever a workspace edit flows unasked, asking
+ * under the classic gate), and the shadow receipt with its provenance and
+ * engine version. `interrupt()` is mocked.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ToolMessage } from "@langchain/core/messages";
@@ -288,7 +290,7 @@ describe("ApprovalGateMiddleware", () => {
       // Provenance: a built-in mutating tool is decided by the taxonomy, and the
       // engine version is stamped for audit correlation.
       expect(r[0].policySource).toBe("builtin_category");
-      expect(r[0].policyEngineVersion).toBe("hooks-2");
+      expect(r[0].policyEngineVersion).toBe("hooks-3");
     });
 
     it("emits an auto_approve receipt for an auto-approved MCP side effect", async () => {
@@ -307,7 +309,7 @@ describe("ApprovalGateMiddleware", () => {
       // Not marked destructive by its server: the default does not ask, and
       // the receipt carries no policy source.
       expect(r[0].policySource).toBe("");
-      expect(r[0].policyEngineVersion).toBe("hooks-2");
+      expect(r[0].policyEngineVersion).toBe("hooks-3");
     });
 
     it("stamps the destructive-annotation source on a user-approved MCP gate", async () => {
@@ -325,7 +327,7 @@ describe("ApprovalGateMiddleware", () => {
       const r = receipts();
       expect(r).toHaveLength(1);
       expect(r[0].policySource).toBe("annotation_destructive_tighten");
-      expect(r[0].policyEngineVersion).toBe("hooks-2");
+      expect(r[0].policyEngineVersion).toBe("hooks-3");
     });
 
     it("does NOT emit a receipt for read-only built-ins (not a side effect)", async () => {
@@ -593,6 +595,82 @@ describe("ApprovalGateMiddleware", () => {
       await mw.wrapToolCall!(makeRequest({ name: "write", args: { path: "src/app.ts" } }), passthrough);
 
       expect(mockedInterrupt).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("the outputs folder", () => {
+    function receiptsOf(logSpy: { mock: { calls: unknown[][] } }): Record<string, unknown>[] {
+      return logSpy.mock.calls
+        .map((c) => String(c[0] ?? ""))
+        .filter((line) => line.startsWith("[hitl-gateway] receipt "))
+        .map((line) => JSON.parse(line.slice("[hitl-gateway] receipt ".length)) as Record<string, unknown>);
+    }
+
+    const capture = (captureDeleteBefore: () => Promise<void>): Partial<ApprovalGateConfig> => ({
+      fileCaptureMode: true,
+      fileCaptureSubstrate: true,
+      isCapturablePath: async () => false,
+      captureIgnored: true,
+      captureDeleteBefore,
+    });
+
+    it.each([
+      ["capture mode", capture],
+      ["review off", () => ({ fileReviewOff: true, fileCaptureSubstrate: true, isCapturablePath: async () => false })],
+    ] as const)("in %s a write and a delete inside it flow unasked and uncaptured, named outputs", async (_label, posture) => {
+      const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+      try {
+        const captureDeleteBefore = vi.fn(async () => {});
+        const handler = vi.fn(passthrough);
+        const mw = createApprovalGateMiddleware(makeConfig({
+          ...posture(captureDeleteBefore),
+          fingerprintKey: "test-key",
+          executionId: "exec-out",
+        }));
+
+        await mw.wrapToolCall!(makeRequest({ name: "write", args: { path: "/.stigmer/outputs/reports/q3.md" } }), handler);
+        await mw.wrapToolCall!(makeRequest({ name: "delete", args: { path: ".stigmer/outputs/old.csv" } }), handler);
+
+        expect(mockedInterrupt).not.toHaveBeenCalled();
+        expect(handler).toHaveBeenCalledTimes(2);
+        expect(captureDeleteBefore, "an output is never captured for review").not.toHaveBeenCalled();
+        expect(receiptsOf(logSpy).map((r) => [r.policySource, r.authorization])).toEqual([
+          ["outputs", "auto_approve"],
+          ["outputs", "auto_approve"],
+        ]);
+      } finally {
+        logSpy.mockRestore();
+      }
+    });
+
+    it("a path that climbs out of it, or the folder itself, is not an output", async () => {
+      const captureDeleteBefore = vi.fn(async () => {});
+      const mw = createApprovalGateMiddleware(makeConfig(capture(captureDeleteBefore)));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      await mw.wrapToolCall!(makeRequest({ name: "delete", args: { path: "/.stigmer/outputs/../skills/x/SKILL.md" } }), passthrough);
+      await mw.wrapToolCall!(makeRequest({ name: "delete", args: { path: "/.stigmer/outputs" } }), passthrough);
+
+      expect(captureDeleteBefore, "taken by the capture arm like any gitignored delete").toHaveBeenCalledTimes(2);
+    });
+
+    it("the classic gate still asks: review on with no capture", async () => {
+      const mw = createApprovalGateMiddleware(makeConfig({ fileReviewOff: false, fileCaptureMode: false, fileCaptureSubstrate: false }));
+      mockedInterrupt.mockReturnValue({ action: "approve" });
+
+      await mw.wrapToolCall!(makeRequest({ name: "write", args: { path: "/.stigmer/outputs/report.md" } }), passthrough);
+
+      expect(mockedInterrupt).toHaveBeenCalledTimes(1);
+    });
+
+    it("a secret-like name is still blocked", async () => {
+      const handler = vi.fn(passthrough);
+      const mw = createApprovalGateMiddleware(makeConfig(capture(async () => {})));
+
+      const result = await mw.wrapToolCall!(makeRequest({ name: "write", args: { path: "/.stigmer/outputs/.env" } }), handler);
+
+      expect(handler).not.toHaveBeenCalled();
+      expect(String((result as { content: unknown }).content)).toContain("blocked for security");
     });
   });
 

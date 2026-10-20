@@ -227,6 +227,10 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
   // only when the workspace's `.stigmer` is the link to it.
   const linkTarget = link === "none" ? "" : readlinkSync(join(ws, ".stigmer"));
   const readRoot = linkTarget === platformDir ? realpathSync(platformDir) : "";
+  // `platformOutputsRoot`'s rule: the outputs folder's real path, on a
+  // turn whose `.stigmer` is the link to the platform dir.
+  mkdirSync(join(platformDir, "outputs"), { recursive: true });
+  const outputsRoot = linkTarget === platformDir ? realpathSync(join(platformDir, "outputs")) : "";
 
   if (!opts.noStateFile) {
     const mcpDefault: McpApprovalDefault = {
@@ -255,6 +259,7 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
       opts.unattendedSkip ?? false,
       toolScope,
       opts.fileReview ?? true,
+      outputsRoot,
     );
     writeFileSync(statePath, JSON.stringify(state), "utf-8");
   }

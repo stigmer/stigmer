@@ -22,6 +22,7 @@ const (
 	FileQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.file.v1.FileQueryController/get"
 	FileQueryController_List_FullMethodName           = "/ai.stigmer.agentic.file.v1.FileQueryController/list"
 	FileQueryController_GetDownloadUrl_FullMethodName = "/ai.stigmer.agentic.file.v1.FileQueryController/getDownloadUrl"
+	FileQueryController_GetContent_FullMethodName     = "/ai.stigmer.agentic.file.v1.FileQueryController/getContent"
 )
 
 // FileQueryControllerClient is the client API for FileQueryController service.
@@ -38,6 +39,9 @@ type FileQueryControllerClient interface {
 	// A link to download a File's bytes, valid for an hour. A browser
 	// opening it saves the file under its filename.
 	GetDownloadUrl(ctx context.Context, in *FileId, opts ...grpc.CallOption) (*FileDownloadUrl, error)
+	// The start of a File's bytes, read through the server: at most 512 KB,
+	// enough to show a text File without a download.
+	GetContent(ctx context.Context, in *GetFileContentInput, opts ...grpc.CallOption) (*FileContent, error)
 }
 
 type fileQueryControllerClient struct {
@@ -78,6 +82,16 @@ func (c *fileQueryControllerClient) GetDownloadUrl(ctx context.Context, in *File
 	return out, nil
 }
 
+func (c *fileQueryControllerClient) GetContent(ctx context.Context, in *GetFileContentInput, opts ...grpc.CallOption) (*FileContent, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FileContent)
+	err := c.cc.Invoke(ctx, FileQueryController_GetContent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // FileQueryControllerServer is the server API for FileQueryController service.
 // All implementations should embed UnimplementedFileQueryControllerServer
 // for forward compatibility.
@@ -92,6 +106,9 @@ type FileQueryControllerServer interface {
 	// A link to download a File's bytes, valid for an hour. A browser
 	// opening it saves the file under its filename.
 	GetDownloadUrl(context.Context, *FileId) (*FileDownloadUrl, error)
+	// The start of a File's bytes, read through the server: at most 512 KB,
+	// enough to show a text File without a download.
+	GetContent(context.Context, *GetFileContentInput) (*FileContent, error)
 }
 
 // UnimplementedFileQueryControllerServer should be embedded to have
@@ -109,6 +126,9 @@ func (UnimplementedFileQueryControllerServer) List(context.Context, *ListFilesRe
 }
 func (UnimplementedFileQueryControllerServer) GetDownloadUrl(context.Context, *FileId) (*FileDownloadUrl, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDownloadUrl not implemented")
+}
+func (UnimplementedFileQueryControllerServer) GetContent(context.Context, *GetFileContentInput) (*FileContent, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetContent not implemented")
 }
 func (UnimplementedFileQueryControllerServer) testEmbeddedByValue() {}
 
@@ -184,6 +204,24 @@ func _FileQueryController_GetDownloadUrl_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FileQueryController_GetContent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetFileContentInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FileQueryControllerServer).GetContent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FileQueryController_GetContent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FileQueryControllerServer).GetContent(ctx, req.(*GetFileContentInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // FileQueryController_ServiceDesc is the grpc.ServiceDesc for FileQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -202,6 +240,10 @@ var FileQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getDownloadUrl",
 			Handler:    _FileQueryController_GetDownloadUrl_Handler,
+		},
+		{
+			MethodName: "getContent",
+			Handler:    _FileQueryController_GetContent_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

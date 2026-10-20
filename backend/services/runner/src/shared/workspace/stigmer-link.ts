@@ -41,6 +41,14 @@
  * a `.stigmer` that is, or holds, the platform dir itself — a workspace
  * rooted at the home directory, whose `.stigmer` is the Stigmer home (#1424).
  * Turn-end removal is the conservative half: it only ever removes a SYMLINK.
+ *
+ * GIT: the link is made on every turn (the outputs folder is reached through
+ * it), so in a workspace that is a git work tree it is kept out of the
+ * person's repository: {@link ensureStigmerSymlink} adds `.stigmer` to the
+ * repository's local exclude file (`info/exclude`), which git never commits
+ * or pushes, as a cloned repository's provisioning already does
+ * (`sources/git.ts`). A person's own folder would otherwise show the link as
+ * untracked, and an agent's `git add -A` would commit it.
  */
 
 import { agentFs, type AgentStats } from "../agent-fs.js";
@@ -78,7 +86,44 @@ export async function ensureStigmerSymlink(
     await displaceRealEntry(linkPath, platformDir, entry);
   }
 
+  await excludeFromGit(workspaceDir);
   await agentFs().symlink(platformDir, linkPath);
+}
+
+/**
+ * Add `.stigmer` to the local exclude file of the git repository holding
+ * `workspaceDir`, once (the module header, GIT). A workspace that is no git
+ * work tree needs nothing; a repository whose exclude file cannot be written
+ * is warned about and the link made all the same, since the platform's name
+ * is more use to the turn than a clean `git status`.
+ */
+async function excludeFromGit(workspaceDir: string): Promise<void> {
+  let reported: string;
+  try {
+    reported = (await agentFs().execFile("git", ["-C", workspaceDir, "rev-parse", "--git-path", "info/exclude"])).stdout
+      .toString("utf8")
+      .trim();
+  } catch {
+    return;
+  }
+  const excludePath = isAbsolute(reported) ? reported : join(workspaceDir, reported);
+  try {
+    let current = "";
+    try {
+      current = (await agentFs().readFile(excludePath)).toString("utf8");
+    } catch (err) {
+      if (errnoCode(err) !== "ENOENT") throw err;
+    }
+    if (current.split(/\r?\n/).some((line) => line.trim() === STIGMER_LOCAL_STATE_DIR)) return;
+    await agentFs().mkdir(dirname(excludePath), { recursive: true });
+    const separator = current === "" || current.endsWith("\n") ? "" : "\n";
+    await agentFs().appendFile(excludePath, Buffer.from(`${separator}${STIGMER_LOCAL_STATE_DIR}\n`, "utf8"));
+  } catch (err) {
+    console.warn(
+      `ensureStigmerSymlink: could not add ${STIGMER_LOCAL_STATE_DIR} to ${excludePath}, so git may show the link as untracked: ` +
+        `${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
 }
 
 /**

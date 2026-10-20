@@ -148,4 +148,26 @@ java.lang.String defaultValue);
    */
   java.lang.String getLabelsOrThrow(
       java.lang.String key);
+
+  /**
+   * <pre>
+   * Only the Files this run wrote: the files one turn saved in its outputs
+   * folder. Empty lists Files written by any run or uploaded.
+   * </pre>
+   *
+   * <code>string run_id = 6 [json_name = "runId"];</code>
+   * @return The runId.
+   */
+  java.lang.String getRunId();
+  /**
+   * <pre>
+   * Only the Files this run wrote: the files one turn saved in its outputs
+   * folder. Empty lists Files written by any run or uploaded.
+   * </pre>
+   *
+   * <code>string run_id = 6 [json_name = "runId"];</code>
+   * @return The bytes for runId.
+   */
+  com.google.protobuf.ByteString
+      getRunIdBytes();
 }

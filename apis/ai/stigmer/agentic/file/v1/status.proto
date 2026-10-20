@@ -19,6 +19,12 @@ message FileStatus {
   // uploaded File.
   string run_id = 3;
 
+  // Where the agent saved the File, for a file an agent saved: its path
+  // relative to .stigmer/outputs/, "/"-separated, the last segment its
+  // filename. Two files of the same name saved in two folders are two Files
+  // told apart by it. Empty for an uploaded File.
+  string output_path = 4;
+
   // Standard audit information (created_at, updated_at, created_by, etc.)
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
 }

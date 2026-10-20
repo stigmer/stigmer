@@ -115,6 +115,8 @@ import { listTurnTools, type McpToolListing } from "../shared/mcp-tool-listing.j
 import { ToolScope } from "../shared/tool-lists.js";
 import { fetchRunFileMounts, mountFiles, offerMountedImage, splitMessageFiles } from "../shared/file-mount.js";
 import { resolveSkills, type SkillMetadata } from "../shared/skill-resolver.js";
+import { prepareOutputsFolder } from "../shared/outputs.js";
+import { holdPlatformMounts, NO_MOUNTS, type PlatformMounts } from "../shared/platform-hold.js";
 import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { loadedVersionsOf } from "./loaded-versions.js";
 import { mountPlugin, PluginMountError } from "../shared/plugin-mount.js";
@@ -1201,7 +1203,7 @@ export async function mountSkills(
     /** The main scope ({@link mainToolScope}), which decides whether skills are hidden. */
     readonly toolScope: ToolScope;
   },
-): Promise<{ readonly skills: TurnSkills; readonly loaded: readonly ApiResourceReference[] }> {
+): Promise<{ readonly skills: TurnSkills; readonly loaded: readonly ApiResourceReference[]; readonly mounts: PlatformMounts }> {
   deps.enterPhase("resolve_skills");
   await deps.reportProgress("Resolving skills");
   const options = { sessionId: args.sessionId, primaryWorkspaceDir: args.primaryDir };
@@ -1211,6 +1213,7 @@ export async function mountSkills(
   }
   const resolved = toolScope.hidesSkills ? [] : await resolveSkills(deps.client, args.blueprint.mergedSkillRefs, options);
   const root = resolved.map((skill) => skill.metadata);
+  const pluginDigests: string[] = [];
   const bySubAgent = new Map<string, readonly SkillMetadata[]>();
   for (const plugin of args.blueprint.plugins) {
     // The same rule for a plugin's skills: the root lists them unless the
@@ -1225,7 +1228,8 @@ export async function mountSkills(
         )
       : [];
     if (toolScope.hidesSkills && agents.length === 0) continue;
-    const skills = await mountPluginSkills(deps, plugin, args.sessionId, args.primaryDir);
+    const { skills, digest } = await mountPluginSkills(deps, plugin, args.sessionId, args.primaryDir);
+    if (digest !== undefined) pluginDigests.push(digest);
     if (!toolScope.hidesSkills) root.push(...skills.values());
     for (const agent of agents) {
       const own = agent.skills.flatMap((name) => skills.get(name) ?? []);
@@ -1233,7 +1237,11 @@ export async function mountSkills(
     }
   }
   deps.timing.mark("resolve_skills");
-  return { skills: { root, bySubAgent }, loaded: resolved.map((skill) => skill.loaded) };
+  return {
+    skills: { root, bySubAgent },
+    loaded: resolved.map((skill) => skill.loaded),
+    mounts: { skills: resolved.map((skill) => skill.metadata.name), plugins: pluginDigests },
+  };
 }
 
 /**
@@ -1247,9 +1255,9 @@ async function mountPluginSkills(
   plugin: Plugin,
   sessionId: string,
   primaryDir: string,
-): Promise<ReadonlyMap<string, SkillMetadata>> {
+): Promise<{ readonly skills: ReadonlyMap<string, SkillMetadata>; readonly digest: string | undefined }> {
   const skills = plugin.status?.skills ?? [];
-  if (skills.length === 0) return new Map();
+  if (skills.length === 0) return { skills: new Map(), digest: undefined };
   const pluginName = plugin.metadata?.name ?? "";
   try {
     const platformDir = getPlatformDir(sessionId);
@@ -1259,23 +1267,31 @@ async function mountPluginSkills(
     console.warn(
       `[turn-context] the skills of plugin '${pluginName}' are missing this turn: its archive could not be mounted: ${errorText(err)}`,
     );
-    return new Map();
+    return { skills: new Map(), digest: undefined };
   }
   const digest = plugin.status?.digest ?? "";
-  return new Map(
-    skills.map((skill): [string, SkillMetadata] => [
-      skill.name,
-      {
-        name: `${pluginName}:${skill.name}`,
-        description: skill.description || `Skill: ${skill.name}`,
-        path: join(STIGMER_LOCAL_STATE_DIR, PLUGINS_SUBDIR, digest, skill.path, "SKILL.md"),
-      },
-    ]),
-  );
+  return {
+    skills: new Map(
+      skills.map((skill): [string, SkillMetadata] => [
+        skill.name,
+        {
+          name: `${pluginName}:${skill.name}`,
+          description: skill.description || `Skill: ${skill.name}`,
+          path: join(STIGMER_LOCAL_STATE_DIR, PLUGINS_SUBDIR, digest, skill.path, "SKILL.md"),
+        },
+      ]),
+    ),
+    digest,
+  };
 }
 
 /** No hooks: the record of a turn whose plugins carry none and whose agent writes none. */
 const NO_HOOKS: TurnHooks = { sources: [], serverNames: new Map() };
+
+/** The digests of plugins the hook sources mounted: the names of their trees under `plugins/`. */
+function pluginDigests(plugins: readonly Plugin[]): string[] {
+  return plugins.map((plugin) => plugin.status?.digest ?? "");
+}
 
 /** The plugins among `plugins` that carry hooks. */
 function pluginsWithHooks(plugins: readonly Plugin[]): Plugin[] {
@@ -1336,10 +1352,13 @@ export async function resolveHooks(
     readonly sessionId: string;
     readonly servers: readonly ResolvedMcpServer[];
   },
-): Promise<{ readonly kind: "ready"; readonly hooks: TurnHooks } | { readonly kind: "settled"; readonly settlement: TurnSettlement }> {
+): Promise<
+  | { readonly kind: "ready"; readonly hooks: TurnHooks; readonly mounts: PlatformMounts }
+  | { readonly kind: "settled"; readonly settlement: TurnSettlement }
+> {
   const plugins = pluginsWithHooks(args.blueprint.plugins);
   const inline = args.blueprint.agent?.spec?.hooks ?? [];
-  if (plugins.length === 0 && inline.length === 0) return { kind: "ready", hooks: NO_HOOKS };
+  if (plugins.length === 0 && inline.length === 0) return { kind: "ready", hooks: NO_HOOKS, mounts: NO_MOUNTS };
   deps.enterPhase("resolve_hooks");
   await deps.reportProgress("Resolving hooks");
 
@@ -1347,7 +1366,11 @@ export async function resolveHooks(
   if (resolved.kind === "settled") return resolved;
 
   deps.timing.mark("resolve_hooks");
-  return { kind: "ready", hooks: { sources: resolved.sources, serverNames: hookServerNamesOf(args.servers) } };
+  return {
+    kind: "ready",
+    hooks: { sources: resolved.sources, serverNames: hookServerNamesOf(args.servers) },
+    mounts: { skills: [], plugins: pluginDigests(plugins) },
+  };
 }
 
 /**
@@ -1449,11 +1472,18 @@ export async function resolveSubagents(
     readonly mainServers: readonly ResolvedMcpServer[];
   },
 ): Promise<
-  | { readonly kind: "ready"; readonly subagents: readonly TurnSubagent[]; readonly loadedSkills: readonly ApiResourceReference[] }
+  | {
+      readonly kind: "ready";
+      readonly subagents: readonly TurnSubagent[];
+      readonly loadedSkills: readonly ApiResourceReference[];
+      readonly mounts: PlatformMounts;
+    }
   | { readonly kind: "settled"; readonly settlement: TurnSettlement }
 > {
   const { blueprint, values, sessionId } = args;
-  if (blueprint.subagents.length === 0 || !args.capabilities.subAgents) return { kind: "ready", subagents: [], loadedSkills: [] };
+  if (blueprint.subagents.length === 0 || !args.capabilities.subAgents) {
+    return { kind: "ready", subagents: [], loadedSkills: [], mounts: NO_MOUNTS };
+  }
   deps.enterPhase("resolve_subagents");
   await deps.reportProgress("Resolving subagents");
   const transportPosture = resolveMcpTransportPosture(deps.config.mode);
@@ -1461,6 +1491,8 @@ export async function resolveSubagents(
   const options = { sessionId, primaryWorkspaceDir: args.primaryDir };
   const subagents: TurnSubagent[] = [];
   const loadedSkills: ApiResourceReference[] = [];
+  const mountedSkills: string[] = [];
+  const mountedPlugins: string[] = [];
   // Every server named so far: the main agent's, then each subagent's.
   const named: ResolvedMcpServer[] = [...args.mainServers];
   for (const subagent of blueprint.subagents) {
@@ -1481,12 +1513,17 @@ export async function resolveSubagents(
       const own = await resolveSkills(deps.client, spec.skillRefs, options);
       skills.push(...own.map((skill) => skill.metadata));
       loadedSkills.push(...own.map((skill) => skill.loaded));
+      mountedSkills.push(...own.map((skill) => skill.metadata.name));
       for (const plugin of subagent.plugins) {
-        skills.push(...(await mountPluginSkills(deps, plugin, sessionId, args.primaryDir)).values());
+        const mounted = await mountPluginSkills(deps, plugin, sessionId, args.primaryDir);
+        skills.push(...mounted.skills.values());
+        if (mounted.digest !== undefined) mountedPlugins.push(mounted.digest);
       }
     }
-    const hooks = await hookSources(deps, pluginsWithHooks(subagent.plugins), spec.hooks, sessionId);
+    const hookPlugins = pluginsWithHooks(subagent.plugins);
+    const hooks = await hookSources(deps, hookPlugins, spec.hooks, sessionId);
     if (hooks.kind === "settled") return hooks;
+    mountedPlugins.push(...pluginDigests(hookPlugins));
     subagents.push({
       name: subagent.name,
       description: spec.description,
@@ -1506,7 +1543,7 @@ export async function resolveSubagents(
     });
   }
   deps.timing.mark("resolve_subagents");
-  return { kind: "ready", subagents, loadedSkills };
+  return { kind: "ready", subagents, loadedSkills, mounts: { skills: mountedSkills, plugins: mountedPlugins } };
 }
 
 /** A recorded hook format as the evaluator names it; an unset format is Claude Code's, as apply fills it. */
@@ -1528,6 +1565,40 @@ function ownersToFix(err: unknown): boolean {
 
 function errorText(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+/**
+ * The outputs folder (`shared/outputs.ts`): made, with the workspace link
+ * that reaches it, on every turn, after the workspace is final (an eval
+ * case's included) and before skills, so `.stigmer/outputs/` is where the
+ * prompt says it is whatever else the turn mounts.
+ */
+export async function prepareOutputsPhase(
+  deps: ResolutionDeps,
+  args: { readonly sessionId: string; readonly primaryDir: string },
+): Promise<void> {
+  deps.enterPhase("prepare_outputs");
+  await prepareOutputsFolder(args.sessionId, args.primaryDir);
+  deps.timing.mark("prepare_outputs");
+}
+
+/**
+ * The platform folder held to this turn's skills and plugins
+ * (`shared/platform-hold.ts`), once every phase that mounts them has run:
+ * the link reaches the folder on every turn, so nothing an earlier turn
+ * mounted stays in reach after the agent stopped listing it.
+ */
+export async function holdPlatformToTurnPhase(
+  deps: ResolutionDeps,
+  sessionId: string,
+  mounts: readonly PlatformMounts[],
+): Promise<void> {
+  deps.enterPhase("hold_platform_mounts");
+  await holdPlatformMounts(getPlatformDir(sessionId), {
+    skills: mounts.flatMap((mount) => mount.skills),
+    plugins: mounts.flatMap((mount) => mount.plugins),
+  });
+  deps.timing.mark("hold_platform_mounts");
 }
 
 /**
@@ -1840,6 +1911,8 @@ export async function resolveTurnContext(
     frame.evalReadFiles = spec.evalCase?.readFiles;
   }
 
+  await prepareOutputsPhase(deps, { sessionId, primaryDir: workspace.primaryDir });
+
   const reinvocation = await reconcileReinvocation(deps, {
     stateIdSource: capabilities.stateIdSource,
     execution,
@@ -1879,6 +1952,7 @@ export async function resolveTurnContext(
     mainServers: mcp.servers,
   });
   if (subagentResolution.kind === "settled") return subagentResolution;
+  await holdPlatformToTurnPhase(deps, sessionId, [mounted.mounts, hookResolution.mounts, subagentResolution.mounts]);
   const mountedFiles = await mountTurnFiles(deps, {
     execution,
     session,

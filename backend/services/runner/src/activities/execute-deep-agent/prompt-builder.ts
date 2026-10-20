@@ -51,11 +51,13 @@ import type { RecalledMemoriesContent } from "../../shared/recalled-memories.js"
 import {
   hasInputFiles,
   inputFileLines,
+  outputsFolderInstruction,
   standingContextSections,
   type InputFileGroups,
   type StandingSectionKind,
   type VisionPromptInfo,
 } from "../../shared/prompt-sections.js";
+import { OUTPUTS_ROUTE_PREFIX as NATIVE_OUTPUTS_FOLDER } from "./platform-route.js";
 import { effectiveInstructions } from "../../shared/builtin-assistant-prompt.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import { buildImplementPlanDirective } from "../../shared/implement-plan-prompt.js";
@@ -94,6 +96,8 @@ explain the issue and propose options before proceeding.`;
  * record (test/conformance src/benchmark/tool-call-facts.ts) showed where
  * they went.
  *
+ * - The outputs folder follows it outside plan mode: what the agent saves
+ *   there is what comes back to the person as Files (`shared/outputs.ts`).
  * - The path model comes first because the file tools speak the virtual
  *   root (`/` is the workspace; `middleware/path-normalization.ts`), and a
  *   model that is told nothing uses whatever path it saw last. `execute`
@@ -109,15 +113,14 @@ explain the issue and propose options before proceeding.`;
  *   the delegation mechanics to the `task` tool's own description.
  */
 function workingRules(interactionMode: InteractionMode | undefined): string {
-  const commands =
-    interactionMode === InteractionMode.PLAN
-      ? ""
-      : ` Commands run in the workspace, so \`${ENGINE_TOOL.execute}\` needs no \`cd\`.`;
+  const plan = interactionMode === InteractionMode.PLAN;
+  const commands = plan ? "" : ` Commands run in the workspace, so \`${ENGINE_TOOL.execute}\` needs no \`cd\`.`;
+  const outputs = plan ? "" : `\n- ${outputsFolderInstruction(NATIVE_OUTPUTS_FOLDER)}`;
   return `
 
 ## Working with tools
 
-- Your file tools see the workspace as \`/\`: a file at its top level is \`/README.md\`.${commands}
+- Your file tools see the workspace as \`/\`: a file at its top level is \`/README.md\`.${commands}${outputs}
 - Make independent tool calls together in one response: read every file you need at once, and edit different files at once. Wait for a result only when the next call depends on it.
 - When one file needs changes that sit close together, make them in one \`${ENGINE_TOOL.editFile}\` call.
 - A file you have read stays in your context. Read it again only if something other than your own edit changed it.

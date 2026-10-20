@@ -636,7 +636,7 @@ describe("the native translator through the builder", () => {
       expect(tc.requiresApproval).toBe(false);
       expect(tc.mcpServerSlug).toBe("github");
       expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN);
-      expect(tc.policyEngineVersion).toBe("hooks-2");
+      expect(tc.policyEngineVersion).toBe("hooks-3");
       expect(sb.awaitingApproval).toBe(false);
     });
 

@@ -10,7 +10,7 @@
  * `Agent(type, …)` filter over built-ins, plugin and saved subagents alike;
  * and compilation (a stack per invocation, a saved subagent's own gate, a
  * refused spec skipped at setup, the invocation id hooks see kept across a
- * resume).
+ * resume, the outputs folder's line only on a sub-agent that may write).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { StructuredTool } from "@langchain/core/tools";
@@ -18,6 +18,7 @@ import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 
 import {
   BUILTIN_SUBAGENT_TYPES,
+  compiledPrompt,
   createBuiltinSubagents,
   compileSubagents,
   subAgentInvocationId,
@@ -658,5 +659,17 @@ describe("subAgentInvocationId", () => {
       expect(id).toMatch(/^[0-9a-f-]{36}$/);
       expect(subAgentInvocationId(config)).not.toBe(id);
     }
+  });
+});
+
+describe("compiledPrompt", () => {
+  it("closes a writing sub-agent's response rules with the outputs folder, and never plan mode's or explore's", () => {
+    const [explore, shell, general] = createBuiltinSubagents(true, ToolScope.unrestricted());
+    expect(compiledPrompt(general!, true)).toContain("save it in `/.stigmer/outputs/`");
+    expect(compiledPrompt(general!, true).startsWith(general!.systemPrompt)).toBe(true);
+    expect(compiledPrompt(shell!, true)).toContain(".stigmer/outputs/");
+    expect(compiledPrompt(general!, false), "plan mode writes nowhere").toBe(general!.systemPrompt);
+    expect(explore!.name).toBe("explore");
+    expect(compiledPrompt(explore!, true), "the read-only explorer").toBe(explore!.systemPrompt);
   });
 });

@@ -25,6 +25,7 @@ import { constants as fsConstants } from "node:fs";
 import {
   copyFile,
   mkdir,
+  open,
   readFile,
   rm,
   rmdir,
@@ -94,6 +95,15 @@ export interface ArtifactStorage {
    * ArtifactStorageNotFoundError.
    */
   size(key: string): Promise<number>;
+  /**
+   * At most `length` bytes of the stored blob from `offset`, fewer at its
+   * end, without loading the rest: a File's first bytes are shown without
+   * reading a large File whole. A key addressing no stored blob throws
+   * ArtifactStorageNotFoundError. Optional, so a driver an extension
+   * registers keeps compiling: without it a caller reads the blob whole
+   * (download) and takes the range itself. Both built-in drivers have it.
+   */
+  readRange?(key: string, offset: number, length: number): Promise<Uint8Array>;
   /**
    * A time-limited download URL for `reader` (SignedUrlReader), valid for
    * `expiresInMs` clamped to MAX_SIGNED_URL_TTL_MS on every backend.
@@ -282,6 +292,33 @@ export class LocalArtifactStorage implements ArtifactStorage {
         throw new ArtifactStorageNotFoundError(key);
       }
       throw error;
+    }
+  }
+
+  async readRange(key: string, offset: number, length: number): Promise<Uint8Array> {
+    const filePath = this.resolveWithinRoot(key);
+    let handle;
+    try {
+      handle = await open(filePath, "r");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        throw new ArtifactStorageNotFoundError(key);
+      }
+      throw error;
+    }
+    try {
+      const buffer = Buffer.alloc(Math.max(0, length));
+      let filled = 0;
+      while (filled < buffer.length) {
+        const { bytesRead } = await handle.read(buffer, filled, buffer.length - filled, offset + filled);
+        if (bytesRead === 0) {
+          break;
+        }
+        filled += bytesRead;
+      }
+      return new Uint8Array(buffer.buffer, buffer.byteOffset, filled);
+    } finally {
+      await handle.close();
     }
   }
 

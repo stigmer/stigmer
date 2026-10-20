@@ -59,7 +59,7 @@
 // is a conscious deferral, not shipped as a thin partial):
 // - recover happy path (needs a genuinely FAILED execution);
 // - artifact content, sub-agents.
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -79,7 +79,7 @@ import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
 import { FixtureTracker } from "../harness/fixtures";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
-import { anthropicText } from "@stigmer/test-support/mock-llm";
+import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent, makeAgentRef } from "../support/agents";
 import {
   AGENT_EXECUTION_API_VERSION,
@@ -90,6 +90,7 @@ import {
   requireLlmProxy,
   sessionIdOf,
 } from "../support/runs";
+import { pollUntil } from "../support/run-poll";
 import { messagesOf, turnById } from "../support/turn";
 import { foreignId, uniqueName } from "../support/naming";
 import { createTarget, type TargetProfile } from "../targets";
@@ -805,6 +806,96 @@ describe("Run conformance — one-call session bootstrap (session_spec)", () => 
 // turn's dispatch queue (activity_task_queue, number 11). Reserved on the
 // wire: a request carrying it is read with the field as an unknown one.
 const RETIRED_ACTIVITY_TASK_QUEUE_FIELD = 11;
+
+// What the agent saves in its outputs folder (.stigmer/outputs/) comes back
+// as Files of the conversation, written by the turn, each at the path it was
+// saved under. The runner registers them before the turn's final write, so
+// a run that reads finished already lists them: no wait follows the
+// terminal read.
+describe("Run conformance — a turn's outputs", () => {
+  it("[rpc:FileQueryController.list] [rpc:FileQueryController.getContent] returns what the agent saved in its outputs folder as Files of the turn, two same-named files in two folders as two", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await provisionAgent(org, uniqueName("agent-outputs"));
+    const north = "# North\n\nRevenue up.\n";
+    const south = "# South\n\nRevenue flat.\n";
+
+    mock.enqueue(anthropicToolUse("toolu_out_north", "write_file", { file_path: "/.stigmer/outputs/reports/north/summary.md", content: north }));
+    mock.enqueue(anthropicToolUse("toolu_out_south", "write_file", { file_path: "/.stigmer/outputs/reports/south/summary.md", content: south }));
+    mock.enqueue(anthropicText("Saved both summaries."));
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-outputs"), agentRef: agentRefOf(agent), message: "Write the regional summaries." }),
+    );
+    const runId = execution.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));
+
+    const final = await awaitTerminal(clients, runId);
+    expect(final.status?.phase, `expected COMPLETED; error: ${final.status?.error || "(none)"}`).toBe(RunPhase.RUN_COMPLETED);
+
+    const listed = await clients.fileQuery.list({ org, runId });
+    const byPath = new Map(listed.entries.map((file) => [file.status?.outputPath ?? "", file]));
+    expect([...byPath.keys()].sort()).toEqual(["reports/north/summary.md", "reports/south/summary.md"]);
+    for (const [outputPath, text] of [["reports/north/summary.md", north], ["reports/south/summary.md", south]] as const) {
+      const file = byPath.get(outputPath)!;
+      expect(file.spec?.filename).toBe("summary.md");
+      expect(file.status?.runId).toBe(runId);
+      expect(file.status?.sessionId).toBe(sessionIdOf(final));
+      const content = await clients.fileQuery.getContent({ id: file.metadata!.id });
+      expect(new TextDecoder().decode(content.data)).toBe(text);
+    }
+    const ofSession = await clients.fileQuery.list({ org, sessionId: sessionIdOf(final) });
+    expect(ofSession.entries.map((file) => file.metadata?.id).sort(), "a turn's outputs are the conversation's Files").toEqual(
+      listed.entries.map((file) => file.metadata?.id).sort(),
+    );
+  });
+
+  // A person's stop is recorded on the run before its runner settles; the
+  // runner still returns what the agent saved before the stop, admitted for
+  // a short grace after it, so the File follows the stop instead of
+  // preceding the turn's end.
+  it("[rpc:SessionCommandController.interrupt] returns what a turn saved before a person stopped it, after the stop", async () => {
+    if (target.runnerHomeDir === undefined) {
+      throw new Error(`target ${target.name} spawns no runner; the stop arm reads where the runner saved the output`);
+    }
+    const { org } = await target.provisionTenancy();
+    const agent = await provisionAgent(org, uniqueName("agent-outputs-stop"));
+    const draft = "# Draft\n\nHalf written when the person stopped it.\n";
+
+    mock.enqueue(anthropicToolUse("toolu_out_draft", "write_file", { file_path: "/.stigmer/outputs/draft.md", content: draft }));
+    // Held longer than the runner takes to learn of the stop, so the turn
+    // cannot finish on its own first.
+    mock.enqueue(anthropicText("Still writing."), { delayMs: 120_000 });
+    const execution = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-outputs-stop"), agentRef: agentRefOf(agent), message: "Draft the summary." }),
+    );
+    const runId = execution.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));
+    const running = await awaitPhase(clients, runId, RunPhase.RUN_IN_PROGRESS);
+    const sessionId = sessionIdOf(running);
+    const saved = join(target.runnerHomeDir(), ".stigmer", "sessions", sessionId, "platform", "outputs", "draft.md");
+    await pollUntil(
+      async () => existsSync(saved),
+      (present) => present,
+      () => "the agent never saved its draft",
+    );
+
+    await clients.sessionCommand.interrupt({ sessionId });
+    const stopped = await awaitPhase(clients, runId, RunPhase.RUN_CANCELLED);
+    expect(stopped.status?.stopCause).toBe("user");
+
+    // The runner learns of the stop when Temporal delivers the cancel on a
+    // heartbeat, which its throttle can hold for up to a minute; the server
+    // admits the stopped run's outputs for two minutes after the stop.
+    const listed = await pollUntil(
+      () => clients.fileQuery.list({ org, runId }),
+      (list) => list.entries.length > 0,
+      () => "the stopped turn's output never came back",
+      { timeoutMs: 120_000 },
+    );
+    expect(listed.entries.map((file) => file.status?.outputPath)).toEqual(["draft.md"]);
+    const content = await clients.fileQuery.getContent({ id: listed.entries[0]!.metadata!.id });
+    expect(new TextDecoder().decode(content.data)).toBe(draft);
+  }, 240_000);
+});
 
 describe("Run conformance — a turn's dispatch queue is the server's to derive", () => {
   it("[rpc:RunCommandController.create] a request naming a dispatch queue in the retired field still runs on the shared runner pool", async () => {

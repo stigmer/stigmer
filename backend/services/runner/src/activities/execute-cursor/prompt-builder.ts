@@ -33,6 +33,8 @@
 import { resolve } from "node:path";
 import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { formatConversationCatchupText } from "../../shared/conversation-catchup.js";
+import { OUTPUTS_SUBDIR } from "../../shared/outputs.js";
+import { STIGMER_LOCAL_STATE_DIR } from "../../shared/workspace/stigmer-link.js";
 import {
   formatChannelTemplatesSection,
   type ChannelMessagingInfo,
@@ -44,6 +46,7 @@ import {
   hasInputFiles,
   inputFileLines,
   type InputFileGroups,
+  outputsFolderInstruction,
   standingContextSections,
   type StandingSectionKind,
   type VisionPromptInfo,
@@ -243,6 +246,12 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
   // to have covered them.
   if (!options.instructions) {
     sections.push(formatResponseRules());
+  }
+
+  // Where to save a file for the person, on every first message outside
+  // plan mode, where writes are denied (`shared/outputs.ts`).
+  if (options.interactionMode !== InteractionMode.PLAN) {
+    sections.push(formatOutputsFolder());
   }
 
   // The standing context, in the shared order (the doctrine is stated once,
@@ -639,6 +648,11 @@ export function formatImplementPlanSection(
     findApprovedPlanPath(messageFiles),
   );
   return ["<implement_plan>", directive, "</implement_plan>"].join("\n");
+}
+
+/** The outputs folder's standing instruction, framed for this harness. */
+export function formatOutputsFolder(): string {
+  return ["<outputs_folder>", outputsFolderInstruction(`${STIGMER_LOCAL_STATE_DIR}/${OUTPUTS_SUBDIR}/`), "</outputs_folder>"].join("\n");
 }
 
 export function formatResponseRules(): string {

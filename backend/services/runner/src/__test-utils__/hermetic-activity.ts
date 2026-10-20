@@ -124,6 +124,9 @@ import { SessionEventEmitter } from "../harness/events/emitter.js";
 import { answerEventsFor } from "./approval-log.js";
 import { decideCapturedFileChanges, upsertFileChanges, type FileReviewVerdicts } from "./file-review-projection.js";
 import { mockStigmerClient } from "./mock-client.js";
+import { HERMETIC_UPLOAD_ORIGIN } from "./model-registry-fixture.js";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { OutputUploadSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
 import type { ToolCall } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { ApprovalAction, ToolCallStatus } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
@@ -298,6 +301,18 @@ export class ExecutionRecord {
   readonly resentEventIds: string[] = [];
   /** Every append the log refused, by its reason: a runner defect the emitter would drop silently. */
   readonly refusedAppends: string[] = [];
+  /**
+   * Every output the turn registered, in order, with how many statuses were
+   * persisted when it did: a turn's outputs are registered before its final
+   * write. Their bytes are in `hermeticUploads` under `/<uploadRef>`.
+   */
+  readonly registeredOutputs: Array<{
+    readonly outputPath: string;
+    readonly uploadRef: string;
+    readonly contentSha256: string;
+    readonly persistedBefore: number;
+  }> = [];
+  private mintedOutputs = 0;
   /** The reconcile turn {@link startReconcileTurn} created, once it has; its status is its own. */
   reconcileRun: Run | undefined;
   /** Every status the reconcile turn's runner wrote, in order. */
@@ -767,6 +782,29 @@ export class ExecutionRecord {
         events: this.listSessionEventsPage(query.types, query.order),
         nextPageToken: "",
       })),
+      // The server's output door: links to the fetch stub's upload origin,
+      // and one File per output registered.
+      createOutputUploads: vi.fn(async (_runId: string, entries: ReadonlyArray<{ readonly outputPath: string }>) =>
+        entries.map((entry) => {
+          const uploadRef = `fup_${this.mintedOutputs++}`;
+          return create(OutputUploadSchema, {
+            outputPath: entry.outputPath,
+            uploadRef,
+            url: `${HERMETIC_UPLOAD_ORIGIN}/${uploadRef}`,
+            ttlSeconds: 3600,
+          });
+        }),
+      ),
+      registerOutputs: vi.fn(
+        async (_runId: string, entries: ReadonlyArray<{ readonly outputPath: string; readonly uploadRef: string; readonly contentSha256: string }>) =>
+          entries.map((entry) => {
+            this.registeredOutputs.push({ ...entry, persistedBefore: this.persisted.length });
+            return create(FileSchema, {
+              metadata: { id: `file_${this.registeredOutputs.length}` },
+              status: { runId: this.execution.metadata?.id ?? "", outputPath: entry.outputPath },
+            });
+          }),
+      ),
       // A run whose agent and tools declare nothing: the fetch answers no values.
       fetchExecutionValues: vi.fn(async () => create(ExecutionValuesSchema)),
       getAgentByReference: vi.fn(async (ref: ApiResourceReference) => {

@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { FileSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_file_v1_api } from "./api_pb.js";
-import type { FileDownloadUrlSchema, FileIdSchema, FileListSchema, ListFilesRequestSchema } from "./io_pb.js";
+import type { FileContentSchema, FileDownloadUrlSchema, FileIdSchema, FileListSchema, GetFileContentInputSchema, ListFilesRequestSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_file_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/file/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_file_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvZmlsZS92MS9xdWVyeS5wcm90bxIaYWkuc3RpZ21lci5hZ2VudGljLmZpbGUudjEyiQMKE0ZpbGVRdWVyeUNvbnRyb2xsZXISdgoDZ2V0EiIuYWkuc3RpZ21lci5hZ2VudGljLmZpbGUudjEuRmlsZUlkGiAuYWkuc3RpZ21lci5hZ2VudGljLmZpbGUudjEuRmlsZSIpwrgYJQgBEEkiBXZhbHVlKhh1bmF1dGhvcml6ZWQgdG8gZ2V0IGZpbGUSYAoEbGlzdBIsLmFpLnN0aWdtZXIuYWdlbnRpYy5maWxlLnYxLkxpc3RGaWxlc1JlcXVlc3QaJC5haS5zdGlnbWVyLmFnZW50aWMuZmlsZS52MS5GaWxlTGlzdCIE0LgYARKRAQoOZ2V0RG93bmxvYWRVcmwSIi5haS5zdGlnbWVyLmFnZW50aWMuZmlsZS52MS5GaWxlSWQaKy5haS5zdGlnbWVyLmFnZW50aWMuZmlsZS52MS5GaWxlRG93bmxvYWRVcmwiLsK4GCoIARBJIgV2YWx1ZSoddW5hdXRob3JpemVkIHRvIGRvd25sb2FkIGZpbGUaBKD/K0liBnByb3RvMw", [file_ai_stigmer_agentic_file_v1_api, file_ai_stigmer_agentic_file_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvZmlsZS92MS9xdWVyeS5wcm90bxIaYWkuc3RpZ21lci5hZ2VudGljLmZpbGUudjEymwQKE0ZpbGVRdWVyeUNvbnRyb2xsZXISdgoDZ2V0EiIuYWkuc3RpZ21lci5hZ2VudGljLmZpbGUudjEuRmlsZUlkGiAuYWkuc3RpZ21lci5hZ2VudGljLmZpbGUudjEuRmlsZSIpwrgYJQgBEEkiBXZhbHVlKhh1bmF1dGhvcml6ZWQgdG8gZ2V0IGZpbGUSYAoEbGlzdBIsLmFpLnN0aWdtZXIuYWdlbnRpYy5maWxlLnYxLkxpc3RGaWxlc1JlcXVlc3QaJC5haS5zdGlnbWVyLmFnZW50aWMuZmlsZS52MS5GaWxlTGlzdCIE0LgYARKRAQoOZ2V0RG93bmxvYWRVcmwSIi5haS5zdGlnbWVyLmFnZW50aWMuZmlsZS52MS5GaWxlSWQaKy5haS5zdGlnbWVyLmFnZW50aWMuZmlsZS52MS5GaWxlRG93bmxvYWRVcmwiLsK4GCoIARBJIgV2YWx1ZSoddW5hdXRob3JpemVkIHRvIGRvd25sb2FkIGZpbGUSjwEKCmdldENvbnRlbnQSLy5haS5zdGlnbWVyLmFnZW50aWMuZmlsZS52MS5HZXRGaWxlQ29udGVudElucHV0GicuYWkuc3RpZ21lci5hZ2VudGljLmZpbGUudjEuRmlsZUNvbnRlbnQiJ8K4GCMIARBJIgJpZCoZdW5hdXRob3JpemVkIHRvIHJlYWQgZmlsZRoEoP8rSWIGcHJvdG8z", [file_ai_stigmer_agentic_file_v1_api, file_ai_stigmer_agentic_file_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * FileQueryController handles read operations for Files.
@@ -54,6 +54,17 @@ export const FileQueryController: GenService<{
     methodKind: "unary";
     input: typeof FileIdSchema;
     output: typeof FileDownloadUrlSchema;
+  },
+  /**
+   * The start of a File's bytes, read through the server: at most 512 KB,
+   * enough to show a text File without a download.
+   *
+   * @generated from rpc ai.stigmer.agentic.file.v1.FileQueryController.getContent
+   */
+  getContent: {
+    methodKind: "unary";
+    input: typeof GetFileContentInputSchema;
+    output: typeof FileContentSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_file_v1_query, 0);

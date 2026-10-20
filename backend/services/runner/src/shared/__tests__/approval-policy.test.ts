@@ -433,8 +433,8 @@ describe("toProtoPolicySource", () => {
 });
 
 describe("POLICY_ENGINE_VERSION", () => {
-  it("is hooks-2: a file edit flows unasked when the turn's file review is off", () => {
-    expect(POLICY_ENGINE_VERSION).toBe("hooks-2");
+  it("is hooks-3: a write inside the outputs folder flows unasked wherever a workspace edit would", () => {
+    expect(POLICY_ENGINE_VERSION).toBe("hooks-3");
   });
 });
 

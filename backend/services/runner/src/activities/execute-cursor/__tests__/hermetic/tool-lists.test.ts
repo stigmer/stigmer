@@ -36,7 +36,7 @@
  * `session-lifecycle.test.ts`.
  */
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
@@ -326,7 +326,7 @@ describe("ExecuteCursor hermetic — tool lists", () => {
   });
 
   for (const hidden of [true, false]) {
-    it(`Skill ${hidden ? "denied by the turn: no skills sent, and the hook refuses a read of a mounted skill" : "not denied: the skill is sent and its read passes"}`, async () => {
+    it(`Skill ${hidden ? "denied by the turn: no skills sent, and an earlier turn's skill is gone before the engine runs" : "not denied: the skill is sent and its read passes"}`, async () => {
       // What an earlier turn of the session mounted.
       const skillDir = join(getPlatformDir(FIXTURE.sessionId), "skills", "alpha");
       mkdirSync(skillDir, { recursive: true });
@@ -335,6 +335,7 @@ describe("ExecuteCursor hermetic — tool lists", () => {
       const runId = `run-skill-${hidden}`;
       const evs = sdkEvents(agentId, runId);
       const decisions: string[] = [];
+      const onDisk: boolean[] = [];
       const agent = new ScriptedCursorAgent({
         agentId,
         runIds: [runId],
@@ -345,6 +346,7 @@ describe("ExecuteCursor hermetic — tool lists", () => {
             // By its platform path: a turn that mounts no skill makes no
             // `.stigmer` link, and the file is still on disk.
             step.effect("hook: the skill's read", () => {
+              onDisk.push(existsSync(join(skillDir, "SKILL.md")));
               decisions.push(runWorkspaceHook(sessionWorkspaceDir(env), hookBuiltin("Read", { file_path: join(skillDir, "SKILL.md") })).permission);
             }),
             step.event(evs.assistant(ANSWER)),
@@ -364,7 +366,12 @@ describe("ExecuteCursor hermetic — tool lists", () => {
       expect(phase).toBe("RUN_COMPLETED");
       expect(agent.sends).toHaveLength(1);
       expect(String(agent.sends[0]!.message).includes("<available_skills>")).toBe(!hidden);
-      expect(decisions).toEqual([hidden ? "deny" : "allow"]);
+      // A turn holds the platform folder to its own skills
+      // (`shared/platform-hold.ts`): one that resolves none leaves none on
+      // disk. The hook's own refusal of a hidden skill's read, for one that
+      // is on disk, is pinned in `hook-script.test.ts`.
+      expect(onDisk).toEqual([!hidden]);
+      if (!hidden) expect(decisions).toEqual(["allow"]);
     });
   }
 

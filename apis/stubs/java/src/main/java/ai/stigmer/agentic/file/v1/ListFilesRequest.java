@@ -35,6 +35,7 @@ private static final long serialVersionUID = 0L;
     org_ = "";
     sessionId_ = "";
     pageToken_ = "";
+    runId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -331,6 +332,55 @@ java.lang.String defaultValue) {
     return map.get(key);
   }
 
+  public static final int RUN_ID_FIELD_NUMBER = 6;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object runId_ = "";
+  /**
+   * <pre>
+   * Only the Files this run wrote: the files one turn saved in its outputs
+   * folder. Empty lists Files written by any run or uploaded.
+   * </pre>
+   *
+   * <code>string run_id = 6 [json_name = "runId"];</code>
+   * @return The runId.
+   */
+  @java.lang.Override
+  public java.lang.String getRunId() {
+    java.lang.Object ref = runId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      runId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Only the Files this run wrote: the files one turn saved in its outputs
+   * folder. Empty lists Files written by any run or uploaded.
+   * </pre>
+   *
+   * <code>string run_id = 6 [json_name = "runId"];</code>
+   * @return The bytes for runId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getRunIdBytes() {
+    java.lang.Object ref = runId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      runId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -363,6 +413,9 @@ java.lang.String defaultValue) {
         internalGetLabels(),
         LabelsDefaultEntryHolder.defaultEntry,
         5);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 6, runId_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -395,6 +448,9 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(5, labels__);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(6, runId_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -420,6 +476,8 @@ java.lang.String defaultValue) {
         .equals(other.getPageToken())) return false;
     if (!internalGetLabels().equals(
         other.internalGetLabels())) return false;
+    if (!getRunId()
+        .equals(other.getRunId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -443,6 +501,8 @@ java.lang.String defaultValue) {
       hash = (37 * hash) + LABELS_FIELD_NUMBER;
       hash = (53 * hash) + internalGetLabels().hashCode();
     }
+    hash = (37 * hash) + RUN_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getRunId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -605,6 +665,7 @@ java.lang.String defaultValue) {
       pageSize_ = 0;
       pageToken_ = "";
       internalGetMutableLabels().clear();
+      runId_ = "";
       return this;
     }
 
@@ -654,6 +715,9 @@ java.lang.String defaultValue) {
         result.labels_ = internalGetLabels();
         result.labels_.makeImmutable();
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.runId_ = runId_;
+      }
     }
 
     @java.lang.Override
@@ -689,6 +753,11 @@ java.lang.String defaultValue) {
       internalGetMutableLabels().mergeFrom(
           other.internalGetLabels());
       bitField0_ |= 0x00000010;
+      if (!other.getRunId().isEmpty()) {
+        runId_ = other.runId_;
+        bitField0_ |= 0x00000020;
+        onChanged();
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -744,6 +813,11 @@ java.lang.String defaultValue) {
               bitField0_ |= 0x00000010;
               break;
             } // case 42
+            case 50: {
+              runId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 50
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1260,6 +1334,103 @@ java.lang.String defaultValue) {
       internalGetMutableLabels().getMutableMap()
           .putAll(values);
       bitField0_ |= 0x00000010;
+      return this;
+    }
+
+    private java.lang.Object runId_ = "";
+    /**
+     * <pre>
+     * Only the Files this run wrote: the files one turn saved in its outputs
+     * folder. Empty lists Files written by any run or uploaded.
+     * </pre>
+     *
+     * <code>string run_id = 6 [json_name = "runId"];</code>
+     * @return The runId.
+     */
+    public java.lang.String getRunId() {
+      java.lang.Object ref = runId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        runId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Only the Files this run wrote: the files one turn saved in its outputs
+     * folder. Empty lists Files written by any run or uploaded.
+     * </pre>
+     *
+     * <code>string run_id = 6 [json_name = "runId"];</code>
+     * @return The bytes for runId.
+     */
+    public com.google.protobuf.ByteString
+        getRunIdBytes() {
+      java.lang.Object ref = runId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        runId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Only the Files this run wrote: the files one turn saved in its outputs
+     * folder. Empty lists Files written by any run or uploaded.
+     * </pre>
+     *
+     * <code>string run_id = 6 [json_name = "runId"];</code>
+     * @param value The runId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRunId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      runId_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Only the Files this run wrote: the files one turn saved in its outputs
+     * folder. Empty lists Files written by any run or uploaded.
+     * </pre>
+     *
+     * <code>string run_id = 6 [json_name = "runId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearRunId() {
+      runId_ = getDefaultInstance().getRunId();
+      bitField0_ = (bitField0_ & ~0x00000020);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Only the Files this run wrote: the files one turn saved in its outputs
+     * folder. Empty lists Files written by any run or uploaded.
+     * </pre>
+     *
+     * <code>string run_id = 6 [json_name = "runId"];</code>
+     * @param value The bytes for runId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRunIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      runId_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
       return this;
     }
 

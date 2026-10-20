@@ -1,5 +1,5 @@
 /**
- * FileMountController.mount: a runner asks, once per turn, for the Files
+ * RunFileController.mount: a runner asks, once per turn, for the Files
  * its run's conversation holds, each with where the agent finds it under
  * .stigmer/uploads/ and a link to its bytes signed for the runner, valid
  * for an hour.
@@ -17,17 +17,16 @@
  * original's later access says nothing here; who may read a link is the
  * runner that asked.
  *
- * A service of its own beside the File's commands and queries: the one
- * surface that answers capability links to a runner is this file.
+ * The service is registered with its outbound half in run-files.ts.
  *
  * Proven by __tests__/mount.test.ts.
  */
-import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
+import type { HandlerContext } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
-import { FileMountController, FileMountSchema, RunFileMountsSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/mount_pb";
-import type { FileMount, MountRunFilesInput, RunFileMounts } from "@stigmer/apis/ai/stigmer/agentic/file/v1/mount_pb";
+import { FileMountSchema, RunFileMountsSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
+import type { FileMount, MountRunFilesInput, RunFileMounts } from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
@@ -57,13 +56,6 @@ export interface FileMountDeps {
   readonly logger: Logger;
   readonly runnerAuth: RunnerCredentialProvider;
   readonly blobs: FileBlobs;
-}
-
-/** Registers the runner's File mount service (routes stage). */
-export function registerFileMountService(router: ConnectRouter, deps: FileMountDeps): void {
-  router.service(FileMountController, {
-    mount: (input, ctx) => mountRunFiles(deps, input, ctx),
-  });
 }
 
 export async function mountRunFiles(

@@ -6,6 +6,12 @@ see the conversation; any other File is private to its uploader until shared.
 Files are uploaded through the API, not written as YAML: inline for a small
 file, or through a short-lived upload URL for one up to 500 MB.
 
+An agent returns a File by saving it in its outputs folder, `.stigmer/outputs/`:
+when the turn ends, everything new or changed there becomes a File of the
+conversation, written by that turn, with `output_path` saying where it was
+saved, so two files of one name in two folders are two Files. Files the agent
+edits in the workspace are not returned this way.
+
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: File

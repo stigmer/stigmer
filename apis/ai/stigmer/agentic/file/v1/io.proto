@@ -130,6 +130,10 @@ message ListFilesRequest {
   // selective filter may answer short pages, even empty ones, that still
   // carry a token.
   map<string, string> labels = 5;
+
+  // Only the Files this run wrote: the files one turn saved in its outputs
+  // folder. Empty lists Files written by any run or uploaded.
+  string run_id = 6;
 }
 
 // One page of an organization's Files.
@@ -150,4 +154,24 @@ message FileDownloadUrl {
 
   // When the link stops working.
   google.protobuf.Timestamp expires_at = 2;
+}
+
+// Input for reading a File's bytes through the server.
+message GetFileContentInput {
+  // The File's id.
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The most bytes to return: 0 asks for the default of 512 KB, and a value
+  // above 512 KB is read as 512 KB. A larger File is read through its
+  // download link.
+  int64 max_bytes = 2 [(buf.validate.field).int64.gte = 0];
+}
+
+// The start of a File's bytes.
+message FileContent {
+  // The File's first bytes, at most the request's max_bytes.
+  bytes data = 1;
+
+  // Whether the File holds more bytes than data carries.
+  bool truncated = 2;
 }

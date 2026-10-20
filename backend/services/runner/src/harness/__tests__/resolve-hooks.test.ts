@@ -172,7 +172,7 @@ describe("resolveHooks", () => {
 
   it("resolves nothing, and reports nothing, for a turn without hooks", async () => {
     const { r, labels } = await run(blueprintWith([plugin("quiet", { hooks: false })]));
-    expect(r).toEqual({ kind: "ready", hooks: { sources: [], serverNames: new Map() } });
+    expect(r).toEqual({ kind: "ready", hooks: { sources: [], serverNames: new Map() }, mounts: { skills: [], plugins: [] } });
     expect(labels).toEqual([]);
   });
 
@@ -183,6 +183,7 @@ describe("resolveHooks", () => {
     expect(r.hooks.sources.map((s) => s.plugin?.slug ?? "own")).toEqual(["safety", "audit", "own"]);
     expect(r.hooks.sources[0]!.plugin?.root).toContain(DIGEST);
     expect(r.hooks.sources[0]!.plugin?.id, "the id a plugin's hook values are grouped by").toBe("plg_safety");
+    expect(r.mounts, "the trees it mounted, which the platform folder keeps").toEqual({ skills: [], plugins: [DIGEST, DIGEST] });
     expect(labels).toEqual(["Resolving hooks"]);
   });
 

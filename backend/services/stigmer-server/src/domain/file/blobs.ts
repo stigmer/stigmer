@@ -100,6 +100,8 @@ export interface FileBlobs {
   removeFile(fileId: string): Promise<void>;
   /** A person's download link to a File's bytes, saved under `filename`. */
   downloadUrl(fileId: string, filename: string): Promise<FileDownloadLink>;
+  /** A File's first `maxBytes` bytes, read through the server without loading the rest. */
+  readHead(fileId: string, maxBytes: number): Promise<Uint8Array>;
   /** A runner's link to a File's bytes, for its mount; undefined when the File has no stored bytes. */
   mountUrl(fileId: string): Promise<string | undefined>;
   /** Deletes a bounded batch of expired staged and orphaned blobs; returns how many went. */
@@ -344,6 +346,27 @@ export function newFileBlobs(deps: FileBlobsDeps): FileBlobs {
         return { url, expiresAtMs };
       } catch (error) {
         throw internalError(error, "failed to sign a download link");
+      }
+    },
+
+    async readHead(fileId, maxBytes) {
+      let blobKey: string | undefined;
+      try {
+        blobKey = await store.files.blobKeyOf(fileId);
+      } catch (error) {
+        throw internalError(error, "failed to read the file's storage");
+      }
+      if (blobKey === undefined) {
+        throw internalError(new Error(`file ${fileId} names no stored blob`), "the file's bytes are missing");
+      }
+      try {
+        if (storage.readRange !== undefined) {
+          return await storage.readRange(blobKey, 0, maxBytes);
+        }
+        // A registered driver without ranged reads: the whole blob, cut.
+        return (await storage.download(blobKey)).slice(0, maxBytes);
+      } catch (error) {
+        throw internalError(error, "failed to read the file");
       }
     },
 

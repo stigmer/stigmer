@@ -232,6 +232,7 @@ export type PolicySource =
   | "builtin_category"               // the default asked: a built-in of an approval category
   | "file_capture"                   // Capture mode: a git-tracked built-in file edit flows, reviewed post-hoc via the file_review ledger (not gated; audit-only on the shadow receipt)
   | "file_review_off"                // File review is off for the turn: a built-in file edit flows and is not reviewed (not gated; audit-only on the shadow receipt)
+  | "outputs"                        // A built-in write or delete inside the outputs folder flows where a workspace edit would flow unasked, and is not reviewed: it comes back as a File (not gated; audit-only on the shadow receipt)
   | "annotation_destructive_tighten" // the default asked: an MCP tool its server marks destructive
   | "unattended_skip"                // unattended approval mode auto-skipped this gated call (no approver on the creating surface)
   | "hook";                          // a hook decided this call: it refused it, asked first, or let it run
@@ -245,9 +246,11 @@ export type PolicySource =
  * server's destructive annotation. "hooks-1" is the first in which an
  * agent's hooks answer before the default. "hooks-2" is the first in which a
  * built-in file write or delete flows unasked when the turn's file review is
- * off (stigmer#1471).
+ * off (stigmer#1471). "hooks-3" is the first in which a built-in write or
+ * delete inside the outputs folder (`.stigmer/outputs/`) flows unasked and
+ * unreviewed wherever a workspace edit would flow unasked.
  */
-export const POLICY_ENGINE_VERSION = "hooks-2";
+export const POLICY_ENGINE_VERSION = "hooks-3";
 
 /**
  * Map the runner-internal {@link PolicySource} to the persisted proto
@@ -273,6 +276,7 @@ export function toProtoPolicySource(source: PolicySource | undefined): ApprovalP
       return ApprovalPolicySource.HOOK;
     case "file_capture":
     case "file_review_off":
+    case "outputs":
       // A flowing file edit is never persisted on a gated tool call (the file
       // tool is not gated — it has no WAITING_APPROVAL row); its source exists
       // only on the audit receipt. Map to UNSPECIFIED for the proto-persisted field.

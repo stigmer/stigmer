@@ -40,7 +40,7 @@
           "argsPreview": "{\"command\":\"echo hermetic-b\"}",
           "toolKind": "TOOL_KIND_SHELL",
           "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
-          "policyEngineVersion": "hooks-2"
+          "policyEngineVersion": "hooks-3"
         }
       ]
     }

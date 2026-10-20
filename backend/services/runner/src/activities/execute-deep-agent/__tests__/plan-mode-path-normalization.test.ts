@@ -348,6 +348,22 @@ describe("plan-mode workspace read boundary (issue #528)", () => {
     expect(toolResultById(result.messages, "c_write_in")).toMatch(/permission denied for write/i);
     await expect(access(join(root, "src/out.txt"))).rejects.toThrow();
   });
+
+  it("the outputs folder is denied too: plan mode writes nowhere, the platform's writable corner included", async () => {
+    await mkdir(join(platform, "outputs"), { recursive: true });
+    const result = await invokeOnce(
+      () => ({
+        toolCalls: [
+          { name: "write_file", args: { file_path: "/.stigmer/outputs/report.md", content: "x" }, id: "c_write_out" },
+        ],
+        done: "done",
+      }),
+      "t_write_out",
+    );
+
+    expect(toolResultById(result.messages, "c_write_out")).toMatch(/permission denied for write/i);
+    await expect(access(join(platform, "outputs/report.md"))).rejects.toThrow();
+  });
 });
 
 describe("plan-mode boundary with a glob-special workspace root (issues #528/#754)", () => {

@@ -17,7 +17,7 @@
  */
 
 import { execFile } from "node:child_process";
-import { mkdtemp, mkdir, readFile, rm, writeFile, stat } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, symlink, writeFile, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -254,6 +254,26 @@ describe("hard invariants", () => {
     await restoreToBaseline(repo, baseline, changes);
     // The SDK state is untouched by restore (it was never in the change set).
     expect(await read(".stigmer/cursor-sdk-state/db.sqlite")).toBe("STATE2");
+  });
+
+  it("leaves the platform's .stigmer link out of every tree, in a folder with no git exclude for it", async () => {
+    await rm(join(repo, ".stigmer"), { recursive: true, force: true });
+    await write(".git/info/exclude", "");
+    await write(".gitignore", ".env\n");
+    await git(["add", ".gitignore"]);
+    await git(["commit", "-q", "-m", "no .stigmer ignore"]);
+    const platform = await mkdtemp(join(tmpdir(), "stigmer-substrate-platform-"));
+    try {
+      await symlink(platform, join(repo, ".stigmer"));
+      const baseline = await snapshotBaseline(repo, EXEC_ID);
+      expect(await git(["ls-tree", "--name-only", baseline]), "not in the baseline").not.toContain(".stigmer");
+      await write("notes.md", "planton\n");
+      const { afterTree, changes } = await captureChangeSet(repo, EXEC_ID, baseline);
+      expect(await git(["ls-tree", "--name-only", afterTree]), "not in the candidate").not.toContain(".stigmer");
+      expect(changes.map((c) => c.path)).toEqual(["notes.md"]);
+    } finally {
+      await rm(platform, { recursive: true, force: true });
+    }
   });
 
   it("excludes the passed runner-owned paths from the captured diff", async () => {

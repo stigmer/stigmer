@@ -1,0 +1,178 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.file.v1;
+
+import "ai/stigmer/agentic/file/v1/api.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+import "buf/validate/validate.proto";
+
+// RunFileController is a runner's one door to Files: it hands a turn the
+// Files its conversation holds, and takes back the files the agent saved in
+// its outputs folder as Files of that conversation. Every link it answers is
+// short-lived and minted by the server; nothing else answers a File's bytes
+// to a runner or takes a runner's file.
+//
+// @internal
+// A service of its own, apart from the File's commands and queries, so the
+// one surface that answers capability links to a runner is one file to
+// audit, and no SDK carries a runner-only method beside a person's. The
+// authority is the runner credential the server minted for the run, not a
+// permission: a runner acts as the person who owns the run, so a
+// permission cannot tell it from that person.
+service RunFileController {
+  // The Files a run's conversation holds (SessionSpec.resources), each with
+  // where the agent finds it under .stigmer/uploads/ and a link to its
+  // bytes, valid for an hour.
+  //
+  // @internal
+  // Runner-only. Skip-authorization with a handler-level gate: the bearer
+  // must be the runner credential acting for this run, and the run must not
+  // be finished (RunnerCredentialProvider.authorizeRunnerForRun, the
+  // decision the session event log's append asks). Every other caller is
+  // refused with PERMISSION_DENIED. A File the conversation no longer holds
+  // as its own is left out; each link is signed for the runner's reader.
+  rpc mount(MountRunFilesInput) returns (RunFileMounts) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // One upload link per file the turn saved in .stigmer/outputs/ and
+  // changed since it was last returned, each valid for an hour. The runner
+  // puts each file's bytes to its link, then registers them.
+  //
+  // @internal
+  // Runner-only, gated as mount is, with one exception: a run a person
+  // stopped (RUN_CANCELLED with stop_cause "user") is admitted for two
+  // minutes after it finished, because the stop is recorded before the
+  // runner settles and collects what the agent saved before it. Each slot is
+  // a staged upload of the run's organization, sized by the runner and held
+  // to FILE_MAX_BYTES when it is minted.
+  rpc createOutputUploads(CreateOutputUploadsInput) returns (OutputUploads) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Makes each uploaded output a File of the run's conversation: written by
+  // the run, owned by the person who started it, named by its filename,
+  // with where it was saved in output_path.
+  //
+  // @internal
+  // Runner-only, gated as createOutputUploads is, a stopped run admitted
+  // with no window (its references were minted inside it and expire with
+  // their links). Each File's id is derived from the run, the output's path
+  // and its content's hash, so a retried registration answers the File it
+  // already made instead of promoting a spent reference again.
+  rpc registerOutputs(RegisterOutputsInput) returns (RegisteredOutputs) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+}
+
+// Which run's Files to mount.
+message MountRunFilesInput {
+  // The run's id.
+  string run_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// RunFileMounts are the Files a run's conversation holds, ready to mount.
+message RunFileMounts {
+  // One per File the conversation holds, in its resources' order.
+  repeated FileMount entries = 1;
+}
+
+// FileMount is one File to place under .stigmer/uploads/.
+message FileMount {
+  // The File's id.
+  string file_id = 1;
+
+  // Where the agent finds it, relative to .stigmer/uploads/.
+  string mount_path = 2;
+
+  // The File's name and type.
+  string filename = 3;
+  string mime_type = 4;
+
+  // Its size, so the runner checks what it downloaded.
+  int64 size_bytes = 5;
+
+  // A link to its bytes, valid for an hour.
+  string url = 6;
+}
+
+// The files a turn saved in its outputs folder, to upload.
+message CreateOutputUploadsInput {
+  // The run's id.
+  string run_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // One per output to upload, at most 500 a turn.
+  repeated OutputUploadRequest entries = 2 [
+    (buf.validate.field).repeated.min_items = 1,
+    (buf.validate.field).repeated.max_items = 500
+  ];
+}
+
+// OutputUploadRequest names one output and its size.
+message OutputUploadRequest {
+  // Where the agent saved it, relative to .stigmer/outputs/ (see
+  // FileStatus.output_path for the rule the server holds it to).
+  string output_path = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 1024
+  ];
+
+  // Its size in bytes; the upload must match it. An empty file carries
+  // nothing and is not returned.
+  int64 size_bytes = 2 [(buf.validate.field).int64.gt = 0];
+}
+
+// OutputUploads are the upload links for one turn's outputs.
+message OutputUploads {
+  // One per requested output, in the request's order.
+  repeated OutputUpload entries = 1;
+}
+
+// OutputUpload is where to put one output's bytes.
+message OutputUpload {
+  // The output it is for, as requested.
+  string output_path = 1;
+
+  // What registerOutputs names the uploaded bytes by.
+  string upload_ref = 2;
+
+  // Where to PUT the bytes, valid for ttl_seconds.
+  string url = 3;
+
+  // How long the link is valid.
+  int32 ttl_seconds = 4;
+}
+
+// The uploaded outputs of a turn, to make Files of.
+message RegisterOutputsInput {
+  // The run's id.
+  string run_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // One per uploaded output, at most 500 a turn.
+  repeated OutputToRegister entries = 2 [
+    (buf.validate.field).repeated.min_items = 1,
+    (buf.validate.field).repeated.max_items = 500
+  ];
+}
+
+// OutputToRegister is one uploaded output.
+message OutputToRegister {
+  // Where the agent saved it, relative to .stigmer/outputs/.
+  string output_path = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 1024
+  ];
+
+  // The reference createOutputUploads answered for it.
+  string upload_ref = 2 [(buf.validate.field).string.min_len = 1];
+
+  // The SHA-256 of its bytes, lowercase hex: the runner's word, used only to
+  // derive the File's id, never stored.
+  string content_sha256 = 3 [(buf.validate.field).string.pattern = "^[0-9a-f]{64}$"];
+}
+
+// RegisteredOutputs are the Files a turn's outputs became.
+message RegisteredOutputs {
+  // One per registered output, in the request's order.
+  repeated File files = 1;
+}

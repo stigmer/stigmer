@@ -36,7 +36,7 @@ import { SessionSchema, type Session } from "@stigmer/apis/ai/stigmer/agentic/se
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import { FileResourceSchema, SessionResourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { ContentBlockSchema, ContentSourceSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
-import { FileMountSchema, type FileMount } from "@stigmer/apis/ai/stigmer/agentic/file/v1/mount_pb";
+import { FileMountSchema, type FileMount } from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
 
 vi.mock("../../shared/model-registry.js", () => ({
   getDefaultModel: vi.fn(async () => "registry-default-model"),

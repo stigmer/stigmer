@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/file/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_file_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiNhaS9zdGlnbWVyL2FnZW50aWMvZmlsZS92MS9pby5wcm90bxIaYWkuc3RpZ21lci5hZ2VudGljLmZpbGUudjEiHwoGRmlsZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi+wIKD1VwbG9hZEZpbGVJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESEgoKc2Vzc2lvbl9pZBgCIAEoCRKYAQoIZmlsZW5hbWUYAyABKAlChQG6SIEBugFfCiJ1cGxvYWRfZmlsZV9pbnB1dC5maWxlbmFtZS5ub3RfZG90EhxmaWxlbmFtZSBtdXN0IG5vdCBiZSAuIG9yIC4uGht0aGlzICE9ICcuJyAmJiB0aGlzICE9ICcuLidyHRABGP8BMhZeW14vXFxceDAwLVx4MWZceDdmXSskEmMKCW1pbWVfdHlwZRgEIAEoCUJQukhNcksY/wEyRl4kfF5bQS1aYS16MC05XVtBLVphLXowLTkhIyQmXl8uKy1dKi9bQS1aYS16MC05XVtBLVphLXowLTkhIyQmXl8uKy1dKiQSDgoEZGF0YRgFIAEoDEgAEh0KCnVwbG9hZF9yZWYYBiABKAlCB7pIBHICEAFIAEIPCgZzb3VyY2USBbpIAggBImEKGENyZWF0ZUZpbGVVcGxvYWRVcmxJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESEgoKc2Vzc2lvbl9pZBgCIAEoCRIbCgpzaXplX2J5dGVzGAMgASgDQge6SAQiAiAAIkUKDUZpbGVVcGxvYWRVcmwSCwoDdXJsGAEgASgJEhIKCnVwbG9hZF9yZWYYAiABKAkSEwoLdHRsX3NlY29uZHMYAyABKAUixQIKD1VwZGF0ZUZpbGVJbnB1dBI6CghyZXNvdXJjZRgBIAEoCzIgLmFpLnN0aWdtZXIuYWdlbnRpYy5maWxlLnYxLkZpbGVCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATq8AbpIuAEatQEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EkRyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBmaWxlIGJ5IGl0cyBpZBpUaGFzKHRoaXMucmVzb3VyY2UpICYmIGhhcyh0aGlzLnJlc291cmNlLm1ldGFkYXRhKSAmJiB0aGlzLnJlc291cmNlLm1ldGFkYXRhLmlkICE9ICcnIu8BChBMaXN0RmlsZXNSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARISCgpzZXNzaW9uX2lkGAIgASgJEhoKCXBhZ2Vfc2l6ZRgDIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAQgASgJQgi6SAVyAxiACBJICgZsYWJlbHMYBSADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuZmlsZS52MS5MaXN0RmlsZXNSZXF1ZXN0LkxhYmVsc0VudHJ5Gi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiVgoIRmlsZUxpc3QSMQoHZW50cmllcxgBIAMoCzIgLmFpLnN0aWdtZXIuYWdlbnRpYy5maWxlLnYxLkZpbGUSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIk4KD0ZpbGVEb3dubG9hZFVybBILCgN1cmwYASABKAkSLgoKZXhwaXJlc19hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBiBnByb3RvMw", [file_ai_stigmer_agentic_file_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask, file_google_protobuf_timestamp]);
+  fileDesc("CiNhaS9zdGlnbWVyL2FnZW50aWMvZmlsZS92MS9pby5wcm90bxIaYWkuc3RpZ21lci5hZ2VudGljLmZpbGUudjEiHwoGRmlsZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEi+wIKD1VwbG9hZEZpbGVJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESEgoKc2Vzc2lvbl9pZBgCIAEoCRKYAQoIZmlsZW5hbWUYAyABKAlChQG6SIEBugFfCiJ1cGxvYWRfZmlsZV9pbnB1dC5maWxlbmFtZS5ub3RfZG90EhxmaWxlbmFtZSBtdXN0IG5vdCBiZSAuIG9yIC4uGht0aGlzICE9ICcuJyAmJiB0aGlzICE9ICcuLidyHRABGP8BMhZeW14vXFxceDAwLVx4MWZceDdmXSskEmMKCW1pbWVfdHlwZRgEIAEoCUJQukhNcksY/wEyRl4kfF5bQS1aYS16MC05XVtBLVphLXowLTkhIyQmXl8uKy1dKi9bQS1aYS16MC05XVtBLVphLXowLTkhIyQmXl8uKy1dKiQSDgoEZGF0YRgFIAEoDEgAEh0KCnVwbG9hZF9yZWYYBiABKAlCB7pIBHICEAFIAEIPCgZzb3VyY2USBbpIAggBImEKGENyZWF0ZUZpbGVVcGxvYWRVcmxJbnB1dBIUCgNvcmcYASABKAlCB7pIBHICEAESEgoKc2Vzc2lvbl9pZBgCIAEoCRIbCgpzaXplX2J5dGVzGAMgASgDQge6SAQiAiAAIkUKDUZpbGVVcGxvYWRVcmwSCwoDdXJsGAEgASgJEhIKCnVwbG9hZF9yZWYYAiABKAkSEwoLdHRsX3NlY29uZHMYAyABKAUixQIKD1VwZGF0ZUZpbGVJbnB1dBI6CghyZXNvdXJjZRgBIAEoCzIgLmFpLnN0aWdtZXIuYWdlbnRpYy5maWxlLnYxLkZpbGVCBrpIA9gBAxI3Cgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2tCBrpIA8gBATq8AbpIuAEatQEKF3VwZGF0ZV9uYW1lc19pdHNfdGFyZ2V0EkRyZXNvdXJjZS5tZXRhZGF0YS5pZCBpcyByZXF1aXJlZDogYW4gdXBkYXRlIG5hbWVzIHRoZSBmaWxlIGJ5IGl0cyBpZBpUaGFzKHRoaXMucmVzb3VyY2UpICYmIGhhcyh0aGlzLnJlc291cmNlLm1ldGFkYXRhKSAmJiB0aGlzLnJlc291cmNlLm1ldGFkYXRhLmlkICE9ICcnIv8BChBMaXN0RmlsZXNSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARISCgpzZXNzaW9uX2lkGAIgASgJEhoKCXBhZ2Vfc2l6ZRgDIAEoBUIHukgEGgIoABIcCgpwYWdlX3Rva2VuGAQgASgJQgi6SAVyAxiACBJICgZsYWJlbHMYBSADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuZmlsZS52MS5MaXN0RmlsZXNSZXF1ZXN0LkxhYmVsc0VudHJ5Eg4KBnJ1bl9pZBgGIAEoCRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlYKCEZpbGVMaXN0EjEKB2VudHJpZXMYASADKAsyIC5haS5zdGlnbWVyLmFnZW50aWMuZmlsZS52MS5GaWxlEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSJOCg9GaWxlRG93bmxvYWRVcmwSCwoDdXJsGAEgASgJEi4KCmV4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIkYKE0dldEZpbGVDb250ZW50SW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESGgoJbWF4X2J5dGVzGAIgASgDQge6SAQiAigAIi4KC0ZpbGVDb250ZW50EgwKBGRhdGEYASABKAwSEQoJdHJ1bmNhdGVkGAIgASgIYgZwcm90bzM", [file_ai_stigmer_agentic_file_v1_api, file_buf_validate_validate, file_google_protobuf_field_mask, file_google_protobuf_timestamp]);
 
 /**
  * FileId wraps a File identifier.
@@ -265,6 +265,14 @@ export type ListFilesRequest = Message<"ai.stigmer.agentic.file.v1.ListFilesRequ
    * @generated from field: map<string, string> labels = 5;
    */
   labels: { [key: string]: string };
+
+  /**
+   * Only the Files this run wrote: the files one turn saved in its outputs
+   * folder. Empty lists Files written by any run or uploaded.
+   *
+   * @generated from field: string run_id = 6;
+   */
+  runId: string;
 };
 
 /**
@@ -331,4 +339,62 @@ export type FileDownloadUrl = Message<"ai.stigmer.agentic.file.v1.FileDownloadUr
  */
 export const FileDownloadUrlSchema: GenMessage<FileDownloadUrl> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_file_v1_io, 7);
+
+/**
+ * Input for reading a File's bytes through the server.
+ *
+ * @generated from message ai.stigmer.agentic.file.v1.GetFileContentInput
+ */
+export type GetFileContentInput = Message<"ai.stigmer.agentic.file.v1.GetFileContentInput"> & {
+  /**
+   * The File's id.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * The most bytes to return: 0 asks for the default of 512 KB, and a value
+   * above 512 KB is read as 512 KB. A larger File is read through its
+   * download link.
+   *
+   * @generated from field: int64 max_bytes = 2;
+   */
+  maxBytes: bigint;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.file.v1.GetFileContentInput.
+ * Use `create(GetFileContentInputSchema)` to create a new message.
+ */
+export const GetFileContentInputSchema: GenMessage<GetFileContentInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_file_v1_io, 8);
+
+/**
+ * The start of a File's bytes.
+ *
+ * @generated from message ai.stigmer.agentic.file.v1.FileContent
+ */
+export type FileContent = Message<"ai.stigmer.agentic.file.v1.FileContent"> & {
+  /**
+   * The File's first bytes, at most the request's max_bytes.
+   *
+   * @generated from field: bytes data = 1;
+   */
+  data: Uint8Array;
+
+  /**
+   * Whether the File holds more bytes than data carries.
+   *
+   * @generated from field: bool truncated = 2;
+   */
+  truncated: boolean;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.file.v1.FileContent.
+ * Use `create(FileContentSchema)` to create a new message.
+ */
+export const FileContentSchema: GenMessage<FileContent> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_file_v1_io, 9);
 
