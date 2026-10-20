@@ -104,6 +104,13 @@ export const VALUES_FETCHED_PATCH_ID = "values-fetched-from-vaults";
 export const CLOSE_FILE_REVIEW_PATCH_ID = "close-file-review";
 
 /**
+ * The workflow patch behind which a run's recoveries are counted within a
+ * sliding hour of workflow time rather than over its whole life: a run
+ * recovered before it keeps the lifetime count on replay. Byte-pinned.
+ */
+export const RECOVERY_WINDOW_PATCH_ID = "recovery-window";
+
+/**
  * The count of a turn's open gates, read from its session's log
  * (store/session-events.ts `openGates`): the workflow's HITL wait reads it
  * in place of the run's pending approvals. Byte-pinned.

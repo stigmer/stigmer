@@ -22,6 +22,7 @@ import type { HarnessRow } from "./harness/registry.js";
 import {
   DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
   DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,
+  DEFAULT_DRAIN_GRACE_MS,
   DEFAULT_OPEN_OPERATION_MAX_MS,
   DEFAULT_SHELL_TIMEOUT_MAX_SECONDS,
   DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
@@ -109,6 +110,13 @@ export interface StigmerRunnerOptions {
   /** Max wait for the per-workspace turn lock (ms). @default 900000 */
   readonly workspaceLockTimeoutMs?: number;
 
+  /**
+   * How long `shutdown()` waits for in-flight turns to reach a step boundary
+   * before they are stopped (ms); either way a turn continues on the next
+   * runner. Set it under the host's own termination grace. @default 25000
+   */
+  readonly drainGraceMs?: number;
+
   /** Checkpointer type for LangGraph agent state. @default "sqlite" (or "http" if proxyEndpoint is set) */
   readonly checkpointerType?: "memory" | "http" | "sqlite";
 
@@ -146,7 +154,12 @@ export interface StigmerRunner {
   /** Start polling for tasks. Blocks until the worker is shut down. */
   start(): Promise<void>;
 
-  /** Signal graceful shutdown — drains in-flight activities then stops. */
+  /**
+   * Signal graceful shutdown: in-flight turns yield at their next step
+   * boundary within the drain grace (`drainGraceMs`) and continue on the
+   * next runner, then the worker stops. A second call stops every in-flight
+   * turn at once (they continue too); a host calls it on a second signal.
+   */
   shutdown(): void;
 }
 
@@ -374,7 +387,7 @@ async function buildStigmerRunner(
   // worker shutdown, not a user pause (issue #776). Static mode historically
   // never registered one, leaving CLI daemons with the same misclassification
   // the desktop manager had.
-  const { registerWorkerShutdownSignal } = await import(
+  const { registerWorkerShutdownSignal, signalWorkerStopNow } = await import(
     "./shared/worker-shutdown.js"
   );
   const shutdownController = registerWorkerShutdownSignal(config.taskQueue);
@@ -403,10 +416,18 @@ async function buildStigmerRunner(
       }
     },
     shutdown() {
+      /* v8 ignore start -- @preserve: a live worker's second shutdown, which no unit test boots; the stop-now signal it raises is shared/worker-shutdown.ts's, tested there, and the turn's answer to it is harness/__tests__/run-turn.test.ts's */
+      if (shutdownController.signal.aborted) {
+        // Asked again: the drain cannot wait for the turns' boundaries.
+        signalWorkerStopNow(config.taskQueue);
+        return;
+      }
+      /* v8 ignore stop */
       tokenRenewal?.stop();
       runnerTokenCoordinator.stop();
-      // Classification first, drain second: an in-flight activity cancelled
-      // by the drain must observe the signal already aborted (see
+      // The signal first, the drain second: every in-flight turn yields at
+      // its next step boundary within the worker's grace, and one Temporal
+      // stops after it reads as a worker shutdown (see
       // shared/worker-shutdown.ts for the ownership contract).
       shutdownController.abort();
       worker.shutdown();
@@ -541,6 +562,7 @@ export function mapOptionsToConfig(
       options.agentResolveTimeoutMs ?? DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
     workspaceLockTimeoutMs:
       options.workspaceLockTimeoutMs ?? DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
+    drainGraceMs: options.drainGraceMs ?? DEFAULT_DRAIN_GRACE_MS,
   };
 }
 

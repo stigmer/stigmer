@@ -75,6 +75,19 @@ const WORKSPACE_VOLUME = "workspace";
 const WORKSPACE_MOUNT_PATH = "/workspace";
 const WORKSPACE_CLAIM_SIZE = "10Gi";
 const TERMINATION_GRACE_PERIOD_SECONDS = 600;
+/**
+ * What the runner keeps of the pod's grace for its own exit after its
+ * worker drains (the harnesses' release, the connection's close, the
+ * telemetry flush), so the drain never runs into the kill.
+ */
+const DRAIN_EXIT_MARGIN_SECONDS = 60;
+/**
+ * The runner's drain grace (the runner's `STIGMER_DRAIN_GRACE_MS`): how long
+ * a turn in flight when the pod is told to stop may run to its next step
+ * boundary before it is cut. Either way it continues on the next pod; this
+ * is what keeps a running build from being cut and run again.
+ */
+const RUNNER_DRAIN_GRACE_MS = (TERMINATION_GRACE_PERIOD_SECONDS - DRAIN_EXIT_MARGIN_SECONDS) * 1000;
 const RUNNER_RESOURCES = {
   requests: { cpu: "500m", memory: "512Mi" },
   limits: { cpu: "2", memory: "2Gi" },
@@ -124,6 +137,7 @@ function runnerEnv(
     { name: "TEMPORAL_NAMESPACE", value: config.temporalNamespace },
     { name: "WORKSPACE_ROOT_DIR", value: WORKSPACE_MOUNT_PATH },
     { name: "HOME", value: RUNNER_HOME },
+    { name: "STIGMER_DRAIN_GRACE_MS", value: String(RUNNER_DRAIN_GRACE_MS) },
   ];
   if (config.mcpPublicEndpoint !== "") {
     entries.push({

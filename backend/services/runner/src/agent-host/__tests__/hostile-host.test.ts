@@ -396,6 +396,47 @@ describe("a host that does not follow the rules", () => {
     expect(stopped).toBe("kit: the stall watchdog");
   });
 
+  it("tells the host a turn the runtime had already asked to yield, and forwards a yield asked mid-turn once", async () => {
+    let yieldedAtStart = false;
+    const before = hostileHarness(async (_host, _turnId, args) => {
+      yieldedAtStart = args.yielded;
+    });
+    await before.boot(testConfig());
+    const input = turnInputFixture();
+    const drained = new RecordingTurnSink({ executionId: input.executionId });
+    drained.requestYield();
+    await before.runTurn(input, drained);
+    expect(yieldedAtStart).toBe(true);
+
+    let notices = 0;
+    let asked: () => void = () => {};
+    const yieldAsked = new Promise<void>((resolve) => (asked = resolve));
+    const sink = new RecordingTurnSink({ executionId: input.executionId });
+    const during = hostileHarness(async (host, turnId) => {
+      host.onNotice("yieldTurn", (args) => {
+        if (args.turnId === turnId) notices += 1;
+        asked();
+      });
+      sink.requestYield();
+      await yieldAsked;
+    });
+    await during.boot(testConfig());
+    await during.runTurn(input, sink);
+    expect(notices).toBe(1);
+  });
+
+  it("settles a turn asked to yield as interrupted when the host is lost", async () => {
+    const input = turnInputFixture();
+    const sink = new RecordingTurnSink({ executionId: input.executionId });
+    const adapter = hostileHarness(async (host) => {
+      sink.requestYield();
+      host.close();
+      await new Promise(() => {});
+    });
+    await adapter.boot(testConfig());
+    expect(await adapter.runTurn(input, sink)).toEqual({ kind: "interrupted" });
+  });
+
   it("settles an outcome it does not know as an internal failure", async () => {
     for (const forged of [{ kind: "exfiltrate" }, { kind: "failed", message: "chosen by the host", surface: "root" }, { kind: "failed", message: 42, surface: "engine" }]) {
       const adapter = hostileHarness(async () => {}, forged);

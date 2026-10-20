@@ -5,8 +5,8 @@
  * Invariant pinned (the throw-vs-return table the runtime owns,
  * `harness/terminal-table.ts`): both interruptions end the activity with a
  * thrown Temporal
- * `CancelledFailure` (never a return), but they persist DIFFERENT terminal
- * states the control plane keys on:
+ * `CancelledFailure` (never a return), and neither writes an ending; they
+ * differ in what the control plane keys on:
  *
  *  - an orchestrator stop (Temporal delivers cancellation, no shutdown
  *    signal: a user's Pause or Cancel, which the turn cannot tell apart)
@@ -16,10 +16,11 @@
  *    row, and the server's merge keeps the row last (stigmer#980). Until then
  *    this arm wrote PAUSED and the pause row, so a cancelled run ended with an
  *    instruction to resume it;
- *  - a worker shutdown (the runner's per-queue shutdown signal is aborted AND
- *    cancellation is delivered) persists RUN_FAILED with the error copy
- *    "Execution interrupted: runner worker was shut down. Retry or resume." and
- *    throws "Activity cancelled (worker shutdown, not user pause)".
+ *  - a worker shutdown past its grace (the runner's per-queue shutdown signal
+ *    is aborted AND cancellation is delivered) settles with no phase, no
+ *    error and no completion stamp, because the workflow continues the turn
+ *    on the next runner (stigmer#2428), appends the drain's note, and throws
+ *    "Activity cancelled (worker shutdown, not user pause)".
  *
  * The goldens (`goldens/pause.status.json`, the stop's settle write, and
  * `goldens/worker-shutdown.status.json`) are the wire contract, character for
@@ -174,7 +175,7 @@ describe("ExecuteCursor hermetic — orchestrator stop vs worker shutdown", () =
     await expect(record.eventsGolden()).toMatchFileSnapshot("./goldens/pause.events.json");
   });
 
-  it("a worker shutdown persists FAILED with the shutdown copy and throws CancelledFailure", async () => {
+  it("a worker shutdown writes no ending, notes the drain and throws CancelledFailure", async () => {
     // ── Arrange ──────────────────────────────────────────────────────────────
     clock.reset();
     let controls: InvocationControls | undefined;
@@ -200,19 +201,16 @@ describe("ExecuteCursor hermetic — orchestrator stop vs worker shutdown", () =
     expect(threwCancelledFailure(invocation.outcome), "a shutdown THROWS CancelledFailure").toBe(true);
     if (!threwCancelledFailure(invocation.outcome)) throw new Error("unreachable");
     expect(invocation.outcome.error.message).toBe("Activity cancelled (worker shutdown, not user pause)");
-    expect(record.persistedPhases).toEqual([
-      RunPhase.RUN_IN_PROGRESS,
-      RunPhase.RUN_FAILED,
-    ]);
-    const final = record.lastFullStatus!;
+    expect(record.persistedPhases, "no ending: the run is still working").toEqual([RunPhase.RUN_IN_PROGRESS]);
+    // The settle write: it carries no phase, so it is not a "full" status.
+    const final = record.persisted.at(-1)!;
     const finalRows = record.rowsOf(final);
-    expect(final.error).toBe("Execution interrupted: runner worker was shut down. Retry or resume.");
-    expect(final.completedAt).not.toBe("");
+    expect(final.phase).toBe(RunPhase.RUN_PHASE_UNSPECIFIED);
+    expect(final.error).toBe("");
+    expect(final.completedAt).toBe("");
     expect(
       finalRows.messages.filter((m) => m.type === MessageType.MESSAGE_SYSTEM).map((m) => m.content),
-    ).toEqual([
-      "Execution interrupted: the runner worker was shut down while the agent was still running. You can retry or resume.",
-    ]);
+    ).toEqual(["The runner is restarting; this turn continues on the next one."]);
     expect(finalRows.messages.some((m) => m.content === NEVER_SEEN)).toBe(false);
 
     await expect(statusGolden(final)).toMatchFileSnapshot("./goldens/worker-shutdown.status.json");

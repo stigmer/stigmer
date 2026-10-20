@@ -168,6 +168,7 @@ describe("the agent host process", () => {
       timing: new TimingRecorder().toWire(),
       fingerprintKey: handed.toString("base64"),
       stopped: null,
+      yielded: false,
       turnKey: "turn-key-test",
       traceparent: null,
     });

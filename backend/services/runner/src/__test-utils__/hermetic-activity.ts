@@ -84,7 +84,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { vi } from "vitest";
 import { MockActivityEnvironment } from "@temporalio/testing";
-import { CancelledFailure } from "@temporalio/activity";
+import { ApplicationFailure, CancelledFailure } from "@temporalio/activity";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { clone, create, equals, toJson } from "@bufbuild/protobuf";
 import {
@@ -118,8 +118,10 @@ import type { StigmerClient } from "../client/stigmer-client.js";
 import {
   registerWorkerShutdownSignal,
   signalWorkerShutdown,
+  signalWorkerStopNow,
   unregisterWorkerShutdownSignal,
 } from "../shared/worker-shutdown.js";
+import { TURN_CONTINUES_FAILURE_TYPE, type ContinuationCause } from "../harness/terminal-table.js";
 import { SessionEventEmitter } from "../harness/events/emitter.js";
 import { answerEventsFor } from "./approval-log.js";
 import { decideCapturedFileChanges, upsertFileChanges, type FileReviewVerdicts } from "./file-review-projection.js";
@@ -1038,14 +1040,17 @@ export interface ActivityInvocation {
  * Handles a scenario uses to interrupt the invocation FROM A SCRIPT STEP —
  * never from a timer. `cancel()` aborts the activity's `cancellationSignal`
  * (a user pause, as the workflow delivers it). `signalWorkerShutdown()` aborts
- * the queue's shutdown signal first, which the activity reads to tell a worker
- * drain from a user pause (`classifyTurnInterruption`). `cancelTimedOut()`
- * aborts it with Temporal's own reason, `TIMED_OUT` (a heartbeat timeout),
- * the cancellation the turn reads as infrastructure.
+ * the queue's drain signal, which the turn yields to at its next step
+ * boundary and which tells a cancellation after it from a user pause
+ * (`classifyTurnInterruption`). `signalWorkerStopNow()` is the runner's
+ * second signal: the turn stops at once, to continue. `cancelTimedOut()`
+ * aborts the cancellation with Temporal's own reason, `TIMED_OUT` (a
+ * heartbeat timeout), the cancellation the turn reads as infrastructure.
  */
 export interface InvocationControls {
   cancel(): void;
   signalWorkerShutdown(): void;
+  signalWorkerStopNow(): void;
   cancelTimedOut(): void;
 }
 
@@ -1080,6 +1085,7 @@ export async function runActivityHermetically<A extends unknown[]>(
   options.onControls?.({
     cancel: () => env.cancel(),
     signalWorkerShutdown: () => signalWorkerShutdown(taskQueue),
+    signalWorkerStopNow: () => signalWorkerStopNow(taskQueue),
     cancelTimedOut: () => env.cancel("TIMED_OUT"),
   });
 
@@ -1096,4 +1102,11 @@ export async function runActivityHermetically<A extends unknown[]>(
 /** True when the outcome is a thrown Temporal `CancelledFailure`. */
 export function threwCancelledFailure(outcome: ActivityOutcome): outcome is { kind: "threw"; error: CancelledFailure } {
   return outcome.kind === "threw" && outcome.error instanceof CancelledFailure;
+}
+
+/** The cause a turn that continues threw (`terminal-table.ts` `TURN_CONTINUES_FAILURE_TYPE`), or `undefined` for any other outcome. */
+export function continuationCauseOf(outcome: ActivityOutcome): ContinuationCause | undefined {
+  if (outcome.kind !== "threw" || !(outcome.error instanceof ApplicationFailure)) return undefined;
+  if (outcome.error.type !== TURN_CONTINUES_FAILURE_TYPE) return undefined;
+  return outcome.error.details?.[0] as ContinuationCause | undefined;
 }

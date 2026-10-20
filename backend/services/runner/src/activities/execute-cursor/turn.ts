@@ -81,7 +81,7 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
   // Deprecated; its removal is #1132.
   setInterceptorExecutionId(executionId);
 
-  if (sink.stopSignal.aborted) return { kind: "interrupted" };
+  if (stopsBeforeTheEngine(sink)) return { kind: "interrupted" };
 
   let engine: CursorEngine | undefined;
   let gate: CursorGate | undefined;
@@ -165,6 +165,15 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
 
     if (engine) disposeEngine(engine, sessionId, outcome);
   }
+}
+
+/**
+ * A stop, or a yield, before the turn begins: nothing of it is in the engine
+ * yet, so this is a durable boundary too. A yield asked during setup is taken
+ * by the stream's own first check, before anything is sent.
+ */
+function stopsBeforeTheEngine(sink: TurnSink): boolean {
+  return sink.stopSignal.aborted || sink.yieldSignal.aborted;
 }
 
 /**

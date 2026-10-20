@@ -100,6 +100,8 @@ export async function startWorker(opts: StartWorkerOptions): Promise<StartedWork
       ? { workflowBundle: { codePath: workflowSource.codePath } }
       : { workflowsPath: workflowSource.workflowsPath }),
     maxConcurrentActivityTaskExecutions: config.maxConcurrentActivities,
+    // In-flight turns yield at a step boundary within it (`Config.drainGraceMs`).
+    shutdownGraceTime: config.drainGraceMs,
     dataConverter: payloadCodecs?.length ? { payloadCodecs } : undefined,
     sinks,
     interceptors: {

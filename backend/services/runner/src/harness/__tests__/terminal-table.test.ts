@@ -2,7 +2,8 @@
  * Pins the stop cause of every way a turn ends (`../terminal-table.ts`):
  * each arm that stops a turn names the one structured cause the session's
  * status reads (`RunStatus.stop_cause`), the waiting arm names none (a
- * turn waits only on an approval; file review never holds one),
+ * turn waits only on an approval; file review never holds one), nor does
+ * an arm whose turn the workflow continues (it has not stopped),
  * and applying an arm writes the cause and reports where its rows landed,
  * so the session event emitter never writes them as harness notes.
  *
@@ -30,9 +31,10 @@ const ARMS: ReadonlyArray<{ readonly name: string; readonly arm: TerminalArm; re
   { name: "mockAbortArm", arm: table.mockAbortArm({ server: "s", tool: "t", reason: "r" }), cause: "eval_stopped" },
   { name: "costCapArm", arm: table.costCapArm(1, 2), cause: "budget_reached" },
   { name: "toolCallLimitArm", arm: table.toolCallLimitArm(), cause: "budget_reached" },
-  { name: "workerShutdownArm", arm: table.workerShutdownArm(), cause: "infrastructure" },
+  { name: "workerShutdownArm", arm: table.workerShutdownArm(), cause: null },
+  { name: "continueArm", arm: table.continueArm("drain"), cause: null },
   { name: "orchestratorStopArm", arm: table.orchestratorStopArm(), cause: "user" },
-  { name: "infrastructureCancelArm", arm: table.infrastructureCancelArm(), cause: "infrastructure" },
+  { name: "infrastructureCancelArm", arm: table.infrastructureCancelArm(), cause: null },
   { name: "awaitingApprovalArm", arm: table.awaitingApprovalArm(), cause: null },
   { name: "platformStopArm", arm: table.platformStopArm(), cause: "platform_stop" },
   {
@@ -73,6 +75,27 @@ describe("applying an arm", () => {
     expect(status.stopCause).toBe("failed");
     expect(rows).toEqual([1, 2]);
     expect(rows.map((index) => turn.messages[index]!.type)).toEqual([MessageType.MESSAGE_SYSTEM, MessageType.MESSAGE_SYSTEM]);
+  });
+
+  it("a continuing arm writes no ending and appends its note, which it does not report as a stop's row", () => {
+    const status = create(RunStatusSchema, { phase: RunPhase.RUN_IN_PROGRESS });
+    const turn = create(TurnRowsSchema, { messages: [{ type: MessageType.MESSAGE_AI, content: "working" }] });
+    const arm = table.continueArm("drain");
+    expect(table.applyTerminalArm(status, turn, arm)).toEqual([]);
+    expect([status.phase, status.error, status.completedAt, status.stopCause]).toEqual([RunPhase.RUN_PHASE_UNSPECIFIED, "", "", ""]);
+    expect(turn.messages.map((m) => [m.type, m.content])).toEqual([
+      [MessageType.MESSAGE_AI, "working"],
+      [MessageType.MESSAGE_SYSTEM, table.TERMINAL_COPY.continuation.notes.drain],
+    ]);
+    expect(arm.disposition).toEqual({ kind: "continue", cause: "drain" });
+  });
+
+  it("the arms the workflow continues write no ending; the drain's says why the turn moved", () => {
+    for (const arm of [table.workerShutdownArm(), table.infrastructureCancelArm(), table.continueArm("drain")]) {
+      expect([arm.phase, arm.error, arm.completes, arm.stopCause, arm.rows]).toEqual([RunPhase.RUN_PHASE_UNSPECIFIED, undefined, false, null, []]);
+    }
+    expect(table.workerShutdownArm().note).toBe(table.TERMINAL_COPY.continuation.notes.drain);
+    expect(table.infrastructureCancelArm().note).toBeUndefined();
   });
 
   it("a waiting arm leaves the stop cause as it was and appends nothing of its own", () => {

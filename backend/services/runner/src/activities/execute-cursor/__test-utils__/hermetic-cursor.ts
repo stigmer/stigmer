@@ -172,6 +172,7 @@ export function hermeticCursorConfig(env: HermeticEnvironment): Config {
     shellTimeoutMaxSeconds: 3_300,
     agentResolveTimeoutMs: 120_000,
     workspaceLockTimeoutMs: 900_000,
+    drainGraceMs: 0,
   };
 }
 

@@ -186,6 +186,9 @@ class CursorSubject implements CursorContractSubject {
   private readonly openWaiters = new Map<string, Array<() => void>>();
   /** The ids the kit has released: an operation opened under one of them later finishes at once. */
   private readonly released = new Set<string>();
+  /** How many times each operation began, and the ones that finished: the agent's conversation holds a finished call's result. */
+  private readonly opens = new Map<string, number>();
+  private readonly finishedOperations = new Set<string>();
   private readonly compactionCounts = new Map<string, number>();
   private mintCounter = 0;
   readonly longTurn: LongTurnControls = {
@@ -203,6 +206,7 @@ class CursorSubject implements CursorContractSubject {
       this.released.add(toolCallId);
       operation?.release();
     },
+    opened: (toolCallId) => this.opens.get(toolCallId) ?? 0,
     tasksHanded: (sessionId, message) =>
       (this.agents.get(sessionId)?.sends ?? []).filter((send) => textOfSend(send.message).includes(message)).length,
     compactions: (sessionId) => this.compactionCounts.get(sessionId) ?? 0,
@@ -491,6 +495,8 @@ class CursorSubject implements CursorContractSubject {
    * subagent is Cursor's `task` call to the kit's helper.
    */
   private openSteps(toolCallId: string, shape: OperationShape, ev: ReturnType<typeof sdkEvents>): ScriptStep[] {
+    // The SDK does not run a finished call again: the agent's conversation holds its result.
+    if (this.finishedOperations.has(toolCallId)) return [];
     const [name, args, result] =
       shape === "subagent"
         ? ["task", { subagentType: KIT_SUBAGENT_SLUG, description: "The kit's delegated work.", prompt: "Do the delegated work." }, SUBAGENT_RESULT]
@@ -503,6 +509,7 @@ class CursorSubject implements CursorContractSubject {
   }
 
   private async holdOpen(toolCallId: string, run: ScriptedRun): Promise<void> {
+    this.opens.set(toolCallId, (this.opens.get(toolCallId) ?? 0) + 1);
     let release: () => void = () => {};
     const released = new Promise<void>((resolve) => (release = resolve));
     this.openOperations.set(toolCallId, { run, release });
@@ -518,7 +525,8 @@ class CursorSubject implements CursorContractSubject {
       });
     });
     try {
-      await Promise.race([released, cancelled]);
+      const ended = await Promise.race([released.then(() => "released" as const), cancelled.then(() => "cancelled" as const)]);
+      if (ended === "released") this.finishedOperations.add(toolCallId);
     } finally {
       this.openOperations.delete(toolCallId);
     }

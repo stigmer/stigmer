@@ -35,6 +35,15 @@
  * run — the one way a wedged stream is unblocked, and the same act for every
  * cause of stopping (the runtime knows why; this loop never does).
  *
+ * A yield (`yieldSignal`, a draining runner) is taken once no tool call is
+ * open: Cursor's server holds the conversation, and a call is Cursor's to
+ * resume from once its stream reports the result, so ending the run there
+ * cuts nothing; ending it while a call runs would cut that call. Every open
+ * call counts, a delegated `task` included: a sub-agent's work mid-way is
+ * not the parent's step. With nothing open when the yield arrives (the model
+ * is writing), the run ends at once. The yield ends the run through the same
+ * SDK cancel as a stop.
+ *
  * Until #1070 this loop armed its own stall watchdog, enforced the cost cap,
  * read STOP from its own persist, and told a pause from the activity's
  * cancellation signal; every one of those is the runtime's now, and the loop
@@ -42,6 +51,8 @@
  */
 
 import type { SDKMessage, InteractionUpdate } from "@cursor/sdk";
+import { OpenOperations } from "../../harness/open-operations.js";
+import type { TranscriptEvent } from "../../harness/transcript/events.js";
 import type { TurnSink } from "../../harness/types.js";
 import { shouldPersistStreamingStatus } from "../../shared/persist-decision.js";
 import { approvalDenials, readDenialLedger } from "./approval-state.js";
@@ -139,16 +150,18 @@ export interface CursorTurnStreamDeps extends TurnOnDeltaDeps {
 /**
  * Fold the delta facts the translator queued since the last drain into the
  * transcript, and hand them to the turn's spans: after each stream event,
- * and once more when the stream has ended (`turn-settle.ts`).
+ * and once more when the stream has ended (`turn-settle.ts`). Returns what
+ * it folded.
  */
 export function foldDrainedDeltas(
   translator: Pick<CursorTranslator, "drainDeltas">,
   transcript: Pick<TurnSink["transcript"], "apply">,
   telemetry: CursorTurnObserver | undefined,
-): void {
+): readonly TranscriptEvent[] {
   const drained = translator.drainDeltas();
   for (const fact of drained) transcript.apply(fact);
   telemetry?.observe(drained);
+  return drained;
 }
 
 /**
@@ -230,35 +243,48 @@ export async function consumeCursorTurnStream(
     executionId,
     state,
   } = deps;
-  const { stopSignal, transcript } = sink;
+  const { stopSignal, yieldSignal, transcript } = sink;
 
   // The runtime's stop, whatever its cause, ends the run through the SDK's
   // own cancel: that is what unblocks a wedged `for await` (a stall), and it
   // stops the engine's tools and deltas from outliving the turn on every
   // other cause too. Guarded by supports("cancel") as the loop's own cancels
   // are; the teardown rejection it can cause is swallowed below.
-  const cancelOnStop = (): void => {
-    console.log(`ExecuteCursor stopping stream on the runtime's stop signal: execution=${executionId}`);
+  const cancelRun = (why: string): void => {
+    console.log(`ExecuteCursor stopping stream on the runtime's ${why}: execution=${executionId}`);
     if (run.supports?.("cancel")) {
       void run.cancel().catch((cancelErr) => {
         console.warn(
-          `ExecuteCursor run.cancel() after stop failed (non-fatal): execution=${executionId}, ` +
+          `ExecuteCursor run.cancel() after ${why} failed (non-fatal): execution=${executionId}, ` +
             `error=${cancelErr instanceof Error ? cancelErr.message : cancelErr}`,
         );
       });
     }
   };
+  const cancelOnStop = (): void => cancelRun("stop signal");
   if (stopSignal.aborted) {
     cancelOnStop();
     return "interrupted";
   }
+
+  // The yield (the header): taken the moment no call is open.
+  const openCalls = new OpenOperations({ subAgentProgress: "at-completion" });
+  let yielded = false;
+  const yieldWhenNothingIsOpen = (): void => {
+    if (yielded || !yieldSignal.aborted || openCalls.held()) return;
+    yielded = true;
+    cancelRun("yield");
+  };
+  yieldWhenNothingIsOpen();
+  if (yielded) return "interrupted";
   stopSignal.addEventListener("abort", cancelOnStop, { once: true });
+  yieldSignal.addEventListener("abort", yieldWhenNothingIsOpen, { once: true });
 
   try {
     state.awaitingEvent = true;
     for await (const event of run.stream()) {
       state.awaitingEvent = false;
-      if (stopSignal.aborted) break;
+      if (stopSignal.aborted || yielded) break;
 
       // Progress: reset the runtime's stall timer on every stream event,
       // naming the tool so a stall's copy can say `last tool: shell`.
@@ -275,7 +301,10 @@ export async function consumeCursorTurnStream(
       const observed = translator.translate(event);
       transcript.applyObservation(observed);
       deps.telemetry?.observe(observed);
-      foldDrainedDeltas(translator, transcript, deps.telemetry);
+      const drained = foldDrainedDeltas(translator, transcript, deps.telemetry);
+      for (const fact of [...observed, ...drained]) openCalls.observe(fact);
+      yieldWhenNothingIsOpen();
+      if (yielded) break;
 
       // First-denial stop (HITL clean pause). In CAPTURE mode this fires only for
       // an IRREVERSIBLE tool the hook still gates (shell, MCP, or a gitignored
@@ -365,22 +394,23 @@ export async function consumeCursorTurnStream(
     // make the stream iterator reject as it tears down; that is the expected
     // teardown for both, so swallow it and fall through. Anything else is a
     // genuine stream failure — rethrow it to the adapter's error handler.
-    if (!stopSignal.aborted && !state.firstDenialDetected) {
+    if (!stopSignal.aborted && !yielded && !state.firstDenialDetected) {
       throw streamErr;
     }
     console.warn(
       `ExecuteCursor stream ended via cancel: execution=${executionId}, ` +
-        `stopped=${stopSignal.aborted}, firstDenial=${state.firstDenialDetected}`,
+        `stopped=${stopSignal.aborted}, yielded=${yielded}, firstDenial=${state.firstDenialDetected}`,
     );
   } finally {
     state.awaitingEvent = false;
     stopSignal.removeEventListener("abort", cancelOnStop);
+    yieldSignal.removeEventListener("abort", yieldWhenNothingIsOpen);
   }
 
-  // Report why the stream ended: the runtime's stop outranks a first denial
-  // (there is no review to open on a stopped turn), a first denial outranks a
-  // natural end.
-  if (stopSignal.aborted) return "interrupted";
+  // Report why the stream ended: the runtime's stop or yield outranks a
+  // first denial (there is no review to open on a stopped turn), a first
+  // denial outranks a natural end.
+  if (stopSignal.aborted || yielded) return "interrupted";
   if (state.firstDenialDetected) return "first-denial";
   return "completed";
 }

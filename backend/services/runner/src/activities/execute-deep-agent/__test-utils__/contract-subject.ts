@@ -227,6 +227,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
       whenOpen: (toolCallId) => this.operations.whenOpen(toolCallId),
       emit: (toolCallId, line) => this.operations.emit(toolCallId, line),
       release: (toolCallId) => this.operations.release(toolCallId),
+      opened: (toolCallId) => this.operations.opened(toolCallId),
       tasksHanded: (sessionId, message) => {
         const executionId = this.executionsBySession.get(sessionId);
         const transcript = executionId ? this.lastTranscripts.get(executionId) : undefined;
@@ -570,9 +571,15 @@ class KitOperations {
   private readonly operations = new Map<string, KitOperation>();
   private readonly waiters = new Map<string, Array<() => void>>();
   private readonly released = new Set<string>();
+  /** How many shells began under each id: the moment the shell opened its FIFO. */
+  private readonly starts = new Map<string, number>();
   private counter = 0;
 
   constructor(private readonly dir: string) {}
+
+  opened(toolCallId: string): number {
+    return this.starts.get(toolCallId) ?? 0;
+  }
 
   /** The command for `toolCallId`'s shell, starting a new one unless one is still live. */
   shellCommand(toolCallId: string): string {
@@ -590,6 +597,7 @@ class KitOperations {
     void operation.writer.then(
       () => {
         operation.running = true;
+        this.starts.set(toolCallId, this.opened(toolCallId) + 1);
         this.wake(toolCallId);
         if (this.released.has(toolCallId)) void this.finish(operation);
       },

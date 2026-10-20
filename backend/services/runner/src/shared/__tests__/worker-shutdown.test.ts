@@ -4,8 +4,10 @@ import {
   cancellationReasonOf,
   classifyTurnInterruption,
   getShutdownSignalForQueue,
+  getStopNowSignalForQueue,
   registerWorkerShutdownSignal,
   signalWorkerShutdown,
+  signalWorkerStopNow,
   unregisterWorkerShutdownSignal,
 } from "../worker-shutdown.js";
 
@@ -42,6 +44,25 @@ describe("worker-shutdown signal registry", () => {
     registerWorkerShutdownSignal("session:gone-1");
     unregisterWorkerShutdownSignal("session:gone-1");
     expect(getShutdownSignalForQueue("session:gone-1")).toBeUndefined();
+    expect(getStopNowSignalForQueue("session:gone-1")).toBeUndefined();
+  });
+
+  it("a drain leaves the queue's stop-now signal live; the second signal aborts both", () => {
+    registerWorkerShutdownSignal("session:now-1");
+    signalWorkerShutdown("session:now-1");
+    expect(getStopNowSignalForQueue("session:now-1")?.aborted).toBe(false);
+    signalWorkerStopNow("session:now-1");
+    expect(getStopNowSignalForQueue("session:now-1")?.aborted).toBe(true);
+    expect(getShutdownSignalForQueue("session:now-1")?.aborted).toBe(true);
+    expect(() => signalWorkerStopNow("session:never-registered")).not.toThrow();
+    unregisterWorkerShutdownSignal("session:now-1");
+  });
+
+  it("stop now alone implies the drain", () => {
+    registerWorkerShutdownSignal("session:now-2");
+    signalWorkerStopNow("session:now-2");
+    expect(getShutdownSignalForQueue("session:now-2")?.aborted).toBe(true);
+    unregisterWorkerShutdownSignal("session:now-2");
   });
 });
 

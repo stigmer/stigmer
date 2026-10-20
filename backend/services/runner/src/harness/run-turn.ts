@@ -17,7 +17,9 @@
  * between writes (`preview-pump.ts`);
  * the periodic heartbeat; the stop controller and its producers (the
  * stall watchdog and the open-operation backstop on its timer, the cost
- * cap, the platform STOP, Temporal's cancellation);
+ * cap, the platform STOP, Temporal's cancellation), and the yield a
+ * draining runner asks of the engine (the queue's drain signal, and its
+ * "stop now" when the runner is signalled again);
  * the resolution phases (`turn-context.ts`) composed into the `TurnInput`;
  * the sink the adapter is handed; the terminal table (`terminal-table.ts`)
  * with its throw-vs-return rule, applied by `settleWith`, the one writer of
@@ -47,6 +49,7 @@
 
 import { setMaxListeners } from "node:events";
 import { CancelledFailure, Context } from "@temporalio/activity";
+import { ApplicationFailure, ApplicationFailureCategory } from "@temporalio/common";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { TurnRowsSchema } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
@@ -72,6 +75,7 @@ import {
   cancellationReasonOf,
   classifyTurnInterruption,
   getShutdownSignalForQueue,
+  getStopNowSignalForQueue,
   type TurnInterruption,
 } from "../shared/worker-shutdown.js";
 import { terminalizeNonExecutingDecisions } from "./approval-decisions.js";
@@ -84,6 +88,7 @@ import { StopController } from "./stop-controller.js";
 import {
   applyTerminalArm,
   awaitingApprovalArm,
+  continueArm,
   costCapArm,
   evalScaffoldFailedArm,
   mockAbortArm,
@@ -95,10 +100,12 @@ import {
   platformStopArm,
   stallArm,
   TERMINAL_COPY,
+  TURN_CONTINUES_FAILURE_TYPE,
   toolCallLimitArm,
   unexpectedErrorArm,
   workerShutdownArm,
   workspaceLockTimeoutArm,
+  type ContinuationCause,
   type TerminalArm,
 } from "./terminal-table.js";
 import { TranscriptBuilder } from "./transcript/builder.js";
@@ -162,11 +169,29 @@ export async function runTurnActivity(deps: TurnRuntimeDeps, input: NormalizedAc
 
 /**
  * Where the activity ends up once the table has been applied: return the
- * slim status, or throw after the finally. The thrown value is always a
- * `CancelledFailure` — the table's rule ("THROW when the workflow must see
- * the activity as cancelled", `terminal-table.ts`) as a type.
+ * slim status, or throw after the finally. The thrown value is a
+ * `CancelledFailure` (the table's rule, "THROW when the workflow must see
+ * the activity as cancelled") or the typed failure of a turn the workflow
+ * continues (`terminal-table.ts`), as a type.
  */
-type Settled = { readonly kind: "return"; readonly value: unknown } | { readonly kind: "throw"; readonly error: CancelledFailure };
+type Settled =
+  | { readonly kind: "return"; readonly value: unknown }
+  | { readonly kind: "throw"; readonly error: CancelledFailure | ApplicationFailure };
+
+/**
+ * The failure a continuing turn throws: typed, so the workflow matches it by
+ * name and never by wording, with the cause as its one detail. BENIGN: the
+ * turn did what it was asked, and the worker logs it at debug, not as a
+ * failed activity.
+ */
+function turnContinuesFailure(cause: ContinuationCause): ApplicationFailure {
+  return ApplicationFailure.create({
+    type: TURN_CONTINUES_FAILURE_TYPE,
+    message: TERMINAL_COPY.continuation.failureMessage,
+    details: [cause],
+    category: ApplicationFailureCategory.BENIGN,
+  });
+}
 
 async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, runSpan: RunSpan): Promise<unknown> {
   const { adapter, activityName, client, config } = deps;
@@ -305,6 +330,21 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
   if (cancellationSignal.aborted) onCancellation();
   else cancellationSignal.addEventListener("abort", onCancellation, { once: true });
 
+  // The runner is draining: ask the engine to yield at its next durable step
+  // boundary, so the running step finishes inside the worker's grace and the
+  // next runner continues the turn (stigmer#2428). Signalled again, the
+  // runner stops the turn now; it still continues.
+  const onDrain = (): void => stop.requestYield("drain");
+  const onStopNow = (): void => {
+    stop.requestYield("drain");
+    stop.stop({ kind: "yield-now" });
+  };
+  const stopNowSignal = getStopNowSignalForQueue(activity.info.taskQueue);
+  if (shutdownSignal?.aborted) onDrain();
+  else shutdownSignal?.addEventListener("abort", onDrain, { once: true });
+  if (stopNowSignal?.aborted) onStopNow();
+  else stopNowSignal?.addEventListener("abort", onStopNow, { once: true });
+
   /** The interruption Temporal delivered, read when the table needs it. */
   const interruption = (): TurnInterruption =>
     classifyTurnInterruption({
@@ -322,22 +362,25 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
    * persist.)
    *
    * The table decides what is written and whether the activity throws; the
-   * caller may supply the `CancelledFailure` to throw. The catch does, to
-   * rethrow the failure it caught (the caught failure IS the evidence, #776)
-   * or to throw the after-error variant of the copy; every other caller lets
-   * the arm's own message stand.
+   * caller may supply the `CancelledFailure` a thrown arm throws. The catch
+   * does, to rethrow the failure it caught (the caught failure IS the
+   * evidence, #776) or to throw the after-error variant of the copy; every
+   * other caller lets the arm's own message stand. A continuing arm always
+   * throws its typed failure.
    */
   const settleWith = async (arm: TerminalArm, failure?: CancelledFailure): Promise<Settled> => {
     events.skipRootRows(applyTerminalArm(status, rows, arm));
     await returnOutputs();
     await recordEvalFiles();
-    if (arm.disposition.kind === "return") {
+    const { disposition } = arm;
+    if (disposition.kind === "return") {
       await chokepoint.write({ final: true });
       return { kind: "return", value: slimStatus(status) };
     }
     cancelInProgressSubAgentProtos(rows.subAgentRuns);
     await chokepoint.write({ final: true });
-    return { kind: "throw", error: failure ?? new CancelledFailure(arm.disposition.message) };
+    if (disposition.kind === "continue") return { kind: "throw", error: turnContinuesFailure(disposition.cause) };
+    return { kind: "throw", error: failure ?? new CancelledFailure(disposition.message) };
   };
 
   /**
@@ -497,6 +540,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
       rows,
       transcript,
       stopSignal: stop.signal,
+      yieldSignal: stop.yieldSignal,
       setupTiming,
       requestPersist: () => chokepoint.request(),
       recordActivity: (detail) => {
@@ -639,8 +683,12 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
    * a stall (FAILED, return) outranks everything, and the backstop's
    * operation limit (FAILED, return) stands beside it; a eval-case mock's abort
    * (TERMINATED, return); a cost cap (TERMINATED, return); then Temporal's cancellation as the signal's reason reads it —
-   * the runner's drain, the orchestrator's stop, an infrastructure cancel
-   * (all thrown); last a platform stop (COMPLETED, return).
+   * the runner's drain past its grace, the orchestrator's stop, an
+   * infrastructure cancel (all thrown); then a platform stop (COMPLETED,
+   * return); last the engine's yield to a drain (continued). A delivered
+   * cancellation outranks the yield because it is what stopped the turn
+   * (a user's pause during a drain is the user's), and a platform stop
+   * outranks it because a run the platform ended must not run on.
    */
   async function settleInterrupted(maxCostUsd: number, accumulator: UsageAccumulator): Promise<Settled> {
     const evidence = stop.evidence;
@@ -689,6 +737,10 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     if (evidence.platformStop) {
       console.log(`${activityName} completed (platform stop): execution=${executionId}`);
       return settleWith(platformStopArm());
+    }
+    if (evidence.yieldCause !== undefined) {
+      console.log(`${activityName} yielded to continue (${evidence.yieldCause}): execution=${executionId}`);
+      return settleWith(continueArm(evidence.yieldCause));
     }
     // The adapter settled `interrupted` with the signal live: a contract
     // violation, reported as the runner's own failure rather than guessed at.
@@ -864,11 +916,10 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
         console.log(`${activityName} error during an orchestrator stop (treating as the stop): execution=${executionId}, error=${errDetail}`);
         return settleWith(arm, new CancelledFailure(TERMINAL_COPY.orchestratorStop.throwMessageAfterError));
       }
+      // The arm writes no ending (the turn continues), so the error is the
+      // log's alone.
       console.log(`${activityName} error during infrastructure cancel: execution=${executionId}, error=${errDetail}`);
-      return settleWith(
-        { ...infrastructureCancelArm(), error: `Execution interrupted: ${errDetail}` },
-        new CancelledFailure(TERMINAL_COPY.infrastructureCancel.throwMessageAfterError),
-      );
+      return settleWith(arm, new CancelledFailure(TERMINAL_COPY.infrastructureCancel.throwMessageAfterError));
     }
 
     // Unwrap + classify before formatting: a model error arrives
@@ -921,6 +972,8 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     watchdog?.stop();
     await previews.stop();
     cancellationSignal.removeEventListener("abort", onCancellation);
+    shutdownSignal?.removeEventListener("abort", onDrain);
+    stopNowSignal?.removeEventListener("abort", onStopNow);
     // A eval-run try's mock endpoint serves this turn only.
     await frame.evalMocks?.close();
     // Remove the workspace's `.stigmer` link the skill and File phases

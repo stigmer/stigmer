@@ -25,7 +25,8 @@
  *    exists; the runtime pulls through `readCasObservations`.
  *
  * The stop is the runner's: its `stopTurn` notice aborts {@link HostTurn.stop},
- * which is the adapter's `stopSignal`. One cause is also seen here, because
+ * which is the adapter's `stopSignal`, and its `yieldTurn` notice aborts
+ * {@link HostTurn.yield}, the adapter's `yieldSignal`. One cause is also seen here, because
  * it must land synchronously: the cost cap. The runtime stops a turn inside
  * `reportUsage` on the delta that reaches the cap, so in-process the engine
  * stops at its next step boundary; a stop that crossed the pipe would land a
@@ -57,6 +58,7 @@ export class HostTurn {
   readonly status: RunStatus;
   readonly rows: TurnRows;
   private readonly stopController = new AbortController();
+  private readonly yieldController = new AbortController();
   private casReader: CasTouchedReader | undefined;
   private persistInFlight: Promise<void> | undefined;
   private persistFollowUp: Promise<void> | undefined;
@@ -86,6 +88,7 @@ export class HostTurn {
       rows: this.rows,
       transcript,
       stopSignal: this.stopController.signal,
+      yieldSignal: this.yieldController.signal,
       setupTiming,
       requestPersist: () => this.requestPersist(),
       recordActivity: (detail?: string) => peer.notify("activity", { turnId, detail: detail ?? null }),
@@ -113,6 +116,11 @@ export class HostTurn {
   /** The runtime's stop fired. */
   stop(reason: string): void {
     if (!this.stopController.signal.aborted) this.stopController.abort(new Error(reason));
+  }
+
+  /** The runtime asked the turn to yield. */
+  yield(): void {
+    if (!this.yieldController.signal.aborted) this.yieldController.abort();
   }
 
   /** The reader the adapter bound, if any. */

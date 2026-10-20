@@ -687,6 +687,9 @@ export function mapManagerOptionsToConfig(
       options.agentResolveTimeoutMs ?? DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
     workspaceLockTimeoutMs:
       options.workspaceLockTimeoutMs ?? DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
+    // None: the manager's workers exit at once on its host's quit (issue
+    // #177); their turns continue when the app returns.
+    drainGraceMs: 0,
   };
 }
 

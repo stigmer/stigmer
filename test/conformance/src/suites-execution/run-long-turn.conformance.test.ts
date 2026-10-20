@@ -18,10 +18,13 @@
 //     the turn up. Desired: the turn completes, and the model is handed the
 //     user's task once, in the request it answers last.
 //   - Drain mid-tool: SIGTERM while the shell runs, and the step is let finish
-//     a moment later. Desired: the drain waits for the running step, which
-//     runs once, the turn never shows FAILED on the way, and it completes. The
-//     run is followed to its end, not to its first terminal phase: a drained
-//     turn writes FAILED before the workflow recovers it.
+//     a moment later. The drain waits for the running step, which runs once;
+//     the turn yields as its next model round starts, so that round is asked
+//     again on the replacement; it never shows FAILED on the way, the
+//     session's log never reads it idle or failed between the two runners
+//     (the agent-hour stretch stays whole), the log says once why the turn
+//     moved, and it completes. The run is followed to its end, not to its
+//     first terminal phase, so a FAILED on the way would be seen.
 //   - A `user.message` mid-turn, sent through the Managed Agents wire while
 //     the first turn's shell works. Desired: the message joins the running
 //     turn or waits as its next one, never a second run working beside the
@@ -67,7 +70,6 @@ const fixtures = new FixtureTracker();
 
 /** The open issues these arms are known gaps of. */
 const TASK_HANDED_AGAIN = "stigmer/stigmer#2417";
-const DRAIN_STOPS_THE_STEP = "stigmer/stigmer#2428";
 const MESSAGE_STARTS_A_SECOND_RUN = "stigmer/stigmer#2429";
 
 /** How long the mid-turn arm's first turn keeps working after the message arrives. */
@@ -164,10 +166,11 @@ async function startHeldRun(task: string, step: HeldStep, closing: string): Prom
 }
 
 /**
- * Follow a run to its end, not to its first terminal phase: a drained turn
- * writes FAILED, then the workflow recovers it (persists IN_PROGRESS) and
- * runs it on. Returns every phase seen, in order, and the run once it has
- * held a terminal phase for `settleMs` (or when `budgetMs` runs out).
+ * Follow a run to its end, not to its first terminal phase, so a terminal
+ * phase written on the way (a drained turn once wrote FAILED before the
+ * workflow recovered it) is seen. Returns every phase seen, in order, and the
+ * run once it has held a terminal phase for `settleMs` (or when `budgetMs`
+ * runs out).
  */
 async function followToTheEnd(id: string, budgetMs: number, settleMs = 15_000): Promise<{ readonly phases: readonly RunPhase[]; readonly run: Run }> {
   const deadline = Date.now() + budgetMs;
@@ -253,6 +256,8 @@ describe("a long turn on a real runner", () => {
     async () => {
       const step = new HeldStep();
       const run = await startHeldRun(uniqueName("Run the test suite"), step, "The suite passed.");
+      // The round the yield lands on is asked again by the replacement.
+      mock.enqueue(anthropicText("The suite passed."));
       await step.whenStarted();
 
       // The drain, and the step's end a moment later: a drain that waits for
@@ -266,23 +271,17 @@ describe("a long turn on a real runner", () => {
       const { phases, run: settled } = await followToTheEnd(run.id, ARM_TIMEOUT_MS - 30_000, 20_000);
       console.log(`[long turn] drain: phases ${phases.map((p) => RunPhase[p]).join(" > ")}, the step began ${step.started()} time(s)`);
 
-      await expectKnownGap(
-        {
-          issue: DRAIN_STOPS_THE_STEP,
-          today: {
-            says: "the drain writes the turn FAILED; the workflow recovers it and the replacement finishes it, but the server keeps the terminal FAILED and refuses the finished turn's events",
-            holds: () =>
-              settled.status?.phase === RunPhase.RUN_FAILED &&
-              (settled.status?.error ?? "").includes("runner worker was shut down") &&
-              mock.remaining() === 0,
-          },
-        },
-        () => {
-          expect(settled.status?.phase, `the drained turn: ${settled.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
-          expect(phases, "the turn never showed FAILED on the way").not.toContain(RunPhase.RUN_FAILED);
-          expect(step.started(), "the running step ran once").toBe(1);
-        },
-      );
+      const sessionId = sessionIdOf(settled);
+      const logged = async (type: string): Promise<number> =>
+        (await clients.sessionQuery.listEvents({ sessionId, pageSize: 1000, types: [type] })).events.length;
+
+      expect(settled.status?.phase, `the drained turn: ${settled.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
+      expect(phases, "the turn never showed FAILED on the way").not.toContain(RunPhase.RUN_FAILED);
+      expect(step.started(), "the running step ran once").toBe(1);
+      expect(await logged("session.error"), "the session's log never read the turn failed").toBe(0);
+      expect(await logged("session.status_idle"), "the session went idle once, when the turn ended").toBe(1);
+      expect(await logged("stigmer.harness.note"), "the log says once why the turn moved").toBe(1);
+      expect(mock.remaining(), "the replacement asked the yielded round again").toBe(0);
     },
     ARM_TIMEOUT_MS,
   );

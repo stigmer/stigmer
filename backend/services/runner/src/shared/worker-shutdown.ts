@@ -1,13 +1,21 @@
 /**
- * Per-task-queue worker-shutdown signals — the classification channel that
- * lets an in-flight activity distinguish "my worker is shutting down" from
- * "the orchestrator cancelled me" (a user's Pause or Cancel).
+ * Per-task-queue worker-shutdown signals — the channel that tells an
+ * in-flight activity "my worker is draining", apart from "the orchestrator
+ * cancelled me" (a user's Pause or Cancel).
  *
- * The signal carries NO lifecycle authority: aborting it never stops a
- * worker or an activity (Temporal's own drain does that). It exists purely
- * so the activity's cancellation handling can classify the interruption
- * honestly — a shutdown is not a user's stop, and must surface as the
- * worker-shutdown failure shape the control planes recognize (issue #776).
+ * The signal carries NO lifecycle authority over the worker: aborting it
+ * never stops a worker (Temporal's own drain does that). An activity reads
+ * it two ways. The turn runtime asks its engine to yield at the next durable
+ * step boundary the moment it aborts, so the running step finishes inside
+ * the worker's drain grace and the next runner continues the turn
+ * (`harness/run-turn.ts`, stigmer#2428). And the cancellation handling
+ * classifies a cancellation that arrives with it as a worker shutdown, not
+ * a user's stop (issue #776).
+ *
+ * Each queue has a second signal, "stop now": the owner aborts it when it is
+ * told to shut down a second time (a second SIGTERM), and every turn on the
+ * queue stops at once instead of waiting for its boundary; the turn still
+ * continues on the next runner.
  *
  * Ownership contract:
  *   - whoever creates a Worker registers a signal for its queue BEFORE the
@@ -25,31 +33,54 @@
  * the runner/manager instance that created their worker.
  */
 
-const registry = new Map<string, AbortController>();
+/** One queue's two signals: the drain, and the second signal's "stop now". */
+interface QueueSignals {
+  readonly drain: AbortController;
+  readonly now: AbortController;
+}
+
+const registry = new Map<string, QueueSignals>();
 
 /**
- * Register a fresh shutdown signal for a task queue, replacing any previous
+ * Register fresh signals for a task queue, replacing any previous
  * registration (a re-created worker on a reused queue must not observe the
- * old worker's aborted signal). Returns the controller so the worker's owner
- * can abort it at shutdown.
+ * old worker's aborted signal). Returns the drain's controller so the
+ * worker's owner can abort it at shutdown.
  */
 export function registerWorkerShutdownSignal(taskQueue: string): AbortController {
-  const controller = new AbortController();
-  registry.set(taskQueue, controller);
-  return controller;
+  const signals: QueueSignals = { drain: new AbortController(), now: new AbortController() };
+  registry.set(taskQueue, signals);
+  return signals.drain;
 }
 
-/** The signal an activity on `taskQueue` should observe, if one is registered. */
+/** The drain signal an activity on `taskQueue` should observe, if one is registered. */
 export function getShutdownSignalForQueue(taskQueue: string): AbortSignal | undefined {
-  return registry.get(taskQueue)?.signal;
+  return registry.get(taskQueue)?.drain.signal;
+}
+
+/** The "stop now" signal an activity on `taskQueue` should observe, if one is registered. */
+export function getStopNowSignalForQueue(taskQueue: string): AbortSignal | undefined {
+  return registry.get(taskQueue)?.now.signal;
 }
 
 /**
- * Abort the queue's signal, marking any in-flight activity's imminent
- * cancellation as a worker shutdown. Idempotent; no-op for an unknown queue.
+ * Abort the queue's drain signal: every in-flight turn yields at its next
+ * step boundary, and a cancellation that follows reads as a worker
+ * shutdown. Idempotent; no-op for an unknown queue.
  */
 export function signalWorkerShutdown(taskQueue: string): void {
-  registry.get(taskQueue)?.abort();
+  registry.get(taskQueue)?.drain.abort();
+}
+
+/**
+ * Abort the queue's "stop now" signal (and its drain, which it implies):
+ * every in-flight turn stops at once, to continue on the next runner.
+ * Idempotent; no-op for an unknown queue.
+ */
+export function signalWorkerStopNow(taskQueue: string): void {
+  const signals = registry.get(taskQueue);
+  signals?.drain.abort();
+  signals?.now.abort();
 }
 
 /** Drop the registration once the queue's worker is fully torn down. */
@@ -86,8 +117,9 @@ export interface TurnInterruptionEvidence {
 
 /**
  * How Temporal's cancellation reads to the turn:
- *  - `worker-shutdown`: the runner is draining (the queue's signal, or the
- *    SDK's own `WORKER_SHUTDOWN`); FAILED with the shutdown copy, thrown.
+ *  - `worker-shutdown`: the runner drained past its grace (the queue's
+ *    signal, or the SDK's own `WORKER_SHUTDOWN`); nothing terminal is
+ *    written and the turn continues on the next runner, thrown.
  *  - `orchestrator-stop`: the workflow asked (`CANCELLED`). That is a Pause
  *    or a Cancel, and the turn cannot tell which: both reach the activity
  *    as the same workflow-requested cancellation, and both RPCs signal the
@@ -96,7 +128,7 @@ export interface TurnInterruptionEvidence {
  *    row, thrown; the workflow, which knows which stop it runs, writes the
  *    phase and the stop row (stigmer#980).
  *  - `infrastructure`: the platform cancelled for its own reason (a heartbeat
- *    timeout, a closed run); FAILED with the unresponsive copy, thrown.
+ *    timeout, a closed run); nothing terminal is written, thrown.
  *  - `none`: nothing was delivered.
  */
 export type TurnInterruption = "worker-shutdown" | "orchestrator-stop" | "infrastructure" | "none";

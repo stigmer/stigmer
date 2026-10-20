@@ -97,10 +97,13 @@ async function runRemoteTurn(
   const turnKey = randomBytes(32).toString("base64url");
   const closeTurn = turns.openTurn({ executionId: input.executionId, threadId: input.threadId, turnKey });
   let stopListener: (() => void) | undefined;
+  let yieldListener: (() => void) | undefined;
   try {
     const peer = await host.connection();
     stopListener = () => peer.notify("stopTurn", { turnId, reason: describeReason(sink.stopSignal.reason) });
     sink.stopSignal.addEventListener("abort", stopListener, { once: true });
+    yieldListener = () => peer.notify("yieldTurn", { turnId });
+    sink.yieldSignal.addEventListener("abort", yieldListener, { once: true });
     const settlement = await peer.call("runTurn", {
       turnId,
       harness,
@@ -110,6 +113,7 @@ async function runRemoteTurn(
       timing: sink.setupTiming.toWire(),
       fingerprintKey: executionFingerprintKey(input.executionId).toString("base64"),
       stopped: sink.stopSignal.aborted ? describeReason(sink.stopSignal.reason) : null,
+      yielded: sink.yieldSignal.aborted,
       turnKey,
       traceparent: await activeTraceparent(),
     });
@@ -123,12 +127,15 @@ async function runRemoteTurn(
   } catch (err) {
     if (turn.settled) throw err;
     turn.settle(undefined);
-    if (sink.stopSignal.aborted) return { kind: "interrupted" };
+    // A turn the runtime had stopped, or asked to yield, ends as the runtime
+    // asked whatever became of the host: its evidence decides the arm.
+    if (sink.stopSignal.aborted || sink.yieldSignal.aborted) return { kind: "interrupted" };
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[agent-host] turn lost with the agent host: execution=${input.executionId}, ${message}`);
     return { kind: "failed", surface: "internal", message: `The agent process stopped before the turn finished: ${message}`, cause: err };
   } finally {
     if (stopListener) sink.stopSignal.removeEventListener("abort", stopListener);
+    if (yieldListener) sink.yieldSignal.removeEventListener("abort", yieldListener);
     closeTurn();
     detach();
   }

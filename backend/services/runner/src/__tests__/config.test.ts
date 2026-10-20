@@ -60,6 +60,13 @@ describe("loadConfig", () => {
     expect(config.openOperationMaxMs).toBe(600000);
   });
 
+  it("drains for 25 s by default and respects STIGMER_DRAIN_GRACE_MS", () => {
+    process.env.CURSOR_API_KEY = "test-key";
+    expect(loadConfig().drainGraceMs).toBe(25_000);
+    process.env.STIGMER_DRAIN_GRACE_MS = "540000";
+    expect(loadConfig().drainGraceMs).toBe(540_000);
+  });
+
   it("respects STIGMER_SHELL_TIMEOUT_MAX_SECONDS", () => {
     process.env.CURSOR_API_KEY = "test-key";
     process.env.STIGMER_SHELL_TIMEOUT_MAX_SECONDS = "900";

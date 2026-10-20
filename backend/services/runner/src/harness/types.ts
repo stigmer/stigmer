@@ -169,6 +169,11 @@ export interface HarnessAdapter {
    *    settling `interrupted`. Every call the adapter makes is bounded: the
    *    runtime's heartbeat is live for the whole activity, and a live
    *    heartbeat over an unbounded call keeps a dead activity alive forever.
+   *  - Yields when `sink.yieldSignal` aborts: stops at the engine's next
+   *    DURABLE step boundary and settles `interrupted`, never cutting a
+   *    running tool to do so. Where a step is durable is the engine's own
+   *    fact (the step's result is saved where the next invocation resumes
+   *    from), so the adapter owns where; the runtime owns when, and why.
    *  - Proposes, never adjudicates. A gated side effect surfaces as a
    *    WAITING_APPROVAL row on `sink.rows` and the turn ends
    *    `awaiting_approval`; the decision arrives on the next invocation in
@@ -564,6 +569,22 @@ export interface TurnSink {
    * `runTurn` is entered; then return `interrupted` before doing any work.
    */
   readonly stopSignal: AbortSignal;
+
+  /**
+   * "Stop at your next durable step boundary": the runner is draining, and
+   * the next runner continues this turn where it was (stigmer#2428). Not a
+   * stop: the running step finishes first, inside the worker's drain grace,
+   * so a build in flight is not cut and repeated. When it aborts, settle
+   * `interrupted` at the first boundary where everything the engine did so
+   * far is saved where its next invocation resumes from, and never cut a
+   * running tool to get there; the native engine yields as its next model
+   * round starts (its steps are saved synchronously), the Cursor engine once
+   * no tool call is open. Abort before `runTurn` is entered means no work.
+   * If the grace runs out first, `stopSignal` aborts too, and stopping is
+   * then the only rule. The runtime records why it asked; the adapter never
+   * branches on it.
+   */
+  readonly yieldSignal: AbortSignal;
 
   /**
    * The runtime's cold-start timeline for this turn, a live handle like

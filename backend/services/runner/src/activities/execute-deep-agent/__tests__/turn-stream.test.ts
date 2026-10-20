@@ -268,6 +268,37 @@ describe("consumeDeepAgentStream — what each event becomes", () => {
   });
 });
 
+describe("consumeDeepAgentStream — a drained turn's yield", () => {
+  it("a yield before the first event settles interrupted without invoking the graph", async () => {
+    const h = harness();
+    h.sink.requestYield();
+    const result = await h.run(scriptedRun(textTurn("run-1", "never")));
+
+    expect(result.reason).toBe("interrupted");
+    expect(h.streamEvents).not.toHaveBeenCalled();
+  });
+
+  it("lets the running tool finish and yields as the root's next model round starts, leaving that round unfolded", async () => {
+    const h = harness();
+    const events = [
+      ...textTurn("run-1", "Building."),
+      makeToolStarted("toolu_1", "execute", { command: "make" }),
+      makeToolFinished("toolu_1", "built"),
+      ...textTurn("run-2", "Never folded."),
+    ];
+    // The drain lands while the tool runs (after its start, before its finish).
+    const result = await h.run(scriptedRun(events, { between: (yielded) => { if (yielded === 4) h.sink.requestYield(); } }));
+
+    expect(result.reason).toBe("interrupted");
+    expect(result.eventsProcessed, "the tool's finish was folded; the next round's start was not").toBe(5);
+    expect(h.sink.rows.messages.map((m) => m.content)).toEqual(["Building."]);
+    expect(h.sink.rows.messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    const [, config] = h.streamEvents.mock.calls[0] as [unknown, { signal: AbortSignal }];
+    expect(config.signal.aborted, "the round the yield landed on is aborted").toBe(true);
+    expect(h.sink.stopSignal.aborted, "a yield is not a stop").toBe(false);
+  });
+});
+
 describe("consumeDeepAgentStream — how the loop ends", () => {
   it("a stop before the first event settles interrupted without invoking the graph", async () => {
     const h = harness();

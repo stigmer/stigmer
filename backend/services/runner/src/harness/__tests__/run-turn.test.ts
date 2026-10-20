@@ -56,7 +56,13 @@ vi.mock("../../client/stigmer-client.js", async () =>
   (await import("../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
 
-import { ScriptedClock, createHermeticEnvironment } from "../../__test-utils__/hermetic-activity.js";
+import {
+  ScriptedClock,
+  continuationCauseOf,
+  createHermeticEnvironment,
+  threwCancelledFailure,
+  type InvocationControls,
+} from "../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../__test-utils__/model-registry-fixture.js";
 import { scriptedSubject } from "../../__test-utils__/harness-contract/scripted-adapter.js";
 import { initGitWorkspace, localPathEntry } from "../../__test-utils__/git-workspace-fixture.js";
@@ -322,6 +328,55 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       expect(final.messages.map((m) => [m.content, m.isStreaming]), "the message the adapter left open is closed").toEqual([["half a thou", false]]);
       const row = final.messages[0]!.toolCalls[0]!;
       expect([row.id, row.isStreaming, row.result], "the row the adapter left streaming output is closed, its output kept").toEqual(["t1", false, "building"]);
+    });
+  });
+
+  describe("a drain the turn meets", () => {
+    beforeAll(async () => {
+      await subject.adapter.boot(subject.config);
+    });
+
+    for (const [when, signal] of [
+      ["a drain", (c: InvocationControls) => c.signalWorkerShutdown()],
+      ["a second signal", (c: InvocationControls) => c.signalWorkerStopNow()],
+    ] as const) {
+      it(`${when} that began before the turn: the engine does no work, and the turn continues with the drain's note`, async () => {
+        clock.reset();
+        const driver = new RuntimeExecutionDriver(harness, `fake-${when.replaceAll(" ", "-")}-before`);
+        const invocation = await driver.turn([scenario.read("never-read", "README.md")], { onControls: signal });
+
+        expect(continuationCauseOf(invocation.outcome)).toBe("drain");
+        expect(subject.executionCount("never-read"), "the engine was entered and yielded before its first step").toBe(0);
+        const settle = driver.record.persisted.at(-1)!;
+        expect([settle.phase, settle.error, settle.completedAt]).toEqual([RunPhase.RUN_PHASE_UNSPECIFIED, "", ""]);
+        expect(systemMessages(driver.record.rowsOf(settle))).toEqual([TERMINAL_COPY.continuation.notes.drain]);
+      });
+    }
+
+    it("an error an engine throws after an infrastructure cancel writes no ending and throws the after-error copy", async () => {
+      let controls: InvocationControls | undefined;
+      const throwsWhenStopped: HarnessAdapter = {
+        ...subject.adapter,
+        name: "throws-when-stopped",
+        boot: (config) => subject.adapter.boot(config),
+        shutdown: () => subject.adapter.shutdown(),
+        releaseSession: (sessionId) => subject.adapter.releaseSession(sessionId),
+        async runTurn() {
+          // Temporal times the activity out, and the engine's teardown throws.
+          controls!.cancelTimedOut();
+          throw new Error("teardown broke mid-flight");
+        },
+      };
+      const throwing: RuntimeContractHarness = { ...harness, subject: { ...subject, name: throwsWhenStopped.name, adapter: throwsWhenStopped } };
+      clock.reset();
+      const driver = new RuntimeExecutionDriver(throwing, "fake-throws-after-cancel");
+      const invocation = await driver.turn([], { onControls: (c) => (controls = c) });
+
+      expect(threwCancelledFailure(invocation.outcome)).toBe(true);
+      if (!threwCancelledFailure(invocation.outcome)) throw new Error("unreachable");
+      expect(invocation.outcome.error.message).toBe(TERMINAL_COPY.infrastructureCancel.throwMessageAfterError);
+      const settle = driver.record.persisted.at(-1)!;
+      expect([settle.phase, settle.error, settle.completedAt, settle.stopCause]).toEqual([RunPhase.RUN_PHASE_UNSPECIFIED, "", "", ""]);
     });
   });
 

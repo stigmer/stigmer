@@ -206,20 +206,24 @@ async function runStaticMode(config: import("./config.js").Config): Promise<void
     // re-deriving execution location from the proxy. This keeps static mode
     // consistent with manager mode, which already passes config.mode.
     executionMode: config.mode,
+    drainGraceMs: config.drainGraceMs,
     ...operatorBounds(config),
   });
   /* v8 ignore stop */
 
   let shutdownRequested = false;
+  /* v8 ignore start -- @preserve: static mode's process boundary (signals); the escalation it asks for is runner.ts's shutdown, and the per-queue drain and stop-now signals are shared/worker-shutdown.ts's, tested there */
   const shutdown = (signal: string) => {
     if (shutdownRequested) {
-      console.warn("Shutdown already in progress, ignoring duplicate signal");
+      console.warn(`Received ${signal} again, stopping in-flight turns now; they continue on the next runner`);
+      runner.shutdown();
       return;
     }
     shutdownRequested = true;
-    console.log(`Received ${signal}, stopping worker gracefully...`);
+    console.log(`Received ${signal}, stopping worker gracefully (in-flight turns yield within ${config.drainGraceMs} ms)...`);
     runner.shutdown();
   };
+  /* v8 ignore stop */
 
   process.on("SIGTERM", () => shutdown("SIGTERM"));
   process.on("SIGINT", () => shutdown("SIGINT"));

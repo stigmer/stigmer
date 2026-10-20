@@ -20,10 +20,19 @@
  * Nothing here is engine-specific and nothing here persists; the Cursor
  * orchestrator kept the same facts as flags on its stream state
  * (`turn-stream.ts` `TurnStreamState`, before #1070 moved them out).
+ *
+ * A yield is not a stop. When the runner drains, the turn is asked to stop
+ * at its engine's next durable step boundary so the next runner continues
+ * it where it was (`TurnSink.yieldSignal`, stigmer#2428): the running step
+ * finishes first. A second signal to the runner (the yield cannot wait any
+ * longer) stops the turn now through the one stop signal, cause
+ * `yield-now`; either way the evidence names the yield's cause, and the
+ * terminal table continues the turn.
  */
 
 import type { StallTimeoutError } from "../shared/stall-watchdog.js";
 import type { OperationLimitError } from "./open-operations.js";
+import type { ContinuationCause } from "./terminal-table.js";
 
 /** Why the runtime stopped the turn. */
 export type StopCause =
@@ -32,7 +41,9 @@ export type StopCause =
   | { readonly kind: "mock-abort"; readonly abort: MockAbort }
   | { readonly kind: "cost-cap" }
   | { readonly kind: "platform-stop" }
-  | { readonly kind: "cancellation" };
+  | { readonly kind: "cancellation" }
+  /** A requested yield that cannot wait for the engine's boundary any longer (the runner was signalled again). */
+  | { readonly kind: "yield-now" };
 
 /** Which mock stopped a eval-run try, and why. */
 export interface MockAbort {
@@ -51,20 +62,35 @@ export interface StopEvidence {
   readonly platformStop: boolean;
   /** Temporal delivered a cancellation; its reason is on the cancellation signal itself. */
   readonly cancellation: boolean;
+  /** Why the runtime asked the engine to yield so the turn continues; `undefined` when it never asked. */
+  readonly yieldCause: ContinuationCause | undefined;
 }
 
 export class StopController {
   private readonly controller = new AbortController();
+  private readonly yieldController = new AbortController();
   private stall: StallTimeoutError | undefined;
   private operationLimit: OperationLimitError | undefined;
   private mockAbort: MockAbort | undefined;
   private costCapExceeded = false;
   private platformStop = false;
   private cancellation = false;
+  private yieldCause: ContinuationCause | undefined;
 
   /** The adapter's `stopSignal`. Its `reason` is the first cause's kind, a diagnostic only. */
   get signal(): AbortSignal {
     return this.controller.signal;
+  }
+
+  /** The adapter's `yieldSignal`: stop at the engine's next durable step boundary. */
+  get yieldSignal(): AbortSignal {
+    return this.yieldController.signal;
+  }
+
+  /** Ask the engine to yield, recording why (the first cause wins; the signal aborts once). */
+  requestYield(cause: ContinuationCause): void {
+    this.yieldCause ??= cause;
+    if (!this.yieldController.signal.aborted) this.yieldController.abort(cause);
   }
 
   get evidence(): StopEvidence {
@@ -75,6 +101,7 @@ export class StopController {
       costCapExceeded: this.costCapExceeded,
       platformStop: this.platformStop,
       cancellation: this.cancellation,
+      yieldCause: this.yieldCause,
     };
   }
 
@@ -98,6 +125,9 @@ export class StopController {
         break;
       case "cancellation":
         this.cancellation = true;
+        break;
+      case "yield-now":
+        // Its evidence is the yield's own cause, recorded when it was asked.
         break;
       default: {
         const exhaustive: never = cause;

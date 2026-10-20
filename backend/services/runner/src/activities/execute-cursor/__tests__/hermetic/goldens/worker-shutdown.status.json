@@ -1,7 +1,3 @@
 {
-  "phase": "RUN_FAILED",
-  "error": "Execution interrupted: runner worker was shut down. Retry or resume.",
-  "startedAt": "2026-01-01T00:00:00.000Z",
-  "completedAt": "2026-01-01T00:00:03.000Z",
-  "stopCause": "infrastructure"
+  "startedAt": "2026-01-01T00:00:00.000Z"
 }
