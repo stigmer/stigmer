@@ -30,6 +30,18 @@ describe("sqlite file blob store contract", () => {
           db.close();
         }
       },
+      async seedOutputConversion(c) {
+        const db = new DatabaseSync(temp.dbPath);
+        try {
+          db.prepare(
+            `INSERT INTO output_conversions
+               (run_id, position, org, session_id, name, storage_key, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          ).run(c.runId, c.position, c.org, c.sessionId, c.name, c.storageKey, c.createdAt);
+        } finally {
+          db.close();
+        }
+      },
       cleanup: () => temp.cleanup(),
     };
   });

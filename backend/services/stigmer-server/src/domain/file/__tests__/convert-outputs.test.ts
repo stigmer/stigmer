@@ -313,5 +313,6 @@ describe("an install with a run's stored file, booted", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
-  });
+    // Two boots of the composed server, each about seven seconds here.
+  }, 60_000);
 });

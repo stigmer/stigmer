@@ -467,6 +467,7 @@ describe.skipIf(testDatabaseAdminUrl() === undefined)(
           "grant_history_heads",
           "oauth_client_registration",
           "organization_deletions",
+          "output_conversions",
           "pending_oauth_state",
           "resource_audit",
           "resource_list_keys",
