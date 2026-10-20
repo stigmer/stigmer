@@ -183,6 +183,43 @@ describe("FileDocument", () => {
     expect(screen.getByText(/Skill added/)).toBeTruthy();
   });
 
+  it("says why an image cannot be drawn when its link cannot be minted", async () => {
+    const getDownloadUrl = vi.fn().mockRejectedValue(new Error("link refused"));
+    renderDoc({ file: { getContent: vi.fn(), getDownloadUrl } } as unknown as Stigmer, fileArtifact("photo.png", "image/png"));
+    expect(await screen.findByText("link refused")).toBeTruthy();
+  });
+
+  it("deletes nothing when Delete is cancelled, and closes the tag form on Cancel", async () => {
+    const remove = vi.fn();
+    const pushFromFile = vi.fn();
+    const stigmer = {
+      file: { getContent: vi.fn().mockReturnValue(new Promise(() => {})), delete: remove },
+      grant: { checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: true }) },
+      skill: { pushFromFile },
+    } as unknown as Stigmer;
+    const zip = create(FileSchema, {
+      metadata: { id: "file_zip", org: "org_acme" },
+      spec: { filename: "tools.zip" },
+      status: { sizeBytes: 64n },
+    });
+    render(
+      <StigmerContext.Provider value={stigmer}>
+        <FileDocument file={zip} org="acme" isTerminal onDeleted={vi.fn()} />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.click(await screen.findByText("Delete"));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByText("Delete this file?")).toBeNull();
+    expect(remove).not.toHaveBeenCalled();
+
+    fireEvent.click(await screen.findByText("Add as skill"));
+    expect(screen.getByLabelText("Skill tag (optional)")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByLabelText("Skill tag (optional)")).toBeNull();
+    expect(pushFromFile).not.toHaveBeenCalled();
+  });
+
   it("downloads the File by its id and filename when Download is clicked", async () => {
     const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
     const getDownloadUrl = vi.fn().mockResolvedValue({ url: "https://files.test/notes.txt" });

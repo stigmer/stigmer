@@ -117,6 +117,9 @@ test.describe("A conversation's Files tab", () => {
     await expect(getAIResponses(page)).toHaveCount(3, { timeout: TURN_BUDGET_MS });
     await assertComposerEnabled(page);
 
+    // The panel returns to the Explorer when a turn starts or ends, so the
+    // Files view is chosen again.
+    await filesView.click();
     // One report.md under what was saved, the latest turn's.
     const saved = page.getByRole("region", { name: "Saved by the agent" });
     await expect(saved.getByText("report.md", { exact: true })).toHaveCount(1, { timeout: 15_000 });

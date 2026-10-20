@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { renderHook, cleanup } from "@testing-library/react";
+import { render, renderHook, cleanup } from "@testing-library/react";
 
 // ---------------------------------------------------------------------------
 // useSessionRailViews composes the session facets as injected rail views for
@@ -117,6 +117,9 @@ describe("useSessionRailViews", () => {
     expect(CONVERSATION_FILES_VIEW_ID).not.toBe("files");
     expect(files?.label).toBe("Files");
     expect(files?.badge).toBe(6);
+    // Its own icon, drawn apart from the Explorer's.
+    const { container } = render(<>{files?.icon}</>);
+    expect(container.querySelector("svg")).toBeTruthy();
   });
 
   it("surfaces Files when only given Files exist, and hides it when there are none", () => {

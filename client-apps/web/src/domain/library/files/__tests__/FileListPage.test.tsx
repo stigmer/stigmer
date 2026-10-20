@@ -97,6 +97,13 @@ describe("web Files page", () => {
 
     act(() => (preview.onApplied as (r: unknown) => void)({ kind: "Skill", name: "tools", org: "org_acme", slug: "tools" }));
     expect(page.detail).toEqual([["skills", "org_acme", "tools"]]);
+
+    // Rows are keyed by the File's id, and closing the preview drops it.
+    expect((page.props.get("ResourceWorkbench")!.getItemId as (f: unknown) => string)(file)).toBe("file_1");
+    page.props.delete("LibraryFilePreview");
+    act(() => (preview.onClose as () => void)());
+    render(<FileListPage />);
+    expect(page.props.has("LibraryFilePreview")).toBe(false);
   });
 
   it("is what /library/files serves", () => {

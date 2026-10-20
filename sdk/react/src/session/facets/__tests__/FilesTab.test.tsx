@@ -8,8 +8,9 @@
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, within, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import type { Stigmer } from "@stigmer/client";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
@@ -19,11 +20,16 @@ import { FilesTab, type FilesTabProps } from "../FilesTab";
 import { deriveSessionOutputs } from "../../useSessionOutputs";
 import { givenKey, type SessionGivenEntry } from "../../useSessionGivenFiles";
 
-function output(filename: string, runId = "aex_1", id = `file_${filename.replace(/\W/g, "_")}`) {
+function output(filename: string, runId = "aex_1", id = `file_${filename.replace(/\W/g, "_")}`, created?: Date) {
   return create(FileSchema, {
     metadata: { id },
     spec: { filename },
-    status: { sizeBytes: 1024n, runId, outputPath: filename },
+    status: {
+      sizeBytes: 1024n,
+      runId,
+      outputPath: filename,
+      audit: created ? { specAudit: { createdAt: timestampFromDate(created) } } : undefined,
+    },
   });
 }
 
@@ -250,5 +256,77 @@ describe("FilesTab — modal fallback plan 'Build' wiring", () => {
     fireEvent.click(within(dialog).getByText("Build"));
 
     expect(onImplementPlan).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("FilesTab — given Files and earlier versions", () => {
+  it("opens a given File in the modal in a panel-less host, and pins its tab on a double-click in a panel", () => {
+    renderTab({ given: GIVEN });
+    openRow("ledger.csv");
+    expect(document.querySelector("dialog")).toBeTruthy();
+    cleanup();
+
+    const onActivateFileDocument = vi.fn();
+    renderTab({ given: GIVEN, onOpenFileDocument: vi.fn(), onActivateFileDocument });
+    activateRow("ledger.csv");
+    expect(onActivateFileDocument).toHaveBeenCalledWith(".stigmer/uploads/q3/ledger.csv");
+  });
+
+  it("names each earlier version by when its turn saved it, and downloads it under its own name", async () => {
+    const later = create(RunSchema, { metadata: { id: "aex_2" }, status: { phase: RunPhase.RUN_COMPLETED } });
+    const third = create(RunSchema, { metadata: { id: "aex_3" }, status: { phase: RunPhase.RUN_COMPLETED } });
+    const outputs = deriveSessionOutputs(
+      [
+        output("report.md", "aex_3", "file_v3"),
+        output("report.md", "aex_2", "file_v2", new Date(Date.now() - 2 * 3_600_000)),
+        output("report.md", "aex_1", "file_v1", new Date("2001-07-12T10:00:00Z")),
+        output("notes.md", "aex_1", "file_n1", new Date()),
+        output("notes.md", "aex_2", "file_n2"),
+      ],
+      [execution, later, third],
+    ).outputs;
+    const getDownloadUrl = vi.fn().mockReturnValue(new Promise(() => {}));
+    render(
+      <StigmerContext.Provider value={{ file: { getContent: vi.fn(), getDownloadUrl } } as unknown as Stigmer}>
+        <FilesTab outputs={outputs} given={[]} org="acme" onOpenFileDocument={vi.fn()} />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Show 2 earlier versions" }));
+    const reportEarlier = screen.getByRole("list", { name: "Earlier versions of report.md" });
+    expect(within(reportEarlier).getByText("saved 2h ago")).toBeTruthy();
+    // Past a week the age is a date, in the reader's locale.
+    expect(within(reportEarlier).getByText(/^saved (?!.*ago).*2001/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Show 1 earlier version" }));
+    expect(within(screen.getByRole("list", { name: "Earlier versions of notes.md" })).getByText("saved just now")).toBeTruthy();
+
+    fireEvent.click(within(reportEarlier).getAllByLabelText("Download report.md")[0]!);
+    expect(getDownloadUrl).toHaveBeenCalledWith("file_v2");
+  });
+
+  it("closes the modal and reports a File deleted from it", async () => {
+    const onDeleted = vi.fn();
+    const remove = vi.fn().mockResolvedValue({});
+    render(
+      <StigmerContext.Provider
+        value={
+          {
+            file: { getContent: vi.fn().mockReturnValue(new Promise(() => {})), delete: remove },
+            grant: { checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: true }) },
+          } as unknown as Stigmer
+        }
+      >
+        <FilesTab outputs={ENTRIES} given={GIVEN} org="acme" onDeleted={onDeleted} />
+      </StigmerContext.Provider>,
+    );
+
+    openRow("ledger.csv");
+    const dialog = document.querySelector("dialog")!;
+    fireEvent.click(await within(dialog).findByText("Delete"));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => expect(onDeleted).toHaveBeenCalledTimes(1));
+    expect(remove).toHaveBeenCalledWith("file_ledger");
+    expect(document.querySelector("dialog")).toBeNull();
   });
 });

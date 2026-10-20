@@ -66,7 +66,8 @@ test.describe("The Library's Files page", () => {
       await page.goto("/library/files");
       await expect(page.getByRole("heading", { name: "Files", level: 1 })).toBeVisible({ timeout: 15_000 });
 
-      await page.getByLabel("Choose files to upload").setInputFiles([
+      // The empty page offers Upload twice (its header and its empty state).
+      await page.getByLabel("Choose files to upload").first().setInputFiles([
         { name: ledger, mimeType: "text/csv", buffer: Buffer.from("a,b\n1,2\n") },
         { name: notes, mimeType: "text/markdown", buffer: Buffer.from("# notes\n") },
       ]);

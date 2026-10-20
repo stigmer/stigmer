@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { ReactElement } from "react";
 import { render, screen, cleanup, act, fireEvent, waitFor } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
@@ -261,6 +262,37 @@ describe("SessionViewer — Files facet open/pin wiring", () => {
     }>;
     const document = documents.find((d) => d.path === ".stigmer/uploads/briefs/brief.pdf");
     expect((document?.content.props.file as typeof upload | undefined)?.metadata?.id).toBe("file_brief");
+  });
+});
+
+describe("SessionViewer — a File document's lifecycle", () => {
+  function documentAt(path: string) {
+    const documents = surfaceProps.at(-1)?.virtualDocuments as ReadonlyArray<{
+      path: string;
+      content: ReactElement<CapturedProps>;
+    }>;
+    return documents.find((d) => d.path === path);
+  }
+
+  it("closes a deleted File's tab and re-reads the conversation's Files", async () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    await showPanelWithFiles();
+    act(() => filesTabCallback("onOpenFileDocument")(outputKey(artifact)));
+    const reads = listAll.mock.calls.length;
+
+    act(() => (documentAt(outputKey(artifact))!.content.props.onDeleted as () => void)());
+
+    expect(latestEditors()).toEqual([]);
+    await waitFor(() => expect(listAll.mock.calls.length).toBe(reads + 1));
+  });
+
+  it("says a File is no longer available when its tab outlives it", async () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+    await showPanelWithFiles();
+    act(() => filesTabCallback("onOpenFileDocument")("gone/old.md"));
+
+    render(documentAt("gone/old.md")!.content);
+    expect(screen.getByText("This file is no longer available.")).toBeTruthy();
   });
 });
 
