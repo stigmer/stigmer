@@ -8,6 +8,7 @@ import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { ChannelAppSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { EnvironmentSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { EvalSchema } from "@stigmer/apis/ai/stigmer/agentic/eval/v1/api_pb";
@@ -95,6 +96,11 @@ export const GET_BINDINGS: ReadonlyMap<ApiResourceKind, Getter> = new Map([
   [
     ApiResourceKind.eval_run,
     idOnlyGetter(EvalRunSchema, (c) => c.evalrun, "Eval runs"),
+  ],
+  // A File has an id and no slug: it is named by the id its upload minted.
+  [
+    ApiResourceKind.file,
+    idOnlyGetter(FileSchema, (c) => c.file, "Files"),
   ],
 ]);
 

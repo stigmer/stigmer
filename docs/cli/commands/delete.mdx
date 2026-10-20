@@ -52,6 +52,7 @@ stigmer delete agent my-agent --force
 | Channel App  | `channel-app`, `channelapp`, `chapp`   | Permanently deletes the app and its stored provider secrets                                                                                              |
 | Environment  | `environment`, `env`, `environments`   | Permanently deletes the environment; refused while an agent, a routine or the organization's default names it, naming each, so remove it from them first |
 | Eval Run     | `eval-run`, `evr`, `eval-runs`         | Deletes the eval run with its tries' conversations, runs and scores; a pending or running eval run is refused, so cancel it first                        |
+| File         | `file`, `files`                        | Permanently deletes the File and its bytes; a conversation's File leaves the conversation too; refused while a routine names it, naming the routine      |
 | Organization | `organization`, `org`, `organizations` | Deletes the organization at once and everything it owned in the background; its slug is free when that finishes                                          |
 | Routine      | `routine`, `rtn`, `routines`           | Permanently deletes the routine and tears down its schedule                                                                                              |
 | Run          | `run`, `runs`                          | Gracefully cancels a run in progress                                                                                                                     |

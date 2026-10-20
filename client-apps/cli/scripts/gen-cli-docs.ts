@@ -84,6 +84,7 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   channel: "resource",
   routine: "resource",
   vault: "resource",
+  file: "resource",
   // Artifact
   push: "artifact",
   install: "artifact",

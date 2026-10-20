@@ -1,5 +1,10 @@
 // In-process test for the read verbs (get/list).
 //
+// Files: `get file` reads one by id and refuses a slug; `list files` asks
+// only for the Files of no conversation, and `list files --session` lists
+// one conversation's Files in the conversation's own organization, with the
+// place each turn saved its output.
+//
 // Stands up a real Connect backend over h2c serving the query controllers the
 // CLI calls, points an SDK node client at it, and drives the resource layer
 // (fetchResource / listResources) end to end. Asserts the rendered JSON matches
@@ -26,6 +31,11 @@ import { ChannelAppQueryController } from "@stigmer/apis/ai/stigmer/agentic/chan
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { RoutineQueryController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/query_pb";
 import { EnvironmentSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { FileQueryController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/query_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
+import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/query_pb";
 import { NetworkingType } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/spec_pb";
 import { VaultSchema } from "@stigmer/apis/ai/stigmer/agentic/vault/v1/api_pb";
@@ -267,6 +277,27 @@ const limitedEnvironment = create(EnvironmentSchema, {
   },
 });
 
+// A File kept for reuse (no conversation), and two of a conversation in
+// another organization than the context's: an upload and a turn's output.
+const keptFile = create(FileSchema, {
+  metadata: { id: "file_kept", org: ACME_ID, visibility: ApiResourceVisibility.visibility_org },
+  spec: { filename: "q3-ledger.xlsx", mimeType: "application/vnd.ms-excel" },
+  status: { sizeBytes: 2048n },
+});
+const CONVERSATION_ORG_ID = "org_01jdddddddddddddddddddddddd";
+const givenFile = create(FileSchema, {
+  metadata: { id: "file_given", org: CONVERSATION_ORG_ID },
+  spec: { filename: "shot.png", mimeType: "image/png" },
+  status: { sizeBytes: 10n, sessionId: "ses_conv" },
+});
+const savedFile = create(FileSchema, {
+  metadata: { id: "file_saved", org: CONVERSATION_ORG_ID },
+  spec: { filename: "q3.md", mimeType: "text/markdown" },
+  status: { sizeBytes: 5n, sessionId: "ses_conv", runId: "run_1", outputPath: "reports/q3.md" },
+});
+// Every File list request the backend saw, so a test can read its filter.
+const fileListRequests: Array<{ org: string; sessionId: string; withoutSession: boolean }> = [];
+
 let backend: Http2Server;
 let client: Stigmer;
 // Every value the organization get was asked for, so a test can count lookups.
@@ -398,6 +429,24 @@ beforeAll(async () => {
       list: (req) => {
         if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
         return { entries: [limitedEnvironment] };
+      },
+    });
+    router.service(FileQueryController, {
+      get: (req) => {
+        if (req.value !== "file_kept") throw new ConnectError("file not found", Code.NotFound);
+        return keptFile;
+      },
+      list: (req) => {
+        fileListRequests.push({ org: req.org, sessionId: req.sessionId, withoutSession: req.withoutSession });
+        if (req.sessionId === "ses_conv" && req.org === CONVERSATION_ORG_ID) return { entries: [savedFile, givenFile] };
+        if (req.org === "acme" && req.withoutSession) return { entries: [keptFile] };
+        return { entries: [] };
+      },
+    });
+    router.service(SessionQueryController, {
+      get: (req) => {
+        if (req.value !== "ses_conv") throw new ConnectError("session not found", Code.NotFound);
+        return create(SessionSchema, { metadata: { id: "ses_conv", org: CONVERSATION_ORG_ID } });
       },
     });
     // A server that holds several organizations, so an empty org is refused.
@@ -576,6 +625,22 @@ describe("get integration", () => {
     expect(rendered).toEqual(toJson(EnvironmentSchema, limitedEnvironment, { useProtoFieldName: true }));
   });
 
+  it("fetches a File by ID", async () => {
+    const { message } = await fetchResource(client, ApiResourceKind.file, { kind: "id", id: "file_kept" });
+    expect(JSON.parse(renderResource(FileSchema, message, "json"))).toMatchObject({
+      metadata: { id: "file_kept" },
+      spec: { filename: "q3-ledger.xlsx" },
+    });
+  });
+
+  it("refuses a File named by anything but its id, before any RPC", async () => {
+    const err = await fetchResource(client, ApiResourceKind.file, { kind: "ref", org: "acme", slug: "q3-ledger" }).catch(
+      (e) => e,
+    );
+    expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
+    expect(String(err.message)).toContain("Files can only be fetched by ID");
+  });
+
   it("maps a NotFound backend error to ExitCode.NotFound", async () => {
     const err = await fetchResource(client, ApiResourceKind.agent, { kind: "id", id: "missing" }).catch((e) => e);
     const classified = classify(err);
@@ -610,7 +675,7 @@ describe("list integration", () => {
 
   it("sends the --label filter on every page it reads", async () => {
     agentListRequests.length = 0;
-    await listResources(client, ApiResourceKind.agent, "acme", 0, "json", { team: "support" });
+    await listResources(client, ApiResourceKind.agent, "acme", 0, "json", { labels: { team: "support" } });
     expect(agentListRequests).toEqual([
       { pageSize: 100, pageToken: "", labels: { team: "support" } },
       { pageSize: 100, pageToken: "agents-2", labels: { team: "support" } },
@@ -816,6 +881,46 @@ describe("list integration", () => {
     const err = await listResources(client, ApiResourceKind.environment, "", 50, "table").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
     expect(String(err.message)).toContain("stigmer list environments --org <org>");
+  });
+
+  it("lists only the Files of no conversation, as a table naming type, size and visibility", async () => {
+    fileListRequests.length = 0;
+    const out = await listResources(client, ApiResourceKind.file, "acme", 50, "table");
+    expect(fileListRequests).toEqual([{ org: "acme", sessionId: "", withoutSession: true }]);
+    const lines = out.split("\n");
+    const header = lines.find((line) => line.includes("ID"));
+    expect(header?.split(/\s+/).filter(Boolean)).toEqual(["ID", "NAME", "TYPE", "SIZE", "VISIBILITY", "CREATED"]);
+    const row = lines.find((line) => line.includes("file_kept"));
+    expect(row?.split(/\s+/).filter(Boolean)).toEqual([
+      "file_kept",
+      "q3-ledger.xlsx",
+      "application/vnd.ms-excel",
+      "2.0",
+      "KB",
+      "visibility_org",
+      "-",
+    ]);
+  });
+
+  it("lists one conversation's Files in its own organization, with where each turn saved its output", async () => {
+    fileListRequests.length = 0;
+    const out = await listResources(client, ApiResourceKind.file, "acme", 50, "table", { sessionId: "ses_conv" });
+    expect(fileListRequests).toEqual([{ org: CONVERSATION_ORG_ID, sessionId: "ses_conv", withoutSession: false }]);
+    const lines = out.split("\n");
+    const header = lines.find((line) => line.includes("ID"));
+    expect(header?.split(/\s+/).filter(Boolean)).toEqual(["ID", "NAME", "OUTPUT", "TYPE", "SIZE", "VISIBILITY", "CREATED"]);
+    expect(lines.find((line) => line.includes("file_saved"))).toContain("reports/q3.md");
+    expect(lines.find((line) => line.includes("file_given"))?.split(/\s+/).filter(Boolean).slice(0, 3)).toEqual([
+      "file_given",
+      "shot.png",
+      "-",
+    ]);
+  });
+
+  it("refuses to list Files without an org context, before any RPC", async () => {
+    const err = await listResources(client, ApiResourceKind.file, "", 50, "table").catch((e) => e);
+    expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
+    expect(String(err.message)).toContain("stigmer list files --org <org>");
   });
 
   it("rejects a kind whose list is unwired with a usage error", async () => {

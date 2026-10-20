@@ -1,7 +1,10 @@
 // Command-level contract for `stigmer list <kind>` through the registry: the
 // kind's alias resolves to its ApiResourceKind, and the resolved
-// organization, `--limit`, the output format and the `--label` filter reach
-// the list read, whose rendering goes to stdout. The backend and the list read
+// organization, `--limit`, the output format and the `--label` and
+// `--session` filters reach the list read, whose rendering goes to stdout.
+// `--session` names a conversation whose Files to list, so it is refused,
+// before any read, for every type but files and for an id that is not a
+// session's. The backend and the list read
 // are replaced at their module seams; the program and the registry are real.
 
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -54,16 +57,37 @@ afterEach(() => {
 describe("stigmer list <kind>", () => {
   it("lists the kind in the resolved organization, with no label filter by default", async () => {
     const out = await list("agents");
-    expect(reads.listResources).toHaveBeenCalledWith(stigmer, ApiResourceKind.agent, "acme", 50, "table", {});
+    expect(reads.listResources).toHaveBeenCalledWith(stigmer, ApiResourceKind.agent, "acme", 50, "table", {
+      labels: {},
+      sessionId: "",
+    });
     expect(out).toBe("rendered agents\n");
   });
 
   it("passes every --label pair, the limit and the format to the list read", async () => {
     await list("routines", "-l", "team=support", "--label", "tier=gold", "--limit", "5", "--output", "json");
     expect(reads.listResources).toHaveBeenCalledWith(stigmer, ApiResourceKind.routine, "acme", 5, "json", {
-      team: "support",
-      tier: "gold",
+      labels: { team: "support", tier: "gold" },
+      sessionId: "",
     });
+  });
+
+  it("passes --session to the File list read", async () => {
+    await list("files", "--session", "ses_conv");
+    expect(reads.listResources).toHaveBeenCalledWith(stigmer, ApiResourceKind.file, "acme", 50, "table", {
+      labels: {},
+      sessionId: "ses_conv",
+    });
+  });
+
+  it.each([["agents"], ["runs"], ["types"]])("refuses --session for '%s' before reading", async (type) => {
+    await expect(list(type, "--session", "ses_conv")).rejects.toThrow("--session");
+    expect(reads.listResources).not.toHaveBeenCalled();
+  });
+
+  it("refuses a --session that is not a session's id before reading", async () => {
+    await expect(list("files", "--session", "file_1")).rejects.toThrow("invalid session ID: file_1");
+    expect(reads.listResources).not.toHaveBeenCalled();
   });
 
   it("refuses a malformed label before reading", async () => {

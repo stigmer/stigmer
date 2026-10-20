@@ -50,6 +50,7 @@ stigmer run my-agent -m "Summarize the Q4 earnings report"
 | `--detach`          | `bool`   |         | start the run and return immediately without streaming                                                                                                                                                  |
 | `--download`        | `string` |         | download artifacts to directory when complete                                                                                                                                                           |
 | `--environment`     | `string` |         | the environment the conversation's sandbox runs in, by id, org/slug or slug: its packages and network access, in place of the agent's or the organization's default                                     |
+| `--file-id`         | `string` |         | a File already uploaded (stigmer file upload, or the console's Library) sent with the message, counted with --attach toward its 20 (repeatable)                                                         |
 | `--harness`         | `string` |         | execution harness for the new session: "native" or "cursor"; unset, the agent's engine, else your account default, else native                                                                          |
 | `--json`            | `bool`   |         | stream events as newline-delimited JSON                                                                                                                                                                 |
 | `--message`, `-m`   | `string` |         | initial message/prompt for the run                                                                                                                                                                      |
@@ -170,6 +171,15 @@ to it where it is.
 stigmer run data-analyzer --attach ./report.csv -m "Analyze this data"
 stigmer run my-agent --attach ./image.png --attach ./spec.pdf
 stigmer run my-agent --attach ./q3-ledgers -m "Reconcile these"
+```
+
+A file already uploaded (`stigmer file upload`, or the console's Library) is
+named by its id with `--file-id`, without sending its bytes again. The
+conversation gets its own copy, and the File stays yours to name again. Files
+named this way count toward the message's 20 with the attached ones.
+
+```bash
+stigmer run finance-analyst --file-id file_01abc123 -m "Explain the Q3 variance"
 ```
 
 ### Output modes

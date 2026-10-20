@@ -1,4 +1,5 @@
-// In-process test for `push skill` and `download run`.
+// In-process test for `push skill`, `download run`, `download session` and
+// `download file`.
 //
 // Stands up a Connect backend (skill push, run get, and the run's Files with
 // their download links) plus a plain HTTP server standing in for object
@@ -9,7 +10,10 @@
 // tolerance, a nested folder path, and refused paths that would climb out
 // of the directory or name an absolute place), warns that a run still in progress may not have every
 // artifact yet, and refuses a named artifact the run does not hold with a
-// pointer to `get run`.
+// pointer to `get run`. downloadSessionOutputs lists the conversation's
+// Files in its own organization and writes only what its turns saved, one
+// File per place with the newest turn's winning, never a File given to the
+// conversation; downloadFile writes one File under its filename.
 
 import { createServer as createHttpServer, type Server as HttpServer } from "node:http";
 import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
@@ -26,6 +30,8 @@ import { FileQueryController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/qu
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillCommandController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/command_pb";
 import { createNodeClient, normalizeEndpoint } from "@stigmer/client/node";
@@ -33,7 +39,7 @@ import type { Stigmer } from "@stigmer/client";
 import { unzipSync } from "fflate";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { CliExitError, ExitCode } from "../../errors/index.js";
-import { downloadRunArtifacts } from "../download.js";
+import { downloadFile, downloadRunArtifacts, downloadSessionOutputs } from "../download.js";
 import { pushSkill } from "../skill.js";
 
 const SKILL_MD = ["---", "name: my-skill", "---", "# My Skill"].join("\n");
@@ -72,6 +78,30 @@ const runFiles: readonly File[] = [
   output("file_absolute", "aex_absolute", "/evil.txt", 5n),
 ];
 
+// One conversation's Files in its own organization (not the context's),
+// newest first: a later turn's report.txt, an upload, an earlier turn's
+// report.txt and its notes.
+const SESSION_ORG = "org_conversation";
+function sessionFile(id: string, runId: string, outputPath: string, filename = outputPath): File {
+  return create(FileSchema, {
+    metadata: { id, org: SESSION_ORG },
+    spec: { filename },
+    status: { sessionId: "ses_conv", runId, outputPath, sizeBytes: 5n },
+  });
+}
+const sessionFiles: readonly File[] = [
+  sessionFile("file_report_v2", "run_2", "report.txt"),
+  sessionFile("file_upload", "", "", "upload.csv"),
+  sessionFile("file_report_v1", "run_1", "report.txt"),
+  sessionFile("file_notes", "run_1", "notes/today.md"),
+];
+const STORE_BODIES: Readonly<Record<string, string>> = {
+  file_report_v2: "second",
+  file_report_v1: "first",
+  file_notes: "notes",
+  file_upload: "a,b",
+};
+
 function completedRun(id: string) {
   return create(RunSchema, { metadata: { id, org: "acme" }, status: { phase: RunPhase.RUN_COMPLETED } });
 }
@@ -88,6 +118,12 @@ beforeAll(async () => {
     if (req.url === "/store/file_report") {
       res.writeHead(200, { "content-type": "text/plain" });
       res.end(ARTIFACT_BODY);
+      return;
+    }
+    const stored = STORE_BODIES[(req.url ?? "").replace("/store/", "")];
+    if (stored !== undefined) {
+      res.writeHead(200, { "content-type": "text/plain" });
+      res.end(stored);
       return;
     }
     if (["/store/file_q3", "/store/file_escape", "/store/file_absolute"].includes(req.url ?? "")) {
@@ -125,9 +161,23 @@ beforeAll(async () => {
     router.service(FileQueryController, {
       list: (req) =>
         create(FileListSchema, {
-          entries: runFiles.filter((f) => req.org === "acme" && f.status?.runId === req.runId),
+          entries:
+            req.sessionId !== ""
+              ? sessionFiles.filter((f) => req.org === SESSION_ORG && f.status?.sessionId === req.sessionId)
+              : runFiles.filter((f) => req.org === "acme" && f.status?.runId === req.runId),
         }),
+      get: (req) => {
+        const file = sessionFiles.find((f) => f.metadata?.id === req.value);
+        if (file === undefined) throw new ConnectError("file not found", Code.NotFound);
+        return file;
+      },
       getDownloadUrl: (req) => create(FileDownloadUrlSchema, { url: `${storageUrl}/store/${req.value}` }),
+    });
+    router.service(SessionQueryController, {
+      get: (req) => {
+        if (req.value !== "ses_conv") throw new ConnectError("session not found", Code.NotFound);
+        return create(SessionSchema, { metadata: { id: "ses_conv", org: SESSION_ORG }, status: { state: "running" } });
+      },
     });
   };
 
@@ -307,6 +357,56 @@ describe("downloadRunArtifacts", () => {
       expect(progress).toEqual([
         "  Failed to download /evil.txt: refusing a path outside the output directory: /evil.txt",
       ]);
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("downloadSessionOutputs", () => {
+  it("writes what the turns saved, newest per place, and never a File given to the conversation", async () => {
+    const progress: string[] = [];
+    const out = mkdtempSync(join(tmpdir(), "dl-it-"));
+    try {
+      const outcome = await downloadSessionOutputs(
+        client,
+        "ses_conv",
+        { artifactName: "", outputDir: out },
+        (line) => progress.push(line),
+      );
+      expect(outcome).toEqual({ total: 2, downloaded: 2, noArtifacts: false });
+      expect(readFileSync(join(out, "report.txt"), "utf8")).toBe("second");
+      expect(readFileSync(join(out, "notes", "today.md"), "utf8")).toBe("notes");
+      expect(existsSync(join(out, "upload.csv"))).toBe(false);
+      expect(progress[0]).toBe("A turn is still running. Its outputs may not be complete until it finishes.");
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
+
+  it("filters to a named output, and points at the conversation's file list when none matches", async () => {
+    const out = mkdtempSync(join(tmpdir(), "dl-it-"));
+    try {
+      const outcome = await downloadSessionOutputs(client, "ses_conv", { artifactName: "notes/today.md", outputDir: out });
+      expect(outcome).toEqual({ total: 1, downloaded: 1, noArtifacts: false });
+      const failure = downloadSessionOutputs(client, "ses_conv", { artifactName: "upload.csv", outputDir: out });
+      await expect(failure).rejects.toMatchObject({
+        message: "artifact not found: upload.csv\n\nUse 'stigmer list files --session ses_conv' to see available artifacts",
+        exitCode: ExitCode.General,
+      });
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("downloadFile", () => {
+  it("writes one File under its filename", async () => {
+    const out = mkdtempSync(join(tmpdir(), "dl-it-"));
+    try {
+      const outcome = await downloadFile(client, "file_upload", out);
+      expect(outcome).toEqual({ total: 1, downloaded: 1, noArtifacts: false });
+      expect(readFileSync(join(out, "upload.csv"), "utf8")).toBe("a,b");
     } finally {
       rmSync(out, { recursive: true, force: true });
     }

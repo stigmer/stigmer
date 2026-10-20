@@ -1,11 +1,15 @@
-// Command-level contract for `stigmer download run <id>`: a type other than
-// run or eval (eval's own suite is eval-command.test.ts) is refused, a run
-// is named `run` or `runs`, any case, and only a run id is accepted, each
-// refused as a usage error before any backend call; the artifact name and
-// output directory reach the download, progress goes to stderr, and the
-// outcome line (none found with its tip, all downloaded, or some of them) goes
-// to stdout. The backend and the download are replaced at their module seams;
-// the program and the flag parsing are real.
+// Command-level contract for `stigmer download`: a run (the pre-gate alias)
+// is named `run` or `runs`, any case, and only a run id is accepted; every
+// other type resolves through the registry, and one whose verb-matrix row
+// promises no Download is refused with the types that do, read from the
+// registry; a session and a File dispatch through DOWNLOAD_HANDLERS with the
+// reference, the artifact name and the output directory. Every refusal is a
+// usage error before any backend call, the result flags included for a
+// download that prints the files it writes. Progress goes to stderr, and the
+// outcome line (none found with its tip, all downloaded, or some of them)
+// goes to stdout. Eval's own suite is eval-command.test.ts. The backend and
+// the downloads are replaced at their module seams; the program, the
+// registry and the flag parsing are real.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Config } from "../../config/index.js";
@@ -27,8 +31,19 @@ vi.mock("../../backend.js", () => ({
 
 // The outcome the stubbed download reports, after writing one progress line.
 let outcome: DownloadOutcome;
-const download = vi.hoisted(() => ({ downloadRunArtifacts: vi.fn() }));
-vi.mock("../../resources/download.js", () => download);
+const download = vi.hoisted(() => ({ downloadRunArtifacts: vi.fn(), session: vi.fn(), file: vi.fn() }));
+vi.mock("../../resources/download.js", async () => {
+  const { ApiResourceKind } = await import(
+    "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb"
+  );
+  return {
+    downloadRunArtifacts: download.downloadRunArtifacts,
+    DOWNLOAD_HANDLERS: new Map([
+      [ApiResourceKind.session, { answers: "files", noun: "artifact", download: download.session }],
+      [ApiResourceKind.file, { answers: "files", noun: "file", download: download.file }],
+    ]),
+  };
+});
 
 let stdout: string[];
 let stderr: string[];
@@ -59,6 +74,12 @@ beforeEach(() => {
       return outcome;
     },
   );
+  for (const handler of [download.session, download.file]) {
+    handler.mockImplementation(async (_client: unknown, _request: unknown, progress: ProgressSink) => {
+      progress("  Downloaded report.txt (23 B)");
+      return outcome;
+    });
+  }
 });
 
 afterEach(() => {
@@ -108,10 +129,11 @@ describe("stigmer download run", () => {
     );
   });
 
-  it("refuses a type other than run before any call", async () => {
+  it("refuses a type whose verb matrix promises no download, naming the types that do, before any call", async () => {
     await expect(runDownload("agent", "aex_1")).rejects.toThrow(
-      new UsageError("download not supported for type: agent\n\nThe types that download: run, eval"),
+      new UsageError("download not supported for type: agent\n\nThe types that download: run, session, file, eval"),
     );
+    await expect(runDownload("nope", "x")).rejects.toThrow("download not supported for type: nope");
     expect(download.downloadRunArtifacts).not.toHaveBeenCalled();
   });
 
@@ -128,4 +150,45 @@ describe("stigmer download run", () => {
     );
     expect(download.downloadRunArtifacts).not.toHaveBeenCalled();
   });
+});
+
+describe("stigmer download session and file", () => {
+  it("downloads a session's outputs through its handler, with the artifact name and output directory", async () => {
+    const { out, err } = await runDownload("session", "ses_1", "--artifact", "report.txt", "-o", "/tmp/out");
+    expect(download.session).toHaveBeenCalledWith(
+      stigmer,
+      { ref: "ses_1", org: "", artifactName: "report.txt", outputDir: "/tmp/out" },
+      expect.any(Function),
+    );
+    expect(err).toContain("  Downloaded report.txt (23 B)\n");
+    expect(out).toBe("\nDownloaded 2 artifact(s) successfully\n");
+  });
+
+  it("says when the conversation's turns saved nothing", async () => {
+    outcome = { total: 0, downloaded: 0, noArtifacts: true };
+    const { out } = await runDownload("sessions", "ses_1");
+    expect(out).toContain("No artifacts found for session: ses_1");
+  });
+
+  it("downloads a File through its handler, leaving the default directory to it", async () => {
+    outcome = { total: 1, downloaded: 1, noArtifacts: false };
+    const { out } = await runDownload("file", "file_1");
+    expect(download.file).toHaveBeenCalledWith(
+      stigmer,
+      { ref: "file_1", org: "", artifactName: "", outputDir: undefined },
+      expect.any(Function),
+    );
+    expect(out).toBe("\nDownloaded 1 file(s) successfully\n");
+  });
+
+  it.each([["session", "ses_1"], ["file", "file_1"]])(
+    "refuses --json for a %s's download, which prints the files it writes, before any call",
+    async (type, ref) => {
+      await expect(runDownload(type, ref, "--json")).rejects.toThrow(
+        new UsageError(`--json and --quiet apply to \`download eval\`; a ${type}'s download prints the files it writes`),
+      );
+      expect(download.session).not.toHaveBeenCalled();
+      expect(download.file).not.toHaveBeenCalled();
+    },
+  );
 });

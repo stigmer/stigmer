@@ -21,6 +21,8 @@ import { create, type DescMessage, type Message } from "@bufbuild/protobuf";
 import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { ListChannelsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/io_pb";
 import { EnvironmentSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { ListFilesRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
 import { ListEnvironmentsRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/io_pb";
 import { ChannelAppSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ListChannelAppsInputSchema } from "@stigmer/apis/ai/stigmer/agentic/channelapp/v1/io_pb";
@@ -59,6 +61,7 @@ import {
 } from "./render.js";
 import { organizationLabels } from "../client/organizations.js";
 import { requireOrganization } from "../client/single-org.js";
+import { formatBytes } from "./skill.js";
 
 // One fetched page of a listing: what to render (entries + schema) and how
 // (table). Rendering and --limit truncation happen centrally in
@@ -69,15 +72,32 @@ interface ListPage {
   readonly table: TableShape;
 }
 
+/**
+ * What narrows a listing beyond its organization. Every handler takes the
+ * same shape, so the dispatcher never special-cases a kind: a handler reads
+ * the filters its list request carries, and the command layer refuses a
+ * filter for a kind that has none (`--session` names a conversation, and
+ * only Files belong to one).
+ */
+export interface ListFilters {
+  /**
+   * The --label filter: the server answers only resources carrying every
+   * pair, each matched exactly; empty filters nothing.
+   */
+  readonly labels: Record<string, string>;
+  /** The --session filter: one conversation's Files; "" filters nothing. */
+  readonly sessionId: string;
+}
+
+const NO_FILTERS: ListFilters = { labels: {}, sessionId: "" };
+
 // The handler walks pages up to `limit` (0: every page), so the
 // dispatcher's slice is a no-op it keeps as the one place the flag binds.
-// `labels` is the --label filter: the server answers only resources
-// carrying every pair, each matched exactly; empty filters nothing.
 type ListFn = (
   client: Stigmer,
   org: string,
   limit: number,
-  labels: Record<string, string>,
+  filters: ListFilters,
 ) => Promise<ListPage>;
 
 // The list handlers. Every kind declaring List in the verb matrix must
@@ -88,7 +108,7 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
 >([
   [
     ApiResourceKind.organization,
-    async (client, _org, limit, labels) => {
+    async (client, _org, limit, { labels }) => {
       // listMine is caller-scoped: the organizations the caller belongs to.
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
         client.organization.listMine(create(ListMyOrganizationsInputSchema, { pageSize, pageToken, labels })),
@@ -102,7 +122,7 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   ],
   [
     ApiResourceKind.api_key,
-    async (client, _org, limit, labels) => {
+    async (client, _org, limit, { labels }) => {
       // list is caller-scoped: the keys that speak for the caller.
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
         client.apiKey.list(create(ListApiKeysInputSchema, { pageSize, pageToken, labels })),
@@ -116,7 +136,7 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   ],
   [
     ApiResourceKind.channel,
-    async (client, org, limit, labels) => {
+    async (client, org, limit, { labels }) => {
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
         client.channel.list(create(ListChannelsRequestSchema, { org, pageSize, pageToken, labels })),
       );
@@ -129,7 +149,7 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   ],
   [
     ApiResourceKind.channel_app,
-    async (client, org, limit, labels) => {
+    async (client, org, limit, { labels }) => {
       // `channelapp` (not `channelApp`) is a recorded SDK codegen naming quirk.
       const entries = await readCursorPages(limit, (pageSize, pageToken) =>
         client.channelapp.list(create(ListChannelAppsInputSchema, { org, pageSize, pageToken, labels })),
@@ -143,7 +163,7 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   ],
   [
     ApiResourceKind.routine,
-    async (client, org, limit, labels) => {
+    async (client, org, limit, { labels }) => {
       // ListRoutinesRequest requires an org (min_len 1): a server that holds
       // one fills it, and on one that holds several an unset context is
       // refused with actionable copy instead of the server's raw validation
@@ -164,7 +184,7 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   ],
   [
     ApiResourceKind.environment,
-    async (client, org, limit, labels) => {
+    async (client, org, limit, { labels }) => {
       // ListEnvironmentsRequest requires an org (min_len 1), as routines' does.
       await requireOrganization(client, org, [
         "stigmer list environments --org <org>",
@@ -182,7 +202,7 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   ],
   [
     ApiResourceKind.vault,
-    async (client, org, limit, labels) => {
+    async (client, org, limit, { labels }) => {
       // Vaults are never search-indexed (a person's own vault names their
       // keys), so the dedicated list answers: the caller's own vault and the
       // shared vaults they may see. The request requires an org.
@@ -202,7 +222,7 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   ],
   [
     ApiResourceKind.session,
-    async (client, _org, limit, labels) => {
+    async (client, _org, limit, { labels }) => {
       // The session list is caller-scoped like organization and api_key
       // above. Promoted from a bespoke pre-gate route in commands/list.ts by
       // stigmer/stigmer#469 (it had shipped working-but-unadvertised).
@@ -218,7 +238,7 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   ],
   [
     ApiResourceKind.agent,
-    async (client, org, limit, labels) => {
+    async (client, org, limit, { labels }) => {
       await requireOrganization(client, org, [
         "stigmer list agents --org <org>",
         "stigmer config context set --org <org>",
@@ -231,7 +251,7 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   ],
   [
     ApiResourceKind.skill,
-    async (client, org, limit, labels) => {
+    async (client, org, limit, { labels }) => {
       await requireOrganization(client, org, [
         "stigmer list skills --org <org>",
         "stigmer config context set --org <org>",
@@ -244,7 +264,7 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
   ],
   [
     ApiResourceKind.plugin,
-    async (client, org, limit, labels) => {
+    async (client, org, limit, { labels }) => {
       await requireOrganization(client, org, [
         "stigmer list plugins --org <org>",
         "stigmer config context set --org <org>",
@@ -256,8 +276,34 @@ export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<
     },
   ],
   [
+    ApiResourceKind.file,
+    async (client, org, limit, { labels, sessionId }) => {
+      if (sessionId !== "") {
+        // A conversation names its own organization, so its Files are
+        // listed there whatever the context organization is.
+        const session = await client.session.get(sessionId);
+        const sessionOrg = session.metadata?.org ?? "";
+        const entries = await readCursorPages(limit, (pageSize, pageToken) =>
+          client.file.list(create(ListFilesRequestSchema, { org: sessionOrg, sessionId, pageSize, pageToken, labels })),
+        );
+        return { schema: FileSchema, entries, table: SESSION_FILE_TABLE };
+      }
+      // Without a conversation, the Files kept for reuse: uploaded through
+      // the API, the CLI or the console's Library and never given to a
+      // conversation. A conversation's uploads and outputs live with it.
+      await requireOrganization(client, org, [
+        "stigmer list files --org <org>",
+        "stigmer config context set --org <org>",
+      ]);
+      const entries = await readCursorPages(limit, (pageSize, pageToken) =>
+        client.file.list(create(ListFilesRequestSchema, { org, withoutSession: true, pageSize, pageToken, labels })),
+      );
+      return { schema: FileSchema, entries, table: FILE_TABLE };
+    },
+  ],
+  [
     ApiResourceKind.eval,
-    async (client, org, limit, labels) => {
+    async (client, org, limit, { labels }) => {
       await requireOrganization(client, org, [
         "stigmer list evals --org <org>",
         "stigmer config context set --org <org>",
@@ -276,9 +322,9 @@ export async function listResources(
   org: string,
   limit: number,
   format: OutputFormat,
-  labels: Record<string, string> = {},
+  filters: Partial<ListFilters> = {},
 ): Promise<string> {
-  const page = await fetchListPage(client, kind, org, limit, labels);
+  const page = await fetchListPage(client, kind, org, limit, { ...NO_FILTERS, ...filters });
   // The single point where --limit binds the output (0: every entry). The
   // handler already walked at most `limit` entries, so this is a no-op;
   // binding it here rather than per-handler is what keeps the flag honest
@@ -298,13 +344,13 @@ async function fetchListPage(
   kind: ApiResourceKind,
   org: string,
   limit: number,
-  labels: Record<string, string>,
+  filters: ListFilters,
 ): Promise<ListPage> {
   const handler = LIST_HANDLERS.get(kind);
   if (handler === undefined) {
     throw new UsageError("list is not implemented for this resource type");
   }
-  return handler(client, org, limit, labels);
+  return handler(client, org, limit, filters);
 }
 
 // Agents, skills and plugins: what a person browses a library by. The
@@ -345,6 +391,40 @@ const EVAL_TABLE: TableShape = {
     ];
   },
 };
+
+// A File is named by its id, so the id leads. TYPE is the media type the
+// upload recorded, SIZE its bytes in a human unit.
+const FILE_TABLE: TableShape = {
+  resourceName: "files",
+  headers: ["ID", "NAME", "TYPE", "SIZE", "VISIBILITY", "CREATED"],
+  row: (json) => fileRow(json),
+};
+
+// One conversation's Files: what was given to it and what its turns saved.
+// OUTPUT is where a turn saved the File under its outputs folder, empty for
+// one given to the conversation.
+const SESSION_FILE_TABLE: TableShape = {
+  resourceName: "files",
+  headers: ["ID", "NAME", "OUTPUT", "TYPE", "SIZE", "VISIBILITY", "CREATED"],
+  row: (json) => {
+    const [id, name, ...rest] = fileRow(json);
+    return [id, name, str(obj(json, "status"), "output_path") || "-", ...rest];
+  },
+};
+
+function fileRow(json: JsonObject): string[] {
+  const metadata = obj(json, "metadata");
+  const spec = obj(json, "spec");
+  const status = obj(json, "status");
+  return [
+    str(metadata, "id"),
+    str(spec, "filename"),
+    str(spec, "mime_type") || "-",
+    formatBytes(Number(str(status, "size_bytes") || "0")),
+    str(metadata, "visibility"),
+    date(str(obj(obj(status, "audit"), "spec_audit"), "created_at")),
+  ];
+}
 
 // The `stigmer search` table: SearchService results.
 export const SEARCH_TABLE: TableShape = {

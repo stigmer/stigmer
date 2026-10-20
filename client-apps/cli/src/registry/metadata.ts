@@ -90,6 +90,10 @@ export const KIND_META: ReadonlyMap<ApiResourceKind, KindMeta> = new Map([
     { name: "Session", displayName: "Session", idPrefix: "ses" },
   ],
   [
+    ApiResourceKind.file,
+    { name: "File", displayName: "File", idPrefix: "file" },
+  ],
+  [
     ApiResourceKind.run,
     { name: "Run", displayName: "Run", idPrefix: "run", retiredIdPrefixes: ["aex"] },
   ],
@@ -132,6 +136,7 @@ export const CLI_RELEVANT_KINDS: readonly ApiResourceKind[] = [
   ApiResourceKind.routine,
   ApiResourceKind.environment,
   ApiResourceKind.session,
+  ApiResourceKind.file,
   ApiResourceKind.score,
   ApiResourceKind.scoring_rule,
   ApiResourceKind.eval,

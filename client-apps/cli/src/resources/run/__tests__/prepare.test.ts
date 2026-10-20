@@ -74,6 +74,7 @@ describe("validateHarness", () => {
 const BASE_FLAGS: AgentExecFlags = {
   message: "hi",
   attach: [],
+  fileIds: [],
   approveDefault: "",
   verbose: false,
   detach: false,

@@ -19,6 +19,7 @@
     "channel",
     "connect",
     "delete",
+    "file",
     "get",
     "list",
     "routine",

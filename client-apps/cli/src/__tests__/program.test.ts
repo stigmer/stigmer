@@ -331,6 +331,44 @@ describe("buildProgram", () => {
     },
   );
 
+  it("sends each --file-id File in the first message's file_ids, through commander to the wire", async () => {
+    const program = buildProgram();
+    const run = program.commands.find((command) => command.name() === "run");
+    let parsed: AgentExecOptions | undefined;
+    run?.action((_agent: string | undefined, options: AgentExecOptions) => {
+      parsed = options;
+    });
+    await program.parseAsync(["run", "-m", "hi", "--file-id", "file_ledger", "--file-id", "file_notes"], { from: "user" });
+    if (parsed === undefined) throw new Error("run's action did not run");
+
+    const prepared = await prepareAgentExec(toAgentExecFlags(parsed), STUB_CLIENT, undefined, { org: "acme" });
+    expect(prepared.attachments.fileIds).toEqual(["file_ledger", "file_notes"]);
+    let sent: Run | undefined;
+    const controller = (() => ({
+      create: (run: Run) => {
+        sent = run;
+        return Promise.resolve(run);
+      },
+    })) as unknown as ControllerFn;
+    await createAgentRun(controller, {
+      orgId: "acme",
+      message: prepared.message,
+      vaults: prepared.vaults,
+      includeMyVault: prepared.includeMyVault,
+      plugins: prepared.plugins,
+      fileIds: prepared.attachments.fileIds,
+      workspaceFileRefs: [],
+      resources: [],
+      model: "",
+      mode: "",
+      serviceTier: "",
+      thinking: "",
+      autoApproveAll: false,
+      harness: "",
+    });
+    expect(sent?.spec?.fileIds).toEqual(["file_ledger", "file_notes"]);
+  });
+
   it.each([
     [[] as string[], undefined],
     [["--environment", "data-science"], "acme/data-science"],

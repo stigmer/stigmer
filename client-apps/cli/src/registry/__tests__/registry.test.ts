@@ -2,6 +2,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import { describe, expect, it } from "vitest";
 import { APPLY_HANDLERS } from "../../resources/apply/handlers.js";
 import { DELETE_HANDLERS } from "../../resources/delete.js";
+import { DOWNLOAD_HANDLERS } from "../../resources/download.js";
 import { GET_BINDINGS } from "../../resources/get-bindings.js";
 import { isRunAlias } from "../../resources/runs.js";
 import { LIST_HANDLERS } from "../../resources/list.js";
@@ -35,6 +36,9 @@ describe("registry — alias resolution", () => {
     ["channel-app", ApiResourceKind.channel_app],
     ["channel_app", ApiResourceKind.channel_app],
     ["chapp", ApiResourceKind.channel_app],
+    ["file", ApiResourceKind.file],
+    ["files", ApiResourceKind.file],
+    ["File", ApiResourceKind.file],
   ])("resolves %s -> kind", (alias, kind) => {
     expect(registry.getByAlias(alias)?.kind).toBe(kind);
   });
@@ -146,11 +150,23 @@ describe("registry — verb support matrix", () => {
     );
   });
 
-  it("session promises apply + list; get/delete stay narrowed (stigmer/stigmer#354, #469)", () => {
+  it("file promises get, list, delete and download; never apply (its bytes never change)", () => {
+    for (const v of [Verb.Get, Verb.List, Verb.Delete, Verb.Download]) {
+      expect(registry.supportsVerb(ApiResourceKind.file, v)).toBe(true);
+    }
+    for (const v of [Verb.Apply, Verb.Validate, Verb.Push]) {
+      expect(registry.supportsVerb(ApiResourceKind.file, v)).toBe(false);
+    }
+  });
+
+  it("session promises apply, list and download (its turns' outputs); get/delete stay narrowed (stigmer/stigmer#354, #469)", () => {
     expect(registry.supportsVerb(ApiResourceKind.session, Verb.Apply)).toBe(
       true,
     );
     expect(registry.supportsVerb(ApiResourceKind.session, Verb.List)).toBe(
+      true,
+    );
+    expect(registry.supportsVerb(ApiResourceKind.session, Verb.Download)).toBe(
       true,
     );
     for (const v of [Verb.Get, Verb.Delete]) {
@@ -261,6 +277,14 @@ describe("registry — verb/dispatch conformance", () => {
       label: "validate",
       verb: Verb.Validate,
       wired: new Set(VALIDATE_SCHEMAS.keys()),
+      specialCases: new Map(),
+    },
+    {
+      // Runs download through the pre-gate alias, outside the registry,
+      // like their list and get.
+      label: "download",
+      verb: Verb.Download,
+      wired: new Set(DOWNLOAD_HANDLERS.keys()),
       specialCases: new Map(),
     },
     {

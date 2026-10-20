@@ -6,6 +6,9 @@
 // rendered result shape, the special-case routing (run→cancel, which
 // interrupts the run's session and names the turns it stopped;
 // already-terminal), and that backend errors map to the right CLI exit code.
+// A File's delete names its conversation when it belongs to one, and a
+// refusal (a routine still names the File) reaches the person in the
+// server's words.
 
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
@@ -32,6 +35,9 @@ import { RoutineQueryController } from "@stigmer/apis/ai/stigmer/agentic/routine
 import { EnvironmentSchema } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/api_pb";
 import { EnvironmentCommandController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/command_pb";
 import { EnvironmentQueryController } from "@stigmer/apis/ai/stigmer/agentic/environment/v1/query_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { FileCommandController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/command_pb";
+import { FileQueryController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/query_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
 import { PluginQueryController } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/query_pb";
 import { OrganizationSchema } from "@stigmer/apis/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -49,6 +55,18 @@ import { tagVersion } from "../tag.js";
 const knownAgent = create(AgentSchema, {
   metadata: { name: "Reviewer", slug: "reviewer", org: "acme", id: "agt_1" },
 });
+
+// A conversation's upload, and a File a routine names (its delete is refused).
+const givenFile = create(FileSchema, {
+  metadata: { id: "file_given", org: "acme" },
+  spec: { filename: "shot.png" },
+  status: { sessionId: "ses_conv" },
+});
+const routineFile = create(FileSchema, {
+  metadata: { id: "file_routine", org: "acme" },
+  spec: { filename: "q3-ledger.xlsx" },
+});
+let fileDeleteIds: string[] = [];
 
 const knownOrganization = create(OrganizationSchema, {
   metadata: { name: "Acme", slug: "acme", id: "org_01jacme00000000000000000000" },
@@ -206,6 +224,23 @@ beforeAll(async () => {
       },
     });
 
+    router.service(FileQueryController, {
+      get: (req) => {
+        if (req.value === "file_given") return givenFile;
+        if (req.value === "file_routine") return routineFile;
+        throw new ConnectError("file not found", Code.NotFound);
+      },
+    });
+    router.service(FileCommandController, {
+      delete: (req) => {
+        if (req.value === "file_routine") {
+          throw new ConnectError("routine nightly-close names this File; remove it from the routine first", Code.FailedPrecondition);
+        }
+        fileDeleteIds.push(req.value);
+        return givenFile;
+      },
+    });
+
     router.service(PluginQueryController, {
       getByReference: (req) => {
         if (req.slug !== "clinic-tools") throw new ConnectError("plugin not found", Code.NotFound);
@@ -348,6 +383,47 @@ describe("delete (standard kinds)", () => {
     const err = await planDelete(client, "session", "ses_1", "acme").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
     expect(String(err.message)).toContain("does not support");
+  });
+});
+
+describe("delete (file)", () => {
+  beforeEach(() => {
+    fileDeleteIds = [];
+  });
+
+  it("names the File by its filename and the conversation it leaves, then deletes it by id", async () => {
+    const plan = await planDelete(client, "file", "file_given", "acme");
+    expect(plan.warning.message).toBe("You are about to delete the following file:");
+    expect(plan.warning.sections[0].fields).toEqual([
+      { key: "ID", value: "file_given" },
+      { key: "Name", value: "shot.png" },
+      { key: "Org", value: "acme" },
+    ]);
+    expect(plan.warning.hints).toEqual([
+      "It belongs to conversation ses_conv and leaves it too.",
+      "This action cannot be undone.",
+    ]);
+
+    const result = await plan.perform();
+    expect(result.message).toBe("File deleted successfully");
+    expect(result.sections[0].fields).toEqual([
+      { key: "ID", value: "file_given" },
+      { key: "Name", value: "shot.png" },
+    ]);
+    expect(fileDeleteIds).toEqual(["file_given"]);
+  });
+
+  it("surfaces the server's refusal while a routine names the File", async () => {
+    const plan = await planDelete(client, "file", "file_routine", "acme");
+    expect(plan.warning.hints).toEqual(["This action cannot be undone."]);
+    const err = await plan.perform().catch((e) => e);
+    expect(String(err.message)).toContain("routine nightly-close names this File");
+    expect(fileDeleteIds).toEqual([]);
+  });
+
+  it("refuses a File named by anything but its id", async () => {
+    const err = await planDelete(client, "file", "shot.png", "acme").catch((e) => e);
+    expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
   });
 });
 

@@ -1,10 +1,17 @@
-// `download run`: write what a run returned (the Files its agent saved in
-// its outputs folder) to disk, each at its place in that folder, through
-// short-lived download links. Partial-failure tolerant: a File that fails is
-// reported and skipped, never aborting the batch. A File's output path is
-// checked by the server when the runner registers it; it is checked again
-// here, so a path that would land outside the chosen directory is refused
-// whatever the server answered.
+// What `stigmer download <type> <ref>` writes, by kind. A run (the one
+// pre-gate alias, as for `list` and `get`) and a session give back what
+// their turns saved in the outputs folder, each File at its place in that
+// folder, newest per path; a File gives back its bytes under its filename;
+// an eval gives back one version of its evals/ folder. Downloads go through
+// short-lived links minted per File and are partial-failure tolerant: a
+// File that fails is reported and skipped, never aborting the batch. A
+// File's output path is checked by the server when the runner registers it;
+// it is checked again here, so a path that would land outside the chosen
+// directory is refused whatever the server answered.
+//
+// DOWNLOAD_HANDLERS is the verb's dispatch map, beside LIST_HANDLERS and
+// DELETE_HANDLERS, and the conformance test in registry/registry.test.ts
+// holds it to the verb matrix's Download promises.
 
 import { createWriteStream, mkdirSync } from "node:fs";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
@@ -13,8 +20,11 @@ import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer } from "@stigmer/client";
-import { CliExitError, ExitCode } from "../errors/index.js";
+import { CliExitError, ExitCode, UsageError } from "../errors/index.js";
+import type { CommandResult } from "../output/index.js";
+import { idPrefixesFor, isSessionId, parseReference } from "./reference.js";
 import { formatBytes } from "./skill.js";
 
 export interface DownloadParams {
@@ -54,22 +64,78 @@ export async function downloadRunArtifacts(
     progress?.(`Run is still ${incompletePhase}. Artifacts may not be complete until the run finishes.`);
   }
 
-  let files = await listRunFiles(client, run.metadata?.org ?? "", runId);
-  if (files.length === 0) {
-    return { total: 0, downloaded: 0, noArtifacts: true, incompletePhase };
-  }
+  const files = await newestPerPlace(client.file.listAll({ org: run.metadata?.org ?? "", runId }));
+  const outcome = await writeOutputs(client, files, params, `stigmer get run ${runId}`, progress);
+  return { ...outcome, incompletePhase };
+}
 
-  if (params.artifactName !== "") {
-    files = files.filter(
-      (f) => f.spec?.filename === params.artifactName || f.status?.outputPath === params.artifactName,
-    );
-    if (files.length === 0) {
-      throw new CliExitError(
-        `artifact not found: ${params.artifactName}\n\n` +
-          `Use 'stigmer get run ${runId}' to see available artifacts`,
-        ExitCode.General,
-      );
+/**
+ * `download session`: what every turn of the conversation saved in its
+ * outputs folder, one File per place, the newest turn's winning; the Files
+ * given to the conversation are its inputs and stay out. A conversation
+ * names its own organization, so its Files are listed there.
+ */
+export async function downloadSessionOutputs(
+  client: Stigmer,
+  sessionId: string,
+  params: DownloadParams,
+  progress?: ProgressSink,
+): Promise<DownloadOutcome> {
+  const session = await client.session.get(sessionId);
+  if ((session.status?.state ?? "") === "running") {
+    progress?.("A turn is still running. Its outputs may not be complete until it finishes.");
+  }
+  const outputs = (async function* () {
+    for await (const file of client.file.listAll({ org: session.metadata?.org ?? "", sessionId })) {
+      if ((file.status?.runId ?? "") !== "") yield file;
     }
+  })();
+  const files = await newestPerPlace(outputs);
+  return writeOutputs(client, files, params, `stigmer list files --session ${sessionId}`, progress);
+}
+
+/** `download file`: one File's bytes, written under its filename. */
+export async function downloadFile(
+  client: Stigmer,
+  fileId: string,
+  outputDir: string,
+  progress?: ProgressSink,
+): Promise<DownloadOutcome> {
+  const file = await client.file.get(fileId);
+  const name = file.spec?.filename ?? "";
+  mkdirSync(outputDir, { recursive: true });
+  try {
+    const written = await downloadSingle(client, file, name, outputDir, progress);
+    progress?.(`  Downloaded ${name} (${formatBytes(written)})`);
+    return { total: 1, downloaded: 1, noArtifacts: false };
+  } catch (err) {
+    progress?.(`  Failed to download ${name}: ${(err as Error).message}`);
+    return { total: 1, downloaded: 0, noArtifacts: false };
+  }
+}
+
+// Write each output at its place under the output directory, narrowed to
+// the named one when `--artifact` names it. `listCommand` is the command
+// that shows what could have been named.
+async function writeOutputs(
+  client: Stigmer,
+  all: readonly File[],
+  params: DownloadParams,
+  listCommand: string,
+  progress?: ProgressSink,
+): Promise<DownloadOutcome> {
+  if (all.length === 0) {
+    return { total: 0, downloaded: 0, noArtifacts: true };
+  }
+  const files =
+    params.artifactName === ""
+      ? all
+      : all.filter((f) => f.spec?.filename === params.artifactName || f.status?.outputPath === params.artifactName);
+  if (files.length === 0) {
+    throw new CliExitError(
+      `artifact not found: ${params.artifactName}\n\n` + `Use '${listCommand}' to see available artifacts`,
+      ExitCode.General,
+    );
   }
 
   mkdirSync(params.outputDir, { recursive: true });
@@ -86,16 +152,16 @@ export async function downloadRunArtifacts(
     }
   }
 
-  return { total: files.length, downloaded, noArtifacts: false, incompletePhase };
+  return { total: files.length, downloaded, noArtifacts: false };
 }
 
 /**
- * The run's Files, one per place in the outputs folder: the list answers
- * newest first, so a path written twice keeps its newest File.
+ * One File per place in the outputs folder: the list answers newest first,
+ * so a path written twice keeps its newest File.
  */
-async function listRunFiles(client: Stigmer, org: string, runId: string): Promise<File[]> {
+async function newestPerPlace(listed: AsyncIterable<File>): Promise<File[]> {
   const byPlace = new Map<string, File>();
-  for await (const file of client.file.listAll({ org, runId })) {
+  for await (const file of listed) {
     const place = placeOf(file);
     if (!byPlace.has(place)) byPlace.set(place, file);
   }
@@ -183,3 +249,95 @@ function formatDownloadPhase(phase: RunPhase): string {
       return "unknown";
   }
 }
+
+/** What `stigmer download <type> <ref>` was asked for. */
+export interface DownloadRequest {
+  /** The reference as typed: an id, or for an eval `<ref>[@<digest|tag>]`. */
+  readonly ref: string;
+  /** The resolved context organization, for a reference by slug. */
+  readonly org: string;
+  /** `--artifact`; "" takes every File. */
+  readonly artifactName: string;
+  /** `-o`; undefined lets the kind choose its default. */
+  readonly outputDir: string | undefined;
+}
+
+/**
+ * One kind's download. A kind answers in one of two ways, known before any
+ * call so the command layer can refuse a flag the answer would ignore:
+ * `result`, a summary the result flags (--json, --quiet) shape (an eval's
+ * folder); or `files`, each File printed as it is written and the count at
+ * the end (a session's outputs, a File).
+ */
+export type DownloadHandler =
+  | {
+      readonly answers: "result";
+      download(client: Stigmer, request: DownloadRequest): Promise<CommandResult>;
+    }
+  | {
+      readonly answers: "files";
+      /** The word the closing count uses for what was written. */
+      readonly noun: string;
+      download(client: Stigmer, request: DownloadRequest, progress: ProgressSink): Promise<DownloadOutcome>;
+    };
+
+// The download handlers. Every registered kind declaring Download in the
+// verb matrix must appear here — the conformance test enforces it, so the
+// two cannot drift. Runs are the pre-gate alias and download through
+// downloadRunArtifacts.
+export const DOWNLOAD_HANDLERS: ReadonlyMap<ApiResourceKind, DownloadHandler> = new Map<
+  ApiResourceKind,
+  DownloadHandler
+>([
+  [
+    ApiResourceKind.eval,
+    {
+      answers: "result",
+      async download(client, request) {
+        // Lazy: the eval module carries the archive tooling, which a run's
+        // own download (imported by `run`) never needs.
+        const evals = await import("./eval.js");
+        const { ref, version } = evals.splitEvalVersion(request.ref);
+        const parsed = parseReference(ref, request.org, idPrefixesFor(ApiResourceKind.eval));
+        return evals.renderEvalDownload(await evals.downloadEval(client, parsed, version, request.outputDir));
+      },
+    },
+  ],
+  [
+    ApiResourceKind.session,
+    {
+      answers: "files",
+      noun: "artifact",
+      async download(client, request, progress) {
+        if (!isSessionId(request.ref)) {
+          throw new UsageError(
+            `invalid session ID: ${request.ref}\n\nA conversation is named by its ID (e.g., ses_01abc123)`,
+          );
+        }
+        return downloadSessionOutputs(
+          client,
+          request.ref,
+          { artifactName: request.artifactName, outputDir: request.outputDir ?? "." },
+          progress,
+        );
+      },
+    },
+  ],
+  [
+    ApiResourceKind.file,
+    {
+      answers: "files",
+      noun: "file",
+      async download(client, request, progress) {
+        if (request.artifactName !== "") {
+          throw new UsageError("--artifact picks among a run's or a session's outputs; a File is one file");
+        }
+        const parsed = parseReference(request.ref, request.org, idPrefixesFor(ApiResourceKind.file));
+        if (parsed.kind !== "id") {
+          throw new UsageError(`a File is named by its ID (e.g., file_01abc123), not '${request.ref}'`);
+        }
+        return downloadFile(client, parsed.id, request.outputDir ?? ".", progress);
+      },
+    },
+  ],
+]);

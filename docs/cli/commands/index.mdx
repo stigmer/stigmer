@@ -36,6 +36,7 @@ Complete reference for all `stigmer` CLI commands, organized by category.
 | [`stigmer channel`](./channel)   | operate on channels: chat links, and switching a channel on or off   |
 | [`stigmer connect`](./connect)   | connect to external services and discover capabilities               |
 | [`stigmer delete`](./delete)     | delete a resource by type and reference (slug, org/slug, or ID)      |
+| [`stigmer file`](./file)         | upload files to name in conversations and routines                   |
 | [`stigmer get`](./get)           | get a resource by type and reference (slug, org/slug, or ID)         |
 | [`stigmer list`](./list)         | list resources of a type (or 'list types' for available types)       |
 | [`stigmer routine`](./routine)   | operate on routines                                                  |
@@ -46,14 +47,14 @@ Complete reference for all `stigmer` CLI commands, organized by category.
 
 ## Artifact Commands
 
-| Command                          | Description                                                                                  |
-| -------------------------------- | -------------------------------------------------------------------------------------------- |
-| [`stigmer agent`](./agent)       | read how an agent's runs are graded                                                          |
-| [`stigmer download`](./download) | download a run's artifacts, or an eval's folder at a version (eval `<ref>`[@\<digest\|tag>]) |
-| [`stigmer eval`](./eval)         | run test cases on an agent or a plugin, with and without a plugin, and score them            |
-| [`stigmer install`](./install)   | install a plugin from a source by name: [source/]name[@version]                              |
-| [`stigmer mcp`](./mcp)           | install an MCP server as a plugin of its own                                                 |
-| [`stigmer push`](./push)         | push an artifact to the registry (supported types: skill, plugin, eval)                      |
+| Command                          | Description                                                                                                         |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| [`stigmer agent`](./agent)       | read how an agent's runs are graded                                                                                 |
+| [`stigmer download`](./download) | download a run's or a session's artifacts, a file, or an eval's folder at a version (eval `<ref>`[@\<digest\|tag>]) |
+| [`stigmer eval`](./eval)         | run test cases on an agent or a plugin, with and without a plugin, and score them                                   |
+| [`stigmer install`](./install)   | install a plugin from a source by name: [source/]name[@version]                                                     |
+| [`stigmer mcp`](./mcp)           | install an MCP server as a plugin of its own                                                                        |
+| [`stigmer push`](./push)         | push an artifact to the registry (supported types: skill, plugin, eval)                                             |
 
 ## Server Commands
 
