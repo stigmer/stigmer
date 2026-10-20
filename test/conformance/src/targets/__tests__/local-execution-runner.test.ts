@@ -93,6 +93,20 @@ describe("the local execution target's restartRunner", () => {
     await target.teardown();
   });
 
+  it("calls onEnded after the ended runner exits and before the replacement boots", async () => {
+    const target = new LocalExecutionTarget();
+    await target.setup();
+    const seen: string[] = [];
+    await target.restartRunner({
+      signal: "SIGTERM",
+      onEnded: () => seen.push(`ended ${runners[0]!.ended.join()}; runners ${runners.length}`),
+    });
+
+    expect(seen).toEqual(["ended SIGTERM; runners 1"]);
+    expect(runners).toHaveLength(2);
+    await target.teardown();
+  });
+
   it("removes the runner's directories at teardown, after the runner stops", async () => {
     const target = new LocalExecutionTarget();
     await target.setup();

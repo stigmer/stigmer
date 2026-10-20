@@ -25,7 +25,10 @@
  *     one write differs by where the cancel landed — after the tool finished
  *     (`pause.loop.after-tool`) or while it was still RUNNING
  *     (`pause.loop.mid-tool`, the cancel arriving on the persist that carried
- *     the row).
+ *     the row). The loop reads on after the cancel, so a tool the engine
+ *     finished before the abort landed (the read here is instant) still
+ *     reaches the log with its result, as the engine saved it
+ *     (stigmer#2469).
  *  2. WORKER SHUTDOWN: the queue's shutdown signal is aborted before the
  *     cancel (a drain past its grace), so the interruption is thrown as
  *     `CancelledFailure("Activity cancelled (worker shutdown, not user pause)")`

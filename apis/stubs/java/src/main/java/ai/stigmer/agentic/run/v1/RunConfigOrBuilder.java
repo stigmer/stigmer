@@ -43,7 +43,8 @@ public interface RunConfigOrBuilder extends
    * Cursor harness gives no warning.
    *
    * 0 = not set at this layer. The budget is per message: a follow-up
-   * message, or a run resuming after an approval, starts a fresh count. The
+   * message, or a run resuming after an approval, starts a fresh count; a
+   * run continuing after a restart or a lost runner keeps its count. The
    * spend is the runner's estimate, reported on
    * RunStatus.streaming_usage.estimated_cost_usd, not the billed
    * amount.

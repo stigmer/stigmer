@@ -153,6 +153,8 @@ export interface WireTurnInput {
   readonly approvalDecisions: readonly (readonly [string, ApprovalAction])[];
   readonly approvalDenyMessages: readonly (readonly [string, string])[];
   readonly approvalAsks: readonly (readonly [string, ApprovalAsk])[];
+  /** `TurnInput.continuation`: null on a turn's first invocation; the digest null when none was rendered. */
+  readonly continuation: { readonly digest: string | null } | null;
   readonly execution: string;
   readonly session: string;
   readonly blueprint: {
@@ -248,6 +250,7 @@ export function encodeTurnInput(input: TurnInput): WireTurnInput {
     approvalDecisions: [...input.approvalDecisions],
     approvalDenyMessages: [...input.approvalDenyMessages],
     approvalAsks: [...input.approvalAsks],
+    continuation: input.continuation === undefined ? null : { digest: input.continuation.digest ?? null },
     execution: encodeMessage(RunSchema, input.execution),
     session: encodeMessage(SessionSchema, input.session),
     blueprint: {
@@ -368,6 +371,9 @@ export function decodeTurnInput(wire: WireTurnInput, services: HostTurnServices)
     approvalDecisions: new Map(wire.approvalDecisions),
     approvalDenyMessages: new Map(wire.approvalDenyMessages),
     approvalAsks: new Map(wire.approvalAsks),
+    ...(wire.continuation === null
+      ? {}
+      : { continuation: wire.continuation.digest === null ? {} : { digest: wire.continuation.digest } }),
     execution: decodeMessage(RunSchema, wire.execution),
     session,
     blueprint: {

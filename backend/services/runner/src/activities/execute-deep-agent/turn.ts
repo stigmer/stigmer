@@ -89,7 +89,12 @@ export async function runDeepAgentTurn(input: TurnInput, sink: TurnSink, config:
     sink.recordActivity();
 
     const transcript = createDeepAgentTranscript(engine);
-    const stream = await consumeDeepAgentStream({ input, sink, engine, graphInput, transcript });
+    // A continued turn whose graph had already finished runs nothing: its
+    // saved final state settles it, as a completed stream's would.
+    const stream =
+      graphInput.kind === "finished"
+        ? { reason: "completed" as const, eventsProcessed: 0, runOutput: graphInput.values }
+        : await consumeDeepAgentStream({ input, sink, engine, graphInput, transcript });
     return await settleDeepAgentTurn({ input, sink, engine, stream });
   } catch (err) {
     return classifyThrown(err, input, config, modelName);

@@ -77,6 +77,9 @@ import { scopedRunnerCredential } from "../client/token-claims.js";
 import type { NormalizedActivityInput } from "../shared/activity-input.js";
 import { APPROVAL_ANSWER_EVENT_TYPES, approvalAnswersOf, copyAnswersOntoRows, type ApprovalAsk } from "./approval-answers.js";
 import { RESUME_SEED_EVENT_TYPES, resumeSeedOf } from "./transcript/resume-seed.js";
+import { composeTurnRecoveryDigest } from "./continuation-digest.js";
+import { isContinuationNote } from "./terminal-table.js";
+import type { ContinuationKind } from "./capabilities.js";
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
 import type { TimingRecorder } from "../shared/cold-start-timing.js";
 import { resolveBlueprint, type ResolvedBlueprint } from "../shared/blueprint-resolver.js";
@@ -151,6 +154,7 @@ import { reconcileOwedUndos, type ReconciledUndo } from "./owed-undos.js";
 import type { RunFacts } from "./run-span.js";
 import type { TranscriptBuilder } from "./transcript/builder.js";
 import type {
+  TurnContinuation,
   TurnFiles,
   TurnHookSource,
   TurnHooks,
@@ -273,6 +277,16 @@ export interface TurnReinvocation {
   readonly answerText: string | undefined;
   /** The memory selection an earlier invocation recorded (`stigmer.memory.recalled`): replayed, never re-selected. */
   readonly recalledMemoriesReport: RecalledMemoriesReport | undefined;
+  /** What this invocation continues, when its engine began the turn (`TurnInput.continuation`). */
+  readonly continuation: TurnContinuation | undefined;
+  /**
+   * The turn was stopped and nothing in its log says why: no continuation
+   * note of the runtime's and no pause since its engine last wrote (a runner
+   * killed outright, or one that stopped answering). The turn's start then
+   * says so itself ({@link stopIsExplained}). False on an approval resume,
+   * which is no interruption.
+   */
+  readonly lostRunner: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -464,8 +478,44 @@ export function seedStatusOutputs(status: RunStatus, execution: Run): void {
   if (seed.streamingUsage !== undefined) status.streamingUsage = seed.streamingUsage;
 }
 
-/** The log types a reinvocation reads, once: the seed's and the answers'. */
-export const REINVOCATION_EVENT_TYPES: readonly string[] = [...new Set<string>([...RESUME_SEED_EVENT_TYPES, ...APPROVAL_ANSWER_EVENT_TYPES])];
+/**
+ * The log types a reinvocation reads, once: the seed's and the answers', and
+ * the notes and phase changes that say why the turn was last stopped
+ * ({@link stopIsExplained}); the continuation digest folds the same events.
+ */
+export const REINVOCATION_EVENT_TYPES: readonly string[] = [
+  ...new Set<string>([...RESUME_SEED_EVENT_TYPES, ...APPROVAL_ANSWER_EVENT_TYPES, "stigmer.harness.note", "stigmer.run.status"]),
+];
+
+/**
+ * Whether the run's log says why its engine last stopped: after the newest
+ * event the engine wrote, a continuation note of the runtime's
+ * (`terminal-table.ts`: the drained turn said it moved) or a pause (the
+ * person stopped it). Anything the engine wrote after either means it ran
+ * again since, and that later stop is the one to explain. Read in the log's
+ * order; a note of the engine's own is engine output like a message.
+ */
+export function stopIsExplained(events: readonly SessionEvent[]): boolean {
+  let explained = false;
+  for (const { event } of events) {
+    switch (event.case) {
+      case "stigmerHarnessNote":
+        explained = isContinuationNote(event.value.text);
+        break;
+      case "stigmerRunStatus":
+        if (event.value.phase === "paused") explained = true;
+        break;
+      case "agentMessage":
+      case "agentToolUse":
+      case "agentMcpToolUse":
+        explained = false;
+        break;
+      default:
+        break;
+    }
+  }
+  return explained;
+}
 
 // ---------------------------------------------------------------------------
 // The phases, in the order the turn runs them
@@ -846,6 +896,7 @@ export async function reconcileReinvocation(
   deps: ResolutionDeps,
   args: {
     readonly stateIdSource: StateIdSource;
+    readonly continuation: ContinuationKind;
     readonly execution: Run;
     readonly sessionId: string;
   },
@@ -864,6 +915,8 @@ export async function reconcileReinvocation(
       grants: new Map(),
       answerText: undefined,
       recalledMemoriesReport: undefined,
+      continuation: undefined,
+      lostRunner: false,
     };
   }
   seedStatusOutputs(deps.status, args.execution);
@@ -872,6 +925,12 @@ export async function reconcileReinvocation(
   deps.transcript.seed(seed.rows);
   const answers = approvalAnswersOf(runId, deps.rows, events);
   copyAnswersOntoRows(runId, deps.rows, answers);
+  // A continuation is an invocation whose engine already wrote to the log;
+  // a reinvocation of a deterministic harness is exactly that, and an
+  // engine-minted one is too once it bound its id before its first write.
+  const continuation: TurnContinuation | undefined = runWroteEvents
+    ? continuationFor(args.continuation, events, runId)
+    : undefined;
   return {
     isReinvocation: true,
     runWroteEvents,
@@ -881,7 +940,31 @@ export async function reconcileReinvocation(
     grants: answers.grants,
     answerText: seed.answerText,
     recalledMemoriesReport: seed.recalledMemoriesReport,
+    continuation,
+    lostRunner: continuation !== undefined && answers.decisions.size === 0 && !stopIsExplained(events),
   };
+}
+
+/**
+ * What a continued invocation is handed: the fact, and for a harness that
+ * continues by prompt, the turn's digest folded from the events already
+ * read (`continuation-digest.ts`).
+ */
+function continuationFor(kind: ContinuationKind, events: readonly SessionEvent[], runId: string): TurnContinuation {
+  switch (kind) {
+    case "checkpoint":
+      return {};
+    case "digest": {
+      const digest = composeTurnRecoveryDigest(events, runId);
+      return digest === undefined ? {} : { digest };
+    }
+    /* v8 ignore start -- @preserve: the never arm; the compiler proves no continuation kind reaches it */
+    default: {
+      const exhaustive: never = kind;
+      throw new Error(`continuationFor: unknown continuation ${String(exhaustive)}`);
+    }
+    /* v8 ignore stop */
+  }
 }
 
 /**
@@ -1844,6 +1927,12 @@ export interface TurnFrame {
    * turn reports when this invocation writes no message.
    */
   priorAnswer: string | undefined;
+  /**
+   * The turn was stopped and its log does not say why
+   * (`TurnReinvocation.lostRunner`), set by the reinvocation phase: the
+   * engine's turn begins by saying so.
+   */
+  lostRunner: boolean;
 }
 
 /** What the composer answers: the whole record, or a settlement the caller writes and returns. */
@@ -1914,11 +2003,13 @@ export async function resolveTurnContext(
 
   const reinvocation = await reconcileReinvocation(deps, {
     stateIdSource: capabilities.stateIdSource,
+    continuation: capabilities.continuation,
     execution,
     sessionId,
   });
   frame.runWroteEvents = reinvocation.runWroteEvents;
   frame.priorAnswer = reinvocation.answerText;
+  frame.lostRunner = reinvocation.lostRunner;
 
   const resolvedMcp = await resolveMcpServersAndPolicies(deps, {
     execution,
@@ -1991,6 +2082,7 @@ export async function resolveTurnContext(
       approvalDecisions: reinvocation.approvalDecisions,
       approvalDenyMessages: reinvocation.approvalDenyMessages,
       approvalAsks: reinvocation.approvalAsks,
+      ...(reinvocation.continuation !== undefined ? { continuation: reinvocation.continuation } : {}),
       execution,
       session,
       blueprint,

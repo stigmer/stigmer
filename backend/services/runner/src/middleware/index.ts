@@ -4,6 +4,9 @@
  * Assembles the ordered middleware array from a MiddlewareStackConfig. The
  * order is load-bearing and reads top to bottom:
  *
+ *   -. Turn boundary (whenever the turn's signals are given, which every
+ *      turn does — FIRST, so no other model wrapper runs for a call the
+ *      turn's stop or yield refuses, `turn-boundary.ts`)
  *   0. Path normalization (whenever configured, which every graph does
  *      since issue #754 — FIRST, so every downstream middleware observes
  *      canonical workspace-absolute paths)
@@ -31,14 +34,16 @@
  * the model. Advising has one channel, `advisory-message.ts`: a user-role
  * message after the latest tool results of the next model request, never a
  * system message and never written to the graph's state (stigmer/stigmer#1354).
- * None of them stops the run, except the execution budget, which
+ * None of them decides to stop the run, except the execution budget, which
  * is `max_tool_rounds`' own enforcement: it ends the turn as the adapter's
  * `tool_call_limit` outcome, the job LangGraph's recursion limit held until
  * #1113, so the runtime sees it as an outcome and never as a completion.
- * Every other stop — the platform's, the cost cap's, a stall's — is the turn
- * runtime's, delivered to the graph through its abort signal (since #1096;
- * until then a graceful-stop middleware and the cost cap's tool block were
- * second stops inside the graph that the runtime could not see).
+ * Every other stop — the platform's, the cost cap's, a stall's, a drain's —
+ * is the turn runtime's, delivered to the graph through its abort signal
+ * (since #1096; until then a graceful-stop middleware and the cost cap's
+ * tool block were second stops inside the graph that the runtime could not
+ * see) and taken at the next model call by the turn boundary, which only
+ * carries the runtime's signals in.
  *
  * Ahead of this stack the parent graph adds the framework's to-do list
  * middleware (`execute-deep-agent/turn-setup.ts`): it is langchain's, not
@@ -61,6 +66,7 @@ import { createToolScopeMiddleware } from "./tool-scope.js";
 import { createCostAdvisoryMiddleware, type CostAdvisoryMiddleware } from "./cost-advisory.js";
 import { createErrorHintsMiddleware } from "./error-hints.js";
 import { createOtelSpansMiddleware } from "./otel-spans.js";
+import { createTurnBoundaryMiddleware } from "./turn-boundary.js";
 
 export type { CostAdvisoryMiddleware } from "./cost-advisory.js";
 export type { StigmerMiddleware, MiddlewareStackConfig } from "./types.js";
@@ -75,6 +81,10 @@ export function buildMiddlewareStack(
   config: MiddlewareStackConfig = {},
 ): MiddlewareStackResult {
   const stack: StigmerMiddleware[] = [];
+
+  if (config.turnBoundary) {
+    stack.push(createTurnBoundaryMiddleware(config.turnBoundary, "root"));
+  }
 
   if (config.pathNormalization) {
     stack.push(createPathNormalizationMiddleware(config.pathNormalization));

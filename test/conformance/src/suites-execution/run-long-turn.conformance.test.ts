@@ -15,12 +15,15 @@
 //   - Kill mid-tool: SIGKILL while the shell runs. Nothing is written; the
 //     workflow notices by the activity's missed heartbeat (its fixed 2-minute
 //     heartbeatTimeout, invoke-agent-execution.ts) and the replacement takes
-//     the turn up. Desired: the turn completes, and the model is handed the
-//     user's task once, in the request it answers last.
+//     the turn up from the engine's last saved step, so the step the kill cut
+//     runs again. The turn completes, the model is handed the user's task
+//     once, in the request it answers last, and the log says once why the
+//     turn paused.
 //   - Drain mid-tool: SIGTERM while the shell runs, and the step is let finish
 //     a moment later. The drain waits for the running step, which runs once;
-//     the turn yields as its next model round starts, so that round is asked
-//     again on the replacement; it never shows FAILED on the way, the
+//     the turn yields at its next model call, refused inside the engine
+//     before it is made, so the replacement asks that round, once; it never
+//     shows FAILED on the way, the
 //     session's log never reads it idle or failed between the two runners
 //     (the agent-hour stretch stays whole), the log says once why the turn
 //     moved, and it completes. The run is followed to its end, not to its
@@ -68,8 +71,7 @@ let clients: ConformanceClients;
 let mock: MockLlmProxy;
 const fixtures = new FixtureTracker();
 
-/** The open issues these arms are known gaps of. */
-const TASK_HANDED_AGAIN = "stigmer/stigmer#2417";
+/** The open issue the mid-turn message arm is a known gap of. */
 const MESSAGE_STARTS_A_SECOND_RUN = "stigmer/stigmer#2429";
 
 /** How long the mid-turn arm's first turn keeps working after the message arrives. */
@@ -256,13 +258,12 @@ describe("a long turn on a real runner", () => {
     async () => {
       const step = new HeldStep();
       const run = await startHeldRun(uniqueName("Run the test suite"), step, "The suite passed.");
-      // The round the yield lands on is asked again by the replacement.
-      mock.enqueue(anthropicText("The suite passed."));
       await step.whenStarted();
 
       // The drain, and the step's end a moment later: a drain that waits for
       // the running step sees it finish; one that stops it does not.
-      const draining = restartRunner({ signal: "SIGTERM" });
+      let requestsByTheDrainedRunner = -1;
+      const draining = restartRunner({ signal: "SIGTERM", onEnded: () => (requestsByTheDrainedRunner = mock.scriptedRequests().length) });
       await new Promise((resolve) => setTimeout(resolve, 2_000));
       step.release();
       await draining;
@@ -281,7 +282,8 @@ describe("a long turn on a real runner", () => {
       expect(await logged("session.error"), "the session's log never read the turn failed").toBe(0);
       expect(await logged("session.status_idle"), "the session went idle once, when the turn ended").toBe(1);
       expect(await logged("stigmer.harness.note"), "the log says once why the turn moved").toBe(1);
-      expect(mock.remaining(), "the replacement asked the yielded round again").toBe(0);
+      expect(requestsByTheDrainedRunner, "the drained runner asked the model once, for the step, and stopped before the next round").toBe(1);
+      expect(mock.remaining(), "the round after the step was asked once, by the replacement").toBe(0);
     },
     ARM_TIMEOUT_MS,
   );
@@ -303,19 +305,12 @@ describe("a long turn on a real runner", () => {
       const handed = taskHandedInLastRequest(task);
       console.log(`[long turn] kill: ${RunPhase[settled.status?.phase ?? 0]}, the task in the last request ${handed} time(s), the step began ${step.started()} time(s)`);
 
-      await expectKnownGap(
-        {
-          issue: TASK_HANDED_AGAIN,
-          today: {
-            says: "the replacement completes the turn but hands the model the user's task a second time",
-            holds: () => settled.status?.phase === RunPhase.RUN_COMPLETED && handed === 2,
-          },
-        },
-        () => {
-          expect(settled.status?.phase, `the killed turn: ${settled.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
-          expect(handed, "the model was handed the task once").toBe(1);
-        },
-      );
+      const notes = await clients.sessionQuery.listEvents({ sessionId: sessionIdOf(settled), pageSize: 1000, types: ["stigmer.harness.note"] });
+
+      expect(settled.status?.phase, `the killed turn: ${settled.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
+      expect(handed, "the model was handed the task once").toBe(1);
+      expect(notes.events.length, "the log says once why the turn paused").toBe(1);
+      expect(mock.remaining(), "the replacement asked only the round after the step").toBe(0);
     },
     KILL_ARM_TIMEOUT_MS,
   );

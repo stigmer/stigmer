@@ -205,7 +205,8 @@ message RunConfig {
   // Cursor harness gives no warning.
   //
   // 0 = not set at this layer. The budget is per message: a follow-up
-  // message, or a run resuming after an approval, starts a fresh count. The
+  // message, or a run resuming after an approval, starts a fresh count; a
+  // run continuing after a restart or a lost runner keeps its count. The
   // spend is the runner's estimate, reported on
   // RunStatus.streaming_usage.estimated_cost_usd, not the billed
   // amount.
@@ -214,7 +215,9 @@ message RunConfig {
   // The turn runtime is the one enforcement for every harness: each usage
   // report moves its running estimate, and the check there stops the turn at
   // the limit (backend/services/runner/src/harness/run-turn.ts over
-  // backend/services/runner/src/shared/cost-guard.ts). The native cost
+  // backend/services/runner/src/shared/cost-guard.ts). A continuation's
+  // estimate starts from the run's persisted streaming_usage
+  // (backend/services/runner/src/harness/cost-cap-watch.ts). The native cost
   // advisory middleware only warns
   // (backend/services/runner/src/middleware/cost-advisory.ts).
   double max_cost_usd = 2 [(buf.validate.field).double.gte = 0];

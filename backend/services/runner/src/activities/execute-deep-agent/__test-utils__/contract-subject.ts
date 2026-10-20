@@ -23,8 +23,9 @@
  * conversation does not yet show: a `propose` or `read` whose tool-call id
  * already has a `ToolMessage` anywhere on the thread (executed, or the
  * gate's denial) is done; a `say` already spoken in THIS turn's segment
- * (after the last human message) is done; `usage` folds into the turn's
- * first model call only. Nothing is remembered on the subject: the sqlite
+ * (after the last human message) is done; `usage` folds into the first
+ * model call of the arranged turn, the invocation's own (a resumed or
+ * continued invocation reports what it spent, as a real engine does). Nothing is remembered on the subject: the sqlite
  * checkpoint IS the engine's memory, which is why the same plan is right on
  * a `Command(resume)` (the tool result is in the transcript before the model
  * is asked) and on a later turn of the same thread (an approved-and-run call
@@ -197,6 +198,8 @@ interface ArrangedTurn {
   readonly view: EngineView;
   /** The engine's summary count when the turn was arranged; the plan's compactions are the ones after it. */
   readonly summariesAtArrange: number;
+  /** A model call of this arrangement already reported the plan's usage. */
+  usageFolded: boolean;
 }
 
 class DeepAgentSubject implements DeepAgentContractSubject {
@@ -257,7 +260,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
     for (const step of turn) this.refuseUnproducible(step);
     mkdirSync(this.workspaceDirOf(view.sessionId), { recursive: true });
     for (const step of turn) this.seedFor(step, view);
-    this.arranged.set(view.executionId, { steps: turn, view, summariesAtArrange: this.summaries.get(view.executionId) ?? 0 });
+    this.arranged.set(view.executionId, { steps: turn, view, summariesAtArrange: this.summaries.get(view.executionId) ?? 0, usageFolded: false });
     this.executionsBySession.set(view.sessionId, view.executionId);
     if (turn.some((step) => step.kind === "compact") && !this.windows.has(view.executionId)) this.windows.set(view.executionId, UNSIZED_WINDOW);
     if (!this.engines.has(view.executionId)) this.engines.set(view.executionId, this.mintEngine(view.executionId));
@@ -394,13 +397,16 @@ class DeepAgentSubject implements DeepAgentContractSubject {
     const settled = settledToolCallIds(transcript);
     const segment = messagesOfThisTurn(transcript);
     const spoken = new Set(segment.filter((m) => isAIMessage(m)).map((m) => m.text));
-    const firstCallOfTurn = !segment.some((m) => isAIMessage(m));
+    const firstCallOfArrangement = !plan.usageFolded;
     const compacted = (this.summaries.get(executionId) ?? 0) - plan.summariesAtArrange;
     let compactsSeen = 0;
 
     let text: string | undefined;
     let usage: ScriptedUsage | undefined;
-    const close = (rest: Partial<ScriptedTurn>): ScriptedTurn => ({ text, usage, ...rest });
+    const close = (rest: Partial<ScriptedTurn>): ScriptedTurn => {
+      if (usage !== undefined) plan.usageFolded = true;
+      return { text, usage, ...rest };
+    };
 
     for (const step of plan.steps) {
       if (step.kind === "compact") {
@@ -424,7 +430,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
           if (settled.has(step.toolCallId)) break;
           return close({ toolCalls: [{ id: step.toolCallId, name: "read_file", args: { file_path: step.path } }] });
         case "usage":
-          if (!firstCallOfTurn) break;
+          if (!firstCallOfArrangement) break;
           usage = addUsage(usage, step.delta);
           break;
         case "hang":

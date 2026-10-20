@@ -62,6 +62,8 @@ export type ResumeResult =
 export interface GraphStateSnapshot {
   readonly values: Record<string, unknown>;
   readonly tasks: readonly GraphInterrupt[];
+  /** The nodes the thread's latest save still has to run; empty once the graph finished. */
+  readonly next: readonly string[];
 }
 
 export interface GraphInterrupt {

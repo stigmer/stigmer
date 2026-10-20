@@ -159,6 +159,8 @@ export const TERMINAL_COPY = {
     notes: {
       drain: "The runner is restarting; this turn continues on the next one.",
     } satisfies Record<ContinuationCause, string>,
+    /** The note a continued turn writes itself when its log does not say why it stopped (`turn-context.ts` `stopIsExplained`). */
+    lostRunnerNote: "This turn continues after its runner stopped unexpectedly.",
   },
   platformStop: {
     row: "Execution stopped by the platform.",
@@ -446,6 +448,15 @@ export function failedArm(message: string, surface: FailureSurface): TerminalArm
  */
 export function unexpectedErrorArm(errorType: string, errorMessage: string): TerminalArm {
   return failedArm(`[${errorType}] ${errorMessage}`, "internal");
+}
+
+/**
+ * Whether a harness note is one of the runtime's continuation notes: the
+ * turn moved, and its log already says why. Its own copy, so the match is
+ * exact.
+ */
+export function isContinuationNote(text: string): boolean {
+  return text === TERMINAL_COPY.continuation.lostRunnerNote || Object.values(TERMINAL_COPY.continuation.notes).some((note) => note === text);
 }
 
 // ── Applying an arm ─────────────────────────────────────────────────────────

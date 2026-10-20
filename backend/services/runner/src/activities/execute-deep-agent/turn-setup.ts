@@ -91,6 +91,7 @@ import { createShellTool } from "./shell-tool.js";
 import { loadStreamingConfig } from "../../shared/streaming-scheduler.js";
 import { confinedReadAdmission, mountPlatformRoute } from "./platform-route.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
+import { RUN_STAMP_KEY, createRunStampMiddleware, stampedRunOf } from "./run-stamp.js";
 import { resumedMessages, threadIsEmpty } from "./resumed-history.js";
 import { buildEnhancedSystemPrompt, composeUserMessage, renderSkillsSection } from "./prompt-builder.js";
 import { buildShellEnv, shellRunValues } from "../../shared/shell-env.js";
@@ -173,9 +174,16 @@ export interface DeepAgentEngine {
   readonly hasStructuredOutput: boolean;
 }
 
-/** What the graph is invoked with: a resume of the paused gate, or the turn's user message. */
+/**
+ * What the graph is invoked with: a resume of the paused gate, a continued
+ * turn's resume from its last saved step (`null` input), the turn's user
+ * message, or nothing at all, when a continued turn's graph had already
+ * finished (its final state settles the turn with no model call).
+ */
 export type DeepAgentGraphInput =
   | { readonly kind: "resume"; readonly command: Command }
+  | { readonly kind: "continue" }
+  | { readonly kind: "finished"; readonly values: Record<string, unknown> }
   | { readonly kind: "message"; readonly input: Record<string, unknown> };
 
 // ── Steps ───────────────────────────────────────────────────────────────────
@@ -583,7 +591,13 @@ export async function buildEngine(
 
   const maxCostUsd = runConfig?.maxCostUsd ?? 0;
   const toolRoundLimit = resolveToolRoundLimit(runConfig?.maxToolRounds);
+  // The turn's stop and yield, taken inside the graph at its model calls
+  // (`middleware/turn-boundary.ts`): the stream loop reads the graph's events
+  // and lags behind it, so a stop the loop takes alone can land after steps
+  // the session's log never received (stigmer#2469).
+  const turnBoundary = { stopSignal: sink.stopSignal, yieldSignal: sink.yieldSignal };
   const { middleware, costAdvisory } = buildMiddlewareStack({
+    turnBoundary,
     shell,
     loopDetection: { historySize: 20, consecutiveThreshold: 7, totalThreshold: 20 },
     executionBudget: { maxToolRounds: toolRoundLimit, warningPct: 80 },
@@ -632,6 +646,7 @@ export async function buildEngine(
     toolServerMap: tools.toolServerMap,
     webFetchPosture,
     costAdvisory: costAdvisory ?? undefined,
+    turnBoundary,
     modelFactory: buildModelFor,
     shellEnv,
     shellStreaming,
@@ -680,7 +695,7 @@ export async function buildEngine(
     // framework's own middleware with Stigmer's texts; parent only
     // (`todo-list.ts` says why for both).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    middleware: [createTodoListMiddleware(), ...middleware] as any,
+    middleware: [createTodoListMiddleware(), createRunStampMiddleware(), ...middleware] as any,
     subagents: compiledSubagents ?? undefined,
     ...(responseFormat ? { responseFormat } : {}),
     ...(planModePermissions ? { permissions: planModePermissions } : {}),
@@ -689,10 +704,11 @@ export async function buildEngine(
   const langgraphConfig: Record<string, unknown> = {
     configurable: { thread_id: input.threadId },
     // Each step is saved before the next one starts (LangGraph's default
-    // saves while the next step runs). A drained turn yields as its next
-    // model round starts (`turn-stream.ts`), and only a synchronous save
-    // makes the step before that round durable by then, so the next runner
-    // resumes after it instead of repeating it. One awaited put per step.
+    // saves while the next step runs). A drained turn yields at its next
+    // model call (`middleware/turn-boundary.ts`), and only a synchronous
+    // save makes the step before that call durable by then, so the next
+    // runner resumes after it instead of repeating it. One awaited put per
+    // step.
     durability: "sync",
     // max_tool_rounds is enforced by the execution budget middleware, round
     // by round; this is only its backstop against a graph that loops without
@@ -823,7 +839,14 @@ export function checkTurnToolLists(
  * What the graph is invoked with. The checkpoint is read once (on the
  * durable http saver an extra `getState` is a network round-trip): pending
  * interrupts that the runtime's decisions answer make a `Command(resume)`;
- * anything else is the turn's user message — this turn's payload and the
+ * a run whose input the thread already took (`run-stamp.ts`) resumes from
+ * its last saved step (`continue`), or, when that save finished the graph,
+ * runs nothing (`finished`): the engine is never handed the task again
+ * (stigmer#2417). The thread's stamp decides, not `TurnInput.continuation`:
+ * the stamp is saved with the input, while the runtime learns of a run only
+ * from what reached the session's log, so a runner lost after the engine
+ * took the input but before its first write landed is still a continuation
+ * here; anything else is the turn's user message, stamped with its run — this turn's payload and the
  * conversation catchup framed before it (`composeTurnMessage`; in the USER
  * MESSAGE so it enters the checkpointer with the turn and the system prompt
  * stays the session's), the structured-output contract appended, and
@@ -838,6 +861,9 @@ export async function composeGraphInput(input: TurnInput, engine: DeepAgentEngin
   if (resume.isResumeFromApproval) {
     return { kind: "resume", command: resume.graphInput };
   }
+  if (stampedRunOf(graphState.values) === input.executionId) {
+    return graphState.next.length > 0 ? { kind: "continue" } : { kind: "finished", values: graphState.values };
+  }
 
   let userMessage = composeTurnMessage(input);
   if (engine.hasStructuredOutput) {
@@ -848,6 +874,7 @@ export async function composeGraphInput(input: TurnInput, engine: DeepAgentEngin
   return {
     kind: "message",
     input: {
+      [RUN_STAMP_KEY]: input.executionId,
       messages: [
         ...history,
         {

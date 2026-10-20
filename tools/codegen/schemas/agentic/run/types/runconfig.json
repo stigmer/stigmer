@@ -21,7 +21,7 @@
       "type": {
         "kind": "double"
       },
-      "description": "Maximum estimated cost in USD per run.\n\n When the run's estimated spend reaches this limit, the run stops with a\n \"send another message to continue\" prompt and ends TERMINATED; the work\n done so far is kept. The limit is checked each time the engine reports\n its spend, so a run can end somewhat above it. The native harness\n reports after every model call, counts a subagent's spend toward the\n limit, and advises the agent to wrap up at about 80% of the budget; the\n Cursor harness gives no warning.\n\n 0 = not set at this layer. The budget is per message: a follow-up\n message, or a run resuming after an approval, starts a fresh count. The\n spend is the runner's estimate, reported on\n RunStatus.streaming_usage.estimated_cost_usd, not the billed\n amount.",
+      "description": "Maximum estimated cost in USD per run.\n\n When the run's estimated spend reaches this limit, the run stops with a\n \"send another message to continue\" prompt and ends TERMINATED; the work\n done so far is kept. The limit is checked each time the engine reports\n its spend, so a run can end somewhat above it. The native harness\n reports after every model call, counts a subagent's spend toward the\n limit, and advises the agent to wrap up at about 80% of the budget; the\n Cursor harness gives no warning.\n\n 0 = not set at this layer. The budget is per message: a follow-up\n message, or a run resuming after an approval, starts a fresh count; a\n run continuing after a restart or a lost runner keeps its count. The\n spend is the runner's estimate, reported on\n RunStatus.streaming_usage.estimated_cost_usd, not the billed\n amount.",
       "required": false
     },
     {

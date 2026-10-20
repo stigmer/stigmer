@@ -50,4 +50,6 @@ export const DEEP_AGENT_CAPABILITIES: HarnessCapabilities = {
   visionProfile: DEEP_AGENT_VISION_PROFILE,
   fileReview: { harnessId: DEEP_AGENT_HARNESS_ID, excludePaths: [] },
   subAgentProgress: "streamed",
+  // The session's thread saves every step; the continuation streams it on.
+  continuation: "checkpoint",
 };

@@ -25,11 +25,19 @@
  * it, while the token counts, the model and the turn count stay the
  * engine's.
  *
+ * A turn the runtime continues after an interruption (a drain, a lost
+ * runner, a resumed pause) starts from the run's own summary so far
+ * ({@link UsageAccumulator.seed}): the summary and the `max_cost_usd` cap
+ * cover the message's whole work, however many invocations it took. A run
+ * resuming after an approval starts a fresh count, as the cap's contract
+ * says (`cost-cap-watch.ts` `costCapWatchFor`).
+ *
  * This data is display-only. The authoritative billing source is the BiDi
  * proxy, which records usage from the wire.
  */
 
 import { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { StreamingUsageSummary } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 
 import type { UsageDelta } from "./types.js";
 
@@ -96,6 +104,23 @@ export class UsageAccumulator {
     if (delta.requestedModelParams !== undefined) this.requestedModelParams = delta.requestedModelParams;
     this.turnCount++;
     this.observedAt = new Date().toISOString();
+  }
+
+  /**
+   * Start from the run's summary so far, before any delta of this
+   * invocation: the counts, the turns, the cost and the basis last priced
+   * against. Call once, on a fresh accumulator (the module header).
+   */
+  seed(summary: StreamingUsageSummary): void {
+    this.inputTokens = Number(summary.inputTokens);
+    this.outputTokens = Number(summary.outputTokens);
+    this.cacheReadTokens = Number(summary.cacheReadTokens);
+    this.cacheWriteTokens = Number(summary.cacheWriteTokens);
+    this.turnCount = summary.turnCount;
+    this.estimatedCostUsd = summary.estimatedCostUsd;
+    this.model = summary.model;
+    this.requestedModelParams = summary.requestedModelParams;
+    this.observedAt = summary.observedAt;
   }
 
   /** Add the cost of a call the runtime made for the turn, outside the engine (the module header). */

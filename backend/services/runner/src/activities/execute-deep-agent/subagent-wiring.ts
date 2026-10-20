@@ -62,6 +62,7 @@ import { createExecutionBudgetMiddleware } from "../../middleware/execution-budg
 import { createToolIntentMiddleware } from "../../middleware/tool-intent.js";
 import { createShellMiddleware } from "../../middleware/shell.js";
 import type { ShellMiddlewareConfig } from "../../middleware/types.js";
+import { createTurnBoundaryMiddleware, type TurnBoundarySignals } from "../../middleware/turn-boundary.js";
 import {
   createApprovalGateMiddleware,
   type ApprovalGateConfig,
@@ -107,13 +108,15 @@ export interface SubAgentMiddlewareOptions {
   readonly otelSpans?: Partial<OtelSpansConfig>;
   /** This sub-agent's shell (`middleware/shell.ts`), over its own backend; absent when it has none (plan mode). */
   readonly shell?: ShellMiddlewareConfig;
+  /** The turn's stop, taken at this sub-agent's model calls (`middleware/turn-boundary.ts`); absent, nothing is checked (unit tests). */
+  readonly turnBoundary?: TurnBoundarySignals;
 }
 
 /**
  * Build the middleware stack for a single sub-agent.
  *
  * Returns an ordered array mirroring the parent composition:
- * [path normalization] → loop detection → execution budget (periodic) →
+ * [turn boundary] → [path normalization] → loop detection → execution budget (periodic) →
  * [shell] → tool intent → tool truncation → [tool scope] → [approval gate] → cost
  * cap view → error hints → OTel spans.
  * Normalization is outermost so everything downstream observes canonical
@@ -127,6 +130,10 @@ export function buildSubAgentMiddleware(
   options: SubAgentMiddlewareOptions = {},
 ): StigmerMiddleware[] {
   const stack: StigmerMiddleware[] = [];
+
+  if (options.turnBoundary) {
+    stack.push(createTurnBoundaryMiddleware(options.turnBoundary, "subagent"));
+  }
 
   if (options.pathNormalization) {
     stack.push(createPathNormalizationMiddleware(options.pathNormalization));
