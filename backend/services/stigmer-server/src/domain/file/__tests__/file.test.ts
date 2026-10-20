@@ -14,6 +14,8 @@
  *     upload over the cap is refused at the URL and inline;
  *   - an upload into a conversation records it, lists under it, and is
  *     refused when the request names another organization;
+ *   - `without_session` lists only the Files of no conversation, and is
+ *     refused beside a conversation or a run;
  *   - deleting the conversation deletes its Files and their bytes;
  *   - update changes labels, refuses the filename by name, and keeps it
  *     under `*`; updateVisibility widens a File to the organization, and an
@@ -210,6 +212,40 @@ describe("the File controller (trusted-local, composed server)", () => {
       command.upload({ org: OTHER_ORG, sessionId, filename: "x.txt", source: { case: "data", value: new Uint8Array([1]) } }),
     );
     expect(elsewhere.code).toBe(Code.FailedPrecondition);
+  });
+
+  it("lists only the Files of no conversation when asked without_session, and refuses it beside a conversation or a run", async () => {
+    const kept = await command.upload({ org: ORG, filename: "keep.csv", source: { case: "data", value: new Uint8Array([1]) } });
+    const session = await sessions.create(sessionInput(ORG, "Given chat"));
+    const sessionId = session.metadata!.id;
+    const given = await command.upload({
+      org: ORG,
+      sessionId,
+      filename: "given.csv",
+      source: { case: "data", value: new Uint8Array([2]) },
+    });
+
+    const ids: string[] = [];
+    let pageToken = "";
+    do {
+      const page = await query.list({ org: ORG, withoutSession: true, pageSize: 100, pageToken });
+      ids.push(...page.entries.map((entry) => entry.metadata!.id));
+      expect(page.entries.every((entry) => (entry.status?.sessionId ?? "") === "")).toBe(true);
+      pageToken = page.nextPageToken;
+    } while (pageToken !== "");
+    expect(ids).toContain(kept.metadata!.id);
+    expect(ids).not.toContain(given.metadata!.id);
+
+    for (const narrowed of [{ sessionId }, { runId: "run_01nonenonenonenonenonen" }]) {
+      const refused = await errorOf(() => query.list({ org: ORG, withoutSession: true, ...narrowed }));
+      expect(refused.code).toBe(Code.InvalidArgument);
+      expect(refused.rawMessage).toContain("without_session");
+    }
+
+    const first = await query.list({ org: ORG, pageSize: 1 });
+    expect(first.nextPageToken).not.toBe("");
+    const crossed = await errorOf(() => query.list({ org: ORG, withoutSession: true, pageSize: 1, pageToken: first.nextPageToken }));
+    expect(crossed.code).toBe(Code.InvalidArgument);
   });
 
   it("deletes a conversation's Files and their bytes with the conversation", async () => {

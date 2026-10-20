@@ -7,6 +7,8 @@
 //   - an inline upload mints a file_ id, records the filename, the type its
 //     extension gives and the size, and starts private; get and list find
 //     it, and a conversation's list holds only that conversation's Files;
+//   - without_session lists only the Files of no conversation, and is
+//     refused beside a conversation;
 //   - an upload through an upload URL (createUploadUrl, an HTTP PUT of
 //     exactly the declared bytes with no credential but the URL, upload by
 //     reference) yields the same File, and the reference is spent;
@@ -134,6 +136,22 @@ describe("File conformance — uploads and identity", () => {
     expect(all).toEqual(expect.arrayContaining([own.metadata!.id, given.metadata!.id]));
     const conversation = (await clients.fileQuery.list({ org, sessionId })).entries.map((f) => f.metadata?.id);
     expect(conversation).toEqual([given.metadata!.id]);
+  });
+
+  it("[rpc:FileQueryController.list] without_session lists only the Files of no conversation, and is refused beside one", async () => {
+    const { org } = await target.provisionTenancy();
+    const own = await uploadInline(org, "kept.txt", "kept");
+    const sessionId = await newSession(org);
+    const given = await uploadInline(org, "given.txt", "given", sessionId);
+
+    const kept = (await clients.fileQuery.list({ org, withoutSession: true })).entries.map((f) => f.metadata?.id);
+    expect(kept).toContain(own.metadata!.id);
+    expect(kept).not.toContain(given.metadata!.id);
+    await expectGrpcCode(
+      () => clients.fileQuery.list({ org, withoutSession: true, sessionId }),
+      Code.InvalidArgument,
+      "without_session names no conversation",
+    );
   });
 });
 

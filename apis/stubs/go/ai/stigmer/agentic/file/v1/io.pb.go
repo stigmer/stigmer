@@ -415,9 +415,14 @@ type ListFilesRequest struct {
 	Labels map[string]string `protobuf:"bytes,5,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Only the Files this run wrote: the files one turn saved in its outputs
 	// folder. Empty lists Files written by any run or uploaded.
-	RunId         string `protobuf:"bytes,6,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	RunId string `protobuf:"bytes,6,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	// Only Files that belong to no conversation: uploaded through the API,
+	// the CLI or the Library, and never given to a conversation. A
+	// conversation's uploads and outputs are left out. Refused beside
+	// session_id or run_id.
+	WithoutSession bool `protobuf:"varint,7,opt,name=without_session,json=withoutSession,proto3" json:"without_session,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ListFilesRequest) Reset() {
@@ -490,6 +495,13 @@ func (x *ListFilesRequest) GetRunId() string {
 		return x.RunId
 	}
 	return ""
+}
+
+func (x *ListFilesRequest) GetWithoutSession() bool {
+	if x != nil {
+		return x.WithoutSession
+	}
+	return false
 }
 
 // One page of an organization's Files.
@@ -750,7 +762,7 @@ const file_ai_stigmer_agentic_file_v1_io_proto_rawDesc = "" +
 	"\bresource\x18\x01 \x01(\v2 .ai.stigmer.agentic.file.v1.FileB\x06\xbaH\x03\xd8\x01\x03R\bresource\x12C\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"updateMask:\xbc\x01\xbaH\xb8\x01\x1a\xb5\x01\n" +
-	"\x17update_names_its_target\x12Dresource.metadata.id is required: an update names the file by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''\"\xbf\x02\n" +
+	"\x17update_names_its_target\x12Dresource.metadata.id is required: an update names the file by its id\x1aThas(this.resource) && has(this.resource.metadata) && this.resource.metadata.id != ''\"\xc5\x04\n" +
 	"\x10ListFilesRequest\x12\x19\n" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12\x1d\n" +
 	"\n" +
@@ -759,10 +771,12 @@ const file_ai_stigmer_agentic_file_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"page_token\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12P\n" +
 	"\x06labels\x18\x05 \x03(\v28.ai.stigmer.agentic.file.v1.ListFilesRequest.LabelsEntryR\x06labels\x12\x15\n" +
-	"\x06run_id\x18\x06 \x01(\tR\x05runId\x1a9\n" +
+	"\x06run_id\x18\x06 \x01(\tR\x05runId\x12'\n" +
+	"\x0fwithout_session\x18\a \x01(\bR\x0ewithoutSession\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"n\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:\xda\x01\xbaH\xd6\x01\x1a\xd3\x01\n" +
+	"%without_session_lists_no_conversation\x12cwithout_session lists the Files of no conversation: it cannot be combined with session_id or run_id\x1aE!this.without_session || (this.session_id == '' && this.run_id == '')\"n\n" +
 	"\bFileList\x12:\n" +
 	"\aentries\x18\x01 \x03(\v2 .ai.stigmer.agentic.file.v1.FileR\aentries\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"^\n" +

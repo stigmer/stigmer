@@ -455,7 +455,7 @@ async function getContent(deps: FileControllerDeps, input: GetFileContentInput, 
 
 const LIST_RESULT_KEY = "listResult";
 
-/** List — the Files of an organization, or of one conversation, the caller may view, newest first. */
+/** List — the Files of an organization, of one conversation, or of no conversation, the caller may view, newest first. */
 async function list(deps: FileControllerDeps, req: ListFilesRequest, ctx: HandlerContext): Promise<FileList> {
   const reqCtx = new RequestContext(FileQueryController.method.list.input, req, callerIdentityOf(ctx), kindOf(ctx));
   await newPipeline<typeof FileQueryController.method.list.input>("file-list", deps.logger)
@@ -476,15 +476,18 @@ function newListStep(
   return {
     name: "ListByOrg",
     async execute(ctx: RequestContext<typeof FileQueryController.method.list.input>): Promise<void> {
-      const { org, sessionId, runId } = ctx.input;
+      const { org, sessionId, runId, withoutSession } = ctx.input;
       // One key reads the index: a run's, the narrower, when both are given;
-      // `keep` holds a row to both.
+      // `keep` holds a row to both. Files of no conversation hold no session
+      // key, so the index answers them without reading a conversation's.
       const query =
         runId !== ""
           ? { org, anyKey: [{ name: "run" as const, value: runId }] }
           : sessionId !== ""
             ? { org, anyKey: [{ name: "session" as const, value: sessionId }] }
-            : { org };
+            : withoutSession
+              ? { org, withoutKeys: ["session" as const] }
+              : { org };
       const page = await readListPage({
         store,
         declaration: fileListIndex,
@@ -494,6 +497,7 @@ function newListStep(
           org,
           session: sessionId,
           run: runId,
+          withoutSession,
           labels: sortedLabels(ctx.input.labels),
         }),
         decode: decodeOrSkip<File>(FileSchema, { logger, message: "Failed to unmarshal File, skipping" }),
@@ -501,6 +505,7 @@ function newListStep(
           (file.metadata?.org ?? "") === org &&
           (sessionId === "" || (file.status?.sessionId ?? "") === sessionId) &&
           (runId === "" || (file.status?.runId ?? "") === runId) &&
+          (!withoutSession || (file.status?.sessionId ?? "") === "") &&
           matchesAllLabels(file.metadata?.labels ?? {}, ctx.input.labels),
         scope: (rows) => restrictListByReadScope(listReadScope, ctx.callerIdentity, ApiResourceKind.file, rows, ""),
         failure: "failed to list Files",

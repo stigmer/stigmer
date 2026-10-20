@@ -434,6 +434,16 @@
           },
           "description": "Only the Files this run wrote: the files one turn saved in its outputs\n folder. Empty lists Files written by any run or uploaded.",
           "required": false
+        },
+        {
+          "name": "WithoutSession",
+          "jsonName": "withoutSession",
+          "protoField": "without_session",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Only Files that belong to no conversation: uploaded through the API,\n the CLI or the Library, and never given to a conversation. A\n conversation's uploads and outputs are left out. Refused beside\n session_id or run_id.",
+          "required": false
         }
       ]
     },

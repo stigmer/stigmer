@@ -63,7 +63,7 @@ class UpdateFileInput(_message.Message):
     def __init__(self, resource: _Optional[_Union[_api_pb2.File, _Mapping]] = ..., update_mask: _Optional[_Union[_field_mask_pb2.FieldMask, _Mapping]] = ...) -> None: ...
 
 class ListFilesRequest(_message.Message):
-    __slots__ = ("org", "session_id", "page_size", "page_token", "labels", "run_id")
+    __slots__ = ("org", "session_id", "page_size", "page_token", "labels", "run_id", "without_session")
     class LabelsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -77,13 +77,15 @@ class ListFilesRequest(_message.Message):
     PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     LABELS_FIELD_NUMBER: _ClassVar[int]
     RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    WITHOUT_SESSION_FIELD_NUMBER: _ClassVar[int]
     org: str
     session_id: str
     page_size: int
     page_token: str
     labels: _containers.ScalarMap[str, str]
     run_id: str
-    def __init__(self, org: _Optional[str] = ..., session_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ..., run_id: _Optional[str] = ...) -> None: ...
+    without_session: bool
+    def __init__(self, org: _Optional[str] = ..., session_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ..., run_id: _Optional[str] = ..., without_session: bool = ...) -> None: ...
 
 class FileList(_message.Message):
     __slots__ = ("entries", "next_page_token")
