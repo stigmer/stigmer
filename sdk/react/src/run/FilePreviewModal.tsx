@@ -6,17 +6,17 @@ import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
 import { useFileDownload } from "../file/useFile.js";
 import { formatArtifactSize } from "./artifact-utils.js";
-import { ArtifactContentBody } from "./ArtifactContentBody.js";
-import { ArtifactApplyButton } from "./ArtifactApplyButton.js";
-import { useArtifactInspection } from "./useArtifactInspection.js";
+import { FileBody } from "./FileBody.js";
+import { FileApplyButton } from "./FileApplyButton.js";
+import { useFileInspection } from "./useFileInspection.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 
 // ---------------------------------------------------------------------------
-// ArtifactPreviewContent — standalone content component
+// FilePreviewContent — standalone content component
 // ---------------------------------------------------------------------------
 
-/** Props for {@link ArtifactPreviewContent}. */
-export interface ArtifactPreviewContentProps {
+/** Props for {@link FilePreviewContent}. */
+export interface FilePreviewContentProps {
   /** The File to preview. */
   readonly file: StigmerFile;
   /** Organization id for the "Apply to [org]" CTA (a slug is also accepted). */
@@ -56,7 +56,7 @@ export interface ArtifactPreviewContentProps {
  * it inside a `<dialog>`, modal, sheet, overlay, or inline context as
  * needed.
  *
- * Orchestrates the shared detection pipeline (see {@link useArtifactInspection}):
+ * Orchestrates the shared detection pipeline (see {@link useFileInspection}):
  *
  * it reads a text File via `useFileContent`, renders it via
  * {@link ArtifactContentRenderer} (markdown, YAML, JSON, or plain text based
@@ -71,7 +71,7 @@ export interface ArtifactPreviewContentProps {
  * @example
  * ```tsx
  * // Inside a dialog, modal, or overlay:
- * <ArtifactPreviewContent
+ * <FilePreviewContent
  *   file={file}
  *   org={activeOrg}
  *   isTerminal={isTerminalPhase(run.status?.phase)}
@@ -80,12 +80,12 @@ export interface ArtifactPreviewContentProps {
  * />
  * ```
  *
- * @see {@link ArtifactPreviewModal} — wraps this component in a native `<dialog>`
- * @see {@link ArtifactRow} — dense list row that triggers preview via `onOpen`
+ * @see {@link FilePreviewModal} — wraps this component in a native `<dialog>`
+ * @see {@link FileRow} — dense list row that triggers preview via `onOpen`
  * @see {@link useDetectStigmerResource} — YAML resource detection (headless)
  * @see {@link useApplyResource} — apply behavior hook (headless)
  */
-export function ArtifactPreviewContent({
+export function FilePreviewContent({
   file,
   org,
   isTerminal,
@@ -93,11 +93,11 @@ export function ArtifactPreviewContent({
   onApplied,
   onImplement,
   className,
-}: ArtifactPreviewContentProps) {
+}: FilePreviewContentProps) {
   // The whole inspect-and-act pipeline (content, detection, apply, copy)
-  // lives in one headless hook, shared with the editor-area ArtifactDocument so
+  // lives in one headless hook, shared with the editor-area FileDocument so
   // the two surfaces can never drift.
-  const inspection = useArtifactInspection(file, org, { onApplied });
+  const inspection = useFileInspection(file, org, { onApplied });
 
   // "Build" runs the plan; closing the modal lets the host's submit pipeline
   // take over (switch to Agent + send). Single combined handler keeps the
@@ -116,7 +116,7 @@ export function ArtifactPreviewContent({
         onClose={onClose}
       />
 
-      <ArtifactContentBody
+      <FileBody
         file={file}
         content={inspection.content}
         contentType={inspection.contentType}
@@ -154,11 +154,11 @@ export function ArtifactPreviewContent({
 }
 
 // ---------------------------------------------------------------------------
-// ArtifactPreviewModal — thin <dialog> shell
+// FilePreviewModal — thin <dialog> shell
 // ---------------------------------------------------------------------------
 
-/** Props for {@link ArtifactPreviewModal}. */
-export interface ArtifactPreviewModalProps {
+/** Props for {@link FilePreviewModal}. */
+export interface FilePreviewModalProps {
   /** The File to preview. */
   readonly file: StigmerFile;
   /** Organization id for the "Apply to [org]" CTA (a slug is also accepted). */
@@ -182,7 +182,7 @@ export interface ArtifactPreviewModalProps {
    */
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
-   * Optional plan-build action (see {@link ArtifactPreviewContentProps.onImplement}).
+   * Optional plan-build action (see {@link FilePreviewContentProps.onImplement}).
    * When provided, a "Build" primary button appears; clicking it calls
    * `onImplement` then closes the modal.
    */
@@ -194,7 +194,7 @@ export interface ArtifactPreviewModalProps {
 /**
  * Full preview modal for an output File using a native `<dialog>`.
  *
- * Thin shell around {@link ArtifactPreviewContent} that adds
+ * Thin shell around {@link FilePreviewContent} that adds
  * `showModal()` / `close()` lifecycle, `::backdrop` overlay, focus
  * trap, and Escape key handling — with no dependency on
  * `@base-ui/react`.
@@ -208,7 +208,7 @@ export interface ArtifactPreviewModalProps {
  * const [previewFile, setPreviewFile] = useState<File | null>(null);
  *
  * {previewFile && (
- *   <ArtifactPreviewModal
+ *   <FilePreviewModal
  *     file={previewFile}
  *     org={activeOrg}
  *     isTerminal={isTerminalPhase(run.status?.phase)}
@@ -219,10 +219,10 @@ export interface ArtifactPreviewModalProps {
  * )}
  * ```
  *
- * @see {@link ArtifactPreviewContent} — the content component (use directly for non-dialog contexts)
- * @see {@link ArtifactRow} — dense list row that triggers preview via `onOpen`
+ * @see {@link FilePreviewContent} — the content component (use directly for non-dialog contexts)
+ * @see {@link FileRow} — dense list row that triggers preview via `onOpen`
  */
-export function ArtifactPreviewModal({
+export function FilePreviewModal({
   file,
   org,
   isTerminal,
@@ -231,7 +231,7 @@ export function ArtifactPreviewModal({
   onApplied,
   onImplement,
   className,
-}: ArtifactPreviewModalProps) {
+}: FilePreviewModalProps) {
   const handleOpenChange = useCallback(
     (nextOpen: boolean) => {
       if (!nextOpen) onClose();
@@ -252,7 +252,7 @@ export function ArtifactPreviewModal({
       className={cn("stg:bg-background stg:text-foreground stg:outline-none", className)}
     >
       {open && (
-        <ArtifactPreviewContent
+        <FilePreviewContent
           file={file}
           org={org}
           isTerminal={isTerminal}
@@ -435,7 +435,7 @@ function ActionBar({
           </span>
         ) : isDetected && ctaLabel ? (
           <span data-cursor-target="apply-resource-button">
-            <ArtifactApplyButton
+            <FileApplyButton
               label={ctaLabel}
               isTerminal={isTerminal}
               isApplying={isApplying}

@@ -6,7 +6,7 @@ import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/
 /**
  * File extensions recognized as human-readable text content.
  *
- * Used by {@link isTextArtifact} to determine whether a File's
+ * Used by {@link isTextFile} to determine whether a File's
  * content can be fetched and displayed as text (YAML preview, resource
  * detection, syntax-highlighted preview).
  *
@@ -63,10 +63,10 @@ export function getArtifactExtension(file: StigmerFile): string | null {
  *
  * @example
  * ```ts
- * const shouldFetch = isTextArtifact(file);
+ * const shouldFetch = isTextFile(file);
  * ```
  */
-export function isTextArtifact(file: StigmerFile): boolean {
+export function isTextFile(file: StigmerFile): boolean {
   if ((file.spec?.mimeType ?? "").startsWith("text/")) return true;
   const ext = getArtifactExtension(file);
   return ext !== null && TEXT_EXTENSIONS.has(ext);

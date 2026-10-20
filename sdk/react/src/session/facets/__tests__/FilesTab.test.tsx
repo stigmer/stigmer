@@ -13,8 +13,8 @@ import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { StigmerContext } from "../../../context";
-import { ArtifactsTab, type ArtifactsTabProps } from "../ArtifactsTab";
-import { deriveSessionArtifacts, type SessionArtifactEntry } from "../../useSessionArtifacts";
+import { FilesTab, type FilesTabProps } from "../FilesTab";
+import { deriveSessionOutputs, type SessionOutputEntry } from "../../useSessionOutputs";
 
 function output(filename: string) {
   return create(FileSchema, {
@@ -29,7 +29,7 @@ const execution = create(RunSchema, {
   status: { phase: RunPhase.RUN_COMPLETED },
 });
 
-const ENTRIES = deriveSessionArtifacts([output("plan.md"), output("notes.md")], [execution]).artifacts;
+const ENTRIES = deriveSessionOutputs([output("plan.md"), output("notes.md")], [execution]).artifacts;
 
 /** Modal content read — keep pending so nothing rejects during the test. */
 function createStigmerMock(): Stigmer {
@@ -40,10 +40,10 @@ function createStigmerMock(): Stigmer {
   } as unknown as Stigmer;
 }
 
-function renderTab(props: Partial<ArtifactsTabProps> = {}) {
+function renderTab(props: Partial<FilesTabProps> = {}) {
   return render(
     <StigmerContext.Provider value={createStigmerMock()}>
-      <ArtifactsTab artifacts={ENTRIES} org="acme" {...props} />
+      <FilesTab artifacts={ENTRIES} org="acme" {...props} />
     </StigmerContext.Provider>,
   );
 }
@@ -60,7 +60,7 @@ function activateRow(name: string) {
 
 afterEach(cleanup);
 
-describe("ArtifactsTab — dense row list", () => {
+describe("FilesTab — dense row list", () => {
   it("renders one row per artifact with a Download control (no old 'Preview' button)", () => {
     renderTab({ onOpenArtifact: vi.fn() });
 
@@ -75,7 +75,7 @@ describe("ArtifactsTab — dense row list", () => {
   it("renders the empty state with no artifacts", () => {
     render(
       <StigmerContext.Provider value={createStigmerMock()}>
-        <ArtifactsTab artifacts={[]} org="acme" />
+        <FilesTab artifacts={[]} org="acme" />
       </StigmerContext.Provider>,
     );
     expect(screen.getByText(/No artifacts yet/)).toBeTruthy();
@@ -86,16 +86,16 @@ describe("ArtifactsTab — dense row list", () => {
     const { rerender } = renderTab({ onShown });
     rerender(
       <StigmerContext.Provider value={createStigmerMock()}>
-        <ArtifactsTab artifacts={ENTRIES} org="acme" onShown={() => onShown()} />
+        <FilesTab artifacts={ENTRIES} org="acme" onShown={() => onShown()} />
       </StigmerContext.Provider>,
     );
     expect(onShown).toHaveBeenCalledTimes(1);
   });
 });
 
-describe("ArtifactsTab — open routing", () => {
+describe("FilesTab — open routing", () => {
   it("routes a non-plan artifact to onOpenArtifact (no modal) when provided", () => {
-    const onOpenArtifact = vi.fn<(entry: SessionArtifactEntry) => void>();
+    const onOpenArtifact = vi.fn<(entry: SessionOutputEntry) => void>();
     renderTab({ onOpenArtifact, onOpenPlan: vi.fn() });
 
     openRow("notes.md");
@@ -134,9 +134,9 @@ describe("ArtifactsTab — open routing", () => {
   });
 });
 
-describe("ArtifactsTab — pin (double-click) routing", () => {
+describe("FilesTab — pin (double-click) routing", () => {
   it("routes a non-plan double-click to onActivateArtifact (pin)", () => {
-    const onActivateArtifact = vi.fn<(entry: SessionArtifactEntry) => void>();
+    const onActivateArtifact = vi.fn<(entry: SessionOutputEntry) => void>();
     renderTab({ onOpenArtifact: vi.fn(), onActivateArtifact, onOpenPlan: vi.fn() });
 
     activateRow("notes.md");
@@ -167,7 +167,7 @@ describe("ArtifactsTab — pin (double-click) routing", () => {
   });
 });
 
-describe("ArtifactsTab — modal fallback plan 'Build' wiring", () => {
+describe("FilesTab — modal fallback plan 'Build' wiring", () => {
   it("shows 'Build' in the modal preview of a plan.md artifact (panel-less host)", () => {
     renderTab({ onImplementPlan: vi.fn() });
 

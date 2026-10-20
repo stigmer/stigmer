@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
-import { ArtifactRowView } from "../ArtifactRowView";
-import type { ArtifactRowItem } from "../artifact-row-item";
+import { FileRowView } from "../FileRowView";
+import type { FileRowItem } from "../file-row-item";
 
-const fileItem: ArtifactRowItem = {
+const fileItem: FileRowItem = {
   name: "report.json",
   tooltip: "report.json",
   subtitlePath: null,
@@ -11,7 +11,7 @@ const fileItem: ArtifactRowItem = {
 };
 
 function renderView(
-  overrides: Partial<React.ComponentProps<typeof ArtifactRowView>> = {},
+  overrides: Partial<React.ComponentProps<typeof FileRowView>> = {},
 ) {
   const props = {
     item: fileItem,
@@ -22,7 +22,7 @@ function renderView(
   };
   render(
     <ul>
-      <ArtifactRowView {...props} />
+      <FileRowView {...props} />
     </ul>,
   );
   return props;
@@ -30,7 +30,7 @@ function renderView(
 
 afterEach(cleanup);
 
-describe("ArtifactRowView — the shared row primitive", () => {
+describe("FileRowView — the shared row primitive", () => {
   it("renders name, formatted size, and a file-type icon", () => {
     renderView();
     const open = screen.getByText("report.json").closest("button")!;
@@ -71,7 +71,7 @@ describe("ArtifactRowView — the shared row primitive", () => {
     renderView();
     // The Download hint lives in the house tooltip (native titles are
     // banned); its reveal is pinned in the real-browser suite
-    // (artifact-row-tooltips.layout.browser.test.tsx).
+    // (file-row-tooltips.layout.browser.test.tsx).
     expect(document.querySelector("[title]")).toBeNull();
   });
 });

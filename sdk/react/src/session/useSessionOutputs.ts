@@ -22,7 +22,7 @@ import { isTerminalPhase } from "../run/run-phases.js";
  * One output File, with what content views and Apply gating need about the
  * turn that returned it.
  */
-export interface SessionArtifactEntry {
+export interface SessionOutputEntry {
   /** The File the turn returned. */
   readonly file: StigmerFile;
   /** ID of the run that returned this File. */
@@ -36,10 +36,10 @@ export interface SessionArtifactEntry {
   readonly hasNameCollision: boolean;
 }
 
-/** Return value of {@link useSessionArtifacts}. */
-export interface UseSessionArtifactsReturn {
+/** Return value of {@link useSessionOutputs}. */
+export interface UseSessionOutputsReturn {
   /** One entry per output path, sorted by filename. */
-  readonly artifacts: readonly SessionArtifactEntry[];
+  readonly artifacts: readonly SessionOutputEntry[];
   /** `true` when at least one turn returned a File. */
   readonly hasArtifacts: boolean;
   /** Number of entries. */
@@ -56,12 +56,12 @@ export interface UseSessionArtifactsReturn {
  * 1. de-duplication here (newest turn wins per key),
  * 2. the virtual-document tab `path` when an output opens in the editor area
  *    (see `SessionViewer` / `useSessionPanel.openArtifact`), and
- * 3. the `artifactKey → entry` lookup that renders the open tab's document.
+ * 3. the `outputKey → entry` lookup that renders the open tab's document.
  *
  * Its basename doubles as the editor tab's label (paths render as their last
  * `/` segment in `EditorTabs`).
  */
-export function artifactKey(file: StigmerFile): string {
+export function outputKey(file: StigmerFile): string {
   return file.status?.outputPath || file.spec?.filename || file.metadata?.id || "";
 }
 
@@ -78,24 +78,24 @@ export function artifactKey(file: StigmerFile): string {
  * @example
  * ```tsx
  * const { files } = useSessionFiles(org, sessionId, settledKey);
- * const { artifacts } = useSessionArtifacts(files, runs);
+ * const { artifacts } = useSessionOutputs(files, runs);
  * ```
  */
-export function useSessionArtifacts(
+export function useSessionOutputs(
   files: readonly StigmerFile[],
   runs: readonly Run[],
-): UseSessionArtifactsReturn {
-  return useMemo(() => deriveSessionArtifacts(files, runs), [files, runs]);
+): UseSessionOutputsReturn {
+  return useMemo(() => deriveSessionOutputs(files, runs), [files, runs]);
 }
 
 /**
- * The derivation behind {@link useSessionArtifacts}, for non-hook callers
+ * The derivation behind {@link useSessionOutputs}, for non-hook callers
  * and tests.
  */
-export function deriveSessionArtifacts(
+export function deriveSessionOutputs(
   files: readonly StigmerFile[],
   runs: readonly Run[],
-): UseSessionArtifactsReturn {
+): UseSessionOutputsReturn {
   const runOrder = new Map<string, { readonly index: number; readonly terminal: boolean }>();
   runs.forEach((run, index) => {
     const id = run.metadata?.id;
@@ -119,9 +119,9 @@ export function deriveSessionArtifacts(
       return ia !== ib ? ia - ib : b.position - a.position;
     });
 
-  const entryMap = new Map<string, SessionArtifactEntry>();
+  const entryMap = new Map<string, SessionOutputEntry>();
   for (const { file, runId } of outputs) {
-    entryMap.set(artifactKey(file), {
+    entryMap.set(outputKey(file), {
       file,
       runId,
       isTerminal: runOrder.get(runId)?.terminal ?? true,

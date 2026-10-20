@@ -53,11 +53,11 @@ export type {
 export { TranscriptExportMenu } from "./TranscriptExportMenu.js";
 export type { TranscriptExportMenuProps } from "./TranscriptExportMenu.js";
 
-export { useSessionArtifacts, artifactKey } from "./useSessionArtifacts.js";
+export { useSessionOutputs, outputKey } from "./useSessionOutputs.js";
 export type {
-  SessionArtifactEntry,
-  UseSessionArtifactsReturn,
-} from "./useSessionArtifacts.js";
+  SessionOutputEntry,
+  UseSessionOutputsReturn,
+} from "./useSessionOutputs.js";
 
 export { useSessionWriteBacks } from "./useSessionWriteBacks.js";
 export type {
@@ -162,7 +162,7 @@ export {
 
 // Artifact document tab identity — lives in run/; re-exported here so
 // session-path importers reach it beside the plan document identity.
-export { ARTIFACT_DOCUMENT_ENTRY_ID } from "../run/artifact-document.js";
+export { FILE_DOCUMENT_ENTRY_ID } from "../run/file-document.js";
 
 // Session facet components — the panel's rail views (Config et al.), also
 // independently importable.

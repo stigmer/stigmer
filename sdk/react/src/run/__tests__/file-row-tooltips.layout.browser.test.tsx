@@ -1,5 +1,5 @@
 // The interactive-trigger tooltip contract from the native-title sweep,
-// pinned in a real Chromium on ArtifactRowView. When
+// pinned in a real Chromium on FileRowView. When
 // an enabled control is its own tooltip trigger, keyboard FOCUS opens the
 // hint too — the concrete accessibility gain over the native `title` this
 // replaced, which no keyboard user ever saw. Focus-open is real focus
@@ -11,7 +11,7 @@ import "../../../dist/styles.css";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import { userEvent } from "@vitest/browser/context";
-import { ArtifactRowView } from "../ArtifactRowView.js";
+import { FileRowView } from "../FileRowView.js";
 
 const ITEM = {
   name: "report.pdf",
@@ -27,7 +27,7 @@ function renderRow() {
   document.body.appendChild(pane);
   render(
     <ul>
-      <ArtifactRowView
+      <FileRowView
         item={ITEM}
         onOpen={() => {}}
         onDownload={() => {}}
@@ -51,7 +51,7 @@ afterEach(() => {
   document.querySelectorAll(".stgm").forEach((node) => node.remove());
 });
 
-describe("ArtifactRowView tooltips", () => {
+describe("FileRowView tooltips", () => {
   it("opens the full-path hint on keyboard focus — no pointer required", async () => {
     const pane = renderRow();
     expect(pane.querySelector("[title]")).toBeNull();

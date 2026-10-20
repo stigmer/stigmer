@@ -10,8 +10,8 @@ import {
   type WorkspaceEditorsStore,
 } from "../internal/store/index.js";
 import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "./plan-document.js";
-import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../run/artifact-document.js";
-import { artifactKey } from "./useSessionArtifacts.js";
+import { FILE_DOCUMENT_ENTRY_ID } from "../run/file-document.js";
+import { outputKey } from "./useSessionOutputs.js";
 
 /** Options for {@link useSessionPanel}. */
 export interface UseSessionPanelOptions {
@@ -170,7 +170,7 @@ export interface SessionPanelController {
    * artifact browsing reuses one tab (single-click), and double-clicking the
    * tab pins it. Distinct from `openPlanDocument`, which pins its single tab: a
    * plan is the turn's deliverable, artifacts are browsable outputs. The
-   * artifact's {@link artifactKey} is the tab identity, shared with the
+   * artifact's {@link outputKey} is the tab identity, shared with the
    * `SurfaceVirtualDocument` the viewer builds for the open tab.
    */
   readonly openArtifact: (file: StigmerFile) => void;
@@ -321,7 +321,7 @@ export function useSessionPanel({
 
   const openArtifact = useCallback(
     (file: StigmerFile) => {
-      editorsStore.openPreview(ARTIFACT_DOCUMENT_ENTRY_ID, artifactKey(file));
+      editorsStore.openPreview(FILE_DOCUMENT_ENTRY_ID, outputKey(file));
       requestOpenChange(true);
     },
     [editorsStore, requestOpenChange],
@@ -329,7 +329,7 @@ export function useSessionPanel({
 
   const pinArtifact = useCallback(
     (file: StigmerFile) => {
-      editorsStore.pin(ARTIFACT_DOCUMENT_ENTRY_ID, artifactKey(file));
+      editorsStore.pin(FILE_DOCUMENT_ENTRY_ID, outputKey(file));
     },
     [editorsStore],
   );

@@ -50,8 +50,8 @@ import { usePlanDraft, planDraftKey, type PlanDraftController } from "./usePlanD
 import { PlanEditor } from "./PlanEditor.js";
 import { PlanStreamingDocument } from "./PlanStreamingDocument.js";
 import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "./plan-document.js";
-import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../run/artifact-document.js";
-import { ArtifactDocument } from "../run/ArtifactDocument.js";
+import { FILE_DOCUMENT_ENTRY_ID } from "../run/file-document.js";
+import { FileDocument } from "../run/FileDocument.js";
 import { useSessionRailViews } from "./useSessionRailViews.js";
 import { useSessionPanel, type SessionPanelController } from "./useSessionPanel.js";
 import { SessionPanelChip } from "./SessionPanelChip.js";
@@ -62,10 +62,10 @@ import { agentRefOfSession, isSameAgent } from "./agentRefOfSession.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
 import { useWorkspaceReadRefs } from "./useWorkspaceReadRefs.js";
 import {
-  useSessionArtifacts,
-  artifactKey,
-  type SessionArtifactEntry,
-} from "./useSessionArtifacts.js";
+  useSessionOutputs,
+  outputKey,
+  type SessionOutputEntry,
+} from "./useSessionOutputs.js";
 import type { SetupTabProps } from "./facets/SetupTab.js";
 import { conversationEnvironment } from "./conversation-environment.js";
 import { environmentsNotApplying } from "../environment/resolve.js";
@@ -468,7 +468,7 @@ export function SessionViewer({
   // Facet arrival counts: rail badges inside the panel, the chip's dot-count
   // while collapsed. Arrivals never auto-open the panel (badge-only signal).
   const { hasWriteBacks, writeBackCount } = useSessionWriteBacks(flow.allRuns);
-  const { artifacts: sessionArtifacts, artifactCount } = useSessionArtifacts(files, flow.allRuns);
+  const { artifacts: sessionArtifacts, artifactCount } = useSessionOutputs(files, flow.allRuns);
 
   // The session's current plan (the latest Plan-mode turn's plan File) and
   // its viewer-owned draft. Ownership at this level is deliberate: the
@@ -634,9 +634,9 @@ export function SessionViewer({
   // "Open artifact" (an Artifacts-facet row) → an editor-pane document tab.
   // Writing the editors store re-renders only the panel subtree (which
   // subscribes), never this streaming column. Plan Files are routed to the
-  // plan tab upstream (in ArtifactsTab), so they never reach here.
+  // plan tab upstream (in FilesTab), so they never reach here.
   const handleOpenArtifact = useCallback(
-    (entry: SessionArtifactEntry) => {
+    (entry: SessionOutputEntry) => {
       panel.openArtifact(entry.file);
     },
     [panel.openArtifact],
@@ -645,9 +645,9 @@ export function SessionViewer({
   // Double-click an artifact row → pin its tab (the leading single click already
   // opened the preview via `handleOpenArtifact`). Mirrors the file tree's
   // preview/pin split; plan Files are routed to the plan tab upstream (in
-  // ArtifactsTab) and never reach here.
+  // FilesTab) and never reach here.
   const handleActivateArtifact = useCallback(
-    (entry: SessionArtifactEntry) => {
+    (entry: SessionOutputEntry) => {
       panel.pinArtifact(entry.file);
     },
     [panel.pinArtifact],
@@ -1234,7 +1234,7 @@ interface SessionPanelRegionProps {
   /** The conversation's Files, newest first — a superseded plan's File is found here. */
   readonly sessionFiles: readonly StigmerFile[];
   /** The conversation's outputs, one per output path (the Artifacts facet and its tabs). */
-  readonly sessionArtifacts: readonly SessionArtifactEntry[];
+  readonly sessionArtifacts: readonly SessionOutputEntry[];
   /** Re-read the conversation's Files when the Artifacts facet opens. */
   readonly onArtifactsShown: () => void;
   /**
@@ -1255,9 +1255,9 @@ interface SessionPanelRegionProps {
   /** Opens a plan in the plan tab (routed to the Artifacts facet's plan.md). */
   readonly onOpenPlan: (executionId: string) => void;
   /** Opens an artifact as an editor-pane document (routed to the Artifacts facet). */
-  readonly onOpenArtifact: (entry: SessionArtifactEntry) => void;
+  readonly onOpenArtifact: (entry: SessionOutputEntry) => void;
   /** Pins an artifact's document tab — the double-click half of the open/pin split. */
-  readonly onActivateArtifact: (entry: SessionArtifactEntry) => void;
+  readonly onActivateArtifact: (entry: SessionOutputEntry) => void;
   readonly enableLocal: boolean;
   readonly onBrowseLocalFolder?: () => Promise<string | null>;
   readonly workspaceFileLister?: WorkspaceFileLister;
@@ -1388,7 +1388,7 @@ function SessionPanelRegion({
   // Built in a SEPARATE memo from the plan doc so artifact-tab churn never
   // recreates the plan doc (and vice versa). Bounded to what is actually open:
   // one document per editor whose entry id is the artifact family's, resolved
-  // back to its `SessionArtifactEntry` by the same `artifactKey` used to open
+  // back to its `SessionOutputEntry` by the same `outputKey` used to open
   // it (single source of truth for artifact identity). Only the ACTIVE doc's
   // `content` is mounted by the surface, so building these elements is cheap;
   // keying on the File's id remounts a tab whose path a later turn saved
@@ -1396,19 +1396,19 @@ function SessionPanelRegion({
   // honest notice rather than vanishing.
   const artifactByKey = useMemo(
     () =>
-      new Map(sessionArtifacts.map((entry) => [artifactKey(entry.file), entry])),
+      new Map(sessionArtifacts.map((entry) => [outputKey(entry.file), entry])),
     [sessionArtifacts],
   );
   const artifactVirtualDocuments = useMemo<readonly SurfaceVirtualDocument[]>(() => {
     return editors
-      .filter((editor) => editor.entryId === ARTIFACT_DOCUMENT_ENTRY_ID)
+      .filter((editor) => editor.entryId === FILE_DOCUMENT_ENTRY_ID)
       .map((editor) => {
         const entry = artifactByKey.get(editor.path);
         return {
-          entryId: ARTIFACT_DOCUMENT_ENTRY_ID,
+          entryId: FILE_DOCUMENT_ENTRY_ID,
           path: editor.path,
           content: entry ? (
-            <ArtifactDocument
+            <FileDocument
               key={entry.file.metadata?.id || editor.path}
               file={entry.file}
               org={org}

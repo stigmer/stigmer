@@ -4,14 +4,14 @@ import { create } from "@bufbuild/protobuf";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../../run/artifact-document";
-import { artifactKey, type SessionArtifactEntry } from "../useSessionArtifacts";
+import { FILE_DOCUMENT_ENTRY_ID } from "../../run/file-document";
+import { outputKey, type SessionOutputEntry } from "../useSessionOutputs";
 
 // ---------------------------------------------------------------------------
 // Wiring-contract test for the Artifacts facet's open/pin gestures. The
 // `onOpenArtifact` (single-click preview) and `onActivateArtifact` (double-click
 // pin) callbacks must thread from SessionViewer, through the intermediate
-// SessionPanelRegion, into useSessionRailViews' <ArtifactsTab>, and — when
+// SessionPanelRegion, into useSessionRailViews' <FilesTab>, and — when
 // invoked — land as an artifact virtual-document tab on the editors store.
 // WorkspaceSurface renders as a prop-capturing probe; the store + panel-region
 // wire between them is the subject under test. Tab MECHANICS (preview-slot
@@ -64,7 +64,7 @@ const artifactExecution = create(RunSchema, {
   status: { phase: RunPhase.RUN_COMPLETED },
 });
 
-const entry: SessionArtifactEntry = {
+const entry: SessionOutputEntry = {
   file: artifact,
   runId: "aex_1",
   isTerminal: true,
@@ -183,7 +183,7 @@ function latestEditors(): ReadonlyArray<{
   return (surfaceProps.at(-1)?.editors ?? []) as never;
 }
 
-/** The props of the rail-view <ArtifactsTab> element the surface received. */
+/** The props of the rail-view <FilesTab> element the surface received. */
 function artifactsTabProps(): CapturedProps {
   const views = surfaceProps.at(-1)?.extraViews as
     | ReadonlyArray<{ id: string; content: { props: CapturedProps } }>
@@ -193,11 +193,11 @@ function artifactsTabProps(): CapturedProps {
   return artifactsView.content.props;
 }
 
-/** Read a callback off the rail-view <ArtifactsTab> element the surface received. */
+/** Read a callback off the rail-view <FilesTab> element the surface received. */
 function artifactsTabCallback(
   name: "onOpenArtifact" | "onActivateArtifact",
-): (entry: SessionArtifactEntry) => void {
-  return artifactsTabProps()[name] as (e: SessionArtifactEntry) => void;
+): (entry: SessionOutputEntry) => void {
+  return artifactsTabProps()[name] as (e: SessionOutputEntry) => void;
 }
 
 /** Shows the panel once the conversation's Files are listed. */
@@ -235,13 +235,13 @@ describe("SessionViewer — Artifacts facet open/pin wiring", () => {
     // Single-click preview → one preview tab keyed by the artifact identity.
     act(() => artifactsTabCallback("onOpenArtifact")(entry));
     expect(latestEditors()).toEqual([
-      { entryId: ARTIFACT_DOCUMENT_ENTRY_ID, path: artifactKey(artifact), preview: true },
+      { entryId: FILE_DOCUMENT_ENTRY_ID, path: outputKey(artifact), preview: true },
     ]);
 
     // Double-click pin → the same tab, now persistent.
     act(() => artifactsTabCallback("onActivateArtifact")(entry));
     expect(latestEditors()).toEqual([
-      { entryId: ARTIFACT_DOCUMENT_ENTRY_ID, path: artifactKey(artifact), preview: false },
+      { entryId: FILE_DOCUMENT_ENTRY_ID, path: outputKey(artifact), preview: false },
     ]);
   });
 });
@@ -252,9 +252,9 @@ describe("SessionViewer — the Artifacts facet lists the conversation's output 
     await showPanelWithArtifacts();
 
     expect(listAll.mock.calls[0]![0]).toEqual({ org: "acme", sessionId: "ses_1" });
-    const entries = artifactsTabProps().artifacts as readonly SessionArtifactEntry[];
+    const entries = artifactsTabProps().artifacts as readonly SessionOutputEntry[];
     expect(entries.map((e) => e.file.metadata?.id)).toEqual(["file_agent"]);
-    expect(artifactKey(entries[0]!.file)).toBe("configs/agent.yaml");
+    expect(outputKey(entries[0]!.file)).toBe("configs/agent.yaml");
   });
 
   it("re-reads the conversation's Files when the facet opens", async () => {

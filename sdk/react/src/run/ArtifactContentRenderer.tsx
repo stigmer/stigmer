@@ -64,7 +64,7 @@ export interface ArtifactContentRendererProps {
  * in a third-party host application.
  *
  * Platform builders who want to render artifact content outside of
- * {@link ArtifactPreviewModal} can import this component directly:
+ * {@link FilePreviewModal} can import this component directly:
  *
  * @example
  * ```tsx
@@ -78,7 +78,7 @@ export interface ArtifactContentRendererProps {
  * ```
  *
  * @see {@link getArtifactRenderMode} — pure utility for mode detection
- * @see {@link ArtifactPreviewModal} — full modal that composes this component
+ * @see {@link FilePreviewModal} — full modal that composes this component
  * @see {@link useArtifactContent} — headless content-fetching hook
  */
 export function ArtifactContentRenderer({

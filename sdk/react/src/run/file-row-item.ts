@@ -9,7 +9,7 @@ import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/
  * The view-model carries no identity; list keys and open/download behavior
  * stay with the hosts that render the row.
  */
-export interface ArtifactRowItem {
+export interface FileRowItem {
   /** Display label (the filename). */
   readonly name: string;
   /** House-tooltip content: the output path, the fullest location known. */
@@ -28,9 +28,9 @@ export interface ArtifactRowItem {
  *
  * @param hasNameCollision - When `true`, the output path's folder becomes the
  *   disambiguation subtitle. Typically supplied from
- *   `SessionArtifactEntry.hasNameCollision`.
+ *   `SessionOutputEntry.hasNameCollision`.
  */
-export function fromFile(file: StigmerFile, hasNameCollision = false): ArtifactRowItem {
+export function fromFile(file: StigmerFile, hasNameCollision = false): FileRowItem {
   const name = file.spec?.filename ?? "";
   const outputPath = file.status?.outputPath ?? "";
   return {

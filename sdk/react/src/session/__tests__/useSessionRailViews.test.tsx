@@ -19,11 +19,11 @@ vi.mock("../useSessionWriteBacks", () => ({
 }));
 
 import { useSessionRailViews } from "../useSessionRailViews";
-import type { SessionArtifactEntry } from "../useSessionArtifacts";
+import type { SessionOutputEntry } from "../useSessionOutputs";
 import type { SetupTabProps } from "../facets/SetupTab";
 
 /** `count` output entries, one per output path. */
-function outputs(count: number): SessionArtifactEntry[] {
+function outputs(count: number): SessionOutputEntry[] {
   return Array.from({ length: count }, (_, i) => ({
     file: create(FileSchema, {
       metadata: { id: `file_${i}` },

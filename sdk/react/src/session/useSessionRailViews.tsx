@@ -5,23 +5,23 @@ import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { SurfaceRailView } from "../workspace/WorkspaceSurface.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
-import type { SessionArtifactEntry } from "./useSessionArtifacts.js";
+import type { SessionOutputEntry } from "./useSessionOutputs.js";
 import { SetupTab, type SetupTabProps } from "./facets/SetupTab.js";
 import { ChangesTab } from "./facets/ChangesTab.js";
-import { ArtifactsTab } from "./facets/ArtifactsTab.js";
+import { FilesTab } from "./facets/FilesTab.js";
 import { UsageTab } from "./facets/UsageTab.js";
 
-const NO_ARTIFACTS: readonly SessionArtifactEntry[] = [];
+const NO_ARTIFACTS: readonly SessionOutputEntry[] = [];
 
 /** Options for {@link useSessionRailViews}. */
 export interface UseSessionRailViewsOptions {
   /** All runs in the session — drives Changes/Usage. */
   readonly allRuns: readonly Run[];
   /**
-   * The session's outputs (`useSessionArtifacts` over the session's Files):
+   * The session's outputs (`useSessionOutputs` over the session's Files):
    * drives the Artifacts facet and its badge.
    */
-  readonly artifacts?: readonly SessionArtifactEntry[];
+  readonly artifacts?: readonly SessionOutputEntry[];
   /**
    * Re-read the session's Files when the Artifacts facet opens (a stopped
    * turn's outputs register after its end).
@@ -46,12 +46,12 @@ export interface UseSessionRailViewsOptions {
    * Artifacts facet so clicking an artifact opens it in the editor area (VS
    * Code "each file is a tab") instead of the preview modal.
    */
-  readonly onOpenArtifact?: (entry: SessionArtifactEntry) => void;
+  readonly onOpenArtifact?: (entry: SessionOutputEntry) => void;
   /**
    * Pin a (non-plan) artifact's document tab — the double-click half of the
    * Artifacts facet's open/activate split. Routed through to the facet's rows.
    */
-  readonly onActivateArtifact?: (entry: SessionArtifactEntry) => void;
+  readonly onActivateArtifact?: (entry: SessionOutputEntry) => void;
   /**
    * Whether to offer the execution-derived facets (Changes / Artifacts /
    * Usage). The launcher passes `false` — before a session exists there are no
@@ -144,7 +144,7 @@ export function useSessionRailViews({
           icon: <ArtifactsIcon />,
           badge: artifactCount,
           content: (
-            <ArtifactsTab
+            <FilesTab
               artifacts={artifacts}
               onShown={onArtifactsShown}
               org={org}

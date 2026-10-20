@@ -14,10 +14,10 @@ import { virtualEntryId } from "../internal/store/index.js";
  * Virtual entry id of the artifact document FAMILY. Unlike the plan (one tab
  * per session), artifacts are many: every opened artifact shares this one
  * entry id and is distinguished by its identity-derived `path` (the session's
- * `artifactKey`), so
- * `editorKey(ARTIFACT_DOCUMENT_ENTRY_ID, path)` yields one tab per artifact —
+ * `outputKey`), so
+ * `editorKey(FILE_DOCUMENT_ENTRY_ID, path)` yields one tab per artifact —
  * the VS Code "each file is a tab" model. The NUL-namespaced virtual id can
  * never alias a real workspace entry, and its distinct `"artifact"` kind can
  * never collide with the plan tab's `"plan"` kind.
  */
-export const ARTIFACT_DOCUMENT_ENTRY_ID = virtualEntryId("artifact");
+export const FILE_DOCUMENT_ENTRY_ID = virtualEntryId("artifact");

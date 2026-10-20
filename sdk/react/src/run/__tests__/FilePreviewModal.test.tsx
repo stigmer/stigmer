@@ -11,9 +11,9 @@ import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { StigmerContext } from "../../context";
-import { ArtifactPreviewContent } from "../ArtifactPreviewModal";
+import { FilePreviewContent } from "../FilePreviewModal";
 
-// A non-text File: ArtifactPreviewContent skips the content read, so the
+// A non-text File: FilePreviewContent skips the content read, so the
 // test exercises the Implement action without any network mocking.
 const binaryArtifact = create(FileSchema, {
   metadata: { id: "file_report" },
@@ -30,11 +30,11 @@ function withStigmer(children: ReactNode) {
 
 afterEach(cleanup);
 
-describe("ArtifactPreviewContent — Build action", () => {
+describe("FilePreviewContent — Build action", () => {
   it("renders a 'Build' button only when onImplement is provided", () => {
     const { rerender } = render(
       withStigmer(
-        <ArtifactPreviewContent
+        <FilePreviewContent
           file={binaryArtifact}
           org="acme"
           isTerminal
@@ -46,7 +46,7 @@ describe("ArtifactPreviewContent — Build action", () => {
 
     rerender(
       withStigmer(
-        <ArtifactPreviewContent
+        <FilePreviewContent
           file={binaryArtifact}
           org="acme"
           isTerminal
@@ -65,7 +65,7 @@ describe("ArtifactPreviewContent — Build action", () => {
 
     render(
       withStigmer(
-        <ArtifactPreviewContent
+        <FilePreviewContent
           file={binaryArtifact}
           org="acme"
           isTerminal
@@ -84,13 +84,13 @@ describe("ArtifactPreviewContent — Build action", () => {
   });
 });
 
-describe("ArtifactPreviewContent — Download", () => {
+describe("FilePreviewContent — Download", () => {
   it("downloads the File by its id and filename when Download is clicked", async () => {
     const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
     const getDownloadUrl = vi.fn().mockResolvedValue({ url: "https://files.test/report.bin" });
     render(
       <StigmerContext.Provider value={{ file: { getDownloadUrl } } as unknown as Stigmer}>
-        <ArtifactPreviewContent file={binaryArtifact} org="acme" isTerminal onClose={() => {}} />
+        <FilePreviewContent file={binaryArtifact} org="acme" isTerminal onClose={() => {}} />
       </StigmerContext.Provider>,
     );
 

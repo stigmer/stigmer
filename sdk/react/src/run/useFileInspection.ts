@@ -8,7 +8,7 @@
  * Trade-offs:
  * - One writer of the derived state, so the modal and the document cannot
  *   drift on labels or the apply flow.
- * - Only text Files are read (`isTextArtifact`); anything else shows its
+ * - Only text Files are read (`isTextFile`); anything else shows its
  *   download, never a byte read through the API.
  * - A File's bytes never change, so the read is cached by its id and a
  *   reopened tab renders at once.
@@ -17,7 +17,7 @@
 import { useCallback, useMemo, useState } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { useFileContent } from "../file/useFileContent.js";
-import { isTextArtifact } from "./artifact-utils.js";
+import { isTextFile } from "./artifact-utils.js";
 import { useDetectStigmerResource } from "../library/useDetectStigmerResource.js";
 import {
   useApplyResource,
@@ -26,8 +26,8 @@ import {
 import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { useOrgSlugForId } from "../organization/useOrgRefs.js";
 
-/** Options for {@link useArtifactInspection}. */
-export interface UseArtifactInspectionOptions {
+/** Options for {@link useFileInspection}. */
+export interface UseFileInspectionOptions {
   /**
    * Called after a resource is successfully applied. The consumer uses it for
    * post-apply behavior (toast, navigate to Library).
@@ -40,7 +40,7 @@ export interface UseArtifactInspectionOptions {
  * body) needs to inspect and act on one output File: fetched content, resource
  * detection, the Apply action, and clipboard copy.
  */
-export interface ArtifactInspection {
+export interface FileInspection {
   /** Decoded text content, or `null` (binary / loading / error). */
   readonly content: string | null;
   /** The File's media type, or `null` when it has none. */
@@ -84,15 +84,15 @@ export interface ArtifactInspection {
  *
  * @param file - The File to inspect.
  * @param org - Organization for the "Apply to [org]" CTA.
- * @param options - {@link UseArtifactInspectionOptions}.
+ * @param options - {@link UseFileInspectionOptions}.
  */
-export function useArtifactInspection(
+export function useFileInspection(
   file: StigmerFile,
   org: string,
-  options?: UseArtifactInspectionOptions,
-): ArtifactInspection {
+  options?: UseFileInspectionOptions,
+): FileInspection {
   const slugForOrg = useOrgSlugForId();
-  const canFetchContent = isTextArtifact(file);
+  const canFetchContent = isTextFile(file);
   const contentType = file.spec?.mimeType || null;
 
   const { content, isTruncated, isLoading, error, refetch } = useFileContent(

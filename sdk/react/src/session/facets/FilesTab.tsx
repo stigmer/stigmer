@@ -1,16 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { artifactKey, type SessionArtifactEntry } from "../useSessionArtifacts.js";
+import { outputKey, type SessionOutputEntry } from "../useSessionOutputs.js";
 import { UNSTYLED_LIST } from "../../internal/element-resets.js";
-import { ArtifactPreviewModal } from "../../run/ArtifactPreviewModal.js";
-import { ArtifactRow } from "../../run/ArtifactRow.js";
+import { FilePreviewModal } from "../../run/FilePreviewModal.js";
+import { FileRow } from "../../run/FileRow.js";
 import { isPlanFile } from "../../library/detect-plan-artifact.js";
 import type { ApplyResourceResult } from "../../library/useApplyResource.js";
 
-export interface ArtifactsTabProps {
-  /** The conversation's outputs, one per output path (`useSessionArtifacts`). */
-  readonly artifacts: readonly SessionArtifactEntry[];
+export interface FilesTabProps {
+  /** The conversation's outputs, one per output path (`useSessionOutputs`). */
+  readonly artifacts: readonly SessionOutputEntry[];
   readonly org: string;
   /**
    * Called once when the tab opens, to re-read the conversation's Files: a
@@ -40,7 +40,7 @@ export interface ArtifactsTabProps {
    * the preview modal. When omitted (panel-less hosts) the modal remains the
    * open mechanism. Plan artifacts always defer to {@link onOpenPlan} first.
    */
-  readonly onOpenArtifact?: (entry: SessionArtifactEntry) => void;
+  readonly onOpenArtifact?: (entry: SessionOutputEntry) => void;
   /**
    * Pin a non-plan artifact's document tab — the double-click half of the
    * open/activate split (mirrors the file tree's `onOpenFile`/`onActivateFile`).
@@ -50,25 +50,25 @@ export interface ArtifactsTabProps {
    * clicks. Plans always route to {@link onOpenPlan} (their tab is already
    * pinned), so double-click == single-click for a plan.
    */
-  readonly onActivateArtifact?: (entry: SessionArtifactEntry) => void;
+  readonly onActivateArtifact?: (entry: SessionOutputEntry) => void;
 }
 
 /**
  * Artifacts facet for the session panel (a `useSessionRailViews` rail view).
  *
  * A VS Code-style dense file list of the session's outputs (the Files its
- * turns returned): one compact {@link ArtifactRow} per output path (shared
+ * turns returned): one compact {@link FileRow} per output path (shared
  * file-type icon + name + size, with a hover/focus Download). Clicking a row
  * opens the File — a plan in the
  * plan document tab ({@link onOpenPlan}), any other artifact in an editor-pane
  * document ({@link onOpenArtifact}), or, for panel-less hosts that inject
- * neither, the {@link ArtifactPreviewModal} popup fallback.
+ * neither, the {@link FilePreviewModal} popup fallback.
  *
  * Deliberately metadata-only: rows do NOT fetch content for resource detection
  * (that would be one request per File on open) — detection and the Apply
  * action live in the opened document/modal instead.
  */
-export function ArtifactsTab({
+export function FilesTab({
   artifacts,
   org,
   onShown,
@@ -77,9 +77,9 @@ export function ArtifactsTab({
   onOpenPlan,
   onOpenArtifact,
   onActivateArtifact,
-}: ArtifactsTabProps) {
+}: FilesTabProps) {
   const hasArtifacts = artifacts.length > 0;
-  const [previewEntry, setPreviewEntry] = useState<SessionArtifactEntry | null>(null);
+  const [previewEntry, setPreviewEntry] = useState<SessionOutputEntry | null>(null);
 
   // Once per opening: the facet mounts when its rail view is shown. The ref
   // keeps a host's new callback identity from re-reading on every render.
@@ -90,7 +90,7 @@ export function ArtifactsTab({
   }, []);
 
   const handleOpen = useCallback(
-    (entry: SessionArtifactEntry) => {
+    (entry: SessionOutputEntry) => {
       // A plan is a first-class document — it opens in the dedicated plan tab,
       // never as a generic artifact or a popup.
       if (onOpenPlan && isPlanFile(entry.file)) {
@@ -108,7 +108,7 @@ export function ArtifactsTab({
   );
 
   const handleActivate = useCallback(
-    (entry: SessionArtifactEntry) => {
+    (entry: SessionOutputEntry) => {
       // A plan's tab is always pinned, so double-click matches single-click:
       // route to the plan tab, never pin a generic artifact.
       if (onOpenPlan && isPlanFile(entry.file)) {
@@ -138,8 +138,8 @@ export function ArtifactsTab({
     <>
       <ul role="list" className={`${UNSTYLED_LIST} stg:flex stg:flex-col`}>
         {artifacts.map((entry) => (
-          <ArtifactRow
-            key={artifactKey(entry.file)}
+          <FileRow
+            key={outputKey(entry.file)}
             file={entry.file}
             hasNameCollision={entry.hasNameCollision}
             onOpen={() => handleOpen(entry)}
@@ -151,7 +151,7 @@ export function ArtifactsTab({
       </ul>
 
       {previewEntry && (
-        <ArtifactPreviewModal
+        <FilePreviewModal
           file={previewEntry.file}
           isTerminal={previewEntry.isTerminal}
           org={org}

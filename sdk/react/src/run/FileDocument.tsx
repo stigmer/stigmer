@@ -2,15 +2,15 @@
 
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
-import { useArtifactInspection } from "./useArtifactInspection.js";
-import { ArtifactContentBody } from "./ArtifactContentBody.js";
-import { ArtifactApplyButton } from "./ArtifactApplyButton.js";
+import { useFileInspection } from "./useFileInspection.js";
+import { FileBody } from "./FileBody.js";
+import { FileApplyButton } from "./FileApplyButton.js";
 import { useFileDownload } from "../file/useFile.js";
 import { formatArtifactSize } from "./artifact-utils.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 
-/** Props for {@link ArtifactDocument}. */
-export interface ArtifactDocumentProps {
+/** Props for {@link FileDocument}. */
+export interface FileDocumentProps {
   /** The File a turn returned. */
   readonly file: StigmerFile;
   /** Organization for the "Apply to [org]" CTA. */
@@ -32,15 +32,15 @@ export interface ArtifactDocumentProps {
 
 /**
  * The editor-pane rendering of a single output File — the
- * {@link SurfaceVirtualDocument} counterpart of the {@link ArtifactPreviewModal}
+ * {@link SurfaceVirtualDocument} counterpart of the {@link FilePreviewModal}
  * popup, mounted as an artifact-family virtual document under
- * {@link ARTIFACT_DOCUMENT_ENTRY_ID}. Opening an artifact from the session
+ * {@link FILE_DOCUMENT_ENTRY_ID}. Opening an artifact from the session
  * panel's Artifacts facet lands here (VS Code "each file is a tab") rather than
  * a modal.
  *
  * Shares the modal's exact behavior and body via the two extracted pieces —
- * {@link useArtifactInspection} (content + detection + apply + copy) and
- * {@link ArtifactContentBody} (loading / error / binary / text) —
+ * {@link useFileInspection} (content + detection + apply + copy) and
+ * {@link FileBody} (loading / error / binary / text) —
  * so the two surfaces can never drift. Only the chrome differs: a document
  * toolbar (name + size + detection badge; Copy / Download / Apply) over the
  * shared body, instead of the modal's header + footer action bar.
@@ -52,14 +52,14 @@ export interface ArtifactDocumentProps {
  *
  * All visual properties flow through `--stgm-*` tokens.
  */
-export function ArtifactDocument({
+export function FileDocument({
   file,
   org,
   isTerminal,
   onApplied,
   className,
-}: ArtifactDocumentProps) {
-  const inspection = useArtifactInspection(file, org, { onApplied });
+}: FileDocumentProps) {
+  const inspection = useFileInspection(file, org, { onApplied });
   const { download, isDownloading } = useFileDownload();
   const name = file.spec?.filename ?? "";
 
@@ -141,7 +141,7 @@ export function ArtifactDocument({
         </div>
       </div>
 
-      <ArtifactContentBody
+      <FileBody
         file={file}
         content={inspection.content}
         contentType={inspection.contentType}
@@ -159,7 +159,7 @@ export function ArtifactDocument({
 }
 
 /**
- * The Apply affordance: the terminal-gated {@link ArtifactApplyButton}, or
+ * The Apply affordance: the terminal-gated {@link FileApplyButton}, or
  * the post-apply success / error-with-retry states. Mirrors the modal action
  * bar's apply cluster so both surfaces read identically.
  */
@@ -208,7 +208,7 @@ function ApplyCluster({
   if (isDetected && ctaLabel) {
     return (
       <span data-cursor-target="apply-resource-button">
-        <ArtifactApplyButton
+        <FileApplyButton
           label={ctaLabel}
           isTerminal={isTerminal}
           isApplying={isApplying}

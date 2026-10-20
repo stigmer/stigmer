@@ -7,7 +7,7 @@
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
-import { fromFile, parentDirectory } from "../artifact-row-item";
+import { fromFile, parentDirectory } from "../file-row-item";
 
 function output(filename: string, outputPath: string, sizeBytes = 0n) {
   return create(FileSchema, { spec: { filename }, status: { runId: "r1", outputPath, sizeBytes } });

@@ -11,7 +11,7 @@ import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { StigmerContext } from "../../context";
-import { ArtifactDocument } from "../ArtifactDocument";
+import { FileDocument } from "../FileDocument";
 
 function fileArtifact(filename: string, mimeType = "") {
   return create(FileSchema, {
@@ -35,7 +35,7 @@ function stigmerReturning(text: string): Stigmer {
 function renderDoc(stigmer: Stigmer, artifact = fileArtifact("notes.txt")) {
   return render(
     <StigmerContext.Provider value={stigmer}>
-      <ArtifactDocument
+      <FileDocument
         file={artifact}
         org="acme"
         isTerminal
@@ -55,7 +55,7 @@ const AGENT_YAML = [
 
 afterEach(cleanup);
 
-describe("ArtifactDocument", () => {
+describe("FileDocument", () => {
   it("renders the toolbar (name + Download) and the fetched content", async () => {
     renderDoc(stigmerReturning("hello document"));
 

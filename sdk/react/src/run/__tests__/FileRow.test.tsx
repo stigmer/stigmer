@@ -11,7 +11,7 @@ import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { StigmerContext } from "../../context";
-import { ArtifactRow } from "../ArtifactRow";
+import { FileRow } from "../FileRow";
 
 function fileArtifact(filename: string, outputPath = filename) {
   return create(FileSchema, {
@@ -29,16 +29,16 @@ function createStigmerMock(): Stigmer {
   } as unknown as Stigmer;
 }
 
-function renderRow(props: Partial<Parameters<typeof ArtifactRow>[0]> = {}) {
+function renderRow(props: Partial<Parameters<typeof FileRow>[0]> = {}) {
   const merged = {
     file: fileArtifact("notes.md"),
     onOpen: vi.fn(),
     ...props,
-  } as Parameters<typeof ArtifactRow>[0];
+  } as Parameters<typeof FileRow>[0];
   return render(
     <StigmerContext.Provider value={createStigmerMock()}>
       <ul>
-        <ArtifactRow {...merged} />
+        <FileRow {...merged} />
       </ul>
     </StigmerContext.Provider>,
   );
@@ -49,7 +49,7 @@ afterEach(() => {
   getDownloadUrl.mockClear();
 });
 
-describe("ArtifactRow — presentation", () => {
+describe("FileRow — presentation", () => {
   it("renders a file-type icon, the name, and the formatted size", () => {
     renderRow({ file: fileArtifact("notes.md") });
     const open = screen.getByText("notes.md").closest("button")!;
@@ -65,7 +65,7 @@ describe("ArtifactRow — presentation", () => {
     rerender(
       <StigmerContext.Provider value={createStigmerMock()}>
         <ul>
-          <ArtifactRow file={artifact} onOpen={vi.fn()} />
+          <FileRow file={artifact} onOpen={vi.fn()} />
         </ul>
       </StigmerContext.Provider>,
     );
@@ -73,7 +73,7 @@ describe("ArtifactRow — presentation", () => {
   });
 });
 
-describe("ArtifactRow — nested-interactive avoidance", () => {
+describe("FileRow — nested-interactive avoidance", () => {
   it("renders the Download control as a SIBLING of the open button, never nested", () => {
     renderRow({ file: fileArtifact("notes.md") });
     const open = screen.getByText("notes.md").closest("button")!;
@@ -84,7 +84,7 @@ describe("ArtifactRow — nested-interactive avoidance", () => {
   });
 });
 
-describe("ArtifactRow — open / activate interaction (file-tree parity)", () => {
+describe("FileRow — open / activate interaction (file-tree parity)", () => {
   it("fires onOpen on a single click of the open target", () => {
     const onOpen = vi.fn();
     renderRow({ onOpen });
@@ -108,7 +108,7 @@ describe("ArtifactRow — open / activate interaction (file-tree parity)", () =>
   });
 });
 
-describe("ArtifactRow — download", () => {
+describe("FileRow — download", () => {
   it("mints a download link for the File's id on Download click", () => {
     renderRow({ file: fileArtifact("notes.md") });
     fireEvent.click(screen.getByLabelText("Download notes.md"));

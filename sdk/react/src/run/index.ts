@@ -95,7 +95,7 @@ export { EmptyChangeNotice } from "./EmptyChangeNotice.js";
 export type { EmptyChangeNoticeProps, EmptyChangeKind } from "./EmptyChangeNotice.js";
 
 export {
-  isTextArtifact,
+  isTextFile,
   formatArtifactSize,
   getArtifactExtension,
   getFileExtension,
@@ -283,16 +283,16 @@ export {
 } from "./FileReviewContext.js";
 export type { FileReviewContextValue } from "./FileReviewContext.js";
 
-export { ArtifactRow } from "./ArtifactRow.js";
-export type { ArtifactRowProps } from "./ArtifactRow.js";
+export { FileRow } from "./FileRow.js";
+export type { FileRowProps } from "./FileRow.js";
 
-export { ArtifactRowView } from "./ArtifactRowView.js";
-export type { ArtifactRowViewProps } from "./ArtifactRowView.js";
+export { FileRowView } from "./FileRowView.js";
+export type { FileRowViewProps } from "./FileRowView.js";
 
-export { fromFile } from "./artifact-row-item.js";
-export type { ArtifactRowItem } from "./artifact-row-item.js";
+export { fromFile } from "./file-row-item.js";
+export type { FileRowItem } from "./file-row-item.js";
 
-export { ARTIFACT_DOCUMENT_ENTRY_ID } from "./artifact-document.js";
+export { FILE_DOCUMENT_ENTRY_ID } from "./file-document.js";
 
 export { ArtifactContentRenderer } from "./ArtifactContentRenderer.js";
 export type { ArtifactContentRendererProps } from "./ArtifactContentRenderer.js";
@@ -300,20 +300,20 @@ export type { ArtifactContentRendererProps } from "./ArtifactContentRenderer.js"
 export { ArtifactFileContent } from "./ArtifactFileContent.js";
 export type { ArtifactFileContentProps } from "./ArtifactFileContent.js";
 
-export { ArtifactContentBody } from "./ArtifactContentBody.js";
-export type { ArtifactContentBodyProps } from "./ArtifactContentBody.js";
+export { FileBody } from "./FileBody.js";
+export type { FileBodyProps } from "./FileBody.js";
 
-export { ArtifactDocument } from "./ArtifactDocument.js";
-export type { ArtifactDocumentProps } from "./ArtifactDocument.js";
+export { FileDocument } from "./FileDocument.js";
+export type { FileDocumentProps } from "./FileDocument.js";
 
-export { useArtifactInspection } from "./useArtifactInspection.js";
+export { useFileInspection } from "./useFileInspection.js";
 export type {
-  ArtifactInspection,
-  UseArtifactInspectionOptions,
-} from "./useArtifactInspection.js";
+  FileInspection,
+  UseFileInspectionOptions,
+} from "./useFileInspection.js";
 
-export { ArtifactPreviewContent, ArtifactPreviewModal } from "./ArtifactPreviewModal.js";
-export type { ArtifactPreviewContentProps, ArtifactPreviewModalProps } from "./ArtifactPreviewModal.js";
+export { FilePreviewContent, FilePreviewModal } from "./FilePreviewModal.js";
+export type { FilePreviewContentProps, FilePreviewModalProps } from "./FilePreviewModal.js";
 
 
 export { WriteBacksWidget } from "./WriteBacksWidget.js";

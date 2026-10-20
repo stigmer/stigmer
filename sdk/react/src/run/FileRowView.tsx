@@ -1,18 +1,18 @@
 "use client";
 
 // Pure presentational artifact list row for the session's artifact facets.
-// Domain: run (renders the ArtifactRowItem view-model).
+// Domain: run (renders the FileRowItem view-model).
 
 import { cn } from "@stigmer/design-tokens";
 import { FileTypeIcon } from "../internal/file-icons/index.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
-import type { ArtifactRowItem } from "./artifact-row-item.js";
+import type { FileRowItem } from "./file-row-item.js";
 import { formatArtifactSize } from "./artifact-utils.js";
 
-/** Props for {@link ArtifactRowView}. */
-export interface ArtifactRowViewProps {
-  /** The view-model to render (see {@link ArtifactRowItem} adapters). */
-  readonly item: ArtifactRowItem;
+/** Props for {@link FileRowView}. */
+export interface FileRowViewProps {
+  /** The view-model to render (see {@link FileRowItem} adapters). */
+  readonly item: FileRowItem;
   /** Single click / Enter / Space: open the artifact (a preview tab, or a modal). */
   readonly onOpen: () => void;
   /**
@@ -41,20 +41,20 @@ export interface ArtifactRowViewProps {
  * `<button>` inside a `<button>` is an axe `nested-interactive` (WCAG 4.1.2)
  * violation. This mirrors `ExplorerRoot`'s header + remove-control pattern.
  *
- * It renders an {@link ArtifactRowItem} view-model and takes
- * open/activate/download closures; the host (`ArtifactRow`, the session
+ * It renders an {@link FileRowItem} view-model and takes
+ * open/activate/download closures; the host (`FileRow`, the session
  * facets) owns identity, the adapter, and download wiring.
  *
  * All visual properties flow through `--stgm-*` tokens.
  */
-export function ArtifactRowView({
+export function FileRowView({
   item,
   onOpen,
   onActivate,
   onDownload,
   isDownloading,
   className,
-}: ArtifactRowViewProps) {
+}: FileRowViewProps) {
   return (
     <li className={cn("stg:group stg:flex stg:items-stretch", className)}>
       {/* The open button is its own tooltip trigger (hover and keyboard focus

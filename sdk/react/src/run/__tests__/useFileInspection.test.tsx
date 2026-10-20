@@ -1,5 +1,5 @@
 /**
- * useArtifactInspection reads an output File's text, detects a Stigmer
+ * useFileInspection reads an output File's text, detects a Stigmer
  * resource in it, and offers to apply it into an organization: the call names
  * the org by id, the label by slug. A binary File is never read.
  */
@@ -10,7 +10,7 @@ import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { StigmerContext } from "../../context";
-import { useArtifactInspection } from "../useArtifactInspection";
+import { useFileInspection } from "../useFileInspection";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 
 // The id derives from the name: the hook runs per render, and a File's id is
@@ -49,13 +49,13 @@ const AGENT_YAML = [
   "",
 ].join("\n");
 
-describe("useArtifactInspection — content + copy", () => {
+describe("useFileInspection — content + copy", () => {
   it("fetches text content and copies it to the clipboard on demand", async () => {
     const getContent = vi.fn().mockResolvedValue(contentResult("hello world"));
     const stigmer = { file: { getContent } } as unknown as Stigmer;
 
     const { result } = renderHook(
-      () => useArtifactInspection(fileArtifact("notes.txt"), "acme"),
+      () => useFileInspection(fileArtifact("notes.txt"), "acme"),
       { wrapper: wrapperFor(stigmer) },
     );
 
@@ -75,7 +75,7 @@ describe("useArtifactInspection — content + copy", () => {
     const stigmer = { file: { getContent } } as unknown as Stigmer;
 
     const { result } = renderHook(
-      () => useArtifactInspection(fileArtifact("photo.png", "image/png"), "acme"),
+      () => useFileInspection(fileArtifact("photo.png", "image/png"), "acme"),
       { wrapper: wrapperFor(stigmer) },
     );
 
@@ -85,7 +85,7 @@ describe("useArtifactInspection — content + copy", () => {
   });
 });
 
-describe("useArtifactInspection — detection + apply", () => {
+describe("useFileInspection — detection + apply", () => {
   it("applies nothing when the content is not a Stigmer resource", async () => {
     const getContent = vi.fn().mockResolvedValue(contentResult("just some notes"));
     const apply = vi.fn();
@@ -93,7 +93,7 @@ describe("useArtifactInspection — detection + apply", () => {
     const onApplied = vi.fn();
 
     const { result } = renderHook(
-      () => useArtifactInspection(fileArtifact("notes.txt"), "acme", { onApplied }),
+      () => useFileInspection(fileArtifact("notes.txt"), "acme", { onApplied }),
       { wrapper: wrapperFor(stigmer) },
     );
     await waitFor(() => expect(result.current.content).toBe("just some notes"));
@@ -112,7 +112,7 @@ describe("useArtifactInspection — detection + apply", () => {
     const stigmer = { file: { getContent } } as unknown as Stigmer;
 
     const { result } = renderHook(
-      () => useArtifactInspection(fileArtifact("agent.yaml"), "acme"),
+      () => useFileInspection(fileArtifact("agent.yaml"), "acme"),
       { wrapper: wrapperFor(stigmer) },
     );
 
@@ -142,7 +142,7 @@ describe("useArtifactInspection — detection + apply", () => {
 
     const { result } = renderHook(
       () =>
-        useArtifactInspection(fileArtifact("agent.yaml"), "acme", {
+        useFileInspection(fileArtifact("agent.yaml"), "acme", {
           onApplied,
         }),
       { wrapper: wrapperFor(stigmer) },
@@ -164,7 +164,7 @@ describe("useArtifactInspection — detection + apply", () => {
   });
 });
 
-describe("useArtifactInspection — the organization by slug and by id", () => {
+describe("useFileInspection — the organization by slug and by id", () => {
   it("labels the Apply CTA with the org's slug and applies into its id", async () => {
     const getContent = vi.fn().mockResolvedValue(contentResult(AGENT_YAML));
     const apply = vi.fn().mockResolvedValue({
@@ -177,7 +177,7 @@ describe("useArtifactInspection — the organization by slug and by id", () => {
     });
 
     const { result } = renderHook(
-      () => useArtifactInspection(fileArtifact("agent.yaml"), ACME_ID),
+      () => useFileInspection(fileArtifact("agent.yaml"), ACME_ID),
       { wrapper: orgWrapper({ file: { getContent }, manifest: { apply } }) },
     );
 

@@ -3,8 +3,8 @@
 import { cn } from "@stigmer/design-tokens";
 import { SpinnerIcon } from "../internal/thread-card/glyphs.js";
 
-/** Props for {@link ArtifactApplyButton}. */
-export interface ArtifactApplyButtonProps {
+/** Props for {@link FileApplyButton}. */
+export interface FileApplyButtonProps {
   /** CTA label (`"Apply to org"`). */
   readonly label: string;
   /**
@@ -22,17 +22,17 @@ export interface ArtifactApplyButtonProps {
 /**
  * The primary "Apply to [org]" action for a detected
  * artifact resource, shared by every artifact chrome (the preview modal's
- * action bar and the editor-area `ArtifactDocument` toolbar) so its
+ * action bar and the editor-area `FileDocument` toolbar) so its
  * terminal-gating, in-flight, and disabled states are single-source.
  *
  * All visual properties flow through `--stgm-*` tokens.
  */
-export function ArtifactApplyButton({
+export function FileApplyButton({
   label,
   isTerminal,
   isApplying,
   onApply,
-}: ArtifactApplyButtonProps) {
+}: FileApplyButtonProps) {
   const canApply = isTerminal && !isApplying;
 
   return (

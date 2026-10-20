@@ -7,7 +7,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
-import { ArtifactContentBody } from "../ArtifactContentBody";
+import { FileBody } from "../FileBody";
 
 function fileArtifact(filename: string) {
   return create(FileSchema, { spec: { filename }, status: { sizeBytes: 64n, runId: "r1" } });
@@ -15,10 +15,10 @@ function fileArtifact(filename: string) {
 
 afterEach(cleanup);
 
-describe("ArtifactContentBody — file states", () => {
+describe("FileBody — file states", () => {
   it("renders a loading skeleton", () => {
     render(
-      <ArtifactContentBody
+      <FileBody
         file={fileArtifact("notes.txt")}
         content={null}
         contentType={null}
@@ -32,7 +32,7 @@ describe("ArtifactContentBody — file states", () => {
 
   it("renders an error message", () => {
     render(
-      <ArtifactContentBody
+      <FileBody
         file={fileArtifact("notes.txt")}
         content={null}
         contentType={null}
@@ -46,7 +46,7 @@ describe("ArtifactContentBody — file states", () => {
 
   it("renders the binary / unavailable state when content is null and settled", () => {
     render(
-      <ArtifactContentBody
+      <FileBody
         file={fileArtifact("image.bin")}
         content={null}
         contentType={null}
@@ -60,7 +60,7 @@ describe("ArtifactContentBody — file states", () => {
 
   it("renders text content", () => {
     render(
-      <ArtifactContentBody
+      <FileBody
         file={fileArtifact("notes.txt")}
         content={"hello from the artifact"}
         contentType={"text/plain"}
