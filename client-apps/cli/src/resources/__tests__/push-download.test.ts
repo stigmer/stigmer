@@ -1,25 +1,30 @@
 // In-process test for `push skill` and `download run`.
 //
-// Stands up a Connect backend (skill push + run query/artifact-URL) plus a
-// plain HTTP server standing in for object storage, then drives the resource
-// layer end to end: pushSkill zips a temp dir and uploads it (asserting the
-// server receives a valid ZIP), and downloadRunArtifacts streams a
-// presigned URL to disk (asserting partial-failure tolerance), warns that a
-// run still in progress may not have every artifact yet, and refuses a named
-// artifact the run does not hold with a pointer to `get run`.
+// Stands up a Connect backend (skill push, run get, and the run's Files with
+// their download links) plus a plain HTTP server standing in for object
+// storage, then drives the resource layer end to end: pushSkill zips a temp
+// dir and uploads it (asserting the server receives a valid ZIP), and
+// downloadRunArtifacts lists the Files the run returned and streams each
+// link to disk at its place in the outputs folder (asserting partial-failure
+// tolerance, a nested folder path, and a refused path that would climb out
+// of the directory), warns that a run still in progress may not have every
+// artifact yet, and refuses a named artifact the run does not hold with a
+// pointer to `get run`.
 
 import { createServer as createHttpServer, type Server as HttpServer } from "node:http";
 import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
+import { type File, FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { FileDownloadUrlSchema, FileListSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
+import { FileQueryController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/query_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { GetArtifactDownloadUrlResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillCommandController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/command_pb";
@@ -33,6 +38,7 @@ import { pushSkill } from "../skill.js";
 
 const SKILL_MD = ["---", "name: my-skill", "---", "# My Skill"].join("\n");
 const ARTIFACT_BODY = "hello artifact contents";
+const REPORT_BODY = "# Q3\n";
 
 let backend: Http2Server;
 let storage: HttpServer;
@@ -48,29 +54,44 @@ beforeEach(() => {
   pushedTags = [];
 });
 
-const execution = create(RunSchema, {
-  metadata: { id: "aex_done" },
-  status: {
-    phase: RunPhase.RUN_COMPLETED,
-    artifacts: [
-      { name: "report.txt", storageKey: "store/report.txt", sizeBytes: 23n },
-      { name: "broken.txt", storageKey: "store/missing.txt", sizeBytes: 5n },
-    ],
-  },
-});
+/** A File the run saved at `outputPath` in its outputs folder; `id` names its stored bytes. */
+function output(id: string, runId: string, outputPath: string, sizeBytes: bigint): File {
+  return create(FileSchema, {
+    metadata: { id, org: "acme" },
+    spec: { filename: outputPath.split("/").pop() ?? outputPath },
+    status: { runId, outputPath, sizeBytes },
+  });
+}
+
+// Newest first, as the server lists them.
+const runFiles: readonly File[] = [
+  output("file_report", "aex_done", "report.txt", 23n),
+  output("file_missing", "aex_done", "broken.txt", 5n),
+  output("file_q3", "aex_nested", "reports/q3.md", 5n),
+  output("file_escape", "aex_escape", "../evil.txt", 5n),
+];
+
+function completedRun(id: string) {
+  return create(RunSchema, { metadata: { id, org: "acme" }, status: { phase: RunPhase.RUN_COMPLETED } });
+}
 
 // A run still pending: nothing produced yet.
 const pendingExecution = create(RunSchema, {
-  metadata: { id: "aex_pending" },
+  metadata: { id: "aex_pending", org: "acme" },
   status: { phase: RunPhase.RUN_PENDING },
 });
 
 beforeAll(async () => {
   // Object-storage stand-in: serves the good key, 404s anything else.
   storage = createHttpServer((req, res) => {
-    if (req.url === "/store/report.txt") {
+    if (req.url === "/store/file_report") {
       res.writeHead(200, { "content-type": "text/plain" });
       res.end(ARTIFACT_BODY);
+      return;
+    }
+    if (req.url === "/store/file_q3" || req.url === "/store/file_escape") {
+      res.writeHead(200, { "content-type": "text/markdown" });
+      res.end(REPORT_BODY);
       return;
     }
     res.writeHead(404);
@@ -94,11 +115,18 @@ beforeAll(async () => {
     router.service(RunQueryController, {
       get: (req) => {
         if (req.value === "aex_pending") return pendingExecution;
-        if (req.value !== "aex_done") throw new ConnectError("not found", Code.NotFound);
-        return execution;
+        if (!["aex_done", "aex_nested", "aex_escape"].includes(req.value)) {
+          throw new ConnectError("not found", Code.NotFound);
+        }
+        return completedRun(req.value);
       },
-      getArtifactDownloadUrl: (req) =>
-        create(GetArtifactDownloadUrlResponseSchema, { downloadUrl: `${storageUrl}/${req.storageKey}` }),
+    });
+    router.service(FileQueryController, {
+      list: (req) =>
+        create(FileListSchema, {
+          entries: runFiles.filter((f) => req.org === "acme" && f.status?.runId === req.runId),
+        }),
+      getDownloadUrl: (req) => create(FileDownloadUrlSchema, { url: `${storageUrl}/store/${req.value}` }),
     });
   };
 
@@ -213,6 +241,53 @@ describe("downloadRunArtifacts", () => {
       expect(outcome.downloaded).toBe(1);
     } finally {
       rmSync(out, { recursive: true, force: true });
+    }
+  });
+
+  it("writes a File at its place in the outputs folder", async () => {
+    const out = mkdtempSync(join(tmpdir(), "dl-it-"));
+    try {
+      const outcome = await downloadRunArtifacts(client, "aex_nested", { artifactName: "", outputDir: out });
+      expect(outcome).toEqual({ total: 1, downloaded: 1, noArtifacts: false, incompletePhase: undefined });
+      expect(readFileSync(join(out, "reports", "q3.md"), "utf8")).toBe(REPORT_BODY);
+      expect(existsSync(join(out, "q3.md"))).toBe(false);
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
+
+  it("filters to a named artifact by its outputs-folder path", async () => {
+    const out = mkdtempSync(join(tmpdir(), "dl-it-"));
+    try {
+      const outcome = await downloadRunArtifacts(client, "aex_nested", {
+        artifactName: "reports/q3.md",
+        outputDir: out,
+      });
+      expect(outcome.downloaded).toBe(1);
+      expect(readFileSync(join(out, "reports", "q3.md"), "utf8")).toBe(REPORT_BODY);
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a path that would climb out of the output directory", async () => {
+    const progress: string[] = [];
+    const parent = mkdtempSync(join(tmpdir(), "dl-it-"));
+    const out = join(parent, "out");
+    try {
+      const outcome = await downloadRunArtifacts(
+        client,
+        "aex_escape",
+        { artifactName: "", outputDir: out },
+        (line) => progress.push(line),
+      );
+      expect(outcome).toMatchObject({ total: 1, downloaded: 0 });
+      expect(existsSync(join(parent, "evil.txt"))).toBe(false);
+      expect(progress).toEqual([
+        "  Failed to download ../evil.txt: refusing a path outside the output directory: ../evil.txt",
+      ]);
+    } finally {
+      rmSync(parent, { recursive: true, force: true });
     }
   });
 });

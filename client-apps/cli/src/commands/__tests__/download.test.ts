@@ -95,7 +95,7 @@ describe("stigmer download run", () => {
     outcome = { total: 0, downloaded: 0, noArtifacts: true, incompletePhase: undefined };
     const { out } = await runDownload("run", "aex_1");
     expect(out).toContain("No artifacts found for run: aex_1");
-    expect(out).toContain("Tip: Artifacts are files created by the agent during a run.");
+    expect(out).toContain("Tip: Artifacts are the files an agent saves in its outputs folder (.stigmer/outputs/).");
   });
 
   it("takes a run minted before the run kind's prefix became run", async () => {
