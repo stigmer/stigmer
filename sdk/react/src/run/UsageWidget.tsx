@@ -45,8 +45,7 @@ export interface UsageWidgetProps {
  * served the tokens when that is known.
  *
  * Returns `null` when the session has no usage, matching the
- * conditional-render pattern of {@link ArtifactsWidget} and
- * {@link WriteBacksWidget}.
+ * conditional-render pattern of {@link WriteBacksWidget}.
  *
  * All visual properties flow through `--stgm-*` tokens. Zero
  * Console dependencies.

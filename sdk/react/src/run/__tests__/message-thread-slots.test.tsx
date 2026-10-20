@@ -12,9 +12,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import React, { memo } from "react";
 import { create } from "@bufbuild/protobuf";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { RecalledMemoriesSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
-import { RunArtifactKind, InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Turn } from "@stigmer/client";
 
@@ -239,15 +239,22 @@ describe("MessageThread slots", () => {
   });
 
   it("renders the PlanArtifactCard slot for a completed Plan turn with a published artifact", () => {
-    const CustomArtifact = ({ artifact, title }: PlanArtifactCardProps) => (
+    const CustomArtifact = ({ file, title }: PlanArtifactCardProps) => (
       <div data-testid="custom-artifact">
-        {title ?? "Plan"}: {artifact.name}
+        {title ?? "Plan"}: {file.spec?.filename}
       </div>
     );
     const conv = conversation({ id: "e-plan", mode: InteractionMode.PLAN, reply: "# Rollout Plan\n\n1. First step" });
-    conv.runs[0]!.status!.artifacts = [create(RunArtifactSchema, { name: "rollout_abc123.plan.md", kind: RunArtifactKind.FILE })];
+    const planFile = create(FileSchema, {
+      spec: { filename: "rollout_abc123.plan.md" },
+      status: { runId: "e-plan", outputPath: "rollout_abc123.plan.md" },
+    });
 
-    renderThread(conv, { onBuildFromPlan: vi.fn(), slots: { PlanArtifactCard: CustomArtifact } });
+    renderThread(conv, {
+      onBuildFromPlan: vi.fn(),
+      planFiles: new Map([["e-plan", planFile]]),
+      slots: { PlanArtifactCard: CustomArtifact },
+    });
 
     expect(screen.getByTestId("custom-artifact").textContent).toBe("Rollout Plan: rollout_abc123.plan.md");
   });

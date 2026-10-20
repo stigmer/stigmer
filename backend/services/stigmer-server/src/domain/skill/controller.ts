@@ -6,11 +6,11 @@
  * versions are content-addressed SHA-256 hashes with single-holder tags,
  * artifacts are write-once and never garbage-collected.
  *
- * Wiring mirrors Go's: the store and skill artifact storage are required;
- * execution artifact storage (pushFromRunArtifact) and the transfer
- * lane (createArtifactUploadUrl / getArtifactDownloadUrl / push-by-ref)
- * are OPTIONAL modeled states — Go injects them via setters, here they are
- * optional deps; every absent-surface answer is a deliberate arm, not an
+ * Wiring mirrors Go's: the store, skill artifact storage and the File
+ * bytes (pushFromFile) are required; the transfer lane
+ * (createArtifactUploadUrl / getArtifactDownloadUrl / push-by-ref) is an
+ * OPTIONAL modeled state — Go injects it via a setter, here it is an
+ * optional dep; every absent-surface answer is a deliberate arm, not an
  * accident.
  *
  * Every chain opens with Authorize; push runs the tuple-lifecycle splice
@@ -40,8 +40,13 @@ import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import type { Skill } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillCommandController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/command_pb";
 import { SkillQueryController } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/query_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { FileQueryController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/query_pb";
+import { FileIdSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
 import {
   GetArtifactResponseSchema,
+  PushSkillFromFileRequestSchema,
   PushSkillRequestSchema,
   SkillArtifactDownloadUrlSchema,
   SkillArtifactUploadUrlSchema,
@@ -52,7 +57,7 @@ import type {
   GetArtifactResponse,
   ListSkillVersionsInput,
   ListSkillVersionsResponse,
-  PushSkillFromRunArtifactRequest,
+  PushSkillFromFileRequest,
   PushSkillRequest,
   SkillArtifactDownloadUrl,
   SkillArtifactUploadUrl,
@@ -71,7 +76,6 @@ import type {
   ListSkillsRequest,
 } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/io_pb";
 
-import type { ArtifactStorage } from "../../artifactstorage/artifact-storage.js";
 import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
@@ -87,7 +91,7 @@ import { newPipeline } from "../../pipeline/pipeline.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
-import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
+import { authorizeDirect, newAuthorizeStep } from "../../pipeline/steps/authorize.js";
 import {
   loadedTargetAsMethod,
   newAuthorizeResolvedTargetStep,
@@ -112,7 +116,7 @@ import {
   newLoadTargetStep,
 } from "../../pipeline/steps/load-target.js";
 import { newGuardReservedLabelsStep } from "../../pipeline/steps/guard-reserved-labels.js";
-import { newValidateProtoStep } from "../../pipeline/steps/validation.js";
+import { newValidateProtoStep, validator } from "../../pipeline/steps/validation.js";
 import { readOrgListPage } from "../../pipeline/steps/org-list-page.js";
 import { skillListIndex } from "./list-index.js";
 import {
@@ -157,13 +161,14 @@ import {
 } from "./version-resolution.js";
 import { runGuardedWrite } from "../../pipeline/guarded-write.js";
 import { ARTIFACT_BYTES_KEY } from "../../pipeline/steps/resolve-artifact-source.js";
+import type { FileBlobs } from "../file/blobs.js";
 
 /**
- * Go's PushFromExecutionArtifact download deadline: bounds the artifact
- * fetch, sized for the cloud edition's remote storage; the OSS local read
- * finishes far inside it.
+ * pushFromFile's read deadline: bounds the File's read, sized for the
+ * cloud edition's remote storage; the OSS local read finishes far inside
+ * it.
  */
-const EXECUTION_ARTIFACT_DOWNLOAD_TIMEOUT_MS = 60_000;
+const FILE_READ_TIMEOUT_MS = 60_000;
 
 export interface SkillControllerDeps {
   readonly store: Store;
@@ -175,12 +180,8 @@ export interface SkillControllerDeps {
   /** The composed list read scope — list narrows through it; undefined = the OSS full scan. */
   readonly listReadScope: ListReadScope | undefined;
   readonly artifactStorage: SkillArtifactStorage;
-  /**
-   * Execution artifact storage for pushFromRunArtifact (Go
-   * SetExecutionArtifactStorage). Optional — absent answers Internal
-   * "execution artifact storage not configured".
-   */
-  readonly executionArtifactStorage?: ArtifactStorage;
+  /** The Files' bytes, which pushFromFile reads a skill archive from. */
+  readonly fileBlobs: FileBlobs;
   /**
    * The transfer lane's staging port (Go SetTransferLane) over the skill
    * blob driver. Optional — absent, createArtifactUploadUrl and
@@ -200,8 +201,7 @@ export function registerSkillServices(
       push(deps, req, ctx, SkillCommandController.method.push),
     createArtifactUploadUrl: (req, ctx) =>
       createArtifactUploadUrl(deps, req, ctx),
-    pushFromRunArtifact: (req, ctx) =>
-      pushFromExecutionArtifact(deps, req, ctx),
+    pushFromFile: (req, ctx) => pushFromFile(deps, req, ctx),
     updateVisibility: (input, ctx) => updateVisibility(deps, input, ctx),
     delete: (id, ctx) => deleteSkill(deps, id, ctx),
   });
@@ -227,8 +227,8 @@ function kindOf(ctx: HandlerContext): ApiResourceKind {
  * pipeline's message type is the request, so the resource rides SKILL_KEY.
  *
  * `method` is the AUTHORIZING descriptor, passed by the caller because two
- * RPCs run this pipeline: push itself and pushFromRunArtifact (which
- * delegates here after its artifact download). Each authorizes under its
+ * RPCs run this pipeline: push itself and pushFromFile (which delegates
+ * here after it reads the File). Each authorizes under its
  * OWN annotation — a hardcoded method.push would silently evaluate the
  * wrong config the day the two annotations diverge (the runLifecyclePipeline
  * pattern).
@@ -352,70 +352,69 @@ async function createArtifactUploadUrl(
 }
 
 /**
- * PushFromExecutionArtifact — the server-side push: reads a directory
- * artifact an agent execution produced and delegates to the standard push
- * pipeline. The storage_key prefix convention is the ownership check: a
- * key outside artifacts/{execution_id}/ is a traversal attempt.
+ * PushFromFile — the server-side push: reads a File holding a skill's ZIP
+ * archive and delegates to the standard push pipeline. Every question is
+ * asked before a byte is read: whether the caller may push skills into the
+ * organization at all, whether the File exists in that organization (a
+ * File of another one answers not-found before access is asked, so the
+ * answer says nothing about it), whether the caller may view it, and
+ * whether it fits the archive cap. The pipeline then authorizes again
+ * under this method's annotation, by design.
  */
-async function pushFromExecutionArtifact(
+async function pushFromFile(
   deps: SkillControllerDeps,
-  req: PushSkillFromRunArtifactRequest,
+  req: PushSkillFromFileRequest,
   ctx: HandlerContext,
 ): Promise<Skill> {
-  if (deps.executionArtifactStorage === undefined) {
-    deps.logger.error(
-      "Execution artifact storage not configured - cannot push from execution artifact",
-    );
-    throw internalError(
-      new Error("execution artifact storage not configured"),
-      "execution artifact storage not configured",
-    );
+  const validation = validator().validate(PushSkillFromFileRequestSchema, req);
+  if (validation.kind === "invalid") {
+    throw new ConnectError(validation.error.message, Code.InvalidArgument);
   }
+  /* v8 ignore start -- a backstop: the request's rules compile with the contract, so no request reaches it */
+  if (validation.kind === "error") {
+    throw internalError(validation.error, "validation could not run");
+  }
+  /* v8 ignore stop */
 
-  if (req.runId === "") {
-    throw invalidArgumentError("run_id is required");
-  }
-  if (req.storageKey === "") {
-    throw invalidArgumentError("storage_key is required");
-  }
-  if (req.org === "") {
-    throw invalidArgumentError("org is required");
-  }
+  const identity = callerIdentityOf(ctx);
+  const method = SkillCommandController.method.pushFromFile;
+  await authorizeDirect(method, deps.authorizer, identity, req);
 
-  const expectedPrefix = `artifacts/${req.runId}/`;
-  if (!req.storageKey.startsWith(expectedPrefix)) {
-    deps.logger.warn(
-      "Storage key does not belong to execution - potential path traversal attempt",
-      {
-        executionId: req.runId,
-        storageKey: req.storageKey,
-        expectedPrefix,
-      },
-    );
-    throw invalidArgumentError("storage_key does not belong to this execution");
-  }
-
-  deps.logger.info("Pushing skill from execution artifact", {
-    executionId: req.runId,
-    storageKey: req.storageKey,
-    org: req.org,
-    tag: req.tag,
-  });
-
-  let data: Uint8Array;
+  let file: File;
   try {
-    data = await withTimeout(
-      deps.executionArtifactStorage.download(req.storageKey),
-      EXECUTION_ARTIFACT_DOWNLOAD_TIMEOUT_MS,
-    );
+    file = await deps.store.getResource(ApiResourceKind.file, req.fileId, FileSchema);
   } catch (error) {
-    deps.logger.error("Failed to download execution artifact", {
-      executionId: req.runId,
-      storageKey: req.storageKey,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    throw internalError(error, "failed to download execution artifact");
+    if (error instanceof ResourceNotFoundError) {
+      throw notFoundError("file", req.fileId);
+    }
+    throw internalError(error, "failed to load file");
   }
+  if ((file.metadata?.org ?? "") !== req.org) {
+    throw notFoundError("file", req.fileId);
+  }
+  await authorizeDirect(
+    FileQueryController.method.get,
+    deps.authorizer,
+    identity,
+    create(FileIdSchema, { value: req.fileId }),
+  );
+
+  const sizeBytes = Number(file.status?.sizeBytes ?? 0n);
+  if (sizeBytes > MAX_ZIP_SIZE) {
+    throw invalidArgumentError(
+      `file ${req.fileId} is ${sizeBytes} bytes; a skill archive may be at most ${MAX_ZIP_SIZE}`,
+    );
+  }
+
+  const data = await withTimeout(
+    deps.fileBlobs.readHead(req.fileId, sizeBytes),
+    FILE_READ_TIMEOUT_MS,
+  ).catch((error: unknown) => {
+    if (error instanceof ConnectError) {
+      throw error;
+    }
+    throw internalError(error, "failed to read the file");
+  });
 
   const skill = await push(
     deps,
@@ -425,12 +424,11 @@ async function pushFromExecutionArtifact(
       tag: req.tag,
     }),
     ctx,
-    SkillCommandController.method.pushFromRunArtifact,
+    method,
   );
 
-  deps.logger.info("Successfully pushed skill from execution artifact", {
-    executionId: req.runId,
-    storageKey: req.storageKey,
+  deps.logger.info("Pushed skill from file", {
+    fileId: req.fileId,
     skillId: skill.metadata?.id ?? "",
     skillName: skill.metadata?.name ?? "",
   });

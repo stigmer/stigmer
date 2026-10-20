@@ -16,7 +16,7 @@
  * `tool_error` stamp); `approval_proposed` and `system_note`, the every-row
  * preview, the todo projection, and the rest of the header's rules —
  * the row per id, the message boundary, the thinking row, the sub-agent
- * rows, finalize, artifacts and write-backs, the dirty flag, the error
+ * rows, finalize, write-backs, the dirty flag, the error
  * guard — joined commit by commit in the same PR. The observer arm (the
  * runtime's fold-watcher: told after the fold, guarded apart from the
  * handlers, silent on seed) joined with the turn timeline. The
@@ -27,7 +27,6 @@
 
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
 import { WorkspaceWriteBackSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 import { TranscriptBuilder } from "../builder.js";
 import type { TranscriptEvent } from "../events.js";
@@ -53,7 +52,7 @@ interface Fold {
   readonly sb: TranscriptBuilder;
   /** The rows the builder folds into. */
   readonly status: TurnRows;
-  /** The run's status, where the builder registers artifacts and write-backs. */
+  /** The run's status, where the builder registers write-backs. */
   readonly run?: RunStatus;
 }
 
@@ -645,7 +644,7 @@ describe("TranscriptBuilder — a row per callId, reconciled in place, never dup
   });
 
   describe("seed(): a reinvocation's prior rows, appended and indexed after the builder is born", () => {
-    /** Last turn's transcript as the server holds it: a text, a WAITING row, a sub-agent with its own row, an artifact, a write-back, a todo. */
+    /** Last turn's transcript as the server holds it: a text, a WAITING row, a sub-agent with its own row, a write-back, a todo. */
     function persisted() {
       return create(TurnRowsSchema, {
         messages: [
@@ -1044,28 +1043,7 @@ describe("TranscriptBuilder — finalize() clears every streaming flag in every 
   });
 });
 
-describe("TranscriptBuilder — artifacts and write-backs", () => {
-  const artifact = (sandboxPath: string, contentHash: string) =>
-    create(RunArtifactSchema, { sandboxPath, contentHash, storageKey: `k/${contentHash}` });
-
-  it("appends a new artifact and forces the next persist; the same path with the same hash is a no-op", () => {
-    const { sb, run: status } = builder();
-    sb.addArtifact(artifact("out/a.txt", "h1"));
-    expect(status.artifacts.map((a) => a.contentHash)).toEqual(["h1"]);
-    expect(sb.dirty).toBe(true);
-    sb.markPersisted();
-    sb.addArtifact(artifact("out/a.txt", "h1"));
-    expect(status.artifacts).toHaveLength(1);
-    expect(sb.dirty, "nothing changed, nothing to flush").toBe(false);
-  });
-
-  it("the same path with a new hash replaces in place", () => {
-    const { sb, run: status } = builder();
-    sb.addArtifact(artifact("out/a.txt", "h1"));
-    sb.addArtifact(artifact("out/a.txt", "h2"));
-    expect(status.artifacts.map((a) => [a.sandboxPath, a.contentHash])).toEqual([["out/a.txt", "h2"]]);
-  });
-
+describe("TranscriptBuilder — write-backs", () => {
   it("write-backs upsert by workspace entry name", () => {
     const { sb, run: status } = builder();
     sb.addWriteBack(create(WorkspaceWriteBackSchema, { workspaceEntryName: "repo", branchName: "b1" }));

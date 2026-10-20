@@ -1,38 +1,31 @@
+/**
+ * The editor-pane document over an output File: toolbar (name, Download,
+ * Copy once text arrives), the File's text read through the Files API,
+ * Agent detection with its Apply CTA, and a binary File offering only its
+ * download.
+ */
+
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, cleanup, waitFor } from "@testing-library/react";
+import { render, screen, cleanup, waitFor, fireEvent } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { ArtifactDocument } from "../ArtifactDocument";
 
-function fileArtifact(name: string) {
-  return create(RunArtifactSchema, {
-    name,
-    kind: RunArtifactKind.FILE,
-    sizeBytes: 64n,
-    storageKey: `artifacts/aex_1/${name}`,
-    contentHash: "hash-1",
-  });
-}
-
-function dirArtifact(name: string) {
-  return create(RunArtifactSchema, {
-    name,
-    kind: RunArtifactKind.DIRECTORY,
-    sizeBytes: 512n,
-    storageKey: `artifacts/aex_1/${name}`,
-    entries: ["a.txt", "b.txt"],
+function fileArtifact(filename: string, mimeType = "") {
+  return create(FileSchema, {
+    metadata: { id: `file_${filename.replace(/\W/g, "_")}` },
+    spec: { filename, mimeType },
+    status: { sizeBytes: 64n, runId: "aex_1", outputPath: filename },
   });
 }
 
 function stigmerReturning(text: string): Stigmer {
   return {
-    run: {
-      getArtifactContent: vi.fn().mockResolvedValue({
-        content: new TextEncoder().encode(text),
-        contentType: "text/plain",
+    file: {
+      getContent: vi.fn().mockResolvedValue({
+        data: new TextEncoder().encode(text),
         truncated: false,
       }),
     },
@@ -43,8 +36,7 @@ function renderDoc(stigmer: Stigmer, artifact = fileArtifact("notes.txt")) {
   return render(
     <StigmerContext.Provider value={stigmer}>
       <ArtifactDocument
-        artifact={artifact}
-        runId="aex_1"
+        file={artifact}
         org="acme"
         isTerminal
       />
@@ -81,20 +73,25 @@ describe("ArtifactDocument", () => {
     expect(screen.getByText("Apply to acme")).toBeTruthy();
   });
 
-  it("renders a directory artifact with a Download ZIP action and no Copy", () => {
-    render(
-      <StigmerContext.Provider value={stigmerReturning("")}>
-        <ArtifactDocument
-          artifact={dirArtifact("pack")}
-          runId="aex_1"
-          org="acme"
-          isTerminal
-        />
-      </StigmerContext.Provider>,
-    );
+  it("renders a binary File with Download and no Copy, reading no bytes", () => {
+    const stigmer = stigmerReturning("");
+    renderDoc(stigmer, fileArtifact("photo.png", "image/png"));
 
-    expect(screen.getByText("Download ZIP")).toBeTruthy();
+    expect(screen.getByText("Download")).toBeTruthy();
     expect(screen.queryByText("Copy")).toBeNull();
-    expect(screen.getByText("Files (2)")).toBeTruthy();
+    expect((stigmer.file.getContent as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(0);
+  });
+
+  it("downloads the File by its id and filename when Download is clicked", async () => {
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    const getDownloadUrl = vi.fn().mockResolvedValue({ url: "https://files.test/notes.txt" });
+    const stigmer = { file: { getContent: vi.fn().mockReturnValue(new Promise(() => {})), getDownloadUrl } } as unknown as Stigmer;
+    renderDoc(stigmer);
+
+    fireEvent.click(screen.getByText("Download"));
+
+    expect(getDownloadUrl).toHaveBeenCalledWith("file_notes_txt");
+    await waitFor(() => expect(anchorClick).toHaveBeenCalledTimes(1));
+    anchorClick.mockRestore();
   });
 });

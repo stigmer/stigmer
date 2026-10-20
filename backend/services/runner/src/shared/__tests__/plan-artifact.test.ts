@@ -1,70 +1,35 @@
+/**
+ * Pins the plan a Plan-mode turn returns (`../plan-artifact.ts`):
+ *   - its name, from the plan's title with a content-hash discriminator, and
+ *     the rule that recognizes a plan among Files;
+ *   - its save into the session's outputs folder, staged beside the folder
+ *     and renamed in, so the collector returns it; an empty plan saves
+ *     nothing; and a runner killed between the write and the rename leaves
+ *     nothing in the folder, so the next turn never returns half a plan.
+ */
+
 import { createHash } from "node:crypto";
-import { describe, it, expect } from "vitest";
-import { create } from "@bufbuild/protobuf";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
+import { installAgentFs, localAgentFs } from "../agent-fs.js";
+import { collectOutputs, OUTPUTS_SUBDIR, prepareOutputsFolder } from "../outputs.js";
 import {
-  RunArtifactKind,
-} from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import type { ArtifactStorage } from "../artifact-storage.js";
-import { makeInMemoryArtifactStorage } from "../../__test-utils__/fake-artifact-storage.js";
-import {
-  extractFinalPlanText,
-  publishPlanArtifact,
-  planArtifactName,
   isPlanArtifactName,
   PLAN_ARTIFACT_NAME,
+  PLAN_STAGING_FILE,
+  planArtifactName,
+  savePlanOutput,
 } from "../plan-artifact.js";
-import { AgentMessageSchema, TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
-import { MessageType } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
-import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-
-/** Records uploads and returns deterministic download URLs (canonical double + shim). */
-function fakeStorage(): ArtifactStorage & { uploads: { key: string; content: Buffer; contentType?: string }[] } {
-  const { storage, blobs } = makeInMemoryArtifactStorage({ urlBase: "https://example.test/download/" });
-  const uploads: { key: string; content: Buffer; contentType?: string }[] = [];
-  storage.upload.mockImplementation(async (key: string, content: Buffer, contentType?: string) => {
-    uploads.push({ key, content, contentType });
-    blobs.set(key, Buffer.from(content));
-    return key;
-  });
-  return Object.assign(storage, { uploads });
-}
+import { getPlatformDir } from "../workspace/platform-dir.js";
 
 /** Mirrors the runner's content-hash discriminator so tests can assert exact names. */
 function planId(text: string): string {
   return createHash("sha256").update(text, "utf-8").digest("hex").slice(0, 8);
 }
-
-function statusWith(...messages: { type: MessageType; content: string }[]) {
-  return create(TurnRowsSchema, {
-    messages: messages.map((m) =>
-      create(AgentMessageSchema, { type: m.type, content: m.content }),
-    ),
-  });
-}
-
-describe("extractFinalPlanText", () => {
-  it("returns the last non-empty AI message content", () => {
-    const status = statusWith(
-      { type: MessageType.MESSAGE_HUMAN, content: "make a plan" },
-      { type: MessageType.MESSAGE_AI, content: "first" },
-      { type: MessageType.MESSAGE_AI, content: "the real plan" },
-    );
-    expect(extractFinalPlanText(status)).toBe("the real plan");
-  });
-
-  it("skips trailing empty AI messages (e.g. tool-call-only turns)", () => {
-    const status = statusWith(
-      { type: MessageType.MESSAGE_AI, content: "the plan body" },
-      { type: MessageType.MESSAGE_AI, content: "   " },
-    );
-    expect(extractFinalPlanText(status)).toBe("the plan body");
-  });
-
-  it("returns undefined when there is no AI message with content", () => {
-    const status = statusWith({ type: MessageType.MESSAGE_HUMAN, content: "hi" });
-    expect(extractFinalPlanText(status)).toBeUndefined();
-  });
-});
 
 describe("planArtifactName", () => {
   it("derives a hyphenated <slug>_<id>.plan.md name from the plan's leading # H1", () => {
@@ -143,118 +108,62 @@ describe("isPlanArtifactName", () => {
   });
 });
 
-describe("publishPlanArtifact", () => {
-  it("uploads the named plan and registers a FILE artifact on the status", async () => {
-    const status = create(RunStatusSchema, {});
-    const storage = fakeStorage();
+describe("savePlanOutput", () => {
+  const SESSION = "ses_plan";
+  let root: string;
+  let originalHome: string | undefined;
 
-    const planText = "# Plan Card UX Cleanup\n1. step one\n2. step two\n";
-    const name = `plan-card-ux-cleanup_${planId(planText)}.plan.md`;
-    await publishPlanArtifact({
-      status,
-      executionId: "aex_123",
-      planText,
-      artifactStorage: storage,
-    });
+  const outputsDir = (): string => join(getPlatformDir(SESSION), OUTPUTS_SUBDIR);
 
-    expect(storage.uploads).toHaveLength(1);
-    expect(storage.uploads[0].key).toBe(`artifacts/aex_123/${name}`);
-    expect(storage.uploads[0].contentType).toBe("text/markdown");
-
-    expect(status.artifacts).toHaveLength(1);
-    const artifact = status.artifacts[0];
-    expect(artifact.name).toBe(name);
-    expect(artifact.sandboxPath).toBe(`.stigmer/plans/${name}`);
-    expect(artifact.kind).toBe(RunArtifactKind.FILE);
-    expect(artifact.storageKey).toBe(`artifacts/aex_123/${name}`);
-    expect(artifact.sizeBytes).toBeGreaterThan(0n);
-    expect(artifact.contentHash).toHaveLength(64);
-    // The filename's <id> is the leading 8 hex of the full content hash.
-    expect(artifact.contentHash.startsWith(planId(planText))).toBe(true);
+  beforeEach(async () => {
+    root = mkdtempSync(join(tmpdir(), "plan-output-"));
+    originalHome = process.env.HOME;
+    process.env.HOME = join(root, "home");
+    const workspace = join(root, "ws");
+    await localAgentFs.mkdir(workspace, { recursive: true });
+    await prepareOutputsFolder(SESSION, workspace);
   });
 
-  it("uses a bare <id>.plan.md name for a titleless plan (never the legacy plan.md)", async () => {
-    const status = create(RunStatusSchema, {});
-    const storage = fakeStorage();
-
-    const planText = "just a paragraph, no heading";
-    const name = `${planId(planText)}.plan.md`;
-    await publishPlanArtifact({
-      status,
-      executionId: "aex_notitle",
-      planText,
-      artifactStorage: storage,
-    });
-
-    expect(status.artifacts[0].name).toBe(name);
-    expect(status.artifacts[0].name).not.toBe(PLAN_ARTIFACT_NAME);
-    expect(storage.uploads[0].key).toBe(`artifacts/aex_notitle/${name}`);
+  afterEach(() => {
+    process.env.HOME = originalHome;
+    rmSync(root, { recursive: true, force: true });
+    vi.restoreAllMocks();
   });
 
-  it("is a no-op for empty plan text (nothing to publish)", async () => {
-    const status = create(RunStatusSchema, {});
-    const storage = fakeStorage();
-
-    await publishPlanArtifact({
-      status,
-      executionId: "aex_empty",
-      planText: "   \n  ",
-      artifactStorage: storage,
-    });
-
-    expect(storage.uploads).toHaveLength(0);
-    expect(status.artifacts).toHaveLength(0);
+  it("saves the plan into the outputs folder under its name, leaving nothing staged", async () => {
+    const plan = "# Migrate billing\n\n1. Move the ledger.\n";
+    const name = await savePlanOutput({ sessionId: SESSION, planText: plan });
+    expect(name).toBe(`migrate-billing_${planId(plan)}.plan.md`);
+    expect(readdirSync(outputsDir())).toEqual([name]);
+    expect(readFileSync(join(outputsDir(), name!), "utf8")).toBe(plan);
+    expect(existsSync(join(getPlatformDir(SESSION), PLAN_STAGING_FILE)), "the staged write was renamed in").toBe(false);
   });
 
-  it("replaces an existing plan rather than appending a duplicate", async () => {
-    const status = create(RunStatusSchema, {});
-    const storage = fakeStorage();
-
-    await publishPlanArtifact({ status, executionId: "aex_re", planText: "v1", artifactStorage: storage });
-    await publishPlanArtifact({ status, executionId: "aex_re", planText: "v2 longer plan", artifactStorage: storage });
-
-    // Replacement is at the STATUS level, matched by the *.plan.md predicate:
-    // exactly one plan artifact survives. Because names are content-derived,
-    // the two differing-content writes land under DIFFERENT keys (the first is
-    // an orphan blob) — but this synthetic double-publish never happens in
-    // production, where publishPlanArtifact runs once per execution finalization
-    // and a same-content retry re-writes the same key.
-    expect(status.artifacts).toHaveLength(1);
-    expect(storage.uploads).toHaveLength(2);
-    const latestHash = storage.uploads[1].content;
-    expect(status.artifacts[0].sizeBytes).toBe(BigInt(latestHash.length));
+  it("saves nothing for an empty plan", async () => {
+    expect(await savePlanOutput({ sessionId: SESSION, planText: "   \n" })).toBeUndefined();
+    expect(readdirSync(outputsDir())).toEqual([]);
   });
 
-  it("replaces a prior plan even when the derived name changed (predicate match)", async () => {
-    const status = create(RunStatusSchema, {});
-    const storage = fakeStorage();
-
-    await publishPlanArtifact({
-      status,
-      executionId: "aex_rename",
-      planText: "# First Title\n\nbody",
-      artifactStorage: storage,
+  it("leaves nothing in the outputs folder when the runner stops between the write and the rename", async () => {
+    const plan = "# Half a plan\n\n1. Start.\n";
+    const restore = installAgentFs({
+      ...localAgentFs,
+      rename: () => Promise.reject(new Error("the runner was killed")),
     });
-    const secondText = "# Second Title\n\nbody";
-    await publishPlanArtifact({
-      status,
-      executionId: "aex_rename",
-      planText: secondText,
-      artifactStorage: storage,
+    try {
+      await expect(savePlanOutput({ sessionId: SESSION, planText: plan })).rejects.toThrow(/killed/);
+    } finally {
+      restore();
+    }
+    expect(readdirSync(outputsDir()), "nothing the collector would return").toEqual([]);
+
+    const client = mockStigmerClient({
+      acquireScopedRunnerToken: vi.fn().mockResolvedValue("scoped"),
+      createOutputUploads: vi.fn(),
+      registerOutputs: vi.fn(),
     });
-
-    expect(status.artifacts).toHaveLength(1);
-    expect(status.artifacts[0].name).toBe(`second-title_${planId(secondText)}.plan.md`);
-  });
-
-  it("never throws when the upload fails (publish is non-fatal)", async () => {
-    const status = create(RunStatusSchema, {});
-    const { storage: failing } = makeInMemoryArtifactStorage();
-    failing.upload.mockImplementation(async () => { throw new Error("network down"); });
-
-    await expect(
-      publishPlanArtifact({ status, executionId: "aex_fail", planText: "plan", artifactStorage: failing }),
-    ).resolves.toBeUndefined();
-    expect(status.artifacts).toHaveLength(0);
+    const collected = await collectOutputs({ client, executionId: "run_next", sessionId: SESSION });
+    expect(collected.returned.size, "the next turn returns no half plan").toBe(0);
+    expect(client.createOutputUploads).not.toHaveBeenCalled();
   });
 });

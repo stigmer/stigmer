@@ -1,21 +1,24 @@
-// `download run`: stream a run's artifacts to disk via short-lived
-// presigned URLs. Partial-failure tolerant — a failed artifact is reported and
-// skipped, never aborting the batch (mirrors Go's downloadExecutionArtifacts).
+// `download run`: write what a run returned (the Files its agent saved in
+// its outputs folder) to disk, each at its place in that folder, through
+// short-lived download links. Partial-failure tolerant: a File that fails is
+// reported and skipped, never aborting the batch. A File's output path is
+// checked by the server when the runner registers it; it is checked again
+// here, so a path that would land outside the chosen directory is refused
+// whatever the server answered.
 
 import { createWriteStream, mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
-import { create } from "@bufbuild/protobuf";
-import type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
+import type { File } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { GetArtifactDownloadUrlRequestSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import type { Stigmer } from "@stigmer/client";
 import { CliExitError, ExitCode } from "../errors/index.js";
 import { formatBytes } from "./skill.js";
 
 export interface DownloadParams {
+  /** A filename or an output path (`reports/q3.md`); empty takes every File. */
   readonly artifactName: string;
   readonly outputDir: string;
 }
@@ -51,14 +54,16 @@ export async function downloadRunArtifacts(
     progress?.(`Run is still ${incompletePhase}. Artifacts may not be complete until the run finishes.`);
   }
 
-  let artifacts = run.status?.artifacts ?? [];
-  if (artifacts.length === 0) {
+  let files = await listRunFiles(client, run.metadata?.org ?? "", runId);
+  if (files.length === 0) {
     return { total: 0, downloaded: 0, noArtifacts: true, incompletePhase };
   }
 
   if (params.artifactName !== "") {
-    artifacts = artifacts.filter((a) => a.name === params.artifactName);
-    if (artifacts.length === 0) {
+    files = files.filter(
+      (f) => f.spec?.filename === params.artifactName || f.status?.outputPath === params.artifactName,
+    );
+    if (files.length === 0) {
       throw new CliExitError(
         `artifact not found: ${params.artifactName}\n\n` +
           `Use 'stigmer get run ${runId}' to see available artifacts`,
@@ -70,31 +75,66 @@ export async function downloadRunArtifacts(
   mkdirSync(params.outputDir, { recursive: true });
 
   let downloaded = 0;
-  for (const artifact of artifacts) {
+  for (const file of files) {
+    const path = placeOf(file);
     try {
-      const written = await downloadSingle(client, runId, artifact, params.outputDir, progress);
-      progress?.(`  Downloaded ${artifact.name} (${formatBytes(written)})`);
+      const written = await downloadSingle(client, file, path, params.outputDir, progress);
+      progress?.(`  Downloaded ${path} (${formatBytes(written)})`);
       downloaded++;
     } catch (err) {
-      progress?.(`  Failed to download ${artifact.name}: ${(err as Error).message}`);
+      progress?.(`  Failed to download ${path}: ${(err as Error).message}`);
     }
   }
 
-  return { total: artifacts.length, downloaded, noArtifacts: false, incompletePhase };
+  return { total: files.length, downloaded, noArtifacts: false, incompletePhase };
+}
+
+/**
+ * The run's Files, one per place in the outputs folder: the list answers
+ * newest first, so a path written twice keeps its newest File.
+ */
+async function listRunFiles(client: Stigmer, org: string, runId: string): Promise<File[]> {
+  const byPlace = new Map<string, File>();
+  for await (const file of client.file.listAll({ org, runId })) {
+    const place = placeOf(file);
+    if (!byPlace.has(place)) byPlace.set(place, file);
+  }
+  return [...byPlace.values()];
+}
+
+/** Where a File sits in the outputs folder; its filename when it has no path. */
+function placeOf(file: File): string {
+  const outputPath = file.status?.outputPath ?? "";
+  return outputPath !== "" ? outputPath : (file.spec?.filename ?? "");
+}
+
+/**
+ * `path` under `dir`. One check on where the path resolves refuses every
+ * shape that would not land strictly inside `dir`: empty or `.` (the
+ * directory itself), absolute, or climbing out through `..`.
+ */
+function destinationOf(dir: string, path: string): string {
+  const root = resolve(dir);
+  const dest = resolve(root, path);
+  const rel = relative(root, dest);
+  if (rel === "" || rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+    throw new Error(`refusing a path outside the output directory: ${path}`);
+  }
+  return dest;
 }
 
 async function downloadSingle(
   client: Stigmer,
-  runId: string,
-  artifact: RunArtifact,
+  file: File,
+  path: string,
   outputDir: string,
   progress?: ProgressSink,
 ): Promise<number> {
-  const url = await resolveDownloadUrl(client, runId, artifact);
-  const destPath = join(outputDir, artifact.name);
+  const destPath = destinationOf(outputDir, path);
+  const url = await resolveDownloadUrl(client, file);
   mkdirSync(dirname(destPath), { recursive: true });
 
-  progress?.(`  Downloading ${artifact.name} (${formatBytes(Number(artifact.sizeBytes))})...`);
+  progress?.(`  Downloading ${path} (${formatBytes(Number(file.status?.sizeBytes ?? 0n))})...`);
 
   const response = await fetch(url);
   if (!response.ok || response.body === null) {
@@ -118,15 +158,13 @@ async function downloadSingle(
 }
 
 /**
- * Mint a fresh presigned URL on demand from the artifact's stable storage key.
- * There is deliberately no cached-URL fallback: a persisted URL would have
- * expired, so the refresh RPC is the single source of a working URL.
+ * Mint a fresh download link for the File. There is deliberately no cached
+ * link: a stored one would have expired, so the server is the single source
+ * of a working URL.
  */
-async function resolveDownloadUrl(client: Stigmer, runId: string, artifact: RunArtifact): Promise<string> {
-  const response = await client.run.getArtifactDownloadUrl(
-    create(GetArtifactDownloadUrlRequestSchema, { runId, storageKey: artifact.storageKey }),
-  );
-  if (response.downloadUrl !== "") return response.downloadUrl;
+async function resolveDownloadUrl(client: Stigmer, file: File): Promise<string> {
+  const response = await client.file.getDownloadUrl(file.metadata?.id ?? "");
+  if (response.url !== "") return response.url;
   throw new Error("failed to get download URL");
 }
 

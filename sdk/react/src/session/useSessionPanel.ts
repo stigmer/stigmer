@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
+import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { isTerminalPhase } from "../run/run-phases.js";
 import {
   useWorkspaceEditorsStoreRef,
@@ -46,6 +46,15 @@ export interface UseSessionPanelOptions {
    * old plan — or mid-stream — never hijacks the layout).
    */
   readonly planKey?: string | null;
+  /**
+   * Whether `planKey` is known yet. A host whose plans arrive after mount
+   * (the conversation's Files are read asynchronously) passes `false` until
+   * that first read lands; the identity present when it turns `true` is
+   * swallowed like the identity present at mount, so a session's old plan
+   * never opens the panel on load.
+   * @default true
+   */
+  readonly planKeyReady?: boolean;
   /**
    * The panel's home view — the view it opens on and the one every automatic
    * reset returns to (running⇄terminal transition, selection cleared). Defaults
@@ -164,7 +173,7 @@ export interface SessionPanelController {
    * artifact's {@link artifactKey} is the tab identity, shared with the
    * `SurfaceVirtualDocument` the viewer builds for the open tab.
    */
-  readonly openArtifact: (artifact: RunArtifact) => void;
+  readonly openArtifact: (file: StigmerFile) => void;
   /**
    * Pin an artifact's tab (clear its preview state) — the double-click half of
    * the open/activate split, the encapsulated sibling of {@link openArtifact}.
@@ -173,7 +182,7 @@ export interface SessionPanelController {
    * already opened the preview tab, so this promotes it to a persistent tab. A
    * no-op if the artifact is not open.
    */
-  readonly pinArtifact: (artifact: RunArtifact) => void;
+  readonly pinArtifact: (file: StigmerFile) => void;
 }
 
 /**
@@ -183,6 +192,7 @@ export function useSessionPanel({
   phase,
   hasChanges,
   planKey = null,
+  planKeyReady = true,
   defaultView = "files",
   open,
   defaultOpen = false,
@@ -269,15 +279,22 @@ export function useSessionPanel({
   // component's own state, which the idiom permits — this one mutates the
   // external editors store (notifying subscribers), which is illegal during
   // render. The ref (not effect-less prev-state) swallows the identity present
-  // at mount: loading a session with an old plan never hijacks the layout.
+  // at mount (or when the key first becomes known): loading a session with an
+  // old plan never hijacks the layout.
   const prevPlanKeyRef = useRef(planKey);
+  const planKeyKnownRef = useRef(planKeyReady);
   useEffect(() => {
+    if (!planKeyReady || !planKeyKnownRef.current) {
+      planKeyKnownRef.current = planKeyReady;
+      prevPlanKeyRef.current = planKey;
+      return;
+    }
     if (planKey === prevPlanKeyRef.current) return;
     prevPlanKeyRef.current = planKey;
     if (planKey !== null) {
       openPlanDocument();
     }
-  }, [planKey, openPlanDocument]);
+  }, [planKey, planKeyReady, openPlanDocument]);
 
   const openPanel = useCallback(
     () => requestOpenChange(true),
@@ -303,16 +320,16 @@ export function useSessionPanel({
   );
 
   const openArtifact = useCallback(
-    (artifact: RunArtifact) => {
-      editorsStore.openPreview(ARTIFACT_DOCUMENT_ENTRY_ID, artifactKey(artifact));
+    (file: StigmerFile) => {
+      editorsStore.openPreview(ARTIFACT_DOCUMENT_ENTRY_ID, artifactKey(file));
       requestOpenChange(true);
     },
     [editorsStore, requestOpenChange],
   );
 
   const pinArtifact = useCallback(
-    (artifact: RunArtifact) => {
-      editorsStore.pin(ARTIFACT_DOCUMENT_ENTRY_ID, artifactKey(artifact));
+    (file: StigmerFile) => {
+      editorsStore.pin(ARTIFACT_DOCUMENT_ENTRY_ID, artifactKey(file));
     },
     [editorsStore],
   );

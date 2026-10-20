@@ -8,7 +8,7 @@ import ai.stigmer.agentic.skill.v1.GetArtifactResponse;
 import ai.stigmer.agentic.skill.v1.ListSkillVersionsInput;
 import ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse;
 import ai.stigmer.agentic.skill.v1.ListSkillsRequest;
-import ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest;
+import ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest;
 import ai.stigmer.agentic.skill.v1.PushSkillRequest;
 import ai.stigmer.agentic.skill.v1.Skill;
 import ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl;
@@ -45,9 +45,9 @@ public class SkillClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public Skill pushFromRunArtifact(PushSkillFromRunArtifactRequest input) {
+    public Skill pushFromFile(PushSkillFromFileRequest input) {
         try {
-            return command.pushFromRunArtifact(input);
+            return command.pushFromFile(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

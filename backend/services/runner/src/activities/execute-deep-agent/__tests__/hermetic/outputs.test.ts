@@ -12,11 +12,14 @@
  *     not: nothing asked, no output in the turn's change set;
  *   - a file written in the repository is not an output.
  * A second turn changes one report and leaves the other: only the changed
- * one comes back.
+ * one comes back. A turn that edits two files of the repository and saves
+ * one output returns exactly that one File, and the turn uploads none of
+ * the files it wrote to the run's own storage prefix: what it returns is
+ * what it saved, never what it edited.
  */
 
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -105,6 +108,40 @@ describe("ExecuteDeepAgent hermetic — the outputs folder", () => {
     expect(reviewed.join("\n"), "the repository's edit is reviewed").toContain("notes.md");
     expect(reviewed.join("\n"), "no output is reviewed").not.toContain("summary.md");
     expect(readFileSync(join(repo, "notes.md"), "utf8")).toBe("first\nsecond\n");
+  });
+
+  it("returns exactly the one File a turn saved, never the two files it edited", async () => {
+    const repo = join(env.workspaceRootDir, "repos", "ledger-edits");
+    initGitWorkspace(repo, { "src/a.ts": "export const a = 1;\n", "src/b.ts": "export const b = 1;\n" });
+    const record = deepAgentExecutionRecord({ message: "Bump both and write the release note.", resources: [localPathEntry("ledger", repo)] });
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      script: () => ({
+        turns: [
+          {
+            text: "Editing and saving the note.",
+            toolCalls: [
+              { id: "call-edit-a", name: "edit_file", args: { file_path: "/src/a.ts", old_string: "a = 1", new_string: "a = 2" } },
+              { id: "call-edit-b", name: "write_file", args: { file_path: "/src/b.ts", content: "export const b = 2;\n" } },
+              { id: "call-note", name: "write_file", args: { file_path: "/.stigmer/outputs/release-note.md", content: "# Release\n" } },
+            ],
+            usage: { inputTokens: 1_200, outputTokens: 40 },
+          },
+          { text: "Done.", usage: { inputTokens: 1_300, outputTokens: 5 } },
+        ],
+      }),
+    });
+
+    const invocation = await runDeepAgentTurn(scenario);
+
+    expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
+    expect(readFileSync(join(repo, "src", "b.ts"), "utf8")).toBe("export const b = 2;\n");
+    expect(record.registeredOutputs.map((o) => o.outputPath)).toEqual(["release-note.md"]);
+    const runPrefix = join(env.artifactPath, "artifacts", record.executionId);
+    const uploadedFiles = existsSync(runPrefix) ? readdirSync(runPrefix, { withFileTypes: true }).filter((e) => e.isFile()).map((e) => e.name) : [];
+    expect(uploadedFiles, "no file the turn wrote is uploaded beside its File").toEqual([]);
   });
 
   it("returns only what changed on the next turn", async () => {

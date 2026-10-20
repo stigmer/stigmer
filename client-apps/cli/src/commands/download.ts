@@ -1,6 +1,7 @@
 // `stigmer download <type> <ref>` — download what a resource holds as files.
 // A run (`run_`, or `aex_` from before the rename) gives back the artifacts
-// its agent made; an eval (`<ref>[@<digest|tag>]`) gives back the evals/
+// its agent saved in its outputs folder, each written at its place in that
+// folder; an eval (`<ref>[@<digest|tag>]`) gives back the evals/
 // folder one of its versions was pushed as, unzipped into a new or empty
 // directory. Heavy modules are lazy-imported inside the action so `--help`
 // stays fast.
@@ -24,7 +25,7 @@ export function registerDownload(program: Command): void {
     .description(
       "download a run's artifacts, or an eval's folder at a version (eval <ref>[@<digest|tag>])",
     )
-    .option("--artifact <name>", "runs: specific artifact to download (by name)")
+    .option("--artifact <name>", "runs: specific artifact to download (by file name or outputs-folder path)")
     .option(
       "-o, --output-dir <dir>",
       "output directory (runs: default '.'; evals: a new or empty directory, default ./<slug>)",
@@ -101,7 +102,7 @@ async function runDownload(type: string, id: string, options: DownloadFlags): Pr
 
   if (outcome.noArtifacts) {
     process.stdout.write(`\nNo artifacts found for run: ${id}\n\n`);
-    process.stdout.write("Tip: Artifacts are files created by the agent during a run. Not all agents produce artifacts.\n\n");
+    process.stdout.write("Tip: Artifacts are the files an agent saves in its outputs folder (.stigmer/outputs/). Not every run saves one.\n\n");
     return;
   }
 

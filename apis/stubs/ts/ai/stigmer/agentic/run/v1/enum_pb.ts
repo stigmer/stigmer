@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/run/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_run_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2VudW0ucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEqwwEKCFJ1blBoYXNlEhkKFVJVTl9QSEFTRV9VTlNQRUNJRklFRBAAEg8KC1JVTl9QRU5ESU5HEAESEwoPUlVOX0lOX1BST0dSRVNTEAISEQoNUlVOX0NPTVBMRVRFRBADEg4KClJVTl9GQUlMRUQQBBIRCg1SVU5fQ0FOQ0VMTEVEEAUSEgoOUlVOX1RFUk1JTkFURUQQCBIcChhSVU5fV0FJVElOR19GT1JfQVBQUk9WQUwQBhIOCgpSVU5fUEFVU0VEEAcqcQoPUnVuQXJ0aWZhY3RLaW5kEiEKHVJVTl9BUlRJRkFDVF9LSU5EX1VOU1BFQ0lGSUVEEAASGgoWUlVOX0FSVElGQUNUX0tJTkRfRklMRRABEh8KG1JVTl9BUlRJRkFDVF9LSU5EX0RJUkVDVE9SWRACKnMKEFJ1bkNvbnRyb2xTaWduYWwSIgoeUlVOX0NPTlRST0xfU0lHTkFMX1VOU1BFQ0lGSUVEEAASGwoXUlVOX0NPTlRST0xfU0lHTkFMX1NUT1AQARIeChpSVU5fQ09OVFJPTF9TSUdOQUxfV0FSTklORxACKmoKD0ludGVyYWN0aW9uTW9kZRIgChxJTlRFUkFDVElPTl9NT0RFX1VOU1BFQ0lGSUVEEAASGgoWSU5URVJBQ1RJT05fTU9ERV9BR0VOVBABEhkKFUlOVEVSQUNUSU9OX01PREVfUExBThACKmoKDEFwcHJvdmFsTW9kZRIdChlBUFBST1ZBTF9NT0RFX1VOU1BFQ0lGSUVEEAASHQoZQVBQUk9WQUxfTU9ERV9JTlRFUkFDVElWRRABEhwKGEFQUFJPVkFMX01PREVfVU5BVFRFTkRFRBACKl0KC1NlcnZpY2VUaWVyEhwKGFNFUlZJQ0VfVElFUl9VTlNQRUNJRklFRBAAEhkKFVNFUlZJQ0VfVElFUl9TVEFOREFSRBABEhUKEVNFUlZJQ0VfVElFUl9GQVNUEAIqZAoMVGhpbmtpbmdNb2RlEh0KGVRISU5LSU5HX01PREVfVU5TUEVDSUZJRUQQABIaChZUSElOS0lOR19NT0RFX0RJU0FCTEVEEAESGQoVVEhJTktJTkdfTU9ERV9FTkFCTEVEEAIqxwEKDkZpbGVDaGFuZ2VLaW5kEiAKHEZJTEVfQ0hBTkdFX0tJTkRfVU5TUEVDSUZJRUQQABIYChRGSUxFX0NIQU5HRV9LSU5EX0FERBABEhsKF0ZJTEVfQ0hBTkdFX0tJTkRfTU9ESUZZEAISGwoXRklMRV9DSEFOR0VfS0lORF9ERUxFVEUQAxIbChdGSUxFX0NIQU5HRV9LSU5EX1JFTkFNRRAEEiIKHkZJTEVfQ0hBTkdFX0tJTkRfQklOQVJZX0NIQU5HRRAFKtoBChBGaWxlQ2FwdHVyZUNsYXNzEiIKHkZJTEVfQ0FQVFVSRV9DTEFTU19VTlNQRUNJRklFRBAAEiIKHkZJTEVfQ0FQVFVSRV9DTEFTU19HSVRfVFJBQ0tFRBABEi0KKUZJTEVfQ0FQVFVSRV9DTEFTU19HSVRfVU5UUkFDS0VEX0NBUFRVUkVEEAISKwonRklMRV9DQVBUVVJFX0NMQVNTX0dJVF9JR05PUkVEX0NBUFRVUkVEEAMSIgoeRklMRV9DQVBUVVJFX0NMQVNTX05PTl9HSVRfQ0FTEAQqpwEKEERpZmZDb21wbGV0ZW5lc3MSIQodRElGRl9DT01QTEVURU5FU1NfVU5TUEVDSUZJRUQQABIeChpESUZGX0NPTVBMRVRFTkVTU19DT01QTEVURRABEiUKIURJRkZfQ09NUExFVEVORVNTX1BBUlRJQUxfQkxPQ0tFRBACEikKJURJRkZfQ09NUExFVEVORVNTX0JJTkFSWV9TVU1NQVJZX09OTFkQAyqHAQoMU25hcHNob3RLaW5kEh0KGVNOQVBTSE9UX0tJTkRfVU5TUEVDSUZJRUQQABIeChpTTkFQU0hPVF9LSU5EX0dJVF9UUkVFX1JFRhABEh4KGlNOQVBTSE9UX0tJTkRfQ0FTX01BTklGRVNUEAISGAoUU05BUFNIT1RfS0lORF9IWUJSSUQQAyrEAQoVRmlsZVJldmlld0Jsb2NrUmVhc29uEigKJEZJTEVfUkVWSUVXX0JMT0NLX1JFQVNPTl9VTlNQRUNJRklFRBAAEiwKKEZJTEVfUkVWSUVXX0JMT0NLX1JFQVNPTl9TRUNSRVRfV0lUSEhFTEQQARIoCiRGSUxFX1JFVklFV19CTE9DS19SRUFTT05fU0laRV9FTElERUQQAhIpCiVGSUxFX1JFVklFV19CTE9DS19SRUFTT05fVU5SRVZJRVdBQkxFEAMq9gEKFFJ1blZhbHVlRGVjbGFyZXJLaW5kEicKI1JVTl9WQUxVRV9ERUNMQVJFUl9LSU5EX1VOU1BFQ0lGSUVEEAASIQodUlVOX1ZBTFVFX0RFQ0xBUkVSX0tJTkRfQUdFTlQQARIgChxSVU5fVkFMVUVfREVDTEFSRVJfS0lORF9UT09MEAISJgoiUlVOX1ZBTFVFX0RFQ0xBUkVSX0tJTkRfUkVQT1NJVE9SWRADEiIKHlJVTl9WQUxVRV9ERUNMQVJFUl9LSU5EX1BMVUdJThAEEiQKIFJVTl9WQUxVRV9ERUNMQVJFUl9LSU5EX1NVQkFHRU5UEAUq2gEKDlJ1blZhbHVlT3JpZ2luEiAKHFJVTl9WQUxVRV9PUklHSU5fVU5TUEVDSUZJRUQQABIlCiFSVU5fVkFMVUVfT1JJR0lOX1JFUE9TSVRPUllfVE9LRU4QARIdChlSVU5fVkFMVUVfT1JJR0lOX01ZX1ZBVUxUEAISGgoWUlVOX1ZBTFVFX09SSUdJTl9WQVVMVBADEiIKHlJVTl9WQUxVRV9PUklHSU5fU1VSRkFDRV9WQVVMVBAEEiAKHFJVTl9WQUxVRV9PUklHSU5fREVDTEFSQVRJT04QBWIGcHJvdG8z");
+  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2VudW0ucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEqwwEKCFJ1blBoYXNlEhkKFVJVTl9QSEFTRV9VTlNQRUNJRklFRBAAEg8KC1JVTl9QRU5ESU5HEAESEwoPUlVOX0lOX1BST0dSRVNTEAISEQoNUlVOX0NPTVBMRVRFRBADEg4KClJVTl9GQUlMRUQQBBIRCg1SVU5fQ0FOQ0VMTEVEEAUSEgoOUlVOX1RFUk1JTkFURUQQCBIcChhSVU5fV0FJVElOR19GT1JfQVBQUk9WQUwQBhIOCgpSVU5fUEFVU0VEEAcqcwoQUnVuQ29udHJvbFNpZ25hbBIiCh5SVU5fQ09OVFJPTF9TSUdOQUxfVU5TUEVDSUZJRUQQABIbChdSVU5fQ09OVFJPTF9TSUdOQUxfU1RPUBABEh4KGlJVTl9DT05UUk9MX1NJR05BTF9XQVJOSU5HEAIqagoPSW50ZXJhY3Rpb25Nb2RlEiAKHElOVEVSQUNUSU9OX01PREVfVU5TUEVDSUZJRUQQABIaChZJTlRFUkFDVElPTl9NT0RFX0FHRU5UEAESGQoVSU5URVJBQ1RJT05fTU9ERV9QTEFOEAIqagoMQXBwcm92YWxNb2RlEh0KGUFQUFJPVkFMX01PREVfVU5TUEVDSUZJRUQQABIdChlBUFBST1ZBTF9NT0RFX0lOVEVSQUNUSVZFEAESHAoYQVBQUk9WQUxfTU9ERV9VTkFUVEVOREVEEAIqXQoLU2VydmljZVRpZXISHAoYU0VSVklDRV9USUVSX1VOU1BFQ0lGSUVEEAASGQoVU0VSVklDRV9USUVSX1NUQU5EQVJEEAESFQoRU0VSVklDRV9USUVSX0ZBU1QQAipkCgxUaGlua2luZ01vZGUSHQoZVEhJTktJTkdfTU9ERV9VTlNQRUNJRklFRBAAEhoKFlRISU5LSU5HX01PREVfRElTQUJMRUQQARIZChVUSElOS0lOR19NT0RFX0VOQUJMRUQQAirHAQoORmlsZUNoYW5nZUtpbmQSIAocRklMRV9DSEFOR0VfS0lORF9VTlNQRUNJRklFRBAAEhgKFEZJTEVfQ0hBTkdFX0tJTkRfQUREEAESGwoXRklMRV9DSEFOR0VfS0lORF9NT0RJRlkQAhIbChdGSUxFX0NIQU5HRV9LSU5EX0RFTEVURRADEhsKF0ZJTEVfQ0hBTkdFX0tJTkRfUkVOQU1FEAQSIgoeRklMRV9DSEFOR0VfS0lORF9CSU5BUllfQ0hBTkdFEAUq2gEKEEZpbGVDYXB0dXJlQ2xhc3MSIgoeRklMRV9DQVBUVVJFX0NMQVNTX1VOU1BFQ0lGSUVEEAASIgoeRklMRV9DQVBUVVJFX0NMQVNTX0dJVF9UUkFDS0VEEAESLQopRklMRV9DQVBUVVJFX0NMQVNTX0dJVF9VTlRSQUNLRURfQ0FQVFVSRUQQAhIrCidGSUxFX0NBUFRVUkVfQ0xBU1NfR0lUX0lHTk9SRURfQ0FQVFVSRUQQAxIiCh5GSUxFX0NBUFRVUkVfQ0xBU1NfTk9OX0dJVF9DQVMQBCqnAQoQRGlmZkNvbXBsZXRlbmVzcxIhCh1ESUZGX0NPTVBMRVRFTkVTU19VTlNQRUNJRklFRBAAEh4KGkRJRkZfQ09NUExFVEVORVNTX0NPTVBMRVRFEAESJQohRElGRl9DT01QTEVURU5FU1NfUEFSVElBTF9CTE9DS0VEEAISKQolRElGRl9DT01QTEVURU5FU1NfQklOQVJZX1NVTU1BUllfT05MWRADKocBCgxTbmFwc2hvdEtpbmQSHQoZU05BUFNIT1RfS0lORF9VTlNQRUNJRklFRBAAEh4KGlNOQVBTSE9UX0tJTkRfR0lUX1RSRUVfUkVGEAESHgoaU05BUFNIT1RfS0lORF9DQVNfTUFOSUZFU1QQAhIYChRTTkFQU0hPVF9LSU5EX0hZQlJJRBADKsQBChVGaWxlUmV2aWV3QmxvY2tSZWFzb24SKAokRklMRV9SRVZJRVdfQkxPQ0tfUkVBU09OX1VOU1BFQ0lGSUVEEAASLAooRklMRV9SRVZJRVdfQkxPQ0tfUkVBU09OX1NFQ1JFVF9XSVRISEVMRBABEigKJEZJTEVfUkVWSUVXX0JMT0NLX1JFQVNPTl9TSVpFX0VMSURFRBACEikKJUZJTEVfUkVWSUVXX0JMT0NLX1JFQVNPTl9VTlJFVklFV0FCTEUQAyr2AQoUUnVuVmFsdWVEZWNsYXJlcktpbmQSJwojUlVOX1ZBTFVFX0RFQ0xBUkVSX0tJTkRfVU5TUEVDSUZJRUQQABIhCh1SVU5fVkFMVUVfREVDTEFSRVJfS0lORF9BR0VOVBABEiAKHFJVTl9WQUxVRV9ERUNMQVJFUl9LSU5EX1RPT0wQAhImCiJSVU5fVkFMVUVfREVDTEFSRVJfS0lORF9SRVBPU0lUT1JZEAMSIgoeUlVOX1ZBTFVFX0RFQ0xBUkVSX0tJTkRfUExVR0lOEAQSJAogUlVOX1ZBTFVFX0RFQ0xBUkVSX0tJTkRfU1VCQUdFTlQQBSraAQoOUnVuVmFsdWVPcmlnaW4SIAocUlVOX1ZBTFVFX09SSUdJTl9VTlNQRUNJRklFRBAAEiUKIVJVTl9WQUxVRV9PUklHSU5fUkVQT1NJVE9SWV9UT0tFThABEh0KGVJVTl9WQUxVRV9PUklHSU5fTVlfVkFVTFQQAhIaChZSVU5fVkFMVUVfT1JJR0lOX1ZBVUxUEAMSIgoeUlVOX1ZBTFVFX09SSUdJTl9TVVJGQUNFX1ZBVUxUEAQSIAocUlVOX1ZBTFVFX09SSUdJTl9ERUNMQVJBVElPThAFYgZwcm90bzM");
 
 /**
  * RunPhase defines the lifecycle phase of a run.
@@ -165,43 +165,6 @@ export const RunPhaseSchema: GenEnum<RunPhase> = /*@__PURE__*/
   enumDesc(file_ai_stigmer_agentic_run_v1_enum, 0);
 
 /**
- * RunArtifactKind defines the type of artifact published by an agent.
- *
- * When an agent publishes a file, it's stored as-is.
- * When an agent publishes a directory, it's archived as a ZIP file.
- *
- * @generated from enum ai.stigmer.agentic.run.v1.RunArtifactKind
- */
-export enum RunArtifactKind {
-  /**
-   * Default value, not a valid artifact kind.
-   *
-   * @generated from enum value: RUN_ARTIFACT_KIND_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * A single file published by the agent.
-   *
-   * @generated from enum value: RUN_ARTIFACT_KIND_FILE = 1;
-   */
-  FILE = 1,
-
-  /**
-   * A directory published by the agent, archived as a ZIP file for download.
-   *
-   * @generated from enum value: RUN_ARTIFACT_KIND_DIRECTORY = 2;
-   */
-  DIRECTORY = 2,
-}
-
-/**
- * Describes the enum ai.stigmer.agentic.run.v1.RunArtifactKind.
- */
-export const RunArtifactKindSchema: GenEnum<RunArtifactKind> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 1);
-
-/**
  * RunControlSignal is a platform-to-runner directive returned by the
  * updateStatus RPC. The runner inspects this signal after every status
  * update and acts accordingly.
@@ -242,7 +205,7 @@ export enum RunControlSignal {
  * Describes the enum ai.stigmer.agentic.run.v1.RunControlSignal.
  */
 export const RunControlSignalSchema: GenEnum<RunControlSignal> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 2);
+  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 1);
 
 /**
  * InteractionMode controls the agent's behavioral posture for a run.
@@ -302,7 +265,7 @@ export enum InteractionMode {
  * Describes the enum ai.stigmer.agentic.run.v1.InteractionMode.
  */
 export const InteractionModeSchema: GenEnum<InteractionMode> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 3);
+  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 2);
 
 /**
  * ApprovalMode controls how a run resolves HITL approval gates.
@@ -369,7 +332,7 @@ export enum ApprovalMode {
  * Describes the enum ai.stigmer.agentic.run.v1.ApprovalMode.
  */
 export const ApprovalModeSchema: GenEnum<ApprovalMode> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 4);
+  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 3);
 
 /**
  * ServiceTier selects the provider-side speed/service tier for a run's
@@ -422,7 +385,7 @@ export enum ServiceTier {
  * Describes the enum ai.stigmer.agentic.run.v1.ServiceTier.
  */
 export const ServiceTierSchema: GenEnum<ServiceTier> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 5);
+  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 4);
 
 /**
  * ThinkingMode selects the model's extended-reasoning ("thinking") variant
@@ -487,7 +450,7 @@ export enum ThinkingMode {
  * Describes the enum ai.stigmer.agentic.run.v1.ThinkingMode.
  */
 export const ThinkingModeSchema: GenEnum<ThinkingMode> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 6);
+  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 5);
 
 /**
  * FileChangeKind is the per-file outcome within a FileChangeSet.
@@ -548,7 +511,7 @@ export enum FileChangeKind {
  * Describes the enum ai.stigmer.agentic.run.v1.FileChangeKind.
  */
 export const FileChangeKindSchema: GenEnum<FileChangeKind> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 7);
+  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 6);
 
 /**
  * FileCaptureClass records how a file was captured, which governs which
@@ -598,7 +561,7 @@ export enum FileCaptureClass {
  * Describes the enum ai.stigmer.agentic.run.v1.FileCaptureClass.
  */
 export const FileCaptureClassSchema: GenEnum<FileCaptureClass> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 8);
+  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 7);
 
 /**
  * DiffCompleteness describes whether a change set's rendered diff is complete
@@ -655,7 +618,7 @@ export enum DiffCompleteness {
  * Describes the enum ai.stigmer.agentic.run.v1.DiffCompleteness.
  */
 export const DiffCompletenessSchema: GenEnum<DiffCompleteness> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 9);
+  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 8);
 
 /**
  * SnapshotKind is the substrate backing a SnapshotRef.
@@ -696,7 +659,7 @@ export enum SnapshotKind {
  * Describes the enum ai.stigmer.agentic.run.v1.SnapshotKind.
  */
 export const SnapshotKindSchema: GenEnum<SnapshotKind> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 10);
+  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 9);
 
 /**
  * FileReviewBlockReason is the honest cause a captured file's diff is not fully
@@ -746,7 +709,7 @@ export enum FileReviewBlockReason {
  * Describes the enum ai.stigmer.agentic.run.v1.FileReviewBlockReason.
  */
 export const FileReviewBlockReasonSchema: GenEnum<FileReviewBlockReason> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 11);
+  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 10);
 
 /**
  * Who declared a value a turn uses.
@@ -801,7 +764,7 @@ export enum RunValueDeclarerKind {
  * Describes the enum ai.stigmer.agentic.run.v1.RunValueDeclarerKind.
  */
 export const RunValueDeclarerKindSchema: GenEnum<RunValueDeclarerKind> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 12);
+  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 11);
 
 /**
  * Where a value a turn uses lives.
@@ -858,5 +821,5 @@ export enum RunValueOrigin {
  * Describes the enum ai.stigmer.agentic.run.v1.RunValueOrigin.
  */
 export const RunValueOriginSchema: GenEnum<RunValueOrigin> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 13);
+  enumDesc(file_ai_stigmer_agentic_run_v1_enum, 12);
 

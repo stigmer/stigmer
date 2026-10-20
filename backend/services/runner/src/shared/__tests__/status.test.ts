@@ -63,7 +63,7 @@ describe("slimStatus", () => {
       error: "",
       startedAt: "t0",
       completedAt: "t1",
-      artifacts: [{ name: "report.md" }],
+      workspaceWriteBacks: [{ workspaceEntryName: "repo" }],
       fileChanges: [{ id: "run_1:0" }],
     });
     expect(slimStatus(full)).toEqual({ phase: "RUN_COMPLETED", startedAt: "t0", completedAt: "t1" });

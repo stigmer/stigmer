@@ -27,7 +27,8 @@
  *     transaction as the rewritten run.
  *
  * The retired fields are read by wire number, never through a schema that
- * no longer exists (session-harness-state-moved.ts, the precedent). Every
+ * no longer exists (session-harness-state-moved.ts, the precedent), with
+ * the helpers every such lift shares (retired-fields.ts). Every
  * rewritten row that held an etag is re-stamped, as the routine rename
  * re-stamps a relabelled run (schedules-become-routines.ts): the etag
  * covers the spec's JSON, which this step changes. A row without the
@@ -43,8 +44,8 @@
  * drivers' migration arms.
  */
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
-import type { DescMessage, MessageShape, UnknownField } from "@bufbuild/protobuf";
-import { BinaryReader, WireType } from "@bufbuild/protobuf/wire";
+import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
+import { WireType } from "@bufbuild/protobuf/wire";
 
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
@@ -59,6 +60,7 @@ import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v
 import { stampEtag, storedEtagOf } from "./etag.js";
 import type { AttachmentConversion } from "./file-blobs.js";
 import { listIndexInstant } from "./list-index.js";
+import { dropRetired, eachField, retiredMessages } from "./retired-fields.js";
 
 /** The `kind` column values of the rows the step rewrites. */
 export const WORKSPACE_SESSION_KIND = "session";
@@ -95,30 +97,6 @@ export interface LiftedRunAttachments {
   readonly attachments: readonly AttachmentConversion[];
 }
 
-/** Calls `visit` for each field of `bytes`, skipping those it does not take. */
-function eachField(bytes: Uint8Array, visit: (no: number, wireType: WireType, reader: BinaryReader) => boolean): void {
-  const reader = new BinaryReader(bytes);
-  while (reader.pos < reader.len) {
-    const [no, wireType] = reader.tag();
-    if (!visit(no, wireType, reader)) {
-      reader.skip(wireType, no);
-    }
-  }
-}
-
-/** The payloads of the retired repeated message field `no` held in `unknown`. */
-function retiredMessages(unknown: readonly UnknownField[], no: number): Uint8Array[] {
-  return unknown
-    .filter((field) => field.no === no && field.wireType === WireType.LengthDelimited)
-    .map((field) => new BinaryReader(field.data).bytes());
-}
-
-/** `unknown` without field `no`; undefined when nothing is left. */
-function without(unknown: readonly UnknownField[], no: number): UnknownField[] | undefined {
-  const kept = unknown.filter((field) => field.no !== no);
-  return kept.length === 0 ? undefined : kept;
-}
-
 /** One retired WorkspaceEntry as the resource that replaces it. Throws when it names no source. */
 function resourceOfEntry(entry: Uint8Array): SessionResource {
   let name = "";
@@ -145,12 +123,7 @@ function resourceOfEntry(entry: Uint8Array): SessionResource {
       }
       if (no === SOURCE_GIT_REPO) {
         const git = fromBinary(GitRepositoryResourceSchema, reader.bytes());
-        const kept = without(git.$unknown ?? [], GIT_REPO_DEPTH);
-        if (kept === undefined) {
-          delete git.$unknown;
-        } else {
-          git.$unknown = kept;
-        }
+        dropRetired(git, GIT_REPO_DEPTH);
         resource = { case: "gitRepository", value: git };
         return true;
       }
@@ -187,12 +160,7 @@ export function migrateSessionResourcesRow(data: Uint8Array): Uint8Array | undef
     return undefined;
   }
   spec.resources.push(...retiredMessages(unknown, SESSION_ENTRIES_FIELD).map(resourceOfEntry));
-  const kept = without(unknown, SESSION_ENTRIES_FIELD);
-  if (kept === undefined) {
-    delete spec.$unknown;
-  } else {
-    spec.$unknown = kept;
-  }
+  dropRetired(spec, SESSION_ENTRIES_FIELD);
   return restamped(SessionSchema, session);
 }
 
@@ -208,12 +176,7 @@ export function migrateRoutineResourcesRow(data: Uint8Array): Uint8Array | undef
     return undefined;
   }
   agent.resources.push(...retiredMessages(unknown, INVOCATION_ENTRIES_FIELD).map(resourceOfEntry));
-  const kept = without(unknown, INVOCATION_ENTRIES_FIELD);
-  if (kept === undefined) {
-    delete agent.$unknown;
-  } else {
-    agent.$unknown = kept;
-  }
+  dropRetired(agent, INVOCATION_ENTRIES_FIELD);
   return restamped(RoutineSchema, routine);
 }
 
@@ -254,12 +217,7 @@ export function liftRunAttachments(data: Uint8Array): LiftedRunAttachments | und
     });
     return { runId, org, sessionId, position, filename, storageKey, contentType, createdAt };
   });
-  const kept = without(unknown, RUN_ATTACHMENTS_FIELD);
-  if (kept === undefined) {
-    delete spec.$unknown;
-  } else {
-    spec.$unknown = kept;
-  }
+  dropRetired(spec, RUN_ATTACHMENTS_FIELD);
   return { data: restamped(RunSchema, run), attachments };
 }
 

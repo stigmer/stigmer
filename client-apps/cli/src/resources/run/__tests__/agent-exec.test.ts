@@ -7,8 +7,8 @@
 // built-in assistant rides the same flow with no agent at all. Most runs
 // use detach mode so no streaming machinery is exercised; the attached runs
 // stream through a double that returns the final run, and pin that the
-// run's artifacts are downloaded only when a download directory was given
-// and the final run holds some. Attached files are uploaded as the person's
+// run's artifacts (the Files it returned, which the download lists) are
+// downloaded only when a download directory was given. Attached files are uploaded as the person's
 // own before the create, named on it (the message's by id, a folder's as the
 // new conversation's resources), and the originals are deleted once the
 // create has answered, whether or not it succeeded.
@@ -218,16 +218,13 @@ describe("executeResolvedAgent", () => {
 });
 
 describe("executeResolvedAgent, attached", () => {
-  /** The final run the stream returns: `artifacts` named files under run aex_final. */
-  function finalRun(artifacts: string[]): Run {
-    return create(RunSchema, {
-      metadata: { id: "aex_final" },
-      status: { artifacts: artifacts.map((name) => ({ name, storageKey: `store/${name}` })) },
-    });
+  /** The final run the stream returns. */
+  function finalRun(): Run {
+    return create(RunSchema, { metadata: { id: "aex_final" } });
   }
 
   it("streams the created run with the session the server returned", async () => {
-    stream.streamAgentRun.mockResolvedValue(finalRun([]));
+    stream.streamAgentRun.mockResolvedValue(finalRun());
     const { client } = fakeBackend();
 
     await executeResolvedAgent({
@@ -246,7 +243,7 @@ describe("executeResolvedAgent, attached", () => {
   });
 
   it("downloads the final run's artifacts into the download directory", async () => {
-    stream.streamAgentRun.mockResolvedValue(finalRun(["report.txt"]));
+    stream.streamAgentRun.mockResolvedValue(finalRun());
     const { client } = fakeBackend();
 
     await executeResolvedAgent({
@@ -264,22 +261,6 @@ describe("executeResolvedAgent, attached", () => {
       { artifactName: "", outputDir: "/tmp/out" },
       expect.any(Function),
     );
-  });
-
-  it("downloads nothing when the final run produced no artifacts", async () => {
-    stream.streamAgentRun.mockResolvedValue(finalRun([]));
-    const { client } = fakeBackend();
-
-    await executeResolvedAgent({
-      agent: makeAgent(),
-      prepared: makePrepared({ detach: false }),
-      org: "acme",
-      downloadDir: "/tmp/out",
-      outputMode: "inline",
-      client,
-    });
-
-    expect(download.downloadRunArtifacts).not.toHaveBeenCalled();
   });
 });
 

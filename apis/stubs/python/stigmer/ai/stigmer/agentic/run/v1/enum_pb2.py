@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/run/v1/enum.proto\x12\x19\x61i.stigmer.agentic.run.v1*\xc3\x01\n\x08RunPhase\x12\x19\n\x15RUN_PHASE_UNSPECIFIED\x10\x00\x12\x0f\n\x0bRUN_PENDING\x10\x01\x12\x13\n\x0fRUN_IN_PROGRESS\x10\x02\x12\x11\n\rRUN_COMPLETED\x10\x03\x12\x0e\n\nRUN_FAILED\x10\x04\x12\x11\n\rRUN_CANCELLED\x10\x05\x12\x12\n\x0eRUN_TERMINATED\x10\x08\x12\x1c\n\x18RUN_WAITING_FOR_APPROVAL\x10\x06\x12\x0e\n\nRUN_PAUSED\x10\x07*q\n\x0fRunArtifactKind\x12!\n\x1dRUN_ARTIFACT_KIND_UNSPECIFIED\x10\x00\x12\x1a\n\x16RUN_ARTIFACT_KIND_FILE\x10\x01\x12\x1f\n\x1bRUN_ARTIFACT_KIND_DIRECTORY\x10\x02*s\n\x10RunControlSignal\x12\"\n\x1eRUN_CONTROL_SIGNAL_UNSPECIFIED\x10\x00\x12\x1b\n\x17RUN_CONTROL_SIGNAL_STOP\x10\x01\x12\x1e\n\x1aRUN_CONTROL_SIGNAL_WARNING\x10\x02*j\n\x0fInteractionMode\x12 \n\x1cINTERACTION_MODE_UNSPECIFIED\x10\x00\x12\x1a\n\x16INTERACTION_MODE_AGENT\x10\x01\x12\x19\n\x15INTERACTION_MODE_PLAN\x10\x02*j\n\x0c\x41pprovalMode\x12\x1d\n\x19\x41PPROVAL_MODE_UNSPECIFIED\x10\x00\x12\x1d\n\x19\x41PPROVAL_MODE_INTERACTIVE\x10\x01\x12\x1c\n\x18\x41PPROVAL_MODE_UNATTENDED\x10\x02*]\n\x0bServiceTier\x12\x1c\n\x18SERVICE_TIER_UNSPECIFIED\x10\x00\x12\x19\n\x15SERVICE_TIER_STANDARD\x10\x01\x12\x15\n\x11SERVICE_TIER_FAST\x10\x02*d\n\x0cThinkingMode\x12\x1d\n\x19THINKING_MODE_UNSPECIFIED\x10\x00\x12\x1a\n\x16THINKING_MODE_DISABLED\x10\x01\x12\x19\n\x15THINKING_MODE_ENABLED\x10\x02*\xc7\x01\n\x0e\x46ileChangeKind\x12 \n\x1c\x46ILE_CHANGE_KIND_UNSPECIFIED\x10\x00\x12\x18\n\x14\x46ILE_CHANGE_KIND_ADD\x10\x01\x12\x1b\n\x17\x46ILE_CHANGE_KIND_MODIFY\x10\x02\x12\x1b\n\x17\x46ILE_CHANGE_KIND_DELETE\x10\x03\x12\x1b\n\x17\x46ILE_CHANGE_KIND_RENAME\x10\x04\x12\"\n\x1e\x46ILE_CHANGE_KIND_BINARY_CHANGE\x10\x05*\xda\x01\n\x10\x46ileCaptureClass\x12\"\n\x1e\x46ILE_CAPTURE_CLASS_UNSPECIFIED\x10\x00\x12\"\n\x1e\x46ILE_CAPTURE_CLASS_GIT_TRACKED\x10\x01\x12-\n)FILE_CAPTURE_CLASS_GIT_UNTRACKED_CAPTURED\x10\x02\x12+\n\'FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED\x10\x03\x12\"\n\x1e\x46ILE_CAPTURE_CLASS_NON_GIT_CAS\x10\x04*\xa7\x01\n\x10\x44iffCompleteness\x12!\n\x1d\x44IFF_COMPLETENESS_UNSPECIFIED\x10\x00\x12\x1e\n\x1a\x44IFF_COMPLETENESS_COMPLETE\x10\x01\x12%\n!DIFF_COMPLETENESS_PARTIAL_BLOCKED\x10\x02\x12)\n%DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY\x10\x03*\x87\x01\n\x0cSnapshotKind\x12\x1d\n\x19SNAPSHOT_KIND_UNSPECIFIED\x10\x00\x12\x1e\n\x1aSNAPSHOT_KIND_GIT_TREE_REF\x10\x01\x12\x1e\n\x1aSNAPSHOT_KIND_CAS_MANIFEST\x10\x02\x12\x18\n\x14SNAPSHOT_KIND_HYBRID\x10\x03*\xc4\x01\n\x15\x46ileReviewBlockReason\x12(\n$FILE_REVIEW_BLOCK_REASON_UNSPECIFIED\x10\x00\x12,\n(FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD\x10\x01\x12(\n$FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED\x10\x02\x12)\n%FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE\x10\x03*\xf6\x01\n\x14RunValueDeclarerKind\x12\'\n#RUN_VALUE_DECLARER_KIND_UNSPECIFIED\x10\x00\x12!\n\x1dRUN_VALUE_DECLARER_KIND_AGENT\x10\x01\x12 \n\x1cRUN_VALUE_DECLARER_KIND_TOOL\x10\x02\x12&\n\"RUN_VALUE_DECLARER_KIND_REPOSITORY\x10\x03\x12\"\n\x1eRUN_VALUE_DECLARER_KIND_PLUGIN\x10\x04\x12$\n RUN_VALUE_DECLARER_KIND_SUBAGENT\x10\x05*\xda\x01\n\x0eRunValueOrigin\x12 \n\x1cRUN_VALUE_ORIGIN_UNSPECIFIED\x10\x00\x12%\n!RUN_VALUE_ORIGIN_REPOSITORY_TOKEN\x10\x01\x12\x1d\n\x19RUN_VALUE_ORIGIN_MY_VAULT\x10\x02\x12\x1a\n\x16RUN_VALUE_ORIGIN_VAULT\x10\x03\x12\"\n\x1eRUN_VALUE_ORIGIN_SURFACE_VAULT\x10\x04\x12 \n\x1cRUN_VALUE_ORIGIN_DECLARATION\x10\x05\x42\xb3\x01\n\x1d\x63om.ai.stigmer.agentic.run.v1B\tEnumProtoP\x01\xa2\x02\x04\x41SAR\xaa\x02\x19\x41i.Stigmer.Agentic.Run.V1\xca\x02\x19\x41i\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1d\x41i::Stigmer::Agentic::Run::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n$ai/stigmer/agentic/run/v1/enum.proto\x12\x19\x61i.stigmer.agentic.run.v1*\xc3\x01\n\x08RunPhase\x12\x19\n\x15RUN_PHASE_UNSPECIFIED\x10\x00\x12\x0f\n\x0bRUN_PENDING\x10\x01\x12\x13\n\x0fRUN_IN_PROGRESS\x10\x02\x12\x11\n\rRUN_COMPLETED\x10\x03\x12\x0e\n\nRUN_FAILED\x10\x04\x12\x11\n\rRUN_CANCELLED\x10\x05\x12\x12\n\x0eRUN_TERMINATED\x10\x08\x12\x1c\n\x18RUN_WAITING_FOR_APPROVAL\x10\x06\x12\x0e\n\nRUN_PAUSED\x10\x07*s\n\x10RunControlSignal\x12\"\n\x1eRUN_CONTROL_SIGNAL_UNSPECIFIED\x10\x00\x12\x1b\n\x17RUN_CONTROL_SIGNAL_STOP\x10\x01\x12\x1e\n\x1aRUN_CONTROL_SIGNAL_WARNING\x10\x02*j\n\x0fInteractionMode\x12 \n\x1cINTERACTION_MODE_UNSPECIFIED\x10\x00\x12\x1a\n\x16INTERACTION_MODE_AGENT\x10\x01\x12\x19\n\x15INTERACTION_MODE_PLAN\x10\x02*j\n\x0c\x41pprovalMode\x12\x1d\n\x19\x41PPROVAL_MODE_UNSPECIFIED\x10\x00\x12\x1d\n\x19\x41PPROVAL_MODE_INTERACTIVE\x10\x01\x12\x1c\n\x18\x41PPROVAL_MODE_UNATTENDED\x10\x02*]\n\x0bServiceTier\x12\x1c\n\x18SERVICE_TIER_UNSPECIFIED\x10\x00\x12\x19\n\x15SERVICE_TIER_STANDARD\x10\x01\x12\x15\n\x11SERVICE_TIER_FAST\x10\x02*d\n\x0cThinkingMode\x12\x1d\n\x19THINKING_MODE_UNSPECIFIED\x10\x00\x12\x1a\n\x16THINKING_MODE_DISABLED\x10\x01\x12\x19\n\x15THINKING_MODE_ENABLED\x10\x02*\xc7\x01\n\x0e\x46ileChangeKind\x12 \n\x1c\x46ILE_CHANGE_KIND_UNSPECIFIED\x10\x00\x12\x18\n\x14\x46ILE_CHANGE_KIND_ADD\x10\x01\x12\x1b\n\x17\x46ILE_CHANGE_KIND_MODIFY\x10\x02\x12\x1b\n\x17\x46ILE_CHANGE_KIND_DELETE\x10\x03\x12\x1b\n\x17\x46ILE_CHANGE_KIND_RENAME\x10\x04\x12\"\n\x1e\x46ILE_CHANGE_KIND_BINARY_CHANGE\x10\x05*\xda\x01\n\x10\x46ileCaptureClass\x12\"\n\x1e\x46ILE_CAPTURE_CLASS_UNSPECIFIED\x10\x00\x12\"\n\x1e\x46ILE_CAPTURE_CLASS_GIT_TRACKED\x10\x01\x12-\n)FILE_CAPTURE_CLASS_GIT_UNTRACKED_CAPTURED\x10\x02\x12+\n\'FILE_CAPTURE_CLASS_GIT_IGNORED_CAPTURED\x10\x03\x12\"\n\x1e\x46ILE_CAPTURE_CLASS_NON_GIT_CAS\x10\x04*\xa7\x01\n\x10\x44iffCompleteness\x12!\n\x1d\x44IFF_COMPLETENESS_UNSPECIFIED\x10\x00\x12\x1e\n\x1a\x44IFF_COMPLETENESS_COMPLETE\x10\x01\x12%\n!DIFF_COMPLETENESS_PARTIAL_BLOCKED\x10\x02\x12)\n%DIFF_COMPLETENESS_BINARY_SUMMARY_ONLY\x10\x03*\x87\x01\n\x0cSnapshotKind\x12\x1d\n\x19SNAPSHOT_KIND_UNSPECIFIED\x10\x00\x12\x1e\n\x1aSNAPSHOT_KIND_GIT_TREE_REF\x10\x01\x12\x1e\n\x1aSNAPSHOT_KIND_CAS_MANIFEST\x10\x02\x12\x18\n\x14SNAPSHOT_KIND_HYBRID\x10\x03*\xc4\x01\n\x15\x46ileReviewBlockReason\x12(\n$FILE_REVIEW_BLOCK_REASON_UNSPECIFIED\x10\x00\x12,\n(FILE_REVIEW_BLOCK_REASON_SECRET_WITHHELD\x10\x01\x12(\n$FILE_REVIEW_BLOCK_REASON_SIZE_ELIDED\x10\x02\x12)\n%FILE_REVIEW_BLOCK_REASON_UNREVIEWABLE\x10\x03*\xf6\x01\n\x14RunValueDeclarerKind\x12\'\n#RUN_VALUE_DECLARER_KIND_UNSPECIFIED\x10\x00\x12!\n\x1dRUN_VALUE_DECLARER_KIND_AGENT\x10\x01\x12 \n\x1cRUN_VALUE_DECLARER_KIND_TOOL\x10\x02\x12&\n\"RUN_VALUE_DECLARER_KIND_REPOSITORY\x10\x03\x12\"\n\x1eRUN_VALUE_DECLARER_KIND_PLUGIN\x10\x04\x12$\n RUN_VALUE_DECLARER_KIND_SUBAGENT\x10\x05*\xda\x01\n\x0eRunValueOrigin\x12 \n\x1cRUN_VALUE_ORIGIN_UNSPECIFIED\x10\x00\x12%\n!RUN_VALUE_ORIGIN_REPOSITORY_TOKEN\x10\x01\x12\x1d\n\x19RUN_VALUE_ORIGIN_MY_VAULT\x10\x02\x12\x1a\n\x16RUN_VALUE_ORIGIN_VAULT\x10\x03\x12\"\n\x1eRUN_VALUE_ORIGIN_SURFACE_VAULT\x10\x04\x12 \n\x1cRUN_VALUE_ORIGIN_DECLARATION\x10\x05\x42\xb3\x01\n\x1d\x63om.ai.stigmer.agentic.run.v1B\tEnumProtoP\x01\xa2\x02\x04\x41SAR\xaa\x02\x19\x41i.Stigmer.Agentic.Run.V1\xca\x02\x19\x41i\\Stigmer\\Agentic\\Run\\V1\xe2\x02%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\xea\x02\x1d\x41i::Stigmer::Agentic::Run::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,30 +34,28 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'\n\035com.ai.stigmer.agentic.run.v1B\tEnumProtoP\001\242\002\004ASAR\252\002\031Ai.Stigmer.Agentic.Run.V1\312\002\031Ai\\Stigmer\\Agentic\\Run\\V1\342\002%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMetadata\352\002\035Ai::Stigmer::Agentic::Run::V1'
   _globals['_RUNPHASE']._serialized_start=68
   _globals['_RUNPHASE']._serialized_end=263
-  _globals['_RUNARTIFACTKIND']._serialized_start=265
-  _globals['_RUNARTIFACTKIND']._serialized_end=378
-  _globals['_RUNCONTROLSIGNAL']._serialized_start=380
-  _globals['_RUNCONTROLSIGNAL']._serialized_end=495
-  _globals['_INTERACTIONMODE']._serialized_start=497
-  _globals['_INTERACTIONMODE']._serialized_end=603
-  _globals['_APPROVALMODE']._serialized_start=605
-  _globals['_APPROVALMODE']._serialized_end=711
-  _globals['_SERVICETIER']._serialized_start=713
-  _globals['_SERVICETIER']._serialized_end=806
-  _globals['_THINKINGMODE']._serialized_start=808
-  _globals['_THINKINGMODE']._serialized_end=908
-  _globals['_FILECHANGEKIND']._serialized_start=911
-  _globals['_FILECHANGEKIND']._serialized_end=1110
-  _globals['_FILECAPTURECLASS']._serialized_start=1113
-  _globals['_FILECAPTURECLASS']._serialized_end=1331
-  _globals['_DIFFCOMPLETENESS']._serialized_start=1334
-  _globals['_DIFFCOMPLETENESS']._serialized_end=1501
-  _globals['_SNAPSHOTKIND']._serialized_start=1504
-  _globals['_SNAPSHOTKIND']._serialized_end=1639
-  _globals['_FILEREVIEWBLOCKREASON']._serialized_start=1642
-  _globals['_FILEREVIEWBLOCKREASON']._serialized_end=1838
-  _globals['_RUNVALUEDECLARERKIND']._serialized_start=1841
-  _globals['_RUNVALUEDECLARERKIND']._serialized_end=2087
-  _globals['_RUNVALUEORIGIN']._serialized_start=2090
-  _globals['_RUNVALUEORIGIN']._serialized_end=2308
+  _globals['_RUNCONTROLSIGNAL']._serialized_start=265
+  _globals['_RUNCONTROLSIGNAL']._serialized_end=380
+  _globals['_INTERACTIONMODE']._serialized_start=382
+  _globals['_INTERACTIONMODE']._serialized_end=488
+  _globals['_APPROVALMODE']._serialized_start=490
+  _globals['_APPROVALMODE']._serialized_end=596
+  _globals['_SERVICETIER']._serialized_start=598
+  _globals['_SERVICETIER']._serialized_end=691
+  _globals['_THINKINGMODE']._serialized_start=693
+  _globals['_THINKINGMODE']._serialized_end=793
+  _globals['_FILECHANGEKIND']._serialized_start=796
+  _globals['_FILECHANGEKIND']._serialized_end=995
+  _globals['_FILECAPTURECLASS']._serialized_start=998
+  _globals['_FILECAPTURECLASS']._serialized_end=1216
+  _globals['_DIFFCOMPLETENESS']._serialized_start=1219
+  _globals['_DIFFCOMPLETENESS']._serialized_end=1386
+  _globals['_SNAPSHOTKIND']._serialized_start=1389
+  _globals['_SNAPSHOTKIND']._serialized_end=1524
+  _globals['_FILEREVIEWBLOCKREASON']._serialized_start=1527
+  _globals['_FILEREVIEWBLOCKREASON']._serialized_end=1723
+  _globals['_RUNVALUEDECLARERKIND']._serialized_start=1726
+  _globals['_RUNVALUEDECLARERKIND']._serialized_end=1972
+  _globals['_RUNVALUEORIGIN']._serialized_start=1975
+  _globals['_RUNVALUEORIGIN']._serialized_end=2193
 # @@protoc_insertion_point(module_scope)

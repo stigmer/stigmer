@@ -696,9 +696,9 @@ enum ApiResourceKind {
 
   // Value 55 held the Artifact kind (id prefix "art": a blob a workflow
   // step promoted from its output) until the workflow product, its only
-  // producer, was removed platform-wide. A run's own files are
-  // RunArtifact entries on the run's status, not this kind. Reserved so
-  // the number is never reused for a different kind.
+  // producer, was removed platform-wide. What a run returns is a File,
+  // never this kind. Reserved so the number is never reused for a
+  // different kind.
   reserved 55;
   reserved "artifact";
 

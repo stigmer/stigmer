@@ -447,11 +447,11 @@ export function runEventsReader(
 
 /**
  * Carry the status's own outputs over on a resume (HITL approval,
- * pause/resume, transient recovery): the artifacts and write-backs earlier
- * invocations registered, and the streaming usage so far. They are the run's
- * file outputs and cost, not its transcript, and the server takes each list
- * a write carries as the whole list, so a resumed turn that publishes one
- * artifact sends every earlier one too. The persisted protos are cloned so
+ * pause/resume, transient recovery): the write-backs earlier invocations
+ * registered, and the streaming usage so far. They are the run's outcomes
+ * and cost, not its transcript, and the server takes each list a write
+ * carries as the whole list, so a resumed turn that registers one write-back
+ * sends every earlier one too. The persisted protos are cloned so
  * the input execution stays immutable. Nothing of the transcript is carried:
  * the asks a resumed engine resumes onto come from the session's log
  * (`transcript/resume-seed.ts`), and every other row is the invocation's own.
@@ -460,7 +460,6 @@ export function seedStatusOutputs(status: RunStatus, execution: Run): void {
   const persisted = execution.status;
   if (!persisted) return;
   const seed = clone(RunStatusSchema, persisted);
-  status.artifacts.push(...seed.artifacts);
   status.workspaceWriteBacks.push(...seed.workspaceWriteBacks);
   if (seed.streamingUsage !== undefined) status.streamingUsage = seed.streamingUsage;
 }

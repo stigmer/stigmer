@@ -154,30 +154,9 @@ async function convertOne(deps: ConvertAttachmentsDeps, row: AttachmentConversio
   }
 
   const nowSeconds = Math.floor(Date.now() / 1000);
-  const leaseUntil = nowSeconds + Math.ceil(BLOB_WRITE_LEASE_MS / 1000);
-  const record = { blobKey: row.storageKey, org: row.org, state: "orphaned" as const, sizeBytes, expiresAt: leaseUntil };
-  let blob = await store.files.getBlob(row.storageKey);
-  if (blob !== undefined && blob.state === "orphaned" && blob.expiresAt <= nowSeconds && blob.org === row.org) {
-    // The last pass recorded it and stopped before its File: lease it again.
-    await store.files.forgetBlob(row.storageKey, nowSeconds);
-    blob = undefined;
-  }
-  if (blob === undefined) {
-    try {
-      await store.files.recordBlob(record);
-    } catch (error) {
-      // Another server draining at once recorded it first; its row is used as it is.
-      blob = await store.files.getBlob(row.storageKey);
-      if (blob === undefined) {
-        throw error;
-      }
-    }
-  }
-  if (blob !== undefined && blob.org !== row.org) {
-    return skip("its key's bytes are another organization's");
-  }
-  if (blob !== undefined && blob.state === "staged") {
-    return skip("its key is a staged upload's");
+  const refused = await adoptStoredBlob(store, row.storageKey, row.org, sizeBytes, nowSeconds);
+  if (refused !== undefined) {
+    return skip(refused);
   }
 
   const id = convertedFileId(row.runId, row.position);
@@ -231,8 +210,51 @@ async function convertOne(deps: ConvertAttachmentsDeps, row: AttachmentConversio
   return true;
 }
 
+/**
+ * Records the bytes already stored at `key` as an orphaned blob of `org`,
+ * leased while its File is written, so the File reuses them where they
+ * are; why it may not, or undefined when it may. A blob the last pass
+ * recorded and whose lease ran out is leased again, and a row another
+ * server draining at once records first is used as it is. Shared by every
+ * conversion of stored bytes into Files (convert-outputs.ts too).
+ */
+export async function adoptStoredBlob(
+  store: Store,
+  key: string,
+  org: string,
+  sizeBytes: number,
+  nowSeconds: number,
+): Promise<string | undefined> {
+  const leaseUntil = nowSeconds + Math.ceil(BLOB_WRITE_LEASE_MS / 1000);
+  const record = { blobKey: key, org, state: "orphaned" as const, sizeBytes, expiresAt: leaseUntil };
+  let blob = await store.files.getBlob(key);
+  if (blob !== undefined && blob.state === "orphaned" && blob.expiresAt <= nowSeconds && blob.org === org) {
+    // The last pass recorded it and stopped before its File: lease it again.
+    await store.files.forgetBlob(key, nowSeconds);
+    blob = undefined;
+  }
+  if (blob === undefined) {
+    try {
+      await store.files.recordBlob(record);
+    } catch (error) {
+      // Another server draining at once recorded it first; its row is used as it is.
+      blob = await store.files.getBlob(key);
+      if (blob === undefined) {
+        throw error;
+      }
+    }
+  }
+  if (blob !== undefined && blob.org !== org) {
+    return "its key's bytes are another organization's";
+  }
+  if (blob !== undefined && blob.state === "staged") {
+    return "its key is a staged upload's";
+  }
+  return undefined;
+}
+
 /** The read's answer, or undefined when the resource is gone; any other fault is raised. */
-async function loadOrUndefined<T>(read: () => Promise<T>): Promise<T | undefined> {
+export async function loadOrUndefined<T>(read: () => Promise<T>): Promise<T | undefined> {
   try {
     return await read();
   } catch (error) {

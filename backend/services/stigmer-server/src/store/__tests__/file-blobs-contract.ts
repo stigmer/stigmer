@@ -14,8 +14,9 @@
  * held id, and refusing an absent, staged, foreign or expired blob while
  * writing nothing; `remove` orphaning a blob only with its last File;
  * `claimStaged` handing a live staged blob out once; the sweep's read and
- * its guarded forget; the attachment conversions, listed oldest run
- * first and forgotten one at a time; an organization's purge. Two races
+ * its guarded forget; the attachment conversions and a run's stored-file
+ * conversions, each listed oldest run first and forgotten one at a time;
+ * an organization's purge, which takes both. Two races
  * close it: two removes of a blob's last two Files orphan it exactly once,
  * and an insert racing the remove of a blob's last File either lands
  * first or is refused, never leaving a stored blob no File names. SQLite serializes
@@ -31,7 +32,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 
 import { etagOf } from "../etag.js";
 import { FileBlobUnavailableError } from "../file-blobs.js";
-import type { AttachmentConversion, FileBlobRecord } from "../file-blobs.js";
+import type { AttachmentConversion, FileBlobRecord, OutputConversion } from "../file-blobs.js";
 import { ResourceNotFoundError } from "../interface.js";
 import type { Store, StoreOpenOptions } from "../interface.js";
 import { declareListIndex, field } from "../list-index.js";
@@ -60,6 +61,11 @@ export interface FileBlobStoreContractFixture {
    * no door that adds one.
    */
   seedConversion(conversion: AttachmentConversion): Promise<void>;
+  /**
+   * Writes one stored-file conversion row raw, as the step that retired a
+   * run's stored files writes it (run-artifacts-become-files.ts).
+   */
+  seedOutputConversion(conversion: OutputConversion): Promise<void>;
   cleanup(): Promise<void>;
 }
 
@@ -370,6 +376,56 @@ export function describeFileBlobStoreContract(
       await fx.seedConversion(theirs);
       expect(await store.files.deleteByOrg(ORG)).toBe(0);
       expect(await store.files.listConversions(10)).toEqual([theirs]);
+    });
+  });
+
+  describe("a run's stored-file conversions", () => {
+    const conversion = (
+      runId: string,
+      position: number,
+      createdAt: string,
+      org = ORG,
+    ): OutputConversion => ({
+      runId,
+      position,
+      org,
+      sessionId: "ses_01kconversions00000000000000",
+      name: `file-${position}.md`,
+      storageKey: `artifacts/${runId}/file-${position}.md`,
+      createdAt,
+    });
+
+    it("lists them oldest run first, then by position, bounded by the limit, apart from the attachments'", async () => {
+      const newer = conversion("run_01a", 0, "2026-10-02T00:00:00.000000000Z");
+      const olderSecond = conversion("run_01b", 1, "2026-10-01T00:00:00.000000000Z");
+      const olderFirst = conversion("run_01b", 0, "2026-10-01T00:00:00.000000000Z");
+      const undated = conversion("run_01c", 0, "");
+      for (const row of [newer, olderSecond, olderFirst, undated]) {
+        await fx.seedOutputConversion(row);
+      }
+      expect(await store.files.listOutputConversions(10)).toEqual([undated, olderFirst, olderSecond, newer]);
+      expect(await store.files.listOutputConversions(2)).toEqual([undated, olderFirst]);
+      expect(await store.files.listConversions(10)).toEqual([]);
+    });
+
+    it("forgets one, and an absent one without error", async () => {
+      const first = conversion("run_01a", 0, "2026-10-01T00:00:00.000000000Z");
+      const second = conversion("run_01a", 1, "2026-10-01T00:00:00.000000000Z");
+      await fx.seedOutputConversion(first);
+      await fx.seedOutputConversion(second);
+      await store.files.forgetOutputConversion("run_01a", 0);
+      await store.files.forgetOutputConversion("run_01a", 0);
+      await store.files.forgetOutputConversion("run_01none", 3);
+      expect(await store.files.listOutputConversions(10)).toEqual([second]);
+    });
+
+    it("leaves with its organization's purge, another organization's kept", async () => {
+      const ours = conversion("run_01a", 0, "2026-10-01T00:00:00.000000000Z");
+      const theirs = conversion("run_01b", 0, "2026-10-01T00:00:00.000000000Z", OTHER_ORG);
+      await fx.seedOutputConversion(ours);
+      await fx.seedOutputConversion(theirs);
+      expect(await store.files.deleteByOrg(ORG)).toBe(0);
+      expect(await store.files.listOutputConversions(10)).toEqual([theirs]);
     });
   });
 

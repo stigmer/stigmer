@@ -309,6 +309,8 @@ export class ExecutionRecord {
    * write. Their bytes are in `hermeticUploads` under `/<uploadRef>`.
    */
   readonly registeredOutputs: Array<{
+    /** The run the output was registered for: the File's `run_id`. */
+    readonly runId: string;
     readonly outputPath: string;
     readonly uploadRef: string;
     readonly contentSha256: string;
@@ -798,12 +800,12 @@ export class ExecutionRecord {
         }),
       ),
       registerOutputs: vi.fn(
-        async (_runId: string, entries: ReadonlyArray<{ readonly outputPath: string; readonly uploadRef: string; readonly contentSha256: string }>) =>
+        async (runId: string, entries: ReadonlyArray<{ readonly outputPath: string; readonly uploadRef: string; readonly contentSha256: string }>) =>
           entries.map((entry) => {
-            this.registeredOutputs.push({ ...entry, persistedBefore: this.persisted.length });
+            this.registeredOutputs.push({ ...entry, runId, persistedBefore: this.persisted.length });
             return create(FileSchema, {
               metadata: { id: `file_${this.registeredOutputs.length}` },
-              status: { runId: this.execution.metadata?.id ?? "", outputPath: entry.outputPath },
+              status: { runId, outputPath: entry.outputPath },
             });
           }),
       ),

@@ -57,90 +57,37 @@ export interface UseArtifactContentReturn {
 }
 
 /**
- * Data hook that fetches the text content of a single run artifact
- * via `stigmer.run.getArtifactContent()`.
+ * Data hook that fetches the text content stored under a run's storage key
+ * via `stigmer.run.getArtifactContent()`: a tool call's offloaded output, or
+ * one side of a captured file change too large to keep inline. A File the
+ * agent saved for the person is read with `useFileContent` instead.
  *
- * The server reads the artifact from R2 and returns the bytes through the
- * Stigmer API, eliminating CORS concerns for SDK consumers who need to
- * read artifact content programmatically (YAML detection, preview
- * rendering, resource type identification).
+ * The server reads the bytes from storage and returns them through the
+ * Stigmer API, so a browser never reads storage cross-origin.
  *
- * Pass `null` for either parameter to skip fetching — consistent with
- * the `useSessionEvents(null)` convention. The caller controls when
- * to fetch based on artifact metadata (e.g., only for text artifacts
- * below a size threshold):
- *
- * ```tsx
- * const shouldFetch = isTextArtifact(artifact) && Number(artifact.sizeBytes) < MAX_SIZE;
- * const { content } = useArtifactContent(
- *   shouldFetch ? executionId : null,
- *   shouldFetch ? artifact.storageKey : null,
- * );
- * ```
- *
- * For directory artifacts (ZIPs), pass `entryPath` to extract a specific
- * file from the archive instead of returning the raw ZIP bytes:
- *
- * ```tsx
- * const { content } = useArtifactContent(executionId, storageKey, "SKILL.md");
- * ```
+ * Pass `null` for either parameter to skip fetching.
  *
  * The server enforces a content size limit (default 512 KB). Content
- * exceeding this limit is truncated — check `isTruncated` and offer
- * a full download via the pre-signed URL for large artifacts.
+ * exceeding this limit is truncated — check `isTruncated` and offer a full
+ * download via {@link useArtifactDownloadUrl}.
  *
- * The returned `content` is decoded from UTF-8 bytes. For binary
- * artifacts, use `getArtifactDownloadUrl` instead of this hook.
- *
- * @param executionId - Run that produced the artifact, or `null` to skip.
- * @param storageKey - Storage key from `RunArtifact.storageKey`, or `null` to skip.
- * @param entryPath - For directory artifacts: relative path of a file within
- *   the archive to extract. `null` returns the full artifact (existing behavior).
- * @param contentHash - SHA-256 hex digest from `RunArtifact.contentHash`.
- *   When the same file is overwritten during run, the `storageKey` stays
- *   stable but `contentHash` changes, triggering a re-fetch so the UI never
- *   shows stale content. Pass `undefined` or omit for backwards compatibility.
+ * @param executionId - Run whose storage key it is, or `null` to skip.
+ * @param storageKey - Storage key from a `ToolCallOutputRef`, or `null` to skip.
+ * @param entryPath - For a ZIP stored under the key: relative path of a file
+ *   within the archive to extract. `null` returns the stored bytes.
+ * @param contentHash - Digest of the stored bytes. When the same key is
+ *   overwritten, the hash changes and triggers a re-fetch so the UI never
+ *   shows stale content.
  * @param cacheKey - Optional cross-mount cache key. When set, a remount
  *   with the same key renders the previously-fetched content instantly and
- *   refetches in the background (no skeleton flash) — used by the artifact
- *   document so switching back to a recently-viewed tab is instant. Omit for the
- *   default fetch-on-mount behavior (card / modal / plan callers are unchanged).
+ *   refetches in the background (no skeleton flash).
  *
  * @example
  * ```tsx
- * function ArtifactViewer({ executionId, artifact }: {
- *   executionId: string;
- *   artifact: RunArtifact;
- * }) {
- *   const shouldFetch = isTextArtifact(artifact)
- *     && Number(artifact.sizeBytes) < 512_000;
- *
- *   const { content, contentType, isTruncated, isLoading } = useArtifactContent(
- *     shouldFetch ? executionId : null,
- *     shouldFetch ? artifact.storageKey : null,
- *   );
- *
- *   if (isLoading) return <Skeleton />;
- *   if (!content) return null;
- *
- *   return (
- *     <ArtifactContentRenderer
- *       content={content}
- *       contentType={contentType}
- *       isTruncated={isTruncated}
- *     />
- *   );
- * }
+ * const { content, isLoading } = useArtifactContent(executionId, outputRef.storageKey);
  * ```
  *
- * @example
- * ```tsx
- * // Extract a single file from a directory artifact
- * const { content } = useArtifactContent(executionId, storageKey, "SKILL.md");
- * ```
- *
- * @see useRunArtifacts — extracts artifact metadata from a run
- * @see isTextArtifact — heuristic for whether content is fetchable as text
+ * @see useToolOutputContent — the tool-output reader built on this hook
  */
 export function useArtifactContent(
   executionId: string | null,

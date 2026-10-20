@@ -22,7 +22,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
 import { WorkspaceWriteBackSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import { DeepAgentTranslator } from "../translator.js";
@@ -581,7 +580,7 @@ describe("the native translator through the builder", () => {
   // Carried from the v2 StatusBuilder's suite when that builder retired
   // with the v2 stream (#1096): every rule below is the
   // builder's own — how a policy decides a row's status, what the row
-  // carries, how a seeded row is resolved, how artifacts and write-backs
+  // carries, how a seeded row is resolved, how write-backs
   // are upserted — and had no v3 twin. The sanitizer's own rules
   // (redaction, truncation) are `shared/__tests__/args-preview.test.ts`'s.
   // ═══════════════════════════════════════════════════════════════════
@@ -785,36 +784,7 @@ describe("the native translator through the builder", () => {
     });
   });
 
-  describe("artifacts and write-backs", () => {
-    const artifact = (sandboxPath: string, contentHash: string) =>
-      create(RunArtifactSchema, { sandboxPath, contentHash, storageKey: `k/${contentHash}` });
-
-    it("appends a new artifact and forces the next persist", () => {
-      const { sb, run: status } = makeBuilder();
-      sb.addArtifact(artifact("out/a.txt", "h1"));
-      expect(status.artifacts).toHaveLength(1);
-      expect(sb.dirty).toBe(true);
-    });
-
-    it("deduplicates by sandboxPath: the same contentHash is a no-op that does not force a persist", () => {
-      const { sb, run: status } = makeBuilder();
-      sb.addArtifact(artifact("out/a.txt", "h1"));
-      sb.markPersisted();
-      sb.addArtifact(artifact("out/a.txt", "h1"));
-      expect(status.artifacts).toHaveLength(1);
-      expect(sb.dirty).toBe(false);
-    });
-
-    it("replaces the artifact in place when its contentHash changes", () => {
-      const { sb, run: status } = makeBuilder();
-      sb.addArtifact(artifact("out/a.txt", "h1"));
-      sb.markPersisted();
-      sb.addArtifact(artifact("out/a.txt", "h2"));
-      expect(status.artifacts).toHaveLength(1);
-      expect(status.artifacts[0].contentHash).toBe("h2");
-      expect(sb.dirty).toBe(true);
-    });
-
+  describe("write-backs", () => {
     it("upserts write-backs by workspaceEntryName, tracking entries independently", () => {
       const { sb, run: status } = makeBuilder();
       sb.addWriteBack(create(WorkspaceWriteBackSchema, { workspaceEntryName: "repo-a", branchName: "stigmer/s1" }));

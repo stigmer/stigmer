@@ -42,7 +42,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "r/commons/apiresource/io.proto\0328ai/stigm" +
       "er/commons/apiresource/rpc_service_optio" +
       "ns.proto\032+ai/stigmer/commons/rpc/method_" +
-      "options.proto2\373\006\n\026SkillCommandController" +
+      "options.proto2\355\006\n\026SkillCommandController" +
       "\022\231\001\n\004push\022-.ai.stigmer.agentic.skill.v1." +
       "PushSkillRequest\032\".ai.stigmer.agentic.sk" +
       "ill.v1.Skill\">\302\270\030:\010\t\020\036\"\003org*/unauthorize" +
@@ -52,23 +52,23 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "UrlRequest\0323.ai.stigmer.agentic.skill.v1" +
       ".SkillArtifactUploadUrl\">\302\270\030:\010\t\020\036\"\003org*/" +
       "unauthorized to push skill in this organ" +
-      "ization\022\267\001\n\023pushFromRunArtifact\022<.ai.sti" +
-      "gmer.agentic.skill.v1.PushSkillFromRunAr" +
-      "tifactRequest\032\".ai.stigmer.agentic.skill" +
-      ".v1.Skill\">\302\270\030:\010\t\020\036\"\003org*/unauthorized t" +
-      "o push skill in this organization\022\255\001\n\020up" +
-      "dateVisibility\0225.ai.stigmer.commons.apir" +
-      "esource.UpdateVisibilityInput\032\".ai.stigm" +
-      "er.agentic.skill.v1.Skill\">\302\270\030:\0100\020+\"\013res" +
-      "ource_id*\'unauthorized to update skill v" +
-      "isibility\022\201\001\n\006delete\022$.ai.stigmer.agenti" +
-      "c.skill.v1.SkillId\032\".ai.stigmer.agentic." +
-      "skill.v1.Skill\"-\302\270\030)\010\003\020+\"\005value*\034unautho" +
-      "rized to delete skill\032\004\240\377++B\237\001B\014CommandP" +
-      "rotoP\001\242\002\004ASAS\252\002\033Ai.Stigmer.Agentic.Skill" +
-      ".V1\312\002\033Ai\\Stigmer\\Agentic\\Skill\\V1\342\002\'Ai\\S" +
-      "tigmer\\Agentic\\Skill\\V1\\GPBMetadata\352\002\037Ai" +
-      "::Stigmer::Agentic::Skill::V1b\006proto3"
+      "ization\022\251\001\n\014pushFromFile\0225.ai.stigmer.ag" +
+      "entic.skill.v1.PushSkillFromFileRequest\032" +
+      "\".ai.stigmer.agentic.skill.v1.Skill\">\302\270\030" +
+      ":\010\t\020\036\"\003org*/unauthorized to push skill i" +
+      "n this organization\022\255\001\n\020updateVisibility" +
+      "\0225.ai.stigmer.commons.apiresource.Update" +
+      "VisibilityInput\032\".ai.stigmer.agentic.ski" +
+      "ll.v1.Skill\">\302\270\030:\0100\020+\"\013resource_id*\'unau" +
+      "thorized to update skill visibility\022\201\001\n\006" +
+      "delete\022$.ai.stigmer.agentic.skill.v1.Ski" +
+      "llId\032\".ai.stigmer.agentic.skill.v1.Skill" +
+      "\"-\302\270\030)\010\003\020+\"\005value*\034unauthorized to delet" +
+      "e skill\032\004\240\377++B\237\001B\014CommandProtoP\001\242\002\004ASAS\252" +
+      "\002\033Ai.Stigmer.Agentic.Skill.V1\312\002\033Ai\\Stigm" +
+      "er\\Agentic\\Skill\\V1\342\002\'Ai\\Stigmer\\Agentic" +
+      "\\Skill\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Age" +
+      "ntic::Skill::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

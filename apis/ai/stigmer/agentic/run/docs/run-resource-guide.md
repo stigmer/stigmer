@@ -175,11 +175,9 @@ While a turn works, `file_change_progress` shows a running count of the files it
 |---|---|---|
 | `streaming_usage` | `StreamingUsageSummary` | Tokens (input, output, cache read and write), turn count, the model requested and the estimated cost in USD, updated as the run works. Display only: the metered record of each model call is `LlmCallUsageRecord`, which the usage report RPCs read. |
 
-### Artifacts
+### Files the run returned
 
-| Field | Type | Description |
-|---|---|---|
-| `artifacts` | `repeated RunArtifact` | Files and directories published by the agent during the run. See [attachments-and-artifacts.md](attachments-and-artifacts.md). |
+What the agent saved in its outputs folder comes back as Files, listed by their `run_id` (`stigmer download run` writes them out). They are not a status field.
 
 ---
 

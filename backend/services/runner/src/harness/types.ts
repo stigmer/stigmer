@@ -501,11 +501,10 @@ export interface TurnInput extends NormalizedActivityInput {
  *    through it by the runtime from the session's log. The one exception, the runtime's own
  *    terminal system rows (`harness/terminal-table.ts`), is the second name
  *    on the writer fence's allow-list (`__tests__/transcript-writers.test.ts`).
- *  - Artifacts and write-backs a turn produces register through `transcript`
- *    too (the native inline publisher; the runtime's write-back coordinator),
- *    each dedupe rule owned once. The one artifact written beside it is the
- *    epilogue's plan artifact (`shared/plan-artifact.ts`), the runtime's,
- *    which supersedes by the plan's own name rule.
+ *  - Write-backs a turn produces register through `transcript` too (the
+ *    runtime's write-back coordinator), the dedupe rule owned once. What a
+ *    turn returns to the person is never on the status: the runtime's
+ *    outputs collector returns it as Files (`shared/outputs.ts`).
  *  - Rows may be AMENDED by identity, never created, by the modules that own
  *    a fact the builder cannot know, and this is the whole list: the runtime's
  *    `harness/approval-decisions.ts` (a SKIP or REJECT settles its row),
@@ -526,7 +525,7 @@ export interface TurnInput extends NormalizedActivityInput {
  */
 export interface TurnSink {
   /**
-   * The one execution status this turn writes: lifecycle, stamps, artifacts,
+   * The one execution status this turn writes: lifecycle, stamps,
    * write-backs and the file record. It carries no rows.
    */
   readonly status: RunStatus;
@@ -545,9 +544,8 @@ export interface TurnSink {
    * per turn and already holding a reinvocation's seeded rows. The ONE way
    * a transcript row is created: a harness translates its engine's events
    * into `TranscriptEvent`s and `apply`s them; its post-stream facts (a
-   * gate parked by a boundary, a disclosure) go in as events too. Artifacts
-   * and write-backs a turn produces register here as well (`addArtifact`,
-   * `addWriteBack`, one dedupe rule each). Read `dirty` to decide a
+   * gate parked by a boundary, a disclosure) go in as events too. Write-backs
+   * a turn produces register here as well (`addWriteBack`, one dedupe rule). Read `dirty` to decide a
    * streaming persist and call `markPersisted()` as you request it; read
    * `awaitingApproval` to learn a proposal was parked. The runtime calls
    * `finalize()` once `runTurn` returns, on every path, so no streaming flag

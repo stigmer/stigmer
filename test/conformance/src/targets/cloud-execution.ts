@@ -22,6 +22,13 @@
 // fetch rides the runner's ordinary scoped-token exchange
 // (getRunnerScopedToken, issue #156). Nothing here is test-only plumbing.
 //
+// The runner's artifact store presigns against the real service's HTTP port
+// (MinIO-backed) while LLM traffic stays on the mock: the presign-capable
+// artifact lane (stigmer#803). It carries what the runner keeps in that
+// store, file review's captured changes and tool outputs too large to keep
+// inline. The runner authenticates presigns with its adopted embedded_runner
+// credential, the same lane production runners use.
+//
 // setup() boot order mirrors local-execution: fixtures before the runner
 // (their URLs must be known when it boots); the service itself is already up
 // (the hermetic launcher or a pre-provisioned endpoint owns its lifecycle).
@@ -100,11 +107,6 @@ export class CloudExecutionTarget implements TargetProfile {
       cloudBootstrap: { token: primaryToken },
       registryOrigin: requireCloudEnv(CLOUD_ENV.proxyAddress),
       proxy: { endpoint: this.mockLlm.url(), token: "conformance-cloud-bootstrap" },
-      // Artifacts presign against the real service's HTTP port (MinIO-backed)
-      // while LLM traffic stays on the mock — the presign-capable artifact
-      // lane (stigmer#803) that lets attachment materialization run against
-      // cloud. The runner authenticates presigns with its adopted
-      // embedded_runner credential (the same lane production runners use).
       artifactProxy: { endpoint: requireCloudEnv(CLOUD_ENV.httpAddress) },
       logFile: join(RUNNER_LOG_DIR, `conformance-runner-${runnerLogLabel()}.log`),
     });

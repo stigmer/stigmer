@@ -14,8 +14,9 @@
  * is signed by the local driver for one key and expires, and an expired,
  * tampered or unsigned one is answered the 404 a missing key gets, before
  * the disk is touched. Only a File's own blobs are served (`files/<org
- * id>/…`, and the `attachments/…` keys a converted attachment's File kept),
- * never a staged upload.
+ * id>/…`, the `attachments/…` keys a converted attachment's File kept, and
+ * the `artifacts/<run id>/<name>` key a converted run file kept, never a
+ * key deeper in a run's folder), never a staged upload.
  *
  * Unlike the skill lane, both directions stream: a File may be 500 MB, so
  * the upload goes to disk through the slot registry's byte-capped pipe and
@@ -51,12 +52,21 @@ const UPLOADS_SEGMENT = "/uploads/";
 /** Where a File's bytes may live: a minted blob, or a converted attachment's key. */
 const CONVERTED_ATTACHMENT_PREFIX = "attachments/";
 
+/**
+ * A converted run file's key: `artifacts/<run id>/<name>`, exactly two
+ * segments under the folder. File review's and a tool output's bytes live
+ * deeper in a run's folder, so none of them is ever served as a File.
+ */
+const CONVERTED_RUN_FILE_KEY = /^artifacts\/[^/]+\/[^/]+$/;
+
 /** Whether a key may be a File's blob: never a staged upload's, never one that climbs out of its folder. */
-function isFileBlobKey(key: string): boolean {
+export function isFileBlobKey(key: string): boolean {
   if (key.startsWith(STAGING_KEY_PREFIX) || key.split("/").some((segment) => segment === "." || segment === "..")) {
     return false;
   }
-  return key.startsWith(BLOB_KEY_PREFIX) || key.startsWith(CONVERTED_ATTACHMENT_PREFIX);
+  return (
+    key.startsWith(BLOB_KEY_PREFIX) || key.startsWith(CONVERTED_ATTACHMENT_PREFIX) || CONVERTED_RUN_FILE_KEY.test(key)
+  );
 }
 
 function trimTrailingSlash(url: string): string {

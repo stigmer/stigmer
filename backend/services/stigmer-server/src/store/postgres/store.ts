@@ -142,6 +142,7 @@ import { stampEtag } from "../etag.js";
 import { fileBlobRefusal } from "../file-blobs.js";
 import type {
   AttachmentConversion,
+  OutputConversion,
   FileBlobRecord,
   FileBlobState,
   FileBlobStore,
@@ -3344,6 +3345,7 @@ class PostgresFileBlobStore implements FileBlobStore {
     return this.transaction(async (client) => {
       await client.query(`DELETE FROM file_blob_refs WHERE org = $1`, [org]);
       await client.query(`DELETE FROM file_conversions WHERE org = $1`, [org]);
+      await client.query(`DELETE FROM output_conversions WHERE org = $1`, [org]);
       const result = await client.query(`DELETE FROM file_blobs WHERE org = $1`, [org]);
       return result.rowCount ?? 0;
     });
@@ -3361,6 +3363,20 @@ class PostgresFileBlobStore implements FileBlobStore {
 
   async forgetConversion(runId: string, position: number): Promise<void> {
     await this.open().query(`DELETE FROM file_conversions WHERE run_id = $1 AND position = $2`, [runId, position]);
+  }
+
+  async listOutputConversions(limit: number): Promise<OutputConversion[]> {
+    const result = await this.open().query<OutputConversionRow>(
+      `SELECT ${OUTPUT_CONVERSION_COLUMNS} FROM output_conversions
+       ORDER BY created_at, run_id, position
+       LIMIT $1`,
+      [limit],
+    );
+    return result.rows.map(outputConversionOf);
+  }
+
+  async forgetOutputConversion(runId: string, position: number): Promise<void> {
+    await this.open().query(`DELETE FROM output_conversions WHERE run_id = $1 AND position = $2`, [runId, position]);
   }
 }
 
@@ -3387,6 +3403,30 @@ function fileConversionOf(row: FileConversionRow): AttachmentConversion {
     filename: row.filename,
     storageKey: row.storage_key,
     contentType: row.content_type,
+    createdAt: row.created_at,
+  };
+}
+
+const OUTPUT_CONVERSION_COLUMNS = "run_id, position, org, session_id, name, storage_key, created_at";
+
+interface OutputConversionRow {
+  run_id: string;
+  position: string | number;
+  org: string;
+  session_id: string;
+  name: string;
+  storage_key: string;
+  created_at: string;
+}
+
+function outputConversionOf(row: OutputConversionRow): OutputConversion {
+  return {
+    runId: row.run_id,
+    position: Number(row.position),
+    org: row.org,
+    sessionId: row.session_id,
+    name: row.name,
+    storageKey: row.storage_key,
     createdAt: row.created_at,
   };
 }

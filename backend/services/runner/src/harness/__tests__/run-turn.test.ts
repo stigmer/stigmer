@@ -36,7 +36,9 @@
  *
  * The outputs folder is collected here, on every outcome of a turn whose
  * engine ran, before its final write, and never for a turn settled before
- * its engine: the rule lives in `run-turn.ts`, so its proof lives here.
+ * its engine: the rule lives in `run-turn.ts`, so its proof lives here. So
+ * does the plan a Plan-mode turn returns: its final message saved into the
+ * folder and returned as one File of the turn, with no artifact store.
  *
  * The hermetic environment is created at module level because the subject's
  * `config` is read at collection time; the forks pool keeps it private to
@@ -48,7 +50,8 @@ import { createServer, connect, type AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { InteractionMode, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { isPlanArtifactName, PLAN_STAGING_FILE, planArtifactName } from "../../shared/plan-artifact.js";
 import { getPlatformDir } from "../../shared/workspace/platform-dir.js";
 import { acquireWorkspaceLock } from "../../shared/workspace/workspace-lock.js";
 
@@ -63,7 +66,7 @@ import {
   threwCancelledFailure,
   type InvocationControls,
 } from "../../__test-utils__/hermetic-activity.js";
-import { stubRegistryFetch } from "../../__test-utils__/model-registry-fixture.js";
+import { hermeticUploads, stubRegistryFetch } from "../../__test-utils__/model-registry-fixture.js";
 import { scriptedSubject } from "../../__test-utils__/harness-contract/scripted-adapter.js";
 import { initGitWorkspace, localPathEntry } from "../../__test-utils__/git-workspace-fixture.js";
 import { scenario } from "../../__test-utils__/harness-contract/types.js";
@@ -276,6 +279,46 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       void subject.whenHanging().then(() => controls!.cancel());
       await driver.turn([scenario.say("Starting."), scenario.hang()], { onControls: (c) => (controls = c) });
       assertReturnedBeforeTheFinalWrite(driver, "draft.md");
+    });
+
+    it("a Plan-mode turn returns its plan as one File of the turn, with no artifact store", async () => {
+      clock.reset();
+      const plan = "# Migrate billing\n\n1. Move the ledger.\n2. Switch the reads.\n";
+      const saved = process.env.ARTIFACT_STORAGE_TYPE;
+      process.env.ARTIFACT_STORAGE_TYPE = "none";
+      try {
+        const driver = new RuntimeExecutionDriver(harness, "fake-outputs-plan");
+        driver.record.execution.spec!.interactionMode = InteractionMode.PLAN;
+        const invocation = await driver.turn([scenario.say(plan)]);
+        expect(slimOf(subject, invocation).phase).toBe("RUN_COMPLETED");
+        assertReturnedBeforeTheFinalWrite(driver, planArtifactName(plan));
+        const [output] = driver.record.registeredOutputs;
+        expect(isPlanArtifactName(output!.outputPath)).toBe(true);
+        expect(output!.runId, "a File of this turn").toBe(driver.record.executionId);
+        expect(new TextDecoder().decode(hermeticUploads.get(`/${output!.uploadRef}`)), "the plan's own text").toBe(plan);
+      } finally {
+        if (saved === undefined) delete process.env.ARTIFACT_STORAGE_TYPE;
+        else process.env.ARTIFACT_STORAGE_TYPE = saved;
+      }
+    });
+
+    it("a Plan-mode turn whose plan cannot be saved still completes, returns no plan and warns once", async () => {
+      clock.reset();
+      const driver = new RuntimeExecutionDriver(harness, "fake-outputs-plan-unsaved");
+      driver.record.execution.spec!.interactionMode = InteractionMode.PLAN;
+      // A directory where the plan is staged: the save's write fails for real.
+      mkdirSync(join(getPlatformDir(driver.sessionId), PLAN_STAGING_FILE), { recursive: true });
+      const warn = vi.spyOn(console, "warn");
+      try {
+        const invocation = await driver.turn([scenario.say("# Migrate billing\n\n1. Move the ledger.\n")]);
+        expect(slimOf(subject, invocation).phase).toBe("RUN_COMPLETED");
+        expect(driver.record.registeredOutputs, "no plan File").toEqual([]);
+        const unsaved = warn.mock.calls.map((args) => String(args[0])).filter((line) => line.includes("plan not saved"));
+        expect(unsaved).toHaveLength(1);
+        expect(unsaved[0]).toContain(`execution=${driver.record.executionId}`);
+      } finally {
+        warn.mockRestore();
+      }
     });
 
     it("a turn settled before its engine ran returns nothing", async () => {

@@ -52,7 +52,7 @@ import type { TimingRecorderWire } from "../shared/cold-start-timing.js";
 import type { TelemetrySettings } from "../otel-export.js";
 import type { RuntimeFieldsWire, WireOffload, WireProjection, WireTurnInput } from "./codec.js";
 
-export const AGENT_HOST_PROTOCOL_VERSION = 12;
+export const AGENT_HOST_PROTOCOL_VERSION = 13;
 
 /**
  * The largest single message either side sends or accepts. A turn's input
@@ -157,7 +157,7 @@ export type WireOutcome =
 export interface WireSettlement {
   readonly outcome: WireOutcome | null;
   readonly thrown: WireError | null;
-  /** The adapter-owned rows and status fields (`codec.ts` `WireProjection`). */
+  /** The adapter-owned rows (`codec.ts` `WireProjection`). */
   readonly projection: WireProjection;
   /** The snapshot at settle when the adapter bound a reader; the runtime's boundary capture reads it after the turn. */
   readonly cas: WireCasSnapshot | null;
@@ -306,11 +306,6 @@ export interface RunnerCalls {
   readonly selectRecalledMemories: {
     readonly args: { readonly turnId: string };
     readonly result: RecalledMemoriesContent | null;
-  };
-  /** `ArtifactStorage.upload`, confined to the turn's own key prefix. */
-  readonly uploadArtifact: {
-    readonly args: { readonly turnId: string; readonly key: string; readonly content: string; readonly contentType: string | null };
-    readonly result: string;
   };
   /** `MountedPlugin.verify` for one of the turn's plugins, by slug: the tree and its archive are the runner's. */
   readonly verifyPlugin: { readonly args: { readonly turnId: string; readonly slug: string }; readonly result: null };

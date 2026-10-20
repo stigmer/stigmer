@@ -131,21 +131,6 @@ enum RunPhase {
   RUN_PAUSED = 7;
 }
 
-// RunArtifactKind defines the type of artifact published by an agent.
-//
-// When an agent publishes a file, it's stored as-is.
-// When an agent publishes a directory, it's archived as a ZIP file.
-enum RunArtifactKind {
-  // Default value, not a valid artifact kind.
-  RUN_ARTIFACT_KIND_UNSPECIFIED = 0;
-
-  // A single file published by the agent.
-  RUN_ARTIFACT_KIND_FILE = 1;
-
-  // A directory published by the agent, archived as a ZIP file for download.
-  RUN_ARTIFACT_KIND_DIRECTORY = 2;
-}
-
 // RunControlSignal is a platform-to-runner directive returned by the
 // updateStatus RPC. The runner inspects this signal after every status
 // update and acts accordingly.

@@ -16,12 +16,6 @@ class RunPhase(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     RUN_WAITING_FOR_APPROVAL: _ClassVar[RunPhase]
     RUN_PAUSED: _ClassVar[RunPhase]
 
-class RunArtifactKind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-    __slots__ = ()
-    RUN_ARTIFACT_KIND_UNSPECIFIED: _ClassVar[RunArtifactKind]
-    RUN_ARTIFACT_KIND_FILE: _ClassVar[RunArtifactKind]
-    RUN_ARTIFACT_KIND_DIRECTORY: _ClassVar[RunArtifactKind]
-
 class RunControlSignal(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     RUN_CONTROL_SIGNAL_UNSPECIFIED: _ClassVar[RunControlSignal]
@@ -116,9 +110,6 @@ RUN_CANCELLED: RunPhase
 RUN_TERMINATED: RunPhase
 RUN_WAITING_FOR_APPROVAL: RunPhase
 RUN_PAUSED: RunPhase
-RUN_ARTIFACT_KIND_UNSPECIFIED: RunArtifactKind
-RUN_ARTIFACT_KIND_FILE: RunArtifactKind
-RUN_ARTIFACT_KIND_DIRECTORY: RunArtifactKind
 RUN_CONTROL_SIGNAL_UNSPECIFIED: RunControlSignal
 RUN_CONTROL_SIGNAL_STOP: RunControlSignal
 RUN_CONTROL_SIGNAL_WARNING: RunControlSignal

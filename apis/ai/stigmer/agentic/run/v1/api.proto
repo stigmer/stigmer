@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.run.v1;
 
-import "ai/stigmer/agentic/run/v1/artifact.proto";
 import "ai/stigmer/agentic/run/v1/enum.proto";
 import "ai/stigmer/agentic/run/v1/eval_case.proto";
 import "ai/stigmer/agentic/run/v1/filereview.proto";
@@ -95,23 +94,13 @@ message RunStatus {
   reserved 12;
   reserved "resolved_context";
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Run Artifacts (Artifact Lifecycle)
-  //
-  // Files and directories published by the agent for download.
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // Files/directories published by the agent for download.
-  //
-  // When an agent creates artifacts (e.g., generated code, reports, skills),
-  // it can call the publish_artifact tool to make them downloadable.
-  // Each artifact includes a pre-signed URL for direct download.
-  //
-  // Artifacts are stored in R2 and URLs expire after a configured period.
-  // Use the run download endpoint to refresh expired URLs.
-  //
-  // Ordered by creation time (oldest first).
-  repeated RunArtifact artifacts = 15;
+  // Field 15 held the files the native engine uploaded as the agent wrote
+  // them, each named by its storage key. What a turn returns is now a File:
+  // whatever the agent saves in its outputs folder, listed by the File's
+  // run_id. Stored entries become Files of their run when the server
+  // starts. Reserved so the number and name are never reused.
+  reserved 15;
+  reserved "artifacts";
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Workspace Write-Backs (Platform-Owned Git Workflow)

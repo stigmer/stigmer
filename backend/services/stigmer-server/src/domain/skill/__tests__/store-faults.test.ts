@@ -64,6 +64,7 @@ function skillCommand(store: Store): Client<typeof SkillCommandController> {
         authorizationLifecycle: undefined,
         listReadScope: undefined,
         artifactStorage: untouchable("artifactStorage"),
+        fileBlobs: untouchable("fileBlobs"),
       });
     },
     {

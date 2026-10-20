@@ -28,10 +28,6 @@
  * a status the host could reach), and `goldens/file-review-capture.status.json`
  * pins the whole ledger beside Cursor's.
  *
- * Golden hunk since #1443: the inline artifact's `createdAt` is t=1, the
- * edit's finish, where it was t=2, the moment the publisher's upload
- * returned (it reads the clock before its first await now).
- *
  * Parent phase rows exercised beyond the plain arms: a `local_path` workspace
  * entry (mounted as-is in local mode, the agent rooted at the entry per
  * `provisionWorkspace`); capture-mode derivation on a git tree; the baseline
@@ -62,10 +58,7 @@
  * previous turn's tool results to be persisted settled before it ticks
  * (`ExecutionRecord.whenToolCallsSettled`, the ground a real model's latency
  * gives for free), so turn 1's stamps precede turn 2's instant every run, as
- * they do in `tool-call.status.json`. The artifact's `createdAt` stays `:02`:
- * the inline publisher stamps it when its upload lands, after the tick, and
- * the persist that releases the barrier is the fast one (progress capture is
- * throttled by its floor within the same second). Message 2, `capturedAt`,
+ * they do in `tool-call.status.json`. Message 2, `capturedAt`,
  * the ledger events and `fileChangeProgress` are the boundary's, after turn 2.
  *
  * Regenerate ONLY after a deliberate behavior change:

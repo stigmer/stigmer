@@ -122,28 +122,23 @@ describe("the agent host's server", () => {
     expect((await call()).thrown).toEqual({ name: "Error", message: "a bare string" });
   });
 
-  it("uploads through the runner and refuses reads of the store", async () => {
-    let reads: string[] = [];
-    const { runner, call } = served(async (input) => {
+  it("tells the engine the runner has a store and serves none of it", async () => {
+    let uses: string[] = [];
+    const { call } = served(async (input) => {
       const storage = input.artifactStorage!;
-      await storage.upload(`artifacts/${input.executionId}/a.txt`, Buffer.from("a"), "text/plain");
-      reads = await Promise.all([
+      uses = await Promise.all([
+        storage.upload(`artifacts/${input.executionId}/a.txt`, Buffer.from("a"), "text/plain").then(String, (err: Error) => err.message),
         storage.download("artifacts/other/secret").then(String, (err: Error) => err.message),
         storage.exists("artifacts/other/secret").then(String, (err: Error) => err.message),
       ]);
       return { kind: "completed" };
     });
-    const uploads: string[] = [];
-    runner.handle("uploadArtifact", async ({ key, contentType }) => {
-      uploads.push(`${key} ${contentType}`);
-      return key;
-    });
 
     await call();
-    expect(uploads).toEqual(["artifacts/aex_fixture_0001/a.txt text/plain"]);
-    expect(reads).toEqual([
-      "agent host: artifact reads are not served (artifacts/other/secret)",
-      "agent host: artifact reads are not served (artifacts/other/secret)",
+    expect(uses).toEqual([
+      "agent host: the artifact store is the runner's (artifacts/aex_fixture_0001/a.txt)",
+      "agent host: the artifact store is the runner's (artifacts/other/secret)",
+      "agent host: the artifact store is the runner's (artifacts/other/secret)",
     ]);
   });
 

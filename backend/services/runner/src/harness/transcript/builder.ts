@@ -80,11 +80,9 @@
  *     unless the call's args say `merge: true` (the row stays — the
  *     clients filter it); a sub-agent's is not.
  *   - `finalize()` clears every streaming flag in every scope.
- *   - Artifacts upsert by `sandboxPath`/`contentHash`, write-backs by
- *     `workspaceEntryName`: the inline publisher and the write-back
- *     coordinator register theirs here, each through the one-method view it
- *     declares for itself (`ArtifactSink`, `WriteBackSink`), which this class
- *     satisfies by shape.
+ *   - Write-backs upsert by `workspaceEntryName`: the write-back coordinator
+ *     registers its own here, through the one-method view it declares for
+ *     itself (`WriteBackSink`), which this class satisfies by shape.
  *   - {@link dirty} is set by every discrete change above and by nothing a
  *     token delta does; the adapter's loop reads it and clears it with
  *     {@link markPersisted} as it requests the persist.
@@ -105,9 +103,7 @@
  *
  * What this builder deliberately does NOT write, and who does (the adapter
  * contract's field ownership, `harness/types.ts` `TurnSink`): the phase,
- * `startedAt`, `streamingUsage` and the epilogue's plan artifact are the
- * turn runtime's (the plan artifact supersedes by its own name rule, which
- * is the plan's knowledge, not the transcript's). A row left
+ * `startedAt` and `streamingUsage` are the turn runtime's. A row left
  * WAITING_APPROVAL is reported as the {@link awaitingApproval} fact and the
  * caller decides what that means for the turn — a fact only
  * `approval_proposed` produces, because a call that has
@@ -119,7 +115,6 @@
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
-import type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
 import type { WorkspaceWriteBack } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 import { POLICY_ENGINE_VERSION, toProtoPolicySource, type PolicySource } from "../../shared/approval-policy.js";
 import { SALIENT_ARG_FIELDS, buildElidedArgsPreview, redactSensitiveArgs } from "../../shared/args-preview.js";
@@ -399,23 +394,7 @@ export class TranscriptBuilder {
     for (const transcript of this.state.transcripts()) finalizeStreaming(transcript);
   }
 
-  // ── Artifact & WriteBack ───────────────────────────────────────────
-
-  addArtifact(artifact: RunArtifact): void {
-    const artifacts = this.state.status.artifacts;
-    const idx = artifacts.findIndex(a => a.sandboxPath === artifact.sandboxPath);
-
-    if (idx >= 0) {
-      if (artifacts[idx].contentHash !== artifact.contentHash) {
-        artifacts[idx] = artifact;
-        this._dirty = true;
-      }
-      return;
-    }
-
-    artifacts.push(artifact);
-    this._dirty = true;
-  }
+  // ── WriteBack ──────────────────────────────────────────────────────
 
   addWriteBack(wb: WorkspaceWriteBack): void {
     const backs = this.state.status.workspaceWriteBacks;

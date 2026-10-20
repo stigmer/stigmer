@@ -61,11 +61,9 @@ import { shouldPersistStreamingStatus } from "../../shared/persist-decision.js";
 import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/streaming-scheduler.js";
 import { computeTurnCost } from "../../shared/model-pricing.js";
 import { TimeoutError, withTimeout } from "../../shared/with-timeout.js";
-import { InlinePublisher } from "./inline-publisher.js";
-import { StreamingSideEffects } from "./streaming-side-effects.js";
 import { createV3EventRecorder, type V3ProtocolEvent } from "./v3-event-recorder.js";
 import { DeepAgentTranslator, usageOf, type V3UsagePayload } from "./translator.js";
-import type { DeepAgentEngine, DeepAgentGraphInput, DeepAgentWorkspace } from "./turn-setup.js";
+import type { DeepAgentEngine, DeepAgentGraphInput } from "./turn-setup.js";
 
 /**
  * The subset of the v3 `GraphRunStream` this loop consumes. Kept structural
@@ -103,40 +101,19 @@ export interface DeepAgentStreamResult {
 }
 
 /**
- * This harness's transcript writers for one turn: the translator that turns
+ * This harness's transcript writer for one turn: the translator that turns
  * the engine's events into canonical ones (over the gate's posture, so every
- * tool start carries its attribution and gate answer), and the publisher
- * that registers artifacts on the runtime's builder (`sink.transcript`, so
- * a published artifact still dirties the next persist) and checks the rows
- * already on `sink.status` before uploading, so an earlier turn's unchanged
- * file is not sent again; and the side effects that fire the publisher
- * mid-turn and hold its in-flight uploads until they are drained. The
- * builder itself is the runtime's, one per turn, and is read from the sink
- * where it is needed. Built by the adapter's turn once and shared by the
- * stream, the settle and the turn's `finally`, which drains the publishes
- * on every exit (`streaming-side-effects.ts`).
+ * tool start carries its attribution and gate answer). The builder itself
+ * is the runtime's, one per turn, and is read from the sink where it is
+ * needed. What the agent saves for the person comes back through the
+ * runtime's outputs collector, never from this stream.
  */
 export interface DeepAgentTranscript {
   readonly translator: DeepAgentTranslator;
-  readonly publisher: InlinePublisher;
-  readonly sideEffects: StreamingSideEffects;
 }
 
-export function createDeepAgentTranscript(
-  input: TurnInput,
-  sink: TurnSink,
-  engine: DeepAgentEngine,
-  workspace: DeepAgentWorkspace,
-): DeepAgentTranscript {
-  const translator = new DeepAgentTranslator(engine.gate);
-  const publisher = new InlinePublisher({
-    workspaceBackend: workspace.backend,
-    artifactStorage: input.artifactStorage,
-    artifacts: sink.transcript,
-    record: sink.status,
-    executionId: input.executionId,
-  });
-  return { translator, publisher, sideEffects: new StreamingSideEffects({ inlinePublisher: publisher }) };
+export function createDeepAgentTranscript(engine: DeepAgentEngine): DeepAgentTranscript {
+  return { translator: new DeepAgentTranslator(engine.gate) };
 }
 
 /**
@@ -186,7 +163,7 @@ function isRootRoundStart(event: TranscriptEvent): boolean {
 export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise<DeepAgentStreamResult> {
   const { input, sink, engine, graphInput, transcript } = deps;
   const { executionId } = input;
-  const { translator, sideEffects } = transcript;
+  const { translator } = transcript;
   const builder = sink.transcript;
 
   const scheduler = new StreamingUpdateScheduler(loadStreamingConfig());
@@ -233,7 +210,6 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
         for (const normalized of translator.translate(event)) {
           if (sink.yieldSignal.aborted && isRootRoundStart(normalized)) return interrupted();
           builder.apply(normalized);
-          sideEffects.onEvent(normalized);
           if (normalized.kind === "tool_started") detail = normalized.name;
         }
         const usage = usageOf(event);

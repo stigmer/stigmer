@@ -18,8 +18,7 @@ export interface UseWorkspaceWriteBacksReturn {
  * Pure derivation hook that extracts workspace write-back data from an
  * {@link Run} snapshot.
  *
- * Follows the same `useMemo`-based derivation pattern as
- * {@link useRunArtifacts}: no side effects, no data fetching.
+ * A `useMemo`-based derivation: no side effects, no data fetching.
  * The run object (typically from {@link useLiveRun}) is
  * the single input.
  *
@@ -39,8 +38,6 @@ export interface UseWorkspaceWriteBacksReturn {
  *   writeBacks.forEach((wb) => console.log(wb.workspaceEntryName, wb.pullRequestUrl));
  * }
  * ```
- *
- * @see useRunArtifacts — similar derivation hook for artifacts
  */
 export function useWorkspaceWriteBacks(
   execution: Run | null,

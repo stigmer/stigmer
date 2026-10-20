@@ -1,20 +1,24 @@
+/**
+ * The preview's Build action (a plan's): shown only when the host passes
+ * onImplement, and run before the modal closes; its Download saves the File
+ * by id under its filename.
+ */
+
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { ArtifactPreviewContent } from "../ArtifactPreviewModal";
 
-// A non-text artifact: ArtifactPreviewContent skips the content fetch, so the
+// A non-text File: ArtifactPreviewContent skips the content read, so the
 // test exercises the Implement action without any network mocking.
-const binaryArtifact = create(RunArtifactSchema, {
-  name: "report.bin",
-  kind: RunArtifactKind.FILE,
-  sizeBytes: 128n,
-  storageKey: "artifacts/aex_1/report.bin",
+const binaryArtifact = create(FileSchema, {
+  metadata: { id: "file_report" },
+  spec: { filename: "report.bin" },
+  status: { sizeBytes: 128n, runId: "aex_1", outputPath: "report.bin" },
 });
 
 function withStigmer(children: ReactNode) {
@@ -31,8 +35,7 @@ describe("ArtifactPreviewContent — Build action", () => {
     const { rerender } = render(
       withStigmer(
         <ArtifactPreviewContent
-          artifact={binaryArtifact}
-          runId="aex_1"
+          file={binaryArtifact}
           org="acme"
           isTerminal
           onClose={() => {}}
@@ -44,8 +47,7 @@ describe("ArtifactPreviewContent — Build action", () => {
     rerender(
       withStigmer(
         <ArtifactPreviewContent
-          artifact={binaryArtifact}
-          runId="aex_1"
+          file={binaryArtifact}
           org="acme"
           isTerminal
           onClose={() => {}}
@@ -64,8 +66,7 @@ describe("ArtifactPreviewContent — Build action", () => {
     render(
       withStigmer(
         <ArtifactPreviewContent
-          artifact={binaryArtifact}
-          runId="aex_1"
+          file={binaryArtifact}
           org="acme"
           isTerminal
           onClose={onClose}
@@ -80,5 +81,24 @@ describe("ArtifactPreviewContent — Build action", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     // Run the plan action before tearing down the modal.
     expect(calls).toEqual(["implement", "close"]);
+  });
+});
+
+describe("ArtifactPreviewContent — Download", () => {
+  it("downloads the File by its id and filename when Download is clicked", async () => {
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    const getDownloadUrl = vi.fn().mockResolvedValue({ url: "https://files.test/report.bin" });
+    render(
+      <StigmerContext.Provider value={{ file: { getDownloadUrl } } as unknown as Stigmer}>
+        <ArtifactPreviewContent file={binaryArtifact} org="acme" isTerminal onClose={() => {}} />
+      </StigmerContext.Provider>,
+    );
+
+    fireEvent.click(screen.getByText("Download"));
+
+    expect(getDownloadUrl).toHaveBeenCalledWith("file_report");
+    await waitFor(() => expect(anchorClick).toHaveBeenCalledTimes(1));
+    expect(anchorClick.mock.contexts[0]).toMatchObject({ download: "report.bin" });
+    anchorClick.mockRestore();
   });
 });

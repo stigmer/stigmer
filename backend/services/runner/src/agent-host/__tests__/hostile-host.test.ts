@@ -6,19 +6,18 @@
  * (`protocol.ts`) from a loopback channel, with no `serveAgentHost` between
  * it and the runner, and tries each thing the runner must refuse or bound:
  *
- *  - a persist that also carries runtime-owned fields: only the
- *    adapter-owned ones land;
+ *  - a persist that also carries status fields or runtime rows: only the
+ *    adapter-owned rows land;
  *  - a session-spec write that also sets the state id: only the fields an
  *    adapter owns carry over, and the id is still the runtime's write;
- *  - an upload outside the turn's own key prefix: refused, nothing stored;
  *  - usage with negative or non-finite counts: clamped to zero;
  *  - a plugin verify for a plugin the turn does not have: refused;
  *  - a read of the run's events: only the turn's own run is read, whatever
  *    the host asks;
  *  - a notice for a turn that has settled: dropped;
- *  - artifact rows and tool-output refs that point outside the turn's own
- *    key prefix (another execution's, a traversal): dropped, rows the turn
- *    started with kept; CAS paths that are absolute or leave the workspace:
+ *  - tool-output refs that point outside the turn's own key prefix
+ *    (another execution's, a traversal): dropped, refs the turn started
+ *    with kept; CAS paths that are absolute or leave the workspace:
  *    dropped;
  *  - an outcome of a kind the runner does not know, or a failure on a
  *    surface it does not know: settled as an internal failure, never taken
@@ -30,7 +29,6 @@ import { describe, expect, it } from "vitest";
 import { RunStatusSchema, type RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { ToolCallOutputRefSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/message_pb";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
 import { CursorMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
@@ -40,10 +38,9 @@ import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { RecordingTurnSink } from "../../__test-utils__/harness-contract/recording-sink.js";
 import { turnInputFixture } from "../../__test-utils__/turn-input-fixture.js";
 import type { HarnessAdapter } from "../../harness/types.js";
-import type { ArtifactStorage } from "../../shared/artifact-storage.js";
 import { Peer, loopbackChannels } from "../channel.js";
 import { decodeMessage, encodeMessage } from "../codec.js";
-import { assertTurnArtifactKey, confineCasSnapshot, createRemoteAdapter } from "../remote-adapter.js";
+import { confineCasSnapshot, createRemoteAdapter, isTurnArtifactKey } from "../remote-adapter.js";
 import { AgentHostSupervisor } from "../supervisor.js";
 import {
   AGENT_HOST_PROTOCOL_VERSION,
@@ -75,12 +72,13 @@ interface Forged {
   readonly rows?: TurnRows;
 }
 
-/** A projection as a hostile host would send it: every field it chose, encoded as is. */
+/** A projection as a hostile host would send it: every field it chose, encoded as is, a status beside the rows included. */
 function forgedProjection(forged: Forged): WireProjection {
-  return {
+  const projection = {
     rows: encodeMessage(TurnRowsSchema, forged.rows ?? create(TurnRowsSchema)),
     status: encodeMessage(RunStatusSchema, forged.status ?? create(RunStatusSchema)),
   };
+  return projection;
 }
 
 function hostileHarness(
@@ -125,34 +123,10 @@ function hostileHarness(
   return createRemoteAdapter("deep-agent", local, supervisor, proxy);
 }
 
-function recordingStorage(): { readonly storage: ArtifactStorage; readonly keys: string[] } {
-  const keys: string[] = [];
-  return {
-    keys,
-    storage: {
-      upload: async (key) => {
-        keys.push(key);
-        return key;
-      },
-      download: async () => Buffer.alloc(0),
-      exists: async () => false,
-    },
-  };
-}
-
 describe("a host that does not follow the rules", () => {
-  it("keeps a projection's artifact rows and output refs to the turn's own keys", async () => {
+  it("keeps a projection's output refs to the turn's own keys", async () => {
     const input = turnInputFixture();
-    const own = `artifacts/${input.executionId}/report.md`;
     const forged: Forged = {
-      status: create(RunStatusSchema, {
-        artifacts: [
-          create(RunArtifactSchema, { storageKey: own }),
-          create(RunArtifactSchema, { storageKey: "artifacts/aex_someone_else/secret.pdf" }),
-          create(RunArtifactSchema, { storageKey: `artifacts/${input.executionId}/../aex_someone_else/x` }),
-          create(RunArtifactSchema, { storageKey: "artifacts/seeded/earlier.md" }),
-        ],
-      }),
       rows: create(TurnRowsSchema, {
         messages: [
           create(AgentMessageSchema, {
@@ -160,20 +134,18 @@ describe("a host that does not follow the rules", () => {
             toolCalls: [
               create(ToolCallSchema, { id: "tc-foreign", result: "[image]", outputRef: create(ToolCallOutputRefSchema, { storageKey: "artifacts/aex_someone_else/shot.png" }) }),
               create(ToolCallSchema, { id: "tc-own", result: "[image]", outputRef: create(ToolCallOutputRefSchema, { storageKey: `artifacts/${input.executionId}/toolcalls/tc-own.png` }) }),
+              create(ToolCallSchema, { id: "tc-traversal", result: "[image]", outputRef: create(ToolCallOutputRefSchema, { storageKey: `artifacts/${input.executionId}/../aex_someone_else/x` }) }),
             ],
           }),
         ],
       }),
     };
-    const persisted: string[][] = [];
-    const sink = new RecordingTurnSink({
-      executionId: input.executionId,
-      status: create(RunStatusSchema, { artifacts: [create(RunArtifactSchema, { storageKey: "artifacts/seeded/earlier.md" })] }),
-    });
+    const persisted: Array<string | undefined>[] = [];
+    const sink = new RecordingTurnSink({ executionId: input.executionId });
     const adapter = hostileHarness(
       async (host, turnId) => {
         await host.call("persist", { turnId, projection: forgedProjection(forged) });
-        persisted.push(sink.status.artifacts.map((a) => a.storageKey));
+        persisted.push(sink.rows.messages[0]!.toolCalls.map((tc) => tc.outputRef?.storageKey));
       },
       { kind: "completed" },
       forged,
@@ -182,11 +154,12 @@ describe("a host that does not follow the rules", () => {
 
     await adapter.runTurn(input, sink);
 
-    expect(persisted, "at a persist").toEqual([[own, "artifacts/seeded/earlier.md"]]);
-    expect(sink.status.artifacts.map((a) => a.storageKey), "at the settlement").toEqual([own, "artifacts/seeded/earlier.md"]);
-    const [foreign, ownCall] = sink.rows.messages[0]!.toolCalls;
-    expect(foreign!.outputRef, "a ref to another execution's artifact is dropped").toBeUndefined();
-    expect(ownCall!.outputRef?.storageKey).toBe(`artifacts/${input.executionId}/toolcalls/tc-own.png`);
+    const own = `artifacts/${input.executionId}/toolcalls/tc-own.png`;
+    expect(persisted, "at a persist").toEqual([[undefined, own, undefined]]);
+    const [foreign, ownCall, traversal] = sink.rows.messages[0]!.toolCalls;
+    expect(foreign!.outputRef, "a ref to another execution's object is dropped").toBeUndefined();
+    expect(traversal!.outputRef, "a ref that climbs out of the turn's prefix is dropped").toBeUndefined();
+    expect(ownCall!.outputRef?.storageKey, "at the settlement").toBe(own);
   });
 
   it("keeps a ref the turn began with, a sub-agent's included, and confines a mid-turn CAS read", async () => {
@@ -261,7 +234,7 @@ describe("a host that does not follow the rules", () => {
     expect([...confined.blockedSecretPaths]).toEqual([".env"]);
   });
 
-  it("lands only the adapter-owned fields of a persist", async () => {
+  it("lands only the adapter-owned rows of a persist, never a status field", async () => {
     const adapter = hostileHarness(async (host, turnId) => {
       const forged: Forged = {
         status: create(RunStatusSchema, { phase: RunPhase.RUN_COMPLETED, error: "forged by the host", startedAt: "forged" }),
@@ -299,24 +272,6 @@ describe("a host that does not follow the rules", () => {
     expect(input.session.spec!.cursorMode, "no adapter writes the session's spec").toBe(CursorMode.UNSPECIFIED);
     expect(input.session.spec!.subject).toBe("");
     expect(sink.boundStateIds).toEqual(["bound-id"]);
-  });
-
-  it("refuses an upload outside the turn's own key prefix", async () => {
-    const errors: string[] = [];
-    const adapter = hostileHarness(async (host, turnId) => {
-      for (const key of ["artifacts/aex_other/secret.txt", "artifacts/aex_fixture_0001/../aex_other/x", "checkpoints/x", "artifacts/aex_fixture_0001/"]) {
-        await host.call("uploadArtifact", { turnId, key, content: "", contentType: null }).catch((err: Error) => errors.push(err.message));
-      }
-      await host.call("uploadArtifact", { turnId, key: "artifacts/aex_fixture_0001/report.md", content: Buffer.from("ok").toString("base64"), contentType: "text/markdown" });
-    });
-    await adapter.boot(testConfig());
-    const { storage, keys } = recordingStorage();
-    const input = turnInputFixture({ artifactStorage: storage });
-
-    await adapter.runTurn(input, new RecordingTurnSink({ executionId: input.executionId }));
-
-    expect(errors).toHaveLength(4);
-    expect(keys, "only the turn's own key reached the store").toEqual(["artifacts/aex_fixture_0001/report.md"]);
   });
 
   it("clamps usage counts to finite, non-negative numbers", async () => {
@@ -366,20 +321,6 @@ describe("a host that does not follow the rules", () => {
 
     expect(runs, "the runtime's own read, bound to the turn's run").toEqual([input.executionId]);
     expect(answered).toEqual([input.executionId]);
-  });
-
-  it("refuses an upload for a turn that has no artifact store", async () => {
-    let refusal = "";
-    const adapter = hostileHarness(async (host, turnId) => {
-      await host.call("uploadArtifact", { turnId, key: "artifacts/aex_fixture_0001/a.txt", content: "", contentType: null }).catch((err: Error) => {
-        refusal = err.message;
-      });
-    });
-    await adapter.boot(testConfig());
-    const input = turnInputFixture();
-
-    await adapter.runTurn(input, new RecordingTurnSink({ executionId: input.executionId }));
-    expect(refusal).toBe("this turn has no artifact storage");
   });
 
   it("tells the host a turn the runtime had already stopped, with the stop's reason", async () => {
@@ -464,7 +405,7 @@ describe("a host that does not follow the rules", () => {
   });
 });
 
-describe("the turn's artifact prefix", () => {
+describe("the turn's key prefix", () => {
   it.each([
     ["artifacts/aex_1/report.md", true],
     ["artifacts/aex_1/nested/report.md", true],
@@ -475,7 +416,6 @@ describe("the turn's artifact prefix", () => {
     ["artifacts/aex_1\\report.md", false],
     ["artifacts/aex_1/", false],
   ])("%s → %s", (key, allowed) => {
-    if (allowed) expect(() => assertTurnArtifactKey(key, "aex_1")).not.toThrow();
-    else expect(() => assertTurnArtifactKey(key, "aex_1")).toThrow(/outside this turn's prefix/);
+    expect(isTurnArtifactKey(key, "aex_1")).toBe(allowed);
   });
 });

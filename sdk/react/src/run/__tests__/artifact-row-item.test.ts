@@ -1,63 +1,41 @@
+/**
+ * The artifact row's view-model, mapped from a File a turn returned: the
+ * filename, the size, the output path as tooltip, and the path's folder as a
+ * subtitle only when two rows share a filename.
+ */
+
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import {
-  fromRunArtifact,
-  parentDirectory,
-} from "../artifact-row-item";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+import { fromFile, parentDirectory } from "../artifact-row-item";
 
-// ---------------------------------------------------------------------------
-// fromRunArtifact — the session model adapter
-// ---------------------------------------------------------------------------
+function output(filename: string, outputPath: string, sizeBytes = 0n) {
+  return create(FileSchema, { spec: { filename }, status: { runId: "r1", outputPath, sizeBytes } });
+}
 
-describe("fromRunArtifact", () => {
-  it("maps name, size, and sandbox-path tooltip", () => {
-    const artifact = create(RunArtifactSchema, {
-      name: "notes.md",
-      kind: RunArtifactKind.FILE,
-      sizeBytes: 2048n,
-      sandboxPath: "/workspace/docs/notes.md",
-    });
-    const item = fromRunArtifact(artifact);
+describe("fromFile", () => {
+  it("maps filename, size, and output-path tooltip", () => {
+    const item = fromFile(output("notes.md", "docs/notes.md", 2048n));
     expect(item.name).toBe("notes.md");
-    expect(item.tooltip).toBe("/workspace/docs/notes.md");
+    expect(item.tooltip).toBe("docs/notes.md");
     expect(item.sizeBytes).toBe(2048n);
-    expect(item.isDirectory).toBe(false);
     expect(item.subtitlePath).toBeNull();
   });
 
-  it("falls back to the name as tooltip when there is no sandbox path", () => {
-    const artifact = create(RunArtifactSchema, { name: "out.txt" });
-    expect(fromRunArtifact(artifact).tooltip).toBe("out.txt");
+  it("falls back to the filename as tooltip when there is no output path", () => {
+    expect(fromFile(output("out.txt", "")).tooltip).toBe("out.txt");
   });
 
-  it("marks DIRECTORY artifacts as directories", () => {
-    const artifact = create(RunArtifactSchema, {
-      name: "skill-pack",
-      kind: RunArtifactKind.DIRECTORY,
-    });
-    expect(fromRunArtifact(artifact).isDirectory).toBe(true);
+  it("carries the output path's folder as subtitle only on a name collision", () => {
+    const file = output("agent.yaml", "configs/agent.yaml");
+    expect(fromFile(file, true).subtitlePath).toBe("configs/");
+    expect(fromFile(file, false).subtitlePath).toBeNull();
   });
 
-  it("carries the parent directory as subtitle only on a name collision", () => {
-    const artifact = create(RunArtifactSchema, {
-      name: "agent.yaml",
-      sandboxPath: "/workspace/configs/agent.yaml",
-    });
-    expect(fromRunArtifact(artifact, true).subtitlePath).toBe("configs/");
-    expect(fromRunArtifact(artifact, false).subtitlePath).toBeNull();
-  });
-
-  it("omits the subtitle on collision when there is no sandbox path to derive from", () => {
-    const artifact = create(RunArtifactSchema, { name: "agent.yaml" });
-    expect(fromRunArtifact(artifact, true).subtitlePath).toBeNull();
+  it("omits the subtitle on collision when the File sits at the folder's top", () => {
+    expect(fromFile(output("agent.yaml", "agent.yaml"), true).subtitlePath).toBeNull();
   });
 });
-
-// ---------------------------------------------------------------------------
-// parentDirectory
-// ---------------------------------------------------------------------------
 
 describe("parentDirectory", () => {
   it("returns the immediate parent segment with a trailing slash", () => {

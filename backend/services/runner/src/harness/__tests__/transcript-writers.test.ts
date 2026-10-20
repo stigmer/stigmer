@@ -136,7 +136,7 @@ describe("transcriptRowWrites (the checker itself)", () => {
     ["a push described in a comment", "// the builder does status.messages.push(msg)\nconst x = 1;"],
     ["a schema named in a string", 'const hint = "AgentMessageSchema";'],
     ["a read of the transcript", "const last = status.messages.at(-1);"],
-    ["a push onto an unrelated array", "status.artifacts.push(artifact);"],
+    ["a push onto an unrelated array", "status.workspaceWriteBacks.push(wb);"],
     ["a push onto a bare `messages` local", "messages.push(m);"],
     ["the message TYPE, not its schema", 'import type { AgentMessage } from "@stigmer/apis/x_pb";'],
     ["an in-place amendment of a row", "row.status = ToolCallStatus.TOOL_CALL_SKIPPED;"],

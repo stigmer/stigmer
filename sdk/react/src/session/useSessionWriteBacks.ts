@@ -31,9 +31,8 @@ export interface UseSessionWriteBacksReturn {
  * Pure derivation hook that aggregates workspace write-backs across all
  * runs in a session into a flat, deduplicated list.
  *
- * Follows the same pattern as {@link useSessionArtifacts}: `useMemo`-based
- * derivation, no side effects, no data fetching. Takes the same
- * `executions` array input.
+ * A `useMemo`-based derivation: no side effects, no data fetching. Takes
+ * the session's `executions` array.
  *
  * **Dedup semantics:** Write-backs are keyed by `workspace_entry_name`.
  * When multiple runs write back to the same workspace entry (e.g.,
@@ -43,7 +42,7 @@ export interface UseSessionWriteBacksReturn {
  *
  * **Sorting:** Entries are sorted alphabetically by workspace entry name.
  *
- * @param runs - All runs for a session, in chronological
+ * @param executions - All runs for a session, in chronological
  *   order. Pass both completed and active-stream runs.
  *
  * @example

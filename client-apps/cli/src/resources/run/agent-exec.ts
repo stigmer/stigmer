@@ -106,7 +106,7 @@ export async function executeResolvedAgent(input: ResolvedAgentExecInput): Promi
     header,
   });
 
-  if (input.downloadDir !== "" && (finalExec.status?.artifacts.length ?? 0) > 0) {
+  if (input.downloadDir !== "") {
     await downloadRunArtifacts(
       client.stigmer,
       finalExec.metadata?.id ?? "",

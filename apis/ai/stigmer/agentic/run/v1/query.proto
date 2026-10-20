@@ -74,7 +74,7 @@ service RunQueryController {
   // ## Example Flow
   //
   // 1. Get the run via RunQueryController.get
-  // 2. Find artifact in status.artifacts[]
+  // 2. Take a ToolCallOutputRef.storage_key the run recorded
   // 3. Call getArtifactDownloadUrl with run_id and storage_key
   // 4. Use returned download_url for HTTP GET
   rpc getArtifactDownloadUrl(GetArtifactDownloadUrlRequest) returns (GetArtifactDownloadUrlResponse) {
@@ -115,7 +115,7 @@ service RunQueryController {
   // ## Example Flow
   //
   // 1. Get the run via RunQueryController.get
-  // 2. Find artifact in status.artifacts[]
+  // 2. Take a ToolCallOutputRef.storage_key the run recorded
   // 3. Call getArtifactContent with run_id and storage_key
   // 4. Decode content bytes as UTF-8 for text artifacts
   // 5. Parse YAML to detect Stigmer resource kind (Agent, Skill, etc.)

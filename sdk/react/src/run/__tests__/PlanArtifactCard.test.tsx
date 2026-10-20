@@ -1,3 +1,10 @@
+/**
+ * The compact plan card over a Plan-mode turn's plan File: title, filename
+ * and size; one Build action; copy and download read the File by id at click
+ * time; the open action routes to the panel or falls back to the preview
+ * modal when the host has an org.
+ */
+
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import {
   render,
@@ -9,34 +16,28 @@ import {
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { PlanArtifactCard } from "../PlanArtifactCard";
 
-const planArtifact = create(RunArtifactSchema, {
-  name: "plan.md",
-  kind: RunArtifactKind.FILE,
-  sizeBytes: 4500n,
-  storageKey: "artifacts/aex_1/plan.md",
+const planArtifact = create(FileSchema, {
+  metadata: { id: "file_plan" },
+  spec: { filename: "plan.md", mimeType: "text/markdown" },
+  status: { sizeBytes: 4500n, runId: "aex_1", outputPath: "plan.md" },
 });
 
-/** Modal content fetches artifact text — keep it pending so nothing rejects. */
+/** Modal content reads the File's text — keep it pending so nothing rejects. */
 function createStigmerMock(): {
   stigmer: Stigmer;
-  getArtifactContent: ReturnType<typeof vi.fn>;
-  getArtifactDownloadUrl: ReturnType<typeof vi.fn>;
+  getContent: ReturnType<typeof vi.fn>;
+  getDownloadUrl: ReturnType<typeof vi.fn>;
 } {
-  const getArtifactContent = vi.fn().mockReturnValue(new Promise(() => {}));
-  const getArtifactDownloadUrl = vi
-    .fn()
-    .mockResolvedValue({ downloadUrl: "https://example.test/plan.md" });
+  const getContent = vi.fn().mockReturnValue(new Promise(() => {}));
+  const getDownloadUrl = vi.fn().mockResolvedValue({ url: "https://example.test/plan.md" });
   return {
-    stigmer: {
-      run: { getArtifactContent, getArtifactDownloadUrl },
-    } as unknown as Stigmer,
-    getArtifactContent,
-    getArtifactDownloadUrl,
+    stigmer: { file: { getContent, getDownloadUrl } } as unknown as Stigmer,
+    getContent,
+    getDownloadUrl,
   };
 }
 
@@ -68,8 +69,7 @@ describe("PlanArtifactCard — compact document card", () => {
   it("is an accessible region with the plan's title, filename, and size", () => {
     renderCard(
       <PlanArtifactCard
-        runId="aex_1"
-        artifact={planArtifact}
+        file={planArtifact}
         title="Refactor the auth flow"
         org="acme"
       />,
@@ -83,31 +83,30 @@ describe("PlanArtifactCard — compact document card", () => {
 
   it("falls back to 'Plan' when the plan has no title", () => {
     renderCard(
-      <PlanArtifactCard runId="aex_1" artifact={planArtifact} org="acme" />,
+      <PlanArtifactCard file={planArtifact} org="acme" />,
     );
     const region = screen.getByRole("region", { name: "Plan" });
     expect(region.textContent).toContain("Plan");
   });
 
   it("does NOT render the plan content (the document lives in the plan tab)", () => {
-    const { stigmer, getArtifactContent } = createStigmerMock();
+    const { stigmer, getContent } = createStigmerMock();
     render(
       withStigmer(
-        <PlanArtifactCard runId="aex_1" artifact={planArtifact} org="acme" />,
+        <PlanArtifactCard file={planArtifact} org="acme" />,
         stigmer,
       ),
     );
     // The card is the plan's compact stand-in — it must not fetch the plan
     // body; that belongs to the plan tab (or the explicit preview modal).
-    expect(getArtifactContent).not.toHaveBeenCalled();
+    expect(getContent).not.toHaveBeenCalled();
   });
 
   it("offers exactly one primary 'Build' action that calls onImplement", () => {
     const onImplement = vi.fn();
     renderCard(
       <PlanArtifactCard
-        runId="aex_1"
-        artifact={planArtifact}
+        file={planArtifact}
         org="acme"
         onImplement={onImplement}
       />,
@@ -119,7 +118,7 @@ describe("PlanArtifactCard — compact document card", () => {
 
   it("hides 'Build' when onImplement is not provided", () => {
     renderCard(
-      <PlanArtifactCard runId="aex_1" artifact={planArtifact} org="acme" />,
+      <PlanArtifactCard file={planArtifact} org="acme" />,
     );
     expect(screen.queryByRole("button", { name: "Build" })).toBeNull();
   });
@@ -127,8 +126,7 @@ describe("PlanArtifactCard — compact document card", () => {
   it("shows the pending label while the approved plan uploads (buildPending)", () => {
     renderCard(
       <PlanArtifactCard
-        runId="aex_1"
-        artifact={planArtifact}
+        file={planArtifact}
         org="acme"
         onImplement={vi.fn()}
         disabled
@@ -147,8 +145,7 @@ describe("PlanArtifactCard — compact document card", () => {
     const onImplement = vi.fn();
     renderCard(
       <PlanArtifactCard
-        runId="aex_1"
-        artifact={planArtifact}
+        file={planArtifact}
         org="acme"
         onImplement={onImplement}
         disabled
@@ -161,32 +158,41 @@ describe("PlanArtifactCard — compact document card", () => {
     expect(onImplement).not.toHaveBeenCalled();
   });
 
+  it("reads the plan once while a copy is in flight (Copy is disabled meanwhile)", () => {
+    const getContent = vi.fn().mockReturnValue(new Promise(() => {}));
+    const stigmer = { file: { getContent, getDownloadUrl: vi.fn() } } as unknown as Stigmer;
+    render(withStigmer(<PlanArtifactCard file={planArtifact} org="acme" />, stigmer));
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy plan" }));
+    const copying = screen.getByRole("button", { name: "Copying…" }) as HTMLButtonElement;
+    expect(copying.disabled).toBe(true);
+    fireEvent.click(copying);
+
+    expect(getContent).toHaveBeenCalledTimes(1);
+  });
+
   it("copies the plan text to the clipboard on demand", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", { clipboard: { writeText } });
-    const getArtifactContent = vi
+    const getContent = vi
       .fn()
-      .mockResolvedValue({ content: new TextEncoder().encode("# Plan\n\nsteps") });
-    const getArtifactDownloadUrl = vi.fn();
-    const stigmer = {
-      run: { getArtifactContent, getArtifactDownloadUrl },
-    } as unknown as Stigmer;
+      .mockResolvedValue({ data: new TextEncoder().encode("# Plan\n\nsteps"), truncated: false });
+    const getDownloadUrl = vi.fn();
+    const stigmer = { file: { getContent, getDownloadUrl } } as unknown as Stigmer;
 
     render(
       withStigmer(
-        <PlanArtifactCard runId="aex_1" artifact={planArtifact} org="acme" />,
+        <PlanArtifactCard file={planArtifact} org="acme" />,
         stigmer,
       ),
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Copy plan" }));
 
-    // Content is fetched at click time from the stable storage key, then
-    // written to the clipboard — the card never pre-fetches on mount.
-    expect(getArtifactContent).toHaveBeenCalledTimes(1);
-    const req = getArtifactContent.mock.calls[0][0];
-    expect(req.runId).toBe("aex_1");
-    expect(req.storageKey).toBe("artifacts/aex_1/plan.md");
+    // Content is read at click time by the File's id, then written to the
+    // clipboard — the card never pre-fetches on mount.
+    expect(getContent).toHaveBeenCalledTimes(1);
+    expect(getContent.mock.calls[0][0].id).toBe("file_plan");
     await screen.findByRole("button", { name: "Copied" });
     expect(writeText).toHaveBeenCalledWith("# Plan\n\nsteps");
 
@@ -194,21 +200,19 @@ describe("PlanArtifactCard — compact document card", () => {
   });
 
   it("downloads the artifact on demand via a freshly minted URL", async () => {
-    const { stigmer, getArtifactDownloadUrl } = createStigmerMock();
+    const { stigmer, getDownloadUrl } = createStigmerMock();
     const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, "click");
     render(
       withStigmer(
-        <PlanArtifactCard runId="aex_1" artifact={planArtifact} org="acme" />,
+        <PlanArtifactCard file={planArtifact} org="acme" />,
         stigmer,
       ),
     );
     fireEvent.click(screen.getByRole("button", { name: "Download plan.md" }));
-    // The URL is resolved at click time from the stable storage key — never a
-    // baked, expirable URL.
-    expect(getArtifactDownloadUrl).toHaveBeenCalledTimes(1);
-    const req = getArtifactDownloadUrl.mock.calls[0][0];
-    expect(req.runId).toBe("aex_1");
-    expect(req.storageKey).toBe("artifacts/aex_1/plan.md");
+    // The link is minted at click time from the File's id — never a baked,
+    // expirable URL.
+    expect(getDownloadUrl).toHaveBeenCalledTimes(1);
+    expect(getDownloadUrl.mock.calls[0][0]).toBe("file_plan");
     // Wait for the mint-URL → anchor-click continuation INSIDE the test body;
     // returning while it is still in flight is what let it escape.
     await waitFor(() => expect(anchorClick).toHaveBeenCalledTimes(1));
@@ -220,8 +224,7 @@ describe("PlanArtifactCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => 
     const onImplement = vi.fn();
     renderCard(
       <PlanArtifactCard
-        runId="aex_1"
-        artifact={planArtifact}
+        file={planArtifact}
         org="acme"
         onImplement={onImplement}
       />,
@@ -236,8 +239,7 @@ describe("PlanArtifactCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => 
     const onImplement = vi.fn();
     renderCard(
       <PlanArtifactCard
-        runId="aex_1"
-        artifact={planArtifact}
+        file={planArtifact}
         org="acme"
         onImplement={onImplement}
       />,
@@ -252,8 +254,7 @@ describe("PlanArtifactCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => 
     const onImplement = vi.fn();
     renderCard(
       <PlanArtifactCard
-        runId="aex_1"
-        artifact={planArtifact}
+        file={planArtifact}
         org="acme"
         onImplement={onImplement}
       />,
@@ -268,8 +269,7 @@ describe("PlanArtifactCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => 
     const onImplement = vi.fn();
     renderCard(
       <PlanArtifactCard
-        runId="aex_1"
-        artifact={planArtifact}
+        file={planArtifact}
         org="acme"
         onImplement={onImplement}
         disabled
@@ -287,7 +287,7 @@ describe("PlanArtifactCard — Open plan modal fallback (org-gated preview)", ()
     const { stigmer } = createStigmerMock();
     render(
       withStigmer(
-        <PlanArtifactCard runId="aex_1" artifact={planArtifact} org="acme" />,
+        <PlanArtifactCard file={planArtifact} org="acme" />,
         stigmer,
       ),
     );
@@ -306,8 +306,7 @@ describe("PlanArtifactCard — Open plan modal fallback (org-gated preview)", ()
     const onImplement = vi.fn();
     renderCard(
       <PlanArtifactCard
-        runId="aex_1"
-        artifact={planArtifact}
+        file={planArtifact}
         onImplement={onImplement}
       />,
     );
@@ -324,8 +323,7 @@ describe("PlanArtifactCard — Open plan (panel-first review)", () => {
     const onOpenPlan = vi.fn();
     renderCard(
       <PlanArtifactCard
-        runId="aex_1"
-        artifact={planArtifact}
+        file={planArtifact}
         org="acme"
         onOpenPlan={onOpenPlan}
       />,

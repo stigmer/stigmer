@@ -1,37 +1,40 @@
+/**
+ * The viewer-owned plan draft: keyed by the plan File's id, so a newer plan
+ * (a new File, from a new turn or the same one) orphans the old draft; held,
+ * cleared and read through a referentially stable reader.
+ */
+
 import { describe, it, expect, afterEach } from "vitest";
 import { renderHook, act, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import type { SessionPlan } from "../../library/detect-plan-artifact";
 import { usePlanDraft, planDraftKey } from "../usePlanDraft";
 
 afterEach(cleanup);
 
-function plan(executionId: string, contentHash: string): SessionPlan {
+function plan(runId: string, fileId: string): SessionPlan {
   return {
-    runId: executionId,
-    artifact: create(RunArtifactSchema, {
-      name: "plan.md",
-      kind: RunArtifactKind.FILE,
-      storageKey: `artifacts/${executionId}/plan.md`,
-      contentHash,
+    runId,
+    file: create(FileSchema, {
+      metadata: { id: fileId },
+      spec: { filename: "plan.md" },
+      status: { runId, outputPath: "plan.md" },
     }),
   };
 }
 
 describe("planDraftKey", () => {
-  it("keys by execution AND content hash", () => {
-    expect(planDraftKey(plan("e1", "aaa"))).toBe("e1:aaa");
-    expect(planDraftKey(plan("e1", "bbb"))).not.toBe(planDraftKey(plan("e1", "aaa")));
-    expect(planDraftKey(plan("e2", "aaa"))).not.toBe(planDraftKey(plan("e1", "aaa")));
+  it("keys by the plan File's id", () => {
+    expect(planDraftKey(plan("e1", "file_a"))).toBe("file_a");
+    expect(planDraftKey(plan("e1", "file_b"))).not.toBe(planDraftKey(plan("e1", "file_a")));
   });
 });
 
 describe("usePlanDraft", () => {
   it("starts unedited and holds a draft for the current plan", () => {
     const { result } = renderHook(({ p }) => usePlanDraft(p), {
-      initialProps: { p: plan("e1", "aaa") as SessionPlan | undefined },
+      initialProps: { p: plan("e1", "file_a") as SessionPlan | undefined },
     });
 
     expect(result.current.isEdited).toBe(false);
@@ -45,7 +48,7 @@ describe("usePlanDraft", () => {
 
   it("reverts to the published plan when the draft is cleared", () => {
     const { result } = renderHook(({ p }) => usePlanDraft(p), {
-      initialProps: { p: plan("e1", "aaa") as SessionPlan | undefined },
+      initialProps: { p: plan("e1", "file_a") as SessionPlan | undefined },
     });
 
     act(() => result.current.setDraft("edit"));
@@ -56,11 +59,11 @@ describe("usePlanDraft", () => {
 
   it("drops the draft when a newer plan supersedes it (new execution)", () => {
     const { result, rerender } = renderHook(({ p }) => usePlanDraft(p), {
-      initialProps: { p: plan("e1", "aaa") as SessionPlan | undefined },
+      initialProps: { p: plan("e1", "file_a") as SessionPlan | undefined },
     });
 
     act(() => result.current.setDraft("draft of plan 1"));
-    rerender({ p: plan("e2", "bbb") });
+    rerender({ p: plan("e2", "file_b") });
 
     expect(result.current.isEdited).toBe(false);
     expect(result.current.draftText).toBeNull();
@@ -69,11 +72,11 @@ describe("usePlanDraft", () => {
 
   it("drops the draft when the same plan is republished with new content", () => {
     const { result, rerender } = renderHook(({ p }) => usePlanDraft(p), {
-      initialProps: { p: plan("e1", "aaa") as SessionPlan | undefined },
+      initialProps: { p: plan("e1", "file_a") as SessionPlan | undefined },
     });
 
     act(() => result.current.setDraft("stale draft"));
-    rerender({ p: plan("e1", "bbb") });
+    rerender({ p: plan("e1", "file_b") });
 
     expect(result.current.readDraft()).toBeNull();
   });
@@ -90,12 +93,12 @@ describe("usePlanDraft", () => {
 
   it("keeps readDraft referentially stable across draft edits", () => {
     const { result, rerender } = renderHook(({ p }) => usePlanDraft(p), {
-      initialProps: { p: plan("e1", "aaa") as SessionPlan | undefined },
+      initialProps: { p: plan("e1", "file_a") as SessionPlan | undefined },
     });
 
     const readBefore = result.current.readDraft;
     act(() => result.current.setDraft("edit 1"));
-    rerender({ p: plan("e1", "aaa") });
+    rerender({ p: plan("e1", "file_a") });
     expect(result.current.readDraft).toBe(readBefore);
     expect(result.current.readDraft()).toBe("edit 1");
   });

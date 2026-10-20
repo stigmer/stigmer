@@ -180,7 +180,7 @@ public enum ApprovalMode
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(4);
+    return ai.stigmer.agentic.run.v1.EnumProto.getDescriptor().getEnumType(3);
   }
 
   private static final ApprovalMode[] VALUES = values();

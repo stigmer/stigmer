@@ -11,12 +11,12 @@
  * value the host sends is the agent's, so what the runner acts on is
  * checked here, at the one place it enters:
  *
- *  - a persist replaces only the adapter-owned status fields, never one the
- *    runtime owns (`codec.ts`);
+ *  - a persist replaces only the adapter-owned rows, never a status field,
+ *    every one of which the runtime owns (`codec.ts`); a tool output's
+ *    stored reference is kept only under the turn's own key prefix or as
+ *    the runtime seeded it;
  *  - a harness state bind carries only the id; the runtime records it
  *    through the session's `bindHarnessState` door;
- *  - an upload is confined to the turn's own key prefix, the one the
- *    engines write under (`execute-deep-agent/inline-publisher.ts`);
  *  - a usage report's counts are clamped to finite, non-negative numbers;
  *  - a plugin verify names one of the turn's own plugins.
  *
@@ -144,7 +144,7 @@ async function runRemoteTurn(
 /** One remote turn's runner side: the handlers the host's calls reach. */
 class RemoteTurn {
   private readonly runtimeFields: RuntimeFieldTracker;
-  /** The storage keys the runtime's rows and status held when the turn began: rows the host may keep naming. */
+  /** The storage keys the runtime's rows held when the turn began: rows the host may keep naming. */
   readonly seededKeys: ReadonlySet<string>;
   private finalCas: CasTouchedSnapshot | undefined;
   private done = false;
@@ -176,12 +176,6 @@ class RemoteTurn {
           return null;
         },
         selectRecalledMemories: async () => (await input.standing.selectRecalledMemories()) ?? null,
-        uploadArtifact: async ({ key, content, contentType }) => {
-          const storage = input.artifactStorage;
-          if (!storage) throw new Error("this turn has no artifact storage");
-          assertTurnArtifactKey(key, executionId);
-          return storage.upload(key, Buffer.from(content, "base64"), contentType ?? undefined);
-        },
         verifyPlugin: async ({ slug }) => {
           const plugin = input.hooks.sources.find((s) => s.plugin?.slug === slug)?.plugin;
           if (!plugin) throw new Error(`plugin '${slug}' is not one of this turn's`);
@@ -221,15 +215,11 @@ class RemoteTurn {
 }
 
 /**
- * Refuse an upload outside the turn's own prefix: the engines write
- * `artifacts/<executionId>/<file>` (`execute-deep-agent/inline-publisher.ts`),
- * and the runner's store holds every other turn's objects beside it.
+ * Is `key` under the execution's own prefix, `artifacts/<executionId>/`,
+ * with no empty, `.` or `..` segment? The runtime offloads a turn's tool
+ * outputs there, and the runner's store holds every other turn's objects
+ * beside it.
  */
-export function assertTurnArtifactKey(key: string, executionId: string): void {
-  if (!isTurnArtifactKey(key, executionId)) throw new Error(`artifact key '${key}' is outside this turn's prefix artifacts/${executionId}/`);
-}
-
-/** Is `key` under the execution's own artifact prefix, with no empty, `.` or `..` segment? */
 export function isTurnArtifactKey(key: string, executionId: string): boolean {
   const prefix = `artifacts/${executionId}/`;
   const rest = key.startsWith(prefix) ? key.slice(prefix.length) : undefined;
@@ -237,10 +227,9 @@ export function isTurnArtifactKey(key: string, executionId: string): boolean {
   return !(rest === undefined || rest === "" || key.includes("\\") || segments.some((s) => s === "" || s === "." || s === ".."));
 }
 
-/** Every storage key the turn names: its artifact rows' and its tool outputs' refs. */
+/** Every storage key the turn names: its tool outputs' refs. */
 function storageKeysOf(turn: TurnFields): Set<string> {
   const keys = new Set<string>();
-  for (const artifact of turn.status.artifacts) if (artifact.storageKey) keys.add(artifact.storageKey);
   for (const tc of allToolCallsOf(turn.rows)) if (tc.outputRef?.storageKey) keys.add(tc.outputRef.storageKey);
   return keys;
 }
@@ -254,15 +243,13 @@ function allToolCallsOf(rows: TurnRows): ToolCall[] {
 
 /**
  * Keep the host's rows to keys the turn may name: its own prefix, or a key
- * the runtime's rows or status already held when the turn began. An artifact row
- * outside both is dropped; a tool output's ref outside both is dropped
- * (the runtime's offload makes its own on the next persist), so the
- * console never links another execution's artifact from this turn.
+ * the runtime's rows already held when the turn began. A tool output's ref
+ * outside both is dropped (the runtime's offload makes its own on the next
+ * persist), so the console never links another execution's object from
+ * this turn.
  */
 function confineHostRows(turn: TurnFields, executionId: string, seeded: ReadonlySet<string>): void {
   const allowed = (key: string): boolean => key === "" || seeded.has(key) || isTurnArtifactKey(key, executionId);
-  const kept = turn.status.artifacts.filter((artifact) => allowed(artifact.storageKey));
-  turn.status.artifacts.splice(0, turn.status.artifacts.length, ...kept);
   for (const tc of allToolCallsOf(turn.rows)) {
     if (tc.outputRef !== undefined && !allowed(tc.outputRef.storageKey)) tc.outputRef = undefined;
   }

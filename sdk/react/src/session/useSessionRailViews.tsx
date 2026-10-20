@@ -5,19 +5,28 @@ import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { SurfaceRailView } from "../workspace/WorkspaceSurface.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
-import {
-  useSessionArtifacts,
-  type SessionArtifactEntry,
-} from "./useSessionArtifacts.js";
+import type { SessionArtifactEntry } from "./useSessionArtifacts.js";
 import { SetupTab, type SetupTabProps } from "./facets/SetupTab.js";
 import { ChangesTab } from "./facets/ChangesTab.js";
 import { ArtifactsTab } from "./facets/ArtifactsTab.js";
 import { UsageTab } from "./facets/UsageTab.js";
 
+const NO_ARTIFACTS: readonly SessionArtifactEntry[] = [];
+
 /** Options for {@link useSessionRailViews}. */
 export interface UseSessionRailViewsOptions {
-  /** All runs in the session — drives Changes/Artifacts/Usage. */
+  /** All runs in the session — drives Changes/Usage. */
   readonly allRuns: readonly Run[];
+  /**
+   * The session's outputs (`useSessionArtifacts` over the session's Files):
+   * drives the Artifacts facet and its badge.
+   */
+  readonly artifacts?: readonly SessionArtifactEntry[];
+  /**
+   * Re-read the session's Files when the Artifacts facet opens (a stopped
+   * turn's outputs register after its end).
+   */
+  readonly onArtifactsShown?: () => void;
   /** Organization id for artifact Apply CTA (a slug is also accepted). */
   readonly org: string;
   /** Session configuration for the Config facet. */
@@ -79,6 +88,8 @@ export interface UseSessionRailViewsOptions {
  */
 export function useSessionRailViews({
   allRuns,
+  artifacts = NO_ARTIFACTS,
+  onArtifactsShown,
   org,
   sessionConfig,
   onApplied,
@@ -91,7 +102,8 @@ export function useSessionRailViews({
   changesSettled = false,
 }: UseSessionRailViewsOptions): readonly SurfaceRailView[] {
   const { hasWriteBacks, writeBackCount } = useSessionWriteBacks(allRuns);
-  const { hasArtifacts, artifactCount } = useSessionArtifacts(allRuns);
+  const artifactCount = artifacts.length;
+  const hasArtifacts = artifactCount > 0;
 
   return useMemo(() => {
     const views: SurfaceRailView[] = [];
@@ -133,7 +145,8 @@ export function useSessionRailViews({
           badge: artifactCount,
           content: (
             <ArtifactsTab
-              runs={allRuns}
+              artifacts={artifacts}
+              onShown={onArtifactsShown}
               org={org}
               onApplied={onApplied}
               onImplementPlan={onImplementPlan}
@@ -163,6 +176,8 @@ export function useSessionRailViews({
     writeBackCount,
     hasArtifacts,
     artifactCount,
+    artifacts,
+    onArtifactsShown,
     allRuns,
     org,
     onApplied,

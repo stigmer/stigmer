@@ -402,38 +402,36 @@ func (x *SkillArtifactDownloadUrl) GetSizeBytes() int64 {
 	return 0
 }
 
-// PushSkillFromRunArtifactRequest publishes a skill from a run
-// artifact already in storage, without downloading and re-uploading the ZIP.
-type PushSkillFromRunArtifactRequest struct {
+// PushSkillFromFileRequest publishes a skill from a File holding its ZIP
+// archive, without downloading and re-uploading the bytes.
+type PushSkillFromFileRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization that will own the skill.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// ID of the run that produced the artifact (e.g., "run_abc123xyz456").
-	RunId string `protobuf:"bytes,2,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	// Storage key of the directory artifact (ZIP) to push as a skill.
-	// Obtain this from RunArtifact.storage_key in the run status.
-	StorageKey string `protobuf:"bytes,3,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
+	// The File holding the skill's ZIP archive: "file_01j…". A File of the
+	// same organization the caller may view.
+	FileId string `protobuf:"bytes,2,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
 	// Optional version tag (same semantics as PushSkillRequest.tag).
 	// Examples: "stable", "v1.0", "latest"
-	Tag           string `protobuf:"bytes,4,opt,name=tag,proto3" json:"tag,omitempty"`
+	Tag           string `protobuf:"bytes,3,opt,name=tag,proto3" json:"tag,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *PushSkillFromRunArtifactRequest) Reset() {
-	*x = PushSkillFromRunArtifactRequest{}
+func (x *PushSkillFromFileRequest) Reset() {
+	*x = PushSkillFromFileRequest{}
 	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *PushSkillFromRunArtifactRequest) String() string {
+func (x *PushSkillFromFileRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PushSkillFromRunArtifactRequest) ProtoMessage() {}
+func (*PushSkillFromFileRequest) ProtoMessage() {}
 
-func (x *PushSkillFromRunArtifactRequest) ProtoReflect() protoreflect.Message {
+func (x *PushSkillFromFileRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_ai_stigmer_agentic_skill_v1_io_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -445,33 +443,26 @@ func (x *PushSkillFromRunArtifactRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PushSkillFromRunArtifactRequest.ProtoReflect.Descriptor instead.
-func (*PushSkillFromRunArtifactRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use PushSkillFromFileRequest.ProtoReflect.Descriptor instead.
+func (*PushSkillFromFileRequest) Descriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_skill_v1_io_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *PushSkillFromRunArtifactRequest) GetOrg() string {
+func (x *PushSkillFromFileRequest) GetOrg() string {
 	if x != nil {
 		return x.Org
 	}
 	return ""
 }
 
-func (x *PushSkillFromRunArtifactRequest) GetRunId() string {
+func (x *PushSkillFromFileRequest) GetFileId() string {
 	if x != nil {
-		return x.RunId
+		return x.FileId
 	}
 	return ""
 }
 
-func (x *PushSkillFromRunArtifactRequest) GetStorageKey() string {
-	if x != nil {
-		return x.StorageKey
-	}
-	return ""
-}
-
-func (x *PushSkillFromRunArtifactRequest) GetTag() string {
+func (x *PushSkillFromFileRequest) GetTag() string {
 	if x != nil {
 		return x.Tag
 	}
@@ -988,13 +979,11 @@ const file_ai_stigmer_agentic_skill_v1_io_proto_rawDesc = "" +
 	"\vttl_seconds\x18\x02 \x01(\x05R\n" +
 	"ttlSeconds\x12\x1d\n" +
 	"\n" +
-	"size_bytes\x18\x03 \x01(\x03R\tsizeBytes\"\xb4\x01\n" +
-	"\x1fPushSkillFromRunArtifactRequest\x12\x18\n" +
-	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12\x1e\n" +
-	"\x06run_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05runId\x12(\n" +
-	"\vstorage_key\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
-	"storageKey\x12-\n" +
-	"\x03tag\x18\x04 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\"N\n" +
+	"size_bytes\x18\x03 \x01(\x03R\tsizeBytes\"\x85\x01\n" +
+	"\x18PushSkillFromFileRequest\x12\x18\n" +
+	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12 \n" +
+	"\afile_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06fileId\x12-\n" +
+	"\x03tag\x18\x03 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\"N\n" +
 	"\x12GetArtifactRequest\x128\n" +
 	"\x14artifact_storage_key\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x12artifactStorageKey\"1\n" +
 	"\x13GetArtifactResponse\x12\x1a\n" +
@@ -1051,7 +1040,7 @@ var file_ai_stigmer_agentic_skill_v1_io_proto_goTypes = []any{
 	(*CreateSkillArtifactUploadUrlRequest)(nil), // 2: ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest
 	(*SkillArtifactUploadUrl)(nil),              // 3: ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl
 	(*SkillArtifactDownloadUrl)(nil),            // 4: ai.stigmer.agentic.skill.v1.SkillArtifactDownloadUrl
-	(*PushSkillFromRunArtifactRequest)(nil),     // 5: ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest
+	(*PushSkillFromFileRequest)(nil),            // 5: ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest
 	(*GetArtifactRequest)(nil),                  // 6: ai.stigmer.agentic.skill.v1.GetArtifactRequest
 	(*GetArtifactResponse)(nil),                 // 7: ai.stigmer.agentic.skill.v1.GetArtifactResponse
 	(*ListSkillVersionsInput)(nil),              // 8: ai.stigmer.agentic.skill.v1.ListSkillVersionsInput

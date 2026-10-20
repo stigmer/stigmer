@@ -7,17 +7,17 @@ package ai.stigmer.agentic.skill.v1;
 
 /**
  * <pre>
- * PushSkillFromRunArtifactRequest publishes a skill from a run
- * artifact already in storage, without downloading and re-uploading the ZIP.
+ * PushSkillFromFileRequest publishes a skill from a File holding its ZIP
+ * archive, without downloading and re-uploading the bytes.
  * </pre>
  *
- * Protobuf type {@code ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest}
+ * Protobuf type {@code ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest}
  */
 @com.google.protobuf.Generated
-public final class PushSkillFromRunArtifactRequest extends
+public final class PushSkillFromFileRequest extends
     com.google.protobuf.GeneratedMessage implements
-    // @@protoc_insertion_point(message_implements:ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest)
-    PushSkillFromRunArtifactRequestOrBuilder {
+    // @@protoc_insertion_point(message_implements:ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest)
+    PushSkillFromFileRequestOrBuilder {
 private static final long serialVersionUID = 0L;
   static {
     com.google.protobuf.RuntimeVersion.validateProtobufGencodeVersion(
@@ -26,35 +26,34 @@ private static final long serialVersionUID = 0L;
       /* minor= */ 34,
       /* patch= */ 0,
       /* suffix= */ "",
-      "PushSkillFromRunArtifactRequest");
+      "PushSkillFromFileRequest");
   }
-  // Use PushSkillFromRunArtifactRequest.newBuilder() to construct.
-  private PushSkillFromRunArtifactRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+  // Use PushSkillFromFileRequest.newBuilder() to construct.
+  private PushSkillFromFileRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
     super(builder);
   }
-  private PushSkillFromRunArtifactRequest() {
+  private PushSkillFromFileRequest() {
     org_ = "";
-    runId_ = "";
-    storageKey_ = "";
+    fileId_ = "";
     tag_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
       getDescriptor() {
-    return ai.stigmer.agentic.skill.v1.IoProto.internal_static_ai_stigmer_agentic_skill_v1_PushSkillFromRunArtifactRequest_descriptor;
+    return ai.stigmer.agentic.skill.v1.IoProto.internal_static_ai_stigmer_agentic_skill_v1_PushSkillFromFileRequest_descriptor;
   }
 
   @java.lang.Override
   public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-    return ai.stigmer.agentic.skill.v1.IoProto.internal_static_ai_stigmer_agentic_skill_v1_PushSkillFromRunArtifactRequest_descriptor;
+    return ai.stigmer.agentic.skill.v1.IoProto.internal_static_ai_stigmer_agentic_skill_v1_PushSkillFromFileRequest_descriptor;
   }
 
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
-    return ai.stigmer.agentic.skill.v1.IoProto.internal_static_ai_stigmer_agentic_skill_v1_PushSkillFromRunArtifactRequest_fieldAccessorTable
+    return ai.stigmer.agentic.skill.v1.IoProto.internal_static_ai_stigmer_agentic_skill_v1_PushSkillFromFileRequest_fieldAccessorTable
         .ensureFieldAccessorsInitialized(
-            ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest.class, ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest.Builder.class);
+            ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest.class, ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest.Builder.class);
   }
 
   public static final int ORG_FIELD_NUMBER = 1;
@@ -104,103 +103,56 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int RUN_ID_FIELD_NUMBER = 2;
+  public static final int FILE_ID_FIELD_NUMBER = 2;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object runId_ = "";
+  private volatile java.lang.Object fileId_ = "";
   /**
    * <pre>
-   * ID of the run that produced the artifact (e.g., "run_abc123xyz456").
+   * The File holding the skill's ZIP archive: "file_01j…". A File of the
+   * same organization the caller may view.
    * </pre>
    *
-   * <code>string run_id = 2 [json_name = "runId", (.buf.validate.field) = { ... }</code>
-   * @return The runId.
+   * <code>string file_id = 2 [json_name = "fileId", (.buf.validate.field) = { ... }</code>
+   * @return The fileId.
    */
   @java.lang.Override
-  public java.lang.String getRunId() {
-    java.lang.Object ref = runId_;
+  public java.lang.String getFileId() {
+    java.lang.Object ref = fileId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      runId_ = s;
+      fileId_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * ID of the run that produced the artifact (e.g., "run_abc123xyz456").
+   * The File holding the skill's ZIP archive: "file_01j…". A File of the
+   * same organization the caller may view.
    * </pre>
    *
-   * <code>string run_id = 2 [json_name = "runId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for runId.
+   * <code>string file_id = 2 [json_name = "fileId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for fileId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getRunIdBytes() {
-    java.lang.Object ref = runId_;
+      getFileIdBytes() {
+    java.lang.Object ref = fileId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      runId_ = b;
+      fileId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
     }
   }
 
-  public static final int STORAGE_KEY_FIELD_NUMBER = 3;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object storageKey_ = "";
-  /**
-   * <pre>
-   * Storage key of the directory artifact (ZIP) to push as a skill.
-   * Obtain this from RunArtifact.storage_key in the run status.
-   * </pre>
-   *
-   * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
-   * @return The storageKey.
-   */
-  @java.lang.Override
-  public java.lang.String getStorageKey() {
-    java.lang.Object ref = storageKey_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      storageKey_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * Storage key of the directory artifact (ZIP) to push as a skill.
-   * Obtain this from RunArtifact.storage_key in the run status.
-   * </pre>
-   *
-   * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for storageKey.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getStorageKeyBytes() {
-    java.lang.Object ref = storageKey_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      storageKey_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int TAG_FIELD_NUMBER = 4;
+  public static final int TAG_FIELD_NUMBER = 3;
   @SuppressWarnings("serial")
   private volatile java.lang.Object tag_ = "";
   /**
@@ -209,7 +161,7 @@ private static final long serialVersionUID = 0L;
    * Examples: "stable", "v1.0", "latest"
    * </pre>
    *
-   * <code>string tag = 4 [json_name = "tag", (.buf.validate.field) = { ... }</code>
+   * <code>string tag = 3 [json_name = "tag", (.buf.validate.field) = { ... }</code>
    * @return The tag.
    */
   @java.lang.Override
@@ -231,7 +183,7 @@ private static final long serialVersionUID = 0L;
    * Examples: "stable", "v1.0", "latest"
    * </pre>
    *
-   * <code>string tag = 4 [json_name = "tag", (.buf.validate.field) = { ... }</code>
+   * <code>string tag = 3 [json_name = "tag", (.buf.validate.field) = { ... }</code>
    * @return The bytes for tag.
    */
   @java.lang.Override
@@ -266,14 +218,11 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 1, org_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 2, runId_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(storageKey_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 3, storageKey_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(fileId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 2, fileId_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(tag_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 4, tag_);
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, tag_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -287,14 +236,11 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(1, org_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(runId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, runId_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(storageKey_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, storageKey_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(fileId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, fileId_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(tag_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, tag_);
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, tag_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -306,17 +252,15 @@ private static final long serialVersionUID = 0L;
     if (obj == this) {
      return true;
     }
-    if (!(obj instanceof ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest)) {
+    if (!(obj instanceof ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest)) {
       return super.equals(obj);
     }
-    ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest other = (ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest) obj;
+    ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest other = (ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest) obj;
 
     if (!getOrg()
         .equals(other.getOrg())) return false;
-    if (!getRunId()
-        .equals(other.getRunId())) return false;
-    if (!getStorageKey()
-        .equals(other.getStorageKey())) return false;
+    if (!getFileId()
+        .equals(other.getFileId())) return false;
     if (!getTag()
         .equals(other.getTag())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -332,10 +276,8 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + ORG_FIELD_NUMBER;
     hash = (53 * hash) + getOrg().hashCode();
-    hash = (37 * hash) + RUN_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getRunId().hashCode();
-    hash = (37 * hash) + STORAGE_KEY_FIELD_NUMBER;
-    hash = (53 * hash) + getStorageKey().hashCode();
+    hash = (37 * hash) + FILE_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getFileId().hashCode();
     hash = (37 * hash) + TAG_FIELD_NUMBER;
     hash = (53 * hash) + getTag().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
@@ -343,44 +285,44 @@ private static final long serialVersionUID = 0L;
     return hash;
   }
 
-  public static ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest parseFrom(
+  public static ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest parseFrom(
       java.nio.ByteBuffer data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest parseFrom(
+  public static ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest parseFrom(
       java.nio.ByteBuffer data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest parseFrom(
+  public static ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest parseFrom(
       com.google.protobuf.ByteString data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest parseFrom(
+  public static ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest parseFrom(
       com.google.protobuf.ByteString data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest parseFrom(byte[] data)
+  public static ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest parseFrom(byte[] data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest parseFrom(
+  public static ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest parseFrom(
       byte[] data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest parseFrom(java.io.InputStream input)
+  public static ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest parseFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseWithIOException(PARSER, input);
   }
-  public static ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest parseFrom(
+  public static ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest parseFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
@@ -388,26 +330,26 @@ private static final long serialVersionUID = 0L;
         .parseWithIOException(PARSER, input, extensionRegistry);
   }
 
-  public static ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest parseDelimitedFrom(java.io.InputStream input)
+  public static ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest parseDelimitedFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseDelimitedWithIOException(PARSER, input);
   }
 
-  public static ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest parseDelimitedFrom(
+  public static ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest parseDelimitedFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
   }
-  public static ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest parseFrom(
+  public static ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest parseFrom(
       com.google.protobuf.CodedInputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseWithIOException(PARSER, input);
   }
-  public static ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest parseFrom(
+  public static ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest parseFrom(
       com.google.protobuf.CodedInputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
@@ -420,7 +362,7 @@ private static final long serialVersionUID = 0L;
   public static Builder newBuilder() {
     return DEFAULT_INSTANCE.toBuilder();
   }
-  public static Builder newBuilder(ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest prototype) {
+  public static Builder newBuilder(ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest prototype) {
     return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
   }
   @java.lang.Override
@@ -437,30 +379,30 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * PushSkillFromRunArtifactRequest publishes a skill from a run
-   * artifact already in storage, without downloading and re-uploading the ZIP.
+   * PushSkillFromFileRequest publishes a skill from a File holding its ZIP
+   * archive, without downloading and re-uploading the bytes.
    * </pre>
    *
-   * Protobuf type {@code ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest}
+   * Protobuf type {@code ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest}
    */
   public static final class Builder extends
       com.google.protobuf.GeneratedMessage.Builder<Builder> implements
-      // @@protoc_insertion_point(builder_implements:ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest)
-      ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequestOrBuilder {
+      // @@protoc_insertion_point(builder_implements:ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest)
+      ai.stigmer.agentic.skill.v1.PushSkillFromFileRequestOrBuilder {
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return ai.stigmer.agentic.skill.v1.IoProto.internal_static_ai_stigmer_agentic_skill_v1_PushSkillFromRunArtifactRequest_descriptor;
+      return ai.stigmer.agentic.skill.v1.IoProto.internal_static_ai_stigmer_agentic_skill_v1_PushSkillFromFileRequest_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return ai.stigmer.agentic.skill.v1.IoProto.internal_static_ai_stigmer_agentic_skill_v1_PushSkillFromRunArtifactRequest_fieldAccessorTable
+      return ai.stigmer.agentic.skill.v1.IoProto.internal_static_ai_stigmer_agentic_skill_v1_PushSkillFromFileRequest_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest.class, ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest.Builder.class);
+              ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest.class, ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest.Builder.class);
     }
 
-    // Construct using ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest.newBuilder()
+    // Construct using ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest.newBuilder()
     private Builder() {
 
     }
@@ -475,8 +417,7 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       org_ = "";
-      runId_ = "";
-      storageKey_ = "";
+      fileId_ = "";
       tag_ = "";
       return this;
     }
@@ -484,17 +425,17 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public com.google.protobuf.Descriptors.Descriptor
         getDescriptorForType() {
-      return ai.stigmer.agentic.skill.v1.IoProto.internal_static_ai_stigmer_agentic_skill_v1_PushSkillFromRunArtifactRequest_descriptor;
+      return ai.stigmer.agentic.skill.v1.IoProto.internal_static_ai_stigmer_agentic_skill_v1_PushSkillFromFileRequest_descriptor;
     }
 
     @java.lang.Override
-    public ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest getDefaultInstanceForType() {
-      return ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest.getDefaultInstance();
+    public ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest getDefaultInstanceForType() {
+      return ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest.getDefaultInstance();
     }
 
     @java.lang.Override
-    public ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest build() {
-      ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest result = buildPartial();
+    public ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest build() {
+      ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest result = buildPartial();
       if (!result.isInitialized()) {
         throw newUninitializedMessageException(result);
       }
@@ -502,59 +443,51 @@ private static final long serialVersionUID = 0L;
     }
 
     @java.lang.Override
-    public ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest buildPartial() {
-      ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest result = new ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest(this);
+    public ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest buildPartial() {
+      ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest result = new ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest(this);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
     }
 
-    private void buildPartial0(ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest result) {
+    private void buildPartial0(ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
         result.org_ = org_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
-        result.runId_ = runId_;
+        result.fileId_ = fileId_;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.storageKey_ = storageKey_;
-      }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.tag_ = tag_;
       }
     }
 
     @java.lang.Override
     public Builder mergeFrom(com.google.protobuf.Message other) {
-      if (other instanceof ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest) {
-        return mergeFrom((ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest)other);
+      if (other instanceof ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest) {
+        return mergeFrom((ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest)other);
       } else {
         super.mergeFrom(other);
         return this;
       }
     }
 
-    public Builder mergeFrom(ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest other) {
-      if (other == ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest.getDefaultInstance()) return this;
+    public Builder mergeFrom(ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest other) {
+      if (other == ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest.getDefaultInstance()) return this;
       if (!other.getOrg().isEmpty()) {
         org_ = other.org_;
         bitField0_ |= 0x00000001;
         onChanged();
       }
-      if (!other.getRunId().isEmpty()) {
-        runId_ = other.runId_;
+      if (!other.getFileId().isEmpty()) {
+        fileId_ = other.fileId_;
         bitField0_ |= 0x00000002;
-        onChanged();
-      }
-      if (!other.getStorageKey().isEmpty()) {
-        storageKey_ = other.storageKey_;
-        bitField0_ |= 0x00000004;
         onChanged();
       }
       if (!other.getTag().isEmpty()) {
         tag_ = other.tag_;
-        bitField0_ |= 0x00000008;
+        bitField0_ |= 0x00000004;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -589,20 +522,15 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 10
             case 18: {
-              runId_ = input.readStringRequireUtf8();
+              fileId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000002;
               break;
             } // case 18
             case 26: {
-              storageKey_ = input.readStringRequireUtf8();
+              tag_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000004;
               break;
             } // case 26
-            case 34: {
-              tag_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -712,22 +640,23 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object runId_ = "";
+    private java.lang.Object fileId_ = "";
     /**
      * <pre>
-     * ID of the run that produced the artifact (e.g., "run_abc123xyz456").
+     * The File holding the skill's ZIP archive: "file_01j…". A File of the
+     * same organization the caller may view.
      * </pre>
      *
-     * <code>string run_id = 2 [json_name = "runId", (.buf.validate.field) = { ... }</code>
-     * @return The runId.
+     * <code>string file_id = 2 [json_name = "fileId", (.buf.validate.field) = { ... }</code>
+     * @return The fileId.
      */
-    public java.lang.String getRunId() {
-      java.lang.Object ref = runId_;
+    public java.lang.String getFileId() {
+      java.lang.Object ref = fileId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        runId_ = s;
+        fileId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -735,20 +664,21 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the run that produced the artifact (e.g., "run_abc123xyz456").
+     * The File holding the skill's ZIP archive: "file_01j…". A File of the
+     * same organization the caller may view.
      * </pre>
      *
-     * <code>string run_id = 2 [json_name = "runId", (.buf.validate.field) = { ... }</code>
-     * @return The bytes for runId.
+     * <code>string file_id = 2 [json_name = "fileId", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for fileId.
      */
     public com.google.protobuf.ByteString
-        getRunIdBytes() {
-      java.lang.Object ref = runId_;
+        getFileIdBytes() {
+      java.lang.Object ref = fileId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        runId_ = b;
+        fileId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -756,147 +686,53 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the run that produced the artifact (e.g., "run_abc123xyz456").
+     * The File holding the skill's ZIP archive: "file_01j…". A File of the
+     * same organization the caller may view.
      * </pre>
      *
-     * <code>string run_id = 2 [json_name = "runId", (.buf.validate.field) = { ... }</code>
-     * @param value The runId to set.
+     * <code>string file_id = 2 [json_name = "fileId", (.buf.validate.field) = { ... }</code>
+     * @param value The fileId to set.
      * @return This builder for chaining.
      */
-    public Builder setRunId(
+    public Builder setFileId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      runId_ = value;
+      fileId_ = value;
       bitField0_ |= 0x00000002;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * ID of the run that produced the artifact (e.g., "run_abc123xyz456").
+     * The File holding the skill's ZIP archive: "file_01j…". A File of the
+     * same organization the caller may view.
      * </pre>
      *
-     * <code>string run_id = 2 [json_name = "runId", (.buf.validate.field) = { ... }</code>
+     * <code>string file_id = 2 [json_name = "fileId", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearRunId() {
-      runId_ = getDefaultInstance().getRunId();
+    public Builder clearFileId() {
+      fileId_ = getDefaultInstance().getFileId();
       bitField0_ = (bitField0_ & ~0x00000002);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * ID of the run that produced the artifact (e.g., "run_abc123xyz456").
+     * The File holding the skill's ZIP archive: "file_01j…". A File of the
+     * same organization the caller may view.
      * </pre>
      *
-     * <code>string run_id = 2 [json_name = "runId", (.buf.validate.field) = { ... }</code>
-     * @param value The bytes for runId to set.
+     * <code>string file_id = 2 [json_name = "fileId", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for fileId to set.
      * @return This builder for chaining.
      */
-    public Builder setRunIdBytes(
+    public Builder setFileIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      runId_ = value;
+      fileId_ = value;
       bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-
-    private java.lang.Object storageKey_ = "";
-    /**
-     * <pre>
-     * Storage key of the directory artifact (ZIP) to push as a skill.
-     * Obtain this from RunArtifact.storage_key in the run status.
-     * </pre>
-     *
-     * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
-     * @return The storageKey.
-     */
-    public java.lang.String getStorageKey() {
-      java.lang.Object ref = storageKey_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        storageKey_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Storage key of the directory artifact (ZIP) to push as a skill.
-     * Obtain this from RunArtifact.storage_key in the run status.
-     * </pre>
-     *
-     * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
-     * @return The bytes for storageKey.
-     */
-    public com.google.protobuf.ByteString
-        getStorageKeyBytes() {
-      java.lang.Object ref = storageKey_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        storageKey_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Storage key of the directory artifact (ZIP) to push as a skill.
-     * Obtain this from RunArtifact.storage_key in the run status.
-     * </pre>
-     *
-     * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
-     * @param value The storageKey to set.
-     * @return This builder for chaining.
-     */
-    public Builder setStorageKey(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      storageKey_ = value;
-      bitField0_ |= 0x00000004;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Storage key of the directory artifact (ZIP) to push as a skill.
-     * Obtain this from RunArtifact.storage_key in the run status.
-     * </pre>
-     *
-     * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearStorageKey() {
-      storageKey_ = getDefaultInstance().getStorageKey();
-      bitField0_ = (bitField0_ & ~0x00000004);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Storage key of the directory artifact (ZIP) to push as a skill.
-     * Obtain this from RunArtifact.storage_key in the run status.
-     * </pre>
-     *
-     * <code>string storage_key = 3 [json_name = "storageKey", (.buf.validate.field) = { ... }</code>
-     * @param value The bytes for storageKey to set.
-     * @return This builder for chaining.
-     */
-    public Builder setStorageKeyBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      storageKey_ = value;
-      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
@@ -908,7 +744,7 @@ private static final long serialVersionUID = 0L;
      * Examples: "stable", "v1.0", "latest"
      * </pre>
      *
-     * <code>string tag = 4 [json_name = "tag", (.buf.validate.field) = { ... }</code>
+     * <code>string tag = 3 [json_name = "tag", (.buf.validate.field) = { ... }</code>
      * @return The tag.
      */
     public java.lang.String getTag() {
@@ -929,7 +765,7 @@ private static final long serialVersionUID = 0L;
      * Examples: "stable", "v1.0", "latest"
      * </pre>
      *
-     * <code>string tag = 4 [json_name = "tag", (.buf.validate.field) = { ... }</code>
+     * <code>string tag = 3 [json_name = "tag", (.buf.validate.field) = { ... }</code>
      * @return The bytes for tag.
      */
     public com.google.protobuf.ByteString
@@ -951,7 +787,7 @@ private static final long serialVersionUID = 0L;
      * Examples: "stable", "v1.0", "latest"
      * </pre>
      *
-     * <code>string tag = 4 [json_name = "tag", (.buf.validate.field) = { ... }</code>
+     * <code>string tag = 3 [json_name = "tag", (.buf.validate.field) = { ... }</code>
      * @param value The tag to set.
      * @return This builder for chaining.
      */
@@ -959,7 +795,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       tag_ = value;
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
@@ -969,12 +805,12 @@ private static final long serialVersionUID = 0L;
      * Examples: "stable", "v1.0", "latest"
      * </pre>
      *
-     * <code>string tag = 4 [json_name = "tag", (.buf.validate.field) = { ... }</code>
+     * <code>string tag = 3 [json_name = "tag", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearTag() {
       tag_ = getDefaultInstance().getTag();
-      bitField0_ = (bitField0_ & ~0x00000008);
+      bitField0_ = (bitField0_ & ~0x00000004);
       onChanged();
       return this;
     }
@@ -984,7 +820,7 @@ private static final long serialVersionUID = 0L;
      * Examples: "stable", "v1.0", "latest"
      * </pre>
      *
-     * <code>string tag = 4 [json_name = "tag", (.buf.validate.field) = { ... }</code>
+     * <code>string tag = 3 [json_name = "tag", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for tag to set.
      * @return This builder for chaining.
      */
@@ -993,28 +829,28 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       tag_ = value;
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }
 
-    // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest)
+    // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest)
   }
 
-  // @@protoc_insertion_point(class_scope:ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest)
-  private static final ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest DEFAULT_INSTANCE;
+  // @@protoc_insertion_point(class_scope:ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest)
+  private static final ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest DEFAULT_INSTANCE;
   static {
-    DEFAULT_INSTANCE = new ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest();
+    DEFAULT_INSTANCE = new ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest();
   }
 
-  public static ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest getDefaultInstance() {
+  public static ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest getDefaultInstance() {
     return DEFAULT_INSTANCE;
   }
 
-  private static final com.google.protobuf.Parser<PushSkillFromRunArtifactRequest>
-      PARSER = new com.google.protobuf.AbstractParser<PushSkillFromRunArtifactRequest>() {
+  private static final com.google.protobuf.Parser<PushSkillFromFileRequest>
+      PARSER = new com.google.protobuf.AbstractParser<PushSkillFromFileRequest>() {
     @java.lang.Override
-    public PushSkillFromRunArtifactRequest parsePartialFrom(
+    public PushSkillFromFileRequest parsePartialFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -1033,17 +869,17 @@ private static final long serialVersionUID = 0L;
     }
   };
 
-  public static com.google.protobuf.Parser<PushSkillFromRunArtifactRequest> parser() {
+  public static com.google.protobuf.Parser<PushSkillFromFileRequest> parser() {
     return PARSER;
   }
 
   @java.lang.Override
-  public com.google.protobuf.Parser<PushSkillFromRunArtifactRequest> getParserForType() {
+  public com.google.protobuf.Parser<PushSkillFromFileRequest> getParserForType() {
     return PARSER;
   }
 
   @java.lang.Override
-  public ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest getDefaultInstanceForType() {
+  public ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest getDefaultInstanceForType() {
     return DEFAULT_INSTANCE;
   }
 

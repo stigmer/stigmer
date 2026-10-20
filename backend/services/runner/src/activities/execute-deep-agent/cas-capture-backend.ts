@@ -47,11 +47,11 @@
  * resolution stays inside `rootDir` by construction. This is the same dialect
  * the rest of the harness already speaks — the system prompt's path-resolution
  * directive, `resolveWorkspacePath(..., virtualRoot=true)` in the CAS observer
- * and turn-boundary capture, `InlinePublisher.normalizePath`, and the approval
+ * and turn-boundary capture, and the approval
  * gate's capturability checks. Before this flag, deepagents' legacy default
  * passed absolute paths through to the REAL filesystem: a `write_file("/tmp/x")`
  * escaped the session workspace onto the host AND escaped review entirely
- * (auto-approved as capture-mode flow, but the observer/boundary/publisher all
+ * (auto-approved as capture-mode flow, but the observer and boundary both
  * looked inside the workspace and found nothing). Read-side, the same legacy
  * pass-through was why plan mode needed rule-based read fencing at all. Do not
  * remove this flag: workspace confinement is structural, not policy.

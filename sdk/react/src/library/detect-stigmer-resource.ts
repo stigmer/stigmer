@@ -9,9 +9,7 @@ import { parse as parseYaml } from "yaml";
  * - `"Agent"` — agent blueprint (`apiVersion: agentic.stigmer.ai/v1`, `kind: Agent`)
  *
  * Skills and plugins are **not** included here — they are package-based
- * (directory artifacts) and are pushed, never applied; a skill uses a
- * separate detection path via {@link isSkillPackage} /
- * {@link detectSkillPackage}.
+ * (a ZIP archive) and are pushed, never applied.
  */
 export type StigmerResourceKind = "Agent";
 

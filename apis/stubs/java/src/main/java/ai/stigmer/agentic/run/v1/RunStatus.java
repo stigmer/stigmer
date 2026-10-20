@@ -40,7 +40,6 @@ private static final long serialVersionUID = 0L;
     error_ = "";
     startedAt_ = "";
     completedAt_ = "";
-    artifacts_ = java.util.Collections.emptyList();
     workspaceWriteBacks_ = java.util.Collections.emptyList();
     fileChanges_ = java.util.Collections.emptyList();
     agentId_ = "";
@@ -282,112 +281,6 @@ private static final long serialVersionUID = 0L;
     } else {
       return (com.google.protobuf.ByteString) ref;
     }
-  }
-
-  public static final int ARTIFACTS_FIELD_NUMBER = 15;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.run.v1.RunArtifact> artifacts_;
-  /**
-   * <pre>
-   * Files/directories published by the agent for download.
-   *
-   * When an agent creates artifacts (e.g., generated code, reports, skills),
-   * it can call the publish_artifact tool to make them downloadable.
-   * Each artifact includes a pre-signed URL for direct download.
-   *
-   * Artifacts are stored in R2 and URLs expire after a configured period.
-   * Use the run download endpoint to refresh expired URLs.
-   *
-   * Ordered by creation time (oldest first).
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.run.v1.RunArtifact> getArtifactsList() {
-    return artifacts_;
-  }
-  /**
-   * <pre>
-   * Files/directories published by the agent for download.
-   *
-   * When an agent creates artifacts (e.g., generated code, reports, skills),
-   * it can call the publish_artifact tool to make them downloadable.
-   * Each artifact includes a pre-signed URL for direct download.
-   *
-   * Artifacts are stored in R2 and URLs expire after a configured period.
-   * Use the run download endpoint to refresh expired URLs.
-   *
-   * Ordered by creation time (oldest first).
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.run.v1.RunArtifactOrBuilder> 
-      getArtifactsOrBuilderList() {
-    return artifacts_;
-  }
-  /**
-   * <pre>
-   * Files/directories published by the agent for download.
-   *
-   * When an agent creates artifacts (e.g., generated code, reports, skills),
-   * it can call the publish_artifact tool to make them downloadable.
-   * Each artifact includes a pre-signed URL for direct download.
-   *
-   * Artifacts are stored in R2 and URLs expire after a configured period.
-   * Use the run download endpoint to refresh expired URLs.
-   *
-   * Ordered by creation time (oldest first).
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-   */
-  @java.lang.Override
-  public int getArtifactsCount() {
-    return artifacts_.size();
-  }
-  /**
-   * <pre>
-   * Files/directories published by the agent for download.
-   *
-   * When an agent creates artifacts (e.g., generated code, reports, skills),
-   * it can call the publish_artifact tool to make them downloadable.
-   * Each artifact includes a pre-signed URL for direct download.
-   *
-   * Artifacts are stored in R2 and URLs expire after a configured period.
-   * Use the run download endpoint to refresh expired URLs.
-   *
-   * Ordered by creation time (oldest first).
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.RunArtifact getArtifacts(int index) {
-    return artifacts_.get(index);
-  }
-  /**
-   * <pre>
-   * Files/directories published by the agent for download.
-   *
-   * When an agent creates artifacts (e.g., generated code, reports, skills),
-   * it can call the publish_artifact tool to make them downloadable.
-   * Each artifact includes a pre-signed URL for direct download.
-   *
-   * Artifacts are stored in R2 and URLs expire after a configured period.
-   * Use the run download endpoint to refresh expired URLs.
-   *
-   * Ordered by creation time (oldest first).
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.run.v1.RunArtifactOrBuilder getArtifactsOrBuilder(
-      int index) {
-    return artifacts_.get(index);
   }
 
   public static final int WORKSPACE_WRITE_BACKS_FIELD_NUMBER = 17;
@@ -1297,9 +1190,6 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(completedAt_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 8, completedAt_);
     }
-    for (int i = 0; i < artifacts_.size(); i++) {
-      output.writeMessage(15, artifacts_.get(i));
-    }
     for (int i = 0; i < workspaceWriteBacks_.size(); i++) {
       output.writeMessage(17, workspaceWriteBacks_.get(i));
     }
@@ -1373,15 +1263,6 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(completedAt_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(8, completedAt_);
     }
-
-        {
-          final int count = artifacts_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(artifacts_.get(i));
-          }
-          size += 1 * count;
-        }
 
         {
           final int count = workspaceWriteBacks_.size();
@@ -1489,8 +1370,6 @@ private static final long serialVersionUID = 0L;
         .equals(other.getStartedAt())) return false;
     if (!getCompletedAt()
         .equals(other.getCompletedAt())) return false;
-    if (!getArtifactsList()
-        .equals(other.getArtifactsList())) return false;
     if (!getWorkspaceWriteBacksList()
         .equals(other.getWorkspaceWriteBacksList())) return false;
     if (hasSetupProgress() != other.hasSetupProgress()) return false;
@@ -1572,10 +1451,6 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getStartedAt().hashCode();
     hash = (37 * hash) + COMPLETED_AT_FIELD_NUMBER;
     hash = (53 * hash) + getCompletedAt().hashCode();
-    if (getArtifactsCount() > 0) {
-      hash = (37 * hash) + ARTIFACTS_FIELD_NUMBER;
-      hash = (53 * hash) + getArtifactsList().hashCode();
-    }
     if (getWorkspaceWriteBacksCount() > 0) {
       hash = (37 * hash) + WORKSPACE_WRITE_BACKS_FIELD_NUMBER;
       hash = (53 * hash) + getWorkspaceWriteBacksList().hashCode();
@@ -1771,7 +1646,6 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetAuditFieldBuilder();
-        internalGetArtifactsFieldBuilder();
         internalGetWorkspaceWriteBacksFieldBuilder();
         internalGetSetupProgressFieldBuilder();
         internalGetStreamingUsageFieldBuilder();
@@ -1799,20 +1673,13 @@ private static final long serialVersionUID = 0L;
       error_ = "";
       startedAt_ = "";
       completedAt_ = "";
-      if (artifactsBuilder_ == null) {
-        artifacts_ = java.util.Collections.emptyList();
-      } else {
-        artifacts_ = null;
-        artifactsBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000020);
       if (workspaceWriteBacksBuilder_ == null) {
         workspaceWriteBacks_ = java.util.Collections.emptyList();
       } else {
         workspaceWriteBacks_ = null;
         workspaceWriteBacksBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000020);
       setupProgress_ = null;
       if (setupProgressBuilder_ != null) {
         setupProgressBuilder_.dispose();
@@ -1834,7 +1701,7 @@ private static final long serialVersionUID = 0L;
         fileChanges_ = null;
         fileChangesBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000200);
       agentId_ = "";
       agentVersionHash_ = "";
       loadedVersions_ = null;
@@ -1875,7 +1742,7 @@ private static final long serialVersionUID = 0L;
         messageFiles_ = null;
         messageFilesBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00200000);
+      bitField0_ = (bitField0_ & ~0x00100000);
       return this;
     }
 
@@ -1909,37 +1776,28 @@ private static final long serialVersionUID = 0L;
     }
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.run.v1.RunStatus result) {
-      if (artifactsBuilder_ == null) {
-        if (((bitField0_ & 0x00000020) != 0)) {
-          artifacts_ = java.util.Collections.unmodifiableList(artifacts_);
-          bitField0_ = (bitField0_ & ~0x00000020);
-        }
-        result.artifacts_ = artifacts_;
-      } else {
-        result.artifacts_ = artifactsBuilder_.build();
-      }
       if (workspaceWriteBacksBuilder_ == null) {
-        if (((bitField0_ & 0x00000040) != 0)) {
+        if (((bitField0_ & 0x00000020) != 0)) {
           workspaceWriteBacks_ = java.util.Collections.unmodifiableList(workspaceWriteBacks_);
-          bitField0_ = (bitField0_ & ~0x00000040);
+          bitField0_ = (bitField0_ & ~0x00000020);
         }
         result.workspaceWriteBacks_ = workspaceWriteBacks_;
       } else {
         result.workspaceWriteBacks_ = workspaceWriteBacksBuilder_.build();
       }
       if (fileChangesBuilder_ == null) {
-        if (((bitField0_ & 0x00000400) != 0)) {
+        if (((bitField0_ & 0x00000200) != 0)) {
           fileChanges_ = java.util.Collections.unmodifiableList(fileChanges_);
-          bitField0_ = (bitField0_ & ~0x00000400);
+          bitField0_ = (bitField0_ & ~0x00000200);
         }
         result.fileChanges_ = fileChanges_;
       } else {
         result.fileChanges_ = fileChangesBuilder_.build();
       }
       if (messageFilesBuilder_ == null) {
-        if (((bitField0_ & 0x00200000) != 0)) {
+        if (((bitField0_ & 0x00100000) != 0)) {
           messageFiles_ = java.util.Collections.unmodifiableList(messageFiles_);
-          bitField0_ = (bitField0_ & ~0x00200000);
+          bitField0_ = (bitField0_ & ~0x00100000);
         }
         result.messageFiles_ = messageFiles_;
       } else {
@@ -1968,70 +1826,70 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.completedAt_ = completedAt_;
       }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
+      if (((from_bitField0_ & 0x00000040) != 0)) {
         result.setupProgress_ = setupProgressBuilder_ == null
             ? setupProgress_
             : setupProgressBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
+      if (((from_bitField0_ & 0x00000080) != 0)) {
         result.streamingUsage_ = streamingUsageBuilder_ == null
             ? streamingUsage_
             : streamingUsageBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.fileChangeProgress_ = fileChangeProgressBuilder_ == null
             ? fileChangeProgress_
             : fileChangeProgressBuilder_.build();
         to_bitField0_ |= 0x00000008;
       }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
+      if (((from_bitField0_ & 0x00000400) != 0)) {
         result.agentId_ = agentId_;
       }
-      if (((from_bitField0_ & 0x00001000) != 0)) {
+      if (((from_bitField0_ & 0x00000800) != 0)) {
         result.agentVersionHash_ = agentVersionHash_;
       }
-      if (((from_bitField0_ & 0x00002000) != 0)) {
+      if (((from_bitField0_ & 0x00001000) != 0)) {
         result.loadedVersions_ = loadedVersionsBuilder_ == null
             ? loadedVersions_
             : loadedVersionsBuilder_.build();
         to_bitField0_ |= 0x00000010;
       }
-      if (((from_bitField0_ & 0x00004000) != 0)) {
+      if (((from_bitField0_ & 0x00002000) != 0)) {
         result.declaredPreferences_ = declaredPreferencesBuilder_ == null
             ? declaredPreferences_
             : declaredPreferencesBuilder_.build();
         to_bitField0_ |= 0x00000020;
       }
-      if (((from_bitField0_ & 0x00008000) != 0)) {
+      if (((from_bitField0_ & 0x00004000) != 0)) {
         result.recalledMemories_ = recalledMemoriesBuilder_ == null
             ? recalledMemories_
             : recalledMemoriesBuilder_.build();
         to_bitField0_ |= 0x00000040;
       }
-      if (((from_bitField0_ & 0x00010000) != 0)) {
+      if (((from_bitField0_ & 0x00008000) != 0)) {
         result.runConfig_ = runConfigBuilder_ == null
             ? runConfig_
             : runConfigBuilder_.build();
         to_bitField0_ |= 0x00000080;
       }
-      if (((from_bitField0_ & 0x00020000) != 0)) {
+      if (((from_bitField0_ & 0x00010000) != 0)) {
         result.approvalMode_ = approvalMode_;
       }
-      if (((from_bitField0_ & 0x00040000) != 0)) {
+      if (((from_bitField0_ & 0x00020000) != 0)) {
         result.credentials_ = credentialsBuilder_ == null
             ? credentials_
             : credentialsBuilder_.build();
         to_bitField0_ |= 0x00000100;
       }
-      if (((from_bitField0_ & 0x00080000) != 0)) {
+      if (((from_bitField0_ & 0x00040000) != 0)) {
         result.evalFiles_ = evalFilesBuilder_ == null
             ? evalFiles_
             : evalFilesBuilder_.build();
         to_bitField0_ |= 0x00000200;
       }
-      if (((from_bitField0_ & 0x00100000) != 0)) {
+      if (((from_bitField0_ & 0x00080000) != 0)) {
         result.stopCause_ = stopCause_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -2070,37 +1928,11 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000010;
         onChanged();
       }
-      if (artifactsBuilder_ == null) {
-        if (!other.artifacts_.isEmpty()) {
-          if (artifacts_.isEmpty()) {
-            artifacts_ = other.artifacts_;
-            bitField0_ = (bitField0_ & ~0x00000020);
-          } else {
-            ensureArtifactsIsMutable();
-            artifacts_.addAll(other.artifacts_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.artifacts_.isEmpty()) {
-          if (artifactsBuilder_.isEmpty()) {
-            artifactsBuilder_.dispose();
-            artifactsBuilder_ = null;
-            artifacts_ = other.artifacts_;
-            bitField0_ = (bitField0_ & ~0x00000020);
-            artifactsBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetArtifactsFieldBuilder() : null;
-          } else {
-            artifactsBuilder_.addAllMessages(other.artifacts_);
-          }
-        }
-      }
       if (workspaceWriteBacksBuilder_ == null) {
         if (!other.workspaceWriteBacks_.isEmpty()) {
           if (workspaceWriteBacks_.isEmpty()) {
             workspaceWriteBacks_ = other.workspaceWriteBacks_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+            bitField0_ = (bitField0_ & ~0x00000020);
           } else {
             ensureWorkspaceWriteBacksIsMutable();
             workspaceWriteBacks_.addAll(other.workspaceWriteBacks_);
@@ -2113,7 +1945,7 @@ private static final long serialVersionUID = 0L;
             workspaceWriteBacksBuilder_.dispose();
             workspaceWriteBacksBuilder_ = null;
             workspaceWriteBacks_ = other.workspaceWriteBacks_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+            bitField0_ = (bitField0_ & ~0x00000020);
             workspaceWriteBacksBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetWorkspaceWriteBacksFieldBuilder() : null;
@@ -2135,7 +1967,7 @@ private static final long serialVersionUID = 0L;
         if (!other.fileChanges_.isEmpty()) {
           if (fileChanges_.isEmpty()) {
             fileChanges_ = other.fileChanges_;
-            bitField0_ = (bitField0_ & ~0x00000400);
+            bitField0_ = (bitField0_ & ~0x00000200);
           } else {
             ensureFileChangesIsMutable();
             fileChanges_.addAll(other.fileChanges_);
@@ -2148,7 +1980,7 @@ private static final long serialVersionUID = 0L;
             fileChangesBuilder_.dispose();
             fileChangesBuilder_ = null;
             fileChanges_ = other.fileChanges_;
-            bitField0_ = (bitField0_ & ~0x00000400);
+            bitField0_ = (bitField0_ & ~0x00000200);
             fileChangesBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetFileChangesFieldBuilder() : null;
@@ -2159,12 +1991,12 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getAgentId().isEmpty()) {
         agentId_ = other.agentId_;
-        bitField0_ |= 0x00000800;
+        bitField0_ |= 0x00000400;
         onChanged();
       }
       if (!other.getAgentVersionHash().isEmpty()) {
         agentVersionHash_ = other.agentVersionHash_;
-        bitField0_ |= 0x00001000;
+        bitField0_ |= 0x00000800;
         onChanged();
       }
       if (other.hasLoadedVersions()) {
@@ -2190,14 +2022,14 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getStopCause().isEmpty()) {
         stopCause_ = other.stopCause_;
-        bitField0_ |= 0x00100000;
+        bitField0_ |= 0x00080000;
         onChanged();
       }
       if (messageFilesBuilder_ == null) {
         if (!other.messageFiles_.isEmpty()) {
           if (messageFiles_.isEmpty()) {
             messageFiles_ = other.messageFiles_;
-            bitField0_ = (bitField0_ & ~0x00200000);
+            bitField0_ = (bitField0_ & ~0x00100000);
           } else {
             ensureMessageFilesIsMutable();
             messageFiles_.addAll(other.messageFiles_);
@@ -2210,7 +2042,7 @@ private static final long serialVersionUID = 0L;
             messageFilesBuilder_.dispose();
             messageFilesBuilder_ = null;
             messageFiles_ = other.messageFiles_;
-            bitField0_ = (bitField0_ & ~0x00200000);
+            bitField0_ = (bitField0_ & ~0x00100000);
             messageFilesBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetMessageFilesFieldBuilder() : null;
@@ -2265,19 +2097,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 66
-            case 122: {
-              ai.stigmer.agentic.run.v1.RunArtifact m =
-                  input.readMessage(
-                      ai.stigmer.agentic.run.v1.RunArtifact.parser(),
-                      extensionRegistry);
-              if (artifactsBuilder_ == null) {
-                ensureArtifactsIsMutable();
-                artifacts_.add(m);
-              } else {
-                artifactsBuilder_.addMessage(m);
-              }
-              break;
-            } // case 122
             case 138: {
               ai.stigmer.agentic.run.v1.WorkspaceWriteBack m =
                   input.readMessage(
@@ -2295,83 +2114,83 @@ private static final long serialVersionUID = 0L;
               input.readMessage(
                   internalGetSetupProgressFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000040;
               break;
             } // case 146
             case 162: {
               input.readMessage(
                   internalGetStreamingUsageFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000080;
               break;
             } // case 162
             case 202: {
               input.readMessage(
                   internalGetFileChangeProgressFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000100;
               break;
             } // case 202
             case 218: {
               agentId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000800;
+              bitField0_ |= 0x00000400;
               break;
             } // case 218
             case 226: {
               agentVersionHash_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00001000;
+              bitField0_ |= 0x00000800;
               break;
             } // case 226
             case 234: {
               input.readMessage(
                   internalGetDeclaredPreferencesFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00004000;
+              bitField0_ |= 0x00002000;
               break;
             } // case 234
             case 242: {
               input.readMessage(
                   internalGetRecalledMemoriesFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00008000;
+              bitField0_ |= 0x00004000;
               break;
             } // case 242
             case 250: {
               input.readMessage(
                   internalGetRunConfigFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00010000;
+              bitField0_ |= 0x00008000;
               break;
             } // case 250
             case 256: {
               approvalMode_ = input.readEnum();
-              bitField0_ |= 0x00020000;
+              bitField0_ |= 0x00010000;
               break;
             } // case 256
             case 266: {
               input.readMessage(
                   internalGetCredentialsFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00040000;
+              bitField0_ |= 0x00020000;
               break;
             } // case 266
             case 274: {
               input.readMessage(
                   internalGetEvalFilesFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00080000;
+              bitField0_ |= 0x00040000;
               break;
             } // case 274
             case 282: {
               stopCause_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00100000;
+              bitField0_ |= 0x00080000;
               break;
             } // case 282
             case 290: {
               input.readMessage(
                   internalGetLoadedVersionsFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00002000;
+              bitField0_ |= 0x00001000;
               break;
             } // case 290
             case 298: {
@@ -2954,486 +2773,12 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.util.List<ai.stigmer.agentic.run.v1.RunArtifact> artifacts_ =
-      java.util.Collections.emptyList();
-    private void ensureArtifactsIsMutable() {
-      if (!((bitField0_ & 0x00000020) != 0)) {
-        artifacts_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.RunArtifact>(artifacts_);
-        bitField0_ |= 0x00000020;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.RunArtifact, ai.stigmer.agentic.run.v1.RunArtifact.Builder, ai.stigmer.agentic.run.v1.RunArtifactOrBuilder> artifactsBuilder_;
-
-    /**
-     * <pre>
-     * Files/directories published by the agent for download.
-     *
-     * When an agent creates artifacts (e.g., generated code, reports, skills),
-     * it can call the publish_artifact tool to make them downloadable.
-     * Each artifact includes a pre-signed URL for direct download.
-     *
-     * Artifacts are stored in R2 and URLs expire after a configured period.
-     * Use the run download endpoint to refresh expired URLs.
-     *
-     * Ordered by creation time (oldest first).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.run.v1.RunArtifact> getArtifactsList() {
-      if (artifactsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(artifacts_);
-      } else {
-        return artifactsBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * Files/directories published by the agent for download.
-     *
-     * When an agent creates artifacts (e.g., generated code, reports, skills),
-     * it can call the publish_artifact tool to make them downloadable.
-     * Each artifact includes a pre-signed URL for direct download.
-     *
-     * Artifacts are stored in R2 and URLs expire after a configured period.
-     * Use the run download endpoint to refresh expired URLs.
-     *
-     * Ordered by creation time (oldest first).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-     */
-    public int getArtifactsCount() {
-      if (artifactsBuilder_ == null) {
-        return artifacts_.size();
-      } else {
-        return artifactsBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * Files/directories published by the agent for download.
-     *
-     * When an agent creates artifacts (e.g., generated code, reports, skills),
-     * it can call the publish_artifact tool to make them downloadable.
-     * Each artifact includes a pre-signed URL for direct download.
-     *
-     * Artifacts are stored in R2 and URLs expire after a configured period.
-     * Use the run download endpoint to refresh expired URLs.
-     *
-     * Ordered by creation time (oldest first).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.RunArtifact getArtifacts(int index) {
-      if (artifactsBuilder_ == null) {
-        return artifacts_.get(index);
-      } else {
-        return artifactsBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * Files/directories published by the agent for download.
-     *
-     * When an agent creates artifacts (e.g., generated code, reports, skills),
-     * it can call the publish_artifact tool to make them downloadable.
-     * Each artifact includes a pre-signed URL for direct download.
-     *
-     * Artifacts are stored in R2 and URLs expire after a configured period.
-     * Use the run download endpoint to refresh expired URLs.
-     *
-     * Ordered by creation time (oldest first).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-     */
-    public Builder setArtifacts(
-        int index, ai.stigmer.agentic.run.v1.RunArtifact value) {
-      if (artifactsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureArtifactsIsMutable();
-        artifacts_.set(index, value);
-        onChanged();
-      } else {
-        artifactsBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Files/directories published by the agent for download.
-     *
-     * When an agent creates artifacts (e.g., generated code, reports, skills),
-     * it can call the publish_artifact tool to make them downloadable.
-     * Each artifact includes a pre-signed URL for direct download.
-     *
-     * Artifacts are stored in R2 and URLs expire after a configured period.
-     * Use the run download endpoint to refresh expired URLs.
-     *
-     * Ordered by creation time (oldest first).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-     */
-    public Builder setArtifacts(
-        int index, ai.stigmer.agentic.run.v1.RunArtifact.Builder builderForValue) {
-      if (artifactsBuilder_ == null) {
-        ensureArtifactsIsMutable();
-        artifacts_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        artifactsBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Files/directories published by the agent for download.
-     *
-     * When an agent creates artifacts (e.g., generated code, reports, skills),
-     * it can call the publish_artifact tool to make them downloadable.
-     * Each artifact includes a pre-signed URL for direct download.
-     *
-     * Artifacts are stored in R2 and URLs expire after a configured period.
-     * Use the run download endpoint to refresh expired URLs.
-     *
-     * Ordered by creation time (oldest first).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-     */
-    public Builder addArtifacts(ai.stigmer.agentic.run.v1.RunArtifact value) {
-      if (artifactsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureArtifactsIsMutable();
-        artifacts_.add(value);
-        onChanged();
-      } else {
-        artifactsBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Files/directories published by the agent for download.
-     *
-     * When an agent creates artifacts (e.g., generated code, reports, skills),
-     * it can call the publish_artifact tool to make them downloadable.
-     * Each artifact includes a pre-signed URL for direct download.
-     *
-     * Artifacts are stored in R2 and URLs expire after a configured period.
-     * Use the run download endpoint to refresh expired URLs.
-     *
-     * Ordered by creation time (oldest first).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-     */
-    public Builder addArtifacts(
-        int index, ai.stigmer.agentic.run.v1.RunArtifact value) {
-      if (artifactsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureArtifactsIsMutable();
-        artifacts_.add(index, value);
-        onChanged();
-      } else {
-        artifactsBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Files/directories published by the agent for download.
-     *
-     * When an agent creates artifacts (e.g., generated code, reports, skills),
-     * it can call the publish_artifact tool to make them downloadable.
-     * Each artifact includes a pre-signed URL for direct download.
-     *
-     * Artifacts are stored in R2 and URLs expire after a configured period.
-     * Use the run download endpoint to refresh expired URLs.
-     *
-     * Ordered by creation time (oldest first).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-     */
-    public Builder addArtifacts(
-        ai.stigmer.agentic.run.v1.RunArtifact.Builder builderForValue) {
-      if (artifactsBuilder_ == null) {
-        ensureArtifactsIsMutable();
-        artifacts_.add(builderForValue.build());
-        onChanged();
-      } else {
-        artifactsBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Files/directories published by the agent for download.
-     *
-     * When an agent creates artifacts (e.g., generated code, reports, skills),
-     * it can call the publish_artifact tool to make them downloadable.
-     * Each artifact includes a pre-signed URL for direct download.
-     *
-     * Artifacts are stored in R2 and URLs expire after a configured period.
-     * Use the run download endpoint to refresh expired URLs.
-     *
-     * Ordered by creation time (oldest first).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-     */
-    public Builder addArtifacts(
-        int index, ai.stigmer.agentic.run.v1.RunArtifact.Builder builderForValue) {
-      if (artifactsBuilder_ == null) {
-        ensureArtifactsIsMutable();
-        artifacts_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        artifactsBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Files/directories published by the agent for download.
-     *
-     * When an agent creates artifacts (e.g., generated code, reports, skills),
-     * it can call the publish_artifact tool to make them downloadable.
-     * Each artifact includes a pre-signed URL for direct download.
-     *
-     * Artifacts are stored in R2 and URLs expire after a configured period.
-     * Use the run download endpoint to refresh expired URLs.
-     *
-     * Ordered by creation time (oldest first).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-     */
-    public Builder addAllArtifacts(
-        java.lang.Iterable<? extends ai.stigmer.agentic.run.v1.RunArtifact> values) {
-      if (artifactsBuilder_ == null) {
-        ensureArtifactsIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, artifacts_);
-        onChanged();
-      } else {
-        artifactsBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Files/directories published by the agent for download.
-     *
-     * When an agent creates artifacts (e.g., generated code, reports, skills),
-     * it can call the publish_artifact tool to make them downloadable.
-     * Each artifact includes a pre-signed URL for direct download.
-     *
-     * Artifacts are stored in R2 and URLs expire after a configured period.
-     * Use the run download endpoint to refresh expired URLs.
-     *
-     * Ordered by creation time (oldest first).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-     */
-    public Builder clearArtifacts() {
-      if (artifactsBuilder_ == null) {
-        artifacts_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000020);
-        onChanged();
-      } else {
-        artifactsBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Files/directories published by the agent for download.
-     *
-     * When an agent creates artifacts (e.g., generated code, reports, skills),
-     * it can call the publish_artifact tool to make them downloadable.
-     * Each artifact includes a pre-signed URL for direct download.
-     *
-     * Artifacts are stored in R2 and URLs expire after a configured period.
-     * Use the run download endpoint to refresh expired URLs.
-     *
-     * Ordered by creation time (oldest first).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-     */
-    public Builder removeArtifacts(int index) {
-      if (artifactsBuilder_ == null) {
-        ensureArtifactsIsMutable();
-        artifacts_.remove(index);
-        onChanged();
-      } else {
-        artifactsBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Files/directories published by the agent for download.
-     *
-     * When an agent creates artifacts (e.g., generated code, reports, skills),
-     * it can call the publish_artifact tool to make them downloadable.
-     * Each artifact includes a pre-signed URL for direct download.
-     *
-     * Artifacts are stored in R2 and URLs expire after a configured period.
-     * Use the run download endpoint to refresh expired URLs.
-     *
-     * Ordered by creation time (oldest first).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.RunArtifact.Builder getArtifactsBuilder(
-        int index) {
-      return internalGetArtifactsFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * Files/directories published by the agent for download.
-     *
-     * When an agent creates artifacts (e.g., generated code, reports, skills),
-     * it can call the publish_artifact tool to make them downloadable.
-     * Each artifact includes a pre-signed URL for direct download.
-     *
-     * Artifacts are stored in R2 and URLs expire after a configured period.
-     * Use the run download endpoint to refresh expired URLs.
-     *
-     * Ordered by creation time (oldest first).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.RunArtifactOrBuilder getArtifactsOrBuilder(
-        int index) {
-      if (artifactsBuilder_ == null) {
-        return artifacts_.get(index);  } else {
-        return artifactsBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * Files/directories published by the agent for download.
-     *
-     * When an agent creates artifacts (e.g., generated code, reports, skills),
-     * it can call the publish_artifact tool to make them downloadable.
-     * Each artifact includes a pre-signed URL for direct download.
-     *
-     * Artifacts are stored in R2 and URLs expire after a configured period.
-     * Use the run download endpoint to refresh expired URLs.
-     *
-     * Ordered by creation time (oldest first).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-     */
-    public java.util.List<? extends ai.stigmer.agentic.run.v1.RunArtifactOrBuilder> 
-         getArtifactsOrBuilderList() {
-      if (artifactsBuilder_ != null) {
-        return artifactsBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(artifacts_);
-      }
-    }
-    /**
-     * <pre>
-     * Files/directories published by the agent for download.
-     *
-     * When an agent creates artifacts (e.g., generated code, reports, skills),
-     * it can call the publish_artifact tool to make them downloadable.
-     * Each artifact includes a pre-signed URL for direct download.
-     *
-     * Artifacts are stored in R2 and URLs expire after a configured period.
-     * Use the run download endpoint to refresh expired URLs.
-     *
-     * Ordered by creation time (oldest first).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.RunArtifact.Builder addArtifactsBuilder() {
-      return internalGetArtifactsFieldBuilder().addBuilder(
-          ai.stigmer.agentic.run.v1.RunArtifact.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Files/directories published by the agent for download.
-     *
-     * When an agent creates artifacts (e.g., generated code, reports, skills),
-     * it can call the publish_artifact tool to make them downloadable.
-     * Each artifact includes a pre-signed URL for direct download.
-     *
-     * Artifacts are stored in R2 and URLs expire after a configured period.
-     * Use the run download endpoint to refresh expired URLs.
-     *
-     * Ordered by creation time (oldest first).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-     */
-    public ai.stigmer.agentic.run.v1.RunArtifact.Builder addArtifactsBuilder(
-        int index) {
-      return internalGetArtifactsFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.run.v1.RunArtifact.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Files/directories published by the agent for download.
-     *
-     * When an agent creates artifacts (e.g., generated code, reports, skills),
-     * it can call the publish_artifact tool to make them downloadable.
-     * Each artifact includes a pre-signed URL for direct download.
-     *
-     * Artifacts are stored in R2 and URLs expire after a configured period.
-     * Use the run download endpoint to refresh expired URLs.
-     *
-     * Ordered by creation time (oldest first).
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.run.v1.RunArtifact artifacts = 15 [json_name = "artifacts"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.run.v1.RunArtifact.Builder> 
-         getArtifactsBuilderList() {
-      return internalGetArtifactsFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.run.v1.RunArtifact, ai.stigmer.agentic.run.v1.RunArtifact.Builder, ai.stigmer.agentic.run.v1.RunArtifactOrBuilder> 
-        internalGetArtifactsFieldBuilder() {
-      if (artifactsBuilder_ == null) {
-        artifactsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.run.v1.RunArtifact, ai.stigmer.agentic.run.v1.RunArtifact.Builder, ai.stigmer.agentic.run.v1.RunArtifactOrBuilder>(
-                artifacts_,
-                ((bitField0_ & 0x00000020) != 0),
-                getParentForChildren(),
-                isClean());
-        artifacts_ = null;
-      }
-      return artifactsBuilder_;
-    }
-
     private java.util.List<ai.stigmer.agentic.run.v1.WorkspaceWriteBack> workspaceWriteBacks_ =
       java.util.Collections.emptyList();
     private void ensureWorkspaceWriteBacksIsMutable() {
-      if (!((bitField0_ & 0x00000040) != 0)) {
+      if (!((bitField0_ & 0x00000020) != 0)) {
         workspaceWriteBacks_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.WorkspaceWriteBack>(workspaceWriteBacks_);
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000020;
        }
     }
 
@@ -3726,7 +3071,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearWorkspaceWriteBacks() {
       if (workspaceWriteBacksBuilder_ == null) {
         workspaceWriteBacks_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000040);
+        bitField0_ = (bitField0_ & ~0x00000020);
         onChanged();
       } else {
         workspaceWriteBacksBuilder_.clear();
@@ -3894,7 +3239,7 @@ private static final long serialVersionUID = 0L;
         workspaceWriteBacksBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.run.v1.WorkspaceWriteBack, ai.stigmer.agentic.run.v1.WorkspaceWriteBack.Builder, ai.stigmer.agentic.run.v1.WorkspaceWriteBackOrBuilder>(
                 workspaceWriteBacks_,
-                ((bitField0_ & 0x00000040) != 0),
+                ((bitField0_ & 0x00000020) != 0),
                 getParentForChildren(),
                 isClean());
         workspaceWriteBacks_ = null;
@@ -3918,7 +3263,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the setupProgress field is set.
      */
     public boolean hasSetupProgress() {
-      return ((bitField0_ & 0x00000080) != 0);
+      return ((bitField0_ & 0x00000040) != 0);
     }
     /**
      * <pre>
@@ -3959,7 +3304,7 @@ private static final long serialVersionUID = 0L;
       } else {
         setupProgressBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -3981,7 +3326,7 @@ private static final long serialVersionUID = 0L;
       } else {
         setupProgressBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -3998,7 +3343,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeSetupProgress(ai.stigmer.agentic.run.v1.SetupProgress value) {
       if (setupProgressBuilder_ == null) {
-        if (((bitField0_ & 0x00000080) != 0) &&
+        if (((bitField0_ & 0x00000040) != 0) &&
           setupProgress_ != null &&
           setupProgress_ != ai.stigmer.agentic.run.v1.SetupProgress.getDefaultInstance()) {
           getSetupProgressBuilder().mergeFrom(value);
@@ -4009,7 +3354,7 @@ private static final long serialVersionUID = 0L;
         setupProgressBuilder_.mergeFrom(value);
       }
       if (setupProgress_ != null) {
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000040;
         onChanged();
       }
       return this;
@@ -4026,7 +3371,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
      */
     public Builder clearSetupProgress() {
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000040);
       setupProgress_ = null;
       if (setupProgressBuilder_ != null) {
         setupProgressBuilder_.dispose();
@@ -4047,7 +3392,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
      */
     public ai.stigmer.agentic.run.v1.SetupProgress.Builder getSetupProgressBuilder() {
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return internalGetSetupProgressFieldBuilder().getBuilder();
     }
@@ -4107,7 +3452,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the streamingUsage field is set.
      */
     public boolean hasStreamingUsage() {
-      return ((bitField0_ & 0x00000100) != 0);
+      return ((bitField0_ & 0x00000080) != 0);
     }
     /**
      * <pre>
@@ -4140,7 +3485,7 @@ private static final long serialVersionUID = 0L;
       } else {
         streamingUsageBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -4158,7 +3503,7 @@ private static final long serialVersionUID = 0L;
       } else {
         streamingUsageBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -4171,7 +3516,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeStreamingUsage(ai.stigmer.agentic.run.v1.StreamingUsageSummary value) {
       if (streamingUsageBuilder_ == null) {
-        if (((bitField0_ & 0x00000100) != 0) &&
+        if (((bitField0_ & 0x00000080) != 0) &&
           streamingUsage_ != null &&
           streamingUsage_ != ai.stigmer.agentic.run.v1.StreamingUsageSummary.getDefaultInstance()) {
           getStreamingUsageBuilder().mergeFrom(value);
@@ -4182,7 +3527,7 @@ private static final long serialVersionUID = 0L;
         streamingUsageBuilder_.mergeFrom(value);
       }
       if (streamingUsage_ != null) {
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000080;
         onChanged();
       }
       return this;
@@ -4195,7 +3540,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
      */
     public Builder clearStreamingUsage() {
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000080);
       streamingUsage_ = null;
       if (streamingUsageBuilder_ != null) {
         streamingUsageBuilder_.dispose();
@@ -4212,7 +3557,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.StreamingUsageSummary streaming_usage = 20 [json_name = "streamingUsage"];</code>
      */
     public ai.stigmer.agentic.run.v1.StreamingUsageSummary.Builder getStreamingUsageBuilder() {
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return internalGetStreamingUsageFieldBuilder().getBuilder();
     }
@@ -4266,7 +3611,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the fileChangeProgress field is set.
      */
     public boolean hasFileChangeProgress() {
-      return ((bitField0_ & 0x00000200) != 0);
+      return ((bitField0_ & 0x00000100) != 0);
     }
     /**
      * <pre>
@@ -4303,7 +3648,7 @@ private static final long serialVersionUID = 0L;
       } else {
         fileChangeProgressBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -4323,7 +3668,7 @@ private static final long serialVersionUID = 0L;
       } else {
         fileChangeProgressBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -4338,7 +3683,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeFileChangeProgress(ai.stigmer.agentic.run.v1.FileChangeProgress value) {
       if (fileChangeProgressBuilder_ == null) {
-        if (((bitField0_ & 0x00000200) != 0) &&
+        if (((bitField0_ & 0x00000100) != 0) &&
           fileChangeProgress_ != null &&
           fileChangeProgress_ != ai.stigmer.agentic.run.v1.FileChangeProgress.getDefaultInstance()) {
           getFileChangeProgressBuilder().mergeFrom(value);
@@ -4349,7 +3694,7 @@ private static final long serialVersionUID = 0L;
         fileChangeProgressBuilder_.mergeFrom(value);
       }
       if (fileChangeProgress_ != null) {
-        bitField0_ |= 0x00000200;
+        bitField0_ |= 0x00000100;
         onChanged();
       }
       return this;
@@ -4364,7 +3709,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.FileChangeProgress file_change_progress = 25 [json_name = "fileChangeProgress"];</code>
      */
     public Builder clearFileChangeProgress() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000100);
       fileChangeProgress_ = null;
       if (fileChangeProgressBuilder_ != null) {
         fileChangeProgressBuilder_.dispose();
@@ -4383,7 +3728,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.FileChangeProgress file_change_progress = 25 [json_name = "fileChangeProgress"];</code>
      */
     public ai.stigmer.agentic.run.v1.FileChangeProgress.Builder getFileChangeProgressBuilder() {
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return internalGetFileChangeProgressFieldBuilder().getBuilder();
     }
@@ -4430,9 +3775,9 @@ private static final long serialVersionUID = 0L;
     private java.util.List<ai.stigmer.agentic.run.v1.FileChangeSet> fileChanges_ =
       java.util.Collections.emptyList();
     private void ensureFileChangesIsMutable() {
-      if (!((bitField0_ & 0x00000400) != 0)) {
+      if (!((bitField0_ & 0x00000200) != 0)) {
         fileChanges_ = new java.util.ArrayList<ai.stigmer.agentic.run.v1.FileChangeSet>(fileChanges_);
-        bitField0_ |= 0x00000400;
+        bitField0_ |= 0x00000200;
        }
     }
 
@@ -4703,7 +4048,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearFileChanges() {
       if (fileChangesBuilder_ == null) {
         fileChanges_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000400);
+        bitField0_ = (bitField0_ & ~0x00000200);
         onChanged();
       } else {
         fileChangesBuilder_.clear();
@@ -4857,7 +4202,7 @@ private static final long serialVersionUID = 0L;
         fileChangesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.run.v1.FileChangeSet, ai.stigmer.agentic.run.v1.FileChangeSet.Builder, ai.stigmer.agentic.run.v1.FileChangeSetOrBuilder>(
                 fileChanges_,
-                ((bitField0_ & 0x00000400) != 0),
+                ((bitField0_ & 0x00000200) != 0),
                 getParentForChildren(),
                 isClean());
         fileChanges_ = null;
@@ -4923,7 +4268,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       agentId_ = value;
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -4938,7 +4283,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearAgentId() {
       agentId_ = getDefaultInstance().getAgentId();
-      bitField0_ = (bitField0_ & ~0x00000800);
+      bitField0_ = (bitField0_ & ~0x00000400);
       onChanged();
       return this;
     }
@@ -4957,7 +4302,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       agentId_ = value;
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -5038,7 +4383,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       agentVersionHash_ = value;
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -5059,7 +4404,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearAgentVersionHash() {
       agentVersionHash_ = getDefaultInstance().getAgentVersionHash();
-      bitField0_ = (bitField0_ & ~0x00001000);
+      bitField0_ = (bitField0_ & ~0x00000800);
       onChanged();
       return this;
     }
@@ -5084,7 +4429,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       agentVersionHash_ = value;
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -5105,7 +4450,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the loadedVersions field is set.
      */
     public boolean hasLoadedVersions() {
-      return ((bitField0_ & 0x00002000) != 0);
+      return ((bitField0_ & 0x00001000) != 0);
     }
     /**
      * <pre>
@@ -5146,7 +4491,7 @@ private static final long serialVersionUID = 0L;
       } else {
         loadedVersionsBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -5168,7 +4513,7 @@ private static final long serialVersionUID = 0L;
       } else {
         loadedVersionsBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -5185,7 +4530,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeLoadedVersions(ai.stigmer.agentic.run.v1.LoadedVersions value) {
       if (loadedVersionsBuilder_ == null) {
-        if (((bitField0_ & 0x00002000) != 0) &&
+        if (((bitField0_ & 0x00001000) != 0) &&
           loadedVersions_ != null &&
           loadedVersions_ != ai.stigmer.agentic.run.v1.LoadedVersions.getDefaultInstance()) {
           getLoadedVersionsBuilder().mergeFrom(value);
@@ -5196,7 +4541,7 @@ private static final long serialVersionUID = 0L;
         loadedVersionsBuilder_.mergeFrom(value);
       }
       if (loadedVersions_ != null) {
-        bitField0_ |= 0x00002000;
+        bitField0_ |= 0x00001000;
         onChanged();
       }
       return this;
@@ -5213,7 +4558,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
      */
     public Builder clearLoadedVersions() {
-      bitField0_ = (bitField0_ & ~0x00002000);
+      bitField0_ = (bitField0_ & ~0x00001000);
       loadedVersions_ = null;
       if (loadedVersionsBuilder_ != null) {
         loadedVersionsBuilder_.dispose();
@@ -5234,7 +4579,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.LoadedVersions loaded_versions = 36 [json_name = "loadedVersions"];</code>
      */
     public ai.stigmer.agentic.run.v1.LoadedVersions.Builder getLoadedVersionsBuilder() {
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00001000;
       onChanged();
       return internalGetLoadedVersionsFieldBuilder().getBuilder();
     }
@@ -5295,7 +4640,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the declaredPreferences field is set.
      */
     public boolean hasDeclaredPreferences() {
-      return ((bitField0_ & 0x00004000) != 0);
+      return ((bitField0_ & 0x00002000) != 0);
     }
     /**
      * <pre>
@@ -5330,7 +4675,7 @@ private static final long serialVersionUID = 0L;
       } else {
         declaredPreferencesBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -5349,7 +4694,7 @@ private static final long serialVersionUID = 0L;
       } else {
         declaredPreferencesBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -5363,7 +4708,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeDeclaredPreferences(ai.stigmer.agentic.run.v1.DeclaredPreferences value) {
       if (declaredPreferencesBuilder_ == null) {
-        if (((bitField0_ & 0x00004000) != 0) &&
+        if (((bitField0_ & 0x00002000) != 0) &&
           declaredPreferences_ != null &&
           declaredPreferences_ != ai.stigmer.agentic.run.v1.DeclaredPreferences.getDefaultInstance()) {
           getDeclaredPreferencesBuilder().mergeFrom(value);
@@ -5374,7 +4719,7 @@ private static final long serialVersionUID = 0L;
         declaredPreferencesBuilder_.mergeFrom(value);
       }
       if (declaredPreferences_ != null) {
-        bitField0_ |= 0x00004000;
+        bitField0_ |= 0x00002000;
         onChanged();
       }
       return this;
@@ -5388,7 +4733,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
      */
     public Builder clearDeclaredPreferences() {
-      bitField0_ = (bitField0_ & ~0x00004000);
+      bitField0_ = (bitField0_ & ~0x00002000);
       declaredPreferences_ = null;
       if (declaredPreferencesBuilder_ != null) {
         declaredPreferencesBuilder_.dispose();
@@ -5406,7 +4751,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.DeclaredPreferences declared_preferences = 29 [json_name = "declaredPreferences"];</code>
      */
     public ai.stigmer.agentic.run.v1.DeclaredPreferences.Builder getDeclaredPreferencesBuilder() {
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return internalGetDeclaredPreferencesFieldBuilder().getBuilder();
     }
@@ -5461,7 +4806,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the recalledMemories field is set.
      */
     public boolean hasRecalledMemories() {
-      return ((bitField0_ & 0x00008000) != 0);
+      return ((bitField0_ & 0x00004000) != 0);
     }
     /**
      * <pre>
@@ -5496,7 +4841,7 @@ private static final long serialVersionUID = 0L;
       } else {
         recalledMemoriesBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }
@@ -5515,7 +4860,7 @@ private static final long serialVersionUID = 0L;
       } else {
         recalledMemoriesBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }
@@ -5529,7 +4874,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeRecalledMemories(ai.stigmer.agentic.run.v1.RecalledMemories value) {
       if (recalledMemoriesBuilder_ == null) {
-        if (((bitField0_ & 0x00008000) != 0) &&
+        if (((bitField0_ & 0x00004000) != 0) &&
           recalledMemories_ != null &&
           recalledMemories_ != ai.stigmer.agentic.run.v1.RecalledMemories.getDefaultInstance()) {
           getRecalledMemoriesBuilder().mergeFrom(value);
@@ -5540,7 +4885,7 @@ private static final long serialVersionUID = 0L;
         recalledMemoriesBuilder_.mergeFrom(value);
       }
       if (recalledMemories_ != null) {
-        bitField0_ |= 0x00008000;
+        bitField0_ |= 0x00004000;
         onChanged();
       }
       return this;
@@ -5554,7 +4899,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
      */
     public Builder clearRecalledMemories() {
-      bitField0_ = (bitField0_ & ~0x00008000);
+      bitField0_ = (bitField0_ & ~0x00004000);
       recalledMemories_ = null;
       if (recalledMemoriesBuilder_ != null) {
         recalledMemoriesBuilder_.dispose();
@@ -5572,7 +4917,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.RecalledMemories recalled_memories = 30 [json_name = "recalledMemories"];</code>
      */
     public ai.stigmer.agentic.run.v1.RecalledMemories.Builder getRecalledMemoriesBuilder() {
-      bitField0_ |= 0x00008000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return internalGetRecalledMemoriesFieldBuilder().getBuilder();
     }
@@ -5631,7 +4976,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the runConfig field is set.
      */
     public boolean hasRunConfig() {
-      return ((bitField0_ & 0x00010000) != 0);
+      return ((bitField0_ & 0x00008000) != 0);
     }
     /**
      * <pre>
@@ -5674,7 +5019,7 @@ private static final long serialVersionUID = 0L;
       } else {
         runConfigBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -5697,7 +5042,7 @@ private static final long serialVersionUID = 0L;
       } else {
         runConfigBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -5715,7 +5060,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeRunConfig(ai.stigmer.agentic.run.v1.RunConfig value) {
       if (runConfigBuilder_ == null) {
-        if (((bitField0_ & 0x00010000) != 0) &&
+        if (((bitField0_ & 0x00008000) != 0) &&
           runConfig_ != null &&
           runConfig_ != ai.stigmer.agentic.run.v1.RunConfig.getDefaultInstance()) {
           getRunConfigBuilder().mergeFrom(value);
@@ -5726,7 +5071,7 @@ private static final long serialVersionUID = 0L;
         runConfigBuilder_.mergeFrom(value);
       }
       if (runConfig_ != null) {
-        bitField0_ |= 0x00010000;
+        bitField0_ |= 0x00008000;
         onChanged();
       }
       return this;
@@ -5744,7 +5089,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
      */
     public Builder clearRunConfig() {
-      bitField0_ = (bitField0_ & ~0x00010000);
+      bitField0_ = (bitField0_ & ~0x00008000);
       runConfig_ = null;
       if (runConfigBuilder_ != null) {
         runConfigBuilder_.dispose();
@@ -5766,7 +5111,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.RunConfig run_config = 31 [json_name = "runConfig"];</code>
      */
     public ai.stigmer.agentic.run.v1.RunConfig.Builder getRunConfigBuilder() {
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return internalGetRunConfigFieldBuilder().getBuilder();
     }
@@ -5852,7 +5197,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setApprovalModeValue(int value) {
       approvalMode_ = value;
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00010000;
       onChanged();
       return this;
     }
@@ -5892,7 +5237,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder setApprovalMode(ai.stigmer.agentic.run.v1.ApprovalMode value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00010000;
       approvalMode_ = value.getNumber();
       onChanged();
       return this;
@@ -5912,7 +5257,7 @@ private static final long serialVersionUID = 0L;
      * @return This builder for chaining.
      */
     public Builder clearApprovalMode() {
-      bitField0_ = (bitField0_ & ~0x00020000);
+      bitField0_ = (bitField0_ & ~0x00010000);
       approvalMode_ = 0;
       onChanged();
       return this;
@@ -5931,7 +5276,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the credentials field is set.
      */
     public boolean hasCredentials() {
-      return ((bitField0_ & 0x00040000) != 0);
+      return ((bitField0_ & 0x00020000) != 0);
     }
     /**
      * <pre>
@@ -5966,7 +5311,7 @@ private static final long serialVersionUID = 0L;
       } else {
         credentialsBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return this;
     }
@@ -5985,7 +5330,7 @@ private static final long serialVersionUID = 0L;
       } else {
         credentialsBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return this;
     }
@@ -5999,7 +5344,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeCredentials(ai.stigmer.agentic.run.v1.RunCredentials value) {
       if (credentialsBuilder_ == null) {
-        if (((bitField0_ & 0x00040000) != 0) &&
+        if (((bitField0_ & 0x00020000) != 0) &&
           credentials_ != null &&
           credentials_ != ai.stigmer.agentic.run.v1.RunCredentials.getDefaultInstance()) {
           getCredentialsBuilder().mergeFrom(value);
@@ -6010,7 +5355,7 @@ private static final long serialVersionUID = 0L;
         credentialsBuilder_.mergeFrom(value);
       }
       if (credentials_ != null) {
-        bitField0_ |= 0x00040000;
+        bitField0_ |= 0x00020000;
         onChanged();
       }
       return this;
@@ -6024,7 +5369,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
      */
     public Builder clearCredentials() {
-      bitField0_ = (bitField0_ & ~0x00040000);
+      bitField0_ = (bitField0_ & ~0x00020000);
       credentials_ = null;
       if (credentialsBuilder_ != null) {
         credentialsBuilder_.dispose();
@@ -6042,7 +5387,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.RunCredentials credentials = 33 [json_name = "credentials"];</code>
      */
     public ai.stigmer.agentic.run.v1.RunCredentials.Builder getCredentialsBuilder() {
-      bitField0_ |= 0x00040000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return internalGetCredentialsFieldBuilder().getBuilder();
     }
@@ -6096,7 +5441,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the evalFiles field is set.
      */
     public boolean hasEvalFiles() {
-      return ((bitField0_ & 0x00080000) != 0);
+      return ((bitField0_ & 0x00040000) != 0);
     }
     /**
      * <pre>
@@ -6129,7 +5474,7 @@ private static final long serialVersionUID = 0L;
       } else {
         evalFilesBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00080000;
+      bitField0_ |= 0x00040000;
       onChanged();
       return this;
     }
@@ -6147,7 +5492,7 @@ private static final long serialVersionUID = 0L;
       } else {
         evalFilesBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00080000;
+      bitField0_ |= 0x00040000;
       onChanged();
       return this;
     }
@@ -6160,7 +5505,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeEvalFiles(ai.stigmer.agentic.run.v1.EvalFiles value) {
       if (evalFilesBuilder_ == null) {
-        if (((bitField0_ & 0x00080000) != 0) &&
+        if (((bitField0_ & 0x00040000) != 0) &&
           evalFiles_ != null &&
           evalFiles_ != ai.stigmer.agentic.run.v1.EvalFiles.getDefaultInstance()) {
           getEvalFilesBuilder().mergeFrom(value);
@@ -6171,7 +5516,7 @@ private static final long serialVersionUID = 0L;
         evalFilesBuilder_.mergeFrom(value);
       }
       if (evalFiles_ != null) {
-        bitField0_ |= 0x00080000;
+        bitField0_ |= 0x00040000;
         onChanged();
       }
       return this;
@@ -6184,7 +5529,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.EvalFiles eval_files = 34 [json_name = "evalFiles"];</code>
      */
     public Builder clearEvalFiles() {
-      bitField0_ = (bitField0_ & ~0x00080000);
+      bitField0_ = (bitField0_ & ~0x00040000);
       evalFiles_ = null;
       if (evalFilesBuilder_ != null) {
         evalFilesBuilder_.dispose();
@@ -6201,7 +5546,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.agentic.run.v1.EvalFiles eval_files = 34 [json_name = "evalFiles"];</code>
      */
     public ai.stigmer.agentic.run.v1.EvalFiles.Builder getEvalFilesBuilder() {
-      bitField0_ |= 0x00080000;
+      bitField0_ |= 0x00040000;
       onChanged();
       return internalGetEvalFilesFieldBuilder().getBuilder();
     }
@@ -6314,7 +5659,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       stopCause_ = value;
-      bitField0_ |= 0x00100000;
+      bitField0_ |= 0x00080000;
       onChanged();
       return this;
     }
@@ -6334,7 +5679,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearStopCause() {
       stopCause_ = getDefaultInstance().getStopCause();
-      bitField0_ = (bitField0_ & ~0x00100000);
+      bitField0_ = (bitField0_ & ~0x00080000);
       onChanged();
       return this;
     }
@@ -6358,7 +5703,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       stopCause_ = value;
-      bitField0_ |= 0x00100000;
+      bitField0_ |= 0x00080000;
       onChanged();
       return this;
     }
@@ -6366,9 +5711,9 @@ private static final long serialVersionUID = 0L;
     private java.util.List<ai.stigmer.agentic.session.v1.ContentBlock> messageFiles_ =
       java.util.Collections.emptyList();
     private void ensureMessageFilesIsMutable() {
-      if (!((bitField0_ & 0x00200000) != 0)) {
+      if (!((bitField0_ & 0x00100000) != 0)) {
         messageFiles_ = new java.util.ArrayList<ai.stigmer.agentic.session.v1.ContentBlock>(messageFiles_);
-        bitField0_ |= 0x00200000;
+        bitField0_ |= 0x00100000;
        }
     }
 
@@ -6595,7 +5940,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearMessageFiles() {
       if (messageFilesBuilder_ == null) {
         messageFiles_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00200000);
+        bitField0_ = (bitField0_ & ~0x00100000);
         onChanged();
       } else {
         messageFilesBuilder_.clear();
@@ -6721,7 +6066,7 @@ private static final long serialVersionUID = 0L;
         messageFilesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.session.v1.ContentBlock, ai.stigmer.agentic.session.v1.ContentBlock.Builder, ai.stigmer.agentic.session.v1.ContentBlockOrBuilder>(
                 messageFiles_,
-                ((bitField0_ & 0x00200000) != 0),
+                ((bitField0_ & 0x00100000) != 0),
                 getParentForChildren(),
                 isClean());
         messageFiles_ = null;

@@ -15,8 +15,15 @@
 //   - Historical artifacts are retrieved in two steps: listVersions gives each
 //     version's artifact_storage_key, which getArtifact downloads.
 //
+//   - pushFromFile pushes a skill from a File holding its archive: the
+//     server reads the bytes, so a File uploaded through the API becomes a
+//     skill on every target. It asks can_create_skill first, answers an
+//     unknown or another organization's File NotFound, and refuses a File
+//     the caller cannot view; the last two refusals need a second person,
+//     so they run on the target's enforcing lane and skip visibly without one.
+//
 // No known deviations are expected: every user-reachable Skill path runs through
-// ValidateProtoStep (or, for pushFromRunArtifact, equivalent manual checks)
+// ValidateProtoStep (or, for pushFromFile, equivalent manual checks)
 // and returns correct gRPC codes.
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
@@ -33,7 +40,7 @@ import {
   makeStreamingSkillArtifact,
   zipFiles,
 } from "../support/skills";
-import { createTarget, type TargetProfile } from "../targets";
+import { createTarget, enforcingLaneOf, type EnforcingLane, type TargetProfile } from "../targets";
 
 let target: TargetProfile;
 let clients: ConformanceClients;
@@ -1059,73 +1066,124 @@ describe("[rpc:SkillCommandController.delete] Skill conformance — delete", () 
     ));
 });
 
-describe("[rpc:SkillCommandController.pushFromRunArtifact] Skill conformance — pushFromRunArtifact (input validation)", () => {
-  // pushFromRunArtifact is a DIRECT handler: it does not run through the
-  // request pipeline, so protovalidate never executes. It instead performs its
-  // own ordered manual checks and returns the correct gRPC codes, so there is no deviation to register here.
-  //
-  // The happy path requires a real execution artifact already present in the
-  // server's execution-artifact storage (produced by an agent execution). The
-  // harness owns the server's temp dir and does not expose it, so seeding one is
-  // not possible from a black-box client; the happy path is intentionally
-  // covered at the integration layer, not here. The manual validation checks,
-  // however, run before any storage access and are fully reachable.
+/** Uploads `bytes` as a File named `filename` into `org` through `as`'s clients. */
+async function uploadFile(as: ConformanceClients, org: string, filename: string, bytes: Uint8Array) {
+  const file = await as.fileCommand.upload({ org, filename, source: { case: "data", value: bytes } });
+  const id = file.metadata!.id;
+  fixtures.defer(() => as.fileCommand.delete({ value: id }).catch(() => undefined));
+  return file;
+}
 
-  it("rejects an empty run_id (InvalidArgument)", async () => {
+async function laneOrSkip(ctx: { skip: (note?: string) => never }): Promise<EnforcingLane> {
+  const enforcing = await enforcingLaneOf(target);
+  if (enforcing.lane === undefined) ctx.skip(enforcing.reason);
+  return enforcing.lane;
+}
+
+describe("[rpc:SkillCommandController.pushFromFile] Skill conformance — pushFromFile", () => {
+  it("pushes the skill a File's archive holds, the same version a push of its bytes makes", async () => {
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("skill");
+    const archive = makeSkillArtifact({ name, description: "a skill saved as a File" });
+    const file = await uploadFile(clients, org, `${name}.zip`, archive);
+
+    const pushed = await clients.skillCommand.pushFromFile({ org, fileId: file.metadata!.id, tag: "stable" });
+    fixtures.defer(() => clients.skillCommand.delete({ value: pushed.metadata!.id }));
+
+    expect(pushed.metadata?.id).toMatch(/^skl_[0-9a-z]+$/);
+    expect(pushed.metadata?.slug, "the slug comes from the archive's SKILL.md").toBe(name);
+    expect(pushed.metadata?.org).toBe(org);
+    expect(pushed.spec?.tag).toBe("stable");
+    // The same bytes pushed inline land on the same version: the File's
+    // bytes were the archive, unchanged.
+    const again = await pushSkill(org, archive, { track: false });
+    expect(again.metadata?.id).toBe(pushed.metadata?.id);
+    expect(again.status?.versionHash).toBe(pushed.status?.versionHash);
+  });
+
+  it("rejects an empty file_id (InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
-      () =>
-        clients.skillCommand.pushFromRunArtifact({
-          org,
-          runId: "",
-          storageKey: "artifacts/aex_example/skill.zip",
-        }),
+      () => clients.skillCommand.pushFromFile({ org, fileId: "" }),
       Code.InvalidArgument,
-      "pushFromRunArtifact empty run_id",
+      "pushFromFile empty file_id",
     );
   });
 
-  it("rejects an empty storage_key (InvalidArgument)", async () => {
+  it("rejects an empty org (InvalidArgument)", () =>
+    expectGrpcCode(
+      () => clients.skillCommand.pushFromFile({ org: "", fileId: "file_00000000000000000000000000" }),
+      Code.InvalidArgument,
+      "pushFromFile empty org",
+    ));
+
+  it("answers a File that does not exist NotFound", async () => {
     const { org } = await target.provisionTenancy();
     await expectGrpcCode(
-      () =>
-        clients.skillCommand.pushFromRunArtifact({
-          org,
-          runId: "aex_example",
-          storageKey: "",
-        }),
-      Code.InvalidArgument,
-      "pushFromRunArtifact empty storage_key",
+      () => clients.skillCommand.pushFromFile({ org, fileId: "file_00000000000000000000000000" }),
+      Code.NotFound,
+      "pushFromFile unknown file",
     );
   });
 
-  it("rejects an empty org (InvalidArgument)", async () => {
+  it("answers another organization's File NotFound, as if it did not exist", async () => {
+    const { org } = await target.provisionTenancy();
+    const { org: other } = await target.provisionTenancy();
+    const name = uniqueName("skill");
+    const file = await uploadFile(clients, other, `${name}.zip`, makeSkillArtifact({ name }));
+
     await expectGrpcCode(
-      () =>
-        clients.skillCommand.pushFromRunArtifact({
-          org: "",
-          runId: "aex_example",
-          storageKey: "artifacts/aex_example/skill.zip",
-        }),
-      Code.InvalidArgument,
-      "pushFromRunArtifact empty org",
+      () => clients.skillCommand.pushFromFile({ org, fileId: file.metadata!.id }),
+      Code.NotFound,
+      "pushFromFile naming another organization's File",
+    );
+    await expectGrpcCode(
+      () => clients.skillQuery.getByReference({ org, slug: name }),
+      Code.NotFound,
+      "no skill was pushed from another organization's File",
     );
   });
 
-  it("rejects a storage_key that does not belong to the execution (InvalidArgument)", async () => {
-    const { org } = await target.provisionTenancy();
-    // The key must be prefixed "artifacts/<execution_id>/"; a key naming a
-    // different execution is rejected as a path-traversal attempt.
-    await expectGrpcCode(
-      () =>
-        clients.skillCommand.pushFromRunArtifact({
-          org,
-          runId: "aex_example",
-          storageKey: "artifacts/aex_other/skill.zip",
-        }),
-      Code.InvalidArgument,
-      "pushFromRunArtifact storage_key prefix guard",
+  it("refuses an admin a File they cannot view, and pushes it once it is shared with the organization (on the enforcing lane)", async (ctx) => {
+    const lane = await laneOrSkip(ctx);
+    const tenancy = await lane.provisionTenancy();
+    const { org } = tenancy;
+    // An admin may create skills, but a File is private to its uploader:
+    // admins get nothing implicit on it.
+    const admin = await lane.provisionWithRole(tenancy, "admin");
+    const name = uniqueName("skill");
+    const file = await uploadFile(lane.clients, org, `${name}.zip`, makeSkillArtifact({ name }));
+    const fileId = file.metadata!.id;
+
+    const denied = await expectGrpcCode(
+      () => admin.skillCommand.pushFromFile({ org, fileId }),
+      Code.PermissionDenied,
+      "pushFromFile naming a File the caller cannot view",
     );
+    expect(denied.rawMessage, "the refusal is the File's view check").toBe("unauthorized to get file");
+
+    await lane.clients.fileCommand.updateVisibility({
+      resourceId: fileId,
+      visibility: ApiResourceVisibility.visibility_org,
+    });
+    const pushed = await admin.skillCommand.pushFromFile({ org, fileId });
+    fixtures.defer(() => lane.clients.skillCommand.delete({ value: pushed.metadata!.id }).catch(() => undefined));
+    expect(pushed.metadata?.slug).toBe(name);
+  });
+
+  it("refuses an outsider the push itself before it asks about the File (on the enforcing lane)", async (ctx) => {
+    const lane = await laneOrSkip(ctx);
+    const { org } = await lane.provisionTenancy();
+    const outsider = await lane.provisionIdentity();
+    const name = uniqueName("skill");
+    const file = await uploadFile(lane.clients, org, `${name}.zip`, makeSkillArtifact({ name }));
+
+    const denied = await expectGrpcCode(
+      () => outsider.skillCommand.pushFromFile({ org, fileId: file.metadata!.id }),
+      Code.PermissionDenied,
+      "outsider pushFromFile into a foreign organization",
+    );
+    expect(denied.rawMessage).toBe("unauthorized to push skill in this organization");
   });
 });
 

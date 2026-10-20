@@ -1,47 +1,30 @@
 /**
- * useArtifactInspection reads a run artifact's content, detects a
- * Stigmer resource or skill package in it, and offers to apply or push it
- * into an organization: the call names the org by id, the label by slug.
+ * useArtifactInspection reads an output File's text, detects a Stigmer
+ * resource in it, and offers to apply it into an organization: the call names
+ * the org by id, the label by slug. A binary File is never read.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
-import { RunArtifactSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-import { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { useArtifactInspection } from "../useArtifactInspection";
 import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 
-function fileArtifact(name: string) {
-  return create(RunArtifactSchema, {
-    name,
-    kind: RunArtifactKind.FILE,
-    sizeBytes: 64n,
-    sandboxPath: `.stigmer/${name}`,
-    storageKey: `artifacts/aex_1/${name}`,
-    contentHash: "hash-1",
-  });
-}
-
-function dirArtifact(name: string) {
-  return create(RunArtifactSchema, {
-    name,
-    kind: RunArtifactKind.DIRECTORY,
-    sizeBytes: 512n,
-    sandboxPath: `.stigmer/${name}`,
-    storageKey: `artifacts/aex_1/${name}`,
-    entries: ["SKILL.md", "run.sh"],
+// The id derives from the name: the hook runs per render, and a File's id is
+// its identity (a new id is a new File to read).
+function fileArtifact(filename: string, mimeType = "") {
+  return create(FileSchema, {
+    metadata: { id: `file_${filename.replace(/\W/g, "_")}` },
+    spec: { filename, mimeType },
+    status: { sizeBytes: 64n, runId: "aex_1", outputPath: filename },
   });
 }
 
 function contentResult(text: string) {
-  return {
-    content: new TextEncoder().encode(text),
-    contentType: "text/plain",
-    truncated: false,
-  };
+  return { data: new TextEncoder().encode(text), truncated: false };
 }
 
 function wrapperFor(stigmer: Stigmer) {
@@ -68,16 +51,15 @@ const AGENT_YAML = [
 
 describe("useArtifactInspection — content + copy", () => {
   it("fetches text content and copies it to the clipboard on demand", async () => {
-    const getArtifactContent = vi.fn().mockResolvedValue(contentResult("hello world"));
-    const stigmer = { run: { getArtifactContent } } as unknown as Stigmer;
+    const getContent = vi.fn().mockResolvedValue(contentResult("hello world"));
+    const stigmer = { file: { getContent } } as unknown as Stigmer;
 
     const { result } = renderHook(
-      () => useArtifactInspection(fileArtifact("notes.txt"), "aex_1", "acme"),
+      () => useArtifactInspection(fileArtifact("notes.txt"), "acme"),
       { wrapper: wrapperFor(stigmer) },
     );
 
     await waitFor(() => expect(result.current.content).toBe("hello world"));
-    expect(result.current.isDirectory).toBe(false);
     expect(result.current.isDetected).toBe(false);
     expect(result.current.ctaLabel).toBeNull();
 
@@ -88,33 +70,49 @@ describe("useArtifactInspection — content + copy", () => {
     await waitFor(() => expect(result.current.copied).toBe(true));
   });
 
-  it("does not fetch content for a directory artifact", () => {
-    const getArtifactContent = vi.fn().mockReturnValue(new Promise(() => {}));
-    const stigmer = { run: { getArtifactContent } } as unknown as Stigmer;
+  it("does not read a binary File", () => {
+    const getContent = vi.fn().mockReturnValue(new Promise(() => {}));
+    const stigmer = { file: { getContent } } as unknown as Stigmer;
 
     const { result } = renderHook(
-      () => useArtifactInspection(dirArtifact("skill-pack"), "aex_1", "acme"),
+      () => useArtifactInspection(fileArtifact("photo.png", "image/png"), "acme"),
       { wrapper: wrapperFor(stigmer) },
     );
 
-    expect(result.current.isDirectory).toBe(true);
-    // Directory content is not fetched via the text-content RPC (skill
-    // detection uses its own entry-scoped fetch).
-    expect(
-      getArtifactContent.mock.calls.every(
-        (call) => call[0]?.entryPath !== undefined,
-      ),
-    ).toBe(true);
+    expect(getContent).not.toHaveBeenCalled();
+    expect(result.current.content).toBeNull();
+    expect(result.current.isDetecting).toBe(false);
   });
 });
 
 describe("useArtifactInspection — detection + apply", () => {
-  it("labels a detected Agent YAML and offers an Apply CTA", async () => {
-    const getArtifactContent = vi.fn().mockResolvedValue(contentResult(AGENT_YAML));
-    const stigmer = { run: { getArtifactContent } } as unknown as Stigmer;
+  it("applies nothing when the content is not a Stigmer resource", async () => {
+    const getContent = vi.fn().mockResolvedValue(contentResult("just some notes"));
+    const apply = vi.fn();
+    const stigmer = { file: { getContent }, manifest: { apply } } as unknown as Stigmer;
+    const onApplied = vi.fn();
 
     const { result } = renderHook(
-      () => useArtifactInspection(fileArtifact("agent.yaml"), "aex_1", "acme"),
+      () => useArtifactInspection(fileArtifact("notes.txt"), "acme", { onApplied }),
+      { wrapper: wrapperFor(stigmer) },
+    );
+    await waitFor(() => expect(result.current.content).toBe("just some notes"));
+
+    await act(async () => {
+      await result.current.apply();
+    });
+
+    expect(apply).not.toHaveBeenCalled();
+    expect(onApplied).not.toHaveBeenCalled();
+    expect(result.current.applyResult).toBeNull();
+  });
+
+  it("labels a detected Agent YAML and offers an Apply CTA", async () => {
+    const getContent = vi.fn().mockResolvedValue(contentResult(AGENT_YAML));
+    const stigmer = { file: { getContent } } as unknown as Stigmer;
+
+    const { result } = renderHook(
+      () => useArtifactInspection(fileArtifact("agent.yaml"), "acme"),
       { wrapper: wrapperFor(stigmer) },
     );
 
@@ -124,7 +122,7 @@ describe("useArtifactInspection — detection + apply", () => {
   });
 
   it("applies a detected Agent and fires onApplied with the result", async () => {
-    const getArtifactContent = vi.fn().mockResolvedValue(contentResult(AGENT_YAML));
+    const getContent = vi.fn().mockResolvedValue(contentResult(AGENT_YAML));
     // The apply path routes through the kind-agnostic manifest engine:
     // the hook parses the YAML into a ManifestDocument and hands it to
     // stigmer.manifest.apply.
@@ -137,14 +135,14 @@ describe("useArtifactInspection — detection + apply", () => {
       id: "agt_01",
     });
     const stigmer = {
-      run: { getArtifactContent },
+      file: { getContent },
       manifest: { apply },
     } as unknown as Stigmer;
     const onApplied = vi.fn();
 
     const { result } = renderHook(
       () =>
-        useArtifactInspection(fileArtifact("agent.yaml"), "aex_1", "acme", {
+        useArtifactInspection(fileArtifact("agent.yaml"), "acme", {
           onApplied,
         }),
       { wrapper: wrapperFor(stigmer) },
@@ -168,7 +166,7 @@ describe("useArtifactInspection — detection + apply", () => {
 
 describe("useArtifactInspection — the organization by slug and by id", () => {
   it("labels the Apply CTA with the org's slug and applies into its id", async () => {
-    const getArtifactContent = vi.fn().mockResolvedValue(contentResult(AGENT_YAML));
+    const getContent = vi.fn().mockResolvedValue(contentResult(AGENT_YAML));
     const apply = vi.fn().mockResolvedValue({
       yamlKind: "Agent",
       displayName: "Agent",
@@ -179,8 +177,8 @@ describe("useArtifactInspection — the organization by slug and by id", () => {
     });
 
     const { result } = renderHook(
-      () => useArtifactInspection(fileArtifact("agent.yaml"), "aex_1", ACME_ID),
-      { wrapper: orgWrapper({ run: { getArtifactContent }, manifest: { apply } }) },
+      () => useArtifactInspection(fileArtifact("agent.yaml"), ACME_ID),
+      { wrapper: orgWrapper({ file: { getContent }, manifest: { apply } }) },
     );
 
     await waitFor(() => expect(result.current.ctaLabel).toBe("Apply to acme"));
@@ -188,54 +186,5 @@ describe("useArtifactInspection — the organization by slug and by id", () => {
       await result.current.apply();
     });
     expect(apply.mock.calls[0][0].org).toBe(ACME_ID);
-  });
-
-  it("labels the Push Skill CTA of a skill package with the org's slug", async () => {
-    const getArtifactContent = vi
-      .fn()
-      .mockResolvedValue(contentResult("---\nname: triage\ndescription: Triage notes\n---\n# Triage\n"));
-
-    const { result } = renderHook(
-      () => useArtifactInspection(dirArtifact("skill-pack"), "aex_1", ACME_ID),
-      { wrapper: orgWrapper({ run: { getArtifactContent } }) },
-    );
-
-    await waitFor(() => expect(result.current.ctaLabel).toBe("Push Skill to acme"));
-    expect(result.current.detectionLabel).toBe("Skill \u00B7 2 files");
-  });
-});
-
-describe("useArtifactInspection — skill push", () => {
-  it("pushes a detected skill package from the run that produced it", async () => {
-    const getArtifactContent = vi
-      .fn()
-      .mockResolvedValue(contentResult("---\nname: triage\ndescription: Triage notes\n---\n# Triage\n"));
-    const pushFromRunArtifact = vi
-      .fn()
-      .mockResolvedValue({ metadata: { name: "triage", org: "acme", slug: "triage" } });
-    const stigmer = {
-      run: { getArtifactContent },
-      skill: { pushFromRunArtifact },
-    } as unknown as Stigmer;
-    const onApplied = vi.fn();
-
-    const { result } = renderHook(
-      () => useArtifactInspection(dirArtifact("skill-pack"), "aex_1", "acme", { onApplied }),
-      { wrapper: wrapperFor(stigmer) },
-    );
-
-    await waitFor(() => expect(result.current.ctaLabel).toBe("Push Skill to acme"));
-    await act(async () => {
-      await result.current.apply();
-    });
-
-    expect(pushFromRunArtifact).toHaveBeenCalledTimes(1);
-    expect(pushFromRunArtifact.mock.calls[0][0]).toMatchObject({
-      org: "acme",
-      runId: "aex_1",
-      storageKey: "artifacts/aex_1/skill-pack",
-    });
-    await waitFor(() => expect(result.current.applyResult?.kind).toBe("Skill"));
-    expect(onApplied.mock.calls[0][0]).toEqual({ kind: "Skill", name: "triage", org: "acme", slug: "triage" });
   });
 });

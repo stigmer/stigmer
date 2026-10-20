@@ -210,10 +210,10 @@ function usePersistedModel(options?: UsePersistedModelOptions): UsePersistedMode
 ### usePlanDraft
 
 Owns the local draft of the session's current plan (Phase: refine before
-build). The draft is a client-side overlay — the published `plan.md`
-artifact is immutable and is never written back (edit-as-input, not
-artifact mutation). The approved plan (draft if edited, else the artifact
-text) is delivered to the implement run as an attachment.
+build). The draft is a client-side overlay — the plan File is immutable
+and is never written back (edit-as-input). An unedited plan is handed to
+the implement run as that very File; an edited one as a new upload of the
+draft.
 
 Ownership lives at the viewer level, NOT inside the plan document tab's
 editor: the panel subtree unmounts wholesale on collapse (and the editor
@@ -372,36 +372,20 @@ if (version.isOutdated) {
 
 ### useSessionArtifacts
 
-Pure derivation hook that aggregates artifacts across all runs
-in a session into a unified, deduplicated, alphabetically-sorted
-list — like a file explorer showing the conversation's output.
-
-Follows the same `useMemo`-based pattern as
-[`useRunArtifacts`](/docs/sdk/react/run#userunartifacts): no side effects, no data fetching.
-
-**Dedup semantics:** Artifacts are keyed by `sandbox_path` (the
-original filesystem path in the agent sandbox). When multiple
-runs produce an artifact at the same path, the latest
-run's version wins — matching filesystem overwrite semantics.
-
-**Sorting:** Entries are sorted alphabetically by display `name`
-(case-insensitive). This matches the file-explorer mental model
-where users scan by filename, not by creation order.
-
-**Name collision detection:** When two artifacts share the same
-display `name` but differ in `sandbox_path`, both entries are
-flagged with `hasNameCollision: true` so consumers can render path
-context for disambiguation.
+Pure derivation hook that lists the Files a conversation's turns returned,
+one per output path, sorted by filename — like a file explorer over the
+conversation's outputs.
 
 **Signature**
 
 ```tsx
-function useSessionArtifacts(executions: readonly Run[]): UseSessionArtifactsReturn
+function useSessionArtifacts(files: readonly File[], runs: readonly Run[]): UseSessionArtifactsReturn
 ```
 
 <TypeTable
   type={{
-    executions: { type: "readonly Run[]", description: "", required: true },
+    files: { type: "readonly File[]", description: "The conversation's Files, newest first (`useSessionFiles`).", required: true },
+    runs: { type: "readonly Run[]", description: "The conversation's runs, in chronological order. A File's   turn decides which of two Files at one path wins (the later turn) and   whether the File's turn has ended.", required: true },
   }}
 />
 
@@ -409,15 +393,15 @@ function useSessionArtifacts(executions: readonly Run[]): UseSessionArtifactsRet
 
 <TypeTable
   type={{
-    artifactCount: { type: "number", description: "Total number of deduplicated artifacts." },
-    artifacts: { type: "readonly SessionArtifactEntry[]", description: "Deduplicated, alphabetically-sorted artifacts from all runs." },
-    hasArtifacts: { type: "boolean", description: "`true` when there is at least one artifact across all runs." },
+    artifactCount: { type: "number", description: "Number of entries." },
+    artifacts: { type: "readonly SessionArtifactEntry[]", description: "One entry per output path, sorted by filename." },
+    hasArtifacts: { type: "boolean", description: "`true` when at least one turn returned a File." },
   }}
 />
 
 ```tsx
-const conv = useSessionConversation(sessionId, org);
-const { artifacts, hasArtifacts } = useSessionArtifacts(conv.runs);
+const { files } = useSessionFiles(org, sessionId, settledKey);
+const { artifacts } = useSessionArtifacts(files, runs);
 ```
 
 
@@ -616,7 +600,7 @@ function useSessionFileChanges(executions: readonly Run[]): UseSessionFileChange
 
 <TypeTable
   type={{
-    executions: { type: "readonly Run[]", description: "", required: true },
+    executions: { type: "readonly Run[]", description: "All runs for a session, in chronological order.   Pass both completed and active-stream runs. Ordering matters: the   net collapse anchors on each path's first and last change.", required: true },
   }}
 />
 
@@ -983,9 +967,8 @@ function useSessionUsage(runs: readonly Run[]): UseSessionUsageReturn
 Pure derivation hook that aggregates workspace write-backs across all
 runs in a session into a flat, deduplicated list.
 
-Follows the same pattern as [`useSessionArtifacts`](#usesessionartifacts): `useMemo`-based
-derivation, no side effects, no data fetching. Takes the same
-`executions` array input.
+A `useMemo`-based derivation: no side effects, no data fetching. Takes
+the session's `executions` array.
 
 **Dedup semantics:** Write-backs are keyed by `workspace_entry_name`.
 When multiple runs write back to the same workspace entry (e.g.,
@@ -1003,7 +986,7 @@ function useSessionWriteBacks(executions: readonly Run[]): UseSessionWriteBacksR
 
 <TypeTable
   type={{
-    executions: { type: "readonly Run[]", description: "", required: true },
+    executions: { type: "readonly Run[]", description: "All runs for a session, in chronological   order. Pass both completed and active-stream runs.", required: true },
   }}
 />
 
@@ -1104,7 +1087,7 @@ function useWorkspaceReadRefs(executions: readonly Run[], entries: readonly Work
 
 <TypeTable
   type={{
-    executions: { type: "readonly Run[]", description: "", required: true },
+    executions: { type: "readonly Run[]", description: "All runs for the session, in chronological order   (same input contract as useSessionWriteBacks).", required: true },
     entries: { type: "readonly WorkspaceEntry[]", description: "The session's workspace entries. Returned as-is (same   reference) when no entry derives a ref.", required: true },
   }}
 />
@@ -1221,12 +1204,12 @@ Three views over one text:
   plan rendering, title lifted from the leading H1).
 - **Source** — the raw markdown.
 - **Edit** — a plain-textarea editor over a LOCAL draft
-  ([`PlanDraftController`](#plandraftcontroller)); the published artifact is never mutated.
+  ([`PlanDraftController`](#plandraftcontroller)); the plan File is never mutated.
   Building from an edited plan delivers the draft to the implement
   run (edit-as-input).
 
 All views show the *effective* plan — the draft when one exists, the
-published artifact otherwise — so what the user reviews is exactly what
+plan File otherwise — so what the user reviews is exactly what
 Build will implement. An "Edited" indicator plus Revert makes the overlay
 visible and reversible.
 
@@ -1246,7 +1229,7 @@ All visual properties flow through `--stgm-*` tokens.
 <TypeTable
   type={{
     buildDisabled: { type: "boolean", description: "Disables the Build action (run in flight, or build submitting)." },
-    draft: { type: "PlanDraftController", description: "Draft controller owned by the viewer (survives panel collapse/unmounts). Consulted only when editable — a read-only (superseded) plan renders its own artifact text, never the current plan's draft.", typeDescriptionLink: "#plandraftcontroller" },
+    draft: { type: "PlanDraftController", description: "Draft controller owned by the viewer (survives panel collapse/unmounts). Consulted only when editable — a read-only (superseded) plan renders its own text, never the current plan's draft.", typeDescriptionLink: "#plandraftcontroller" },
     onBuildFromPlan: { type: "() => void", description: "Builds from the plan — the same action as the thread card's primary." },
     plan: { type: "SessionPlan", description: "The plan to display (latest, or a superseded plan opened from its card).", required: true, typeDescriptionLink: "/docs/sdk/react/library#sessionplan" },
     readOnly: { type: "boolean", description: "Renders the plan as a historical, read-only document: no Edit view, no Build action, and a \"superseded\" notice. Used when the user opens a plan that a newer plan has since replaced." },
@@ -1470,23 +1453,22 @@ function agentRefOfSession(session: Pick<Session, "spec"> | null | undefined): R
 
 ### artifactKey
 
-The stable identity of an artifact within a session. Uses `sandbox_path`
-when available (the artifact's filesystem identity within the session
-sandbox), falling back to `name` for older artifacts that predate the field.
+The stable identity of an output within a conversation: its output path
+(where the agent saved it under the outputs folder), falling back to the
+filename.
 
-This is the SINGLE source of truth for artifact identity across three sites
-that must agree or a tab could fail to resolve its artifact:
-1. deduplication here (latest run wins per key),
-2. the virtual-document tab `path` when an artifact opens in the editor area
+This is the SINGLE source of truth for output identity across three sites
+that must agree or a tab could fail to resolve its File:
+1. de-duplication here (newest turn wins per key),
+2. the virtual-document tab `path` when an output opens in the editor area
    (see `SessionViewer` / `useSessionPanel.openArtifact`), and
 3. the `artifactKey → entry` lookup that renders the open tab's document.
 
 Its basename doubles as the editor tab's label (paths render as their last
-`/` segment in `EditorTabs`), so `sandbox_path` gives a natural filename
-label with cross-directory disambiguation for free.
+`/` segment in `EditorTabs`).
 
 ```tsx
-function artifactKey(artifact: RunArtifact): string
+function artifactKey(file: File): string
 ```
 
 
@@ -1700,11 +1682,10 @@ Controller returned by [`usePlanDraft`](#useplandraft).
 
 ### planDraftKey
 
-Identity of a plan for draft scoping: the run that published it plus
-the artifact's content hash. A refined plan (new run) or a republished
-plan (same key, new hash) produces a NEW identity, which orphans any draft
-of the previous plan — a draft of plan N must never silently ride along
-once plan N+1 exists.
+Identity of a plan for draft scoping: the plan File's id. A File's bytes
+never change after upload, so its id names its text; a refined plan is a
+new File with a new id, which orphans any draft of the previous plan — a
+draft of plan N must never silently ride along once plan N+1 exists.
 
 ```tsx
 function planDraftKey(plan: SessionPlan): string
@@ -1785,20 +1766,15 @@ Tokens and calls served by one kind of provider credential.
 
 ### SessionArtifactEntry
 
-A single artifact entry enriched with the run it came from, which
-content fetching and Apply/Push gating need.
-
-The `executionId` identifies which run produced (or last
-updated) this artifact — required by [`useArtifactContent`](/docs/sdk/react/run#useartifactcontent) and
-[`ArtifactPreviewModal`](/docs/sdk/react/run#artifactpreviewmodal). `isTerminal` controls whether the
-Apply CTA is enabled in the preview modal.
+One output File, with what content views and Apply gating need about the
+turn that returned it.
 
 <TypeTable
   type={{
-    artifact: { type: "RunArtifact", description: "The proto artifact record containing name, path, size, and download URL.", required: true },
-    hasNameCollision: { type: "boolean", description: "`true` when another artifact in the deduplicated list shares the same display `name` but has a different `sandbox_path`. Consumers use this to render path context for disambiguation.", required: true },
-    isTerminal: { type: "boolean", description: "Whether the producing run is in a terminal phase.", required: true },
-    runId: { type: "string", description: "ID of the run that produced this artifact version.", required: true },
+    file: { type: "File", description: "The File the turn returned.", required: true },
+    hasNameCollision: { type: "boolean", description: "`true` when another entry shares this File's filename at a different output path. Consumers render the path's folder to tell them apart.", required: true },
+    isTerminal: { type: "boolean", description: "Whether the run that returned it has ended.", required: true },
+    runId: { type: "string", description: "ID of the run that returned this File.", required: true },
   }}
 />
 
@@ -1894,11 +1870,11 @@ streaming conversation column.
     closePanel: { type: "() => void", description: "Collapse the panel to the chip, preserving editors and view.", required: true },
     editorsStore: { type: "WorkspaceEditorsStore", description: "The open-editor group store; subscribe with `useWorkspaceEditors`.", required: true },
     isOpen: { type: "boolean", description: "Whether the panel is expanded (chat narrow) or collapsed to the chip. In controlled mode (UseSessionPanelOptions.open) this mirrors the host's value.", required: true },
-    openArtifact: { type: "(artifact: RunArtifact) => void", description: "Open (or focus) an artifact as an editor-pane document tab and expand the panel. Uses the PREVIEW slot — like files and content-search hits, casual artifact browsing reuses one tab (single-click), and double-clicking the tab pins it. Distinct from `openPlanDocument`, which pins its single tab: a plan is the turn's deliverable, artifacts are browsable outputs. The artifact's artifactKey is the tab identity, shared with the `SurfaceVirtualDocument` the viewer builds for the open tab.", required: true },
+    openArtifact: { type: "(file: File) => void", description: "Open (or focus) an artifact as an editor-pane document tab and expand the panel. Uses the PREVIEW slot — like files and content-search hits, casual artifact browsing reuses one tab (single-click), and double-clicking the tab pins it. Distinct from `openPlanDocument`, which pins its single tab: a plan is the turn's deliverable, artifacts are browsable outputs. The artifact's artifactKey is the tab identity, shared with the `SurfaceVirtualDocument` the viewer builds for the open tab.", required: true },
     openFile: { type: "(entryId: string, path: string, options?: OpenFileOptions) => void", description: "Open a file as a preview tab and expand the panel. Pass `options.line` to jump to and highlight a specific 1-based line (e.g. a content-search hit) — the file opens in its line-faithful File view scrolled to that line.", required: true },
     openPanel: { type: "() => void", description: "Expand the panel, restoring the previous view.", required: true },
     openPlanDocument: { type: "() => void", description: "Open (or focus) the plan document tab and expand the panel. The tab is **pinned**, never the recyclable preview slot — file browsing must not evict the plan — and it activates, replacing the focused tab: the plan is the deliverable being reviewed. Fired by the thread cards' \"Open plan\" (the live `PlanStreamingCard` and the settled `PlanArtifactCard`), the Artifacts facet's `plan.md`, and the new-plan auto-open — which triggers both when a plan STARTS STREAMING and when it publishes (see `planKey`).", required: true },
-    pinArtifact: { type: "(artifact: RunArtifact) => void", description: "Pin an artifact's tab (clear its preview state) — the double-click half of the open/activate split, the encapsulated sibling of openArtifact. Delegates to the editors store's generic `pin`, exactly as the file tree pins via `pinEditor`: the leading single-click of the double-click has already opened the preview tab, so this promotes it to a persistent tab. A no-op if the artifact is not open.", required: true },
+    pinArtifact: { type: "(file: File) => void", description: "Pin an artifact's tab (clear its preview state) — the double-click half of the open/activate split, the encapsulated sibling of openArtifact. Delegates to the editors store's generic `pin`, exactly as the file tree pins via `pinEditor`: the leading single-click of the double-click has already opened the preview tab, so this promotes it to a persistent tab. A no-op if the artifact is not open.", required: true },
     pinEditor: { type: "(entryId: string, path: string) => void", description: "Pin an editor tab (clear its preview state).", required: true },
     setView: { type: "(viewId: string) => void", description: "Explicit view pick from the rail — sticky against auto-switching.", required: true },
     view: { type: "string", description: "The active rail view id (`\"files\"`, `\"search\"`, or an injected facet).", required: true },
@@ -2149,6 +2125,7 @@ Options for [`useSessionPanel`](#usesessionpanel).
     open: { type: "boolean", description: "Controlled open state. When provided, the host owns whether the panel is expanded: internal open intents (the chip toggle, a file/artifact/plan open, plan auto-open) no longer flip state themselves — they surface through UseSessionPanelOptions.onOpenChange and the panel follows this value. Leave `undefined` for the self-managing default." },
     phase: { type: "RunPhase | null", description: "The display run's phase, or `null` before any run exists. A transition between running and terminal resets the user's sticky view pick (mirroring the retired inspector-tab FSM).", required: true },
     planKey: { type: "string | null", description: "Identity of the session's current plan, or `null` when none exists. Two identity families, supplied by the viewer: `<executionId>:streaming` while the active turn is WRITING a plan (see `findStreamingPlan`), then the published identity (`planDraftKey`) once the artifact exists. A NEW identity — a plan starting to stream, the first published plan, or a refined plan superseding it — auto-opens the plan document tab (see SessionPanelController.openPlanDocument), expanding a collapsed panel. This deliberately breaks the Changes/Inspect \"never open a collapsed panel\" convention: a plan is not ambient state, it is the deliverable of the turn the user just requested, and with the thread showing only a compact card there is no other review surface — live or settled. The streaming→published transition is itself a new identity, harmlessly re-firing the (idempotent) open as the tab's content settles. Keyed on plan IDENTITY, not presence, so a refined plan re-surfaces too; the identity present at mount is swallowed (loading a session with an old plan — or mid-stream — never hijacks the layout)." },
+    planKeyReady: { type: "boolean", description: "Whether `planKey` is known yet. A host whose plans arrive after mount (the conversation's Files are read asynchronously) passes `false` until that first read lands; the identity present when it turns `true` is swallowed like the identity present at mount, so a session's old plan never opens the panel on load." },
   }}
 />
 
@@ -2159,12 +2136,14 @@ Options for [`useSessionRailViews`](#usesessionrailviews).
 
 <TypeTable
   type={{
-    allRuns: { type: "readonly Run[]", description: "All runs in the session — drives Changes/Artifacts/Usage.", required: true },
+    allRuns: { type: "readonly Run[]", description: "All runs in the session — drives Changes/Usage.", required: true },
+    artifacts: { type: "readonly SessionArtifactEntry[]", description: "The session's outputs (`useSessionArtifacts` over the session's Files): drives the Artifacts facet and its badge." },
     changesSettled: { type: "boolean", description: "Whether the session's latest run is settled (terminal) — forwarded to the Changes facet's pre-push states (its `isSettled` prop)." },
     expectsWriteBack: { type: "boolean", description: "Whether the session is expected to push approved changes to a git remote (a cloud session with git workspace entries). When `true` the Changes facet is offered from the start — with an honest pre-push state — instead of only materializing once a write-back exists, so \"where does my work go?\" always has an answer (the facet's `expectsWriteBack` prop)." },
     includeRunFacets: { type: "boolean", description: "Whether to offer the execution-derived facets (Changes / Artifacts / Usage). The launcher passes `false` — before a session exists there are no runs to aggregate, so only Config applies." },
     onActivateArtifact: { type: "(entry: SessionArtifactEntry) => void", description: "Pin a (non-plan) artifact's document tab — the double-click half of the Artifacts facet's open/activate split. Routed through to the facet's rows." },
     onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is applied from the Artifacts facet." },
+    onArtifactsShown: { type: "() => void", description: "Re-read the session's Files when the Artifacts facet opens (a stopped turn's outputs register after its end)." },
     onImplementPlan: { type: "() => void", description: "Implement a plan — the Artifacts facet's preview action for `plan.md`." },
     onOpenArtifact: { type: "(entry: SessionArtifactEntry) => void", description: "Open a (non-plan) artifact as an editor-pane document tab. Routed to the Artifacts facet so clicking an artifact opens it in the editor area (VS Code \"each file is a tab\") instead of the preview modal." },
     onOpenPlan: { type: "(executionId: string) => void", description: "Open a plan in the panel's plan document tab. Routed to the Artifacts facet so clicking `plan.md` there opens the editor-area document instead of the preview modal." },

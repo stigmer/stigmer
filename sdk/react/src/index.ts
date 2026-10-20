@@ -355,7 +355,7 @@ export {
   useFileReviewRowChange,
   ArtifactRow,
   ArtifactRowView,
-  fromRunArtifact,
+  fromFile,
   ArtifactContentRenderer,
   ArtifactContentBody,
   ArtifactFileContent,
@@ -363,7 +363,6 @@ export {
   useArtifactInspection,
   ArtifactPreviewContent,
   ArtifactPreviewModal,
-  ArtifactsWidget,
   WriteBacksWidget,
   ToolArgsView,
   McpArgsView,
@@ -373,7 +372,6 @@ export {
   classifyPath,
   resolveGitBrowseUrl,
   resolvePathAction,
-  useRunArtifacts,
   useArtifactContent,
   useArtifactDownloadUrl,
   useArtifactDownload,
@@ -476,13 +474,11 @@ export type {
   ArtifactRenderMode,
   ArtifactPreviewContentProps,
   ArtifactPreviewModalProps,
-  ArtifactsWidgetProps,
   WriteBacksWidgetProps,
   FilePathLinkProps,
   FilePathContextValue,
   PathClassification,
   ResolvedPathAction,
-  UseRunArtifactsReturn,
   UseArtifactContentReturn,
   UseArtifactDownloadUrlReturn,
   UseArtifactDownloadUrlOptions,
@@ -499,10 +495,6 @@ export type {
   EmptyChangeNoticeProps,
   EmptyChangeKind,
 } from "./run/index.js";
-
-// Run — proto type re-exports for artifact consumers
-export type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
-export { RunArtifactKind } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 // Attachment — the chat box's file uploads (Stigmer Files), styled chip
 // list, clipboard paste, vision-resolution image preparation, and vision
@@ -545,8 +537,14 @@ export type {
 } from "./attachment/index.js";
 
 // File — one Stigmer File's record, link and download
-export { useFile, useFileDownloadUrl, useFileDownload } from "./file/index.js";
-export type { UseFileReturn, UseFileDownloadUrlReturn, UseFileDownloadReturn } from "./file/index.js";
+export { useFile, useFileDownloadUrl, useFileDownload, useFileContent, useSessionFiles } from "./file/index.js";
+export type {
+  UseFileReturn,
+  UseFileDownloadUrlReturn,
+  UseFileDownloadReturn,
+  UseFileContentReturn,
+  UseSessionFilesReturn,
+} from "./file/index.js";
 
 // File Reference — workspace file-reference behavior hook and styled chip list
 export {
@@ -1931,13 +1929,11 @@ export {
   ResourceCountCard,
   detectStigmerResource,
   useDetectStigmerResource,
-  isSkillPackage,
-  detectSkillPackage,
-  useDetectSkillPackage,
-  isPlanArtifact,
   isPlanArtifactName,
-  findPlanArtifact,
+  isPlanFile,
+  findPlanFile,
   findLatestSessionPlan,
+  planFilesByRun,
   findStreamingPlan,
   PLAN_ARTIFACT_NAME,
   PLAN_ARTIFACT_SUFFIX,
@@ -1953,10 +1949,8 @@ export type {
   ResourceCountCardProps,
   StigmerResourceKind,
   StigmerResourceDetection,
-  SkillPackageDetection,
   SessionPlan,
   StreamingPlan,
-  UseDetectSkillPackageReturn,
   UseApplyResourceReturn,
   ApplyResourceResult,
   PushSkillParams,

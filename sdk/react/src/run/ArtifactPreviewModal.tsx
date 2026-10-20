@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback } from "react";
-import type { RunArtifact } from "@stigmer/apis/ai/stigmer/agentic/run/v1/artifact_pb";
+import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
-import { useArtifactDownload } from "./useArtifactDownload.js";
+import { useFileDownload } from "../file/useFile.js";
 import { formatArtifactSize } from "./artifact-utils.js";
 import { ArtifactContentBody } from "./ArtifactContentBody.js";
 import { ArtifactApplyButton } from "./ArtifactApplyButton.js";
@@ -17,15 +17,13 @@ import type { ApplyResourceResult } from "../library/useApplyResource.js";
 
 /** Props for {@link ArtifactPreviewContent}. */
 export interface ArtifactPreviewContentProps {
-  /** The run artifact to preview. */
-  readonly artifact: RunArtifact;
-  /** ID of the run that produced this artifact. */
-  readonly runId: string;
-  /** Organization id for the "Apply to [org]" / "Push Skill to [org]" CTA (a slug is also accepted). */
+  /** The File to preview. */
+  readonly file: StigmerFile;
+  /** Organization id for the "Apply to [org]" CTA (a slug is also accepted). */
   readonly org: string;
   /**
-   * Whether the run is in a terminal phase (completed, failed,
-   * cancelled, terminated). Controls Apply/Push CTA availability:
+   * Whether the run that returned the File has ended. Controls Apply CTA
+   * availability:
    *
    * - `true` — CTA renders as an enabled primary button
    * - `false` — CTA renders as a disabled secondary button
@@ -34,16 +32,16 @@ export interface ArtifactPreviewContentProps {
   /** Called when the close button is clicked. */
   readonly onClose: () => void;
   /**
-   * Called after a resource is successfully applied or a skill package
-   * is pushed. The consumer can use this for post-apply behavior such
-   * as showing a toast or navigating to the Library.
+   * Called after a resource is successfully applied. The consumer can use
+   * this for post-apply behavior such as showing a toast or navigating to
+   * the Library.
    */
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
    * Optional plan-build action. When provided, a "Build" primary button
-   * appears in the action bar (used for plan artifacts: turn the plan into
-   * a Run). Clicking it calls `onImplement` then closes the modal.
-   * Omit for non-actionable artifacts.
+   * appears in the action bar (used for a plan: turn the plan into a Run).
+   * Clicking it calls `onImplement` then closes the modal. Omit for
+   * non-actionable Files.
    */
   readonly onImplement?: () => void;
   /** Additional CSS classes for the root container. */
@@ -51,24 +49,19 @@ export interface ArtifactPreviewContentProps {
 }
 
 /**
- * Artifact preview content with detection pipeline and Apply/Push CTA.
+ * Output-File preview content with detection pipeline and Apply CTA.
  *
  * Renders the header (name, size, detection badge, close button),
- * content body (file content or directory listing), and action bar
- * (copy, download, Apply/Push). The parent is responsible for rendering
+ * content body, and action bar (copy, download, Apply). The parent is responsible for rendering
  * it inside a `<dialog>`, modal, sheet, overlay, or inline context as
  * needed.
  *
  * Orchestrates the shared detection pipeline (see {@link useArtifactInspection}):
  *
- * - **FILE artifacts**: Fetches text content via {@link useArtifactContent},
- *   renders via {@link ArtifactContentRenderer} (markdown, YAML, JSON, or
- *   plain text based on file type), and detects Agent resources
- *   via {@link useDetectStigmerResource}.
- *
- * - **DIRECTORY artifacts**: Shows the file listing from
- *   `artifact.entries` and detects skill packages via
- *   {@link useDetectSkillPackage}.
+ * it reads a text File via `useFileContent`, renders it via
+ * {@link ArtifactContentRenderer} (markdown, YAML, JSON, or plain text based
+ * on file type), and detects Agent resources via
+ * {@link useDetectStigmerResource}.
  *
  * Content fetching begins immediately on mount. Unmounting the component
  * resets all internal state (detection, apply result, clipboard). For
@@ -79,8 +72,7 @@ export interface ArtifactPreviewContentProps {
  * ```tsx
  * // Inside a dialog, modal, or overlay:
  * <ArtifactPreviewContent
- *   artifact={artifact}
- *   runId={run.id}
+ *   file={file}
  *   org={activeOrg}
  *   isTerminal={isTerminalPhase(run.status?.phase)}
  *   onClose={() => setOpen(false)}
@@ -90,14 +82,11 @@ export interface ArtifactPreviewContentProps {
  *
  * @see {@link ArtifactPreviewModal} — wraps this component in a native `<dialog>`
  * @see {@link ArtifactRow} — dense list row that triggers preview via `onOpen`
- * @see {@link useArtifactContent} — content-fetching hook (headless alternative)
  * @see {@link useDetectStigmerResource} — YAML resource detection (headless)
- * @see {@link useDetectSkillPackage} — skill package detection (headless)
- * @see {@link useApplyResource} — apply/push behavior hook (headless)
+ * @see {@link useApplyResource} — apply behavior hook (headless)
  */
 export function ArtifactPreviewContent({
-  artifact,
-  runId: executionId,
+  file,
   org,
   isTerminal,
   onClose,
@@ -105,12 +94,10 @@ export function ArtifactPreviewContent({
   onImplement,
   className,
 }: ArtifactPreviewContentProps) {
-  // The whole inspect-and-act pipeline (content, detection, apply/push, copy)
+  // The whole inspect-and-act pipeline (content, detection, apply, copy)
   // lives in one headless hook, shared with the editor-area ArtifactDocument so
   // the two surfaces can never drift.
-  const inspection = useArtifactInspection(artifact, executionId, org, {
-    onApplied,
-  });
+  const inspection = useArtifactInspection(file, org, { onApplied });
 
   // "Build" runs the plan; closing the modal lets the host's submit pipeline
   // take over (switch to Agent + send). Single combined handler keeps the
@@ -123,28 +110,24 @@ export function ArtifactPreviewContent({
   return (
     <div className={cn("stg:flex stg:max-h-[80vh] stg:flex-col", className)}>
       <ContentHeader
-        artifact={artifact}
-        isDirectory={inspection.isDirectory}
+        file={file}
         detectionLabel={inspection.detectionLabel}
         isDetecting={inspection.isDetecting}
         onClose={onClose}
       />
 
       <ArtifactContentBody
-        artifact={artifact}
+        file={file}
         content={inspection.content}
         contentType={inspection.contentType}
         isLoading={inspection.isLoading}
         error={inspection.error}
         isTruncated={inspection.isTruncated}
-        skillDetection={inspection.skillDetection}
         className="stg:min-h-0 stg:flex-1 stg:overflow-y-auto stg:border-t stg:border-border"
       />
 
       <ActionBar
-        artifact={artifact}
-        executionId={executionId}
-        isDirectory={inspection.isDirectory}
+        file={file}
         hasContent={inspection.content !== null}
         copied={inspection.copied}
         onCopy={inspection.copy}
@@ -176,15 +159,13 @@ export function ArtifactPreviewContent({
 
 /** Props for {@link ArtifactPreviewModal}. */
 export interface ArtifactPreviewModalProps {
-  /** The run artifact to preview. */
-  readonly artifact: RunArtifact;
-  /** ID of the run that produced this artifact. */
-  readonly runId: string;
-  /** Organization id for the "Apply to [org]" / "Push Skill to [org]" CTA (a slug is also accepted). */
+  /** The File to preview. */
+  readonly file: StigmerFile;
+  /** Organization id for the "Apply to [org]" CTA (a slug is also accepted). */
   readonly org: string;
   /**
-   * Whether the run is in a terminal phase (completed, failed,
-   * cancelled, terminated). Controls Apply/Push CTA availability:
+   * Whether the run that returned the File has ended. Controls Apply CTA
+   * availability:
    *
    * - `true` — CTA renders as an enabled primary button
    * - `false` — CTA renders as a disabled secondary button
@@ -195,9 +176,9 @@ export interface ArtifactPreviewModalProps {
   /** Called when the modal should close (Escape key or close button). */
   readonly onClose: () => void;
   /**
-   * Called after a resource is successfully applied or a skill package
-   * is pushed. The consumer can use this for post-apply behavior such
-   * as showing a toast or navigating to the Library.
+   * Called after a resource is successfully applied. The consumer can use
+   * this for post-apply behavior such as showing a toast or navigating to
+   * the Library.
    */
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
@@ -211,7 +192,7 @@ export interface ArtifactPreviewModalProps {
 }
 
 /**
- * Full preview modal for run artifacts using a native `<dialog>`.
+ * Full preview modal for an output File using a native `<dialog>`.
  *
  * Thin shell around {@link ArtifactPreviewContent} that adds
  * `showModal()` / `close()` lifecycle, `::backdrop` overlay, focus
@@ -224,17 +205,15 @@ export interface ArtifactPreviewModalProps {
  *
  * @example
  * ```tsx
- * const [previewArtifact, setPreviewArtifact] =
- *   useState<RunArtifact | null>(null);
+ * const [previewFile, setPreviewFile] = useState<File | null>(null);
  *
- * {previewArtifact && (
+ * {previewFile && (
  *   <ArtifactPreviewModal
- *     artifact={previewArtifact}
- *     runId={run.id}
+ *     file={previewFile}
  *     org={activeOrg}
  *     isTerminal={isTerminalPhase(run.status?.phase)}
  *     open
- *     onClose={() => setPreviewArtifact(null)}
+ *     onClose={() => setPreviewFile(null)}
  *     onApplied={(result) => toast(`${result.kind} applied`)}
  *   />
  * )}
@@ -244,8 +223,7 @@ export interface ArtifactPreviewModalProps {
  * @see {@link ArtifactRow} — dense list row that triggers preview via `onOpen`
  */
 export function ArtifactPreviewModal({
-  artifact,
-  runId: executionId,
+  file,
   org,
   isTerminal,
   open,
@@ -266,7 +244,7 @@ export function ArtifactPreviewModal({
       open={open}
       onOpenChange={handleOpenChange}
       width="3xl"
-      aria-label={`Preview ${artifact.name}`}
+      aria-label={`Preview ${file.spec?.filename ?? ""}`}
       // Background surface is deliberate for content previews. The
       // previously hardcoded ::backdrop color (bg-black/50 — it escaped the
       // #652 fence via the arbitrary-variant spelling) now rides the
@@ -275,8 +253,7 @@ export function ArtifactPreviewModal({
     >
       {open && (
         <ArtifactPreviewContent
-          artifact={artifact}
-          runId={executionId}
+          file={file}
           org={org}
           isTerminal={isTerminal}
           onClose={onClose}
@@ -300,14 +277,12 @@ const FOCUS_RING_CLASSES =
 // ---------------------------------------------------------------------------
 
 function ContentHeader({
-  artifact,
-  isDirectory,
+  file,
   detectionLabel,
   isDetecting,
   onClose,
 }: {
-  readonly artifact: RunArtifact;
-  readonly isDirectory: boolean;
+  readonly file: StigmerFile;
   readonly detectionLabel: string | null;
   readonly isDetecting: boolean;
   readonly onClose: () => void;
@@ -315,17 +290,16 @@ function ContentHeader({
   return (
     <div className="stg:flex stg:items-start stg:gap-3 stg:p-4 stg:pb-3">
       <span className="stg:mt-0.5 stg:shrink-0 stg:text-muted-foreground">
-        {isDirectory ? <FolderIcon /> : <FileIcon />}
+        <FileIcon />
       </span>
 
       <div className="stg:min-w-0 stg:flex-1">
         <h2 className="stg:truncate stg:text-sm stg:font-semibold stg:text-foreground">
-          {artifact.name}
-          {isDirectory && "/"}
+          {file.spec?.filename ?? ""}
         </h2>
         <div className="stg:mt-0.5 stg:flex stg:flex-wrap stg:items-center stg:gap-2">
           <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
-            {formatArtifactSize(artifact.sizeBytes)}
+            {formatArtifactSize(file.status?.sizeBytes ?? BigInt(0))}
           </span>
           {isDetecting && !detectionLabel && (
             <span
@@ -361,9 +335,7 @@ function ContentHeader({
 // ---------------------------------------------------------------------------
 
 function ActionBar({
-  artifact,
-  executionId,
-  isDirectory,
+  file,
   hasContent,
   copied,
   onCopy,
@@ -376,9 +348,7 @@ function ActionBar({
   onApply,
   onImplement,
 }: {
-  readonly artifact: RunArtifact;
-  readonly executionId: string;
-  readonly isDirectory: boolean;
+  readonly file: StigmerFile;
   readonly hasContent: boolean;
   readonly copied: boolean;
   readonly onCopy: () => void;
@@ -391,11 +361,11 @@ function ActionBar({
   readonly onApply: () => void;
   readonly onImplement?: () => void;
 }) {
-  const { download, isDownloading } = useArtifactDownload(executionId);
+  const { download, isDownloading } = useFileDownload();
   return (
     <div className="stg:flex stg:items-center stg:justify-between stg:gap-3 stg:border-t stg:border-border stg:px-4 stg:py-3">
       <div className="stg:flex stg:items-center stg:gap-3">
-        {!isDirectory && hasContent && (
+        {hasContent && (
           <button
             type="button"
             onClick={onCopy}
@@ -415,7 +385,7 @@ function ActionBar({
 
         <button
           type="button"
-          onClick={() => download(artifact.storageKey, artifact.name)}
+          onClick={() => download(file.metadata?.id ?? "", file.spec?.filename)}
           disabled={isDownloading}
           className={cn(
             "stg:inline-flex stg:items-center stg:gap-1.5 stg:text-xs stg:font-medium stg:text-muted-foreground stg:transition-colors stg:hover:text-foreground stg:disabled:opacity-50",
@@ -423,7 +393,7 @@ function ActionBar({
           )}
         >
           <DownloadIcon />
-          {isDownloading ? "Preparing…" : isDirectory ? "Download ZIP" : "Download"}
+          {isDownloading ? "Preparing…" : "Download"}
         </button>
       </div>
 
@@ -516,24 +486,6 @@ function FileIcon() {
     >
       <path d="M9.5 1.5H5C4.17 1.5 3.5 2.17 3.5 3V13C3.5 13.83 4.17 14.5 5 14.5H11C11.83 14.5 12.5 13.83 12.5 13V4.5L9.5 1.5Z" />
       <path d="M9.5 1.5V4.5H12.5" />
-    </svg>
-  );
-}
-
-function FolderIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M14.5 12.5C14.5 13.33 13.83 14 13 14H3C2.17 14 1.5 13.33 1.5 12.5V3.5C1.5 2.67 2.17 2 3 2H6L8 4.5H13C13.83 4.5 14.5 5.17 14.5 6V12.5Z" />
     </svg>
   );
 }

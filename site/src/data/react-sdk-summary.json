@@ -144,7 +144,7 @@
       "slug": "file",
       "title": "File",
       "description": "Hooks that read a File by id (its name, type and size) and mint its download link when asked.",
-      "hooks": 3,
+      "hooks": 5,
       "components": 0
     },
     {
@@ -186,7 +186,7 @@
       "slug": "library",
       "title": "Library",
       "description": "Hooks and components for resource browsing, YAML detection, apply flow, and visibility.",
-      "hooks": 7,
+      "hooks": 6,
       "components": 4
     },
     {
@@ -263,8 +263,8 @@
       "slug": "run",
       "title": "Run",
       "description": "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
-      "hooks": 20,
-      "components": 34
+      "hooks": 19,
+      "components": 33
     },
     {
       "slug": "score",

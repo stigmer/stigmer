@@ -8,7 +8,6 @@ const fileItem: ArtifactRowItem = {
   tooltip: "report.json",
   subtitlePath: null,
   sizeBytes: 2048n,
-  isDirectory: false,
 };
 
 function renderView(
@@ -68,14 +67,11 @@ describe("ArtifactRowView — the shared row primitive", () => {
     expect((download as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it("renders directory affordances with no native title anywhere", () => {
-    renderView({
-      item: { ...fileItem, name: "bundle", tooltip: "bundle", isDirectory: true },
-    });
-    expect(screen.getByText("bundle/")).toBeTruthy();
-    // The "Download ZIP" copy moved to the house tooltip (native titles
-    // are banned); its reveal is pinned in the
-    // real-browser suite (artifact-row-tooltips.layout.browser.test.tsx).
+  it("renders with no native title anywhere", () => {
+    renderView();
+    // The Download hint lives in the house tooltip (native titles are
+    // banned); its reveal is pinned in the real-browser suite
+    // (artifact-row-tooltips.layout.browser.test.tsx).
     expect(document.querySelector("[title]")).toBeNull();
   });
 });

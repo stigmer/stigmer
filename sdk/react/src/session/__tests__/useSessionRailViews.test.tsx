@@ -6,21 +6,35 @@ import { renderHook, cleanup } from "@testing-library/react";
 // the workspace surface. The facet components themselves have their own
 // suites; here we prove the composition rules — ordering, contextual
 // visibility (Changes/Artifacts only with data), and count badges — by
-// mocking the aggregation hooks.
+// mocking the write-back aggregation and passing the session's outputs.
 // ---------------------------------------------------------------------------
 
+import { create } from "@bufbuild/protobuf";
+import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
+
 const writeBacksState = { hasWriteBacks: false, writeBackCount: 0 };
-const artifactsState = { hasArtifacts: false, artifactCount: 0 };
 
 vi.mock("../useSessionWriteBacks", () => ({
   useSessionWriteBacks: () => writeBacksState,
 }));
-vi.mock("../useSessionArtifacts", () => ({
-  useSessionArtifacts: () => artifactsState,
-}));
 
 import { useSessionRailViews } from "../useSessionRailViews";
+import type { SessionArtifactEntry } from "../useSessionArtifacts";
 import type { SetupTabProps } from "../facets/SetupTab";
+
+/** `count` output entries, one per output path. */
+function outputs(count: number): SessionArtifactEntry[] {
+  return Array.from({ length: count }, (_, i) => ({
+    file: create(FileSchema, {
+      metadata: { id: `file_${i}` },
+      spec: { filename: `out-${i}.md` },
+      status: { runId: "aex_1", outputPath: `out-${i}.md` },
+    }),
+    runId: "aex_1",
+    isTerminal: true,
+    hasNameCollision: false,
+  }));
+}
 
 const sessionConfig = {
   agentRef: null,
@@ -49,8 +63,6 @@ afterEach(() => {
   cleanup();
   writeBacksState.hasWriteBacks = false;
   writeBacksState.writeBackCount = 0;
-  artifactsState.hasArtifacts = false;
-  artifactsState.artifactCount = 0;
 });
 
 describe("useSessionRailViews", () => {
@@ -90,9 +102,7 @@ describe("useSessionRailViews", () => {
   });
 
   it("surfaces Artifacts with a count badge", () => {
-    artifactsState.hasArtifacts = true;
-    artifactsState.artifactCount = 4;
-    const { result } = renderViews();
+    const { result } = renderViews({ artifacts: outputs(4) });
     const artifacts = result.current.find((v) => v.id === "artifacts");
     expect(artifacts?.badge).toBe(4);
   });
@@ -100,9 +110,7 @@ describe("useSessionRailViews", () => {
   it("keeps full inspector ordering: Config, Changes, Artifacts, Usage", () => {
     writeBacksState.hasWriteBacks = true;
     writeBacksState.writeBackCount = 1;
-    artifactsState.hasArtifacts = true;
-    artifactsState.artifactCount = 1;
-    const { result } = renderViews();
+    const { result } = renderViews({ artifacts: outputs(1) });
     expect(result.current.map((v) => v.id)).toEqual([
       "configure",
       "changes",

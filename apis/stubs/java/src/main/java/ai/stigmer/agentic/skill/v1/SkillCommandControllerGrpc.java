@@ -77,35 +77,35 @@ public final class SkillCommandControllerGrpc {
     return getCreateArtifactUploadUrlMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest,
-      ai.stigmer.agentic.skill.v1.Skill> getPushFromRunArtifactMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest,
+      ai.stigmer.agentic.skill.v1.Skill> getPushFromFileMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "pushFromRunArtifact",
-      requestType = ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest.class,
+      fullMethodName = SERVICE_NAME + '/' + "pushFromFile",
+      requestType = ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest.class,
       responseType = ai.stigmer.agentic.skill.v1.Skill.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest,
-      ai.stigmer.agentic.skill.v1.Skill> getPushFromRunArtifactMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest, ai.stigmer.agentic.skill.v1.Skill> getPushFromRunArtifactMethod;
-    if ((getPushFromRunArtifactMethod = SkillCommandControllerGrpc.getPushFromRunArtifactMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest,
+      ai.stigmer.agentic.skill.v1.Skill> getPushFromFileMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest, ai.stigmer.agentic.skill.v1.Skill> getPushFromFileMethod;
+    if ((getPushFromFileMethod = SkillCommandControllerGrpc.getPushFromFileMethod) == null) {
       synchronized (SkillCommandControllerGrpc.class) {
-        if ((getPushFromRunArtifactMethod = SkillCommandControllerGrpc.getPushFromRunArtifactMethod) == null) {
-          SkillCommandControllerGrpc.getPushFromRunArtifactMethod = getPushFromRunArtifactMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest, ai.stigmer.agentic.skill.v1.Skill>newBuilder()
+        if ((getPushFromFileMethod = SkillCommandControllerGrpc.getPushFromFileMethod) == null) {
+          SkillCommandControllerGrpc.getPushFromFileMethod = getPushFromFileMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest, ai.stigmer.agentic.skill.v1.Skill>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "pushFromRunArtifact"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "pushFromFile"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest.getDefaultInstance()))
+                  ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.skill.v1.Skill.getDefaultInstance()))
-              .setSchemaDescriptor(new SkillCommandControllerMethodDescriptorSupplier("pushFromRunArtifact"))
+              .setSchemaDescriptor(new SkillCommandControllerMethodDescriptorSupplier("pushFromFile"))
               .build();
         }
       }
     }
-    return getPushFromRunArtifactMethod;
+    return getPushFromFileMethod;
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput,
@@ -266,14 +266,14 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
-     * Push a skill from a run artifact already in storage.
-     * Use this when a run has already produced a skill artifact
-     * and you want to publish it without downloading and re-uploading the ZIP.
+     * Push a skill from a File holding its ZIP archive.
+     * Use this when an agent saved a skill archive as a File, or one was
+     * uploaded, to publish it without downloading and re-uploading the bytes.
      * </pre>
      */
-    default void pushFromRunArtifact(ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest request,
+    default void pushFromFile(ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.Skill> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getPushFromRunArtifactMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getPushFromFileMethod(), responseObserver);
     }
 
     /**
@@ -365,15 +365,15 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
-     * Push a skill from a run artifact already in storage.
-     * Use this when a run has already produced a skill artifact
-     * and you want to publish it without downloading and re-uploading the ZIP.
+     * Push a skill from a File holding its ZIP archive.
+     * Use this when an agent saved a skill archive as a File, or one was
+     * uploaded, to publish it without downloading and re-uploading the bytes.
      * </pre>
      */
-    public void pushFromRunArtifact(ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest request,
+    public void pushFromFile(ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.Skill> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getPushFromRunArtifactMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getPushFromFileMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -451,14 +451,14 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
-     * Push a skill from a run artifact already in storage.
-     * Use this when a run has already produced a skill artifact
-     * and you want to publish it without downloading and re-uploading the ZIP.
+     * Push a skill from a File holding its ZIP archive.
+     * Use this when an agent saved a skill archive as a File, or one was
+     * uploaded, to publish it without downloading and re-uploading the bytes.
      * </pre>
      */
-    public ai.stigmer.agentic.skill.v1.Skill pushFromRunArtifact(ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.skill.v1.Skill pushFromFile(ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getPushFromRunArtifactMethod(), getCallOptions(), request);
+          getChannel(), getPushFromFileMethod(), getCallOptions(), request);
     }
 
     /**
@@ -534,14 +534,14 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
-     * Push a skill from a run artifact already in storage.
-     * Use this when a run has already produced a skill artifact
-     * and you want to publish it without downloading and re-uploading the ZIP.
+     * Push a skill from a File holding its ZIP archive.
+     * Use this when an agent saved a skill archive as a File, or one was
+     * uploaded, to publish it without downloading and re-uploading the bytes.
      * </pre>
      */
-    public ai.stigmer.agentic.skill.v1.Skill pushFromRunArtifact(ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest request) {
+    public ai.stigmer.agentic.skill.v1.Skill pushFromFile(ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getPushFromRunArtifactMethod(), getCallOptions(), request);
+          getChannel(), getPushFromFileMethod(), getCallOptions(), request);
     }
 
     /**
@@ -619,15 +619,15 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
-     * Push a skill from a run artifact already in storage.
-     * Use this when a run has already produced a skill artifact
-     * and you want to publish it without downloading and re-uploading the ZIP.
+     * Push a skill from a File holding its ZIP archive.
+     * Use this when an agent saved a skill archive as a File, or one was
+     * uploaded, to publish it without downloading and re-uploading the bytes.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.Skill> pushFromRunArtifact(
-        ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.Skill> pushFromFile(
+        ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getPushFromRunArtifactMethod(), getCallOptions()), request);
+          getChannel().newCall(getPushFromFileMethod(), getCallOptions()), request);
     }
 
     /**
@@ -658,7 +658,7 @@ public final class SkillCommandControllerGrpc {
 
   private static final int METHODID_PUSH = 0;
   private static final int METHODID_CREATE_ARTIFACT_UPLOAD_URL = 1;
-  private static final int METHODID_PUSH_FROM_RUN_ARTIFACT = 2;
+  private static final int METHODID_PUSH_FROM_FILE = 2;
   private static final int METHODID_UPDATE_VISIBILITY = 3;
   private static final int METHODID_DELETE = 4;
 
@@ -687,8 +687,8 @@ public final class SkillCommandControllerGrpc {
           serviceImpl.createArtifactUploadUrl((ai.stigmer.agentic.skill.v1.CreateSkillArtifactUploadUrlRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl>) responseObserver);
           break;
-        case METHODID_PUSH_FROM_RUN_ARTIFACT:
-          serviceImpl.pushFromRunArtifact((ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest) request,
+        case METHODID_PUSH_FROM_FILE:
+          serviceImpl.pushFromFile((ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.Skill>) responseObserver);
           break;
         case METHODID_UPDATE_VISIBILITY:
@@ -732,12 +732,12 @@ public final class SkillCommandControllerGrpc {
               ai.stigmer.agentic.skill.v1.SkillArtifactUploadUrl>(
                 service, METHODID_CREATE_ARTIFACT_UPLOAD_URL)))
         .addMethod(
-          getPushFromRunArtifactMethod(),
+          getPushFromFileMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.skill.v1.PushSkillFromRunArtifactRequest,
+              ai.stigmer.agentic.skill.v1.PushSkillFromFileRequest,
               ai.stigmer.agentic.skill.v1.Skill>(
-                service, METHODID_PUSH_FROM_RUN_ARTIFACT)))
+                service, METHODID_PUSH_FROM_FILE)))
         .addMethod(
           getUpdateVisibilityMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -802,7 +802,7 @@ public final class SkillCommandControllerGrpc {
               .setSchemaDescriptor(new SkillCommandControllerFileDescriptorSupplier())
               .addMethod(getPushMethod())
               .addMethod(getCreateArtifactUploadUrlMethod())
-              .addMethod(getPushFromRunArtifactMethod())
+              .addMethod(getPushFromFileMethod())
               .addMethod(getUpdateVisibilityMethod())
               .addMethod(getDeleteMethod())
               .build();

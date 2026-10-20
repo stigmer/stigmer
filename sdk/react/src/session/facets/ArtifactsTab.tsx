@@ -1,31 +1,33 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
-import {
-  useSessionArtifacts,
-  artifactKey,
-  type SessionArtifactEntry,
-} from "../useSessionArtifacts.js";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { artifactKey, type SessionArtifactEntry } from "../useSessionArtifacts.js";
 import { UNSTYLED_LIST } from "../../internal/element-resets.js";
 import { ArtifactPreviewModal } from "../../run/ArtifactPreviewModal.js";
 import { ArtifactRow } from "../../run/ArtifactRow.js";
-import { isPlanArtifact } from "../../library/detect-plan-artifact.js";
+import { isPlanFile } from "../../library/detect-plan-artifact.js";
 import type { ApplyResourceResult } from "../../library/useApplyResource.js";
 
 export interface ArtifactsTabProps {
-  readonly runs: readonly Run[];
+  /** The conversation's outputs, one per output path (`useSessionArtifacts`). */
+  readonly artifacts: readonly SessionArtifactEntry[];
   readonly org: string;
+  /**
+   * Called once when the tab opens, to re-read the conversation's Files: a
+   * stopped turn's outputs register after its end, and nothing else
+   * announces them.
+   */
+  readonly onShown?: () => void;
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /**
-   * Implement a plan. When provided, the preview of a `plan.md` artifact
+   * Implement a plan. When provided, the preview of a plan File
    * shows an Implement action (turn the plan into a Run) — the same
    * action as the message-thread plan card.
    */
   readonly onImplementPlan?: () => void;
   /**
    * Open a plan in the session panel's plan document tab. When provided, a
-   * `plan.md` artifact routes there instead of the preview modal — the plan
+   * plan File routes there instead of the preview modal — the plan
    * is a first-class document, not a popup. Non-plan artifacts keep the
    * modal. When omitted (hosts without the plan tab) the modal remains for
    * every artifact.
@@ -54,34 +56,44 @@ export interface ArtifactsTabProps {
 /**
  * Artifacts facet for the session panel (a `useSessionRailViews` rail view).
  *
- * A VS Code-style dense file list of the session's outputs: one compact
- * {@link ArtifactRow} per artifact (shared file-type icon + name + size, with a
- * hover/focus Download). Clicking a row opens the artifact — a `plan.md` in the
+ * A VS Code-style dense file list of the session's outputs (the Files its
+ * turns returned): one compact {@link ArtifactRow} per output path (shared
+ * file-type icon + name + size, with a hover/focus Download). Clicking a row
+ * opens the File — a plan in the
  * plan document tab ({@link onOpenPlan}), any other artifact in an editor-pane
  * document ({@link onOpenArtifact}), or, for panel-less hosts that inject
  * neither, the {@link ArtifactPreviewModal} popup fallback.
  *
  * Deliberately metadata-only: rows do NOT fetch content for resource detection
- * (that would be one request per artifact on open) — detection and the
- * Apply/Push action live in the opened document/modal instead.
+ * (that would be one request per File on open) — detection and the Apply
+ * action live in the opened document/modal instead.
  */
 export function ArtifactsTab({
-  runs: executions,
+  artifacts,
   org,
+  onShown,
   onApplied,
   onImplementPlan,
   onOpenPlan,
   onOpenArtifact,
   onActivateArtifact,
 }: ArtifactsTabProps) {
-  const { artifacts, hasArtifacts } = useSessionArtifacts(executions);
+  const hasArtifacts = artifacts.length > 0;
   const [previewEntry, setPreviewEntry] = useState<SessionArtifactEntry | null>(null);
+
+  // Once per opening: the facet mounts when its rail view is shown. The ref
+  // keeps a host's new callback identity from re-reading on every render.
+  const onShownRef = useRef(onShown);
+  onShownRef.current = onShown;
+  useEffect(() => {
+    onShownRef.current?.();
+  }, []);
 
   const handleOpen = useCallback(
     (entry: SessionArtifactEntry) => {
       // A plan is a first-class document — it opens in the dedicated plan tab,
       // never as a generic artifact or a popup.
-      if (onOpenPlan && isPlanArtifact(entry.artifact)) {
+      if (onOpenPlan && isPlanFile(entry.file)) {
         onOpenPlan(entry.runId);
         return;
       }
@@ -99,7 +111,7 @@ export function ArtifactsTab({
     (entry: SessionArtifactEntry) => {
       // A plan's tab is always pinned, so double-click matches single-click:
       // route to the plan tab, never pin a generic artifact.
-      if (onOpenPlan && isPlanArtifact(entry.artifact)) {
+      if (onOpenPlan && isPlanFile(entry.file)) {
         onOpenPlan(entry.runId);
         return;
       }
@@ -116,7 +128,7 @@ export function ArtifactsTab({
     return (
       <div className="stg:flex stg:flex-col stg:items-center stg:justify-center stg:px-4 stg:py-8 stg:text-center">
         <p className="stg:text-xs stg:text-muted-foreground">
-          No artifacts yet. Files generated by the agent will appear here.
+          No artifacts yet. Files the agent saves for you will appear here.
         </p>
       </div>
     );
@@ -127,9 +139,8 @@ export function ArtifactsTab({
       <ul role="list" className={`${UNSTYLED_LIST} stg:flex stg:flex-col`}>
         {artifacts.map((entry) => (
           <ArtifactRow
-            key={artifactKey(entry.artifact)}
-            artifact={entry.artifact}
-            runId={entry.runId}
+            key={artifactKey(entry.file)}
+            file={entry.file}
             hasNameCollision={entry.hasNameCollision}
             onOpen={() => handleOpen(entry)}
             onActivate={
@@ -141,15 +152,14 @@ export function ArtifactsTab({
 
       {previewEntry && (
         <ArtifactPreviewModal
-          artifact={previewEntry.artifact}
-          runId={previewEntry.runId}
+          file={previewEntry.file}
           isTerminal={previewEntry.isTerminal}
           org={org}
           open
           onClose={handleClosePreview}
           onApplied={onApplied}
           onImplement={
-            isPlanArtifact(previewEntry.artifact) ? onImplementPlan : undefined
+            isPlanFile(previewEntry.file) ? onImplementPlan : undefined
           }
         />
       )}

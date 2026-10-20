@@ -31,7 +31,7 @@ import type { WorkspaceEntry } from "../workspace/useWorkspaceEntries.js";
  * that don't change any write-back SHA return the identical array, so
  * downstream listing/content effects never churn.
  *
- * @param runs - All runs for the session, in chronological order
+ * @param executions - All runs for the session, in chronological order
  *   (same input contract as {@link useSessionWriteBacks}).
  * @param entries - The session's workspace entries. Returned as-is (same
  *   reference) when no entry derives a ref.

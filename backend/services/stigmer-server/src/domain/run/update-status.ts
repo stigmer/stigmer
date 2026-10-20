@@ -349,11 +349,6 @@ export function applyUpdateStatusMerge(
   }
   const existingPhase = status.phase;
 
-  // Artifacts are published by agents via publish_artifact during
-  // execution; the runner persists them through this RPC.
-  if (requestStatus.artifacts.length > 0) {
-    status.artifacts = requestStatus.artifacts;
-  }
   // Write-backs are populated during post-execution processing when the
   // platform detects git changes and creates PRs.
   if (requestStatus.workspaceWriteBacks.length > 0) {
