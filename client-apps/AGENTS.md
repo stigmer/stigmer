@@ -43,8 +43,8 @@ names are the truth.
 - The CLI is verb-first: a resource kind is an argument to a verb (`push skill`,
   `get agent`, `validate -f`), never a noun group. Noun groups exist only for
   account and infrastructure nouns (`auth`, `apikey`, `service-account`,
-  `config`, `runs`), `vault`, `agent`, `routine`, `channel`; each header says
-  why.
+  `config`, `runs`), `vault`, `agent`, `routine`, `channel`, `file`; each header
+  says why.
 
 ## Laws, web and desktop
 

@@ -14,7 +14,7 @@
 // action so `--help` stays fast.
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveOrganization } from "../config/index.js";
-import { UsageError } from "../errors/index.js";
+import { CliExitError, ExitCode, UsageError } from "../errors/index.js";
 import { type OutputFlags, renderResult } from "../output/index.js";
 import { defaultRegistry, Verb } from "../registry/index.js";
 import type { DownloadOutcome } from "../resources/download.js";
@@ -136,7 +136,9 @@ function printOutcome(outcome: DownloadOutcome, noun: string, subject: string): 
 
   if (outcome.downloaded === outcome.total) {
     process.stdout.write(`\nDownloaded ${outcome.downloaded} ${noun}(s) successfully\n`);
-  } else {
-    process.stdout.write(`\nDownloaded ${outcome.downloaded} of ${outcome.total} ${noun}s\n`);
+    return;
   }
+  // A partial download still writes what it could, but a script branching
+  // on `$?` must not read it as done.
+  throw new CliExitError(`downloaded ${outcome.downloaded} of ${outcome.total} ${noun}s`, ExitCode.General);
 }

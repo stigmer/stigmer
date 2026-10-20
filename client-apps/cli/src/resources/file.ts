@@ -13,14 +13,24 @@
 //   uploaded and the same command can simply be run again.
 // - Without `--session` the Files are the person's own, kept for reuse;
 //   with it they are that conversation's from the start, uploaded in the
-//   conversation's own organization.
+//   conversation's own organization and given to it: appended to its
+//   resources, each placed by its filename (the server makes a name the
+//   conversation already holds unique), so the agent finds them under
+//   .stigmer/uploads/ on its next turn. A File only uploaded into a
+//   conversation is never mounted.
 
 import { statSync } from "node:fs";
 import { basename, resolve } from "node:path";
+import { create } from "@bufbuild/protobuf";
+import {
+  FileResourceSchema,
+  SessionResourceSchema,
+} from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
+import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { Stigmer } from "@stigmer/client";
 import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
-import { type ProgressSink, uploadAll } from "./run/attachments.js";
+import { giveFilesToSession, type ProgressSink, uploadAll } from "./run/attachments.js";
 import { formatBytes } from "./skill.js";
 
 /** One uploaded File, as the command reports it. */
@@ -33,8 +43,11 @@ export interface UploadedFile {
 /** Where the Files go: an organization, and a conversation when one is named. */
 export interface FileUploadTarget {
   readonly org: string;
-  /** The conversation the Files belong to; "" keeps them the person's own. */
-  readonly sessionId: string;
+  /**
+   * The conversation the Files are given to, as read before the upload (its
+   * etag guards the update); omitted keeps them the person's own.
+   */
+  readonly session?: Session;
 }
 
 /**
@@ -51,8 +64,17 @@ export async function uploadFiles(
     const size = fileSize(path);
     return { path: resolve(path), filename: basename(path), size };
   });
+  const session = target.session;
   for (const file of planned) progress?.(`Uploading ${file.filename} (${formatBytes(file.size)})...`);
-  const ids = await uploadAll(client, planned, target, progress);
+  const ids = await uploadAll(client, planned, { org: target.org, sessionId: session?.metadata?.id ?? "" }, progress);
+  if (session !== undefined) {
+    const resources = ids.map((fileId) =>
+      create(SessionResourceSchema, {
+        resource: { case: "file", value: create(FileResourceSchema, { fileId }) },
+      }),
+    );
+    await giveFilesToSession(client, session, resources, ids, ids.length === 1 ? "the file" : "the files", progress);
+  }
   return planned.map((file, i) => ({ id: ids[i], filename: file.filename, sizeBytes: file.size }));
 }
 

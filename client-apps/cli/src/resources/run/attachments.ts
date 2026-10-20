@@ -231,20 +231,40 @@ export async function stageAttachments(
 
   if (session === undefined) return { fileIds, resources, originals: ids };
   if (resources.length > 0) {
-    try {
-      await client.session.update(
-        {
-          metadata: { id: sessionId, etag: session.metadata?.etag ?? "" },
-          spec: { resources: [...(session.spec?.resources ?? []), ...resources] },
-        },
-        ["spec.resources"],
-      );
-    } catch (err) {
-      await deleteFiles(client, ids, progress);
-      throw new UsageError(`failed to add the attached folders to the conversation: ${errorMessage(err)}`);
-    }
+    await giveFilesToSession(client, session, resources, ids, "the attached folders", progress);
   }
   return { fileIds, resources: [], originals: [] };
+}
+
+/**
+ * Give Files already uploaded into a conversation to that conversation: a
+ * masked update that appends them to its resources and keeps every
+ * resource it holds, under the etag `session` was read at. A File the
+ * resources do not name is never mounted for the agent, so uploading into
+ * a conversation is not enough by itself. On a refused update the Files
+ * are deleted, so none is left as the conversation's without being given
+ * to it.
+ */
+export async function giveFilesToSession(
+  client: Stigmer,
+  session: Session,
+  resources: readonly SessionResource[],
+  uploaded: readonly string[],
+  what: string,
+  progress?: ProgressSink,
+): Promise<void> {
+  try {
+    await client.session.update(
+      {
+        metadata: { id: session.metadata?.id ?? "", etag: session.metadata?.etag ?? "" },
+        spec: { resources: [...(session.spec?.resources ?? []), ...resources] },
+      },
+      ["spec.resources"],
+    );
+  } catch (err) {
+    await deleteFiles(client, uploaded, progress);
+    throw new UsageError(`failed to add ${what} to the conversation: ${errorMessage(err)}`);
+  }
 }
 
 /**

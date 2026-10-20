@@ -12,7 +12,9 @@ A File is a file uploaded to Stigmer and named by the id the upload mints
 (`file_…`). Its bytes never change. Upload one to keep it for reuse: a new
 conversation names it with `stigmer run --file-id <id>`, and a routine or the
 console's Library can name it too, without sending the bytes again. With
-`--session <id>` the Files are that conversation's from the start instead.
+`--session <id>` the Files are given to that conversation instead: they are its
+own from the start, and its agent finds each under `.stigmer/uploads/` by its
+filename on its next turn.
 
 `stigmer file upload` takes files, not folders: a folder only means something
 inside a conversation, where `stigmer run --attach <folder>` keeps its tree. The
@@ -60,11 +62,11 @@ upload files as Files and print the id each is named by (a folder is refused)
 stigmer file upload <paths...> [flags]
 ```
 
-| Flag        | Type     | Default | Description                                                                                            |
-| ----------- | -------- | ------- | ------------------------------------------------------------------------------------------------------ |
-| `--json`    | `bool`   |         | emit the result as JSON                                                                                |
-| `--quiet`   | `bool`   |         | print only the status line                                                                             |
-| `--session` | `string` |         | upload into this conversation, as its Files from the start; omitted, they are your own, kept for reuse |
+| Flag        | Type     | Default | Description                                                                                                                                           |
+| ----------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--json`    | `bool`   |         | emit the result as JSON                                                                                                                               |
+| `--quiet`   | `bool`   |         | print only the status line                                                                                                                            |
+| `--session` | `string` |         | give the files to this conversation: its Files from the start, found by its agent under .stigmer/uploads/; omitted, they are your own, kept for reuse |
 
 ## Global Flags
 

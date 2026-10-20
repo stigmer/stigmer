@@ -288,21 +288,26 @@ export function useFileUploads(options?: UseFileUploadsOptions): UseFileUploadsR
 
   // Going away deletes what was never sent: the entries still held, the
   // same set clear() deletes (a hand-off empties the ref first, so a sent
-  // File is never touched). The ref is read at cleanup time, so React's
-  // development double mount, whose cleanup runs before any file is added,
-  // deletes nothing. An upload still in flight is aborted, and its File is
-  // deleted when it lands.
+  // File is never touched), and an upload still in flight once it lands.
+  // React's development double mount runs this cleanup and mounts again at
+  // once, even after a mount effect added files (a composer's initial
+  // attachments), so nothing is deleted until the unmount has stood past
+  // the current task: a remount clears `disposed` first and keeps them.
+  const disposed = useRef(false);
   const deleteFileRef = useRef(deleteFile);
   deleteFileRef.current = deleteFile;
-  useEffect(
-    () => () => {
-      for (const entry of entriesRef.current) {
-        abortControllers.current.get(entry.id)?.abort();
-        if (entry.fileId) deleteFileRef.current(entry.fileId);
-      }
-    },
-    [],
-  );
+  useEffect(() => {
+    disposed.current = false;
+    return () => {
+      disposed.current = true;
+      setTimeout(() => {
+        if (!disposed.current) return;
+        for (const entry of entriesRef.current) {
+          if (entry.fileId) deleteFileRef.current(entry.fileId);
+        }
+      }, 0);
+    };
+  }, []);
 
   const upload = useCallback(
     async (id: string, file: File, contentType: string) => {
@@ -322,9 +327,9 @@ export function useFileUploads(options?: UseFileUploadsOptions): UseFileUploadsR
         });
         const fileId = uploaded.metadata?.id ?? "";
 
-        if (controller.signal.aborted) {
-          // Removed while the bytes were in flight: the File arrived for
-          // a chip that no longer exists.
+        if (controller.signal.aborted || disposed.current) {
+          // Removed, or the chat box went away, while the bytes were in
+          // flight: the File arrived for a chip that no longer exists.
           if (fileId) deleteFile(fileId);
           return;
         }

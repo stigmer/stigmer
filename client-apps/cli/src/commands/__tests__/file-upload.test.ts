@@ -2,7 +2,9 @@
 // order given and its id is printed beside its name (in the JSON form under
 // data.files, for scripts); without --session the Files are the person's own
 // in the context organization, and with it they are uploaded into that
-// conversation in the conversation's own organization. A folder, a missing
+// conversation in the conversation's own organization and given to it: one
+// masked update appends them to its resources, under the etag it was read
+// at, keeping what it held; a refused update deletes them. A folder, a missing
 // path or a malformed session id is refused before any byte moves, and a
 // failed upload deletes the Files the batch had uploaded. The program, the
 // flag parsing and the SDK's upload routing are real; the server is an
@@ -18,6 +20,8 @@ import { FileCommandController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/
 import type { UploadFileInput } from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
+import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
+import type { UpdateSessionInput } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { Stigmer } from "@stigmer/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Config } from "../../config/index.js";
@@ -33,6 +37,8 @@ const CONFIG: Config = {
 const server = vi.hoisted(() => ({
   uploads: [] as UploadFileInput[],
   deletes: [] as string[],
+  updates: [] as UpdateSessionInput[],
+  refuseUpdate: false,
   refuse: new Set<string>(),
   client: undefined as Stigmer | undefined,
 }));
@@ -49,6 +55,8 @@ beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "file-upload-"));
   server.uploads.length = 0;
   server.deletes.length = 0;
+  server.updates.length = 0;
+  server.refuseUpdate = false;
   server.refuse.clear();
   const transport = createRouterTransport(({ service }) => {
     service(FileCommandController, {
@@ -68,7 +76,17 @@ beforeEach(() => {
     service(SessionQueryController, {
       get: (id) => {
         if (id.value !== "ses_conv") throw new ConnectError("session not found", Code.NotFound);
-        return create(SessionSchema, { metadata: { id: "ses_conv", org: "org_conversation" } });
+        return create(SessionSchema, {
+          metadata: { id: "ses_conv", org: "org_conversation", etag: "etag_1" },
+          spec: { resources: [{ name: "repo", resource: { case: "gitRepository", value: { url: "https://github.com/acme/repo" } } }] },
+        });
+      },
+    });
+    service(SessionCommandController, {
+      update: (input) => {
+        if (server.refuseUpdate) throw new ConnectError("the conversation changed", Code.Aborted);
+        server.updates.push(input);
+        return create(SessionSchema, { metadata: { id: "ses_conv" } });
       },
     });
   });
@@ -123,9 +141,38 @@ describe("stigmer file upload", () => {
     expect(JSON.parse(out).data).toEqual({ files: [{ id: "file_acsv", filename: "a.csv", size_bytes: 3 }] });
   });
 
-  it("uploads into a conversation in the conversation's own organization", async () => {
-    await upload(write("shot.png"), "--session", "ses_conv");
-    expect(server.uploads.map((u) => [u.org, u.sessionId])).toEqual([["org_conversation", "ses_conv"]]);
+  it("uploads into a conversation in the conversation's own organization, and gives the Files to it", async () => {
+    await upload(write("shot.png"), write("brief.pdf"), "--session", "ses_conv");
+    expect(server.uploads.map((u) => [u.org, u.sessionId])).toEqual([
+      ["org_conversation", "ses_conv"],
+      ["org_conversation", "ses_conv"],
+    ]);
+    expect(server.updates).toHaveLength(1);
+    const [update] = server.updates;
+    expect(update!.updateMask?.paths).toEqual(["spec.resources"]);
+    expect(update!.resource?.metadata).toMatchObject({ id: "ses_conv", etag: "etag_1" });
+    // What it held stays; each File is appended with no name and no mount
+    // path, so the server places it by its filename.
+    expect(update!.resource?.spec?.resources.map((r) => r.resource.case)).toEqual(["gitRepository", "file", "file"]);
+    expect(
+      update!.resource?.spec?.resources.flatMap((r) => (r.resource.case === "file" ? [[r.name, r.resource.value.fileId, r.resource.value.mountPath]] : [])),
+    ).toEqual([
+      ["", "file_shotpng", ""],
+      ["", "file_briefpdf", ""],
+    ]);
+  });
+
+  it("deletes the uploaded Files when the conversation refuses them", async () => {
+    server.refuseUpdate = true;
+    await expect(upload(write("shot.png"), "--session", "ses_conv")).rejects.toThrow(
+      /failed to add the file to the conversation/,
+    );
+    expect(server.deletes).toEqual(["file_shotpng"]);
+  });
+
+  it("gives nothing to a conversation when none is named", async () => {
+    await upload(write("a.csv", "a"));
+    expect(server.updates).toEqual([]);
   });
 
   it("refuses a folder before uploading anything, pointing at run --attach", async () => {

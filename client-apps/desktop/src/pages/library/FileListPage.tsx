@@ -61,8 +61,10 @@ export default function FileListPage() {
         emptyIcon={<Files className="size-10" aria-hidden="true" />}
         emptyTitle="No files yet"
         emptyDescription="Upload a file to keep it here and hand it to your routines."
+        // One Upload, in the header, which the empty list shows too: a second
+        // copy in the empty state would unmount with its uploads' status
+        // once the first one fills the list.
         headerAction={uploadButton}
-        emptyAction={uploadButton}
         onItemClick={setPreview}
         aria-label="File workbench"
       />

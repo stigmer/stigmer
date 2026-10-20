@@ -6,14 +6,16 @@
  * handed over as it is so a large one streams, that a chip removed or
  * cleared before sending deletes its File, and so does a chat box that
  * goes away with it unsent (an upload still in flight is deleted when it
- * lands), and that a hand-off deletes nothing until `release`, which
- * deletes only the person's own Files, once, and is never deleted by the
- * chat box going away. The `preparing` phase (stigmer/stigmer#369) keeps its contract:
+ * lands), though not React's development double mount, which keeps the
+ * Files a mount effect added; and that a hand-off deletes nothing until
+ * `release`, which deletes only the person's own Files, once, and is never
+ * deleted by the chat box going away. The `preparing` phase (stigmer/stigmer#369) keeps its contract:
  * an entry exists from the instant a paste is added, size is judged on
  * the prepared bytes, and a cancelled preparation never uploads. The
  * chat box holds at most MAX_MESSAGE_FILES files, the most a message
  * carries; a file past it is refused before it uploads.
  */
+import { StrictMode, useEffect } from "react";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 
@@ -228,7 +230,32 @@ describe("useFileUploads — Files", () => {
 
     unmount();
 
-    expect(deleteFile.mock.calls.map((call) => call[0])).toEqual(["file_1", "file_2"]);
+    await waitFor(() => expect(deleteFile.mock.calls.map((call) => call[0])).toEqual(["file_1", "file_2"]));
+  });
+
+  it("keeps the Files added in a mount effect through React's development double mount", async () => {
+    const { uploadFile, deleteFile } = mockStigmer("ses_1");
+    const seeded = [makeFile("seed.png", 32)];
+
+    // A composer's initial attachments: added by a mount effect, which runs
+    // before StrictMode's simulated unmount and remount.
+    const { result } = renderHook(
+      () => {
+        const uploads = useFileUploads({ org: "acme", sessionId: "ses_1" });
+        const { addFiles } = uploads;
+        useEffect(() => {
+          addFiles(seeded);
+        }, [addFiles]);
+        return uploads;
+      },
+      { wrapper: StrictMode },
+    );
+
+    await waitFor(() => expect(result.current.allReady).toBe(true));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(uploadFile).toHaveBeenCalled();
+    expect(deleteFile).not.toHaveBeenCalled();
+    expect(result.current.entries.every((entry) => entry.phase === "ready")).toBe(true);
   });
 
   it("never deletes a handed-off File when the chat box goes away", async () => {
@@ -244,6 +271,7 @@ describe("useFileUploads — Files", () => {
     });
 
     unmount();
+    await new Promise((resolve) => setTimeout(resolve, 10));
 
     expect(deleteFile).not.toHaveBeenCalled();
   });

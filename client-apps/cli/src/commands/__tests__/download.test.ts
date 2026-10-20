@@ -13,7 +13,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Config } from "../../config/index.js";
-import { UsageError } from "../../errors/index.js";
+import { CliExitError, ExitCode, UsageError } from "../../errors/index.js";
 import type { DownloadOutcome, DownloadParams, ProgressSink } from "../../resources/download.js";
 import { buildProgram } from "../../program.js";
 
@@ -100,16 +100,21 @@ describe("stigmer download run", () => {
     expect(out).toBe("\nDownloaded 2 artifact(s) successfully\n");
   });
 
-  it("passes --artifact and --output-dir through, and reports a partial download", async () => {
+  it("passes --artifact and --output-dir through, and fails a partial download with a non-zero exit", async () => {
     outcome = { total: 2, downloaded: 1, noArtifacts: false, incompletePhase: undefined };
-    const { out } = await runDownload("RUNS", "aex_1", "--artifact", "report.txt", "-o", "/tmp/out");
+    const failed = await runDownload("RUNS", "aex_1", "--artifact", "report.txt", "-o", "/tmp/out").then(
+      () => undefined,
+      (err: unknown) => err,
+    );
     expect(download.downloadRunArtifacts).toHaveBeenCalledWith(
       stigmer,
       "aex_1",
       { artifactName: "report.txt", outputDir: "/tmp/out" },
       expect.any(Function),
     );
-    expect(out).toBe("\nDownloaded 1 of 2 artifacts\n");
+    expect(failed).toBeInstanceOf(CliExitError);
+    expect((failed as CliExitError).exitCode).toBe(ExitCode.General);
+    expect((failed as CliExitError).message).toBe("downloaded 1 of 2 artifacts");
   });
 
   it("says when the run produced no artifacts, with the tip", async () => {

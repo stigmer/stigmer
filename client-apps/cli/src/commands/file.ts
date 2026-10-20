@@ -29,7 +29,7 @@ export function registerFile(program: Command): void {
     .description("upload files as Files and print the id each is named by (a folder is refused)")
     .option(
       "--session <id>",
-      "upload into this conversation, as its Files from the start; omitted, they are your own, kept for reuse",
+      "give the files to this conversation: its Files from the start, found by its agent under .stigmer/uploads/; omitted, they are your own, kept for reuse",
     )
     .action((paths: string[], options: UploadFlags, command: Command) => runUpload(paths, options, command));
   addResultFlags(upload);
@@ -56,10 +56,14 @@ async function runUpload(paths: string[], options: UploadFlags, command: Command
   ensureAuthenticated(client.config);
 
   let org: string;
-  if (sessionId !== "") {
+  // Read before any byte moves: a conversation that cannot be read fails
+  // the command with nothing uploaded, and its etag guards the update that
+  // gives it the Files.
+  const session = sessionId === "" ? undefined : await client.stigmer.session.get(sessionId);
+  if (session !== undefined) {
     // A conversation names its own organization, and its Files live there
     // whatever the context organization is.
-    org = (await client.stigmer.session.get(sessionId)).metadata?.org ?? "";
+    org = session.metadata?.org ?? "";
   } else {
     org = resolveOrganization(client.config, globalOrg(command));
     await requireOrganization(client.stigmer, org, [
@@ -71,6 +75,6 @@ async function runUpload(paths: string[], options: UploadFlags, command: Command
   const progress = (line: string): void => {
     if (format !== "json" && format !== "quiet") process.stderr.write(`${line}\n`);
   };
-  const uploaded = await uploadFiles(client.stigmer, paths, { org, sessionId }, progress);
+  const uploaded = await uploadFiles(client.stigmer, paths, { org, session }, progress);
   renderResult(renderUploadedFiles(uploaded, sessionId), format);
 }
