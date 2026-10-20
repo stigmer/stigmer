@@ -1,7 +1,15 @@
 /**
- * Turn-recovery digest: the platform's recorded transcript of the current
- * turn, rendered as prompt context for a fresh agent that replaced one whose
- * conversation state was lost mid-turn (issue #366).
+ * The continuation digest: the platform's recorded transcript of the current
+ * turn, rendered as prompt context for an engine that continues a turn it
+ * cannot read back from its own state: a fresh agent that replaced one whose
+ * conversation was lost mid-turn (issue #366), and any engine whose
+ * continuation is a prompt rather than a checkpoint
+ * (`HarnessCapabilities.continuation` `"digest"`), which the runtime hands
+ * the digest on `TurnInput.continuation` (stigmer#2417).
+ *
+ * Moved from `activities/execute-cursor/turn-recovery.ts` for that second
+ * use, as `TranscriptEvent` moved in #1097: it imports nothing
+ * engine-specific, and a later harness continues the same way.
  *
  * A HITL-paused turn can lose its agent two ways — the stored handle fails
  * to resume when the approval lands, or the resumed handle turns out to be
@@ -142,6 +150,41 @@ export async function readTurnRecoveryDigest(
     return undefined;
   }
   return composeTurnRecoveryDigest(events, runId);
+}
+
+/**
+ * How a continuation is introduced to an engine that still holds its own
+ * conversation (a resumed agent) but was stopped mid-turn and is not handed
+ * the task again: carry on, do not start over. The digest that follows is
+ * the platform's record of the turn, for what the engine's own context may
+ * not hold (a result that landed as it was stopped).
+ */
+const CONTINUATION_PREAMBLE =
+  "Your work on the user's request in this conversation was interrupted " +
+  "before it finished: the machine running it stopped. Continue the same " +
+  "task from where you were. Do not start it over, do not redo work that " +
+  "is already done, and check the workspace's current state where exact " +
+  "details matter. Below is the platform's recorded transcript of your " +
+  "progress in this turn, oldest first.";
+
+/** The continuation's framing when the turn has no renderable transcript. */
+const CONTINUATION_NO_TRANSCRIPT =
+  "Your work on the user's request in this conversation was interrupted " +
+  "before it finished: the machine running it stopped. Continue the same " +
+  "task from where you were. Do not start it over, do not redo work that " +
+  "is already done, and check the workspace's current state to see what " +
+  "you already did.";
+
+/**
+ * The framed continuation (preamble + digest) for an engine that holds its
+ * own conversation: the whole of what a continued turn sends it, never the
+ * task. Accepts an absent digest, as {@link formatTurnRecoveryText} does.
+ */
+export function formatContinuationText(digest: string | undefined): string {
+  if (digest === undefined || digest.trim() === "") {
+    return CONTINUATION_NO_TRANSCRIPT;
+  }
+  return `${CONTINUATION_PREAMBLE}\n\n${digest.trim()}`;
 }
 
 /**

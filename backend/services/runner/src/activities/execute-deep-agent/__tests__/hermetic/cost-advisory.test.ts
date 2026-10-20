@@ -156,7 +156,7 @@ describe("ExecuteDeepAgent hermetic — the cost advisory", () => {
     expect(firstTranscripts.some((t) => t.some(isAdvisory)), "the first message was warned").toBe(true);
 
     const nextTranscripts: BaseMessage[][] = [];
-    const record = deepAgentExecutionRecord({ message: "Summarize what you read.", maxCostUsd: MAX_COST_USD });
+    const record = deepAgentExecutionRecord({ message: "Summarize what you read.", maxCostUsd: MAX_COST_USD, executionId: "aex_hermetic_0002" });
     const next = continueDeepAgentScenario(first, {
       record,
       script: () => (transcript) => {

@@ -43,6 +43,7 @@ import type { ModelPricing } from "../../../shared/model-pricing.js";
 import type { DeepAgentEngine, DeepAgentGateState, DeepAgentGraphInput } from "../turn-setup.js";
 import { consumeDeepAgentStream, createDeepAgentTranscript, type StreamableRun } from "../turn-stream.js";
 import type { V3ProtocolEvent } from "../v3-event-recorder.js";
+import { TurnBoundaryHalt } from "../../../middleware/turn-boundary.js";
 import {
   makeMessageFinish,
   makeMessageStart,
@@ -82,20 +83,23 @@ interface ScriptedRunOptions {
   readonly between?: (yielded: number) => void;
   /** Thrown from the stream after this many events. */
   readonly failAfter?: number;
+  /** What `failAfter` throws; the engine's own error when absent. */
+  readonly failWith?: () => Error;
 }
 
 /** A `StreamableRun` over scripted events; what the graph would hand the loop. */
 function scriptedRun(events: readonly V3ProtocolEvent[], options: ScriptedRunOptions = {}): StreamableRun {
   const output = options.output ? options.output() : Promise.resolve({ messages: [] });
+  const failure = (): Error => options.failWith?.() ?? new Error("engine exploded mid-stream");
   const iterate = async function* (): AsyncGenerator<V3ProtocolEvent> {
     let yielded = 0;
     for (const event of events) {
-      if (options.failAfter !== undefined && yielded === options.failAfter) throw new Error("engine exploded mid-stream");
+      if (options.failAfter !== undefined && yielded === options.failAfter) throw failure();
       yield event;
       yielded++;
       options.between?.(yielded);
     }
-    if (options.failAfter !== undefined && yielded === options.failAfter) throw new Error("engine exploded mid-stream");
+    if (options.failAfter !== undefined && yielded === options.failAfter) throw failure();
   };
   return { output, [Symbol.asyncIterator]: iterate };
 }
@@ -223,24 +227,34 @@ describe("consumeDeepAgentStream — a drained turn's yield", () => {
     expect(h.streamEvents).not.toHaveBeenCalled();
   });
 
-  it("lets the running tool finish and yields as the root's next model round starts, leaving that round unfolded", async () => {
+  it("is taken by the graph's boundary: every event before the halt is folded, and the halt settles interrupted", async () => {
     const h = harness();
     const events = [
       ...textTurn("run-1", "Building."),
       makeToolStarted("toolu_1", "execute", { command: "make" }),
       makeToolFinished("toolu_1", "built"),
-      ...textTurn("run-2", "Never folded."),
     ];
-    // The drain lands while the tool runs (after its start, before its finish).
-    const result = await h.run(scriptedRun(events, { between: (yielded) => { if (yielded === 4) h.sink.requestYield(); } }));
+    // The drain lands while the tool runs; the graph refuses its next model
+    // call, and langchain hands the halt on wrapped (`middleware/turn-boundary.ts`).
+    const result = await h.run(scriptedRun(events, {
+      between: (yielded) => { if (yielded === 4) h.sink.requestYield(); },
+      failAfter: events.length,
+      failWith: () => new Error("wrapped by langchain", { cause: new TurnBoundaryHalt("root") }),
+    }));
 
     expect(result.reason).toBe("interrupted");
-    expect(result.eventsProcessed, "the tool's finish was folded; the next round's start was not").toBe(5);
+    expect(result.eventsProcessed, "the tool's finish was folded").toBe(5);
     expect(h.sink.rows.messages.map((m) => m.content)).toEqual(["Building."]);
     expect(h.sink.rows.messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-    const [, config] = h.streamEvents.mock.calls[0] as [unknown, { signal: AbortSignal }];
-    expect(config.signal.aborted, "the round the yield landed on is aborted").toBe(true);
     expect(h.sink.stopSignal.aborted, "a yield is not a stop").toBe(false);
+  });
+
+  it("a graph that finishes before it reaches a model call completes, though a yield was asked", async () => {
+    const h = harness();
+    const result = await h.run(scriptedRun(textTurn("run-1", "Done."), { between: (yielded) => { if (yielded === 1) h.sink.requestYield(); } }));
+
+    expect(result.reason).toBe("completed");
+    expect(h.sink.rows.messages.map((m) => m.content)).toEqual(["Done."]);
   });
 });
 
@@ -255,16 +269,24 @@ describe("consumeDeepAgentStream — how the loop ends", () => {
     expect(h.streamEvents).not.toHaveBeenCalled();
   });
 
-  it("a stop mid-stream is taken at the NEXT event: the events before it count, the run's signal is aborted", async () => {
+  it("a stop mid-stream aborts the run at the NEXT event and keeps folding what the stream still holds", async () => {
     const h = harness();
     const [start, delta, finish] = textTurn("run-1", "partial");
-    const result = await h.run(scriptedRun([start, delta, finish], { between: (yielded) => { if (yielded === 2) h.sink.abort("runtime stop"); } }));
+    let persistsAtStop = -1;
+    const result = await h.run(scriptedRun([start, delta, finish], {
+      between: (yielded) => {
+        if (yielded !== 2) return;
+        persistsAtStop = h.sink.persistRequests;
+        h.sink.abort("runtime stop");
+      },
+    }));
 
     expect(result.reason).toBe("interrupted");
-    expect(result.eventsProcessed, "start and delta were folded; finish arrived after the stop").toBe(2);
+    expect(result.eventsProcessed, "the finish the engine produced before the abort is folded too").toBe(3);
     const [, config] = h.streamEvents.mock.calls[0] as [unknown, { signal: AbortSignal }];
     expect(config.signal.aborted, "the graph run itself is aborted when the stop is taken").toBe(true);
     expect(h.sink.rows.messages[0].content, "what streamed before the stop is on the transcript").toBe("partial");
+    expect(h.sink.persistRequests, "a stopped turn's last write is its settle's").toBe(persistsAtStop);
   });
 
   it("the engine's own error propagates when the runtime did not stop the turn", async () => {

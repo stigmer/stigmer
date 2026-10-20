@@ -108,9 +108,6 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — the harness contract kit a
   describeHarnessRuntimeContract({ subject, env, clock }, {
     failureSurfaces: ["engine", "internal"],
     toolCallLimit: false,
-    knownGaps: {
-      "no-resent-task": "stigmer/stigmer#2417",
-    },
   });
 
   describe("cursor-only observations", () => {

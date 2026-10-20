@@ -116,6 +116,8 @@ const OUTCOME_KINDS = ["completed", "cancelled", "awaiting_approval", "tool_call
 
 /** Representative gated action shared by the invariants. */
 const WRITE_ALPHA: ProposedAction = { kind: "write", resource: "/work/alpha.txt" };
+/** A second write, of another file: its own approval, never matched by the first's (an approval binds the call it answered). */
+const WRITE_BETA: ProposedAction = { kind: "write", resource: "/work/beta.txt" };
 
 // ── The runtime (and server) stand-in ───────────────────────────────────────
 
@@ -388,39 +390,47 @@ export async function assertProposalIsWaitingAndUnexecuted(subject: HarnessContr
 
 /**
  * Invariant 3: the decision is honoured exactly. APPROVE executes once and
- * only once, however many times the same decided row is seen again, and the
- * engine's completion reaches the row; REJECT and SKIP never execute and the
+ * only once, however many times the same decided row is seen again (here, by
+ * the run's later approval cycle, whose history holds it), and the engine's
+ * completion reaches the row; REJECT and SKIP never execute and the
  * turn continues — the row's terminal status is NOT asserted here because
  * it is not the adapter's to write (the decision is the log's answer, which
  * the runtime's seed copies onto the row, and the WAITING → SKIPPED transition follows from it with no engine knowledge,
  * so it is the runtime's — `terminalizeNonExecutingDecisions`, landed in
  * #1096 and pinned by the runtime half's REJECT / SKIP arms).
  * The reinvocation sees a CLONE of the persisted status, as it would from
- * the server.
+ * the server. Each decision is its own execution, as each message is its own
+ * run in production: an execution that completed is never handed a new
+ * task, and an engine that remembers its runs (a `checkpoint` harness)
+ * settles a finished one with no model call.
  */
 export async function assertDecisionsExecuteExactlyOnce(subject: HarnessContractSubject): Promise<void> {
   const driver = new ExecutionDriver(subject, "inv3");
 
   const approved = "inv3-approve";
+  const later = "inv3-later";
   const first = await driver.turn([scenario.propose(approved, WRITE_ALPHA)]);
   expect(first.outcome.kind, `${subject.name}: proposal must end awaiting_approval`).toBe("awaiting_approval");
   driver.decide(approved, ApprovalAction.APPROVE);
 
-  const resumed = await driver.turn([scenario.propose(approved, WRITE_ALPHA), scenario.say("done")]);
-  expect(resumed.outcome.kind, `${subject.name}: after APPROVE the turn must run to completion`).toBe("completed");
+  const resumed = await driver.turn([scenario.propose(approved, WRITE_ALPHA), scenario.say("done"), scenario.propose(later, WRITE_BETA)]);
+  expect(resumed.outcome.kind, `${subject.name}: after APPROVE the turn must run on, here to its next proposal`).toBe("awaiting_approval");
   expect(subject.executionCount(approved), `${subject.name}: an approved action must execute exactly once`).toBe(1);
   expect(findToolCallRow(resumed.sink.rows, approved)?.status, `${subject.name}: the approved row must be carried to COMPLETED`).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+  driver.decide(later, ApprovalAction.APPROVE);
 
-  const again = await driver.turn([scenario.propose(approved, WRITE_ALPHA), scenario.say("again")]);
+  const again = await driver.turn([scenario.propose(approved, WRITE_ALPHA), scenario.say("done"), scenario.propose(later, WRITE_BETA), scenario.say("again")]);
   expect(again.outcome.kind, `${subject.name}: a settled proposal seen again must not re-gate`).toBe("completed");
   expect(subject.executionCount(approved), `${subject.name}: reinvoked again after the approval, the action must still have executed exactly once`).toBe(1);
+  expect(subject.executionCount(later), `${subject.name}: the later cycle's approved action executes once`).toBe(1);
 
   for (const [label, action] of [["REJECT", ApprovalAction.REJECT], ["SKIP", ApprovalAction.SKIP]] as const) {
     const id = `inv3-${label.toLowerCase()}`;
-    const proposed = await driver.turn([scenario.propose(id, WRITE_ALPHA)]);
+    const deciding = new ExecutionDriver(subject, id);
+    const proposed = await deciding.turn([scenario.propose(id, WRITE_ALPHA)]);
     expect(proposed.outcome.kind, `${subject.name}: proposal must end awaiting_approval`).toBe("awaiting_approval");
-    driver.decide(id, action);
-    const decided = await driver.turn([scenario.propose(id, WRITE_ALPHA), scenario.say("moving on")]);
+    deciding.decide(id, action);
+    const decided = await deciding.turn([scenario.propose(id, WRITE_ALPHA), scenario.say("moving on")]);
     expect(decided.outcome.kind, `${subject.name}: after ${label} the turn must continue to completion`).toBe("completed");
     expect(subject.executionCount(id), `${subject.name}: a ${label}-ed action must never execute`).toBe(0);
     expect(findToolCallRow(decided.sink.rows, id)?.status, `${subject.name}: a ${label}-ed action must never be reported as executed`).not.toBe(ToolCallStatus.TOOL_CALL_COMPLETED);

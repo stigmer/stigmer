@@ -82,4 +82,7 @@ export const CURSOR_CAPABILITIES: HarnessCapabilities = {
   fileReview: CURSOR_FILE_REVIEW_IDENTITY,
   boundaryRewritesRow: boundaryMayStillRewrite,
   subAgentProgress: "at-completion",
+  // A resumed agent holds its conversation, but a run its server ended has
+  // no step to resume: the continuation is a prompt with the turn's digest.
+  continuation: "digest",
 };

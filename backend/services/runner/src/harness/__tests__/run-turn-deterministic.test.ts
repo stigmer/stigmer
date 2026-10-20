@@ -68,7 +68,6 @@ describe("run-turn: the deterministic fake adapter through the real runtime", ()
   describeHarnessRuntimeContract(harness, {
     subagentOperation: false,
     compaction: false,
-    knownGaps: { "no-resent-task": "stigmer/stigmer#2417" },
   });
 
   describe("the deterministic facts", () => {

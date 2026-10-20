@@ -212,6 +212,7 @@ export class LocalExecutionTarget implements TargetProfile {
     const ended = this.runner;
     this.runner = undefined;
     await ended.kill(options.signal);
+    options.onEnded?.();
     this.runner = await spawnRunner(this.runnerOptions);
   }
 

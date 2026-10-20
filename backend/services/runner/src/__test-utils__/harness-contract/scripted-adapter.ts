@@ -49,6 +49,17 @@
  * finished operation is in the engine's memory, so a turn that continues
  * does not run it again; one the stop cut is not.
  *
+ * A continued invocation is never handed the task: the engine picks the
+ * turn up from its memory, the rule every harness keeps (stigmer#2417). The
+ * fake records what each invocation was handed, the task or a continuation,
+ * so the kit can count it. Declared a `digest` engine, it reads the
+ * continuation from the runtime (`input.continuation`). Declared a
+ * `checkpoint` engine, it reads it from its own memory, as a saved state
+ * stamped with its run does: it remembers which runs' input it took and
+ * which runs it finished, so a run it already took is never handed again,
+ * even when nothing of it reached the session's log, and a run it finished
+ * runs nothing.
+ *
  * A yield (`sink.yieldSignal`) is taken at the next step boundary: every
  * step here is durable the moment it ends (the engine's memory is this
  * object), so the boundary between two steps is where a real engine's
@@ -70,7 +81,7 @@ import { dirname, join } from "node:path";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 import type { Config } from "../../config.js";
-import type { HarnessCapabilities, PausePrimitive, StateIdSource } from "../../harness/capabilities.js";
+import type { ContinuationKind, HarnessCapabilities, PausePrimitive, StateIdSource } from "../../harness/capabilities.js";
 import type { HarnessAdapter, TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import { DEEP_AGENT_VISION_PROFILE } from "../../shared/attachment-vision.js";
 import type { ProposedAction } from "../approval-contract/types.js";
@@ -83,6 +94,8 @@ export interface ScriptedHarnessOptions {
   readonly name?: string;
   readonly pausePrimitive: PausePrimitive;
   readonly stateIdSource: StateIdSource;
+  /** How the fake declares it continues a turn (the header). Defaults to `checkpoint`. */
+  readonly continuation?: ContinuationKind;
   /**
    * The subject's `Config` over `testConfig()`'s inert defaults. The fake reads
    * none of it; the RUNTIME does when the subject runs through the real
@@ -126,6 +139,10 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   private readonly released = new Set<string>();
   /** How many times each operation began. */
   private readonly opens = new Map<string, number>();
+  /** The executions whose input this engine took: a `checkpoint` engine's saved run stamp. */
+  private readonly tookRuns = new Set<string>();
+  /** The executions whose turn this engine finished: a `checkpoint` engine's saved "done". */
+  private readonly finishedRuns = new Set<string>();
   /** Per session, every message the engine was handed as a new request. */
   private readonly handed = new Map<string, string[]>();
   private mintCounter = 0;
@@ -146,6 +163,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       visionProfile: DEEP_AGENT_VISION_PROFILE,
       fileReview: { harnessId: "scripted", excludePaths: [] },
       subAgentProgress: "streamed",
+      continuation: options.continuation ?? "checkpoint",
     };
   }
 
@@ -241,9 +259,19 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
 
     const resumed = await this.resolveEngineState(input, sink);
     if (resumed.kind !== "ok") return resumed.outcome;
-    // The fake keeps no conversation: every invocation hands it the
-    // execution's message afresh, as a new request.
-    this.handed.set(input.sessionId, [...(this.handed.get(input.sessionId) ?? []), input.execution.spec?.message ?? ""]);
+    // A first invocation hands the engine the execution's message as a new
+    // request; a continued one never does (the header).
+    const checkpoint = this.capabilities.continuation === "checkpoint";
+    const continued = checkpoint ? this.tookRuns.has(input.executionId) : input.continuation !== undefined;
+    if (!continued) {
+      this.handed.set(input.sessionId, [...(this.handed.get(input.sessionId) ?? []), input.execution.spec?.message ?? ""]);
+    }
+    if (checkpoint) this.tookRuns.add(input.executionId);
+
+    // A checkpoint engine that already finished this run has nothing left to run.
+    if (checkpoint && this.finishedRuns.has(input.executionId)) {
+      return { kind: "completed" };
+    }
 
     for (const step of turn) {
       // Stop, or yield, at every step boundary — the Cursor loop's per-event isCancelled().
@@ -251,6 +279,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       const ended = await this.play(step, input, sink);
       if (ended) return ended;
     }
+    this.finishedRuns.add(input.executionId);
     return { kind: "completed" };
   }
 
@@ -388,12 +417,12 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
    * settled and the step is a no-op, which is what makes "reinvoked twice
    * with the same decision, still once" hold.
    */
-  private propose(
+  private async propose(
     toolCallId: string,
     action: ProposedAction,
     input: TurnInput,
     sink: TurnSink,
-  ): TurnOutcome | undefined {
+  ): Promise<TurnOutcome | undefined> {
     if (this.hasSettled(input.sessionId, toolCallId)) return undefined;
 
     const decision = input.approvalDecisions.get(toolCallId) ?? ApprovalAction.UNSPECIFIED;
@@ -420,7 +449,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       case ApprovalAction.APPROVE_ALL: {
         this.executions.set(toolCallId, this.executionCount(toolCallId) + 1);
         this.settle(input.sessionId, toolCallId);
-        this.completeRow(toolCallId, action, sink);
+        await this.completeRow(toolCallId, action, sink);
         return undefined;
       }
       case ApprovalAction.SKIP:
@@ -465,11 +494,14 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
    * row when a runtime decided out of band and no row exists, so the fact is
    * recorded rather than lost) and a finish.
    */
-  private completeRow(toolCallId: string, action: ProposedAction, sink: TurnSink): void {
+  private async completeRow(toolCallId: string, action: ProposedAction, sink: TurnSink): Promise<void> {
     sink.transcript.apply({ kind: "tool_started", callId: toolCallId, name: action.kind, input: {}, mcpServerSlug: "" });
     sink.transcript.apply({ kind: "tool_finished", callId: toolCallId, result: "" });
     sink.recordActivity();
-    sink.requestPersist();
+    // Awaited like `read`'s: the approved call is the engine's discrete
+    // event, and a drain or STOP the runtime reads from this write is seen
+    // at the next step boundary.
+    await sink.requestPersist();
   }
 }
 

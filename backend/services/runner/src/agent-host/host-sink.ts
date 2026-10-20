@@ -39,7 +39,7 @@ import { RunStatusSchema, type RunStatus } from "@stigmer/apis/ai/stigmer/agenti
 import { TurnRowsSchema, type TurnRows } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 
-import { CostCapWatch } from "../harness/cost-cap-watch.js";
+import { costCapWatchFor } from "../harness/cost-cap-watch.js";
 import { TranscriptBuilder } from "../harness/transcript/builder.js";
 import type { TurnInput, TurnSink, UsageDelta } from "../harness/types.js";
 import { TimingRecorder, type TimingRecorderWire } from "../shared/cold-start-timing.js";
@@ -82,7 +82,7 @@ export class HostTurn {
       }),
     );
     const setupTiming = TimingRecorder.fromWire(timing);
-    const costCap = new CostCapWatch(input.execution.status?.runConfig?.maxCostUsd ?? 0, input.model.serviceTier, input.model.thinkingMode);
+    const costCap = costCapWatchFor(input);
     this.sink = {
       status: this.status,
       rows: this.rows,

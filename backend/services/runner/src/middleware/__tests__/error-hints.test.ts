@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { ToolMessage } from "@langchain/core/messages";
 import { enrichErrorMessage, createErrorHintsMiddleware } from "../error-hints.js";
+import { TurnBoundaryHalt } from "../turn-boundary.js";
 import type { ToolCallRequest } from "../types.js";
 
 function makeRequest(name = "read"): ToolCallRequest {
@@ -88,3 +89,12 @@ describe("createErrorHintsMiddleware", () => {
     expect((result.content as string)).toContain("Error: string error");
   });
 });
+
+describe("createErrorHintsMiddleware and the turn boundary", () => {
+  it("rethrows a sub-agent's halt instead of making it the task's answer", async () => {
+    const halt = new Error("wrapped", { cause: new TurnBoundaryHalt("subagent") });
+    const handler = vi.fn(async () => { throw halt; });
+    await expect(createErrorHintsMiddleware().wrapToolCall!(makeRequest("task"), handler)).rejects.toBe(halt);
+  });
+});
+

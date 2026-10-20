@@ -33,6 +33,7 @@
  * | `fileReview`      | `deep-agent`, no excludes   | `cursor`, the gate's files excluded     | (surveyed later)                              | (surveyed later)                               |
  * | `boundaryRewritesRow` | none                    | the boundary's reopened, hidden and refused rows | (surveyed later)                     | (surveyed later)                               |
  * | `subAgentProgress` | `streamed` (sub-graph events) | `at-completion` (the `task` result only) | (surveyed later)                          | (no sub-agents)                                |
+ * | `continuation`    | `checkpoint` (the thread's saved step) | `digest` (a prompt on the resumed agent) | (surveyed later)                  | (surveyed later)                               |
  *
  * Adapter-internal, deliberately NOT flags: how MCP servers are bound, how
  * metering is routed, how the cost cap is applied inside the engine, how a
@@ -107,6 +108,28 @@ export type StateIdSource = "deterministic" | "engine-minted";
 export type SubAgentProgress = "streamed" | "at-completion";
 
 /**
+ * How the engine continues a turn it began, when the runtime runs it again
+ * after an interruption (a drained or lost runner, `TurnInput.continuation`;
+ * stigmer#2417). Never by handing it the task again: the model would start
+ * over.
+ *
+ *  - `checkpoint`: the engine saved its steps and resumes from the last one
+ *    (native: the session's LangGraph thread, streamed with no input). Its
+ *    save is stamped with its run, so it knows the fact itself, and better
+ *    than the runtime can: the runtime learns of a run only from what
+ *    reached the session's log, and a runner lost before its first write
+ *    landed reads as a first invocation there.
+ *  - `digest`: the engine's own state holds its conversation but no step to
+ *    resume from (Cursor: a run its server ended), so it is sent a
+ *    continuation prompt, and the runtime renders the platform's record of
+ *    the turn for it (`continuation-digest.ts`), on `TurnInput.continuation`.
+ *
+ * Read by one runtime phase, the reinvocation's (`turn-context.ts`), which
+ * renders the digest only for a harness that sends one.
+ */
+export type ContinuationKind = "checkpoint" | "digest";
+
+/**
  * The two facts the runtime's file-review capture and reconcile need from
  * the harness and cannot know: the id the projection reads from the
  * BASELINE payload (`shared/filereview/capture.ts`), and the
@@ -174,4 +197,6 @@ export interface HarnessCapabilities {
   readonly boundaryRewritesRow?: (row: ToolCall) => boolean;
   /** When the runtime sees a delegated sub-agent's work (see {@link SubAgentProgress}). */
   readonly subAgentProgress: SubAgentProgress;
+  /** How the engine continues a turn it began (see {@link ContinuationKind}). */
+  readonly continuation: ContinuationKind;
 }

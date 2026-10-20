@@ -174,6 +174,10 @@ export interface HarnessAdapter {
    *    running tool to do so. Where a step is durable is the engine's own
    *    fact (the step's result is saved where the next invocation resumes
    *    from), so the adapter owns where; the runtime owns when, and why.
+   *    Where the engine allows it, the boundary is taken in the engine, not
+   *    where its events are read: a reader lags behind its engine, which can
+   *    save work past a boundary the reader takes that the session's log
+   *    never receives (stigmer#2469).
    *  - Proposes, never adjudicates. A gated side effect surfaces as a
    *    WAITING_APPROVAL row on `sink.rows` and the turn ends
    *    `awaiting_approval`; the decision arrives on the next invocation in
@@ -402,10 +406,23 @@ export interface TurnStandingContext {
  * vs "does this execution have a transcript") and one name over two meanings
  * would be the divergence a contract exists to prevent.
  *
+ * {@link continuation} is a third fact, and it is the runtime's to hand over:
+ * "this invocation continues a turn its engine began". An `engine-minted`
+ * harness's id is shared by every turn of its session, and a
+ * `deterministic` harness's thread holds every earlier turn, so the engine
+ * alone cannot tell a continued run from a new message's; the log can
+ * (`turn-context.ts` `runWroteEngineEvents`).
+ *
  * Adapter-only facts (the Cursor mode, the service-tier params, the seeded
  * sub-agent rows) are read by the adapter from these records, never resolved
  * by the runtime.
  */
+/** What a continued invocation is handed ({@link TurnInput.continuation}). */
+export interface TurnContinuation {
+  /** The platform's record of the turn so far; only for a `"digest"` harness, and absent when nothing is renderable. */
+  readonly digest?: string;
+}
+
 export interface TurnInput extends NormalizedActivityInput {
   /**
    * The session this turn belongs to. Read by the runtime from the fetched
@@ -436,6 +453,23 @@ export interface TurnInput extends NormalizedActivityInput {
    * (`approval-answers.ts`). Empty on a fresh turn.
    */
   readonly approvalAsks: ReadonlyMap<string, ApprovalAsk>;
+  /**
+   * Present when this invocation continues a turn its engine began: the
+   * run's engine already wrote to the session's log, and the workflow runs
+   * it again (after a drain, a lost runner, a resumed pause, or an approval).
+   * Absent on a turn's first invocation, which is every new message's run,
+   * and on a run whose runner was lost before anything of it reached the
+   * log, which the runtime cannot tell from one; a `"checkpoint"` engine
+   * reads its own save instead (`HarnessCapabilities.continuation`).
+   * The rule it carries: the engine is never handed the user's task again
+   * (stigmer#2417). A matching approval resume keeps its own shape; any
+   * other continuation resumes the engine where it was
+   * (`HarnessCapabilities.continuation`). `digest` is the platform's record
+   * of the turn, rendered only for a `"digest"` harness
+   * (`continuation-digest.ts`); absent when the turn has no renderable
+   * transcript.
+   */
+  readonly continuation?: TurnContinuation;
   readonly execution: Run;
   /** The same object as `blueprint.session`; `bindHarnessState` writes it. */
   readonly session: Session;
@@ -575,9 +609,10 @@ export interface TurnSink {
    * so a build in flight is not cut and repeated. When it aborts, settle
    * `interrupted` at the first boundary where everything the engine did so
    * far is saved where its next invocation resumes from, and never cut a
-   * running tool to get there; the native engine yields as its next model
-   * round starts (its steps are saved synchronously), the Cursor engine once
-   * no tool call is open. Abort before `runTurn` is entered means no work.
+   * running tool to get there; the native engine yields at its next model
+   * call, refused inside the graph (its steps are saved synchronously,
+   * `middleware/turn-boundary.ts`), the Cursor engine once no tool call is
+   * open. Abort before `runTurn` is entered means no work.
    * If the grace runs out first, `stopSignal` aborts too, and stopping is
    * then the only rule. The runtime records why it asked; the adapter never
    * branches on it.

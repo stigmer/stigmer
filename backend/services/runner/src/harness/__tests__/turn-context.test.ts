@@ -34,6 +34,7 @@ import { RunSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { RunSchema, RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import {
   ENGINE_EVENT_TYPES,
   REINVOCATION_EVENT_TYPES,
@@ -45,8 +46,10 @@ import {
   runEventsReader,
   runFinishedWhileWaiting,
   runWroteEngineEvents,
+  stopIsExplained,
   type ResolutionDeps,
 } from "../turn-context.js";
+import { TERMINAL_COPY } from "../terminal-table.js";
 
 const INPUT = { executionId: "aex_1", threadId: "", turnSeq: 0 } as const;
 
@@ -107,7 +110,7 @@ describe("reconcileReinvocation", () => {
     };
     return { deps: stub as unknown as ResolutionDeps, seed, listRunSessionEvents };
   }
-  const args = { stateIdSource: "deterministic" as const, execution: create(RunSchema), sessionId: "ses_1" };
+  const args = { stateIdSource: "deterministic" as const, continuation: "checkpoint" as const, execution: create(RunSchema), sessionId: "ses_1" };
 
   it("fails the turn's start when the log cannot be read, and seeds nothing", async () => {
     const { deps, seed, listRunSessionEvents } = reinvocationDeps(async () => Promise.reject(new Error("log unreachable")));
@@ -209,5 +212,33 @@ describe("runFinishedWhileWaiting", () => {
   it("settles as the stored phase when the run finished while it waited", async () => {
     const { deps } = depsIn(RunPhase.RUN_COMPLETED);
     expect((await runFinishedWhileWaiting(deps, true))?.status.phase).toBe(RunPhase.RUN_COMPLETED);
+  });
+});
+
+describe("stopIsExplained", () => {
+  type EventValue = NonNullable<Parameters<typeof create<typeof SessionEventSchema>>[1]>["event"];
+  const ev = (event: EventValue): SessionEvent => create(SessionEventSchema, { runId: "aex_1", event });
+  const message = ev({ case: "agentMessage", value: { id: "aex_1.m1", content: [{ type: "text", text: "Working." }] } });
+  const toolUse = ev({ case: "agentToolUse", value: { id: "aex_1.c1", name: "shell", input: {} } });
+  const note = (text: string): SessionEvent => ev({ case: "stigmerHarnessNote", value: { id: "aex_1.n1", text } });
+  const status = (phase: string): SessionEvent => ev({ case: "stigmerRunStatus", value: { id: "aex_1.s1", phase } });
+
+  it("is false for a run whose engine wrote and then went silent: a lost runner", () => {
+    expect(stopIsExplained([message, toolUse])).toBe(false);
+  });
+
+  it("is true once a continuation note or a pause follows the engine's last write", () => {
+    expect(stopIsExplained([message, note(TERMINAL_COPY.continuation.notes.drain)])).toBe(true);
+    expect(stopIsExplained([message, status("paused")])).toBe(true);
+  });
+
+  it("is false again when the engine wrote after the explained stop: that later stop is unexplained", () => {
+    expect(stopIsExplained([note(TERMINAL_COPY.continuation.notes.drain), toolUse])).toBe(false);
+    expect(stopIsExplained([status("paused"), message])).toBe(false);
+  });
+
+  it("reads a note of the engine's own, and a status that is no pause, as no explanation", () => {
+    expect(stopIsExplained([message, note("Compacted the conversation.")])).toBe(false);
+    expect(stopIsExplained([message, status("running")])).toBe(false);
   });
 });

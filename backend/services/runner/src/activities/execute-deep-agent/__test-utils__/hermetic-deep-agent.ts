@@ -124,8 +124,14 @@ export const FIXTURE = {
 // The record
 // ---------------------------------------------------------------------------
 
-/** The record's knobs; the ids and the default model are this harness's fixture. */
-export type DeepAgentRecordOptions = Omit<ExecutionRecordOptions, "ids">;
+/**
+ * The record's knobs; the ids and the default model are this harness's
+ * fixture. `executionId` names a later message's own run, as production
+ * gives every message one: a run's id stamps its thread's saves
+ * (`run-stamp.ts`), so a new message under an earlier run's id would read
+ * as that run continuing.
+ */
+export type DeepAgentRecordOptions = Omit<ExecutionRecordOptions, "ids"> & { readonly executionId?: string };
 
 /** The three resources of one execution, wired by id, under the native fixture ids. */
 export function deepAgentExecutionRecord(options: DeepAgentRecordOptions): ExecutionRecord {
@@ -134,7 +140,7 @@ export function deepAgentExecutionRecord(options: DeepAgentRecordOptions): Execu
     modelName: options.modelName ?? FIXTURE.model,
     ids: {
       org: FIXTURE.org,
-      executionId: FIXTURE.executionId,
+      executionId: options.executionId ?? FIXTURE.executionId,
       sessionId: FIXTURE.sessionId,
       agentId: FIXTURE.agentId,
       agentName: FIXTURE.agentName,

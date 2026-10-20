@@ -6,8 +6,10 @@
  * full write that carries a tool row (the tool-call boundary forces that
  * persist, `persist-decision.ts` over the builder's `dirty` flag); the runtime's chokepoint
  * reads the signal off the write and aborts the adapter's `stopSignal`; the
- * adapter's loop, which AWAITED that persist, sees the abort before it pulls
- * the next event, cancels the graph run and settles `interrupted`; the
+ * adapter's loop, which AWAITED that persist, sees the abort as the next
+ * event arrives, cancels the graph run, folds what the stream still holds (the
+ * tool the engine finished meanwhile, with its result; the graph refuses its
+ * next model call, stigmer#2469) and settles `interrupted`; the
  * runtime's table maps the stop to COMPLETED with `platformStopArm`'s one
  * row, "Execution stopped by the platform.", no `status.error`, and RETURNS.
  *

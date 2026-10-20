@@ -52,9 +52,10 @@ import {
   type VisionPromptInfo,
 } from "../../shared/prompt-sections.js";
 import { effectiveInstructions } from "../../shared/builtin-assistant-prompt.js";
-import { formatTurnRecoveryText } from "./turn-recovery.js";
+import { formatContinuationText, formatTurnRecoveryText } from "../../harness/continuation-digest.js";
 import type { SkillMetadata } from "../../shared/skill-resolver.js";
 import type { AgentResolution, AgentResolutionReason } from "./session-lifecycle.js";
+import type { TurnContinuation } from "../../harness/types.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import {
   buildImplementPlanDirective,
@@ -395,7 +396,7 @@ export function buildReinvocationPrompt(
  * 1. the full enhanced prompt (blueprint, standing context, protocol, and
  *    the turn's ORIGINAL user message as `<user_request>`),
  * 2. `<turn_recovery>` — the state-loss disclosure plus the recorded
- *    transcript of the turn so far (turn-recovery.ts; rendered even with no
+ *    transcript of the turn so far (`harness/continuation-digest.ts`; rendered even with no
  *    transcript, since without the disclosure the decisions below would read
  *    as reactions to proposals this agent never made),
  * 3. the reinvocation decisions verbatim — already-applied / approved /
@@ -430,6 +431,26 @@ export function buildHitlRecoveryPrompt(
 
 export function formatTurnRecoverySection(digest: string | undefined): string {
   return `<turn_recovery>\n${formatTurnRecoveryText(digest)}\n</turn_recovery>`;
+}
+
+/**
+ * The continuation a resumed agent is sent when the runtime continues its
+ * turn (stigmer#2417): the continuation framing and the turn's digest
+ * (`harness/continuation-digest.ts`), never the task. Its conversation holds
+ * the request and its standing context; it was only stopped.
+ */
+export function buildContinuationPrompt(digest: string | undefined): string {
+  return `<turn_continuation>\n${formatContinuationText(digest)}\n</turn_continuation>`;
+}
+
+/**
+ * The continuation a fresh agent is sent: the full enhanced prompt, the one
+ * time this context is handed the task, and the turn's recorded transcript
+ * after it, so the agent continues the work instead of starting it over (the
+ * HITL recovery's shape, with no decisions to convey).
+ */
+export function buildContinuationRecoveryPrompt(options: EnhancedPromptOptions, digest: string | undefined): string {
+  return [buildEnhancedPrompt(options), formatTurnRecoverySection(digest)].join("\n\n---\n\n");
 }
 
 /**
@@ -862,13 +883,20 @@ export interface BuildPromptInput {
   conversationCatchup?: string;
   /**
    * The turn's recorded transcript rendered as digest lines
-   * (turn-recovery.ts), composed from `status.messages` at the call site.
+   * (`harness/continuation-digest.ts`), composed from the run's events at the call site.
    * Consumed ONLY by the HITL-recovery shape — a fresh agent that replaced
    * a lost one mid-HITL needs the story of the work it no longer remembers
    * (issue #366); every other shape either has native context or no prior
    * work to tell.
    */
   turnRecoveryDigest?: string;
+  /**
+   * `TurnInput.continuation`: this invocation continues a turn the engine
+   * began (a drained or lost runner, a resumed pause), and the engine is
+   * never handed the task again (stigmer#2417). Absent on a first invocation
+   * and on an approval resume's own shapes, which keep precedence.
+   */
+  continuation?: TurnContinuation;
   /**
    * The turn's own addition to the system prompt (`spec.append_system_prompt`,
    * Claude Code's `--append-system-prompt`). PER-TURN: it ends every shape
@@ -900,8 +928,15 @@ export interface BuildPromptInput {
  *                                 resolution-time resume failure and mid-send
  *                                 poisoned-handle recovery — land here by
  *                                 keying on the reason, issue #366)
- * 3. resumed_successfully      -> raw userMessage (native context carries it)
- * 4. first execution / fresh   -> buildEnhancedPrompt (full instructions +
+ * 3. continuation,             -> buildContinuationPrompt (the continuation
+ *    resumed agent                 framing and the turn's digest; never the
+ *                                  task: the agent holds its conversation and
+ *                                  was only stopped, stigmer#2417)
+ * 4. continuation,             -> buildContinuationRecoveryPrompt (full
+ *    fresh agent                   context + the digest: this context never
+ *                                  held the task, so it is handed it once)
+ * 5. resumed_successfully      -> raw userMessage (native context carries it)
+ * 6. first execution / fresh   -> buildEnhancedPrompt (full instructions +
  *    agent after resume failure   skills; no prior conversation to inherit)
  */
 /**
@@ -933,8 +968,10 @@ export function isHitlReinvocation(
 export function primarySendCarriesImages(
   approvalDecisions: ReadonlyMap<string, ApprovalAction>,
   reason: AgentResolutionReason,
+  continuation: TurnContinuation | undefined,
 ): boolean {
-  return !(isHitlReinvocation(approvalDecisions) && reason === "resumed_successfully");
+  const continuesItsConversation = isHitlReinvocation(approvalDecisions) || continuation !== undefined;
+  return !(continuesItsConversation && reason === "resumed_successfully");
 }
 
 /**
@@ -1003,25 +1040,7 @@ function promptShape(input: BuildPromptInput): string {
   if (isHitlReinvocation(approvalDecisions)) {
     if (promptCarriesStandingContext(resolution.reason)) {
       return buildHitlRecoveryPrompt(
-        {
-          instructions,
-          userMessage,
-          skills,
-          channelMessaging: input.channelMessaging ?? [],
-          subAgents,
-          workspaceDirs,
-          workspaceFileRefs,
-          files,
-          vision: input.vision,
-          interactionMode,
-          buildFromPlan,
-          contextBridge: input.contextBridge,
-          senderIdentity: input.senderIdentity,
-          sessionContext: input.sessionContext,
-          declaredPreferences: input.declaredPreferences,
-          recalledMemories: input.recalledMemories,
-          conversationCatchup,
-        },
+        enhancedOptionsOf(input),
         {
           turnDigest: input.turnRecoveryDigest,
           pendingApprovals: input.pendingApprovals,
@@ -1037,6 +1056,16 @@ function promptShape(input: BuildPromptInput): string {
       input.appliedToolCallIds,
       input.approvalDenyMessages,
     );
+  }
+
+  // A continued turn is never handed the task again. A resumed agent holds
+  // its conversation and was only stopped: it gets the continuation framing
+  // and the turn's digest. A fresh agent never held the task: it gets the
+  // full context once, with the digest of the work it no longer remembers.
+  if (input.continuation !== undefined) {
+    return promptCarriesStandingContext(resolution.reason)
+      ? buildContinuationRecoveryPrompt(enhancedOptionsOf(input), input.continuation.digest)
+      : buildContinuationPrompt(input.continuation.digest);
   }
 
   // A successfully resumed agent carries its own conversation context via the
@@ -1072,23 +1101,28 @@ function promptShape(input: BuildPromptInput): string {
   // First execution, or a fresh agent created after a resume failure: there is
   // no prior conversation to inherit, so start a new turn with full context —
   // including the rollover bridge, when the session carries one.
-  return buildEnhancedPrompt({
-    instructions,
-    userMessage,
-    skills,
+  return buildEnhancedPrompt(enhancedOptionsOf(input));
+}
+
+/** The enhanced prompt's options, from the turn's prompt input: every shape that hands a context the whole request uses these. */
+function enhancedOptionsOf(input: BuildPromptInput): EnhancedPromptOptions {
+  return {
+    instructions: input.instructions,
+    userMessage: input.userMessage,
+    skills: input.skills,
     channelMessaging: input.channelMessaging ?? [],
-    subAgents,
-    workspaceDirs,
-    workspaceFileRefs,
-    files,
+    subAgents: input.subAgents,
+    workspaceDirs: input.workspaceDirs,
+    workspaceFileRefs: input.workspaceFileRefs,
+    files: input.files,
     vision: input.vision,
-    interactionMode,
-    buildFromPlan,
+    interactionMode: input.interactionMode,
+    buildFromPlan: input.buildFromPlan,
     contextBridge: input.contextBridge,
     senderIdentity: input.senderIdentity,
     sessionContext: input.sessionContext,
     declaredPreferences: input.declaredPreferences,
     recalledMemories: input.recalledMemories,
-    conversationCatchup,
-  });
+    conversationCatchup: input.conversationCatchup,
+  };
 }

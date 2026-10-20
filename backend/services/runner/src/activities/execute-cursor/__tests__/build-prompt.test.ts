@@ -512,14 +512,16 @@ describe("HITL recovery — fresh agent mid-HITL (issue #366)", () => {
     expect(prompt).toContain("<agent_instructions>");
   });
 
-  it("primary send skips images ONLY for a resumed HITL agent (which holds them natively); every fresh agent gets the re-delivery", () => {
-    expect(primarySendCarriesImages(decisions(), "resumed_successfully")).toBe(false);
+  it("primary send skips images ONLY for a resumed agent continuing its own turn (HITL or a continuation, which hold them natively); every fresh agent gets the re-delivery", () => {
+    expect(primarySendCarriesImages(decisions(), "resumed_successfully", undefined)).toBe(false);
+    expect(primarySendCarriesImages(new Map(), "resumed_successfully", {}), "a continued turn's resumed agent holds them").toBe(false);
     // The #366 vision corollary: fresh agent mid-HITL after a
     // resolution-time resume failure.
-    expect(primarySendCarriesImages(decisions(), "created_after_resume_failure")).toBe(true);
-    // Non-HITL turns always carry the message's images, resumed or not.
-    expect(primarySendCarriesImages(new Map(), "resumed_successfully")).toBe(true);
-    expect(primarySendCarriesImages(new Map(), "created_first_execution")).toBe(true);
+    expect(primarySendCarriesImages(decisions(), "created_after_resume_failure", undefined)).toBe(true);
+    expect(primarySendCarriesImages(new Map(), "created_after_resume_failure", {}), "a continued turn's fresh agent holds nothing").toBe(true);
+    // A new message's turn always carries the message's images, resumed or not.
+    expect(primarySendCarriesImages(new Map(), "resumed_successfully", undefined)).toBe(true);
+    expect(primarySendCarriesImages(new Map(), "created_first_execution", undefined)).toBe(true);
   });
 
   it("the structured-output directive is a pure append shared by the primary and recovery sends — absent schema, absent suffix", () => {

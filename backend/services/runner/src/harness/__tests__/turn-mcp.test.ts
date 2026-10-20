@@ -412,6 +412,7 @@ describe("startEvalMocks — a eval-run try's stand-ins take their servers' plac
     evalReadFiles: undefined,
     runWroteEvents: false,
     priorAnswer: undefined,
+    lostRunner: false,
   });
 
   /**

@@ -99,7 +99,7 @@ import {
   type CreateAgentOptions,
   type CreateCloudAgentOptions,
 } from "./session-lifecycle.js";
-import { readTurnRecoveryDigest } from "./turn-recovery.js";
+import { readTurnRecoveryDigest } from "../../harness/continuation-digest.js";
 import type { TurnStreamState } from "./turn-stream.js";
 import { buildCursorSubAgentDefinitions, subagentNamesInScope, subagentsInScope } from "./subagent-config.js";
 import { CursorUsagePricer } from "./usage-pricing.js";
@@ -183,6 +183,13 @@ export interface CursorPrompt {
   readonly promptEstimatedTokens: number;
   /** The fresh-agent recovery prompt, composed at recovery time from the transcript as it then stands. */
   readonly buildRecoveryPrompt: (fresh: AgentResolution) => Promise<string>;
+  /**
+   * The primary send continues a run the resumed local agent may still hold
+   * open: a process that died left it active. The send expires that run
+   * before starting (`@cursor/sdk` `LocalSendOptions.force`), so the
+   * continuation is not refused or folded into a wedged run.
+   */
+  readonly continuesHeldRun: boolean;
 }
 
 // ── Steps ───────────────────────────────────────────────────────────────────
@@ -901,6 +908,7 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
     sessionContext: standing.sessionContext,
     declaredPreferences: standing.declaredPreferences,
     conversationCatchup: standing.conversationCatchup,
+    ...(input.continuation !== undefined ? { continuation: input.continuation } : {}),
   });
 
   // The memory selection is the runtime's memoized thunk; whether THIS prompt
@@ -939,8 +947,8 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
   // The turn's vision payload. The invariant is "images accompany the user's
   // turn message, wherever the conversation does not already hold them"
   // (primarySendCarriesImages): the ONLY send that skips them is a HITL
-  // re-invocation of a successfully RESUMED agent, whose native conversation
-  // carries the images from the original send. Every send that starts an
+  // re-invocation or a continuation of a successfully RESUMED agent, whose
+  // native conversation carries the images from the original send. Every send that starts an
   // empty conversation re-delivers them — the ordinary first/fresh-agent
   // primary send, the HITL primary send after a resolution-time resume
   // failure, and both mid-send recovery retries (which always run on a fresh
@@ -948,7 +956,7 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
   // images are offered again on every invocation, so the bytes are in hand
   // even on a re-invocation.
   const turnImages = toCursorImages(files.visionImages);
-  const primarySendImages = primarySendCarriesImages(approvalDecisions, engine.resolution.reason) ? turnImages : [];
+  const primarySendImages = primarySendCarriesImages(approvalDecisions, engine.resolution.reason, input.continuation) ? turnImages : [];
   const toSendMessage = (sendPrompt: string, images: { data: string; mimeType: string }[]): string | SDKUserMessage =>
     images.length > 0 ? { text: sendPrompt, images } : sendPrompt;
 
@@ -969,6 +977,7 @@ export async function buildTurnPrompt(input: TurnInput, sink: TurnSink, engine: 
     // Same per-turn directive rule as buildFromPlan: a structured-output turn
     // keeps its output contract on the rebuilt prompt (the transport retry
     // re-sends effectivePrompt and inherits it without help).
+    continuesHeldRun: input.continuation !== undefined && engine.resolution.reason === "resumed_successfully" && engine.agentMode === "local",
     buildRecoveryPrompt: async (fresh) =>
       appendStructuredOutputDirective(
         buildPrompt({

@@ -114,7 +114,7 @@ import { TurnTimeline } from "./turn-timeline.js";
 import { environmentInstalled } from "../environment/install.js";
 import { withRunSpan, type RunSpan } from "./run-span.js";
 import type { HarnessAdapter, TurnInput, TurnSink } from "./types.js";
-import { CostCapWatch } from "./cost-cap-watch.js";
+import { costCapWatchFor } from "./cost-cap-watch.js";
 import type { UsageAccumulator } from "./usage-accumulator.js";
 import { MessageType } from "../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
@@ -288,6 +288,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     evalReadFiles: undefined,
     runWroteEvents: false,
     priorAnswer: undefined,
+    lostRunner: false,
   };
   const stop = new StopController();
   let usage: UsageAccumulator | undefined;
@@ -486,7 +487,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     });
     runSpan.model(turn.model.requested);
     const maxCostUsd = turn.execution.status?.runConfig?.maxCostUsd ?? 0;
-    const costCap = new CostCapWatch(maxCostUsd, turn.model.serviceTier, turn.model.thinkingMode);
+    const costCap = costCapWatchFor(turn);
     const accumulator = costCap.accumulator;
     usage = accumulator;
 
@@ -586,6 +587,12 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
       fileReview: adapter.capabilities.fileReview,
       artifactStorage: turn.artifactStorage,
     });
+
+    // A continued turn whose log does not say why it stopped (its runner was
+    // killed, or stopped answering) says so itself, once, before its engine
+    // runs on (`turn-context.ts` `stopIsExplained`): a person who comes back
+    // to a long turn sees why it paused.
+    if (frame.lostRunner) transcript.apply({ kind: "system_note", text: TERMINAL_COPY.continuation.lostRunnerNote });
 
     heartbeatPhase = "harness";
     outputsSessionId = turn.sessionId;

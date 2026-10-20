@@ -12,6 +12,7 @@
 
 import { ToolMessage } from "@langchain/core/messages";
 import type { StigmerMiddleware } from "./types.js";
+import { isTurnBoundaryHalt } from "./turn-boundary.js";
 
 /**
  * Enrich an error message with contextual recovery hints.
@@ -111,7 +112,9 @@ export function enrichErrorMessage(toolName: string, error: string): string {
  *
  * Wraps every tool call in a try/catch. On error, produces a ToolMessage
  * with the enriched error text instead of letting the error propagate
- * as a raw string.
+ * as a raw string. A sub-agent stopped at its model call is not a tool
+ * failing: its `task` step must fail unsaved, so the halt is rethrown
+ * (`turn-boundary.ts`).
  */
 export function createErrorHintsMiddleware(): StigmerMiddleware {
   return {
@@ -121,6 +124,7 @@ export function createErrorHintsMiddleware(): StigmerMiddleware {
       try {
         return await handler(request);
       } catch (err: unknown) {
+        if (isTurnBoundaryHalt(err)) throw err;
         const errorMessage = err instanceof Error ? err.message : String(err);
         const toolName = request.toolCall.name;
         const enriched = enrichErrorMessage(toolName, errorMessage);

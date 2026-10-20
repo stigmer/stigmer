@@ -25,6 +25,7 @@ function makeGraphState(
 ): GraphStateSnapshot {
   return {
     values: {},
+    next: [],
     tasks: interrupts.map(i => ({
       id: i.taskId,
       interrupts: [{
@@ -38,7 +39,7 @@ function makeGraphState(
 describe("resolveResumeInput", () => {
   it("reports not-a-resume when no interrupts exist (the caller sends the turn's user message)", () => {
     const decisions = makeDecisions([]);
-    const state: GraphStateSnapshot = { values: {}, tasks: [] };
+    const state: GraphStateSnapshot = { values: {}, tasks: [], next: [] };
 
     const result = resolveResumeInput(decisions, state);
 
@@ -155,6 +156,7 @@ describe("detectPendingInterrupts", () => {
   it("normalizes each un-resumed interrupt into a pending approval and skips resumed ones", () => {
     const state: GraphStateSnapshot = {
       values: {},
+      next: [],
       tasks: [
         {
           id: "task-1",
@@ -177,6 +179,7 @@ describe("detectPendingInterrupts", () => {
   it("reads the asking hook and a hook's rewritten arguments", () => {
     const state: GraphStateSnapshot = {
       values: {},
+      next: [],
       tasks: [{
         id: "task-1",
         interrupts: [{
@@ -201,6 +204,7 @@ describe("detectPendingInterrupts", () => {
   it("reads an absent policy source as undefined", () => {
     const state: GraphStateSnapshot = {
       values: {},
+      next: [],
       tasks: [{ id: "task-1", interrupts: [{ value: { tool_call_id: "call-1", tool_name: "shell", message: "Run it?" } }] }],
     };
     expect(detectPendingInterrupts(state)[0].policySource).toBeUndefined();
