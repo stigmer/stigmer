@@ -36,7 +36,8 @@ import type { ContinuationCause } from "./terminal-table.js";
 
 /** Why the runtime stopped the turn. */
 export type StopCause =
-  | { readonly kind: "stall"; readonly error: StallTimeoutError }
+  /** `owedByModel`: the turn was waiting on its model's reply when the window ran out (`OpenOperations.awaitingModel`). */
+  | { readonly kind: "stall"; readonly error: StallTimeoutError; readonly owedByModel: boolean }
   | { readonly kind: "operation-limit"; readonly error: OperationLimitError }
   | { readonly kind: "mock-abort"; readonly abort: MockAbort }
   | { readonly kind: "cost-cap" }
@@ -56,6 +57,8 @@ export interface MockAbort {
 /** What the terminal table reads. Each field is set by the first cause of its kind and never cleared. */
 export interface StopEvidence {
   readonly stall: StallTimeoutError | undefined;
+  /** The stall came while the turn waited on its model: the provider's, so the turn continues (`run-turn.ts`). */
+  readonly stallOwedByModel: boolean;
   readonly operationLimit: OperationLimitError | undefined;
   readonly mockAbort: MockAbort | undefined;
   readonly costCapExceeded: boolean;
@@ -70,6 +73,7 @@ export class StopController {
   private readonly controller = new AbortController();
   private readonly yieldController = new AbortController();
   private stall: StallTimeoutError | undefined;
+  private stallOwedByModel = false;
   private operationLimit: OperationLimitError | undefined;
   private mockAbort: MockAbort | undefined;
   private costCapExceeded = false;
@@ -96,6 +100,7 @@ export class StopController {
   get evidence(): StopEvidence {
     return {
       stall: this.stall,
+      stallOwedByModel: this.stallOwedByModel,
       operationLimit: this.operationLimit,
       mockAbort: this.mockAbort,
       costCapExceeded: this.costCapExceeded,
@@ -109,7 +114,10 @@ export class StopController {
   stop(cause: StopCause): void {
     switch (cause.kind) {
       case "stall":
-        this.stall ??= cause.error;
+        if (this.stall === undefined) {
+          this.stall = cause.error;
+          this.stallOwedByModel = cause.owedByModel;
+        }
         break;
       case "operation-limit":
         this.operationLimit ??= cause.error;

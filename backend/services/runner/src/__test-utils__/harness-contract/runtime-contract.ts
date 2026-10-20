@@ -155,7 +155,10 @@ export function slimOf(subject: HarnessContractSubject, invocation: ActivityInvo
  * real engine is per session; two arms on one session would share a parked
  * engine). It threads the state id the runtime bound (an engine-minted
  * harness's `harnessBinds`; a deterministic harness's runtime-minted id)
- * and advances `turnSeq`, as the workflow does between invocations.
+ * and sets `turnSeq` as the workflow does between invocations: one more
+ * after an invocation that returned (an approval cycle), 0 after one that
+ * threw (a drain, a lost runner, a stall the model owed or a pause, which
+ * the workflow recovers by running the turn from its first invocation).
  */
 export class RuntimeExecutionDriver {
   readonly record: ExecutionRecord;
@@ -215,7 +218,7 @@ export class RuntimeExecutionDriver {
     const invocation = await runActivityHermetically(activity, [input], { taskQueue: config.taskQueue, onControls: options.onControls });
     const bound = this.record.harnessBinds.at(-1)?.harnessStateId;
     if (bound) this.threadId = bound;
-    this.turnSeq += 1;
+    this.turnSeq = invocation.outcome.kind === "threw" ? 0 : this.turnSeq + 1;
     return invocation;
   }
 
@@ -775,11 +778,13 @@ export async function assertInfrastructureCancelContinuesAndThrows(
 const STALL_CLOCK_INTERVAL_MS = 25;
 
 /**
- * A stall: the watchdog measures idle time on the scripted clock; while the
+ * A stall with nothing owed by the model, an engine wedged before it did
+ * anything: the watchdog measures idle time on the scripted clock; while the
  * engine hangs the clock KEEPS RUNNING — a stall window per interval until
  * the turn settles — and the first window with no activity fails the turn
  * (RETURNED — a retry would wedge again) with the watchdog's copy naming the
- * idle seconds.
+ * idle seconds. A stall while the turn waits on its model continues instead
+ * ({@link assertModelStallContinues}).
  *
  * Why the clock runs rather than ticks once: on a push-based engine the
  * park is reported while the chunks the engine produced before parking are
@@ -803,7 +808,7 @@ export async function assertStallFailsTheTurn(harness: RuntimeContractHarness, l
 
   let invocation: ActivityInvocation;
   try {
-    invocation = await driver.turn(hangingTurn("Running the suite."), { config: { cursorStreamStallTimeoutMs: STALL_TIMEOUT_MS } });
+    invocation = await driver.turn([scenario.hang(), scenario.say(NEVER_SEEN)], { config: { cursorStreamStallTimeoutMs: STALL_TIMEOUT_MS } });
   } finally {
     if (running) clearInterval(running);
   }
@@ -819,6 +824,113 @@ export async function assertStallFailsTheTurn(harness: RuntimeContractHarness, l
   expect(final.completedAt).not.toBe("");
   expect(aiMessages(driver.record.rowsOf(final))).not.toContain(NEVER_SEEN);
   return { driver, invocations: [invocation], final };
+}
+
+/**
+ * A stall while the turn waits on its model: a tool's result went to the
+ * model and nothing came back for the window. The provider's, not the
+ * engine's, so nothing terminal is written, the note says why, the typed
+ * continuation tells the workflow to run the turn again, and the next
+ * invocation asks the model again from where the turn was, never handing it
+ * the task. The clock runs as in {@link assertStallFailsTheTurn}.
+ */
+export async function assertModelStallContinues(harness: RuntimeContractHarness, label = "rt-model-stall"): Promise<RuntimeArmResult> {
+  const { subject, clock } = harness;
+  const controls = longTurnOf(subject);
+  const driver = new RuntimeExecutionDriver(harness, label);
+  const read = `${label}-read`;
+  let running: NodeJS.Timeout | undefined;
+  void subject.whenHanging().then(() => {
+    clock.tick(STALL_TIMEOUT_MS);
+    running = setInterval(() => clock.tick(STALL_TIMEOUT_MS), STALL_CLOCK_INTERVAL_MS);
+  });
+
+  let first: ActivityInvocation;
+  try {
+    first = await driver.turn([scenario.say("Reading the config."), scenario.read(read, "package.json"), scenario.hang(), scenario.say(NEVER_SEEN)], {
+      config: { cursorStreamStallTimeoutMs: STALL_TIMEOUT_MS },
+    });
+  } finally {
+    if (running) clearInterval(running);
+  }
+
+  expect(continuationCauseOf(first.outcome), `${subject.name}: a stall owed by the model continues`).toBe("model-stall");
+  const settle = expectContinuesWithoutAnEnding(harness, driver, TERMINAL_COPY.continuation.notes["model-stall"]);
+  expect(aiMessages(driver.record.rowsOf(settle))).not.toContain(NEVER_SEEN);
+
+  const second = await driver.turn([scenario.read(read, "package.json"), scenario.say("The config is read.")]);
+  expectCompleted(harness, driver, second, "The config is read.");
+  expect(harnessNotesOf(driver), `${subject.name}: the stall's note, once`).toEqual([TERMINAL_COPY.continuation.notes["model-stall"]]);
+  expect(controls.tasksHanded(driver.sessionId, RUNTIME_USER_MESSAGE), `${subject.name}: the engine was handed the task once`).toBe(1);
+  return { driver, invocations: [first, second], final: finalStatusOf(harness, driver) };
+}
+
+/**
+ * A turn the platform STOPs after a write landed: the turn completes early,
+ * and what it left on the tree is a change set to keep or undo, captured
+ * when the stop's arm returned (#1115). Before it, those edits sat on the
+ * tree with nothing to decide.
+ */
+export async function assertStoppedTurnCapturesItsEdits(harness: RuntimeContractHarness, label = "rt-stop-captures"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const writeId = `${label}-write`;
+  const WRITTEN = "stopped.md";
+  const driver = new RuntimeExecutionDriver(harness, label, {
+    fileReview: true,
+    controlSignal: (_status, rows) =>
+      findToolCallRow(rows, writeId)?.status === ToolCallStatus.TOOL_CALL_COMPLETED ? RunControlSignal.STOP : RunControlSignal.UNSPECIFIED,
+  });
+  initGitWorkspace(driver.workspaceDir, { "README.md": "# the kit's tree\n" });
+  const changeSetId = `${driver.record.executionId}:0`;
+
+  const invocation = await driver.turn([scenario.flowingWrite(writeId, WRITTEN), scenario.say(NEVER_SEEN)]);
+
+  expect(slimOf(subject, invocation).phase, `${subject.name}: a platform STOP completes the turn`).toBe("RUN_COMPLETED");
+  const final = finalStatusOf(harness, driver);
+  expect(final.fileChanges.map((set) => set.id), `${subject.name}: the stopped turn's edits are a change set`).toEqual([changeSetId]);
+  expect(final.fileChanges[0]!.changes.map((c) => c.pathAfter), `${subject.name}: the written file is reviewable`).toEqual([WRITTEN]);
+  const changes = driver.record.sessionEvents.flatMap((e) => (e.event.case === "stigmerFileReviewChanges" ? [e.event.value] : []));
+  expect(changes.map((c) => c.changeSetId), `${subject.name}: the log offers it for a decision`).toEqual([changeSetId]);
+  return { driver, invocations: [invocation], final };
+}
+
+/**
+ * A turn drained between two writes and continued: one change set for the
+ * whole turn, under the first invocation's id and baseline, holding both
+ * files. The continued invocation adopts the open set instead of pinning a
+ * second baseline that would fold the first write into its "before"
+ * (#1115).
+ */
+export async function assertContinuedTurnKeepsOneChangeSet(harness: RuntimeContractHarness, label = "rt-one-change-set"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const controls = longTurnOf(subject);
+  const driver = new RuntimeExecutionDriver(harness, label, { fileReview: true, autoApproveAll: true });
+  initGitWorkspace(driver.workspaceDir, { "README.md": "# the kit's tree\n" });
+  const beforeId = `${label}-before`;
+  const afterId = `${label}-after`;
+  const build = `${label}-build`;
+  const BEFORE = "before.md";
+  const AFTER = "after.md";
+  const changeSetId = `${driver.record.executionId}:0`;
+  let invocationControls: InvocationControls | undefined;
+  const draining = controls.whenOpen(build).then(async () => {
+    invocationControls!.signalWorkerShutdown();
+    await theYieldHasCrossed();
+    await controls.release(build);
+  });
+
+  const first = await driver.turn([scenario.flowingWrite(beforeId, BEFORE), scenario.open(build), scenario.say(NEVER_SEEN)], {
+    onControls: (c) => (invocationControls = c),
+  });
+  await draining;
+  expect(continuationCauseOf(first.outcome), `${subject.name}: the drained invocation continues`).toBe("drain");
+
+  const second = await driver.turn([scenario.flowingWrite(beforeId, BEFORE), scenario.open(build), scenario.flowingWrite(afterId, AFTER), scenario.say("Both files are written.")]);
+  expectCompleted(harness, driver, second, "Both files are written.");
+  const final = finalStatusOf(harness, driver);
+  expect(final.fileChanges.map((set) => set.id), `${subject.name}: one change set for the whole turn`).toEqual([changeSetId]);
+  expect([...final.fileChanges[0]!.changes.map((c) => c.pathAfter)].sort(), `${subject.name}: both invocations' files, against the turn's first baseline`).toEqual([AFTER, BEFORE]);
+  return { driver, invocations: [first, second], final };
 }
 
 /**
@@ -1754,6 +1866,10 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       clock.reset();
       await assertFileReviewOffWriteFlows(harness);
     });
+    it("file review: a turn the platform stops after a write leaves a change set to keep or undo", async () => {
+      clock.reset();
+      await assertStoppedTurnCapturesItsEdits(harness);
+    });
     it("file review: two writes flow, the runtime captures and the turn completes, the person keeps one and undoes one, a reconcile turn puts it back without the engine", async () => {
       clock.reset();
       await assertFileReviewRoundTrip(harness);
@@ -1776,9 +1892,13 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       clock.reset();
       await assertInfrastructureCancelContinuesAndThrows(harness);
     });
-    it("a stall fails the turn with the watchdog's idle time", async () => {
+    it("a stall with nothing owed by the model fails the turn with the watchdog's idle time", async () => {
       clock.reset();
       await assertStallFailsTheTurn(harness);
+    });
+    it("a stall while the turn waits on its model continues, and the next invocation asks the model again without the task", async () => {
+      clock.reset();
+      await assertModelStallContinues(harness);
     });
     it("a cost cap terminates the turn with the budget copy; the step after the overrun is never processed", async () => {
       clock.reset();
@@ -1873,6 +1993,10 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       it.skipIf(subject.adapter.capabilities.continuation !== "checkpoint")("a continued turn whose engine had finished settles with no model call", async () => {
         clock.reset();
         await withStopOrphans(subject.name, orphans, () => assertFinishedEngineSettlesWithoutAModelCall(harness));
+      });
+      it("file review: a turn drained between two writes and continued is one change set with both files", async () => {
+        clock.reset();
+        await withStopOrphans(subject.name, orphans, () => assertContinuedTurnKeepsOneChangeSet(harness));
       });
       it("a drain after an approved call ran continues with neither the task nor the decision handed again", async () => {
         clock.reset();

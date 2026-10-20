@@ -21,6 +21,7 @@
  * is the shared one every file-review scenario stands on.
  */
 
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -34,6 +35,8 @@ import { mockWorkspaceBackend } from "../../__test-utils__/mock-workspace.js";
 import type { FileReviewIdentity } from "../capabilities.js";
 import { captureCandidate, deriveCommandProvenance, pinCaptureBaseline } from "../capture.js";
 import type { TurnWorkspace } from "../types.js";
+import { changeSetIdForInvocation, fileRecordOf } from "../../shared/filereview/record.js";
+import { baselineRef } from "../../shared/filereview/git-substrate.js";
 import { AgentMessageSchema, ToolCallSchema, type ToolCall, SubAgentRunSchema, TurnRowsSchema, type TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import { ApprovalAction, MessageType, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
@@ -89,6 +92,7 @@ describe("harness/capture over a git work tree", () => {
       workspace: { ...workspaceOver(root), captureMode: false },
       fileReview: FILE_REVIEW,
       artifactStorage: undefined,
+      fileRecord: [],
     });
     expect(capture).toBeUndefined();
     expect(status.fileReviewEventStream).toBeUndefined();
@@ -96,7 +100,7 @@ describe("harness/capture over a git work tree", () => {
 
   it("pins the baseline, captures the net change after the turn, stamps only the COMPLETED write rows, and reports the review pending", async () => {
     const workspace = workspaceOver(root);
-    const capture = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined }))!;
+    const capture = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined, fileRecord: [] }))!;
     expect(capture.baselineTree).toMatch(/^[0-9a-f]{40}$/);
     expect(status.fileReviewEventStream?.events.map((e) => e.payload.case)).toEqual(["baselineCaptured"]);
 
@@ -139,9 +143,37 @@ describe("harness/capture over a git work tree", () => {
     expect(byId.get("tc-denied"), "a WAITING write did not land").toBe("");
   });
 
+  it("a continued invocation adopts the run's open set: no second baseline, and the boundary captures the whole turn", async () => {
+    // The first invocation pins, edits, and is lost before its boundary.
+    const workspace = workspaceOver(root);
+    const first = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined, fileRecord: [] }))!;
+    writeFileSync(join(root, "notes.md"), "one\ntwo\n");
+    const record = fileRecordOf(status);
+
+    // The next invocation, a recovery at turnSeq 0, has a ledger of its own.
+    const next = create(TurnRowsSchema, {});
+    const changeSetId = changeSetIdForInvocation(EXECUTION_ID, 0, record);
+    expect(changeSetId, "it continues the open set").toBe(workspace.changeSetId);
+    const continued = { ...workspace, changeSetId };
+    const capture = (await pinCaptureBaseline({ rows: next, executionId: EXECUTION_ID, workspace: continued, fileReview: FILE_REVIEW, artifactStorage: undefined, fileRecord: record }))!;
+    expect(capture.baselineTree, "the turn's real before").toBe(first.baselineTree);
+    expect(next.fileReviewEventStream?.events.map((e) => e.payload.case), "the set's baseline, seeded, not pinned again").toEqual(["baselineCaptured"]);
+    const pinnedTree = execFileSync("git", ["rev-parse", `${baselineRef(EXECUTION_ID)}^{tree}`], { cwd: root, encoding: "utf8" }).trim();
+    expect(pinnedTree, "the run's baseline ref still holds the first pin").toBe(first.baselineTree);
+
+    writeFileSync(join(root, "keep.md"), "keep\nmore\n");
+    const pending = await captureCandidate({ rows: next, executionId: EXECUTION_ID, workspace: continued, fileReview: FILE_REVIEW, artifactStorage: undefined, capture, globalBypass: false });
+
+    expect(pending).toBe(true);
+    const candidate = next.fileReviewEventStream?.events.at(-1)?.payload;
+    if (candidate?.case !== "candidateCaptured") throw new Error("no candidate was captured");
+    expect(candidate.value.changes.map((c) => c.pathAfter).sort(), "both invocations' edits, one change set").toEqual(["keep.md", "notes.md"]);
+    expect(fileRecordOf(next).map((set) => set.id)).toEqual([workspace.changeSetId]);
+  });
+
   it("a turn that changed nothing authors no candidate and pends no review", async () => {
     const workspace = workspaceOver(root);
-    const capture = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined }))!;
+    const capture = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined, fileRecord: [] }))!;
     const pending = await captureCandidate({ rows: status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined, capture, globalBypass: false });
     expect(pending).toBe(false);
     expect(status.fileReviewEventStream?.events.map((e) => e.payload.case)).toEqual(["baselineCaptured"]);
@@ -149,7 +181,7 @@ describe("harness/capture over a git work tree", () => {
 
   it("a turn that changed nothing on the tree stamps no row, even a COMPLETED write whose edit was reverted before the boundary", async () => {
     const workspace = workspaceOver(root);
-    const capture = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined }))!;
+    const capture = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined, fileRecord: [] }))!;
     status.messages.push(messageWith(row("tc-reverted", "write_file", ToolCallStatus.TOOL_CALL_COMPLETED, { args: { file_path: "notes.md" } })));
     // The engine wrote and then wrote the original back: no net change.
     writeFileSync(join(root, "notes.md"), "one\n");
@@ -161,7 +193,7 @@ describe("harness/capture over a git work tree", () => {
   });
 
   it("the progress substrate follows the workspace shape: git-only without storage surfaces the tracked change; CAS reads what the adapter bound", async () => {
-    const gitOnly = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace: workspaceOver(root), fileReview: FILE_REVIEW, artifactStorage: undefined }))!;
+    const gitOnly = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace: workspaceOver(root), fileReview: FILE_REVIEW, artifactStorage: undefined, fileRecord: [] }))!;
     writeFileSync(join(root, "notes.md"), "one\ntwo\n");
     const tracked = await gitOnly.progress.substrate.capture();
     expect(tracked.changed).toBe(true);
@@ -178,6 +210,7 @@ describe("harness/capture over a git work tree", () => {
         workspace: casWorkspace,
         fileReview: FILE_REVIEW,
         artifactStorage: makeInMemoryArtifactStorage().storage,
+        fileRecord: [],
       }))!;
       expect(cas.baselineTree, "a non-git baseline is the CAS manifest, not a tree").toBe("");
       writeFileSync(join(casRoot, "scratch.log"), "line\n");
@@ -194,7 +227,7 @@ describe("harness/capture over a git work tree", () => {
     const fileReview: FileReviewIdentity = { ...FILE_REVIEW, transientPaths: ["settings.json"] };
     initGitWorkspace(root, { "notes.md": "one\n", "keep.md": "keep\n", "settings.json": '{"hooks":{}}' });
     const workspace = workspaceOver(root);
-    const capture = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace, fileReview, artifactStorage: undefined }))!;
+    const capture = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace, fileReview, artifactStorage: undefined, fileRecord: [] }))!;
     // The harness rewrites it mid-run; the progress diff does not show that.
     writeFileSync(join(root, "settings.json"), "{}");
     expect((await capture.progress.substrate.capture()).delta.entries).toEqual([]);
@@ -213,7 +246,7 @@ describe("harness/capture over a git work tree", () => {
       create(SubAgentRunSchema, { id: "sa-prior", name: "editor", messages: [messageWith(row("sa-tc-prior", "write_file", ToolCallStatus.TOOL_CALL_COMPLETED))] }),
     );
     const workspace = workspaceOver(root, 1);
-    const capture = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined }))!;
+    const capture = (await pinCaptureBaseline({ rows: status, executionId: EXECUTION_ID, workspace, fileReview: FILE_REVIEW, artifactStorage: undefined, fileRecord: [] }))!;
 
     writeFileSync(join(root, "keep.md"), "kept and changed\n");
     status.subAgentRuns[0]!.messages.push(messageWith(row("sa-tc-new", "write_file", ToolCallStatus.TOOL_CALL_COMPLETED)));

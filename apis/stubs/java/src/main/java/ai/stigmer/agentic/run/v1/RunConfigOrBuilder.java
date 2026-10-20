@@ -44,7 +44,8 @@ public interface RunConfigOrBuilder extends
    *
    * 0 = not set at this layer. The budget is per message: a follow-up
    * message, or a run resuming after an approval, starts a fresh count; a
-   * run continuing after a restart or a lost runner keeps its count. The
+   * run continuing after a restart, a lost runner or a stall keeps its
+   * count. The
    * spend is the runner's estimate, reported on
    * RunStatus.streaming_usage.estimated_cost_usd, not the billed
    * amount.

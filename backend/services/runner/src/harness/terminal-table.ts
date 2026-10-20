@@ -19,8 +19,8 @@
  *
  * The throw-vs-return rule, from the orchestrator it replaces, with a third
  * disposition since a drained turn continues (stigmer#2428):
- *  - RETURN when a Temporal retry would only repeat the outcome — a stall
- *    would wedge again, an exhausted budget would burn again, a platform
+ *  - RETURN when a Temporal retry would only repeat the outcome — a wedged
+ *    engine's stall would wedge again, an exhausted budget would burn again, a platform
  *    stop is the platform's decision, a failed engine would fail the same
  *    prompt the same way, a completed turn is complete.
  *  - THROW `CancelledFailure` when the workflow must see the activity as
@@ -28,7 +28,10 @@
  *    grace, and an infrastructure cancel it delivered — with the message the
  *    control planes recognise.
  *  - CONTINUE when the turn stopped itself so the workflow runs it on: a
- *    drain the engine yielded to at a step boundary. No cancellation was
+ *    drain the engine yielded to at a step boundary, or a stall that came
+ *    while the turn waited on its model (`OpenOperations.awaitingModel`):
+ *    the provider's, not the engine's, so the continuation asks the model
+ *    again from where the turn was. No cancellation was
  *    delivered, so a thrown `CancelledFailure` would reach the workflow as a
  *    plain failure (Temporal reports one as cancelled only after it asked);
  *    the runtime throws the typed failure {@link TURN_CONTINUES_FAILURE_TYPE}
@@ -100,7 +103,7 @@ export type StopCause =
  * Why a turn stops so that the workflow continues it on the next
  * invocation. Crosses to the workflow as the typed failure's one detail.
  */
-export type ContinuationCause = "drain";
+export type ContinuationCause = "drain" | "model-stall";
 
 /**
  * The `ApplicationFailure` type a continuing turn throws, which the invoke
@@ -113,7 +116,11 @@ export const TURN_CONTINUES_FAILURE_TYPE = "StigmerTurnContinues";
 export type TerminalDisposition =
   | { readonly kind: "return" }
   | { readonly kind: "throw"; readonly message: string }
-  | { readonly kind: "continue"; readonly cause: ContinuationCause };
+  /**
+   * `message`: the typed failure's message, which the workflow writes as the
+   * run's error if it gives up continuing; the shared copy when absent.
+   */
+  | { readonly kind: "continue"; readonly cause: ContinuationCause; readonly message?: string };
 
 /** One arm of the table: what to write, and how to end. */
 export interface TerminalArm {
@@ -153,11 +160,17 @@ export const TERMINAL_COPY = {
     throwMessageAfterError: "Activity cancelled (infrastructure, not user pause)",
   },
   continuation: {
-    /** The message of the typed failure; the workflow reads its type and detail, never this. */
+    /**
+     * The typed failure's message when its arm names none. The workflow
+     * matches the type and the detail; it writes a message only when it
+     * gives up continuing a cause whose own copy is the run's error (a
+     * model stall's).
+     */
     failureMessage: "The turn continues on the next invocation",
     /** The note a continuing turn leaves, by cause. */
     notes: {
       drain: "The runner is restarting; this turn continues on the next one.",
+      "model-stall": "The model stopped answering; this turn continues from where it was.",
     } satisfies Record<ContinuationCause, string>,
     /** The note a continued turn writes itself when its log does not say why it stopped (`turn-context.ts` `stopIsExplained`). */
     lostRunnerNote: "This turn continues after its runner stopped unexpectedly.",
@@ -303,20 +316,32 @@ export function workerShutdownArm(): TerminalArm {
 }
 
 /**
- * The engine yielded at a durable step boundary so the turn continues on the
- * next invocation (a drain, `TurnSink.yieldSignal`). Nothing terminal is
+ * The turn stopped so the workflow continues it on the next invocation: the
+ * engine yielded at a durable step boundary (a drain, `TurnSink.yieldSignal`)
+ * or its model stopped answering ({@link modelStallArm}). Nothing terminal is
  * written; the note says why the turn moved; the typed failure tells the
  * workflow to continue it (the module header).
  */
-export function continueArm(cause: ContinuationCause): TerminalArm {
+export function continueArm(cause: ContinuationCause, message?: string): TerminalArm {
   return {
     phase: RunPhase.RUN_PHASE_UNSPECIFIED,
     rows: [],
     note: TERMINAL_COPY.continuation.notes[cause],
     completes: false,
     stopCause: null,
-    disposition: { kind: "continue", cause },
+    disposition: { kind: "continue", cause, ...(message !== undefined ? { message } : {}) },
   };
+}
+
+/**
+ * The watchdog stopped a turn that waited on its model: the provider stopped
+ * answering, which a retry from where the turn was can outlast. Nothing
+ * terminal is written; the note says why the turn moved; the typed failure
+ * carries the stall's own copy, which is the run's error if the workflow
+ * gives up (the stall's, so a run that never recovers reads as stalled).
+ */
+export function modelStallArm(error: StallTimeoutError): TerminalArm {
+  return continueArm("model-stall", formatStallFailure(error));
 }
 
 /**

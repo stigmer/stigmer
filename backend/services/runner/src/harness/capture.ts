@@ -60,20 +60,26 @@
  * turn's start (`owed-undos.ts`); the log's `changes` event
  * (`events/emitter.ts`).
  *
- * TWO GAPS THIS MODULE DOES NOT CLOSE (recorded as #1115)
- * ----------------------------------------------------------------------
- * A turn that ends `interrupted` is not captured (a stop fired; the tree may
- * be mid-edit). So a platform STOP returns COMPLETED with unreviewed edits
- * on the tree, and a pause or worker shutdown reinvokes the same turn, whose
- * new pin absorbs the pre-pause edits into its baseline and authors a second
- * BASELINE for the same change set. Both predate the lift on both harnesses.
+ * A TURN OF MANY INVOCATIONS IS ONE CHANGE SET (#1115)
+ * ------------------------------------------------------
+ * A turn stopped by an arm that returns (a stall the engine owed, the
+ * operation limit, a mock's abort, the cost cap, a platform STOP) is
+ * captured once its arm is known (`run-turn.ts` `settleInterrupted`):
+ * nothing runs it on, and its edits are reviewable like any turn's. A turn
+ * the workflow runs on (a drain, a lost runner, a stall the model owed, a
+ * pause) is not captured where it stopped: the invocation that continues it
+ * adopts the run's open set (`shared/filereview/record.ts`
+ * `changeSetIdForInvocation`), keeps its baseline instead of pinning a
+ * second one, and captures the whole turn at its own boundary.
  */
 
 import { FileCaptureClass } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { TurnCommandProvenance } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
 
 import type { ArtifactStorage } from "../shared/artifact-storage.js";
-import { captureBaselineToLedger, captureCandidateToLedger } from "../shared/filereview/capture.js";
+import type { FileChangeSet } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
+import { adoptBaselineToLedger, captureBaselineToLedger, captureCandidateToLedger } from "../shared/filereview/capture.js";
+import { adoptedChangeSetOf } from "../shared/filereview/record.js";
 import { createCasProgressSubstrate } from "../shared/filereview/cas-progress.js";
 import { buildCasTurnCaptures, type CasTouchedReader, type CasTouchedSnapshot } from "../shared/filereview/cas-touched.js";
 import { qualifyTurnCommandProvenance } from "../shared/filereview/command-provenance.js";
@@ -146,23 +152,30 @@ export async function pinCaptureBaseline(args: {
   readonly workspace: TurnWorkspace;
   readonly fileReview: FileReviewIdentity;
   readonly artifactStorage: ArtifactStorage | undefined;
+  /** The run's file record as this invocation found it (`RunStatus.file_changes`): where an open set it continues is. */
+  readonly fileRecord: readonly FileChangeSet[];
 }): Promise<TurnCapture | undefined> {
-  const { rows, executionId, workspace, fileReview, artifactStorage } = args;
+  const { rows, executionId, workspace, fileReview, artifactStorage, fileRecord } = args;
   if (!workspace.captureMode) return undefined;
   const { primaryDir, gitWorkspace, changeSetId } = workspace;
 
   const priorSettledToolCallIds = collectSettledToolCallIds(rows.messages);
   const priorSubAgentToolCallIds = collectSubAgentToolCallIds(rows.subAgentRuns);
 
-  const baselineTree = await captureBaselineToLedger({
-    rows,
-    gitRoot: primaryDir,
-    executionId,
-    changeSetId,
-    harnessId: fileReview.harnessId,
-    excludePaths: fileReview.excludePaths,
-    gitWorkspace,
-  });
+  // An invocation that continues the run's open set keeps its baseline: a
+  // second pin would fold the earlier invocation's edits into it (#1115).
+  const adopted = adoptedChangeSetOf(changeSetId, fileRecord);
+  const baselineTree = adopted !== undefined
+    ? adoptBaselineToLedger({ rows, executionId, changeSet: adopted })
+    : await captureBaselineToLedger({
+        rows,
+        gitRoot: primaryDir,
+        executionId,
+        changeSetId,
+        harnessId: fileReview.harnessId,
+        excludePaths: fileReview.excludePaths,
+        gitWorkspace,
+      });
 
   const capture: TurnCapture = {
     changeSetId,

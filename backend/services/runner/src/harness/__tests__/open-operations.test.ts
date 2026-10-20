@@ -3,8 +3,9 @@
  * start opens, a finish, an error or a proposal closes, a recovery's replayed
  * start of a settled call stays closed, a delegating call counts only where
  * sub-agents report at completion (in either order of its two facts), the
- * close of the last counted call is the idle instant, and the oldest open
- * call is the backstop's, aged on the fold's clock.
+ * close of the last counted call is the idle instant, the oldest open
+ * call is the backstop's, aged on the fold's clock, and the turn awaits its
+ * model while a round is open or while a tool's result is unanswered.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -134,5 +135,49 @@ describe("OpenOperations", () => {
     operations.observe({ kind: "text_delta", runId: "r", text: "hi" });
     operations.observe({ kind: "sub_agent_finished", subAgentId: "other" });
     expect(operations.held()).toBe(true);
+  });
+
+  describe("awaiting the model", () => {
+    it("is not waiting on a turn that has folded nothing", () => {
+      expect(fold().operations.awaitingModel()).toBe(false);
+    });
+
+    it("is waiting while a model round is open, and not once it finishes with nothing after", () => {
+      const { operations } = fold();
+      operations.observe({ kind: "message_start", runId: "r1" });
+      expect(operations.awaitingModel()).toBe(true);
+      operations.observe({ kind: "message_finish", runId: "r1" });
+      expect(operations.awaitingModel()).toBe(false);
+    });
+
+    it("is waiting once a tool's result arrives and nothing has answered it", () => {
+      const { operations } = fold();
+      operations.observe(started("c1"));
+      expect(operations.awaitingModel(), "a running tool is the tool's, not the model's").toBe(false);
+      operations.observe({ kind: "tool_finished", callId: "c1", result: "ok" });
+      expect(operations.awaitingModel()).toBe(true);
+      operations.observe({ kind: "message_start", runId: "r2" });
+      operations.observe({ kind: "message_finish", runId: "r2" });
+      expect(operations.awaitingModel(), "the model answered the result").toBe(false);
+    });
+
+    it("counts a failed tool's error as a result, and a call started after it as the answer", () => {
+      const { operations } = fold();
+      operations.observe(started("c1"));
+      operations.observe({ kind: "tool_error", callId: "c1", message: "boom" });
+      expect(operations.awaitingModel()).toBe(true);
+      operations.observe(started("c2"));
+      expect(operations.awaitingModel()).toBe(false);
+    });
+
+    it("is not waiting while another call is still running, nor on a proposal held for a person", () => {
+      const { operations } = fold();
+      operations.observe(started("c1"));
+      operations.observe(started("c2"));
+      operations.observe({ kind: "tool_finished", callId: "c1", result: "ok" });
+      expect(operations.awaitingModel(), "c2 still runs").toBe(false);
+      operations.observe({ kind: "approval_proposed", callId: "c2", name: "execute", mcpServerSlug: "", message: "ok?" });
+      expect(operations.awaitingModel(), "the turn waits for a person").toBe(false);
+    });
   });
 });

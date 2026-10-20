@@ -54,8 +54,12 @@ export const WORKER_SHUTDOWN_STATUS_ERROR =
  */
 export const TURN_CONTINUES_FAILURE_TYPE = "StigmerTurnContinues";
 
-/** Why a runner's turn stopped to continue: its runner drained. */
-export type TurnContinuationCause = "drain";
+/**
+ * Why a runner's turn stopped to continue: its runner drained, or its model
+ * stopped answering (a stall the provider owed, which the runner continues
+ * instead of failing).
+ */
+export type TurnContinuationCause = "drain" | "model-stall";
 
 const CANCELED_MARKERS = ["worker shutdown", "shutting down"];
 
@@ -105,6 +109,24 @@ export function turnContinuationCauseOf(err: unknown): TurnContinuationCause | s
     if (e instanceof ApplicationFailure && e.type === TURN_CONTINUES_FAILURE_TYPE) {
       const cause: unknown = e.details?.[0];
       return typeof cause === "string" ? cause : "";
+    }
+  }
+  return undefined;
+}
+
+/**
+ * The copy a model stall's continuation carries, which is the run's error
+ * when the workflow gives up continuing it: the runner's own stall copy,
+ * the typed failure's message. `undefined` for any other failure.
+ */
+export function modelStallCopyOf(err: unknown): string | undefined {
+  for (
+    let e: unknown = err;
+    e instanceof Error;
+    e = (e as { cause?: unknown }).cause
+  ) {
+    if (e instanceof ApplicationFailure && e.type === TURN_CONTINUES_FAILURE_TYPE) {
+      return e.details?.[0] === "model-stall" ? e.message : undefined;
     }
   }
   return undefined;

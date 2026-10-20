@@ -22,6 +22,7 @@ describe("StopController", () => {
     expect(stop.signal.aborted).toBe(false);
     expect(stop.evidence).toEqual({
       stall: undefined,
+      stallOwedByModel: false,
       operationLimit: undefined,
       mockAbort: undefined,
       costCapExceeded: false,
@@ -42,12 +43,13 @@ describe("StopController", () => {
     expect(stop.evidence).toMatchObject({ costCapExceeded: true, cancellation: true, platformStop: true });
   });
 
-  it("keeps the FIRST stall error when the watchdog reports twice", () => {
+  it("keeps the FIRST stall error, and whether the model owed it, when the watchdog reports twice", () => {
     const stop = new StopController();
     const first = new StallTimeoutError(3_000, "last tool: shell");
-    stop.stop({ kind: "stall", error: first });
-    stop.stop({ kind: "stall", error: new StallTimeoutError(9_000) });
+    stop.stop({ kind: "stall", error: first, owedByModel: true });
+    stop.stop({ kind: "stall", error: new StallTimeoutError(9_000), owedByModel: false });
     expect(stop.evidence.stall).toBe(first);
+    expect(stop.evidence.stallOwedByModel).toBe(true);
   });
 
   it("records the backstop's first operation limit as its own cause, beside a stall", () => {
