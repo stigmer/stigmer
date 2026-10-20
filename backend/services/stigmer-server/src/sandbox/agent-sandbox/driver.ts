@@ -53,6 +53,7 @@ import type {
 } from "../provisioner.js";
 import type { AgentSandboxGateway } from "./gateway.js";
 import {
+  agentHomeOnClaim,
   buildAgentSandbox,
   buildAgentSandboxPodTemplate,
   buildAgentSandboxSecret,
@@ -182,7 +183,7 @@ export function newAgentSandboxDriverOverGateway(
       if (arm !== "running") {
         await gateway.patchSandbox(name, {
           operatingMode: "Running",
-          podTemplate: buildAgentSandboxPodTemplate(scope, id, facts, config),
+          podTemplate: buildAgentSandboxPodTemplate(scope, id, facts, config, agentHomeOnClaim(sandbox.claims)),
         });
       }
       ensuredAt.set(name, now());

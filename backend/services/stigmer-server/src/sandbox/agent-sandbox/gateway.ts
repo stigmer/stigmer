@@ -122,7 +122,16 @@ export function agentSandboxViewOf(object: unknown): AgentSandboxView {
         ? new Date(metadata.creationTimestamp)
         : undefined,
     labels: stringRecord(metadata.labels),
+    claims: claimNamesOf(spec.volumeClaimTemplates),
   };
+}
+
+function claimNamesOf(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((template) => {
+    const name = record(record(template).metadata).name;
+    return typeof name === "string" ? [name] : [];
+  });
 }
 
 /** The API server's own words for a refusal: its Status message, else its text. */

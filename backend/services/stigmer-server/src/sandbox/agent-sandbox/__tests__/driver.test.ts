@@ -142,6 +142,24 @@ describe("the ensure", () => {
     );
   });
 
+  it("a Sandbox made before the agent's home claim wakes without the home's mount, and one made with it mounts it", async () => {
+    const cluster = new FakeAgentSandboxCluster();
+    const made = buildAgentSandbox("session", "ses_1", facts, config);
+    // An earlier server made it with the workspace claim alone; claim templates never change.
+    const older = {
+      ...made,
+      spec: { ...made.spec, volumeClaimTemplates: made.spec.volumeClaimTemplates!.filter((t) => t.metadata.name === "workspace") },
+    };
+    cluster.seed(older, "Suspended");
+    await driverOver(cluster).ensureSessionSandbox("ses_1", facts);
+    const mountsOf = () => cluster.sandboxes.get(name)?.podTemplate.spec.containers[0]?.volumeMounts?.map((m) => m.name);
+    expect(mountsOf(), "a mount with no claim behind it would keep the pod from starting").toEqual(["workspace"]);
+
+    const fresh = new FakeAgentSandboxCluster();
+    await driverOver(fresh).ensureSessionSandbox("ses_1", facts);
+    expect(fresh.sandboxes.get(name)?.podTemplate.spec.containers[0]?.volumeMounts?.map((m) => m.name)).toEqual(["workspace", "agent-home"]);
+  });
+
   it("Running: rewrites the Secret's token and nothing else", async () => {
     const cluster = new FakeAgentSandboxCluster();
     cluster.seed(

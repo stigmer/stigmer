@@ -64,6 +64,7 @@ export class FakeAgentSandboxCluster implements AgentSandboxGateway {
       deleting: sandbox.deletingReads !== undefined,
       createdAt: sandbox.createdAt,
       labels: sandbox.resource.metadata.labels,
+      claims: (sandbox.resource.spec.volumeClaimTemplates ?? []).map((template) => template.metadata.name),
     };
   }
 

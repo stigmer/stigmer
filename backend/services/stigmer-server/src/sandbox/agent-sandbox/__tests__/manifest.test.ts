@@ -40,6 +40,7 @@ import {
   runnerCommand,
 } from "../../runner-launch.js";
 import {
+  agentHomeOnClaim,
   buildAgentSandbox,
   buildAgentSandboxPodTemplate,
   buildAgentSandboxSecret,
@@ -72,12 +73,12 @@ const labels = {
 };
 
 function containerOf(cfg: SandboxDriverConfig = config, sandboxEnv = env) {
-  return buildAgentSandboxPodTemplate("session", "ses_1", sandboxEnv, cfg).spec
+  return buildAgentSandboxPodTemplate("session", "ses_1", sandboxEnv, cfg, true).spec
     .containers[0];
 }
 
 describe("the Sandbox", () => {
-  it("is a v1beta1 Sandbox, created Suspended, labelled, with no Service and one workspace claim", () => {
+  it("is a v1beta1 Sandbox, created Suspended, labelled, with no Service, a workspace claim and the agent's home claim", () => {
     const sandbox = buildAgentSandbox("session", "ses_1", env, config);
     expect(sandbox.apiVersion).toBe("agents.x-k8s.io/v1beta1");
     expect(sandbox.kind).toBe("Sandbox");
@@ -93,13 +94,31 @@ describe("the Sandbox", () => {
           resources: { requests: { storage: "10Gi" } },
         },
       },
+      {
+        metadata: { name: "agent-home" },
+        spec: {
+          accessModes: ["ReadWriteOnce"],
+          resources: { requests: { storage: "5Gi" } },
+        },
+      },
     ]);
     // The controller mounts a claim template as a volume of its name; the
-    // template declares no volume of its own for it.
+    // template declares no volume of its own for it. The agent's home is
+    // where the runner puts it when the deployment names none.
     expect(sandbox.spec.podTemplate.spec.volumes).toBeUndefined();
     expect(sandbox.spec.podTemplate.spec.containers[0]?.volumeMounts).toEqual([
       { name: "workspace", mountPath: "/workspace" },
+      { name: "agent-home", mountPath: "/home/stigmer-agent" },
     ]);
+    expect(agentHomeOnClaim(sandbox.spec.volumeClaimTemplates!.map((t) => t.metadata.name))).toBe(true);
+  });
+
+  it("a template for a Sandbox without the home claim mounts the workspace alone", () => {
+    const template = buildAgentSandboxPodTemplate("session", "ses_1", env, config, false);
+    expect(template.spec.containers[0]?.volumeMounts).toEqual([
+      { name: "workspace", mountPath: "/workspace" },
+    ]);
+    expect(agentHomeOnClaim(["workspace"])).toBe(false);
   });
 
   it("a connect sandbox works on an emptyDir", () => {
@@ -107,6 +126,9 @@ describe("the Sandbox", () => {
     expect(connect.spec.volumeClaimTemplates).toBeUndefined();
     expect(connect.spec.podTemplate.spec.volumes).toEqual([
       { name: "workspace", emptyDir: {} },
+    ]);
+    expect(connect.spec.podTemplate.spec.containers[0]?.volumeMounts).toEqual([
+      { name: "workspace", mountPath: "/workspace" },
     ]);
   });
 });
@@ -118,6 +140,7 @@ describe("the runner container", () => {
       "ses_1",
       env,
       config,
+      true,
     );
     const container = template.spec.containers[0];
     expect(container?.name).toBe("runner");
@@ -197,7 +220,7 @@ describe("the runner container", () => {
     };
     const facts: SandboxFacts = { ...env, environment };
     const entry = (
-      buildAgentSandboxPodTemplate("session", "ses_1", facts, config).spec
+      buildAgentSandboxPodTemplate("session", "ses_1", facts, config, true).spec
         .containers[0]?.env ?? []
     ).find((e) => e.name === SANDBOX_ENVIRONMENT_ENV);
     expect(entry?.valueFrom).toBeUndefined();
