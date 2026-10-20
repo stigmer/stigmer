@@ -6,8 +6,8 @@
 // dir and uploads it (asserting the server receives a valid ZIP), and
 // downloadRunArtifacts lists the Files the run returned and streams each
 // link to disk at its place in the outputs folder (asserting partial-failure
-// tolerance, a nested folder path, and a refused path that would climb out
-// of the directory), warns that a run still in progress may not have every
+// tolerance, a nested folder path, and refused paths that would climb out
+// of the directory or name an absolute place), warns that a run still in progress may not have every
 // artifact yet, and refuses a named artifact the run does not hold with a
 // pointer to `get run`.
 
@@ -69,6 +69,7 @@ const runFiles: readonly File[] = [
   output("file_missing", "aex_done", "broken.txt", 5n),
   output("file_q3", "aex_nested", "reports/q3.md", 5n),
   output("file_escape", "aex_escape", "../evil.txt", 5n),
+  output("file_absolute", "aex_absolute", "/evil.txt", 5n),
 ];
 
 function completedRun(id: string) {
@@ -89,7 +90,7 @@ beforeAll(async () => {
       res.end(ARTIFACT_BODY);
       return;
     }
-    if (req.url === "/store/file_q3" || req.url === "/store/file_escape") {
+    if (["/store/file_q3", "/store/file_escape", "/store/file_absolute"].includes(req.url ?? "")) {
       res.writeHead(200, { "content-type": "text/markdown" });
       res.end(REPORT_BODY);
       return;
@@ -115,7 +116,7 @@ beforeAll(async () => {
     router.service(RunQueryController, {
       get: (req) => {
         if (req.value === "aex_pending") return pendingExecution;
-        if (!["aex_done", "aex_nested", "aex_escape"].includes(req.value)) {
+        if (!["aex_done", "aex_nested", "aex_escape", "aex_absolute"].includes(req.value)) {
           throw new ConnectError("not found", Code.NotFound);
         }
         return completedRun(req.value);
@@ -288,6 +289,26 @@ describe("downloadRunArtifacts", () => {
       ]);
     } finally {
       rmSync(parent, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses an absolute path rather than writing it anywhere", async () => {
+    const progress: string[] = [];
+    const out = mkdtempSync(join(tmpdir(), "dl-it-"));
+    try {
+      const outcome = await downloadRunArtifacts(
+        client,
+        "aex_absolute",
+        { artifactName: "", outputDir: out },
+        (line) => progress.push(line),
+      );
+      expect(outcome).toMatchObject({ total: 1, downloaded: 0 });
+      expect(existsSync(join(out, "evil.txt"))).toBe(false);
+      expect(progress).toEqual([
+        "  Failed to download /evil.txt: refusing a path outside the output directory: /evil.txt",
+      ]);
+    } finally {
+      rmSync(out, { recursive: true, force: true });
     }
   });
 });

@@ -7,7 +7,7 @@
 // whatever the server answered.
 
 import { createWriteStream, mkdirSync } from "node:fs";
-import { dirname, isAbsolute, join, resolve, sep } from "node:path";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
@@ -108,14 +108,16 @@ function placeOf(file: File): string {
   return outputPath !== "" ? outputPath : (file.spec?.filename ?? "");
 }
 
-/** `path` under `dir`, refused when it is absolute or climbs out of `dir`. */
+/**
+ * `path` under `dir`. One check on where the path resolves refuses every
+ * shape that would not land strictly inside `dir`: empty or `.` (the
+ * directory itself), absolute, or climbing out through `..`.
+ */
 function destinationOf(dir: string, path: string): string {
-  if (path === "" || isAbsolute(path) || path.split(/[\\/]/).includes("..")) {
-    throw new Error(`refusing a path outside the output directory: ${path}`);
-  }
   const root = resolve(dir);
-  const dest = resolve(join(root, path));
-  if (!dest.startsWith(root + sep)) {
+  const dest = resolve(root, path);
+  const rel = relative(root, dest);
+  if (rel === "" || rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
     throw new Error(`refusing a path outside the output directory: ${path}`);
   }
   return dest;
