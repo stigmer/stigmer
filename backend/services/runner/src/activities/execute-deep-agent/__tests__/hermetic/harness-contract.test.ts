@@ -117,9 +117,6 @@ describe("ExecuteDeepAgent hermetic — the harness contract kit against the rea
   describeHarnessRuntimeContract({ subject, env, clock }, {
     failureSurfaces: ["internal"],
     engineCancel: false,
-    knownGaps: {
-      "no-resent-task": "stigmer/stigmer#2417",
-    },
     stopOrphans: isNativeStopOrphan,
   });
 

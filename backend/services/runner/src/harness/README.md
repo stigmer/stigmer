@@ -56,6 +56,13 @@ pinned somewhere. Read a row across before searching for anything.
   a tool call or a delegated task is open, so a silent build is not a stall, and
   names the oldest open call for the backstop. An adapter supplies one fact,
   when its engine reports a sub-agent's work (`subAgentProgress`).
+- `harness/continuation-digest.ts` — the platform's record of the current
+  turn, rendered from the run's events in the session's log, and its two
+  framings: the continuation an engine that holds its own conversation is
+  sent instead of the task, and the recovery a fresh agent that lost its
+  conversation reads. The runtime hands it on `TurnInput.continuation` to a
+  harness whose `continuation` capability is `"digest"`; a `"checkpoint"`
+  harness resumes from its engine's own saved state.
 - `harness/preview-pump.ts` — `PreviewPump`, which sends a running tool's output
   to the session between writes, on the streaming floor, through the persist
   chokepoint's single flight.
@@ -334,8 +341,13 @@ working subagent outlive the stall window, a running command's output reaches
 the session as it prints, a turn completes through three compactions, a
 drained turn lets its running tool finish and yields at the boundary after it
 (`TurnSink.yieldSignal`) with no ending written, a second signal stops it at
-once and it still continues, and a turn continued after a drain never hands
-the engine the task again. They drive
+once and it still continues, a drain or a stop while the log lags behind the
+engine runs nothing past its boundary, and a continued turn (after a drain, a lost
+runner, or a drain after an approved call ran) never hands the engine the
+task or the decision again. A continued turn says once why it paused, carries
+the run's cost count, and settles with no model call when its engine had
+already finished. A `checkpoint` engine also continues a run lost before
+anything of it reached the log, from its own save. They drive
 the `open` and `compact` steps of `__test-utils__/harness-contract/types.ts`
 through the subject's `longTurn` controls, timed on the scripted clock. An arm
 that is not true on a harness today is a known gap: its registration names the

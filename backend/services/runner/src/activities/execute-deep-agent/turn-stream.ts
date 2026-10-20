@@ -20,15 +20,23 @@
  * this loop never does). An error the aborted run throws is the abort itself
  * and settles `interrupted`, never `failed`.
  *
- * A yield (`sink.yieldSignal`, a draining runner) is taken at one boundary
- * only: the start of the root's next model round. The graph saves each step
- * before the next one runs (`durability: "sync"`, `turn-setup.ts`), so by
- * the time a round starts, the tools step before it is saved, and the next
- * runner's resume runs nothing again. A sub-agent's rounds are not that
- * boundary: its work is saved only when its `task` step ends. The round the
- * yield lands on is aborted before its message is folded, so it leaves no
- * empty row; the next runner asks it again.
+ * The graph, not this loop, is where a stop or a yield is taken: the turn
+ * boundary refuses the graph's next model call (`middleware/turn-boundary.ts`),
+ * because LangGraph buffers this stream and the graph runs on while the
+ * loop is busy, so a stop taken here alone could land after steps the log
+ * never received (stigmer#2469). The loop reads to the stream's end, folding
+ * every event the graph produced before the boundary, and the halt
+ * (`isTurnBoundaryHalt`) settles `interrupted`.
  *
+ * A yield (`sink.yieldSignal`, a draining runner) is taken there only: at
+ * the root's next model call. The graph saves each step before the next one
+ * runs (`durability: "sync"`, `turn-setup.ts`), so the tools step before it
+ * is saved and the next runner resumes from the refused call, running
+ * nothing again. A graph that finishes before it reaches one completes.
+ *
+ * A stop (`sink.stopSignal`) also aborts the run, so a running tool or model
+ * call is cut, and the loop goes on reading after the abort: what the graph
+ * did before the abort is still in the stream, and the log must hold it.
  * WHEN the run is aborted: on the arrival of the next
  * event — the graph's own step boundary — or after {@link STOP_GRACE_MS} if
  * no event arrives. A LangGraph run aborted while a step is in flight leaves
@@ -55,8 +63,8 @@
  * way (`failed` on the `internal` surface).
  */
 
-import type { TranscriptEvent } from "../../harness/transcript/events.js";
 import type { TurnInput, TurnSink } from "../../harness/types.js";
+import { isTurnBoundaryHalt } from "../../middleware/turn-boundary.js";
 import { shouldPersistStreamingStatus } from "../../shared/persist-decision.js";
 import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/streaming-scheduler.js";
 import { computeTurnCost } from "../../shared/model-pricing.js";
@@ -146,13 +154,31 @@ export interface DeepAgentStreamDeps {
   readonly input: TurnInput;
   readonly sink: TurnSink;
   readonly engine: DeepAgentEngine;
-  readonly graphInput: DeepAgentGraphInput;
+  /** A finished turn never streams (`turn.ts` settles it from its saved state). */
+  readonly graphInput: Exclude<DeepAgentGraphInput, { readonly kind: "finished" }>;
   readonly transcript: DeepAgentTranscript;
 }
 
-/** The start of one of the root's model rounds: where a drained turn yields (the header). */
-function isRootRoundStart(event: TranscriptEvent): boolean {
-  return event.kind === "message_start" && event.subAgentId === undefined;
+/**
+ * What `streamEvents` is called with: the gate's resume, `null` for a
+ * continued turn (LangGraph's resume from the last saved step), or the
+ * message.
+ */
+function graphInputValue(graphInput: DeepAgentStreamDeps["graphInput"]): unknown {
+  switch (graphInput.kind) {
+    case "resume":
+      return graphInput.command;
+    case "continue":
+      return null;
+    case "message":
+      return graphInput.input;
+    /* v8 ignore start -- @preserve: the never arm; the compiler proves no graph input reaches it */
+    default: {
+      const exhaustive: never = graphInput;
+      throw new Error(`consumeDeepAgentStream: unknown graph input ${JSON.stringify(exhaustive)}`);
+    }
+    /* v8 ignore stop */
+  }
 }
 
 /**
@@ -191,7 +217,7 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
     if (sink.stopSignal.aborted || sink.yieldSignal.aborted) return interrupted();
 
     const run = (await engine.graph.streamEvents(
-      graphInput.kind === "resume" ? graphInput.command : graphInput.input,
+      graphInputValue(graphInput),
       { ...engine.langgraphConfig, version: "v3", signal: abortController.signal },
     )) as StreamableRun;
     sink.recordActivity();
@@ -201,14 +227,17 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
     // turn still awaits the same promise below and reads its value.
     run.output.catch(() => undefined);
 
+    let stopping = false;
     try {
       for await (const event of run) {
-        if (sink.stopSignal.aborted) return interrupted();
+        if (sink.stopSignal.aborted && !stopping) {
+          stopping = true;
+          abortRun();
+        }
 
         recorder?.record(event, eventsProcessed);
         let detail: string | undefined;
         for (const normalized of translator.translate(event)) {
-          if (sink.yieldSignal.aborted && isRootRoundStart(normalized)) return interrupted();
           builder.apply(normalized);
           if (normalized.kind === "tool_started") detail = normalized.name;
         }
@@ -217,6 +246,8 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
         eventsProcessed++;
         sink.recordActivity(detail);
 
+        // A stopped turn's last write is its settle's.
+        if (stopping) continue;
         const persist = shouldPersistStreamingStatus(builder.dirty, scheduler, eventsProcessed);
         if (!persist) continue;
         // Cleared as the write is requested, not after it lands: a change
@@ -230,11 +261,13 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
         scheduler.markUpdateSent(eventsProcessed);
       }
     } catch (err) {
-      // The aborted run throws its own abort out of the pull; that is the
-      // stop the runtime asked for, not a failure.
-      if (sink.stopSignal.aborted) return interrupted();
+      // The graph halted at its boundary, or the aborted run threw its own
+      // abort out of the pull: the stop or yield the runtime asked for, not
+      // a failure.
+      if (isTurnBoundaryHalt(err) || sink.stopSignal.aborted) return interrupted();
       throw err;
     }
+    if (stopping) return interrupted();
 
     if (eventsProcessed === 0) {
       throw new Error(

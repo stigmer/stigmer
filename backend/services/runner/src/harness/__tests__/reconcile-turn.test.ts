@@ -67,7 +67,7 @@ function depsWith(client: ResolutionDeps["client"], sessionId: string): { deps: 
 }
 
 function emptyFrame(): TurnFrame {
-  return { primaryDir: undefined, releaseWorkspaceLock: undefined, writeback: null, evalMocks: undefined, evalReadFiles: undefined, runWroteEvents: false, priorAnswer: undefined };
+  return { primaryDir: undefined, releaseWorkspaceLock: undefined, writeback: null, evalMocks: undefined, evalReadFiles: undefined, runWroteEvents: false, priorAnswer: undefined, lostRunner: false };
 }
 
 describe("resolveReconcileTurn: the settlements before the undo", () => {

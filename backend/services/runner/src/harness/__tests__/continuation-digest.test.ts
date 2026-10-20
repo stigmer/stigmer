@@ -1,5 +1,6 @@
 /**
- * Unit tests for the turn-recovery digest (issue #366).
+ * Unit tests for the continuation digest (`../continuation-digest.ts`;
+ * issue #366, stigmer#2417).
  *
  * The digest is the replacement agent's only account of the work its lost
  * predecessor did, so these pins cover the three doctrine properties it
@@ -13,7 +14,7 @@ import { describe, it, expect, vi } from "vitest";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
-import { composeTurnRecoveryDigest, formatTurnRecoveryText, readTurnRecoveryDigest } from "../turn-recovery.js";
+import { composeTurnRecoveryDigest, formatContinuationText, formatTurnRecoveryText, readTurnRecoveryDigest } from "../continuation-digest.js";
 
 const RUN = "run_recovery";
 let seq = 0;
@@ -181,6 +182,24 @@ describe("formatTurnRecoveryText", () => {
       const text = formatTurnRecoveryText(empty);
       expect(text).toContain("session holding that conversation was lost");
       expect(text).toContain("no transcript of your progress is available");
+    }
+  });
+});
+
+describe("formatContinuationText", () => {
+  it("tells an engine that holds its conversation to carry on, never handing it the task, and follows with the digest", () => {
+    const text = formatContinuationText("Assistant: built it");
+    expect(text).toContain("Continue the same task from where you were");
+    expect(text).toContain("Do not start it over");
+    expect(text).not.toContain("user_request");
+    expect(text.endsWith("Assistant: built it")).toBe(true);
+  });
+
+  it("says the same with no transcript to show", () => {
+    for (const empty of [undefined, "", "   "]) {
+      const text = formatContinuationText(empty);
+      expect(text).toContain("Continue the same task from where you were");
+      expect(text).toContain("check the workspace's current state to see what you already did");
     }
   });
 });

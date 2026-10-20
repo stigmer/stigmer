@@ -27,6 +27,10 @@ export interface RunnerRestartOptions {
   // notices by the activity's missed heartbeat), SIGTERM a drain (the
   // runner's own graceful shutdown, as a deploy's rollout sends it).
   readonly signal: "SIGKILL" | "SIGTERM";
+  // Called once the ended runner has exited, before its replacement boots:
+  // the one instant at which everything the ended runner did is done and
+  // nothing of the replacement has started.
+  readonly onEnded?: () => void;
 }
 
 // Behaviors that legitimately differ across editions, gating assertions rather

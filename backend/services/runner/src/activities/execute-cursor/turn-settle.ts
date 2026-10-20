@@ -151,6 +151,9 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
       }
       primaryOnDelta(event);
     },
+    // A continuation on a resumed local agent expires the run a dead process
+    // left active before it starts (`CursorPrompt.continuesHeldRun`).
+    ...(prompt.continuesHeldRun ? { local: { force: true } } : {}),
   });
   sink.recordActivity();
   // Normally send() resolves before any delta arrives, making send_returned

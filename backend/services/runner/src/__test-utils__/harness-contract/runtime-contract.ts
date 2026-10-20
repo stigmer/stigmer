@@ -54,6 +54,7 @@ import { create } from "@bufbuild/protobuf";
 import { type RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { StreamingUsageSummarySchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
+import { AppendSessionEventsResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { WorkspaceWriteBackPhase, WorkspaceWriteBackSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 
 import type { StigmerClient } from "../../client/stigmer-client.js";
@@ -79,7 +80,7 @@ import {
   type HermeticEnvironment,
   type InvocationControls,
 } from "../hermetic-activity.js";
-import { emptyRows, emptyStatus } from "../proto-helpers.js";
+import { emptyRows, emptyStatus, findToolCallRow } from "../proto-helpers.js";
 import { expectKnownGap, type KnownGap, type TodayOutcome } from "../known-gap.js";
 import { KIT_SUBAGENT_INSTRUCTIONS, KIT_SUBAGENT_SLUG, scenario } from "./types.js";
 import type { EngineView, HarnessContractSubject, LongTurnControls, TurnScenario } from "./types.js";
@@ -582,11 +583,13 @@ export async function assertToolCallLimitTerminates(harness: RuntimeContractHarn
 
 /**
  * What a reinvocation carries forward, and what it does not. The status's
- * own outputs the prior invocation persisted — the write-back rows, the
- * usage summary — are on the completed status of the resumed
- * turn, because the server takes each list a write carries as the whole
- * list, so a write holding only the resumed turn's own would erase the prior
- * turn's. The transcript is not carried: the resumed turn's rows hold the
+ * own outputs the prior invocation persisted — the write-back rows — are on
+ * the completed status of the resumed turn, because the server takes each
+ * list a write carries as the whole list, so a write holding only the
+ * resumed turn's own would erase the prior turn's. The usage summary
+ * carries until the resumed turn reports its own; a run resuming after an
+ * approval then starts a fresh count, as `max_cost_usd`'s contract states
+ * (a continuation keeps the run's: {@link assertContinuationCarriesTheRunsCount}). The transcript is not carried: the resumed turn's rows hold the
  * asked call it resumes onto, seeded once from the session's log
  * (`harness/transcript/resume-seed.ts`), and the rows it wrote itself, never an earlier
  * invocation's other rows. A first turn carries nothing, whatever the
@@ -609,12 +612,12 @@ export async function assertReinvocationCarriesThePersistedStatus(harness: Runti
   const planted = plantPriorTurnOutputs(driver.record.status!, label);
   expect(driver.decide(ApprovalAction.APPROVE)).toBe(1);
 
-  const second = await driver.turn([propose, scenario.say("Done.")]);
+  const second = await driver.turn([propose, scenario.say("Done."), scenario.usage({ inputTokens: 100, outputTokens: 10, estimatedCostUsd: 0.0001, model: "fixture-model" })]);
   expect(slimOf(subject, second).phase, `${subject.name}: the resumed turn completes`).toBe("RUN_COMPLETED");
   const final = finalStatusOf(harness, driver);
   const rows = driver.record.rowsOf(final);
   expect(final.workspaceWriteBacks.map((w) => w.workspaceEntryName), `${subject.name}: the prior turn's write-back rows survive the resume`).toContain(planted.writeBackEntry);
-  expect(final.streamingUsage?.inputTokens, `${subject.name}: the usage summary carries until the resumed turn reports its own`).toBe(planted.inputTokens);
+  expect(final.streamingUsage?.inputTokens, `${subject.name}: a run resuming after an approval starts a fresh count`).toBe(100n);
   expect(rows.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === id), `${subject.name}: the gated row is seeded once, not duplicated`).toHaveLength(1);
   expect(aiMessages(rows), `${subject.name}: the resumed turn's rows are its own; the prior turn's text is the log's`).toEqual(["Done."]);
   return { driver, invocations: [first, second], final };
@@ -1045,10 +1048,13 @@ export async function assertWorkspaceLockTimeoutFails(harness: RuntimeContractHa
 export const LONG_OPERATION_WINDOWS = 3;
 
 /** The arms of the long turn, by the name a registration's `knownGaps` keys them on. */
-export type LongTurnArm = "silent-operation" | "streamed-output" | "subagent-operation" | "three-compactions" | "no-resent-task";
+export type LongTurnArm = "silent-operation" | "streamed-output" | "subagent-operation" | "three-compactions";
 
 /** The saved agent the subagent arm's agent lists (`types.ts` names it). */
 const KIT_SUBAGENT = savedAgentFixture(KIT_SUBAGENT_SLUG, { description: "Does the contract kit's delegated work.", instructions: KIT_SUBAGENT_INSTRUCTIONS });
+
+/** How long a status write takes in the slow-log arm: long enough for an engine left to run past its boundary to finish the turn. */
+const SLOW_LOG_WRITE_MS = 300;
 
 /** Real time for one watchdog poll (a quarter of the window) to pass, with margin. */
 function oneWatchdogPoll(): Promise<void> {
@@ -1299,6 +1305,111 @@ export async function assertDrainedTurnYieldsAtTheNextBoundary(harness: RuntimeC
   const second = await driver.turn([scenario.open(id), scenario.say("Picked up where I left off.")]);
   expectCompleted(harness, driver, second, "Picked up where I left off.");
   expect(controls.opened(id), `${subject.name}: the step ran once across both invocations`).toBe(1);
+  expect(harnessNotesOf(driver), `${subject.name}: the drain's note, once`).toEqual([TERMINAL_COPY.continuation.notes.drain]);
+  expect(controls.tasksHanded(driver.sessionId, RUNTIME_USER_MESSAGE), `${subject.name}: the engine was handed the task once`).toBe(1);
+  return { driver, invocations: [first, second], final: finalStatusOf(harness, driver) };
+}
+
+/**
+ * A drained turn yields at its boundary even while the session's log lags
+ * behind the engine: every status write takes a while once the drain is
+ * asked, as a slow control plane's does, and the engine must not run past
+ * the boundary meanwhile. What it did before the boundary reaches the log,
+ * and nothing after it runs: the continuation asks the next round itself
+ * (stigmer#2469).
+ */
+export async function assertDrainedTurnYieldsDespiteASlowLog(harness: RuntimeContractHarness, label = "rt-drain-slow-log"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const controls = longTurnOf(subject);
+  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
+  const id = `${label}-build`;
+  const recorded = driver.record.client();
+  let draining = false;
+  const slowWrites: Partial<StigmerClient> = {
+    updateStatus: async (runId, status) => {
+      if (draining) await new Promise((resolve) => setTimeout(resolve, SLOW_LOG_WRITE_MS));
+      return recorded.updateStatus(runId, status);
+    },
+  };
+  let invocationControls: InvocationControls | undefined;
+  const drained = controls.whenOpen(id).then(async () => {
+    draining = true;
+    invocationControls!.signalWorkerShutdown();
+    await theYieldHasCrossed();
+    await controls.release(id);
+  });
+
+  const first = await driver.turn([scenario.say("Building."), scenario.open(id), scenario.say(NEVER_SEEN)], {
+    clientOverrides: slowWrites,
+    onControls: (c) => (invocationControls = c),
+  });
+  await drained;
+  draining = false;
+
+  expect(continuationCauseOf(first.outcome), `${subject.name}: the drained invocation continues`).toBe("drain");
+  const settle = expectContinuesWithoutAnEnding(harness, driver, TERMINAL_COPY.continuation.notes.drain);
+  expect(aiMessages(driver.record.rowsOf(settle)), `${subject.name}: nothing past the boundary ran`).not.toContain(NEVER_SEEN);
+
+  const second = await driver.turn([scenario.open(id), scenario.say("Picked up where I left off.")]);
+  expectCompleted(harness, driver, second, "Picked up where I left off.");
+  expect(controls.opened(id), `${subject.name}: the step ran once across both invocations`).toBe(1);
+  expect(controls.tasksHanded(driver.sessionId, RUNTIME_USER_MESSAGE), `${subject.name}: the engine was handed the task once`).toBe(1);
+  return { driver, invocations: [first, second], final: finalStatusOf(harness, driver) };
+}
+
+/**
+ * A stop while the session's log lags behind the engine: the person pauses
+ * the turn during a slow status write, right after a tool's result. What the
+ * engine did before the stop reaches the log, nothing after it runs, and the
+ * resumed turn asks the next round itself (stigmer#2469).
+ */
+export async function assertStopWhileTheLogLagsRunsNothingPastIt(harness: RuntimeContractHarness, label = "rt-stop-slow-log"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const controls = longTurnOf(subject);
+  const read = `${label}-read`;
+  let invocationControls: InvocationControls | undefined;
+  let stopped = false;
+  let lagged = false;
+  // The persist that carries the read's result is where the person pauses
+  // (the platform-STOP arm's lever, which sees the rows); that write then
+  // lags, as a slow control plane's does.
+  const driver = new RuntimeExecutionDriver(harness, label, {
+    autoApproveAll: true,
+    controlSignal: (_status, rows) => {
+      if (!stopped && findToolCallRow(rows, read)?.status === ToolCallStatus.TOOL_CALL_COMPLETED) {
+        stopped = true;
+        invocationControls!.cancel();
+      }
+      return RunControlSignal.UNSPECIFIED;
+    },
+  });
+  const recorded = driver.record.client();
+  const slowWrites: Partial<StigmerClient> = {
+    updateStatus: async (runId, status) => {
+      const written = await recorded.updateStatus(runId, status);
+      if (stopped && !lagged) {
+        lagged = true;
+        await new Promise((resolve) => setTimeout(resolve, SLOW_LOG_WRITE_MS));
+      }
+      return written;
+    },
+  };
+
+  const first = await driver.turn([scenario.say("Reading."), scenario.read(read, "package.json"), scenario.say(NEVER_SEEN)], {
+    clientOverrides: slowWrites,
+    onControls: (c) => (invocationControls = c),
+  });
+
+  expect(threwCancelledFailure(first.outcome), `${subject.name}: the pause throws as cancelled`).toBe(true);
+  const settle = driver.record.persisted.at(-1);
+  if (!settle) throw new Error(`${subject.name}: the runtime persisted nothing`);
+  expect(findToolCallRow(driver.record.rowsOf(settle), read)?.status, `${subject.name}: the work before the stop is in the log`).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+  expect(aiMessages(driver.record.rowsOf(settle)), `${subject.name}: nothing past the stop ran`).not.toContain(NEVER_SEEN);
+
+  const second = await driver.turn([scenario.read(read, "package.json"), scenario.say("Resumed.")]);
+  expectCompleted(harness, driver, second, "Resumed.");
+  expect(aiMessages(driver.record.rowsOf(finalStatusOf(harness, driver))), `${subject.name}: nothing past the stop ran, then or after`).not.toContain(NEVER_SEEN);
+  expect(controls.tasksHanded(driver.sessionId, RUNTIME_USER_MESSAGE), `${subject.name}: the engine was handed the task once`).toBe(1);
   return { driver, invocations: [first, second], final: finalStatusOf(harness, driver) };
 }
 
@@ -1330,12 +1441,176 @@ export async function assertSecondSignalStopsTheDrainNow(harness: RuntimeContrac
 }
 
 /**
+ * A runner lost without a word while a tool ran (Temporal timed the
+ * activity out, so the turn wrote no note): the invocation that picks the
+ * turn up says so once, as the harness's note, and continues without the
+ * task. The loss lands once the engine has logged its work, which is how
+ * the runtime knows the turn is a continuation (`runWroteEvents`).
+ */
+export async function assertLostRunnerIsNotedOnce(harness: RuntimeContractHarness, label = "rt-lost-runner"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const controls = longTurnOf(subject);
+  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
+  const id = `${label}-parse`;
+  let invocationControls: InvocationControls | undefined;
+  void controls.whenOpen(id).then(() => invocationControls!.cancelTimedOut());
+  const first = await driver.turn([scenario.say("Starting on the parser."), scenario.open(id), scenario.say(NEVER_SEEN)], { onControls: (c) => (invocationControls = c) });
+  await controls.release(id);
+  expect(threwCancelledFailure(first.outcome), `${subject.name}: the lost invocation throws as cancelled`).toBe(true);
+  expect(harnessNotesOf(driver), `${subject.name}: the lost runner wrote nothing`).toEqual([]);
+
+  const second = await driver.turn([scenario.open(id), scenario.say("Back on the parser.")]);
+  await controls.release(id);
+  expectCompleted(harness, driver, second, "Back on the parser.");
+  expect(harnessNotesOf(driver), `${subject.name}: the turn that picked it up says why it paused, once`).toEqual([TERMINAL_COPY.continuation.lostRunnerNote]);
+  expect(controls.tasksHanded(driver.sessionId, RUNTIME_USER_MESSAGE), `${subject.name}: the engine was handed the task once`).toBe(1);
+  return { driver, invocations: [first, second], final: finalStatusOf(harness, driver) };
+}
+
+/**
+ * A continuation keeps the run's cost count: a turn that spent part of its
+ * budget, then drained and continued, is stopped by the cap when the two
+ * invocations together reach it, though neither alone does. The cap is set
+ * between the invocations, at one and a half times what the first one
+ * spent, so the arm holds whatever the subject's engine prices its tokens
+ * at.
+ */
+export async function assertContinuationCarriesTheRunsCount(harness: RuntimeContractHarness, label = "rt-continued-count"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const controls = longTurnOf(subject);
+  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
+  const id = `${label}-build`;
+  const usage = scenario.usage({ inputTokens: 200_000, outputTokens: 0, estimatedCostUsd: 0.2, model: "fixture-model" });
+  let invocationControls: InvocationControls | undefined;
+  const draining = controls.whenOpen(id).then(async () => {
+    invocationControls!.signalWorkerShutdown();
+    await theYieldHasCrossed();
+    await controls.release(id);
+  });
+  const first = await driver.turn([scenario.say("Reading."), usage, scenario.open(id), scenario.say(NEVER_SEEN)], { onControls: (c) => (invocationControls = c) });
+  await draining;
+  expect(continuationCauseOf(first.outcome), `${subject.name}: the first invocation continues`).toBe("drain");
+  const spent = driver.record.status?.streamingUsage?.estimatedCostUsd ?? 0;
+  expect(spent, `${subject.name}: the first invocation spent something`).toBeGreaterThan(0);
+  const runConfig = driver.record.status!.runConfig ?? create(RunConfigSchema);
+  runConfig.maxCostUsd = spent * 1.5;
+  driver.record.status!.runConfig = runConfig;
+
+  const second = await driver.turn([scenario.say("Picking up."), usage, scenario.say(NEVER_SEEN)]);
+  expect(slimOf(subject, second).phase, `${subject.name}: the cap stops the continuation at the run's limit`).toBe("RUN_TERMINATED");
+  const final = finalStatusOf(harness, driver);
+  expect(final.stopCause).toBe("budget_reached");
+  expect(final.streamingUsage?.estimatedCostUsd ?? 0, `${subject.name}: the summary counts both invocations`).toBeGreaterThan(spent * 1.5);
+  expect(aiMessages(driver.record.rowsOf(final))).not.toContain(NEVER_SEEN);
+  return { driver, invocations: [first, second], final };
+}
+
+/**
+ * A runner lost after its engine took the run's input, before anything of
+ * the run reached the session's log: a process killed while its first
+ * writes were still in flight. The runtime cannot tell this run from a first
+ * invocation, so only the engine's own memory can: a `checkpoint` engine
+ * continues from its save, without the task (stigmer#2417). Nothing the
+ * first invocation wrote lands, as nothing a killed process wrote does.
+ */
+export async function assertLostBeforeTheLogKnewContinuesFromTheEngine(harness: RuntimeContractHarness, label = "rt-lost-before-log"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const controls = longTurnOf(subject);
+  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
+  const id = `${label}-build`;
+  const neverLands: Partial<StigmerClient> = { appendSessionEvents: async () => create(AppendSessionEventsResponseSchema) };
+  let invocationControls: InvocationControls | undefined;
+  void controls.whenOpen(id).then(() => invocationControls!.cancelTimedOut());
+  const first = await driver.turn([scenario.say("Building."), scenario.open(id), scenario.say(NEVER_SEEN)], {
+    clientOverrides: neverLands,
+    onControls: (c) => (invocationControls = c),
+  });
+  await controls.release(id);
+  expect(threwCancelledFailure(first.outcome), `${subject.name}: the lost invocation throws as cancelled`).toBe(true);
+  expect(driver.record.sessionEvents.filter((e) => e.runId === driver.record.executionId), `${subject.name}: nothing of the run reached the log`).toEqual([]);
+
+  const second = await driver.turn([scenario.open(id), scenario.say("Picked up where I left off.")]);
+  await controls.release(id);
+  expectCompleted(harness, driver, second, "Picked up where I left off.");
+  expect(controls.tasksHanded(driver.sessionId, RUNTIME_USER_MESSAGE), `${subject.name}: the engine was handed the task once`).toBe(1);
+  return { driver, invocations: [first, second], final: finalStatusOf(harness, driver) };
+}
+
+/**
+ * A continued turn whose engine had already finished (its runner was lost
+ * after the engine's last step and before the turn's ending was written):
+ * the engine runs nothing again, no model call, and the turn completes with
+ * the answer the run already wrote. A `checkpoint` harness's fact: its saved
+ * state says it finished.
+ */
+export async function assertFinishedEngineSettlesWithoutAModelCall(harness: RuntimeContractHarness, label = "rt-finished-engine"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const controls = longTurnOf(subject);
+  const driver = new RuntimeExecutionDriver(harness, label);
+  const first = await driver.turn([scenario.say("All done.")]);
+  expectCompleted(harness, driver, first, "All done.");
+  // The ending never landed: the server still holds the run working.
+  const held = driver.record.status!;
+  held.phase = RunPhase.RUN_IN_PROGRESS;
+  held.completedAt = "";
+
+  const second = await driver.turn([scenario.say(NEVER_SEEN)]);
+  expect(slimOf(subject, second).phase, `${subject.name}: the continued turn completes`).toBe("RUN_COMPLETED");
+  const final = finalStatusOf(harness, driver);
+  expect(aiMessages(driver.record.rowsOf(final)), `${subject.name}: no model call ran`).not.toContain(NEVER_SEEN);
+  expect(controls.tasksHanded(driver.sessionId, RUNTIME_USER_MESSAGE), `${subject.name}: the engine was handed the task once`).toBe(1);
+  return { driver, invocations: [first, second], final };
+}
+
+/**
+ * A drain after an approved call ran: the turn continues with neither the
+ * task nor the decision handed again, and the approved call ran once. The
+ * drain lands on the persist that carries the call's completion (the
+ * platform-STOP arm's lever) rather than in an open operation: the arm keeps
+ * the asking posture its approval needs, in which a native operation's
+ * shell would be gated too.
+ */
+export async function assertDrainAfterAnApprovedCallContinues(harness: RuntimeContractHarness, label = "rt-drain-after-approval"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const controls = longTurnOf(subject);
+  const approved = `${label}-shell`;
+  let drainOnTheApprovedCall: (() => void) | undefined;
+  const driver = new RuntimeExecutionDriver(harness, label, {
+    controlSignal: (_status, rows) => {
+      if (findToolCallRow(rows, approved)?.status === ToolCallStatus.TOOL_CALL_COMPLETED) drainOnTheApprovedCall?.();
+      return RunControlSignal.UNSPECIFIED;
+    },
+  });
+  const propose = scenario.propose(approved, { kind: "shell", resource: `npm run build # ${label}` });
+
+  const first = await driver.turn([propose]);
+  expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
+  expect(driver.decide(ApprovalAction.APPROVE)).toBe(1);
+
+  const second = await driver.turn([propose, scenario.say(NEVER_SEEN)], {
+    onControls: (c) => {
+      drainOnTheApprovedCall = () => {
+        drainOnTheApprovedCall = undefined;
+        c.signalWorkerShutdown();
+      };
+    },
+  });
+  expect(continuationCauseOf(second.outcome), `${subject.name}: the drained invocation continues`).toBe("drain");
+
+  const third = await driver.turn([propose, scenario.say("Built.")]);
+  expectCompleted(harness, driver, third, "Built.");
+  expect(subject.executionCount(approved), `${subject.name}: the approved call ran once`).toBe(1);
+  expect(controls.tasksHanded(driver.sessionId, RUNTIME_USER_MESSAGE), `${subject.name}: the engine was handed the task once`).toBe(1);
+  return { driver, invocations: [first, second, third], final: finalStatusOf(harness, driver) };
+}
+
+/**
  * A continued turn never re-sends the task: a runner drained while a tool
  * runs, then reinvoked, picks the turn up where it was. Across both
  * invocations the engine is handed the user's message as a new request
- * once. Today each invocation hands it again, and the model starts over.
+ * once (stigmer#2417).
  */
-export async function assertContinuedTurnNeverResendsTheTask(harness: RuntimeContractHarness, gap?: string, label = "rt-no-resent-task"): Promise<RuntimeArmResult> {
+export async function assertContinuedTurnNeverResendsTheTask(harness: RuntimeContractHarness, label = "rt-no-resent-task"): Promise<RuntimeArmResult> {
   const { subject } = harness;
   const controls = longTurnOf(subject);
   const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
@@ -1350,15 +1625,8 @@ export async function assertContinuedTurnNeverResendsTheTask(harness: RuntimeCon
   expect(threwCancelledFailure(first.outcome), `${subject.name}: the drained invocation throws the shutdown's CancelledFailure`).toBe(true);
   const second = await driver.turn([scenario.open(id), scenario.say("Picked up where I left off.")]);
   await controls.release(id);
-  await expectKnownGap(
-    gapFor(gap, {
-      says: "each invocation hands the engine the user's message again",
-      holds: () => controls.tasksHanded(driver.sessionId, RUNTIME_USER_MESSAGE) === 2,
-    }),
-    () => {
-      expect(controls.tasksHanded(driver.sessionId, RUNTIME_USER_MESSAGE), `${subject.name}: the engine was handed the task once across both invocations`).toBe(1);
-    },
-  );
+  expect(controls.tasksHanded(driver.sessionId, RUNTIME_USER_MESSAGE), `${subject.name}: the engine was handed the task once across both invocations`).toBe(1);
+  expect(harnessNotesOf(driver), `${subject.name}: the drain's note, once; the turn that picked it up adds none`).toEqual([TERMINAL_COPY.continuation.notes.drain]);
   return { driver, invocations: [first, second], final: finalStatusOf(harness, driver) };
 }
 
@@ -1574,13 +1842,41 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
         clock.reset();
         await withStopOrphans(subject.name, orphans, () => assertDrainedTurnYieldsAtTheNextBoundary(harness));
       });
+      it("a drained turn yields at its boundary while the log lags behind the engine, and the continuation asks the next round", async () => {
+        clock.reset();
+        await withStopOrphans(subject.name, orphans, () => assertDrainedTurnYieldsDespiteASlowLog(harness));
+      });
+      it("a stop while the log lags behind the engine keeps the work before it and runs nothing past it", async () => {
+        clock.reset();
+        await withStopOrphans(subject.name, orphans, () => assertStopWhileTheLogLagsRunsNothingPastIt(harness));
+      });
       it("a second signal stops a drained turn now, and it still continues", async () => {
         clock.reset();
         await withStopOrphans(subject.name, orphans, () => assertSecondSignalStopsTheDrainNow(harness));
       });
       it("a turn continued after a drain never hands the engine the task again", async () => {
         clock.reset();
-        await withStopOrphans(subject.name, orphans, () => assertContinuedTurnNeverResendsTheTask(harness, gaps["no-resent-task"]));
+        await withStopOrphans(subject.name, orphans, () => assertContinuedTurnNeverResendsTheTask(harness));
+      });
+      it("a turn whose runner was lost says so once, and continues without the task", async () => {
+        clock.reset();
+        await withStopOrphans(subject.name, orphans, () => assertLostRunnerIsNotedOnce(harness));
+      });
+      it("a continued turn carries the run's cost count, so the cap stops it at the run's limit", async () => {
+        clock.reset();
+        await withStopOrphans(subject.name, orphans, () => assertContinuationCarriesTheRunsCount(harness));
+      });
+      it.skipIf(subject.adapter.capabilities.continuation !== "checkpoint")("a runner lost before anything of the run reached the log continues from the engine's save, without the task", async () => {
+        clock.reset();
+        await withStopOrphans(subject.name, orphans, () => assertLostBeforeTheLogKnewContinuesFromTheEngine(harness));
+      });
+      it.skipIf(subject.adapter.capabilities.continuation !== "checkpoint")("a continued turn whose engine had finished settles with no model call", async () => {
+        clock.reset();
+        await withStopOrphans(subject.name, orphans, () => assertFinishedEngineSettlesWithoutAModelCall(harness));
+      });
+      it("a drain after an approved call ran continues with neither the task nor the decision handed again", async () => {
+        clock.reset();
+        await withStopOrphans(subject.name, orphans, () => assertDrainAfterAnApprovedCallContinues(harness));
       });
     });
   });

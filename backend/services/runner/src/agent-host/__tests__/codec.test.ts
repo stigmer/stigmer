@@ -153,6 +153,7 @@ describe("the turn input across the pipe", () => {
     expect([...decoded.approvalAsks], "what each call was asked under crosses with it").toEqual([
       ["run_1.call-2", { policySource: "hook", policyHook: "safety", contentDigest: "args:abc" }],
     ]);
+    expect(decoded.continuation, "a first invocation carries no continuation").toBeUndefined();
     expect(decoded.values.agent).toEqual({ API_TOKEN: "value" });
     expect([...decoded.values.tools]).toEqual([
       [toolValuesKey("plugin", "plg_linear", "api"), { url: "https://mcp.linear.app/mcp", values: { LINEAR_TOKEN: "lin" } }],
@@ -168,6 +169,11 @@ describe("the turn input across the pipe", () => {
     expect([...decoded.mcp.leases.categories]).toEqual(["write"]);
     expect([...decoded.mcp.mcpDefault.destructive]).toEqual(["github/delete_repo"]);
     expect([...decoded.skills.bySubAgent.keys()]).toEqual(["kit:helper"]);
+  });
+
+  it("carries a continuation, with its digest or without one", () => {
+    expect(crossed(turnInputFixture({ continuation: { digest: "Assistant: built it" } })).continuation).toEqual({ digest: "Assistant: built it" });
+    expect(crossed(turnInputFixture({ continuation: {} })).continuation).toEqual({});
   });
 
   it("carries each server's home, and rebuilds the platform's set from the homes rather than carrying it", () => {

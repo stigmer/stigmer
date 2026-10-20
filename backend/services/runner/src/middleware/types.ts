@@ -114,6 +114,7 @@ export type { PathNormalizationConfig };
 
 // Same idiom: the tool-scope middleware consumes it.
 import type { ToolScopeConfig } from "./tool-scope.js";
+import type { TurnBoundarySignals } from "./turn-boundary.js";
 export type { ToolScopeConfig };
 
 /**
@@ -121,6 +122,8 @@ export type { ToolScopeConfig };
  * All sections are optional — the factory applies sensible defaults.
  */
 export interface MiddlewareStackConfig {
+  /** The turn's stop and yield, taken at the root's model calls (`turn-boundary.ts`); absent, nothing is checked (unit tests). */
+  readonly turnBoundary?: TurnBoundarySignals;
   readonly loopDetection?: Partial<LoopDetectionConfig>;
   readonly executionBudget?: Partial<ExecutionBudgetConfig>;
   readonly toolTruncation?: Partial<ToolTruncationConfig>;

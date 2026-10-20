@@ -16,8 +16,33 @@
 import type { ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import { costCapExceeded } from "../shared/cost-guard.js";
-import type { UsageDelta } from "./types.js";
+import type { TurnInput, UsageDelta } from "./types.js";
 import { UsageAccumulator } from "./usage-accumulator.js";
+
+/**
+ * Whether this invocation's count continues the run's: a turn the runtime
+ * continues after an interruption (`TurnInput.continuation`) carries what the
+ * run already spent, so neither a deploy nor a recovered stall resets the
+ * cap. A run resuming after an approval starts a fresh count, as
+ * `max_cost_usd`'s contract states (`invocation.proto`); an approval resume
+ * is told by the decisions it carries.
+ */
+export function continuesTheRunsCount(input: Pick<TurnInput, "continuation" | "approvalDecisions">): boolean {
+  return input.continuation !== undefined && input.approvalDecisions.size === 0;
+}
+
+/**
+ * The watch a turn starts with, on the run's cap, seeded from the run's
+ * summary so far when its count continues ({@link continuesTheRunsCount}).
+ * The one construction the runtime and the agent host share, so the host's
+ * early stop and the runtime's terminal read the same count.
+ */
+export function costCapWatchFor(input: Pick<TurnInput, "continuation" | "approvalDecisions" | "execution" | "model">): CostCapWatch {
+  const watch = new CostCapWatch(input.execution.status?.runConfig?.maxCostUsd ?? 0, input.model.serviceTier, input.model.thinkingMode);
+  const summary = input.execution.status?.streamingUsage;
+  if (summary !== undefined && continuesTheRunsCount(input)) watch.accumulator.seed(summary);
+  return watch;
+}
 
 export class CostCapWatch {
   readonly accumulator: UsageAccumulator;

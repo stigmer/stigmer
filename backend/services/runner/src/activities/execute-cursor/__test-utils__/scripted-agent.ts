@@ -294,6 +294,8 @@ export interface ScriptedAgentOptions {
 export interface RecordedSend {
   readonly message: string | SDKUserMessage;
   readonly hasOnDelta: boolean;
+  /** The send asked the SDK to expire the agent's active run first (`local.force`). */
+  readonly force: boolean;
 }
 
 /** The run id a send is given when the scenario named none: `run-<agentId>-<n>`, `n` counting sends from 1. */
@@ -340,7 +342,7 @@ export class ScriptedCursorAgent implements SDKAgent {
     }
     const runId = this.nextRunId;
     this.nextTurn++;
-    this.sends.push({ message, hasOnDelta: !!options?.onDelta });
+    this.sends.push({ message, hasOnDelta: !!options?.onDelta, force: options?.local?.force === true });
     if (options?.model) this.model = options.model;
     const run = new ScriptedRun(
       this,
