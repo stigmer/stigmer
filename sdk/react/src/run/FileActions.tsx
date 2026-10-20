@@ -14,16 +14,16 @@
  * - "Add as skill" is offered by the `.zip` suffix alone; the server reads
  *   the archive and refuses one that is not a skill with its own message,
  *   which is shown as it is.
- * - A refused delete shows the server's message, which names the routine
- *   that still uses the File.
+ * - Delete goes through the same mutation every Library kind's delete does
+ *   (`useDeleteResource`): a refusal is toasted with the server's sentence,
+ *   which names the routine that still uses the File.
  */
 
 import { useCallback, useState } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { cn } from "@stigmer/design-tokens";
-import { useStigmer } from "../hooks.js";
-import { toError } from "../internal/toError.js";
 import { useCheckPermission } from "../grant/useCheckPermission.js";
+import { useDeleteResource } from "../resource-detail/useDeleteResource.js";
 import { useApplyResource, type ApplyResourceResult } from "../library/useApplyResource.js";
 
 const ACTION_CLASSES =
@@ -46,10 +46,9 @@ export interface FileDeleteActionProps {
  * Delete, with an inline confirmation: offered only when the caller holds
  * `can_delete` on the File. A File given to a conversation also leaves the
  * conversation's resources; a File a routine names is refused by the
- * server, and its message is shown.
+ * server, and its sentence is toasted.
  */
 export function FileDeleteAction({ file, onDeleted }: FileDeleteActionProps) {
-  const stigmer = useStigmer();
   const fileId = file.metadata?.id ?? "";
   const { allowed, isLoading } = useCheckPermission(
     fileId ? { kind: "file", id: fileId } : null,
@@ -57,35 +56,20 @@ export function FileDeleteAction({ file, onDeleted }: FileDeleteActionProps) {
     { fail: "closed" },
   );
   const [confirming, setConfirming] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const { deleteResource, isDeleting } = useDeleteResource("file", fileId || null, file.spec?.filename);
 
   const remove = useCallback(async () => {
-    setIsDeleting(true);
-    setError(null);
     try {
-      await stigmer.file.delete(fileId);
+      await deleteResource();
       setConfirming(false);
       onDeleted();
-    } catch (err) {
-      setError(toError(err));
-    } finally {
-      setIsDeleting(false);
+    } catch {
+      // Toasted by useDeleteResource with the server's sentence.
+      setConfirming(false);
     }
-  }, [stigmer, fileId, onDeleted]);
+  }, [deleteResource, onDeleted]);
 
   if (!fileId || isLoading || !allowed) return null;
-
-  if (error) {
-    return (
-      <span className="stg:inline-flex stg:min-w-0 stg:items-center stg:gap-2" role="alert">
-        <span className="stg:text-xs stg:text-destructive">{error.message}</span>
-        <button type="button" onClick={() => setError(null)} className={ACTION_CLASSES}>
-          Dismiss
-        </button>
-      </span>
-    );
-  }
 
   if (confirming) {
     return (

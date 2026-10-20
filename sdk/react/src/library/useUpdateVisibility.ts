@@ -13,7 +13,8 @@ export type VisibilityResourceKind =
   | "agent"
   | "plugin"
   | "vault"
-  | "environment";
+  | "environment"
+  | "file";
 
 /** Return value of {@link useUpdateVisibility}. */
 export interface UseUpdateVisibilityReturn {
@@ -95,6 +96,9 @@ export function useUpdateVisibility(
             break;
           case "environment":
             await stigmer.environment.updateVisibility(input);
+            break;
+          case "file":
+            await stigmer.file.updateVisibility(input);
             break;
         }
       } catch (err) {

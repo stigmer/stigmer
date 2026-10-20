@@ -548,14 +548,40 @@ export type {
   VisionPreflightWarning,
 } from "./attachment/index.js";
 
-// File — one Stigmer File's record, link and download
-export { useFile, useFileDownloadUrl, useFileDownload, useFileContent, useSessionFiles } from "./file/index.js";
+// File — one Stigmer File's record, link and download; the Library's Files
+export {
+  useFile,
+  useFileDownloadUrl,
+  useFileDownload,
+  useFileContent,
+  useSessionFiles,
+  createFileListFn,
+  listLibraryFilesPage,
+  createFileColumns,
+  describeFileType,
+  describeUploaded,
+  useFileCount,
+  useCanCreateFile,
+  FileUploadButton,
+  LIBRARY_UPLOAD_CONCURRENCY,
+  FilePicker,
+  LibraryFilePreview,
+} from "./file/index.js";
 export type {
   UseFileReturn,
   UseFileDownloadUrlReturn,
   UseFileDownloadReturn,
   UseFileContentReturn,
   UseSessionFilesReturn,
+  FileListClient,
+  FilePage,
+  UseFileCountOptions,
+  UseFileCountReturn,
+  UseCanCreateFileReturn,
+  FileUploadButtonProps,
+  FileUploadStatus,
+  FilePickerProps,
+  LibraryFilePreviewProps,
 } from "./file/index.js";
 
 // File Reference — workspace file-reference behavior hook and styled chip list

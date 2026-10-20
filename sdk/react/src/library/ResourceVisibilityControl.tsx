@@ -2,14 +2,17 @@
 
 import { useCallback } from "react";
 import type { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { PermissionGate } from "../grant/PermissionGate.js";
 import { useOrganization } from "../organization/useOrganization.js";
 import { useSingleOrg } from "../server-info.js";
 import { VisibilityBadge, VisibilitySelector } from "./VisibilitySelector.js";
 import {
   blueprintVisibilityLevels,
+  orgVisibilityLevels,
   vaultVisibilityLevels,
 } from "./visibilityLevels.js";
+import { kindVisibility } from "./kindVisibility.js";
 import {
   useUpdateVisibility,
   type VisibilityResourceKind,
@@ -27,6 +30,17 @@ const FGA_KIND: Record<VisibilityResourceKind, string> = {
   skill: "skill",
   vault: "vault",
   environment: "environment",
+  file: "file",
+};
+
+/** The contract's kind for each {@link VisibilityResourceKind}, whose `kind_meta` declares its levels. */
+const API_RESOURCE_KIND: Record<VisibilityResourceKind, ApiResourceKind> = {
+  agent: ApiResourceKind.agent,
+  plugin: ApiResourceKind.plugin,
+  skill: ApiResourceKind.skill,
+  vault: ApiResourceKind.vault,
+  environment: ApiResourceKind.environment,
+  file: ApiResourceKind.file,
 };
 
 /** Props for {@link ResourceVisibilityControl}. */
@@ -67,15 +81,19 @@ export interface ResourceVisibilityControlProps {
  *   {@link useUpdateVisibility} and invokes
  *   {@link ResourceVisibilityControlProps.onChanged} on success.
  *
- * Offered levels are kind- and context-aware (`visibilityLevels.ts`):
- * - Blueprints (agent/skill/plugin): Private /
- *   Organization, plus Child organizations when the server holds more than
- *   one organization ({@link useSingleOrg}) and the owning organization is
- *   not itself a child (its `spec.parent_org`, read with
- *   {@link useOrganization}; anyone who may change a blueprint's audience
- *   holds a role in its organization, so the read succeeds).
- * - Shared vaults: Private / Organization only — saved values never leave
- *   the org boundary, and organization visibility lets every member use it.
+ * Offered levels are the ones the kind declares in the contract
+ * (`kind_meta`'s visibility, read by {@link kindVisibility}), never chosen
+ * by the kind's name, narrowed by context (`visibilityLevels.ts`):
+ * - A kind that declares child organizations (agent, skill, plugin,
+ *   environment): Private / Organization, plus Child organizations when the
+ *   server holds more than one organization ({@link useSingleOrg}) and the
+ *   owning organization is not itself a child (its `spec.parent_org`, read
+ *   with {@link useOrganization}; anyone who may change a blueprint's
+ *   audience holds a role in its organization, so the read succeeds).
+ * - A kind that declares the organization alone (a shared vault, a File):
+ *   Private / Organization. A vault's levels keep their own words: saved
+ *   values never leave the org boundary, and organization visibility lets
+ *   every member use it.
  *
  * The backend remains the enforcer (it refuses child organizations in an
  * organization that is a child, and the retired public level for every
@@ -93,20 +111,24 @@ export function ResourceVisibilityControl({
   const { updateVisibility, isPending } = useUpdateVisibility(kind, resourceId);
   const singleOrg = useSingleOrg();
 
-  const isVault = kind === "vault";
-  // Only a blueprint can take the child-organizations level, and only a
-  // server that holds more than one organization can have children.
-  // Passing null makes the hook a stable no-op everywhere else.
+  const declared = kindVisibility(API_RESOURCE_KIND[kind]);
+  // Only a kind that declares the child-organizations level can take it,
+  // and only a server that holds more than one organization can have
+  // children. Passing null makes the hook a stable no-op everywhere else.
   const ownerLookupOrg =
-    !isVault && singleOrg === false ? (org ?? null) : null;
+    declared.supportsChildOrgs && singleOrg === false ? (org ?? null) : null;
   const { organization: owner } = useOrganization(ownerLookupOrg);
 
-  const options = isVault
-    ? vaultVisibilityLevels()
-    : blueprintVisibilityLevels({
+  const options = declared.supportsChildOrgs
+    ? blueprintVisibilityLevels({
         offersChildOrgs:
           owner !== null && (owner.spec?.parentOrg ?? "") === "",
-      });
+      })
+    : !declared.supportsOrg
+      ? []
+      : kind === "vault"
+        ? vaultVisibilityLevels()
+        : orgVisibilityLevels();
 
   const handleChange = useCallback(
     async (next: ApiResourceVisibility) => {

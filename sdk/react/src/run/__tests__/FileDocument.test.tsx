@@ -13,7 +13,10 @@ import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { StigmerContext } from "../../context";
+import { toast } from "../../feedback/toast";
 import { FileDocument } from "../FileDocument";
+
+vi.mock("../../feedback/toast", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 function fileArtifact(filename: string, mimeType = "") {
   return create(FileSchema, {
@@ -121,7 +124,7 @@ describe("FileDocument", () => {
     expect(remove).toHaveBeenCalledWith("file_notes_txt");
   });
 
-  it("shows the server's refusal when a routine still names the File", async () => {
+  it("toasts the server's refusal when a routine still names the File, and keeps the document", async () => {
     const stigmer = {
       file: {
         getContent: vi.fn().mockReturnValue(new Promise(() => {})),
@@ -138,7 +141,8 @@ describe("FileDocument", () => {
     fireEvent.click(await screen.findByText("Delete"));
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
 
-    expect((await screen.findByRole("alert")).textContent).toContain("nightly-ledger");
+    await waitFor(() => expect(toast.error).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(toast.error).mock.calls[0]![1]?.description).toContain("nightly-ledger");
     expect(onDeleted).not.toHaveBeenCalled();
   });
 

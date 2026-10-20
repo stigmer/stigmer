@@ -12,7 +12,8 @@ export type DeletableResourceKind =
   | "skill"
   | "routine"
   | "plugin"
-  | "environment";
+  | "environment"
+  | "file";
 
 export interface UseDeleteResourceReturn {
   /**
@@ -88,6 +89,11 @@ export function useDeleteResource(
           // organization's default names it, naming each.
           await stigmer.environment.delete(resourceId);
           break;
+        case "file":
+          // The server refuses while a routine names the File, naming it;
+          // a File given to a conversation leaves its resources too.
+          await stigmer.file.delete(resourceId);
+          break;
       }
       toast.success(
         resourceName
@@ -122,5 +128,7 @@ function kindLabel(kind: DeletableResourceKind): string {
       return "plugin";
     case "environment":
       return "environment";
+    case "file":
+      return "file";
   }
 }
