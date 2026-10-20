@@ -48,6 +48,7 @@ vi.mock("@stigmer/react-sdk", () => ({
   useRoutineCount: counter(4),
   usePluginCount: counter(0),
   useEnvironmentCount: counter(2),
+  useFileCount: counter(7),
   useActiveOrgId: () => "org_acme",
 }));
 
@@ -84,6 +85,7 @@ describe("desktop LibraryLanding", () => {
       ["Routines", 4],
       ["Plugins", 0],
       ["Environments", 2],
+      ["Files", 7],
     ]);
   });
 
@@ -96,6 +98,8 @@ describe("desktop LibraryLanding", () => {
     expect(screen.getByTestId("location").textContent).toBe("/library/routines");
     act(() => page.cards.get("Environments")?.onClick());
     expect(screen.getByTestId("location").textContent).toBe("/library/environments");
+    act(() => page.cards.get("Files")?.onClick());
+    expect(screen.getByTestId("location").textContent).toBe("/library/files");
   });
 
   it("opens Apply YAML in the active org, and an apply recounts every card", () => {
@@ -107,6 +111,6 @@ describe("desktop LibraryLanding", () => {
 
     page.tokens.length = 0;
     act(() => page.dialog.at(-1)?.onApplied());
-    expect(page.tokens).toEqual([1, 1, 1, 1, 1]);
+    expect(page.tokens).toEqual([1, 1, 1, 1, 1, 1]);
   });
 });

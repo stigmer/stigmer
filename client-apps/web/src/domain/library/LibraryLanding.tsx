@@ -3,7 +3,7 @@
 import { type MouseEvent, useCallback, useReducer, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Blocks, Bot, Box, CalendarClock, FileCode2, Plus, Sparkles, Server } from "lucide-react";
+import { Blocks, Bot, Box, CalendarClock, FileCode2, Files, Plus, Sparkles, Server } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/design-tokens";
 import { ADD_MCP_SERVER_HREF } from "@/domain/library/plugins/add-mcp-server";
@@ -12,12 +12,14 @@ import {
   useAgentCount,
   useRoutineCount,
   useEnvironmentCount,
+  useFileCount,
   useSkillCount,
   usePluginCount,
   ResourceCountCard,
   useActiveOrgId,
   useCanCreateAgent,
   useCanCreateEnvironment,
+  useCanCreateFile,
 } from "@stigmer/react-sdk";
 
 function isPlainClick(e: MouseEvent): boolean {
@@ -55,6 +57,12 @@ const RESOURCE_CARDS = [
     href: "/library/environments",
     icon: <Box className="size-5" aria-hidden="true" />,
   },
+  {
+    key: "files",
+    label: "Files",
+    href: "/library/files",
+    icon: <Files className="size-5" aria-hidden="true" />,
+  },
 ] as const;
 
 interface AddMenuItem {
@@ -65,6 +73,8 @@ interface AddMenuItem {
 
 const NEW_AGENT_HREF = "/library/agents/new";
 const NEW_ENVIRONMENT_HREF = "/library/environments/new";
+// A File has no create page: the Files page's header uploads.
+const FILES_HREF = "/library/files";
 
 const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
   {
@@ -97,6 +107,11 @@ const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
     icon: <Box className="size-4" aria-hidden="true" />,
     href: NEW_ENVIRONMENT_HREF,
   },
+  {
+    label: "File",
+    icon: <Files className="size-4" aria-hidden="true" />,
+    href: FILES_HREF,
+  },
 ];
 
 // Cards count the organization's rows: the landing presents "your
@@ -108,6 +123,7 @@ function useResourceCounts(org: string | null, refetchToken?: unknown) {
   const routines = useRoutineCount(org, { refetchToken });
   const plugins = usePluginCount(org, { refetchToken });
   const environments = useEnvironmentCount(org, { refetchToken });
+  const files = useFileCount(org, { refetchToken });
 
   return {
     agents,
@@ -115,6 +131,7 @@ function useResourceCounts(org: string | null, refetchToken?: unknown) {
     routines,
     plugins,
     environments,
+    files,
   } as const;
 }
 
@@ -140,14 +157,14 @@ export function LibraryLanding() {
     <>
       <h1 className="text-foreground mb-1 text-xl font-semibold">Library</h1>
       <p className="text-muted-foreground mb-8 text-sm">
-        Browse and manage your agents, skills, plugins, and environments.
+        Browse and manage your agents, skills, plugins, environments, and files.
       </p>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {RESOURCE_CARDS.map((card) => {
           const cardCount = counts[card.key];
           const { count, isLoading } = cardCount;
-          // Routines and environments have no search count: their cards
+          // Routines, environments and files have no search count: their cards
           // count a first page and read "100+" when more follow.
           const countIsLowerBound = "isLowerBound" in cardCount && cardCount.isLowerBound;
 
@@ -206,10 +223,13 @@ function AddResourceMenu() {
   // "Environment" is offered only to the organization's admins, and not
   // until the server has said so, so a member never sees it flash.
   const { allowed: canCreateEnvironment } = useCanCreateEnvironment(org || null);
+  // "File" is offered to whoever may upload one: members and guests.
+  const { allowed: canCreateFile } = useCanCreateFile(org || null);
   const addMenuItems = ADD_MENU_ITEMS.filter(
     (item) =>
       (canCreateAgent || item.href !== NEW_AGENT_HREF) &&
-      (canCreateEnvironment || item.href !== NEW_ENVIRONMENT_HREF),
+      (canCreateEnvironment || item.href !== NEW_ENVIRONMENT_HREF) &&
+      (canCreateFile || item.href !== FILES_HREF),
   );
   const [open, setOpen] = useState(false);
 

@@ -39,6 +39,7 @@ const AgentNewPage = lazy(() => import("./pages/library/AgentNewPage"));
 const SkillNewPage = lazy(() => import("./pages/library/SkillNewPage"));
 const RoutineNewPage = lazy(() => import("./pages/library/RoutineNewPage"));
 const EnvironmentListPage = lazy(() => import("./pages/library/EnvironmentListPage"));
+const FileListPage = lazy(() => import("./pages/library/FileListPage"));
 const EnvironmentNewPage = lazy(() => import("./pages/library/EnvironmentNewPage"));
 const EnvironmentDetailPage = lazy(() => import("./pages/library/EnvironmentDetailPage"));
 const PluginListPage = lazy(() => import("./pages/library/PluginListPage"));
@@ -251,6 +252,15 @@ const routes: RouteObject[] = [
             element: (
               <LazyPage>
                 <EnvironmentDetailPage />
+              </LazyPage>
+            ),
+          },
+          {
+            // A File has no detail route: a row opens its preview.
+            path: "files",
+            element: (
+              <LazyPage>
+                <FileListPage />
               </LazyPage>
             ),
           },
