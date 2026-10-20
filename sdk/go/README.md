@@ -66,7 +66,7 @@ The client provides sub-clients for each resource type:
 | Sub-client              | Resource        | Operations |
 |-------------------------|-----------------|------------|
 | `client.Agent`          | Agent           | Get, GetByReference, Create, Update, Apply, UpdateVisibility, Rename, Delete, TagVersion, List, ListAll, ListVersions, ListVersionsAll, GetVersion |
-| `client.Skill`          | Skill           | Get, GetByReference, Push, CreateArtifactUploadUrl, PushFromRunArtifact, UpdateVisibility, Delete, List, ListAll, GetArtifact, GetArtifactDownloadUrl, ListVersions, ListVersionsAll |
+| `client.Skill`          | Skill           | Get, GetByReference, Push, CreateArtifactUploadUrl, PushFromFile, UpdateVisibility, Delete, List, ListAll, GetArtifact, GetArtifactDownloadUrl, ListVersions, ListVersionsAll |
 | `client.Plugin`         | Plugin          | Get, GetByReference, Push, CreateArtifactUploadUrl, UpdateVisibility, Delete, ListTools, List, ListAll, GetArtifact, GetArtifactDownloadUrl, ListVersions, ListVersionsAll |
 | `client.Session`        | Session         | Get, Create, Update, Apply, UpdateSubject, ReviewFileChanges, ConfirmToolUse, GrantPermission, Interrupt, Delete, AppendEvents, BindHarnessState, List, ListAll, ListByAgent, ListByAgentAll, ListByChannel, ListByChannelAll, ListEvents, StreamEvents |
 | `client.Vault`          | Vault           | Get, GetByReference, GetMine, GetByExternalId, Create, Update, UpdateVisibility, Rename, Delete, List, ListAll, SetSecrets, RemoveSecrets, SetConnection, RemoveConnections, StartSignIn, CompleteSignIn, CreateConnectLink, GetConnectLink, StartConnectLink, CompleteConnectLink, FetchValues |
