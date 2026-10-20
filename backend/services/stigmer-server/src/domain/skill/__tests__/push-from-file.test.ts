@@ -6,7 +6,9 @@
  * can_view is asked; a File the caller may not view, or one over the
  * archive cap, is refused with its bytes unread. Once all of them pass,
  * the bytes are read and the shared push pipeline authorizes again under
- * this method's annotation.
+ * this method's annotation. A store fault loading the File answers a
+ * sanitized Internal, and so does a read that fails without its own
+ * answer; a read that fails with one passes it through.
  *
  * The handler runs on an in-process router with a recording authorizer, a
  * store that answers only the File's load and a FileBlobs whose only door
@@ -14,7 +16,7 @@
  * from the log. The push pipeline is stopped by denying its own ask.
  */
 import type { Client } from "@connectrpc/connect";
-import { Code, createClient, createRouterTransport } from "@connectrpc/connect";
+import { Code, ConnectError, createClient, createRouterTransport } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 
@@ -62,6 +64,10 @@ interface Harness {
 function harness(options: {
   readonly file: File | undefined;
   readonly deny?: (check: AuthzCheck, ask: number) => boolean;
+  /** A fault the store's load answers with, in place of the File. */
+  readonly loadFault?: Error;
+  /** A fault the File's read answers with, in place of its bytes. */
+  readonly readFault?: Error;
 }): Harness {
   const log: string[] = [];
   let asks = 0;
@@ -78,6 +84,9 @@ function harness(options: {
   const store = {
     getResource(kind: ApiResourceKind, id: string): Promise<File> {
       log.push(`load ${ApiResourceKind[kind]} ${id}`);
+      if (options.loadFault !== undefined) {
+        return Promise.reject(options.loadFault);
+      }
       if (options.file === undefined) {
         return Promise.reject(new ResourceNotFoundError(`file/${id}`));
       }
@@ -87,6 +96,9 @@ function harness(options: {
   const fileBlobs = {
     readHead(fileId: string, maxBytes: number): Promise<Uint8Array> {
       log.push(`read ${fileId} ${maxBytes}`);
+      if (options.readFault !== undefined) {
+        return Promise.reject(options.readFault);
+      }
       return Promise.resolve(new Uint8Array([0x50, 0x4b]));
     },
   } as unknown as FileBlobs;
@@ -183,6 +195,38 @@ describe("pushFromFile — every question before a byte is read", () => {
       `file ${FILE_ID} is ${MAX_ZIP_SIZE + 1} bytes; a skill archive may be at most ${MAX_ZIP_SIZE}`,
     );
     expect(log.some((line) => line.startsWith("read "))).toBe(false);
+  });
+
+  it("a store fault loading the File answers a sanitized Internal and reads nothing", async () => {
+    const { command, log } = harness({ file: fileOf(ORG, 2048), loadFault: new Error("SQLITE_BUSY: database is locked") });
+
+    const error = await errorOf(() => command.pushFromFile({ org: ORG, fileId: FILE_ID }));
+
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("failed to load file");
+    expect(log.some((line) => line.startsWith("read "))).toBe(false);
+  });
+
+  it("a read that fails with its own answer passes it through, and pushes nothing", async () => {
+    const { command, log } = harness({
+      file: fileOf(ORG, 2048),
+      readFault: new ConnectError("the file's bytes are missing", Code.Internal),
+    });
+
+    const error = await errorOf(() => command.pushFromFile({ org: ORG, fileId: FILE_ID }));
+
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("the file's bytes are missing");
+    expect(log.filter((line) => line.startsWith("authorize can_create_skill"))).toHaveLength(1);
+  });
+
+  it("a read that fails without an answer of its own answers a sanitized Internal", async () => {
+    const { command } = harness({ file: fileOf(ORG, 2048), readFault: new Error("socket hang up") });
+
+    const error = await errorOf(() => command.pushFromFile({ org: ORG, fileId: FILE_ID }));
+
+    expect(error.code).toBe(Code.Internal);
+    expect(error.rawMessage).toBe("failed to read the file");
   });
 
   it.each([

@@ -14,6 +14,9 @@
  *     with a one-segment name (another run's folder, a deeper key, a
  *     traversal, another name), and one whose key's blob row is another
  *     organization's;
+ *   - a blob that turns unavailable before its File is written is skipped
+ *     and its row forgotten, and any other fault writing the File stops the
+ *     pass with the row kept;
  *   - a storage fault stops the pass with the row kept;
  *   - a converted File's id is derived from its run and position under its
  *     own tag, never an attachment's.
@@ -45,7 +48,9 @@ import { loadConfig } from "../../../boot/config.js";
 import { composeServer } from "../../../boot/compose.js";
 import type { ResourceAuthorizationLifecycle, ResourceCreatedEvent } from "../../../extensions/resource-authorization.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
+import { FileBlobUnavailableError } from "../../../store/file-blobs.js";
 import type { OutputConversion } from "../../../store/file-blobs.js";
+import type { Store } from "../../../store/interface.js";
 import { runRowWithArtifacts } from "../../../store/__tests__/retired-run-artifact-rows.js";
 import { SCHEMA_VERSION_44 } from "../../../store/sqlite/migrations.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
@@ -229,6 +234,47 @@ describe("converting a run's stored files", () => {
     seedConversion({ runId: "run_01blobs" });
     expect(await convert()).toBe(0);
     expect(await conversionCount()).toBe(0);
+  });
+
+  /** The test store with its File door's insert replaced. */
+  function withInsert(insert: Store["files"]["insert"]): Store {
+    const files = new Proxy(fx.store.files, {
+      get(target, property, receiver) {
+        if (property === "insert") {
+          return insert;
+        }
+        const value: unknown = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(target) : value;
+      },
+    });
+    return new Proxy(fx.store, {
+      get(target, property, receiver) {
+        if (property === "files") {
+          return files;
+        }
+        const value: unknown = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(target) : value;
+      },
+    });
+  }
+
+  it("skips a blob that turns unavailable before its File is written, and stops on any other fault writing it", async () => {
+    await storage.upload(keyOf("run_01gone", "report.md"), new Uint8Array([1]), "");
+    await seedRun("run_01gone");
+    seedConversion({ runId: "run_01gone" });
+    const unavailable = withInsert(() =>
+      Promise.reject(new FileBlobUnavailableError(keyOf("run_01gone", "report.md"), "it is orphaned past its expiry")),
+    );
+    expect(await convertStoredOutputs({ store: unavailable, storage, lifecycle, logger: silentLogger })).toBe(0);
+    expect(await conversionCount()).toBe(0);
+    expect(created).toEqual([]);
+
+    seedConversion({ runId: "run_01gone", position: 1 });
+    const faulty = withInsert(() => Promise.reject(new Error("database unreachable")));
+    await expect(convertStoredOutputs({ store: faulty, storage, lifecycle, logger: silentLogger })).rejects.toThrow(
+      "database unreachable",
+    );
+    expect(await conversionCount()).toBe(1);
   });
 
   it("stops on a storage fault, keeping the row for the next boot", async () => {
