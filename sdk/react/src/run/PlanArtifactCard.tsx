@@ -109,7 +109,7 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
           {name}
           <span aria-hidden="true"> · </span>
           <span className="stg:tabular-nums">
-            {formatArtifactSize(file.status?.sizeBytes ?? 0n)}
+            {formatArtifactSize(file.status?.sizeBytes ?? BigInt(0))}
           </span>
         </div>
       </div>

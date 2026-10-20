@@ -299,7 +299,7 @@ function ContentHeader({
         </h2>
         <div className="stg:mt-0.5 stg:flex stg:flex-wrap stg:items-center stg:gap-2">
           <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
-            {formatArtifactSize(file.status?.sizeBytes ?? 0n)}
+            {formatArtifactSize(file.status?.sizeBytes ?? BigInt(0))}
           </span>
           {isDetecting && !detectionLabel && (
             <span

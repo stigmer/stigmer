@@ -37,7 +37,7 @@ export function fromFile(file: StigmerFile, hasNameCollision = false): ArtifactR
     name,
     tooltip: outputPath || name,
     subtitlePath: hasNameCollision && outputPath ? parentDirectory(outputPath) : null,
-    sizeBytes: file.status?.sizeBytes ?? 0n,
+    sizeBytes: file.status?.sizeBytes ?? BigInt(0),
   };
 }
 

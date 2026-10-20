@@ -83,7 +83,7 @@ export function ArtifactDocument({
           {name}
         </span>
         <span className="stg:shrink-0 stg:text-[0.65rem] stg:tabular-nums stg:text-muted-foreground-faint">
-          {formatArtifactSize(file.status?.sizeBytes ?? 0n)}
+          {formatArtifactSize(file.status?.sizeBytes ?? BigInt(0))}
         </span>
         {inspection.isDetecting && !inspection.detectionLabel && (
           <span

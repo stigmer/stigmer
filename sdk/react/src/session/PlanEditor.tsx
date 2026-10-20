@@ -152,7 +152,7 @@ export function PlanEditor({
           )}
         </div>
         <span className="stg:text-[0.65rem] stg:tabular-nums stg:text-muted-foreground-faint">
-          {formatArtifactSize(plan.file.status?.sizeBytes ?? 0n)}
+          {formatArtifactSize(plan.file.status?.sizeBytes ?? BigInt(0))}
         </span>
         {/* The reason the Edit tab is disabled must be visible text: a
             disabled tab leaves the tab order and drops pointer events, so
