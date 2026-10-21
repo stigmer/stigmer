@@ -14,11 +14,14 @@
  *     driver's environment and reached Temporal from inside the cluster);
  *   - the idle sweep lists the Sandbox by its labels, reads its creation
  *     time, and suspends it once its session is idle past the window;
- *   - a file written to /workspace survives that suspend (the pod goes, the
- *     claim stays Bound) and the wake that follows, which brings the runner
- *     back to the queue with the fresh token the wake wrote before its pod
- *     started;
- *   - deprovision leaves no Sandbox, pod, claim or Secret behind.
+ *   - the agent's home is its own claim, handed to the agent's user by the
+ *     runner as it boots (the claim is made root's);
+ *   - a file written to /workspace, and one in the agent's home, where its
+ *     session state lives (stigmer#2484), survive that suspend (the pod
+ *     goes, both claims stay Bound) and the wake that follows, which brings
+ *     the runner back to the queue with the fresh token the wake wrote
+ *     before its pod started;
+ *   - deprovision leaves no Sandbox, pod, claims or Secret behind.
  *
  * It needs everything it is given and fails without it, never skips: the
  * live config runs only when asked to.
@@ -35,6 +38,7 @@ import type {
   SandboxDriverConfig,
   SessionActivityReader,
 } from "../../provisioner.js";
+import { AGENT_HOME } from "../../runner-launch.js";
 import { newAgentSandboxDriverOverGateway } from "../driver.js";
 import { newAgentSandboxClientGateway } from "../gateway.js";
 import {
@@ -175,6 +179,9 @@ describe("the agent-sandbox driver on a live cluster", () => {
       "printenv",
       "STIGMER_TOKEN",
     ).trim();
+  /** The uid owning a path in the runner's container. */
+  const ownerOf = (path: string) =>
+    kubectl("exec", name, "-c", "runner", "--", "stat", "-c", "%u", path).trim();
   const podPhase = () =>
     kubectl(
       "get",
@@ -185,7 +192,7 @@ describe("the agent-sandbox driver on a live cluster", () => {
       "jsonpath={.status.phase}",
     );
 
-  it("runs a session's runner, keeps its files across a suspend and a wake, and leaves nothing behind", async () => {
+  it("runs a session's runner, keeps its files and its agent's home across a suspend and a wake, and leaves nothing behind", async () => {
     const created = Date.now();
     await driver.ensureSessionSandbox(sessionId, env);
     expect(await driver.probe("session", sessionId)).toBe("running");
@@ -205,6 +212,8 @@ describe("the agent-sandbox driver on a live cluster", () => {
       "-c",
       "echo kept > /workspace/live-proof",
     );
+    expect(ownerOf(AGENT_HOME), "the runner handed the home claim to the agent's user").toBe("10001");
+    kubectl("exec", name, "-c", "runner", "--", "sh", "-c", `echo kept > ${AGENT_HOME}/live-proof`);
 
     // The idle sweep, against the real API: the label-selector list finds
     // the Sandbox with its creation time, and the suspend patches it.
@@ -241,6 +250,7 @@ describe("the agent-sandbox driver on a live cluster", () => {
         "jsonpath={.status.phase}",
       ),
     ).toBe("Bound");
+    expect(kubectl("get", "pvc", `agent-home-${name}`, "-o", "jsonpath={.status.phase}")).toBe("Bound");
 
     // Temporal's poll times have one-second precision.
     const woken = Date.now() - 1_000;
@@ -261,6 +271,8 @@ describe("the agent-sandbox driver on a live cluster", () => {
         "/workspace/live-proof",
       ).trim(),
     ).toBe("kept");
+    expect(kubectl("exec", name, "-c", "runner", "--", "cat", `${AGENT_HOME}/live-proof`).trim(), "the agent's home woke with it").toBe("kept");
+    expect(ownerOf(AGENT_HOME)).toBe("10001");
     // The wake writes the Secret before the pod starts, so the woken runner
     // booted with the fresh token, not the one it slept with.
     expect(tokenInPod()).toBe("tok-live-2");
@@ -269,11 +281,12 @@ describe("the agent-sandbox driver on a live cluster", () => {
     );
 
     await driver.deprovisionSessionSandbox(sessionId);
-    await until("the Sandbox, pod, claim and Secret to go", () =>
+    await until("the Sandbox, pod, claims and Secret to go", () =>
       [
         ["sandbox", name],
         ["pod", name],
         ["pvc", `workspace-${name}`],
+        ["pvc", `agent-home-${name}`],
         ["secret", `${name}-env`],
       ].every(([kind, object]) => !exists(kind ?? "", object ?? "")),
     );

@@ -104,6 +104,15 @@ export const RUNNER_CAPABILITIES = ["SETUID", "SETGID", "CHOWN", "KILL", "DAC_OV
 /** The `HOME` a driver gives the runner: root's home in every glibc base. */
 export const RUNNER_HOME = "/root";
 
+/**
+ * The agent's home in a driver's sandbox: where the runner puts it when the
+ * deployment names none (the runner's `shared/agent-identity.ts`,
+ * `DEFAULT_AGENT_HOME`), and so where the Session's agent state lives
+ * (`~/.stigmer/sessions`: the native harness's checkpoints, the platform
+ * directory, the approval gates).
+ */
+export const AGENT_HOME = "/home/stigmer-agent";
+
 /** The command that starts the runner in a sandbox container. */
 export function runnerCommand(): string[] {
   return [RUNNER_START, RUNNER_ENTRY];

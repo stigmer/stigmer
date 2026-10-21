@@ -8,6 +8,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  AGENT_HOME,
   RUNNER_ENTRY,
   RUNNER_HOME,
   RUNNER_NODE,
@@ -41,6 +42,10 @@ describe("the runner launch contract", () => {
   it("runs the runner as root, with root's home", () => {
     expect(RUNNER_UID).toBe(0);
     expect(RUNNER_HOME).toBe("/root");
+  });
+
+  it("names the agent's home where the runner puts it when the deployment names none", () => {
+    expect(AGENT_HOME).toBe("/home/stigmer-agent");
   });
 
   it("keeps the waiter beside the runner it starts (its ../main.js)", () => {

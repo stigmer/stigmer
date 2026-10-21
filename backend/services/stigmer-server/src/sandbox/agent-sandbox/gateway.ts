@@ -22,9 +22,9 @@
  * naming what to install.
  *
  * A Sandbox is deleted in the foreground: it stays, marked as being
- * deleted, until the pod and the claim it controls are gone, and its
- * Secret goes with it too. The pod and the claim carry the Sandbox's name,
- * and the controller will not build a new Sandbox's pod or claim over
+ * deleted, until the pod and the claims it controls are gone, and its
+ * Secret goes with it too. The pod and the claims carry the Sandbox's name,
+ * and the controller will not build a new Sandbox's pod or claims over
  * objects an old one still controls, so an ensure that finds a Sandbox
  * being deleted waits for it (driver.ts) and is then free to create.
  * agent-sandbox's controller does nothing to a Sandbox being deleted.
@@ -78,7 +78,7 @@ export interface AgentSandboxGateway {
     sandbox: AgentSandboxResource,
   ): Promise<AgentSandboxView | undefined>;
   patchSandbox(name: string, change: AgentSandboxChange): Promise<void>;
-  /** Deletes the Sandbox and, through ownership, its pod, claim and Secret; missing is success. */
+  /** Deletes the Sandbox and, through ownership, its pod, claims and Secret; missing is success. */
   deleteSandbox(name: string): Promise<void>;
   /** Creates the Secret, or replaces it whole when it exists. */
   applySecret(secret: V1Secret): Promise<void>;
@@ -122,7 +122,16 @@ export function agentSandboxViewOf(object: unknown): AgentSandboxView {
         ? new Date(metadata.creationTimestamp)
         : undefined,
     labels: stringRecord(metadata.labels),
+    claims: claimNamesOf(spec.volumeClaimTemplates),
   };
+}
+
+function claimNamesOf(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((template) => {
+    const name = record(record(template).metadata).name;
+    return typeof name === "string" ? [name] : [];
+  });
 }
 
 /** The API server's own words for a refusal: its Status message, else its text. */

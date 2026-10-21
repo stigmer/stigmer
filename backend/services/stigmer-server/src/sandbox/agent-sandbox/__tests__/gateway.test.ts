@@ -126,6 +126,7 @@ describe("the Sandbox calls", () => {
       operatingMode: "Suspended",
       deleting: false,
       labels: {},
+      claims: [],
     });
     expect(await gateway.getSandbox("sbx-ses-2")).toBeUndefined();
     expect(seen.map((entry) => `${entry.method} ${entry.url}`)).toEqual([
@@ -330,7 +331,17 @@ describe("the view of a Sandbox", () => {
       operatingMode: "Running",
       deleting: true,
       labels: { a: "b" },
+      claims: [],
     });
+  });
+
+  it("reads the names of its claim templates, skipping one with no name", () => {
+    expect(
+      agentSandboxViewOf({
+        metadata: { name: "n", uid: "u" },
+        spec: { volumeClaimTemplates: [{ metadata: { name: "workspace" } }, { metadata: {} }, { metadata: { name: "agent-home" } }] },
+      }).claims,
+    ).toEqual(["workspace", "agent-home"]);
   });
 
   it("refuses an object with no name or uid", () => {

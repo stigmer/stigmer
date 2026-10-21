@@ -7,8 +7,8 @@
  * idle session keeps its pod.
  *
  * An idle session's Sandbox is suspended after SUSPEND_AFTER_SECONDS: its
- * pod goes and its workspace claim stays, and its next message starts a
- * pod again over the same files (sweep.ts). The sweep looks every
+ * pod goes and its claims stay, and its next message starts a pod again
+ * over the same files and the same agent state (sweep.ts). The sweep looks every
  * SWEEP_INTERVAL_SECONDS, so a sandbox sleeps between the window and the
  * window plus one interval after its session's last activity.
  *

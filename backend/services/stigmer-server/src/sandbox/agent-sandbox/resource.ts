@@ -66,4 +66,6 @@ export interface AgentSandboxView {
   /** When the API server made it; undefined when the object does not say. */
   readonly createdAt: Date | undefined;
   readonly labels: Readonly<Record<string, string>>;
+  /** The names of its volume claim templates, fixed when it was created. */
+  readonly claims: readonly string[];
 }

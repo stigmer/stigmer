@@ -17,12 +17,21 @@
  * limits. MODE is `local`: it selects the runner's proxy-transport posture,
  * not isolation, and open-source sandboxes talk to the server directly.
  *
- * Session sandboxes keep their workspace on one claim
- * (`workspace`, ReadWriteOnce, 10Gi, the cluster's default class), declared
- * as the Sandbox's one volume claim template, which the controller mounts
- * as the volume `workspace`. Durability is decided by scope alone: this
- * driver reads neither the environment's caller class nor any per-session
- * policy. A connect sandbox works on an emptyDir.
+ * Session sandboxes keep two claims, each a volume claim template of the
+ * Sandbox, which the controller mounts as a volume of the template's name
+ * (ReadWriteOnce, the cluster's default class): `workspace` (10Gi) at
+ * `/workspace`, and `agent-home` (5Gi) at the agent's home, where the
+ * Session's agent state lives (the native harness's checkpoints, the
+ * platform directory, the approval gates), so a sleep or a replaced pod
+ * keeps the agent's memory as well as its files (stigmer#2484). The home is
+ * its own claim, not a folder of the workspace's: a Session that clones its
+ * repository in place works at `/workspace` itself, where any other folder
+ * would show in the person's tree, and where the turn's `.stigmer` link goes.
+ * Claim templates are fixed when a Sandbox is made, so one made before the
+ * home claim is woken without its mount and keeps its home on the pod until
+ * it is made again. Durability is decided by scope alone: this driver reads
+ * neither the environment's caller class nor any per-session policy. A
+ * connect sandbox works on an emptyDir.
  *
  * The Secret is owned by the Sandbox (an owner reference without
  * blockOwnerDeletion, so the server needs no rights on the Sandbox's
@@ -54,6 +63,7 @@ import {
   sandboxBaseName,
 } from "../naming.js";
 import {
+  AGENT_HOME,
   RUNNER_HOME,
   RUNNER_CAPABILITIES,
   RUNNER_UID,
@@ -67,6 +77,7 @@ import {
   AGENT_SANDBOX_KIND,
   type AgentSandboxPodTemplate,
   type AgentSandboxResource,
+  type AgentSandboxVolumeClaimTemplate,
 } from "./resource.js";
 
 const RUNNER_CONTAINER_NAME = "runner";
@@ -74,6 +85,9 @@ const RUNNER_CONTAINER_NAME = "runner";
 const WORKSPACE_VOLUME = "workspace";
 const WORKSPACE_MOUNT_PATH = "/workspace";
 const WORKSPACE_CLAIM_SIZE = "10Gi";
+/** The agent's home's volume (and claim template) name. */
+const AGENT_HOME_VOLUME = "agent-home";
+const AGENT_HOME_CLAIM_SIZE = "5Gi";
 const TERMINATION_GRACE_PERIOD_SECONDS = 600;
 /**
  * What the runner keeps of the pod's grace for its own exit after its
@@ -95,6 +109,24 @@ const RUNNER_RESOURCES = {
 
 /** The scopes whose workspace outlives the pod. */
 const PERSISTENT_SCOPES: ReadonlySet<SandboxScope> = new Set(["session"]);
+
+/** Whether a Sandbox has the agent's home claim, by its claim templates' names: the pod template mounts the home only then. */
+export function agentHomeOnClaim(claims: readonly string[]): boolean {
+  return claims.includes(AGENT_HOME_VOLUME);
+}
+
+/** One ReadWriteOnce claim template on the cluster's default class. */
+function claimTemplate(name: string, size: string): AgentSandboxVolumeClaimTemplate {
+  return {
+    metadata: { name },
+    spec: {
+      accessModes: ["ReadWriteOnce"],
+      // No storageClassName: the cluster's default. Self-hosted
+      // clusters vary too much to pin a class here.
+      resources: { requests: { storage: size } },
+    },
+  };
+}
 
 /** The stigmer labels on the Sandbox and on its pod. */
 export function agentSandboxLabels(
@@ -172,12 +204,15 @@ function runnerEnv(
 /**
  * The pod template: written at creation and again at every wake, so a
  * woken sandbox runs this server's runner image and environment.
+ * `homeOnClaim` mounts the agent's home from its claim, which only a
+ * Sandbox created with that claim has ({@link agentHomeOnClaim}).
  */
 export function buildAgentSandboxPodTemplate(
   scope: SandboxScope,
   id: string,
   facts: SandboxFacts,
   config: SandboxDriverConfig,
+  homeOnClaim: boolean,
 ): AgentSandboxPodTemplate {
   const spec: V1PodSpec = {
     terminationGracePeriodSeconds: TERMINATION_GRACE_PERIOD_SECONDS,
@@ -204,6 +239,7 @@ export function buildAgentSandboxPodTemplate(
         },
         volumeMounts: [
           { name: WORKSPACE_VOLUME, mountPath: WORKSPACE_MOUNT_PATH },
+          ...(homeOnClaim ? [{ name: AGENT_HOME_VOLUME, mountPath: AGENT_HOME }] : []),
         ],
       },
     ],
@@ -231,19 +267,12 @@ export function buildAgentSandbox(
       labels: agentSandboxLabels(scope, id),
     },
     spec: {
-      podTemplate: buildAgentSandboxPodTemplate(scope, id, facts, config),
+      podTemplate: buildAgentSandboxPodTemplate(scope, id, facts, config, PERSISTENT_SCOPES.has(scope)),
       ...(PERSISTENT_SCOPES.has(scope)
         ? {
             volumeClaimTemplates: [
-              {
-                metadata: { name: WORKSPACE_VOLUME },
-                spec: {
-                  accessModes: ["ReadWriteOnce"],
-                  // No storageClassName: the cluster's default. Self-hosted
-                  // clusters vary too much to pin a class here.
-                  resources: { requests: { storage: WORKSPACE_CLAIM_SIZE } },
-                },
-              },
+              claimTemplate(WORKSPACE_VOLUME, WORKSPACE_CLAIM_SIZE),
+              claimTemplate(AGENT_HOME_VOLUME, AGENT_HOME_CLAIM_SIZE),
             ],
           }
         : {}),
