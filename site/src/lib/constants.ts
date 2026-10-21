@@ -175,6 +175,7 @@ export const NAV_RESOURCES: NavGroup = {
   label: "Resources",
   items: [
     { label: "Use Cases", href: "/use-cases" },
+    { label: "Compare with Managed Agents", href: "/compare/claude-managed-agents" },
     { label: "Blog", href: "/blog" },
     { label: "Download", href: "/download" },
   ],
@@ -195,6 +196,7 @@ export const NAV_LINKS_ALL: NavLink[] = [
 export const FOOTER_LINKS = {
   product: [
     { label: "Use Cases", href: "/use-cases" },
+    { label: "Compare with Managed Agents", href: "/compare/claude-managed-agents" },
     { label: "Pricing", href: "/pricing" },
     { label: "Documentation", href: "/docs" },
     { label: "Download", href: "/download" },
