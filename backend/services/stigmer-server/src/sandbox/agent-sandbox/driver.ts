@@ -1,8 +1,9 @@
 /**
  * The agent-sandbox driver: every sandbox is one agent-sandbox `Sandbox`
  * (kubernetes-sigs/agent-sandbox, resource.ts) in one shared namespace.
- * The Sandbox owns everything about it (its pod, its workspace claim and
- * its Secret), so the cluster's controller and garbage collector do the
+ * The Sandbox owns everything about it (its pod, a Session's two claims,
+ * the workspace and the agent's home, and its Secret), so the cluster's
+ * controller and garbage collector do the
  * object management: a pod lost to a node or deleted by hand comes back
  * while the Sandbox is Running, suspending it deletes the pod and keeps
  * the disk, and deleting it removes the rest. State is the cluster's,
@@ -14,7 +15,7 @@
  *
  * The ensure, from the Sandbox's state:
  *
- *   - absent: create it Suspended (its claim is made, no pod starts), then
+ *   - absent: create it Suspended (its claims are made, no pod starts), then
  *     wake it. A first start and a resume are one path.
  *   - Suspended (wake): write the Secret with a fresh token, owned by the
  *     Sandbox, then one patch setting Running and this server's pod

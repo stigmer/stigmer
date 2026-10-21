@@ -6,7 +6,7 @@
  *   - A busy session is never touched: a run that is pending, running,
  *     waiting on a person or paused keeps its pod.
  *   - A Running Sandbox whose session has been idle for `suspendAfter` is
- *     suspended: its pod goes, its claim stays, and the next message wakes
+ *     suspended: its pod goes, its claims stay, and the next message wakes
  *     it over the same files.
  *   - A Sandbox that is already Suspended, or being deleted, is left alone.
  *

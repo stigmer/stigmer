@@ -213,6 +213,13 @@ current runner image and settings, not the ones it was created with. A `Sandbox`
 made by a server from before the home claim keeps the Agent's state on its pod,
 so a sleep loses the conversation, until the Session's sandbox is made again.
 
+Both claims are made before a Session's first pod, so on a cluster with several
+zones the default class must bind a claim where its pod lands
+(`volumeBindingMode: WaitForFirstConsumer`, as most cloud classes do); a class
+that binds at once can put the two claims in different zones, and the pod then
+never starts. The Agent's home starts empty: the image's skeleton dotfiles are
+not copied onto it.
+
 An idle Session's sandbox goes to sleep. After 330 seconds with no run, its pod
 is removed and its claims kept; the Session's next message starts a pod again
 over the same files and the same conversation. On a node that already holds the

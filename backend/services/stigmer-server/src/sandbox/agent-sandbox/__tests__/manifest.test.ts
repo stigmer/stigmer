@@ -33,6 +33,7 @@ import type {
   SandboxFacts,
 } from "../../provisioner.js";
 import {
+  AGENT_HOME,
   RUNNER_HOME,
   RUNNER_UID,
   SANDBOX_ENVIRONMENT_ENV,
@@ -108,7 +109,7 @@ describe("the Sandbox", () => {
     expect(sandbox.spec.podTemplate.spec.volumes).toBeUndefined();
     expect(sandbox.spec.podTemplate.spec.containers[0]?.volumeMounts).toEqual([
       { name: "workspace", mountPath: "/workspace" },
-      { name: "agent-home", mountPath: "/home/stigmer-agent" },
+      { name: "agent-home", mountPath: AGENT_HOME },
     ]);
     expect(agentHomeOnClaim(sandbox.spec.volumeClaimTemplates!.map((t) => t.metadata.name))).toBe(true);
   });
