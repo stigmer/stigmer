@@ -327,8 +327,8 @@ Maintainers handle releases, but here's the process:
 ## Getting Help
 
 **Questions?**
-- **Discord**: [Join #contributors channel](https://discord.gg/stigmer)
-- **GitHub Discussions**: [Ask in Q&A](https://github.com/stigmer/stigmer/discussions)
+- **Discord**: [Join the Stigmer Community](https://discord.com/invite/EtANnfsJ8B)
+- **GitHub Issues**: [Ask a question](https://github.com/stigmer/stigmer/issues)
 - **Email**: contributors@stigmer.ai
 
 ## Recognition
