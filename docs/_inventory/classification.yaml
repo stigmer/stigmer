@@ -63,8 +63,9 @@ pages:
     fate: keep
     diataxis: tutorial
     teaches:
-      Run the same job from TypeScript: upload the ledger, start the turn with
-      sendAndWait, list the turn's Files by its run and save the report.
+      Run the same job from TypeScript, uploading the ledger, starting the turn
+      with sendAndWait, listing the turn's Files by its run and saving the
+      report.
     medium: none
 
   getting-started/embed-agent:
