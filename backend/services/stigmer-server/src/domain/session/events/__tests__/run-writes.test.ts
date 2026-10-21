@@ -202,15 +202,19 @@ describe("each turn's own status", () => {
 });
 
 describe("delivery and edges", () => {
-  it("each committed event reaches the session's live streams, in order", async () => {
+  it("a committed write rings the session's live streams, and the log holds its events in order", async () => {
     const stream = deps.sessionEventBroker.subscribe("s1", []);
+    const other = deps.sessionEventBroker.subscribe("s2", []);
     await createRunAppendingEvents(deps, run("a", "s1"));
-    expect(stream.queue.map((f) => (f.frame.case === "event" ? eventTypeOf(f.frame.value) : ""))).toEqual([
+    expect(stream.dirty).toBe(true);
+    expect(other.dirty).toBe(false);
+    const records = await temp.store.sessionEvents.list("s1", { order: "asc", limit: 10 });
+    expect(records.map((record) => eventTypeOf(eventOf(record)))).toEqual([
       "user.message",
       "stigmer.run.status",
       "session.status_running",
     ]);
-    expect(stream.queue.map((f) => (f.frame.case === "event" ? f.frame.value.seq : 0n))).toEqual([1n, 2n, 3n]);
+    expect(records.map((record) => record.seq)).toEqual([1, 2, 3]);
   });
 
   it("a run in no session writes no events", async () => {

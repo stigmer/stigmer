@@ -1,15 +1,16 @@
 /**
- * Pins the session event fan-out (../broker.ts) and the stream that drains
- * it (../stream.ts): events reach every stream of their session and no
- * other, previews only the streams that asked for their type, and a stream
- * that falls behind is ENDED with RESOURCE_EXHAUSTED rather than silently
- * missing events, the one rule where it differs from the run snapshot
- * broker.
+ * Pins the session event bell (../broker.ts) and the stream that reads the
+ * log under it (../stream.ts): an append rings the streams of its session
+ * and no other, previews reach only the streams that asked for their type
+ * and are dropped (never the stream) when a reader falls behind, the stream
+ * is a cursor over the stored log (exactly once and in order, whichever
+ * process wrote the event, and a slow reader only lags), and a closing
+ * broker ends every stream with UNAVAILABLE.
  */
 import { create } from "@bufbuild/protobuf";
-import { Code, ConnectError } from "@connectrpc/connect";
+import { Code } from "@connectrpc/connect";
 import type { HandlerContext } from "@connectrpc/connect";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
@@ -19,6 +20,8 @@ import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/e
 import {
   SessionEventPreviewSchema,
   StreamSessionEventsRequestSchema,
+  type SessionEventPreview,
+  type StreamSessionEventsResponse,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
 import { createLogger } from "../../../../boot/logger.js";
@@ -27,16 +30,21 @@ import { tempStore } from "../../../../store/sqlite/__tests__/support.js";
 import { testCallerIdentity } from "../../../../pipeline/__tests__/support.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../../pipeline/steps/authorize.js";
 import {
-  SESSION_EVENT_SUBSCRIBER_CAPACITY,
-  SESSION_EVENT_SUBSCRIBER_MAX_BYTES,
+  SESSION_EVENT_BROKER_CLOSED_MESSAGE,
+  SESSION_EVENT_DROPPED_IDS_KEPT,
+  SESSION_EVENT_PREVIEW_CAPACITY,
+  SESSION_EVENT_PREVIEW_MAX_BYTES,
   SessionEventBroker,
 } from "../broker.js";
 import {
+  SESSION_EVENT_REPLAY_BATCH,
   SESSION_EVENT_STREAM_REAUTHORIZE_MS,
-  STREAM_FELL_BEHIND_MESSAGE,
+  SESSION_EVENT_TAIL_MAX_MS,
+  SESSION_EVENT_TAIL_MIN_MS,
   streamSessionEvents,
+  type StreamSessionEventsDeps,
 } from "../stream.js";
-import { draftOf, eventOf } from "../codec.js";
+import { draftOf } from "../codec.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
 
@@ -44,22 +52,40 @@ function thinking(id: string, seq: number): SessionEvent {
   return create(SessionEventSchema, { seq: BigInt(seq), event: { case: "agentThinking", value: { id } } });
 }
 
-/** A store a stream that does not resume never reads. */
-const untouchedStore = {} as Store;
+function delta(eventId: string, text: string): SessionEventPreview {
+  return create(SessionEventPreviewSchema, {
+    preview: { case: "eventDelta", value: { eventId, delta: { type: "content_delta", content: { type: "text", text } } } },
+  });
+}
 
 function context(signal: AbortSignal): HandlerContext {
   const identity = testCallerIdentity();
   return { signal, values: { get: () => identity }, requestHeader: new Headers() } as unknown as HandlerContext;
 }
 
+function seqOf(frame: StreamSessionEventsResponse | undefined): bigint {
+  return frame?.frame.case === "event" ? frame.frame.value.seq : -1n;
+}
+
+/** Lets the stream's generator run up to its next wait. */
+const settle = () => new Promise((resolve) => setImmediate(resolve));
+
 describe("the broker", () => {
-  it("delivers a session's events to its streams only, in order", () => {
+  it("rings the streams of the appending session only, and copies no event", () => {
     const broker = new SessionEventBroker(silentLogger);
     const mine = broker.subscribe("s1", []);
     const other = broker.subscribe("s2", []);
     broker.publish("s1", [thinking("a", 1), thinking("b", 2)]);
-    expect(mine.queue.map((f) => (f.frame.case === "event" ? f.frame.value.seq : 0n))).toEqual([1n, 2n]);
-    expect(other.queue).toEqual([]);
+    expect(mine.dirty).toBe(true);
+    expect(mine.previews).toEqual([]);
+    expect(other.dirty).toBe(false);
+  });
+
+  it("an append that added nothing rings no bell", () => {
+    const broker = new SessionEventBroker(silentLogger);
+    const mine = broker.subscribe("s1", []);
+    broker.publish("s1", []);
+    expect(mine.dirty).toBe(false);
   });
 
   it("previews reach the streams that asked for their type; a delta is part of an agent.message", () => {
@@ -68,12 +94,10 @@ describe("the broker", () => {
     const messages = broker.subscribe("s1", ["agent.message"]);
     broker.publishPreviews("s1", [
       create(SessionEventPreviewSchema, { preview: { case: "eventStart", value: { event: { id: "t", type: "agent.thinking" } } } }),
-      create(SessionEventPreviewSchema, {
-        preview: { case: "eventDelta", value: { eventId: "m", delta: { type: "content_delta", content: { type: "text", text: "x" } } } },
-      }),
+      delta("m", "x"),
     ]);
-    expect(none.queue).toEqual([]);
-    expect(messages.queue.map((f) => f.frame.case)).toEqual(["eventDelta"]);
+    expect(none.previews).toEqual([]);
+    expect(messages.previews.map((f) => f.frame.case)).toEqual(["eventDelta"]);
   });
 
   it("a running tool's output fragment reaches only the streams that asked for stigmer.tool_output_delta", () => {
@@ -83,78 +107,260 @@ describe("the broker", () => {
     broker.publishPreviews("s1", [
       create(SessionEventPreviewSchema, { preview: { case: "stigmerToolOutputDelta", value: { toolUseId: "u", delta: "12 passing" } } }),
     ]);
-    expect(messages.queue).toEqual([]);
-    expect(output.queue.map((f) => f.frame.case)).toEqual(["stigmerToolOutputDelta"]);
+    expect(messages.previews).toEqual([]);
+    expect(output.previews.map((f) => f.frame.case)).toEqual(["stigmerToolOutputDelta"]);
   });
 
-  it("ends a stream whose undelivered bytes pass the budget, before the frame cap", () => {
+  it("drops a slow stream's previews, never the stream, and skips the dropped messages' later fragments", () => {
     const broker = new SessionEventBroker(silentLogger);
-    const slow = broker.subscribe("s1", []);
-    const big = (i: number) =>
-      create(SessionEventSchema, {
-        seq: BigInt(i),
-        event: { case: "agentMessage", value: { id: `m${i}`, content: [{ type: "text", text: "x".repeat(1024 * 1024) }] } },
-      });
-    for (let i = 1; i <= 31; i++) {
-      broker.publish("s1", [big(i)]);
+    const slow = broker.subscribe("s1", ["agent.message"]);
+    const fresh = broker.subscribe("s1", ["agent.message"]);
+    broker.publishPreviews("s1", Array.from({ length: SESSION_EVENT_PREVIEW_CAPACITY }, () => delta("m1", "x")));
+    while (broker.take(fresh) !== undefined) {
+      // the fresh stream keeps up
     }
-    expect(slow.overflowed).toBe(false);
-    expect(slow.queue.length).toBeLessThan(SESSION_EVENT_SUBSCRIBER_CAPACITY);
-    broker.publish("s1", [big(32), big(33)]);
-    expect(slow.overflowed).toBe(true);
+    broker.publishPreviews("s1", [delta("m2", "y")]);
+    expect(slow.closed, "the stream stays open").toBe(false);
+    expect(slow.previews).toEqual([]);
     expect(slow.queuedBytes).toBe(0);
-    expect(SESSION_EVENT_SUBSCRIBER_MAX_BYTES).toBe(32 * 1024 * 1024);
+    expect([...slow.droppedIds].sort()).toEqual(["m1", "m2"]);
+    broker.publishPreviews("s1", [delta("m1", "z"), delta("m3", "w")]);
+    expect(
+      slow.previews.map((f) => (f.frame.case === "eventDelta" ? f.frame.value.eventId : "")),
+      "a dropped message's later fragment never arrives; a new message's does",
+    ).toEqual(["m3"]);
+    expect(fresh.previews.map((f) => (f.frame.case === "eventDelta" ? f.frame.value.eventId : ""))).toEqual(["m2", "m1", "m3"]);
+    expect(broker.subscriberCount("s1")).toBe(2);
   });
 
-  it("ends a stream that falls behind instead of thinning it, and keeps serving the others", () => {
+  it("drops previews past the byte budget before the frame cap", () => {
     const broker = new SessionEventBroker(silentLogger);
-    const slow = broker.subscribe("s1", []);
-    broker.publish("s1", Array.from({ length: SESSION_EVENT_SUBSCRIBER_CAPACITY }, (_, i) => thinking(`e${i}`, i + 1)));
-    const fresh = broker.subscribe("s1", []);
-    broker.publish("s1", [thinking("over", SESSION_EVENT_SUBSCRIBER_CAPACITY + 1)]);
-    expect(slow.overflowed).toBe(true);
-    expect(slow.closed).toBe(true);
-    expect(slow.queue).toEqual([]);
-    expect(fresh.queue).toHaveLength(1);
-    expect(broker.subscriberCount("s1")).toBe(1);
+    const slow = broker.subscribe("s1", ["agent.message"]);
+    const big = (i: number) => delta(`m${i}`, "x".repeat(1024 * 1024));
+    for (let i = 1; i <= 31; i++) {
+      broker.publishPreviews("s1", [big(i)]);
+    }
+    expect(slow.previews).toHaveLength(31);
+    broker.publishPreviews("s1", [big(32), big(33)]);
+    expect(slow.previews.map((f) => (f.frame.case === "eventDelta" ? f.frame.value.eventId : ""))).toEqual(["m33"]);
+    expect(slow.droppedIds.has("m1") && slow.droppedIds.has("m32")).toBe(true);
+    expect(SESSION_EVENT_PREVIEW_MAX_BYTES).toBe(32 * 1024 * 1024);
+  });
+
+  it("remembers a bounded number of dropped ids, forgetting the oldest", () => {
+    const broker = new SessionEventBroker(silentLogger);
+    const slow = broker.subscribe("s1", ["agent.message"]);
+    const ids = SESSION_EVENT_DROPPED_IDS_KEPT + SESSION_EVENT_PREVIEW_CAPACITY;
+    for (let i = 0; i <= ids; i++) {
+      broker.publishPreviews("s1", [delta(`m${i}`, "x")]);
+    }
+    expect(slow.droppedIds.size).toBe(SESSION_EVENT_DROPPED_IDS_KEPT);
+    expect(slow.droppedIds.has("m0")).toBe(false);
+  });
+
+  it("a dropped preview that names no id keeps later ones that name none from arriving", () => {
+    const broker = new SessionEventBroker(silentLogger);
+    const slow = broker.subscribe("s1", [""]);
+    const nameless = create(SessionEventPreviewSchema, { preview: { case: "eventStart", value: {} } });
+    broker.publishPreviews("s1", Array.from({ length: SESSION_EVENT_PREVIEW_CAPACITY + 1 }, () => nameless));
+    expect(slow.droppedIds.has("")).toBe(true);
+    broker.publishPreviews("s1", [nameless]);
+    expect(slow.previews).toEqual([]);
+  });
+
+  it("closing ends every stream with its reason and refuses new ones", () => {
+    const broker = new SessionEventBroker(silentLogger);
+    const open = broker.subscribe("s1", []);
+    let woken = false;
+    open.notify = () => (woken = true);
+    broker.close();
+    broker.close("ignored: already closed");
+    expect(open.closed && woken).toBe(true);
+    expect(open.closedBecause).toBe(SESSION_EVENT_BROKER_CLOSED_MESSAGE);
+    expect(broker.subscriberCount("s1")).toBe(0);
+    const late = broker.subscribe("s1", []);
+    expect(late.closed).toBe(true);
+    expect(late.closedBecause).toBe(SESSION_EVENT_BROKER_CLOSED_MESSAGE);
+    broker.unsubscribe("s1", late);
   });
 });
 
 describe("the stream", () => {
-  it("yields what the broker delivers and unsubscribes when the client leaves", async () => {
+  let temp: ReturnType<typeof tempStore>;
+  const guard = { kind: ApiResourceKind.run, id: "run_r", schema: RunSchema, admit: () => undefined };
+
+  beforeEach(async () => {
+    temp = tempStore();
+    await temp.store.saveResource(
+      ApiResourceKind.run,
+      "run_r",
+      RunSchema,
+      create(RunSchema, {
+        metadata: { id: "run_r", org: "acme" },
+        spec: { target: { case: "sessionId", value: "s1" } },
+        status: { phase: RunPhase.RUN_IN_PROGRESS },
+      }),
+    );
+  });
+
+  afterEach(async () => {
+    await temp.cleanup();
+  });
+
+  /** Appends to the log as any process would: committed, with no bell rung here. */
+  async function commit(...ids: string[]): Promise<void> {
+    await temp.store.sessionEvents.append("s1", "acme", ids.map((id) => draftOf(thinking(id, 0))), guard);
+  }
+
+  function open(
+    broker: SessionEventBroker,
+    request: { afterSeq?: bigint; eventDeltas?: string[] } = {},
+    deps: Partial<StreamSessionEventsDeps> = {},
+    signal: AbortSignal = new AbortController().signal,
+  ) {
+    return streamSessionEvents(
+      {
+        store: temp.store,
+        logger: silentLogger,
+        authorizer: newPermissiveSingleTeamAuthorizer(),
+        sessionEventBroker: broker,
+        ...deps,
+      },
+      create(StreamSessionEventsRequestSchema, { sessionId: "s1", ...request }),
+      context(signal),
+    );
+  }
+
+  it("starts after the newest stored event, sends what the bell rings for, and unsubscribes when the client leaves", async () => {
+    await commit("old");
     const broker = new SessionEventBroker(silentLogger);
     const abort = new AbortController();
-    const stream = streamSessionEvents(
-      { store: untouchedStore, logger: silentLogger, authorizer: newPermissiveSingleTeamAuthorizer(), sessionEventBroker: broker },
-      create(StreamSessionEventsRequestSchema, { sessionId: "s1" }),
-      context(abort.signal),
-    );
+    const stream = open(broker, {}, {}, abort.signal);
     const first = stream.next();
-    await new Promise((resolve) => setImmediate(resolve));
-    broker.publish("s1", [thinking("a", 1)]);
-    const frame = (await first).value;
-    expect(frame?.frame.case).toBe("event");
+    await settle();
+    await commit("new");
+    broker.publish("s1", [thinking("new", 2)]);
+    expect(seqOf((await first).value), "nothing from before it opened").toBe(2n);
     abort.abort();
     expect((await stream.next()).done).toBe(true);
     expect(broker.subscriberCount("s1")).toBe(0);
   });
 
-  it("ends with RESOURCE_EXHAUSTED when it fell behind, telling the client to list from its last event", async () => {
+  it("resumes after a seq: the stored events after it, then later ones, none missing and none repeated", async () => {
+    await commit("a", "b", "c");
     const broker = new SessionEventBroker(silentLogger);
-    const stream = streamSessionEvents(
-      { store: untouchedStore, logger: silentLogger, authorizer: newPermissiveSingleTeamAuthorizer(), sessionEventBroker: broker },
-      create(StreamSessionEventsRequestSchema, { sessionId: "s1" }),
-      context(new AbortController().signal),
-    );
+    const stream = open(broker, { afterSeq: 1n });
+    const seqs: bigint[] = [seqOf((await stream.next()).value)];
+    // A bell rung while the stream reads: the event is either in this read or the next, never both.
+    await commit("d");
+    broker.publish("s1", [thinking("d", 4)]);
+    for (let i = 0; i < 2; i++) {
+      seqs.push(seqOf((await stream.next()).value));
+    }
+    expect(seqs).toEqual([2n, 3n, 4n]);
+    await stream.return(undefined);
+  });
+
+  it("finds an event another process committed at the tail read, with no bell", async () => {
+    const broker = new SessionEventBroker(silentLogger);
+    const stream = open(broker, { afterSeq: 0n }, { tailMs: { min: 20, max: 40 } });
     const first = stream.next();
-    await new Promise((resolve) => setImmediate(resolve));
-    broker.publish("s1", Array.from({ length: SESSION_EVENT_SUBSCRIBER_CAPACITY + 1 }, (_, i) => thinking(`e${i}`, i + 1)));
-    const error = await first.then(
-      () => undefined,
-      (e: unknown) => ConnectError.from(e),
-    );
-    expect(error?.code).toBe(Code.ResourceExhausted);
-    expect(error?.rawMessage).toBe(STREAM_FELL_BEHIND_MESSAGE);
+    await settle();
+    await commit("elsewhere");
+    expect(seqOf((await first).value)).toBe(1n);
+    await stream.return(undefined);
+  });
+
+  it("backs its tail read off from the minimum to the maximum while nothing arrives", () => {
+    expect(SESSION_EVENT_TAIL_MIN_MS).toBe(15_000);
+    expect(SESSION_EVENT_TAIL_MAX_MS).toBe(2 * 60_000);
+  });
+
+  it("a slow reader only lags: thousands of events committed while it is not reading arrive once each, in order", async () => {
+    const broker = new SessionEventBroker(silentLogger);
+    const stream = open(broker, { afterSeq: 0n });
+    const total = 5 * SESSION_EVENT_REPLAY_BATCH + 7;
+    const first = stream.next();
+    await settle();
+    for (let i = 0; i < total; i += 50) {
+      await commit(...Array.from({ length: Math.min(50, total - i) }, (_, j) => `e${i + j}`));
+      broker.publish("s1", [thinking("ring", 0)]);
+    }
+    const seqs: bigint[] = [seqOf((await first).value)];
+    while (seqs.length < total) {
+      seqs.push(seqOf((await stream.next()).value));
+    }
+    expect(seqs).toEqual(Array.from({ length: total }, (_, i) => BigInt(i + 1)));
+    expect(broker.subscriberCount("s1"), "never ended").toBe(1);
+    await stream.return(undefined);
+  });
+
+  it("sends the previews queued while it reads a long log between batches, not after the whole log", async () => {
+    await commit(...Array.from({ length: SESSION_EVENT_REPLAY_BATCH + 5 }, (_, i) => `e${i}`));
+    const broker = new SessionEventBroker(silentLogger);
+    const stream = open(broker, { afterSeq: 0n, eventDeltas: ["agent.message"] });
+    const cases: string[] = [];
+    const first = await stream.next();
+    cases.push(first.value?.frame.case ?? "");
+    broker.publishPreviews("s1", [delta("live", "x")]);
+    while (cases.length < SESSION_EVENT_REPLAY_BATCH + 6) {
+      cases.push((await stream.next()).value?.frame.case ?? "");
+    }
+    expect(cases.indexOf("eventDelta"), "right after the first batch").toBe(SESSION_EVENT_REPLAY_BATCH);
+    await stream.return(undefined);
+  });
+
+  it("doubles its tail read's interval while reads find nothing, up to the maximum", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      let reads = 0;
+      const empty = { sessionEvents: { list: async () => (reads++, []) } } as unknown as Store;
+      const broker = new SessionEventBroker(silentLogger);
+      const stream = open(broker, { afterSeq: 0n }, { store: empty, tailMs: { min: 10, max: 40 } });
+      const pending = stream.next();
+      const readsAfter = async (ms: number): Promise<number> => {
+        await vi.advanceTimersByTimeAsync(ms);
+        return reads;
+      };
+      expect(await readsAfter(0), "the resume").toBe(1);
+      expect(await readsAfter(10), "the first tail read, at the minimum").toBe(2);
+      expect(await readsAfter(19), "the next waits twice as long").toBe(2);
+      expect(await readsAfter(1)).toBe(3);
+      expect(await readsAfter(39), "then the maximum").toBe(3);
+      expect(await readsAfter(1)).toBe(4);
+      expect(await readsAfter(40), "and stays there").toBe(5);
+      broker.close();
+      await expect(pending).rejects.toMatchObject({ code: Code.Unavailable });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("sends an append's previews before its events", async () => {
+    const broker = new SessionEventBroker(silentLogger);
+    const stream = open(broker, { eventDeltas: ["agent.message"] });
+    const first = stream.next();
+    await settle();
+    await commit("m");
+    broker.publishPreviews("s1", [delta("m", "he")]);
+    broker.publish("s1", [thinking("m", 1)]);
+    expect((await first).value?.frame.case).toBe("eventDelta");
+    expect(seqOf((await stream.next()).value)).toBe(1n);
+    await stream.return(undefined);
+  });
+
+  it("ends with UNAVAILABLE when the broker closes, and refuses a stream opened after", async () => {
+    const broker = new SessionEventBroker(silentLogger);
+    const stream = open(broker, { afterSeq: 0n });
+    const first = stream.next();
+    await settle();
+    broker.close();
+    await expect(first).rejects.toMatchObject({ code: Code.Unavailable });
+    expect(broker.subscriberCount("s1")).toBe(0);
+    await expect(open(broker, { afterSeq: 0n }).next()).rejects.toMatchObject({
+      code: Code.Unavailable,
+      rawMessage: SESSION_EVENT_BROKER_CLOSED_MESSAGE,
+    });
   });
 
   it("asks the method's question again once the stream has served long enough, and ends when it is refused", async () => {
@@ -166,89 +372,42 @@ describe("the stream", () => {
         asked += 1;
         return asked <= 2 ? { kind: "allow" as const } : { kind: "deny" as const, reason: "revoked" };
       },
-    } as unknown as Parameters<typeof streamSessionEvents>[0]["authorizer"];
-    const stream = streamSessionEvents(
-      { store: untouchedStore, logger: silentLogger, authorizer, sessionEventBroker: broker, now: () => clock },
-      create(StreamSessionEventsRequestSchema, { sessionId: "s1" }),
-      context(new AbortController().signal),
-    );
+    } as unknown as StreamSessionEventsDeps["authorizer"];
+    const stream = open(broker, { afterSeq: 0n }, { authorizer, now: () => clock });
+    const ring = async (id: string) => {
+      await commit(id);
+      broker.publish("s1", [thinking(id, 0)]);
+    };
     const first = stream.next();
-    await new Promise((resolve) => setImmediate(resolve));
-    broker.publish("s1", [thinking("a", 1)]);
+    await settle();
+    await ring("a");
     expect((await first).value?.frame.case).toBe("event");
     clock = SESSION_EVENT_STREAM_REAUTHORIZE_MS;
     const second = stream.next();
-    await new Promise((resolve) => setImmediate(resolve));
-    broker.publish("s1", [thinking("b", 2)]);
+    await settle();
+    await ring("b");
     expect((await second).value?.frame.case, "still allowed: the frame flows").toBe("event");
     clock = 2 * SESSION_EVENT_STREAM_REAUTHORIZE_MS;
     const third = stream.next();
-    await new Promise((resolve) => setImmediate(resolve));
-    broker.publish("s1", [thinking("c", 3)]);
+    await settle();
+    await ring("c");
     await expect(third).rejects.toMatchObject({ code: Code.PermissionDenied });
     expect(asked).toBe(3);
     expect(broker.subscriberCount("s1")).toBe(0);
   });
 
-  it("resumes after a seq: the stored events after it, then live ones, none missing and none repeated", async () => {
-    const temp = tempStore();
-    try {
-      const broker = new SessionEventBroker(silentLogger);
-      await temp.store.saveResource(
-        ApiResourceKind.run,
-        "run_r",
-        RunSchema,
-        create(RunSchema, {
-          metadata: { id: "run_r", org: "acme" },
-          spec: { target: { case: "sessionId", value: "s1" } },
-          status: { phase: RunPhase.RUN_IN_PROGRESS },
-        }),
-      );
-      const guard = { kind: ApiResourceKind.run, id: "run_r", schema: RunSchema, admit: () => undefined };
-      const stored = await temp.store.sessionEvents.append(
-        "s1",
-        "acme",
-        ["a", "b", "c"].map((id) => draftOf(thinking(id, 0))),
-        guard,
-      );
-      const stream = streamSessionEvents(
-        { store: temp.store, logger: silentLogger, authorizer: newPermissiveSingleTeamAuthorizer(), sessionEventBroker: broker },
-        create(StreamSessionEventsRequestSchema, { sessionId: "s1", afterSeq: 1n }),
-        context(new AbortController().signal),
-      );
-      const seqs: bigint[] = [];
-      const first = await stream.next();
-      seqs.push(first.value?.frame.case === "event" ? first.value.frame.value.seq : -1n);
-      // Live: one event the stream already read from the store (seq 3), then a new one.
-      const later = await temp.store.sessionEvents.append("s1", "acme", [draftOf(thinking("d", 0))], guard);
-      broker.publish("s1", [eventOf(stored.records[2]!), eventOf(later.records[0]!)]);
-      for (let i = 0; i < 2; i++) {
-        const next = await stream.next();
-        seqs.push(next.value?.frame.case === "event" ? next.value.frame.value.seq : -1n);
-      }
-      expect(seqs).toEqual([2n, 3n, 4n]);
-      await stream.return(undefined);
-    } finally {
-      await temp.cleanup();
-    }
-  });
-
-  it("a resumed stream answers a store fault as INTERNAL", async () => {
+  it("answers a store fault as INTERNAL", async () => {
     const broker = new SessionEventBroker(silentLogger);
     const failing = { sessionEvents: { list: () => Promise.reject(new Error("database is locked")) } } as unknown as Store;
-    const stream = streamSessionEvents(
-      { store: failing, logger: silentLogger, authorizer: newPermissiveSingleTeamAuthorizer(), sessionEventBroker: broker },
-      create(StreamSessionEventsRequestSchema, { sessionId: "s1", afterSeq: 0n }),
-      context(new AbortController().signal),
-    );
-    await expect(stream.next()).rejects.toMatchObject({ code: Code.Internal });
+    await expect(open(broker, { afterSeq: 0n }, { store: failing }).next()).rejects.toMatchObject({ code: Code.Internal });
+    await expect(open(broker, {}, { store: failing }).next()).rejects.toMatchObject({ code: Code.Internal });
     expect(broker.subscriberCount("s1")).toBe(0);
   });
 
   it("refuses a request that names no session", async () => {
     const broker = new SessionEventBroker(silentLogger);
     const stream = streamSessionEvents(
-      { store: untouchedStore, logger: silentLogger, authorizer: newPermissiveSingleTeamAuthorizer(), sessionEventBroker: broker },
+      { store: temp.store, logger: silentLogger, authorizer: newPermissiveSingleTeamAuthorizer(), sessionEventBroker: broker },
       create(StreamSessionEventsRequestSchema, {}),
       context(new AbortController().signal),
     );

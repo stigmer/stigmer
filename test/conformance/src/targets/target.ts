@@ -21,6 +21,24 @@ export interface EngineCoordinates {
   serverBaseUrl: string;
 }
 
+// How TargetProfile.restartServer replaces the server.
+export interface ServerRestartOptions {
+  // Called while the outgoing and the incoming server both serve, the
+  // rolling update's overlap, with clients bound to the incoming server
+  // alone; the outgoing server is shut down once it resolves. Connections
+  // already open through the target's front (the runner's) stay on the
+  // outgoing server until it leaves. Not called where the storage cannot be
+  // served by two processes at once (SQLite): there the restart is a plain
+  // stop-then-start.
+  readonly duringOverlap?: (incoming: ConformanceClients) => Promise<void>;
+}
+
+// What a server restart was.
+export interface ServerRestart {
+  // Whether the two servers served together (duringOverlap was called).
+  readonly overlapped: boolean;
+}
+
 // How TargetProfile.restartRunner ends the runner it replaces.
 export interface RunnerRestartOptions {
   // SIGKILL is a crash (nothing drains, nothing is written; the workflow
@@ -871,6 +889,19 @@ export interface TargetProfile {
   // excluded from the cloud lane by name (vitest.cloud-execution.config.ts).
   // Valid only after setup().
   restartRunner?(options: RunnerRestartOptions): Promise<void>;
+
+  // Replaces the target's server under its clients and its runner, as a
+  // rollout does: every address the target hands out is a front that stands
+  // in for the deployment's Service (@stigmer/test-support/tcp-front), so
+  // new connections reach the replacement and open ones end with the server
+  // they were on. Where the storage takes two servers at once (Postgres) the
+  // replacement boots on the same database, engine and artifact store, joins
+  // the front, and the outgoing one is shut down with SIGTERM after
+  // `duringOverlap`; on SQLite the outgoing one is shut down first and the
+  // replacement boots on the same file. Present only on the local execution
+  // targets; the cloud's server is the composition's. Valid only after
+  // setup().
+  restartServer?(options?: ServerRestartOptions): Promise<ServerRestart>;
 
   // The on-disk artifact store the spawned server and runner share (the
   // server's ARTIFACT_LOCAL_BASE_PATH = the runner's LOCAL_ARTIFACT_PATH, #285).

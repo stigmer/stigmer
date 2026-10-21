@@ -150,7 +150,7 @@
           "outputType": "StreamSessionEventsResponse",
           "outputFullType": "ai.stigmer.agentic.session.v1.StreamSessionEventsResponse",
           "serverStreaming": true,
-          "description": "Stream a session's events as they are appended.\n\n Without after_seq the stream starts at the moment it opens, as Managed\n Agents' does. With after_seq it first sends the stored events after\n that seq, then the new ones, with none missing: a client that listed\n up to some seq, or whose stream ended, resumes from the last seq it\n has. A watcher that falls too far behind is ended with\n RESOURCE_EXHAUSTED; it resumes the same way."
+          "description": "Stream a session's events as they are appended.\n\n Without after_seq the stream starts at the moment it opens, as Managed\n Agents' does. With after_seq it first sends the stored events after\n that seq, then the new ones, with none missing: a client that listed\n up to some seq, or whose stream ended, resumes from the last seq it\n has. A watcher that reads slowly lags behind the log and is never\n ended for it; a server that is restarting ends its streams with\n UNAVAILABLE, and a client resumes the same way."
         }
       ]
     }

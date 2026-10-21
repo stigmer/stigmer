@@ -334,8 +334,9 @@ public final class SessionQueryControllerGrpc {
      * Agents' does. With after_seq it first sends the stored events after
      * that seq, then the new ones, with none missing: a client that listed
      * up to some seq, or whose stream ended, resumes from the last seq it
-     * has. A watcher that falls too far behind is ended with
-     * RESOURCE_EXHAUSTED; it resumes the same way.
+     * has. A watcher that reads slowly lags behind the log and is never
+     * ended for it; a server that is restarting ends its streams with
+     * UNAVAILABLE, and a client resumes the same way.
      * </pre>
      */
     default void streamEvents(ai.stigmer.agentic.session.v1.StreamSessionEventsRequest request,
@@ -449,8 +450,9 @@ public final class SessionQueryControllerGrpc {
      * Agents' does. With after_seq it first sends the stored events after
      * that seq, then the new ones, with none missing: a client that listed
      * up to some seq, or whose stream ended, resumes from the last seq it
-     * has. A watcher that falls too far behind is ended with
-     * RESOURCE_EXHAUSTED; it resumes the same way.
+     * has. A watcher that reads slowly lags behind the log and is never
+     * ended for it; a server that is restarting ends its streams with
+     * UNAVAILABLE, and a client resumes the same way.
      * </pre>
      */
     public void streamEvents(ai.stigmer.agentic.session.v1.StreamSessionEventsRequest request,
@@ -546,8 +548,9 @@ public final class SessionQueryControllerGrpc {
      * Agents' does. With after_seq it first sends the stored events after
      * that seq, then the new ones, with none missing: a client that listed
      * up to some seq, or whose stream ended, resumes from the last seq it
-     * has. A watcher that falls too far behind is ended with
-     * RESOURCE_EXHAUSTED; it resumes the same way.
+     * has. A watcher that reads slowly lags behind the log and is never
+     * ended for it; a server that is restarting ends its streams with
+     * UNAVAILABLE, and a client resumes the same way.
      * </pre>
      */
     @io.grpc.ExperimentalApi("https://github.com/grpc/grpc-java/issues/10918")
@@ -644,8 +647,9 @@ public final class SessionQueryControllerGrpc {
      * Agents' does. With after_seq it first sends the stored events after
      * that seq, then the new ones, with none missing: a client that listed
      * up to some seq, or whose stream ended, resumes from the last seq it
-     * has. A watcher that falls too far behind is ended with
-     * RESOURCE_EXHAUSTED; it resumes the same way.
+     * has. A watcher that reads slowly lags behind the log and is never
+     * ended for it; a server that is restarting ends its streams with
+     * UNAVAILABLE, and a client resumes the same way.
      * </pre>
      */
     public java.util.Iterator<ai.stigmer.agentic.session.v1.StreamSessionEventsResponse> streamEvents(

@@ -8,7 +8,15 @@
 // TemporalManager's initial connect flips the engine-state provider to
 // connected), and the server before the runner (which streams status back
 // to it). teardown() reverses it.
-import { rm } from "node:fs/promises";
+//
+// Every address the target hands out (its clients, the runner's backend, the
+// Managed Agents and HTTP lanes) is a TCP front over the server
+// (@stigmer/test-support/tcp-front), the stand-in for a deployment's
+// Service, and the server keeps its state in a directory the target owns, so
+// restartServer can replace the server under all of them as a rollout does.
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { ServerEdition } from "@stigmer/apis/ai/stigmer/platform/v1/server_info_pb";
 import { awaitGrpcReady } from "../harness/grpc-ready";
 import {
@@ -31,6 +39,7 @@ import {
   type ProvisionedStorage,
   type RunningServer,
 } from "@stigmer/test-support/server-process";
+import { startTcpFront, type TcpFront } from "@stigmer/test-support/tcp-front";
 import { spawnTemporal, type RunningTemporal } from "@stigmer/test-support/temporal";
 import { ensureLibraryServerEntry } from "@stigmer/test-support/ts-build";
 import { createUniqueOrganization } from "../support/organizations";
@@ -40,6 +49,8 @@ import type {
   EnforcingLane,
   PrivilegedScope,
   RunnerRestartOptions,
+  ServerRestart,
+  ServerRestartOptions,
   SiblingExecutionServer,
   SpawnSiblingOptions,
   TargetProfile,
@@ -130,6 +141,10 @@ export class LocalExecutionTarget implements TargetProfile {
   private temporal: RunningTemporal | undefined;
   private server: RunningServer | undefined;
   private storage: ProvisionedStorage | undefined;
+  // The address every client and the runner dial, and the state directory
+  // each server of this target serves (restartServer).
+  private front: TcpFront | undefined;
+  private serverStateDir: string | undefined;
   private runner: RunningRunner | undefined;
   // What the runner was booted with, and the state directories the target
   // owns for it and every replacement (restartRunner); removed at teardown.
@@ -146,7 +161,8 @@ export class LocalExecutionTarget implements TargetProfile {
   private siblingLane: Promise<SiblingEnforcingLane> | undefined;
 
   async setup(): Promise<void> {
-    const entry = await ensureLibraryServerEntry();
+    // Built once here; spawnPrimaryServer reads the same entry.
+    await ensureLibraryServerEntry();
     const runnerEntry = await ensureRunnerBuilt();
 
     // 1. Temporal first: the TemporalManager's initial connect only flips the
@@ -158,15 +174,11 @@ export class LocalExecutionTarget implements TargetProfile {
     //    STIGMER_SCHEDULES_MAX_CONSECUTIVE_FAILURES=2, makes the auto-pause
     //    provable in two fires.
     this.storage = await this.provisionStorage();
-    this.server = await spawnServer(process.execPath, {
-      args: [entry],
-      temporalHostPort: this.temporal.hostPort,
-      env: {
-        STIGMER_SCHEDULES_MAX_CONSECUTIVE_FAILURES: "2",
-        ...this.storage.serverEnv,
-      },
-    });
-    this.conformanceClients = makeClients(createTransport(this.server.baseUrl));
+    this.serverStateDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-"));
+    this.front = await startTcpFront();
+    this.server = await spawnPrimaryServer(this.temporal, this.storage, this.serverStateDir);
+    this.front.add(this.server.port);
+    this.conformanceClients = makeClients(createTransport(this.front.baseUrl));
     await awaitGrpcReady(this.conformanceClients, () => this.server?.logTail() ?? "(no server)");
 
     // 3. Mock LLM proxy before the runner, so its URL is known when the runner
@@ -191,8 +203,8 @@ export class LocalExecutionTarget implements TargetProfile {
     this.runnerOptions = {
       entryPath: runnerEntry,
       temporalHostPort: this.temporal.hostPort,
-      backendEndpoint: this.server.baseUrl,
-      registryOrigin: this.server.baseUrl,
+      backendEndpoint: this.front.baseUrl,
+      registryOrigin: this.front.baseUrl,
       proxy: { endpoint: this.mockLlm.url(), token: "conformance-mock-token" },
       // Share the server's local artifact store so a File's bytes the server
       // stored resolve when the runner fetches them back (#285).
@@ -214,6 +226,40 @@ export class LocalExecutionTarget implements TargetProfile {
     await ended.kill(options.signal);
     options.onEnded?.();
     this.runner = await spawnRunner(this.runnerOptions);
+  }
+
+  // TargetProfile.restartServer: the replacement serves the same storage,
+  // engine and state directory behind the same front (target.ts says how
+  // the two storage shapes differ).
+  async restartServer(options: ServerRestartOptions = {}): Promise<ServerRestart> {
+    const { front, server: outgoing, temporal, storage, serverStateDir } = this;
+    if (front === undefined || outgoing === undefined || temporal === undefined || storage === undefined || serverStateDir === undefined) {
+      throw new Error("LocalExecutionTarget.setup() must be called before restartServer()");
+    }
+    const overlapped = storage.sharedByTwoServers === true;
+    if (!overlapped) {
+      front.remove(outgoing.port);
+      this.server = undefined;
+      await outgoing.shutdown();
+    }
+    const incoming = await spawnPrimaryServer(temporal, storage, serverStateDir);
+    try {
+      await awaitGrpcReady(makeClients(createTransport(incoming.baseUrl)), () => incoming.logTail());
+    } catch (error) {
+      await incoming.stop();
+      throw error;
+    }
+    front.add(incoming.port);
+    this.server = incoming;
+    if (overlapped) {
+      try {
+        await options.duringOverlap?.(makeClients(createTransport(incoming.baseUrl)));
+      } finally {
+        front.remove(outgoing.port);
+        await outgoing.shutdown();
+      }
+    }
+    return { overlapped };
   }
 
   // The storage-driver seam (the LocalTarget shape): local-postgres-execution
@@ -399,10 +445,10 @@ export class LocalExecutionTarget implements TargetProfile {
   }
 
   private serverBaseUrl(): string {
-    if (this.server === undefined) {
+    if (this.front === undefined) {
       throw new Error("LocalExecutionTarget.setup() must be called before building clients");
     }
-    return this.server.baseUrl;
+    return this.front.baseUrl;
   }
 
   async provisionTenancy(): Promise<TenancyContext> {
@@ -449,8 +495,14 @@ export class LocalExecutionTarget implements TargetProfile {
     await this.mcpTools?.close();
     await this.otlpCollector?.close();
     await this.server?.stop();
+    await this.front?.close();
     await this.storage?.release();
+    if (this.serverStateDir !== undefined) {
+      await rm(this.serverStateDir, { recursive: true, force: true });
+    }
     await this.temporal?.stop();
+    this.front = undefined;
+    this.serverStateDir = undefined;
     this.runner = undefined;
     this.mockLlm = undefined;
     this.mcpTools = undefined;
@@ -460,4 +512,23 @@ export class LocalExecutionTarget implements TargetProfile {
     this.temporal = undefined;
     this.conformanceClients = undefined;
   }
+}
+
+// The primary server, on the target's engine, storage and state directory;
+// every server restartServer boots is spawned the same way. Its schedule
+// failure-streak override makes the auto-pause provable in two fires.
+async function spawnPrimaryServer(
+  temporal: RunningTemporal,
+  storage: ProvisionedStorage,
+  stateDir: string,
+): Promise<RunningServer> {
+  return spawnServer(process.execPath, {
+    args: [await ensureLibraryServerEntry()],
+    temporalHostPort: temporal.hostPort,
+    stateDir,
+    env: {
+      STIGMER_SCHEDULES_MAX_CONSECUTIVE_FAILURES: "2",
+      ...storage.serverEnv,
+    },
+  });
 }

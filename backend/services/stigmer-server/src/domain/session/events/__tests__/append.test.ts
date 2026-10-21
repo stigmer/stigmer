@@ -294,7 +294,7 @@ describe("resends", () => {
 });
 
 describe("live delivery", () => {
-  it("stored events reach every stream; previews only the streams that asked for their type", async () => {
+  it("stored events ring every stream; previews reach only the streams that asked for their type", async () => {
     await seedRun("run_a", "ses_a");
     const plain = broker.subscribe("ses_a", []);
     const messages = broker.subscribe("ses_a", ["agent.message"]);
@@ -311,18 +311,19 @@ describe("live delivery", () => {
       },
       auth.mintRunCredential("run_a"),
     );
-    expect(plain.queue.map((f) => f.frame.case)).toEqual(["event"]);
-    expect(messages.queue.map((f) => f.frame.case)).toEqual(["eventStart", "eventDelta", "event"]);
-    expect(thinking.queue.map((f) => f.frame.case)).toEqual(["eventStart", "event"]);
+    expect([plain.dirty, messages.dirty, thinking.dirty]).toEqual([true, true, true]);
+    expect(plain.previews).toEqual([]);
+    expect(messages.previews.map((f) => f.frame.case)).toEqual(["eventStart", "eventDelta"]);
+    expect(thinking.previews.map((f) => f.frame.case)).toEqual(["eventStart"]);
   });
 
-  it("a resend reaches no stream a second time", async () => {
+  it("a resend rings no stream a second time", async () => {
     await seedRun("run_a", "ses_a");
     const token = auth.mintRunCredential("run_a");
     await append({ runId: "run_a", events: [message("m1")] }, token);
     const stream = broker.subscribe("ses_a", []);
     await append({ runId: "run_a", events: [message("m1")] }, token);
-    expect(stream.queue).toEqual([]);
+    expect(stream.dirty).toBe(false);
   });
 });
 

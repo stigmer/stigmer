@@ -359,8 +359,9 @@ the same `session_id` and `tool_use_id`.
 Transport errors (network failures, server unavailability) surface as SDK
 errors while you read. Remember the `seq` of the last event you handled, and
 reopen the stream with `after_seq` set to it: the stream sends what you missed,
-then continues. A stream that falls too far behind the log is ended with
-`RESOURCE_EXHAUSTED`; resume it the same way. Wait a moment between attempts.
+then continues. A server that is restarting ends its streams with
+`UNAVAILABLE`; resume the same way. A reader that falls behind the log only
+lags, and its stream is never ended for it. Wait a moment between attempts.
 
 <SDKTabs>
 <Tab value="TypeScript">

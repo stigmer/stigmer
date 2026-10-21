@@ -2,18 +2,31 @@
  * SessionQueryController.streamEvents: a session's events as they are
  * appended, and the previews the stream asked for.
  *
- * Without `after_seq` the stream starts when it opens and sends nothing
- * from before, as Managed Agents' does. With it, the stream resumes: it
- * registers with the broker FIRST, then sends every stored event after
- * that seq from the store, then the live frames, dropping a live event it
- * already sent from the store. Registering before reading means an event
- * committed while the store is read is either in the read or in the queue,
- * so none is missed and none is sent twice; that is what a client that
- * listed, or whose stream ended, resumes with. The stream stays open for
- * the client's lifetime (a session always takes another turn), ending only
- * when the client leaves or when it falls more than the broker's budget
- * behind, which ends it with RESOURCE_EXHAUSTED so the client resumes from
- * the last seq it has instead of silently missing events (broker.ts).
+ * The stream is a cursor over the stored log. It keeps one position, the
+ * last seq it sent, and its loop does one thing: read the store after that
+ * seq, send, advance. With `after_seq` it starts there (a resume); without,
+ * it starts after the newest stored event, read once the subscription has
+ * registered, so it sends nothing from before it opened, as Managed Agents'
+ * does. Every later append is numbered above that position, so none is
+ * missed, and because the position only moves forward none is sent twice.
+ *
+ * Between reads it waits for one of three things: the client leaving, the
+ * broker's bell (an append on this server committed, broker.ts), or the
+ * tail timer, which finds what another server process committed: the
+ * rolling update's overlap, when the outgoing and the incoming server serve
+ * together and a watcher's stream is on the other one. The tail read runs
+ * `SESSION_EVENT_TAIL_MIN_MS` after the last delivered event, doubling up to
+ * `SESSION_EVENT_TAIL_MAX_MS` while reads find nothing; an idle tab costs
+ * one indexed read per interval. Queued previews are sent before each read:
+ * an append publishes its previews before its events (append.ts), so their
+ * relative order holds.
+ *
+ * Nothing per watcher is held in server memory but its bounded previews,
+ * so a slow reader is never ended: it reads when it is ready, as a resume
+ * does. The stream stays open for the client's lifetime (a session always
+ * takes another turn), ending when the client leaves, or with UNAVAILABLE
+ * when the server starts to leave (the broker closes), which a client
+ * answers by streaming again with the last seq it has.
  *
  * A direct handler (ConnectRPC server streams are async generators,
  * which cannot yield from inside the pipeline): an
@@ -22,8 +35,8 @@
  * next frame once SESSION_EVENT_STREAM_REAUTHORIZE_MS has passed, so a
  * viewer whose access is withdrawn stops receiving events.
  *
- * Proven by __tests__/stream.test.ts and the session-events conformance
- * suite.
+ * Proven by __tests__/broker.test.ts and the session-events and long-turn
+ * conformance suites.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -42,18 +55,20 @@ import { internalError, invalidArgumentError } from "../../../pipeline/errors.js
 import { callerIdentityOf } from "../../../pipeline/interceptors/auth.js";
 import { authorizeDirect } from "../../../pipeline/steps/authorize.js";
 import type { Store } from "../../../store/interface.js";
-import type { SessionEventRecord } from "../../../store/session-events.js";
-import type { SessionEventBroker } from "./broker.js";
+import type { SessionEventQuery, SessionEventRecord } from "../../../store/session-events.js";
+import { SESSION_EVENT_BROKER_CLOSED_MESSAGE, type SessionEventBroker } from "./broker.js";
 import { eventOf } from "./codec.js";
 
 export interface StreamSessionEventsDeps {
-  /** Where a resumed stream reads the events after its cursor. */
+  /** Where the stream reads the events after its cursor. */
   readonly store: Store;
   readonly logger: Logger;
   readonly authorizer: Authorizer;
   readonly sessionEventBroker: SessionEventBroker;
   /** Unix milliseconds; injectable for the re-authorization arm. */
   readonly now?: () => number;
+  /** The tail read's bounds; injectable for the arms that would wait on them. */
+  readonly tailMs?: { readonly min: number; readonly max: number };
 }
 
 /**
@@ -65,12 +80,14 @@ export interface StreamSessionEventsDeps {
  */
 export const SESSION_EVENT_STREAM_REAUTHORIZE_MS = 5 * 60 * 1000;
 
-/** The refusal a stream that fell behind ends with. */
-export const STREAM_FELL_BEHIND_MESSAGE =
-  "the event stream fell behind; stream again with after_seq set to the last event received";
-
-/** How many stored events a resumed stream reads per round trip. */
+/** How many stored events the stream reads per round trip. */
 export const SESSION_EVENT_REPLAY_BATCH = 100;
+
+/** The tail read's first interval after a delivered event. */
+export const SESSION_EVENT_TAIL_MIN_MS = 15_000;
+
+/** The tail read's longest interval, reached while reads keep finding nothing. */
+export const SESSION_EVENT_TAIL_MAX_MS = 2 * 60_000;
 
 export async function* streamSessionEvents(
   deps: StreamSessionEventsDeps,
@@ -81,13 +98,15 @@ export async function* streamSessionEvents(
     throw invalidArgumentError("session_id is required");
   }
   const now = deps.now ?? Date.now;
+  const tail = deps.tailMs ?? { min: SESSION_EVENT_TAIL_MIN_MS, max: SESSION_EVENT_TAIL_MAX_MS };
   const authorize = () =>
     authorizeDirect(SessionQueryController.method.streamEvents, deps.authorizer, callerIdentityOf(context), req);
   await authorize();
   let authorizedAt = now();
 
   const sessionId = req.sessionId;
-  const subscription = deps.sessionEventBroker.subscribe(sessionId, req.eventDeltas);
+  const broker = deps.sessionEventBroker;
+  const subscription = broker.subscribe(sessionId, req.eventDeltas);
   const abort = new Promise<void>((resolve) => {
     context.signal.addEventListener("abort", () => resolve(), { once: true });
   });
@@ -97,56 +116,90 @@ export async function* streamSessionEvents(
       authorizedAt = now();
     }
   };
-  try {
-    // The resume: the stored events after the cursor, read after the
-    // subscription registered (the module header says why).
-    let sent: bigint | undefined;
-    if (req.afterSeq !== undefined) {
-      let after = Number(req.afterSeq);
-      for (;;) {
-        let records: SessionEventRecord[];
-        try {
-          records = await deps.store.sessionEvents.list(sessionId, {
-            order: "asc",
-            afterSeq: after,
-            limit: SESSION_EVENT_REPLAY_BATCH,
-          });
-        } catch (error) {
-          throw internalError(error, "failed to read the session's events");
-        }
-        for (const record of records) {
-          await reauthorizeWhenDue();
-          yield create(StreamSessionEventsResponseSchema, { frame: { case: "event", value: eventOf(record) } });
-          after = record.seq;
-        }
-        if (records.length < SESSION_EVENT_REPLAY_BATCH) {
-          break;
-        }
-      }
-      sent = BigInt(after);
+  const read = async (query: SessionEventQuery): Promise<SessionEventRecord[]> => {
+    try {
+      return await deps.store.sessionEvents.list(sessionId, query);
+    } catch (error) {
+      throw internalError(error, "failed to read the session's events");
     }
+  };
+  const endIfClosed = (): void => {
+    if (subscription.closed) {
+      throw new ConnectError(subscription.closedBecause ?? SESSION_EVENT_BROKER_CLOSED_MESSAGE, Code.Unavailable);
+    }
+  };
+  try {
+    endIfClosed();
+    // The cursor, read after the subscription registered (the header says why).
+    let sent: number;
+    if (req.afterSeq !== undefined) {
+      sent = Number(req.afterSeq);
+    } else {
+      const newest = await read({ order: "desc", limit: 1 });
+      sent = newest[0]?.seq ?? 0;
+    }
+    let tailMs = tail.min;
+    // The first read is the resume (or finds nothing); later ones are rung
+    // by the bell or fired by the tail timer.
+    let readDue = true;
+    let tailFired = false;
     while (!context.signal.aborted) {
-      const frame = deps.sessionEventBroker.take(subscription);
-      if (frame !== undefined) {
-        if (sent !== undefined && frame.frame.case === "event" && frame.frame.value.seq <= sent) {
-          continue;
-        }
+      endIfClosed();
+      let frame = broker.take(subscription);
+      while (frame !== undefined) {
         await reauthorizeWhenDue();
         yield frame;
+        frame = broker.take(subscription);
+      }
+      if (subscription.dirty || readDue) {
+        subscription.dirty = false;
+        readDue = false;
+        let delivered = false;
+        for (;;) {
+          const records = await read({ order: "asc", afterSeq: sent, limit: SESSION_EVENT_REPLAY_BATCH });
+          for (const record of records) {
+            await reauthorizeWhenDue();
+            yield create(StreamSessionEventsResponseSchema, { frame: { case: "event", value: eventOf(record) } });
+            sent = record.seq;
+            delivered = true;
+          }
+          if (records.length < SESSION_EVENT_REPLAY_BATCH || context.signal.aborted) {
+            break;
+          }
+          // Previews queued while a long log was read go out between
+          // batches, so they trail the events they preview by one batch at
+          // most.
+          frame = broker.take(subscription);
+          while (frame !== undefined) {
+            await reauthorizeWhenDue();
+            yield frame;
+            frame = broker.take(subscription);
+          }
+        }
+        if (delivered) {
+          tailMs = tail.min;
+        } else if (tailFired) {
+          tailMs = Math.min(tailMs * 2, tail.max);
+        }
+        tailFired = false;
         continue;
       }
-      // A subscription closes only when it overflowed or this stream
-      // unsubscribed it, so a closed one with no frames left fell behind.
-      if (subscription.closed) {
-        throw new ConnectError(STREAM_FELL_BEHIND_MESSAGE, Code.ResourceExhausted);
-      }
+      let timer: ReturnType<typeof setTimeout> | undefined;
       await Promise.race([
         abort,
         new Promise<void>((resolve) => (subscription.notify = resolve)),
+        new Promise<void>((resolve) => {
+          timer = setTimeout(() => {
+            readDue = true;
+            tailFired = true;
+            resolve();
+          }, tailMs);
+        }),
       ]);
+      clearTimeout(timer);
       subscription.notify = undefined;
     }
   } finally {
-    deps.sessionEventBroker.unsubscribe(sessionId, subscription);
+    broker.unsubscribe(sessionId, subscription);
   }
 }

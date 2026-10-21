@@ -20,6 +20,7 @@ import {
   ROUTING_GLOBAL,
 } from "../../../domain/run/temporal/config.js";
 import { SessionEventBroker } from "../../../domain/session/events/broker.js";
+import { eventOf } from "../../../domain/session/events/codec.js";
 import { createRunAppendingEvents } from "../../../domain/session/events/run-writes.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
@@ -115,10 +116,9 @@ describe("the agent-execution worker factory", () => {
 
       await close("run_b", SESSION);
 
-      const frame = sessionEventBroker.take(subscription);
-      expect(
-        frame?.frame.case === "event" ? frame.frame.value.event.case : undefined,
-      ).toBe("stigmerFileReviewDecided");
+      expect(subscription.dirty).toBe(true);
+      const [newest] = await temp.store.sessionEvents.list(SESSION, { order: "desc", limit: 1 });
+      expect(newest === undefined ? undefined : eventOf(newest).event.case).toBe("stigmerFileReviewDecided");
       sessionEventBroker.unsubscribe(SESSION, subscription);
     } finally {
       await temp.cleanup();

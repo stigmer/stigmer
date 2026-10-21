@@ -166,6 +166,6 @@ describe("the broker, given nothing", () => {
     const broker = new SessionEventBroker(silentLogger);
     const stream = broker.subscribe("s1", ["agent.message", "agent.thinking"]);
     broker.publishPreviews("s1", [create(SessionEventPreviewSchema, {})]);
-    expect(stream.queue).toEqual([]);
+    expect(stream.previews).toEqual([]);
   });
 });
