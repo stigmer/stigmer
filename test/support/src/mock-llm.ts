@@ -153,6 +153,11 @@ export interface MockLlmProxyOptions {
   // observation point for a harness that logs the model's timeline as it
   // happens (the e2e diagnostics), never a way to answer a request.
   onCapture?: (request: CapturedLlmRequest) => void;
+  // The address the server listens on; loopback by default. A runner in a
+  // container reaches the host through another address (a Docker network's
+  // gateway on Linux), so a harness serving one binds where that address
+  // lands and hands the runner urlAt(<that address>).
+  bindHost?: string;
 }
 
 // One embeddings request as the retriever sent it: the model it asked for and
@@ -255,8 +260,11 @@ function isSummaryRequest(body: unknown): boolean {
 export class MockLlmProxy {
   private readonly onCapture: ((request: CapturedLlmRequest) => void) | undefined;
 
+  private readonly bindHost: string;
+
   constructor(options: MockLlmProxyOptions = {}) {
     this.onCapture = options.onCapture;
+    this.bindHost = options.bindHost ?? "127.0.0.1";
   }
 
   private server: Server | undefined;
@@ -291,7 +299,8 @@ export class MockLlmProxy {
   // window. Cleared by reset() at the afterEach boundary.
   private draining = false;
 
-  // Binds to an ephemeral loopback port; resolves once listening.
+  // Binds to an ephemeral port on the bind host (loopback unless the options
+  // name another); resolves once listening.
   async start(): Promise<void> {
     const server = createServer((req, res) => {
       this.handle(req, res).catch(() => {
@@ -302,18 +311,25 @@ export class MockLlmProxy {
         }
       });
     });
-    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    await new Promise<void>((resolve) => server.listen(0, this.bindHost, resolve));
     this.server = server;
   }
 
   // Base URL to hand to the runner as STIGMER_PROXY_ENDPOINT. The Anthropic SDK
   // appends `/v1/proxy/llm/anthropic` + `/v1/messages`, which this server matches.
   url(): string {
+    return this.urlAt("127.0.0.1");
+  }
+
+  // The same base URL as another machine names this one: `host` is how the
+  // runner reaches the host it runs beside (a container's gateway, or
+  // host.docker.internal), so the mock must listen where that lands.
+  urlAt(host: string): string {
     if (this.server === undefined) {
       throw new Error("MockLlmProxy.start() must be called before url()");
     }
     const { port } = this.server.address() as AddressInfo;
-    return `http://127.0.0.1:${port}`;
+    return `http://${host}:${port}`;
   }
 
   // Append a turn to serve. Returns `this` for fluent multi-turn setup.

@@ -24,10 +24,19 @@
  *     every interface for the run, because the dev server bound to the
  *     gateway alone dials its own internal services on the loopback and
  *     refuses itself. The dev server has no authentication, so outside CI
- *     (no CI variable) on Linux the run says so before it starts, because
- *     the port is open to the machine's network for those minutes.
+ *     (no CI variable) the run says before it starts which listeners are
+ *     open to the machine's network for those minutes: on Linux the dev
+ *     server, the turn proof's server and its mock LLM; on Docker Desktop
+ *     the proof's server alone (the shipped server takes no listen address).
  * Then it runs `npm run test:live` in the server package with those
- * addresses. A red test is followed by every object in the namespace, the
+ * addresses (the driver's live class), and, when that passes, the turn proof
+ * (`npm run test:agent-sandbox` in test/conformance): the open-source server
+ * on the agent-sandbox driver, a native turn held open in a pod, the pod
+ * deleted, the turn completed on the next one. The proof boots the built
+ * server and a mock LLM of its own; it is handed the address a pod names the
+ * host by (STIGMER_AGENT_SANDBOX_LIVE_POD_HOST) and the one to listen on so
+ * that address lands (STIGMER_AGENT_SANDBOX_LIVE_BIND, the dev server's own).
+ * A red test is followed by every object in the namespace, the
  * runner pods' events and logs and the controller's log, before it tears
  * down; so is a step of the setup that fails once the cluster answers, but
  * not an interrupt, which nobody asked to diagnose. It tears down when the
@@ -41,8 +50,10 @@
  * a child killed by anything else is a red like any other.
  *
  * Needs kind, kubectl, docker and the Temporal CLI on PATH (CI pins kind and
- * installs the Temporal CLI through .github/actions/temporal-cli), and the
- * server package's dependencies installed.
+ * installs the Temporal CLI through .github/actions/temporal-cli), the
+ * server package's dependencies installed and the server built (`make
+ * test-agent-sandbox` builds it), and the workspace's (`npm ci`) for the
+ * proof.
  *
  * Usage:
  *   node scripts/agent-sandbox-live.mjs [--agent-sandbox-version <vX.Y.Z|latest>]
@@ -51,7 +62,7 @@
  * empty, stand in for the two flags; `make test-agent-sandbox` hands them on
  * that way, so a value reaches this script, which checks it, and never a
  * shell command line.
- * Exit: the live test's exit code; 2 when the system could not be made.
+ * Exit: the first red test's exit code; 2 when the system could not be made.
  */
 
 import { execFileSync, spawn } from "node:child_process";
@@ -214,10 +225,19 @@ export function temporalBindAddress(platform) {
   return DOCKER_DESKTOP.has(platform) ? "127.0.0.1" : "0.0.0.0";
 }
 
-/** The warning a run outside CI prints before it opens Temporal to every interface, or undefined. */
+/**
+ * The warning a run outside CI prints before it opens listeners to every
+ * interface, or undefined in CI. The turn proof's server listens on every
+ * interface wherever it runs (the shipped server takes no listen address),
+ * holding the run's kubeconfig; on Linux, Temporal and the proof's mock LLM
+ * do too, bound where the kind network's gateway lands.
+ */
 export function exposureWarning(platform, env) {
-  if (temporalBindAddress(platform) !== "0.0.0.0" || env.CI) return undefined;
-  return "agent-sandbox-live: warning: the Temporal dev server listens on every interface for this run, without authentication; anyone on this machine's network can reach it until the run ends";
+  if (env.CI) return undefined;
+  const open = temporalBindAddress(platform) === "0.0.0.0"
+    ? "the Temporal dev server, the turn proof's server and its mock LLM listen"
+    : "the turn proof's server listens";
+  return `agent-sandbox-live: warning: ${open} on every interface for this run, without authentication; anyone on this machine's network can reach them until the run ends`;
 }
 
 /** Starts a child and resolves its exit code; a child that cannot start (a missing binary) resolves 127. */
@@ -381,17 +401,27 @@ async function main(argv) {
       KUBECONFIG: kubeconfig,
       STIGMER_SANDBOX_K8S_NAMESPACE: NAMESPACE,
       STIGMER_SANDBOX_TEMPORAL_ADDRESS: `${host}:${port}`,
-      // Nothing serves it: the runner polls Temporal without reaching the
-      // server, and the live test asserts the poll, not a turn.
+      // Nothing serves it for the driver's live class: its runner polls
+      // Temporal without reaching a server, and that test asserts the poll,
+      // not a turn. The turn proof boots a server and sets its own.
       STIGMER_SANDBOX_BACKEND_ENDPOINT: `http://${host}:1`,
       STIGMER_SANDBOX_RUNNER_IMAGE: opts.runnerImage,
       STIGMER_AGENT_SANDBOX_LIVE_TEMPORAL: `127.0.0.1:${port}`,
+      STIGMER_AGENT_SANDBOX_LIVE_POD_HOST: host,
+      STIGMER_AGENT_SANDBOX_LIVE_BIND: bind,
     };
     code = await spawnChild("npm", ["run", "test:live"], {
       cwd: join(ROOT, "backend/services/stigmer-server"),
       env,
       stdio: "inherit",
     }).exited;
+    if (code === 0) {
+      code = await spawnChild("npm", ["run", "test:agent-sandbox", "-w", "@stigmer/conformance"], {
+        cwd: ROOT,
+        env,
+        stdio: "inherit",
+      }).exited;
+    }
   } finally {
     // Any red after the cluster answers is diagnosed in it, a setup step's
     // (the controller's rollout, say) as much as the test's.

@@ -90,10 +90,11 @@ test("Temporal binds the loopback on Docker Desktop, and every interface on Linu
   assert.equal(temporalBindAddress("win32"), "127.0.0.1");
 });
 
-test("a run that opens Temporal to every interface says so, except in CI and on Docker Desktop", () => {
-  assert.match(exposureWarning("linux", {}) ?? "", /listens on every interface for this run, without authentication/);
+test("a run that opens listeners to every interface says which, except in CI", () => {
+  assert.match(exposureWarning("linux", {}) ?? "", /the Temporal dev server, the turn proof's server and its mock LLM listen on every interface for this run, without authentication/);
+  assert.match(exposureWarning("darwin", {}) ?? "", /the turn proof's server listens on every interface for this run, without authentication/);
   assert.equal(exposureWarning("linux", { CI: "true" }), undefined);
-  assert.equal(exposureWarning("darwin", {}), undefined);
+  assert.equal(exposureWarning("darwin", { CI: "true" }), undefined);
 });
 
 test("the operator guide installs the release the driver is tested against", () => {
