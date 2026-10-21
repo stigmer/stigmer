@@ -1,10 +1,10 @@
 // Unit tests for the prelude orchestrator: flag validation helpers, the
 // vaults the new conversation uses (My vault unless --no-my-vault, then each
 // --vault in order), and the layered engine/model seeds (flag, the
-// agent's run defaults, the account preference), and the attachment plan:
+// agent's run defaults, the account preference), and the plan for --attach:
 // an attached file inside a --workspace folder is a mention, any other is
 // carried by the message, and nothing is uploaded here. Uploading is covered
-// in attachments.test.ts and agent-exec.test.ts.
+// in files.test.ts and agent-exec.test.ts.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -147,7 +147,7 @@ function countingClient(preferences: StubPreferences): { client: Stigmer; calls:
 /** prepareAgentExec options as `run` passes them: the kind is served here. */
 const SERVED_RUN_OPTIONS = { accountPreferencesAvailable: true } as const;
 
-describe("prepareAgentExec attachments", () => {
+describe("prepareAgentExec files", () => {
   it("mentions a file in a --workspace folder, carries any other, and uploads nothing", async () => {
     const dir = mkdtempSync(join(tmpdir(), "prepare-attach-"));
     try {
@@ -163,8 +163,8 @@ describe("prepareAgentExec attachments", () => {
         STUB_CLIENT,
       );
       expect(prepared.resources.map((r) => r.name)).toEqual(["repo"]);
-      expect(prepared.attachments.workspaceFileRefs).toEqual(["main.ts"]);
-      expect(prepared.attachments.messageFiles.map((f) => f.path)).toEqual([join(dir, "notes.md")]);
+      expect(prepared.files.workspaceFileRefs).toEqual(["main.ts"]);
+      expect(prepared.files.messageFiles.map((f) => f.path)).toEqual([join(dir, "notes.md")]);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

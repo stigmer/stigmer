@@ -7,14 +7,14 @@ package ai.stigmer.agentic.run.v1;
 
 /**
  * <pre>
- * ToolCallOutputRef points to content the runner offloaded to artifact
+ * ToolCallOutputRef points to content the runner offloaded to the run's
  * storage: a tool call's full output, or one side of a captured file change
  * too large to keep inline.
  *
  * This is deliberately not a File (what an agent saves for the person to
  * download): an output ref is internal spillover of a tool's result, not a
- * deliverable. The bytes live in artifact storage (R2 in the cloud, locally
- * served in dev); only this reference is persisted in the run status.
+ * deliverable. The bytes live in the server's file storage (R2 in the cloud,
+ * a local disk otherwise); only this reference is persisted in the run status.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.run.v1.ToolCallOutputRef}
@@ -259,7 +259,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Short head of the original text content, kept inline for an at-a-glance
-   * preview without fetching the full artifact. Empty for image content.
+   * preview without fetching the full output. Empty for image content.
    * </pre>
    *
    * <code>string truncated_preview = 7 [json_name = "truncatedPreview"];</code>
@@ -281,7 +281,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Short head of the original text content, kept inline for an at-a-glance
-   * preview without fetching the full artifact. Empty for image content.
+   * preview without fetching the full output. Empty for image content.
    * </pre>
    *
    * <code>string truncated_preview = 7 [json_name = "truncatedPreview"];</code>
@@ -514,14 +514,14 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ToolCallOutputRef points to content the runner offloaded to artifact
+   * ToolCallOutputRef points to content the runner offloaded to the run's
    * storage: a tool call's full output, or one side of a captured file change
    * too large to keep inline.
    *
    * This is deliberately not a File (what an agent saves for the person to
    * download): an output ref is internal spillover of a tool's result, not a
-   * deliverable. The bytes live in artifact storage (R2 in the cloud, locally
-   * served in dev); only this reference is persisted in the run status.
+   * deliverable. The bytes live in the server's file storage (R2 in the cloud,
+   * a local disk otherwise); only this reference is persisted in the run status.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.run.v1.ToolCallOutputRef}
@@ -1143,7 +1143,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Short head of the original text content, kept inline for an at-a-glance
-     * preview without fetching the full artifact. Empty for image content.
+     * preview without fetching the full output. Empty for image content.
      * </pre>
      *
      * <code>string truncated_preview = 7 [json_name = "truncatedPreview"];</code>
@@ -1164,7 +1164,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Short head of the original text content, kept inline for an at-a-glance
-     * preview without fetching the full artifact. Empty for image content.
+     * preview without fetching the full output. Empty for image content.
      * </pre>
      *
      * <code>string truncated_preview = 7 [json_name = "truncatedPreview"];</code>
@@ -1186,7 +1186,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Short head of the original text content, kept inline for an at-a-glance
-     * preview without fetching the full artifact. Empty for image content.
+     * preview without fetching the full output. Empty for image content.
      * </pre>
      *
      * <code>string truncated_preview = 7 [json_name = "truncatedPreview"];</code>
@@ -1204,7 +1204,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Short head of the original text content, kept inline for an at-a-glance
-     * preview without fetching the full artifact. Empty for image content.
+     * preview without fetching the full output. Empty for image content.
      * </pre>
      *
      * <code>string truncated_preview = 7 [json_name = "truncatedPreview"];</code>
@@ -1219,7 +1219,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Short head of the original text content, kept inline for an at-a-glance
-     * preview without fetching the full artifact. Empty for image content.
+     * preview without fetching the full output. Empty for image content.
      * </pre>
      *
      * <code>string truncated_preview = 7 [json_name = "truncatedPreview"];</code>

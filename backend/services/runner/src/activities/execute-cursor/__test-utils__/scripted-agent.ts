@@ -74,6 +74,14 @@ import type {
 } from "@cursor/sdk";
 import type { ConversationTurn, LocalAgentRunStatus } from "@cursor/sdk";
 
+/**
+ * What `run.wait()` of `@cursor/sdk` 1.0.31 reports as the run's error when
+ * Cursor's backend ends the agent run's HTTP/2 stream and the runner's lane
+ * resets the SDK's stream with CANCEL (stigmer#2436): the transport's words,
+ * and no `code`. Pinned against the SDK itself (`agent-proxy/__tests__/cursor-sdk-wire.test.ts`).
+ */
+export const CURSOR_STREAM_CUT_ERROR = "[unknown] [canceled] http/2 stream closed with error code CANCEL (0x8)";
+
 // ---------------------------------------------------------------------------
 // Script steps
 // ---------------------------------------------------------------------------

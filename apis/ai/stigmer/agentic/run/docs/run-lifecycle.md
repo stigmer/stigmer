@@ -80,15 +80,15 @@ The session's `interrupt` also stops a turn that is pending, waiting for an answ
 
 ### A turn outlives its runner
 
-A turn is not ended by what happens to the machine running it. When its runner drains (a deploy, the platform moving it), dies, or loses its model provider mid-reply, the turn stays `RUN_IN_PROGRESS` and continues on the next runner from where it was:
+A turn is not ended by what happens to the machine running it. When its runner drains (a deploy, the platform moving it), dies, loses its model provider mid-reply, or has its connection ended by the agent's vendor (Cursor ends a long run's connection after 40 to 60 minutes), the turn stays `RUN_IN_PROGRESS` and continues on the next runner from where it was:
 
 - **The step that was running finishes, when the runner can wait for it.** A draining runner lets its running tool finish within its grace and stops at the next step boundary. A runner killed outright loses the step it was in, and the next runner runs that step again.
 - **The agent is never handed the task again.** It resumes its own saved work, or gets a summary of what the run already did, never the original request a second time.
-- **The conversation says once why the turn paused.** Examples: "The runner is restarting; this turn continues on the next one." or "The model stopped answering; this turn continues from where it was."
+- **The conversation says once why the turn paused.** Examples: "The runner is restarting; this turn continues on the next one.", "The model stopped answering; this turn continues from where it was." or "Cursor ended its connection; this turn continues from where it was."
 - **The spending limit covers the whole task.** A run continuing after a restart, a lost runner or a stall keeps its cost count; see `RunConfig.max_cost_usd`.
 - **The turn's file changes stay one change set,** to keep or undo as a whole.
 
-The platform keeps continuing a turn while it recovers fewer than ten times within any hour. Past that, or when no runner picks the turn up within five minutes, the run ends `RUN_FAILED`, and its error and stop cause say why: `infrastructure` after a drain, and the stall's own error with `timeout` after a stall its model owed. A stall with nothing owed by the model (an engine wedged before it did anything) ends `RUN_FAILED` at once, with stop cause `timeout`.
+The platform keeps continuing a turn while it recovers fewer than ten times within any hour. Past that, or when no runner picks the turn up within five minutes, the run ends `RUN_FAILED`, and its error and stop cause say why: `infrastructure` after a drain, the stall's own error with `timeout` after a stall its model owed, and the cut connection's error with `failed` after a vendor ended it. A stall with nothing owed by the model (an engine wedged before it did anything) ends `RUN_FAILED` at once, with stop cause `timeout`.
 ---
 
 ## Lifecycle Control Operations

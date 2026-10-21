@@ -52,10 +52,10 @@ How to read each row:
   `STIGMER_BACKEND_ENDPOINT`. You do **not** supply `TEMPORAL_SERVICE_ADDRESS`:
   the runner discovers it from the control plane at boot using your token (see
   [Temporal self-discovery](#temporal-self-discovery)). Setting the token also
-  activates **proxy mode**: the runner routes its model traffic and artifact
-  uploads through the Stigmer proxy, which injects your Organization's own
-  Cursor key and provider keys, saved by an administrator in Settings → Provider
-  keys, so you pass neither `CURSOR_API_KEY` nor a provider key.
+  activates **proxy mode**: the runner routes its model traffic and file uploads
+  through the Stigmer proxy, which injects your Organization's own Cursor key
+  and provider keys, saved by an administrator in Settings → Provider keys, so
+  you pass neither `CURSOR_API_KEY` nor a provider key.
 - **Self-managed.** You run your own Temporal and Stigmer Server. In the default
   `MODE=local`, `TEMPORAL_SERVICE_ADDRESS` defaults to `localhost:7233` and
   `STIGMER_BACKEND_ENDPOINT` to `http://localhost:7234`. `STIGMER_TOKEN` is
@@ -462,11 +462,10 @@ from the **slim embedding build**:
   `@stigmer/runner-slim` is for the subprocess path. If you embed **in-process**
   (importing `createStigmerRunnerManager` into your own Node app), keep using
   `@stigmer/runner` — it is the library entry, and your bundler resolves what it
-  needs. The Stigmer desktop app stages the slim artifact into
-  `resources/runner` at packaging time
-  (`client-apps/desktop/scripts/stage-runner-slim.sh`); in development it
-  symlinks the in-repo runner instead. The Tauri `bundle.resources` config is
-  identical either way.
+  needs. The Stigmer desktop app stages the slim package into `resources/runner`
+  at packaging time (`client-apps/desktop/scripts/stage-runner-slim.sh`); in
+  development it symlinks the in-repo runner instead. The Tauri
+  `bundle.resources` config is identical either way.
 </Callout>
 
 #### The engine

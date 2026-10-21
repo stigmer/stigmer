@@ -7,28 +7,28 @@ package ai.stigmer.agentic.run.v1;
 
 /**
  * <pre>
- * GetArtifactDownloadUrlRequest requests a download URL for a run artifact.
+ * GetArtifactDownloadUrlRequest requests a download URL for a run's stored
+ * content.
  *
- * This endpoint generates presigned URLs for artifacts published by agents
- * during the run. The URLs are time-limited and can be used for direct
- * HTTP download without authentication.
+ * This endpoint generates a presigned URL for one object the run's runner
+ * stored. The URL is time-limited and can be used for direct HTTP download
+ * without authentication.
  *
  * ## Authorization
  *
  * Requires can_view permission on the run. This ensures users can only
- * access artifacts from runs they have access to.
+ * access stored content from runs they have access to.
  *
  * ## Security
  *
  * The storage_key is validated to ensure it belongs to the specified run.
  * Storage keys must start with "artifacts/{run_id}/" to prevent path
- * traversal attacks where a user could request URLs for other runs'
- * artifacts.
+ * traversal attacks where a user could request URLs for another run's
+ * content.
  *
  * ## Use Cases
  *
- * - CLI downloading agent-created files
- * - Web UI providing download links for artifacts
+ * - Web UI downloading a tool call's full output
  * - Refreshing expired download URLs
  *
  * ## Example
@@ -36,7 +36,7 @@ package ai.stigmer.agentic.run.v1;
  * Request:
  * {
  * "run_id": "run_abc123xyz456",
- * "storage_key": "artifacts/run_abc123xyz456/generated-skill.zip"
+ * "storage_key": "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
  * }
  *
  * Response:
@@ -95,7 +95,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object runId_ = "";
   /**
    * <pre>
-   * ID of the run that produced the artifact.
+   * ID of the run that stored the content.
    *
    * Used for authorization (can_view check) and storage_key validation.
    *
@@ -123,7 +123,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ID of the run that produced the artifact.
+   * ID of the run that stored the content.
    *
    * Used for authorization (can_view check) and storage_key validation.
    *
@@ -156,15 +156,15 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object storageKey_ = "";
   /**
    * <pre>
-   * Storage key of the artifact to download.
+   * Storage key of the content to download.
    *
-   * Must be an artifact from the specified run. The storage_key
-   * is validated to start with "artifacts/{run_id}/" to prevent
-   * access to other runs' artifacts.
+   * Must be content of the specified run. The storage_key is validated
+   * to start with "artifacts/{run_id}/" to prevent access to another
+   * run's content.
    *
    * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
    *
-   * Format: "artifacts/{run_id}/{filename}"
+   * Format: "artifacts/{run_id}/{path}"
    * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
    *
    * Validation: Required, minimum 1 character
@@ -188,15 +188,15 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Storage key of the artifact to download.
+   * Storage key of the content to download.
    *
-   * Must be an artifact from the specified run. The storage_key
-   * is validated to start with "artifacts/{run_id}/" to prevent
-   * access to other runs' artifacts.
+   * Must be content of the specified run. The storage_key is validated
+   * to start with "artifacts/{run_id}/" to prevent access to another
+   * run's content.
    *
    * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
    *
-   * Format: "artifacts/{run_id}/{filename}"
+   * Format: "artifacts/{run_id}/{path}"
    * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
    *
    * Validation: Required, minimum 1 character
@@ -227,7 +227,7 @@ private static final long serialVersionUID = 0L;
    * Whether the URL should force a browser download instead of inline display.
    *
    * When true, the presigned URL carries a Content-Disposition: attachment
-   * header keyed to the artifact's filename, so a browser navigating to it
+   * header keyed to the stored object's name, so a browser navigating to it
    * saves the file rather than rendering it in a tab. Browsers ignore the
    * HTML `download` attribute on cross-origin URLs (e.g. presigned R2), so
    * the disposition MUST be signed into the URL itself — this flag is how a
@@ -429,28 +429,28 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GetArtifactDownloadUrlRequest requests a download URL for a run artifact.
+   * GetArtifactDownloadUrlRequest requests a download URL for a run's stored
+   * content.
    *
-   * This endpoint generates presigned URLs for artifacts published by agents
-   * during the run. The URLs are time-limited and can be used for direct
-   * HTTP download without authentication.
+   * This endpoint generates a presigned URL for one object the run's runner
+   * stored. The URL is time-limited and can be used for direct HTTP download
+   * without authentication.
    *
    * ## Authorization
    *
    * Requires can_view permission on the run. This ensures users can only
-   * access artifacts from runs they have access to.
+   * access stored content from runs they have access to.
    *
    * ## Security
    *
    * The storage_key is validated to ensure it belongs to the specified run.
    * Storage keys must start with "artifacts/{run_id}/" to prevent path
-   * traversal attacks where a user could request URLs for other runs'
-   * artifacts.
+   * traversal attacks where a user could request URLs for another run's
+   * content.
    *
    * ## Use Cases
    *
-   * - CLI downloading agent-created files
-   * - Web UI providing download links for artifacts
+   * - Web UI downloading a tool call's full output
    * - Refreshing expired download URLs
    *
    * ## Example
@@ -458,7 +458,7 @@ private static final long serialVersionUID = 0L;
    * Request:
    * {
    * "run_id": "run_abc123xyz456",
-   * "storage_key": "artifacts/run_abc123xyz456/generated-skill.zip"
+   * "storage_key": "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
    * }
    *
    * Response:
@@ -634,7 +634,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object runId_ = "";
     /**
      * <pre>
-     * ID of the run that produced the artifact.
+     * ID of the run that stored the content.
      *
      * Used for authorization (can_view check) and storage_key validation.
      *
@@ -661,7 +661,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the run that produced the artifact.
+     * ID of the run that stored the content.
      *
      * Used for authorization (can_view check) and storage_key validation.
      *
@@ -689,7 +689,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the run that produced the artifact.
+     * ID of the run that stored the content.
      *
      * Used for authorization (can_view check) and storage_key validation.
      *
@@ -713,7 +713,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the run that produced the artifact.
+     * ID of the run that stored the content.
      *
      * Used for authorization (can_view check) and storage_key validation.
      *
@@ -734,7 +734,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the run that produced the artifact.
+     * ID of the run that stored the content.
      *
      * Used for authorization (can_view check) and storage_key validation.
      *
@@ -761,15 +761,15 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object storageKey_ = "";
     /**
      * <pre>
-     * Storage key of the artifact to download.
+     * Storage key of the content to download.
      *
-     * Must be an artifact from the specified run. The storage_key
-     * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other runs' artifacts.
+     * Must be content of the specified run. The storage_key is validated
+     * to start with "artifacts/{run_id}/" to prevent access to another
+     * run's content.
      *
      * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
      *
-     * Format: "artifacts/{run_id}/{filename}"
+     * Format: "artifacts/{run_id}/{path}"
      * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
      *
      * Validation: Required, minimum 1 character
@@ -792,15 +792,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Storage key of the artifact to download.
+     * Storage key of the content to download.
      *
-     * Must be an artifact from the specified run. The storage_key
-     * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other runs' artifacts.
+     * Must be content of the specified run. The storage_key is validated
+     * to start with "artifacts/{run_id}/" to prevent access to another
+     * run's content.
      *
      * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
      *
-     * Format: "artifacts/{run_id}/{filename}"
+     * Format: "artifacts/{run_id}/{path}"
      * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
      *
      * Validation: Required, minimum 1 character
@@ -824,15 +824,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Storage key of the artifact to download.
+     * Storage key of the content to download.
      *
-     * Must be an artifact from the specified run. The storage_key
-     * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other runs' artifacts.
+     * Must be content of the specified run. The storage_key is validated
+     * to start with "artifacts/{run_id}/" to prevent access to another
+     * run's content.
      *
      * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
      *
-     * Format: "artifacts/{run_id}/{filename}"
+     * Format: "artifacts/{run_id}/{path}"
      * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
      *
      * Validation: Required, minimum 1 character
@@ -852,15 +852,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Storage key of the artifact to download.
+     * Storage key of the content to download.
      *
-     * Must be an artifact from the specified run. The storage_key
-     * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other runs' artifacts.
+     * Must be content of the specified run. The storage_key is validated
+     * to start with "artifacts/{run_id}/" to prevent access to another
+     * run's content.
      *
      * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
      *
-     * Format: "artifacts/{run_id}/{filename}"
+     * Format: "artifacts/{run_id}/{path}"
      * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
      *
      * Validation: Required, minimum 1 character
@@ -877,15 +877,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Storage key of the artifact to download.
+     * Storage key of the content to download.
      *
-     * Must be an artifact from the specified run. The storage_key
-     * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other runs' artifacts.
+     * Must be content of the specified run. The storage_key is validated
+     * to start with "artifacts/{run_id}/" to prevent access to another
+     * run's content.
      *
      * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
      *
-     * Format: "artifacts/{run_id}/{filename}"
+     * Format: "artifacts/{run_id}/{path}"
      * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
      *
      * Validation: Required, minimum 1 character
@@ -911,7 +911,7 @@ private static final long serialVersionUID = 0L;
      * Whether the URL should force a browser download instead of inline display.
      *
      * When true, the presigned URL carries a Content-Disposition: attachment
-     * header keyed to the artifact's filename, so a browser navigating to it
+     * header keyed to the stored object's name, so a browser navigating to it
      * saves the file rather than rendering it in a tab. Browsers ignore the
      * HTML `download` attribute on cross-origin URLs (e.g. presigned R2), so
      * the disposition MUST be signed into the URL itself — this flag is how a
@@ -937,7 +937,7 @@ private static final long serialVersionUID = 0L;
      * Whether the URL should force a browser download instead of inline display.
      *
      * When true, the presigned URL carries a Content-Disposition: attachment
-     * header keyed to the artifact's filename, so a browser navigating to it
+     * header keyed to the stored object's name, so a browser navigating to it
      * saves the file rather than rendering it in a tab. Browsers ignore the
      * HTML `download` attribute on cross-origin URLs (e.g. presigned R2), so
      * the disposition MUST be signed into the URL itself — this flag is how a
@@ -967,7 +967,7 @@ private static final long serialVersionUID = 0L;
      * Whether the URL should force a browser download instead of inline display.
      *
      * When true, the presigned URL carries a Content-Disposition: attachment
-     * header keyed to the artifact's filename, so a browser navigating to it
+     * header keyed to the stored object's name, so a browser navigating to it
      * saves the file rather than rendering it in a tab. Browsers ignore the
      * HTML `download` attribute on cross-origin URLs (e.g. presigned R2), so
      * the disposition MUST be signed into the URL itself — this flag is how a

@@ -343,15 +343,15 @@ A deny does not end the run: the agent reads the comment and continues. The answ
 
 ---
 
-## Downloading Artifacts
+## Downloading Outputs
 
 ```bash
 # Wait for the run to complete, then download what it saved in its outputs folder
 stigmer download run "$RUN_ID"
 
-# Download one file, by its name or its path in the outputs folder
-stigmer download run "$RUN_ID" --artifact reports/quarterly-report.md
+# Download one output, by its path in the outputs folder (a bare filename matches too)
+stigmer download run "$RUN_ID" --path reports/quarterly-report.md
 
-# Or download every artifact when the run completes
+# Or download the turn's outputs when the run completes
 stigmer run report-generator -m "Generate quarterly analysis report" --download ./out
 ```

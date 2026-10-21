@@ -103,7 +103,7 @@ export type StopCause =
  * Why a turn stops so that the workflow continues it on the next
  * invocation. Crosses to the workflow as the typed failure's one detail.
  */
-export type ContinuationCause = "drain" | "model-stall";
+export type ContinuationCause = "drain" | "model-stall" | "stream-cut";
 
 /**
  * The `ApplicationFailure` type a continuing turn throws, which the invoke
@@ -171,6 +171,7 @@ export const TERMINAL_COPY = {
     notes: {
       drain: "The runner is restarting; this turn continues on the next one.",
       "model-stall": "The model stopped answering; this turn continues from where it was.",
+      "stream-cut": "Cursor ended its connection; this turn continues from where it was.",
     } satisfies Record<ContinuationCause, string>,
     /** The note a continued turn writes itself when its log does not say why it stopped (`turn-context.ts` `stopIsExplained`). */
     lostRunnerNote: "This turn continues after its runner stopped unexpectedly.",
@@ -317,8 +318,9 @@ export function workerShutdownArm(): TerminalArm {
 
 /**
  * The turn stopped so the workflow continues it on the next invocation: the
- * engine yielded at a durable step boundary (a drain, `TurnSink.yieldSignal`)
- * or its model stopped answering ({@link modelStallArm}). Nothing terminal is
+ * engine yielded at a durable step boundary (a drain, `TurnSink.yieldSignal`),
+ * its model stopped answering ({@link modelStallArm}) or its vendor ended its
+ * connection ({@link streamCutArm}). Nothing terminal is
  * written; the note says why the turn moved; the typed failure tells the
  * workflow to continue it (the module header).
  */
@@ -342,6 +344,16 @@ export function continueArm(cause: ContinuationCause, message?: string): Termina
  */
 export function modelStallArm(error: StallTimeoutError): TerminalArm {
   return continueArm("model-stall", formatStallFailure(error));
+}
+
+/**
+ * The engine's vendor ended its connection mid-turn (the adapter's
+ * `stream_cut`, stigmer#2436): the vendor kept the conversation, so the turn
+ * continues from where it was. The typed failure carries the adapter's
+ * message, which is the run's error if the workflow gives up.
+ */
+export function streamCutArm(message: string): TerminalArm {
+  return continueArm("stream-cut", message);
 }
 
 /**

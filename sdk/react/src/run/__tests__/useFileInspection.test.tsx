@@ -15,7 +15,7 @@ import { ACME_ID, orgWrapper } from "../../organization/__tests__/org-fixture";
 
 // The id derives from the name: the hook runs per render, and a File's id is
 // its identity (a new id is a new File to read).
-function fileArtifact(filename: string, mimeType = "") {
+function outputFile(filename: string, mimeType = "") {
   return create(FileSchema, {
     metadata: { id: `file_${filename.replace(/\W/g, "_")}` },
     spec: { filename, mimeType },
@@ -55,7 +55,7 @@ describe("useFileInspection — content + copy", () => {
     const stigmer = { file: { getContent } } as unknown as Stigmer;
 
     const { result } = renderHook(
-      () => useFileInspection(fileArtifact("notes.txt"), "acme"),
+      () => useFileInspection(outputFile("notes.txt"), "acme"),
       { wrapper: wrapperFor(stigmer) },
     );
 
@@ -75,7 +75,7 @@ describe("useFileInspection — content + copy", () => {
     const stigmer = { file: { getContent } } as unknown as Stigmer;
 
     const { result } = renderHook(
-      () => useFileInspection(fileArtifact("photo.png", "image/png"), "acme"),
+      () => useFileInspection(outputFile("photo.png", "image/png"), "acme"),
       { wrapper: wrapperFor(stigmer) },
     );
 
@@ -93,7 +93,7 @@ describe("useFileInspection — detection + apply", () => {
     const onApplied = vi.fn();
 
     const { result } = renderHook(
-      () => useFileInspection(fileArtifact("notes.txt"), "acme", { onApplied }),
+      () => useFileInspection(outputFile("notes.txt"), "acme", { onApplied }),
       { wrapper: wrapperFor(stigmer) },
     );
     await waitFor(() => expect(result.current.content).toBe("just some notes"));
@@ -112,7 +112,7 @@ describe("useFileInspection — detection + apply", () => {
     const stigmer = { file: { getContent } } as unknown as Stigmer;
 
     const { result } = renderHook(
-      () => useFileInspection(fileArtifact("agent.yaml"), "acme"),
+      () => useFileInspection(outputFile("agent.yaml"), "acme"),
       { wrapper: wrapperFor(stigmer) },
     );
 
@@ -142,7 +142,7 @@ describe("useFileInspection — detection + apply", () => {
 
     const { result } = renderHook(
       () =>
-        useFileInspection(fileArtifact("agent.yaml"), "acme", {
+        useFileInspection(outputFile("agent.yaml"), "acme", {
           onApplied,
         }),
       { wrapper: wrapperFor(stigmer) },
@@ -177,7 +177,7 @@ describe("useFileInspection — the organization by slug and by id", () => {
     });
 
     const { result } = renderHook(
-      () => useFileInspection(fileArtifact("agent.yaml"), ACME_ID),
+      () => useFileInspection(outputFile("agent.yaml"), ACME_ID),
       { wrapper: orgWrapper({ file: { getContent }, manifest: { apply } }) },
     );
 

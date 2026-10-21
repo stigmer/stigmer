@@ -3,10 +3,10 @@
 //
 // Order matters and mirrors Go: validate cheap flags first (mode, approve
 // default), then parse workspaces, then resolve the vaults, plugins and
-// environment the conversation uses, then plan the attachments. Nothing is
+// environment the conversation uses, then plan the files to send. Nothing is
 // uploaded here: the attached files are read from disk and checked against
 // the limits, and the create step uploads them once it knows the run's
-// target (attachments.ts), so any failure here leaves nothing behind. A run
+// target (files.ts), so any failure here leaves nothing behind. A run
 // carries no values of its own: its keys come from the vaults its
 // conversation uses (vaults.ts), which is why a vault named by id is looked
 // up here, before anything is uploaded.
@@ -18,7 +18,7 @@ import type { ApiResourceReference } from "@stigmer/apis/ai/stigmer/commons/apir
 import type { Stigmer } from "@stigmer/client";
 import { UsageError } from "../../errors/index.js";
 import { parseApproveDefault, type ApproveDefault } from "../stream/answer.js";
-import { type AttachmentPlan, type ProgressSink, planAttachments } from "./attachments.js";
+import { type FilePlan, type ProgressSink, planFiles } from "./files.js";
 import { resolveRunEnvironment } from "./environment.js";
 import { resolveRunPlugins } from "./plugins.js";
 import { resolveRunVaults } from "./vaults.js";
@@ -94,7 +94,7 @@ export interface PreparedRun {
   /** The Environment the new conversation names; undefined leaves its agent's or organization's default. */
   readonly environment?: ApiResourceReference;
   /** What `--attach` and `--file-id` resolved to, uploaded by the create step. */
-  readonly attachments: AttachmentPlan;
+  readonly files: FilePlan;
   readonly message: string;
   readonly detach: boolean;
   readonly verbose: boolean;
@@ -213,7 +213,7 @@ export async function prepareAgentExec(
   const plugins = await resolveRunPlugins(client, flags.plugin, options?.org ?? "");
   const environment = await resolveRunEnvironment(client, flags.environment, options?.org ?? "");
 
-  const attachments = planAttachments(flags.attach, localWorkspaceRoots(resources), progress, flags.fileIds);
+  const files = planFiles(flags.attach, localWorkspaceRoots(resources), progress, flags.fileIds);
 
   return {
     approveDefault,
@@ -222,7 +222,7 @@ export async function prepareAgentExec(
     includeMyVault: flags.myVault,
     plugins,
     ...(environment === undefined ? {} : { environment }),
-    attachments,
+    files,
     message: flags.message,
     detach: flags.detach,
     verbose: flags.verbose,

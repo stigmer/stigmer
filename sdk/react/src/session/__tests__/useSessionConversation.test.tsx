@@ -8,7 +8,8 @@
  * turn ends; asks are answered with confirmToolUse / grantPermission; the
  * newest turn's undecided file reviews are offered and decided with
  * reviewFileChanges; a stop interrupts the session, then terminates the run
- * on a repeat press; the follow's state is passed through; and a local
+ * on a repeat press; the follow's state is passed through, and a send
+ * re-opens a follow waiting out its reconnect backoff; and a local
  * session keeps its runner worker attached while open.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -404,19 +405,19 @@ describe("useSessionConversation — sending", () => {
 
   it("shows the message and its files at once, holds the composer, and hands over when the turn arrives", async () => {
     methods.runCreate.mockResolvedValue(makeRun("run_new", RunPhase.RUN_PENDING));
-    const attachments = [
+    const files = [
       { fileId: "file_sketch", filename: "sketch.png", kind: "image" as const },
     ];
     const { result } = await opened();
 
     await act(async () => {
-      await result.current.sendFollowUp("Here is a sketch", { attachments });
+      await result.current.sendFollowUp("Here is a sketch", { files });
     });
     expect(methods.runCreate).toHaveBeenCalledWith(
       expect.objectContaining({ org: "org", sessionId: "session-1", message: "Here is a sketch" }),
     );
     expect(result.current.pendingUserMessage).toBe("Here is a sketch");
-    expect(result.current.pendingAttachments).toBe(attachments);
+    expect(result.current.pendingFiles).toBe(files);
     expect(result.current.canSendFollowUp).toBe(false);
     expect(result.current.activePhase).toBe("pending");
     expect(result.current.isStoppable).toBe(false);
@@ -424,7 +425,7 @@ describe("useSessionConversation — sending", () => {
 
     act(() => events.push(...turnOpen("run_new", "pending", "Here is a sketch")));
     await waitFor(() => expect(result.current.pendingUserMessage).toBeNull());
-    expect(result.current.pendingAttachments).toBeNull();
+    expect(result.current.pendingFiles).toBeNull();
     expect(result.current.activeTurn?.runId).toBe("run_new");
     // The send read the list itself; the turn's arrival does not again.
     expect(methods.listBySession).toHaveBeenCalledTimes(listReads);
@@ -472,17 +473,17 @@ describe("useSessionConversation — sending", () => {
   it("keeps the message and files when the send fails, and Retry resends them", async () => {
     methods.runCreate.mockRejectedValueOnce(new Error("create boom"));
     methods.runCreate.mockResolvedValue(makeRun("run_retry", RunPhase.RUN_PENDING));
-    const attachments = [
+    const files = [
       { fileId: "file_notes", filename: "notes.txt", kind: "document" as const },
     ];
     const { result } = await opened();
 
     await act(async () => {
-      await result.current.sendFollowUp("keep me", { attachments });
+      await result.current.sendFollowUp("keep me", { files });
     });
     expect(result.current.sendError?.message).toBe("create boom");
     expect(result.current.pendingUserMessage).toBe("keep me");
-    expect(result.current.pendingAttachments).toBe(attachments);
+    expect(result.current.pendingFiles).toBe(files);
 
     act(() => result.current.clearSendError());
     expect(result.current.sendError).toBeNull();
@@ -770,6 +771,33 @@ describe("useSessionConversation — the follow", () => {
     refuse = false;
     act(() => result.current.reconnectStream());
     await waitFor(() => expect(events.streamEvents).toHaveBeenCalledTimes(2));
+  });
+
+  it("re-opens a follow waiting out its reconnect backoff when a message is sent", async () => {
+    const random = vi.spyOn(Math, "random").mockReturnValue(1);
+    methods.runCreate.mockResolvedValue(makeRun("run_new", RunPhase.RUN_PENDING));
+    let drop = true;
+    const follow = events.streamEvents.getMockImplementation()!;
+    events.streamEvents.mockImplementation(async function* droppingOnce(input, signal) {
+      if (drop) {
+        drop = false;
+        return;
+      }
+      yield* follow(input, signal);
+    });
+    try {
+      const { result } = open();
+      await waitFor(() => expect(result.current.session).not.toBeNull());
+      // The first backoff step waits a full second; the send must not.
+      await waitFor(() => expect(result.current.isReconnecting).toBe(true));
+
+      await act(async () => {
+        await result.current.sendFollowUp("go on");
+      });
+      await waitFor(() => expect(events.streamEvents).toHaveBeenCalledTimes(2), { timeout: 300 });
+    } finally {
+      random.mockRestore();
+    }
   });
 
   it("reports the follow as streaming once events arrive", async () => {

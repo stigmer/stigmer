@@ -16,11 +16,11 @@ export interface PlanCompletionCardProps {
 
 /**
  * Fallback CTA shown in the {@link MessageThread} after a completed Plan-mode
- * run that did **not** publish a `plan.md` artifact (older runs, or
- * a plan whose upload failed). When a plan artifact exists, the richer
- * `PlanArtifactCard` is shown instead.
+ * run that did **not** return a `plan.md` File (older runs, or
+ * a plan whose upload failed). When the plan File exists, the richer
+ * `PlanFileCard` is shown instead.
  *
- * Mirrors `PlanArtifactCard`'s hierarchy — one prominent, themeable "Build"
+ * Mirrors `PlanFileCard`'s hierarchy — one prominent, themeable "Build"
  * primary action with the same card-scoped `Cmd/Ctrl+Enter` accelerator — so
  * the two cards feel like the same affordance. The consumer wires the action
  * to switch the interaction mode to Agent and submit the implement turn.

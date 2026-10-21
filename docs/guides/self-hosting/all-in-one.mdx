@@ -53,12 +53,12 @@ architectures before the image publishes.
 
 ## What the flags mean
 
-| Flag                       | Why                                                                                                                       |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `-p 7234:7234`             | The one port for the API and the console.                                                                                 |
-| `-p 7235:7235`             | The artifact file server. Files an Agent produces are downloaded through it.                                              |
-| `-v stigmer-data:/data`    | Everything the stack stores: the database, its encryption keys, Temporal's history, Workspaces, artifacts, logs. Keep it. |
-| `-e ANTHROPIC_API_KEY=...` | The runner's LLM credential. Without one the console works, but no Agent runs — the container warns you on start.         |
+| Flag                       | Why                                                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `-p 7234:7234`             | The one port for the API and the console.                                                                             |
+| `-p 7235:7235`             | The file server. Files are uploaded and downloaded through it.                                                        |
+| `-v stigmer-data:/data`    | Everything the stack stores: the database, its encryption keys, Temporal's history, Workspaces, files, logs. Keep it. |
+| `-e ANTHROPIC_API_KEY=...` | The runner's LLM credential. Without one the console works, but no Agent runs — the container warns you on start.     |
 
 Without `-v`, Docker still keeps your data in an anonymous volume, but
 `docker rm` discards it. Name the volume.

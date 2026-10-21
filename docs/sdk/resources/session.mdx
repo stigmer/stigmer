@@ -1020,7 +1020,7 @@ ReviewFileChangesResponse reviewFileChangesResponse = client.sessions().reviewFi
 
 Stream a session's events as they are appended.
 
-Without after_seq the stream starts at the moment it opens, as Managed Agents' does. With after_seq it first sends the stored events after that seq, then the new ones, with none missing: a client that listed up to some seq, or whose stream ended, resumes from the last seq it has. A watcher that falls too far behind is ended with RESOURCE_EXHAUSTED; it resumes the same way.
+Without after_seq the stream starts at the moment it opens, as Managed Agents' does. With after_seq it first sends the stored events after that seq, then the new ones, with none missing: a client that listed up to some seq, or whose stream ended, resumes from the last seq it has. A watcher that reads slowly lags behind the log and is never ended for it; a server that is restarting ends its streams with UNAVAILABLE, and a client resumes the same way.
 
 <SDKTabs>
 <Tab value="TypeScript">

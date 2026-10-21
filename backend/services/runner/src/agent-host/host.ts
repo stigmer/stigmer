@@ -206,6 +206,7 @@ function hostConfig(wire: HostConfigWire): Config {
 }
 
 function toWireOutcome(outcome: TurnOutcome): WireOutcome {
+  if (outcome.kind === "stream_cut") return { kind: "stream_cut", message: outcome.message };
   if (outcome.kind !== "failed") return { kind: outcome.kind };
   return {
     kind: "failed",

@@ -25,7 +25,7 @@ import { InteractionMode, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/
 import type { Turn } from "@stigmer/client";
 import { samples } from "../../test/samples";
 import type { SessionComposerHandle } from "../../composer";
-import type { SessionPlan } from "../../library/detect-plan-artifact";
+import type { SessionPlan } from "../../library/detect-plan-file";
 import type { PlanDraftController } from "../usePlanDraft";
 import { PLAN_DOCUMENT_ENTRY_ID } from "../plan-document";
 

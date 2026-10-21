@@ -26,7 +26,7 @@ import { SessionComposer } from "../SessionComposer";
 // Helpers
 // ---------------------------------------------------------------------------
 
-const WAIT_NOTICE = "Waiting for attachments to finish uploading…";
+const WAIT_NOTICE = "Waiting for files to finish uploading…";
 
 interface UploadedFile {
   readonly metadata: { readonly id: string };
@@ -148,7 +148,7 @@ describe("SessionComposer — mid-upload send gate", () => {
     expect(screen.getByText(WAIT_NOTICE).closest('[role="status"]')).toBeTruthy();
   });
 
-  it("clears the notice and sends WITH the attachment once uploads settle", async () => {
+  it("clears the notice and sends WITH the file once uploads settle", async () => {
     const mock = createDeferredUploadMock();
     const { onSubmit } = renderComposer(mock.client);
     const textarea = screen.getByRole("textbox");
@@ -178,8 +178,8 @@ describe("SessionComposer — mid-upload send gate", () => {
     expect(message).toBe("What is wrong here?");
     expect(context?.fileIds).toEqual(["file_1"]);
     // The optimistic bubble's chip; a paste is named pasted-image-*.
-    expect(context?.attachments).toHaveLength(1);
-    expect(context?.attachments[0]).toMatchObject({ fileId: "file_1", kind: "image" });
+    expect(context?.files).toHaveLength(1);
+    expect(context?.files[0]).toMatchObject({ fileId: "file_1", kind: "image" });
   });
 
   it("does not show the notice when Enter is blocked for another reason (empty message)", async () => {
@@ -191,7 +191,7 @@ describe("SessionComposer — mid-upload send gate", () => {
       pasteImage(textarea);
     });
     // Enter with an empty message: blocked by canSubmit, not by uploads —
-    // claiming "waiting for attachments" here would be a lie.
+    // claiming "waiting for files" here would be a lie.
     await act(async () => {
       fireEvent.keyDown(textarea, { key: "Enter", shiftKey: false });
     });

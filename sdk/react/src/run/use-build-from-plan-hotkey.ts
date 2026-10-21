@@ -14,7 +14,7 @@ import { useCallback, type KeyboardEvent } from "react";
  *
  * No-op when there is no action wired or the action is disabled.
  *
- * Shared by {@link PlanArtifactCard} and {@link PlanCompletionCard} so the
+ * Shared by {@link PlanFileCard} and {@link PlanCompletionCard} so the
  * accelerator's behavior lives in exactly one place and cannot drift between
  * the two cards.
  */

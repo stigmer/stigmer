@@ -19,11 +19,11 @@ export interface FileReferenceChipListProps {
  * Renders a horizontal list of workspace file-reference chips.
  *
  * Each chip shows the workspace-relative path (truncated) with a remove
- * button. Unlike attachment chips, file references have no upload
+ * button. Unlike upload chips, file references have no upload
  * lifecycle — they are instant, lightweight "attention" signals.
  *
- * Designed to sit alongside {@link AttachmentChipList} in the composer's
- * attachments zone. Usable standalone by platform builders who compose
+ * Designed to sit alongside {@link FileChipList} in the composer's
+ * files zone. Usable standalone by platform builders who compose
  * their own file-reference UI (headless-first).
  *
  * All visual properties flow through `--stgm-*` tokens.

@@ -1,0 +1,192 @@
+---
+title: Files
+description:
+  A File is a file uploaded once and named by its id. Learn how a file reaches
+  an Agent, what the model sees, where the Agent finds files and saves its
+  outputs, what comes back, who sees a File, and how it compares with Claude's
+  Files API and Managed Agents.
+---
+
+An Agent often needs a file to work on: a spreadsheet to reconcile, a contract
+to review, a screenshot of a bug. And it often makes one you want back: a
+report, a cleaned dataset, a chart. In Stigmer both are Files. A File is a file
+uploaded once and named by its id, `file_01j…`, which you give to a conversation
+or send with a message. What the Agent saves in its outputs folder comes back as
+Files too.
+
+Take a finance team whose Agent closes the books each quarter. They upload the
+quarter's ledger once, then start a conversation that holds it beside the
+repository with their models:
+
+```yaml validate-as="Session"
+spec:
+  resources:
+    - file:
+        file_id: file_01j9zq6v8w3x4y5z6a7b8c9d0e
+        mount_path: q3/ledger.xlsx
+    - name: finance-models
+      git_repository:
+        url: https://github.com/acme/finance-models
+```
+
+On every turn the Agent finds the ledger at `.stigmer/uploads/q3/ledger.xlsx`
+and the models cloned in its workspace. When it saves its report as
+`.stigmer/outputs/reports/q3.pdf`, the report comes back as a File of that turn:
+it shows in the conversation's **Files** tab, and
+`stigmer download session ses_… --path reports/q3.pdf` saves it to your machine.
+
+If you know Claude's Files API and Managed Agents, this is the same model, and
+[How it compares](#how-it-compares) maps each step. This page explains what a
+File is and why it is shaped this way.
+
+## What a File is
+
+- **Its bytes never change.** Uploading again makes a new File with a new id, so
+  an id always means the same bytes.
+- **It is named by the server.** Its name is the filename you uploaded, and two
+  uploads of `report.pdf` are two Files.
+- **It is up to 500 MB**, unless whoever runs the server set a lower limit
+  (`FILE_MAX_BYTES`). A small file is uploaded inline, in the request itself
+  (the request is capped at 10 MiB); a larger one goes to a short-lived upload
+  link first. The SDKs and the CLI choose for you by size.
+- **It carries its own facts**: `spec.filename`, `spec.mime_type`,
+  `status.size_bytes`, and, for an output, the turn that saved it
+  (`status.run_id`) and where (`status.output_path`).
+
+Upload one with `stigmer file upload`, the console's **Library**, the chat box,
+or an SDK (`stigmer.file` in TypeScript, `client.files` in Python and Java). A
+File is never written as YAML: there is nothing in it to apply.
+
+## How a file reaches the Agent
+
+There are three ways, and each ends in the same place:
+
+1. **Sent with a message.** A message names up to 20 Files in `file_ids`; the
+   CLI's `stigmer run --attach ./ledger.xlsx` uploads a local file and names it,
+   and `--file-id` names one already uploaded. The message's Files join the
+   conversation's resources, so the Agent still has them on later turns.
+2. **Held by the conversation.** A conversation's `resources` lists the Files it
+   holds, up to 500, beside its git repositories and local folders. The
+   conversation names them when it starts or when it is edited, and anyone who
+   may send it a message adds more by sending them.
+3. **Named by a routine.** A [routine](/docs/concepts/routines) lists Files the
+   same way, and every run it starts gets them.
+
+Giving a conversation a File that is not yet its own makes the conversation's
+own instance of it: a new id over the same bytes, so nothing is stored twice.
+Deleting the original later leaves the conversation's instance where it was.
+Each run a routine starts makes its new conversation's own instance the same
+way.
+
+## What the model sees
+
+A message shows its Files to the model with its text, the way a Claude message
+carries `image` and `document` blocks:
+
+- **An image** (JPEG, PNG, GIF or WebP) is shown to the model as an image.
+- **Any other file** is a `document` block that tells the model the file is
+  there and where. The Agent reads it with its tools, as it would any file in
+  its workspace, so a 300 MB log never fills its context.
+
+The run records which blocks its message carried in `status.message_files`.
+
+## Where the Agent finds files and saves them
+
+Two folders sit in the workspace's `.stigmer/` folder:
+
+- **`.stigmer/uploads/`** holds the conversation's Files, each at its
+  `mount_path` (by default its filename, made unique as `name-2.ext`). The
+  folder is the platform's: it is laid out again at the start of every turn, so
+  a change the Agent makes there does not last. To return an edited copy, the
+  Agent saves it in the outputs folder.
+- **`.stigmer/outputs/`** is where the Agent saves what it returns. Everything
+  new or changed there is collected when the turn ends, a stopped turn included.
+
+The folders sit in `.stigmer/`, not in a repository the conversation clones, so
+a repository's write-back never commits them. And they are the same path on
+every [harness](/docs/concepts/harnesses), on a sandbox or on your own machine,
+so an Agent's instructions can name them once.
+
+## What comes back
+
+Everything new or changed in `.stigmer/outputs/` at the end of a turn becomes a
+File of the conversation, written by that turn, with `status.output_path` saying
+where it was saved. Two files of one name in two folders are two Files, and a
+file saved again in a later turn is a new File at the same path.
+
+The conversation's **Files** tab and `stigmer download session` show the newest
+File at each path, with the earlier versions behind it;
+`stigmer download run run_…` saves one turn's outputs, and `--path` picks one by
+its path in the folder. Files the Agent edits elsewhere in the workspace are not
+returned this way: a repository's changes go back to it as a branch and a pull
+request, when the conversation writes back.
+
+## Who sees a File, and when it goes
+
+- **A conversation's Files follow the conversation.** Everyone who can see the
+  conversation sees what was given to it and what its Agent saved, and nobody
+  else does.
+- **Any other File is its uploader's**, private until its visibility or a grant
+  shares it (see [Sharing and access](/docs/concepts/sharing-and-access)). The
+  console's **Library** lists these, the Files you keep to reuse.
+- **Deleting a File** is for its uploader, and for the owner of the conversation
+  it belongs to. Its bytes go once no other File shares them.
+- **Deleting a conversation deletes its Files**, and deleting an Organization
+  deletes all of its Files.
+- **A File a routine names cannot be deleted** while the routine names it, so a
+  routine never starts a run that is missing its input.
+
+## How it compares
+
+Claude's
+[Files API](https://platform.claude.com/docs/en/build-with-claude/files) and
+[Managed Agents' files](https://platform.claude.com/docs/en/managed-agents/files)
+are the model a File follows, step for step.
+
+| On Stigmer                                                                  | What you already know from Claude                                                   |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Upload once, name by id (`file_01j…`); the bytes never change               | The same (`POST /v1/files`, `file_…`)                                               |
+| Up to 500 MB per File                                                       | The same                                                                            |
+| A conversation's `resources`: `file` beside its repositories                | A session's `resources`: `file` beside `github_repository`                          |
+| Up to 500 Files per conversation                                            | The same                                                                            |
+| Giving a conversation a File makes its own instance over the same bytes     | Mounting makes a new `file_id` that does not count toward storage                   |
+| A message's `image` and `document` blocks, named by `file_id`               | The same blocks with a `file` source                                                |
+| `mount_path` relative to `.stigmer/uploads/`, by default the filename       | An absolute `mount_path` under `/mnt/session/uploads/`, by default the `file_id`    |
+| What the Agent saves in `.stigmer/outputs/` comes back as Files of the turn | What the agent writes to `/mnt/session/outputs/` comes back as files of the session |
+| Every File downloadable by whoever can see it                               | An uploaded file cannot be downloaded; only files the agent made can                |
+| No storage limit per Organization                                           | 1 TB per organization                                                               |
+| Resources edited with the conversation; a message's Files join them         | Added, listed and removed one by one through `/v1/sessions/{id}/resources`          |
+| `git_repository`, any HTTPS host                                            | `github_repository`                                                                 |
+| `local_path`, a folder on your own machine                                  | No equivalent                                                                       |
+
+[Use Anthropic's SDK](/docs/sdk/managed-agents) sends Managed Agents events to
+Stigmer as they are. Its `user.message` takes `image` and `document` blocks
+whose source is a File's id; it refuses a block whose source is `base64` or a
+`url` (upload the bytes as a File first), and a document's `title`, `context`,
+`citations` or `cache_control`, which Stigmer would not carry to the model.
+
+## Where Stigmer differs, and why
+
+- **The folders are workspace-relative.** Managed Agents mounts files at
+  `/mnt/session/`. Here they sit in the workspace's `.stigmer/` folder, because
+  a conversation may run on your own machine, where there is no `/mnt`, and
+  because a folder outside the repository is one write-back never commits.
+- **A mount path defaults to the filename.** The Agent and the person reading
+  along both know a file by its name, so `ledger.xlsx` lands as `ledger.xlsx`,
+  not as its id.
+- **Every File downloads.** A File is something a person gave or an Agent made,
+  and whoever can see it may take it back out, uploads included.
+- **No storage quota.** Each File is capped by size; whoever runs the server
+  decides what storage it has.
+- **Any git host, and local folders.** A conversation clones a repository from
+  any HTTPS host, and on your own machine it can work in a folder you already
+  have.
+- **No per-resource ids.** A conversation's resources are part of it, written
+  with it like its other settings; a message adds its Files without anyone
+  editing the conversation.
+
+## What's next
+
+A File is how work goes in and comes out. To give a conversation repositories
+and Files when it starts, see [Sessions](/docs/concepts/sessions); to give the
+same Files to every run on a schedule, see [Routines](/docs/concepts/routines).

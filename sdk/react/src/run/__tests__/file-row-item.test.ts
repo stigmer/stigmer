@@ -1,5 +1,5 @@
 /**
- * The artifact row's view-model, mapped from a File a turn returned: the
+ * The File row's view-model, mapped from a File a turn returned: the
  * filename, the size, the output path as tooltip, and the path's folder as a
  * subtitle only when two rows share a filename.
  */

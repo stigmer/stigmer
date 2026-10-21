@@ -17,7 +17,7 @@
 import { useCallback, useMemo, useState } from "react";
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { useFileContent } from "../file/useFileContent.js";
-import { isTextFile } from "./artifact-utils.js";
+import { isTextFile } from "./text-content.js";
 import { useDetectStigmerResource } from "../library/useDetectStigmerResource.js";
 import {
   useApplyResource,

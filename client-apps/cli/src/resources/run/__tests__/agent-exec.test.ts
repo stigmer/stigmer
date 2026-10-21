@@ -7,7 +7,7 @@
 // built-in assistant rides the same flow with no agent at all. Most runs
 // use detach mode so no streaming machinery is exercised; the attached runs
 // stream through a double that returns the final run, and pin that the
-// run's artifacts (the Files it returned, which the download lists) are
+// run's outputs (the Files it returned, which the download lists) are
 // downloaded only when a download directory was given. Attached files are uploaded as the person's
 // own before the create, named on it (the message's by id, a folder's as the
 // new conversation's resources), and the originals are deleted once the
@@ -34,11 +34,11 @@ import {
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { BackendClient } from "../../../client/index.js";
 import { executeResolvedAgent } from "../agent-exec.js";
-import { NO_ATTACHMENTS, planAttachments } from "../attachments.js";
+import { NO_FILES, planFiles } from "../files.js";
 import type { PreparedRun } from "../prepare.js";
 
 const stream = vi.hoisted(() => ({ streamAgentRun: vi.fn() }));
-const download = vi.hoisted(() => ({ downloadRunArtifacts: vi.fn() }));
+const download = vi.hoisted(() => ({ downloadRunOutputs: vi.fn() }));
 vi.mock("../stream.js", () => stream);
 vi.mock("../../download.js", () => download);
 
@@ -60,7 +60,7 @@ function makePrepared(overrides: Partial<PreparedRun> = {}): PreparedRun {
     vaults: [],
     includeMyVault: true,
     plugins: [],
-    attachments: NO_ATTACHMENTS,
+    files: NO_FILES,
     message: "hi",
     detach: true,
     verbose: false,
@@ -239,10 +239,10 @@ describe("executeResolvedAgent, attached", () => {
     expect(stream.streamAgentRun).toHaveBeenCalledWith(
       expect.objectContaining({ sessionId: "ses_srv", org: "acme", mode: "plan", outputMode: "json" }),
     );
-    expect(download.downloadRunArtifacts).not.toHaveBeenCalled();
+    expect(download.downloadRunOutputs).not.toHaveBeenCalled();
   });
 
-  it("downloads the final run's artifacts into the download directory", async () => {
+  it("downloads the final run's outputs into the download directory", async () => {
     stream.streamAgentRun.mockResolvedValue(finalRun());
     const { client } = fakeBackend();
 
@@ -255,10 +255,10 @@ describe("executeResolvedAgent, attached", () => {
       client,
     });
 
-    expect(download.downloadRunArtifacts).toHaveBeenCalledWith(
+    expect(download.downloadRunOutputs).toHaveBeenCalledWith(
       client.stigmer,
       "aex_final",
-      { artifactName: "", outputDir: "/tmp/out" },
+      { outputPath: "", outputDir: "/tmp/out" },
       expect.any(Function),
     );
   });
@@ -295,11 +295,11 @@ describe("executeResolvedAgent, with files", () => {
     return { stigmer, sessionIds, deletes };
   }
 
-  function attach(): ReturnType<typeof planAttachments> {
+  function attach(): ReturnType<typeof planFiles> {
     writeFileSync(join(dir, "report.pdf"), "pdf");
     mkdirSync(join(dir, "data"));
     writeFileSync(join(dir, "data", "a.csv"), "1,2");
-    return planAttachments([join(dir, "report.pdf"), join(dir, "data")], []);
+    return planFiles([join(dir, "report.pdf"), join(dir, "data")], []);
   }
 
   it("names the uploaded Files on the one create, then deletes the person's originals", async () => {
@@ -308,7 +308,7 @@ describe("executeResolvedAgent, with files", () => {
 
     await executeResolvedAgent({
       agent: makeAgent(),
-      prepared: makePrepared({ resources: [WORKSPACE_ENTRY], attachments: attach() }),
+      prepared: makePrepared({ resources: [WORKSPACE_ENTRY], files: attach() }),
       org: "acme",
       downloadDir: "",
       outputMode: "inline",
@@ -335,7 +335,7 @@ describe("executeResolvedAgent, with files", () => {
     await expect(
       executeResolvedAgent({
         agent: makeAgent(),
-        prepared: makePrepared({ attachments: attach() }),
+        prepared: makePrepared({ files: attach() }),
         org: "acme",
         downloadDir: "",
         outputMode: "inline",
@@ -351,7 +351,7 @@ describe("executeResolvedAgent, with files", () => {
 
     await executeResolvedAgent({
       agent: makeAgent(),
-      prepared: makePrepared({ attachments: attach() }),
+      prepared: makePrepared({ files: attach() }),
       org: "acme",
       downloadDir: "",
       outputMode: "inline",

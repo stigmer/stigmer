@@ -23,11 +23,11 @@ export interface PlanDocumentMessageProps {
  * lifted out of the prose) and document-grade typography
  * ({@link PLAN_DOCUMENT_MARKDOWN_COMPONENTS}).
  *
- * This is the thread's NO-ARTIFACT fallback: a completed Plan turn that never
+ * This is the thread's NO-PLAN-FILE fallback: a completed Plan turn that never
  * published `plan.md` (older runs, a failed upload) keeps its plan
  * inline via this component — the message is the only copy of the plan, so it
- * must stay readable in place. A turn that DID publish the artifact collapses
- * its plan message into the compact `PlanArtifactCard` instead, and the
+ * must stay readable in place. A turn that DID return the plan File collapses
+ * its plan message into the compact `PlanFileCard` instead, and the
  * document renders in the session panel's plan tab (`PlanEditor`) with the
  * same typography.
  *
@@ -35,7 +35,7 @@ export interface PlanDocumentMessageProps {
  * unwrapped even when the fence carries no language tag (`allowBareFence`) —
  * a Plan turn's output is a markdown document by contract, so an enclosing
  * bare fence is wrapping, not code. Render-time only; the transcript and the
- * published artifact stay byte-faithful.
+ * plan File stay byte-faithful.
  *
  * Purely presentational — no data fetching, no state.
  * All visual properties flow through `--stgm-*` tokens.

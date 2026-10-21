@@ -26,13 +26,25 @@ export const DEFAULT_RECONNECT_MAX_DELAY_MS = 30_000;
 /** Per-attempt growth multiplier. */
 export const DEFAULT_RECONNECT_FACTOR = 2;
 /**
- * Attempts before giving up and surfacing a terminal error. With the
- * defaults above this is ≈ several minutes of outage before the user sees
- * an error banner — long enough to ride out sleep/wake and network blips,
- * bounded enough to avoid an unbounded background loop against a stream
- * that will never recover (e.g. a deleted run).
+ * Attempts before giving up and surfacing a terminal error: none by
+ * default. A turn can run for hours while its person is away (a closed lid,
+ * a train), and any cap ends the follow of exactly that turn (stigmer#2418).
+ * A stream that can never recover is a refusal (a deleted session, access
+ * withdrawn), which ends the follow without spending attempts; the
+ * {@link DEFAULT_RECONNECT_MAX_DELAY_MS} ceiling bounds what a long outage
+ * costs. A caller that wants a cap passes `maxAttempts`.
  */
-export const DEFAULT_RECONNECT_MAX_ATTEMPTS = 10;
+export const DEFAULT_RECONNECT_MAX_ATTEMPTS = Number.POSITIVE_INFINITY;
+
+/**
+ * How long (ms) a stream must have stayed open for its end to count as a
+ * fresh drop rather than one more failure in a row. A proxy's idle close of
+ * a quiet session, or a server restart, then re-opens within the first
+ * backoff step instead of climbing toward the ceiling; a stream that ends
+ * at once keeps backing off, so a front that ends every stream immediately
+ * never causes a hot loop.
+ */
+export const HEALTHY_STREAM_MS = 30_000;
 
 /**
  * Compute the backoff delay (ms) for a 1-based reconnect attempt.

@@ -34,6 +34,7 @@ const ARMS: ReadonlyArray<{ readonly name: string; readonly arm: TerminalArm; re
   { name: "workerShutdownArm", arm: table.workerShutdownArm(), cause: null },
   { name: "continueArm", arm: table.continueArm("drain"), cause: null },
   { name: "modelStallArm", arm: table.modelStallArm(new StallTimeoutError(1_000)), cause: null },
+  { name: "streamCutArm", arm: table.streamCutArm("the vendor ended its connection"), cause: null },
   { name: "orchestratorStopArm", arm: table.orchestratorStopArm(), cause: "user" },
   { name: "infrastructureCancelArm", arm: table.infrastructureCancelArm(), cause: null },
   { name: "awaitingApprovalArm", arm: table.awaitingApprovalArm(), cause: null },
@@ -111,6 +112,14 @@ describe("applying an arm", () => {
     expect(arm.disposition).toEqual({ kind: "continue", cause: "model-stall", message: table.stallArm(error).error });
     expect(table.continueArm("drain").disposition, "a drain names no message: the shared copy").toEqual({ kind: "continue", cause: "drain" });
     expect(table.isContinuationNote(table.TERMINAL_COPY.continuation.notes["model-stall"])).toBe(true);
+  });
+
+  it("a connection the vendor ended continues: no ending, its fixed note, and the adapter's words for the workflow if it gives up", () => {
+    const arm = table.streamCutArm("the vendor ended its connection");
+    expect([arm.phase, arm.error, arm.completes, arm.stopCause, arm.rows]).toEqual([RunPhase.RUN_PHASE_UNSPECIFIED, undefined, false, null, []]);
+    expect(arm.note).toBe("Cursor ended its connection; this turn continues from where it was.");
+    expect(arm.disposition).toEqual({ kind: "continue", cause: "stream-cut", message: "the vendor ended its connection" });
+    expect(table.isContinuationNote(table.TERMINAL_COPY.continuation.notes["stream-cut"])).toBe(true);
   });
 
   it("a waiting arm leaves the stop cause as it was and appends nothing of its own", () => {

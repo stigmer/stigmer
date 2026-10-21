@@ -273,18 +273,18 @@ describe("useSessionConversation — a follow-up's vault pick and repository tok
   it("names the message's Files on the run and releases them once it exists, never after a failed send", async () => {
     const { result } = await loaded();
     const releaseFiles = vi.fn().mockResolvedValue(undefined);
-    const attachments = [{ fileId: "file_1", filename: "shot.png", kind: "image" as const }];
+    const files = [{ fileId: "file_1", filename: "shot.png", kind: "image" as const }];
 
     runCreate.mockRejectedValueOnce(new Error("refused"));
     await act(async () => {
-      await result.current.sendFollowUp("look", { fileIds: ["file_1"], attachments, releaseFiles });
+      await result.current.sendFollowUp("look", { fileIds: ["file_1"], files, releaseFiles });
     });
     expect(releaseFiles).not.toHaveBeenCalled();
     // The failed bubble keeps its chips: they are what Retry re-sends.
-    expect(result.current.pendingAttachments).toEqual(attachments);
+    expect(result.current.pendingFiles).toEqual(files);
 
     await act(async () => {
-      await result.current.sendFollowUp("look", { fileIds: ["file_1"], attachments, releaseFiles });
+      await result.current.sendFollowUp("look", { fileIds: ["file_1"], files, releaseFiles });
     });
     expect(runCreate.mock.calls[1][0].fileIds).toEqual(["file_1"]);
     expect(releaseFiles).toHaveBeenCalledTimes(1);

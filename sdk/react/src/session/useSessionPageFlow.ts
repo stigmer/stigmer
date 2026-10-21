@@ -626,7 +626,7 @@ export function useSessionPageFlow(
         await conv.sendFollowUp(message, {
           modelName: pinnedModelName ?? selectedModel ?? modelId,
           fileIds: context?.fileIds,
-          attachments: context?.attachments,
+          files: context?.files,
           releaseFiles: context?.releaseFiles,
           interactionMode: context?.interactionMode,
           serviceTier: pinnedModelName ? pinnedServiceTier : context?.serviceTier,
@@ -658,7 +658,7 @@ export function useSessionPageFlow(
         vaults: isGuest ? undefined : context?.vaults,
         includeMyVault: isGuest ? undefined : context?.includeMyVault,
         fileIds: context?.fileIds,
-        attachments: context?.attachments,
+        files: context?.files,
         releaseFiles: context?.releaseFiles,
         interactionMode: context?.interactionMode,
         serviceTier: pinnedModelName ? pinnedServiceTier : context?.serviceTier,

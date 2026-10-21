@@ -534,25 +534,25 @@ function findStreamingPlan(turn: Turn | null | undefined, run: Run | null | unde
 ```
 
 
-### isPlanArtifactName
-
-Returns `true` when a filename is a plan's: the legacy exact `plan.md`, or
-any `*.plan.md`.
-
-```tsx
-function isPlanArtifactName(name: string): boolean
-```
-
-
 ### isPlanFile
 
 Returns `true` when a File is a turn's plan: a File some run returned
-(`status.run_id` set) whose filename satisfies [`isPlanArtifactName`](#isplanartifactname).
+(`status.run_id` set) whose filename satisfies [`isPlanFileName`](#isplanfilename).
 Whether that run ran in Plan mode is [`findPlanFile`](#findplanfile)'s check, which
 has the run.
 
 ```tsx
 function isPlanFile(file: File): boolean
+```
+
+
+### isPlanFileName
+
+Returns `true` when a filename is a plan's: the legacy exact `plan.md`, or
+any `*.plan.md`.
+
+```tsx
+function isPlanFileName(name: string): boolean
 ```
 
 
@@ -566,15 +566,15 @@ The slice of the Stigmer client a library source needs (mockable in tests).
 The kinds the Library lists and searches.
 
 
-### PLAN_ARTIFACT_NAME
+### PLAN_FILE_NAME
 
-Legacy plan filename. Detection-only: [`isPlanArtifactName`](#isplanartifactname) still
+Legacy plan filename. Detection-only: [`isPlanFileName`](#isplanfilename) still
 accepts this exact name so plans written before named plans existed keep
 working. The runner never freshly emits it (a titleless plan falls back to
 a bare `<id>.plan.md`).
 
 
-### PLAN_ARTIFACT_SUFFIX
+### PLAN_FILE_SUFFIX
 
 Suffix every named plan carries (`<slug>_<id>.plan.md`, or a bare
 `<id>.plan.md` when untitled). The runner derives the slug from the plan's
@@ -633,7 +633,7 @@ can narrow the type with a simple `if (result.detected)` check.
 Resource kinds that the YAML detection logic recognizes.
 
 These correspond to the Stigmer resource types that can appear as
-YAML file artifacts and be applied to an organization via `apply()`:
+YAML files and be applied to an organization via `apply()`:
 
 - `"Agent"` — agent blueprint (`apiVersion: agentic.stigmer.ai/v1`, `kind: Agent`)
 

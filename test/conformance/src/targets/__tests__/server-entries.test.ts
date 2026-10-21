@@ -3,8 +3,8 @@
 // whose suites create an organization per tenancy, the shipped entry (the
 // open-source edition, one organization) for local-single-org, which also
 // refuses to provision the extra organizations another suite would ask for.
-// The build, the process spawns, the engine and the readiness gate are
-// stubbed; nothing here starts a server.
+// The build, the process spawns, the engine, the front and the readiness
+// gate are stubbed; nothing here starts a server.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const spawned: string[][] = [];
@@ -23,12 +23,24 @@ vi.mock("@stigmer/test-support/server-process", () => ({
     spawned.push(options.args);
     return {
       baseUrl: "http://127.0.0.1:1",
+      port: 1,
       artifactServeUrl: "http://127.0.0.1:2",
       artifactBaseDir: "/artifacts",
       logTail: () => "",
       stop: async () => {},
     };
   },
+}));
+
+vi.mock("@stigmer/test-support/tcp-front", () => ({
+  startTcpFront: async () => ({
+    port: 5,
+    baseUrl: "http://127.0.0.1:5",
+    add: () => {},
+    remove: () => {},
+    backends: () => [],
+    close: async () => {},
+  }),
 }));
 
 vi.mock("../../harness/grpc-ready", () => ({
@@ -92,7 +104,9 @@ describe("the server entry each local target spawns", () => {
     await target.setup();
     const sibling = await target.spawnSibling(SIBLING);
     expect(spawned).toEqual([["/library-server.mjs"], ["/library-server.mjs"]]);
-    expect(target.managedAgentsBaseUrl()).toBe("http://127.0.0.1:1");
+    // The primary is reached through the target's front (restartServer
+    // replaces the server behind it); a sibling on its own unified port.
+    expect(target.managedAgentsBaseUrl()).toBe("http://127.0.0.1:5");
     expect(sibling.managedAgentsBaseUrl()).toBe("http://127.0.0.1:1");
   });
 

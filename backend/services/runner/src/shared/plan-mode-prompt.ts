@@ -3,9 +3,9 @@
  *
  * Plan mode's output contract spans three components that must agree:
  * - the model produces the plan as its FINAL message (this directive),
- * - the runner publishes that final message verbatim as a plan markdown
- *   artifact, named from the plan's title (`plan-artifact.ts` —
- *   `extractFinalPlanText`, `planArtifactName`),
+ * - the runner saves that final message verbatim as a plan markdown File
+ *   of the turn, named from the plan's title (`plan-file.ts` —
+ *   `savePlanOutput`, `planFileName`),
  * - the SDK promotes the same message to a first-class plan document in the
  *   thread and offers "Build from plan".
  *

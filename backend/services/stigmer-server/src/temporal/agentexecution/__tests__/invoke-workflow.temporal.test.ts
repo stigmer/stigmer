@@ -762,6 +762,32 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     ).toBe(false);
   }, 60_000);
 
+  it("auto-recovers a turn whose engine's vendor ended its connection (a StigmerTurnContinues stream cut, stigmer#2436)", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    const { ApplicationFailure, ApplicationFailureCategory } = await import("@temporalio/common");
+    script.executeBehaviors = [
+      async () => {
+        // Cursor's side ended the run's stream: continued, carrying the
+        // runner's words for the cut for a give-up.
+        throw ApplicationFailure.create({
+          type: "StigmerTurnContinues",
+          message: "[unknown] [canceled] http/2 stream closed with error code CANCEL (0x8) [category=stream-cut, source=sdk, retryable=true]",
+          details: ["stream-cut"],
+          category: ApplicationFailureCategory.BENIGN,
+        });
+      },
+      async () => slimResult(RunPhase.RUN_COMPLETED),
+    ];
+
+    const handle = await startWorkflow(workflowInput());
+    await handle.result();
+
+    expect(script.executeCalls, "the turn is invoked again and completes").toHaveLength(2);
+    expect(
+      script.persistedStatuses.some((entry) => entry.status.phase === RunPhase.RUN_FAILED),
+      "a continued turn never shows FAILED",
+    ).toBe(false);
+  }, 60_000);
+
   // NOTE: full recovery EXHAUSTION (11 interrupted invocations, ~275s of
   // real linear backoff) is not exercised here — createLocal does not
   // auto-skip timers the way Go's test env does. The classifier and the

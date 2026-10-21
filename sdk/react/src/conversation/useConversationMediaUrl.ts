@@ -78,7 +78,7 @@ export interface UseConversationMediaUrlOptions {
  * return url ? <img src={url} alt={item.media?.filename} /> : null;
  * ```
  *
- * @see useArtifactDownloadUrl — the execution-artifact counterpart this mirrors
+ * @see useArtifactDownloadUrl — the run stored-content counterpart this mirrors
  */
 export function useConversationMediaUrl(
   channelId: string,

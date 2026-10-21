@@ -30,7 +30,7 @@ import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb
 import type { Stigmer } from "@stigmer/client";
 import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
-import { giveFilesToSession, type ProgressSink, uploadAll } from "./run/attachments.js";
+import { giveFilesToSession, type ProgressSink, uploadAll } from "./run/files.js";
 import { formatBytes } from "./skill.js";
 
 /** One uploaded File, as the command reports it. */

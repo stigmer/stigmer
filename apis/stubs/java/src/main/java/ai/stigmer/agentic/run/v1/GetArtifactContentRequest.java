@@ -7,51 +7,48 @@ package ai.stigmer.agentic.run.v1;
 
 /**
  * <pre>
- * GetArtifactContentRequest reads the raw content of a run artifact.
+ * GetArtifactContentRequest reads the raw bytes of a run's stored content.
  *
  * Unlike getArtifactDownloadUrl (which returns a presigned URL for direct
- * browser download), this endpoint returns the artifact bytes through the
- * Stigmer API. This eliminates CORS concerns for SDK consumers who need to
- * read artifact content programmatically — e.g., for YAML parsing, resource
- * detection, or in-app preview rendering.
+ * browser download), this endpoint returns the bytes through the Stigmer
+ * API. This eliminates CORS concerns for SDK consumers who need to read
+ * the content programmatically — e.g., for in-app preview rendering.
  *
  * ## Authorization
  *
  * Requires can_view permission on the run. This ensures users can only
- * read artifacts from runs they have access to.
+ * read stored content from runs they have access to.
  *
  * ## Security
  *
  * The storage_key is validated to ensure it belongs to the specified run.
  * Storage keys must start with "artifacts/{run_id}/" to prevent path
- * traversal attacks where a user could request content from other runs'
- * artifacts.
+ * traversal attacks where a user could request another run's content.
  *
  * ## Size Limit
  *
  * The server enforces a maximum content size (default: 512 KB). If the
- * artifact exceeds max_bytes, the response contains the first max_bytes of
- * content with truncated=true. Callers can use total_size_bytes to decide
+ * content exceeds max_bytes, the response contains the first max_bytes of
+ * it with truncated=true. Callers can use total_size_bytes to decide
  * whether to offer a full download via getArtifactDownloadUrl instead.
  *
  * ## Use Cases
  *
- * - Web UI reading YAML artifacts for Stigmer resource detection
- * - SDK consumers rendering artifact previews in embedded components
- * - CLI inspecting artifact content without a separate HTTP download
+ * - Web UI showing a tool call's offloaded output
+ * - Web UI showing a changed file's diff or content in file review
  *
  * ## Example
  *
  * Request:
  * {
  * "run_id": "run_abc123xyz456",
- * "storage_key": "artifacts/run_abc123xyz456/pr-review-agent.yaml"
+ * "storage_key": "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
  * }
  *
  * Response:
  * {
  * "content": &lt;bytes&gt;,
- * "content_type": "text/yaml",
+ * "content_type": "text/plain",
  * "total_size_bytes": 1842,
  * "truncated": false
  * }
@@ -107,7 +104,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object runId_ = "";
   /**
    * <pre>
-   * ID of the run that produced the artifact.
+   * ID of the run that stored the content.
    *
    * Used for authorization (can_view check) and storage_key validation.
    *
@@ -135,7 +132,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ID of the run that produced the artifact.
+   * ID of the run that stored the content.
    *
    * Used for authorization (can_view check) and storage_key validation.
    *
@@ -168,15 +165,15 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object storageKey_ = "";
   /**
    * <pre>
-   * Storage key of the artifact to read.
+   * Storage key of the content to read.
    *
-   * Must be an artifact from the specified run. The storage_key
-   * is validated to start with "artifacts/{run_id}/" to prevent
-   * access to other runs' artifacts.
+   * Must be content of the specified run. The storage_key is validated
+   * to start with "artifacts/{run_id}/" to prevent access to another
+   * run's content.
    *
    * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
    *
-   * Format: "artifacts/{run_id}/{filename}"
+   * Format: "artifacts/{run_id}/{path}"
    * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
    *
    * Validation: Required, minimum 1 character
@@ -200,15 +197,15 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Storage key of the artifact to read.
+   * Storage key of the content to read.
    *
-   * Must be an artifact from the specified run. The storage_key
-   * is validated to start with "artifacts/{run_id}/" to prevent
-   * access to other runs' artifacts.
+   * Must be content of the specified run. The storage_key is validated
+   * to start with "artifacts/{run_id}/" to prevent access to another
+   * run's content.
    *
    * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
    *
-   * Format: "artifacts/{run_id}/{filename}"
+   * Format: "artifacts/{run_id}/{path}"
    * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
    *
    * Validation: Required, minimum 1 character
@@ -238,8 +235,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Maximum number of bytes to return.
    *
-   * If the artifact is larger than this limit, the response will contain
-   * the first max_bytes of content with truncated=true.
+   * If the content is larger than this limit, the response will contain
+   * the first max_bytes of it with truncated=true.
    *
    * When 0 or unset, the server applies a default limit (512 KB).
    * The server may also enforce a hard upper bound regardless of this value.
@@ -260,11 +257,11 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object entryPath_ = "";
   /**
    * <pre>
-   * For directory artifacts (ZIPs): extract a specific file by its
-   * path within the archive instead of returning the raw ZIP bytes.
+   * For stored ZIP content: extract a specific entry by its path within
+   * the archive instead of returning the raw ZIP bytes.
    *
-   * When empty, returns the full artifact content (existing behavior).
-   * When set for a FILE artifact, this field is ignored.
+   * When empty, returns the full content (existing behavior).
+   * When the stored object is not a ZIP, this field is ignored.
    *
    * The path must match an entry in the archive exactly (case-sensitive).
    * List the archive's entries to discover valid values.
@@ -290,11 +287,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * For directory artifacts (ZIPs): extract a specific file by its
-   * path within the archive instead of returning the raw ZIP bytes.
+   * For stored ZIP content: extract a specific entry by its path within
+   * the archive instead of returning the raw ZIP bytes.
    *
-   * When empty, returns the full artifact content (existing behavior).
-   * When set for a FILE artifact, this field is ignored.
+   * When empty, returns the full content (existing behavior).
+   * When the stored object is not a ZIP, this field is ignored.
    *
    * The path must match an entry in the archive exactly (case-sensitive).
    * List the archive's entries to discover valid values.
@@ -510,51 +507,48 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GetArtifactContentRequest reads the raw content of a run artifact.
+   * GetArtifactContentRequest reads the raw bytes of a run's stored content.
    *
    * Unlike getArtifactDownloadUrl (which returns a presigned URL for direct
-   * browser download), this endpoint returns the artifact bytes through the
-   * Stigmer API. This eliminates CORS concerns for SDK consumers who need to
-   * read artifact content programmatically — e.g., for YAML parsing, resource
-   * detection, or in-app preview rendering.
+   * browser download), this endpoint returns the bytes through the Stigmer
+   * API. This eliminates CORS concerns for SDK consumers who need to read
+   * the content programmatically — e.g., for in-app preview rendering.
    *
    * ## Authorization
    *
    * Requires can_view permission on the run. This ensures users can only
-   * read artifacts from runs they have access to.
+   * read stored content from runs they have access to.
    *
    * ## Security
    *
    * The storage_key is validated to ensure it belongs to the specified run.
    * Storage keys must start with "artifacts/{run_id}/" to prevent path
-   * traversal attacks where a user could request content from other runs'
-   * artifacts.
+   * traversal attacks where a user could request another run's content.
    *
    * ## Size Limit
    *
    * The server enforces a maximum content size (default: 512 KB). If the
-   * artifact exceeds max_bytes, the response contains the first max_bytes of
-   * content with truncated=true. Callers can use total_size_bytes to decide
+   * content exceeds max_bytes, the response contains the first max_bytes of
+   * it with truncated=true. Callers can use total_size_bytes to decide
    * whether to offer a full download via getArtifactDownloadUrl instead.
    *
    * ## Use Cases
    *
-   * - Web UI reading YAML artifacts for Stigmer resource detection
-   * - SDK consumers rendering artifact previews in embedded components
-   * - CLI inspecting artifact content without a separate HTTP download
+   * - Web UI showing a tool call's offloaded output
+   * - Web UI showing a changed file's diff or content in file review
    *
    * ## Example
    *
    * Request:
    * {
    * "run_id": "run_abc123xyz456",
-   * "storage_key": "artifacts/run_abc123xyz456/pr-review-agent.yaml"
+   * "storage_key": "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
    * }
    *
    * Response:
    * {
    * "content": &lt;bytes&gt;,
-   * "content_type": "text/yaml",
+   * "content_type": "text/plain",
    * "total_size_bytes": 1842,
    * "truncated": false
    * }
@@ -740,7 +734,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object runId_ = "";
     /**
      * <pre>
-     * ID of the run that produced the artifact.
+     * ID of the run that stored the content.
      *
      * Used for authorization (can_view check) and storage_key validation.
      *
@@ -767,7 +761,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the run that produced the artifact.
+     * ID of the run that stored the content.
      *
      * Used for authorization (can_view check) and storage_key validation.
      *
@@ -795,7 +789,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the run that produced the artifact.
+     * ID of the run that stored the content.
      *
      * Used for authorization (can_view check) and storage_key validation.
      *
@@ -819,7 +813,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the run that produced the artifact.
+     * ID of the run that stored the content.
      *
      * Used for authorization (can_view check) and storage_key validation.
      *
@@ -840,7 +834,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ID of the run that produced the artifact.
+     * ID of the run that stored the content.
      *
      * Used for authorization (can_view check) and storage_key validation.
      *
@@ -867,15 +861,15 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object storageKey_ = "";
     /**
      * <pre>
-     * Storage key of the artifact to read.
+     * Storage key of the content to read.
      *
-     * Must be an artifact from the specified run. The storage_key
-     * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other runs' artifacts.
+     * Must be content of the specified run. The storage_key is validated
+     * to start with "artifacts/{run_id}/" to prevent access to another
+     * run's content.
      *
      * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
      *
-     * Format: "artifacts/{run_id}/{filename}"
+     * Format: "artifacts/{run_id}/{path}"
      * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
      *
      * Validation: Required, minimum 1 character
@@ -898,15 +892,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Storage key of the artifact to read.
+     * Storage key of the content to read.
      *
-     * Must be an artifact from the specified run. The storage_key
-     * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other runs' artifacts.
+     * Must be content of the specified run. The storage_key is validated
+     * to start with "artifacts/{run_id}/" to prevent access to another
+     * run's content.
      *
      * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
      *
-     * Format: "artifacts/{run_id}/{filename}"
+     * Format: "artifacts/{run_id}/{path}"
      * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
      *
      * Validation: Required, minimum 1 character
@@ -930,15 +924,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Storage key of the artifact to read.
+     * Storage key of the content to read.
      *
-     * Must be an artifact from the specified run. The storage_key
-     * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other runs' artifacts.
+     * Must be content of the specified run. The storage_key is validated
+     * to start with "artifacts/{run_id}/" to prevent access to another
+     * run's content.
      *
      * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
      *
-     * Format: "artifacts/{run_id}/{filename}"
+     * Format: "artifacts/{run_id}/{path}"
      * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
      *
      * Validation: Required, minimum 1 character
@@ -958,15 +952,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Storage key of the artifact to read.
+     * Storage key of the content to read.
      *
-     * Must be an artifact from the specified run. The storage_key
-     * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other runs' artifacts.
+     * Must be content of the specified run. The storage_key is validated
+     * to start with "artifacts/{run_id}/" to prevent access to another
+     * run's content.
      *
      * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
      *
-     * Format: "artifacts/{run_id}/{filename}"
+     * Format: "artifacts/{run_id}/{path}"
      * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
      *
      * Validation: Required, minimum 1 character
@@ -983,15 +977,15 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Storage key of the artifact to read.
+     * Storage key of the content to read.
      *
-     * Must be an artifact from the specified run. The storage_key
-     * is validated to start with "artifacts/{run_id}/" to prevent
-     * access to other runs' artifacts.
+     * Must be content of the specified run. The storage_key is validated
+     * to start with "artifacts/{run_id}/" to prevent access to another
+     * run's content.
      *
      * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
      *
-     * Format: "artifacts/{run_id}/{filename}"
+     * Format: "artifacts/{run_id}/{path}"
      * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
      *
      * Validation: Required, minimum 1 character
@@ -1016,8 +1010,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Maximum number of bytes to return.
      *
-     * If the artifact is larger than this limit, the response will contain
-     * the first max_bytes of content with truncated=true.
+     * If the content is larger than this limit, the response will contain
+     * the first max_bytes of it with truncated=true.
      *
      * When 0 or unset, the server applies a default limit (512 KB).
      * The server may also enforce a hard upper bound regardless of this value.
@@ -1036,8 +1030,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Maximum number of bytes to return.
      *
-     * If the artifact is larger than this limit, the response will contain
-     * the first max_bytes of content with truncated=true.
+     * If the content is larger than this limit, the response will contain
+     * the first max_bytes of it with truncated=true.
      *
      * When 0 or unset, the server applies a default limit (512 KB).
      * The server may also enforce a hard upper bound regardless of this value.
@@ -1060,8 +1054,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Maximum number of bytes to return.
      *
-     * If the artifact is larger than this limit, the response will contain
-     * the first max_bytes of content with truncated=true.
+     * If the content is larger than this limit, the response will contain
+     * the first max_bytes of it with truncated=true.
      *
      * When 0 or unset, the server applies a default limit (512 KB).
      * The server may also enforce a hard upper bound regardless of this value.
@@ -1082,11 +1076,11 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object entryPath_ = "";
     /**
      * <pre>
-     * For directory artifacts (ZIPs): extract a specific file by its
-     * path within the archive instead of returning the raw ZIP bytes.
+     * For stored ZIP content: extract a specific entry by its path within
+     * the archive instead of returning the raw ZIP bytes.
      *
-     * When empty, returns the full artifact content (existing behavior).
-     * When set for a FILE artifact, this field is ignored.
+     * When empty, returns the full content (existing behavior).
+     * When the stored object is not a ZIP, this field is ignored.
      *
      * The path must match an entry in the archive exactly (case-sensitive).
      * List the archive's entries to discover valid values.
@@ -1111,11 +1105,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * For directory artifacts (ZIPs): extract a specific file by its
-     * path within the archive instead of returning the raw ZIP bytes.
+     * For stored ZIP content: extract a specific entry by its path within
+     * the archive instead of returning the raw ZIP bytes.
      *
-     * When empty, returns the full artifact content (existing behavior).
-     * When set for a FILE artifact, this field is ignored.
+     * When empty, returns the full content (existing behavior).
+     * When the stored object is not a ZIP, this field is ignored.
      *
      * The path must match an entry in the archive exactly (case-sensitive).
      * List the archive's entries to discover valid values.
@@ -1141,11 +1135,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * For directory artifacts (ZIPs): extract a specific file by its
-     * path within the archive instead of returning the raw ZIP bytes.
+     * For stored ZIP content: extract a specific entry by its path within
+     * the archive instead of returning the raw ZIP bytes.
      *
-     * When empty, returns the full artifact content (existing behavior).
-     * When set for a FILE artifact, this field is ignored.
+     * When empty, returns the full content (existing behavior).
+     * When the stored object is not a ZIP, this field is ignored.
      *
      * The path must match an entry in the archive exactly (case-sensitive).
      * List the archive's entries to discover valid values.
@@ -1167,11 +1161,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * For directory artifacts (ZIPs): extract a specific file by its
-     * path within the archive instead of returning the raw ZIP bytes.
+     * For stored ZIP content: extract a specific entry by its path within
+     * the archive instead of returning the raw ZIP bytes.
      *
-     * When empty, returns the full artifact content (existing behavior).
-     * When set for a FILE artifact, this field is ignored.
+     * When empty, returns the full content (existing behavior).
+     * When the stored object is not a ZIP, this field is ignored.
      *
      * The path must match an entry in the archive exactly (case-sensitive).
      * List the archive's entries to discover valid values.
@@ -1190,11 +1184,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * For directory artifacts (ZIPs): extract a specific file by its
-     * path within the archive instead of returning the raw ZIP bytes.
+     * For stored ZIP content: extract a specific entry by its path within
+     * the archive instead of returning the raw ZIP bytes.
      *
-     * When empty, returns the full artifact content (existing behavior).
-     * When set for a FILE artifact, this field is ignored.
+     * When empty, returns the full content (existing behavior).
+     * When the stored object is not a ZIP, this field is ignored.
      *
      * The path must match an entry in the archive exactly (case-sensitive).
      * List the archive's entries to discover valid values.

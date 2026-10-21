@@ -2,7 +2,10 @@
  * useApplyResource's skill path: pushSkillFromFile asks the server to push a
  * File holding the skill's archive (file id, tag defaulting to empty) and
  * returns the skill's metadata as an apply result; a refused push sets the
- * hook's error, rethrows it, and clears isApplying.
+ * hook's error, rethrows it, and clears isApplying. Its YAML path applies one
+ * resource document at a time: a file of several is refused, before anything
+ * reaches the server, with the sentence that sends the person to the
+ * Library's Apply YAML.
  */
 import { describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
@@ -80,5 +83,46 @@ describe("useApplyResource.pushSkillFromFile", () => {
 
     act(() => result.current.clearError());
     expect(result.current.error).toBeNull();
+  });
+});
+
+describe("useApplyResource.applyYamlResource", () => {
+  it("refuses a file of several resource documents without applying any", async () => {
+    const apply = vi.fn();
+    const { result } = renderHook(() => useApplyResource(), {
+      wrapper: wrapper({ manifest: { apply } }),
+    });
+    const content = [
+      "apiVersion: agentic.stigmer.ai/v1",
+      "kind: Agent",
+      "metadata:",
+      "  name: Reviewer",
+      "  slug: reviewer",
+      "spec:",
+      "  description: Reviews",
+      "---",
+      "apiVersion: agentic.stigmer.ai/v1",
+      "kind: Agent",
+      "metadata:",
+      "  name: Writer",
+      "  slug: writer",
+      "spec:",
+      "  description: Writes",
+      "",
+    ].join("\n");
+
+    await act(async () => {
+      await expect(result.current.applyYamlResource(content, "acme")).rejects.toThrow(
+        "This file contains multiple resource documents. " +
+          "Use Apply YAML in the Library to apply multi-document manifests.",
+      );
+    });
+
+    expect(apply).not.toHaveBeenCalled();
+    expect(result.current.error?.message).toBe(
+      "This file contains multiple resource documents. " +
+        "Use Apply YAML in the Library to apply multi-document manifests.",
+    );
+    expect(result.current.isApplying).toBe(false);
   });
 });

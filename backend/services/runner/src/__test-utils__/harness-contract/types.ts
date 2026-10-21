@@ -78,6 +78,11 @@ import type { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/en
  *  - `compact`: the engine compacts its context once — the summarization a
  *    long conversation forces — and the turn plays on. A subject whose engine
  *    has no context to compact says so and the arm is reported SKIPPED there.
+ *  - `cut`: the engine's vendor ends its connection mid-turn, a cause no stop
+ *    of the runtime's made (Cursor's backend ends a long run's stream,
+ *    stigmer#2436); the turn ends `stream_cut`. A subject whose engine has
+ *    no vendor connection to lose says so and the arm is reported SKIPPED
+ *    there.
  */
 export type ScenarioStep =
   | { readonly kind: "say"; readonly text: string }
@@ -89,7 +94,8 @@ export type ScenarioStep =
   | { readonly kind: "cancelled" }
   | { readonly kind: "limit" }
   | { readonly kind: "open"; readonly toolCallId: string; readonly as: OperationShape; readonly streams: boolean }
-  | { readonly kind: "compact" };
+  | { readonly kind: "compact" }
+  | { readonly kind: "cut" };
 
 /**
  * The saved agent an `open(…, { as: "subagent" })` hands work to: the
@@ -149,6 +155,9 @@ export const scenario = {
   },
   compact(): ScenarioStep {
     return { kind: "compact" };
+  },
+  cut(): ScenarioStep {
+    return { kind: "cut" };
   },
 } as const;
 

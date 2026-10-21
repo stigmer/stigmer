@@ -71,5 +71,6 @@ export async function provisionPostgresStorage(): Promise<ProvisionedStorage> {
   return {
     serverEnv: { DATABASE_URL: database.databaseUrl },
     release: () => database.drop(),
+    sharedByTwoServers: true,
   };
 }

@@ -97,6 +97,7 @@ import { unresolvedGateCountOfJson } from "../../../domain/run/filereview/gate.j
 import {
   endsAsWorkerShutdown,
   modelStallCopyOf,
+  streamCutCopyOf,
   isTurnContinuation,
   isWorkerShutdown,
   WORKER_SHUTDOWN_STATUS_ERROR,
@@ -1032,11 +1033,12 @@ async function updateStatusOnFailure(
 
   const shutdown = endsAsWorkerShutdown(originalError);
   // A stall the model owed, given up: the runner's own stall copy and the
-  // stall's cause, as a stall the runner ended itself would read.
+  // stall's cause, as a stall the runner ended itself would read. A cut
+  // connection, given up: the runner's words for the cut.
   const modelStall = modelStallCopyOf(originalError);
   const statusError = shutdown
     ? WORKER_SHUTDOWN_STATUS_ERROR
-    : modelStall ?? errorMessage(originalError);
+    : modelStall ?? streamCutCopyOf(originalError) ?? errorMessage(originalError);
 
   // The runner's own failure already carries its cause (its terminal
   // table's stop_cause); every other failure is the workflow's to name.

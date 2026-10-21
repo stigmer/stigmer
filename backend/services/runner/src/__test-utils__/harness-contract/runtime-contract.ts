@@ -866,6 +866,33 @@ export async function assertModelStallContinues(harness: RuntimeContractHarness,
 }
 
 /**
+ * The engine's vendor ends its connection mid-turn (Cursor's backend ends a
+ * long run's stream, stigmer#2436): no stop of the runtime's caused it, and
+ * the vendor kept the conversation, so nothing terminal is written, the note
+ * says why, the typed continuation tells the workflow to run the turn again,
+ * and the next invocation picks up from where the turn was, never handing
+ * the engine the task.
+ */
+export async function assertStreamCutContinues(harness: RuntimeContractHarness, label = "rt-stream-cut"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const controls = longTurnOf(subject);
+  const driver = new RuntimeExecutionDriver(harness, label);
+  const read = `${label}-read`;
+
+  const first = await driver.turn([scenario.say("Reading the config."), scenario.read(read, "package.json"), scenario.cut(), scenario.say(NEVER_SEEN)]);
+
+  expect(continuationCauseOf(first.outcome), `${subject.name}: a cut the vendor made continues`).toBe("stream-cut");
+  const settle = expectContinuesWithoutAnEnding(harness, driver, TERMINAL_COPY.continuation.notes["stream-cut"]);
+  expect(aiMessages(driver.record.rowsOf(settle))).not.toContain(NEVER_SEEN);
+
+  const second = await driver.turn([scenario.read(read, "package.json"), scenario.say("The config is read.")]);
+  expectCompleted(harness, driver, second, "The config is read.");
+  expect(harnessNotesOf(driver), `${subject.name}: the cut's note, once`).toEqual([TERMINAL_COPY.continuation.notes["stream-cut"]]);
+  expect(controls.tasksHanded(driver.sessionId, RUNTIME_USER_MESSAGE), `${subject.name}: the engine was handed the task once`).toBe(1);
+  return { driver, invocations: [first, second], final: finalStatusOf(harness, driver) };
+}
+
+/**
  * A turn the platform STOPs after a write landed: the turn completes early,
  * and what it left on the tree is a change set to keep or undo, captured
  * when the stop's arm returned (#1115). Before it, those edits sat on the
@@ -1836,6 +1863,12 @@ export interface RuntimeContractOptions {
    */
   readonly compaction?: boolean;
   /**
+   * Whether this subject's engine holds a vendor connection that the vendor
+   * can end mid-turn (`scenario.cut()`); the arm is registered SKIPPED
+   * otherwise. On by default; the native subject turns it off.
+   */
+  readonly streamCut?: boolean;
+  /**
    * The long-turn arms that are a known gap on this subject, each with the
    * open issue that names it (`<owner>/<repo>#<n>`). The arm passes while the
    * gap's outcome holds and fails the day it closes: the fix removes the
@@ -1956,6 +1989,10 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
     it("a stall while the turn waits on its model continues, and the next invocation asks the model again without the task", async () => {
       clock.reset();
       await assertModelStallContinues(harness);
+    });
+    it.skipIf(options.streamCut === false)("a connection the vendor ended continues, and the next invocation picks up without the task", async () => {
+      clock.reset();
+      await assertStreamCutContinues(harness);
     });
     it("a cost cap terminates the turn with the budget copy; the step after the overrun is never processed", async () => {
       clock.reset();

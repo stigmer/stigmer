@@ -379,7 +379,13 @@ describe("a host that does not follow the rules", () => {
   });
 
   it("settles an outcome it does not know as an internal failure", async () => {
-    for (const forged of [{ kind: "exfiltrate" }, { kind: "failed", message: "chosen by the host", surface: "root" }, { kind: "failed", message: 42, surface: "engine" }]) {
+    for (const forged of [
+      { kind: "exfiltrate" },
+      { kind: "failed", message: "chosen by the host", surface: "root" },
+      { kind: "failed", message: 42, surface: "engine" },
+      { kind: "stream_cut" },
+      { kind: "stream_cut", message: { forged: true } },
+    ]) {
       const adapter = hostileHarness(async () => {}, forged);
       await adapter.boot(testConfig());
       const input = turnInputFixture();
@@ -387,6 +393,14 @@ describe("a host that does not follow the rules", () => {
       expect(outcome, JSON.stringify(forged)).toMatchObject({ kind: "failed", surface: "internal" });
       await adapter.shutdown();
     }
+  });
+
+  it("takes a cut connection with its message, which continues the turn", async () => {
+    const adapter = hostileHarness(async () => {}, { kind: "stream_cut", message: "the vendor ended its connection" });
+    await adapter.boot(testConfig());
+    const input = turnInputFixture();
+    expect(await adapter.runTurn(input, new RecordingTurnSink({ executionId: input.executionId }))).toEqual({ kind: "stream_cut", message: "the vendor ended its connection" });
+    await adapter.shutdown();
   });
 
   it("drops a notice for a turn that has settled", async () => {

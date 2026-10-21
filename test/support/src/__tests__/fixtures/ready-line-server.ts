@@ -9,10 +9,15 @@
 // writes, apart in time), "wrong-port" (reports a gRPC port other than the
 // fixed one it was handed), "unbound" (reports no artifact lane port),
 // "exit" (a line on stderr, then exit code 3), and "silent" (binds and never
-// reports).
+// reports). In every mode a SIGTERM is answered as the server's composed
+// shutdown would end: a line on stdout, then a clean exit.
 import { createServer, type AddressInfo } from "node:net";
 
 const mode = process.env.FIXTURE_MODE ?? "report";
+
+process.once("SIGTERM", () => {
+  process.stdout.write("fixture: shut down on SIGTERM\n", () => process.exit(0));
+});
 
 process.stdout.write(
   `${JSON.stringify({

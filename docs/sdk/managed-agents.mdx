@@ -83,9 +83,11 @@ for await (const event of stream) {
 ```
 
 Open the stream before you send a message, and the stream receives every event
-the message causes. If the stream drops, list the events after the last one you
-received, then stream again. A reader that falls far behind gets an
-`overloaded_error` and the stream ends; reconnect the same way.
+the message causes. If the stream drops, open the stream again first, then list
+the events after the last one you received, and skip any event the stream
+delivers that you already have (match by `id`). Listing first would miss an
+event that arrives between the list and the stream's opening. A reader that
+falls behind only lags; its stream is not ended for it.
 
 ## Send events
 

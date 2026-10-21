@@ -102,14 +102,14 @@ stigmer get agent my-agent --output json | jq '.spec.instructions'
 stigmer get agent my-agent
 ```
 
-### Check run status and artifacts
+### Check run status and outputs
 
 ```bash
 stigmer get run run_01abc123
 ```
 
-Runs are referenced by ID only (not slugs). The output includes artifacts
-produced by the agent.
+Runs are referenced by ID only (not slugs). The output includes the run's
+outputs, the files the agent saved in `.stigmer/outputs/`.
 
 ### Export a resource definition
 

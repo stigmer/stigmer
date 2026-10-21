@@ -3,7 +3,10 @@
 // Domain: test support (stack spawns).
 //
 // Each instance owns a temp dir (SQLite DB + storage) and its own ports, so
-// suite files can boot servers concurrently without colliding. The child is
+// suite files can boot servers concurrently without colliding. A caller that
+// replaces a server under its clients (a TCP front, tcp-front.ts) hands each
+// spawn the same `stateDir` instead, which it owns and removes itself, so
+// the replacement serves the same database and artifact store. The child is
 // handed port 0 for both listeners and asked for its ready line
 // (STIGMER_READY_LINE=stdout, the server's boot/ready-line.ts): the ports its
 // listeners actually bound, printed once both are listening. That removes the
@@ -21,6 +24,9 @@ import { stopChild, teeChildOutput } from "./child-process.ts";
 import { UNREACHABLE_HOST_PORT } from "./ports.ts";
 
 const READY_TIMEOUT_MS = 20_000;
+// A graceful shutdown's budget: the server's own transport drain is 10 s
+// (SHUTDOWN_DRAIN_TIMEOUT_MS), plus its workers' and store's close.
+const SHUTDOWN_GRACE_MS = 30_000;
 const LOG_TAIL_BYTES = 8_000;
 
 // The ready line's one top-level key. The server's boot/ready-line.ts
@@ -54,6 +60,12 @@ export interface ProvisionedStorage {
   readonly serverEnv: Record<string, string>;
   // Called after the server that used it has stopped.
   release(): Promise<void>;
+  // Whether two server processes may serve this storage at once, as the
+  // outgoing and the incoming server do during a rolling update. A database
+  // server may; one SQLite file is no edition's (the server's
+  // pipeline/keyed-serializer.ts), so a replacement on it waits for the
+  // outgoing server to exit. Absent means no.
+  readonly sharedByTwoServers?: boolean;
 }
 
 // The sqlite storage every spawn already has: `spawnServer` allocates the
@@ -76,7 +88,11 @@ export interface RunningServer {
   readonly artifactServeUrl: string;
   // Last ~8KB of combined stdout/stderr, surfaced in failures for diagnosis.
   logTail(): string;
+  // Ends the process at once (SIGKILL): the server holds only throwaway state.
   stop(): Promise<void>;
+  // Ends it the way a rollout does (SIGTERM, the server's composed shutdown),
+  // falling back to SIGKILL past the grace; then releases what stop() does.
+  shutdown(): Promise<void>;
 }
 
 export interface SpawnServerOptions {
@@ -110,6 +126,10 @@ export interface SpawnServerOptions {
   // How long the child may take to print its ready line (default 20 s). The
   // harness's own tests shorten it to prove the silent case.
   readyTimeoutMs?: number;
+  // A state directory the caller owns (SQLite DB, storage, artifacts),
+  // shared by a server and its replacement; it survives stop(). Omit it and
+  // the spawn makes a temp dir of its own and removes it on stop.
+  stateDir?: string;
 }
 
 // The ports a server's ready line reports.
@@ -126,7 +146,8 @@ export async function spawnServer(
   opts: SpawnServerOptions = {},
 ): Promise<RunningServer> {
   const temporalHostPort = opts.temporalHostPort ?? ENGINELESS_TEMPORAL_HOST_PORT;
-  const stateDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-"));
+  const ownsState = opts.stateDir === undefined;
+  const stateDir = opts.stateDir ?? (await mkdtemp(join(tmpdir(), "stigmer-conformance-")));
   // The base path IS the artifact root (#285); mirror the production
   // ~/.stigmer/data/artifacts shape. The runner is pointed at this same dir.
   const artifactBaseDir = join(stateDir, "data", "artifacts");
@@ -182,15 +203,18 @@ export async function spawnServer(
         : undefined),
   });
 
-  const stop = async (): Promise<void> => {
-    // SIGKILL, not SIGTERM: the server holds only throwaway state and has
-    // nothing worth draining. The order is the discipline child-process.ts
-    // documents — exit, then the tee, then the state dir the process was
-    // still using.
-    await stopChild(child, { signal: "SIGKILL", graceMs: 0 });
+  const end = async (signal: "SIGKILL" | "SIGTERM"): Promise<void> => {
+    // The order is the discipline child-process.ts documents — exit, then
+    // the tee, then the state dir the process was still using.
+    await stopChild(child, { signal, graceMs: SHUTDOWN_GRACE_MS });
     await output.close();
-    await rm(stateDir, { recursive: true, force: true });
+    if (ownsState) {
+      await rm(stateDir, { recursive: true, force: true });
+    }
   };
+  // SIGKILL, not SIGTERM: the server holds only throwaway state and has
+  // nothing worth draining.
+  const stop = (): Promise<void> => end("SIGKILL");
 
   let ready: ReadyPorts;
   try {
@@ -213,6 +237,7 @@ export async function spawnServer(
     artifactServeUrl: `http://127.0.0.1:${ready.artifactHttpPort}`,
     logTail: () => output.tail(),
     stop,
+    shutdown: () => end("SIGTERM"),
   };
 }
 

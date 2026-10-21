@@ -1,0 +1,17 @@
+extends: existence
+message: "Don't use '%s' for a file: say File, a file sent with the message, an output, an archive, or name the setting in a code span."
+# An error, not a warning: a file is a File, sent with a message or saved by
+# the Agent in its outputs folder, the way Claude's Files API and Managed
+# Agents name it. "Attachment" and "artifact" each meant something else
+# before, and "artifact" also named Skill and plugin packages, the storage
+# layer and the engine's objects, so a reader could not tell which; every
+# such use in these docs says what it means instead (docs/vocabulary.md,
+# File). The verb "attach" and the `--attach` flag stay. An operator's
+# storage settings keep their names in code spans (`ARTIFACT_STORAGE_TYPE`),
+# and a page that must quote a retired word fences the passage with
+# <!-- vale Stigmer.FileWords = NO -->.
+level: error
+ignorecase: true
+tokens:
+  - attachments?
+  - artifacts?

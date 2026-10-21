@@ -63,7 +63,7 @@ const MESSAGE_COUNTER_THRESHOLD = 500;
  * engine and model, what budget — plus a cadence. It reuses the
  * composer's own pickers ({@link ModelSelector}, {@link WorkspaceEditor})
  * so the interactive and scheduled surfaces cannot drift, minus only
- * what unattended makes impossible (no local folders, no attachments,
+ * what unattended makes impossible (no local folders, no file uploads,
  * no approval-mode choice).
  *
  * Enabled defaults to OFF, deliberately: it matches the proto/YAML

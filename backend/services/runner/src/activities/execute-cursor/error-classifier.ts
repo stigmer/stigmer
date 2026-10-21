@@ -19,6 +19,13 @@
  * the agent was obtained via resume, the error is upgraded to "agent-stale"
  * so that poisoned-handle recovery fires.
  *
+ * A cut connection is its own category, never upgraded: Cursor's backend
+ * ends a long agent run's stream (at 40 to 60 minutes, stigmer#2436 and the
+ * request to Cursor, #2463), and the runner's lane resets the SDK's stream
+ * with CANCEL. The agent keeps its conversation, so the turn continues on
+ * the same agent (`turn-settle.ts`); a fresh agent would drop it and be
+ * handed the task again.
+ *
  * Whose Cursor account an error is about: through the Stigmer proxy the
  * Cursor key is always the organization's own, as it is the operator's own
  * `CURSOR_API_KEY` in direct mode, so Cursor's message ("usage limit", "not
@@ -39,6 +46,7 @@ export type ErrorCategory =
   | "network"
   | "agent-stale"
   | "model"
+  | "stream-cut"
   | "unknown";
 
 export interface ClassifiedError {
@@ -197,6 +205,15 @@ const MODEL_PATTERNS = [
   "unsupported model",
 ];
 
+/**
+ * The words `@cursor/sdk` 1.0.31 reports for a run whose stream was reset
+ * with CANCEL: a Connect `canceled` the SDK wraps once more as `unknown`
+ * (`[unknown] [canceled] http/2 stream closed with error code CANCEL (0x8)`),
+ * on `run.wait()`'s error with no `code`. Text is all the SDK gives; the
+ * real SDK's words are pinned in `agent-proxy/__tests__/cursor-sdk-wire.test.ts`.
+ */
+const STREAM_CUT_TEXT = "[canceled] http/2 stream closed with error code cancel";
+
 function matchesAny(text: string, patterns: string[]): boolean {
   const lower = text.toLowerCase();
   return patterns.some((p) => lower.includes(p));
@@ -216,6 +233,7 @@ function classifyText(text: string): TextDiagnosis {
   if (text.includes(PROVIDER_KEY_REQUIRED_SENTINEL)) {
     return { category: "auth", retryable: false, message: NO_CURSOR_KEY_MESSAGE };
   }
+  if (text.toLowerCase().includes(STREAM_CUT_TEXT)) return { category: "stream-cut", retryable: true };
   // Billing before auth/rate-limit: billing prose can carry "429" or quota
   // wording that would otherwise match the transient rate-limit patterns.
   if (matchesAny(text, BILLING_PATTERNS)) return { category: "billing", retryable: false };

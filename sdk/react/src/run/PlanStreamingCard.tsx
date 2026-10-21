@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { cn } from "@stigmer/design-tokens";
-import { formatArtifactSize } from "./artifact-utils.js";
+import { formatFileSize } from "../file/file-size.js";
 
 /** Props for {@link PlanStreamingCard}. */
 export interface PlanStreamingCardProps {
@@ -14,7 +14,7 @@ export interface PlanStreamingCardProps {
   /**
    * Live size of the plan text streamed so far. An approximation (UTF-16
    * length, not encoded bytes) — it exists to show growth while the agent
-   * writes, not to state the artifact's final size.
+   * writes, not to state the plan File's final size.
    */
   readonly sizeBytes: number;
   /**
@@ -30,19 +30,19 @@ export interface PlanStreamingCardProps {
 }
 
 /**
- * The live counterpart of {@link PlanArtifactCard} — a streaming Plan turn's
+ * The live counterpart of {@link PlanFileCard} — a streaming Plan turn's
  * compact stand-in in the thread while the plan document renders live in the
  * session panel's plan tab. Same anatomy as the completed card (icon, title,
  * a `Writing… · size` meta, trailing actions) so the completion handoff reads
  * as the same card settling, not a new element appearing.
  *
- * The meta line deliberately omits a filename: the artifact's name is derived
+ * The meta line deliberately omits a filename: the plan File's name is derived
  * from the plan's title, which is still streaming in, so a name shown here
  * would change under the user when the plan settles. The completed card
  * introduces the final `<slug>_<id>.plan.md` name once it exists.
  *
  * Deliberately action-light: "Open plan" is the only affordance. Download and
- * Build require the published artifact, which does not exist until the turn
+ * Build require the plan File, which does not exist until the turn
  * completes — at which point `buildThreadItems` swaps this item for the
  * `plan-completion` item under the same list key.
  *
@@ -78,7 +78,7 @@ export const PlanStreamingCard = memo(function PlanStreamingCard({
         <div className="stg:text-[0.65rem] stg:text-muted-foreground-faint">
           <span role="status">Writing…</span>
           <span aria-hidden="true"> · </span>
-          <span className="stg:tabular-nums">{formatArtifactSize(sizeBytes)}</span>
+          <span className="stg:tabular-nums">{formatFileSize(sizeBytes)}</span>
         </div>
       </div>
 
@@ -119,7 +119,7 @@ function PlanIcon({ className }: { readonly className?: string }) {
   );
 }
 
-/** An eye glyph — "view/open the plan to read it" (matches PlanArtifactCard). */
+/** An eye glyph — "view/open the plan to read it" (matches PlanFileCard). */
 function EyeIcon() {
   return (
     <svg
