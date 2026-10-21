@@ -22,9 +22,11 @@ import {
   computeBackoffDelay,
   sleep,
   DEFAULT_RECONNECT_MAX_ATTEMPTS,
+  HEALTHY_STREAM_MS,
   type BackoffOptions,
 } from "../internal/backoff.js";
 import { ConversationStore } from "../internal/store/index.js";
+import { onPageReturn } from "../internal/page-return.js";
 
 /** Return value of {@link useSessionEvents}. */
 export interface UseSessionEventsReturn {
@@ -48,8 +50,9 @@ export interface UseSessionEventsReturn {
   readonly reconnectAttempt: number;
   /**
    * Why the follow ended: the server refused it (not found, permission
-   * denied, ...), or the stream kept dropping until the reconnect attempts
-   * ran out. `null` while healthy or reconnecting.
+   * denied, ...), the first drop with `autoReconnect: false`, or the stream
+   * kept dropping until a `maxAttempts` the caller set ran out. `null` while
+   * healthy or reconnecting: by default the follow never gives up.
    */
   readonly error: Error | null;
   /**
@@ -69,6 +72,15 @@ export interface UseSessionEventsReturn {
    * escape hatch in any state.
    */
   readonly reconnect: () => void;
+  /**
+   * Re-open the follow now if it is waiting to reconnect, cutting the
+   * backoff short, or if its `maxAttempts` ran out. A streaming follow, a
+   * refusal and a drop with `autoReconnect: false` are left as they are.
+   * The hook calls it itself when the tab is shown again or the network
+   * returns; `useSessionConversation` calls it when the person sends a
+   * message.
+   */
+  readonly wake: () => void;
 }
 
 /** Options for {@link useSessionEvents}. */
@@ -86,11 +98,16 @@ export interface UseSessionEventsOptions {
    */
   readonly autoReconnect?: boolean;
   /**
-   * The reconnect backoff (full jitter) and the attempts allowed before the
-   * drop is surfaced as `error`. A delivered event resets the count.
+   * The reconnect backoff (full jitter, 1 s doubling to 30 s by default)
+   * and, optionally, the attempts allowed before the drop is surfaced as
+   * `error`. A delivered event, or a stream that stayed open 30 s, resets
+   * the count.
    */
   readonly reconnectOptions?: BackoffOptions & {
-    /** Reconnects allowed in a row before surfacing an error. */
+    /**
+     * Reconnects allowed in a row before surfacing an error. Unlimited by
+     * default: a long turn's follow rides out any outage.
+     */
     readonly maxAttempts?: number;
   };
   /**
@@ -106,7 +123,7 @@ export interface UseSessionEventsOptions {
   readonly slowThresholdMs?: number;
 }
 
-/** The error a follow ends with when its reconnects ran out. */
+/** The error a follow ends with when a caller's `maxAttempts` ran out. */
 const INTERRUPTED_MESSAGE = "The connection to the conversation was interrupted.";
 
 /**
@@ -119,7 +136,11 @@ const INTERRUPTED_MESSAGE = "The connection to the conversation was interrupted.
  *   animation frame, inside `startTransition`, so a long replay or a burst
  *   of token previews never blocks typing.
  * - A dropped stream reconnects from the last event it delivered, with
- *   jittered backoff; the conversation stays visible (`isReconnecting`).
+ *   jittered backoff, for as long as the outage lasts (stigmer#2418); the
+ *   conversation stays visible (`isReconnecting`). A stream that stayed
+ *   open 30 s starts the backoff over, so an idle close re-opens at once.
+ * - A shown tab or a returned network cuts a backoff wait short, and so
+ *   does {@link UseSessionEventsReturn.wake}.
  * - A refusal (the session is gone, access was withdrawn) ends the follow
  *   with `error`.
  * - A follow that opens and stays silent is reconnected once, then
@@ -198,6 +219,11 @@ export function useSessionEvents(
     setConnectKey((k) => k + 1);
   }, [store]);
 
+  // What waking does in the follow's current state: cut a backoff wait
+  // short, re-open a follow whose capped attempts ran out, or nothing.
+  const wakeRef = useRef<() => void>(() => {});
+  const wake = useCallback(() => wakeRef.current(), []);
+
   const streamRate = useStreamRate();
   const streamRateRef = useRef(streamRate);
   streamRateRef.current = streamRate;
@@ -215,6 +241,7 @@ export function useSessionEvents(
 
   // controller, store and streamRate are ref-backed and deliberately absent
   // from the dependencies: useStreamRate returns a new object per render.
+  // reconnect changes only with the store, so it is absent too.
   useEffect(() => {
     if (!sessionId) {
       controller.reset();
@@ -232,10 +259,16 @@ export function useSessionEvents(
     const abort = new AbortController();
     const { autoReconnect: auto, reconnectOptions: backoff } = configRef.current;
     const maxAttempts = backoff?.maxAttempts ?? DEFAULT_RECONNECT_MAX_ATTEMPTS;
-    // Reconnects since the last delivered event.
+    // Reconnects since the last delivered event or healthy stream.
     let attempt = 0;
     let exhausted = false;
     let frames = 0;
+    // When the current stream was opened, to tell a healthy stream's end
+    // from one more failure in a row.
+    let openedAt = Date.now();
+    // Ends the backoff wait in flight, if any.
+    let cutWait: (() => void) | null = null;
+    wakeRef.current = () => cutWait?.();
     controller.start(sessionId);
 
     (async () => {
@@ -247,6 +280,7 @@ export function useSessionEvents(
           // followSession waits here before each reconnect: the seam where
           // the drop becomes visible and the attempt budget is spent.
           sleep: async (_ms, signal) => {
+            if (Date.now() - openedAt >= HEALTHY_STREAM_MS) attempt = 0;
             attempt += 1;
             if (!auto || attempt > maxAttempts) {
               exhausted = true;
@@ -254,11 +288,20 @@ export function useSessionEvents(
               return;
             }
             controller.handleReconnecting(attempt);
+            const waiting = new AbortController();
+            const stop = () => waiting.abort();
+            signal?.addEventListener("abort", stop, { once: true });
+            cutWait = stop;
             try {
-              await sleep(computeBackoffDelay(attempt, backoff), signal);
+              await sleep(computeBackoffDelay(attempt, backoff), waiting.signal);
             } catch {
-              // Aborted mid-wait: the follow ends on its own.
+              // Woken or aborted mid-wait: followSession re-opens, or ends
+              // on its own when the follow was aborted.
+            } finally {
+              cutWait = null;
+              signal?.removeEventListener("abort", stop);
             }
+            openedAt = Date.now();
           },
         })) {
           attempt = 0;
@@ -270,6 +313,9 @@ export function useSessionEvents(
         }
         if (exhausted) {
           controller.handleError(new Error(INTERRUPTED_MESSAGE));
+          // Only a caller's cap ends a follow this way; waking re-opens it.
+          // A drop with autoReconnect off waits for a manual reconnect.
+          if (auto) wakeRef.current = reconnect;
         }
       } catch (err) {
         // A refusal ends the follow (followSession returns quietly when
@@ -279,10 +325,18 @@ export function useSessionEvents(
     })();
 
     return () => {
+      wakeRef.current = () => {};
       abort.abort();
       controller.reset();
     };
   }, [sessionId, stigmer, connectKey]);
+
+  // A tab shown again or a network back is the moment to re-open: the
+  // person is looking now, and the backoff may be tens of seconds out.
+  useEffect(() => {
+    if (!sessionId) return;
+    return onPageReturn(() => wakeRef.current());
+  }, [sessionId]);
 
   const fold = useSyncExternalStore(store.subscribe, store.getFold);
   const streamState = useSyncExternalStore(store.subscribe, store.getStreamState);
@@ -306,5 +360,6 @@ export function useSessionEvents(
     connectTimedOut,
     isSlow: quiet && working,
     reconnect,
+    wake,
   };
 }
