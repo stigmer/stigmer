@@ -267,23 +267,32 @@ asserts presence and shape and never a number.
 
 `npm run long-turn:real-clock -w @stigmer/conformance -- --profile goal|endurance`
 plays one long turn in real time against the wire mock, so it costs no
-tokens. It boots the execution target's own stack, creates one run trusted
-for the whole run, and scripts one tool call per step of the profile. The
-tools really run. `goal` plays what a long task needs: a 10-minute silent
-build, a 10-minute build that prints, a subagent that works for 4 minutes,
-enough output for three compactions, a runner killed mid-tool and one
-drained mid-tool. It records where the turn dies. `endurance` runs three
-hours of commands that avoid every known killer, to find what only hours
-show.
+tokens. It boots the execution target's own stack (`--target
+local-postgres-execution` for the Postgres one), creates one run trusted for
+the whole run, and scripts one tool call per step of the profile. The tools
+really run. `goal` plays what a long task needs: a 10-minute silent build, a
+10-minute build that prints, a subagent that works for 4 minutes, enough
+output for three compactions, the server replaced mid-tool, a runner killed
+mid-tool and one drained mid-tool. The server is replaced through the
+target's `restartServer`: on Postgres the outgoing and the incoming server
+serve together while the step ends, as a rolling update does; on SQLite the
+server stops and starts. It records where the turn dies. `endurance` runs
+three hours of commands that avoid every known killer, to find what only
+hours show.
 
 The report (`report.json` and `summary.md`, `src/long-turn/report.ts`) is
-rewritten every minute, so a stopped run still leaves one. It ends with a
-check that the session's log reads back unbroken. The
-`long-turn-real-clock.yaml` workflow runs it on demand.
+rewritten every minute, so a stopped run still leaves one. A streaming
+follower (`src/long-turn/follow.ts`) reads the session from its first event
+through every restart, resuming from its last seq. At the end the session's
+log must read back unbroken, and the follower must have been sent exactly
+that log, once and in order. Otherwise the transcript reads broken and the
+script exits 1. The `long-turn-real-clock.yaml` workflow runs it on demand.
 `npm run long-turn:live -- --harness deep-agent|cursor` plays the same
-profiles against a real provider on the benchmark's stack. Its ceiling is
-the product's own cost cap (`spec.run_config.max_cost_usd`). Its kill and
-drain steps are left out, because that stack cannot restart its runner.
+profiles against a real provider on the benchmark's stack, with the same
+follower and verdict. Its ceiling is the product's own cost cap
+(`spec.run_config.max_cost_usd`). That stack restarts its runner for the
+kill and drain steps, but has no server door, so a `server-restart` step is
+released as it is.
 
 ### The enterprise target (Class A vs a licensed Enterprise server)
 

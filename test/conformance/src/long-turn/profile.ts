@@ -7,8 +7,10 @@
 //   - `goal` plays what a turn of hours must survive, in real time and in one
 //     turn: a 10-minute silent build, a 10-minute build that prints a line
 //     every 30 s, a subagent that works 4 minutes, enough tool output for
-//     three compactions, a runner killed mid-tool and a runner drained
-//     mid-tool. The report says how far the turn got.
+//     three compactions, the server replaced mid-tool (a rollout: on a
+//     Postgres target the outgoing and the incoming server serve together),
+//     a runner killed mid-tool and a runner drained mid-tool. The report says
+//     how far the turn got.
 //   - `endurance` avoids every killer known on 2026-10-18 (stigmer#2414,
 //     #2415, #2416, #2417, #2428, #2429, and the native shell's 120 s
 //     timeout, #2432):
@@ -25,8 +27,9 @@
 // be a hung model call, which the stall window stops by design. Each shell
 // step names its timeout, as a model raises it for a long command
 // (`timeoutSecondsOf`): the native shell's default bound is 120 s.
-// A held step (`kill`, `drain`) waits for its release file, so the run ends
-// the runner while the step is provably running.
+// A held step (`server-restart`, `kill`, `drain`) waits for its release
+// file, so the run replaces the server or ends the runner while the step is
+// provably running.
 
 /** One thing the long turn does. Seconds are wall time. */
 export type LongTurnStep =
@@ -34,6 +37,7 @@ export type LongTurnStep =
   | { readonly kind: "streamed"; readonly id: string; readonly seconds: number; readonly everySeconds: number; readonly bytesPerLine: number }
   | { readonly kind: "subagent"; readonly id: string; readonly seconds: number }
   | { readonly kind: "bulk"; readonly id: string; readonly bytes: number }
+  | { readonly kind: "server-restart"; readonly id: string }
   | { readonly kind: "kill"; readonly id: string }
   | { readonly kind: "drain"; readonly id: string };
 
@@ -83,6 +87,7 @@ export function goalProfile(): LongTurnProfile {
       { kind: "streamed", id: "streamed-build", seconds: 600, everySeconds: 30, bytesPerLine: 80 },
       { kind: "subagent", id: "subagent-work", seconds: 240 },
       ...bulk,
+      { kind: "server-restart", id: "server-restarted-mid-tool" },
       { kind: "kill", id: "killed-mid-tool" },
       { kind: "drain", id: "drained-mid-tool" },
     ],
@@ -157,6 +162,7 @@ export function timeoutSecondsOf(step: LongTurnStep): number | undefined {
     case "streamed":
     case "subagent":
       return step.seconds + TIMEOUT_MARGIN_SECONDS;
+    case "server-restart":
     case "kill":
     case "drain":
       return HELD_TIMEOUT_SECONDS;
@@ -180,6 +186,7 @@ export function shellCommandOf(step: LongTurnStep, files: StepFiles): string {
     }
     case "bulk":
       return `${start}; head -c ${step.bytes} /dev/zero | tr '\\0' 'b'; echo; ${end}`;
+    case "server-restart":
     case "kill":
     case "drain":
       return `${start}; while [ ! -f '${files.releaseOf(step.id)}' ]; do sleep 0.2; done; ${end}`;
@@ -223,7 +230,12 @@ export interface LongTurnFlags {
   readonly out: string | undefined;
   /** The live run's harness (`deep-agent` or `cursor`); the real-clock run is native only. */
   readonly harness: string;
+  /** The real-clock run's execution target: a server restart overlaps two servers only on `local-postgres-execution`. */
+  readonly target: LongTurnTarget;
 }
+
+/** The execution targets the real-clock run boots. */
+export type LongTurnTarget = "local-execution" | "local-postgres-execution";
 
 export function parseLongTurnFlags(argv: readonly string[]): LongTurnFlags {
   const value = (name: string): string | undefined => {
@@ -232,11 +244,16 @@ export function parseLongTurnFlags(argv: readonly string[]): LongTurnFlags {
   };
   const minutes = value("minutes");
   if (minutes !== undefined && !(Number(minutes) > 0)) throw new Error(`--minutes must be a positive number, not '${minutes}'`);
+  const target = value("target") ?? "local-execution";
+  if (target !== "local-execution" && target !== "local-postgres-execution") {
+    throw new Error(`--target must be local-execution or local-postgres-execution, not '${target}'`);
+  }
   return {
     profile: value("profile") ?? "goal",
     minutes: minutes === undefined ? undefined : Number(minutes),
     steps: (value("steps") ?? "").split(",").filter((s) => s !== ""),
     out: value("out"),
     harness: value("harness") ?? "deep-agent",
+    target,
   };
 }
