@@ -25,6 +25,7 @@ import {
   brandShadedSvg,
   brandSvg,
 } from "../../brand/assets.mjs";
+import { POSITIONING } from "../../brand/positioning";
 import pngToIco from "png-to-ico";
 import * as fs from "fs/promises";
 import * as path from "path";
@@ -137,13 +138,12 @@ function createOgBackground(): Buffer {
 }
 
 /**
- * Creates an SVG with the brand name and tagline.
- * Uses current positioning: headline A + three-pillar sub-headline.
+ * Creates an SVG with the headline and the one sentence from
+ * brand/positioning.ts. The subhead is too long for the image at 24px.
  */
 function createOgText(): Buffer {
-  const headline = "Build agents that work for your business";
-  const subheadline =
-    "Teach them your domain. Connect your tools. Set your rules.";
+  const headline = POSITIONING.headline;
+  const subheadline = POSITIONING.oneSentence;
 
   const svg = `
     <svg width="${OG_IMAGE.width}" height="${OG_IMAGE.height}" xmlns="http://www.w3.org/2000/svg">

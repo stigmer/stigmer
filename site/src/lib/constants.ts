@@ -1,15 +1,19 @@
 /**
  * Site-wide configuration and constants.
- * Single source of truth for all static configuration.
+ * Single source of truth for all static configuration; the words that say
+ * what Stigmer is come from brand/positioning.ts, which the console reads too.
  */
 
+import { POSITIONING } from "../../../brand/positioning";
+
 export const SITE_CONFIG = {
-  name: "Stigmer",
+  name: POSITIONING.name,
 
-  tagline: "Build agents that work for your business",
+  headline: POSITIONING.headline,
 
-  description:
-    "Open-source AI agent platform that lets you turn domain knowledge and tools into agents your applications can call via API.",
+  subhead: POSITIONING.subhead,
+
+  description: POSITIONING.oneSentence,
 
   url: "https://stigmer.ai",
 

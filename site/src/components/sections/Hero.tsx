@@ -70,7 +70,7 @@ function Hero({ className, ...props }: HeroProps) {
                 id="hero-heading"
                 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-6"
               >
-                {SITE_CONFIG.tagline}
+                {SITE_CONFIG.headline}
               </h1>
             </FadeInUp>
 

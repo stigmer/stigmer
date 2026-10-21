@@ -19,6 +19,7 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { POSITIONING } from "../../brand/positioning";
 import {
   collectDocsPages,
   findUncollectedPages,
@@ -33,11 +34,8 @@ const SITE_URL = "https://stigmer.ai";
 const DOCS_DIR = path.resolve(process.cwd(), "..", "docs");
 const OUT_DIR = path.resolve(process.cwd(), "out");
 
-const PROJECT_NAME = "Stigmer";
-const PROJECT_DESCRIPTION =
-  "Open source platform for building AI agents. Stigmer handles sandboxing, " +
-  "orchestration, and MCP security. You write YAML or Go. Agents run " +
-  "locally with zero cloud dependency or scale to production.";
+const PROJECT_NAME = POSITIONING.name;
+const PROJECT_DESCRIPTION = POSITIONING.oneSentence;
 
 /** Subdirectory paths (relative to docs/) whose non-index pages are optional. */
 const OPTIONAL_SUBSECTIONS = new Set(["cli/commands"]);
@@ -140,7 +138,7 @@ function generateLlmsFullTxt(pages: Page[]): string {
   const header = [
     `# ${PROJECT_NAME} Documentation`,
     "",
-    `> Complete documentation for the ${PROJECT_NAME} platform.`,
+    `> ${PROJECT_DESCRIPTION}`,
     `> Source: ${SITE_URL}/docs`,
   ].join("\n");
 

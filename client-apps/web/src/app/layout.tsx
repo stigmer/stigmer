@@ -4,14 +4,16 @@ import { AppShell } from "@/domain/_shared/layout/AppShell";
 import { AppNavigationProvider } from "@/domain/_shared/navigation/app-navigation";
 import { SessionNavigationProvider } from "@/domain/session/session-navigation";
 import { consoleFonts } from "./fonts/fonts";
+import { POSITIONING } from "../../../../brand/positioning";
 import "./globals.css";
 
 const fontVariables = consoleFonts.map((font) => font.variable).join(" ");
 
+// The tab names the app; the description is the one sentence every surface
+// reads from brand/positioning.ts.
 export const metadata: Metadata = {
-  title: "Stigmer — Build agents that work for your business",
-  description:
-    "Open-source AI agent platform that lets you turn domain knowledge and tools into agents your applications can call via API.",
+  title: POSITIONING.name,
+  description: POSITIONING.oneSentence,
   icons: {
     icon: [
       { url: "/favicon-dark.svg", type: "image/svg+xml", media: "(prefers-color-scheme: dark)" },
