@@ -55,10 +55,10 @@ describe("the follower check", () => {
   });
 
   it("names what a follower missed, was sent twice, was sent that the log lacks, and an order the log does not have", () => {
-    const check = followerCheckOf([1, 2, 2, 6, 4, 9], [1, 2, 3, 4, 5, 6, 7], []);
+    const check = followerCheckOf([1, 6, 2, 6, 2, 4, 9, 8], [1, 2, 3, 4, 5, 6, 7], []);
     expect(check.missing).toEqual([[3, 3], [5, 5], [7, 7]]);
-    expect(check.duplicates).toEqual([2]);
-    expect(check.extra).toEqual([9]);
+    expect(check.duplicates).toEqual([2, 6]);
+    expect(check.extra).toEqual([8, 9]);
     expect(check.inOrder).toBe(false);
     expect(check.streams).toBe(1);
   });
