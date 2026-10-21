@@ -26,17 +26,17 @@ file. You never edit the chart, and it refuses a value it does not know.
 ## What the chart installs
 
 One Deployment whose pod has two containers: the server, which serves the API,
-the web console and the artifact file server, and the runner, which executes
-Agents and holds your LLM key. They share the pod's network and one artifact
-disk, the way the compose stack's two containers share one volume, which is why
-the chart needs no shared-filesystem storage class. Postgres runs as a
-StatefulSet with its own disk and Temporal as a Deployment, both bundled unless
-you point the chart at your own.
+the web console and the file server, and the runner, which executes Agents and
+holds your LLM key. They share the pod's network and one file-storage disk, the
+way the compose stack's two containers share one volume, which is why the chart
+needs no shared-filesystem storage class. Postgres runs as a StatefulSet with
+its own disk and Temporal as a Deployment, both bundled unless you point the
+chart at your own.
 
 For a release named `stigmer`, the chart creates four PersistentVolumeClaims.
 Three hold durable state: `data-stigmer-postgres-0` (every resource and run
-record, and Temporal's own tables), `stigmer-artifacts` (files produced by runs)
-and `stigmer-server-data` (the Skill content store). The fourth,
+record, and Temporal's own tables), `stigmer-artifacts` (Files and what runs
+store) and `stigmer-server-data` (the Skill content store). The fourth,
 `stigmer-runner-data`, holds in-flight Session checkpoints so a paused run
 survives a pod restart; losing it abandons runs in flight but loses no durable
 data. Those three claims, the Secret you create below, and your values file are
@@ -216,8 +216,8 @@ Ingress while it is off. Prepare your OIDC provider first: the
 the issuer, the audience and the console's client ID come from.
 
 Then add both to `values.yaml`. The Ingress takes two hostnames, one for the API
-and console and one for artifact downloads; they are separate listeners and
-cannot share a host:
+and console and one for file downloads; they are separate listeners and cannot
+share a host:
 
 ```yaml no-validate="Helm values, not a Stigmer resource"
 server:

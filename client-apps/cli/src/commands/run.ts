@@ -37,7 +37,7 @@ export function registerRun(program: Command): void {
     .allowExcessArguments(false);
   addAgentExecFlags(run)
     .option("--json", "stream events as newline-delimited JSON")
-    .option("--download <dir>", "download artifacts to directory when complete")
+    .option("--download <dir>", "download the turn's outputs to directory when complete")
     .action(
       (agent: string | undefined, options: RunFlags, command: Command) =>
         runRun(agent, options, command),

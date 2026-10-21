@@ -391,6 +391,23 @@ One file the button is uploading, or failed to.
 />
 
 
+### formatFileSize
+
+Formats a byte count as a human-readable size, in base-1024 units with
+one decimal place.
+
+```tsx
+function formatFileSize(sizeBytes: number | bigint): string
+```
+
+```tsx
+formatFileSize(0n);       // "0 B"
+formatFileSize(1024);     // "1.0 KB"
+formatFileSize(1536n);    // "1.5 KB"
+formatFileSize(2621440n); // "2.5 MB"
+```
+
+
 ### LIBRARY_UPLOAD_CONCURRENCY
 
 How many uploads run at once.

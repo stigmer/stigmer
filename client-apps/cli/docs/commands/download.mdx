@@ -1,27 +1,27 @@
-Download artifacts produced by a run or a session, a file, or an eval's folder
-at a version.
+Download a run's or a session's outputs, a file, or an eval's folder at a
+version.
 
-`stigmer download run` retrieves the files an agent saved in its outputs folder
-during one run, each written at its place in that folder.
-`stigmer download session` retrieves what every turn of a conversation saved
-there, the newest turn's file winning when two saved the same path; the files
-given to the conversation stay out. `stigmer download file` writes one File's
-bytes under its filename. `stigmer download eval` retrieves the `evals/` folder
-one version of an eval was pushed as.
+A run's outputs are the files its agent saved in `.stigmer/outputs/`.
+`stigmer download run` retrieves the outputs of one run, each written at its
+place in that folder. `stigmer download session` retrieves what every turn of a
+conversation saved there, the newest turn's file winning when two saved the same
+path; the files given to the conversation stay out. `stigmer download file`
+writes one File's bytes under its filename. `stigmer download eval` retrieves
+the `evals/` folder one version of an eval was pushed as.
 
 {/* AUTO_USAGE */}
 
 ### Common patterns
 
 ```bash
-# Download all artifacts from a run
+# Download all outputs from a run
 stigmer download run run_01abc123
 
 # Download to a specific directory
 stigmer download run run_01abc123 --output-dir ./results/
 
-# Download a specific artifact by name
-stigmer download run run_01abc123 --artifact report.pdf
+# Download one output by its path in .stigmer/outputs/
+stigmer download run run_01abc123 --path report.pdf
 
 # Download everything a conversation's turns saved
 stigmer download session ses_01abc123 -o reports/
@@ -37,13 +37,13 @@ stigmer download eval support-agent-evals@stable -o ./evals
 
 ## Examples
 
-### Download all artifacts
+### Download all outputs
 
 ```bash
 stigmer download run run_01abc123
 ```
 
-All artifacts are saved to the current directory.
+All outputs are saved to the current directory.
 
 ### Download to a specific location
 
@@ -51,17 +51,20 @@ All artifacts are saved to the current directory.
 stigmer download run run_01abc123 -o ./output/
 ```
 
-### Download a single artifact
+### Download a single output
 
 ```bash
-stigmer download run run_01abc123 --artifact generated-agent.yaml
+stigmer download run run_01abc123 --path generated-agent.yaml
 ```
+
+`--path` names an output by its path in `.stigmer/outputs/`. A bare filename
+matches an output of that name wherever it sits in the folder.
 
 ### Download a conversation's outputs
 
 ```bash
 stigmer download session ses_01abc123 -o reports/
-stigmer download session ses_01abc123 --artifact reports/q3.md
+stigmer download session ses_01abc123 --path reports/q3.md
 ```
 
 Each output is written at its place under the outputs folder. When two turns
@@ -91,8 +94,8 @@ into a new or empty directory, `./<name>` unless `-o` names one.
 | Command                  | Description                                          |
 | ------------------------ | ---------------------------------------------------- |
 | [`stigmer run`](./run)   | Execute an agent (use `--download` to auto-download) |
-| [`stigmer get`](./get)   | Inspect a run to see available artifacts             |
-| [`stigmer push`](./push) | Push artifacts to the registry                       |
+| [`stigmer get`](./get)   | Inspect a run to see its outputs                     |
+| [`stigmer push`](./push) | Push skills, plugins and evals to the registry       |
 
 ## See also
 

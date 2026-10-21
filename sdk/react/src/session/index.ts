@@ -143,7 +143,7 @@ export type {
 } from "./useSessionPanel.js";
 
 // Session rail views — composes the session facets (Config / Changes /
-// Artifacts / Usage) as the panel's rail, with the console's own labels,
+// Files / Usage) as the panel's rail, with the console's own labels,
 // icons, badges, and contextual-visibility rules. Exported so custom
 // session surfaces inherit the rail by construction instead of
 // re-declaring it.
@@ -151,7 +151,7 @@ export { useSessionRailViews, CONVERSATION_FILES_VIEW_ID } from "./useSessionRai
 export type { UseSessionRailViewsOptions } from "./useSessionRailViews.js";
 
 // Plan draft — viewer-owned in-place edit of the session's current plan
-// (edit-as-input; the published plan.md artifact is never mutated).
+// (edit-as-input; the plan File the turn returned is never mutated).
 export { usePlanDraft, planDraftKey } from "./usePlanDraft.js";
 export type { PlanDraftController } from "./usePlanDraft.js";
 
@@ -166,7 +166,7 @@ export {
   PLAN_DOCUMENT_PATH,
 } from "./plan-document.js";
 
-// Artifact document tab identity — lives in run/; re-exported here so
+// File document tab identity — lives in run/; re-exported here so
 // session-path importers reach it beside the plan document identity.
 export { FILE_DOCUMENT_ENTRY_ID } from "../run/file-document.js";
 

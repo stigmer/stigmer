@@ -314,7 +314,7 @@ export {
   RecalledMemoriesCard,
   resolveInjectedFacts,
   PlanCompletionCard,
-  PlanArtifactCard,
+  PlanFileCard,
   PlanStreamingCard,
   PlanDocumentMessage,
   formatTokenCount,
@@ -362,13 +362,13 @@ export {
   FileRow,
   FileRowView,
   fromFile,
-  ArtifactContentRenderer,
+  TextContentRenderer,
   FileBody,
   isImageFile,
   FileDeleteAction,
   FileAddAsSkillAction,
   isZipFile,
-  ArtifactFileContent,
+  TextContentView,
   FileDocument,
   useFileInspection,
   FilePreviewContent,
@@ -400,10 +400,8 @@ export {
   toFileDiffEntry,
   EmptyChangeNotice,
   isTextFile,
-  formatArtifactSize,
-  getArtifactExtension,
   getFileExtension,
-  getArtifactRenderMode,
+  getTextRenderMode,
 } from "./run/index.js";
 export type {
   BootstrapSessionSpec,
@@ -437,7 +435,7 @@ export type {
   SummarizationCardProps,
   RecalledMemoriesCardProps,
   PlanCompletionCardProps,
-  PlanArtifactCardProps,
+  PlanFileCardProps,
   PlanStreamingCardProps,
   PlanDocumentMessageProps,
   ToolCallGroupProps,
@@ -475,15 +473,15 @@ export type {
   FileRowProps,
   FileRowViewProps,
   FileRowItem,
-  ArtifactContentRendererProps,
+  TextContentRendererProps,
   FileBodyProps,
   FileDeleteActionProps,
   FileAddAsSkillActionProps,
-  ArtifactFileContentProps,
+  TextContentViewProps,
   FileDocumentProps,
   FileInspection,
   UseFileInspectionOptions,
-  ArtifactRenderMode,
+  TextRenderMode,
   FilePreviewContentProps,
   FilePreviewModalProps,
   WriteBacksWidgetProps,
@@ -508,14 +506,14 @@ export type {
   EmptyChangeKind,
 } from "./run/index.js";
 
-// Attachment — the chat box's file uploads (Stigmer Files), styled chip
-// list, clipboard paste, vision-resolution image preparation, and vision
+// Upload — the chat box's file uploads (Stigmer Files), styled chip list,
+// clipboard paste, vision-resolution image preparation, and vision
 // preflight warnings
 export {
   useFileUploads,
-  toAttachmentView,
-  AttachmentChipList,
-  MAX_ATTACHMENT_BYTES,
+  toFileChipView,
+  FileChipList,
+  MAX_FILE_BYTES,
   MAX_MESSAGE_FILES,
   MAX_VISION_LONG_EDGE_PX,
   MAX_VISION_PIXELS,
@@ -524,12 +522,11 @@ export {
   exceedsVisionResolution,
   extractClipboardFiles,
   fitToVisionResolution,
-  formatFileSize,
   prepareImageForVision,
   uniquifyFilename,
-  validateAttachmentSize,
+  validateFileSize,
   visionPreflightMessage,
-} from "./attachment/index.js";
+} from "./upload/index.js";
 export type {
   AddFilesOptions,
   FileHandOff,
@@ -539,17 +536,18 @@ export type {
   ClipboardFilesSource,
   UseFileUploadsOptions,
   UseFileUploadsReturn,
-  AttachmentChipListProps,
+  FileChipListProps,
   VisionFitSize,
   VisionPreflight,
-  VisionPreflightAttachment,
+  VisionPreflightFile,
   VisionPreflightMessageOptions,
   VisionPreflightReason,
   VisionPreflightWarning,
-} from "./attachment/index.js";
+} from "./upload/index.js";
 
 // File — one Stigmer File's record, link and download; the Library's Files
 export {
+  formatFileSize,
   useFile,
   useFileDownloadUrl,
   useFileDownload,
@@ -595,7 +593,7 @@ export type {
 } from "./file-reference/index.js";
 export { FILE_REF_MIME } from "./internal/file-tree/index.js";
 
-// Composer — unified message input with model, workspace, and file attachments
+// Composer — unified message input with model, workspace, and file uploads
 export {
   useComposer,
   SessionComposer,
@@ -1967,14 +1965,14 @@ export {
   ResourceCountCard,
   detectStigmerResource,
   useDetectStigmerResource,
-  isPlanArtifactName,
+  isPlanFileName,
   isPlanFile,
   findPlanFile,
   findLatestSessionPlan,
   planFilesByRun,
   findStreamingPlan,
-  PLAN_ARTIFACT_NAME,
-  PLAN_ARTIFACT_SUFFIX,
+  PLAN_FILE_NAME,
+  PLAN_FILE_SUFFIX,
   useApplyResource,
   useExportResource,
   VisibilitySelector,

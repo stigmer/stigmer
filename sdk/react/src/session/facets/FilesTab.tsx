@@ -11,7 +11,7 @@ import { FileRow } from "../../run/FileRow.js";
 import { FileRowView } from "../../run/FileRowView.js";
 import { useFileDownload } from "../../file/useFile.js";
 import { formatRelativeTime } from "../../activity/format-relative-time.js";
-import { isPlanFile } from "../../library/detect-plan-artifact.js";
+import { isPlanFile } from "../../library/detect-plan-file.js";
 import type { ApplyResourceResult } from "../../library/useApplyResource.js";
 
 export interface FilesTabProps {

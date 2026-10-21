@@ -14,7 +14,7 @@ import { StigmerContext } from "../../context";
 import { noMyVaultClient } from "../../__tests__/helpers/no-my-vault";
 import { ModelRegistryContext } from "../../models/ModelRegistryContext";
 import { SessionComposer } from "../SessionComposer";
-import { MAX_ATTACHMENT_BYTES } from "../../attachment/attachment-utils";
+import { MAX_FILE_BYTES } from "../../upload/upload-utils";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -55,19 +55,19 @@ function renderComposer(
 ) {
   const client = createMinimalStigmerMock();
   const onSubmit = vi.fn();
-  const onAttachmentValidationError = vi.fn();
+  const onFileValidationError = vi.fn();
 
   const result = render(
     <SessionComposer
       onSubmit={onSubmit}
-      onAttachmentValidationError={onAttachmentValidationError}
+      onFileValidationError={onFileValidationError}
       org="acme"
       {...props}
     />,
     { wrapper: createWrapper(client) },
   );
 
-  return { ...result, onSubmit, onAttachmentValidationError, client };
+  return { ...result, onSubmit, onFileValidationError, client };
 }
 
 function pngFile(
@@ -170,8 +170,8 @@ describe("SessionComposer — clipboard paste", () => {
     expect(labels[0]).not.toBe(labels[1]);
   });
 
-  it("is inert when attachments are disabled (guest mode)", async () => {
-    const { container } = renderComposer({ enableAttachments: false });
+  it("is inert when file uploads are disabled (guest mode)", async () => {
+    const { container } = renderComposer({ enableFiles: false });
     const textarea = screen.getByRole("textbox");
 
     const event = createEvent.paste(textarea, pasteInit([pngFile("image.png")]));
@@ -196,8 +196,8 @@ describe("SessionComposer — clipboard paste", () => {
     expect(container.querySelector('[role="listitem"]')).toBeNull();
   });
 
-  it("routes an oversized paste through onAttachmentValidationError with no chip", async () => {
-    const { container, onAttachmentValidationError } = renderComposer();
+  it("routes an oversized paste through onFileValidationError with no chip", async () => {
+    const { container, onFileValidationError } = renderComposer();
     const textarea = screen.getByRole("textbox");
 
     // A file of a marker length reports a size over the limit, so the test
@@ -207,7 +207,7 @@ describe("SessionComposer — clipboard paste", () => {
     const realSize = Object.getOwnPropertyDescriptor(Blob.prototype, "size")!.get!;
     const sizeSpy = vi.spyOn(Blob.prototype, "size", "get").mockImplementation(function (this: Blob) {
       const size = realSize.call(this) as number;
-      return size === MARKER_BYTES ? MAX_ATTACHMENT_BYTES + 1 : size;
+      return size === MARKER_BYTES ? MAX_FILE_BYTES + 1 : size;
     });
     const huge = pngFile("image.png", new Uint8Array(MARKER_BYTES));
     await act(async () => {
@@ -215,12 +215,12 @@ describe("SessionComposer — clipboard paste", () => {
     });
     sizeSpy.mockRestore();
 
-    expect(onAttachmentValidationError).toHaveBeenCalledTimes(1);
-    expect(onAttachmentValidationError.mock.calls[0][0]).toContain("500 MB");
+    expect(onFileValidationError).toHaveBeenCalledTimes(1);
+    expect(onFileValidationError.mock.calls[0][0]).toContain("500 MB");
     expect(container.querySelector('[role="listitem"]')).toBeNull();
   });
 
-  it("includes the pasted attachment in the submit context", async () => {
+  it("includes the pasted file in the submit context", async () => {
     const { container, onSubmit } = renderComposer();
     const textarea = screen.getByRole("textbox");
 
@@ -239,9 +239,9 @@ describe("SessionComposer — clipboard paste", () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
     const [, , context] = onSubmit.mock.calls[0];
     expect(context?.fileIds).toEqual(["file_1"]);
-    expect(context?.attachments).toHaveLength(1);
-    expect(context.attachments[0].filename).toMatch(/^pasted-image-/);
-    expect(context.attachments[0].kind).toBe("image");
+    expect(context?.files).toHaveLength(1);
+    expect(context.files[0].filename).toMatch(/^pasted-image-/);
+    expect(context.files[0].kind).toBe("image");
   });
 
   it("keeps the drop path working: same-named drops are uniquified, not clobbered", async () => {

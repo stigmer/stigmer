@@ -10,7 +10,10 @@ An agent returns a File by saving it in its outputs folder, `.stigmer/outputs/`:
 when the turn ends, everything new or changed there becomes a File of the
 conversation, written by that turn, with `output_path` saying where it was
 saved, so two files of one name in two folders are two Files. Files the agent
-edits in the workspace are not returned this way.
+edits in the workspace are not returned this way. A message names its files by
+id (`RunSpec.file_ids`); a conversation lists the ones it holds in its
+`resources`. [Files](/docs/concepts/files) explains how a file reaches the
+agent and how it compares with Claude's Files API.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1

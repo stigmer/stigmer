@@ -4,7 +4,7 @@
 // backend bootstraps the session), delete the uploaded originals the new
 // conversation now holds copies of, then
 // either detach (print header + re-attach hint) or stream and optionally
-// download artifacts, for `run`. A new conversation names its agent by
+// download the turn's outputs, for `run`. A new conversation names its agent by
 // reference (org and slug) on the embedded session_spec; the backend resolves
 // it and pins the session to the agent's current version. With no agent the
 // same flow runs the built-in assistant: the run names no agent, the
@@ -15,8 +15,8 @@ import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { BUILT_IN_ASSISTANT_NAME } from "@stigmer/client";
 import type { BackendClient } from "../../client/index.js";
-import { downloadRunArtifacts } from "../download.js";
-import { deleteFiles, stageAttachments } from "./attachments.js";
+import { downloadRunOutputs } from "../download.js";
+import { deleteFiles, stageFiles } from "./files.js";
 import { type AgentRefInput, createAgentRun } from "./create.js";
 import { renderSessionHeader, type SessionHeaderInfo, workspaceNames } from "./header.js";
 import type { PreparedRun } from "./prepare.js";
@@ -27,7 +27,7 @@ export interface ResolvedAgentExecInput {
   readonly agent: Agent | undefined;
   readonly prepared: PreparedRun;
   readonly org: string;
-  /** Artifact download directory; "" skips download. */
+  /** Where the turn's outputs are downloaded; "" skips download. */
   readonly downloadDir: string;
   readonly outputMode: RunOutputMode;
   readonly client: BackendClient;
@@ -40,7 +40,7 @@ export async function executeResolvedAgent(input: ResolvedAgentExecInput): Promi
 
   // The conversation does not exist yet, so the attached files are uploaded
   // as the person's own; the run's conversation takes its own copy of each.
-  const staged = await stageAttachments(client.stigmer, prepared.attachments, { org }, progress);
+  const staged = await stageFiles(client.stigmer, prepared.files, { org }, progress);
 
   progress("Creating run...");
   // One call: the agent reference and the conversation's resources ride the
@@ -58,7 +58,7 @@ export async function executeResolvedAgent(input: ResolvedAgentExecInput): Promi
       plugins: prepared.plugins,
       ...(prepared.environment === undefined ? {} : { environment: prepared.environment }),
       fileIds: staged.fileIds,
-      workspaceFileRefs: prepared.attachments.workspaceFileRefs,
+      workspaceFileRefs: prepared.files.workspaceFileRefs,
       resources: [...prepared.resources, ...staged.resources],
       model: prepared.model,
       mode: prepared.mode,
@@ -107,10 +107,10 @@ export async function executeResolvedAgent(input: ResolvedAgentExecInput): Promi
   });
 
   if (input.downloadDir !== "") {
-    await downloadRunArtifacts(
+    await downloadRunOutputs(
       client.stigmer,
       finalExec.metadata?.id ?? "",
-      { artifactName: "", outputDir: input.downloadDir },
+      { outputPath: "", outputDir: input.downloadDir },
       progress,
     );
   }

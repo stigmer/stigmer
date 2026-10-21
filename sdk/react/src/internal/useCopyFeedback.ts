@@ -28,8 +28,8 @@ export interface UseCopyFeedbackReturn {
  * Behavior hook for the copy-with-feedback shape: write locally-held text to
  * the clipboard and flash a transient `copied` flag for the affordance swap.
  *
- * This is the fetch-free sibling of `useArtifactCopy` (which resolves remote
- * artifact bytes at click time); use it wherever the text to copy is already
+ * This is the fetch-free sibling of `useArtifactCopy` (which resolves a run's
+ * stored text at click time); use it wherever the text to copy is already
  * in hand — message content, identifiers, code blocks. One implementation
  * keeps the feedback window and the unmount-safety identical across surfaces.
  */

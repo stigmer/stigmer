@@ -13,7 +13,7 @@ export interface UseArtifactDownloadReturn {
    * download. No-op when the run id is unknown or a download is already
    * in flight. Resolves once the download has been initiated.
    *
-   * @param storageKey - Storage key of the artifact to download.
+   * @param storageKey - Storage key of the content to download.
    * @param fileName - Optional suggested file name for the saved file.
    */
   readonly download: (storageKey: string, fileName?: string) => Promise<void>;
@@ -26,25 +26,26 @@ export interface UseArtifactDownloadReturn {
 }
 
 /**
- * Behavior hook that downloads a run artifact on demand.
+ * Behavior hook that downloads the content stored under a run's storage key
+ * (a tool call's offloaded output, or one side of a captured file change) on
+ * demand. A File is downloaded with `useFileDownload` instead.
  *
  * Implements the click → mint fresh URL → browser download flow so every
- * artifact "Download" affordance shares one implementation. The URL
- * is minted at click time from
- * the stable `storageKey` via `getArtifactDownloadUrl`, so it is always valid —
- * unlike the previously persisted, short-lived URL that expired after an hour.
+ * stored-content "Download" affordance shares one implementation. The URL
+ * is minted at click time from the stable `storageKey` via
+ * `getArtifactDownloadUrl`, so it is always valid when the browser opens it.
  *
  * Returns an imperative `download(storageKey, fileName?)` action rather than a
  * URL, because a download is a user action, not render data. For rendering an
  * image or showing a link, use {@link useArtifactDownloadUrl} instead.
  *
- * @param executionId - Run that produced the artifacts, or `null` to
+ * @param executionId - Run whose storage keys these are, or `null` to
  *   disable (the action becomes a no-op).
  *
  * @example
  * ```tsx
  * const { download, isDownloading } = useArtifactDownload(executionId);
- * <button onClick={() => download(artifact.storageKey, artifact.name)} disabled={isDownloading}>
+ * <button onClick={() => download(outputRef.storageKey, "output.txt")} disabled={isDownloading}>
  *   Download
  * </button>
  * ```

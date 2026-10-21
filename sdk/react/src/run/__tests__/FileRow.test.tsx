@@ -13,7 +13,7 @@ import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { StigmerContext } from "../../context";
 import { FileRow } from "../FileRow";
 
-function fileArtifact(filename: string, outputPath = filename) {
+function outputFile(filename: string, outputPath = filename) {
   return create(FileSchema, {
     metadata: { id: `file_${filename.replace(/\W/g, "_")}` },
     spec: { filename },
@@ -31,7 +31,7 @@ function createStigmerMock(): Stigmer {
 
 function renderRow(props: Partial<Parameters<typeof FileRow>[0]> = {}) {
   const merged = {
-    file: fileArtifact("notes.md"),
+    file: outputFile("notes.md"),
     onOpen: vi.fn(),
     ...props,
   } as Parameters<typeof FileRow>[0];
@@ -51,21 +51,21 @@ afterEach(() => {
 
 describe("FileRow — presentation", () => {
   it("renders a file-type icon, the name, and the formatted size", () => {
-    renderRow({ file: fileArtifact("notes.md") });
+    renderRow({ file: outputFile("notes.md") });
     const open = screen.getByText("notes.md").closest("button")!;
     expect(open.querySelector("svg")).toBeTruthy();
     expect(screen.getByText("2.0 KB")).toBeTruthy();
   });
 
   it("shows the parent-directory subtitle only on a name collision", () => {
-    const artifact = fileArtifact("agent.yaml", "configs/agent.yaml");
-    const { rerender } = renderRow({ file: artifact, hasNameCollision: true });
+    const output = outputFile("agent.yaml", "configs/agent.yaml");
+    const { rerender } = renderRow({ file: output, hasNameCollision: true });
     expect(screen.getByText("configs/")).toBeTruthy();
 
     rerender(
       <StigmerContext.Provider value={createStigmerMock()}>
         <ul>
-          <FileRow file={artifact} onOpen={vi.fn()} />
+          <FileRow file={output} onOpen={vi.fn()} />
         </ul>
       </StigmerContext.Provider>,
     );
@@ -75,7 +75,7 @@ describe("FileRow — presentation", () => {
 
 describe("FileRow — nested-interactive avoidance", () => {
   it("renders the Download control as a SIBLING of the open button, never nested", () => {
-    renderRow({ file: fileArtifact("notes.md") });
+    renderRow({ file: outputFile("notes.md") });
     const open = screen.getByText("notes.md").closest("button")!;
     const download = screen.getByLabelText("Download notes.md");
     expect(download.tagName).toBe("BUTTON");
@@ -110,14 +110,14 @@ describe("FileRow — open / activate interaction (file-tree parity)", () => {
 
 describe("FileRow — download", () => {
   it("mints a download link for the File's id on Download click", () => {
-    renderRow({ file: fileArtifact("notes.md") });
+    renderRow({ file: outputFile("notes.md") });
     fireEvent.click(screen.getByLabelText("Download notes.md"));
     expect(getDownloadUrl).toHaveBeenCalledTimes(1);
     expect(getDownloadUrl.mock.calls[0][0]).toBe("file_notes_md");
   });
 
   it("renders the Download control with no native title", () => {
-    renderRow({ file: fileArtifact("notes.md") });
+    renderRow({ file: outputFile("notes.md") });
     expect(screen.getByLabelText("Download notes.md")).toBeTruthy();
     expect(document.querySelector("[title]")).toBeNull();
   });

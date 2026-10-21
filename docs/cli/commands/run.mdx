@@ -48,7 +48,7 @@ stigmer run my-agent -m "Summarize the Q4 earnings report"
 | `--branch`          | `string` |         | git branch to clone (single git workspace only)                                                                                                                                                         |
 | `--commit`          | `string` |         | git commit SHA to checkout (single git workspace only)                                                                                                                                                  |
 | `--detach`          | `bool`   |         | start the run and return immediately without streaming                                                                                                                                                  |
-| `--download`        | `string` |         | download artifacts to directory when complete                                                                                                                                                           |
+| `--download`        | `string` |         | download the turn's outputs to directory when complete                                                                                                                                                  |
 | `--environment`     | `string` |         | the environment the conversation's sandbox runs in, by id, org/slug or slug: its packages and network access, in place of the agent's or the organization's default                                     |
 | `--file-id`         | `string` |         | a File already uploaded (stigmer file upload, or the console's Library) sent with the message, counted with --attach toward its 20 (repeatable)                                                         |
 | `--harness`         | `string` |         | execution harness for the new session: "native" or "cursor"; unset, the agent's engine, else your account default, else native                                                                          |
@@ -152,7 +152,7 @@ stigmer run my-agent -w ./frontend -w ./backend
 
 `--branch` and `--commit` apply only when a single git workspace is provided.
 
-### File attachments
+### Attach files
 
 Give the agent files with your message. Each attached file is uploaded as a File
 and sent with the message: the model sees an image as an image and any other

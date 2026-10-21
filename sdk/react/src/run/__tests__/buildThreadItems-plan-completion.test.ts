@@ -25,7 +25,7 @@ interface TurnFixture {
   readonly phase?: TurnPhase;
   readonly mode?: InteractionMode;
   readonly messages?: readonly string[];
-  readonly withPlanArtifact?: boolean;
+  readonly withPlanFile?: boolean;
   readonly specMessage?: string;
   readonly buildFromPlan?: boolean;
   readonly error?: string;
@@ -54,7 +54,7 @@ function runFor(t: TurnFixture): Run {
 function planFiles(fixtures: readonly TurnFixture[]): ReadonlyMap<string, StigmerFile> {
   const byRun = new Map<string, StigmerFile>();
   for (const t of fixtures) {
-    if (!t.withPlanArtifact) continue;
+    if (!t.withPlanFile) continue;
     byRun.set(
       t.id,
       create(FileSchema, {
@@ -111,7 +111,7 @@ describe("buildThreadItems plan-completion variant", () => {
 
   it("keeps the plan card, with build authority, in the plan's own segment after a later Agent turn", () => {
     const items = build([
-      { id: "plan", mode: PLAN, messages: ["Here is the plan"], withPlanArtifact: true },
+      { id: "plan", mode: PLAN, messages: ["Here is the plan"], withPlanFile: true },
       { id: "impl", mode: AGENT, messages: ["Implemented"] },
     ]);
     const cards = planItems(items);
@@ -124,8 +124,8 @@ describe("buildThreadItems plan-completion variant", () => {
   it("emits a card per plan; only the newest carries isLatestPlan", () => {
     const cards = planItems(
       build([
-        { id: "a", mode: PLAN, messages: ["Plan A"], withPlanArtifact: true },
-        { id: "b", mode: PLAN, messages: ["Plan B"], withPlanArtifact: true },
+        { id: "a", mode: PLAN, messages: ["Plan A"], withPlanFile: true },
+        { id: "b", mode: PLAN, messages: ["Plan B"], withPlanFile: true },
       ]),
     );
 
@@ -136,7 +136,7 @@ describe("buildThreadItems plan-completion variant", () => {
     expect(cards[0]!.planFile?.spec?.filename).toBe("plan.md");
   });
 
-  it("skips a superseded plan that never published an artifact", () => {
+  it("skips a superseded plan that never returned a plan File", () => {
     const cards = planItems(
       build([
         { id: "a", mode: PLAN, messages: ["Plan A"] },
@@ -150,9 +150,9 @@ describe("buildThreadItems plan-completion variant", () => {
   });
 });
 
-describe("buildThreadItems plan-message collapse (artifact published)", () => {
+describe("buildThreadItems plan-message collapse (plan File returned)", () => {
   it("removes the plan message — the card is the turn's sole plan representation", () => {
-    const items = build([{ id: "p", mode: PLAN, messages: ["Let me look around first.", "# The Plan\n\n1. Do the thing"], withPlanArtifact: true }]);
+    const items = build([{ id: "p", mode: PLAN, messages: ["Let me look around first.", "# The Plan\n\n1. Do the thing"], withPlanFile: true }]);
     const keys = messageItems(items).map((i) => i.key);
 
     expect(keys).toContain(m("p", 0));
@@ -161,17 +161,17 @@ describe("buildThreadItems plan-message collapse (artifact published)", () => {
   });
 
   it("lifts the plan's leading H1 onto the card, through a plan-scoped fence, or none", () => {
-    expect(planItems(build([{ id: "p", mode: PLAN, messages: ["# Refactor auth\n\nSteps…"], withPlanArtifact: true }]))[0]!.planTitle).toBe("Refactor auth");
-    expect(planItems(build([{ id: "p", mode: PLAN, messages: ["```\n# Fenced Plan\n\nBody\n```"], withPlanArtifact: true }]))[0]!.planTitle).toBe("Fenced Plan");
-    expect(planItems(build([{ id: "p", mode: PLAN, messages: ["Just prose, no title"], withPlanArtifact: true }]))[0]!.planTitle).toBeUndefined();
+    expect(planItems(build([{ id: "p", mode: PLAN, messages: ["# Refactor auth\n\nSteps…"], withPlanFile: true }]))[0]!.planTitle).toBe("Refactor auth");
+    expect(planItems(build([{ id: "p", mode: PLAN, messages: ["```\n# Fenced Plan\n\nBody\n```"], withPlanFile: true }]))[0]!.planTitle).toBe("Fenced Plan");
+    expect(planItems(build([{ id: "p", mode: PLAN, messages: ["Just prose, no title"], withPlanFile: true }]))[0]!.planTitle).toBeUndefined();
   });
 
-  it("gives no title to the latest plan's card when it published no artifact", () => {
+  it("gives no title to the latest plan's card when it returned no plan File", () => {
     expect(planItems(build([{ id: "p", mode: PLAN, messages: ["# Titled"] }]))[0]!.planTitle).toBeUndefined();
   });
 });
 
-describe("buildThreadItems plan-document stamping (no-artifact fallback)", () => {
+describe("buildThreadItems plan-document stamping (no-plan-File fallback)", () => {
   const docs = (items: readonly ThreadItem[]) => messageItems(items).filter((i) => i.isPlanDocument === true);
 
   it("stamps the last agent message with content of a completed Plan turn", () => {
@@ -214,7 +214,7 @@ describe("buildThreadItems plan-writing (live collapse)", () => {
 
   it("shares the completion item's key, so the card holds one thread position", () => {
     const liveCard = planWriting(build([live], { collapseStreamingPlan: true }))[0]!;
-    const settled = planItems(build([{ ...live, phase: "completed", withPlanArtifact: true }], { collapseStreamingPlan: true }))[0]!;
+    const settled = planItems(build([{ ...live, phase: "completed", withPlanFile: true }], { collapseStreamingPlan: true }))[0]!;
 
     expect(liveCard.key).toBe(settled.key);
   });

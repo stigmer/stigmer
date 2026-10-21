@@ -45,7 +45,7 @@ describe("findApprovedPlanPath", () => {
 
   it("matches the plan convention only — a plan-adjacent filename is not the plan", () => {
     expect(findApprovedPlanPath([carried("my-plan.md.bak")])).toBeUndefined();
-    // A file merely containing "plan" is not a plan artifact.
+    // A file merely containing "plan" is not a plan.
     expect(findApprovedPlanPath([carried("myplan.md")])).toBeUndefined();
   });
 

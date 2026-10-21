@@ -13,14 +13,14 @@ export const file_ai_stigmer_agentic_run_v1_message: GenFile = /*@__PURE__*/
   fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL21lc3NhZ2UucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEikgEKEVRvb2xDYWxsT3V0cHV0UmVmEhMKC3N0b3JhZ2Vfa2V5GAEgASgJEhIKCnNpemVfYnl0ZXMYAyABKAMSFAoMY29udGVudF9oYXNoGAQgASgJEhEKCW1pbWVfdHlwZRgFIAEoCRIQCghpc19pbWFnZRgGIAEoCBIZChF0cnVuY2F0ZWRfcHJldmlldxgHIAEoCSJ3CgtGaWxlQ29udGVudBIQCgZpbmxpbmUYASABKAlIABI7CgNyZWYYAiABKAsyLC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlRvb2xDYWxsT3V0cHV0UmVmSAASEQoJaXNfYmluYXJ5GAMgASgIQgYKBGJvZHliBnByb3RvMw");
 
 /**
- * ToolCallOutputRef points to content the runner offloaded to artifact
+ * ToolCallOutputRef points to content the runner offloaded to the run's
  * storage: a tool call's full output, or one side of a captured file change
  * too large to keep inline.
  *
  * This is deliberately not a File (what an agent saves for the person to
  * download): an output ref is internal spillover of a tool's result, not a
- * deliverable. The bytes live in artifact storage (R2 in the cloud, locally
- * served in dev); only this reference is persisted in the run status.
+ * deliverable. The bytes live in the server's file storage (R2 in the cloud,
+ * a local disk otherwise); only this reference is persisted in the run status.
  *
  * @generated from message ai.stigmer.agentic.run.v1.ToolCallOutputRef
  */
@@ -72,7 +72,7 @@ export type ToolCallOutputRef = Message<"ai.stigmer.agentic.run.v1.ToolCallOutpu
 
   /**
    * Short head of the original text content, kept inline for an at-a-glance
-   * preview without fetching the full artifact. Empty for image content.
+   * preview without fetching the full output. Empty for image content.
    *
    * @generated from field: string truncated_preview = 7;
    */
@@ -89,7 +89,7 @@ export const ToolCallOutputRefSchema: GenMessage<ToolCallOutputRef> = /*@__PURE_
 /**
  * One side (before or after) of a file's content.
  *
- * Small bodies are carried inline; large bodies are offloaded to artifact
+ * Small bodies are carried inline; large bodies are offloaded to the run's
  * storage and referenced via the existing tool-output offload envelope. Exactly
  * one of inline or ref is set; when offloaded, the head preview lives in
  * ref.truncated_preview and the full size in ref.size_bytes.

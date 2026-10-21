@@ -154,7 +154,7 @@ function CategoryDetail({
       // strings, or the Cursor envelope's unified diff). A whole-file WRITE has
       // no per-call before-image in its input, so a write renders the captured
       // NET change of its file from its turn's file review instead — the same
-      // artifact the row's review badge refers to, resolved through the same
+      // captured change the row's review badge refers to, resolved through the same
       // path matcher so the two can never disagree. An unresolvable write
       // (still running before the turn-boundary capture, no capture mode, or a
       // non-reviewable change) keeps the honest fallback: the proposed content

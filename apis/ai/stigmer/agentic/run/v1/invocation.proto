@@ -27,8 +27,9 @@ import "buf/validate/validate.proto";
 // — the rejected alternative was embedding RunSpec /
 // SessionSpec and validating the illegal fields away. Exclusions,
 // each with its reason: a repository's token (plaintext secrets in
-// manifests leak; vaults are the vehicle), attachments
-// (one-shot uploads don't recur), plugins/skill_refs (the
+// manifests leak; vaults are the vehicle), a message's file_ids
+// (a routine's files are its resources, which each run copies),
+// plugins/skill_refs (the
 // agent blueprint owns its tool set), interaction_mode (Plan mode's
 // deliverable is a plan for a human who isn't there), cursor_mode
 // (runner-owned constant). Surface-specific constraints live in the

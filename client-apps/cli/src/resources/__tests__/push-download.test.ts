@@ -5,18 +5,18 @@
 // their download links) plus a plain HTTP server standing in for object
 // storage, then drives the resource layer end to end: pushSkill zips a temp
 // dir and uploads it (asserting the server receives a valid ZIP), and
-// downloadRunArtifacts lists the Files the run returned and streams each
+// downloadRunOutputs lists the Files the run returned and streams each
 // link to disk at its place in the outputs folder (asserting partial-failure
 // tolerance, a nested folder path, and refused paths that would climb out
-// of the directory or name an absolute place), warns that a run still in progress may not have every
-// artifact yet, and refuses a named artifact the run does not hold with a
-// pointer to `get run`. downloadSessionOutputs lists the conversation's
+// of the directory or name an absolute place), warns that a run still in
+// progress may not have every output yet, and refuses a named output the run
+// does not hold with a pointer to `get run`. downloadSessionOutputs lists the conversation's
 // Files in its own organization and writes only what its turns saved, one
 // File per place with the newest turn's winning, never a File given to the
 // conversation; downloadFile writes one File under its filename, and reports
 // a File whose bytes cannot be fetched as not downloaded. The download
 // handlers for a session and a File refuse a reference that is not an id
-// (and a File refuses --artifact) before any call, and write through the
+// (and a File refuses --path) before any call, and write through the
 // same functions.
 
 import { createServer as createHttpServer, type Server as HttpServer } from "node:http";
@@ -45,11 +45,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { CliExitError, ExitCode } from "../../errors/index.js";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { UsageError } from "../../errors/index.js";
-import { DOWNLOAD_HANDLERS, downloadFile, downloadRunArtifacts, downloadSessionOutputs } from "../download.js";
+import { DOWNLOAD_HANDLERS, downloadFile, downloadRunOutputs, downloadSessionOutputs } from "../download.js";
 import { pushSkill } from "../skill.js";
 
 const SKILL_MD = ["---", "name: my-skill", "---", "# My Skill"].join("\n");
-const ARTIFACT_BODY = "hello artifact contents";
+const OUTPUT_BODY = "hello output contents";
 const REPORT_BODY = "# Q3\n";
 
 let backend: Http2Server;
@@ -123,7 +123,7 @@ beforeAll(async () => {
   storage = createHttpServer((req, res) => {
     if (req.url === "/store/file_report") {
       res.writeHead(200, { "content-type": "text/plain" });
-      res.end(ARTIFACT_BODY);
+      res.end(OUTPUT_BODY);
       return;
     }
     const stored = STORE_BODIES[(req.url ?? "").replace("/store/", "")];
@@ -204,7 +204,7 @@ afterAll(async () => {
 });
 
 describe("pushSkill", () => {
-  it("zips a directory and uploads a valid artifact", async () => {
+  it("zips a directory and uploads a valid archive", async () => {
     const dir = mkdtempSync(join(tmpdir(), "push-it-"));
     try {
       writeFileSync(join(dir, "SKILL.md"), SKILL_MD);
@@ -243,46 +243,46 @@ describe("pushSkill", () => {
   });
 });
 
-describe("downloadRunArtifacts", () => {
-  it("downloads available artifacts and tolerates partial failures", async () => {
+describe("downloadRunOutputs", () => {
+  it("downloads available outputs and tolerates partial failures", async () => {
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
-      const outcome = await downloadRunArtifacts(client, "aex_done", { artifactName: "", outputDir: out });
+      const outcome = await downloadRunOutputs(client, "aex_done", { outputPath: "", outputDir: out });
       expect(outcome.total).toBe(2);
       expect(outcome.downloaded).toBe(1); // broken.txt 404s, report.txt succeeds
-      expect(outcome.noArtifacts).toBe(false);
-      expect(readFileSync(join(out, "report.txt"), "utf8")).toBe(ARTIFACT_BODY);
+      expect(outcome.noOutputs).toBe(false);
+      expect(readFileSync(join(out, "report.txt"), "utf8")).toBe(OUTPUT_BODY);
     } finally {
       rmSync(out, { recursive: true, force: true });
     }
   });
 
-  it("warns that a pending run may be incomplete, and reports no artifacts", async () => {
+  it("warns that a pending run may be incomplete, and reports no outputs", async () => {
     const progress: string[] = [];
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
-      const outcome = await downloadRunArtifacts(
+      const outcome = await downloadRunOutputs(
         client,
         "aex_pending",
-        { artifactName: "", outputDir: out },
+        { outputPath: "", outputDir: out },
         (line) => progress.push(line),
       );
-      expect(outcome).toEqual({ total: 0, downloaded: 0, noArtifacts: true, incompletePhase: "pending" });
+      expect(outcome).toEqual({ total: 0, downloaded: 0, noOutputs: true, incompletePhase: "pending" });
       expect(progress).toEqual([
-        "Run is still pending. Artifacts may not be complete until the run finishes.",
+        "Run is still pending. Its outputs may not be complete until the run finishes.",
       ]);
     } finally {
       rmSync(out, { recursive: true, force: true });
     }
   });
 
-  it("refuses a named artifact the run does not hold, pointing at get run", async () => {
+  it("refuses a named output the run does not hold, pointing at get run", async () => {
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
-      const failure = downloadRunArtifacts(client, "aex_done", { artifactName: "missing.txt", outputDir: out });
+      const failure = downloadRunOutputs(client, "aex_done", { outputPath: "missing.txt", outputDir: out });
       await expect(failure).rejects.toBeInstanceOf(CliExitError);
       await expect(failure).rejects.toMatchObject({
-        message: "artifact not found: missing.txt\n\nUse 'stigmer get run aex_done' to see available artifacts",
+        message: "output not found: missing.txt\n\nUse 'stigmer get run aex_done' to see available outputs",
         exitCode: ExitCode.General,
       });
     } finally {
@@ -290,10 +290,10 @@ describe("downloadRunArtifacts", () => {
     }
   });
 
-  it("filters to a named artifact", async () => {
+  it("filters to a named output by its bare filename", async () => {
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
-      const outcome = await downloadRunArtifacts(client, "aex_done", { artifactName: "report.txt", outputDir: out });
+      const outcome = await downloadRunOutputs(client, "aex_done", { outputPath: "report.txt", outputDir: out });
       expect(outcome.total).toBe(1);
       expect(outcome.downloaded).toBe(1);
     } finally {
@@ -304,8 +304,8 @@ describe("downloadRunArtifacts", () => {
   it("writes a File at its place in the outputs folder", async () => {
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
-      const outcome = await downloadRunArtifacts(client, "aex_nested", { artifactName: "", outputDir: out });
-      expect(outcome).toEqual({ total: 1, downloaded: 1, noArtifacts: false, incompletePhase: undefined });
+      const outcome = await downloadRunOutputs(client, "aex_nested", { outputPath: "", outputDir: out });
+      expect(outcome).toEqual({ total: 1, downloaded: 1, noOutputs: false, incompletePhase: undefined });
       expect(readFileSync(join(out, "reports", "q3.md"), "utf8")).toBe(REPORT_BODY);
       expect(existsSync(join(out, "q3.md"))).toBe(false);
     } finally {
@@ -313,11 +313,11 @@ describe("downloadRunArtifacts", () => {
     }
   });
 
-  it("filters to a named artifact by its outputs-folder path", async () => {
+  it("filters to a named output by its path in the outputs folder", async () => {
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
-      const outcome = await downloadRunArtifacts(client, "aex_nested", {
-        artifactName: "reports/q3.md",
+      const outcome = await downloadRunOutputs(client, "aex_nested", {
+        outputPath: "reports/q3.md",
         outputDir: out,
       });
       expect(outcome.downloaded).toBe(1);
@@ -332,10 +332,10 @@ describe("downloadRunArtifacts", () => {
     const parent = mkdtempSync(join(tmpdir(), "dl-it-"));
     const out = join(parent, "out");
     try {
-      const outcome = await downloadRunArtifacts(
+      const outcome = await downloadRunOutputs(
         client,
         "aex_escape",
-        { artifactName: "", outputDir: out },
+        { outputPath: "", outputDir: out },
         (line) => progress.push(line),
       );
       expect(outcome).toMatchObject({ total: 1, downloaded: 0 });
@@ -352,10 +352,10 @@ describe("downloadRunArtifacts", () => {
     const progress: string[] = [];
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
-      const outcome = await downloadRunArtifacts(
+      const outcome = await downloadRunOutputs(
         client,
         "aex_absolute",
-        { artifactName: "", outputDir: out },
+        { outputPath: "", outputDir: out },
         (line) => progress.push(line),
       );
       expect(outcome).toMatchObject({ total: 1, downloaded: 0 });
@@ -377,10 +377,10 @@ describe("downloadSessionOutputs", () => {
       const outcome = await downloadSessionOutputs(
         client,
         "ses_conv",
-        { artifactName: "", outputDir: out },
+        { outputPath: "", outputDir: out },
         (line) => progress.push(line),
       );
-      expect(outcome).toEqual({ total: 2, downloaded: 2, noArtifacts: false });
+      expect(outcome).toEqual({ total: 2, downloaded: 2, noOutputs: false });
       expect(readFileSync(join(out, "report.txt"), "utf8")).toBe("second");
       expect(readFileSync(join(out, "notes", "today.md"), "utf8")).toBe("notes");
       expect(existsSync(join(out, "upload.csv"))).toBe(false);
@@ -393,11 +393,11 @@ describe("downloadSessionOutputs", () => {
   it("filters to a named output, and points at the conversation's file list when none matches", async () => {
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
-      const outcome = await downloadSessionOutputs(client, "ses_conv", { artifactName: "notes/today.md", outputDir: out });
-      expect(outcome).toEqual({ total: 1, downloaded: 1, noArtifacts: false });
-      const failure = downloadSessionOutputs(client, "ses_conv", { artifactName: "upload.csv", outputDir: out });
+      const outcome = await downloadSessionOutputs(client, "ses_conv", { outputPath: "notes/today.md", outputDir: out });
+      expect(outcome).toEqual({ total: 1, downloaded: 1, noOutputs: false });
+      const failure = downloadSessionOutputs(client, "ses_conv", { outputPath: "upload.csv", outputDir: out });
       await expect(failure).rejects.toMatchObject({
-        message: "artifact not found: upload.csv\n\nUse 'stigmer list files --session ses_conv' to see available artifacts",
+        message: "output not found: upload.csv\n\nUse 'stigmer list files --session ses_conv' to see available outputs",
         exitCode: ExitCode.General,
       });
     } finally {
@@ -411,7 +411,7 @@ describe("downloadFile", () => {
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
       const outcome = await downloadFile(client, "file_upload", out);
-      expect(outcome).toEqual({ total: 1, downloaded: 1, noArtifacts: false });
+      expect(outcome).toEqual({ total: 1, downloaded: 1, noOutputs: false });
       expect(readFileSync(join(out, "upload.csv"), "utf8")).toBe("a,b");
     } finally {
       rmSync(out, { recursive: true, force: true });
@@ -423,7 +423,7 @@ describe("downloadFile", () => {
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
       const outcome = await downloadFile(client, "file_missing", out, (line) => progress.push(line));
-      expect(outcome).toEqual({ total: 1, downloaded: 0, noArtifacts: false });
+      expect(outcome).toEqual({ total: 1, downloaded: 0, noOutputs: false });
       expect(progress.some((line) => line.startsWith("  Failed to download broken.txt"))).toBe(true);
       expect(existsSync(join(out, "broken.txt"))).toBe(false);
     } finally {
@@ -442,34 +442,34 @@ describe("the download handlers for a session and a File", () => {
     try {
       const outcome = await session.download(
         client,
-        { ref: "ses_conv", org: "acme", artifactName: "notes/today.md", outputDir: out },
+        { ref: "ses_conv", org: "acme", outputPath: "notes/today.md", outputDir: out },
         noProgress,
       );
-      expect(outcome).toEqual({ total: 1, downloaded: 1, noArtifacts: false });
+      expect(outcome).toEqual({ total: 1, downloaded: 1, noOutputs: false });
       expect(readFileSync(join(out, "notes", "today.md"), "utf8")).toBe("notes");
       await expect(
-        session.download(client, { ref: "my-chat", org: "acme", artifactName: "", outputDir: out }, noProgress),
+        session.download(client, { ref: "my-chat", org: "acme", outputPath: "", outputDir: out }, noProgress),
       ).rejects.toThrow(new UsageError("invalid session ID: my-chat\n\nA conversation is named by its ID (e.g., ses_01abc123)"));
     } finally {
       rmSync(out, { recursive: true, force: true });
     }
   });
 
-  it("download a File by its id, and refuse --artifact and a reference that is not an id", async () => {
+  it("download a File by its id, and refuse --path and a reference that is not an id", async () => {
     const out = mkdtempSync(join(tmpdir(), "dl-it-"));
     try {
       const outcome = await file.download(
         client,
-        { ref: "file_upload", org: "acme", artifactName: "", outputDir: out },
+        { ref: "file_upload", org: "acme", outputPath: "", outputDir: out },
         noProgress,
       );
-      expect(outcome).toEqual({ total: 1, downloaded: 1, noArtifacts: false });
+      expect(outcome).toEqual({ total: 1, downloaded: 1, noOutputs: false });
       expect(readFileSync(join(out, "upload.csv"), "utf8")).toBe("a,b");
       await expect(
-        file.download(client, { ref: "file_upload", org: "acme", artifactName: "x.csv", outputDir: out }, noProgress),
-      ).rejects.toThrow(/--artifact picks among a run's or a session's outputs/);
+        file.download(client, { ref: "file_upload", org: "acme", outputPath: "x.csv", outputDir: out }, noProgress),
+      ).rejects.toThrow(/--path picks among a run's or a session's outputs/);
       await expect(
-        file.download(client, { ref: "ledger", org: "acme", artifactName: "", outputDir: out }, noProgress),
+        file.download(client, { ref: "ledger", org: "acme", outputPath: "", outputDir: out }, noProgress),
       ).rejects.toThrow("a File is named by its ID (e.g., file_01abc123), not 'ledger'");
     } finally {
       rmSync(out, { recursive: true, force: true });

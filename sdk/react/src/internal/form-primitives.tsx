@@ -5,7 +5,7 @@ import { cn } from "@stigmer/design-tokens";
 // ---------------------------------------------------------------------------
 // Shared form primitives: the input and field styling of the operator
 // consoles (model catalog, licenses, plans) and the team and plugin forms,
-// and the bare button class of attachment and file surfaces.
+// and the bare button class of upload and file surfaces.
 // Internal — never exported from the package barrel.
 // ---------------------------------------------------------------------------
 

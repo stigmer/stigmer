@@ -22,13 +22,13 @@ for the whole page: every setting you change is a line in `.env`. You never edit
 
 ## What's in the stack
 
-Four services. The server and the runner share one artifact volume: file sharing
-is the contract between them, not HTTP.
+Four services. The server and the runner share one file-storage volume,
+`artifacts`: file sharing is the contract between them, not HTTP.
 
 ```mermaid
 flowchart LR
     subgraph stack [Docker Compose stack]
-        server["stigmer-server<br/>API + console :7234<br/>artifacts :7235"]
+        server["stigmer-server<br/>API + console :7234<br/>files :7235"]
         runner["stigmer-runner<br/>executes Agents"]
         temporal["temporal<br/>execution coordination"]
         postgres["postgres<br/>one instance, three databases"]
@@ -38,17 +38,17 @@ flowchart LR
     runner --> temporal
     server --> postgres
     temporal --> postgres
-    server -. "shared artifacts volume" .- runner
+    server -. "shared file storage volume" .- runner
 ```
 
 The stack keeps its state in four Docker volumes and your `.env` file. Three
 volumes hold durable state: `postgres-data` (every resource and run record, and
-Temporal's own tables), `artifacts` (files produced by runs) and `server-data`
-(the Skill content store). The fourth, `runner-data`, holds in-flight Session
-checkpoints so a paused run survives a container restart; losing it abandons
-runs in flight but loses no durable data. Those three volumes plus `.env` are a
-complete backup. [Back up and upgrade your stack](./operations) has the
-procedures.
+Temporal's own tables), `artifacts` (Files and what runs store) and
+`server-data` (the Skill content store). The fourth, `runner-data`, holds
+in-flight Session checkpoints so a paused run survives a container restart;
+losing it abandons runs in flight but loses no durable data. Those three volumes
+plus `.env` are a complete backup.
+[Back up and upgrade your stack](./operations) has the procedures.
 
 ## What you need
 
@@ -190,8 +190,8 @@ works if it does three things:
 - Serves the API on **port 443**. The CLI decides whether to use TLS from the
   port alone: `:443` is HTTPS, anything else is plain HTTP.
 - Uses two hostnames, one for the API and console and one for downloads. The
-  artifact file server is a separate listener and cannot share a host with the
-  API. The Helm chart's Ingress uses the same two.
+  file server is a separate listener and cannot share a host with the API. The
+  Helm chart's Ingress uses the same two.
 
 Then tell the stack the addresses your clients reach it on, so the URLs it mints
 for downloads and Skill transfers point at the proxy and an MCP server's Sign in

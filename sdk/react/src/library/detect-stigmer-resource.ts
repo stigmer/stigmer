@@ -4,7 +4,7 @@ import { parse as parseYaml } from "yaml";
  * Resource kinds that the YAML detection logic recognizes.
  *
  * These correspond to the Stigmer resource types that can appear as
- * YAML file artifacts and be applied to an organization via `apply()`:
+ * YAML files and be applied to an organization via `apply()`:
  *
  * - `"Agent"` — agent blueprint (`apiVersion: agentic.stigmer.ai/v1`, `kind: Agent`)
  *

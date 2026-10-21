@@ -493,7 +493,7 @@ function formatBytes(n: number): string {
 }
 
 /**
- * Renders a tool result whose bytes were offloaded to artifact storage. The
+ * Renders a tool result whose bytes were offloaded to the run's storage. The
  * bytes are resolved on demand from the stable `storageKey` at view time — the
  * URL once baked into the persisted status expired after an hour, so it is no
  * longer trusted. Images (e.g. computer-use screenshots) render inline via a

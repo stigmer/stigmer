@@ -85,7 +85,7 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
   },
   {
     label: "Integrations",
-    slugs: ["github", "attachment", "file", "file-reference"],
+    slugs: ["github", "upload", "file", "file-reference"],
   },
   {
     label: "Monetization & Usage",

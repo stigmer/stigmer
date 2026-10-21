@@ -46,7 +46,7 @@ export function ChangesTab({
   const { writeBacks, hasWriteBacks } = useSessionWriteBacks(executions);
 
   if (hasWriteBacks) {
-    // Dense row groups matching the Artifacts facet's list — gap separates
+    // Dense row groups matching the Files facet's list — gap separates
     // entries only in multi-repo sessions (single-entry lists stay seamless).
     return (
       <ul role="list" className={`${UNSTYLED_LIST} stg:flex stg:flex-col stg:gap-3`}>

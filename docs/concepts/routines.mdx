@@ -8,7 +8,9 @@ description:
 ---
 
 A routine is a saved Agent invocation: which Agent to run, what to tell it, and
-the workspace, vaults and Environment its runs use. It starts in three ways:
+the files and repositories, vaults and Environment its runs use. Each run gets
+its own copy of the routine's [Files](/docs/concepts/files). It starts in three
+ways:
 
 - **On its schedule.** A routine with a schedule runs on its own, for example
   every weekday at nine in the morning.
@@ -77,9 +79,9 @@ change who the run acts as.
 
 A routine's owner is only the account that created it. No one else can be made
 its owner, and an Organization's admins do not become its owner by being admins.
-Only the owner changes what a routine runs: its message, its schedule, its
-workspace, its vaults. Anyone else who manages it can switch it off, but not
-change the words and credentials that run in the owner's name.
+Only the owner changes what a routine runs: its message, its schedule, its files
+and repositories, its vaults. Anyone else who manages it can switch it off, but
+not change the words and credentials that run in the owner's name.
 
 A routine that must keep running when a person leaves is created by a
 [service account](/docs/guides/authentication/service-accounts), so it acts as
@@ -130,13 +132,13 @@ Claude Code's routines
 the closest idea, and Stigmer uses their words: a saved configuration that runs
 on a schedule, through **Run now**, or from an API call with a `text` note.
 
-| On Stigmer                                                          | What you already know from Claude Code                             |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| A routine: an Agent, a message, a workspace, vaults, an Environment | A routine: a prompt, repositories, connectors, a cloud environment |
-| Its schedule, **Run now**, another system's call                    | Its schedule, API and GitHub triggers, and **Run now**             |
-| The note, marked as information, not instructions                   | The `text`, marked as data, not instructions                       |
-| Every run acts as the routine's owner                               | Runs act as you                                                    |
-| At most 30 starts by hand an hour                                   | 30 Run now and API fires an hour, per routine                      |
+| On Stigmer                                                                     | What you already know from Claude Code                             |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| A routine: an Agent, a message, files and repositories, vaults, an Environment | A routine: a prompt, repositories, connectors, a cloud environment |
+| Its schedule, **Run now**, another system's call                               | Its schedule, API and GitHub triggers, and **Run now**             |
+| The note, marked as information, not instructions                              | The `text`, marked as data, not instructions                       |
+| Every run acts as the routine's owner                                          | Runs act as you                                                    |
+| At most 30 starts by hand an hour                                              | 30 Run now and API fires an hour, per routine                      |
 
 Claude Managed Agents' scheduled deployments
 ([Scheduled deployments](https://platform.claude.com/docs/en/managed-agents/scheduled-deployments))

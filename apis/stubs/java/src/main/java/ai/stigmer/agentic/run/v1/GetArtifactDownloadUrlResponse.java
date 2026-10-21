@@ -7,10 +7,11 @@ package ai.stigmer.agentic.run.v1;
 
 /**
  * <pre>
- * GetArtifactDownloadUrlResponse returns a presigned download URL for an artifact.
+ * GetArtifactDownloadUrlResponse returns a presigned download URL for a
+ * run's stored content.
  *
  * The download_url can be used with a simple HTTP GET request to download
- * the artifact. No authentication headers are required - the URL contains
+ * the content. No authentication headers are required - the URL contains
  * embedded authorization.
  * </pre>
  *
@@ -63,14 +64,14 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object downloadUrl_ = "";
   /**
    * <pre>
-   * Presigned URL for downloading the artifact.
+   * Presigned URL for downloading the content.
    *
    * Valid for direct HTTP GET request without authentication.
    * The URL includes embedded authorization that expires at expires_at.
    *
    * Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
-   * With local storage the URL is the server's artifact file server,
-   * signed by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
+   * With local storage the URL is the server's own file server, signed
+   * by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
    * </pre>
    *
    * <code>string download_url = 1 [json_name = "downloadUrl"];</code>
@@ -91,14 +92,14 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Presigned URL for downloading the artifact.
+   * Presigned URL for downloading the content.
    *
    * Valid for direct HTTP GET request without authentication.
    * The URL includes embedded authorization that expires at expires_at.
    *
    * Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
-   * With local storage the URL is the server's artifact file server,
-   * signed by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
+   * With local storage the URL is the server's own file server, signed
+   * by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
    * </pre>
    *
    * <code>string download_url = 1 [json_name = "downloadUrl"];</code>
@@ -348,10 +349,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GetArtifactDownloadUrlResponse returns a presigned download URL for an artifact.
+   * GetArtifactDownloadUrlResponse returns a presigned download URL for a
+   * run's stored content.
    *
    * The download_url can be used with a simple HTTP GET request to download
-   * the artifact. No authentication headers are required - the URL contains
+   * the content. No authentication headers are required - the URL contains
    * embedded authorization.
    * </pre>
    *
@@ -509,14 +511,14 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object downloadUrl_ = "";
     /**
      * <pre>
-     * Presigned URL for downloading the artifact.
+     * Presigned URL for downloading the content.
      *
      * Valid for direct HTTP GET request without authentication.
      * The URL includes embedded authorization that expires at expires_at.
      *
      * Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
-     * With local storage the URL is the server's artifact file server,
-     * signed by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
+     * With local storage the URL is the server's own file server, signed
+     * by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
      * </pre>
      *
      * <code>string download_url = 1 [json_name = "downloadUrl"];</code>
@@ -536,14 +538,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Presigned URL for downloading the artifact.
+     * Presigned URL for downloading the content.
      *
      * Valid for direct HTTP GET request without authentication.
      * The URL includes embedded authorization that expires at expires_at.
      *
      * Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
-     * With local storage the URL is the server's artifact file server,
-     * signed by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
+     * With local storage the URL is the server's own file server, signed
+     * by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
      * </pre>
      *
      * <code>string download_url = 1 [json_name = "downloadUrl"];</code>
@@ -564,14 +566,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Presigned URL for downloading the artifact.
+     * Presigned URL for downloading the content.
      *
      * Valid for direct HTTP GET request without authentication.
      * The URL includes embedded authorization that expires at expires_at.
      *
      * Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
-     * With local storage the URL is the server's artifact file server,
-     * signed by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
+     * With local storage the URL is the server's own file server, signed
+     * by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
      * </pre>
      *
      * <code>string download_url = 1 [json_name = "downloadUrl"];</code>
@@ -588,14 +590,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Presigned URL for downloading the artifact.
+     * Presigned URL for downloading the content.
      *
      * Valid for direct HTTP GET request without authentication.
      * The URL includes embedded authorization that expires at expires_at.
      *
      * Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
-     * With local storage the URL is the server's artifact file server,
-     * signed by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
+     * With local storage the URL is the server's own file server, signed
+     * by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
      * </pre>
      *
      * <code>string download_url = 1 [json_name = "downloadUrl"];</code>
@@ -609,14 +611,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Presigned URL for downloading the artifact.
+     * Presigned URL for downloading the content.
      *
      * Valid for direct HTTP GET request without authentication.
      * The URL includes embedded authorization that expires at expires_at.
      *
      * Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
-     * With local storage the URL is the server's artifact file server,
-     * signed by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
+     * With local storage the URL is the server's own file server, signed
+     * by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
      * </pre>
      *
      * <code>string download_url = 1 [json_name = "downloadUrl"];</code>

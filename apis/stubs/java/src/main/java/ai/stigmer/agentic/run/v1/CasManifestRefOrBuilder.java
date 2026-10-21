@@ -32,7 +32,7 @@ public interface CasManifestRefOrBuilder extends
 
   /**
    * <pre>
-   * Storage URI of the manifest artifact.
+   * Storage URI of the stored manifest.
    * </pre>
    *
    * <code>string artifact_uri = 2 [json_name = "artifactUri"];</code>
@@ -41,7 +41,7 @@ public interface CasManifestRefOrBuilder extends
   java.lang.String getArtifactUri();
   /**
    * <pre>
-   * Storage URI of the manifest artifact.
+   * Storage URI of the stored manifest.
    * </pre>
    *
    * <code>string artifact_uri = 2 [json_name = "artifactUri"];</code>

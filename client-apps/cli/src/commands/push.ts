@@ -1,4 +1,4 @@
-// `stigmer push <type> [path]` — package and upload an artifact to the registry.
+// `stigmer push <type> [path]` — build and upload a package to the registry.
 // Three kinds are pushable: skills (a local directory with git provenance
 // auto-detected, a remote repo via --git-url, or a pre-built --archive),
 // plugins (a local plugin directory, installed or upgraded as one unit; the
@@ -46,11 +46,11 @@ export function registerPush(program: Command): void {
   const push = program
     .command("push <type> [path]")
     .description(
-      "push an artifact to the registry (supported types: skill, plugin, eval)",
+      "push a package to the registry (supported types: skill, plugin, eval)",
     )
     .option(
       "--tag <tag>",
-      "version tag for the artifact (skills, and evals, where it is moved only when given; a plugin's tag is its manifest version)",
+      "version tag for the package (skills, and evals, where it is moved only when given; a plugin's tag is its manifest version)",
       "latest",
     )
     .option(
@@ -73,7 +73,7 @@ export function registerPush(program: Command): void {
     )
     .option(
       "--subdir <dir>",
-      "subdirectory within the git repository containing the artifact",
+      "subdirectory within the git repository containing the package",
     )
     .option(
       "--archive <file>",
@@ -468,7 +468,7 @@ function renderArchiveDryRun(
     "The archive bytes are uploaded as-is: the registered version hash is the",
     "SHA-256 of this file, so it matches any checksum you published for it.",
     "",
-    "Run without --dry-run to push the skill artifact.",
+    "Run without --dry-run to push the skill.",
     "",
   ];
   return `${lines.join("\n")}\n`;
@@ -587,7 +587,7 @@ function renderDryRun(
       ...analysis.sampleIgnored.map((f) => `  - ${f}`),
     );
   }
-  lines.push("", "Run without --dry-run to push the skill artifact.", "");
+  lines.push("", "Run without --dry-run to push the skill.", "");
   return `${lines.join("\n")}\n`;
 }
 
@@ -623,7 +623,7 @@ function renderRemoteDryRun(
   lines.push(
     "",
     "Note: Full analysis requires cloning the repository.",
-    "Run without --dry-run to push the skill artifact.",
+    "Run without --dry-run to push the skill.",
     "",
   );
   return `${lines.join("\n")}\n`;

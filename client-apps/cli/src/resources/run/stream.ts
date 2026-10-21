@@ -38,7 +38,7 @@ export interface StreamDeps {
 
 /**
  * Stream the run to its end, then run the epilogue. Returns the
- * authoritative final run (for artifact download).
+ * authoritative final run (for downloading its outputs).
  */
 export async function streamAgentRun(deps: StreamDeps): Promise<Run> {
   if (deps.outputMode === "json") {

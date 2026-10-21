@@ -29,7 +29,7 @@ export interface UseSessionPanelOptions {
    * Identity of the session's current plan, or `null` when none exists. Two
    * identity families, supplied by the viewer: `<executionId>:streaming`
    * while the active turn is WRITING a plan (see `findStreamingPlan`), then
-   * the published identity (`planDraftKey`) once the artifact exists. A NEW
+   * the published identity (`planDraftKey`) once the plan File exists. A NEW
    * identity — a plan starting to stream, the first published plan, or a
    * refined plan superseding it — auto-opens the plan document tab (see
    * {@link SessionPanelController.openPlanDocument}), expanding a collapsed
@@ -67,10 +67,11 @@ export interface UseSessionPanelOptions {
   readonly defaultView?: string;
   /**
    * Controlled open state. When provided, the host owns whether the panel is
-   * expanded: internal open intents (the chip toggle, a file/artifact/plan
-   * open, plan auto-open) no longer flip state themselves — they surface
-   * through {@link UseSessionPanelOptions.onOpenChange} and the panel follows
-   * this value. Leave `undefined` for the self-managing default.
+   * expanded: internal open intents (the chip toggle, opening a workspace
+   * file, a File or the plan, plan auto-open) no longer flip state
+   * themselves — they surface through
+   * {@link UseSessionPanelOptions.onOpenChange} and the panel follows this
+   * value. Leave `undefined` for the self-managing default.
    */
   readonly open?: boolean;
   /**
@@ -86,7 +87,7 @@ export interface UseSessionPanelOptions {
    * uncontrolled. The difference is principled, not stylistic: tabs change
    * only through user clicks, so an uncontrolled host loses nothing by not
    * hearing about them — but this panel opens ITSELF (`openFile`,
-   * `openArtifact`, `openPlanDocument`, and the plan-key auto-open all expand
+   * `openFileDocument`, `openPlanDocument`, and the plan-key auto-open all expand
    * a collapsed panel), and an embedding host that must react to those
    * moments (widen a dock, make room for a streaming plan) has no other seam.
    * Passing only this callback observes the panel without controlling it.
@@ -157,7 +158,7 @@ export interface SessionPanelController {
    * **pinned**, never the recyclable preview slot — file browsing must not
    * evict the plan — and it activates, replacing the focused tab: the plan is
    * the deliverable being reviewed. Fired by the thread cards' "Open plan"
-   * (the live `PlanStreamingCard` and the settled `PlanArtifactCard`), the
+   * (the live `PlanStreamingCard` and the settled `PlanFileCard`), the
    * Files facet's `plan.md`, and the new-plan auto-open — which triggers
    * both when a plan STARTS STREAMING and when it publishes (see `planKey`).
    */
@@ -222,11 +223,12 @@ export function useSessionPanel({
   isOpenRef.current = isOpen;
 
   // The single seam every open/close intent routes through — the chip
-  // toggle, file/artifact/plan opens, the surface's collapse affordance, and
-  // the plan-key auto-open. Uncontrolled: apply + notify (the ref is updated
-  // eagerly so two same-tick intents produce one notification). Controlled:
-  // notify only — the host owns the state, and the panel follows the `open`
-  // prop; the ref is NOT updated, so a declined request stays re-fireable.
+  // toggle, workspace-file/File/plan opens, the surface's collapse
+  // affordance, and the plan-key auto-open. Uncontrolled: apply + notify
+  // (the ref is updated eagerly so two same-tick intents produce one
+  // notification). Controlled: notify only — the host owns the state, and
+  // the panel follows the `open` prop; the ref is NOT updated, so a declined
+  // request stays re-fireable.
   const requestOpenChange = useCallback((next: boolean) => {
     if (isOpenRef.current === next) return;
     if (!isControlledRef.current) {

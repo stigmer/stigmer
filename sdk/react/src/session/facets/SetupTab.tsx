@@ -109,7 +109,7 @@ export interface SetupTabProps {
  *
  * Rendered in the session panel's shared facet vocabulary (see
  * `./primitives.tsx`): dense rows, quiet right-aligned metadata, and
- * hover/focus-revealed actions — the Artifacts facet's idiom.
+ * hover/focus-revealed actions — the Files facet's idiom.
  *
  * When mutation callbacks are provided via `mutations`, items render
  * inline remove affordances. When callbacks are absent, sections render
