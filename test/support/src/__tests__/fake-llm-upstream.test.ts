@@ -113,6 +113,20 @@ describe("FakeLlmUpstream in the install journeys' modes", () => {
     expect((await post(upstream, "/v1/messages", { model: "m", messages: [] })).status).toBe(400);
   });
 
+  it("serves each request the first queued entry that accepts it, whatever order the requests arrive in", async () => {
+    const upstream = await started({ defaultReply: true });
+    const isTitle = (request: { readonly body: unknown }): boolean =>
+      JSON.stringify((request.body as { system?: unknown }).system ?? "").includes("title generator");
+    const turn = { kind: "error", status: 529, body: { error: "the turn's" } } as const;
+    upstream.enqueue({ kind: "error", status: 418, body: { error: "the title's" }, matches: isTitle });
+    upstream.enqueue({ ...turn, matches: (request) => !isTitle(request) });
+    // The turn's call arrives first and skips the title's entry ahead of it.
+    expect((await post(upstream, "/v1/messages", { model: "m", messages: [] })).status).toBe(529);
+    expect((await post(upstream, "/v1/messages", { model: "m", system: "You are a title generator.", messages: [] })).status).toBe(418);
+    // Nothing queued accepts a third call: the mode's default answers it.
+    expect((await post(upstream, "/v1/messages", { model: "m", messages: [] })).status).toBe(200);
+  });
+
   it("listens on the host it is given, and reports its port for another host name", async () => {
     const upstream = await started({ defaultReply: true, host: "0.0.0.0" });
     expect(upstream.url()).toBe(`http://127.0.0.1:${upstream.port()}`);

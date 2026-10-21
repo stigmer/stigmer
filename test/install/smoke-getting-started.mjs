@@ -23,11 +23,13 @@
  * up` starts from. Everything else, `stigmer up` included, runs as written,
  * through a `stigmer` on PATH that is that install.
  *
- * The model is test/support's fake, scripted per job: a conversation started
- * by a run gets its title first, from a model call of its own, so each job's
- * script is the title, then a `write_file` of the report into the outputs
- * folder, then a closing line. The report the pages must hand back is the
- * text that script saves.
+ * The model is test/support's fake, scripted per job: the conversation's
+ * title, then a `write_file` of the report into the outputs folder, then a
+ * closing line. A conversation a run starts is titled by a model call the
+ * runner makes beside the turn, in no fixed order, so the title's answer
+ * goes only to the call whose system prompt is the title generator's, and
+ * the turn's answers only to the others. The report the pages must hand back
+ * is the text that script saves.
  *
  * `stigmer up` serves on port 7234, so the smoke refuses before anything
  * starts when that port is taken: another stack is running.
@@ -112,15 +114,23 @@ function parseArgs() {
 // The job, as the fake model answers it: the conversation's title, the
 // report saved in the outputs folder, a closing line.
 function scriptTheJob(fake) {
-  fake.enqueue({ kind: "anthropic", body: anthropicText("Q3 ledger variance review") });
+  fake.enqueue({ kind: "anthropic", body: anthropicText("Q3 ledger variance review"), matches: isTitleCall });
+  const turn = (request) => !isTitleCall(request);
   fake.enqueue({
     kind: "anthropic",
+    matches: turn,
     body: anthropicToolUse("toolu_variance_report", "write_file", {
       file_path: "/.stigmer/outputs/variance-report.md",
       content: REPORT,
     }),
   });
-  fake.enqueue({ kind: "anthropic", body: anthropicText("The variance report is saved as variance-report.md.") });
+  fake.enqueue({ kind: "anthropic", body: anthropicText("The variance report is saved as variance-report.md."), matches: turn });
+}
+
+// The runner's title call: its system prompt is the title generator's
+// (backend/services/runner/src/activities/generate-session-subject.ts).
+function isTitleCall(request) {
+  return JSON.stringify(request.body?.system ?? "").includes("session title generator");
 }
 
 // The SDK a reader's `npm install @stigmer/client` gets: this build's

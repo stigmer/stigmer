@@ -77,8 +77,16 @@ export interface FakeLlmUpstreamOptions {
 
 // One scripted provider answer. Exactly one shape per entry; the fixture
 // answers whatever provider path the next request arrives on, so a script
-// enqueues in the order the suite will call.
-export type UpstreamScript =
+// enqueues in the order the suite will call. An entry with `matches` answers
+// only a request it accepts: a request takes the first queued entry that
+// accepts it, so two callers whose order is not fixed (a turn and the
+// conversation title the runner asks for beside it) each get their own.
+// With no `matches` anywhere, the queue is strictly first in, first out.
+export type UpstreamScript = UpstreamAnswer & {
+  readonly matches?: (request: CapturedUpstreamRequest) => boolean;
+};
+
+type UpstreamAnswer =
   // `headers` ride the 200 so a suite can see which upstream headers the
   // proxy relays (provider x-* headers) and which it strips (hop-by-hop).
   | { kind: "anthropic"; body: AnthropicMessageBody; delayMs?: number; headers?: Record<string, string> }
@@ -196,7 +204,9 @@ export class FakeLlmUpstream {
       writeJson(res, 404, { error: `FakeLlmUpstream: unhandled path ${path}` });
       return;
     }
-    const scripted = this.scripts.shift();
+    const request = this.captured[this.captured.length - 1]!;
+    const index = this.scripts.findIndex((script) => script.matches === undefined || script.matches(request));
+    const scripted = index === -1 ? undefined : this.scripts.splice(index, 1)[0];
     if (scripted === undefined && !this.defaultReply && this.defaultError === undefined) {
       writeJson(res, 500, { error: `FakeLlmUpstream: no queued response (consumed ${this.consumed})` });
       return;
