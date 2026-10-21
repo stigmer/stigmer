@@ -63,15 +63,18 @@ How the vault reaches the conversation depends on the edition:
 - **On open source**, roles are granted on the Organization only, so no account
   holds **Can use** on a single vault, and nobody joins a conversation someone
   else created. Your backend creates the conversation with the customer's vault
-  and sends the customer's messages itself. To let your users chat directly
-  instead, give each customer a child organization (next section).
+  and sends the customer's messages itself. Letting your users chat directly
+  takes a child organization per customer (next section), which the open-source
+  server does not serve.
 
 ### A child organization per customer
 
 The customer's vault lives in their child organization, where only that
 customer's people are members, so **Organization** visibility is safe there: an
 app user you mint into the child as a member, and every other member, may use
-it. This works in every edition. Your Organization's admins are admins in every
+it. Child organizations are served by Stigmer Cloud, on a plan that includes
+them, and by Stigmer Enterprise, as far as its license allows; the open-source
+server holds one Organization. Your Organization's admins are admins in every
 child, so one of them, an admin of the child, or your admin service account's
 key creates the vault there.
 

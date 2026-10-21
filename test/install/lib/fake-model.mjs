@@ -91,8 +91,11 @@ export function parseFakeModelArg(arg) {
 /**
  * Start the fake on `host` (loopback by default; `0.0.0.0` when a container
  * reaches it through the host gateway) and an ephemeral port. Resolves
- * `{ url, port, replyText, requests, close }`: `url` is the loopback address,
- * `requests()` the number of model calls answered so far.
+ * `{ url, port, replyText, requests, enqueue, close }`: `url` is the loopback
+ * address, `requests()` the number of model calls answered so far, and
+ * `enqueue(script)` queues one scripted answer (FakeLlmUpstream's
+ * UpstreamScript) ahead of the mode's default, for a journey whose agent
+ * must do something a canned reply cannot, such as save a file.
  */
 export async function startFakeModel({ host = "127.0.0.1", mode = "reply" } = {}) {
   if (!MODES.has(mode)) throw new Error(`fake model: unknown mode ${JSON.stringify(mode)} (reply | error)`);
@@ -105,6 +108,7 @@ export async function startFakeModel({ host = "127.0.0.1", mode = "reply" } = {}
     port: fake.port(),
     replyText: FAKE_MODEL_REPLY_TEXT,
     requests: () => fake.requests().filter((request) => request.provider !== "unknown").length,
+    enqueue: (script) => void fake.enqueue(script),
     close: () => fake.close(),
   };
 }

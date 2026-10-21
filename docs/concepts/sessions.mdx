@@ -73,9 +73,8 @@ session, err := client.Session.Create(ctx, &stigmer.SessionInput{
 </Tabs>
 
 If you name no Agent, the Session runs the
-[built-in assistant](/docs/concepts/agents#the-built-in-assistant) — the same
-one the [Quickstart](/docs/getting-started/quickstart) talks to. A Session can
-later name an Agent, change it, or drop it again through an update.
+[built-in assistant](/docs/concepts/agents#the-built-in-assistant). A Session
+can later name an Agent, change it, or drop it again through an update.
 
 A Session can name an Agent of another Organization only when that Organization
 is its parent and shares the Agent with its child organizations

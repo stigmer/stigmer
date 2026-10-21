@@ -154,6 +154,16 @@ export function createCliInstall({ model, log }) {
       log(`stigmer ${args.join(" ")} (running)`);
       return spawnCommand(command, args, env, timeoutMs);
     },
+    /**
+     * Install `release` without starting it, for a caller that runs `stigmer
+     * up` itself (as a page tells its reader to) through `command()`.
+     */
+    install,
+    /** What a user runs as `stigmer` once `install` has run: the argv prefix, the source CLI's or the launcher's. */
+    command() {
+      if (command.length === 0) throw new Error("command() before install(): there is no stigmer yet");
+      return [...command];
+    },
     /** Install `release`, then `stigmer up`. */
     async start(release) {
       await install(release);

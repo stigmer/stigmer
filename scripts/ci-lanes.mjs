@@ -197,6 +197,14 @@ export const LANES = {
       "client-apps/cli/src/**",
       "client-apps/cli/package.json",
       "test/install/smoke-cli-cutover.mjs",
+      // The Getting Started pages run as written (test/install/smoke-getting-started.mjs):
+      // the pages are its script, and the SDK their code installs is packed
+      // from these sources by publish-libs.mjs.
+      "test/install/smoke-getting-started.mjs",
+      "docs/getting-started/**",
+      "sdk/typescript/src/**",
+      "sdk/typescript/package.json",
+      "scripts/publish-libs.mjs",
       "scripts/lib/**",
       // The install layer's drivers and probes, and the two test/support
       // modules it loads (the fake model and its wire); the rest of

@@ -13,8 +13,9 @@ and none repeated.
 The stream follows the whole Session, not one run. Your code decides when to
 stop reading, usually when the run it follows has ended.
 
-If you are new to streaming, the
-[Quickstart](/docs/getting-started/quickstart) walks through a minimal loop.
+If you are new to streaming,
+[Do the same job from your app](/docs/getting-started/call-from-your-app) waits
+for one turn with `sendAndWait`.
 This guide covers the production patterns you need after that.
 
 Code written for Claude Managed Agents can read and answer the same log with
@@ -591,8 +592,8 @@ while (stream.hasNext()) {
     href="/docs/sdk/resources/session"
   />
   <Card
-    title="Connect Tools"
-    description="Answer tool approvals while you follow a run."
-    href="/docs/getting-started/connect-tools"
+    title="Approval Flows"
+    description="What asks before acting, and how a person answers."
+    href="/docs/concepts/approval-flows"
   />
 </Cards>

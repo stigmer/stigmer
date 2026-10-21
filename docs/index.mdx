@@ -1,30 +1,25 @@
 ---
 title: Stigmer Docs
-description:
-  Build AI agents with Stigmer — an open-source platform. Teach your agents your
-  domain. Connect your tools. Set your rules.
+description: The open-source backend for the agents in your product.
 full: true
 hero: true
 ---
 
 import {
-  Bot,
+  Building2,
   Compass,
-  GraduationCap,
-  Link2,
+  FileCode,
   MessageSquare,
-  Plug,
   Rocket,
   Server,
   SquareCode,
   SquareTerminal,
-  Terminal,
 } from "lucide-react";
 
 <Hero
   eyebrow="Get started"
-  title="Stigmer Documentation"
-  description="Stigmer is an open-source platform for building AI agents. Teach your agents your domain, connect the tools you already use, add approval rules, and run them locally or in the cloud."
+  title="Put AI agents in your product."
+  description="The open-source backend for the agents in your product. It runs behind your app, the way your database does."
 />
 
 ## Start here
@@ -32,69 +27,62 @@ import {
 {/* Viewport (not container) variant on purpose: Cards is itself the */}
 {/* @container, and a container query cannot respond to its own size. */}
 
-<Cards className="lg:grid-cols-3">
+<Cards className="lg:grid-cols-2">
   <Card
     icon={<Rocket />}
-    title="Quickstart"
-    description="Call an AI agent from your code in 5 minutes."
+    title="Your first agent job"
+    description="Give an Agent a customer's ledger and get a variance report back as a file, on your machine or on Stigmer Cloud."
     href="/docs/getting-started/quickstart"
   />
   <Card
-    icon={<Terminal />}
-    title="Local Quickstart"
-    description="Run an AI agent on your machine in 5 minutes — no cloud account needed."
-    href="/docs/getting-started/local"
-  />
-  <Card
-    icon={<GraduationCap />}
-    title="Your first Skill"
-    description="Give your agent domain expertise and see the difference."
-    href="/docs/getting-started/first-skill"
+    icon={<FileCode />}
+    title="Do the same job from your app"
+    description="Upload the ledger, start the job and save the report from your own TypeScript code."
+    href="/docs/getting-started/call-from-your-app"
   />
 </Cards>
 
-## Build agents
+## Put it in your product
 
 <Cards className="lg:grid-cols-2">
   <Card
-    icon={<Plug />}
-    title="Connect your tools"
-    description="Give your agent tools that ask before anything risky."
-    href="/docs/getting-started/connect-tools"
-  />
-  <Card
-    icon={<Bot />}
-    title="Create your Agent"
-    description="Bundle skills, tools, and instructions into a reusable Agent."
-    href="/docs/getting-started/create-agent"
-  />
-  <Card
-    icon={<Link2 />}
-    title="Give your Agent a chat link"
-    description="A hosted chat page, or a widget on your site, for anyone you choose."
-    href="/docs/guides/channels/create-a-chat-link"
-  />
-  <Card
     icon={<MessageSquare />}
-    title="Add agent chat to your app"
-    description="Embed your Agent as a chat panel in your React app."
+    title="Put the agent in your app"
+    description="Sign your users in from your backend and give them the job inside your React app."
     href="/docs/getting-started/embed-agent"
+  />
+  <Card
+    icon={<Building2 />}
+    title="Give each customer their own organization"
+    description="Keep each customer's conversations, files and keys apart from every other customer's."
+    href="/docs/getting-started/one-organization-per-customer"
+  />
+</Cards>
+
+## Self-host
+
+<Cards className="lg:grid-cols-2">
+  <Card
+    icon={<Server />}
+    title="Run it on your servers"
+    description="Run the same platform on your laptop, one server or Kubernetes."
+    href="/docs/guides/self-hosting/overview"
   />
 </Cards>
 
 ## Go deeper
 
-<Cards className="lg:grid-cols-2">
+<Cards className="lg:grid-cols-3">
   <Card
     icon={<Compass />}
     title="Core Concepts"
-    description="Understand Agents, Skills, Sessions, and how they fit together."
+    description="Understand Agents, Sessions, files and how they fit together."
     href="/docs/concepts/what-is-stigmer"
   />
   <Card
     icon={<SquareCode />}
     title="SDK Reference"
-    description="Install an SDK and call agents from your application."
+    description="Install an SDK and call your Agents from your application."
     href="/docs/sdk"
   />
   <Card
@@ -102,11 +90,5 @@ import {
     title="CLI Reference"
     description="Install and use the Stigmer CLI from the terminal."
     href="/docs/cli"
-  />
-  <Card
-    icon={<Server />}
-    title="Self-host Stigmer"
-    description="Run the platform on your laptop, one server, or Kubernetes."
-    href="/docs/guides/self-hosting/overview"
   />
 </Cards>

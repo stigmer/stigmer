@@ -31,8 +31,8 @@ pages:
     fate: keep
     diataxis: landing
     teaches:
-      Stigmer's one-line pitch and which entry point matches the reader's goal,
-      from a first run to self-hosting.
+      Stigmer's headline and subhead, and the path from a first agent job to
+      putting it in your product or running it on your servers.
     medium: animated-tour
     why:
       The hero exists to show the product working; motion is the pitch. The
@@ -54,69 +54,40 @@ pages:
     fate: keep
     diataxis: tutorial
     teaches:
-      Install an SDK, authenticate with an API key, and stream a first response
-      from the built-in assistant.
-    medium: screenshot-journey
-    why:
-      The reader compares their console to ours at each step and needs to stop
-      on the frame that matters; playback pace fights that.
-
-  getting-started/local:
-    fate: keep
-    diataxis: tutorial
-    teaches:
-      Run the local SQLite-backed server with your own Anthropic key and apply
-      and run a YAML Agent from the terminal.
+      Start Stigmer on your machine or on Stigmer Cloud with your model key,
+      apply an Agent, give it a customer's ledger and get its variance report
+      back as a file.
     medium: none
 
-  getting-started/first-skill:
+  getting-started/call-from-your-app:
     fate: keep
     diataxis: tutorial
     teaches:
-      Package domain knowledge as a SKILL.md zip, upload it in the console, and
-      attach it to a Session so answers become grounded.
-    medium: screenshot-journey
-    why:
-      A console upload procedure the reader performs alongside the page, one
-      screen at a time.
-
-  getting-started/connect-tools:
-    fate: keep
-    diataxis: tutorial
-    teaches:
-      Add an MCP server by its address as a plugin of one server, sign in, see
-      its tools and which ask first, then wire the plugin and an approval loop
-      into SDK code.
-    medium: screenshot-journey
-    why:
-      The Add MCP server form, the sign-in and the plugin page's Check tools are
-      a console procedure the reader replays on their own screen; reference
-      journeys read at the reader's pace.
-
-  getting-started/create-agent:
-    fate: keep
-    diataxis: tutorial
-    teaches:
-      Bundle instructions, Skills, and plugins into a named Agent and replace
-      per-Session ref lists with one agent lookup.
-    medium: screenshot-journey
-    why:
-      The console offers three creation entry points (YAML upload, template,
-      form); a still sequence covers all three. The conversational tours that
-      depicted an in-product creator agent were retired with that agent.
+      Run the same job from TypeScript, uploading the ledger, starting the turn
+      with sendAndWait, listing the turn's Files by its run and saving the
+      report.
+    medium: none
 
   getting-started/embed-agent:
     fate: keep
     diataxis: tutorial
     teaches:
-      Install @stigmer/react-sdk, wrap a React app in StigmerProvider, and embed a
-      pinned-Agent chat with NewSessionViewer and SessionViewer against the
-      local server.
+      Mint a user token from your backend with a service account's key, and give
+      the signed-in user a pinned-Agent chat with file uploads through
+      NewSessionViewer and SessionViewer in a React app.
     medium: animated-tour
     why:
       The payoff is the chat streaming inside a third-party product; the motion
       is the demonstration (a deliberate deviation from the screenshot-journey
       default for getting-started pages, 2026-08-23).
+
+  getting-started/one-organization-per-customer:
+    fate: keep
+    diataxis: tutorial
+    teaches:
+      Share an Agent with child organizations, create a child organization per
+      customer, and mint each customer's users into their own.
+    medium: none
 
   # ── Agents ─────────────────────────────────────────────────────────────
   concepts/agents:
