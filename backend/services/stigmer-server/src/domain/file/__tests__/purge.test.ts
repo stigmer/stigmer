@@ -6,12 +6,16 @@
  *     whether more are left, and once none is left removes every blob the
  *     organization still holds (an upload URL nobody used included), so
  *     the census finds nothing; another organization's Files stay;
+ *   - an attachment a run stored before Files existed, once the boot pass
+ *     has converted it, goes with its organization: no bytes are left at
+ *     its `attachments/<ULID>/<filename>` key;
  *   - a store fault while authorizing an upload into a conversation, while
  *     a conversation's delete lists its Files, and while updateVisibility
  *     loads or saves a File answers Internal; a File deleted between that
  *     load and save answers NOT_FOUND.
  */
 import { mkdtempSync, rmSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -21,13 +25,15 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { FileCommandController } from "@stigmer/apis/ai/stigmer/agentic/file/v1/command_pb";
+import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionIdSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/apis/ai/stigmer/commons/apiresource/enum_pb";
 import { UpdateVisibilityInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 
-import { LocalArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
+import { ArtifactStorageNotFoundError, LocalArtifactStorage } from "../../../artifactstorage/artifact-storage.js";
 import { testUrlSigner } from "../../../artifactstorage/__test-utils__/url-signer.js";
 import type { Authorizer } from "../../../extensions/authorizer.js";
 import { silentLogger } from "../../../extensions/__tests__/composed-support.js";
@@ -44,6 +50,7 @@ import {
   newLoadFileForVisibilityUpdateStep,
   newPersistFileVisibilityStep,
 } from "../controller.js";
+import { convertStoredAttachments } from "../convert-attachments.js";
 import { newFilePurge } from "../purge.js";
 import { newCascadeDeleteSessionFilesStep } from "../session-files.js";
 import { authorizeFileUpload } from "../steps.js";
@@ -54,12 +61,13 @@ const CALLER: CallerIdentity = { callerClass: "internal" } as CallerIdentity;
 
 let fx: TempStore;
 let root: string;
+let storage: LocalArtifactStorage;
 let blobs: FileBlobs;
 
 beforeEach(() => {
   fx = tempStore();
   root = mkdtempSync(path.join(tmpdir(), "file-purge-"));
-  const storage = new LocalArtifactStorage(root, "http://files.test", testUrlSigner());
+  storage = new LocalArtifactStorage(root, "http://files.test", testUrlSigner());
   blobs = newFileBlobs({ store: fx.store, storage, logger: silentLogger, maxBytes: 1024 });
 });
 
@@ -121,6 +129,63 @@ describe("the File purge", () => {
     expect(await purge.holdsAny(target)).toBe(false);
     expect(await blobs.holdsAny(OTHER_ORG)).toBe(true);
     await expect(fx.store.getResource(ApiResourceKind.file, "file_01other", FileSchema)).resolves.toBeDefined();
+  });
+});
+
+describe("a converted attachment", () => {
+  const SESSION = "ses_01convertconvertconvert";
+  const RUN = "run_01convertconvertconvert";
+  /** The key the removed attachment upload minted: a ULID, then the filename. */
+  const KEY = "attachments/01J9ZQ6V8W3X4Y5Z6A7B8C9D0E/brief.pdf";
+
+  /** The conversion row the store's migration leaves for one stored attachment. */
+  function seedConversion(): void {
+    const db = new DatabaseSync(fx.dbPath);
+    try {
+      db.prepare(
+        `INSERT INTO file_conversions
+           (run_id, position, org, session_id, filename, storage_key, content_type, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(RUN, 0, ORG, SESSION, "brief.pdf", KEY, "application/pdf", "2026-10-01T08:30:00.000000000Z");
+    } finally {
+      db.close();
+    }
+  }
+
+  it("goes with its organization: no bytes are left at its key", async () => {
+    await fx.store.saveResource(
+      ApiResourceKind.session,
+      SESSION,
+      SessionSchema,
+      create(SessionSchema, { metadata: { id: SESSION, org: ORG } }),
+    );
+    await fx.store.saveResource(
+      ApiResourceKind.run,
+      RUN,
+      RunSchema,
+      create(RunSchema, {
+        metadata: { id: RUN, org: ORG },
+        spec: { target: { case: "sessionId", value: SESSION }, message: "see the brief" },
+      }),
+    );
+    await storage.upload(KEY, new TextEncoder().encode("%PDF-1"), "application/pdf");
+    seedConversion();
+    expect(
+      await convertStoredAttachments({ store: fx.store, storage, lifecycle: undefined, logger: silentLogger }),
+    ).toBe(1);
+
+    const purge = newFilePurge({
+      store: fx.store,
+      logger: silentLogger,
+      grantPath: { cleanupResource: () => Promise.resolve() },
+      authorizationLifecycle: undefined,
+      fileBlobs: blobs,
+    });
+    const target = { id: ORG, parentOrg: "" };
+    expect(await purge.purge(target, CALLER, 10)).toEqual({ more: false });
+
+    expect(await purge.holdsAny(target)).toBe(false);
+    await expect(storage.size(KEY)).rejects.toBeInstanceOf(ArtifactStorageNotFoundError);
   });
 });
 

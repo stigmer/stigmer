@@ -5,11 +5,13 @@
  * access, its search entry), read through the execution list index.
  * Core quiesce has already terminated the run.
  *
- * The blobs of the execution's attachments stay, as they do when an
- * execution is deleted through its RPC: an upload's key names no
- * organization, so nothing proves a key is this organization's to delete.
- * They go once an upload is bound to the organization that made it
- * (stigmer/stigmer#1934).
+ * A run holds no bytes of its own. The files sent with its messages are
+ * Files, purged by the File's own purge (domain/file/purge.ts), and so are
+ * the attachments runs stored before Files existed, once the boot pass has
+ * converted them (domain/file/convert-attachments.ts): each conversion's
+ * blob row is the run's organization's. Only a stored attachment that pass
+ * could not convert (logged at boot, its row forgotten) leaves bytes that
+ * no organization's purge finds.
  */
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/command_pb";
