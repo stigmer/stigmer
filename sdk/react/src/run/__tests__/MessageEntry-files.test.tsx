@@ -3,7 +3,8 @@
  * files given with the turn. With a run, an image is a preview tile whose
  * link is minted from the File and a document a chip that downloads the
  * File under its own name and shows its size; on the pending bubble both
- * are inert; an agent's message never shows them.
+ * are inert; an agent's message never shows them. The row itself, given no
+ * files, renders nothing at all.
  *
  * The File hooks are mocked at the module boundary: these are rendering
  * tests, and the hooks have their own (file/__tests__/useFile.test.tsx).
@@ -11,7 +12,7 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { MessageEntry, type ThreadMessage } from "../MessageEntry";
-import type { MessageFileView } from "../MessageFiles";
+import { MessageFiles, type MessageFileView } from "../MessageFiles";
 
 const downloadSpy = vi.fn(() => Promise.resolve());
 let urlState: { url: string | null; error: Error | null } = {
@@ -242,6 +243,15 @@ describe("MessageEntry file rendering", () => {
       />,
     );
 
+    expect(screen.queryByRole("list", { name: "Files sent with this message" })).toBeNull();
+  });
+});
+
+describe("MessageFiles", () => {
+  it("renders nothing, not even an empty row, when given no files", () => {
+    const { container } = render(<MessageFiles files={[]} runId="exec-1" />);
+
+    expect(container.childNodes).toHaveLength(0);
     expect(screen.queryByRole("list", { name: "Files sent with this message" })).toBeNull();
   });
 });
