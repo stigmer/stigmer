@@ -1,10 +1,11 @@
 # Agent guide: stigmer
 
-Stigmer is an open-source platform for AI agents: agents, skills and MCP servers
-are declared as YAML resources, served by a TypeScript control plane over a
-public gRPC/Connect contract, and consumed through generated SDKs, a CLI, a web
-console and a desktop app. This file is the always-on guide for the whole
-repository. Keep it short; it is paid for in every conversation.
+Stigmer is the open-source backend for the agents in a developer's product:
+agents, skills and MCP servers are declared as YAML resources, served by a
+TypeScript control plane over a public gRPC/Connect contract, and consumed
+through generated SDKs, a CLI, a web console and a desktop app. This file is the
+always-on guide for the whole repository. Keep it short; it is paid for in every
+conversation.
 
 ## How guidance is organised
 

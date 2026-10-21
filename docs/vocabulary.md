@@ -31,18 +31,69 @@ have been replaced with pointers to this document:
 
 ---
 
+## What Stigmer is, and who it is for
+
+Every description of Stigmer (the site, these docs, every README, package and
+repository description) uses the words in this section. The words change only by
+a maintainers' decision, which updates this section and then every surface that
+carries it.
+
+**The reader**: the developer adding agents to their product. They already ship
+a product with customers. They want each customer to get an agent that does real
+work inside that product, and they don't want to build the machinery that runs
+it. Their company is the [integrator](#platform-the-word) and the customer; the
+site, the docs and the READMEs talk to the developer who builds the integration.
+
+**The headline**: "Put AI agents in your product."
+
+**The subhead**: "The open-source backend for the agents in your product. It
+runs behind your app, the way your database does."
+
+**The one sentence**, for a meta description, a README's first line, a
+repository or package description and a bio: "The open-source backend for the
+agents in your product." A surface with its own length rules fits the sentence
+to them.
+
+**What each customer's agent has**, in this order where a surface has room: its
+own computer, a sandbox that keeps its files between turns; it asks before
+acting on anything you mark as needing a yes; and each customer's agents, files
+and keys stay apart from every other customer's. It runs on your model keys, on
+your servers or ours; the [editions](#edition) say how.
+
+**Examples** are jobs done inside a customer's product. They are never a chat
+and never code. Say whose product it is, what the customer asks for, what the
+agent hands back, and where it asked first. One: an accounting product's
+customer uploads a ledger, and the agent works through it and hands back a
+variance report as a file. Two: Planton, a DevOps product built by the team that
+builds Stigmer; its customer asks the agent to change their cloud setup, and the
+agent asks before it applies anything.
+
+**Never**: coding-agent examples (pull-request review, code generation, "your AI
+engineer"); "agent platform" or "agent infrastructure" as the lead; a category
+line borrowed from another product, such as "the open-source Claude Managed
+Agents" (Stigmer is compared with Claude Managed Agents on a page of its own,
+never in a headline, and the comparison says what each does without running the
+other down); a capability before the work behind it is proven; hype
+("revolutionary", "seamless", "supercharge", "unlock", "effortless",
+"leverage").
+
+---
+
 ## Writing contexts
 
 Five contexts, each with its own register. When the quick-reference table says
-"use X in context Y," this section explains why.
+"use X in context Y," this section explains why. All five speak to the reader
+named in
+[What Stigmer is, and who it is for](#what-stigmer-is-and-who-it-is-for); the
+context sets how much they already know.
 
-| Context                    | Audience                                   | Register                                                                           | Example                                                                            |
-| -------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| **Sales site**             | Technical founders choosing infrastructure | Business-outcome language. No jargon. Lead with what they gain.                    | "Teach your Agent your domain."                                                    |
-| **Quickstart / tutorials** | Developers following steps                 | Action-oriented. Introduce Stigmer terms with a plain-language gloss on first use. | "Create a Skill (a piece of domain knowledge your Agent can use)."                 |
-| **Concepts / how-to**      | Developers building understanding          | Explanatory. Use Stigmer terms as proper nouns. Analogies welcome.                 | "A Skill is like a training manual for your Agent."                                |
-| **Reference / SDK**        | Developers looking up specifics            | Precise. Use API field names. Assume familiarity with the platform.                | "`spec.skill_refs`---the Skills this Agent loads, each a reference by slug or ID." |
-| **README / GitHub**        | Developers evaluating Stigmer              | Developer-direct. CLI-first. Technical credibility.                                | "Versioned domain knowledge. A Skill is a directory with a `SKILL.md` file."       |
+| Context                    | Audience                                                      | Register                                                                                                                                                       | Example                                                                            |
+| -------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **Sales site**             | The developer adding agents to their product                  | Plain and outcome-first: the job each customer's agent does, plain enough for the product lead who often reads first. A technical word comes with its picture. | "Put AI agents in your product."                                                   |
+| **Quickstart / tutorials** | Developers following steps                                    | Action-oriented. Introduce Stigmer terms with a plain-language gloss on first use.                                                                             | "Create a Skill (a piece of domain knowledge your Agent can use)."                 |
+| **Concepts / how-to**      | Developers building understanding                             | Explanatory. Use Stigmer terms as proper nouns. Analogies welcome.                                                                                             | "A Skill is like a training manual for your Agent."                                |
+| **Reference / SDK**        | Developers looking up specifics                               | Precise. Use API field names. Assume familiarity with the platform.                                                                                            | "`spec.skill_refs`---the Skills this Agent loads, each a reference by slug or ID." |
+| **README / GitHub**        | Developers deciding whether Stigmer runs behind their product | Developer-direct. CLI-first. Technical credibility.                                                                                                            | "Versioned domain knowledge. A Skill is a directory with a `SKILL.md` file."       |
 
 **Rule of thumb**: move left in the table for simpler language, move right for
 more precise language. Never use a right-column term in a left-column context.
@@ -134,7 +185,7 @@ A reusable definition of what an AI assistant knows and can do.
 
 | Context    | Copy                                                                                                                                       |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Sales site | "Build agents that work for your business."                                                                                                |
+| Sales site | "Put AI agents in your product."                                                                                                           |
 | Quickstart | "Create a file called `agent.yaml`. This file defines your Agent---what it knows, which tools it can use, and how it behaves."             |
 | Concepts   | "An Agent is a reusable definition. You define it once. Any application can call it via API."                                              |
 | Reference  | "`Agent`---a managed resource representing an AI Agent definition. Applied via `stigmer apply` or the `AgentCommandController.apply` RPC." |
@@ -172,7 +223,7 @@ A piece of knowledge you attach to an Agent so it has domain expertise.
 
 | Context    | Copy                                                                                                                                                 |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Teach your Agent what generic AI doesn't know---your return policy, your product catalog, your escalation process."                                 |
+| Sales site | "Give the agent your know-how---what a variance report must show and how your customers close their books."                                          |
 | Quickstart | "Create a Skill---a piece of domain knowledge your Agent can use. A Skill is a directory with a `SKILL.md` file."                                    |
 | Concepts   | "A Skill is like a training manual for your Agent. Without it, the Agent gives generic answers. With it, the Agent gives domain-expert answers."     |
 | Reference  | "`Skill`---a versioned package of domain knowledge attached to Agents via `skill_refs`. Pushed via `stigmer push` or `SkillCommandController.push`." |
@@ -356,7 +407,7 @@ is not a resource of its own.
 
 | Context    | Copy                                                                                                                                             |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Sales site | "Connect your Agent to your systems. It checks inventory, creates tickets, updates records---with the same APIs your team already uses."         |
+| Sales site | "Connect the agent to your product's API, so it works on your customer's data the way your app does."                                            |
 | Quickstart | "Give your Agent tools by adding an MCP server---a connection to an external system like GitHub, a database, or a file store."                   |
 | Concepts   | "An MCP server is a bridge between your Agent and an external system. It comes in a plugin the Agent lists, or is written in the Agent itself."  |
 | Reference  | "`McpServerEntry`---one MCP server a plugin carries, a local program (`stdio`) or an address (`http`). Its tools are listed live, never stored." |
@@ -406,7 +457,7 @@ An ongoing conversation with an Agent across multiple messages.
 
 | Context    | Copy                                                                                                                                                                                |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Your Agent remembers the conversation. Ask a follow-up question tomorrow---it picks up where you left off."                                                                        |
+| Sales site | "Each job gets its own conversation: the agent keeps its files between turns and hands back what it made."                                                                          |
 | Quickstart | "Start a Session---an ongoing conversation where your Agent remembers what was said."                                                                                               |
 | Concepts   | "A Session is a container for a multi-turn conversation. It holds the message history, attached Skills, and tool connections for that conversation."                                |
 | Reference  | "`Session`---a multi-turn conversation container. Keeps the conversation across runs (`status.harness_state_id`). Merges Agent-level and Session-level `skill_refs` and `plugins`." |
@@ -702,7 +753,7 @@ A process that connects to Stigmer and executes your Agents.
 
 | Context    | Copy                                                                                                                                                                        |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Run Agents on your machine or let the platform handle it."                                                                                                                 |
+| Sales site | "Run it on your servers or ours."                                                                                                                                           |
 | Quickstart | "Start a runner---the process that runs your Agent on your machine."                                                                                                        |
 | Concepts   | "A Runner is the process that picks up runs, calls the LLM, runs tools, and reports results back to the server."                                                            |
 | Reference  | "The runner polls the `stigmer_runner` task queue; set `STIGMER_TASK_QUEUE` on the runner and `TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE` on the server to the same name." |
@@ -743,7 +794,7 @@ The execution engine that processes agent activities for a Session.
 
 | Context    | Copy                                                                                                                                                  |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Choose an execution engine that fits your workload---Stigmer's built-in engine or Cursor for coding-focused capabilities."                           |
+| Sales site | "Pick the engine each agent runs on; changing it is a setting, not a change to your product."                                                         |
 | Quickstart | "Pick a harness---the execution engine that powers your Agent's Session."                                                                             |
 | Concepts   | "A Harness determines which runtime processes your Agent's turns. Stigmer supports two: Native and Cursor."                                           |
 | Reference  | "`Harness`---enum on `SessionSpec`. `HARNESS_NATIVE` for the built-in engine, `HARNESS_CURSOR` for the Cursor SDK engine. Immutable after first run." |
@@ -2243,28 +2294,28 @@ The word "agentic" was explicitly rejected as jargon.
 **Resolution**: The README has been updated to "open-source AI Agent platform,"
 matching the positioning document's category name.
 
+**2026-10-21**: the category line was retired. Every description of Stigmer now
+starts from the words in
+[What Stigmer is, and who it is for](#what-stigmer-is-and-who-it-is-for), which
+never lead with "agent platform".
+
 ---
 
-### 2. Cloud README tagline contradicts positioning
+### 2. Cloud README tagline contradicts positioning---RESOLVED
 
 <!-- vale Stigmer.terms = NO -->
 
-**What**: The Cloud README (`stigmer/stigmer-cloud/README.md`, line 7) says
-"SDK-first agent orchestration platform." This uses a different category name
-("agent orchestration platform") and leads with an implementation detail
-("SDK-first").
-
-**Where**:
-
-- `stigmer-cloud/README.md` line 7: "SDK-first agent orchestration platform"
-- `stigmer-cloud/README.md` line 15: repeats the phrase
+**What**: The hosted edition's README said "SDK-first agent orchestration
+platform." This used a different category name ("agent orchestration platform")
+and led with an implementation detail ("SDK-first").
 
 <!-- vale Stigmer.terms = YES -->
 
-**Recommendation**: Update to align with the positioning category "AI Agent
-platform." The "SDK-first" aspect can remain as a supporting description, not as
-the category name. Example: "Stigmer Cloud---the cloud-hosted AI Agent platform.
-Define Agents as code."
+**Resolution**: On 2026-10-21 the category line "AI Agent platform" was retired.
+Every description of Stigmer, a hosted edition's included, starts from the one
+sentence in
+[What Stigmer is, and who it is for](#what-stigmer-is-and-who-it-is-for): "The
+open-source backend for the agents in your product."
 
 ---
 

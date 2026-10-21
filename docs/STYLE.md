@@ -6,9 +6,11 @@ Automated enforcement is handled by Vale (`.vale.ini`) and Prettier
 
 ## Audience
 
-Stigmer documentation is written for **platform builders**---engineers who
-integrate Stigmer into their own products. Every page should answer: _"Does a
-platform builder need this to understand or integrate Stigmer?"_
+Stigmer documentation is written for **the developer adding agents to their
+product**---an engineer who integrates Stigmer into what they ship. Every page
+should answer: _"Does that developer need this to understand or integrate
+Stigmer?"_ Who they are, and the words that describe Stigmer to them, are in
+[`docs/vocabulary.md`](vocabulary.md), "What Stigmer is, and who it is for".
 
 Do not write for casual end users. Assume readers are comfortable with APIs,
 CLIs, and infrastructure concepts.
