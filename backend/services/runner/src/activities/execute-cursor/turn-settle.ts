@@ -409,6 +409,14 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
           `classified=${JSON.stringify(classified)}, rawResult=${JSON.stringify(result)}`,
       );
 
+      // Cursor's side ended the run's stream (stigmer#2436). The agent keeps
+      // its conversation, so the turn continues on it, never on a fresh
+      // agent: that would drop the conversation and be handed the task.
+      if (classified.category === "stream-cut") {
+        outcome = cutConnection(sink, formatClassifiedError(classified));
+        break;
+      }
+
       if (shouldRetryWithFreshAgent(classified) && engine.resolution.reason === "resumed_successfully" && !alreadyRetriedWithFreshAgent) {
         alreadyRetriedWithFreshAgent = true;
         console.warn(
@@ -474,6 +482,11 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
           fallbackContext: { model: engine.validatedModel, mode: engine.agentMode, agentId: freshAgent.agentId },
         });
         const message = formatClassifiedError(retryClassified);
+        if (retryClassified.category === "stream-cut") {
+          console.warn(`ExecuteCursor poisoned-handle recovery cut off by Cursor: execution=${executionId}, retryError=${message}`);
+          outcome = cutConnection(sink, message);
+          break;
+        }
         console.error(`ExecuteCursor poisoned-handle recovery FAILED: execution=${executionId}, retryError=${message}`);
         outcome = { kind: "failed", surface: "engine", message };
         break;
@@ -541,6 +554,18 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   }
 
   return outcome;
+}
+
+/**
+ * A run whose connection Cursor's side ended: `stream_cut`, the runtime's
+ * continuation, unless the runtime's own stop or yield came since the stream
+ * ended, whose evidence then decides (`interrupted`). The stream loop already
+ * settled a stop or yield it saw (`turn-stream.ts`); this closes the window
+ * between the stream's end and `run.wait()`'s answer.
+ */
+export function cutConnection(sink: Pick<TurnSink, "stopSignal" | "yieldSignal">, message: string): TurnOutcome {
+  if (sink.stopSignal.aborted || sink.yieldSignal.aborted) return { kind: "interrupted" };
+  return { kind: "stream_cut", message };
 }
 
 /**

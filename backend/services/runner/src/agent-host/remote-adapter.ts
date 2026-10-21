@@ -296,7 +296,8 @@ const FAILURE_SURFACES: ReadonlySet<string> = new Set(["engine", "actionable", "
 function fromWireOutcome(wire: WireOutcome): TurnOutcome {
   // Read as the host sent it, not as the type promises: the host is the agent's.
   const raw = wire as { readonly kind?: unknown; readonly message?: unknown; readonly surface?: unknown; readonly cause?: WireError };
-  if (typeof raw.kind === "string" && SETTLED_KINDS.has(raw.kind)) return { kind: raw.kind as Exclude<TurnOutcome["kind"], "failed"> };
+  if (typeof raw.kind === "string" && SETTLED_KINDS.has(raw.kind)) return { kind: raw.kind as Exclude<TurnOutcome["kind"], "failed" | "stream_cut"> };
+  if (raw.kind === "stream_cut" && typeof raw.message === "string") return { kind: "stream_cut", message: raw.message };
   if (raw.kind !== "failed" || typeof raw.message !== "string" || typeof raw.surface !== "string" || !FAILURE_SURFACES.has(raw.surface)) {
     return { kind: "failed", surface: "internal", message: "The agent process answered with an outcome this runner does not know." };
   }

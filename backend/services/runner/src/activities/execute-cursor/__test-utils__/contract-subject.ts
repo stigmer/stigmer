@@ -113,7 +113,7 @@ import { createCursorAdapter } from "../adapter.js";
 import { resolveSessionStoreLocation } from "../session-store.js";
 import { hookInputFor, streamArgsFor, STREAM_NAME, type GatedActionKind } from "./cursor-hook-harness.js";
 import { FIXTURE, SDK_CATALOG, hermeticCursorConfig, runWorkspaceHook } from "./hermetic-cursor.js";
-import { ScriptedCursorAgent, sdkEvents, step, type RecordedSend, type ScriptStep, type ScriptedRun } from "./scripted-agent.js";
+import { CURSOR_STREAM_CUT_ERROR, ScriptedCursorAgent, sdkEvents, step, type RecordedSend, type ScriptStep, type ScriptedRun } from "./scripted-agent.js";
 import { ScriptedCursorSdk, bindScriptedSdk } from "./scripted-sdk.js";
 import { ApprovalAction } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
@@ -347,6 +347,14 @@ class CursorSubject implements CursorContractSubject {
         case "open":
           script.push(...this.openSteps(s.toolCallId, s.as, ev));
           break;
+        case "cut":
+          // What the real SDK reports when Cursor's backend ends the run's
+          // stream (pinned against the SDK itself in `cursor-sdk-wire.test.ts`):
+          // the stream ends there, and the run in error with the transport's
+          // words and no code.
+          script.push(step.errored({ error: { message: CURSOR_STREAM_CUT_ERROR } }));
+          ended = true;
+          break;
         case "compact":
           script.push(
             step.delta({ type: "summary-started" }),
@@ -362,6 +370,8 @@ class CursorSubject implements CursorContractSubject {
           throw new Error(`${this.name}: unknown scenario step ${JSON.stringify(exhaustive)}`);
         }
       }
+      // Nothing streams past a cut connection.
+      if (s.kind === "cut") break;
     }
     if (!ended) script.push(step.finished({ result: lastSay, model: { id: FIXTURE.model, params: [] } }));
     return script;

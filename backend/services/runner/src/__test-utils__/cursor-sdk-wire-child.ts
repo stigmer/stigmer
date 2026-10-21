@@ -8,7 +8,7 @@
  *
  * argv: the lane's endpoint, the host token, the execution id, the turn's key. It creates
  * one local agent, sends one prompt, and prints one JSON line: the run's
- * result (or the error, with a thrown `CursorSdkError`'s code and status,
+ * result with its error's message and code (or the error, with a thrown `CursorSdkError`'s code and status,
  * the fields the runner classifies it by), and what
  * `NODE_TLS_REJECT_UNAUTHORIZED` reads afterwards.
  */
@@ -37,7 +37,7 @@ const outcome = await runWithExecutionContext(executionId, async () => {
     });
     const run = await agent.send("hello");
     const result = await run.wait();
-    return { status: result.status, error: result.error?.message ?? null };
+    return { status: result.status, error: result.error?.message ?? null, errorCode: result.error?.code ?? null };
   } catch (err) {
     const sdkError = err instanceof CursorSdkError ? { sdkError: { code: err.code ?? null, status: err.status ?? null } } : {};
     return { status: "thrown", error: err instanceof Error ? err.message : String(err), ...sdkError };

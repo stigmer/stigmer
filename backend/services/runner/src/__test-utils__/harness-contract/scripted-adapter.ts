@@ -90,6 +90,9 @@ import { testConfig } from "../config-fixture.js";
 import type { EngineView, HarnessContractSubject, LongTurnControls, ScenarioStep, TurnScenario } from "./types.js";
 import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
+/** What this fake's vendor says when it ends the connection (`scenario.cut()`): the turn's message if the workflow gives up continuing it. */
+export const SCRIPTED_STREAM_CUT_MESSAGE = "the scripted vendor ended its connection";
+
 export interface ScriptedHarnessOptions {
   /** Diagnostic name; defaults to a name that says which primitives this instance runs under. */
   readonly name?: string;
@@ -375,6 +378,8 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
         return this.openOperation(step.toolCallId, input.sessionId, sink);
       case "compact":
         throw new Error(`${this.name}: compact() is not producible by this fake (it keeps no context); test bug`);
+      case "cut":
+        return { kind: "stream_cut", message: SCRIPTED_STREAM_CUT_MESSAGE };
       default: {
         const exhaustive: never = step;
         throw new Error(`${this.name}: unknown scenario step ${JSON.stringify(exhaustive)}`);

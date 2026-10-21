@@ -117,6 +117,7 @@ describe("ExecuteDeepAgent hermetic — the harness contract kit against the rea
   describeHarnessRuntimeContract({ subject, env, clock }, {
     failureSurfaces: ["internal"],
     engineCancel: false,
+    streamCut: false,
     stopOrphans: isNativeStopOrphan,
   });
 
