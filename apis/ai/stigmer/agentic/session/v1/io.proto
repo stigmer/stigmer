@@ -304,16 +304,18 @@ message StreamSessionEventsRequest {
 
   // The event types to preview while they are produced: agent.message,
   // agent.thinking, and Stigmer's stigmer.tool_output_delta (a running
-  // tool's output). Empty streams no previews.
+  // tool's output) and stigmer.run.liveness (what a working turn has open).
+  // Empty streams no previews.
   repeated string event_deltas = 2 [(buf.validate.field).repeated = {
-    max_items: 3
+    max_items: 4
     unique: true
     items: {
       string: {
         in: [
           "agent.message",
           "agent.thinking",
-          "stigmer.tool_output_delta"
+          "stigmer.tool_output_delta",
+          "stigmer.run.liveness"
         ]
       }
     }
@@ -342,6 +344,9 @@ message StreamSessionEventsResponse {
 
     // A fragment of a running tool's output.
     ToolOutputDelta stigmer_tool_output_delta = 4 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];
+
+    // What a working turn has open now, and for how long.
+    RunLiveness stigmer_run_liveness = 5 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.run.liveness"];
   }
 }
 
@@ -360,6 +365,9 @@ message SessionEventPreview {
 
     // A fragment of a running tool's output.
     ToolOutputDelta stigmer_tool_output_delta = 3 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_output_delta"];
+
+    // What a working turn has open now, and for how long.
+    RunLiveness stigmer_run_liveness = 4 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.run.liveness"];
   }
 }
 

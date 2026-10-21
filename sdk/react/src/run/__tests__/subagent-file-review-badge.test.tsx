@@ -147,6 +147,7 @@ describe("subagent row badges (MessageThread integration)", () => {
       fileReview: [turnReview("undecided")],
       errors: [],
       answer: "Delegating.",
+      liveness: undefined,
     };
   }
 

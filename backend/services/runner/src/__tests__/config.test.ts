@@ -34,6 +34,7 @@ describe("loadConfig", () => {
     expect(config.maxConcurrentActivities).toBe(5);
     expect(config.cursorStreamStallTimeoutMs).toBe(180000);
     expect(config.openOperationMaxMs).toBe(3600000);
+    expect(config.livenessIntervalMs).toBe(30000);
     expect(config.shellTimeoutMaxSeconds).toBe(3300);
     expect(config.agentResolveTimeoutMs).toBe(120000);
     expect(config.workspaceLockTimeoutMs).toBe(900000);
@@ -58,6 +59,13 @@ describe("loadConfig", () => {
     process.env.STIGMER_OPEN_OPERATION_MAX_MS = "600000";
     const config = loadConfig();
     expect(config.openOperationMaxMs).toBe(600000);
+  });
+
+  it("respects STIGMER_LIVENESS_INTERVAL_MS", () => {
+    process.env.CURSOR_API_KEY = "test-key";
+    process.env.STIGMER_LIVENESS_INTERVAL_MS = "5000";
+    const config = loadConfig();
+    expect(config.livenessIntervalMs).toBe(5000);
   });
 
   it("drains for 25 s by default and respects STIGMER_DRAIN_GRACE_MS", () => {

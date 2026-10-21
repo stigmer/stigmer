@@ -47,13 +47,21 @@ import type { RunInput } from "./gen/run.js";
 const NO_PLACE = BigInt(0);
 
 /** The preview types a follow can ask for (`StreamSessionEventsRequest.event_deltas`). */
-export type SessionPreviewType = "agent.message" | "agent.thinking" | "stigmer.tool_output_delta";
+export type SessionPreviewType =
+  | "agent.message"
+  | "agent.thinking"
+  | "stigmer.tool_output_delta"
+  | "stigmer.run.liveness";
 
-/** Every preview type: a message as it is written, a thinking as it starts, a running tool's output. */
+/**
+ * Every preview type: a message as it is written, a thinking as it starts,
+ * a running tool's output, and what a working turn has open.
+ */
 export const ALL_SESSION_PREVIEWS: ReadonlyArray<SessionPreviewType> = [
   "agent.message",
   "agent.thinking",
   "stigmer.tool_output_delta",
+  "stigmer.run.liveness",
 ];
 
 /** The slice of the client a follow reads through. */

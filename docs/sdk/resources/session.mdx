@@ -1431,7 +1431,7 @@ StreamSessionEventsRequest opens a live stream of one session's events.
 <TypeTable
   type={{
     sessionId: { type: "string", description: "The session whose events to stream.", required: true },
-    eventDeltas: { type: "string[]", description: "The event types to preview while they are produced: agent.message, agent.thinking, and Stigmer's stigmer.tool_output_delta (a running tool's output)." },
+    eventDeltas: { type: "string[]", description: "The event types to preview while they are produced: agent.message, agent.thinking, and Stigmer's stigmer.tool_output_delta (a running tool's output) and stigmer.run.liveness (what a working turn has open)." },
     afterSeq: { type: "number", description: "Where to resume: the seq of the last event the client already has." },
   }}
 />
@@ -1446,6 +1446,7 @@ StreamSessionEventsResponse is one frame of a session's event stream: a stored e
     eventStart: { type: "EventStartInput", description: "A preview of an event opened." },
     eventDelta: { type: "EventDeltaInput", description: "A fragment of a previewed event." },
     stigmerToolOutputDelta: { type: "ToolOutputDeltaInput", description: "A fragment of a running tool's output." },
+    stigmerRunLiveness: { type: "RunLivenessInput", description: "What a working turn has open now, and for how long." },
   }}
 />
 

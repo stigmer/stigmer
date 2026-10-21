@@ -17,6 +17,7 @@ import {
   type ResourceRef,
   type ToolUse,
   type Turn,
+  type TurnLiveness,
   type TurnPhase,
   type SessionInput,
   type SessionResourceInput,
@@ -446,6 +447,14 @@ export interface UseSessionConversationReturn {
    * usual"); cleared by the next event. Never an error.
    */
   readonly isSlow: boolean;
+  /**
+   * What the live turn is doing now, from its newest `stigmer.run.liveness`
+   * preview: each open operation with its age, and how long the turn has
+   * waited on its model. `undefined` when no turn works or none arrived.
+   * The ages are the runner's when it sent the preview; count on from the
+   * moment this value changes.
+   */
+  readonly liveness: TurnLiveness | undefined;
   /** Why the follow ended (refused, or its reconnects ran out), or `null`. */
   readonly streamError: Error | null;
   /** Re-open the session's follow (the conversation stays on screen). */
@@ -975,6 +984,7 @@ export function useSessionConversation(
     isReconnecting: events.isReconnecting,
     connectTimedOut: events.connectTimedOut,
     isSlow: events.isSlow,
+    liveness: foldTurns?.at(-1)?.liveness,
     streamError: events.error,
     reconnectStream: events.reconnect,
   };

@@ -513,6 +513,88 @@ describe("previews", () => {
   });
 });
 
+describe("what the turn has open, sent alone", () => {
+  const open = (callId: string, ageMs: number, subAgentId?: string) => ({
+    callId,
+    name: callId === "sh" ? "shell" : "execute",
+    openedAtMs: 0,
+    ageMs,
+    ...(subAgentId === undefined ? {} : { subAgentId }),
+  });
+
+  it("sends nothing before it begins", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    expect(await e.sendLiveness({ operations: [open("sh", 1)], awaitingModelMs: undefined })).toBe("sent");
+    expect(log.client.appendSessionEvents).not.toHaveBeenCalled();
+  });
+
+  it("names each open call by its tool use and thread with its age, leaves out a call whose result is written, and says how long the model has been waited on", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    await e.flush(status({ messages: [{ type: AI, content: "Ran.", toolCalls: [row("done")] }] }), { final: false });
+    const before = log.client.appendSessionEvents.mock.calls.length;
+
+    const sent = await e.sendLiveness({
+      operations: [open("sh", 840_500), open("c2", 1_250, "task1"), open("done", 9)],
+      awaitingModelMs: 2_000,
+    });
+    expect(sent).toBe("sent");
+    const call = log.client.appendSessionEvents.mock.calls[before]!;
+    expect(call[1], "a liveness carries no event").toEqual([]);
+    expect(call[2].map((p) => p.preview.case), "and no other preview").toEqual(["stigmerRunLiveness"]);
+    const liveness = log.previews.at(-1)!.preview;
+    expect(liveness.case).toBe("stigmerRunLiveness");
+    if (liveness.case !== "stigmerRunLiveness") return;
+    expect(liveness.value.runId).toBe(RUN);
+    expect(
+      liveness.value.operations.map((o) => [o.toolUseId, o.name, o.threadId, o.elapsed?.seconds, o.elapsed?.nanos]),
+    ).toEqual([
+      [`${RUN}.sh`, "shell", "", 840n, 500_000_000],
+      [`${RUN}.c2`, "execute", `${RUN}.task1`, 1n, 250_000_000],
+    ]);
+    expect(liveness.value.awaitingModelFor?.seconds).toBe(2n);
+
+    await e.sendLiveness({ operations: [], awaitingModelMs: undefined });
+    const idle = log.previews.at(-1)!.preview;
+    expect(idle.case === "stigmerRunLiveness" ? idle.value.awaitingModelFor : "not a liveness").toBeUndefined();
+  });
+
+  it("answers refused when the log refuses the preview, and logs any other failure without resending", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const log = logDouble();
+      const e = emitter(log);
+      await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+      log.answers.push("refuse");
+      expect(await e.sendLiveness({ operations: [], awaitingModelMs: undefined })).toBe("refused");
+      log.answers.push("fail");
+      expect(await e.sendLiveness({ operations: [], awaitingModelMs: undefined })).toBe("sent");
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("sending the turn's liveness failed"));
+      expect(log.previews).toEqual([]);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("renews a refused credential for the next append", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const log = logDouble();
+      let n = 0;
+      const e = emitter(log, { credential: async () => ({ token: `tok-${++n}`, expiresInSeconds: 3600 }) });
+      await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+      log.client.appendSessionEvents.mockRejectedValueOnce(new ConnectError("expired", Code.Unauthenticated));
+      await e.sendLiveness({ operations: [], awaitingModelMs: undefined });
+      await e.sendLiveness({ operations: [], awaitingModelMs: undefined });
+      expect(log.client.appendSessionEvents.mock.calls.map((call) => call[3])).toEqual(["tok-1", "tok-2"]);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+});
+
 describe("Stigmer's own turn events", () => {
   it("writes the memory recall first and the structured output once the root is written, at the terminal write", async () => {
     const log = logDouble();

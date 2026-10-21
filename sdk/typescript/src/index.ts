@@ -451,6 +451,8 @@ export {
   type Turn,
   type TurnError,
   type TurnItem,
+  type TurnLiveness,
+  type TurnOpenOperation,
   type TurnPhase,
   type TurnStatus,
   type UserMessage,

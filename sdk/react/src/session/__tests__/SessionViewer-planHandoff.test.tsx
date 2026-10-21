@@ -134,6 +134,7 @@ const stubConv = {
   isReconnecting: false,
   connectTimedOut: false,
   isSlow: false,
+  liveness: undefined,
   stop: vi.fn(),
   retryLastSend: vi.fn(),
 };

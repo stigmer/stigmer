@@ -24,6 +24,7 @@ const MAIN_SOURCE = readFileSync(fileURLToPath(new URL("../main.ts", import.meta
 const SET = {
   CURSOR_STREAM_STALL_TIMEOUT_MS: "90000",
   STIGMER_OPEN_OPERATION_MAX_MS: "1200000",
+  STIGMER_LIVENESS_INTERVAL_MS: "45000",
   STIGMER_SHELL_TIMEOUT_MAX_SECONDS: "900",
   WORKSPACE_LOCK_TIMEOUT_MS: "60000",
   CURSOR_AGENT_RESOLVE_TIMEOUT_MS: "45000",
@@ -32,6 +33,7 @@ const SET = {
 const EXPECTED = {
   cursorStreamStallTimeoutMs: 90_000,
   openOperationMaxMs: 1_200_000,
+  livenessIntervalMs: 45_000,
   shellTimeoutMaxSeconds: 900,
   workspaceLockTimeoutMs: 60_000,
   agentResolveTimeoutMs: 45_000,

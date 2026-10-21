@@ -1116,7 +1116,8 @@ type StreamSessionEventsRequest struct {
 	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// The event types to preview while they are produced: agent.message,
 	// agent.thinking, and Stigmer's stigmer.tool_output_delta (a running
-	// tool's output). Empty streams no previews.
+	// tool's output) and stigmer.run.liveness (what a working turn has open).
+	// Empty streams no previews.
 	EventDeltas []string `protobuf:"bytes,2,rep,name=event_deltas,json=eventDeltas,proto3" json:"event_deltas,omitempty"`
 	// Where to resume: the seq of the last event the client already has. Set,
 	// the stream first sends every stored event after it, in order, then the
@@ -1190,6 +1191,7 @@ type StreamSessionEventsResponse struct {
 	//	*StreamSessionEventsResponse_EventStart
 	//	*StreamSessionEventsResponse_EventDelta
 	//	*StreamSessionEventsResponse_StigmerToolOutputDelta
+	//	*StreamSessionEventsResponse_StigmerRunLiveness
 	Frame         isStreamSessionEventsResponse_Frame `protobuf_oneof:"frame"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1268,6 +1270,15 @@ func (x *StreamSessionEventsResponse) GetStigmerToolOutputDelta() *ToolOutputDel
 	return nil
 }
 
+func (x *StreamSessionEventsResponse) GetStigmerRunLiveness() *RunLiveness {
+	if x != nil {
+		if x, ok := x.Frame.(*StreamSessionEventsResponse_StigmerRunLiveness); ok {
+			return x.StigmerRunLiveness
+		}
+	}
+	return nil
+}
+
 type isStreamSessionEventsResponse_Frame interface {
 	isStreamSessionEventsResponse_Frame()
 }
@@ -1292,6 +1303,11 @@ type StreamSessionEventsResponse_StigmerToolOutputDelta struct {
 	StigmerToolOutputDelta *ToolOutputDelta `protobuf:"bytes,4,opt,name=stigmer_tool_output_delta,json=stigmerToolOutputDelta,proto3,oneof"`
 }
 
+type StreamSessionEventsResponse_StigmerRunLiveness struct {
+	// What a working turn has open now, and for how long.
+	StigmerRunLiveness *RunLiveness `protobuf:"bytes,5,opt,name=stigmer_run_liveness,json=stigmerRunLiveness,proto3,oneof"`
+}
+
 func (*StreamSessionEventsResponse_Event) isStreamSessionEventsResponse_Frame() {}
 
 func (*StreamSessionEventsResponse_EventStart) isStreamSessionEventsResponse_Frame() {}
@@ -1299,6 +1315,8 @@ func (*StreamSessionEventsResponse_EventStart) isStreamSessionEventsResponse_Fra
 func (*StreamSessionEventsResponse_EventDelta) isStreamSessionEventsResponse_Frame() {}
 
 func (*StreamSessionEventsResponse_StigmerToolOutputDelta) isStreamSessionEventsResponse_Frame() {}
+
+func (*StreamSessionEventsResponse_StigmerRunLiveness) isStreamSessionEventsResponse_Frame() {}
 
 // SessionEventPreview is one live preview frame a runner sends with its
 // events: streamed to the session's watchers, never stored.
@@ -1311,6 +1329,7 @@ type SessionEventPreview struct {
 	//	*SessionEventPreview_EventStart
 	//	*SessionEventPreview_EventDelta
 	//	*SessionEventPreview_StigmerToolOutputDelta
+	//	*SessionEventPreview_StigmerRunLiveness
 	Preview       isSessionEventPreview_Preview `protobuf_oneof:"preview"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1380,6 +1399,15 @@ func (x *SessionEventPreview) GetStigmerToolOutputDelta() *ToolOutputDelta {
 	return nil
 }
 
+func (x *SessionEventPreview) GetStigmerRunLiveness() *RunLiveness {
+	if x != nil {
+		if x, ok := x.Preview.(*SessionEventPreview_StigmerRunLiveness); ok {
+			return x.StigmerRunLiveness
+		}
+	}
+	return nil
+}
+
 type isSessionEventPreview_Preview interface {
 	isSessionEventPreview_Preview()
 }
@@ -1399,11 +1427,18 @@ type SessionEventPreview_StigmerToolOutputDelta struct {
 	StigmerToolOutputDelta *ToolOutputDelta `protobuf:"bytes,3,opt,name=stigmer_tool_output_delta,json=stigmerToolOutputDelta,proto3,oneof"`
 }
 
+type SessionEventPreview_StigmerRunLiveness struct {
+	// What a working turn has open now, and for how long.
+	StigmerRunLiveness *RunLiveness `protobuf:"bytes,4,opt,name=stigmer_run_liveness,json=stigmerRunLiveness,proto3,oneof"`
+}
+
 func (*SessionEventPreview_EventStart) isSessionEventPreview_Preview() {}
 
 func (*SessionEventPreview_EventDelta) isSessionEventPreview_Preview() {}
 
 func (*SessionEventPreview_StigmerToolOutputDelta) isSessionEventPreview_Preview() {}
+
+func (*SessionEventPreview_StigmerRunLiveness) isSessionEventPreview_Preview() {}
 
 // AppendSessionEventsInput appends a run's events to its session's log.
 type AppendSessionEventsInput struct {
@@ -1788,28 +1823,30 @@ const file_ai_stigmer_agentic_session_v1_io_proto_rawDesc = "" +
 	" \x01(\tR\x05runId\"\x7f\n" +
 	"\x10SessionEventList\x12C\n" +
 	"\x06events\x18\x01 \x03(\v2+.ai.stigmer.agentic.session.v1.SessionEventR\x06events\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xe9\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x80\x02\n" +
 	"\x1aStreamSessionEventsRequest\x12%\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tsessionId\x12k\n" +
-	"\fevent_deltas\x18\x02 \x03(\tBH\xbaHE\x92\x01B\x10\x03\x18\x01\"<r:R\ragent.messageR\x0eagent.thinkingR\x19stigmer.tool_output_deltaR\veventDeltas\x12)\n" +
+	"session_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tsessionId\x12\x81\x01\n" +
+	"\fevent_deltas\x18\x02 \x03(\tB^\xbaH[\x92\x01X\x10\x04\x18\x01\"RrPR\ragent.messageR\x0eagent.thinkingR\x19stigmer.tool_output_deltaR\x14stigmer.run.livenessR\veventDeltas\x12)\n" +
 	"\tafter_seq\x18\x03 \x01(\x03B\a\xbaH\x04\"\x02(\x00H\x00R\bafterSeq\x88\x01\x01B\f\n" +
 	"\n" +
-	"_after_seq\"\xb6\x03\n" +
+	"_after_seq\"\xb0\x04\n" +
 	"\x1bStreamSessionEventsResponse\x12C\n" +
 	"\x05event\x18\x01 \x01(\v2+.ai.stigmer.agentic.session.v1.SessionEventH\x00R\x05event\x12]\n" +
 	"\vevent_start\x18\x02 \x01(\v2).ai.stigmer.agentic.session.v1.EventStartB\x0f\xf2\x85,\vevent_startH\x00R\n" +
 	"eventStart\x12]\n" +
 	"\vevent_delta\x18\x03 \x01(\v2).ai.stigmer.agentic.session.v1.EventDeltaB\x0f\xf2\x85,\vevent_deltaH\x00R\n" +
 	"eventDelta\x12\x8a\x01\n" +
-	"\x19stigmer_tool_output_delta\x18\x04 \x01(\v2..ai.stigmer.agentic.session.v1.ToolOutputDeltaB\x1d\xf2\x85,\x19stigmer.tool_output_deltaH\x00R\x16stigmerToolOutputDeltaB\a\n" +
-	"\x05frame\"\xf2\x02\n" +
+	"\x19stigmer_tool_output_delta\x18\x04 \x01(\v2..ai.stigmer.agentic.session.v1.ToolOutputDeltaB\x1d\xf2\x85,\x19stigmer.tool_output_deltaH\x00R\x16stigmerToolOutputDelta\x12x\n" +
+	"\x14stigmer_run_liveness\x18\x05 \x01(\v2*.ai.stigmer.agentic.session.v1.RunLivenessB\x18\xf2\x85,\x14stigmer.run.livenessH\x00R\x12stigmerRunLivenessB\a\n" +
+	"\x05frame\"\xec\x03\n" +
 	"\x13SessionEventPreview\x12]\n" +
 	"\vevent_start\x18\x01 \x01(\v2).ai.stigmer.agentic.session.v1.EventStartB\x0f\xf2\x85,\vevent_startH\x00R\n" +
 	"eventStart\x12]\n" +
 	"\vevent_delta\x18\x02 \x01(\v2).ai.stigmer.agentic.session.v1.EventDeltaB\x0f\xf2\x85,\vevent_deltaH\x00R\n" +
 	"eventDelta\x12\x8a\x01\n" +
-	"\x19stigmer_tool_output_delta\x18\x03 \x01(\v2..ai.stigmer.agentic.session.v1.ToolOutputDeltaB\x1d\xf2\x85,\x19stigmer.tool_output_deltaH\x00R\x16stigmerToolOutputDeltaB\x10\n" +
+	"\x19stigmer_tool_output_delta\x18\x03 \x01(\v2..ai.stigmer.agentic.session.v1.ToolOutputDeltaB\x1d\xf2\x85,\x19stigmer.tool_output_deltaH\x00R\x16stigmerToolOutputDelta\x12x\n" +
+	"\x14stigmer_run_liveness\x18\x04 \x01(\v2*.ai.stigmer.agentic.session.v1.RunLivenessB\x18\xf2\x85,\x14stigmer.run.livenessH\x00R\x12stigmerRunLivenessB\x10\n" +
 	"\apreview\x12\x05\xbaH\x02\b\x01\"\xe4\x01\n" +
 	"\x18AppendSessionEventsInput\x12\x1d\n" +
 	"\x06run_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05runId\x12N\n" +
@@ -1876,7 +1913,8 @@ var file_ai_stigmer_agentic_session_v1_io_proto_goTypes = []any{
 	(*EventStart)(nil),                   // 29: ai.stigmer.agentic.session.v1.EventStart
 	(*EventDelta)(nil),                   // 30: ai.stigmer.agentic.session.v1.EventDelta
 	(*ToolOutputDelta)(nil),              // 31: ai.stigmer.agentic.session.v1.ToolOutputDelta
-	(*fieldmaskpb.FieldMask)(nil),        // 32: google.protobuf.FieldMask
+	(*RunLiveness)(nil),                  // 32: ai.stigmer.agentic.session.v1.RunLiveness
+	(*fieldmaskpb.FieldMask)(nil),        // 33: google.protobuf.FieldMask
 }
 var file_ai_stigmer_agentic_session_v1_io_proto_depIdxs = []int32{
 	27, // 0: ai.stigmer.agentic.session.v1.SessionList.entries:type_name -> ai.stigmer.agentic.session.v1.Session
@@ -1891,19 +1929,21 @@ var file_ai_stigmer_agentic_session_v1_io_proto_depIdxs = []int32{
 	29, // 9: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.event_start:type_name -> ai.stigmer.agentic.session.v1.EventStart
 	30, // 10: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.event_delta:type_name -> ai.stigmer.agentic.session.v1.EventDelta
 	31, // 11: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.stigmer_tool_output_delta:type_name -> ai.stigmer.agentic.session.v1.ToolOutputDelta
-	29, // 12: ai.stigmer.agentic.session.v1.SessionEventPreview.event_start:type_name -> ai.stigmer.agentic.session.v1.EventStart
-	30, // 13: ai.stigmer.agentic.session.v1.SessionEventPreview.event_delta:type_name -> ai.stigmer.agentic.session.v1.EventDelta
-	31, // 14: ai.stigmer.agentic.session.v1.SessionEventPreview.stigmer_tool_output_delta:type_name -> ai.stigmer.agentic.session.v1.ToolOutputDelta
-	28, // 15: ai.stigmer.agentic.session.v1.AppendSessionEventsInput.events:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
-	18, // 16: ai.stigmer.agentic.session.v1.AppendSessionEventsInput.previews:type_name -> ai.stigmer.agentic.session.v1.SessionEventPreview
-	28, // 17: ai.stigmer.agentic.session.v1.AppendSessionEventsResponse.events:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
-	27, // 18: ai.stigmer.agentic.session.v1.UpdateSessionInput.resource:type_name -> ai.stigmer.agentic.session.v1.Session
-	32, // 19: ai.stigmer.agentic.session.v1.UpdateSessionInput.update_mask:type_name -> google.protobuf.FieldMask
-	20, // [20:20] is the sub-list for method output_type
-	20, // [20:20] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	32, // 12: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.stigmer_run_liveness:type_name -> ai.stigmer.agentic.session.v1.RunLiveness
+	29, // 13: ai.stigmer.agentic.session.v1.SessionEventPreview.event_start:type_name -> ai.stigmer.agentic.session.v1.EventStart
+	30, // 14: ai.stigmer.agentic.session.v1.SessionEventPreview.event_delta:type_name -> ai.stigmer.agentic.session.v1.EventDelta
+	31, // 15: ai.stigmer.agentic.session.v1.SessionEventPreview.stigmer_tool_output_delta:type_name -> ai.stigmer.agentic.session.v1.ToolOutputDelta
+	32, // 16: ai.stigmer.agentic.session.v1.SessionEventPreview.stigmer_run_liveness:type_name -> ai.stigmer.agentic.session.v1.RunLiveness
+	28, // 17: ai.stigmer.agentic.session.v1.AppendSessionEventsInput.events:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
+	18, // 18: ai.stigmer.agentic.session.v1.AppendSessionEventsInput.previews:type_name -> ai.stigmer.agentic.session.v1.SessionEventPreview
+	28, // 19: ai.stigmer.agentic.session.v1.AppendSessionEventsResponse.events:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
+	27, // 20: ai.stigmer.agentic.session.v1.UpdateSessionInput.resource:type_name -> ai.stigmer.agentic.session.v1.Session
+	33, // 21: ai.stigmer.agentic.session.v1.UpdateSessionInput.update_mask:type_name -> google.protobuf.FieldMask
+	22, // [22:22] is the sub-list for method output_type
+	22, // [22:22] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_io_proto_init() }
@@ -1919,11 +1959,13 @@ func file_ai_stigmer_agentic_session_v1_io_proto_init() {
 		(*StreamSessionEventsResponse_EventStart)(nil),
 		(*StreamSessionEventsResponse_EventDelta)(nil),
 		(*StreamSessionEventsResponse_StigmerToolOutputDelta)(nil),
+		(*StreamSessionEventsResponse_StigmerRunLiveness)(nil),
 	}
 	file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[18].OneofWrappers = []any{
 		(*SessionEventPreview_EventStart)(nil),
 		(*SessionEventPreview_EventDelta)(nil),
 		(*SessionEventPreview_StigmerToolOutputDelta)(nil),
+		(*SessionEventPreview_StigmerRunLiveness)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

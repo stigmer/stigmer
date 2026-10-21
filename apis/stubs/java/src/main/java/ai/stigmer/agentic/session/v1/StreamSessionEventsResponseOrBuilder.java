@@ -118,5 +118,32 @@ public interface StreamSessionEventsResponseOrBuilder extends
    */
   ai.stigmer.agentic.session.v1.ToolOutputDeltaOrBuilder getStigmerToolOutputDeltaOrBuilder();
 
+  /**
+   * <pre>
+   * What a working turn has open now, and for how long.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.RunLiveness stigmer_run_liveness = 5 [json_name = "stigmerRunLiveness", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.liveness"];</code>
+   * @return Whether the stigmerRunLiveness field is set.
+   */
+  boolean hasStigmerRunLiveness();
+  /**
+   * <pre>
+   * What a working turn has open now, and for how long.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.RunLiveness stigmer_run_liveness = 5 [json_name = "stigmerRunLiveness", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.liveness"];</code>
+   * @return The stigmerRunLiveness.
+   */
+  ai.stigmer.agentic.session.v1.RunLiveness getStigmerRunLiveness();
+  /**
+   * <pre>
+   * What a working turn has open now, and for how long.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.RunLiveness stigmer_run_liveness = 5 [json_name = "stigmerRunLiveness", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.liveness"];</code>
+   */
+  ai.stigmer.agentic.session.v1.RunLivenessOrBuilder getStigmerRunLivenessOrBuilder();
+
   ai.stigmer.agentic.session.v1.StreamSessionEventsResponse.FrameCase getFrameCase();
 }

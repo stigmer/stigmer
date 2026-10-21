@@ -29,6 +29,7 @@ import {
 import { ThreadSkeleton } from "../run/ThreadSkeleton.js";
 import { SessionComposer } from "../composer/index.js";
 import { AgentHoursNotice, agentHoursUsedUp } from "../billing/AgentHoursNotice.js";
+import { LivenessIndicator } from "./LivenessIndicator.js";
 import { ProviderKeyNotice, providerKeyRequired } from "../billing/ProviderKeyNotice.js";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error/index.js";
 import { useStigmer } from "../hooks.js";
@@ -1072,7 +1073,10 @@ const ConversationColumn = memo(function ConversationColumn({
         {conv.connectTimedOut && (
           <ConnectTimedOutBanner onRetry={conv.reconnectStream} />
         )}
+        {/* What the turn is running and for how long, while its liveness
+            previews arrive; the slow hint only once nothing arrives. */}
         {conv.isSlow && !conv.connectTimedOut && <SlowIndicator />}
+        {!conv.isSlow && conv.liveness && <LivenessIndicator liveness={conv.liveness} />}
         {conv.streamError && (
           <StreamErrorBanner
             error={conv.streamError}
@@ -1779,8 +1783,10 @@ function ConnectTimedOutBanner({ onRetry }: { onRetry: () => void }) {
 
 /**
  * Low-weight informational hint for the slow-stall watchdog: a live stream has
- * gone quiet longer than usual. Never an error and offers no action — the
- * stream is still expected to resume on its own.
+ * gone quiet longer than usual. A working turn sends its liveness at an
+ * interval well inside the watchdog's window, so this means no word from the
+ * turn at all, not a long silent tool. Never an error and offers no action —
+ * the stream is still expected to resume on its own.
  */
 function SlowIndicator() {
   return (

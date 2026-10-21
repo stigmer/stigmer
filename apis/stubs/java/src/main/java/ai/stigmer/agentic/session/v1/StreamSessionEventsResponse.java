@@ -63,6 +63,7 @@ private static final long serialVersionUID = 0L;
     EVENT_START(2),
     EVENT_DELTA(3),
     STIGMER_TOOL_OUTPUT_DELTA(4),
+    STIGMER_RUN_LIVENESS(5),
     FRAME_NOT_SET(0);
     private final int value;
     private FrameCase(int value) {
@@ -84,6 +85,7 @@ private static final long serialVersionUID = 0L;
         case 2: return EVENT_START;
         case 3: return EVENT_DELTA;
         case 4: return STIGMER_TOOL_OUTPUT_DELTA;
+        case 5: return STIGMER_RUN_LIVENESS;
         case 0: return FRAME_NOT_SET;
         default: return null;
       }
@@ -271,6 +273,49 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.session.v1.ToolOutputDelta.getDefaultInstance();
   }
 
+  public static final int STIGMER_RUN_LIVENESS_FIELD_NUMBER = 5;
+  /**
+   * <pre>
+   * What a working turn has open now, and for how long.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.RunLiveness stigmer_run_liveness = 5 [json_name = "stigmerRunLiveness", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.liveness"];</code>
+   * @return Whether the stigmerRunLiveness field is set.
+   */
+  @java.lang.Override
+  public boolean hasStigmerRunLiveness() {
+    return frameCase_ == 5;
+  }
+  /**
+   * <pre>
+   * What a working turn has open now, and for how long.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.RunLiveness stigmer_run_liveness = 5 [json_name = "stigmerRunLiveness", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.liveness"];</code>
+   * @return The stigmerRunLiveness.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.RunLiveness getStigmerRunLiveness() {
+    if (frameCase_ == 5) {
+       return (ai.stigmer.agentic.session.v1.RunLiveness) frame_;
+    }
+    return ai.stigmer.agentic.session.v1.RunLiveness.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * What a working turn has open now, and for how long.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.RunLiveness stigmer_run_liveness = 5 [json_name = "stigmerRunLiveness", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.liveness"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.RunLivenessOrBuilder getStigmerRunLivenessOrBuilder() {
+    if (frameCase_ == 5) {
+       return (ai.stigmer.agentic.session.v1.RunLiveness) frame_;
+    }
+    return ai.stigmer.agentic.session.v1.RunLiveness.getDefaultInstance();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -297,6 +342,9 @@ private static final long serialVersionUID = 0L;
     if (frameCase_ == 4) {
       output.writeMessage(4, (ai.stigmer.agentic.session.v1.ToolOutputDelta) frame_);
     }
+    if (frameCase_ == 5) {
+      output.writeMessage(5, (ai.stigmer.agentic.session.v1.RunLiveness) frame_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -321,6 +369,10 @@ private static final long serialVersionUID = 0L;
     if (frameCase_ == 4) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(4, (ai.stigmer.agentic.session.v1.ToolOutputDelta) frame_);
+    }
+    if (frameCase_ == 5) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(5, (ai.stigmer.agentic.session.v1.RunLiveness) frame_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -355,6 +407,10 @@ private static final long serialVersionUID = 0L;
         if (!getStigmerToolOutputDelta()
             .equals(other.getStigmerToolOutputDelta())) return false;
         break;
+      case 5:
+        if (!getStigmerRunLiveness()
+            .equals(other.getStigmerRunLiveness())) return false;
+        break;
       case 0:
       default:
     }
@@ -385,6 +441,10 @@ private static final long serialVersionUID = 0L;
       case 4:
         hash = (37 * hash) + STIGMER_TOOL_OUTPUT_DELTA_FIELD_NUMBER;
         hash = (53 * hash) + getStigmerToolOutputDelta().hashCode();
+        break;
+      case 5:
+        hash = (37 * hash) + STIGMER_RUN_LIVENESS_FIELD_NUMBER;
+        hash = (53 * hash) + getStigmerRunLiveness().hashCode();
         break;
       case 0:
       default:
@@ -537,6 +597,9 @@ private static final long serialVersionUID = 0L;
       if (stigmerToolOutputDeltaBuilder_ != null) {
         stigmerToolOutputDeltaBuilder_.clear();
       }
+      if (stigmerRunLivenessBuilder_ != null) {
+        stigmerRunLivenessBuilder_.clear();
+      }
       frameCase_ = 0;
       frame_ = null;
       return this;
@@ -594,6 +657,10 @@ private static final long serialVersionUID = 0L;
           stigmerToolOutputDeltaBuilder_ != null) {
         result.frame_ = stigmerToolOutputDeltaBuilder_.build();
       }
+      if (frameCase_ == 5 &&
+          stigmerRunLivenessBuilder_ != null) {
+        result.frame_ = stigmerRunLivenessBuilder_.build();
+      }
     }
 
     @java.lang.Override
@@ -623,6 +690,10 @@ private static final long serialVersionUID = 0L;
         }
         case STIGMER_TOOL_OUTPUT_DELTA: {
           mergeStigmerToolOutputDelta(other.getStigmerToolOutputDelta());
+          break;
+        }
+        case STIGMER_RUN_LIVENESS: {
+          mergeStigmerRunLiveness(other.getStigmerRunLiveness());
           break;
         }
         case FRAME_NOT_SET: {
@@ -683,6 +754,13 @@ private static final long serialVersionUID = 0L;
               frameCase_ = 4;
               break;
             } // case 34
+            case 42: {
+              input.readMessage(
+                  internalGetStigmerRunLivenessFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              frameCase_ = 5;
+              break;
+            } // case 42
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1425,6 +1503,184 @@ private static final long serialVersionUID = 0L;
       frameCase_ = 4;
       onChanged();
       return stigmerToolOutputDeltaBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.RunLiveness, ai.stigmer.agentic.session.v1.RunLiveness.Builder, ai.stigmer.agentic.session.v1.RunLivenessOrBuilder> stigmerRunLivenessBuilder_;
+    /**
+     * <pre>
+     * What a working turn has open now, and for how long.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.RunLiveness stigmer_run_liveness = 5 [json_name = "stigmerRunLiveness", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.liveness"];</code>
+     * @return Whether the stigmerRunLiveness field is set.
+     */
+    @java.lang.Override
+    public boolean hasStigmerRunLiveness() {
+      return frameCase_ == 5;
+    }
+    /**
+     * <pre>
+     * What a working turn has open now, and for how long.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.RunLiveness stigmer_run_liveness = 5 [json_name = "stigmerRunLiveness", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.liveness"];</code>
+     * @return The stigmerRunLiveness.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.RunLiveness getStigmerRunLiveness() {
+      if (stigmerRunLivenessBuilder_ == null) {
+        if (frameCase_ == 5) {
+          return (ai.stigmer.agentic.session.v1.RunLiveness) frame_;
+        }
+        return ai.stigmer.agentic.session.v1.RunLiveness.getDefaultInstance();
+      } else {
+        if (frameCase_ == 5) {
+          return stigmerRunLivenessBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.RunLiveness.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * What a working turn has open now, and for how long.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.RunLiveness stigmer_run_liveness = 5 [json_name = "stigmerRunLiveness", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.liveness"];</code>
+     */
+    public Builder setStigmerRunLiveness(ai.stigmer.agentic.session.v1.RunLiveness value) {
+      if (stigmerRunLivenessBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        frame_ = value;
+        onChanged();
+      } else {
+        stigmerRunLivenessBuilder_.setMessage(value);
+      }
+      frameCase_ = 5;
+      return this;
+    }
+    /**
+     * <pre>
+     * What a working turn has open now, and for how long.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.RunLiveness stigmer_run_liveness = 5 [json_name = "stigmerRunLiveness", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.liveness"];</code>
+     */
+    public Builder setStigmerRunLiveness(
+        ai.stigmer.agentic.session.v1.RunLiveness.Builder builderForValue) {
+      if (stigmerRunLivenessBuilder_ == null) {
+        frame_ = builderForValue.build();
+        onChanged();
+      } else {
+        stigmerRunLivenessBuilder_.setMessage(builderForValue.build());
+      }
+      frameCase_ = 5;
+      return this;
+    }
+    /**
+     * <pre>
+     * What a working turn has open now, and for how long.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.RunLiveness stigmer_run_liveness = 5 [json_name = "stigmerRunLiveness", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.liveness"];</code>
+     */
+    public Builder mergeStigmerRunLiveness(ai.stigmer.agentic.session.v1.RunLiveness value) {
+      if (stigmerRunLivenessBuilder_ == null) {
+        if (frameCase_ == 5 &&
+            frame_ != ai.stigmer.agentic.session.v1.RunLiveness.getDefaultInstance()) {
+          frame_ = ai.stigmer.agentic.session.v1.RunLiveness.newBuilder((ai.stigmer.agentic.session.v1.RunLiveness) frame_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          frame_ = value;
+        }
+        onChanged();
+      } else {
+        if (frameCase_ == 5) {
+          stigmerRunLivenessBuilder_.mergeFrom(value);
+        } else {
+          stigmerRunLivenessBuilder_.setMessage(value);
+        }
+      }
+      frameCase_ = 5;
+      return this;
+    }
+    /**
+     * <pre>
+     * What a working turn has open now, and for how long.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.RunLiveness stigmer_run_liveness = 5 [json_name = "stigmerRunLiveness", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.liveness"];</code>
+     */
+    public Builder clearStigmerRunLiveness() {
+      if (stigmerRunLivenessBuilder_ == null) {
+        if (frameCase_ == 5) {
+          frameCase_ = 0;
+          frame_ = null;
+          onChanged();
+        }
+      } else {
+        if (frameCase_ == 5) {
+          frameCase_ = 0;
+          frame_ = null;
+        }
+        stigmerRunLivenessBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * What a working turn has open now, and for how long.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.RunLiveness stigmer_run_liveness = 5 [json_name = "stigmerRunLiveness", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.liveness"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.RunLiveness.Builder getStigmerRunLivenessBuilder() {
+      return internalGetStigmerRunLivenessFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * What a working turn has open now, and for how long.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.RunLiveness stigmer_run_liveness = 5 [json_name = "stigmerRunLiveness", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.liveness"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.RunLivenessOrBuilder getStigmerRunLivenessOrBuilder() {
+      if ((frameCase_ == 5) && (stigmerRunLivenessBuilder_ != null)) {
+        return stigmerRunLivenessBuilder_.getMessageOrBuilder();
+      } else {
+        if (frameCase_ == 5) {
+          return (ai.stigmer.agentic.session.v1.RunLiveness) frame_;
+        }
+        return ai.stigmer.agentic.session.v1.RunLiveness.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * What a working turn has open now, and for how long.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.RunLiveness stigmer_run_liveness = 5 [json_name = "stigmerRunLiveness", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.run.liveness"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.RunLiveness, ai.stigmer.agentic.session.v1.RunLiveness.Builder, ai.stigmer.agentic.session.v1.RunLivenessOrBuilder> 
+        internalGetStigmerRunLivenessFieldBuilder() {
+      if (stigmerRunLivenessBuilder_ == null) {
+        if (!(frameCase_ == 5)) {
+          frame_ = ai.stigmer.agentic.session.v1.RunLiveness.getDefaultInstance();
+        }
+        stigmerRunLivenessBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.RunLiveness, ai.stigmer.agentic.session.v1.RunLiveness.Builder, ai.stigmer.agentic.session.v1.RunLivenessOrBuilder>(
+                (ai.stigmer.agentic.session.v1.RunLiveness) frame_,
+                getParentForChildren(),
+                isClean());
+        frame_ = null;
+      }
+      frameCase_ = 5;
+      onChanged();
+      return stigmerRunLivenessBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.StreamSessionEventsResponse)
