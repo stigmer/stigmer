@@ -16,6 +16,8 @@
 //
 // A connection that arrives while no backend is live waits for the next one
 // added (a plain stop-then-start), and is dropped when the front closes.
+// What a client wrote before it died still reaches its backend: each
+// direction is ended once its bytes are written, never cut.
 import * as net from "node:net";
 
 export interface TcpFront {
@@ -44,17 +46,19 @@ export async function startTcpFront(): Promise<TcpFront> {
     const upstream = net.connect({ host: HOST, port: backendPort });
     open.add(upstream);
     upstream.on("close", () => open.delete(upstream));
-    // Either side ending or failing ends the pair, as a proxied connection does.
-    const endBoth = (): void => {
-      client.destroy();
-      upstream.destroy();
-    };
-    upstream.on("error", endBoth);
-    client.on("error", endBoth);
-    upstream.on("close", endBoth);
-    client.on("close", endBoth);
+    // Each direction ends the other side only once what it carried is
+    // written: a client that dies right after a request (a runner killed
+    // mid-turn) still has that request delivered, as through a Service,
+    // whose forwarding is the kernel's. A side that fails or closes without
+    // ending is treated the same way.
     client.pipe(upstream);
     upstream.pipe(client);
+    const endUpstream = (): void => void upstream.end();
+    const endClient = (): void => void client.end();
+    client.on("error", endUpstream);
+    client.on("close", endUpstream);
+    upstream.on("error", endClient);
+    upstream.on("close", endClient);
   };
 
   const route = (client: net.Socket): void => {

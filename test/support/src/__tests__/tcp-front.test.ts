@@ -1,8 +1,9 @@
 // Unit arms for the TCP front (tcp-front.ts): new connections alternate
 // between live backends, an open connection stays on its backend after that
 // backend is removed (the rolling update's overlap), a connection that
-// arrives with no backend waits for the next one added, and closing the
-// front ends what passes through it.
+// arrives with no backend waits for the next one added, what a client wrote
+// before it died still reaches its backend, and closing the front ends what
+// passes through it.
 // Real loopback listeners on ports bound with listen(0), per this package's
 // ports law. No target.
 // Domain: test support (stack spawns).
@@ -93,6 +94,30 @@ describe("the TCP front", () => {
     f.add(await backend("c"));
     expect(await answer).toBe("c:late");
     waiting.end();
+  });
+
+  it("delivers what a client wrote before it died, as a Service does", async () => {
+    const received: string[] = [];
+    const sink = net.createServer((socket) => {
+      socket.on("data", (chunk) => received.push(chunk.toString()));
+      socket.on("error", () => socket.destroy());
+    });
+    servers.push(sink);
+    const sinkPort = await new Promise<number>((resolve) =>
+      sink.listen(0, "127.0.0.1", () => resolve((sink.address() as net.AddressInfo).port)),
+    );
+    const f = await front();
+    f.add(sinkPort);
+    for (let i = 0; i < 20; i++) {
+      const socket = net.connect({ host: "127.0.0.1", port: f.port });
+      socket.on("error", () => undefined);
+      socket.end(`last words ${i}`);
+    }
+    const deadline = Date.now() + 3_000;
+    while (received.join("").split("last words").length - 1 < 20 && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    expect(received.join("").split("last words").length - 1, "every dying client's bytes arrived").toBe(20);
   });
 
   it("closing the front ends the connections through it", async () => {
