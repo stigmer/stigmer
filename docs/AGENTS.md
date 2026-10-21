@@ -10,8 +10,9 @@ and `vocabulary.md` are the truth.
 - `STYLE.md`: headings, code blocks and their contract validation, the page
   classification contract, every MDX component, prose, diagrams, links, and the
   LLM-friendly exports.
-- `vocabulary.md`: every term, the five writing contexts and their registers,
-  the inconsistency register. The single source of truth for terminology.
+- `vocabulary.md`: what Stigmer is and who it is for, every term, the five
+  writing contexts and their registers, the inconsistency register. The single
+  source of truth for terminology.
 - `CONTRIBUTING.md`: adding a page, `meta.json` ordering, the Make targets and
   pre-commit hooks.
 - `_inventory/classification.yaml`: the entry every hand-authored page has.

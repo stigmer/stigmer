@@ -14,13 +14,18 @@ paths:
 # Writing Stigmer's documentation
 
 `docs/STYLE.md` holds the mechanics (headings, code blocks, MDX components, the
-classification contract, the medium rule) and `docs/vocabulary.md` holds every
-term and the five writing contexts. Neither is restated here. This skill holds
-the doctrine those two apply: why the rules are what they are, and the judgement
-calls a page needs that no lint can make. The package guide (`docs/AGENTS.md`)
-carries the laws in one line each.
+classification contract, the medium rule) and `docs/vocabulary.md` holds what
+Stigmer is and who it is for, every term and the five writing contexts. Neither
+is restated here. This skill holds the doctrine those two apply: why the rules
+are what they are, and the judgement calls a page needs that no lint can make.
+The package guide (`docs/AGENTS.md`) carries the laws in one line each.
 
 ## Match the register to the reader
+
+Every page speaks to one reader: the developer adding agents to their product.
+Any sentence that says what Stigmer is uses the words in `docs/vocabulary.md`,
+"What Stigmer is, and who it is for", and its examples are jobs done inside a
+customer's product, never a chat and never code.
 
 `docs/vocabulary.md` defines five contexts (sales site, quickstart and
 tutorials, concepts and how-to, reference and SDK, README), each with its own
@@ -32,9 +37,10 @@ calibrate.
 - On the sales site and in introductory docs: replace jargon with plain words
   ("definition file", not "declarative manifest"; "keeps running even if
   something crashes", not "durable execution with checkpoint recovery"); when a
-  term such as API or YAML is unavoidable, explain it in the same sentence; use
-  everyday analogies (recipes, filing cabinets, assembly lines), never analogies
-  to other infrastructure tools.
+  term such as API or YAML is unavoidable, explain it in the same sentence.
+  Analogies from the reader's own stack (their database, their sign-in provider,
+  their job queue) are welcome where they say where Stigmer sits; never an
+  analogy to a tool the reader may not run, such as Kubernetes or Temporal.
 - In reference and SDK docs: precise technical language, exact field names,
   proto message types and CLI flags; do not re-explain what earlier pages
   taught.
@@ -96,8 +102,8 @@ For any content where pages form a sequence:
 - **The bridge.** Every page in a sequence ends with a "Next step" that answers
   two questions: what can the reader not do yet, and what will the next page
   teach? The motivation is a gap the reader can feel, never navigational. Good:
-  "Your agent gave a generic answer. It doesn't know your return policy or your
-  product catalog. Let's fix that." Bad: "Continue to the next tutorial."
+  "Your agent made the variance report, but it can't reach your customers'
+  ledgers yet. Let's connect it." Bad: "Continue to the next tutorial."
 - Entry-point ordering, path convergence and prerequisite chains belong to the
   information architecture; a page author does not decide path structure.
 
@@ -128,7 +134,9 @@ sections already say.
 - A hand-captured screenshot, even as a placeholder.
 - An animated tour for content the reader works through at their own pace.
 - A visual that leaves the markdown exports with nothing.
-- Infrastructure-tool analogies on the sales site or in introductory docs.
+- On the sales site or in introductory docs, an analogy to a tool the reader may
+  not run.
+- An example from coding work (pull-request review, code generation).
 - Filler ("it should be noted that", "it is important to understand").
 - Two Diátaxis types on one page.
 - A measured native-versus-Cursor comparison, in a table, in prose or through a
