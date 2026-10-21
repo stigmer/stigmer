@@ -1,5 +1,5 @@
 /**
- * Pins the plan a Plan-mode turn returns (`../plan-artifact.ts`):
+ * Pins the plan a Plan-mode turn returns (`../plan-file.ts`):
  *   - its name, from the plan's title with a content-hash discriminator, and
  *     the rule that recognizes a plan among Files;
  *   - its save into the session's outputs folder, staged beside the folder
@@ -18,12 +18,12 @@ import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { installAgentFs, localAgentFs } from "../agent-fs.js";
 import { collectOutputs, OUTPUTS_SUBDIR, prepareOutputsFolder } from "../outputs.js";
 import {
-  isPlanArtifactName,
-  PLAN_ARTIFACT_NAME,
+  isPlanFileName,
+  PLAN_FILE_NAME,
   PLAN_STAGING_FILE,
-  planArtifactName,
+  planFileName,
   savePlanOutput,
-} from "../plan-artifact.js";
+} from "../plan-file.js";
 import { getPlatformDir } from "../workspace/platform-dir.js";
 
 /** Mirrors the runner's content-hash discriminator so tests can assert exact names. */
@@ -31,36 +31,36 @@ function planId(text: string): string {
   return createHash("sha256").update(text, "utf-8").digest("hex").slice(0, 8);
 }
 
-describe("planArtifactName", () => {
+describe("planFileName", () => {
   it("derives a hyphenated <slug>_<id>.plan.md name from the plan's leading # H1", () => {
     const text = "# Plan Card UX Cleanup\n\nBody";
     // "Plan Card…" has no label separator, so the genuine word "plan" survives.
-    expect(planArtifactName(text)).toBe(`plan-card-ux-cleanup_${planId(text)}.plan.md`);
+    expect(planFileName(text)).toBe(`plan-card-ux-cleanup_${planId(text)}.plan.md`);
   });
 
   it("strips a leading 'Plan:' LABEL (colon/dash-anchored) from the slug", () => {
     const text = "# Plan: Fix the download UX\n\nbody";
-    expect(planArtifactName(text)).toBe(`fix-the-download-ux_${planId(text)}.plan.md`);
+    expect(planFileName(text)).toBe(`fix-the-download-ux_${planId(text)}.plan.md`);
   });
 
   it("collapses runs of punctuation/whitespace and trims edge hyphens", () => {
     const text = "#  Fix: the (download) UX!! \nx";
-    expect(planArtifactName(text)).toBe(`fix-the-download-ux_${planId(text)}.plan.md`);
+    expect(planFileName(text)).toBe(`fix-the-download-ux_${planId(text)}.plan.md`);
   });
 
   it("unwraps a ```markdown fenced plan before reading the title (SDK parity)", () => {
     const text = "```markdown\n# Named Plan\n\nbody\n```";
-    expect(planArtifactName(text)).toBe(`named-plan_${planId(text)}.plan.md`);
+    expect(planFileName(text)).toBe(`named-plan_${planId(text)}.plan.md`);
   });
 
   it("unwraps a bare ``` fenced plan before reading the title (SDK parity)", () => {
     const text = "```\n# Bare Fenced Plan\n\nbody\n```";
-    expect(planArtifactName(text)).toBe(`bare-fenced-plan_${planId(text)}.plan.md`);
+    expect(planFileName(text)).toBe(`bare-fenced-plan_${planId(text)}.plan.md`);
   });
 
   it("caps the slug length so filenames stay bounded", () => {
     const longTitle = "# " + "word ".repeat(40); // ~200 chars of words
-    const name = planArtifactName(longTitle);
+    const name = planFileName(longTitle);
     const match = /^(.+)_[0-9a-f]{8}\.plan\.md$/.exec(name);
     expect(match).not.toBeNull();
     const slug = match![1];
@@ -70,41 +70,41 @@ describe("planArtifactName", () => {
 
   it("falls back to a bare <id>.plan.md when there is no leading H1", () => {
     const noTitle = "No title here\n\nbody";
-    expect(planArtifactName(noTitle)).toBe(`${planId(noTitle)}.plan.md`);
+    expect(planFileName(noTitle)).toBe(`${planId(noTitle)}.plan.md`);
     // An H1 further down is body content, not the title.
     const later = "intro\n\n# Later Heading";
-    expect(planArtifactName(later)).toBe(`${planId(later)}.plan.md`);
+    expect(planFileName(later)).toBe(`${planId(later)}.plan.md`);
   });
 
   it("falls back to a bare <id>.plan.md when the title is only the 'Plan:' label", () => {
     const text = "# Plan:\n\nbody";
-    expect(planArtifactName(text)).toBe(`${planId(text)}.plan.md`);
+    expect(planFileName(text)).toBe(`${planId(text)}.plan.md`);
   });
 
   it("falls back to a bare <id>.plan.md when the title has no alphanumerics", () => {
     const text = "# ---\n\nbody";
-    expect(planArtifactName(text)).toBe(`${planId(text)}.plan.md`);
+    expect(planFileName(text)).toBe(`${planId(text)}.plan.md`);
   });
 
   it("never freshly emits the legacy plan.md name", () => {
     for (const text of ["# A Title\n\nbody", "no heading", "# Plan:\n\nx"]) {
-      expect(planArtifactName(text)).not.toBe(PLAN_ARTIFACT_NAME);
+      expect(planFileName(text)).not.toBe(PLAN_FILE_NAME);
     }
   });
 });
 
-describe("isPlanArtifactName", () => {
+describe("isPlanFileName", () => {
   it("accepts the legacy exact name and any *.plan.md", () => {
-    expect(isPlanArtifactName("plan.md")).toBe(true);
-    expect(isPlanArtifactName("feature_x.plan.md")).toBe(true);
-    expect(isPlanArtifactName("fix-the-download-ux_a1b2c3d4.plan.md")).toBe(true);
-    expect(isPlanArtifactName("a1b2c3d4.plan.md")).toBe(true);
+    expect(isPlanFileName("plan.md")).toBe(true);
+    expect(isPlanFileName("feature_x.plan.md")).toBe(true);
+    expect(isPlanFileName("fix-the-download-ux_a1b2c3d4.plan.md")).toBe(true);
+    expect(isPlanFileName("a1b2c3d4.plan.md")).toBe(true);
   });
 
   it("rejects non-plan filenames", () => {
-    expect(isPlanArtifactName("notes.md")).toBe(false);
-    expect(isPlanArtifactName("plan.md.bak")).toBe(false);
-    expect(isPlanArtifactName("myplan.md")).toBe(false);
+    expect(isPlanFileName("notes.md")).toBe(false);
+    expect(isPlanFileName("plan.md.bak")).toBe(false);
+    expect(isPlanFileName("myplan.md")).toBe(false);
   });
 });
 

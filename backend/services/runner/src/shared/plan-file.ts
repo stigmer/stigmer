@@ -7,7 +7,7 @@
  * ({@link savePlanOutput}), and the one outputs collector (`outputs.ts`)
  * returns it as a File of the turn like anything the agent saved: one path
  * for every file a turn returns, on every engine. The building turn finds it
- * among a message's Files by its name ({@link isPlanArtifactName}).
+ * among a message's Files by its name ({@link isPlanFileName}).
  *
  * The File is named from the plan's own title: a hyphenated slug of its
  * leading `# H1`, a `_<hash>` discriminator, and a `.plan.md` suffix (e.g.
@@ -37,21 +37,21 @@ import { OUTPUTS_SUBDIR } from "./outputs.js";
 import { getPlatformDir } from "./workspace/platform-dir.js";
 
 /**
- * Legacy plan filename. Detection-only: {@link isPlanArtifactName} still
+ * Legacy plan filename. Detection-only: {@link isPlanFileName} still
  * accepts this exact name so plans returned before named plans existed
  * keep working. It is NEVER freshly emitted — a titleless plan now falls back
- * to a bare `<hash>.plan.md` (see {@link planArtifactName}).
+ * to a bare `<hash>.plan.md` (see {@link planFileName}).
  */
-export const PLAN_ARTIFACT_NAME = "plan.md";
+export const PLAN_FILE_NAME = "plan.md";
 
 /**
  * Suffix every named plan File carries. The UI keys plan detection on this
- * suffix, so it must stay in sync with the SDK's `PLAN_ARTIFACT_SUFFIX`
- * (`sdk/react/src/library/detect-plan-artifact.ts`). The two cannot share a
+ * suffix, so it must stay in sync with the SDK's `PLAN_FILE_SUFFIX`
+ * (`sdk/react/src/library/detect-plan-file.ts`). The two cannot share a
  * module — the runner and the browser SDK have disjoint module graphs — so the
- * constant is duplicated by design, mirroring {@link PLAN_ARTIFACT_NAME}.
+ * constant is duplicated by design, mirroring {@link PLAN_FILE_NAME}.
  */
-export const PLAN_ARTIFACT_SUFFIX = ".plan.md";
+export const PLAN_FILE_SUFFIX = ".plan.md";
 
 /** Longest slug we derive from a plan title before the `_<id>.plan.md` tail. */
 const MAX_PLAN_SLUG_LENGTH = 60;
@@ -61,10 +61,10 @@ const PLAN_ID_LENGTH = 8;
 
 /**
  * Reports whether a filename is a plan: the legacy exact name, or any
- * `*.plan.md`. Kept in sync with the SDK's `isPlanArtifactName`.
+ * `*.plan.md`. Kept in sync with the SDK's `isPlanFileName`.
  */
-export function isPlanArtifactName(name: string): boolean {
-  return name === PLAN_ARTIFACT_NAME || name.endsWith(PLAN_ARTIFACT_SUFFIX);
+export function isPlanFileName(name: string): boolean {
+  return name === PLAN_FILE_NAME || name.endsWith(PLAN_FILE_SUFFIX);
 }
 
 // Plan-title extraction, mirrored from the SDK so the runner's derived filename
@@ -109,7 +109,7 @@ function extractPlanTitle(planText: string): string | undefined {
  * extraction: display surfaces render the message's own `# H1` faithfully
  * (`extractLeadingH1` is general-purpose and render-time-only), so the clean
  * title is fixed at the source — the plan-mode prompt tells the model not to
- * prefix titles with "Plan:". This strip is the durable-artifact safety net for
+ * prefix titles with "Plan:". This strip is the saved file's safety net for
  * when the model (or the enforcement-less Cursor harness) drifts.
  */
 function stripPlanLabel(title: string): string {
@@ -138,7 +138,7 @@ function slugifyPlanTitle(title: string): string {
  * user-facing discriminator for the shared download/list basename namespace,
  * not a storage-uniqueness device (see the module doc).
  */
-export function planArtifactName(planText: string): string {
+export function planFileName(planText: string): string {
   const id = createHash("sha256")
     .update(planText, "utf-8")
     .digest("hex")
@@ -146,8 +146,8 @@ export function planArtifactName(planText: string): string {
   const title = extractPlanTitle(planText);
   const slug = title ? slugifyPlanTitle(stripPlanLabel(title)) : "";
   return slug.length > 0
-    ? `${slug}_${id}${PLAN_ARTIFACT_SUFFIX}`
-    : `${id}${PLAN_ARTIFACT_SUFFIX}`;
+    ? `${slug}_${id}${PLAN_FILE_SUFFIX}`
+    : `${id}${PLAN_FILE_SUFFIX}`;
 }
 
 /** Where the plan is written before it is renamed into the outputs folder: in the platform folder, beside `outputs/`. */
@@ -155,7 +155,7 @@ export const PLAN_STAGING_FILE = "plan.next";
 
 /**
  * Writes `planText` into the session's outputs folder as
- * `<planArtifactName(planText)>`, staged beside the folder and renamed in,
+ * `<planFileName(planText)>`, staged beside the folder and renamed in,
  * so the collector returns it as a File of the turn. An empty plan writes
  * nothing. Returns the name written, or `undefined` for an empty plan.
  * Throws on a failed write; the caller decides that a plan never fails a turn.
@@ -167,7 +167,7 @@ export async function savePlanOutput(opts: {
   const { sessionId, planText } = opts;
   if (planText.trim().length === 0) return undefined;
   const platformDir = getPlatformDir(sessionId);
-  const name = planArtifactName(planText);
+  const name = planFileName(planText);
   const staging = join(platformDir, PLAN_STAGING_FILE);
   await agentFs().writeFile(staging, planText);
   await agentFs().rename(staging, join(platformDir, OUTPUTS_SUBDIR, name));

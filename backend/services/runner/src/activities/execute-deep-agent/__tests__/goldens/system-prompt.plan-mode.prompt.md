@@ -9,7 +9,6 @@ This session has 2 workspace entries.
 ### app (`app`)
 
 Workspace entry **app** was initialized from https://github.com/acme/payments (branch: main).
-Changes you make will be captured as artifacts when execution completes.
 
 app/
   src/
