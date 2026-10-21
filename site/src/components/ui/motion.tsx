@@ -38,7 +38,6 @@
 import { forwardRef, type ReactNode, type ComponentPropsWithoutRef } from "react";
 import {
   motion,
-  useReducedMotion,
   AnimatePresence as FramerAnimatePresence,
   type HTMLMotionProps,
   type Variants,
@@ -380,51 +379,6 @@ export const StaggerItem = forwardRef<HTMLDivElement, MotionDivProps>(
   }
 );
 StaggerItem.displayName = "StaggerItem";
-
-/**
- * Props for MotionDiv - explicit children type to avoid MotionValue issues.
- */
-interface MotionDivComponentProps
-  extends Omit<HTMLMotionProps<"div">, "children"> {
-  children: ReactNode;
-  disabled?: boolean;
-}
-
-/**
- * MotionDiv - Low-level motion wrapper for custom animations.
- *
- * Use this when the pre-built components don't fit your needs.
- * Still respects reduced motion preference.
- *
- * @example
- * <MotionDiv
- *   initial={{ opacity: 0, rotate: -10 }}
- *   animate={{ opacity: 1, rotate: 0 }}
- *   transition={{ type: "spring" }}
- * >
- *   Custom animated content
- * </MotionDiv>
- */
-export const MotionDiv = forwardRef<HTMLDivElement, MotionDivComponentProps>(
-  ({ children, disabled, className, ...props }, ref) => {
-    const prefersReducedMotion = useReducedMotion();
-
-    if (disabled || prefersReducedMotion) {
-      return (
-        <div ref={ref} className={className} {...filterMotionProps(props)}>
-          {children}
-        </div>
-      );
-    }
-
-    return (
-      <motion.div ref={ref} className={className} {...props}>
-        {children}
-      </motion.div>
-    );
-  }
-);
-MotionDiv.displayName = "MotionDiv";
 
 // =============================================================================
 // UTILITIES
