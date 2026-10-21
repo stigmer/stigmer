@@ -59,7 +59,9 @@
  * takes the same single-flight slot as a write, so two appends never race
  * over the emitter's queue, and it never waits: while a write is in flight
  * the output rides that write or the pump's next tick. No sealed event
- * leaves through it, so the redaction order above is unchanged.
+ * leaves through it, so the redaction order above is unchanged. What the
+ * turn has open leaves by a third, {@link flushLiveness}, alone and in the
+ * same slot (`liveness-pump.ts`).
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -73,6 +75,8 @@ import { FileRecordSender } from "../shared/filereview/record.js";
 import { persistStatus } from "../shared/status.js";
 import type { ToolOutputOffloadContext } from "../shared/status-offload.js";
 import type { SessionEventEmitter } from "./events/emitter.js";
+import type { LivenessSend } from "./liveness-pump.js";
+import type { OperationsSnapshot } from "./open-operations.js";
 import { withholdSecretContentFromMessages } from "../shared/tool-row.js";
 import type { TurnProgress } from "./capture.js";
 import type { UsageAccumulator } from "./usage-accumulator.js";
@@ -103,7 +107,7 @@ export interface PersistChokepointDeps {
   /** The control plane answered STOP to this write. */
   readonly onPlatformStop: () => void;
   /** Writes the session's events from the rows each write carries; absent in tests that do not read the log. */
-  readonly events?: Pick<SessionEventEmitter, "flush" | "flushToolOutput">;
+  readonly events?: Pick<SessionEventEmitter, "flush" | "flushToolOutput" | "sendLiveness">;
 }
 
 export class PersistChokepoint {
@@ -151,6 +155,31 @@ export class PersistChokepoint {
     this.inFlight = flush;
     await flush;
     return true;
+  }
+
+  /**
+   * Send what the turn has open, as one liveness preview alone, when no
+   * write is in flight: the runtime's liveness pump (`liveness-pump.ts`).
+   * Resolves `busy`, sending nothing, when a write or another flush holds
+   * the slot, and `refused` when the log refused the preview as invalid.
+   * Never rejects.
+   */
+  async flushLiveness(snapshot: OperationsSnapshot): Promise<LivenessSend> {
+    const events = this.deps.events;
+    if (events === undefined) return "sent";
+    if (this.inFlight !== undefined) return "busy";
+    let outcome: LivenessSend = "sent";
+    const flush = events
+      .sendLiveness(snapshot)
+      .then((sent) => {
+        outcome = sent;
+      })
+      .finally(() => {
+        this.inFlight = undefined;
+      });
+    this.inFlight = flush;
+    await flush;
+    return outcome;
   }
 
   /**

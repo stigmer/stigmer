@@ -175,6 +175,7 @@ describe("serveStream", () => {
       }),
     );
     source.push(eventFrame({ case: "stigmerToolOutputDelta", value: { toolUseId: "tu_1", delta: "out" } }));
+    source.push(eventFrame({ case: "stigmerRunLiveness", value: { runId: "run_1" } }));
     source.push(eventFrame({ case: "eventStart", value: { event: { id: "sevt_3", type: "agent.message" } } }));
     source.push(
       eventFrame({

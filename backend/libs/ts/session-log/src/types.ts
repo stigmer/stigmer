@@ -290,6 +290,36 @@ export interface Turn {
   readonly errors: ReadonlyArray<TurnError>;
   /** The text of the primary thread's last agent.message; "" when it wrote none. */
   readonly answer: string;
+  /**
+   * What the turn has open now, from its newest `stigmer.run.liveness`
+   * preview; undefined once the turn ended, or before any arrived.
+   */
+  readonly liveness: TurnLiveness | undefined;
+}
+
+/**
+ * A working turn's newest liveness preview (`stigmer.run.liveness`). The
+ * durations are the runner's, measured when it sent the preview: a client
+ * that shows them ticking counts on from the moment the preview arrived,
+ * never from its own clock against the runner's.
+ */
+export interface TurnLiveness {
+  /** The operations open, oldest first; one whose result the log already holds is left out. */
+  readonly operations: ReadonlyArray<TurnOpenOperation>;
+  /** How long the turn had waited on its model's reply; undefined when it was not waiting. */
+  readonly awaitingModelMs: number | undefined;
+}
+
+/** One operation a working turn has open. */
+export interface TurnOpenOperation {
+  /** The tool use it runs: its `agent.tool_use` event's id. */
+  readonly toolUseId: string;
+  /** The tool's name as the agent called it. */
+  readonly name: string;
+  /** The thread that runs it; "" for the primary thread. */
+  readonly threadId: string;
+  /** How long it had been open when the preview was sent. */
+  readonly elapsedMs: number;
 }
 
 /** The session's own status: the newest `session.status_running` or `session.status_idle`. */

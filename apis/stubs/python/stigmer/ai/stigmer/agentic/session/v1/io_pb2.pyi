@@ -209,26 +209,30 @@ class StreamSessionEventsRequest(_message.Message):
     def __init__(self, session_id: _Optional[str] = ..., event_deltas: _Optional[_Iterable[str]] = ..., after_seq: _Optional[int] = ...) -> None: ...
 
 class StreamSessionEventsResponse(_message.Message):
-    __slots__ = ("event", "event_start", "event_delta", "stigmer_tool_output_delta")
+    __slots__ = ("event", "event_start", "event_delta", "stigmer_tool_output_delta", "stigmer_run_liveness")
     EVENT_FIELD_NUMBER: _ClassVar[int]
     EVENT_START_FIELD_NUMBER: _ClassVar[int]
     EVENT_DELTA_FIELD_NUMBER: _ClassVar[int]
     STIGMER_TOOL_OUTPUT_DELTA_FIELD_NUMBER: _ClassVar[int]
+    STIGMER_RUN_LIVENESS_FIELD_NUMBER: _ClassVar[int]
     event: _event_pb2.SessionEvent
     event_start: _event_pb2.EventStart
     event_delta: _event_pb2.EventDelta
     stigmer_tool_output_delta: _event_pb2.ToolOutputDelta
-    def __init__(self, event: _Optional[_Union[_event_pb2.SessionEvent, _Mapping]] = ..., event_start: _Optional[_Union[_event_pb2.EventStart, _Mapping]] = ..., event_delta: _Optional[_Union[_event_pb2.EventDelta, _Mapping]] = ..., stigmer_tool_output_delta: _Optional[_Union[_event_pb2.ToolOutputDelta, _Mapping]] = ...) -> None: ...
+    stigmer_run_liveness: _event_pb2.RunLiveness
+    def __init__(self, event: _Optional[_Union[_event_pb2.SessionEvent, _Mapping]] = ..., event_start: _Optional[_Union[_event_pb2.EventStart, _Mapping]] = ..., event_delta: _Optional[_Union[_event_pb2.EventDelta, _Mapping]] = ..., stigmer_tool_output_delta: _Optional[_Union[_event_pb2.ToolOutputDelta, _Mapping]] = ..., stigmer_run_liveness: _Optional[_Union[_event_pb2.RunLiveness, _Mapping]] = ...) -> None: ...
 
 class SessionEventPreview(_message.Message):
-    __slots__ = ("event_start", "event_delta", "stigmer_tool_output_delta")
+    __slots__ = ("event_start", "event_delta", "stigmer_tool_output_delta", "stigmer_run_liveness")
     EVENT_START_FIELD_NUMBER: _ClassVar[int]
     EVENT_DELTA_FIELD_NUMBER: _ClassVar[int]
     STIGMER_TOOL_OUTPUT_DELTA_FIELD_NUMBER: _ClassVar[int]
+    STIGMER_RUN_LIVENESS_FIELD_NUMBER: _ClassVar[int]
     event_start: _event_pb2.EventStart
     event_delta: _event_pb2.EventDelta
     stigmer_tool_output_delta: _event_pb2.ToolOutputDelta
-    def __init__(self, event_start: _Optional[_Union[_event_pb2.EventStart, _Mapping]] = ..., event_delta: _Optional[_Union[_event_pb2.EventDelta, _Mapping]] = ..., stigmer_tool_output_delta: _Optional[_Union[_event_pb2.ToolOutputDelta, _Mapping]] = ...) -> None: ...
+    stigmer_run_liveness: _event_pb2.RunLiveness
+    def __init__(self, event_start: _Optional[_Union[_event_pb2.EventStart, _Mapping]] = ..., event_delta: _Optional[_Union[_event_pb2.EventDelta, _Mapping]] = ..., stigmer_tool_output_delta: _Optional[_Union[_event_pb2.ToolOutputDelta, _Mapping]] = ..., stigmer_run_liveness: _Optional[_Union[_event_pb2.RunLiveness, _Mapping]] = ...) -> None: ...
 
 class AppendSessionEventsInput(_message.Message):
     __slots__ = ("run_id", "events", "previews")

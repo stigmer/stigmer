@@ -330,6 +330,49 @@ describe("previews", () => {
     expect(log.applyFrame(frame({ case: "stigmerToolOutputDelta", value: { toolUseId: `${R}.c1`, delta: "late" } }))).toBe(false);
   });
 
+  it("a working turn's newest liveness names what is open, less what returned, until the turn ends", () => {
+    const log = new SessionLog();
+    log.apply([user(R, "go"), use(R, "c1", "shell"), use(R, "c2", "task")]);
+    expect(log.snapshot().turns[0]!.liveness).toBeUndefined();
+    log.applyFrame(
+      frame({
+        case: "stigmerRunLiveness",
+        value: {
+          runId: R,
+          operations: [
+            { toolUseId: `${R}.c1`, name: "shell", elapsed: { seconds: 840n, nanos: 500_000_000 } },
+            { toolUseId: `${R}.c2.c3`, name: "execute", threadId: `${R}.c2`, elapsed: { seconds: 5n } },
+            { toolUseId: `${R}.c9`, name: "grep" },
+          ],
+        },
+      }),
+    );
+    expect(log.snapshot().turns[0]!.liveness).toEqual({
+      operations: [
+        { toolUseId: `${R}.c1`, name: "shell", threadId: "", elapsedMs: 840_500 },
+        { toolUseId: `${R}.c2.c3`, name: "execute", threadId: `${R}.c2`, elapsedMs: 5_000 },
+        { toolUseId: `${R}.c9`, name: "grep", threadId: "", elapsedMs: 0 },
+      ],
+      awaitingModelMs: undefined,
+    });
+    const before = log.snapshot().turns[0]!.liveness;
+    log.apply([said(R, 0, "Unrelated.")]);
+    expect(log.snapshot().turns[0]!.liveness).toBe(before);
+    log.apply([result(R, "c1", "done")]);
+    expect(log.snapshot().turns[0]!.liveness?.operations.map((operation) => operation.toolUseId)).toEqual([`${R}.c2.c3`, `${R}.c9`]);
+    log.applyFrame(frame({ case: "stigmerRunLiveness", value: { runId: R, awaitingModelFor: { seconds: 120n } } }));
+    expect(log.snapshot().turns[0]!.liveness).toEqual({ operations: [], awaitingModelMs: 120_000 });
+    log.apply([phase(R, "completed")]);
+    expect(log.snapshot().turns[0]!.liveness).toBeUndefined();
+  });
+
+  it("a liveness for a run the log has not shown changes nothing", () => {
+    const log = new SessionLog();
+    log.apply([user(R, "go")]);
+    expect(log.applyFrame(frame({ case: "stigmerRunLiveness", value: { runId: R2 } }))).toBe(false);
+    expect(log.snapshot().turns).toHaveLength(1);
+  });
+
   it("reads a preview's place from its derived id", () => {
     expect(previewPlaceOf("run_1.root.m3")).toEqual({ runId: "run_1", threadId: "" });
     expect(previewPlaceOf("run_1.call_9.t0")).toEqual({ runId: "run_1", threadId: "run_1.call_9" });

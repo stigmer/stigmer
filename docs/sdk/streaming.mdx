@@ -221,6 +221,7 @@ event the server writes.
 | `stigmer.run.status` | A run changed phase: it started, waits, paused, or ended and how. | Stigmer keeps each turn as a run, which billing, routines and channels key on. The Session's status speaks for the whole Session and says nothing when one run ends while another still works. | Server |
 | `stigmer.tool_result.full_output` | Where the whole output of a tool result too large to keep inline is stored. The result holds its head. | A field can't be added to their `agent.tool_result`. | Runner |
 | `stigmer.tool_output_delta` (preview) | A piece of a running tool's output. Streamed when you name it in `event_deltas`, and never stored. | They preview only the Agent's message and thinking. This shows a long command's output as it runs. | Runner |
+| `stigmer.run.liveness` (preview) | What a working turn has open: each running tool call with how long it has run, and how long the turn has waited on its model. Sent when that changes and every 30 seconds while the turn works. Streamed when you name it in `event_deltas`, and never stored. | They have no liveness event, and their `span.model_request_*` events aren't served. Without it a client can't tell a ten-minute build from a turn that stopped answering. | Runner |
 
 Where Stigmer's Managed Agents events mean something slightly different, and
 which of their events Stigmer never writes, is in
@@ -481,7 +482,8 @@ For more on error classification, see
 
 Stored events arrive once they're complete. To show a message while the Agent
 writes it, ask for previews with `event_deltas` (`agent.message`,
-`agent.thinking`, or `stigmer.tool_output_delta` for a running tool's output).
+`agent.thinking`, `stigmer.tool_output_delta` for a running tool's output, or
+`stigmer.run.liveness` for what a working turn has open).
 The stream then also sends `event_start` and `event_delta` frames. The stored
 event that follows carries the same `id` and replaces the preview.
 

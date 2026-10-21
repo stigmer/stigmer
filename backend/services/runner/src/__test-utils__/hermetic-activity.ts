@@ -299,6 +299,8 @@ export class ExecutionRecord {
   readonly sessionEvents: SessionEvent[] = [];
   /** Every preview the runner sent, in order. */
   readonly sessionPreviews: SessionEventPreview[] = [];
+  /** Every append the log accepted, by what it carried: its events' count and its previews' cases. */
+  readonly appendShapes: { readonly events: number; readonly previews: ReadonlyArray<SessionEventPreview["preview"]["case"]> }[] = [];
   /** Ids the runner sent again although the log held them: a resumed turn that forgot what it wrote. */
   readonly resentEventIds: string[] = [];
   /** Every append the log refused, by its reason: a runner defect the emitter would drop silently. */
@@ -696,6 +698,7 @@ export class ExecutionRecord {
     }
     this.sessionEvents.push(...fresh);
     this.sessionPreviews.push(...previews.map((p) => clone(SessionEventPreviewSchema, p)));
+    this.appendShapes.push({ events: events.length, previews: previews.map((p) => p.preview.case) });
   }
 
   /**

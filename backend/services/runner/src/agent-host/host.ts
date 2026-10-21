@@ -31,6 +31,7 @@
 
 import { harnessRowFor, type HarnessRow } from "../harness/registry.js";
 import type { Config } from "../config.js";
+import { DEFAULT_LIVENESS_INTERVAL_MS } from "../harness/liveness-pump.js";
 import { DEFAULT_OPEN_OPERATION_MAX_MS } from "../harness/open-operations.js";
 import type { TurnOutcome } from "../harness/types.js";
 import { runWithExecutionContext } from "../shared/execution-context.js";
@@ -194,6 +195,8 @@ function hostConfig(wire: HostConfigWire): Config {
     // The backstop is the turn runtime's, which runs in the runner, never
     // here: the host reads it nowhere, so it does not cross the wire.
     openOperationMaxMs: DEFAULT_OPEN_OPERATION_MAX_MS,
+    // The liveness pump is the turn runtime's too.
+    livenessIntervalMs: DEFAULT_LIVENESS_INTERVAL_MS,
     // The worker is the runner's; the host has no worker to drain.
     drainGraceMs: 0,
     shellTimeoutMaxSeconds: wire.shellTimeoutMaxSeconds,

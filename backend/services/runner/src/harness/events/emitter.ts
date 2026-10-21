@@ -72,7 +72,8 @@
  * events, because a harness may stream output while nothing else happens
  * (Cursor's shell deltas arrive outside its loop's persists) and the
  * output would otherwise reach the session only after the result, when it
- * is dropped.
+ * is dropped. What the turn has open goes the same way, alone, through
+ * {@link sendLiveness}: the runtime's liveness pump (`liveness-pump.ts`).
  *
  * Its credential. The append presents the credential the values fetch
  * acquires, and renews a clocked one at 0.8 of its lifetime: a turn without
@@ -112,6 +113,7 @@ import type { ScopedRunnerCredential, StigmerClient } from "../../client/stigmer
 import type { ReconciledUndo } from "../owed-undos.js";
 import { elideToEncodedSize } from "../../shared/status-offload.js";
 import { isToolCallRowHidden } from "../../shared/tool-row.js";
+import type { OperationsSnapshot } from "../open-operations.js";
 import type { TranscriptEvent } from "../transcript/events.js";
 import {
   fileReviewChangesEventId,
@@ -172,6 +174,12 @@ const CREDENTIAL_RETRY_MS = 60_000;
 
 /** The refusals that may mean the credential, not the event: re-acquired once before the batch is judged. */
 const CREDENTIAL_REFUSALS: ReadonlySet<Code> = new Set([Code.Unauthenticated, Code.PermissionDenied]);
+
+/** The most operations one liveness names: `RunLiveness.operations`' bound in the contract. */
+export const LIVENESS_MAX_OPERATIONS = 256;
+
+/** The longest tool name a liveness carries, in characters: `RunOpenOperation.name`'s bound in the contract. */
+export const LIVENESS_NAME_MAX_CHARS = 256;
 
 export interface SessionEventEmitterDeps {
   readonly client: Pick<StigmerClient, "appendSessionEvents" | "listRunSessionEvents">;
@@ -379,6 +387,56 @@ export class SessionEventEmitter {
     } catch (err) {
       if (err instanceof ConnectError && CREDENTIAL_REFUSALS.has(err.code)) this.credentialRefused();
       console.warn(`[session-events] run=${this.deps.runId}: sending ${previews.length} tool-output preview(s) failed; not resent: ${String(err)}`);
+    }
+  }
+
+  /**
+   * What the turn has open now, sent as one `stigmer.run.liveness` preview
+   * in an append of its own: no event, no other preview, no status write
+   * (the liveness pump's module header says why alone). An operation whose
+   * result the log already holds is left out. Called by the persist
+   * chokepoint in its single flight, as {@link flushToolOutput} is.
+   * Resolves `refused` when the log refused the preview as invalid (a
+   * server older than it), so the pump stops; any other failure is logged
+   * and not resent. Never throws.
+   */
+  async sendLiveness(snapshot: OperationsSnapshot): Promise<"sent" | "refused"> {
+    if (!this.began) return "sent";
+    const runId = this.deps.runId;
+    // Clamped to the contract, so a preview the log would refuse as invalid
+    // never stops the pump: the oldest operations, each name within its bound.
+    const operations = snapshot.operations
+      .flatMap((operation) => {
+        const toolUseId = toolUseEventId(runId, operation.callId);
+        if (this.known(toolResultEventId(toolUseId))) return [];
+        return [
+          {
+            toolUseId,
+            name: livenessName(operation.name),
+            elapsed: durationOf(operation.ageMs),
+            threadId: operation.subAgentId === undefined ? "" : threadId(runId, operation.subAgentId),
+          },
+        ];
+      })
+      .slice(0, LIVENESS_MAX_OPERATIONS);
+    const preview = create(SessionEventPreviewSchema, {
+      preview: {
+        case: "stigmerRunLiveness",
+        value: {
+          runId,
+          operations,
+          ...(snapshot.awaitingModelMs === undefined ? {} : { awaitingModelFor: durationOf(snapshot.awaitingModelMs) }),
+        },
+      },
+    });
+    try {
+      await this.deps.client.appendSessionEvents(runId, [], [preview], await this.credential());
+      return "sent";
+    } catch (err) {
+      if (err instanceof ConnectError && err.code === Code.InvalidArgument) return "refused";
+      if (err instanceof ConnectError && CREDENTIAL_REFUSALS.has(err.code)) this.credentialRefused();
+      console.warn(`[session-events] run=${runId}: sending the turn's liveness failed; not resent: ${String(err)}`);
+      return "sent";
     }
   }
 
@@ -923,6 +981,19 @@ export function nextScopeIndexes(runId: string, ids: readonly string[]): Map<str
     next.set(prefix, Math.max(next.get(prefix) ?? 0, Number(match[2]) + 1));
   }
   return next;
+}
+
+/** A tool's name as a liveness carries it: within the contract's bound, and never empty. */
+function livenessName(name: string): string {
+  const chars = [...name];
+  if (chars.length === 0) return "tool";
+  return chars.length > LIVENESS_NAME_MAX_CHARS ? chars.slice(0, LIVENESS_NAME_MAX_CHARS).join("") : name;
+}
+
+/** A non-negative span in milliseconds as a protobuf Duration. */
+function durationOf(ms: number): { seconds: bigint; nanos: number } {
+  const whole = Math.max(0, Math.floor(ms));
+  return { seconds: BigInt(Math.floor(whole / 1000)), nanos: (whole % 1000) * 1_000_000 };
 }
 
 function idOf(event: SessionEvent): string {

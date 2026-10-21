@@ -586,6 +586,25 @@ describe("Stigmer's own events render by the same three rules, under their stigm
     });
     expect(toManagedAgentsStreamJson(frame)).toEqual({ tool_use_id: "u1", delta: "PASS", type: "stigmer.tool_output_delta" });
   });
+
+  it("a working turn's liveness renders as stigmer.run.liveness, its durations as protobuf JSON", () => {
+    const frame = create(StreamSessionEventsResponseSchema, {
+      frame: {
+        case: "stigmerRunLiveness",
+        value: {
+          runId: "run_1",
+          operations: [{ toolUseId: "u1", name: "shell", elapsed: { seconds: 840n } }],
+          awaitingModelFor: { seconds: 2n, nanos: 500_000_000 },
+        },
+      },
+    });
+    expect(toManagedAgentsStreamJson(frame)).toEqual({
+      run_id: "run_1",
+      operations: [{ tool_use_id: "u1", name: "shell", elapsed: "840s" }],
+      awaiting_model_for: "2.500s",
+      type: "stigmer.run.liveness",
+    });
+  });
 });
 
 describe("a renderer given nothing", () => {

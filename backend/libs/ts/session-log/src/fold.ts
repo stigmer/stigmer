@@ -34,6 +34,10 @@
  * only an id and a type, so the fold reads where it belongs from the id
  * the runner derived (`<run>.<scope>.m<index>`, `<run>.<scope>.t<index>`,
  * scope `root` or a sub-agent's segment; harness/events/ids.ts).
+ * `stigmer.run.liveness` names what a working turn has open; the newest
+ * one is the turn's `liveness` until the turn ends, less any operation
+ * whose result the log already holds. A liveness for a run the log has
+ * not shown is dropped, never a turn of its own.
  *
  * A turn's end. The newest `stigmer.run.status` says it. A turn whose
  * events predate that event reads as ended once a later turn began, or
@@ -49,6 +53,7 @@
  * of both harnesses by __tests__/goldens.test.ts.
  */
 import type { JsonObject } from "@bufbuild/protobuf";
+import type { Duration } from "@bufbuild/protobuf/wkt";
 import type { ContentBlock } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import type { StreamSessionEventsResponse } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
@@ -79,6 +84,8 @@ import {
   type Turn,
   type TurnError,
   type TurnItem,
+  type TurnLiveness,
+  type TurnOpenOperation,
   type TurnPhase,
   type TurnStatus,
   type UserMessage,
@@ -165,6 +172,7 @@ interface MutTurn extends Node {
   memory?: MemoryRecall;
   readonly errors: TurnError[];
   readonly sets: MutSet[];
+  liveness?: TurnLiveness;
   cache?: Cached<Turn>;
 }
 
@@ -226,6 +234,23 @@ export class SessionLog {
         } else if (tool.kind === "tool_use" && tool.result === undefined && delta !== "") {
           tool.liveOutput += delta;
           this.touch(tool);
+        }
+        break;
+      }
+      case "stigmerRunLiveness": {
+        const liveness = frame.frame.value;
+        const turn = this.turnsById.get(liveness.runId);
+        if (turn !== undefined) {
+          turn.liveness = {
+            operations: liveness.operations.map((operation) => ({
+              toolUseId: operation.toolUseId,
+              name: operation.name,
+              threadId: operation.threadId,
+              elapsedMs: durationMs(operation.elapsed),
+            })),
+            awaitingModelMs: liveness.awaitingModelFor === undefined ? undefined : durationMs(liveness.awaitingModelFor),
+          };
+          this.touch(turn);
         }
         break;
       }
@@ -758,9 +783,22 @@ export class SessionLog {
       fileReview: turn.sets.map((set) => this.snapSet(set)),
       errors: [...turn.errors],
       answer: lastMessage?.text ?? "",
+      liveness: ended ? undefined : this.openLiveness(turn.liveness),
     };
     turn.cache = { key, value };
     return value;
+  }
+
+  /** A turn's liveness less the operations whose result the log already holds: a result touches the turn, so this re-reads. */
+  private openLiveness(liveness: TurnLiveness | undefined): TurnLiveness | undefined {
+    if (liveness === undefined) {
+      return undefined;
+    }
+    const operations = liveness.operations.filter((operation: TurnOpenOperation) => {
+      const item = this.items.get(operation.toolUseId);
+      return item === undefined || item.kind !== "tool_use" || item.result === undefined;
+    });
+    return operations.length === liveness.operations.length ? liveness : { ...liveness, operations };
   }
 
   private snapItem(item: MutItem, ended: boolean, asks: ToolUse[]): TurnItem {
@@ -884,6 +922,14 @@ export function previewPlaceOf(id: string): { readonly runId: string; readonly t
   const runId = match[1]!;
   const scope = match[2]!;
   return { runId, threadId: scope === "root" ? "" : `${runId}.${scope}` };
+}
+
+/** A duration in milliseconds; an unset one is zero. */
+function durationMs(duration: Duration | undefined): number {
+  if (duration === undefined) {
+    return 0;
+  }
+  return Number(duration.seconds) * 1000 + Math.floor(duration.nanos / 1_000_000);
 }
 
 function textItemOf(item: MutText): TurnItem {

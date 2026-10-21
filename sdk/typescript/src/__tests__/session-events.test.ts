@@ -6,6 +6,8 @@
  * newest place of an existing session (the whole log of a new one), starts
  * the turn and returns its answer once its status ends it, or its asks
  * when the session waits on them; `waitForTurn` resumes after an answer.
+ * Against a server older than the liveness preview, a follow that asked
+ * for it asks again without it, once and for good.
  */
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
@@ -22,7 +24,7 @@ import {
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
 import type { RunInput } from "../gen/run.js";
-import { followSession, newestSeq, sendAndWait, waitForTurn, type SendAndWaitClient } from "../session-events.js";
+import { ALL_SESSION_PREVIEWS, followSession, newestSeq, sendAndWait, waitForTurn, type SendAndWaitClient } from "../session-events.js";
 
 type EventInit = MessageInitShape<typeof SessionEventSchema>["event"];
 
@@ -77,6 +79,81 @@ function logDouble(log: SessionEvent[], steps: Array<"end" | "drop" | "refuse" |
 }
 
 const noWait = async () => {};
+
+/**
+ * A server that predates `stigmer.run.liveness`: its `event_deltas` takes at
+ * most three names from its own list, and it refuses any other request as
+ * invalid before it streams anything.
+ */
+function olderServer(log: SessionEvent[], steps: Array<"end" | "drop"> = []) {
+  const requests: StreamSessionEventsRequest[] = [];
+  const known = new Set(["agent.message", "agent.thinking", "stigmer.tool_output_delta"]);
+  const client = {
+    session: {
+      async *streamEvents(input: StreamSessionEventsRequest) {
+        requests.push(input);
+        if (input.eventDeltas.length > 3 || input.eventDeltas.some((type) => !known.has(type))) {
+          throw new ConnectError("validation error: event_deltas", Code.InvalidArgument);
+        }
+        for (const e of log.filter((x) => x.seq > (input.afterSeq ?? 0n))) {
+          yield frameOf(e);
+        }
+        if (steps.shift() === "drop") throw new ConnectError("gone", Code.Unavailable);
+      },
+      async listEvents() {
+        return create(SessionEventListSchema, {});
+      },
+    },
+  };
+  return { client, requests };
+}
+
+describe("followSession against a server that predates the liveness preview", () => {
+  it("asks again without stigmer.run.liveness once, and keeps it off for the rest of the follow", async () => {
+    const log = [event(1, "r", { case: "userMessage", value: { id: "u1" } })];
+    const { client, requests } = olderServer(log, ["drop", "end"]);
+    const abort = new AbortController();
+    const seen: bigint[] = [];
+    let waits = 0;
+    for await (const frame of followSession(client, "ses_1", {
+      previews: ALL_SESSION_PREVIEWS,
+      signal: abort.signal,
+      sleep: async () => {
+        waits += 1;
+        if (waits === 2) abort.abort();
+      },
+    })) {
+      if (frame.frame.case === "event") seen.push(frame.frame.value.seq);
+    }
+    expect(seen).toEqual([1n]);
+    expect(requests.map((r) => r.eventDeltas)).toEqual([
+      ["agent.message", "agent.thinking", "stigmer.tool_output_delta", "stigmer.run.liveness"],
+      ["agent.message", "agent.thinking", "stigmer.tool_output_delta"],
+      ["agent.message", "agent.thinking", "stigmer.tool_output_delta"],
+    ]);
+  });
+
+  it("ends on an invalid request that asked for no liveness, and on a second refusal", async () => {
+    const refuseAll = {
+      session: {
+        async *streamEvents(): AsyncGenerator<StreamSessionEventsResponse> {
+          throw new ConnectError("bad session id", Code.InvalidArgument);
+        },
+        async listEvents() {
+          return create(SessionEventListSchema, {});
+        },
+      },
+    };
+    await expect(drain(followSession(refuseAll, "ses_1", { previews: ["agent.message"], sleep: noWait }))).rejects.toMatchObject({ code: "invalid-argument" });
+    await expect(drain(followSession(refuseAll, "ses_1", { previews: ALL_SESSION_PREVIEWS, sleep: noWait }))).rejects.toMatchObject({ code: "invalid-argument" });
+  });
+});
+
+async function drain(follow: AsyncGenerator<StreamSessionEventsResponse>): Promise<void> {
+  for await (const _ of follow) {
+    // the follow's frames are not this test's
+  }
+}
 
 describe("followSession", () => {
   it("resumes after the place it asks for and reconnects from the last event it delivered, waiting longer each time", async () => {

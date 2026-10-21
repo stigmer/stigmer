@@ -1480,10 +1480,10 @@
               "kind": "string"
             }
           },
-          "description": "The event types to preview while they are produced: agent.message,\n agent.thinking, and Stigmer's stigmer.tool_output_delta (a running\n tool's output). Empty streams no previews.",
+          "description": "The event types to preview while they are produced: agent.message,\n agent.thinking, and Stigmer's stigmer.tool_output_delta (a running\n tool's output) and stigmer.run.liveness (what a working turn has open).\n Empty streams no previews.",
           "required": false,
           "validation": {
-            "maxItems": 3
+            "maxItems": 4
           }
         },
         {
@@ -1550,6 +1550,18 @@
             "messageType": "ToolOutputDelta"
           },
           "description": "A fragment of a running tool's output.",
+          "required": false,
+          "oneofGroup": "frame"
+        },
+        {
+          "name": "StigmerRunLiveness",
+          "jsonName": "stigmerRunLiveness",
+          "protoField": "stigmer_run_liveness",
+          "type": {
+            "kind": "message",
+            "messageType": "RunLiveness"
+          },
+          "description": "What a working turn has open now, and for how long.",
           "required": false,
           "oneofGroup": "frame"
         }
