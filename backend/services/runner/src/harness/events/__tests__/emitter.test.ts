@@ -22,10 +22,19 @@ import {
   FileReviewBlockReason,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
-import { AppendSessionEventsResponseSchema, type SessionEventPreview } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { AppendSessionEventsResponseSchema, SessionEventPreviewSchema, type SessionEventPreview } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { createValidator } from "@bufbuild/protovalidate";
 
 import { ELISION_MARKER } from "../../../shared/status-offload.js";
-import { POLICY_SOURCE_WORDS, SESSION_EVENT_MAX_BYTES, SessionEventEmitter, nextScopeIndexes, type SessionEventEmitterDeps } from "../emitter.js";
+import {
+  LIVENESS_MAX_OPERATIONS,
+  LIVENESS_NAME_MAX_CHARS,
+  POLICY_SOURCE_WORDS,
+  SESSION_EVENT_MAX_BYTES,
+  SessionEventEmitter,
+  nextScopeIndexes,
+  type SessionEventEmitterDeps,
+} from "../emitter.js";
 import { AgentMessageSchema, ToolCallSchema, TurnRowsSchema, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import {
   ApprovalPolicySource,
@@ -510,6 +519,109 @@ describe("previews", () => {
     e.observe({ kind: "text_delta", runId: "r1", text: "Hi" }, { messageIndex: 0 });
     await e.flush(status({ messages: [{ type: AI, content: "Hi" }] }), { final: true });
     expect(log.previews).toEqual([]);
+  });
+});
+
+describe("what the turn has open, sent alone", () => {
+  const open = (callId: string, ageMs: number, subAgentId?: string) => ({
+    callId,
+    name: callId === "sh" ? "shell" : "execute",
+    openedAtMs: 0,
+    ageMs,
+    ...(subAgentId === undefined ? {} : { subAgentId }),
+  });
+
+  it("sends nothing before it begins", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    expect(await e.sendLiveness({ operations: [open("sh", 1)], awaitingModelMs: undefined })).toBe("sent");
+    expect(log.client.appendSessionEvents).not.toHaveBeenCalled();
+  });
+
+  it("names each open call by its tool use and thread with its age, leaves out a call whose result is written, and says how long the model has been waited on", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    await e.flush(status({ messages: [{ type: AI, content: "Ran.", toolCalls: [row("done")] }] }), { final: false });
+    const before = log.client.appendSessionEvents.mock.calls.length;
+
+    const sent = await e.sendLiveness({
+      operations: [open("sh", 840_500), open("c2", 1_250, "task1"), open("done", 9)],
+      awaitingModelMs: 2_000,
+    });
+    expect(sent).toBe("sent");
+    const call = log.client.appendSessionEvents.mock.calls[before]!;
+    expect(call[1], "a liveness carries no event").toEqual([]);
+    expect(call[2].map((p) => p.preview.case), "and no other preview").toEqual(["stigmerRunLiveness"]);
+    const liveness = log.previews.at(-1)!.preview;
+    expect(liveness.case).toBe("stigmerRunLiveness");
+    if (liveness.case !== "stigmerRunLiveness") return;
+    expect(liveness.value.runId).toBe(RUN);
+    expect(
+      liveness.value.operations.map((o) => [o.toolUseId, o.name, o.threadId, o.elapsed?.seconds, o.elapsed?.nanos]),
+    ).toEqual([
+      [`${RUN}.sh`, "shell", "", 840n, 500_000_000],
+      [`${RUN}.c2`, "execute", `${RUN}.task1`, 1n, 250_000_000],
+    ]);
+    expect(liveness.value.awaitingModelFor?.seconds).toBe(2n);
+
+    await e.sendLiveness({ operations: [], awaitingModelMs: undefined });
+    const idle = log.previews.at(-1)!.preview;
+    expect(idle.case === "stigmerRunLiveness" ? idle.value.awaitingModelFor : "not a liveness").toBeUndefined();
+  });
+
+  it("clamps a liveness to the contract: at most its operations, names within their bound and never empty", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    const long = "x".repeat(LIVENESS_NAME_MAX_CHARS + 40);
+    const operations = Array.from({ length: LIVENESS_MAX_OPERATIONS + 5 }, (_, i) => ({
+      callId: `c${i}`,
+      name: i === 0 ? long : i === 1 ? "" : "shell",
+      openedAtMs: 0,
+      ageMs: i,
+    }));
+    await e.sendLiveness({ operations, awaitingModelMs: 5 });
+    const preview = log.previews.at(-1)!;
+    expect((await createValidator()).validate(SessionEventPreviewSchema, preview).kind, "the preview meets the contract").toBe("valid");
+    if (preview.preview.case !== "stigmerRunLiveness") throw new Error("not a liveness");
+    const sent = preview.preview.value.operations;
+    expect(sent).toHaveLength(LIVENESS_MAX_OPERATIONS);
+    expect([...sent[0]!.name]).toHaveLength(LIVENESS_NAME_MAX_CHARS);
+    expect(sent[1]!.name).toBe("tool");
+  });
+
+  it("answers refused when the log refuses the preview, and logs any other failure without resending", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const log = logDouble();
+      const e = emitter(log);
+      await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+      log.answers.push("refuse");
+      expect(await e.sendLiveness({ operations: [], awaitingModelMs: undefined })).toBe("refused");
+      log.answers.push("fail");
+      expect(await e.sendLiveness({ operations: [], awaitingModelMs: undefined })).toBe("sent");
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("sending the turn's liveness failed"));
+      expect(log.previews).toEqual([]);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("renews a refused credential for the next append", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const log = logDouble();
+      let n = 0;
+      const e = emitter(log, { credential: async () => ({ token: `tok-${++n}`, expiresInSeconds: 3600 }) });
+      await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+      log.client.appendSessionEvents.mockRejectedValueOnce(new ConnectError("expired", Code.Unauthenticated));
+      await e.sendLiveness({ operations: [], awaitingModelMs: undefined });
+      await e.sendLiveness({ operations: [], awaitingModelMs: undefined });
+      expect(log.client.appendSessionEvents.mock.calls.map((call) => call[3])).toEqual(["tok-1", "tok-2"]);
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 

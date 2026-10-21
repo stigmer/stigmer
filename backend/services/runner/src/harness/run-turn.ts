@@ -83,6 +83,7 @@ import { captureCandidate, pinCaptureBaseline, type TurnCapture } from "./captur
 import { SessionEventEmitter } from "./events/emitter.js";
 import { OpenOperations, OperationLimitError } from "./open-operations.js";
 import { PersistChokepoint } from "./persist-chokepoint.js";
+import { LivenessPump } from "./liveness-pump.js";
 import { PreviewPump } from "./preview-pump.js";
 import { StopController } from "./stop-controller.js";
 import {
@@ -111,6 +112,7 @@ import {
   type TerminalArm,
 } from "./terminal-table.js";
 import { TranscriptBuilder } from "./transcript/builder.js";
+import type { TranscriptEvent } from "./transcript/events.js";
 import { resolveTurnContext, type ResolutionDeps, type TurnFrame, type TurnSettlement } from "./turn-context.js";
 import { TurnTimeline } from "./turn-timeline.js";
 import { environmentInstalled } from "../environment/install.js";
@@ -142,6 +144,17 @@ const PERIODIC_HEARTBEAT_MS = 30_000;
  * heartbeat + the shutdown signal + SDK internals) with headroom.
  */
 const CANCELLATION_SIGNAL_MAX_LISTENERS = 25;
+
+/** The folded events that can change what the turn has open, or whether it waits on its model: the liveness pump checks after each. */
+const LIVENESS_EVENTS: ReadonlySet<TranscriptEvent["kind"]> = new Set([
+  "message_start",
+  "message_finish",
+  "tool_started",
+  "tool_finished",
+  "tool_error",
+  "approval_proposed",
+  "sub_agent_started",
+]);
 
 /** What every activity of the registry shares: the adapter it drives, its wire name, and the one client. */
 export interface TurnRuntimeDeps {
@@ -251,19 +264,30 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     intervalMs: loadStreamingConfig().minIntervalMs,
   });
 
+  // What the turn has open, said to the session while the engine runs
+  // (`liveness-pump.ts`): at once on a change, and at the liveness interval.
+  const liveness = new LivenessPump({
+    snapshot: () => operations.snapshot(),
+    send: (snapshot) => chokepoint.flushLiveness(snapshot),
+    intervalMs: config.livenessIntervalMs,
+    minGapMs: loadStreamingConfig().minIntervalMs,
+    runId: executionId,
+  });
+
   // The one transcript builder of this turn, born with the rows and before
   // any phase, so it exists for everything that writes a row or an output:
   // the write-back coordinator (phase 2c), the seed of a reinvocation's asks
   // (phase 3, through `seed()`, which indexes them as it appends), the
   // adapter (`sink.transcript`), and the epilogue. One constructor call per
   // turn; a second builder over the same rows would index them twice. The
-  // timeline, the emitter's previews, the open operations and the preview
-  // pump are its observer, told every event in both process modes.
+  // timeline, the emitter's previews, the open operations and the two
+  // pumps are its observer, told every event in both process modes.
   const transcript = new TranscriptBuilder(executionId, rows, status, (event, at, place) => {
     timeline.observe(event, at);
     events.observe(event, place);
     operations.observe(event);
     if (event.kind === "tool_output_delta") previews.note();
+    else if (LIVENESS_EVENTS.has(event.kind)) liveness.note();
   });
 
   // Cold-start timeline of this turn's setup: one mark after each phase, the
@@ -537,6 +561,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
       },
     );
     watchdog = armedWatchdog;
+    liveness.start();
 
     const sink: TurnSink = {
       status,
@@ -603,6 +628,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     armedWatchdog.stop();
     // Nothing streams now; a flush still sending lands before the turn's own writes.
     await previews.stop();
+    await liveness.stop();
     heartbeatPhase = "epilogue";
 
     // The stream is over, however it ended: nothing on the transcript is
@@ -1002,6 +1028,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     periodicHeartbeat.stop();
     watchdog?.stop();
     await previews.stop();
+    await liveness.stop();
     cancellationSignal.removeEventListener("abort", onCancellation);
     shutdownSignal?.removeEventListener("abort", onDrain);
     stopNowSignal?.removeEventListener("abort", onStopNow);

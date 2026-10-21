@@ -56,8 +56,11 @@
  * clock read when the event is observed; a relayed event's few milliseconds
  * in the pipe are nothing against a bound measured in minutes.
  *
- * Nothing here persists or reaches a client. A liveness event naming the
- * open operation is the session log's to add; this fold is what it reads.
+ * Nothing here persists. What a client sees of it is the turn's liveness
+ * ({@link OpenOperations.snapshot}): the runtime's liveness pump
+ * (`liveness-pump.ts`) sends it as a `stigmer.run.liveness` preview, each
+ * operation with how long it has been open and how long the turn has
+ * waited on its model, measured here when it is sent.
  */
 
 import type { SubAgentProgress } from "./capabilities.js";
@@ -84,6 +87,14 @@ export interface OpenOperation {
   readonly openedAtMs: number;
 }
 
+/** What a turn has open at one instant: what its liveness names (`liveness-pump.ts`). */
+export interface OperationsSnapshot {
+  /** The counted operations open, oldest first, each with its age. */
+  readonly operations: ReadonlyArray<OpenOperation & { readonly ageMs: number }>;
+  /** How long the turn has waited on its model's reply; undefined while it is not waiting. */
+  readonly awaitingModelMs: number | undefined;
+}
+
 export interface OpenOperationsOptions {
   readonly subAgentProgress: SubAgentProgress;
   /** Told when the last counted operation closes: the moment the stall window counts from. */
@@ -96,10 +107,12 @@ export class OpenOperations {
   private readonly open = new Map<string, OpenOperation>();
   private readonly closed = new Set<string>();
   private readonly delegating = new Set<string>();
-  /** The model rounds open now, by the run id their `message_start` named. */
-  private readonly openRounds = new Set<string>();
+  /** The model rounds open now, by the run id their `message_start` named, with when each opened. */
+  private readonly openRounds = new Map<string, number>();
   /** The newest fact folded is a tool's result nothing has answered yet. */
   private resultUnanswered = false;
+  /** When the newest unanswered result arrived. */
+  private resultAtMs = 0;
   private readonly now: () => number;
 
   constructor(private readonly options: OpenOperationsOptions) {
@@ -124,13 +137,14 @@ export class OpenOperations {
       case "tool_error":
         this.close(event.callId);
         this.resultUnanswered = true;
+        this.resultAtMs = this.now();
         return;
       case "approval_proposed":
         this.close(event.callId);
         this.resultUnanswered = false;
         return;
       case "message_start":
-        this.openRounds.add(event.runId);
+        if (!this.openRounds.has(event.runId)) this.openRounds.set(event.runId, this.now());
         this.resultUnanswered = false;
         return;
       case "message_finish":
@@ -158,6 +172,22 @@ export class OpenOperations {
   /** Whether the turn is waiting on its model's reply now (the module header). */
   awaitingModel(): boolean {
     return this.openRounds.size > 0 || (this.resultUnanswered && !this.held());
+  }
+
+  /** What the turn has open now, with every age measured at this call (the module header). */
+  snapshot(): OperationsSnapshot {
+    const now = this.now();
+    const operations = [...this.open.values()]
+      .filter((operation) => this.counts(operation))
+      .sort((a, b) => a.openedAtMs - b.openedAtMs)
+      .map((operation) => ({ ...operation, ageMs: now - operation.openedAtMs }));
+    return { operations, awaitingModelMs: this.awaitingSinceMs(operations.length > 0, now) };
+  }
+
+  /** How long the turn has waited on its model, by {@link awaitingModel}'s reading; undefined when it is not. */
+  private awaitingSinceMs(held: boolean, now: number): number | undefined {
+    if (this.openRounds.size > 0) return now - Math.min(...this.openRounds.values());
+    return this.resultUnanswered && !held ? now - this.resultAtMs : undefined;
   }
 
   /** The counted operation open longest, or `undefined` when none is. */

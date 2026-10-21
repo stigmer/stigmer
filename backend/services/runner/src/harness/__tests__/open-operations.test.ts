@@ -137,6 +137,41 @@ describe("OpenOperations", () => {
     expect(operations.held()).toBe(true);
   });
 
+  describe("the snapshot a liveness names", () => {
+    it("lists every counted call oldest first, each aged at the read, and waits on nothing while one runs", () => {
+      const { operations, advance } = fold("streamed");
+      expect(operations.snapshot()).toEqual({ operations: [], awaitingModelMs: undefined });
+      operations.observe(started("c2", "web_fetch"));
+      advance(2_000);
+      operations.observe(started("c1", "execute", "sub-1"));
+      operations.observe(delegated("task-1"));
+      operations.observe(started("task-1", "task"));
+      advance(3_000);
+      expect(operations.snapshot()).toEqual({
+        operations: [
+          { callId: "c2", name: "web_fetch", openedAtMs: 1_000, ageMs: 5_000 },
+          { callId: "c1", name: "execute", subAgentId: "sub-1", openedAtMs: 3_000, ageMs: 3_000 },
+        ],
+        awaitingModelMs: undefined,
+      });
+    });
+
+    it("ages the wait on the model from the first open round, or from the unanswered result", () => {
+      const { operations, advance } = fold();
+      operations.observe({ kind: "message_start", runId: "r1" });
+      advance(1_000);
+      operations.observe({ kind: "message_start", runId: "r1" });
+      advance(1_000);
+      expect(operations.snapshot().awaitingModelMs, "a repeated start keeps the round's first instant").toBe(2_000);
+      operations.observe({ kind: "message_finish", runId: "r1" });
+      operations.observe(started("c1"));
+      advance(4_000);
+      operations.observe({ kind: "tool_finished", callId: "c1", result: "ok" });
+      advance(1_500);
+      expect(operations.snapshot()).toEqual({ operations: [], awaitingModelMs: 1_500 });
+    });
+  });
+
   describe("awaiting the model", () => {
     it("is not waiting on a turn that has folded nothing", () => {
       expect(fold().operations.awaitingModel()).toBe(false);

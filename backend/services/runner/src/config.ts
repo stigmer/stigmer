@@ -84,6 +84,9 @@ import { DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./shared/workspace/workspace-
 // The same for the open-operation backstop, whose owner is the turn runtime.
 export { DEFAULT_OPEN_OPERATION_MAX_MS } from "./harness/open-operations.js";
 import { DEFAULT_OPEN_OPERATION_MAX_MS } from "./harness/open-operations.js";
+// And the liveness interval, whose owner is the runtime's liveness pump.
+export { DEFAULT_LIVENESS_INTERVAL_MS } from "./harness/liveness-pump.js";
+import { DEFAULT_LIVENESS_INTERVAL_MS } from "./harness/liveness-pump.js";
 // And the native shell's timeout ceiling, which the shell's bounds own.
 export { DEFAULT_SHELL_TIMEOUT_MAX_SECONDS } from "./shared/shell/limits.js";
 import { DEFAULT_SHELL_TIMEOUT_MAX_SECONDS } from "./shared/shell/limits.js";
@@ -196,6 +199,14 @@ export interface Config {
    * which runs in the runner's own process, never in the agent host.
    */
   readonly openOperationMaxMs: number;
+  /**
+   * How often a working turn says what it has open (milliseconds,
+   * STIGMER_LIVENESS_INTERVAL_MS, the `livenessIntervalMs` option): the
+   * runtime sends a `stigmer.run.liveness` preview at this interval while
+   * the turn runs, and at once when its open operations change
+   * (`harness/liveness-pump.ts`). Read by the turn runtime only.
+   */
+  readonly livenessIntervalMs: number;
   /**
    * The most the native shell's model may raise one command's timeout to
    * (seconds, STIGMER_SHELL_TIMEOUT_MAX_SECONDS, the `shellTimeoutMaxSeconds`
@@ -338,6 +349,8 @@ export function loadConfig(): Config {
     ? parseInt(process.env.STIGMER_OPEN_OPERATION_MAX_MS, 10)
     : DEFAULT_OPEN_OPERATION_MAX_MS;
 
+  const livenessIntervalMs = parseLivenessIntervalMs(process.env.STIGMER_LIVENESS_INTERVAL_MS);
+
   const shellTimeoutMaxSeconds = process.env.STIGMER_SHELL_TIMEOUT_MAX_SECONDS
     ? parseInt(process.env.STIGMER_SHELL_TIMEOUT_MAX_SECONDS, 10)
     : DEFAULT_SHELL_TIMEOUT_MAX_SECONDS;
@@ -376,11 +389,36 @@ export function loadConfig(): Config {
     primaryModel,
     cursorStreamStallTimeoutMs,
     openOperationMaxMs,
+    livenessIntervalMs,
     shellTimeoutMaxSeconds,
     agentResolveTimeoutMs,
     workspaceLockTimeoutMs,
     drainGraceMs,
   };
+}
+
+/** The bounds `STIGMER_LIVENESS_INTERVAL_MS` must fall in: at least a second, and under the console's 60 s slow watch. */
+export const LIVENESS_INTERVAL_BOUNDS_MS = { min: 1_000, below: 60_000 } as const;
+
+/**
+ * `STIGMER_LIVENESS_INTERVAL_MS`, or the default when it is unset. A value
+ * that is not a whole number of milliseconds, or falls outside
+ * {@link LIVENESS_INTERVAL_BOUNDS_MS}, falls back to the default with a
+ * warning: under a second floods the session's watchers, and at a minute or
+ * more a watcher's slow hint fires between two previews of a working turn.
+ */
+function parseLivenessIntervalMs(raw: string | undefined): number {
+  if (raw === undefined || raw === "") return DEFAULT_LIVENESS_INTERVAL_MS;
+  const parsed = Number(raw);
+  const { min, below } = LIVENESS_INTERVAL_BOUNDS_MS;
+  if (!Number.isInteger(parsed) || parsed < min || parsed >= below) {
+    console.warn(
+      `STIGMER_LIVENESS_INTERVAL_MS=${JSON.stringify(raw)} is not a whole number of milliseconds from ${min} to under ${below}; ` +
+        `using the default ${DEFAULT_LIVENESS_INTERVAL_MS}`,
+    );
+    return DEFAULT_LIVENESS_INTERVAL_MS;
+  }
+  return parsed;
 }
 
 function resolveWorkspaceRootDir(): string {

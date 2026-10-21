@@ -343,32 +343,39 @@ describe("PersistChokepoint: the run's file record", () => {
   });
 });
 
-describe("PersistChokepoint: a running tool's output between writes", () => {
-  function withEvents(client: StigmerClient) {
-    const flushGates: Gate[] = [];
-    const events = {
-      flush: vi.fn(async () => {}),
-      flushToolOutput: vi.fn(async () => {
-        const g = gate();
-        flushGates.push(g);
-        await g.opened;
-      }),
-    };
-    const chokepoint = new PersistChokepoint({
-      client,
-      executionId: "aex_test",
-      status: create(RunStatusSchema, {}),
-      rows: create(TurnRowsSchema, {}),
-      offload: undefined,
-      usage: () => undefined,
-      progress: () => undefined,
-      heartbeat: vi.fn(),
-      onPlatformStop: vi.fn(),
-      events,
-    });
-    return { chokepoint, events, flushGates };
-  }
+/** A chokepoint over a session event emitter whose every flush waits on a gate the test opens. */
+function withEvents(client: StigmerClient) {
+  const flushGates: Gate[] = [];
+  const events = {
+    flush: vi.fn(async () => {}),
+    flushToolOutput: vi.fn(async () => {
+      const g = gate();
+      flushGates.push(g);
+      await g.opened;
+    }),
+    sendLiveness: vi.fn(async (): Promise<"sent" | "refused"> => {
+      const g = gate();
+      flushGates.push(g);
+      await g.opened;
+      return "sent";
+    }),
+  };
+  const chokepoint = new PersistChokepoint({
+    client,
+    executionId: "aex_test",
+    status: create(RunStatusSchema, {}),
+    rows: create(TurnRowsSchema, {}),
+    offload: undefined,
+    usage: () => undefined,
+    progress: () => undefined,
+    heartbeat: vi.fn(),
+    onPlatformStop: vi.fn(),
+    events,
+  });
+  return { chokepoint, events, flushGates };
+}
 
+describe("PersistChokepoint: a running tool's output between writes", () => {
   it("sends nothing while a write holds the slot, and never waits for it", async () => {
     const { client, gates } = heldClient();
     const { chokepoint, events } = withEvents(client);
@@ -401,5 +408,39 @@ describe("PersistChokepoint: a running tool's output between writes", () => {
     const { client } = heldClient();
     const { chokepoint } = chokepointOver(client);
     expect(await chokepoint.flushPreviews()).toBe(false);
+    expect(await chokepoint.flushLiveness(NOTHING_OPEN)).toBe("sent");
+  });
+});
+
+const NOTHING_OPEN = { operations: [], awaitingModelMs: undefined };
+
+describe("PersistChokepoint: what the turn has open, alone", () => {
+  it("is busy while a write or a flush holds the slot, and never waits for it", async () => {
+    const { client, gates } = heldClient();
+    const { chokepoint, events } = withEvents(client);
+    const write = chokepoint.request();
+    expect(await chokepoint.flushLiveness(NOTHING_OPEN)).toBe("busy");
+    expect(events.sendLiveness).not.toHaveBeenCalled();
+    gates[0]!.open();
+    await write;
+  });
+
+  it("takes the slot when it is free, holds a write behind it, and says what the log answered", async () => {
+    const { client, gates } = heldClient();
+    const { chokepoint, events, flushGates } = withEvents(client);
+    const sending = chokepoint.flushLiveness(NOTHING_OPEN);
+    expect(events.sendLiveness).toHaveBeenCalledWith(NOTHING_OPEN);
+    expect(await chokepoint.flushPreviews(), "the tool-output flush finds the slot held").toBe(false);
+    const write = chokepoint.request();
+    await Promise.resolve();
+    expect(client.updateStatus, "the write waits for the liveness").not.toHaveBeenCalled();
+    flushGates[0]!.open();
+    expect(await sending).toBe("sent");
+    await vi.waitFor(() => expect(gates).toHaveLength(1));
+    gates[0]!.open();
+    await write;
+
+    events.sendLiveness.mockResolvedValueOnce("refused");
+    expect(await chokepoint.flushLiveness(NOTHING_OPEN)).toBe("refused");
   });
 });

@@ -41,6 +41,7 @@ const CONFIG: Config = {
   primaryModel: "anthropic/claude-sonnet-4-5",
   cursorStreamStallTimeoutMs: 180_000,
   openOperationMaxMs: 3_600_000,
+  livenessIntervalMs: 30_000,
   shellTimeoutMaxSeconds: 3_300,
   agentResolveTimeoutMs: 120_000,
   workspaceLockTimeoutMs: 900_000,

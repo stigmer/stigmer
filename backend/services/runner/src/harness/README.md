@@ -66,6 +66,11 @@ pinned somewhere. Read a row across before searching for anything.
 - `harness/preview-pump.ts` — `PreviewPump`, which sends a running tool's output
   to the session between writes, on the streaming floor, through the persist
   chokepoint's single flight.
+- `harness/liveness-pump.ts` — `LivenessPump`, which says what a working turn
+  has open (each open operation and its age, and how long the turn has waited
+  on its model) as a `stigmer.run.liveness` preview: at the start, on every
+  change, and at `STIGMER_LIVENESS_INTERVAL_MS` (`config.ts`), alone, through
+  the same single flight, for every harness.
 - `harness/events/emitter.ts` — `SessionEventEmitter`, which writes what the
   agent did into the session's event log from the rows every persist carries,
   sealed facts only, each thread in order; `harness/events/ids.ts` derives every

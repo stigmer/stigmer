@@ -19,17 +19,19 @@
  *
  * Each frame is `event: <type>` then `data: <json>`: the SDK yields a frame
  * only when its event name is a Managed Agents type it lists, so the name
- * is the JSON's own `type`. Stigmer's own events and its tool-output
- * preview are skipped. A `: keep-alive` comment every interval keeps idle
- * proxies from closing a quiet stream; the SDK ignores comments.
+ * is the JSON's own `type`. Stigmer's own events and previews (a running
+ * tool's output, a turn's liveness) are skipped. A `: keep-alive` comment
+ * every interval keeps idle proxies from closing a quiet stream; the SDK
+ * ignores comments.
  *
  * Back-pressure: when a write is buffered, the next frame waits for
- * `drain`, so a slow reader backs up into the native stream, whose bound
- * ends it with RESOURCE_EXHAUSTED; the lane buffers nothing of its own.
- * The client closing aborts the native call. A native error is written as
- * an `event: error` frame carrying Anthropic's envelope, which the SDK
- * throws as an APIError, and the body ends. Reconnecting is the client's
- * list-then-stream, as Managed Agents documents.
+ * `drain`, so a slow reader backs up into the native stream, which reads
+ * the stored log at its own pace: the reader lags and is never ended for
+ * it, and the lane buffers nothing of its own. The client closing aborts
+ * the native call. A native error is written as an `event: error` frame
+ * carrying Anthropic's envelope, which the SDK throws as an APIError, and
+ * the body ends. Reconnecting is the client's: open the stream again, then
+ * list the events after the last one it received (docs/sdk/managed-agents.mdx).
  *
  * Proven by __tests__/stream.test.ts and the session-events-managed-agents
  * execution conformance suite.
@@ -121,6 +123,7 @@ export function laneFrameJson(frame: StreamSessionEventsResponse): JsonObject | 
     case "eventDelta":
       return toManagedAgentsStreamJson(frame);
     case "stigmerToolOutputDelta":
+    case "stigmerRunLiveness":
     case undefined:
       return undefined;
     /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */

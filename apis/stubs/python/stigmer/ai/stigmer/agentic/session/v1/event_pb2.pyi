@@ -1,6 +1,9 @@
+import datetime
+
 from ai.stigmer.agentic.session.v1 import event_content_pb2 as _event_content_pb2
 from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf import duration_pb2 as _duration_pb2
 from google.protobuf import struct_pb2 as _struct_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
@@ -379,6 +382,28 @@ class ToolOutputDelta(_message.Message):
     tool_use_id: str
     delta: str
     def __init__(self, tool_use_id: _Optional[str] = ..., delta: _Optional[str] = ...) -> None: ...
+
+class RunLiveness(_message.Message):
+    __slots__ = ("run_id", "operations", "awaiting_model_for")
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    OPERATIONS_FIELD_NUMBER: _ClassVar[int]
+    AWAITING_MODEL_FOR_FIELD_NUMBER: _ClassVar[int]
+    run_id: str
+    operations: _containers.RepeatedCompositeFieldContainer[RunOpenOperation]
+    awaiting_model_for: _duration_pb2.Duration
+    def __init__(self, run_id: _Optional[str] = ..., operations: _Optional[_Iterable[_Union[RunOpenOperation, _Mapping]]] = ..., awaiting_model_for: _Optional[_Union[datetime.timedelta, _duration_pb2.Duration, _Mapping]] = ...) -> None: ...
+
+class RunOpenOperation(_message.Message):
+    __slots__ = ("tool_use_id", "name", "elapsed", "thread_id")
+    TOOL_USE_ID_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    ELAPSED_FIELD_NUMBER: _ClassVar[int]
+    THREAD_ID_FIELD_NUMBER: _ClassVar[int]
+    tool_use_id: str
+    name: str
+    elapsed: _duration_pb2.Duration
+    thread_id: str
+    def __init__(self, tool_use_id: _Optional[str] = ..., name: _Optional[str] = ..., elapsed: _Optional[_Union[datetime.timedelta, _duration_pb2.Duration, _Mapping]] = ..., thread_id: _Optional[str] = ...) -> None: ...
 
 class EventStart(_message.Message):
     __slots__ = ("event",)

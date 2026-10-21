@@ -31,6 +31,7 @@ import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/e
 import {
   EventDeltaSchema,
   EventStartSchema,
+  RunLivenessSchema,
   SessionEventSchema,
   ToolOutputDeltaSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
@@ -49,7 +50,8 @@ export function toManagedAgentsJson(event: SessionEvent): JsonObject {
 
 /**
  * A stream frame's Managed Agents JSON: the event, or an event_start /
- * event_delta preview, or Stigmer's stigmer.tool_output_delta preview.
+ * event_delta preview, or Stigmer's stigmer.tool_output_delta or
+ * stigmer.run.liveness preview.
  */
 export function toManagedAgentsStreamJson(frame: StreamSessionEventsResponse): JsonObject {
   switch (frame.frame.case) {
@@ -64,6 +66,8 @@ export function toManagedAgentsStreamJson(frame: StreamSessionEventsResponse): J
         ...messageJson(ToolOutputDeltaSchema, frame.frame.value),
         type: "stigmer.tool_output_delta",
       };
+    case "stigmerRunLiveness":
+      return { ...messageJson(RunLivenessSchema, frame.frame.value), type: "stigmer.run.liveness" };
     case undefined:
       throw new Error("a stream frame must hold a frame");
     /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */

@@ -256,61 +256,68 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "te\022\025\n\006run_id\030\n \001(\tR\005runId\"\177\n\020SessionEven" +
       "tList\022C\n\006events\030\001 \003(\0132+.ai.stigmer.agent" +
       "ic.session.v1.SessionEventR\006events\022&\n\017ne" +
-      "xt_page_token\030\002 \001(\tR\rnextPageToken\"\351\001\n\032S" +
+      "xt_page_token\030\002 \001(\tR\rnextPageToken\"\200\002\n\032S" +
       "treamSessionEventsRequest\022%\n\nsession_id\030" +
-      "\001 \001(\tB\006\272H\003\310\001\001R\tsessionId\022k\n\014event_deltas" +
-      "\030\002 \003(\tBH\272HE\222\001B\020\003\030\001\"<r:R\ragent.messageR\016a" +
-      "gent.thinkingR\031stigmer.tool_output_delta" +
-      "R\013eventDeltas\022)\n\tafter_seq\030\003 \001(\003B\007\272H\004\"\002(" +
-      "\000H\000R\010afterSeq\210\001\001B\014\n\n_after_seq\"\266\003\n\033Strea" +
-      "mSessionEventsResponse\022C\n\005event\030\001 \001(\0132+." +
-      "ai.stigmer.agentic.session.v1.SessionEve" +
-      "ntH\000R\005event\022]\n\013event_start\030\002 \001(\0132).ai.st" +
-      "igmer.agentic.session.v1.EventStartB\017\362\205," +
-      "\013event_startH\000R\neventStart\022]\n\013event_delt" +
-      "a\030\003 \001(\0132).ai.stigmer.agentic.session.v1." +
-      "EventDeltaB\017\362\205,\013event_deltaH\000R\neventDelt" +
-      "a\022\212\001\n\031stigmer_tool_output_delta\030\004 \001(\0132.." +
-      "ai.stigmer.agentic.session.v1.ToolOutput" +
-      "DeltaB\035\362\205,\031stigmer.tool_output_deltaH\000R\026" +
-      "stigmerToolOutputDeltaB\007\n\005frame\"\362\002\n\023Sess" +
-      "ionEventPreview\022]\n\013event_start\030\001 \001(\0132).a" +
-      "i.stigmer.agentic.session.v1.EventStartB" +
-      "\017\362\205,\013event_startH\000R\neventStart\022]\n\013event_" +
-      "delta\030\002 \001(\0132).ai.stigmer.agentic.session" +
-      ".v1.EventDeltaB\017\362\205,\013event_deltaH\000R\nevent" +
-      "Delta\022\212\001\n\031stigmer_tool_output_delta\030\003 \001(" +
-      "\0132..ai.stigmer.agentic.session.v1.ToolOu" +
-      "tputDeltaB\035\362\205,\031stigmer.tool_output_delta" +
-      "H\000R\026stigmerToolOutputDeltaB\020\n\007preview\022\005\272" +
-      "H\002\010\001\"\344\001\n\030AppendSessionEventsInput\022\035\n\006run" +
-      "_id\030\001 \001(\tB\006\272H\003\310\001\001R\005runId\022N\n\006events\030\002 \003(\013" +
-      "2+.ai.stigmer.agentic.session.v1.Session" +
-      "EventB\t\272H\006\222\001\003\020\350\007R\006events\022Y\n\010previews\030\003 \003" +
-      "(\01322.ai.stigmer.agentic.session.v1.Sessi" +
-      "onEventPreviewB\t\272H\006\222\001\003\020\350\007R\010previews\"b\n\033A" +
-      "ppendSessionEventsResponse\022C\n\006events\030\001 \003" +
-      "(\0132+.ai.stigmer.agentic.session.v1.Sessi" +
-      "onEventR\006events\"\347\002\n\022UpdateSessionInput\022J" +
-      "\n\010resource\030\001 \001(\0132&.ai.stigmer.agentic.se" +
-      "ssion.v1.SessionB\006\272H\003\330\001\003R\010resource\022C\n\013up" +
-      "date_mask\030\002 \001(\0132\032.google.protobuf.FieldM" +
-      "askB\006\272H\003\310\001\001R\nupdateMask:\277\001\272H\273\001\032\270\001\n\027updat" +
-      "e_names_its_target\022Gresource.metadata.id" +
-      " is required: an update names the sessio" +
-      "n by its id\032Thas(this.resource) && has(t" +
-      "his.resource.metadata) && this.resource." +
-      "metadata.id != \'\'\"h\n\025BindHarnessStateInp" +
-      "ut\022\035\n\006run_id\030\001 \001(\tB\006\272H\003\310\001\001R\005runId\0220\n\020har" +
-      "ness_state_id\030\002 \001(\tB\006\272H\003\310\001\001R\016harnessStat" +
-      "eId\"}\n\030BindHarnessStateResponse\022(\n\020harne" +
-      "ss_state_id\030\001 \001(\tR\016harnessStateId\0227\n\030har" +
-      "ness_state_id_history\030\002 \003(\tR\025harnessStat" +
-      "eIdHistoryB\242\001B\007IoProtoP\001\242\002\004ASAS\252\002\035Ai.Sti" +
-      "gmer.Agentic.Session.V1\312\002\035Ai\\Stigmer\\Age" +
-      "ntic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Ses" +
-      "sion\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agent" +
-      "ic::Session::V1b\006proto3"
+      "\001 \001(\tB\006\272H\003\310\001\001R\tsessionId\022\201\001\n\014event_delta" +
+      "s\030\002 \003(\tB^\272H[\222\001X\020\004\030\001\"RrPR\ragent.messageR\016" +
+      "agent.thinkingR\031stigmer.tool_output_delt" +
+      "aR\024stigmer.run.livenessR\013eventDeltas\022)\n\t" +
+      "after_seq\030\003 \001(\003B\007\272H\004\"\002(\000H\000R\010afterSeq\210\001\001B" +
+      "\014\n\n_after_seq\"\260\004\n\033StreamSessionEventsRes" +
+      "ponse\022C\n\005event\030\001 \001(\0132+.ai.stigmer.agenti" +
+      "c.session.v1.SessionEventH\000R\005event\022]\n\013ev" +
+      "ent_start\030\002 \001(\0132).ai.stigmer.agentic.ses" +
+      "sion.v1.EventStartB\017\362\205,\013event_startH\000R\ne" +
+      "ventStart\022]\n\013event_delta\030\003 \001(\0132).ai.stig" +
+      "mer.agentic.session.v1.EventDeltaB\017\362\205,\013e" +
+      "vent_deltaH\000R\neventDelta\022\212\001\n\031stigmer_too" +
+      "l_output_delta\030\004 \001(\0132..ai.stigmer.agenti" +
+      "c.session.v1.ToolOutputDeltaB\035\362\205,\031stigme" +
+      "r.tool_output_deltaH\000R\026stigmerToolOutput" +
+      "Delta\022x\n\024stigmer_run_liveness\030\005 \001(\0132*.ai" +
+      ".stigmer.agentic.session.v1.RunLivenessB" +
+      "\030\362\205,\024stigmer.run.livenessH\000R\022stigmerRunL" +
+      "ivenessB\007\n\005frame\"\354\003\n\023SessionEventPreview" +
+      "\022]\n\013event_start\030\001 \001(\0132).ai.stigmer.agent" +
+      "ic.session.v1.EventStartB\017\362\205,\013event_star" +
+      "tH\000R\neventStart\022]\n\013event_delta\030\002 \001(\0132).a" +
+      "i.stigmer.agentic.session.v1.EventDeltaB" +
+      "\017\362\205,\013event_deltaH\000R\neventDelta\022\212\001\n\031stigm" +
+      "er_tool_output_delta\030\003 \001(\0132..ai.stigmer." +
+      "agentic.session.v1.ToolOutputDeltaB\035\362\205,\031" +
+      "stigmer.tool_output_deltaH\000R\026stigmerTool" +
+      "OutputDelta\022x\n\024stigmer_run_liveness\030\004 \001(" +
+      "\0132*.ai.stigmer.agentic.session.v1.RunLiv" +
+      "enessB\030\362\205,\024stigmer.run.livenessH\000R\022stigm" +
+      "erRunLivenessB\020\n\007preview\022\005\272H\002\010\001\"\344\001\n\030Appe" +
+      "ndSessionEventsInput\022\035\n\006run_id\030\001 \001(\tB\006\272H" +
+      "\003\310\001\001R\005runId\022N\n\006events\030\002 \003(\0132+.ai.stigmer" +
+      ".agentic.session.v1.SessionEventB\t\272H\006\222\001\003" +
+      "\020\350\007R\006events\022Y\n\010previews\030\003 \003(\01322.ai.stigm" +
+      "er.agentic.session.v1.SessionEventPrevie" +
+      "wB\t\272H\006\222\001\003\020\350\007R\010previews\"b\n\033AppendSessionE" +
+      "ventsResponse\022C\n\006events\030\001 \003(\0132+.ai.stigm" +
+      "er.agentic.session.v1.SessionEventR\006even" +
+      "ts\"\347\002\n\022UpdateSessionInput\022J\n\010resource\030\001 " +
+      "\001(\0132&.ai.stigmer.agentic.session.v1.Sess" +
+      "ionB\006\272H\003\330\001\003R\010resource\022C\n\013update_mask\030\002 \001" +
+      "(\0132\032.google.protobuf.FieldMaskB\006\272H\003\310\001\001R\n" +
+      "updateMask:\277\001\272H\273\001\032\270\001\n\027update_names_its_t" +
+      "arget\022Gresource.metadata.id is required:" +
+      " an update names the session by its id\032T" +
+      "has(this.resource) && has(this.resource." +
+      "metadata) && this.resource.metadata.id !" +
+      "= \'\'\"h\n\025BindHarnessStateInput\022\035\n\006run_id\030" +
+      "\001 \001(\tB\006\272H\003\310\001\001R\005runId\0220\n\020harness_state_id" +
+      "\030\002 \001(\tB\006\272H\003\310\001\001R\016harnessStateId\"}\n\030BindHa" +
+      "rnessStateResponse\022(\n\020harness_state_id\030\001" +
+      " \001(\tR\016harnessStateId\0227\n\030harness_state_id" +
+      "_history\030\002 \003(\tR\025harnessStateIdHistoryB\242\001" +
+      "B\007IoProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic." +
+      "Session.V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\" +
+      "V1\342\002)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMe" +
+      "tadata\352\002!Ai::Stigmer::Agentic::Session::" +
+      "V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -446,13 +453,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_session_v1_StreamSessionEventsResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_StreamSessionEventsResponse_descriptor,
-        new java.lang.String[] { "Event", "EventStart", "EventDelta", "StigmerToolOutputDelta", "Frame", });
+        new java.lang.String[] { "Event", "EventStart", "EventDelta", "StigmerToolOutputDelta", "StigmerRunLiveness", "Frame", });
     internal_static_ai_stigmer_agentic_session_v1_SessionEventPreview_descriptor =
       getDescriptor().getMessageType(18);
     internal_static_ai_stigmer_agentic_session_v1_SessionEventPreview_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_SessionEventPreview_descriptor,
-        new java.lang.String[] { "EventStart", "EventDelta", "StigmerToolOutputDelta", "Preview", });
+        new java.lang.String[] { "EventStart", "EventDelta", "StigmerToolOutputDelta", "StigmerRunLiveness", "Preview", });
     internal_static_ai_stigmer_agentic_session_v1_AppendSessionEventsInput_descriptor =
       getDescriptor().getMessageType(19);
     internal_static_ai_stigmer_agentic_session_v1_AppendSessionEventsInput_fieldAccessorTable = new

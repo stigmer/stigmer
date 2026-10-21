@@ -1340,6 +1340,55 @@ export async function assertSubagentOutlivesTheStallWindow(harness: RuntimeContr
   return { driver, invocations: [invocation], final: finalStatusOf(harness, driver) };
 }
 
+/** The liveness interval the liveness arm runs under: real time, several sends inside the arm's silent windows. */
+export const KIT_LIVENESS_INTERVAL_MS = 200;
+
+/**
+ * A working turn says what it is doing: while an operation runs silent, the
+ * runtime sends `stigmer.run.liveness` previews at its interval, each naming
+ * the operation by the id of its tool use in the log and how long it has been
+ * open, and the age grows from one to the next. Each goes in an append of its
+ * own, so a server older than the preview, which refuses it, never costs a
+ * stored event. Without them the console can only guess from silence whether
+ * a ten-minute build is alive (`SlowIndicator`).
+ */
+export async function assertLivenessNamesTheOpenOperation(harness: RuntimeContractHarness, label = "rt-liveness"): Promise<RuntimeArmResult> {
+  const { clock, subject } = harness;
+  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
+  const id = `${label}-build`;
+  const invocation = await turnWithOpenOperation(
+    harness,
+    driver,
+    [scenario.say("Building."), scenario.open(id), scenario.say("Built.")],
+    id,
+    () => silentFor(clock),
+    { livenessIntervalMs: KIT_LIVENESS_INTERVAL_MS },
+  );
+  const record = driver.record;
+  const liveness = record.sessionPreviews.flatMap((p) => (p.preview.case === "stigmerRunLiveness" ? [p.preview.value] : []));
+  const naming = liveness.filter((frame) => frame.operations.length > 0);
+  expect(naming.length, `${subject.name}: the open operation is named at the interval while it runs`).toBeGreaterThanOrEqual(2);
+  const useIds = new Set(
+    record.sessionEvents.flatMap((e) => (e.event.case === "agentToolUse" || e.event.case === "agentMcpToolUse" ? [e.event.value.id] : [])),
+  );
+  for (const frame of naming) {
+    expect(frame.runId, `${subject.name}: a liveness names its run`).toBe(record.executionId);
+    for (const operation of frame.operations) {
+      expect(useIds.has(operation.toolUseId), `${subject.name}: '${operation.toolUseId}' is a tool use the log holds`).toBe(true);
+      expect(operation.name, `${subject.name}: an operation carries its tool's name`).not.toBe("");
+    }
+  }
+  const ageMs = (frame: (typeof naming)[number]): number => Number(frame.operations[0]?.elapsed?.seconds ?? 0n) * 1000;
+  expect(ageMs(naming.at(-1)!), `${subject.name}: the age grows while the operation runs`).toBeGreaterThan(ageMs(naming[0]!));
+  expect(ageMs(naming.at(-1)!), `${subject.name}: the age reaches the silent windows`).toBeGreaterThanOrEqual(LONG_OPERATION_WINDOWS * STALL_TIMEOUT_MS);
+  for (const shape of record.appendShapes) {
+    if (!shape.previews.includes("stigmerRunLiveness")) continue;
+    expect(shape, `${subject.name}: a liveness travels alone`).toEqual({ events: 0, previews: ["stigmerRunLiveness"] });
+  }
+  expectCompleted(harness, driver, invocation, "Built.");
+  return { driver, invocations: [invocation], final: finalStatusOf(harness, driver) };
+}
+
 /** The backstop the operation-limit arm runs under: past the three windows a long operation lasts, so only the backstop can end it. */
 export const KIT_OPEN_OPERATION_MAX_MS = (LONG_OPERATION_WINDOWS + 1) * STALL_TIMEOUT_MS;
 
@@ -1990,6 +2039,10 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       it("output streams to the session while an operation runs, and the turn completes", async () => {
         clock.reset();
         await withStopOrphans(subject.name, orphans, () => assertStreamedOutputReachesTheSession(harness, gaps["streamed-output"]));
+      });
+      it("a working turn names its silent operation and its age at the liveness interval", async () => {
+        clock.reset();
+        await withStopOrphans(subject.name, orphans, () => assertLivenessNamesTheOpenOperation(harness));
       });
       it("an operation open past the backstop fails the turn with the operation-limit copy", async () => {
         clock.reset();

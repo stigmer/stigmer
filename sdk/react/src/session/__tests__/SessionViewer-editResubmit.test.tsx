@@ -74,6 +74,7 @@ const stubConv = {
   isReconnecting: false,
   connectTimedOut: false,
   isSlow: false,
+  liveness: undefined,
   stop: vi.fn().mockResolvedValue(undefined),
   retryLastSend: vi.fn(),
 };
