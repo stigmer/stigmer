@@ -341,7 +341,16 @@ export async function collectDocsPages(
     pages.push(...(await resolveEntry(ctx, "", entry, "docs", "Docs")));
   }
 
-  return pages;
+  // A link entry that names a page before its folder is listed (the Get
+  // Started group's link to the self-hosting overview) collects it first; the
+  // folder then reaches it again. Each page is listed once, where the sidebar
+  // first shows it.
+  const seen = new Set<string>();
+  return pages.filter((page) => {
+    if (seen.has(page.relativePath)) return false;
+    seen.add(page.relativePath);
+    return true;
+  });
 }
 
 // ---------------------------------------------------------------------------

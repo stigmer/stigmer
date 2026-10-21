@@ -153,6 +153,29 @@ describe("collectDocsPages", () => {
     expect(overview?.title).toBe("Runners Overview");
   });
 
+  it("lists a page once when a link entry names it before its folder is listed", async () => {
+    const dir = await setup({
+      "index.mdx": mdx("Home"),
+      "meta.json": meta({
+        pages: [
+          "---Get Started---",
+          "[Run it on your servers](/docs/guides/self-hosting/overview)",
+          "---Platform---",
+          "guides/self-hosting",
+        ],
+      }),
+      "guides/self-hosting/meta.json": meta({ title: "Self-hosting", pages: ["overview", "kubernetes"] }),
+      "guides/self-hosting/overview.mdx": mdx("Self-hosting"),
+      "guides/self-hosting/kubernetes.mdx": mdx("Kubernetes"),
+    });
+
+    const pages = await collectDocsPages(dir, SITE_URL);
+    const overview = pages.filter((p) => p.relativePath === "guides/self-hosting/overview");
+    expect(overview).toHaveLength(1);
+    expect(overview[0].topSectionTitle).toBe("Get Started");
+    expect(pages.some((p) => p.relativePath === "guides/self-hosting/kubernetes")).toBe(true);
+  });
+
   it("skips external link entries", async () => {
     const dir = await setup({
       "index.mdx": mdx("Home"),
