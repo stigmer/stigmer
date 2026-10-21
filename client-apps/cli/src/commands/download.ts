@@ -1,8 +1,8 @@
 // `stigmer download <type> <ref>` — download what a resource holds as files.
-// A run (`run_`, or `aex_` from before the rename) gives back the artifacts
-// its agent saved in its outputs folder, each written at its place in that
-// folder; a session gives back what all its turns saved, newest per path; a
-// File gives back its bytes under its filename; an eval
+// A run (`run_`, or `aex_` from before the rename) gives back its outputs,
+// the files its agent saved in .stigmer/outputs/, each written at its place
+// in that folder; a session gives back what all its turns saved, newest per
+// path; a File gives back its bytes under its filename; an eval
 // (`<ref>[@<digest|tag>]`) gives back the evals/ folder one of its versions
 // was pushed as, unzipped into a new or empty directory.
 //
@@ -21,7 +21,7 @@ import type { DownloadOutcome } from "../resources/download.js";
 import { addResultFlags, globalOrg, resultFormat } from "./shared.js";
 
 interface DownloadFlags extends OutputFlags {
-  artifact?: string;
+  path?: string;
   outputDir?: string;
   all?: boolean;
 }
@@ -30,17 +30,17 @@ export function registerDownload(program: Command): void {
   const download = program
     .command("download <type> <ref>")
     .description(
-      "download a run's or a session's artifacts, a file, or an eval's folder at a version (eval <ref>[@<digest|tag>])",
+      "download a run's or a session's outputs, a file, or an eval's folder at a version (eval <ref>[@<digest|tag>])",
     )
     .option(
-      "--artifact <name>",
-      "runs and sessions: specific artifact to download (by file name or outputs-folder path)",
+      "--path <output-path>",
+      "runs and sessions: the one output to download, by its path in .stigmer/outputs/ (a bare filename matches too)",
     )
     .option(
       "-o, --output-dir <dir>",
       "output directory (runs, sessions and files: default '.'; evals: a new or empty directory, default ./<slug>)",
     )
-    .option("--all", "runs and sessions: download all artifacts (default)", true)
+    .option("--all", "runs and sessions: download all outputs (default)", true)
     .action((type: string, ref: string, options: DownloadFlags, command: Command) =>
       runDownload(type, ref, options, command),
     );
@@ -71,7 +71,7 @@ async function runDownload(type: string, ref: string, options: DownloadFlags, co
   const request = {
     ref,
     org: resolveOrganization(client.config, globalOrg(command)),
-    artifactName: options.artifact ?? "",
+    outputPath: options.path ?? "",
     outputDir: options.outputDir,
   };
 
@@ -85,7 +85,7 @@ async function runDownload(type: string, ref: string, options: DownloadFlags, co
 async function runDownloadRun(id: string, options: DownloadFlags): Promise<void> {
   refuseResultFlags(options, "a run's");
 
-  const [{ connectBackend }, { isRunId }, { downloadRunArtifacts }] = await Promise.all([
+  const [{ connectBackend }, { isRunId }, { downloadRunOutputs }] = await Promise.all([
     import("../backend.js"),
     import("../resources/reference.js"),
     import("../resources/download.js"),
@@ -98,13 +98,13 @@ async function runDownloadRun(id: string, options: DownloadFlags): Promise<void>
   const client = connectBackend();
   ensureAuthenticated(client.config);
 
-  const outcome = await downloadRunArtifacts(
+  const outcome = await downloadRunOutputs(
     client.stigmer,
     id,
-    { artifactName: options.artifact ?? "", outputDir: options.outputDir ?? "." },
+    { outputPath: options.path ?? "", outputDir: options.outputDir ?? "." },
     stderrSink,
   );
-  printOutcome(outcome, "artifact", `run: ${id}`);
+  printOutcome(outcome, "output", `run: ${id}`);
 }
 
 // The result flags shape an eval download's answer; a download that prints
@@ -126,11 +126,9 @@ function stderrSink(line: string): void {
 }
 
 function printOutcome(outcome: DownloadOutcome, noun: string, subject: string): void {
-  if (outcome.noArtifacts) {
-    process.stdout.write(`\nNo artifacts found for ${subject}\n\n`);
-    process.stdout.write(
-      "Tip: Artifacts are the files an agent saves in its outputs folder (.stigmer/outputs/). Not every run saves one.\n\n",
-    );
+  if (outcome.noOutputs) {
+    process.stdout.write(`\nNo outputs found for ${subject}\n\n`);
+    process.stdout.write("Tip: outputs are the files an agent saves in .stigmer/outputs/. Not every run saves one.\n\n");
     return;
   }
 

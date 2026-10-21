@@ -14,9 +14,9 @@
 // where it is, and nothing is uploaded.
 //
 // Trade-offs:
-// - Planning and uploading are two steps. planAttachments only reads the
+// - Planning and uploading are two steps. planFiles only reads the
 //   disk, so a missing path, an empty folder or a count over the limits fails
-//   before any byte moves; stageAttachments uploads once the run's target is
+//   before any byte moves; stageFiles uploads once the run's target is
 //   known. A File named by id counts toward the message's limit with the
 //   files the message uploads, and is never deleted here: it is the
 //   person's, and the server gives the conversation its own copy.
@@ -82,7 +82,7 @@ export interface AttachedFolder {
 }
 
 /** What `--attach` and `--file-id` resolved to, before anything is uploaded. */
-export interface AttachmentPlan {
+export interface FilePlan {
   /** Files the message carries, in the order given. */
   readonly messageFiles: readonly LocalFile[];
   /** Files already uploaded that the message names, by id, in the order given. */
@@ -94,7 +94,7 @@ export interface AttachmentPlan {
 }
 
 /** A plan that attaches nothing. */
-export const NO_ATTACHMENTS: AttachmentPlan = { messageFiles: [], fileIds: [], folders: [], workspaceFileRefs: [] };
+export const NO_FILES: FilePlan = { messageFiles: [], fileIds: [], folders: [], workspaceFileRefs: [] };
 
 /**
  * Resolve `--attach` paths against the local workspace roots without
@@ -103,12 +103,12 @@ export const NO_ATTACHMENTS: AttachmentPlan = { messageFiles: [], fileIds: [], f
  * folder is walked for the files it gives. `fileIds` are the `--file-id`
  * Files the message also carries.
  */
-export function planAttachments(
+export function planFiles(
   paths: readonly string[],
   workspaceRoots: readonly string[],
   progress?: ProgressSink,
   fileIds: readonly string[] = [],
-): AttachmentPlan {
+): FilePlan {
   for (const id of fileIds) {
     if (!/^file_[^\s/]+$/.test(id)) {
       throw new UsageError(`--file-id takes a File's id (file_…), not "${id}"; to send a file on disk, use --attach`);
@@ -127,7 +127,7 @@ export function planAttachments(
       continue;
     }
     const abs = resolve(path);
-    const stat = statAttachment(path);
+    const stat = statPath(path);
     if (stat.isDirectory()) {
       folders.push(readFolder(abs, budget, progress));
     } else if (stat.isFile()) {
@@ -162,7 +162,7 @@ export interface StageTarget {
 }
 
 /** The uploaded Files, ready for the run that names them. */
-export interface StagedAttachments {
+export interface StagedFiles {
   /** The Files the message carries, uploaded then named, for RunSpec.file_ids. */
   readonly fileIds: readonly string[];
   /**
@@ -187,12 +187,12 @@ export interface UploadJob {
  * are the person's own, returned as originals for the caller to delete once
  * the run exists.
  */
-export async function stageAttachments(
+export async function stageFiles(
   client: Stigmer,
-  plan: AttachmentPlan,
+  plan: FilePlan,
   target: StageTarget,
   progress?: ProgressSink,
-): Promise<StagedAttachments> {
+): Promise<StagedFiles> {
   if (plan.messageFiles.length === 0 && plan.folders.length === 0) {
     return { fileIds: plan.fileIds, resources: [], originals: [] };
   }
@@ -359,13 +359,13 @@ function matchWorkspaceRoot(path: string, roots: readonly string[]): string | nu
   return null;
 }
 
-function statAttachment(path: string): Stats {
+function statPath(path: string): Stats {
   try {
     return statSync(path);
   } catch (err) {
     const e = err as NodeJS.ErrnoException;
     if (e.code === "ENOENT") throw new UsageError(`file not found: ${path}`);
-    throw new UsageError(`failed to stat attachment "${path}": ${e.message}`);
+    throw new UsageError(`cannot read "${path}": ${e.message}`);
   }
 }
 
@@ -400,7 +400,7 @@ function readFolder(
   };
   walk(abs, "");
   if (files.length === 0) {
-    throw new UsageError(`directory contains no attachable files: ${abs}`);
+    throw new UsageError(`folder "${abs}" has no files to send`);
   }
   const name = basename(abs);
   return { name: name === "" ? "folder" : name, files };

@@ -25,14 +25,14 @@ import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v
 import { Stigmer } from "@stigmer/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  type AttachmentPlan,
+  type FilePlan,
   deleteFiles,
   MAX_CONVERSATION_FILES,
   MAX_MESSAGE_FILES,
-  NO_ATTACHMENTS,
-  planAttachments,
-  stageAttachments,
-} from "../attachments.js";
+  NO_FILES,
+  planFiles,
+  stageFiles,
+} from "../files.js";
 
 let dir: string;
 beforeEach(() => {
@@ -111,13 +111,13 @@ function fileResourceOf(resource: SessionResource): { fileId: string; mountPath:
   return { fileId: resource.resource.value.fileId, mountPath: resource.resource.value.mountPath };
 }
 
-describe("planAttachments", () => {
+describe("planFiles", () => {
   it("mentions a file inside a workspace root by its relative path, uploading nothing", () => {
     const root = join(dir, "repo");
     const file = write(join(root, "src", "main.ts"));
 
-    const plan = planAttachments([file], [join(dir, "missing-root"), root]);
-    expect(plan).toEqual({ ...NO_ATTACHMENTS, workspaceFileRefs: ["src/main.ts"] });
+    const plan = planFiles([file], [join(dir, "missing-root"), root]);
+    expect(plan).toEqual({ ...NO_FILES, workspaceFileRefs: ["src/main.ts"] });
   });
 
   it("carries a file outside every workspace root with the message, and walks a folder for its files", () => {
@@ -132,7 +132,7 @@ describe("planAttachments", () => {
     symlinkSync(outside, join(folder, "link.pdf"));
 
     const progress: string[] = [];
-    const plan = planAttachments([outside, folder], [root], (line) => progress.push(line));
+    const plan = planFiles([outside, folder], [root], (line) => progress.push(line));
 
     expect(plan.messageFiles).toEqual([{ path: outside, size: 3 }]);
     expect(plan.folders).toHaveLength(1);
@@ -146,37 +146,37 @@ describe("planAttachments", () => {
   });
 
   it("refuses a missing path, an unreadable one, and one that is neither a file nor a folder", () => {
-    expect(() => planAttachments([join(dir, "nope.txt")], [])).toThrow(/file not found/);
+    expect(() => planFiles([join(dir, "nope.txt")], [])).toThrow(/file not found/);
     const file = write(join(dir, "plain.txt"));
-    expect(() => planAttachments([join(file, "child")], [])).toThrow(/failed to stat attachment/);
-    expect(() => planAttachments(["/dev/null"], [])).toThrow(/not a file or a folder/);
+    expect(() => planFiles([join(file, "child")], [])).toThrow(/cannot read "/);
+    expect(() => planFiles(["/dev/null"], [])).toThrow(/not a file or a folder/);
   });
 
   it("refuses a folder with nothing to attach", () => {
     const empty = join(dir, "empty");
     write(join(empty, ".hidden"));
-    expect(() => planAttachments([empty], [])).toThrow(/no attachable files/);
+    expect(() => planFiles([empty], [])).toThrow(/has no files to send/);
   });
 
   it("refuses more files than a message carries, before any upload", () => {
     const files = Array.from({ length: MAX_MESSAGE_FILES + 1 }, (_, i) => write(join(dir, `f${i}.txt`)));
-    expect(() => planAttachments(files, [])).toThrow(/a message carries at most 20/);
+    expect(() => planFiles(files, [])).toThrow(/a message carries at most 20/);
   });
 
   it("carries Files named by id with the message, counted with the files it uploads toward its limit", () => {
     const report = write(join(dir, "report.pdf"), "pdf");
-    const plan = planAttachments([report], [], undefined, ["file_kept1", "file_kept2"]);
+    const plan = planFiles([report], [], undefined, ["file_kept1", "file_kept2"]);
     expect(plan.fileIds).toEqual(["file_kept1", "file_kept2"]);
     expect(plan.messageFiles).toHaveLength(1);
 
     const files = Array.from({ length: MAX_MESSAGE_FILES - 1 }, (_, i) => write(join(dir, `f${i}.txt`)));
-    expect(() => planAttachments(files, [], undefined, ["file_a", "file_b"])).toThrow(
+    expect(() => planFiles(files, [], undefined, ["file_a", "file_b"])).toThrow(
       "--attach and --file-id name 21 files; a message carries at most 20",
     );
   });
 
   it("refuses a --file-id that is not a File's id, pointing at --attach", () => {
-    expect(() => planAttachments([], [], undefined, ["./report.pdf"])).toThrow(
+    expect(() => planFiles([], [], undefined, ["./report.pdf"])).toThrow(
       '--file-id takes a File\'s id (file_…), not "./report.pdf"; to send a file on disk, use --attach',
     );
   });
@@ -185,18 +185,18 @@ describe("planAttachments", () => {
     const folder = join(dir, "many");
     for (let i = 0; i < MAX_CONVERSATION_FILES - 1; i++) write(join(folder, `f${i}.txt`));
     const extra = [write(join(dir, "one.txt")), write(join(dir, "two.txt"))];
-    expect(() => planAttachments([folder, ...extra], [])).toThrow(/gives 501 files; a conversation holds at most 500/);
+    expect(() => planFiles([folder, ...extra], [])).toThrow(/gives 501 files; a conversation holds at most 500/);
 
     write(join(folder, "f-last.txt"));
     write(join(folder, "f-over.txt"));
-    expect(() => planAttachments([folder], [])).toThrow(/more than 500 files/);
+    expect(() => planFiles([folder], [])).toThrow(/more than 500 files/);
   });
 });
 
-describe("stageAttachments, a new conversation", () => {
+describe("stageFiles, a new conversation", () => {
   it("asks nothing of the server when nothing is attached", async () => {
     const server = fakeServer();
-    expect(await stageAttachments(server.client, NO_ATTACHMENTS, { org: "acme" })).toEqual({
+    expect(await stageFiles(server.client, NO_FILES, { org: "acme" })).toEqual({
       fileIds: [],
       resources: [],
       originals: [],
@@ -210,10 +210,10 @@ describe("stageAttachments, a new conversation", () => {
     write(join(dir, "a", "data", "one.csv"));
     write(join(dir, "a", "data", "sub", "two.csv"));
     write(join(dir, "b", "data", "three.csv"));
-    const plan = planAttachments([report, join(dir, "a", "data"), join(dir, "b", "data")], []);
+    const plan = planFiles([report, join(dir, "a", "data"), join(dir, "b", "data")], []);
 
     const progress: string[] = [];
-    const staged = await stageAttachments(server.client, plan, { org: "acme" }, (line) => progress.push(line));
+    const staged = await stageFiles(server.client, plan, { org: "acme" }, (line) => progress.push(line));
 
     expect(server.gets, "a new conversation has nothing to read").toEqual([]);
     expect(server.uploads.every((u) => u.org === "acme" && u.sessionId === "")).toBe(true);
@@ -233,9 +233,9 @@ describe("stageAttachments, a new conversation", () => {
   it("deletes every File it uploaded when one upload fails, and names the file", async () => {
     const server = fakeServer({ refuseUpload: new Set(["bad.txt"]) });
     const files = ["a.txt", "b.txt", "bad.txt", "c.txt", "d.txt", "e.txt"].map((n) => write(join(dir, n)));
-    const plan = planAttachments(files, []);
+    const plan = planFiles(files, []);
 
-    await expect(stageAttachments(server.client, plan, { org: "acme" })).rejects.toThrow(
+    await expect(stageFiles(server.client, plan, { org: "acme" })).rejects.toThrow(
       /failed to upload ".*bad\.txt": .*too large/,
     );
     expect(server.uploads.length).toBeGreaterThan(0);
@@ -245,13 +245,13 @@ describe("stageAttachments, a new conversation", () => {
   });
 });
 
-describe("stageAttachments, Files named by id", () => {
+describe("stageFiles, Files named by id", () => {
   it("names them after the files it uploads, uploads nothing for them, and never returns them as originals", async () => {
     const server = fakeServer();
     const report = write(join(dir, "report.pdf"), "pdf");
-    const staged = await stageAttachments(
+    const staged = await stageFiles(
       server.client,
-      planAttachments([report], [], undefined, ["file_kept"]),
+      planFiles([report], [], undefined, ["file_kept"]),
       { org: "acme" },
     );
     expect(server.uploads.map((u) => u.filename)).toEqual(["report.pdf"]);
@@ -261,7 +261,7 @@ describe("stageAttachments, Files named by id", () => {
 
   it("asks nothing of the server when the message only names Files", async () => {
     const server = fakeServer();
-    const staged = await stageAttachments(server.client, planAttachments([], [], undefined, ["file_kept"]), {
+    const staged = await stageFiles(server.client, planFiles([], [], undefined, ["file_kept"]), {
       org: "acme",
     });
     expect(staged).toEqual({ fileIds: ["file_kept"], resources: [], originals: [] });
@@ -269,7 +269,7 @@ describe("stageAttachments, Files named by id", () => {
   });
 });
 
-describe("stageAttachments, an existing conversation", () => {
+describe("stageFiles, an existing conversation", () => {
   const held: Session = create(SessionSchema, {
     metadata: { id: "ses_1", org: "acme", etag: "etag-1" },
     spec: {
@@ -285,9 +285,9 @@ describe("stageAttachments, an existing conversation", () => {
     const server = fakeServer({ session: held });
     const report = write(join(dir, "report.pdf"));
     write(join(dir, "data", "new.csv"));
-    const plan = planAttachments([report, join(dir, "data")], []);
+    const plan = planFiles([report, join(dir, "data")], []);
 
-    const staged = await stageAttachments(server.client, plan, { org: "acme", sessionId: "ses_1" });
+    const staged = await stageFiles(server.client, plan, { org: "acme", sessionId: "ses_1" });
 
     expect(server.uploads.every((u) => u.sessionId === "ses_1")).toBe(true);
     expect(staged.fileIds).toHaveLength(1);
@@ -306,9 +306,9 @@ describe("stageAttachments, an existing conversation", () => {
 
   it("names the message's Files without touching the conversation's resources", async () => {
     const server = fakeServer({ session: held });
-    const plan: AttachmentPlan = planAttachments([write(join(dir, "report.pdf"))], []);
+    const plan: FilePlan = planFiles([write(join(dir, "report.pdf"))], []);
 
-    const staged = await stageAttachments(server.client, plan, { org: "acme", sessionId: "ses_1" });
+    const staged = await stageFiles(server.client, plan, { org: "acme", sessionId: "ses_1" });
 
     expect(staged.fileIds).toHaveLength(1);
     expect(server.updates).toEqual([]);
@@ -317,9 +317,9 @@ describe("stageAttachments, an existing conversation", () => {
   it("deletes the Files it uploaded when the conversation refuses the update", async () => {
     const server = fakeServer({ session: held, refuseUpdate: true });
     write(join(dir, "data", "new.csv"));
-    const plan = planAttachments([join(dir, "data")], []);
+    const plan = planFiles([join(dir, "data")], []);
 
-    await expect(stageAttachments(server.client, plan, { org: "acme", sessionId: "ses_1" })).rejects.toThrow(
+    await expect(stageFiles(server.client, plan, { org: "acme", sessionId: "ses_1" })).rejects.toThrow(
       /failed to add the attached folders to the conversation/,
     );
     expect(server.deletes).toEqual(server.uploads.map((u, i) => `file_${i + 1}_${u.filename}`));
