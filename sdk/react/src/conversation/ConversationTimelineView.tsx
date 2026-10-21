@@ -18,7 +18,7 @@ import {
   TooltipTrigger,
 } from "../internal/tooltip.js";
 import { useAutoScroll, usePinToLatestOnSignal } from "../internal/useAutoScroll.js";
-import { ConversationMediaAttachment } from "./ConversationMediaAttachment.js";
+import { ConversationMedia } from "./ConversationMedia.js";
 import {
   attemptExplanationOf,
   authorKindOf,
@@ -279,7 +279,7 @@ const TimelineItemRow = memo(function TimelineItemRow({
           </p>
         )}
         {mediaAddress !== null && item.media !== undefined && (
-          <ConversationMediaAttachment
+          <ConversationMedia
             media={item.media}
             address={mediaAddress}
             className={item.text ? "stg:mb-1.5" : undefined}

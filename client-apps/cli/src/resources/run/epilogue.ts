@@ -27,7 +27,7 @@ import type { HeadlessResult } from "../stream/headless.js";
 
 /**
  * Fetch the final run + usage and print the exit summary. Returns the
- * final run so the caller can act on its artifacts (e.g. --download).
+ * final run so the caller can act on its outputs (e.g. --download).
  */
 export async function runEpilogue(
   client: Stigmer,

@@ -59,7 +59,7 @@ message RoutineStatus {
   // Server-owned. The reference rule records the writer for each vault a
   // write introduces, keeps the entry for each vault a write keeps, and
   // drops entries for removed vaults, so an editor's unrelated edit never
-  // re-attributes someone else's attachment.
+  // re-attributes a vault someone else attached.
   map<string, string> vault_attachers = 6;
 
   // Standard audit information (created_at, updated_at, created_by, etc.)

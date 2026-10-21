@@ -23,7 +23,7 @@ function baseProps(overrides: Partial<ComposerToolbarProps> = {}): ComposerToolb
     workspaceCount: 0,
     workspaceContent: <div data-testid="workspace-popover-content">editor</div>,
     showAttach: false,
-    attachmentCount: 0,
+    fileCount: 0,
     onAttachClick: vi.fn(),
     configureItems: [],
     configOpen: false,

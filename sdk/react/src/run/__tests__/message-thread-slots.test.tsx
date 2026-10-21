@@ -28,7 +28,7 @@ import type { SetupProgressProps } from "../SetupProgress";
 import type { RecalledMemoriesCardProps } from "../RecalledMemoriesCard";
 import type { LivenessStatusLineProps } from "../LivenessStatusLine";
 import type { PlanCompletionCardProps } from "../PlanCompletionCard";
-import type { PlanArtifactCardProps } from "../PlanArtifactCard";
+import type { PlanFileCardProps } from "../PlanFileCard";
 import type { PlanStreamingCardProps } from "../PlanStreamingCard";
 import {
   asked,
@@ -224,7 +224,7 @@ describe("MessageThread slots", () => {
     expect(screen.getByTestId("custom-liveness").textContent).toBe("custom-live");
   });
 
-  it("renders the PlanCompletionCard slot for an artifact-less completed Plan turn", () => {
+  it("renders the PlanCompletionCard slot for a completed Plan turn with no plan File", () => {
     const CustomCompletion = ({ onImplement }: PlanCompletionCardProps) => (
       <button type="button" data-testid="custom-completion" onClick={onImplement}>
         custom build
@@ -238,9 +238,9 @@ describe("MessageThread slots", () => {
     expect(onBuildFromPlan).toHaveBeenCalledOnce();
   });
 
-  it("renders the PlanArtifactCard slot for a completed Plan turn with a published artifact", () => {
-    const CustomArtifact = ({ file, title }: PlanArtifactCardProps) => (
-      <div data-testid="custom-artifact">
+  it("renders the PlanFileCard slot for a completed Plan turn with a plan File", () => {
+    const CustomPlan = ({ file, title }: PlanFileCardProps) => (
+      <div data-testid="custom-plan-card">
         {title ?? "Plan"}: {file.spec?.filename}
       </div>
     );
@@ -253,10 +253,10 @@ describe("MessageThread slots", () => {
     renderThread(conv, {
       onBuildFromPlan: vi.fn(),
       planFiles: new Map([["e-plan", planFile]]),
-      slots: { PlanArtifactCard: CustomArtifact },
+      slots: { PlanFileCard: CustomPlan },
     });
 
-    expect(screen.getByTestId("custom-artifact").textContent).toBe("Rollout Plan: rollout_abc123.plan.md");
+    expect(screen.getByTestId("custom-plan-card").textContent).toBe("Rollout Plan: rollout_abc123.plan.md");
   });
 
   it("renders the PlanStreamingCard slot while a plan is being written", () => {

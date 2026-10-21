@@ -30,7 +30,7 @@ import { runPhaseOf } from "./run-phases.js";
 import { MessageEntry, type MessageEntryProps, type ThreadMessage } from "./MessageEntry.js";
 import { RunScores } from "../score/RunScores.js";
 import { RunScoresProvider, useRunScoresEnabled } from "../score/RunScoresContext.js";
-import { messageFileViews, type MessageAttachmentView } from "./MessageAttachments.js";
+import { messageFileViews, type MessageFileView } from "./MessageFiles.js";
 import { ToolCallGroup } from "./ToolCallGroup.js";
 import { SubagentSection, subagentSubjectOf } from "./SubagentSection.js";
 import { RunPhaseBadge } from "./RunPhaseBadge.js";
@@ -45,7 +45,7 @@ import { RunErrorNotice, type RunErrorNoticeProps } from "./RunErrorNotice.js";
 import { FileReviewCard } from "./FileReviewCard.js";
 import { SummarizationCard } from "./SummarizationCard.js";
 import { PlanCompletionCard, type PlanCompletionCardProps } from "./PlanCompletionCard.js";
-import { PlanArtifactCard, type PlanArtifactCardProps } from "./PlanArtifactCard.js";
+import { PlanFileCard, type PlanFileCardProps } from "./PlanFileCard.js";
 import { PlanStreamingCard, type PlanStreamingCardProps } from "./PlanStreamingCard.js";
 import { TodoCard, type TodoCardProps } from "./TodoCard.js";
 import type { TodoRowProps } from "./TodoList.js";
@@ -113,7 +113,7 @@ export interface MessageThreadSlots {
    */
   readonly TodoRow?: ComponentType<TodoRowProps>;
   /** Completed Plan turn that returned a plan File. */
-  readonly PlanArtifactCard?: ComponentType<PlanArtifactCardProps>;
+  readonly PlanFileCard?: ComponentType<PlanFileCardProps>;
   /** Completed Plan turn without a plan File — the bare Implement CTA. */
   readonly PlanCompletionCard?: ComponentType<PlanCompletionCardProps>;
   /** Live stand-in card while a Plan turn is writing its document. */
@@ -152,7 +152,7 @@ export interface MessageThreadProps {
   readonly turns: readonly Turn[];
   /**
    * The turns' runs, for what the run record holds and the events do not:
-   * the message's attachments and mode, the agent and
+   * the message's files and mode, the agent and
    * skill versions a turn ran, its setup progress, and the captured bytes
    * of its file changes. Matched to turns by run id; a turn whose run is
    * absent renders from its events alone.
@@ -172,15 +172,15 @@ export interface MessageThreadProps {
    */
   readonly pendingUserMessage?: string | null;
   /**
-   * Attachments submitted with the pending user message, rendered as chips
+   * Files sent with the pending user message, rendered as chips
    * on the optimistic bubble so the files never vanish between submit and
    * the turn appearing (stigmer/stigmer#372). Supply
-   * {@link useSessionConversation}'s `pendingAttachments`; clear together
+   * {@link useSessionConversation}'s `pendingFiles`; clear together
    * with {@link pendingUserMessage}. Chips are inert on the pending bubble
    * (no run record yet); previews and downloads light up the moment
    * the real turn replaces it.
    */
-  readonly pendingAttachments?: readonly MessageAttachmentView[] | null;
+  readonly pendingFiles?: readonly MessageFileView[] | null;
   /**
    * Marks the pending user message as failed-to-send. The optimistic
    * bubble renders an inline "Couldn't send — Retry" affordance instead
@@ -347,7 +347,7 @@ export interface MessageThreadProps {
   readonly onOpenPlan?: (executionId: string) => void;
   /**
    * Organization id (a slug is also accepted). Required for the plan completion card's
-   * "Review plan" action, which opens the shared artifact preview
+   * "Review plan" action, which opens the shared file preview
    * modal (the modal needs `org` for its detection/apply pipeline).
    */
   readonly org?: string;
@@ -416,7 +416,7 @@ export function threadContentColumnClass(
  * part of the public API.
  */
 export type ThreadItem =
-  | { readonly kind: "message"; readonly message: ThreadMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean; readonly isPlanDocument?: boolean; readonly interactionMode?: InteractionMode; readonly attachments?: readonly MessageAttachmentView[]; readonly executionId?: string; readonly scoresRunId?: string }
+  | { readonly kind: "message"; readonly message: ThreadMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean; readonly isPlanDocument?: boolean; readonly interactionMode?: InteractionMode; readonly files?: readonly MessageFileView[]; readonly executionId?: string; readonly scoresRunId?: string }
   | { readonly kind: "tool-group"; readonly toolUses: readonly ToolUse[]; readonly key: string }
   | { readonly kind: "subagent"; readonly toolUse: ToolUse; readonly thread: Thread; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: RunPhase; readonly key: string }
@@ -494,7 +494,7 @@ export interface BuildThreadItemsOptions {
   readonly includeFileReviewRecords?: boolean;
   /** Suppress a plan being written behind a live plan card. */
   readonly collapseStreamingPlan?: boolean;
-  readonly pendingAttachments?: readonly MessageAttachmentView[] | null;
+  readonly pendingFiles?: readonly MessageFileView[] | null;
   readonly agentVersionLabel?: (versionHash: string) => string;
   /** Each Plan-mode turn's plan File, by run id. */
   readonly planFiles?: ReadonlyMap<string, StigmerFile>;
@@ -684,7 +684,7 @@ export function buildThreadItems(
     editableActiveTurn = false,
     includeFileReviewRecords = false,
     collapseStreamingPlan = false,
-    pendingAttachments,
+    pendingFiles,
     agentVersionLabel,
     planFiles,
   } = options;
@@ -831,7 +831,7 @@ export function buildThreadItems(
         isEditable: isActiveTurn && editableActiveTurn,
         // The turn's mode marks the bubble (a "Plan" pill on Plan turns).
         interactionMode: run?.spec?.interactionMode,
-        attachments: messageFiles.length > 0 ? messageFiles : undefined,
+        files: messageFiles.length > 0 ? messageFiles : undefined,
         executionId: runId,
       });
     }
@@ -1051,11 +1051,11 @@ export function buildThreadItems(
         // sending state — the two are mutually exclusive.
         isPending: !pendingMessageFailed,
         isFailed: pendingMessageFailed,
-        // The submitted attachments: evidence the files rode with the turn,
+        // The files sent with the message: evidence they rode with the turn,
         // kept on failure so Retry shows what will be re-sent.
-        attachments:
-          pendingAttachments && pendingAttachments.length > 0
-            ? pendingAttachments
+        files:
+          pendingFiles && pendingFiles.length > 0
+            ? pendingFiles
             : undefined,
       });
     }
@@ -1111,7 +1111,7 @@ export function MessageThread({
   runs = EMPTY_RUNS,
   planFiles,
   pendingUserMessage,
-  pendingAttachments,
+  pendingFiles,
   pendingMessageFailed = false,
   onRetrySend,
   scrollOnSend = true,
@@ -1155,11 +1155,11 @@ export function MessageThread({
         editableActiveTurn,
         includeFileReviewRecords: showFileReviewRecords,
         collapseStreamingPlan,
-        pendingAttachments,
+        pendingFiles,
         agentVersionLabel,
         planFiles,
       }),
-    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingAttachments, agentVersionLabel, planFiles],
+    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingFiles, agentVersionLabel, planFiles],
   );
 
   useKeyStability(items);
@@ -1479,7 +1479,7 @@ export function ThreadItemRenderer({
         return (
           <FailedUserMessage
             message={item.message}
-            attachments={item.attachments}
+            files={item.files}
             onRetry={onRetrySend}
             MessageEntryComponent={Entry}
           />
@@ -1491,7 +1491,7 @@ export function ThreadItemRenderer({
           className={item.isPending ? "stg:opacity-70" : undefined}
           isPlanDocument={item.isPlanDocument}
           interactionMode={item.interactionMode}
-          attachments={item.attachments}
+          files={item.files}
           runId={item.executionId}
           onEdit={
             item.isEditable && onEditMessage
@@ -1586,10 +1586,10 @@ export function ThreadItemRenderer({
       // bare Implement CTA (a plan the turn could not save).
       // Only the latest plan receives the build action — a superseded plan's
       // card is review-only, so a stale plan can never be implemented from it.
-      const Artifact = slots?.PlanArtifactCard ?? PlanArtifactCard;
+      const PlanCard = slots?.PlanFileCard ?? PlanFileCard;
       const Completion = slots?.PlanCompletionCard ?? PlanCompletionCard;
       return item.planFile && item.executionId ? (
-        <Artifact
+        <PlanCard
           file={item.planFile}
           title={item.planTitle}
           org={org}
@@ -1732,21 +1732,21 @@ function LoadedVersionsMarker({ changes }: { readonly changes: readonly LoadedVe
  */
 function FailedUserMessage({
   message,
-  attachments,
+  files,
   onRetry,
   MessageEntryComponent,
 }: {
   message: ThreadMessage;
-  attachments?: readonly MessageAttachmentView[];
+  files?: readonly MessageFileView[];
   onRetry?: () => void;
   MessageEntryComponent: ComponentType<MessageEntryProps>;
 }) {
   return (
     <div className="stg:flex stg:flex-col stg:gap-1">
-      {/* Attachments stay visible on the failed bubble — the one turn where
+      {/* The files stay visible on the failed bubble — the one turn where
           the user most needs evidence of what they tried to send (and what
           Retry will re-send). No executionId: the send never created one. */}
-      <MessageEntryComponent message={message} attachments={attachments} />
+      <MessageEntryComponent message={message} files={files} />
       <div
         role="alert"
         className="stg:mx-4 stg:flex stg:items-center stg:gap-2 stg:text-xs stg:text-destructive"

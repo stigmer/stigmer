@@ -158,7 +158,7 @@ See [Harnesses](/docs/concepts/harnesses) for a full comparison.
 ## Session-level additions
 
 Sessions can customize an Agent's behavior for a specific conversation without
-changing the Agent definition. Three key additions:
+changing the Agent definition. Four key additions:
 
 ### Skills
 
@@ -209,6 +209,27 @@ spec:
 From the CLI, `stigmer run --environment data-science` does the same. The
 conversation keeps the Environment it started with: naming another after its
 first turn is refused.
+
+### Files and repositories
+
+Give this conversation the [Files](/docs/concepts/files) and git repositories it
+works on. The Agent finds each File under `.stigmer/uploads/` and each
+repository cloned in its workspace, on every turn:
+
+```yaml validate-as="Session"
+spec:
+  resources:
+    - file:
+        file_id: file_01j9zq6v8w3x4y5z6a7b8c9d0e
+        mount_path: q3/ledger.xlsx
+    - name: finance-models
+      git_repository:
+        url: https://github.com/acme/finance-models
+```
+
+A File sent with a message joins this list too, so the Agent still has it on
+later turns. What the Agent saves in `.stigmer/outputs/` comes back as Files of
+the conversation; [Files](/docs/concepts/files) explains both directions.
 
 ## Session lifecycle
 

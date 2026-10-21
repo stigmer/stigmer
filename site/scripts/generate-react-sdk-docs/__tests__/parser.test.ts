@@ -66,7 +66,7 @@ describe("parseTypeDocJson — domains", () => {
     expect(domains[0]).toMatchObject({
       slug: "skill",
       title: "Skill",
-      description: "Hooks and components for knowledge attachments, search, picker, and detail views.",
+      description: "Hooks and components for domain knowledge, search, picker, and detail views.",
     });
     expect(domains[0].types.map((t) => t.name)).toEqual(["SkillPickerProps"]);
   });

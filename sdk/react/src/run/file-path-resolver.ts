@@ -24,7 +24,7 @@ export type PathClassification =
 
 /**
  * Classifies whether a path targets the virtual platform mount
- * (`.stigmer/skills/`, `.stigmer/inputs/`, etc.) or the workspace.
+ * (`.stigmer/skills/`, `.stigmer/uploads/`, etc.) or the workspace.
  *
  * Leading slashes are stripped first, and a bare `.stigmer` is the
  * platform mount's root.

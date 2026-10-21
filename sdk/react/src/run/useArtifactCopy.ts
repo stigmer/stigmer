@@ -12,11 +12,12 @@ const COPIED_FEEDBACK_MS = 2000;
 /** Return value of {@link useArtifactCopy}. */
 export interface UseArtifactCopyReturn {
   /**
-   * Fetch the artifact's text at click time and write it to the clipboard.
+   * Fetch the text stored under the key at click time and write it to the
+   * clipboard.
    * No-op when the run id is unknown or a copy is already in flight.
    * Resolves once the copy has been attempted.
    *
-   * @param storageKey - Storage key of the artifact to copy.
+   * @param storageKey - Storage key of the content to copy.
    */
   readonly copy: (storageKey: string) => Promise<void>;
 
@@ -34,27 +35,29 @@ export interface UseArtifactCopyReturn {
 }
 
 /**
- * Behavior hook that copies a run artifact's text to the clipboard on
- * demand.
+ * Behavior hook that copies the text stored under a run's storage key (a
+ * tool call's offloaded output, or one side of a captured file change) to
+ * the clipboard on demand. A File's text is read with `useFileContent`
+ * instead.
  *
  * The imperative sibling of {@link useArtifactDownload}: it fetches content at
  * click time via `getArtifactContent` (CORS-safe, through the Stigmer API)
  * rather than requiring the caller to have loaded it. This suits content-free
- * surfaces — a plan card that detects the artifact by convention and never
- * fetches until the user acts — where a mount-time {@link useArtifactContent}
+ * surfaces — a row that names stored content but never fetches it until the
+ * user acts — where a mount-time {@link useArtifactContent}
  * would be wasteful.
  *
  * Returns an imperative `copy(storageKey)` action plus a transient `copied`
  * flag for feedback, mirroring the modal's copy affordance so every surface
  * shares one implementation.
  *
- * @param executionId - Run that produced the artifacts, or `null` to
+ * @param executionId - Run whose storage keys these are, or `null` to
  *   disable (the action becomes a no-op).
  *
  * @example
  * ```tsx
  * const { copy, isCopying, copied } = useArtifactCopy(executionId);
- * <button onClick={() => copy(artifact.storageKey)} disabled={isCopying}>
+ * <button onClick={() => copy(outputRef.storageKey)} disabled={isCopying}>
  *   {copied ? "Copied" : "Copy"}
  * </button>
  * ```

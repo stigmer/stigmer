@@ -489,10 +489,7 @@ function formatEntryDescription(result: ProvisionResult): string {
   if (result.sourceType === "git_repo" && result.gitMetadata) {
     const meta: GitMetadata = result.gitMetadata;
     const branch = meta.branch ? ` (branch: ${meta.branch})` : "";
-    return (
-      `Workspace entry **${name}** was initialized from ${meta.repoUrl}${branch}.\n` +
-      "Changes you make will be captured as artifacts when execution completes."
-    );
+    return `Workspace entry **${name}** was initialized from ${meta.repoUrl}${branch}.`;
   }
 
   if (result.sourceType === "empty") {

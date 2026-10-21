@@ -15,7 +15,7 @@ export interface PanelChipProps {
   readonly onToggle: () => void;
   /**
    * Aggregate count of panel items awaiting the user (write-backs +
-   * artifacts). Rendered
+   * outputs). Rendered
    * as a dot-count while collapsed — the panel's only "something arrived"
    * signal, since arrivals never auto-open the panel.
    */

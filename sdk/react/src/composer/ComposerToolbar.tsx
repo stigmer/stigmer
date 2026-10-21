@@ -81,7 +81,7 @@ export interface ComposerToolbarProps {
   readonly onWorkspaceDirectAction?: () => void;
 
   readonly showAttach: boolean;
-  readonly attachmentCount: number;
+  readonly fileCount: number;
   readonly onAttachClick: () => void;
 
   readonly configureItems: readonly ConfigureMenuItem[];
@@ -117,7 +117,7 @@ export function ComposerToolbar({
   onStop,
   isStopping = false,
   showAttach,
-  attachmentCount,
+  fileCount,
   onAttachClick,
   showWorkspace,
   workspaceCount,
@@ -252,9 +252,9 @@ export function ComposerToolbar({
                 >
                   <span className="stg:relative">
                     <PaperclipIcon />
-                    {attachmentCount > 0 && (
+                    {fileCount > 0 && (
                       <span className="stg:absolute stg:-right-1.5 stg:-top-1.5 stg:flex stg:h-3.5 stg:min-w-3.5 stg:items-center stg:justify-center stg:rounded-full stg:bg-primary stg:px-0.5 stg:text-[0.5rem] stg:font-medium stg:leading-none stg:text-primary-foreground">
-                        {attachmentCount}
+                        {fileCount}
                       </span>
                     )}
                   </span>

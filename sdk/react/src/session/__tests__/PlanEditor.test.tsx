@@ -10,7 +10,7 @@ import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { StigmerContext } from "../../context";
-import type { SessionPlan } from "../../library/detect-plan-artifact";
+import type { SessionPlan } from "../../library/detect-plan-file";
 import type { PlanDraftController } from "../usePlanDraft";
 import { PlanEditor } from "../PlanEditor";
 
@@ -196,7 +196,7 @@ describe("PlanEditor — read-only (superseded plan)", () => {
   it("never applies the current plan's draft to a superseded plan", async () => {
     // Defense in depth for the wiring contract (the host passes no draft for
     // a read-only plan): even if a draft controller leaks through, read-only
-    // rendering shows the artifact text.
+    // rendering shows the plan File's text.
     renderEditor({
       readOnly: true,
       draft: draftMock({ draftText: "# Someone else's draft", isEdited: true }),

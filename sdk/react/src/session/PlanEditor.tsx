@@ -11,9 +11,9 @@ import {
 } from "../internal/markdown-components.js";
 import { useFileContent } from "../file/useFileContent.js";
 import { useBuildFromPlanHotkey } from "../run/use-build-from-plan-hotkey.js";
-import { formatArtifactSize } from "../run/artifact-utils.js";
-import type { SessionPlan } from "../library/detect-plan-artifact.js";
+import type { SessionPlan } from "../library/detect-plan-file.js";
 import type { PlanDraftController } from "./usePlanDraft.js";
+import { formatFileSize } from "../file/file-size.js";
 
 /** Props for {@link PlanEditor}. */
 export interface PlanEditorProps {
@@ -152,7 +152,7 @@ export function PlanEditor({
           )}
         </div>
         <span className="stg:text-[0.65rem] stg:tabular-nums stg:text-muted-foreground-faint">
-          {formatArtifactSize(plan.file.status?.sizeBytes ?? BigInt(0))}
+          {formatFileSize(plan.file.status?.sizeBytes ?? BigInt(0))}
         </span>
         {/* The reason the Edit tab is disabled must be visible text: a
             disabled tab leaves the tab order and drops pointer events, so

@@ -463,6 +463,13 @@ while (true) {
 </Tab>
 </SDKTabs>
 
+In React, `useSessionEvents` and `useSessionConversation` resume the same way
+and never give up on a dropped stream: they keep reconnecting through an outage
+of any length, waiting at most 30 seconds between attempts, and reconnect at
+once when the tab is shown again, the network returns or the person sends a
+message. Only a refusal, such as a Session you can no longer read, ends the
+follow.
+
 A failed run is not a transport error. The log records it as a
 `stigmer.run.status` event with phase `failed` and the reason in `error`, and
 the stream continues.

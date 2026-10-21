@@ -12,14 +12,14 @@ public interface GetArtifactDownloadUrlResponseOrBuilder extends
 
   /**
    * <pre>
-   * Presigned URL for downloading the artifact.
+   * Presigned URL for downloading the content.
    *
    * Valid for direct HTTP GET request without authentication.
    * The URL includes embedded authorization that expires at expires_at.
    *
    * Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
-   * With local storage the URL is the server's artifact file server,
-   * signed by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
+   * With local storage the URL is the server's own file server, signed
+   * by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
    * </pre>
    *
    * <code>string download_url = 1 [json_name = "downloadUrl"];</code>
@@ -28,14 +28,14 @@ public interface GetArtifactDownloadUrlResponseOrBuilder extends
   java.lang.String getDownloadUrl();
   /**
    * <pre>
-   * Presigned URL for downloading the artifact.
+   * Presigned URL for downloading the content.
    *
    * Valid for direct HTTP GET request without authentication.
    * The URL includes embedded authorization that expires at expires_at.
    *
    * Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
-   * With local storage the URL is the server's artifact file server,
-   * signed by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
+   * With local storage the URL is the server's own file server, signed
+   * by the server: "http://localhost:7235/artifacts/...?exp=...&amp;sig=..."
    * </pre>
    *
    * <code>string download_url = 1 [json_name = "downloadUrl"];</code>

@@ -1,7 +1,7 @@
 // Session-event builders for the thread tests: the events `samples` does
 // not build (subagent threads, file reviews, memory recall, notes,
 // compaction, answers), short spellings of the ones it does, a run record
-// carrying only what a turn's run holds (spec, phase, stamps, artifacts,
+// carrying only what a turn's run holds (spec, phase, stamps, outputs,
 // captured file changes), and the fold that turns events into the turns
 // `buildThreadItems` and `MessageThread` read. Ids follow the runner's
 // shapes (`<run>.<call>`, `<run>.root.m<n>`) so a turn's items key stably.

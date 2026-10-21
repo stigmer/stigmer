@@ -21,7 +21,7 @@ import {
   type SessionInput,
   type SessionResourceInput,
 } from "@stigmer/client";
-import type { MessageAttachmentView } from "../run/MessageAttachments.js";
+import type { MessageFileView } from "../run/MessageFiles.js";
 import type { ServiceTierOption } from "../models/service-tier.js";
 import type { ThinkingModeOption } from "../models/thinking-mode.js";
 import { useStigmer } from "../hooks.js";
@@ -133,7 +133,7 @@ export interface SendFollowUpOptions {
    * The message's files as its optimistic bubble shows them, until the
    * run's own record (`status.messageFiles`) replaces them.
    */
-  readonly attachments?: readonly MessageAttachmentView[];
+  readonly files?: readonly MessageFileView[];
   /**
    * Called once the run naming {@link fileIds} exists, and not when the
    * send fails, so a retry still names Files that exist. The composer's
@@ -232,7 +232,7 @@ export interface UseSessionConversationReturn {
   readonly turns: readonly Turn[];
   /**
    * The conversation's runs, oldest first: each turn's lifecycle, stamps
-   * and files (phase, error, usage, artifacts, write-backs, captured file
+   * and files (phase, error, usage, outputs, write-backs, captured file
    * changes). The live turn's run is read again while it works. Excludes
    * superseded and reconcile runs, as {@link turns} does.
    */
@@ -308,13 +308,13 @@ export interface UseSessionConversationReturn {
    */
   readonly pendingUserMessage: string | null;
   /**
-   * The attachments submitted with {@link pendingUserMessage}, so the
+   * The files sent with {@link pendingUserMessage}, so the
    * optimistic bubble shows the turn's files, not just its text
    * (stigmer/stigmer#372). Set and cleared in lockstep with the message —
    * including retention on a failed send, where the chips are the evidence
-   * of what Retry will re-send. Wire to `MessageThread.pendingAttachments`.
+   * of what Retry will re-send. Wire to `MessageThread.pendingFiles`.
    */
-  readonly pendingAttachments: readonly MessageAttachmentView[] | null;
+  readonly pendingFiles: readonly MessageFileView[] | null;
 
   /**
    * What the conversation holds, from the session spec: its repositories,
@@ -446,7 +446,10 @@ export interface UseSessionConversationReturn {
    * usual"); cleared by the next event. Never an error.
    */
   readonly isSlow: boolean;
-  /** Why the follow ended (refused, or its reconnects ran out), or `null`. */
+  /**
+   * Why the follow ended (refused), or `null`. A dropped stream never ends
+   * it: the follow reconnects for as long as the outage lasts.
+   */
   readonly streamError: Error | null;
   /** Re-open the session's follow (the conversation stays on screen). */
   readonly reconnectStream: () => void;
@@ -555,6 +558,7 @@ export function useSessionConversation(
   const conversationStore = useConversationStoreRef();
   const events = useSessionEvents(sessionId, { store: conversationStore });
   const foldTurns = events.fold?.turns;
+  const wakeFollow = events.wake;
 
   // The run a send just created, until its turn appears in the events: it
   // holds the composer closed and the optimistic bubble up across the gap.
@@ -562,11 +566,11 @@ export function useSessionConversation(
   const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(
     null,
   );
-  // The pending message's attachments, kept in lockstep with the text: one
+  // The pending message's files, kept in lockstep with the text: one
   // pending turn, two facets. Held separately (not an object) so existing
   // pendingUserMessage consumers keep their string contract.
-  const [pendingAttachments, setPendingAttachments] = useState<
-    readonly MessageAttachmentView[] | null
+  const [pendingFiles, setPendingFiles] = useState<
+    readonly MessageFileView[] | null
   >(null);
   // Dedicated send-failure state, distinct from the create hook's internal
   // error so it can also cover the session.update() path. The last send's
@@ -614,7 +618,7 @@ export function useSessionConversation(
     liveRun !== null && liveRun.metadata?.id === activeRunId ? liveRun : null;
 
   // Once the sent turn appears in the events, the optimistic state hands
-  // over to it: the pending run, message and attachments clear, and so
+  // over to it: the pending run, message and files clear, and so
   // does a stale send error.
   const sentTurnArrived =
     pendingRunId !== null && (foldTurns ?? []).some((turn) => turn.runId === pendingRunId);
@@ -622,7 +626,7 @@ export function useSessionConversation(
     if (!sentTurnArrived) return;
     setPendingRunId(null);
     setPendingUserMessage(null);
-    setPendingAttachments(null);
+    setPendingFiles(null);
     setSendError(null);
   }, [sentTurnArrived]);
 
@@ -641,7 +645,7 @@ export function useSessionConversation(
     refetch();
   }, [unlistedRunId, refetch]);
 
-  // ...and when a live turn ends (its final status, usage, artifacts and
+  // ...and when a live turn ends (its final status, usage, outputs and
   // captured files) — a change seen while the session is open, never the
   // fold that opening it delivers.
   const liveRunId = liveTurn?.runId ?? null;
@@ -740,6 +744,10 @@ export function useSessionConversation(
     async (message: string, options?: SendFollowUpOptions): Promise<void> => {
       if (!sessionId || !session) return;
 
+      // A follow waiting out a backoff re-opens now, so the new turn's
+      // events arrive as they are written.
+      wakeFollow();
+
       // Capture for retry and clear any prior failure before the new attempt.
       lastSendRef.current = { message, options };
       setSendError(null);
@@ -750,7 +758,7 @@ export function useSessionConversation(
       // renders the failed-with-retry bubble instead of vanishing.
       if (!options?.buildFromPlan) {
         setPendingUserMessage(message);
-        setPendingAttachments(options?.attachments ?? null);
+        setPendingFiles(options?.files ?? null);
       }
 
       try {
@@ -815,17 +823,17 @@ export function useSessionConversation(
         // pendingUserMessage) so the turn renders as failed-with-retry instead
         // of vanishing. Covers both the update() and create() paths. For a
         // build turn this is the FIRST time the message is set — failure is
-        // the one case where its label must become visible. The attachments
+        // the one case where its label must become visible. The files
         // ride along: the failed bubble's chips are what Retry will re-send.
         setPendingUserMessage(message);
-        setPendingAttachments(options?.attachments ?? null);
+        setPendingFiles(options?.files ?? null);
         setSendError(toError(err));
         if (process.env.NODE_ENV !== "production") {
           console.error("[useSessionConversation] sendFollowUp failed:", err);
         }
       }
     },
-    [sessionId, session, turnOrg, stigmer, createRun, updateSession, refetch, refetchSession],
+    [sessionId, session, turnOrg, stigmer, createRun, updateSession, refetch, refetchSession, wakeFollow],
   );
 
   const moveToCurrentAgentVersion = useCallback(async (): Promise<void> => {
@@ -941,7 +949,7 @@ export function useSessionConversation(
     moveToCurrentAgentVersion,
 
     pendingUserMessage,
-    pendingAttachments,
+    pendingFiles,
 
     resources,
     plugins,

@@ -35,8 +35,8 @@ export type { RecalledMemoriesCardProps } from "./RecalledMemoriesCard.js";
 export { PlanCompletionCard } from "./PlanCompletionCard.js";
 export type { PlanCompletionCardProps } from "./PlanCompletionCard.js";
 
-export { PlanArtifactCard } from "./PlanArtifactCard.js";
-export type { PlanArtifactCardProps } from "./PlanArtifactCard.js";
+export { PlanFileCard } from "./PlanFileCard.js";
+export type { PlanFileCardProps } from "./PlanFileCard.js";
 
 export { PlanStreamingCard } from "./PlanStreamingCard.js";
 export type { PlanStreamingCardProps } from "./PlanStreamingCard.js";
@@ -96,12 +96,10 @@ export type { EmptyChangeNoticeProps, EmptyChangeKind } from "./EmptyChangeNotic
 
 export {
   isTextFile,
-  formatArtifactSize,
-  getArtifactExtension,
   getFileExtension,
-  getArtifactRenderMode,
-} from "./artifact-utils.js";
-export type { ArtifactRenderMode } from "./artifact-utils.js";
+  getTextRenderMode,
+} from "./text-content.js";
+export type { TextRenderMode } from "./text-content.js";
 
 export { RunPhaseBadge } from "./RunPhaseBadge.js";
 export type { RunPhaseBadgeProps } from "./RunPhaseBadge.js";
@@ -179,11 +177,11 @@ export type { SubagentSectionProps } from "./SubagentSection.js";
 export { MessageEntry } from "./MessageEntry.js";
 export type { MessageEntryProps, ThreadMessage, UserMessageItem } from "./MessageEntry.js";
 
-export { MessageAttachments, messageFileViews } from "./MessageAttachments.js";
+export { MessageFiles, messageFileViews } from "./MessageFiles.js";
 export type {
-  MessageAttachmentsProps,
-  MessageAttachmentView,
-} from "./MessageAttachments.js";
+  MessageFilesProps,
+  MessageFileView,
+} from "./MessageFiles.js";
 
 export { MessageThread } from "./MessageThread.js";
 export type {
@@ -294,11 +292,11 @@ export type { FileRowItem } from "./file-row-item.js";
 
 export { FILE_DOCUMENT_ENTRY_ID } from "./file-document.js";
 
-export { ArtifactContentRenderer } from "./ArtifactContentRenderer.js";
-export type { ArtifactContentRendererProps } from "./ArtifactContentRenderer.js";
+export { TextContentRenderer } from "./TextContentRenderer.js";
+export type { TextContentRendererProps } from "./TextContentRenderer.js";
 
-export { ArtifactFileContent } from "./ArtifactFileContent.js";
-export type { ArtifactFileContentProps } from "./ArtifactFileContent.js";
+export { TextContentView } from "./TextContentView.js";
+export type { TextContentViewProps } from "./TextContentView.js";
 
 export { FileBody, isImageFile } from "./FileBody.js";
 export { FileDeleteAction, FileAddAsSkillAction, isZipFile } from "./FileActions.js";

@@ -456,8 +456,8 @@ async function isLocalPathWritable(basePath: string): Promise<boolean> {
  *
  * An absent store is a first-class, already-supported state: capture
  * degrades to the deny-gate (via {@link deriveCaptureMode}'s `hasArtifactStorage`
- * argument), tool-output offload is disabled (the aggregate size guard still
- * applies), and plan-artifact publishing surfaces a clear error.
+ * argument), and tool-output offload is disabled (the aggregate size guard
+ * still applies).
  * This is the fail-safe: without a store, nothing secret can be persisted.
  *
  * NOTE: this resolver is for the capture/offload path only. Claimcheck (Temporal

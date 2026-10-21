@@ -12,7 +12,7 @@ public interface GetArtifactDownloadUrlRequestOrBuilder extends
 
   /**
    * <pre>
-   * ID of the run that produced the artifact.
+   * ID of the run that stored the content.
    *
    * Used for authorization (can_view check) and storage_key validation.
    *
@@ -28,7 +28,7 @@ public interface GetArtifactDownloadUrlRequestOrBuilder extends
   java.lang.String getRunId();
   /**
    * <pre>
-   * ID of the run that produced the artifact.
+   * ID of the run that stored the content.
    *
    * Used for authorization (can_view check) and storage_key validation.
    *
@@ -46,15 +46,15 @@ public interface GetArtifactDownloadUrlRequestOrBuilder extends
 
   /**
    * <pre>
-   * Storage key of the artifact to download.
+   * Storage key of the content to download.
    *
-   * Must be an artifact from the specified run. The storage_key
-   * is validated to start with "artifacts/{run_id}/" to prevent
-   * access to other runs' artifacts.
+   * Must be content of the specified run. The storage_key is validated
+   * to start with "artifacts/{run_id}/" to prevent access to another
+   * run's content.
    *
    * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
    *
-   * Format: "artifacts/{run_id}/{filename}"
+   * Format: "artifacts/{run_id}/{path}"
    * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
    *
    * Validation: Required, minimum 1 character
@@ -66,15 +66,15 @@ public interface GetArtifactDownloadUrlRequestOrBuilder extends
   java.lang.String getStorageKey();
   /**
    * <pre>
-   * Storage key of the artifact to download.
+   * Storage key of the content to download.
    *
-   * Must be an artifact from the specified run. The storage_key
-   * is validated to start with "artifacts/{run_id}/" to prevent
-   * access to other runs' artifacts.
+   * Must be content of the specified run. The storage_key is validated
+   * to start with "artifacts/{run_id}/" to prevent access to another
+   * run's content.
    *
    * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
    *
-   * Format: "artifacts/{run_id}/{filename}"
+   * Format: "artifacts/{run_id}/{path}"
    * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
    *
    * Validation: Required, minimum 1 character
@@ -91,7 +91,7 @@ public interface GetArtifactDownloadUrlRequestOrBuilder extends
    * Whether the URL should force a browser download instead of inline display.
    *
    * When true, the presigned URL carries a Content-Disposition: attachment
-   * header keyed to the artifact's filename, so a browser navigating to it
+   * header keyed to the stored object's name, so a browser navigating to it
    * saves the file rather than rendering it in a tab. Browsers ignore the
    * HTML `download` attribute on cross-origin URLs (e.g. presigned R2), so
    * the disposition MUST be signed into the URL itself — this flag is how a

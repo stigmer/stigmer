@@ -59,6 +59,10 @@
  *   message's Files and the conversation's others under their own labels,
  *   says the files live under `.stigmer/`, and carries no rename and no
  *   download URL; the build-from-plan directive names the plan's new path.
+ * - 2026-10-21 (nothing captures a cloned repository's changes as artifacts
+ *   since the write-watcher went, #2475): a cloned entry's description ends
+ *   at its URL and branch; what the agent returns is the outputs folder's
+ *   instruction alone.
  */
 
 import { describe, it, expect } from "vitest";

@@ -44,7 +44,7 @@ executes **agent sessions**, across both harnesses:
 **Key responsibilities**:
 
 - Agent session execution: prompt assembly, tool orchestration, HITL
-  approvals, attachments/vision, streaming status updates back to the
+  approvals, a message's files and images, streaming status updates back to the
   control plane over gRPC
 - Listing the tools of a plugin's MCP server on request
   (`workflows/list-plugin-tools.ts`)

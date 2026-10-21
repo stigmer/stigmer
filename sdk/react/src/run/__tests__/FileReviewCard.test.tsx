@@ -33,7 +33,7 @@ import type { UseFileChangeContentReturn } from "../useFileChangeContent";
 
 // FileReviewCard renders FileChangeDiff (per file), which pulls in the
 // offload-resolving content hook transitively. Mock it so the diff path
-// renders without artifact-fetch context, then import the component.
+// renders without stored-content fetch context, then import the component.
 let mockReturn: UseFileChangeContentReturn;
 vi.mock("../useFileChangeContent", () => ({
   useFileChangeContent: () => mockReturn,

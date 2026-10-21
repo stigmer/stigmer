@@ -1,8 +1,8 @@
 "use client";
 
 // Shared visual vocabulary for the session-panel facets (Config / Changes /
-// Artifacts / Usage): one dense, VS Code-style row-and-section language so the
-// facets read as one surface instead of three eras of styling. The Artifacts
+// Files / Usage): one dense, VS Code-style row-and-section language so the
+// facets read as one surface instead of three eras of styling. The Files
 // facet's `FileRowView` set the idiom — compact rows, quiet metadata,
 // hover/focus-revealed actions — and these primitives carry it to the
 // non-file-list facets. All visual properties flow through `--stgm-*`

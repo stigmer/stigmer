@@ -8,7 +8,7 @@ import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 // Two invariants are pinned:
 // 1. `audience="observer"` renders a pure transcript — no composer, no
 //    interaction callbacks on the thread, no decision surfaces — while the
-//    session panel (usage/artifacts inspection) stays available.
+//    session panel (usage/outputs inspection) stays available.
 // 2. A Slack or WhatsApp session (the `stigmer.ai/channel-conversation-key` label)
 //    self-selects observer regardless of the host's audience, so a pasted
 //    /sessions/{id} URL can never render a send surface the server would
@@ -197,7 +197,7 @@ function expectReadOnlyTranscript() {
   // The file-review decision surface never mounts.
   expect(fileReviewDockProps).toHaveLength(0);
 
-  // The session panel stays available — inspecting usage/artifacts is
+  // The session panel stays available — inspecting usage/outputs is
   // the point of observability.
   expect(screen.getByRole("button", { name: "Show panel" })).toBeDefined();
 }

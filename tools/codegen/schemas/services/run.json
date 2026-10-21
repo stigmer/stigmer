@@ -109,7 +109,7 @@
           "inputFullType": "ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlRequest",
           "outputType": "GetArtifactDownloadUrlResponse",
           "outputFullType": "ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlResponse",
-          "description": "Get a presigned download URL for a run artifact.\n\n Returns a time-limited URL for downloading an artifact published by\n an agent during the run. The URL can be used with a simple HTTP GET\n request without authentication. A file given with the message is a\n File: its link comes from FileQueryController.getDownloadUrl."
+          "description": "Get a presigned download URL for a run's stored content.\n\n Returns a time-limited URL for downloading one stored object of the\n run: a tool call's offloaded output, or a file-review diff or blob.\n The URL can be used with a simple HTTP GET request without\n authentication. A File's link comes from\n FileQueryController.getDownloadUrl."
         },
         {
           "name": "GetArtifactContent",
@@ -117,7 +117,7 @@
           "inputFullType": "ai.stigmer.agentic.run.v1.GetArtifactContentRequest",
           "outputType": "GetArtifactContentResponse",
           "outputFullType": "ai.stigmer.agentic.run.v1.GetArtifactContentResponse",
-          "description": "Read the raw content of a run artifact.\n\n Returns artifact bytes through the Stigmer API, eliminating CORS\n concerns for SDK consumers who need to read content programmatically\n (e.g., YAML parsing for resource detection, in-app preview rendering).\n\n For direct file downloads, use getArtifactDownloadUrl instead — it\n returns a presigned R2 URL that avoids proxying bytes through the server."
+          "description": "Read the raw bytes of a run's stored content.\n\n Returns the bytes of one stored object of the run (a tool call's\n offloaded output, or a file-review diff or blob) through the Stigmer\n API, eliminating CORS concerns for SDK consumers who need to read it\n programmatically (e.g., in-app preview rendering).\n\n For direct file downloads, use getArtifactDownloadUrl instead — it\n returns a presigned R2 URL that avoids proxying bytes through the server."
         },
         {
           "name": "GetRunUsageReport",
@@ -540,7 +540,7 @@
     },
     {
       "name": "GetArtifactDownloadUrlRequest",
-      "description": "GetArtifactDownloadUrlRequest requests a download URL for a run artifact.\n\n This endpoint generates presigned URLs for artifacts published by agents\n during the run. The URLs are time-limited and can be used for direct\n HTTP download without authentication.\n\n ## Authorization\n\n Requires can_view permission on the run. This ensures users can only\n access artifacts from runs they have access to.\n\n ## Security\n\n The storage_key is validated to ensure it belongs to the specified run.\n Storage keys must start with \"artifacts/{run_id}/\" to prevent path\n traversal attacks where a user could request URLs for other runs'\n artifacts.\n\n ## Use Cases\n\n - CLI downloading agent-created files\n - Web UI providing download links for artifacts\n - Refreshing expired download URLs\n\n ## Example\n\n Request:\n {\n   \"run_id\": \"run_abc123xyz456\",\n   \"storage_key\": \"artifacts/run_abc123xyz456/generated-skill.zip\"\n }\n\n Response:\n {\n   \"download_url\": \"https://r2.example.com/...\",\n   \"expires_at\": \"2026-02-20T10:30:00Z\"\n }",
+      "description": "GetArtifactDownloadUrlRequest requests a download URL for a run's stored\n content.\n\n This endpoint generates a presigned URL for one object the run's runner\n stored. The URL is time-limited and can be used for direct HTTP download\n without authentication.\n\n ## Authorization\n\n Requires can_view permission on the run. This ensures users can only\n access stored content from runs they have access to.\n\n ## Security\n\n The storage_key is validated to ensure it belongs to the specified run.\n Storage keys must start with \"artifacts/{run_id}/\" to prevent path\n traversal attacks where a user could request URLs for another run's\n content.\n\n ## Use Cases\n\n - Web UI downloading a tool call's full output\n - Refreshing expired download URLs\n\n ## Example\n\n Request:\n {\n   \"run_id\": \"run_abc123xyz456\",\n   \"storage_key\": \"artifacts/run_abc123xyz456/toolcalls/call_01.txt\"\n }\n\n Response:\n {\n   \"download_url\": \"https://r2.example.com/...\",\n   \"expires_at\": \"2026-02-20T10:30:00Z\"\n }",
       "protoType": "ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlRequest",
       "protoFile": "apis/ai/stigmer/agentic/run/v1/io.proto",
       "fields": [
@@ -551,7 +551,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "ID of the run that produced the artifact.\n\n Used for authorization (can_view check) and storage_key validation.\n\n Format: \"run_{ulid}\"\n Example: \"run_abc123xyz456\"\n\n Validation: Required, minimum 1 character",
+          "description": "ID of the run that stored the content.\n\n Used for authorization (can_view check) and storage_key validation.\n\n Format: \"run_{ulid}\"\n Example: \"run_abc123xyz456\"\n\n Validation: Required, minimum 1 character",
           "required": false,
           "validation": {
             "minLength": 1
@@ -564,7 +564,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Storage key of the artifact to download.\n\n Must be an artifact from the specified run. The storage_key\n is validated to start with \"artifacts/{run_id}/\" to prevent\n access to other runs' artifacts.\n\n Obtain this value from a ToolCallOutputRef.storage_key the run recorded.\n\n Format: \"artifacts/{run_id}/{filename}\"\n Example: \"artifacts/run_abc123xyz456/toolcalls/call_01.txt\"\n\n Validation: Required, minimum 1 character",
+          "description": "Storage key of the content to download.\n\n Must be content of the specified run. The storage_key is validated\n to start with \"artifacts/{run_id}/\" to prevent access to another\n run's content.\n\n Obtain this value from a ToolCallOutputRef.storage_key the run recorded.\n\n Format: \"artifacts/{run_id}/{path}\"\n Example: \"artifacts/run_abc123xyz456/toolcalls/call_01.txt\"\n\n Validation: Required, minimum 1 character",
           "required": false,
           "validation": {
             "minLength": 1
@@ -577,14 +577,14 @@
           "type": {
             "kind": "bool"
           },
-          "description": "Whether the URL should force a browser download instead of inline display.\n\n When true, the presigned URL carries a Content-Disposition: attachment\n header keyed to the artifact's filename, so a browser navigating to it\n saves the file rather than rendering it in a tab. Browsers ignore the\n HTML `download` attribute on cross-origin URLs (e.g. presigned R2), so\n the disposition MUST be signed into the URL itself — this flag is how a\n caller requests it.\n\n When false (the default), the URL displays inline. Inline is required for\n rendering surfaces such as an `\u003cimg src\u003e` pointing at an offloaded\n screenshot; forcing a download there would break the render.\n\n Use true for click-to-download affordances; false (or unset) for inline\n rendering and programmatic reads.",
+          "description": "Whether the URL should force a browser download instead of inline display.\n\n When true, the presigned URL carries a Content-Disposition: attachment\n header keyed to the stored object's name, so a browser navigating to it\n saves the file rather than rendering it in a tab. Browsers ignore the\n HTML `download` attribute on cross-origin URLs (e.g. presigned R2), so\n the disposition MUST be signed into the URL itself — this flag is how a\n caller requests it.\n\n When false (the default), the URL displays inline. Inline is required for\n rendering surfaces such as an `\u003cimg src\u003e` pointing at an offloaded\n screenshot; forcing a download there would break the render.\n\n Use true for click-to-download affordances; false (or unset) for inline\n rendering and programmatic reads.",
           "required": false
         }
       ]
     },
     {
       "name": "GetArtifactDownloadUrlResponse",
-      "description": "GetArtifactDownloadUrlResponse returns a presigned download URL for an artifact.\n\n The download_url can be used with a simple HTTP GET request to download\n the artifact. No authentication headers are required - the URL contains\n embedded authorization.",
+      "description": "GetArtifactDownloadUrlResponse returns a presigned download URL for a\n run's stored content.\n\n The download_url can be used with a simple HTTP GET request to download\n the content. No authentication headers are required - the URL contains\n embedded authorization.",
       "protoType": "ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlResponse",
       "protoFile": "apis/ai/stigmer/agentic/run/v1/io.proto",
       "fields": [
@@ -595,7 +595,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Presigned URL for downloading the artifact.\n\n Valid for direct HTTP GET request without authentication.\n The URL includes embedded authorization that expires at expires_at.\n\n Example: \"https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=...\"\n With local storage the URL is the server's artifact file server,\n signed by the server: \"http://localhost:7235/artifacts/...?exp=...\u0026sig=...\"",
+          "description": "Presigned URL for downloading the content.\n\n Valid for direct HTTP GET request without authentication.\n The URL includes embedded authorization that expires at expires_at.\n\n Example: \"https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=...\"\n With local storage the URL is the server's own file server, signed\n by the server: \"http://localhost:7235/artifacts/...?exp=...\u0026sig=...\"",
           "required": false
         },
         {
@@ -612,7 +612,7 @@
     },
     {
       "name": "GetArtifactContentRequest",
-      "description": "GetArtifactContentRequest reads the raw content of a run artifact.\n\n Unlike getArtifactDownloadUrl (which returns a presigned URL for direct\n browser download), this endpoint returns the artifact bytes through the\n Stigmer API. This eliminates CORS concerns for SDK consumers who need to\n read artifact content programmatically — e.g., for YAML parsing, resource\n detection, or in-app preview rendering.\n\n ## Authorization\n\n Requires can_view permission on the run. This ensures users can only\n read artifacts from runs they have access to.\n\n ## Security\n\n The storage_key is validated to ensure it belongs to the specified run.\n Storage keys must start with \"artifacts/{run_id}/\" to prevent path\n traversal attacks where a user could request content from other runs'\n artifacts.\n\n ## Size Limit\n\n The server enforces a maximum content size (default: 512 KB). If the\n artifact exceeds max_bytes, the response contains the first max_bytes of\n content with truncated=true. Callers can use total_size_bytes to decide\n whether to offer a full download via getArtifactDownloadUrl instead.\n\n ## Use Cases\n\n - Web UI reading YAML artifacts for Stigmer resource detection\n - SDK consumers rendering artifact previews in embedded components\n - CLI inspecting artifact content without a separate HTTP download\n\n ## Example\n\n Request:\n {\n   \"run_id\": \"run_abc123xyz456\",\n   \"storage_key\": \"artifacts/run_abc123xyz456/pr-review-agent.yaml\"\n }\n\n Response:\n {\n   \"content\": \u003cbytes\u003e,\n   \"content_type\": \"text/yaml\",\n   \"total_size_bytes\": 1842,\n   \"truncated\": false\n }",
+      "description": "GetArtifactContentRequest reads the raw bytes of a run's stored content.\n\n Unlike getArtifactDownloadUrl (which returns a presigned URL for direct\n browser download), this endpoint returns the bytes through the Stigmer\n API. This eliminates CORS concerns for SDK consumers who need to read\n the content programmatically — e.g., for in-app preview rendering.\n\n ## Authorization\n\n Requires can_view permission on the run. This ensures users can only\n read stored content from runs they have access to.\n\n ## Security\n\n The storage_key is validated to ensure it belongs to the specified run.\n Storage keys must start with \"artifacts/{run_id}/\" to prevent path\n traversal attacks where a user could request another run's content.\n\n ## Size Limit\n\n The server enforces a maximum content size (default: 512 KB). If the\n content exceeds max_bytes, the response contains the first max_bytes of\n it with truncated=true. Callers can use total_size_bytes to decide\n whether to offer a full download via getArtifactDownloadUrl instead.\n\n ## Use Cases\n\n - Web UI showing a tool call's offloaded output\n - Web UI showing a changed file's diff or content in file review\n\n ## Example\n\n Request:\n {\n   \"run_id\": \"run_abc123xyz456\",\n   \"storage_key\": \"artifacts/run_abc123xyz456/toolcalls/call_01.txt\"\n }\n\n Response:\n {\n   \"content\": \u003cbytes\u003e,\n   \"content_type\": \"text/plain\",\n   \"total_size_bytes\": 1842,\n   \"truncated\": false\n }",
       "protoType": "ai.stigmer.agentic.run.v1.GetArtifactContentRequest",
       "protoFile": "apis/ai/stigmer/agentic/run/v1/io.proto",
       "fields": [
@@ -623,7 +623,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "ID of the run that produced the artifact.\n\n Used for authorization (can_view check) and storage_key validation.\n\n Format: \"run_{ulid}\"\n Example: \"run_abc123xyz456\"\n\n Validation: Required, minimum 1 character",
+          "description": "ID of the run that stored the content.\n\n Used for authorization (can_view check) and storage_key validation.\n\n Format: \"run_{ulid}\"\n Example: \"run_abc123xyz456\"\n\n Validation: Required, minimum 1 character",
           "required": false,
           "validation": {
             "minLength": 1
@@ -636,7 +636,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Storage key of the artifact to read.\n\n Must be an artifact from the specified run. The storage_key\n is validated to start with \"artifacts/{run_id}/\" to prevent\n access to other runs' artifacts.\n\n Obtain this value from a ToolCallOutputRef.storage_key the run recorded.\n\n Format: \"artifacts/{run_id}/{filename}\"\n Example: \"artifacts/run_abc123xyz456/toolcalls/call_01.txt\"\n\n Validation: Required, minimum 1 character",
+          "description": "Storage key of the content to read.\n\n Must be content of the specified run. The storage_key is validated\n to start with \"artifacts/{run_id}/\" to prevent access to another\n run's content.\n\n Obtain this value from a ToolCallOutputRef.storage_key the run recorded.\n\n Format: \"artifacts/{run_id}/{path}\"\n Example: \"artifacts/run_abc123xyz456/toolcalls/call_01.txt\"\n\n Validation: Required, minimum 1 character",
           "required": false,
           "validation": {
             "minLength": 1
@@ -649,7 +649,7 @@
           "type": {
             "kind": "int64"
           },
-          "description": "Maximum number of bytes to return.\n\n If the artifact is larger than this limit, the response will contain\n the first max_bytes of content with truncated=true.\n\n When 0 or unset, the server applies a default limit (512 KB).\n The server may also enforce a hard upper bound regardless of this value.\n\n Example: 524288 (512 KB)",
+          "description": "Maximum number of bytes to return.\n\n If the content is larger than this limit, the response will contain\n the first max_bytes of it with truncated=true.\n\n When 0 or unset, the server applies a default limit (512 KB).\n The server may also enforce a hard upper bound regardless of this value.\n\n Example: 524288 (512 KB)",
           "required": false
         },
         {
@@ -659,14 +659,14 @@
           "type": {
             "kind": "string"
           },
-          "description": "For directory artifacts (ZIPs): extract a specific file by its\n path within the archive instead of returning the raw ZIP bytes.\n\n When empty, returns the full artifact content (existing behavior).\n When set for a FILE artifact, this field is ignored.\n\n The path must match an entry in the archive exactly (case-sensitive).\n List the archive's entries to discover valid values.\n\n Example: \"SKILL.md\", \"scripts/init_skill.py\"",
+          "description": "For stored ZIP content: extract a specific entry by its path within\n the archive instead of returning the raw ZIP bytes.\n\n When empty, returns the full content (existing behavior).\n When the stored object is not a ZIP, this field is ignored.\n\n The path must match an entry in the archive exactly (case-sensitive).\n List the archive's entries to discover valid values.\n\n Example: \"SKILL.md\", \"scripts/init_skill.py\"",
           "required": false
         }
       ]
     },
     {
       "name": "GetArtifactContentResponse",
-      "description": "GetArtifactContentResponse returns the raw content of a run artifact.\n\n The content field contains the artifact bytes (up to max_bytes). For text\n artifacts, clients decode via TextDecoder or equivalent. The content_type\n field provides a hint for rendering (detected by file extension).",
+      "description": "GetArtifactContentResponse returns the raw bytes of a run's stored\n content.\n\n The content field contains the bytes (up to max_bytes). For text,\n clients decode via TextDecoder or equivalent. The content_type field\n provides a hint for rendering (detected by file extension).",
       "protoType": "ai.stigmer.agentic.run.v1.GetArtifactContentResponse",
       "protoFile": "apis/ai/stigmer/agentic/run/v1/io.proto",
       "fields": [
@@ -677,7 +677,7 @@
           "type": {
             "kind": "bytes"
           },
-          "description": "Raw artifact content (up to max_bytes).\n\n For text artifacts (YAML, JSON, Markdown, etc.), decode as UTF-8.\n For binary artifacts, this contains raw bytes — but callers should\n generally use getArtifactDownloadUrl for binary downloads instead.",
+          "description": "Raw content (up to max_bytes).\n\n For text (YAML, JSON, Markdown, etc.), decode as UTF-8.\n For binary content, this contains raw bytes — but callers should\n generally use getArtifactDownloadUrl for binary downloads instead.",
           "required": false
         },
         {
@@ -687,7 +687,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Detected content type based on file extension.\n\n Examples: \"text/yaml\", \"text/plain\", \"application/json\",\n \"application/zip\" (for directory artifacts).\n\n This is a best-effort detection — not based on content inspection.",
+          "description": "Detected content type based on file extension.\n\n Examples: \"text/yaml\", \"text/plain\", \"application/json\",\n \"application/zip\".\n\n This is a best-effort detection — not based on content inspection.",
           "required": false
         },
         {
@@ -697,7 +697,7 @@
           "type": {
             "kind": "int64"
           },
-          "description": "Actual total size of the artifact in bytes.\n\n May be larger than len(content) when truncated=true.\n Callers can use this to show \"showing 512 KB of 2.1 MB\" messages\n or to decide whether to offer a full download link.",
+          "description": "Actual total size of the content in bytes.\n\n May be larger than len(content) when truncated=true.\n Callers can use this to show \"showing 512 KB of 2.1 MB\" messages\n or to decide whether to offer a full download link.",
           "required": false
         },
         {
@@ -707,7 +707,7 @@
           "type": {
             "kind": "bool"
           },
-          "description": "Whether the content was truncated to fit within max_bytes.\n\n When true, content contains only the first max_bytes of the artifact.\n The full artifact can be downloaded via getArtifactDownloadUrl.",
+          "description": "Whether the content was truncated to fit within max_bytes.\n\n When true, content contains only the first max_bytes of it.\n The full content can be downloaded via getArtifactDownloadUrl.",
           "required": false
         }
       ]
@@ -2464,7 +2464,7 @@
     },
     {
       "name": "CapturedFileChange",
-      "description": "One file's delta within a FileChangeSet.\n\n Reuses FileContent (inline-or-offload) for before/after and ToolCallOutputRef\n for the offloadable unified diff — no parallel blob/artifact types.",
+      "description": "One file's delta within a FileChangeSet.\n\n Reuses FileContent (inline-or-offload) for before/after and ToolCallOutputRef\n for the offloadable unified diff — no parallel blob types.",
       "protoType": "ai.stigmer.agentic.run.v1.CapturedFileChange",
       "protoFile": "apis/ai/stigmer/agentic/run/v1/filereview.proto",
       "fields": [
@@ -2583,7 +2583,7 @@
             "kind": "message",
             "messageType": "ToolCallOutputRef"
           },
-          "description": "Offloadable unified diff artifact for this file. The rendered hunks; large\n diffs spill to artifact storage via the same envelope tool output uses.",
+          "description": "Offloadable unified diff for this file. The rendered hunks; large diffs\n spill to the run's storage via the same envelope tool output uses.",
           "required": false
         },
         {
@@ -2667,7 +2667,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Storage URI of the manifest artifact.",
+          "description": "Storage URI of the stored manifest.",
           "required": false
         }
       ]
@@ -3174,7 +3174,7 @@
     },
     {
       "name": "FileContent",
-      "description": "One side (before or after) of a file's content.\n\n Small bodies are carried inline; large bodies are offloaded to artifact\n storage and referenced via the existing tool-output offload envelope. Exactly\n one of inline or ref is set; when offloaded, the head preview lives in\n ref.truncated_preview and the full size in ref.size_bytes.",
+      "description": "One side (before or after) of a file's content.\n\n Small bodies are carried inline; large bodies are offloaded to the run's\n storage and referenced via the existing tool-output offload envelope. Exactly\n one of inline or ref is set; when offloaded, the head preview lives in\n ref.truncated_preview and the full size in ref.size_bytes.",
       "protoType": "ai.stigmer.agentic.run.v1.FileContent",
       "protoFile": "apis/ai/stigmer/agentic/run/v1/message.proto",
       "fields": [
@@ -3837,7 +3837,7 @@
     },
     {
       "name": "ToolCallOutputRef",
-      "description": "ToolCallOutputRef points to content the runner offloaded to artifact\n storage: a tool call's full output, or one side of a captured file change\n too large to keep inline.\n\n This is deliberately not a File (what an agent saves for the person to\n download): an output ref is internal spillover of a tool's result, not a\n deliverable. The bytes live in artifact storage (R2 in the cloud, locally\n served in dev); only this reference is persisted in the run status.",
+      "description": "ToolCallOutputRef points to content the runner offloaded to the run's\n storage: a tool call's full output, or one side of a captured file change\n too large to keep inline.\n\n This is deliberately not a File (what an agent saves for the person to\n download): an output ref is internal spillover of a tool's result, not a\n deliverable. The bytes live in the server's file storage (R2 in the cloud,\n a local disk otherwise); only this reference is persisted in the run status.",
       "protoType": "ai.stigmer.agentic.run.v1.ToolCallOutputRef",
       "protoFile": "apis/ai/stigmer/agentic/run/v1/message.proto",
       "fields": [
@@ -3898,7 +3898,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Short head of the original text content, kept inline for an at-a-glance\n preview without fetching the full artifact. Empty for image content.",
+          "description": "Short head of the original text content, kept inline for an at-a-glance\n preview without fetching the full output. Empty for image content.",
           "required": false
         }
       ]

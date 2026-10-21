@@ -211,7 +211,7 @@ describe("SessionViewer — panel=\"none\"", () => {
     const props = lastComposerProps();
     expect(props.showInteractionModePicker).toBe(true);
     expect(props.showModelSelector).toBe(true);
-    expect(props.enableAttachments).toBe(true);
+    expect(props.enableFiles).toBe(true);
     expect(props.lockAgent).toBe(false);
     expect(props.onPluginRefsChange).toBeDefined();
   });

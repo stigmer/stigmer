@@ -46,14 +46,14 @@ import { buildProgram } from "../src/program.js";
 // non-hidden command MUST be added here, or generation fails loudly (see
 // resolveGroup) rather than silently dropping the command from the docs.
 
-const groupOrder = ["core", "lifecycle", "resource", "artifact", "server", "config"] as const;
+const groupOrder = ["core", "lifecycle", "resource", "package", "server", "config"] as const;
 type GroupId = (typeof groupOrder)[number];
 
 const groupTitles: Record<GroupId, string> = {
   core: "Core Commands",
   lifecycle: "Lifecycle",
   resource: "Resource Management",
-  artifact: "Artifact Commands",
+  package: "Packages and Downloads",
   server: "Server Commands",
   config: "Configuration",
 };
@@ -85,13 +85,13 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   routine: "resource",
   vault: "resource",
   file: "resource",
-  // Artifact
-  push: "artifact",
-  install: "artifact",
-  mcp: "artifact",
-  download: "artifact",
-  eval: "artifact",
-  agent: "artifact",
+  // Packages and Downloads
+  push: "package",
+  install: "package",
+  mcp: "package",
+  download: "package",
+  eval: "package",
+  agent: "package",
   // Server
   "mcp-server": "server",
   // Configuration

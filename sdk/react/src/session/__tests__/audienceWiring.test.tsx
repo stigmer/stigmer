@@ -302,7 +302,7 @@ describe("NewSessionViewer — audience wiring", () => {
     expect(lastComposerProps().initialIncludeMyVault).toBe(includes);
   });
 
-  it("guest: pure chat — every picker hidden, attachments and workspace off", () => {
+  it("guest: pure chat — every picker hidden, file uploads and workspace off", () => {
     render(
       <NewSessionViewer
         org="acme"
@@ -321,7 +321,7 @@ describe("NewSessionViewer — audience wiring", () => {
     expect(props.showHarnessSelector).toBe(false);
     expect(props.showInteractionModePicker).toBe(false);
     expect(props.showModelSelector).toBe(false);
-    expect(props.enableAttachments).toBe(false);
+    expect(props.enableFiles).toBe(false);
     expect(props.enableGitHub).toBe(false);
     expect(props.workspace).toBeUndefined();
     // The session panel's only toggle is absent for guests.
@@ -393,7 +393,7 @@ describe("SessionViewer — audience wiring", () => {
     expect(openedConfigFacet().mutations).toBeUndefined();
   });
 
-  it("guest: pure chat — every picker hidden, attachments and workspace off", () => {
+  it("guest: pure chat — every picker hidden, file uploads and workspace off", () => {
     render(<SessionViewer sessionId="ses_1" org="acme" audience="guest" />);
 
     const props = lastComposerProps();
@@ -404,7 +404,7 @@ describe("SessionViewer — audience wiring", () => {
     // Guest-only restrictions on top of the endUser curation.
     expect(props.showInteractionModePicker).toBe(false);
     expect(props.showModelSelector).toBe(false);
-    expect(props.enableAttachments).toBe(false);
+    expect(props.enableFiles).toBe(false);
     expect(props.enableGitHub).toBe(false);
     expect(props.workspace).toBeUndefined();
     // Agent machinery is fully unwired — the session's agent is bound
