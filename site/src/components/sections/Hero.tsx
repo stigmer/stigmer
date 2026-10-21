@@ -43,7 +43,7 @@ function Hero({ className, ...props }: HeroProps) {
 
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] gap-12 lg:gap-16 items-center">
           {/* Left: Copy */}
           <div>
             <StaggerContainer
@@ -241,7 +241,7 @@ function CodePreviewCard() {
         <span className="text-xs font-mono text-subtle ml-2">variance-report.ts</span>
       </div>
       {/* Code content */}
-      <pre className="p-4 sm:p-6 font-mono text-xs sm:text-[13px] leading-relaxed overflow-x-auto">
+      <pre className="p-4 sm:p-6 font-mono text-xs leading-relaxed overflow-x-auto">
         <code>
           {VARIANCE_REPORT_EXCERPT.map((line, index) =>
             line === ELIDED ? (
