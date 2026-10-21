@@ -24,15 +24,12 @@
  * proxies from closing a quiet stream; the SDK ignores comments.
  *
  * Back-pressure: when a write is buffered, the next frame waits for
- * `drain`, so a slow reader backs up into the native stream, which reads
- * the log at the reader's pace and only lags; the lane buffers nothing of
- * its own. The client closing aborts the native call. A native error is
- * written as an `event: error` frame carrying Anthropic's envelope, which
- * the SDK throws as an APIError, and the body ends. The stream writes no
- * `id:` and reads no `Last-Event-ID`, because the specification's SDK
- * sends none: reconnecting is the client's stream-then-list, de-duplicated
- * by event id (docs/sdk/managed-agents.mdx), which loses no event appended
- * between the two calls.
+ * `drain`, so a slow reader backs up into the native stream, whose bound
+ * ends it with RESOURCE_EXHAUSTED; the lane buffers nothing of its own.
+ * The client closing aborts the native call. A native error is written as
+ * an `event: error` frame carrying Anthropic's envelope, which the SDK
+ * throws as an APIError, and the body ends. Reconnecting is the client's
+ * list-then-stream, as Managed Agents documents.
  *
  * Proven by __tests__/stream.test.ts and the session-events-managed-agents
  * execution conformance suite.
@@ -61,11 +58,7 @@ import { REQUEST_ID_HEADER } from "./respond.js";
 /** The keep-alive interval: the unified port's own h2 ping interval. */
 export const STREAM_KEEPALIVE_MS = KEEPALIVE_PING_INTERVAL_MS;
 
-/**
- * What a native RESOURCE_EXHAUSTED tells the client to do. The native
- * stream no longer ends a slow reader; the mapping stays for any other
- * cause of the code.
- */
+/** What a stream that fell behind tells the client to do. */
 export const STREAM_FELL_BEHIND_MESSAGE =
   "the event stream fell behind; list the events since the last one received, then stream again";
 
