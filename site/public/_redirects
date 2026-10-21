@@ -1,13 +1,18 @@
 # Docs pages that were removed, each sent to the page that now covers it, so
 # links from outside the site (old READMEs, bookmarks, search results) keep
 # working. Read by Cloudflare's static assets, beside the export's files: one
-# rule per line, `<from> <to> <status>`. A page's Markdown twin moves with it.
+# rule per line, `<from> <to> <status>`. A page's Markdown twin and its
+# trailing-slash form move with it.
 
 /docs/getting-started/local /docs/getting-started/quickstart 301
+/docs/getting-started/local/ /docs/getting-started/quickstart 301
 /docs/getting-started/local.md /docs/getting-started/quickstart.md 301
 /docs/getting-started/create-agent /docs/getting-started/quickstart 301
+/docs/getting-started/create-agent/ /docs/getting-started/quickstart 301
 /docs/getting-started/create-agent.md /docs/getting-started/quickstart.md 301
 /docs/getting-started/first-skill /docs/guides/plugins/install-a-plugin 301
+/docs/getting-started/first-skill/ /docs/guides/plugins/install-a-plugin 301
 /docs/getting-started/first-skill.md /docs/guides/plugins/install-a-plugin.md 301
 /docs/getting-started/connect-tools /docs/guides/integrations/connect-an-mcp-server 301
+/docs/getting-started/connect-tools/ /docs/guides/integrations/connect-an-mcp-server 301
 /docs/getting-started/connect-tools.md /docs/guides/integrations/connect-an-mcp-server.md 301
