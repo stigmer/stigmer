@@ -78,6 +78,8 @@ export interface SessionEventSubscription {
   readonly previews: StreamSessionEventsResponse[];
   /** The encoded size of each queued preview, in queue order. */
   readonly sizes: number[];
+  /** The event or tool-use id each queued preview names, in queue order. */
+  readonly ids: string[];
   /** The sum of `sizes`. */
   queuedBytes: number;
   /** The previewed types this stream asked for. */
@@ -107,6 +109,7 @@ export class SessionEventBroker {
     const subscription: SessionEventSubscription = {
       previews: [],
       sizes: [],
+      ids: [],
       queuedBytes: 0,
       deltaTypes: new Set(deltaTypes),
       droppedIds: new Set(),
@@ -212,6 +215,7 @@ export class SessionEventBroker {
   take(subscription: SessionEventSubscription): StreamSessionEventsResponse | undefined {
     const frame = subscription.previews.shift();
     subscription.queuedBytes -= subscription.sizes.shift() ?? 0;
+    subscription.ids.shift();
     return frame;
   }
 
@@ -236,17 +240,18 @@ export class SessionEventBroker {
         subscription.queuedBytes + size > SESSION_EVENT_PREVIEW_MAX_BYTES
       ) {
         this.logger.warn("A session event stream fell behind on previews; dropping them", { sessionId });
-        for (const queued of subscription.previews) {
-          remember(subscription, previewIdOf(queued));
+        for (const dropped of [...subscription.ids, id]) {
+          remember(subscription, dropped);
         }
-        remember(subscription, id);
         subscription.previews.length = 0;
         subscription.sizes.length = 0;
+        subscription.ids.length = 0;
         subscription.queuedBytes = 0;
         continue;
       }
       subscription.previews.push(frame);
       subscription.sizes.push(size);
+      subscription.ids.push(id);
       subscription.queuedBytes += size;
       this.wake(subscription);
     }
@@ -264,31 +269,18 @@ export class SessionEventBroker {
   }
 }
 
-/** The event or tool-use id a queued preview frame names. */
-function previewIdOf(frame: StreamSessionEventsResponse): string {
-  switch (frame.frame.case) {
-    case "eventStart":
-      return frame.frame.value.event?.id ?? "";
-    case "eventDelta":
-      return frame.frame.value.eventId;
-    case "stigmerToolOutputDelta":
-      return frame.frame.value.toolUseId;
-    default:
-      return "";
-  }
-}
-
-/** Remembers a dropped id, forgetting the oldest past the bound. */
+/**
+ * Remembers a dropped id, forgetting the oldest past the bound. A preview
+ * that names no id (a start with no event) is remembered as the empty id,
+ * so no later preview naming none slips through either.
+ */
 function remember(subscription: SessionEventSubscription, id: string): void {
-  if (id === "") {
-    return;
-  }
   subscription.droppedIds.delete(id);
   subscription.droppedIds.add(id);
-  if (subscription.droppedIds.size > SESSION_EVENT_DROPPED_IDS_KEPT) {
-    const oldest = subscription.droppedIds.values().next();
-    if (oldest.done !== true) {
-      subscription.droppedIds.delete(oldest.value);
+  for (const oldest of subscription.droppedIds) {
+    if (subscription.droppedIds.size <= SESSION_EVENT_DROPPED_IDS_KEPT) {
+      break;
     }
+    subscription.droppedIds.delete(oldest);
   }
 }

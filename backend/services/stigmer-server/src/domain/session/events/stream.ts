@@ -184,9 +184,6 @@ export async function* streamSessionEvents(
         tailFired = false;
         continue;
       }
-      if (subscription.previews.length > 0) {
-        continue;
-      }
       let timer: ReturnType<typeof setTimeout> | undefined;
       await Promise.race([
         abort,

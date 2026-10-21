@@ -176,7 +176,7 @@ export class LocalExecutionTarget implements TargetProfile {
     this.storage = await this.provisionStorage();
     this.serverStateDir = await mkdtemp(join(tmpdir(), "stigmer-conformance-"));
     this.front = await startTcpFront();
-    this.server = await this.spawnPrimaryServer();
+    this.server = await spawnPrimaryServer(this.temporal, this.storage, this.serverStateDir);
     this.front.add(this.server.port);
     this.conformanceClients = makeClients(createTransport(this.front.baseUrl));
     await awaitGrpcReady(this.conformanceClients, () => this.server?.logTail() ?? "(no server)");
@@ -232,18 +232,17 @@ export class LocalExecutionTarget implements TargetProfile {
   // engine and state directory behind the same front (target.ts says how
   // the two storage shapes differ).
   async restartServer(options: ServerRestartOptions = {}): Promise<ServerRestart> {
-    const front = this.front;
-    const outgoing = this.server;
-    if (front === undefined || outgoing === undefined || this.storage === undefined) {
+    const { front, server: outgoing, temporal, storage, serverStateDir } = this;
+    if (front === undefined || outgoing === undefined || temporal === undefined || storage === undefined || serverStateDir === undefined) {
       throw new Error("LocalExecutionTarget.setup() must be called before restartServer()");
     }
-    const overlapped = this.storage.sharedByTwoServers === true;
+    const overlapped = storage.sharedByTwoServers === true;
     if (!overlapped) {
       front.remove(outgoing.port);
       this.server = undefined;
       await outgoing.shutdown();
     }
-    const incoming = await this.spawnPrimaryServer();
+    const incoming = await spawnPrimaryServer(temporal, storage, serverStateDir);
     try {
       await awaitGrpcReady(makeClients(createTransport(incoming.baseUrl)), () => incoming.logTail());
     } catch (error) {
@@ -261,23 +260,6 @@ export class LocalExecutionTarget implements TargetProfile {
       }
     }
     return { overlapped };
-  }
-
-  // The primary server, on the target's storage and state directory; every
-  // server restartServer boots is spawned the same way.
-  private async spawnPrimaryServer(): Promise<RunningServer> {
-    if (this.temporal === undefined || this.storage === undefined || this.serverStateDir === undefined) {
-      throw new Error("LocalExecutionTarget.setup() must be called before spawning its server");
-    }
-    return spawnServer(process.execPath, {
-      args: [await ensureLibraryServerEntry()],
-      temporalHostPort: this.temporal.hostPort,
-      stateDir: this.serverStateDir,
-      env: {
-        STIGMER_SCHEDULES_MAX_CONSECUTIVE_FAILURES: "2",
-        ...this.storage.serverEnv,
-      },
-    });
   }
 
   // The storage-driver seam (the LocalTarget shape): local-postgres-execution
@@ -530,4 +512,23 @@ export class LocalExecutionTarget implements TargetProfile {
     this.temporal = undefined;
     this.conformanceClients = undefined;
   }
+}
+
+// The primary server, on the target's engine, storage and state directory;
+// every server restartServer boots is spawned the same way. Its schedule
+// failure-streak override makes the auto-pause provable in two fires.
+async function spawnPrimaryServer(
+  temporal: RunningTemporal,
+  storage: ProvisionedStorage,
+  stateDir: string,
+): Promise<RunningServer> {
+  return spawnServer(process.execPath, {
+    args: [await ensureLibraryServerEntry()],
+    temporalHostPort: temporal.hostPort,
+    stateDir,
+    env: {
+      STIGMER_SCHEDULES_MAX_CONSECUTIVE_FAILURES: "2",
+      ...storage.serverEnv,
+    },
+  });
 }

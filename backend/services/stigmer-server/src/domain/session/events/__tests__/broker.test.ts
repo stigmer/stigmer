@@ -10,7 +10,7 @@
 import { create } from "@bufbuild/protobuf";
 import { Code } from "@connectrpc/connect";
 import type { HandlerContext } from "@connectrpc/connect";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
@@ -158,6 +158,16 @@ describe("the broker", () => {
     expect(slow.droppedIds.has("m0")).toBe(false);
   });
 
+  it("a dropped preview that names no id keeps later ones that name none from arriving", () => {
+    const broker = new SessionEventBroker(silentLogger);
+    const slow = broker.subscribe("s1", [""]);
+    const nameless = create(SessionEventPreviewSchema, { preview: { case: "eventStart", value: {} } });
+    broker.publishPreviews("s1", Array.from({ length: SESSION_EVENT_PREVIEW_CAPACITY + 1 }, () => nameless));
+    expect(slow.droppedIds.has("")).toBe(true);
+    broker.publishPreviews("s1", [nameless]);
+    expect(slow.previews).toEqual([]);
+  });
+
   it("closing ends every stream with its reason and refuses new ones", () => {
     const broker = new SessionEventBroker(silentLogger);
     const open = broker.subscribe("s1", []);
@@ -283,6 +293,47 @@ describe("the stream", () => {
     expect(seqs).toEqual(Array.from({ length: total }, (_, i) => BigInt(i + 1)));
     expect(broker.subscriberCount("s1"), "never ended").toBe(1);
     await stream.return(undefined);
+  });
+
+  it("sends the previews queued while it reads a long log between batches, not after the whole log", async () => {
+    await commit(...Array.from({ length: SESSION_EVENT_REPLAY_BATCH + 5 }, (_, i) => `e${i}`));
+    const broker = new SessionEventBroker(silentLogger);
+    const stream = open(broker, { afterSeq: 0n, eventDeltas: ["agent.message"] });
+    const cases: string[] = [];
+    const first = await stream.next();
+    cases.push(first.value?.frame.case ?? "");
+    broker.publishPreviews("s1", [delta("live", "x")]);
+    while (cases.length < SESSION_EVENT_REPLAY_BATCH + 6) {
+      cases.push((await stream.next()).value?.frame.case ?? "");
+    }
+    expect(cases.indexOf("eventDelta"), "right after the first batch").toBe(SESSION_EVENT_REPLAY_BATCH);
+    await stream.return(undefined);
+  });
+
+  it("doubles its tail read's interval while reads find nothing, up to the maximum", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      let reads = 0;
+      const empty = { sessionEvents: { list: async () => (reads++, []) } } as unknown as Store;
+      const broker = new SessionEventBroker(silentLogger);
+      const stream = open(broker, { afterSeq: 0n }, { store: empty, tailMs: { min: 10, max: 40 } });
+      const pending = stream.next();
+      const readsAfter = async (ms: number): Promise<number> => {
+        await vi.advanceTimersByTimeAsync(ms);
+        return reads;
+      };
+      expect(await readsAfter(0), "the resume").toBe(1);
+      expect(await readsAfter(10), "the first tail read, at the minimum").toBe(2);
+      expect(await readsAfter(19), "the next waits twice as long").toBe(2);
+      expect(await readsAfter(1)).toBe(3);
+      expect(await readsAfter(39), "then the maximum").toBe(3);
+      expect(await readsAfter(1)).toBe(4);
+      expect(await readsAfter(40), "and stays there").toBe(5);
+      broker.close();
+      await expect(pending).rejects.toMatchObject({ code: Code.Unavailable });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("sends an append's previews before its events", async () => {
