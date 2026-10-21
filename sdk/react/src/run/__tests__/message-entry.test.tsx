@@ -183,7 +183,7 @@ describe("MessageEntry — agent messages (Streamdown)", () => {
 
     const article = queryArticle(container, "AI response");
     // Streamdown routes fenced code through the shared MARKDOWN_COMPONENTS.code
-    // override, so chat highlights identically to the artifact viewer.
+    // override, so chat highlights identically to the file viewer.
     expect(article!.querySelector("code.hljs")).not.toBeNull();
     expect(
       article!.querySelectorAll('span[class*="hljs-"]').length,

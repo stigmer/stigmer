@@ -8,7 +8,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { renderHook, act, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
-import type { SessionPlan } from "../../library/detect-plan-artifact";
+import type { SessionPlan } from "../../library/detect-plan-file";
 import { usePlanDraft, planDraftKey } from "../usePlanDraft";
 
 afterEach(cleanup);

@@ -44,7 +44,7 @@ export type BuiltInViewId = (typeof ALL_BUILT_IN_VIEWS)[number];
  * A host-injected rail view: an icon in the activity rail whose content
  * renders in the sidebar pane when active.
  *
- * This is how session facets (Config, Changes, Artifacts, …) join the built-in
+ * This is how session facets (Config, Changes, Files, …) join the built-in
  * Explorer/Search views without the surface knowing any session domain — the
  * same composition philosophy as the injected lister/reader capabilities.
  * The surface stays an embeddable, domain-pure workspace organism;
@@ -65,8 +65,8 @@ export interface SurfaceRailView {
 
 /**
  * A host-injected virtual document: an editor tab whose content is not a
- * workspace file — the session's `plan.md` today; run artifacts are the
- * anticipated next family.
+ * workspace file — the session's `plan.md`, or a File the conversation
+ * holds.
  *
  * The editor-area counterpart of {@link SurfaceRailView}'s rail injection:
  * virtual documents share the tab group with file tabs (identical

@@ -12,10 +12,10 @@ public interface GetArtifactContentResponseOrBuilder extends
 
   /**
    * <pre>
-   * Raw artifact content (up to max_bytes).
+   * Raw content (up to max_bytes).
    *
-   * For text artifacts (YAML, JSON, Markdown, etc.), decode as UTF-8.
-   * For binary artifacts, this contains raw bytes — but callers should
+   * For text (YAML, JSON, Markdown, etc.), decode as UTF-8.
+   * For binary content, this contains raw bytes — but callers should
    * generally use getArtifactDownloadUrl for binary downloads instead.
    * </pre>
    *
@@ -29,7 +29,7 @@ public interface GetArtifactContentResponseOrBuilder extends
    * Detected content type based on file extension.
    *
    * Examples: "text/yaml", "text/plain", "application/json",
-   * "application/zip" (for directory artifacts).
+   * "application/zip".
    *
    * This is a best-effort detection — not based on content inspection.
    * </pre>
@@ -43,7 +43,7 @@ public interface GetArtifactContentResponseOrBuilder extends
    * Detected content type based on file extension.
    *
    * Examples: "text/yaml", "text/plain", "application/json",
-   * "application/zip" (for directory artifacts).
+   * "application/zip".
    *
    * This is a best-effort detection — not based on content inspection.
    * </pre>
@@ -56,7 +56,7 @@ public interface GetArtifactContentResponseOrBuilder extends
 
   /**
    * <pre>
-   * Actual total size of the artifact in bytes.
+   * Actual total size of the content in bytes.
    *
    * May be larger than len(content) when truncated=true.
    * Callers can use this to show "showing 512 KB of 2.1 MB" messages
@@ -72,8 +72,8 @@ public interface GetArtifactContentResponseOrBuilder extends
    * <pre>
    * Whether the content was truncated to fit within max_bytes.
    *
-   * When true, content contains only the first max_bytes of the artifact.
-   * The full artifact can be downloaded via getArtifactDownloadUrl.
+   * When true, content contains only the first max_bytes of it.
+   * The full content can be downloaded via getArtifactDownloadUrl.
    * </pre>
    *
    * <code>bool truncated = 4 [json_name = "truncated"];</code>

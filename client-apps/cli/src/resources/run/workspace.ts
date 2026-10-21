@@ -59,7 +59,7 @@ export function parseWorkspaceResources(
 }
 
 /**
- * The absolute paths of any local (non-git) workspace roots. Attachment
+ * The absolute paths of any local (non-git) workspace roots. `--attach`
  * planning uses these to decide whether a file is workspace-relative (no
  * upload) versus an upload. Mirrors Go's localWorkspaceRoots.
  */

@@ -72,7 +72,7 @@ const ENCLOSING_BARE_FENCE_RE = /^(`{3,})[ \t]*\r?\n([\s\S]*?)\r?\n\1[ \t]*$/;
  * (```python …) is never unwrapped in either mode.
  *
  * Render-time only: callers pass it the text right before handing it to the
- * markdown renderer, so the transcript and the raw artifact stay faithful to
+ * markdown renderer, so the transcript and the raw file stay faithful to
  * what the agent produced — a single source of truth for the unwrap, with no
  * duplicated logic in the runner. While streaming, the closing fence has not
  * arrived yet, so this no-ops and the live text renders as typed; it unwraps
@@ -109,7 +109,7 @@ const LEADING_H1_MARKER = /^#[ \t]+/;
  * no leading H1, `title` is `null` and `body` is the input unchanged.
  *
  * Render-time only, like {@link unwrapEnclosingMarkdownFence}: the stored
- * message/artifact keeps its heading; only the presentation moves it.
+ * message or file keeps its heading; only the presentation moves it.
  */
 export function extractLeadingH1(markdown: string): {
   readonly title: string | null;
@@ -136,7 +136,7 @@ export function extractLeadingH1(markdown: string): {
  * Returns the mermaid source when a `pre` element's children are a single
  * fenced code block explicitly tagged `mermaid`, or `null` otherwise.
  *
- * Both renderers (Streamdown for chat, react-markdown for artifacts/skills)
+ * Both renderers (Streamdown for chat, react-markdown for files/skills)
  * hand `pre` exactly one `<code>` child whose `className` carries the fence's
  * info string as `language-*` and whose children are the raw source text.
  * Anything that deviates from that shape — a different language, a missing
@@ -278,7 +278,7 @@ export const MARKDOWN_COMPONENTS: Components = {
 
     if (isBlock) {
       // Tokenize here, in the one component both renderers (Streamdown for
-      // chat, react-markdown for artifacts/skills) share, so highlighting is
+      // chat, react-markdown for files/skills) share, so highlighting is
       // identical everywhere. Highlight only plain-string children — anything
       // else (e.g. a streaming caret node) falls back to flat rendering.
       const language = codeClassName.slice(LANGUAGE_CLASS_PREFIX.length);

@@ -19,7 +19,7 @@ export interface UseFileReferencesReturn {
  * Behavior hook managing workspace file references for the composer.
  *
  * File references are lightweight "attention" signals — workspace-relative
- * paths the user wants the agent to focus on. Unlike attachments, they
+ * paths the user wants the agent to focus on. Unlike uploaded files, they
  * require no upload; the agent reads them directly from the workspace
  * filesystem post-provisioning.
  *

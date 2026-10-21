@@ -113,7 +113,7 @@ message FileChangeSet {
 // One file's delta within a FileChangeSet.
 //
 // Reuses FileContent (inline-or-offload) for before/after and ToolCallOutputRef
-// for the offloadable unified diff — no parallel blob/artifact types.
+// for the offloadable unified diff — no parallel blob types.
 message CapturedFileChange {
   // Stable id of this file change within its set. The id a file-scoped
   // stigmer.file_review.decided event names. Never a content hash.
@@ -147,8 +147,8 @@ message CapturedFileChange {
   // only these exact bytes). Empty for DELETE.
   string after_sha256 = 9;
 
-  // Offloadable unified diff artifact for this file. The rendered hunks; large
-  // diffs spill to artifact storage via the same envelope tool output uses.
+  // Offloadable unified diff for this file. The rendered hunks; large diffs
+  // spill to the run's storage via the same envelope tool output uses.
   ToolCallOutputRef unified_diff = 10;
 
   // False when this file's diff is incomplete (elided, truncated, or not
@@ -216,7 +216,7 @@ message CasManifestRef {
   // Digest of the manifest listing each captured path and its blob digest.
   string manifest_digest = 1;
 
-  // Storage URI of the manifest artifact.
+  // Storage URI of the stored manifest.
   string artifact_uri = 2;
 }
 

@@ -32,7 +32,7 @@ export type ToolOutputRefLike = Pick<ToolFullOutput, "storageKey" | "contentHash
 
 /**
  * Behavior hook that resolves the full text of a tool output that the runner
- * offloaded to artifact storage (a tool use's `ToolFullOutput`).
+ * offloaded to the run's storage (a tool use's `ToolFullOutput`).
  *
  * Mirrors {@link useFileChangeContent}: it ignores any URL baked into the ref
  * and fetches the bytes on demand through the CORS-safe `getArtifactContent`

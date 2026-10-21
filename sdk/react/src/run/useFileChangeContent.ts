@@ -45,7 +45,7 @@ export interface UseFileChangeContentReturn {
  * text the diff renderer needs.
  *
  * Small bodies are carried inline on the proto and returned with zero cost.
- * Large bodies were offloaded to artifact storage by the runner
+ * Large bodies were offloaded to the run's storage by the runner
  * (`FileContent.ref`); this hook lazily fetches them via
  * {@link useArtifactContent} through the server proxy (CORS-safe). The fetch's
  * `executionId` is derived from the ref's own `storageKey`

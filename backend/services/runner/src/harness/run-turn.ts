@@ -64,7 +64,7 @@ import { runWithExecutionContext } from "../shared/execution-context.js";
 import { startHeartbeat } from "../shared/heartbeat.js";
 import { describeExecutionError } from "../shared/model-error.js";
 import { collectOutputs } from "../shared/outputs.js";
-import { savePlanOutput } from "../shared/plan-artifact.js";
+import { savePlanOutput } from "../shared/plan-file.js";
 import { readEvalFiles } from "../shared/eval-case/read-files.js";
 import { StallTimeoutError, startStallWatchdog, type StallWatchdog } from "../shared/stall-watchdog.js";
 import { loadStreamingConfig } from "../shared/streaming-scheduler.js";

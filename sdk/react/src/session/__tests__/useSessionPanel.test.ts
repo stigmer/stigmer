@@ -174,7 +174,7 @@ describe("useSessionPanel — plan document tab", () => {
 
   it("opens on the streaming identity, then idempotently re-fires when the plan publishes", () => {
     // The viewer feeds `<executionId>:streaming` while the plan is being
-    // written, then the artifact identity once published — two identities,
+    // written, then the plan File's identity once published — two identities,
     // one pinned tab: the transition must not duplicate it or disturb it.
     const { result, rerender } = renderPanel();
     rerender({ phase: null, hasChanges: false, planKey: "e1:streaming" });
@@ -227,7 +227,7 @@ describe("useSessionPanel — plan document tab", () => {
 });
 
 describe("useSessionPanel — File document tabs", () => {
-  function artifact(outputPath: string, filename: string) {
+  function output(outputPath: string, filename: string) {
     return create(FileSchema, {
       metadata: { id: `file_${filename}` },
       spec: { filename },
@@ -237,7 +237,7 @@ describe("useSessionPanel — File document tabs", () => {
 
   it("openFileDocument opens the panel with a PREVIEW tab keyed by the document key", () => {
     const { result } = renderPanel();
-    const a = artifact(".stigmer/notes.md", "notes.md");
+    const a = output(".stigmer/notes.md", "notes.md");
     act(() => result.current.openFileDocument(outputKey(a)));
 
     expect(result.current.isOpen).toBe(true);
@@ -248,8 +248,8 @@ describe("useSessionPanel — File document tabs", () => {
 
   it("reuses the single preview slot as different Files are browsed", () => {
     const { result } = renderPanel();
-    act(() => result.current.openFileDocument(outputKey(artifact(".stigmer/a.md", "a.md"))));
-    act(() => result.current.openFileDocument(outputKey(artifact(".stigmer/b.md", "b.md"))));
+    act(() => result.current.openFileDocument(outputKey(output(".stigmer/a.md", "a.md"))));
+    act(() => result.current.openFileDocument(outputKey(output(".stigmer/b.md", "b.md"))));
 
     // VS Code preview semantics: single-click browsing reuses one tab.
     expect(result.current.editorsStore.getSnapshot().editors).toEqual([
@@ -260,7 +260,7 @@ describe("useSessionPanel — File document tabs", () => {
   it("does not evict a pinned plan tab when a File opens", () => {
     const { result } = renderPanel();
     act(() => result.current.openPlanDocument());
-    act(() => result.current.openFileDocument(outputKey(artifact(".stigmer/a.md", "a.md"))));
+    act(() => result.current.openFileDocument(outputKey(output(".stigmer/a.md", "a.md"))));
 
     expect(result.current.editorsStore.getSnapshot().editors).toEqual([
       { entryId: PLAN_DOCUMENT_ENTRY_ID, path: PLAN_DOCUMENT_PATH, preview: false },
@@ -270,7 +270,7 @@ describe("useSessionPanel — File document tabs", () => {
 
   it("pinFileDocument promotes an open File preview to a persistent tab", () => {
     const { result } = renderPanel();
-    const a = artifact(".stigmer/notes.md", "notes.md");
+    const a = output(".stigmer/notes.md", "notes.md");
     // The single-click open leaves a preview tab; the double-click pins it.
     act(() => result.current.openFileDocument(outputKey(a)));
     act(() => result.current.pinFileDocument(outputKey(a)));
@@ -282,13 +282,13 @@ describe("useSessionPanel — File document tabs", () => {
 
   it("pinFileDocument is a no-op when the File is not open (mirrors the store's generic pin)", () => {
     const { result } = renderPanel();
-    act(() => result.current.pinFileDocument(outputKey(artifact(".stigmer/x.md", "x.md"))));
+    act(() => result.current.pinFileDocument(outputKey(output(".stigmer/x.md", "x.md"))));
     expect(result.current.editorsStore.getSnapshot().editors).toEqual([]);
   });
 });
 
 describe("useSessionPanel — observed open state (uncontrolled + onOpenChange)", () => {
-  // The panel opens ITSELF (file/artifact/plan opens, plan auto-open), so —
+  // The panel opens ITSELF (workspace-file/File/plan opens, plan auto-open), so —
   // unlike useDetailTabs' user-driven-only tabs — onOpenChange fires in BOTH
   // modes: passing only the callback observes the panel without controlling
   // it (the issue-#300 docking-host case).

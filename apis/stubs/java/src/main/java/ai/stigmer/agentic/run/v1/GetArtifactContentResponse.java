@@ -7,11 +7,12 @@ package ai.stigmer.agentic.run.v1;
 
 /**
  * <pre>
- * GetArtifactContentResponse returns the raw content of a run artifact.
+ * GetArtifactContentResponse returns the raw bytes of a run's stored
+ * content.
  *
- * The content field contains the artifact bytes (up to max_bytes). For text
- * artifacts, clients decode via TextDecoder or equivalent. The content_type
- * field provides a hint for rendering (detected by file extension).
+ * The content field contains the bytes (up to max_bytes). For text,
+ * clients decode via TextDecoder or equivalent. The content_type field
+ * provides a hint for rendering (detected by file extension).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.run.v1.GetArtifactContentResponse}
@@ -62,10 +63,10 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.ByteString content_ = com.google.protobuf.ByteString.EMPTY;
   /**
    * <pre>
-   * Raw artifact content (up to max_bytes).
+   * Raw content (up to max_bytes).
    *
-   * For text artifacts (YAML, JSON, Markdown, etc.), decode as UTF-8.
-   * For binary artifacts, this contains raw bytes — but callers should
+   * For text (YAML, JSON, Markdown, etc.), decode as UTF-8.
+   * For binary content, this contains raw bytes — but callers should
    * generally use getArtifactDownloadUrl for binary downloads instead.
    * </pre>
    *
@@ -85,7 +86,7 @@ private static final long serialVersionUID = 0L;
    * Detected content type based on file extension.
    *
    * Examples: "text/yaml", "text/plain", "application/json",
-   * "application/zip" (for directory artifacts).
+   * "application/zip".
    *
    * This is a best-effort detection — not based on content inspection.
    * </pre>
@@ -111,7 +112,7 @@ private static final long serialVersionUID = 0L;
    * Detected content type based on file extension.
    *
    * Examples: "text/yaml", "text/plain", "application/json",
-   * "application/zip" (for directory artifacts).
+   * "application/zip".
    *
    * This is a best-effort detection — not based on content inspection.
    * </pre>
@@ -138,7 +139,7 @@ private static final long serialVersionUID = 0L;
   private long totalSizeBytes_ = 0L;
   /**
    * <pre>
-   * Actual total size of the artifact in bytes.
+   * Actual total size of the content in bytes.
    *
    * May be larger than len(content) when truncated=true.
    * Callers can use this to show "showing 512 KB of 2.1 MB" messages
@@ -159,8 +160,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Whether the content was truncated to fit within max_bytes.
    *
-   * When true, content contains only the first max_bytes of the artifact.
-   * The full artifact can be downloaded via getArtifactDownloadUrl.
+   * When true, content contains only the first max_bytes of it.
+   * The full content can be downloaded via getArtifactDownloadUrl.
    * </pre>
    *
    * <code>bool truncated = 4 [json_name = "truncated"];</code>
@@ -364,11 +365,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GetArtifactContentResponse returns the raw content of a run artifact.
+   * GetArtifactContentResponse returns the raw bytes of a run's stored
+   * content.
    *
-   * The content field contains the artifact bytes (up to max_bytes). For text
-   * artifacts, clients decode via TextDecoder or equivalent. The content_type
-   * field provides a hint for rendering (detected by file extension).
+   * The content field contains the bytes (up to max_bytes). For text,
+   * clients decode via TextDecoder or equivalent. The content_type field
+   * provides a hint for rendering (detected by file extension).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.run.v1.GetArtifactContentResponse}
@@ -547,10 +549,10 @@ private static final long serialVersionUID = 0L;
     private com.google.protobuf.ByteString content_ = com.google.protobuf.ByteString.EMPTY;
     /**
      * <pre>
-     * Raw artifact content (up to max_bytes).
+     * Raw content (up to max_bytes).
      *
-     * For text artifacts (YAML, JSON, Markdown, etc.), decode as UTF-8.
-     * For binary artifacts, this contains raw bytes — but callers should
+     * For text (YAML, JSON, Markdown, etc.), decode as UTF-8.
+     * For binary content, this contains raw bytes — but callers should
      * generally use getArtifactDownloadUrl for binary downloads instead.
      * </pre>
      *
@@ -563,10 +565,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Raw artifact content (up to max_bytes).
+     * Raw content (up to max_bytes).
      *
-     * For text artifacts (YAML, JSON, Markdown, etc.), decode as UTF-8.
-     * For binary artifacts, this contains raw bytes — but callers should
+     * For text (YAML, JSON, Markdown, etc.), decode as UTF-8.
+     * For binary content, this contains raw bytes — but callers should
      * generally use getArtifactDownloadUrl for binary downloads instead.
      * </pre>
      *
@@ -583,10 +585,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Raw artifact content (up to max_bytes).
+     * Raw content (up to max_bytes).
      *
-     * For text artifacts (YAML, JSON, Markdown, etc.), decode as UTF-8.
-     * For binary artifacts, this contains raw bytes — but callers should
+     * For text (YAML, JSON, Markdown, etc.), decode as UTF-8.
+     * For binary content, this contains raw bytes — but callers should
      * generally use getArtifactDownloadUrl for binary downloads instead.
      * </pre>
      *
@@ -606,7 +608,7 @@ private static final long serialVersionUID = 0L;
      * Detected content type based on file extension.
      *
      * Examples: "text/yaml", "text/plain", "application/json",
-     * "application/zip" (for directory artifacts).
+     * "application/zip".
      *
      * This is a best-effort detection — not based on content inspection.
      * </pre>
@@ -631,7 +633,7 @@ private static final long serialVersionUID = 0L;
      * Detected content type based on file extension.
      *
      * Examples: "text/yaml", "text/plain", "application/json",
-     * "application/zip" (for directory artifacts).
+     * "application/zip".
      *
      * This is a best-effort detection — not based on content inspection.
      * </pre>
@@ -657,7 +659,7 @@ private static final long serialVersionUID = 0L;
      * Detected content type based on file extension.
      *
      * Examples: "text/yaml", "text/plain", "application/json",
-     * "application/zip" (for directory artifacts).
+     * "application/zip".
      *
      * This is a best-effort detection — not based on content inspection.
      * </pre>
@@ -679,7 +681,7 @@ private static final long serialVersionUID = 0L;
      * Detected content type based on file extension.
      *
      * Examples: "text/yaml", "text/plain", "application/json",
-     * "application/zip" (for directory artifacts).
+     * "application/zip".
      *
      * This is a best-effort detection — not based on content inspection.
      * </pre>
@@ -698,7 +700,7 @@ private static final long serialVersionUID = 0L;
      * Detected content type based on file extension.
      *
      * Examples: "text/yaml", "text/plain", "application/json",
-     * "application/zip" (for directory artifacts).
+     * "application/zip".
      *
      * This is a best-effort detection — not based on content inspection.
      * </pre>
@@ -720,7 +722,7 @@ private static final long serialVersionUID = 0L;
     private long totalSizeBytes_ ;
     /**
      * <pre>
-     * Actual total size of the artifact in bytes.
+     * Actual total size of the content in bytes.
      *
      * May be larger than len(content) when truncated=true.
      * Callers can use this to show "showing 512 KB of 2.1 MB" messages
@@ -736,7 +738,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Actual total size of the artifact in bytes.
+     * Actual total size of the content in bytes.
      *
      * May be larger than len(content) when truncated=true.
      * Callers can use this to show "showing 512 KB of 2.1 MB" messages
@@ -756,7 +758,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Actual total size of the artifact in bytes.
+     * Actual total size of the content in bytes.
      *
      * May be larger than len(content) when truncated=true.
      * Callers can use this to show "showing 512 KB of 2.1 MB" messages
@@ -778,8 +780,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Whether the content was truncated to fit within max_bytes.
      *
-     * When true, content contains only the first max_bytes of the artifact.
-     * The full artifact can be downloaded via getArtifactDownloadUrl.
+     * When true, content contains only the first max_bytes of it.
+     * The full content can be downloaded via getArtifactDownloadUrl.
      * </pre>
      *
      * <code>bool truncated = 4 [json_name = "truncated"];</code>
@@ -793,8 +795,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Whether the content was truncated to fit within max_bytes.
      *
-     * When true, content contains only the first max_bytes of the artifact.
-     * The full artifact can be downloaded via getArtifactDownloadUrl.
+     * When true, content contains only the first max_bytes of it.
+     * The full content can be downloaded via getArtifactDownloadUrl.
      * </pre>
      *
      * <code>bool truncated = 4 [json_name = "truncated"];</code>
@@ -812,8 +814,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Whether the content was truncated to fit within max_bytes.
      *
-     * When true, content contains only the first max_bytes of the artifact.
-     * The full artifact can be downloaded via getArtifactDownloadUrl.
+     * When true, content contains only the first max_bytes of it.
+     * The full content can be downloaded via getArtifactDownloadUrl.
      * </pre>
      *
      * <code>bool truncated = 4 [json_name = "truncated"];</code>

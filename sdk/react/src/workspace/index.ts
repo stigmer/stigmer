@@ -71,7 +71,7 @@ export type { ExplorerTreeProps } from "./ExplorerTree.js";
 // WorkspaceSurface API.
 export type { OpenEditor, OpenFileOptions } from "../internal/store/index.js";
 // The jump-to-line reveal target rides on FileViewer / WorkspaceSurface /
-// ArtifactContentRenderer props; export the shape (the hook stays @internal).
+// TextContentRenderer props; export the shape (the hook stays @internal).
 export type { RevealTarget } from "../internal/useRevealLine.js";
 // The viewer's selection shape is part of the public FileViewer API; re-export
 // the type (not the store) so consumers can construct/inspect a selection.

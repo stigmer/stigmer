@@ -118,7 +118,7 @@ export const FileChangeSetSchema: GenMessage<FileChangeSet> = /*@__PURE__*/
  * One file's delta within a FileChangeSet.
  *
  * Reuses FileContent (inline-or-offload) for before/after and ToolCallOutputRef
- * for the offloadable unified diff — no parallel blob/artifact types.
+ * for the offloadable unified diff — no parallel blob types.
  *
  * @generated from message ai.stigmer.agentic.run.v1.CapturedFileChange
  */
@@ -192,8 +192,8 @@ export type CapturedFileChange = Message<"ai.stigmer.agentic.run.v1.CapturedFile
   afterSha256: string;
 
   /**
-   * Offloadable unified diff artifact for this file. The rendered hunks; large
-   * diffs spill to artifact storage via the same envelope tool output uses.
+   * Offloadable unified diff for this file. The rendered hunks; large diffs
+   * spill to the run's storage via the same envelope tool output uses.
    *
    * @generated from field: ai.stigmer.agentic.run.v1.ToolCallOutputRef unified_diff = 10;
    */
@@ -342,7 +342,7 @@ export type CasManifestRef = Message<"ai.stigmer.agentic.run.v1.CasManifestRef">
   manifestDigest: string;
 
   /**
-   * Storage URI of the manifest artifact.
+   * Storage URI of the stored manifest.
    *
    * @generated from field: string artifact_uri = 2;
    */

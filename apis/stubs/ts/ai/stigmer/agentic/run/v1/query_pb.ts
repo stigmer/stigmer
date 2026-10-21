@@ -54,12 +54,13 @@ export const RunQueryController: GenService<{
     output: typeof RunListSchema;
   },
   /**
-   * Get a presigned download URL for a run artifact.
+   * Get a presigned download URL for a run's stored content.
    *
-   * Returns a time-limited URL for downloading an artifact published by
-   * an agent during the run. The URL can be used with a simple HTTP GET
-   * request without authentication. A file given with the message is a
-   * File: its link comes from FileQueryController.getDownloadUrl.
+   * Returns a time-limited URL for downloading one stored object of the
+   * run: a tool call's offloaded output, or a file-review diff or blob.
+   * The URL can be used with a simple HTTP GET request without
+   * authentication. A File's link comes from
+   * FileQueryController.getDownloadUrl.
    *
    * @generated from rpc ai.stigmer.agentic.run.v1.RunQueryController.getArtifactDownloadUrl
    */
@@ -69,11 +70,12 @@ export const RunQueryController: GenService<{
     output: typeof GetArtifactDownloadUrlResponseSchema;
   },
   /**
-   * Read the raw content of a run artifact.
+   * Read the raw bytes of a run's stored content.
    *
-   * Returns artifact bytes through the Stigmer API, eliminating CORS
-   * concerns for SDK consumers who need to read content programmatically
-   * (e.g., YAML parsing for resource detection, in-app preview rendering).
+   * Returns the bytes of one stored object of the run (a tool call's
+   * offloaded output, or a file-review diff or blob) through the Stigmer
+   * API, eliminating CORS concerns for SDK consumers who need to read it
+   * programmatically (e.g., in-app preview rendering).
    *
    * For direct file downloads, use getArtifactDownloadUrl instead — it
    * returns a presigned R2 URL that avoids proxying bytes through the server.

@@ -1,7 +1,7 @@
 # Stigmer vocabulary guide
 
-This is the single source of truth for all Stigmer terminology. Every
-customer-facing artifact---sales site, documentation, README, tooltips, error
+This is the single source of truth for all Stigmer terminology. Every piece of
+customer-facing material---sales site, documentation, README, tooltips, error
 messages, conference talks---draws its terms and definitions from this document.
 
 **status**: draft, pending review **Created**: 2026-03-31
@@ -13,7 +13,7 @@ messages, conference talks---draws its terms and definitions from this document.
 - **Need a definition?** Each term has a one-sentence plain-language definition
   in its [detailed entry](#tier-1--core-product-concepts).
 - **Updating glossary.ts?** Copy the definition from the detailed entry. This
-  file is the source; `glossary.ts` is a derived artifact.
+  file is the source; `glossary.ts` is a derived copy.
 - **Found an inconsistency?** Add it to the
   [inconsistency register](#inconsistency-register) with file paths and a
   recommended resolution.
@@ -42,7 +42,7 @@ Five contexts, each with its own register. When the quick-reference table says
 | **Quickstart / tutorials** | Developers following steps                 | Action-oriented. Introduce Stigmer terms with a plain-language gloss on first use. | "Create a Skill (a piece of domain knowledge your Agent can use)."                 |
 | **Concepts / how-to**      | Developers building understanding          | Explanatory. Use Stigmer terms as proper nouns. Analogies welcome.                 | "A Skill is like a training manual for your Agent."                                |
 | **Reference / SDK**        | Developers looking up specifics            | Precise. Use API field names. Assume familiarity with the platform.                | "`spec.skill_refs`---the Skills this Agent loads, each a reference by slug or ID." |
-| **README / GitHub**        | Developers evaluating Stigmer              | Developer-direct. CLI-first. Technical credibility.                                | "Versioned knowledge artifacts. A Skill is a directory with a `SKILL.md` file."    |
+| **README / GitHub**        | Developers evaluating Stigmer              | Developer-direct. CLI-first. Technical credibility.                                | "Versioned domain knowledge. A Skill is a directory with a `SKILL.md` file."       |
 
 **Rule of thumb**: move left in the table for simpler language, move right for
 more precise language. Never use a right-column term in a left-column context.
@@ -65,6 +65,7 @@ definitions, API names, and examples follow below.
 | **MCP server**         | tools                      | MCP server ("tool connection")         | MCP server          | `PluginStatus.mcp_servers`, `AgentSpec.mcp_servers` | MCP server         |
 | **Session**            | conversation               | Session ("conversation")               | Session             | Session, `kind: Session`                            | Session            |
 | **Session event**      | ---                        | ---                                    | event               | `SessionEvent`, `agent.message`, `stigmer.*`        | event              |
+| **File**               | file                       | file                                   | File                | File, `kind: File`, `file_ids`                      | File               |
 | **Runner**             | compute                    | runner ("where your Agent runs")       | Runner              | Runner                                              | runner             |
 | **Harness**            | execution engine           | harness ("execution engine")           | Harness             | Harness, `SessionSpec.harness`                      | harness            |
 | **Approval flow**      | approval flow              | approval flow                          | approval flow, HITL | `destructiveHint`, `confirmToolUse`                 | HITL, approval     |
@@ -169,20 +170,24 @@ A piece of knowledge you attach to an Agent so it has domain expertise.
 
 **Good examples**:
 
-| Context    | Copy                                                                                                                                             |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Sales site | "Teach your Agent what generic AI doesn't know---your return policy, your product catalog, your escalation process."                             |
-| Quickstart | "Create a Skill---a piece of domain knowledge your Agent can use. A Skill is a directory with a `SKILL.md` file."                                |
-| Concepts   | "A Skill is like a training manual for your Agent. Without it, the Agent gives generic answers. With it, the Agent gives domain-expert answers." |
-| Reference  | "`Skill`---a versioned knowledge artifact attached to Agents via `skill_refs`. Pushed via `stigmer push` or `SkillCommandController.push`."      |
+| Context    | Copy                                                                                                                                                 |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sales site | "Teach your Agent what generic AI doesn't know---your return policy, your product catalog, your escalation process."                                 |
+| Quickstart | "Create a Skill---a piece of domain knowledge your Agent can use. A Skill is a directory with a `SKILL.md` file."                                    |
+| Concepts   | "A Skill is like a training manual for your Agent. Without it, the Agent gives generic answers. With it, the Agent gives domain-expert answers."     |
+| Reference  | "`Skill`---a versioned package of domain knowledge attached to Agents via `skill_refs`. Pushed via `stigmer push` or `SkillCommandController.push`." |
 
 **Bad examples**:
+
+<!-- vale Stigmer.FileWords = NO -->
 
 | Context    | Copy                                         | Problem                                                             |
 | ---------- | -------------------------------------------- | ------------------------------------------------------------------- |
 | Sales site | "Create a Skill with YAML frontmatter."      | The audience doesn't know what frontmatter is and doesn't need to.  |
 | Sales site | "Upload your knowledge artifacts."           | "Knowledge artifacts" is internal language. Say "domain knowledge." |
 | Quickstart | "Configure the RAG pipeline for your Skill." | Stigmer Skills are not RAG. This is a positioning violation.        |
+
+<!-- vale Stigmer.FileWords = YES -->
 
 ---
 
@@ -380,13 +385,14 @@ An ongoing conversation with an Agent across multiple messages.
   built-in assistant), `status.agent_version_hash` (the Agent version the
   conversation runs until someone updates it), `status.harness_state_id` (the
   harness's own id for the conversation, kept across runs), `subject` (display
-  title), `workspace_entries`, `environment_ref` (the
-  [Environment](#environment) the conversation names itself),
-  `status.environment` and `status.environment_source` (the Environment it runs
-  in and whose choice that was), `vaults` (the vaults the conversation uses, in
-  order) and `include_my_vault` (use each sender's own My vault first). Sessions
-  can add `plugins` and `skill_refs` to the Agent's; the Agent's tool lists
-  still govern every tool.
+  title), `resources` (the [Files](#file), git repositories and local folders
+  the conversation holds: `file`, `git_repository`, `local_path`),
+  `environment_ref` (the [Environment](#environment) the conversation names
+  itself), `status.environment` and `status.environment_source` (the Environment
+  it runs in and whose choice that was), `vaults` (the vaults the conversation
+  uses, in order) and `include_my_vault` (use each sender's own My vault first).
+  Sessions can add `plugins` and `skill_refs` to the Agent's; the Agent's tool
+  lists still govern every tool.
 - **Related terms**: A Session contains multiple runs. Each message exchange
   within a Session is one run. What happens in a Session is its event log
   (`session/v1/event.proto`): the person's messages, the Agent's messages and
@@ -454,6 +460,70 @@ answer, or a change in what the Session is doing.
 
 ---
 
+#### File
+
+A file uploaded once and named by its id, given to a conversation or sent with a
+message, or saved by the Agent in its outputs folder.
+
+- **User-facing alternative**: "file" everywhere a reader would say it.
+- **Capitalize**: "File" when naming the Stigmer resource ("a File's id", "the
+  conversation's Files"); "file" in the everyday sense ("drop a file in the chat
+  box").
+- **API surface**: `kind: File`, prefix `file` (`file_01j…`). proto:
+  `file/v1/api.proto`, `file/v1/command.proto`, `file/v1/query.proto`. SDKs:
+  `stigmer.file` in TypeScript, `client.files` in Python and Java. CLI:
+  `stigmer file upload`, the unified verbs (`stigmer get file`,
+  `stigmer list files`, `stigmer delete file`, `stigmer download file`),
+  `stigmer run --attach` (uploads a local file and sends it) and `--file-id`
+  (sends an uploaded one), and `stigmer download session` (a conversation's
+  outputs, newest per path). A run's `getArtifactContent` and
+  `getArtifactDownloadUrl` keep their wire names: they read a run's offloaded
+  tool output and file-review content, never a File.
+- **Key fields**: `spec.filename`, `spec.mime_type`, `status.size_bytes`,
+  `status.session_id` (the conversation it belongs to), `status.run_id` and
+  `status.output_path` (the turn that saved it, and where in the outputs
+  folder). A conversation names its Files in `resources` (`file`, with a
+  `mount_path` under `.stigmer/uploads/`); a message names them in
+  `RunSpec.file_ids`.
+- **Roles**: a File uploaded into a conversation follows the conversation:
+  everyone who can see the conversation sees it. Any other File is private to
+  its uploader until its visibility or a grant shares it. Any member of the
+  Organization may upload one. Its uploader deletes it, and so does the owner of
+  the conversation it belongs to.
+
+<!-- vale Stigmer.FileWords = NO -->
+
+- **Context rule**: Say "File" or "file", never "attachment" or "artifact". A
+  file given with a message is "a file sent with the message"; what the Agent
+  saved is "an output" or "a File the Agent saved". The verb "attach" stays for
+  the act, and the `--attach` flag keeps its name. An operator's storage
+  settings keep their names in code spans (`ARTIFACT_STORAGE_TYPE`); a Skill's
+  or plugin's package is an "archive". See [Files](/docs/concepts/files).
+
+<!-- vale Stigmer.FileWords = YES -->
+
+**Good examples**:
+
+| Context    | Copy                                                                                                          |
+| ---------- | ------------------------------------------------------------------------------------------------------------- |
+| Quickstart | "Drop the spreadsheet in the chat box; the Agent finds it under `.stigmer/uploads/`."                         |
+| Concepts   | "Everything the Agent saves in `.stigmer/outputs/` comes back as a File of that turn."                        |
+| Reference  | "`RunSpec.file_ids`---the Files sent with this message, by id. Each becomes the conversation's own instance." |
+
+**Bad examples**:
+
+<!-- vale Stigmer.FileWords = NO -->
+
+| Context | Copy                                 | Problem                                                                     |
+| ------- | ------------------------------------ | --------------------------------------------------------------------------- |
+| How-to  | "Add an attachment to your message." | A message names Files; say "send a file with your message".                 |
+| Any     | "Download the run's artifacts."      | What a turn returns is its outputs, Files like any other.                   |
+| Any     | "Push the Skill's artifact."         | A Skill's package is an archive; "artifact" reads as a file the Agent made. |
+
+<!-- vale Stigmer.FileWords = YES -->
+
+---
+
 #### Channel
 
 A way people reach an Agent: a hosted chat link, a Slack workspace or a WhatsApp
@@ -514,9 +584,9 @@ number. Each Channel has one type, and an Agent can have several.
 
 #### Routine
 
-A saved Agent invocation (which Agent, what to tell it, its workspace, vaults
-and Environment) that starts on its schedule, when someone runs it, or when
-another system calls it with a note.
+A saved Agent invocation (which Agent, what to tell it, its files and
+repositories, vaults and Environment) that starts on its schedule, when someone
+runs it, or when another system calls it with a note.
 
 - **User-facing alternative**: "run your Agent on a schedule" on the sales site
   and on first use in how-to docs; "routine" after that.
@@ -531,10 +601,11 @@ another system calls it with a note.
 - **Key fields**: `cron` (optional: the classic 5-field form or an `@daily`
   shorthand, evaluated in `time_zone`; absent, the routine runs only when
   started), `time_zone` (IANA name, required with a `cron`), `enabled`, and
-  `agent` (`agent_ref`, `message`, `vaults`, `environment_ref`, the workspace
-  and run settings). Firing observations (`next_fire_at`, `last_fire_at`,
-  `last_run_id`, `consecutive_failures`, `paused_reason`) live in `status`,
-  written only by the platform---applying a manifest never touches them.
+  `agent` (`agent_ref`, `message`, `vaults`, `environment_ref`, `resources` for
+  its files and repositories, and run settings). Firing observations
+  (`next_fire_at`, `last_fire_at`, `last_run_id`, `consecutive_failures`,
+  `paused_reason`) live in `status`, written only by the platform---applying a
+  manifest never touches them.
 - **Starting it**: say "start" and **Run now** in how-to docs; reference docs
   say `fire` (`FireRoutineInput`), and each start is a `RoutineFire` with an
   origin, `schedule` or `manual`, and `fired_by` for whoever started it. A start
@@ -565,11 +636,11 @@ another system calls it with a note.
   start; a paused one may still be started, which is how its owner tests a fix.
   Never use "paused" for the owner's switch or "disabled" for the platform's
   latch.
-- **Note**: Do not confuse with a Temporal Schedule, the engine artifact the
+- **Note**: Do not confuse with a Temporal Schedule, the engine object the
   platform manages internally to do the firing. Docs and code comments say
-  "Temporal Schedule" for the engine artifact; one Routine with a `cron` is
-  backed by one Temporal Schedule. Lowercase "schedule" stays: it is the
-  routine's own timing ("the routine's schedule") and the verb.
+  "Temporal Schedule" for the engine object; one Routine with a `cron` is backed
+  by one Temporal Schedule. Lowercase "schedule" stays: it is the routine's own
+  timing ("the routine's schedule") and the verb.
 - **Former names**: `Schedule` (`kind: Schedule`), its fire record
   `ScheduleFire`, `trigger` for starting one, and the hosted edition's per-org
   schedule account that runs once acted as. Do not use them in new writing.
@@ -818,9 +889,10 @@ outside it sees them.
   default, under **Settings > Policies**) lets members create Agents; when it is
   off, only admins do.
 - **Context rule**: `org` in identifiers, "Organization" in prose. Never call it
-  a tenant, and never a Workspace, which is a Session's files. In docs for open
-  source, do not make a reader name or create one. "System Organization" is a
-  retired phrase from when default content was installed into it.
+  a tenant, and never a Workspace, which is the folder a Session's repositories
+  and files are given in. In docs for open source, do not make a reader name or
+  create one. "System Organization" is a retired phrase from when default
+  content was installed into it.
 
 ---
 
@@ -1529,6 +1601,10 @@ message, start a routine or open a chat link.
 - **What a run did**: its Session's events with the run's `run_id`: messages,
   tool uses and answers. The run itself holds its lifecycle (phase, timing, stop
   cause) and its file record (`status.file_changes`).
+- **A message's files**: `RunSpec.file_ids` names the [Files](#file) sent with
+  the message (at most 20), and `status.message_files` records them as the
+  message's `image` and `document` blocks. What the agent saves in its outputs
+  folder comes back as Files of the run (`FileStatus.run_id`).
 - **Phases**: `RUN_WAITING_FOR_APPROVAL` is a notable phase---the run pauses
   during an approval flow.
 - **Two meanings**: the word "run" means two different things across Stigmer.
@@ -2328,7 +2404,7 @@ in every edition. Each retired word has a replacement, defined in its entry:
   that created it; no other account acts for a routine (Routine).
 - "schedule" for the resource in prose: "routine". Lowercase "schedule" keeps
   its sense of timing and the verb, and "Temporal Schedule" stays the engine's
-  artifact (Routine).
+  object (Routine).
 
 ---
 
@@ -2350,3 +2426,35 @@ variable. Each retired use has a replacement, defined in its entry:
   the Agent's `env` for plain settings (Environment, Vault).
 - `sandbox_id` on a Session: `environment_ref`, `status.environment` and
   `status.environment_source` (Session).
+
+---
+
+### 11. File words---RESOLVED
+
+<!-- vale Stigmer.FileWords = NO -->
+
+**What**: Files had three stories. A file sent with a message was an attachment,
+named by a storage key, up to 4 MB; a file the Agent made was a run artifact it
+published with a tool, with a download link that expired; and a conversation's
+repositories and folders were its workspace entries. "Artifact" also named Skill
+and plugin packages, the storage layer, and the engine's own objects.
+
+**Resolution**: One `File` kind, shaped after Claude's Files API and Managed
+Agents: uploaded once and named by its id, held in a conversation's `resources`
+beside its repositories, and returned from the outputs folder. The docs build
+refuses "attachment" and "artifact" for a file (`Stigmer.FileWords`). Each
+retired word has a replacement, defined in its entry:
+
+- attachment, `uploadAttachment`, `RunSpec.attachments`: a **File**, sent with
+  the message in `RunSpec.file_ids` (File, Run).
+- run artifact, `publish_artifact`, `RunArtifact`, `status.artifacts`: an
+  **output**, a File the Agent saved in `.stigmer/outputs/` (File).
+- `workspace_entries`: a conversation's **`resources`** (Session, Routine).
+- `stigmer download --artifact`: `--path`, an output's path in the outputs
+  folder (File).
+- artifact for a Skill's or plugin's package: an **archive** (Skill, Plugin).
+- artifact storage in prose: **file storage**; the settings keep their names in
+  code spans (`ARTIFACT_STORAGE_TYPE`).
+- "engine artifact" for a Temporal Schedule: the engine's **object** (Routine).
+
+<!-- vale Stigmer.FileWords = YES -->

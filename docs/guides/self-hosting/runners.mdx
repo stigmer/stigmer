@@ -90,7 +90,7 @@ You never edit the compose file or the chart.
 | -------------------------------------------- | ------------------------------------- | ------------------------------------ | --------------------------------------------------------------------------- |
 | Server address, Temporal address, queue name | Fixed in the compose file             | Fixed in the chart                   | The release. Two things named once can't drift.                             |
 | Your LLM key                                 | `ANTHROPIC_API_KEY`, `CURSOR_API_KEY` | `runner.llm.existingSecret`          | You. The runner holds it; the server never does.                            |
-| Files a run produces                         | The `artifacts` volume                | The `stigmer-artifacts` claim        | The release. One disk the server writes and the runner reads.               |
+| File storage                                 | The `artifacts` volume                | The `stigmer-artifacts` claim        | The release. One disk the server writes and the runner reads.               |
 | The runner's own state                       | The `runner-data` volume              | The `stigmer-runner-data` claim      | The release. Checkpoints and Agents' working directories, not backup state. |
 | The runner's own API key                     | `STIGMER_TOKEN`                       | `runner.stigmerToken.existingSecret` | You, once [authentication is on](./authentication#give-the-runner-its-key). |
 | The address MCP servers dial back on         | `STIGMER_PUBLIC_URL`                  | `server.publicUrl`                   | You, when clients reach the API anywhere but this machine's port.           |
@@ -108,11 +108,11 @@ nothing an Agent runs can read the key by any path (**Root, `HOME` and Node
 settings**, below). The [all-in-one container](./all-in-one) is the exception:
 it runs `stigmer up` as one user, as on your own machine.
 
-**Artifacts are shared by disk, not by HTTP.** The server writes an artifact to
-a path and the runner reads the same path, so the two must see one disk. That is
-why the compose stack gives them one volume, why the chart puts them in one pod,
-and why neither shape runs the runner on another machine today. An artifact
-store that needs no shared disk is
+**File storage is shared by disk, not by HTTP.** The server writes a stored file
+to a path and the runner reads the same path, so the two must see one disk. That
+is why the compose stack gives them one volume, why the chart puts them in one
+pod, and why neither shape runs the runner on another machine today. File
+storage that needs no shared disk is
 [stigmer#1099](https://github.com/stigmer/stigmer/issues/1099). A conversation's
 Files are the exception: the runner fetches them over HTTP from the server's
 transfer lane, at the origin `SKILL_TRANSFER_BASE_URL` names.
@@ -285,7 +285,8 @@ SANDBOX_PROVISIONER_TYPE='docker' requires per-session routing — set STIGMER_A
   `docker` driver fails at its first Session. A conversation's Files do reach
   the per-Session runner, over the transfer lane, once `SKILL_TRANSFER_BASE_URL`
   names an origin the container reaches; the server warns at boot when it is
-  left on loopback. The artifacts a run writes back still need a shared path
+  left on loopback. What a run stores beside its record (its offloaded tool
+  output and file-review content) still needs a shared path
   ([stigmer#1099](https://github.com/stigmer/stigmer/issues/1099)). The chart
   offers no sandbox values until that lands. This section describes the
   mechanism so the settings you meet in the server's configuration make sense;

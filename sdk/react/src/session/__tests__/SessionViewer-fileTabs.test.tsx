@@ -51,7 +51,7 @@ vi.mock("../../composer", async (importOriginal) => {
 });
 
 // What the turn returned: a File it saved in its outputs folder.
-const artifact = create(FileSchema, {
+const output = create(FileSchema, {
   metadata: { id: "file_agent" },
   spec: { filename: "agent.yaml" },
   status: { sizeBytes: 512n, sessionId: "ses_1", runId: "aex_1", outputPath: "configs/agent.yaml" },
@@ -64,7 +64,7 @@ const upload = create(FileSchema, {
   status: { sizeBytes: 64n, sessionId: "ses_1" },
 });
 
-const artifactExecution = create(RunSchema, {
+const fileExecution = create(RunSchema, {
   metadata: { id: "aex_1" },
   status: { phase: RunPhase.RUN_COMPLETED },
 });
@@ -87,7 +87,7 @@ const stubConv = {
   isLoading: false,
   loadError: null,
   turns: [],
-  runs: [artifactExecution],
+  runs: [fileExecution],
   activeTurn: null,
   activeRun: null,
   pendingUserMessage: null,
@@ -145,8 +145,8 @@ const stubSessionPageFlow = {
   setAutoApproveAll: vi.fn(),
   handleSubmit: vi.fn(),
   submitError: null as Error | null,
-  displayRun: artifactExecution,
-  allRuns: [artifactExecution] as ReturnType<typeof create<typeof RunSchema>>[],
+  displayRun: fileExecution,
+  allRuns: [fileExecution] as ReturnType<typeof create<typeof RunSchema>>[],
   sandboxWorkspaceRoot: "/home/daytona/workspace",
 };
 vi.mock("../useSessionPageFlow", () => ({
@@ -209,9 +209,9 @@ async function showPanelWithFiles() {
 beforeEach(() => {
   threadProps.length = 0;
   surfaceProps.length = 0;
-  stubSessionPageFlow.allRuns = [artifactExecution];
+  stubSessionPageFlow.allRuns = [fileExecution];
   listAll.mockImplementation(async function* () {
-    yield* [upload, artifact];
+    yield* [upload, output];
   });
 });
 
@@ -234,15 +234,15 @@ describe("SessionViewer — Files facet open/pin wiring", () => {
     await showPanelWithFiles();
 
     // Single-click preview → one preview tab keyed by the output's identity.
-    act(() => filesTabCallback("onOpenFileDocument")(outputKey(artifact)));
+    act(() => filesTabCallback("onOpenFileDocument")(outputKey(output)));
     expect(latestEditors()).toEqual([
-      { entryId: FILE_DOCUMENT_ENTRY_ID, path: outputKey(artifact), preview: true },
+      { entryId: FILE_DOCUMENT_ENTRY_ID, path: outputKey(output), preview: true },
     ]);
 
     // Double-click pin → the same tab, now persistent.
-    act(() => filesTabCallback("onActivateFileDocument")(outputKey(artifact)));
+    act(() => filesTabCallback("onActivateFileDocument")(outputKey(output)));
     expect(latestEditors()).toEqual([
-      { entryId: FILE_DOCUMENT_ENTRY_ID, path: outputKey(artifact), preview: false },
+      { entryId: FILE_DOCUMENT_ENTRY_ID, path: outputKey(output), preview: false },
     ]);
   });
 
@@ -277,10 +277,10 @@ describe("SessionViewer — a File document's lifecycle", () => {
   it("closes a deleted File's tab and re-reads the conversation's Files", async () => {
     render(<SessionViewer sessionId="ses_1" org="acme" />);
     await showPanelWithFiles();
-    act(() => filesTabCallback("onOpenFileDocument")(outputKey(artifact)));
+    act(() => filesTabCallback("onOpenFileDocument")(outputKey(output)));
     const reads = listAll.mock.calls.length;
 
-    act(() => (documentAt(outputKey(artifact))!.content.props.onDeleted as () => void)());
+    act(() => (documentAt(outputKey(output))!.content.props.onDeleted as () => void)());
 
     expect(latestEditors()).toEqual([]);
     await waitFor(() => expect(listAll.mock.calls.length).toBe(reads + 1));
@@ -327,7 +327,7 @@ describe("SessionViewer — the Files facet lists what was saved and what was gi
     // A follow-up's turn starts: the Files sent with its message are the
     // conversation's from this moment, and the turn has not ended.
     stubSessionPageFlow.allRuns = [
-      artifactExecution,
+      fileExecution,
       create(RunSchema, { metadata: { id: "aex_2" }, status: { phase: RunPhase.RUN_IN_PROGRESS } }),
     ];
     rerender(<SessionViewer sessionId="ses_1" org="acme" />);

@@ -114,7 +114,7 @@ export const mockSearcher: WorkspaceContentSearcher = async (entry, query) => {
 /**
  * An inline (non-offloaded) modification of the open file, so the diff pane
  * resolves its before/after text synchronously — `useFileChangeContent` issues
- * no artifact fetch for inline sides, so the audit needs no live backend.
+ * no stored-content fetch for inline sides, so the audit needs no live backend.
  */
 export function fileChangeForOpenFile(): DisplayFileChange {
   return {

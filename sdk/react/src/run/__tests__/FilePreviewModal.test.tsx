@@ -15,7 +15,7 @@ import { FilePreviewContent } from "../FilePreviewModal";
 
 // A non-text File: FilePreviewContent skips the content read, so the
 // test exercises the Implement action without any network mocking.
-const binaryArtifact = create(FileSchema, {
+const binaryFile = create(FileSchema, {
   metadata: { id: "file_report" },
   spec: { filename: "report.bin" },
   status: { sizeBytes: 128n, runId: "aex_1", outputPath: "report.bin" },
@@ -35,7 +35,7 @@ describe("FilePreviewContent — Build action", () => {
     const { rerender } = render(
       withStigmer(
         <FilePreviewContent
-          file={binaryArtifact}
+          file={binaryFile}
           org="acme"
           isTerminal
           onClose={() => {}}
@@ -47,7 +47,7 @@ describe("FilePreviewContent — Build action", () => {
     rerender(
       withStigmer(
         <FilePreviewContent
-          file={binaryArtifact}
+          file={binaryFile}
           org="acme"
           isTerminal
           onClose={() => {}}
@@ -66,7 +66,7 @@ describe("FilePreviewContent — Build action", () => {
     render(
       withStigmer(
         <FilePreviewContent
-          file={binaryArtifact}
+          file={binaryFile}
           org="acme"
           isTerminal
           onClose={onClose}
@@ -90,7 +90,7 @@ describe("FilePreviewContent — Download", () => {
     const getDownloadUrl = vi.fn().mockResolvedValue({ url: "https://files.test/report.bin" });
     render(
       <StigmerContext.Provider value={{ file: { getDownloadUrl } } as unknown as Stigmer}>
-        <FilePreviewContent file={binaryArtifact} org="acme" isTerminal onClose={() => {}} />
+        <FilePreviewContent file={binaryFile} org="acme" isTerminal onClose={() => {}} />
       </StigmerContext.Provider>,
     );
 

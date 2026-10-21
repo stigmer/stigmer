@@ -50,7 +50,7 @@ describe("buildProgram", () => {
     expect(names).toEqual(expect.arrayContaining(["search", "usage"]));
   });
 
-  it("registers the artifact commands", () => {
+  it("registers the package and download commands", () => {
     const program = buildProgram();
     const names = program.commands.map((command) => command.name());
     expect(names).toEqual(expect.arrayContaining(["push", "download"]));
@@ -342,7 +342,7 @@ describe("buildProgram", () => {
     if (parsed === undefined) throw new Error("run's action did not run");
 
     const prepared = await prepareAgentExec(toAgentExecFlags(parsed), STUB_CLIENT, undefined, { org: "acme" });
-    expect(prepared.attachments.fileIds).toEqual(["file_ledger", "file_notes"]);
+    expect(prepared.files.fileIds).toEqual(["file_ledger", "file_notes"]);
     let sent: Run | undefined;
     const controller = (() => ({
       create: (run: Run) => {
@@ -356,7 +356,7 @@ describe("buildProgram", () => {
       vaults: prepared.vaults,
       includeMyVault: prepared.includeMyVault,
       plugins: prepared.plugins,
-      fileIds: prepared.attachments.fileIds,
+      fileIds: prepared.files.fileIds,
       workspaceFileRefs: [],
       resources: [],
       model: "",

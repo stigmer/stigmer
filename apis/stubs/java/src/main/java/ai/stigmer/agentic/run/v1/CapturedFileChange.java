@@ -10,7 +10,7 @@ package ai.stigmer.agentic.run.v1;
  * One file's delta within a FileChangeSet.
  *
  * Reuses FileContent (inline-or-offload) for before/after and ToolCallOutputRef
- * for the offloadable unified diff — no parallel blob/artifact types.
+ * for the offloadable unified diff — no parallel blob types.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.run.v1.CapturedFileChange}
@@ -442,8 +442,8 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.run.v1.ToolCallOutputRef unifiedDiff_;
   /**
    * <pre>
-   * Offloadable unified diff artifact for this file. The rendered hunks; large
-   * diffs spill to artifact storage via the same envelope tool output uses.
+   * Offloadable unified diff for this file. The rendered hunks; large diffs
+   * spill to the run's storage via the same envelope tool output uses.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ToolCallOutputRef unified_diff = 10 [json_name = "unifiedDiff"];</code>
@@ -455,8 +455,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Offloadable unified diff artifact for this file. The rendered hunks; large
-   * diffs spill to artifact storage via the same envelope tool output uses.
+   * Offloadable unified diff for this file. The rendered hunks; large diffs
+   * spill to the run's storage via the same envelope tool output uses.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ToolCallOutputRef unified_diff = 10 [json_name = "unifiedDiff"];</code>
@@ -468,8 +468,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Offloadable unified diff artifact for this file. The rendered hunks; large
-   * diffs spill to artifact storage via the same envelope tool output uses.
+   * Offloadable unified diff for this file. The rendered hunks; large diffs
+   * spill to the run's storage via the same envelope tool output uses.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ToolCallOutputRef unified_diff = 10 [json_name = "unifiedDiff"];</code>
@@ -940,7 +940,7 @@ private static final long serialVersionUID = 0L;
    * One file's delta within a FileChangeSet.
    *
    * Reuses FileContent (inline-or-offload) for before/after and ToolCallOutputRef
-   * for the offloadable unified diff — no parallel blob/artifact types.
+   * for the offloadable unified diff — no parallel blob types.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.run.v1.CapturedFileChange}
@@ -2243,8 +2243,8 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.run.v1.ToolCallOutputRef, ai.stigmer.agentic.run.v1.ToolCallOutputRef.Builder, ai.stigmer.agentic.run.v1.ToolCallOutputRefOrBuilder> unifiedDiffBuilder_;
     /**
      * <pre>
-     * Offloadable unified diff artifact for this file. The rendered hunks; large
-     * diffs spill to artifact storage via the same envelope tool output uses.
+     * Offloadable unified diff for this file. The rendered hunks; large diffs
+     * spill to the run's storage via the same envelope tool output uses.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ToolCallOutputRef unified_diff = 10 [json_name = "unifiedDiff"];</code>
@@ -2255,8 +2255,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Offloadable unified diff artifact for this file. The rendered hunks; large
-     * diffs spill to artifact storage via the same envelope tool output uses.
+     * Offloadable unified diff for this file. The rendered hunks; large diffs
+     * spill to the run's storage via the same envelope tool output uses.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ToolCallOutputRef unified_diff = 10 [json_name = "unifiedDiff"];</code>
@@ -2271,8 +2271,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Offloadable unified diff artifact for this file. The rendered hunks; large
-     * diffs spill to artifact storage via the same envelope tool output uses.
+     * Offloadable unified diff for this file. The rendered hunks; large diffs
+     * spill to the run's storage via the same envelope tool output uses.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ToolCallOutputRef unified_diff = 10 [json_name = "unifiedDiff"];</code>
@@ -2292,8 +2292,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Offloadable unified diff artifact for this file. The rendered hunks; large
-     * diffs spill to artifact storage via the same envelope tool output uses.
+     * Offloadable unified diff for this file. The rendered hunks; large diffs
+     * spill to the run's storage via the same envelope tool output uses.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ToolCallOutputRef unified_diff = 10 [json_name = "unifiedDiff"];</code>
@@ -2311,8 +2311,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Offloadable unified diff artifact for this file. The rendered hunks; large
-     * diffs spill to artifact storage via the same envelope tool output uses.
+     * Offloadable unified diff for this file. The rendered hunks; large diffs
+     * spill to the run's storage via the same envelope tool output uses.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ToolCallOutputRef unified_diff = 10 [json_name = "unifiedDiff"];</code>
@@ -2337,8 +2337,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Offloadable unified diff artifact for this file. The rendered hunks; large
-     * diffs spill to artifact storage via the same envelope tool output uses.
+     * Offloadable unified diff for this file. The rendered hunks; large diffs
+     * spill to the run's storage via the same envelope tool output uses.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ToolCallOutputRef unified_diff = 10 [json_name = "unifiedDiff"];</code>
@@ -2355,8 +2355,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Offloadable unified diff artifact for this file. The rendered hunks; large
-     * diffs spill to artifact storage via the same envelope tool output uses.
+     * Offloadable unified diff for this file. The rendered hunks; large diffs
+     * spill to the run's storage via the same envelope tool output uses.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ToolCallOutputRef unified_diff = 10 [json_name = "unifiedDiff"];</code>
@@ -2368,8 +2368,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Offloadable unified diff artifact for this file. The rendered hunks; large
-     * diffs spill to artifact storage via the same envelope tool output uses.
+     * Offloadable unified diff for this file. The rendered hunks; large diffs
+     * spill to the run's storage via the same envelope tool output uses.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ToolCallOutputRef unified_diff = 10 [json_name = "unifiedDiff"];</code>
@@ -2384,8 +2384,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Offloadable unified diff artifact for this file. The rendered hunks; large
-     * diffs spill to artifact storage via the same envelope tool output uses.
+     * Offloadable unified diff for this file. The rendered hunks; large diffs
+     * spill to the run's storage via the same envelope tool output uses.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.run.v1.ToolCallOutputRef unified_diff = 10 [json_name = "unifiedDiff"];</code>

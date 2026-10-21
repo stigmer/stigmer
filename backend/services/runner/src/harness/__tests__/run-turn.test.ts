@@ -51,7 +51,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { InteractionMode, RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { isPlanArtifactName, PLAN_STAGING_FILE, planArtifactName } from "../../shared/plan-artifact.js";
+import { isPlanFileName, PLAN_STAGING_FILE, planFileName } from "../../shared/plan-file.js";
 import { getPlatformDir } from "../../shared/workspace/platform-dir.js";
 import { acquireWorkspaceLock } from "../../shared/workspace/workspace-lock.js";
 
@@ -291,9 +291,9 @@ describe("run-turn: the fake adapter through the real runtime", () => {
         driver.record.execution.spec!.interactionMode = InteractionMode.PLAN;
         const invocation = await driver.turn([scenario.say(plan)]);
         expect(slimOf(subject, invocation).phase).toBe("RUN_COMPLETED");
-        assertReturnedBeforeTheFinalWrite(driver, planArtifactName(plan));
+        assertReturnedBeforeTheFinalWrite(driver, planFileName(plan));
         const [output] = driver.record.registeredOutputs;
-        expect(isPlanArtifactName(output!.outputPath)).toBe(true);
+        expect(isPlanFileName(output!.outputPath)).toBe(true);
         expect(output!.runId, "a File of this turn").toBe(driver.record.executionId);
         expect(new TextDecoder().decode(hermeticUploads.get(`/${output!.uploadRef}`)), "the plan's own text").toBe(plan);
       } finally {

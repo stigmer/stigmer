@@ -3,7 +3,7 @@
 // The shared, chrome-agnostic body of one File's view. Domain: run.
 
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
-import { ArtifactFileContent } from "./ArtifactFileContent.js";
+import { TextContentView } from "./TextContentView.js";
 import { useFileDownloadUrl } from "../file/useFile.js";
 
 /** Props for {@link FileBody}. */
@@ -32,7 +32,7 @@ export function isImageFile(file: StigmerFile): boolean {
 /**
  * The shared body of one File's view: an image drawn from its download
  * link, or the file-content states (loading / error / binary / text via
- * {@link ArtifactContentRenderer}).
+ * {@link TextContentRenderer}).
  *
  * Shared so the preview modal and the editor-area `FileDocument` render
  * bodies identically — only the surrounding chrome (modal header + action
@@ -64,7 +64,7 @@ export function FileBody({
   }
   return (
     <div className={className}>
-      <ArtifactFileContent
+      <TextContentView
         fileName={file.spec?.filename ?? ""}
         content={content}
         contentType={contentType}

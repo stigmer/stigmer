@@ -12,7 +12,7 @@ public interface GetArtifactContentRequestOrBuilder extends
 
   /**
    * <pre>
-   * ID of the run that produced the artifact.
+   * ID of the run that stored the content.
    *
    * Used for authorization (can_view check) and storage_key validation.
    *
@@ -28,7 +28,7 @@ public interface GetArtifactContentRequestOrBuilder extends
   java.lang.String getRunId();
   /**
    * <pre>
-   * ID of the run that produced the artifact.
+   * ID of the run that stored the content.
    *
    * Used for authorization (can_view check) and storage_key validation.
    *
@@ -46,15 +46,15 @@ public interface GetArtifactContentRequestOrBuilder extends
 
   /**
    * <pre>
-   * Storage key of the artifact to read.
+   * Storage key of the content to read.
    *
-   * Must be an artifact from the specified run. The storage_key
-   * is validated to start with "artifacts/{run_id}/" to prevent
-   * access to other runs' artifacts.
+   * Must be content of the specified run. The storage_key is validated
+   * to start with "artifacts/{run_id}/" to prevent access to another
+   * run's content.
    *
    * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
    *
-   * Format: "artifacts/{run_id}/{filename}"
+   * Format: "artifacts/{run_id}/{path}"
    * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
    *
    * Validation: Required, minimum 1 character
@@ -66,15 +66,15 @@ public interface GetArtifactContentRequestOrBuilder extends
   java.lang.String getStorageKey();
   /**
    * <pre>
-   * Storage key of the artifact to read.
+   * Storage key of the content to read.
    *
-   * Must be an artifact from the specified run. The storage_key
-   * is validated to start with "artifacts/{run_id}/" to prevent
-   * access to other runs' artifacts.
+   * Must be content of the specified run. The storage_key is validated
+   * to start with "artifacts/{run_id}/" to prevent access to another
+   * run's content.
    *
    * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
    *
-   * Format: "artifacts/{run_id}/{filename}"
+   * Format: "artifacts/{run_id}/{path}"
    * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
    *
    * Validation: Required, minimum 1 character
@@ -90,8 +90,8 @@ public interface GetArtifactContentRequestOrBuilder extends
    * <pre>
    * Maximum number of bytes to return.
    *
-   * If the artifact is larger than this limit, the response will contain
-   * the first max_bytes of content with truncated=true.
+   * If the content is larger than this limit, the response will contain
+   * the first max_bytes of it with truncated=true.
    *
    * When 0 or unset, the server applies a default limit (512 KB).
    * The server may also enforce a hard upper bound regardless of this value.
@@ -106,11 +106,11 @@ public interface GetArtifactContentRequestOrBuilder extends
 
   /**
    * <pre>
-   * For directory artifacts (ZIPs): extract a specific file by its
-   * path within the archive instead of returning the raw ZIP bytes.
+   * For stored ZIP content: extract a specific entry by its path within
+   * the archive instead of returning the raw ZIP bytes.
    *
-   * When empty, returns the full artifact content (existing behavior).
-   * When set for a FILE artifact, this field is ignored.
+   * When empty, returns the full content (existing behavior).
+   * When the stored object is not a ZIP, this field is ignored.
    *
    * The path must match an entry in the archive exactly (case-sensitive).
    * List the archive's entries to discover valid values.
@@ -124,11 +124,11 @@ public interface GetArtifactContentRequestOrBuilder extends
   java.lang.String getEntryPath();
   /**
    * <pre>
-   * For directory artifacts (ZIPs): extract a specific file by its
-   * path within the archive instead of returning the raw ZIP bytes.
+   * For stored ZIP content: extract a specific entry by its path within
+   * the archive instead of returning the raw ZIP bytes.
    *
-   * When empty, returns the full artifact content (existing behavior).
-   * When set for a FILE artifact, this field is ignored.
+   * When empty, returns the full content (existing behavior).
+   * When the stored object is not a ZIP, this field is ignored.
    *
    * The path must match an entry in the archive exactly (case-sensitive).
    * List the archive's entries to discover valid values.

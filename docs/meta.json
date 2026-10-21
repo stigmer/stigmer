@@ -15,6 +15,7 @@
     "concepts/plugins",
     "guides/plugins",
     "concepts/sessions",
+    "concepts/files",
     "concepts/scores",
     "guides/evals",
     "concepts/approval-flows",

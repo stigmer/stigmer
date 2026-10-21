@@ -16,7 +16,7 @@ import { useModelRegistry } from "../models/useModelRegistry.js";
 import {
   assessVisionPreflight,
   visionPreflightMessage,
-} from "../attachment/vision-preflight.js";
+} from "../upload/vision-preflight.js";
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor.js";
 import { AgentPicker } from "../agent/AgentPicker.js";
 import { AgentEnvForm } from "../agent/AgentEnvForm.js";
@@ -32,10 +32,10 @@ import { SecretFlowErrorGuide, isSecretFlowError } from "../error/SecretFlowErro
 import { SkillPicker } from "../skill/SkillPicker.js";
 import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries.js";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
-import { useFileUploads } from "../attachment/useFileUploads.js";
-import type { MessageAttachmentView } from "../run/MessageAttachments.js";
-import { AttachmentChipList } from "../attachment/AttachmentChipList.js";
-import { extractClipboardFiles } from "../attachment/clipboard.js";
+import { useFileUploads } from "../upload/useFileUploads.js";
+import type { MessageFileView } from "../run/MessageFiles.js";
+import { FileChipList } from "../upload/FileChipList.js";
+import { extractClipboardFiles } from "../upload/clipboard.js";
 import { useFileReferences } from "../file-reference/useFileReferences.js";
 import { FileReferenceChipList } from "../file-reference/FileReferenceChipList.js";
 import { FILE_REF_MIME } from "../internal/file-tree/index.js";
@@ -161,10 +161,10 @@ export interface SessionComposerSubmitContext {
   readonly fileIds?: string[];
   /**
    * The chat box's files as the optimistic bubble shows them. Pass to
-   * `sendFollowUp` as `attachments` (it feeds
-   * `MessageThread.pendingAttachments`).
+   * `sendFollowUp` as `files` (it feeds
+   * `MessageThread.pendingFiles`).
    */
-  readonly attachments?: readonly MessageAttachmentView[];
+  readonly files?: readonly MessageFileView[];
   /**
    * Call once the run naming {@link fileIds} exists. Before the first
    * message the chat box uploads the person's own Files; the run makes the
@@ -573,7 +573,7 @@ export interface SessionComposerProps {
   readonly onSkillRefsChange?: (refs: ResourceRef[]) => void;
 
   /**
-   * Enable file attachment support in the composer.
+   * Enable file upload support in the composer.
    *
    * When `true`, renders an attach button in the toolbar and enables
    * drag-and-drop file upload plus clipboard paste on the textarea —
@@ -585,7 +585,7 @@ export interface SessionComposerProps {
    *
    * @default true
    */
-  readonly enableAttachments?: boolean;
+  readonly enableFiles?: boolean;
 
   /**
    * Enable workspace file-reference support via drag-to-reference.
@@ -602,20 +602,20 @@ export interface SessionComposerProps {
    * Called when a file is rejected (e.g., exceeds the 500 MB limit).
    * Consumers can use this for toast notifications.
    */
-  readonly onAttachmentValidationError?: (message: string) => void;
+  readonly onFileValidationError?: (message: string) => void;
 
   /**
    * Files to attach programmatically when the composer mounts.
    *
    * When provided, the composer uploads these files via the same
-   * attachment pipeline as user-selected files. Attachment chips
-   * appear in the UI so the user sees what is attached.
+   * upload pipeline as user-selected files. File chips appear in the
+   * UI so the user sees what is attached.
    *
    * One-time: consumed when the value first becomes truthy.
    * Subsequent changes are ignored. This allows async resource
    * fetching — the effect waits for the files to be ready.
    *
-   * Requires `enableAttachments` to be `true` (default).
+   * Requires `enableFiles` to be `true` (default).
    *
    * @example
    * ```tsx
@@ -624,12 +624,12 @@ export interface SessionComposerProps {
    *
    * <SessionComposer
    *   onSubmit={handleSubmit}
-   *   initialAttachments={[file]}
+   *   initialFiles={[file]}
    *   initialAgentRef={{ org: "stigmer", slug: "agent-creator" }}
    * />
    * ```
    */
-  readonly initialAttachments?: File[];
+  readonly initialFiles?: File[];
 
   /** Placeholder text for the textarea. @default "Reply\u2026" */
   readonly placeholder?: string;
@@ -751,10 +751,10 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   onPluginRefsChange,
   skillRefs,
   onSkillRefsChange,
-  enableAttachments = true,
+  enableFiles = true,
   enableFileReferences = true,
-  onAttachmentValidationError,
-  initialAttachments,
+  onFileValidationError,
+  initialFiles,
   placeholder = "Reply\u2026",
   initialRows = 1,
   autoFocus = false,
@@ -852,7 +852,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   const showPlugins = onPluginRefsChange != null && org != null;
   const showWorkspace = workspace != null;
   const showSkills = onSkillRefsChange != null && org != null;
-  const showAttach = enableAttachments;
+  const showAttach = enableFiles;
 
   // ---------------------------------------------------------------------------
   // Configure menu state — drives the Tier 2 drill-down popover
@@ -992,12 +992,12 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   }, [agentSetup.state.error, onAgentSetupErrorChange]);
 
   // ---------------------------------------------------------------------------
-  // Attachments — file upload state machine
+  // Uploads — file upload state machine
   // ---------------------------------------------------------------------------
 
-  const attachments = useFileUploads(
-    enableAttachments
-      ? { org, sessionId, onValidationError: onAttachmentValidationError }
+  const uploads = useFileUploads(
+    enableFiles
+      ? { org, sessionId, onValidationError: onFileValidationError }
       : undefined,
   );
 
@@ -1145,9 +1145,9 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // third private resolution (unified-registry default) that could name a
   // different model than both the pill and the payload.
   const visionNotice = useMemo(() => {
-    if (!enableAttachments || attachments.entries.length === 0) return null;
+    if (!enableFiles || uploads.entries.length === 0) return null;
     const preflight = assessVisionPreflight(
-      attachments.entries
+      uploads.entries
         // A `preparing` entry still carries pre-downscale bytes — judging
         // those would flash a false "too large" that vanishes when
         // preparation lands. Same tri-state discipline as the module
@@ -1165,8 +1165,8 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       modelDisplayName: effective.model?.displayName,
     });
   }, [
-    enableAttachments,
-    attachments.entries,
+    enableFiles,
+    uploads.entries,
     effective.model,
     visionLimits,
   ]);
@@ -1179,11 +1179,11 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   const handleFileInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files.length > 0) {
-        attachments.addFiles(e.target.files);
+        uploads.addFiles(e.target.files);
       }
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
-    [attachments],
+    [uploads],
   );
 
   const handleDragOver = useCallback(
@@ -1196,13 +1196,13 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         setIsDragOver(true);
         return;
       }
-      if (!enableAttachments || isDisabled) return;
+      if (!enableFiles || isDisabled) return;
       e.preventDefault();
       e.stopPropagation();
       setIsDragOverFileRef(false);
       setIsDragOver(true);
     },
-    [enableAttachments, enableFileReferences, isDisabled],
+    [enableFiles, enableFileReferences, isDisabled],
   );
 
   const handleDragLeave = useCallback(
@@ -1235,12 +1235,12 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         return;
       }
 
-      if (!enableAttachments) return;
+      if (!enableFiles) return;
       if (e.dataTransfer.files.length > 0) {
-        attachments.addFiles(e.dataTransfer.files);
+        uploads.addFiles(e.dataTransfer.files);
       }
     },
-    [enableAttachments, enableFileReferences, isDisabled, attachments, fileRefs],
+    [enableFiles, enableFileReferences, isDisabled, uploads, fileRefs],
   );
 
   // Clipboard paste — the Cursor-grade "screenshot straight into the chat"
@@ -1248,7 +1248,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // clipboard listener would hijack paste for the host application.
   const handlePaste = useCallback(
     (e: ClipboardEvent<HTMLTextAreaElement>) => {
-      if (!enableAttachments || isDisabled) return;
+      if (!enableFiles || isDisabled) return;
 
       // Must stay synchronous through preventDefault: clipboard file
       // handles are only reliable during event dispatch (see clipboard.ts).
@@ -1264,10 +1264,10 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       // to provider resolution before upload. The hook owns the whole
       // pipeline: chips appear immediately in the `preparing` phase
       // (stigmer/stigmer#369), then upload.
-      const addFiles = attachments.addFiles;
+      const addFiles = uploads.addFiles;
       addFiles(files, { prepareImages: true });
     },
-    [enableAttachments, isDisabled, attachments.addFiles],
+    [enableFiles, isDisabled, uploads.addFiles],
   );
 
   // ---------------------------------------------------------------------------
@@ -1286,10 +1286,10 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
       // The chat box's Files plus caller-supplied ones (the approved plan
       // of a Build-from-plan turn) travel as one list. The hand-off empties
       // the chat box without deleting: the run does not exist yet.
-      const handOff = enableAttachments ? attachments.handOff() : null;
+      const handOff = enableFiles ? uploads.handOff() : null;
       const fileIds = [...(handOff?.fileIds ?? []), ...(overrides?.fileIds ?? [])];
 
-      const hasAttachments = fileIds.length > 0;
+      const hasFiles = fileIds.length > 0;
       const effectiveMode =
         overrides?.interactionMode ??
         (showInteractionModePicker && interactionMode
@@ -1318,15 +1318,15 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
             : undefined;
 
       const context: SessionComposerSubmitContext | undefined =
-        hasAttachments || effectiveMode || hasFileRefs || buildFromPlan
+        hasFiles || effectiveMode || hasFileRefs || buildFromPlan
         || submitServiceTier || submitThinkingMode || vaultPick !== undefined
         || (showEnvironment && environmentPick !== undefined)
           ? {
               vaults: vaultPick ? [...vaultPick.vaults] : undefined,
               includeMyVault: vaultPick?.includeMyVault,
               environmentRef: showEnvironment ? environmentPick : undefined,
-              fileIds: hasAttachments ? fileIds : undefined,
-              attachments: handOff && handOff.attachments.length > 0 ? handOff.attachments : undefined,
+              fileIds: hasFiles ? fileIds : undefined,
+              files: handOff && handOff.files.length > 0 ? handOff.files : undefined,
               releaseFiles: handOff && handOff.fileIds.length > 0 ? handOff.release : undefined,
               interactionMode: effectiveMode,
               serviceTier: submitServiceTier,
@@ -1348,7 +1348,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         fileRefs.clear();
       }
     },
-    [onSubmit, effective, serviceTierPick, thinkingModePick, enableAttachments, attachments.handOff, enableFileReferences, fileRefs.hasRefs, fileRefs.refs, fileRefs.clear, showInteractionModePicker, interactionMode, vaultPick, showEnvironment, environmentPick],
+    [onSubmit, effective, serviceTierPick, thinkingModePick, enableFiles, uploads.handOff, enableFileReferences, fileRefs.hasRefs, fileRefs.refs, fileRefs.clear, showInteractionModePicker, interactionMode, vaultPick, showEnvironment, environmentPick],
   );
 
   const composer = useComposer({
@@ -1574,22 +1574,22 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   }, [initialAgentRef, agentSetup.state.status]);
 
   // ---------------------------------------------------------------------------
-  // Initial attachments: upload files on mount when provided
+  // Initial files: upload them on mount when provided
   // ---------------------------------------------------------------------------
 
-  const initialAttachmentsHandled = useRef(false);
+  const initialFilesHandled = useRef(false);
 
   useEffect(() => {
     if (
-      initialAttachments &&
-      initialAttachments.length > 0 &&
-      enableAttachments &&
-      !initialAttachmentsHandled.current
+      initialFiles &&
+      initialFiles.length > 0 &&
+      enableFiles &&
+      !initialFilesHandled.current
     ) {
-      initialAttachmentsHandled.current = true;
-      attachments.addFiles(initialAttachments);
+      initialFilesHandled.current = true;
+      uploads.addFiles(initialFiles);
     }
-  }, [initialAttachments, enableAttachments, attachments]);
+  }, [initialFiles, enableFiles, uploads]);
 
   // Send waits for in-flight work: handOff() takes only
   // "ready" entries, so a send racing an upload would silently drop the
@@ -1597,12 +1597,12 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
   // this screenshot?". Errored entries never gate (their chip offers
   // retry/remove); isUploading covers both the preparing and uploading
   // phases (see its doc — same drop class).
-  const uploadsBlocked = enableAttachments && attachments.isUploading;
+  const uploadsBlocked = enableFiles && uploads.isUploading;
   const canSend = composer.canSubmit && !uploadsBlocked;
 
   // True when the upload gate is the OPERATIVE blocker — the message would
   // send right now if uploads were done. Drives the attempt-triggered wait
-  // notice so it never claims "waiting for attachments" when the real
+  // notice so it never claims "waiting for files" when the real
   // blocker is an empty message.
   const uploadWaitOperative = composer.canSubmit && uploadsBlocked;
   const [showUploadWaitNotice, setShowUploadWaitNotice] = useState(false);
@@ -1977,14 +1977,14 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           />
         )}
 
-        {/* Zone 2.5: Attachment and file-reference chips */}
-        {(showAttach && attachments.hasEntries) || (enableFileReferences && fileRefs.hasRefs) ? (
+        {/* Zone 2.5: Upload and file-reference chips */}
+        {(showAttach && uploads.hasEntries) || (enableFileReferences && fileRefs.hasRefs) ? (
           <div className="stg:space-y-1.5 stg:px-3 stg:pb-2">
-            {showAttach && attachments.hasEntries && (
-              <AttachmentChipList
-                entries={attachments.entries}
-                onRemove={attachments.removeEntry}
-                onRetry={attachments.retryEntry}
+            {showAttach && uploads.hasEntries && (
+              <FileChipList
+                entries={uploads.entries}
+                onRemove={uploads.removeEntry}
+                onRetry={uploads.retryEntry}
                 disabled={isDisabled}
               />
             )}
@@ -1999,7 +1999,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
         ) : null}
 
         {/* Zone 2.6: Upload-wait notice — shown only after an attempted send
-            while attachments are still uploading (attempt-triggered; see
+            while files are still uploading (attempt-triggered; see
             uploadWaitOperative). Muted status styling, not warning: waiting
             is progress, not a problem. role="status" announces the row to
             screen readers when it appears. */}
@@ -2010,9 +2010,9 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
           >
             <ChipSpinner />
             <span>
-              {attachments.isPreparing
-                ? "Waiting for attachments to finish preparing…"
-                : "Waiting for attachments to finish uploading…"}
+              {uploads.isPreparing
+                ? "Waiting for files to finish preparing…"
+                : "Waiting for files to finish uploading…"}
             </span>
           </div>
         )}
@@ -2021,7 +2021,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
             derives from the attached entries, so it appears the moment an
             image over the advertised budget lands (paste/drop/pick) or the
             selected model is explicitly blind, and disappears when the
-            offending attachment is removed or the model changes. Warning
+            offending file is removed or the model changes. Warning
             styling (not muted): unlike the upload wait, this is a problem
             the user can fix BEFORE spending the turn. Non-blocking — the
             files still upload and mount; they just won't reach the model
@@ -2085,7 +2085,7 @@ const SessionComposerInner = forwardRef<SessionComposerHandle, SessionComposerPr
               : null
           }
           showAttach={showAttach}
-          attachmentCount={attachments.entries.length}
+          fileCount={uploads.entries.length}
           onAttachClick={() => fileInputRef.current?.click()}
           configureItems={configureItems}
           configOpen={configOpen}

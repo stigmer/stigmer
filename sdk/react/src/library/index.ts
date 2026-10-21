@@ -16,15 +16,15 @@ export type {
 export { useDetectStigmerResource } from "./useDetectStigmerResource.js";
 
 export {
-  isPlanArtifactName,
+  isPlanFileName,
   isPlanFile,
   findPlanFile,
   findLatestSessionPlan,
   planFilesByRun,
-  PLAN_ARTIFACT_NAME,
-  PLAN_ARTIFACT_SUFFIX,
-} from "./detect-plan-artifact.js";
-export type { SessionPlan } from "./detect-plan-artifact.js";
+  PLAN_FILE_NAME,
+  PLAN_FILE_SUFFIX,
+} from "./detect-plan-file.js";
+export type { SessionPlan } from "./detect-plan-file.js";
 
 export { findStreamingPlan } from "./detect-streaming-plan.js";
 export type { StreamingPlan } from "./detect-streaming-plan.js";

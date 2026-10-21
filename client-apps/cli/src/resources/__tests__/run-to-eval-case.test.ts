@@ -86,14 +86,14 @@ async function refusal(promise: Promise<unknown>): Promise<UsageError> {
 
 describe("writeEvalCaseFromRun, writing the case here", () => {
   it("unzips the server's case under evals/<the case it named> and says where, with each note", async () => {
-    const { client, calls } = await fakeClient({ notes: ["the request's attachment report.pdf is not carried"] });
+    const { client, calls } = await fakeClient({ notes: ["the message's files are not part of the case: file_report"] });
     const folder = fakeFolder();
     expect(await writeEvalCaseFromRun(client, "run_1", {}, folder.io, "acme")).toBe("evals/finds-the-bug");
     expect(calls.builds.map((req) => [req.runId, req.caseName, req.skill])).toEqual([["run_1", "", ""]]);
     expect(folder.extracted.map((entry) => entry.dir)).toEqual(["evals"]);
     expect(folder.err()).toContain("Wrote evals/finds-the-bug (2 files).");
     expect(folder.err()).toContain("Fill in the PASS line of evals/finds-the-bug/graders/criteria.md");
-    expect(folder.err()).toContain("Note: the request's attachment report.pdf is not carried\n");
+    expect(folder.err()).toContain("Note: the message's files are not part of the case: file_report\n");
   });
 
   it("hands --name and --skill to the server and honours --dir", async () => {

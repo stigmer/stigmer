@@ -17,7 +17,7 @@ export const PLAN_DOCUMENT_ENTRY_ID = virtualEntryId("plan");
 /**
  * The plan tab's path — doubles as its tab label.
  *
- * Deliberately plan-AGNOSTIC ("Plan"), not the artifact's filename. The
+ * Deliberately plan-AGNOSTIC ("Plan"), not the plan File's filename. The
  * workspace surface identifies a virtual document's tab by
  * `editorKey(entryId, path)`, so `path` is part of the tab's IDENTITY — and the
  * session keeps exactly ONE plan tab that swaps which plan it shows (latest

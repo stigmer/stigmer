@@ -9,7 +9,7 @@ package ai.stigmer.agentic.run.v1;
  * <pre>
  * One side (before or after) of a file's content.
  *
- * Small bodies are carried inline; large bodies are offloaded to artifact
+ * Small bodies are carried inline; large bodies are offloaded to the run's
  * storage and referenced via the existing tool-output offload envelope. Exactly
  * one of inline or ref is set; when offloaded, the head preview lives in
  * ref.truncated_preview and the full size in ref.size_bytes.
@@ -421,7 +421,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * One side (before or after) of a file's content.
    *
-   * Small bodies are carried inline; large bodies are offloaded to artifact
+   * Small bodies are carried inline; large bodies are offloaded to the run's
    * storage and referenced via the existing tool-output offload envelope. Exactly
    * one of inline or ref is set; when offloaded, the head preview lives in
    * ref.truncated_preview and the full size in ref.size_bytes.

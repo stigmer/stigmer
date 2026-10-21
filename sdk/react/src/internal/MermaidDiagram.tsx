@@ -31,7 +31,7 @@ type RenderState =
  * Mounted by the shared `pre` override in
  * {@link file://./markdown-components.tsx} whenever a fenced block carries the
  * explicit `mermaid` info string — which means every SDK markdown surface
- * (chat via Streamdown, artifacts/skills via react-markdown) renders diagrams
+ * (chat via Streamdown, files/skills via react-markdown) renders diagrams
  * identically. Detection is deliberately limited to the explicit language tag;
  * guessing diagram intent from fence bodies (e.g. a bare fence starting with
  * `flowchart`) is the kind of fuzzy heuristic this codebase avoids.

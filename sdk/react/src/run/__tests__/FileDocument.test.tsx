@@ -18,7 +18,7 @@ import { FileDocument } from "../FileDocument";
 
 vi.mock("../../feedback/toast", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
-function fileArtifact(filename: string, mimeType = "") {
+function outputFile(filename: string, mimeType = "") {
   return create(FileSchema, {
     metadata: { id: `file_${filename.replace(/\W/g, "_")}` },
     spec: { filename, mimeType },
@@ -37,11 +37,11 @@ function stigmerReturning(text: string): Stigmer {
   } as unknown as Stigmer;
 }
 
-function renderDoc(stigmer: Stigmer, artifact = fileArtifact("notes.txt")) {
+function renderDoc(stigmer: Stigmer, file = outputFile("notes.txt")) {
   return render(
     <StigmerContext.Provider value={stigmer}>
       <FileDocument
-        file={artifact}
+        file={file}
         org="acme"
         isTerminal
       />
@@ -72,7 +72,7 @@ describe("FileDocument", () => {
   });
 
   it("surfaces resource detection and an Apply CTA for a detected Agent", async () => {
-    renderDoc(stigmerReturning(AGENT_YAML), fileArtifact("agent.yaml"));
+    renderDoc(stigmerReturning(AGENT_YAML), outputFile("agent.yaml"));
 
     await waitFor(() => expect(screen.getByText("Agent detected")).toBeTruthy());
     expect(screen.getByText("Apply to acme")).toBeTruthy();
@@ -80,7 +80,7 @@ describe("FileDocument", () => {
 
   it("renders a binary File with Download and no Copy, reading no bytes", () => {
     const stigmer = stigmerReturning("");
-    renderDoc(stigmer, fileArtifact("report.pdf", "application/pdf"));
+    renderDoc(stigmer, outputFile("report.pdf", "application/pdf"));
 
     expect(screen.getByText("Download")).toBeTruthy();
     expect(screen.queryByText("Copy")).toBeNull();
@@ -91,7 +91,7 @@ describe("FileDocument", () => {
     const getDownloadUrl = vi.fn().mockResolvedValue({ url: "https://files.test/photo.png" });
     const getContent = vi.fn();
     const stigmer = { file: { getContent, getDownloadUrl } } as unknown as Stigmer;
-    renderDoc(stigmer, fileArtifact("photo.png", "image/png"));
+    renderDoc(stigmer, outputFile("photo.png", "image/png"));
 
     const image = await screen.findByRole("img", { name: "photo.png" });
     expect(image.getAttribute("src")).toBe("https://files.test/photo.png");
@@ -113,7 +113,7 @@ describe("FileDocument", () => {
 
     render(
       <StigmerContext.Provider value={stigmer}>
-        <FileDocument file={fileArtifact("notes.txt")} org="acme" isTerminal onDeleted={onDeleted} />
+        <FileDocument file={outputFile("notes.txt")} org="acme" isTerminal onDeleted={onDeleted} />
       </StigmerContext.Provider>,
     );
     fireEvent.click(await screen.findByText("Delete"));
@@ -135,7 +135,7 @@ describe("FileDocument", () => {
     const onDeleted = vi.fn();
     render(
       <StigmerContext.Provider value={stigmer}>
-        <FileDocument file={fileArtifact("notes.txt")} org="acme" isTerminal onDeleted={onDeleted} />
+        <FileDocument file={outputFile("notes.txt")} org="acme" isTerminal onDeleted={onDeleted} />
       </StigmerContext.Provider>,
     );
     fireEvent.click(await screen.findByText("Delete"));
@@ -185,7 +185,7 @@ describe("FileDocument", () => {
 
   it("says why an image cannot be drawn when its link cannot be minted", async () => {
     const getDownloadUrl = vi.fn().mockRejectedValue(new Error("link refused"));
-    renderDoc({ file: { getContent: vi.fn(), getDownloadUrl } } as unknown as Stigmer, fileArtifact("photo.png", "image/png"));
+    renderDoc({ file: { getContent: vi.fn(), getDownloadUrl } } as unknown as Stigmer, outputFile("photo.png", "image/png"));
     expect(await screen.findByText("link refused")).toBeTruthy();
   });
 

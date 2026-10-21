@@ -28,15 +28,15 @@ import { idPrefixesFor, isSessionId, parseReference } from "./reference.js";
 import { formatBytes } from "./skill.js";
 
 export interface DownloadParams {
-  /** A filename or an output path (`reports/q3.md`); empty takes every File. */
-  readonly artifactName: string;
+  /** An output path (`reports/q3.md`) or a bare filename; empty takes every output. */
+  readonly outputPath: string;
   readonly outputDir: string;
 }
 
 export interface DownloadOutcome {
   readonly total: number;
   readonly downloaded: number;
-  readonly noArtifacts: boolean;
+  readonly noOutputs: boolean;
   /** Set when the run is not yet terminal (a soft warning, not an error). */
   readonly incompletePhase?: string;
 }
@@ -51,7 +51,7 @@ const TERMINAL_PHASES: ReadonlySet<RunPhase> = new Set([
   RunPhase.RUN_TERMINATED,
 ]);
 
-export async function downloadRunArtifacts(
+export async function downloadRunOutputs(
   client: Stigmer,
   runId: string,
   params: DownloadParams,
@@ -61,7 +61,7 @@ export async function downloadRunArtifacts(
   const phase = run.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
   const incompletePhase = TERMINAL_PHASES.has(phase) ? undefined : formatDownloadPhase(phase);
   if (incompletePhase !== undefined) {
-    progress?.(`Run is still ${incompletePhase}. Artifacts may not be complete until the run finishes.`);
+    progress?.(`Run is still ${incompletePhase}. Its outputs may not be complete until the run finishes.`);
   }
 
   const files = await newestPerPlace(client.file.listAll({ org: run.metadata?.org ?? "", runId }));
@@ -107,15 +107,15 @@ export async function downloadFile(
   try {
     const written = await downloadSingle(client, file, name, outputDir, progress);
     progress?.(`  Downloaded ${name} (${formatBytes(written)})`);
-    return { total: 1, downloaded: 1, noArtifacts: false };
+    return { total: 1, downloaded: 1, noOutputs: false };
   } catch (err) {
     progress?.(`  Failed to download ${name}: ${(err as Error).message}`);
-    return { total: 1, downloaded: 0, noArtifacts: false };
+    return { total: 1, downloaded: 0, noOutputs: false };
   }
 }
 
 // Write each output at its place under the output directory, narrowed to
-// the named one when `--artifact` names it. `listCommand` is the command
+// the named one when `--path` names it. `listCommand` is the command
 // that shows what could have been named.
 async function writeOutputs(
   client: Stigmer,
@@ -125,15 +125,15 @@ async function writeOutputs(
   progress?: ProgressSink,
 ): Promise<DownloadOutcome> {
   if (all.length === 0) {
-    return { total: 0, downloaded: 0, noArtifacts: true };
+    return { total: 0, downloaded: 0, noOutputs: true };
   }
   const files =
-    params.artifactName === ""
+    params.outputPath === ""
       ? all
-      : all.filter((f) => f.spec?.filename === params.artifactName || f.status?.outputPath === params.artifactName);
+      : all.filter((f) => f.spec?.filename === params.outputPath || f.status?.outputPath === params.outputPath);
   if (files.length === 0) {
     throw new CliExitError(
-      `artifact not found: ${params.artifactName}\n\n` + `Use '${listCommand}' to see available artifacts`,
+      `output not found: ${params.outputPath}\n\n` + `Use '${listCommand}' to see available outputs`,
       ExitCode.General,
     );
   }
@@ -152,7 +152,7 @@ async function writeOutputs(
     }
   }
 
-  return { total: files.length, downloaded, noArtifacts: false };
+  return { total: files.length, downloaded, noOutputs: false };
 }
 
 /**
@@ -256,8 +256,8 @@ export interface DownloadRequest {
   readonly ref: string;
   /** The resolved context organization, for a reference by slug. */
   readonly org: string;
-  /** `--artifact`; "" takes every File. */
-  readonly artifactName: string;
+  /** `--path`; "" takes every output. */
+  readonly outputPath: string;
   /** `-o`; undefined lets the kind choose its default. */
   readonly outputDir: string | undefined;
 }
@@ -284,7 +284,7 @@ export type DownloadHandler =
 // The download handlers. Every registered kind declaring Download in the
 // verb matrix must appear here — the conformance test enforces it, so the
 // two cannot drift. Runs are the pre-gate alias and download through
-// downloadRunArtifacts.
+// downloadRunOutputs.
 export const DOWNLOAD_HANDLERS: ReadonlyMap<ApiResourceKind, DownloadHandler> = new Map<
   ApiResourceKind,
   DownloadHandler
@@ -307,7 +307,7 @@ export const DOWNLOAD_HANDLERS: ReadonlyMap<ApiResourceKind, DownloadHandler> = 
     ApiResourceKind.session,
     {
       answers: "files",
-      noun: "artifact",
+      noun: "output",
       async download(client, request, progress) {
         if (!isSessionId(request.ref)) {
           throw new UsageError(
@@ -317,7 +317,7 @@ export const DOWNLOAD_HANDLERS: ReadonlyMap<ApiResourceKind, DownloadHandler> = 
         return downloadSessionOutputs(
           client,
           request.ref,
-          { artifactName: request.artifactName, outputDir: request.outputDir ?? "." },
+          { outputPath: request.outputPath, outputDir: request.outputDir ?? "." },
           progress,
         );
       },
@@ -329,8 +329,8 @@ export const DOWNLOAD_HANDLERS: ReadonlyMap<ApiResourceKind, DownloadHandler> = 
       answers: "files",
       noun: "file",
       async download(client, request, progress) {
-        if (request.artifactName !== "") {
-          throw new UsageError("--artifact picks among a run's or a session's outputs; a File is one file");
+        if (request.outputPath !== "") {
+          throw new UsageError("--path picks among a run's or a session's outputs; a File is one file");
         }
         const parsed = parseReference(request.ref, request.org, idPrefixesFor(ApiResourceKind.file));
         if (parsed.kind !== "id") {
