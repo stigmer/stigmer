@@ -123,9 +123,10 @@ if (turn.phase !== "completed") {
 
 for await (const file of stigmer.file.listAll({ org, runId: turn.runId })) {
   const path = join("out", file.status!.outputPath);
-  const { data } = await stigmer.file.getContent({ id: file.metadata!.id });
+  const { url } = await stigmer.file.getDownloadUrl(file.metadata!.id);
+  const response = await fetch(url);
   await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, data);
+  await writeFile(path, Buffer.from(await response.arrayBuffer()));
   console.log(`Saved ${path}`);
 }
 ```
@@ -137,8 +138,8 @@ It does the job in three calls:
    `variance-reporter` Agent, sends the message with the ledger, and waits until
    the turn ends.
 3. `file.listAll` with the turn's `runId` lists what the Agent handed back, and
-   `file.getContent` reads each one. Every file keeps the path the Agent saved
-   it under, in `outputPath`.
+   `file.getDownloadUrl` gives a short-lived link to each one's bytes. Every
+   file keeps the path the Agent saved it under, in `outputPath`.
 
 </Step>
 <Step>
