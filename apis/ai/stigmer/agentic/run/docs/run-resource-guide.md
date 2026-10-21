@@ -92,7 +92,7 @@ A turn's secrets and logins come from vaults; neither a run nor a conversation c
 
 | Field | Type | Description |
 |---|---|---|
-| `file_ids` | `repeated string` | Files this message carries, by id (at most 20, each once). Each must be a File of the run's organization the sender may view; the server makes it the conversation's own and lists it in the conversation's resources. `message` may be empty when files are named. See [attachments-and-artifacts.md](attachments-and-artifacts.md). |
+| `file_ids` | `repeated string` | Files this message carries, by id (at most 20, each once). Each must be a File of the run's organization the sender may view; the server makes it the conversation's own and lists it in the conversation's resources. `message` may be empty when files are named. See [Files](https://stigmer.ai/docs/concepts/files). |
 | `workspace_file_refs` | `repeated string` | Workspace-relative paths for files already inside the session's workspace. The agent reads these directly — no upload, no injection. |
 
 The server records the message's file blocks on `status.message_files`: an `image` block for JPEG, PNG, GIF and WebP Files, a `document` block otherwise, each naming the conversation's File.
@@ -246,9 +246,12 @@ stigmer runs approve run_abc123 --tool-call <tool-use-id> --action deny --commen
 stigmer runs approve run_abc123 --tool-call <tool-use-id> --action allow-all
 ```
 
-### Artifacts
+### Outputs
 
 ```bash
-# Download an artifact
-stigmer download run run_abc123 --artifact generated-report
+# Download every output the run saved in .stigmer/outputs/
+stigmer download run run_abc123
+
+# Download one output, by its path in the outputs folder
+stigmer download run run_abc123 --path reports/summary.md
 ```
