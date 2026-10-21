@@ -8,7 +8,8 @@
  *     the census finds nothing; another organization's Files stay;
  *   - an attachment a run stored before Files existed, once the boot pass
  *     has converted it, goes with its organization: no bytes are left at
- *     its `attachments/<ULID>/<filename>` key;
+ *     its `attachments/<ULID>/<filename>` key, and another organization's
+ *     converted attachment keeps its bytes;
  *   - a store fault while authorizing an upload into a conversation, while
  *     a conversation's delete lists its Files, and while updateVisibility
  *     loads or saves a File answers Internal; a File deleted between that
@@ -133,46 +134,52 @@ describe("the File purge", () => {
 });
 
 describe("a converted attachment", () => {
-  const SESSION = "ses_01convertconvertconvert";
-  const RUN = "run_01convertconvertconvert";
   /** The key the removed attachment upload minted: a ULID, then the filename. */
   const KEY = "attachments/01J9ZQ6V8W3X4Y5Z6A7B8C9D0E/brief.pdf";
+  const OTHER_KEY = "attachments/01J9ZQ7A1B2C3D4E5F6G7H8J9K/brief.pdf";
 
-  /** The conversion row the store's migration leaves for one stored attachment. */
-  function seedConversion(): void {
+  /**
+   * One run of `org` in a conversation of its own whose message stored an
+   * attachment at `key`, with the conversion row the store's migration
+   * leaves for it.
+   */
+  async function seedStoredAttachment(org: string, suffix: string, key: string): Promise<void> {
+    const session = `ses_01convert${suffix}`;
+    const run = `run_01convert${suffix}`;
+    await fx.store.saveResource(
+      ApiResourceKind.session,
+      session,
+      SessionSchema,
+      create(SessionSchema, { metadata: { id: session, org } }),
+    );
+    await fx.store.saveResource(
+      ApiResourceKind.run,
+      run,
+      RunSchema,
+      create(RunSchema, {
+        metadata: { id: run, org },
+        spec: { target: { case: "sessionId", value: session }, message: "see the brief" },
+      }),
+    );
+    await storage.upload(key, new TextEncoder().encode("%PDF-1"), "application/pdf");
     const db = new DatabaseSync(fx.dbPath);
     try {
       db.prepare(
         `INSERT INTO file_conversions
            (run_id, position, org, session_id, filename, storage_key, content_type, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).run(RUN, 0, ORG, SESSION, "brief.pdf", KEY, "application/pdf", "2026-10-01T08:30:00.000000000Z");
+      ).run(run, 0, org, session, "brief.pdf", key, "application/pdf", "2026-10-01T08:30:00.000000000Z");
     } finally {
       db.close();
     }
   }
 
-  it("goes with its organization: no bytes are left at its key", async () => {
-    await fx.store.saveResource(
-      ApiResourceKind.session,
-      SESSION,
-      SessionSchema,
-      create(SessionSchema, { metadata: { id: SESSION, org: ORG } }),
-    );
-    await fx.store.saveResource(
-      ApiResourceKind.run,
-      RUN,
-      RunSchema,
-      create(RunSchema, {
-        metadata: { id: RUN, org: ORG },
-        spec: { target: { case: "sessionId", value: SESSION }, message: "see the brief" },
-      }),
-    );
-    await storage.upload(KEY, new TextEncoder().encode("%PDF-1"), "application/pdf");
-    seedConversion();
+  it("goes with its organization: no bytes are left at its key, and another organization's stay", async () => {
+    await seedStoredAttachment(ORG, "aaaaaaaaaaaaaa", KEY);
+    await seedStoredAttachment(OTHER_ORG, "bbbbbbbbbbbbbb", OTHER_KEY);
     expect(
       await convertStoredAttachments({ store: fx.store, storage, lifecycle: undefined, logger: silentLogger }),
-    ).toBe(1);
+    ).toBe(2);
 
     const purge = newFilePurge({
       store: fx.store,
@@ -186,6 +193,8 @@ describe("a converted attachment", () => {
 
     expect(await purge.holdsAny(target)).toBe(false);
     await expect(storage.size(KEY)).rejects.toBeInstanceOf(ArtifactStorageNotFoundError);
+    expect(await storage.size(OTHER_KEY)).toBe(6);
+    expect(await blobs.holdsAny(OTHER_ORG)).toBe(true);
   });
 });
 

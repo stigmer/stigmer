@@ -1,5 +1,6 @@
-// Classification and formatting helpers for output Files: whether a File reads
-// as text, how its text renders, and how its size reads. Domain: run.
+// Classification helpers for text content: whether a File reads as text, and
+// how a text body renders, whether it came from a File, a repository file or
+// a plan. Domain: run.
 
 import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 

@@ -213,8 +213,10 @@ uploaded file is not removed yet in any edition, and stays in file storage after
 the Organization is gone: the archive files of Skills and Plugins, which are
 stored once per content and can be shared between Organizations
 ([stigmer#1926](https://github.com/stigmer/stigmer/issues/1926)). Every
-[File](/docs/concepts/files) goes with its Organization, the files sent with
-runs before Files existed included.
+[File](/docs/concepts/files) goes with its Organization. So does a file sent
+with a run before Files existed, once the upgraded server has converted it into
+a File; one it could not convert, which its log named when it started, keeps its
+bytes.
 
 A parent Organization can be deleted once every child it has is being deleted;
 its own removal finishes after theirs. While a child is not being deleted, the
