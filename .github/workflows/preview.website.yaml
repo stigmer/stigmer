@@ -27,6 +27,8 @@ on:
       - "site/**"
       - "brand/**"
       - "docs/**"
+      # The blog, which site/source.config.ts loads as a content collection.
+      - "blog/**"
       - "vale/**"
       # What the site links and the build compiles from
       # source, as in release.website.yaml (scripts/lane-triggers.test.mjs

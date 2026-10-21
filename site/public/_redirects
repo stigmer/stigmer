@@ -1,8 +1,8 @@
-# Docs pages that were removed, each sent to the page that now covers it, so
-# links from outside the site (old READMEs, bookmarks, search results) keep
-# working. Read by Cloudflare's static assets, beside the export's files: one
-# rule per line, `<from> <to> <status>`. A page's Markdown twin and its
-# trailing-slash form move with it.
+# Pages and files that moved, each sent to what now covers it, so links from
+# outside the site (old READMEs, bookmarks, search results, installed home
+# screen icons) keep working. Read by Cloudflare's static assets, beside the
+# export's files: one rule per line, `<from> <to> <status>`. A page's Markdown
+# twin and its trailing-slash form move with it.
 
 /docs/getting-started/local /docs/getting-started/quickstart 301
 /docs/getting-started/local/ /docs/getting-started/quickstart 301
@@ -16,3 +16,4 @@
 /docs/getting-started/connect-tools /docs/guides/integrations/connect-an-mcp-server 301
 /docs/getting-started/connect-tools/ /docs/guides/integrations/connect-an-mcp-server 301
 /docs/getting-started/connect-tools.md /docs/guides/integrations/connect-an-mcp-server.md 301
+/site.webmanifest /manifest.webmanifest 301

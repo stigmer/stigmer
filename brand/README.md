@@ -52,6 +52,18 @@ Choose by the background where the image will appear. The transparent white
 version can look blank in a white file preview. Keep the existing clear space;
 avatar services can crop the square into a circle without clipping the mark.
 
+## Words
+
+`positioning.ts` holds what Stigmer is in the words every surface uses: the
+headline, the subhead and the one sentence. The website's title, description,
+social cards, web manifest and llms.txt, its Open Graph image, and the web
+console's description all import them from there. Their public form, with the
+rules for using them, is the "What Stigmer is, and who it is for" section of
+`docs/vocabulary.md`. To change the words, change that section and this file
+together; `__tests__/positioning.test.ts` fails, naming the copy, while the
+vocabulary or the docs front page disagrees, or while a site or console source
+spells the words out instead of importing them.
+
 ## Maintenance
 
 Edit `logo.svg`, then run `npm run generate:brand` from the repository root. The

@@ -43,7 +43,7 @@ function Hero({ className, ...props }: HeroProps) {
 
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] gap-12 lg:gap-16 items-center">
           {/* Left: Copy */}
           <div>
             <StaggerContainer
@@ -70,13 +70,13 @@ function Hero({ className, ...props }: HeroProps) {
                 id="hero-heading"
                 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-6"
               >
-                {SITE_CONFIG.tagline}
+                {SITE_CONFIG.headline}
               </h1>
             </FadeInUp>
 
             <FadeInUp delay={0.35}>
               <p className="text-lg sm:text-xl text-muted-foreground max-w-xl mb-8 leading-relaxed">
-                Teach them your domain. Connect your tools. Set your rules.
+                {SITE_CONFIG.subhead}
               </p>
             </FadeInUp>
 
@@ -84,13 +84,13 @@ function Hero({ className, ...props }: HeroProps) {
               <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-3">
                 <Button asChild size="lg">
                   <a href={SITE_CONFIG.cloudSignupUrl}>
-                    Start Free
+                    Start free
                     <Icon name="arrow-right" size="sm" />
                   </a>
                 </Button>
                 <Button asChild variant="outline" size="lg">
                   <Link href="/docs/getting-started/quickstart">
-                    Read the Docs
+                    Run the quickstart
                   </Link>
                 </Button>
               </div>
@@ -98,7 +98,7 @@ function Hero({ className, ...props }: HeroProps) {
           </div>
 
           {/* Right: Code preview */}
-          <FadeInUp delay={0.4}>
+          <FadeInUp delay={0.4} className="min-w-0">
             <CodePreview />
           </FadeInUp>
         </div>
@@ -107,10 +107,9 @@ function Hero({ className, ...props }: HeroProps) {
         <FadeInUp delay={0.6}>
           <div className="mt-16 pt-8 border-t border-border">
             <div className="flex flex-wrap items-center gap-8 sm:gap-12">
-              <StatItem label="License" value="Apache 2.0" />
-              <StatItem label="SDKs" value="Go · TS · Python · Java" />
-              <StatItem label="API" value="gRPC + Protobuf" />
-              <StatItem label="Execution" value="Durable via Temporal" />
+              <StatItem label="License" value="Apache 2.0 core" />
+              <StatItem label="Model keys" value="Your own" />
+              <StatItem label="Runs" value="Your servers or ours" />
             </div>
           </div>
         </FadeInUp>
@@ -167,23 +166,23 @@ function CodePreview() {
     setIsHovered(false);
   }, [mouseX, mouseY]);
 
-  if (prefersReducedMotion) {
-    return <CodePreviewCard />;
-  }
+  // The wrapper renders either way, so the exported markup hydrates whatever
+  // the preference; under reduced motion it just never tilts.
+  const tilt = !prefersReducedMotion;
 
   return (
     <motion.div
       ref={ref}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseMove={tilt ? handleMouseMove : undefined}
+      onMouseEnter={tilt ? handleMouseEnter : undefined}
+      onMouseLeave={tilt ? handleMouseLeave : undefined}
       style={{
         rotateX,
         rotateY,
         transformPerspective: 800,
         transformStyle: "preserve-3d",
       }}
-      whileHover={{ scale: 1.02 }}
+      whileHover={tilt ? { scale: 1.02 } : undefined}
       transition={{ scale: { duration: 0.25, ease: "easeOut" } }}
       className="relative will-change-transform"
     >
@@ -198,6 +197,40 @@ function CodePreview() {
   );
 }
 
+/**
+ * What a developer's backend runs to hand a customer's ledger to an agent and
+ * get its report back: three calls from variance-report.ts on the docs'
+ * "Call it from your app" page, in order. The Getting Started smoke runs that
+ * file on every change, and sections/__tests__/snippets.test.tsx fails when
+ * the lines between two `ELIDED` marks stop being consecutive lines of it;
+ * `ELIDED` stands wherever lines are left out.
+ */
+const ELIDED = null;
+
+const VARIANCE_REPORT_EXCERPT: readonly (string | typeof ELIDED)[] = [
+  "const ledger = await uploadFileFromPath(stigmer.file, {",
+  "  org,",
+  '  path: "ledger.csv",',
+  "});",
+  "",
+  "const turn = await sendAndWait(stigmer, {",
+  "  org,",
+  '  sessionSpec: { agentRef: { org, slug: "variance-reporter" } },',
+  '  message: "Review this quarter\'s ledger.",',
+  "  fileIds: [ledger.metadata!.id],",
+  "});",
+  ELIDED,
+  "",
+  "for await (const file of stigmer.file.listAll({ org, runId: turn.runId })) {",
+  ELIDED,
+  "  const { url } = await stigmer.file.getDownloadUrl(file.metadata!.id);",
+  ELIDED,
+  "}",
+];
+
+/** The calls the excerpt is about, drawn brighter than the code around them. */
+const CALLS = /(uploadFileFromPath|sendAndWait|listAll|getDownloadUrl)/;
+
 function CodePreviewCard() {
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -208,84 +241,38 @@ function CodePreviewCard() {
           <span className="w-3 h-3 rounded-full bg-[#febc2e]" />
           <span className="w-3 h-3 rounded-full bg-[#28c840]" />
         </div>
-        <span className="text-xs font-mono text-subtle ml-2">agent.yaml</span>
+        <span className="text-xs font-mono text-subtle ml-2">variance-report.ts</span>
       </div>
       {/* Code content */}
-      <div className="p-4 sm:p-6 font-mono text-sm leading-relaxed overflow-x-auto">
-        <CodeLine comment="# Define your agent" />
-        <CodeLine>
-          <Keyword>kind</Keyword>: Agent
-        </CodeLine>
-        <CodeLine>
-          <Keyword>name</Keyword>: support-agent
-        </CodeLine>
-        <CodeLine>
-          <Keyword>model</Keyword>: claude-sonnet
-        </CodeLine>
-        <CodeLine />
-        <CodeLine comment="# Teach it your domain" />
-        <CodeLine>
-          <Keyword>skills</Keyword>:
-        </CodeLine>
-        <CodeLine indent={1}>
-          - return-policy
-        </CodeLine>
-        <CodeLine indent={1}>
-          - product-catalog
-        </CodeLine>
-        <CodeLine />
-        <CodeLine comment="# Connect your tools" />
-        <CodeLine>
-          <Keyword>tools</Keyword>:
-        </CodeLine>
-        <CodeLine indent={1}>
-          - order-management
-        </CodeLine>
-        <CodeLine />
-        <CodeLine comment="# Set your rules" />
-        <CodeLine>
-          <Keyword>approvals</Keyword>:
-        </CodeLine>
-        <CodeLine indent={1}>
-          - process-refund
-        </CodeLine>
-      </div>
+      <pre className="p-4 sm:p-6 font-mono text-xs leading-relaxed overflow-x-auto">
+        <code>
+          {VARIANCE_REPORT_EXCERPT.map((line, index) =>
+            line === ELIDED ? (
+              <div key={index} data-code-elided="" className="text-subtle">
+                {[VARIANCE_REPORT_EXCERPT[index - 1], VARIANCE_REPORT_EXCERPT[index + 1]].some(
+                  (neighbour) => neighbour?.startsWith("  "),
+                )
+                  ? "  …"
+                  : "…"}
+              </div>
+            ) : (
+              <div key={index} data-code-line="" className="text-muted-foreground">
+                {line === "" ? " " : line.split(CALLS).map((part, i) =>
+                  i % 2 === 1 ? (
+                    <span key={i} className="text-foreground">
+                      {part}
+                    </span>
+                  ) : (
+                    part
+                  ),
+                )}
+              </div>
+            ),
+          )}
+        </code>
+      </pre>
     </div>
   );
-}
-
-function CodeLine({
-  children,
-  comment,
-  indent = 0,
-}: {
-  children?: React.ReactNode;
-  comment?: string;
-  indent?: number;
-}) {
-  const padding = indent > 0 ? `${indent * 1.5}rem` : undefined;
-
-  if (comment) {
-    return (
-      <div className="text-subtle" style={{ paddingLeft: padding }}>
-        {comment}
-      </div>
-    );
-  }
-
-  if (!children) {
-    return <div className="h-5" />;
-  }
-
-  return (
-    <div className="text-muted-foreground" style={{ paddingLeft: padding }}>
-      {children}
-    </div>
-  );
-}
-
-function Keyword({ children }: { children: React.ReactNode }) {
-  return <span className="text-foreground">{children}</span>;
 }
 
 function StatItem({ label, value }: { label: string; value: string }) {

@@ -10,6 +10,20 @@ import { FadeInUp } from "@/components/ui/motion";
 
 export type FinalCTAProps = React.HTMLAttributes<HTMLElement>;
 
+/**
+ * The quickstart's own commands, in its order, for the "On your machine" tab.
+ * The Getting Started smoke runs them on every change, and
+ * sections/__tests__/snippets.test.tsx fails when one stops being one of its
+ * steps.
+ */
+const QUICKSTART_COMMANDS = [
+  "brew install stigmer/tap/stigmer",
+  "export ANTHROPIC_API_KEY=<your Anthropic API key>",
+  "stigmer up",
+  "stigmer apply -f variance-reporter.yaml",
+  'stigmer run variance-reporter --attach ledger.csv --download ./out -m "Review this quarter\'s ledger."',
+];
+
 function FinalCTA({ className, ...props }: FinalCTAProps) {
   return (
     <section
@@ -18,17 +32,17 @@ function FinalCTA({ className, ...props }: FinalCTAProps) {
       aria-labelledby="final-cta-heading"
       {...props}
     >
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <FadeInUp>
             <h2
               id="final-cta-heading"
               className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-4"
             >
-              Start building
+              Put your first agent to work
             </h2>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-8">
-              Your first agent takes five minutes. Sign up for cloud or install the CLI.
+              Give an agent a ledger on your own machine. It hands back a report.
             </p>
           </FadeInUp>
 
@@ -36,145 +50,50 @@ function FinalCTA({ className, ...props }: FinalCTAProps) {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button asChild size="lg">
                 <a href={SITE_CONFIG.cloudSignupUrl}>
-                  Start Free
+                  Start free
                   <Icon name="arrow-right" size="sm" />
                 </a>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link href="/docs/sdk">
-                  View SDKs
-                </Link>
+                <Link href="/docs/getting-started/quickstart">Run the quickstart</Link>
               </Button>
             </div>
           </FadeInUp>
         </div>
 
-        {/* SDK install snippets */}
         <FadeInUp delay={0.2}>
-          <SDKSnippets />
+          <div className="rounded-lg border border-border overflow-hidden bg-card">
+            <div className="px-4 sm:px-6 py-3 border-b border-border">
+              <span className="text-xs font-mono text-subtle">Terminal</span>
+            </div>
+            <pre className="p-4 sm:p-6 text-xs sm:text-sm font-mono leading-relaxed overflow-x-auto">
+              <code>
+                {QUICKSTART_COMMANDS.map((command) => (
+                  <div key={command}>
+                    <span className="text-subtle select-none" aria-hidden="true">
+                      ${" "}
+                    </span>
+                    <span data-code-line="" className="text-muted-foreground">
+                      {command}
+                    </span>
+                  </div>
+                ))}
+              </code>
+            </pre>
+          </div>
+          <p className="mt-4 text-sm text-subtle text-center">
+            The Agent&apos;s file and the ledger are in the{" "}
+            <Link
+              href="/docs/getting-started/quickstart"
+              className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            >
+              quickstart
+            </Link>
+            .
+          </p>
         </FadeInUp>
       </div>
     </section>
-  );
-}
-
-function SDKSnippets() {
-  const [activeTab, setActiveTab] = React.useState<
-    "ts" | "go" | "python" | "java"
-  >("ts");
-
-  const snippets = {
-    ts: {
-      label: "TypeScript",
-      installPrefix: "$",
-      install: "npm install @stigmer/client",
-      code: `import { Stigmer } from "@stigmer/client";
-
-const stigmer = new Stigmer({
-  baseUrl: "https://api.stigmer.ai",
-  apiKey: "sk_...",
-});
-
-const run = await stigmer.run.create({
-  org: "my-org",
-  name: "support-run",
-  agentId: "support-agent",
-  message: "Can I return these shoes?",
-});`,
-    },
-    go: {
-      label: "Go",
-      installPrefix: "$",
-      install: "go get go.stigmer.ai/sdk",
-      code: `import stigmer "go.stigmer.ai/sdk"
-
-client, _ := stigmer.NewClient("sk_...")
-defer client.Close()
-
-run, _ := client.Run.Create(ctx,
-  &stigmer.RunInput{
-    Org:     "my-org",
-    Name:    "support-run",
-    AgentId: "support-agent",
-    Message: "Can I return these shoes?",
-  },
-)`,
-    },
-    python: {
-      label: "Python",
-      installPrefix: "$",
-      install: "pip install stigmer-sdk",
-      code: `from stigmer import StigmerClient, RunInput
-
-with StigmerClient("sk_...") as client:
-    run = client.agent_runs.create(
-        RunInput(
-            org="my-org",
-            name="support-run",
-            agent_id="support-agent",
-            message="Can I return these shoes?",
-        )
-    )`,
-    },
-    java: {
-      label: "Java",
-      installPrefix: "// Gradle:",
-      install: `implementation("ai.stigmer:stigmer-sdk:0.1.0")`,
-      code: `import ai.stigmer.sdk.StigmerClient;
-import ai.stigmer.sdk.gen.RunInput;
-
-try (var client = StigmerClient.builder("sk_...").build()) {
-    var run = client.run.create(
-        RunInput.builder()
-            .org("my-org")
-            .name("support-run")
-            .agentId("support-agent")
-            .message("Can I return these shoes?")
-            .build()
-    );
-}`,
-    },
-  };
-
-  const active = snippets[activeTab];
-
-  return (
-    <div className="rounded-lg border border-border overflow-hidden">
-      {/* Tab bar */}
-      <div className="flex border-b border-border">
-        {(Object.keys(snippets) as Array<keyof typeof snippets>).map((key) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            className={cn(
-              "px-4 py-2.5 text-xs font-mono uppercase tracking-wider transition-colors",
-              activeTab === key
-                ? "text-foreground bg-card"
-                : "text-subtle hover:text-muted-foreground"
-            )}
-          >
-            {snippets[key].label}
-          </button>
-        ))}
-      </div>
-
-      {/* Install command */}
-      <div className="px-4 sm:px-6 py-3 border-b border-border bg-card/50">
-        <code className="text-xs font-mono text-muted-foreground">
-          {active.installPrefix && (
-            <span className="text-subtle">{active.installPrefix} </span>
-          )}
-          {active.install}
-        </code>
-      </div>
-
-      {/* Code */}
-      <div className="p-4 sm:p-6 bg-card">
-        <pre className="text-sm font-mono text-muted-foreground leading-relaxed overflow-x-auto">
-          {active.code}
-        </pre>
-      </div>
-    </div>
   );
 }
 

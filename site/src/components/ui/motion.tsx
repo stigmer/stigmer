@@ -7,7 +7,13 @@
  *
  * Features:
  * - Full TypeScript support with proper generics
- * - Built-in reduced motion support (accessibility)
+ * - Reduced motion honoured by the stylesheet: each reveal is marked
+ *   `data-reveal`, and globals.css holds marked elements visible and still
+ *   under `prefers-reduced-motion: reduce`. The render never branches on the
+ *   preference: the static export is rendered without it, React keeps the
+ *   server's attributes when it hydrates, and a plain div rendered in the
+ *   browser would leave the exported `opacity: 0` on the page
+ *   (components/ui/__tests__/motion.test.tsx)
  * - SSR compatible (no window/document in render)
  * - Composable API with variant overrides
  * - Performance optimized (GPU-only properties)
@@ -32,7 +38,6 @@
 import { forwardRef, type ReactNode, type ComponentPropsWithoutRef } from "react";
 import {
   motion,
-  useReducedMotion,
   AnimatePresence as FramerAnimatePresence,
   type HTMLMotionProps,
   type Variants,
@@ -119,8 +124,8 @@ interface StaggerContainerProps extends MotionDivProps {
 /**
  * FadeInUp - Entrance animation with upward motion.
  *
- * Animates when the element scrolls into view. Respects user's
- * reduced motion preference automatically.
+ * Animates when the element scrolls into view; still under reduced motion
+ * (see the module header).
  *
  * @example
  * <FadeInUp>
@@ -145,10 +150,8 @@ export const FadeInUp = forwardRef<HTMLDivElement, FadeInUpProps>(
     },
     ref
   ) => {
-    const prefersReducedMotion = useReducedMotion();
-
-    // Return static div if animations are disabled
-    if (disabled || prefersReducedMotion) {
+    // Static when disabled; reduced motion is the stylesheet's (see above)
+    if (disabled) {
       return (
         <div ref={ref} className={className} {...filterMotionProps(props)}>
           {children}
@@ -159,6 +162,7 @@ export const FadeInUp = forwardRef<HTMLDivElement, FadeInUpProps>(
     return (
       <motion.div
         ref={ref}
+        data-reveal=""
         initial="hidden"
         whileInView="visible"
         viewport={viewportSettings.standard}
@@ -196,9 +200,7 @@ export const FadeIn = forwardRef<HTMLDivElement, FadeInUpProps>(
     },
     ref
   ) => {
-    const prefersReducedMotion = useReducedMotion();
-
-    if (disabled || prefersReducedMotion) {
+    if (disabled) {
       return (
         <div ref={ref} className={className} {...filterMotionProps(props)}>
           {children}
@@ -209,6 +211,7 @@ export const FadeIn = forwardRef<HTMLDivElement, FadeInUpProps>(
     return (
       <motion.div
         ref={ref}
+        data-reveal=""
         initial="hidden"
         whileInView="visible"
         viewport={viewportSettings.standard}
@@ -246,9 +249,7 @@ export const ScaleIn = forwardRef<HTMLDivElement, FadeInUpProps>(
     },
     ref
   ) => {
-    const prefersReducedMotion = useReducedMotion();
-
-    if (disabled || prefersReducedMotion) {
+    if (disabled) {
       return (
         <div ref={ref} className={className} {...filterMotionProps(props)}>
           {children}
@@ -259,6 +260,7 @@ export const ScaleIn = forwardRef<HTMLDivElement, FadeInUpProps>(
     return (
       <motion.div
         ref={ref}
+        data-reveal=""
         initial="hidden"
         whileInView="visible"
         viewport={viewportSettings.standard}
@@ -302,9 +304,7 @@ export const StaggerContainer = forwardRef<HTMLDivElement, StaggerContainerProps
     },
     ref
   ) => {
-    const prefersReducedMotion = useReducedMotion();
-
-    if (disabled || prefersReducedMotion) {
+    if (disabled) {
       return (
         <div ref={ref} className={className} {...filterMotionProps(props)}>
           {children}
@@ -326,6 +326,7 @@ export const StaggerContainer = forwardRef<HTMLDivElement, StaggerContainerProps
     return (
       <motion.div
         ref={ref}
+        data-reveal=""
         initial="hidden"
         whileInView="visible"
         viewport={viewportSettings.standard}
@@ -355,9 +356,7 @@ StaggerContainer.displayName = "StaggerContainer";
  */
 export const StaggerItem = forwardRef<HTMLDivElement, MotionDivProps>(
   ({ children, disabled, variants = fadeInUp, className, ...props }, ref) => {
-    const prefersReducedMotion = useReducedMotion();
-
-    if (disabled || prefersReducedMotion) {
+    if (disabled) {
       return (
         <div ref={ref} className={className} {...filterMotionProps(props)}>
           {children}
@@ -368,6 +367,7 @@ export const StaggerItem = forwardRef<HTMLDivElement, MotionDivProps>(
     return (
       <motion.div
         ref={ref}
+        data-reveal=""
         variants={variants}
         transition={transitions.smooth}
         className={className}
@@ -379,51 +379,6 @@ export const StaggerItem = forwardRef<HTMLDivElement, MotionDivProps>(
   }
 );
 StaggerItem.displayName = "StaggerItem";
-
-/**
- * Props for MotionDiv - explicit children type to avoid MotionValue issues.
- */
-interface MotionDivComponentProps
-  extends Omit<HTMLMotionProps<"div">, "children"> {
-  children: ReactNode;
-  disabled?: boolean;
-}
-
-/**
- * MotionDiv - Low-level motion wrapper for custom animations.
- *
- * Use this when the pre-built components don't fit your needs.
- * Still respects reduced motion preference.
- *
- * @example
- * <MotionDiv
- *   initial={{ opacity: 0, rotate: -10 }}
- *   animate={{ opacity: 1, rotate: 0 }}
- *   transition={{ type: "spring" }}
- * >
- *   Custom animated content
- * </MotionDiv>
- */
-export const MotionDiv = forwardRef<HTMLDivElement, MotionDivComponentProps>(
-  ({ children, disabled, className, ...props }, ref) => {
-    const prefersReducedMotion = useReducedMotion();
-
-    if (disabled || prefersReducedMotion) {
-      return (
-        <div ref={ref} className={className} {...filterMotionProps(props)}>
-          {children}
-        </div>
-      );
-    }
-
-    return (
-      <motion.div ref={ref} className={className} {...props}>
-        {children}
-      </motion.div>
-    );
-  }
-);
-MotionDiv.displayName = "MotionDiv";
 
 // =============================================================================
 // UTILITIES

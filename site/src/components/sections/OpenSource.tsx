@@ -9,6 +9,12 @@ import { FadeInUp } from "@/components/ui/motion";
 
 export type OpenSourceProps = React.HTMLAttributes<HTMLElement>;
 
+const LINKS = [
+  { label: "Run it on your servers", href: "/docs/guides/self-hosting/overview" },
+  { label: "Compare editions", href: "/docs/guides/self-hosting/cloud-vs-self-hosted" },
+  { label: "Pricing", href: "/pricing" },
+];
+
 function OpenSource({ className, ...props }: OpenSourceProps) {
   return (
     <section
@@ -26,25 +32,16 @@ function OpenSource({ className, ...props }: OpenSourceProps) {
             id="open-source-heading"
             className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-6"
           >
-            Inspect every line of code
+            Open source, on your servers or ours
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-            Stigmer&apos;s core is Apache 2.0. Public protobuf contracts. Self-host if you need to.
-            No vendor lock-in. The fastest path is cloud, but you always have the option
-            to run everything yourself.
+            Stigmer&apos;s core is Apache 2.0. Run it on your own servers, or use Stigmer Cloud. The
+            editions say what each includes.
           </p>
         </FadeInUp>
 
         <FadeInUp delay={0.1}>
-          <div className="flex flex-wrap items-center justify-center gap-6 mb-12">
-            <Signal label="License" value="Apache 2.0" />
-            <Signal label="Contracts" value="Public Protobuf" />
-            <Signal label="Deploy" value="Cloud or Self-Hosted" />
-          </div>
-        </FadeInUp>
-
-        <FadeInUp delay={0.2}>
-          <div className="flex flex-wrap items-center justify-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
             <a
               href={SITE_CONFIG.githubUrl}
               target="_blank"
@@ -54,35 +51,20 @@ function OpenSource({ className, ...props }: OpenSourceProps) {
               <Icon name="github" size="sm" />
               View source
             </a>
-            <Link
-              href="/docs/getting-started/local"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Run locally
-              <Icon name="arrow-right" size="xs" />
-            </Link>
-            <Link
-              href="/docs/guides/self-hosting/cloud-vs-self-hosted"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Compare editions
-              <Icon name="arrow-right" size="xs" />
-            </Link>
+            {LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {link.label}
+                <Icon name="arrow-right" size="xs" />
+              </Link>
+            ))}
           </div>
         </FadeInUp>
       </div>
     </section>
-  );
-}
-
-function Signal({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="px-4 py-2 rounded border border-border">
-      <div className="text-xs font-mono uppercase tracking-wider text-subtle mb-0.5">
-        {label}
-      </div>
-      <div className="text-sm text-foreground">{value}</div>
-    </div>
   );
 }
 
