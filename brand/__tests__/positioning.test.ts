@@ -78,6 +78,7 @@ const HAND_COPIES = [
   POSITIONING.headline,
   POSITIONING.subhead,
   POSITIONING.oneSentence,
+  POSITIONING.whereItRuns,
   "Build agents that work for your business",
   "Agents as Microservices",
 ].map((words) => words.replace(/\.$/, ""));

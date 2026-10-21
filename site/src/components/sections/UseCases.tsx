@@ -3,38 +3,14 @@
 import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { USE_CASES } from "@/lib/use-cases";
 import { Icon } from "@/components/ui/icon";
 import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/ui/motion";
 
 export type UseCasesProps = React.HTMLAttributes<HTMLElement>;
 
-const USE_CASES = [
-  {
-    industry: "Healthcare",
-    description:
-      "Patient agents that triage by your protocols and escalate to physicians when it matters.",
-  },
-  {
-    industry: "HR & People",
-    description:
-      "Onboarding agents that guide new hires through every step — policies, access, training — across all your client companies.",
-  },
-  {
-    industry: "FinTech",
-    description:
-      "Compliance agents that monitor transactions against each client's regulatory rules and flag what needs human review.",
-  },
-  {
-    industry: "Education",
-    description:
-      "Tutoring agents that remember every student's progress and adapt to each course's content and policies.",
-  },
-  {
-    industry: "Legal",
-    description:
-      "Contract agents that analyze clauses against your precedent library and pause for attorney review on high-stakes decisions.",
-  },
-];
+/** The jobs inside other teams' products; Planton has its own section below. */
+const OTHER_PRODUCTS = USE_CASES.filter((useCase) => useCase.id !== "planton");
 
 function UseCases({ className, ...props }: UseCasesProps) {
   return (
@@ -54,30 +30,31 @@ function UseCases({ className, ...props }: UseCasesProps) {
               id="use-cases-heading"
               className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground"
             >
-              What you can build
+              Jobs done inside other teams&apos; products
             </h2>
           </div>
         </FadeInUp>
 
         <StaggerContainer
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
           staggerDelay={0.08}
           delayChildren={0.1}
         >
-          {USE_CASES.map((uc) => (
-            <StaggerItem key={uc.industry}>
-              <div className="rounded-lg border border-border p-6 sm:p-8 h-full flex flex-col">
-                <h3 className="text-sm font-mono uppercase tracking-wider text-subtle mb-3">
-                  {uc.industry}
+          {OTHER_PRODUCTS.map((useCase) => (
+            <StaggerItem key={useCase.id}>
+              <div className="rounded-lg border border-border p-6 h-full flex flex-col">
+                <h3 className="text-sm font-mono uppercase tracking-wider text-subtle mb-4">
+                  {useCase.product}
                 </h3>
+                <p className="text-sm text-foreground leading-relaxed mb-3">{useCase.asks}</p>
                 <p className="text-sm text-muted-foreground leading-relaxed flex-1">
-                  {uc.description}
+                  {useCase.handsBack}
                 </p>
                 <Link
-                  href="/use-cases"
-                  className="inline-flex items-center gap-1.5 text-sm text-foreground hover:text-foreground/80 transition-colors mt-4"
+                  href={`/use-cases#${useCase.id}`}
+                  className="inline-flex items-center gap-1.5 text-sm text-foreground hover:text-foreground/80 transition-colors mt-6"
                 >
-                  Learn more
+                  See the job
                   <Icon name="arrow-right" size="xs" />
                 </Link>
               </div>

@@ -13,6 +13,8 @@ export const SITE_CONFIG = {
 
   subhead: POSITIONING.subhead,
 
+  whereItRuns: POSITIONING.whereItRuns,
+
   description: POSITIONING.oneSentence,
 
   url: "https://stigmer.ai",

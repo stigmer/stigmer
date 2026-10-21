@@ -403,9 +403,12 @@ export const LANES = {
       "backend/libs/ts/tool-vocabulary/**",
       // What the site reads by relative path outside site/ (the same test's
       // relative-read rule fails when one is missing): brand/ from app code,
-      // the image script and tests; the blog through its content config.
+      // the image script and tests; the blog through its content config; the
+      // Getting Started smoke's page parser, which the homepage's snippet
+      // test reads the pages with.
       "brand/**",
       "blog/**",
+      "test/install/lib/doc-steps.mjs",
       ".vale.ini",
       ".prettierrc",
       ".lychee.toml",

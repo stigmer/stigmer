@@ -16,7 +16,7 @@ describe("OpenSource", () => {
   it("says the core is Apache 2.0, not the whole of Stigmer", () => {
     render(<OpenSource />);
 
-    const claim = screen.getByText(/Apache 2\.0\. Public protobuf contracts\./);
+    const claim = screen.getByText(/Apache 2\.0\. Run it on your own servers/);
     expect(claim.textContent).toContain("Stigmer's core is Apache 2.0.");
     expect(claim.textContent).not.toContain("Stigmer is Apache 2.0");
   });
