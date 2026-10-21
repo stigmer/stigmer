@@ -12,8 +12,9 @@ enum GitWriteBackMode {
   // Platform default behavior — write-back is enabled when git credentials are available.
   //
   // @internal
-  // Artifacts are still published as downloadable files regardless of this
-  // setting. Set an explicit mode to override the platform default.
+  // What the agent saves in its outputs folder comes back as Files
+  // regardless of this setting. Set an explicit mode to override the
+  // platform default.
   GIT_WRITE_BACK_MODE_UNSPECIFIED = 0;
 
   // Create a branch and pull request from the agent's file changes after the run completes.

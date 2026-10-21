@@ -6,7 +6,7 @@ title: Run
 
 A Run represents a single turn in a conversation: one user message
 and the agent's response. The run records the turn's phase, settings, usage,
-artifacts and the files it changed; the messages, tool calls, approvals and
+the Files its message named and the files it changed; the messages, tool calls, approvals and
 subagent threads are events in the session's log. A turn
 continues a session (`session_id`) or starts one (`session_spec`, whose
 `agent_ref` names the agent; neither starts a conversation with the built-in
@@ -64,8 +64,8 @@ Run run = client.runs().get("run_01j5q3k7m8r2s4tnz2hfp0q0c3");
 |--------|-------------|
 | [`get`](#get) | Get a single run by ID. |
 | [`getAgentUsageReport`](#getagentusagereport) | Get a usage report for an agent within an organization. |
-| [`getArtifactContent`](#getartifactcontent) | Read the raw content of a run artifact. |
-| [`getArtifactDownloadUrl`](#getartifactdownloadurl) | Get a presigned download URL for a run artifact. |
+| [`getArtifactContent`](#getartifactcontent) | Read the raw bytes of a run's stored content. |
+| [`getArtifactDownloadUrl`](#getartifactdownloadurl) | Get a presigned download URL for a run's stored content. |
 | [`getOrgUsageReport`](#getorgusagereport) | Get a usage report for an organization. |
 | [`getRunSummary`](#getrunsummary) | Get aggregated run statistics for an organization's runs. |
 | [`getRunUsageReport`](#getrunusagereport) | Get a usage report for a single run. |
@@ -171,9 +171,9 @@ GetAgentUsageReportOutput getAgentUsageReportOutput = client.runs().getAgentUsag
 
 ### getArtifactContent
 
-Read the raw content of a run artifact.
+Read the raw bytes of a run's stored content.
 
-Returns artifact bytes through the Stigmer API, eliminating CORS concerns for SDK consumers who need to read content programmatically (e.g., YAML parsing for resource detection, in-app preview rendering).
+Returns the bytes of one stored object of the run (a tool call's offloaded output, or a file-review diff or blob) through the Stigmer API, eliminating CORS concerns for SDK consumers who need to read it programmatically (e.g., in-app preview rendering).
 
 For direct file downloads, use getArtifactDownloadUrl instead — it returns a presigned R2 URL that avoids proxying bytes through the server.
 
@@ -226,9 +226,9 @@ GetArtifactContentResponse getArtifactContentResponse = client.runs().getArtifac
 
 ### getArtifactDownloadUrl
 
-Get a presigned download URL for a run artifact.
+Get a presigned download URL for a run's stored content.
 
-Returns a time-limited URL for downloading an artifact published by an agent during the run. The URL can be used with a simple HTTP GET request without authentication. A file given with the message is a File: its link comes from FileQueryController.getDownloadUrl.
+Returns a time-limited URL for downloading one stored object of the run: a tool call's offloaded output, or a file-review diff or blob. The URL can be used with a simple HTTP GET request without authentication. A File's link comes from FileQueryController.getDownloadUrl.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -1318,49 +1318,49 @@ ListRunsBySessionRequest lists the runs of a session, newest first, one page at 
 
 ### GetArtifactDownloadUrlRequest
 
-GetArtifactDownloadUrlRequest requests a download URL for a run artifact.
+GetArtifactDownloadUrlRequest requests a download URL for a run's stored content.
 
 <TypeTable
   type={{
-    runId: { type: "string", description: "ID of the run that produced the artifact." },
-    storageKey: { type: "string", description: "Storage key of the artifact to download." },
+    runId: { type: "string", description: "ID of the run that stored the content." },
+    storageKey: { type: "string", description: "Storage key of the content to download." },
     asAttachment: { type: "boolean", description: "Whether the URL should force a browser download instead of inline display." },
   }}
 />
 
 ### GetArtifactDownloadUrlResponse
 
-GetArtifactDownloadUrlResponse returns a presigned download URL for an artifact.
+GetArtifactDownloadUrlResponse returns a presigned download URL for a run's stored content.
 
 <TypeTable
   type={{
-    downloadUrl: { type: "string", description: "Presigned URL for downloading the artifact." },
+    downloadUrl: { type: "string", description: "Presigned URL for downloading the content." },
     expiresAt: { type: "string", description: "ISO 8601 timestamp when the download URL expires." },
   }}
 />
 
 ### GetArtifactContentRequest
 
-GetArtifactContentRequest reads the raw content of a run artifact.
+GetArtifactContentRequest reads the raw bytes of a run's stored content.
 
 <TypeTable
   type={{
-    runId: { type: "string", description: "ID of the run that produced the artifact." },
-    storageKey: { type: "string", description: "Storage key of the artifact to read." },
+    runId: { type: "string", description: "ID of the run that stored the content." },
+    storageKey: { type: "string", description: "Storage key of the content to read." },
     maxBytes: { type: "number", description: "Maximum number of bytes to return." },
-    entryPath: { type: "string", description: "For directory artifacts (ZIPs): extract a specific file by its path within the archive instead of returning the raw ZIP bytes." },
+    entryPath: { type: "string", description: "For stored ZIP content: extract a specific entry by its path within the archive instead of returning the raw ZIP bytes." },
   }}
 />
 
 ### GetArtifactContentResponse
 
-GetArtifactContentResponse returns the raw content of a run artifact.
+GetArtifactContentResponse returns the raw bytes of a run's stored content.
 
 <TypeTable
   type={{
-    content: { type: "Uint8Array", description: "Raw artifact content (up to max_bytes)." },
+    content: { type: "Uint8Array", description: "Raw content (up to max_bytes)." },
     contentType: { type: "string", description: "Detected content type based on file extension." },
-    totalSizeBytes: { type: "number", description: "Actual total size of the artifact in bytes." },
+    totalSizeBytes: { type: "number", description: "Actual total size of the content in bytes." },
     truncated: { type: "boolean", description: "Whether the content was truncated to fit within max_bytes." },
   }}
 />
@@ -1569,7 +1569,7 @@ One file's delta within a FileChangeSet.
     after: { type: "FileContent", description: "Post-edit content.", typeDescriptionLink: "#filecontent" },
     beforeSha256: { type: "string", description: "SHA-256 of the pre-edit bytes." },
     afterSha256: { type: "string", description: "SHA-256 of the post-edit bytes." },
-    unifiedDiff: { type: "ToolCallOutputRef", description: "Offloadable unified diff artifact for this file.", typeDescriptionLink: "#toolcalloutputref" },
+    unifiedDiff: { type: "ToolCallOutputRef", description: "Offloadable unified diff for this file.", typeDescriptionLink: "#toolcalloutputref" },
     diffComplete: { type: "boolean", description: "False when this file's diff is incomplete (elided, truncated, or not capturable)." },
     fileDigest: { type: "string", description: "Canonical digest of (path, kind, before, after) for this file." },
     blockedReason: { type: "FileReviewBlockReason", description: "The honest cause this file's diff is not fully reviewable, set by the runner only when diff_complete == false (otherwise UNSPECIFIED).", typeDescriptionLink: "#filereviewblockreason" },
@@ -1585,7 +1585,7 @@ A content-addressed snapshot manifest for paths git cannot capture (gitignored o
 <TypeTable
   type={{
     manifestDigest: { type: "string", description: "Digest of the manifest listing each captured path and its blob digest." },
-    artifactUri: { type: "string", description: "Storage URI of the manifest artifact." },
+    artifactUri: { type: "string", description: "Storage URI of the stored manifest." },
   }}
 />
 
@@ -1859,7 +1859,7 @@ Accumulated token usage from execution worker turn-ended events.
 
 ### ToolCallOutputRef
 
-ToolCallOutputRef points to content the runner offloaded to artifact storage: a tool call's full output, or one side of a captured file change too large to keep inline.
+ToolCallOutputRef points to content the runner offloaded to the run's storage: a tool call's full output, or one side of a captured file change too large to keep inline.
 
 <TypeTable
   type={{
@@ -1868,7 +1868,7 @@ ToolCallOutputRef points to content the runner offloaded to artifact storage: a 
     contentHash: { type: "string", description: "SHA-256 hex digest of the full output bytes." },
     mimeType: { type: "string", description: "MIME type of the offloaded content." },
     isImage: { type: "boolean", description: "True when the offloaded content is an image the UI should render inline (e.g. a screenshot from a computer-use MCP server)." },
-    truncatedPreview: { type: "string", description: "Short head of the original text content, kept inline for an at-a-glance preview without fetching the full artifact." },
+    truncatedPreview: { type: "string", description: "Short head of the original text content, kept inline for an at-a-glance preview without fetching the full output." },
   }}
 />
 

@@ -1,6 +1,6 @@
 A Run represents a single turn in a conversation: one user message
 and the agent's response. The run records the turn's phase, settings, usage,
-artifacts and the files it changed; the messages, tool calls, approvals and
+the Files its message named and the files it changed; the messages, tool calls, approvals and
 subagent threads are events in the session's log. A turn
 continues a session (`session_id`) or starts one (`session_spec`, whose
 `agent_ref` names the agent; neither starts a conversation with the built-in

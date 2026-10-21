@@ -214,8 +214,8 @@ public interface CapturedFileChangeOrBuilder extends
 
   /**
    * <pre>
-   * Offloadable unified diff artifact for this file. The rendered hunks; large
-   * diffs spill to artifact storage via the same envelope tool output uses.
+   * Offloadable unified diff for this file. The rendered hunks; large diffs
+   * spill to the run's storage via the same envelope tool output uses.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ToolCallOutputRef unified_diff = 10 [json_name = "unifiedDiff"];</code>
@@ -224,8 +224,8 @@ public interface CapturedFileChangeOrBuilder extends
   boolean hasUnifiedDiff();
   /**
    * <pre>
-   * Offloadable unified diff artifact for this file. The rendered hunks; large
-   * diffs spill to artifact storage via the same envelope tool output uses.
+   * Offloadable unified diff for this file. The rendered hunks; large diffs
+   * spill to the run's storage via the same envelope tool output uses.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ToolCallOutputRef unified_diff = 10 [json_name = "unifiedDiff"];</code>
@@ -234,8 +234,8 @@ public interface CapturedFileChangeOrBuilder extends
   ai.stigmer.agentic.run.v1.ToolCallOutputRef getUnifiedDiff();
   /**
    * <pre>
-   * Offloadable unified diff artifact for this file. The rendered hunks; large
-   * diffs spill to artifact storage via the same envelope tool output uses.
+   * Offloadable unified diff for this file. The rendered hunks; large diffs
+   * spill to the run's storage via the same envelope tool output uses.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.run.v1.ToolCallOutputRef unified_diff = 10 [json_name = "unifiedDiff"];</code>

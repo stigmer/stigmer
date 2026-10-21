@@ -11,7 +11,7 @@ title: file-reference
 Behavior hook managing workspace file references for the composer.
 
 File references are lightweight "attention" signals — workspace-relative
-paths the user wants the agent to focus on. Unlike attachments, they
+paths the user wants the agent to focus on. Unlike uploaded files, they
 require no upload; the agent reads them directly from the workspace
 filesystem post-provisioning.
 
@@ -41,11 +41,11 @@ function useFileReferences(): UseFileReferencesReturn
 Renders a horizontal list of workspace file-reference chips.
 
 Each chip shows the workspace-relative path (truncated) with a remove
-button. Unlike attachment chips, file references have no upload
+button. Unlike upload chips, file references have no upload
 lifecycle — they are instant, lightweight "attention" signals.
 
-Designed to sit alongside [`AttachmentChipList`](/docs/sdk/react/attachment#attachmentchiplist) in the composer's
-attachments zone. Usable standalone by platform builders who compose
+Designed to sit alongside [`FileChipList`](/docs/sdk/react/upload#filechiplist) in the composer's
+files zone. Usable standalone by platform builders who compose
 their own file-reference UI (headless-first).
 
 All visual properties flow through `--stgm-*` tokens.

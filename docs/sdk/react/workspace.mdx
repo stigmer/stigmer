@@ -357,7 +357,7 @@ All visual properties flow through `--stgm-*` tokens.
 
 <TypeTable
   type={{
-    badgeCount: { type: "number", description: "Aggregate count of panel items awaiting the user (write-backs + artifacts). Rendered as a dot-count while collapsed — the panel's only \"something arrived\" signal, since arrivals never auto-open the panel." },
+    badgeCount: { type: "number", description: "Aggregate count of panel items awaiting the user (write-backs + outputs). Rendered as a dot-count while collapsed — the panel's only \"something arrived\" signal, since arrivals never auto-open the panel." },
     isOpen: { type: "boolean", description: "Whether the panel is currently expanded.", required: true },
     onToggle: { type: "() => void", description: "Toggles the panel open/collapsed.", required: true },
   }}
@@ -559,12 +559,12 @@ Read-only viewer for a single workspace file.
 
 A thin shell (no new rendering): it resolves the open file, drives
 [`useWorkspaceFileContent`](#useworkspacefilecontent), and — for displayable text — delegates to
-the shared [`ArtifactContentRenderer`](/docs/sdk/react/run#artifactcontentrenderer) (markdown / YAML / JSON /
+the shared [`TextContentRenderer`](/docs/sdk/react/run#textcontentrenderer) (markdown / YAML / JSON /
 line-numbered text). Its state body deliberately mirrors
-`ArtifactFileContent` in `execution/` (same skeleton, error, and
-delegation), extended with the three states a run artifact never
+`TextContentView` in `run/` (same skeleton, error, and
+delegation), extended with the three states a File's text never
 has — binary, too-large, and unsupported-substrate. The two are **not**
-merged into one shared component: their surrounding chrome (an artifact's
+merged into one shared component: their surrounding chrome (a File's
 copy/download/apply bar vs. this viewer's header) differs enough that a
 shared shell would need context-flag props. Keep them as sibling shells that
 share the one renderer.
@@ -637,7 +637,7 @@ mirrors it as `MAX_IMAGE_READ_BYTES` in `src-tauri/src/workspace.rs`.
 A host-injected rail view: an icon in the activity rail whose content
 renders in the sidebar pane when active.
 
-This is how session facets (Config, Changes, Artifacts, …) join the built-in
+This is how session facets (Config, Changes, Files, …) join the built-in
 Explorer/Search views without the surface knowing any session domain — the
 same composition philosophy as the injected lister/reader capabilities.
 The surface stays an embeddable, domain-pure workspace organism;
@@ -657,8 +657,8 @@ hosts extend its rail.
 ### SurfaceVirtualDocument
 
 A host-injected virtual document: an editor tab whose content is not a
-workspace file — the session's `plan.md` today; run artifacts are the
-anticipated next family.
+workspace file — the session's `plan.md`, or a File the conversation
+holds.
 
 The editor-area counterpart of [`SurfaceRailView`](#surfacerailview)'s rail injection:
 virtual documents share the tab group with file tabs (identical

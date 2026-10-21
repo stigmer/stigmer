@@ -163,7 +163,7 @@ func (x *FileChangeSet) GetCommandProvenance() *TurnCommandProvenance {
 // One file's delta within a FileChangeSet.
 //
 // Reuses FileContent (inline-or-offload) for before/after and ToolCallOutputRef
-// for the offloadable unified diff — no parallel blob/artifact types.
+// for the offloadable unified diff — no parallel blob types.
 type CapturedFileChange struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Stable id of this file change within its set. The id a file-scoped
@@ -189,8 +189,8 @@ type CapturedFileChange struct {
 	// SHA-256 of the post-edit bytes. ENFORCEMENT digest (the reconcile applies
 	// only these exact bytes). Empty for DELETE.
 	AfterSha256 string `protobuf:"bytes,9,opt,name=after_sha256,json=afterSha256,proto3" json:"after_sha256,omitempty"`
-	// Offloadable unified diff artifact for this file. The rendered hunks; large
-	// diffs spill to artifact storage via the same envelope tool output uses.
+	// Offloadable unified diff for this file. The rendered hunks; large diffs
+	// spill to the run's storage via the same envelope tool output uses.
 	UnifiedDiff *ToolCallOutputRef `protobuf:"bytes,10,opt,name=unified_diff,json=unifiedDiff,proto3" json:"unified_diff,omitempty"`
 	// False when this file's diff is incomplete (elided, truncated, or not
 	// capturable). A change set with any diff_complete == false cannot be
@@ -488,7 +488,7 @@ type CasManifestRef struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Digest of the manifest listing each captured path and its blob digest.
 	ManifestDigest string `protobuf:"bytes,1,opt,name=manifest_digest,json=manifestDigest,proto3" json:"manifest_digest,omitempty"`
-	// Storage URI of the manifest artifact.
+	// Storage URI of the stored manifest.
 	ArtifactUri   string `protobuf:"bytes,2,opt,name=artifact_uri,json=artifactUri,proto3" json:"artifact_uri,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -112,7 +112,7 @@ public interface ToolCallOutputRefOrBuilder extends
   /**
    * <pre>
    * Short head of the original text content, kept inline for an at-a-glance
-   * preview without fetching the full artifact. Empty for image content.
+   * preview without fetching the full output. Empty for image content.
    * </pre>
    *
    * <code>string truncated_preview = 7 [json_name = "truncatedPreview"];</code>
@@ -122,7 +122,7 @@ public interface ToolCallOutputRefOrBuilder extends
   /**
    * <pre>
    * Short head of the original text content, kept inline for an at-a-glance
-   * preview without fetching the full artifact. Empty for image content.
+   * preview without fetching the full output. Empty for image content.
    * </pre>
    *
    * <code>string truncated_preview = 7 [json_name = "truncatedPreview"];</code>

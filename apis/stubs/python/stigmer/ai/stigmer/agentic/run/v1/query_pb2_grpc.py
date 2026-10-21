@@ -95,28 +95,34 @@ class RunQueryControllerServicer(object):
 
     def getArtifactDownloadUrl(self, request, context):
         """─────────────────────────────────────────────────────────────────────────────
-        Artifact Lifecycle Operations
+        Stored Run Content Operations
 
-        These RPCs support downloading artifacts created by runs.
+        These RPCs read what a run's runner stored beside its record: a tool
+        call's offloaded output (ToolCallOutputRef.storage_key) and the
+        file-review content of the files it changed. They never serve a File:
+        a file sent with a message or saved by the agent is a File, read
+        through FileQueryController. The names are kept on the wire.
         ─────────────────────────────────────────────────────────────────────────────
 
-        Get a presigned download URL for a run artifact.
+        Get a presigned download URL for a run's stored content.
 
-        Returns a time-limited URL for downloading an artifact published by
-        an agent during the run. The URL can be used with a simple HTTP GET
-        request without authentication. A file given with the message is a
-        File: its link comes from FileQueryController.getDownloadUrl.
+        Returns a time-limited URL for downloading one stored object of the
+        run: a tool call's offloaded output, or a file-review diff or blob.
+        The URL can be used with a simple HTTP GET request without
+        authentication. A File's link comes from
+        FileQueryController.getDownloadUrl.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def getArtifactContent(self, request, context):
-        """Read the raw content of a run artifact.
+        """Read the raw bytes of a run's stored content.
 
-        Returns artifact bytes through the Stigmer API, eliminating CORS
-        concerns for SDK consumers who need to read content programmatically
-        (e.g., YAML parsing for resource detection, in-app preview rendering).
+        Returns the bytes of one stored object of the run (a tool call's
+        offloaded output, or a file-review diff or blob) through the Stigmer
+        API, eliminating CORS concerns for SDK consumers who need to read it
+        programmatically (e.g., in-app preview rendering).
 
         For direct file downloads, use getArtifactDownloadUrl instead — it
         returns a presigned R2 URL that avoids proxying bytes through the server.

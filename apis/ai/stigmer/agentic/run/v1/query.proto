@@ -34,17 +34,22 @@ service RunQueryController {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Artifact Lifecycle Operations
+  // Stored Run Content Operations
   //
-  // These RPCs support downloading artifacts created by runs.
+  // These RPCs read what a run's runner stored beside its record: a tool
+  // call's offloaded output (ToolCallOutputRef.storage_key) and the
+  // file-review content of the files it changed. They never serve a File:
+  // a file sent with a message or saved by the agent is a File, read
+  // through FileQueryController. The names are kept on the wire.
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // Get a presigned download URL for a run artifact.
+  // Get a presigned download URL for a run's stored content.
   //
-  // Returns a time-limited URL for downloading an artifact published by
-  // an agent during the run. The URL can be used with a simple HTTP GET
-  // request without authentication. A file given with the message is a
-  // File: its link comes from FileQueryController.getDownloadUrl.
+  // Returns a time-limited URL for downloading one stored object of the
+  // run: a tool call's offloaded output, or a file-review diff or blob.
+  // The URL can be used with a simple HTTP GET request without
+  // authentication. A File's link comes from
+  // FileQueryController.getDownloadUrl.
   //
   // @internal
   //
@@ -67,8 +72,7 @@ service RunQueryController {
   //
   // ## Use Cases
   //
-  // - CLI downloading agent-created files
-  // - Web UI providing download links for artifacts
+  // - Web UI downloading a tool call's full output
   // - Refreshing expired download URLs
   //
   // ## Example Flow
@@ -84,11 +88,12 @@ service RunQueryController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to download artifact from run";
   }
 
-  // Read the raw content of a run artifact.
+  // Read the raw bytes of a run's stored content.
   //
-  // Returns artifact bytes through the Stigmer API, eliminating CORS
-  // concerns for SDK consumers who need to read content programmatically
-  // (e.g., YAML parsing for resource detection, in-app preview rendering).
+  // Returns the bytes of one stored object of the run (a tool call's
+  // offloaded output, or a file-review diff or blob) through the Stigmer
+  // API, eliminating CORS concerns for SDK consumers who need to read it
+  // programmatically (e.g., in-app preview rendering).
   //
   // For direct file downloads, use getArtifactDownloadUrl instead — it
   // returns a presigned R2 URL that avoids proxying bytes through the server.
@@ -98,7 +103,7 @@ service RunQueryController {
   // ## Authorization
   //
   // Requires can_view permission on the run. This ensures users can
-  // only read artifacts from runs they have access to.
+  // only read stored content from runs they have access to.
   //
   // ## Security
   //
@@ -117,8 +122,7 @@ service RunQueryController {
   // 1. Get the run via RunQueryController.get
   // 2. Take a ToolCallOutputRef.storage_key the run recorded
   // 3. Call getArtifactContent with run_id and storage_key
-  // 4. Decode content bytes as UTF-8 for text artifacts
-  // 5. Parse YAML to detect Stigmer resource kind (Agent, Skill, etc.)
+  // 4. Decode content bytes as UTF-8 for text content
   rpc getArtifactContent(GetArtifactContentRequest) returns (GetArtifactContentResponse) {
     option (ai.stigmer.commons.rpc.config).resource_kind = run;
     option (ai.stigmer.commons.rpc.config).permission = can_view;

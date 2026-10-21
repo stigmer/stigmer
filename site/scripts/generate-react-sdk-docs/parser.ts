@@ -52,12 +52,12 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
   run: {
     title: "Run",
     description:
-      "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
+      "Hooks and components for real-time streaming, tool calls, approvals, messages, and the Files a run returns.",
   },
   composer: {
     title: "Composer",
     description:
-      "The unified message input with model selection, workspace, and attachments.",
+      "The unified message input with model selection, workspace, and files.",
   },
   agent: {
     title: "Agent",
@@ -72,7 +72,7 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
   skill: {
     title: "Skill",
     description:
-      "Hooks and components for knowledge attachments, search, picker, and detail views.",
+      "Hooks and components for domain knowledge, search, picker, and detail views.",
   },
   library: {
     title: "Library",
@@ -198,8 +198,8 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Hooks and components for OAuth connection, repository search, and picker.",
   },
-  attachment: {
-    title: "Attachment",
+  upload: {
+    title: "Upload",
     description:
       "Hooks and components for the chat box's uploads as Files and chip display.",
   },

@@ -1,5 +1,5 @@
 ---
-title: Attachment
+title: Upload
 description: Hooks and components for the chat box's uploads as Files and chip display.
 ---
 
@@ -70,9 +70,9 @@ function CustomComposer({ org, sessionId, send }: Props) {
 
 ## Components
 
-### AttachmentChipList
+### FileChipList
 
-Renders a horizontal list of attachment chips: image attachments as
+Renders a horizontal list of upload chips: images as
 preview-only thumbnail tiles (the image IS the chip — no filename
 text; visible from the moment of paste, through upload, and on error
 — stigmer/stigmer#371, #372), other files as compact filename chips.
@@ -82,11 +82,11 @@ the full image.
 
 Designed to sit between the context chips and toolbar in
 [`SessionComposer`](/docs/sdk/react/composer#sessioncomposer), but usable standalone by platform builders
-who compose their own attachment UI.
+who compose their own upload UI.
 
 All visual properties flow through `--stgm-*` tokens.
 
-**Props** — `AttachmentChipListProps`
+**Props** — `FileChipListProps`
 
 <TypeTable
   type={{
@@ -104,7 +104,7 @@ function CustomComposer() {
   const uploads = useFileUploads({ org, sessionId });
 
   return (
-    <AttachmentChipList
+    <FileChipList
       entries={uploads.entries}
       onRemove={uploads.removeEntry}
       onRetry={uploads.retryEntry}
@@ -132,13 +132,13 @@ Per-call options for `UseFileUploadsReturn.addFiles`.
 Predict which attached images the runner will degrade this turn.
 
 Pure and deterministic — safe to call in render (memoized by callers).
-Non-image attachments never warn. The byte assessment replicates the
+Non-image files never warn. The byte assessment replicates the
 runner's sequential admission: an image over the per-image cap is
 degraded WITHOUT consuming budget; remaining images are admitted in
 order until the count or total-byte budget is exhausted.
 
 ```tsx
-function assessVisionPreflight(attachments: readonly VisionPreflightAttachment[], options?: AssessVisionPreflightOptions): VisionPreflight
+function assessVisionPreflight(files: readonly VisionPreflightFile[], options?: AssessVisionPreflightOptions): VisionPreflight
 ```
 
 
@@ -196,10 +196,10 @@ Extracts files from a paste event, giving clipboard images that carry the
 browser's generic `image.png` name a unique, human-readable one
 (`pasted-image-<HHMMSS>-<n>.<ext>`).
 
-Unique names are load-bearing, not cosmetic: attachments mount at
-`.stigmer/inputs/{filename}`, and two same-named attachments either fail
-the run (deep-agent harness) or silently overwrite each other
-(Cursor harness). Files with real names (pasted from a file manager) are
+A message's files mount at `.stigmer/uploads/{filename}`, where the server
+renames a clash (`image-2.png`); a name that says what the file is serves
+the person reading the conversation's Files and the agent reading its
+uploads better. Files with real names (pasted from a file manager) are
 returned unchanged.
 
 Returns an empty array for a text-only paste — callers use that to let
@@ -218,7 +218,7 @@ function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
   const files = extractClipboardFiles(e);
   if (files.length === 0) return; // plain text paste — leave it alone
   e.preventDefault();
-  attachments.addFiles(files);
+  uploads.addFiles(files);
 }
 ```
 
@@ -230,8 +230,8 @@ The ready Files of a message, taken from the chat box by
 
 <TypeTable
   type={{
-    attachments: { type: "readonly MessageAttachmentView[]", description: "The Files as the optimistic message bubble shows them.", required: true },
     fileIds: { type: "string[]", description: "The Files' ids, in the order they were added: the run's `fileIds`.", required: true },
+    files: { type: "readonly MessageFileView[]", description: "The Files as the optimistic message bubble shows them.", required: true },
     release: { type: "() => Promise<void>", description: "Delete the person's own Files among them. Call it once the run that names fileIds exists: the conversation then holds its own copies, and the originals would only linger. Files uploaded into the conversation are kept. Safe to call more than once; the deletes run once.", required: true },
   }}
 />
@@ -298,19 +298,7 @@ function fitToVisionResolution(width: number, height: number): VisionFitSize
 ```
 
 
-### formatFileSize
-
-Formats a byte count as a human-readable string (e.g., `"2.3 MB"`).
-
-Uses base-1024 (binary) units with one decimal place, consistent
-with [`formatArtifactSize`](/docs/sdk/react/run#formatartifactsize) in the artifact utilities.
-
-```tsx
-function formatFileSize(bytes: number): string
-```
-
-
-### MAX_ATTACHMENT_BYTES
+### MAX_FILE_BYTES
 
 Maximum size of a file given with a message, in bytes (500 MB).
 
@@ -362,12 +350,12 @@ function prepareImageForVision(file: File): Promise<File>
 ```
 
 
-### toAttachmentView
+### toFileChipView
 
 How a ready entry shows in a message bubble.
 
 ```tsx
-function toAttachmentView(entry: FileUploadEntry): MessageAttachmentView
+function toFileChipView(entry: FileUploadEntry): MessageFileView
 ```
 
 
@@ -403,15 +391,15 @@ Options for [`useFileUploads`](#usefileuploads).
 />
 
 
-### validateAttachmentSize
+### validateFileSize
 
-Validates a file against the attachment size limit.
+Validates a file against the upload size limit.
 
 Returns `null` when valid, or an error message string when the
-file exceeds [`MAX_ATTACHMENT_BYTES`](#max_attachment_bytes).
+file exceeds [`MAX_FILE_BYTES`](#max_file_bytes).
 
 ```tsx
-function validateAttachmentSize(file: File): string | null
+function validateFileSize(file: File): string | null
 ```
 
 
@@ -434,18 +422,18 @@ Result of [`assessVisionPreflight`](#assessvisionpreflight).
 <TypeTable
   type={{
     modelCannotSeeImages: { type: "boolean", description: "True when the selected model is explicitly blind (`vision: false`) and at least one image is attached. When set, every image warning carries `model_no_vision` — resending smaller images cannot help, so warning UI should lead with the model, not the files.", required: true },
-    warnings: { type: "readonly VisionPreflightWarning[]", description: "Predicted-degraded images in attachment order. Empty = all clear.", required: true },
+    warnings: { type: "readonly VisionPreflightWarning[]", description: "Predicted-degraded images in the order they were added. Empty = all clear.", required: true },
   }}
 />
 
 
-### VisionPreflightAttachment
+### VisionPreflightFile
 
-Minimal attachment shape the preflight needs — pure data, no `File`.
+Minimal file shape the preflight needs — pure data, no `File`.
 
 <TypeTable
   type={{
-    contentType: { type: "string", description: "Declared/detected MIME type (`AttachmentEntry.contentType`).", required: true },
+    contentType: { type: "string", description: "Declared/detected MIME type (`FileEntry.contentType`).", required: true },
     name: { type: "string", description: "Display name used in warning copy (the chip's filename).", required: true },
     sizeBytes: { type: "number", description: "Raw byte size — what the runner's budget counts.", required: true },
   }}

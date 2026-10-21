@@ -522,28 +522,28 @@ export const ResumeRunInputSchema: GenMessage<ResumeRunInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_run_v1_io, 10);
 
 /**
- * GetArtifactDownloadUrlRequest requests a download URL for a run artifact.
+ * GetArtifactDownloadUrlRequest requests a download URL for a run's stored
+ * content.
  *
- * This endpoint generates presigned URLs for artifacts published by agents
- * during the run. The URLs are time-limited and can be used for direct
- * HTTP download without authentication.
+ * This endpoint generates a presigned URL for one object the run's runner
+ * stored. The URL is time-limited and can be used for direct HTTP download
+ * without authentication.
  *
  * ## Authorization
  *
  * Requires can_view permission on the run. This ensures users can only
- * access artifacts from runs they have access to.
+ * access stored content from runs they have access to.
  *
  * ## Security
  *
  * The storage_key is validated to ensure it belongs to the specified run.
  * Storage keys must start with "artifacts/{run_id}/" to prevent path
- * traversal attacks where a user could request URLs for other runs'
- * artifacts.
+ * traversal attacks where a user could request URLs for another run's
+ * content.
  *
  * ## Use Cases
  *
- * - CLI downloading agent-created files
- * - Web UI providing download links for artifacts
+ * - Web UI downloading a tool call's full output
  * - Refreshing expired download URLs
  *
  * ## Example
@@ -551,7 +551,7 @@ export const ResumeRunInputSchema: GenMessage<ResumeRunInput> = /*@__PURE__*/
  * Request:
  * {
  *   "run_id": "run_abc123xyz456",
- *   "storage_key": "artifacts/run_abc123xyz456/generated-skill.zip"
+ *   "storage_key": "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
  * }
  *
  * Response:
@@ -564,7 +564,7 @@ export const ResumeRunInputSchema: GenMessage<ResumeRunInput> = /*@__PURE__*/
  */
 export type GetArtifactDownloadUrlRequest = Message<"ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlRequest"> & {
   /**
-   * ID of the run that produced the artifact.
+   * ID of the run that stored the content.
    *
    * Used for authorization (can_view check) and storage_key validation.
    *
@@ -578,15 +578,15 @@ export type GetArtifactDownloadUrlRequest = Message<"ai.stigmer.agentic.run.v1.G
   runId: string;
 
   /**
-   * Storage key of the artifact to download.
+   * Storage key of the content to download.
    *
-   * Must be an artifact from the specified run. The storage_key
-   * is validated to start with "artifacts/{run_id}/" to prevent
-   * access to other runs' artifacts.
+   * Must be content of the specified run. The storage_key is validated
+   * to start with "artifacts/{run_id}/" to prevent access to another
+   * run's content.
    *
    * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
    *
-   * Format: "artifacts/{run_id}/{filename}"
+   * Format: "artifacts/{run_id}/{path}"
    * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
    *
    * Validation: Required, minimum 1 character
@@ -599,7 +599,7 @@ export type GetArtifactDownloadUrlRequest = Message<"ai.stigmer.agentic.run.v1.G
    * Whether the URL should force a browser download instead of inline display.
    *
    * When true, the presigned URL carries a Content-Disposition: attachment
-   * header keyed to the artifact's filename, so a browser navigating to it
+   * header keyed to the stored object's name, so a browser navigating to it
    * saves the file rather than rendering it in a tab. Browsers ignore the
    * HTML `download` attribute on cross-origin URLs (e.g. presigned R2), so
    * the disposition MUST be signed into the URL itself — this flag is how a
@@ -625,24 +625,25 @@ export const GetArtifactDownloadUrlRequestSchema: GenMessage<GetArtifactDownload
   messageDesc(file_ai_stigmer_agentic_run_v1_io, 11);
 
 /**
- * GetArtifactDownloadUrlResponse returns a presigned download URL for an artifact.
+ * GetArtifactDownloadUrlResponse returns a presigned download URL for a
+ * run's stored content.
  *
  * The download_url can be used with a simple HTTP GET request to download
- * the artifact. No authentication headers are required - the URL contains
+ * the content. No authentication headers are required - the URL contains
  * embedded authorization.
  *
  * @generated from message ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlResponse
  */
 export type GetArtifactDownloadUrlResponse = Message<"ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlResponse"> & {
   /**
-   * Presigned URL for downloading the artifact.
+   * Presigned URL for downloading the content.
    *
    * Valid for direct HTTP GET request without authentication.
    * The URL includes embedded authorization that expires at expires_at.
    *
    * Example: "https://r2.cloudflarestorage.com/bucket/artifacts/...?X-Amz-Signature=..."
-   * With local storage the URL is the server's artifact file server,
-   * signed by the server: "http://localhost:7235/artifacts/...?exp=...&sig=..."
+   * With local storage the URL is the server's own file server, signed
+   * by the server: "http://localhost:7235/artifacts/...?exp=...&sig=..."
    *
    * @generated from field: string download_url = 1;
    */
@@ -671,51 +672,48 @@ export const GetArtifactDownloadUrlResponseSchema: GenMessage<GetArtifactDownloa
   messageDesc(file_ai_stigmer_agentic_run_v1_io, 12);
 
 /**
- * GetArtifactContentRequest reads the raw content of a run artifact.
+ * GetArtifactContentRequest reads the raw bytes of a run's stored content.
  *
  * Unlike getArtifactDownloadUrl (which returns a presigned URL for direct
- * browser download), this endpoint returns the artifact bytes through the
- * Stigmer API. This eliminates CORS concerns for SDK consumers who need to
- * read artifact content programmatically — e.g., for YAML parsing, resource
- * detection, or in-app preview rendering.
+ * browser download), this endpoint returns the bytes through the Stigmer
+ * API. This eliminates CORS concerns for SDK consumers who need to read
+ * the content programmatically — e.g., for in-app preview rendering.
  *
  * ## Authorization
  *
  * Requires can_view permission on the run. This ensures users can only
- * read artifacts from runs they have access to.
+ * read stored content from runs they have access to.
  *
  * ## Security
  *
  * The storage_key is validated to ensure it belongs to the specified run.
  * Storage keys must start with "artifacts/{run_id}/" to prevent path
- * traversal attacks where a user could request content from other runs'
- * artifacts.
+ * traversal attacks where a user could request another run's content.
  *
  * ## Size Limit
  *
  * The server enforces a maximum content size (default: 512 KB). If the
- * artifact exceeds max_bytes, the response contains the first max_bytes of
- * content with truncated=true. Callers can use total_size_bytes to decide
+ * content exceeds max_bytes, the response contains the first max_bytes of
+ * it with truncated=true. Callers can use total_size_bytes to decide
  * whether to offer a full download via getArtifactDownloadUrl instead.
  *
  * ## Use Cases
  *
- * - Web UI reading YAML artifacts for Stigmer resource detection
- * - SDK consumers rendering artifact previews in embedded components
- * - CLI inspecting artifact content without a separate HTTP download
+ * - Web UI showing a tool call's offloaded output
+ * - Web UI showing a changed file's diff or content in file review
  *
  * ## Example
  *
  * Request:
  * {
  *   "run_id": "run_abc123xyz456",
- *   "storage_key": "artifacts/run_abc123xyz456/pr-review-agent.yaml"
+ *   "storage_key": "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
  * }
  *
  * Response:
  * {
  *   "content": <bytes>,
- *   "content_type": "text/yaml",
+ *   "content_type": "text/plain",
  *   "total_size_bytes": 1842,
  *   "truncated": false
  * }
@@ -724,7 +722,7 @@ export const GetArtifactDownloadUrlResponseSchema: GenMessage<GetArtifactDownloa
  */
 export type GetArtifactContentRequest = Message<"ai.stigmer.agentic.run.v1.GetArtifactContentRequest"> & {
   /**
-   * ID of the run that produced the artifact.
+   * ID of the run that stored the content.
    *
    * Used for authorization (can_view check) and storage_key validation.
    *
@@ -738,15 +736,15 @@ export type GetArtifactContentRequest = Message<"ai.stigmer.agentic.run.v1.GetAr
   runId: string;
 
   /**
-   * Storage key of the artifact to read.
+   * Storage key of the content to read.
    *
-   * Must be an artifact from the specified run. The storage_key
-   * is validated to start with "artifacts/{run_id}/" to prevent
-   * access to other runs' artifacts.
+   * Must be content of the specified run. The storage_key is validated
+   * to start with "artifacts/{run_id}/" to prevent access to another
+   * run's content.
    *
    * Obtain this value from a ToolCallOutputRef.storage_key the run recorded.
    *
-   * Format: "artifacts/{run_id}/{filename}"
+   * Format: "artifacts/{run_id}/{path}"
    * Example: "artifacts/run_abc123xyz456/toolcalls/call_01.txt"
    *
    * Validation: Required, minimum 1 character
@@ -758,8 +756,8 @@ export type GetArtifactContentRequest = Message<"ai.stigmer.agentic.run.v1.GetAr
   /**
    * Maximum number of bytes to return.
    *
-   * If the artifact is larger than this limit, the response will contain
-   * the first max_bytes of content with truncated=true.
+   * If the content is larger than this limit, the response will contain
+   * the first max_bytes of it with truncated=true.
    *
    * When 0 or unset, the server applies a default limit (512 KB).
    * The server may also enforce a hard upper bound regardless of this value.
@@ -771,11 +769,11 @@ export type GetArtifactContentRequest = Message<"ai.stigmer.agentic.run.v1.GetAr
   maxBytes: bigint;
 
   /**
-   * For directory artifacts (ZIPs): extract a specific file by its
-   * path within the archive instead of returning the raw ZIP bytes.
+   * For stored ZIP content: extract a specific entry by its path within
+   * the archive instead of returning the raw ZIP bytes.
    *
-   * When empty, returns the full artifact content (existing behavior).
-   * When set for a FILE artifact, this field is ignored.
+   * When empty, returns the full content (existing behavior).
+   * When the stored object is not a ZIP, this field is ignored.
    *
    * The path must match an entry in the archive exactly (case-sensitive).
    * List the archive's entries to discover valid values.
@@ -795,20 +793,21 @@ export const GetArtifactContentRequestSchema: GenMessage<GetArtifactContentReque
   messageDesc(file_ai_stigmer_agentic_run_v1_io, 13);
 
 /**
- * GetArtifactContentResponse returns the raw content of a run artifact.
+ * GetArtifactContentResponse returns the raw bytes of a run's stored
+ * content.
  *
- * The content field contains the artifact bytes (up to max_bytes). For text
- * artifacts, clients decode via TextDecoder or equivalent. The content_type
- * field provides a hint for rendering (detected by file extension).
+ * The content field contains the bytes (up to max_bytes). For text,
+ * clients decode via TextDecoder or equivalent. The content_type field
+ * provides a hint for rendering (detected by file extension).
  *
  * @generated from message ai.stigmer.agentic.run.v1.GetArtifactContentResponse
  */
 export type GetArtifactContentResponse = Message<"ai.stigmer.agentic.run.v1.GetArtifactContentResponse"> & {
   /**
-   * Raw artifact content (up to max_bytes).
+   * Raw content (up to max_bytes).
    *
-   * For text artifacts (YAML, JSON, Markdown, etc.), decode as UTF-8.
-   * For binary artifacts, this contains raw bytes — but callers should
+   * For text (YAML, JSON, Markdown, etc.), decode as UTF-8.
+   * For binary content, this contains raw bytes — but callers should
    * generally use getArtifactDownloadUrl for binary downloads instead.
    *
    * @generated from field: bytes content = 1;
@@ -819,7 +818,7 @@ export type GetArtifactContentResponse = Message<"ai.stigmer.agentic.run.v1.GetA
    * Detected content type based on file extension.
    *
    * Examples: "text/yaml", "text/plain", "application/json",
-   * "application/zip" (for directory artifacts).
+   * "application/zip".
    *
    * This is a best-effort detection — not based on content inspection.
    *
@@ -828,7 +827,7 @@ export type GetArtifactContentResponse = Message<"ai.stigmer.agentic.run.v1.GetA
   contentType: string;
 
   /**
-   * Actual total size of the artifact in bytes.
+   * Actual total size of the content in bytes.
    *
    * May be larger than len(content) when truncated=true.
    * Callers can use this to show "showing 512 KB of 2.1 MB" messages
@@ -841,8 +840,8 @@ export type GetArtifactContentResponse = Message<"ai.stigmer.agentic.run.v1.GetA
   /**
    * Whether the content was truncated to fit within max_bytes.
    *
-   * When true, content contains only the first max_bytes of the artifact.
-   * The full artifact can be downloaded via getArtifactDownloadUrl.
+   * When true, content contains only the first max_bytes of it.
+   * The full content can be downloaded via getArtifactDownloadUrl.
    *
    * @generated from field: bool truncated = 4;
    */

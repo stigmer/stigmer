@@ -29,13 +29,6 @@
       "components": 3
     },
     {
-      "slug": "attachment",
-      "title": "Attachment",
-      "description": "Hooks and components for the chat box's uploads as Files and chip display.",
-      "hooks": 1,
-      "components": 1
-    },
-    {
       "slug": "billing",
       "title": "Billing",
       "description": "Hooks and components for subscription plans, payment methods, and invoices.",
@@ -80,7 +73,7 @@
     {
       "slug": "composer",
       "title": "Composer",
-      "description": "The unified message input with model selection, workspace, and attachments.",
+      "description": "The unified message input with model selection, workspace, and files.",
       "hooks": 1,
       "components": 2
     },
@@ -262,7 +255,7 @@
     {
       "slug": "run",
       "title": "Run",
-      "description": "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
+      "description": "Hooks and components for real-time streaming, tool calls, approvals, messages, and the Files a run returns.",
       "hooks": 19,
       "components": 35
     },
@@ -311,7 +304,7 @@
     {
       "slug": "skill",
       "title": "Skill",
-      "description": "Hooks and components for knowledge attachments, search, picker, and detail views.",
+      "description": "Hooks and components for domain knowledge, search, picker, and detail views.",
       "hooks": 10,
       "components": 5
     },
@@ -328,6 +321,13 @@
       "description": "",
       "hooks": 5,
       "components": 4
+    },
+    {
+      "slug": "upload",
+      "title": "Upload",
+      "description": "Hooks and components for the chat box's uploads as Files and chip display.",
+      "hooks": 1,
+      "components": 1
     },
     {
       "slug": "usage",

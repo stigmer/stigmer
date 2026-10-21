@@ -139,8 +139,8 @@ service RoutineCommandController {
   //
   // @internal
   // Authorization: requires can_delete permission on the routine. The
-  // referenced agent is untouched. The Temporal artifact teardown runs
-  // best-effort, AFTER the row delete; an orphaned artifact is harmless
+  // referenced agent is untouched. The Temporal schedule teardown runs
+  // best-effort, AFTER the row delete; an orphaned schedule is harmless
   // by construction (fire-time revalidation no-ops it, and the
   // reconciliation pass removes it).
   rpc delete(RoutineId) returns (Routine) {
