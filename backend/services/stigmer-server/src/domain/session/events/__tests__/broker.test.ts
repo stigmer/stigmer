@@ -111,6 +111,21 @@ describe("the broker", () => {
     expect(output.previews.map((f) => f.frame.case)).toEqual(["stigmerToolOutputDelta"]);
   });
 
+  it("a turn's liveness reaches only the streams that asked for it, and a dropped one never holds back the next", () => {
+    const broker = new SessionEventBroker(silentLogger);
+    const messages = broker.subscribe("s1", ["agent.message"]);
+    const slow = broker.subscribe("s1", ["stigmer.run.liveness", "agent.message"]);
+    const liveness = (runId: string) => create(SessionEventPreviewSchema, { preview: { case: "stigmerRunLiveness", value: { runId } } });
+    broker.publishPreviews("s1", [liveness("r1")]);
+    expect(messages.previews).toEqual([]);
+    expect(slow.previews.map((f) => f.frame.case)).toEqual(["stigmerRunLiveness"]);
+    broker.publishPreviews("s1", Array.from({ length: SESSION_EVENT_PREVIEW_CAPACITY }, () => delta("m1", "x")));
+    expect(slow.previews, "the queue was dropped").toEqual([]);
+    expect([...slow.droppedIds], "the liveness named nothing to remember").toEqual(["m1"]);
+    broker.publishPreviews("s1", [liveness("r2")]);
+    expect(slow.previews.map((f) => (f.frame.case === "stigmerRunLiveness" ? f.frame.value.runId : ""))).toEqual(["r2"]);
+  });
+
   it("drops a slow stream's previews, never the stream, and skips the dropped messages' later fragments", () => {
     const broker = new SessionEventBroker(silentLogger);
     const slow = broker.subscribe("s1", ["agent.message"]);

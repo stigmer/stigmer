@@ -18,7 +18,7 @@
  * agent.thinking with a start only), so a delta reaches the streams that
  * asked for agent.message. A running tool's output fragment
  * (stigmer.tool_output_delta, Stigmer's own) reaches the streams that asked
- * for that type. A stream's undelivered previews are bounded: past
+ * for that type, as a turn's liveness (stigmer.run.liveness) does. A stream's undelivered previews are bounded: past
  * `SESSION_EVENT_PREVIEW_CAPACITY` frames or
  * `SESSION_EVENT_PREVIEW_MAX_BYTES` bytes its queued previews are DROPPED,
  * never the stream, and the event and tool-use ids they named are
@@ -78,8 +78,8 @@ export interface SessionEventSubscription {
   readonly previews: StreamSessionEventsResponse[];
   /** The encoded size of each queued preview, in queue order. */
   readonly sizes: number[];
-  /** The event or tool-use id each queued preview names, in queue order. */
-  readonly ids: string[];
+  /** The event or tool-use id each queued preview names, in queue order; undefined for a turn's liveness, which names none. */
+  readonly ids: (string | undefined)[];
   /** The sum of `sizes`. */
   queuedBytes: number;
   /** The previewed types this stream asked for. */
@@ -176,7 +176,7 @@ export class SessionEventBroker {
     for (const preview of previews) {
       let frame: StreamSessionEventsResponse;
       let type: string;
-      let id: string;
+      let id: string | undefined;
       switch (preview.preview.case) {
         case "eventStart":
           frame = create(StreamSessionEventsResponseSchema, {
@@ -198,6 +198,16 @@ export class SessionEventBroker {
           });
           type = "stigmer.tool_output_delta";
           id = preview.preview.value.toolUseId;
+          break;
+        case "stigmerRunLiveness":
+          frame = create(StreamSessionEventsResponseSchema, {
+            frame: { case: "stigmerRunLiveness", value: preview.preview.value },
+          });
+          type = "stigmer.run.liveness";
+          // Each liveness is the whole of what the turn has open: a dropped
+          // one costs nothing the next does not say again, so it is never
+          // remembered and never skipped.
+          id = undefined;
           break;
         case undefined:
           continue;
@@ -224,14 +234,15 @@ export class SessionEventBroker {
     return this.subscribers.get(sessionId)?.size ?? 0;
   }
 
-  private deliverPreview(sessionId: string, frame: StreamSessionEventsResponse, type: string, id: string): void {
+  /** `id` undefined: a snapshot preview, never remembered when dropped and never skipped. */
+  private deliverPreview(sessionId: string, frame: StreamSessionEventsResponse, type: string, id: string | undefined): void {
     const set = this.subscribers.get(sessionId);
     if (set === undefined) {
       return;
     }
     let size: number | undefined;
     for (const subscription of set) {
-      if (!subscription.deltaTypes.has(type) || subscription.droppedIds.has(id)) {
+      if (!subscription.deltaTypes.has(type) || (id !== undefined && subscription.droppedIds.has(id))) {
         continue;
       }
       size ??= toBinary(StreamSessionEventsResponseSchema, frame).length;
@@ -241,7 +252,9 @@ export class SessionEventBroker {
       ) {
         this.logger.warn("A session event stream fell behind on previews; dropping them", { sessionId });
         for (const dropped of [...subscription.ids, id]) {
-          remember(subscription, dropped);
+          if (dropped !== undefined) {
+            remember(subscription, dropped);
+          }
         }
         subscription.previews.length = 0;
         subscription.sizes.length = 0;
