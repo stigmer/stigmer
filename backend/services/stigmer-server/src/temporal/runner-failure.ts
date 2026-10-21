@@ -55,11 +55,12 @@ export const WORKER_SHUTDOWN_STATUS_ERROR =
 export const TURN_CONTINUES_FAILURE_TYPE = "StigmerTurnContinues";
 
 /**
- * Why a runner's turn stopped to continue: its runner drained, or its model
+ * Why a runner's turn stopped to continue: its runner drained, its model
  * stopped answering (a stall the provider owed, which the runner continues
- * instead of failing).
+ * instead of failing), or its engine's vendor ended the connection (Cursor's
+ * backend ends a long run's stream, stigmer#2436).
  */
-export type TurnContinuationCause = "drain" | "model-stall";
+export type TurnContinuationCause = "drain" | "model-stall" | "stream-cut";
 
 const CANCELED_MARKERS = ["worker shutdown", "shutting down"];
 
@@ -120,13 +121,26 @@ export function turnContinuationCauseOf(err: unknown): TurnContinuationCause | s
  * the typed failure's message. `undefined` for any other failure.
  */
 export function modelStallCopyOf(err: unknown): string | undefined {
+  return continuationCopyOf(err, "model-stall");
+}
+
+/**
+ * The copy a cut connection's continuation carries, which is the run's
+ * error when the workflow gives up continuing it: the runner's words for
+ * the cut, the typed failure's message. `undefined` for any other failure.
+ */
+export function streamCutCopyOf(err: unknown): string | undefined {
+  return continuationCopyOf(err, "stream-cut");
+}
+
+function continuationCopyOf(err: unknown, cause: TurnContinuationCause): string | undefined {
   for (
     let e: unknown = err;
     e instanceof Error;
     e = (e as { cause?: unknown }).cause
   ) {
     if (e instanceof ApplicationFailure && e.type === TURN_CONTINUES_FAILURE_TYPE) {
-      return e.details?.[0] === "model-stall" ? e.message : undefined;
+      return e.details?.[0] === cause ? e.message : undefined;
     }
   }
   return undefined;

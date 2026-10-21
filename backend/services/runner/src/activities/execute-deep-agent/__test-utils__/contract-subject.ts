@@ -344,6 +344,8 @@ class DeepAgentSubject implements DeepAgentContractSubject {
         return;
       case "cancelled":
         throw new Error(`${this.name}: cancelled() is not producible by this subject (this harness has no engine-side cancel; the runtime arm is declared off for it); test bug`);
+      case "cut":
+        throw new Error(`${this.name}: cut() is not producible by this subject (its model calls hold no vendor connection across the turn; the runtime arm is declared off for it); test bug`);
       case "open":
         if (step.as === "subagent" && step.streams) {
           throw new Error(`${this.name}: open(…, { as: "subagent", streams: true }) is not translated by this subject (a helper's turn prints nothing); test bug`);
@@ -449,8 +451,9 @@ class DeepAgentSubject implements DeepAgentContractSubject {
           }
           return close({ toolCalls: [{ id: step.toolCallId, name: ENGINE_TOOL.execute, args: { command: this.operations.shellCommand(step.toolCallId) } }] });
         case "cancelled":
+        case "cut":
           // Refused at `arrange`; unreachable in a plan that got this far.
-          throw new Error(`${this.name}: cancelled() reached the engine (arrange should have refused it)`);
+          throw new Error(`${this.name}: ${step.kind}() reached the engine (arrange should have refused it)`);
         default: {
           const exhaustive: never = step;
           throw new Error(`${this.name}: unknown scenario step ${JSON.stringify(exhaustive)}`);

@@ -54,7 +54,7 @@ import { clearCapturedRejection, getCapturedRejection } from "./rejection-captur
 import { newTurnStreamState } from "./turn-stream.js";
 import { CursorWorkspaceHooksRefusal } from "./workspace-hook-files.js";
 import { CursorRunTelemetry } from "./run-telemetry.js";
-import { streamAndSettle, usageSnapshotFor } from "./turn-settle.js";
+import { cutConnection, streamAndSettle, usageSnapshotFor } from "./turn-settle.js";
 import {
   buildTurnPrompt,
   checkToolScope,
@@ -138,7 +138,7 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
     outcome = await streamAndSettle({ input, sink, engine, gate, prompt, rows, streamState, telemetry });
     return outcome;
   } catch (err) {
-    outcome = await classifyThrown(err, input, config, engine);
+    outcome = await classifyThrown(err, input, sink, config, engine);
     return outcome;
   } finally {
     // End the Cursor run's spans + record metrics on EVERY exit path (idempotent).
@@ -201,6 +201,9 @@ function disposeEngine(engine: CursorEngine, sessionId: string, outcome: TurnOut
     case "cancelled":
     case "awaiting_approval":
     case "interrupted":
+    // Cut off by Cursor's side: the agent keeps its conversation, and the
+    // continuation picks the turn up on it.
+    case "stream_cut":
     // The Cursor SDK has no tool-round budget, so this adapter never ends a
     // turn `tool_call_limit`; were it to, the engine would be parked like any
     // other non-failed exit (the conversation continues on the next message).
@@ -245,7 +248,7 @@ function disposeEngine(engine: CursorEngine, sessionId: string, outcome: TurnOut
  * since the fix is the agent's author's or the folder owner's, exactly as
  * the native engine settles its own.
  */
-async function classifyThrown(err: unknown, input: TurnInput, config: CursorAdapterConfig, engine: CursorEngine | undefined): Promise<TurnOutcome> {
+async function classifyThrown(err: unknown, input: TurnInput, sink: TurnSink, config: CursorAdapterConfig, engine: CursorEngine | undefined): Promise<TurnOutcome> {
   const { executionId } = input;
   if (
     err instanceof ToolListResolutionError ||
@@ -272,6 +275,9 @@ async function classifyThrown(err: unknown, input: TurnInput, config: CursorAdap
       fallbackContext,
     });
     clearCapturedRejection(executionId);
+    // Cursor's side ended the run's stream: the turn continues, as on the
+    // `run.wait()` path (`turn-settle.ts`).
+    if (classified.category === "stream-cut") return cutConnection(sink, formatClassifiedError(classified));
     return { kind: "failed", surface: "internal", message: formatClassifiedError(classified), cause: err };
   }
 

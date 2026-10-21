@@ -16,7 +16,11 @@
  *  - the lane refuses none of the SDK's side calls (its allow-list,
  *    `CURSOR_SIDE_CALLS`, covers every `/aiserver.v1.*` call the SDK made);
  *  - the SDK leaves certificate checks on in the host (it turns them off
- *    for a backend URL that reads as localhost or 127.0.0.1).
+ *    for a backend URL that reads as localhost or 127.0.0.1);
+ *  - when Cursor's side ends the run's stream mid-answer (its connection
+ *    gone, stigmer#2436), the SDK's run ends in error with the words the
+ *    hermetic Cursor double plays (`CURSOR_STREAM_CUT_ERROR`) and no code,
+ *    and the runner's classifier reads them as a cut the turn continues past.
  */
 
 import { spawn } from "node:child_process";
@@ -30,6 +34,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { writeTrustedCertificates } from "../../agent-host/hosting.js";
 import { CURSOR_SIDE_CALLS } from "../cursor-lane.js";
+import { CURSOR_STREAM_CUT_ERROR } from "../../activities/execute-cursor/__test-utils__/scripted-agent.js";
+import { extractRunErrorSources, synthesizeError } from "../../activities/execute-cursor/error-classifier.js";
 import { AgentProxy } from "../server.js";
 
 const HOST_TOKEN = "host-token-sdk-wire";
@@ -45,7 +51,10 @@ interface Seen {
   readonly headers: IncomingHttpHeaders;
 }
 
-/** Cursor, faked: the exchange, the model list, the side calls, and an agent run it ends with an error of its own. */
+/** How the fake ends the agent run: with an error of its own, or by dropping its connection mid-answer. */
+let runEnds: "error" | "cut" = "error";
+
+/** Cursor, faked: the exchange, the model list, the side calls, and an agent run it ends with an error of its own or cuts off. */
 function fakeCursor(seen: Seen[]): NetServer {
   const http1 = createHttp1Server((req, res) => {
     req.resume();
@@ -64,6 +73,13 @@ function fakeCursor(seen: Seen[]): NetServer {
   h2.on("stream", (stream: ServerHttp2Stream, headers) => {
     seen.push({ protocol: "h2", path: String(headers[":path"]), headers });
     stream.on("data", () => {});
+    if (runEnds === "cut" && headers[":path"] === "/agent.v1.AgentService/Run") {
+      // The answer starts, then Cursor's connection goes without END_STREAM,
+      // as the live cut did (the lane logged `closedFirst=upstream`).
+      stream.respond({ ":status": 200, "content-type": String(headers["content-type"] ?? "application/connect+proto") });
+      setTimeout(() => stream.session?.destroy(), 200);
+      return;
+    }
     const body = Buffer.from(JSON.stringify({ error: { code: "unavailable", message: "the fake Cursor ends the run" } }));
     const frame = Buffer.alloc(5 + body.length);
     frame[0] = 2; // the Connect end-of-stream flag
@@ -130,7 +146,7 @@ afterAll(async () => {
 });
 
 /** Run the SDK's side in its own process and read the line it reports. */
-function runSdk(): Promise<{ readonly status: string; readonly error: string | null; readonly tlsRejectUnauthorized: string | null }> {
+function runSdk(): Promise<{ readonly status: string; readonly error: string | null; readonly errorCode?: string | null; readonly tlsRejectUnauthorized: string | null }> {
   return new Promise((resolve, reject) => {
     const env: NodeJS.ProcessEnv = { ...process.env, NODE_EXTRA_CA_CERTS: trust.file, CURSOR_BACKEND_URL: proxy.cursorEndpoint };
     delete env.NODE_TLS_REJECT_UNAUTHORIZED;
@@ -155,7 +171,7 @@ describe("the real Cursor SDK through the Cursor lane", () => {
     warn.mockRestore();
     expect(refused, "the lane refused none of the SDK's calls").toEqual([]);
 
-    expect(result).toEqual({ status: "error", error: "[unavailable] the fake Cursor ends the run", tlsRejectUnauthorized: null });
+    expect(result).toEqual({ status: "error", error: "[unavailable] the fake Cursor ends the run", errorCode: null, tlsRejectUnauthorized: null });
 
     const run = seen.find((s) => s.path === "/agent.v1.AgentService/Run");
     expect(run?.protocol, "the agent run is an HTTP/2 stream").toBe("h2");
@@ -171,5 +187,23 @@ describe("the real Cursor SDK through the Cursor lane", () => {
     expect(sideCalls.length, "the SDK made side calls through the lane").toBeGreaterThan(0);
     for (const path of sideCalls) expect(CURSOR_SIDE_CALLS.has(path), `${path} is on the lane's list`).toBe(true);
     expect(JSON.stringify(seen.map((s) => s.headers))).not.toContain(HOST_TOKEN);
+  }, 60_000);
+
+  it("reports a run whose stream Cursor's side cut off as the hermetic double plays it, and the classifier reads a cut", async () => {
+    runEnds = "cut";
+    try {
+      const result = await runSdk();
+      expect(result).toEqual({ status: "error", error: CURSOR_STREAM_CUT_ERROR, errorCode: null, tlsRejectUnauthorized: null });
+      const classified = synthesizeError({
+        ...extractRunErrorSources({ status: result.status, error: { message: result.error } }),
+        streamErrorMessage: undefined,
+        capturedRejection: undefined,
+        isResumedHandle: true,
+        fallbackContext: { model: "composer-2.5", mode: "local", agentId: "agent-sdk-wire" },
+      });
+      expect(classified.category, "a cut, never upgraded to a stale handle on a resumed agent").toBe("stream-cut");
+    } finally {
+      runEnds = "error";
+    }
   }, 60_000);
 });

@@ -52,7 +52,7 @@ import type { TimingRecorderWire } from "../shared/cold-start-timing.js";
 import type { TelemetrySettings } from "../otel-export.js";
 import type { RuntimeFieldsWire, WireOffload, WireProjection, WireTurnInput } from "./codec.js";
 
-export const AGENT_HOST_PROTOCOL_VERSION = 14;
+export const AGENT_HOST_PROTOCOL_VERSION = 15;
 
 /**
  * The largest single message either side sends or accepts. A turn's input
@@ -141,6 +141,7 @@ export type WireOutcome =
   | { readonly kind: "awaiting_approval" }
   | { readonly kind: "tool_call_limit" }
   | { readonly kind: "interrupted" }
+  | { readonly kind: "stream_cut"; readonly message: string }
   | {
       readonly kind: "failed";
       readonly message: string;

@@ -783,6 +783,12 @@ export type FailureSurface = "engine" | "actionable" | "internal";
  *    aborted is the runtime's evidence (its watchdog, its accounting, its
  *    chokepoint, the cancellation it was delivered), so no reason rides here;
  *    the runtime classifies and applies the throw-vs-return table.
+ *  - `stream_cut`: the engine's vendor ended its connection mid-turn, with
+ *    neither signal aborted, and kept the conversation (Cursor's backend
+ *    ends a long run's stream, stigmer#2436). Only the adapter can tell
+ *    this from a failure, so it rides here. The runtime writes no ending and
+ *    continues the turn on the next invocation, which picks it up from where
+ *    it was; `message` is the run's error if the workflow gives up.
  */
 export type TurnOutcome =
   | { readonly kind: "completed" }
@@ -790,4 +796,5 @@ export type TurnOutcome =
   | { readonly kind: "awaiting_approval" }
   | { readonly kind: "tool_call_limit" }
   | { readonly kind: "failed"; readonly message: string; readonly surface: FailureSurface; readonly cause?: unknown }
-  | { readonly kind: "interrupted" };
+  | { readonly kind: "interrupted" }
+  | { readonly kind: "stream_cut"; readonly message: string };

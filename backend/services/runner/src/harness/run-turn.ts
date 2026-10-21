@@ -100,6 +100,7 @@ import {
   platformStopArm,
   stallArm,
   modelStallArm,
+  streamCutArm,
   TERMINAL_COPY,
   TURN_CONTINUES_FAILURE_TYPE,
   toolCallLimitArm,
@@ -632,7 +633,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     // tree. An interrupted turn captures only once its arm is known
     // (`settleInterrupted`): one that continues or is stopped by the
     // workflow leaves its edits to the invocation that runs it on, which
-    // adopts the same change set. Before the decisions settle below, so the
+    // adopts the same change set, as a turn whose vendor cut it off does. Before the decisions settle below, so the
     // stamp reads the rows as the engine left them. A captured change set
     // never holds the turn: the turn takes its own arm below with the edits
     // applied, and the change set waits on the run's ledger and in the log
@@ -649,7 +650,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
         globalBypass: turn.mcp.leases.global,
       });
     };
-    if (outcome.kind !== "interrupted") await captureBoundary();
+    if (outcome.kind !== "interrupted" && outcome.kind !== "stream_cut") await captureBoundary();
 
     // The rows whose decision never runs the tool (SKIP, REJECT) are settled
     // by the runtime, once, now that the adapter has had its look at them and
@@ -684,6 +685,9 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
       }
       case "interrupted":
         return settleInterrupted(maxCostUsd, accumulator, captureBoundary);
+      case "stream_cut":
+        console.warn(`${activityName} lost its engine's connection; continuing: execution=${executionId}, ${outcome.message}`);
+        return settleWith(streamCutArm(outcome.message));
       default: {
         const exhaustive: never = outcome;
         throw new Error(`${activityName}: unknown turn outcome ${JSON.stringify(exhaustive)}`);
