@@ -6,13 +6,13 @@ import { cn } from "@stigmer/design-tokens";
 import { getUserMessage } from "@stigmer/client";
 import type { ConversationMediaRef } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
 import { GetConversationMediaDownloadUrlInputSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/conversation_io_pb";
-import { AttachmentImageLightbox } from "../attachment/AttachmentImageLightbox.js";
-import { formatFileSize } from "../attachment/attachment-utils.js";
+import { ImageLightbox } from "../upload/ImageLightbox.js";
 import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
 import { toError } from "../internal/toError.js";
 import { TruncatedText } from "../internal/truncated-text.js";
 import { useStigmer } from "../hooks.js";
 import { useConversationMediaUrl } from "./useConversationMediaUrl.js";
+import { formatFileSize } from "../file/file-size.js";
 
 /**
  * The full address of one timeline item's media — what
@@ -29,8 +29,8 @@ export interface ConversationMediaAddress {
   readonly itemId: string;
 }
 
-/** Props for {@link ConversationMediaAttachment}. */
-export interface ConversationMediaAttachmentProps {
+/** Props for {@link ConversationMedia}. */
+export interface ConversationMediaProps {
   /** The item's media reference (filename, content type, size). */
   readonly media: ConversationMediaRef;
   /** Where to fetch the bytes from. */
@@ -42,7 +42,7 @@ export interface ConversationMediaAttachmentProps {
 /**
  * One inbound timeline item's ingested media (stigmer/stigmer#367):
  * images as a WhatsApp-style inline thumbnail (click opens the shared
- * {@link AttachmentImageLightbox}), everything else as a document chip
+ * {@link ImageLightbox}), everything else as a document chip
  * (filename + size, click opens the file in a new tab).
  *
  * This component calls `useStigmer()`, so it must only be MOUNTED when
@@ -51,18 +51,18 @@ export interface ConversationMediaAttachmentProps {
  * `StigmerProvider` (its presentational contract; see the view's
  * `channelId` prop).
  *
- * Deliberately a sibling of the run thread's `MessageAttachments`,
- * not a reuse of it: that row renders storage-key-addressed artifacts of
- * a run the viewer owns, while this one renders
+ * Deliberately a sibling of the run thread's `MessageFiles`,
+ * not a reuse of it: that row renders the Files sent with a message,
+ * addressed by File id, while this one renders
  * conversation-viewer-scoped media addressed by timeline position — the
  * two read paths have different trust models and different
- * bubble treatments (chat thumbnail vs. attachment chip row).
+ * bubble treatments (chat thumbnail vs. file chip row).
  */
-export function ConversationMediaAttachment({
+export function ConversationMedia({
   media,
   address,
   className,
-}: ConversationMediaAttachmentProps) {
+}: ConversationMediaProps) {
   const isImage = media.contentType.startsWith("image/");
   return isImage ? (
     <MediaImageThumbnail media={media} address={address} className={className} />
@@ -77,7 +77,7 @@ export function ConversationMediaAttachment({
  * one, so this is never empty in practice), with a defensive fallback.
  */
 function displayName(media: ConversationMediaRef): string {
-  return media.filename || "attachment";
+  return media.filename || "media";
 }
 
 // ---------------------------------------------------------------------------
@@ -91,7 +91,7 @@ function displayName(media: ConversationMediaRef): string {
  * content-agnostic auto-scroll then needs no special case). If the URL
  * can't be minted (revoked media, transient API failure, the server's
  * uniform NOT_FOUND), the treatment degrades to the document chip —
- * never a broken-image glyph (the `MessageAttachments` precedent).
+ * never a broken-image glyph (the `MessageFiles` precedent).
  */
 function MediaImageThumbnail({
   media,
@@ -148,7 +148,7 @@ function MediaImageThumbnail({
         </span>
       </button>
       {previewOpen && (
-        <AttachmentImageLightbox
+        <ImageLightbox
           src={url}
           filename={name}
           open
@@ -284,7 +284,7 @@ function openInNewTab(url: string): void {
 }
 
 /**
- * Generic document glyph — the same geometry as the attachment chips'
+ * Generic document glyph — the same geometry as the file chips'
  * icon so the surfaces read as one family.
  */
 function FileGlyph() {

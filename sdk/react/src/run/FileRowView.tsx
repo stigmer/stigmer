@@ -1,22 +1,22 @@
 "use client";
 
-// Pure presentational artifact list row for the session's artifact facets.
+// Pure presentational File list row for the session's Files facet.
 // Domain: run (renders the FileRowItem view-model).
 
 import { cn } from "@stigmer/design-tokens";
 import { FileTypeIcon } from "../internal/file-icons/index.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import type { FileRowItem } from "./file-row-item.js";
-import { formatArtifactSize } from "./artifact-utils.js";
+import { formatFileSize } from "../file/file-size.js";
 
 /** Props for {@link FileRowView}. */
 export interface FileRowViewProps {
   /** The view-model to render (see {@link FileRowItem} adapters). */
   readonly item: FileRowItem;
-  /** Single click / Enter / Space: open the artifact (a preview tab, or a modal). */
+  /** Single click / Enter / Space: open the File (a preview tab, or a modal). */
   readonly onOpen: () => void;
   /**
-   * Double click: promote the artifact to a persistent (pinned) tab. Mirrors the
+   * Double click: promote the File to a persistent (pinned) tab. Mirrors the
    * file tree's `onOpenFile` (preview) / `onActivateFile` (pin) split — the
    * leading single click of the double click has already opened the preview, so
    * this promotes it. Omit in panel-less hosts (e.g. the modal-only widget):
@@ -24,7 +24,7 @@ export interface FileRowViewProps {
    * two harmless single clicks, exactly as `FileTreeNode` behaves.
    */
   readonly onActivate?: () => void;
-  /** Download the artifact (each host owns its own download mechanics). */
+  /** Download the File (each host owns its own download mechanics). */
   readonly onDownload: () => void;
   /** `true` while the host's download is in flight — disables the control. */
   readonly isDownloading: boolean;
@@ -33,7 +33,7 @@ export interface FileRowViewProps {
 }
 
 /**
- * One dense, VS Code-style artifact row: a full-width open button (shared
+ * One dense, VS Code-style File row: a full-width open button (shared
  * file-type icon + name + optional disambiguation subtitle + size) with a
  * sibling, hover/focus-revealed Download button.
  *
@@ -89,7 +89,7 @@ export function FileRowView({
             )}
           </span>
           <span className="stg:shrink-0 stg:tabular-nums stg:text-[0.65rem] stg:text-muted-foreground-faint">
-            {formatArtifactSize(item.sizeBytes)}
+            {formatFileSize(item.sizeBytes)}
           </span>
         </TooltipTrigger>
         <TooltipContent side="top" className="stg:break-all">

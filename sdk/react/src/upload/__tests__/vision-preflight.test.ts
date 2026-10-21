@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   assessVisionPreflight,
   visionPreflightMessage,
-  type VisionPreflightAttachment,
+  type VisionPreflightFile,
 } from "../vision-preflight";
 import type { ModelInfo, VisionLimits } from "../../models/registry";
 
@@ -13,7 +13,7 @@ const LIMITS: VisionLimits = {
   maxImages: 10,
 };
 
-function image(name: string, sizeBytes: number, contentType = "image/png"): VisionPreflightAttachment {
+function image(name: string, sizeBytes: number, contentType = "image/png"): VisionPreflightFile {
   return { name, sizeBytes, contentType };
 }
 
@@ -54,13 +54,13 @@ describe("assessVisionPreflight — tri-state silence", () => {
     expect(result.modelCannotSeeImages).toBe(false);
   });
 
-  it("returns no warnings for zero attachments", () => {
+  it("returns no warnings for zero files", () => {
     expect(assessVisionPreflight([], { model: model(), limits: LIMITS }).warnings).toEqual([]);
   });
 });
 
 describe("assessVisionPreflight — vision candidates", () => {
-  it("ignores non-image attachments entirely, even huge ones", () => {
+  it("ignores non-image files entirely, even huge ones", () => {
     const result = assessVisionPreflight(
       [
         { name: "big.pdf", sizeBytes: 50 * 1024 * 1024, contentType: "application/pdf" },
@@ -141,7 +141,7 @@ describe("assessVisionPreflight — per-turn budget (budget_exhausted)", () => {
     ]);
   });
 
-  it("degrades the image that would cross the total-byte budget, in attachment order", () => {
+  it("degrades the image that would cross the total-byte budget, in the order the files were added", () => {
     const twoMib = 2 * 1024 * 1024;
     const result = assessVisionPreflight(
       [image("a.png", twoMib), image("b.png", twoMib), image("c.png", twoMib)],

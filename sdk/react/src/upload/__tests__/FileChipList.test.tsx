@@ -6,8 +6,8 @@ import {
   fireEvent,
   screen,
 } from "@testing-library/react";
-import { AttachmentChipList } from "../AttachmentChipList.js";
-import type { AttachmentChipListProps } from "../AttachmentChipList.js";
+import { FileChipList } from "../FileChipList.js";
+import type { FileChipListProps } from "../FileChipList.js";
 import type { FileUploadEntry } from "../useFileUploads.js";
 
 // ---------------------------------------------------------------------------
@@ -32,10 +32,10 @@ function entry(overrides: Partial<FileUploadEntry> = {}): FileUploadEntry {
 
 function renderChips(
   entries: FileUploadEntry[],
-  props: Partial<AttachmentChipListProps> = {},
+  props: Partial<FileChipListProps> = {},
 ) {
   return render(
-    <AttachmentChipList
+    <FileChipList
       entries={entries}
       onRemove={vi.fn()}
       onRetry={vi.fn()}
@@ -68,7 +68,7 @@ afterEach(() => {
 // Image miniature — visible in every phase (#371 gap 2)
 // ---------------------------------------------------------------------------
 
-describe("AttachmentChipList — image miniature", () => {
+describe("FileChipList — image miniature", () => {
   it("renders an object-URL miniature for a ready image entry", async () => {
     const { container } = renderChips([entry()]);
 
@@ -172,14 +172,14 @@ describe("AttachmentChipList — image miniature", () => {
     const revokeSpy = vi.spyOn(URL, "revokeObjectURL");
     const image = entry();
     const { container, rerender } = render(
-      <AttachmentChipList entries={[image]} onRemove={vi.fn()} onRetry={vi.fn()} />,
+      <FileChipList entries={[image]} onRemove={vi.fn()} onRetry={vi.fn()} />,
     );
 
     await waitFor(() => expect(chipImage(container)).toBeTruthy());
     const src = chipImage(container)!.getAttribute("src")!;
 
     rerender(
-      <AttachmentChipList entries={[]} onRemove={vi.fn()} onRetry={vi.fn()} />,
+      <FileChipList entries={[]} onRemove={vi.fn()} onRetry={vi.fn()} />,
     );
 
     expect(container.querySelector("img")).toBeNull();
@@ -206,7 +206,7 @@ describe("AttachmentChipList — image miniature", () => {
 // Click-to-open — built-in lightbox and the onPreview seam (#371 gap 3)
 // ---------------------------------------------------------------------------
 
-describe("AttachmentChipList — preview", () => {
+describe("FileChipList — preview", () => {
   it("opens the built-in lightbox with the full image when the chip body is clicked", async () => {
     renderChips([entry()]);
 
@@ -273,7 +273,7 @@ describe("AttachmentChipList — preview", () => {
     expect(document.querySelector("dialog")).toBeTruthy();
 
     rerender(
-      <AttachmentChipList entries={[]} onRemove={vi.fn()} onRetry={vi.fn()} />,
+      <FileChipList entries={[]} onRemove={vi.fn()} onRetry={vi.fn()} />,
     );
 
     expect(document.querySelector("dialog")).toBeNull();

@@ -273,7 +273,7 @@ describe("MARKDOWN_COMPONENTS.pre (mermaid dispatch seam)", () => {
     expect(pre!.className).toContain("stg:bg-muted");
   });
 
-  it("dispatches through real react-markdown (the artifact/skill surface path)", () => {
+  it("dispatches through real react-markdown (the file/skill surface path)", () => {
     // Renders an actual document instead of synthetic elements, proving the
     // element shape react-markdown hands to `pre` matches what the seam
     // detects. The Streamdown (chat) path has the equivalent end-to-end

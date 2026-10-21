@@ -36,12 +36,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
-import type { MessageAttachmentView } from "../run/MessageAttachments.js";
+import type { MessageFileView } from "../run/MessageFiles.js";
 import {
   detectContentType,
   uniquifyFilename,
-  validateAttachmentSize,
-} from "./attachment-utils.js";
+  validateFileSize,
+} from "./upload-utils.js";
 import { prepareImageForVision } from "./prepare-image.js";
 
 /**
@@ -163,7 +163,7 @@ export interface FileHandOff {
   /** The Files' ids, in the order they were added: the run's `fileIds`. */
   readonly fileIds: string[];
   /** The Files as the optimistic message bubble shows them. */
-  readonly attachments: readonly MessageAttachmentView[];
+  readonly files: readonly MessageFileView[];
   /**
    * Delete the person's own Files among them. Call it once the run that
    * names {@link fileIds} exists: the conversation then holds its own
@@ -227,7 +227,7 @@ function generateId(): string {
 }
 
 /** How a ready entry shows in a message bubble. */
-export function toAttachmentView(entry: FileUploadEntry): MessageAttachmentView {
+export function toFileChipView(entry: FileUploadEntry): MessageFileView {
   return {
     fileId: entry.fileId ?? undefined,
     filename: entry.file.name,
@@ -291,7 +291,7 @@ export function useFileUploads(options?: UseFileUploadsOptions): UseFileUploadsR
   // File is never touched), and an upload still in flight once it lands.
   // React's development double mount runs this cleanup and mounts again at
   // once, even after a mount effect added files (a composer's initial
-  // attachments), so nothing is deleted until the unmount has stood past
+  // files), so nothing is deleted until the unmount has stood past
   // the current task: a remount clears `disposed` first and keeps them.
   const disposed = useRef(false);
   const deleteFileRef = useRef(deleteFile);
@@ -379,7 +379,7 @@ export function useFileUploads(options?: UseFileUploadsOptions): UseFileUploadsR
       abortControllers.current.delete(id);
 
       // Validated on the prepared bytes, the ones that upload.
-      const sizeError = validateAttachmentSize(prepared);
+      const sizeError = validateFileSize(prepared);
       if (sizeError) {
         setEntries((prev) => prev.filter((e) => e.id !== id));
         onValidationError?.(sizeError);
@@ -443,7 +443,7 @@ export function useFileUploads(options?: UseFileUploadsOptions): UseFileUploadsR
           continue;
         }
 
-        const sizeError = validateAttachmentSize(rawFile);
+        const sizeError = validateFileSize(rawFile);
         if (sizeError) {
           onValidationError?.(sizeError);
           continue;
@@ -549,7 +549,7 @@ export function useFileUploads(options?: UseFileUploadsOptions): UseFileUploadsR
     let released: Promise<void> | null = null;
     return {
       fileIds: ready.map((e) => e.fileId),
-      attachments: ready.map(toAttachmentView),
+      files: ready.map(toFileChipView),
       release: () => {
         released ??= Promise.all(
           owned.map((fileId) => stigmer.file.delete(fileId).catch(() => undefined)),

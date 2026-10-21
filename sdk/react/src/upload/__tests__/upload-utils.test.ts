@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { uniquifyFilename } from "../attachment-utils.js";
+import { uniquifyFilename } from "../upload-utils.js";
 
 describe("uniquifyFilename", () => {
   const cases: Array<{

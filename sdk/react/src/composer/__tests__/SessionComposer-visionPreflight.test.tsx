@@ -152,7 +152,7 @@ describe("SessionComposer — vision preflight notice (#365, #386)", () => {
     expect(screen.queryByText(/inline-image/)).toBeNull();
   });
 
-  it("clears the warning when the offending attachment is removed", async () => {
+  it("clears the warning when the offending file is removed", async () => {
     render(<SessionComposer onSubmit={vi.fn()} />, { wrapper: createWrapper() });
     const textarea = screen.getByRole("textbox");
 
@@ -187,7 +187,7 @@ describe("SessionComposer — vision preflight notice (#365, #386)", () => {
     ).toBeTruthy();
   });
 
-  it("never warns about non-image attachments on a blind model", async () => {
+  it("never warns about non-image files on a blind model", async () => {
     render(
       <SessionComposer onSubmit={vi.fn()} defaultModelId="cursor/kimi-k3" />,
       { wrapper: createWrapper() },
@@ -203,7 +203,7 @@ describe("SessionComposer — vision preflight notice (#365, #386)", () => {
     expect(screen.queryByText(/can't view images/)).toBeNull();
   });
 
-  it("does not gate the send — the warned message still submits with the attachment", async () => {
+  it("does not gate the send — the warned message still submits with the file", async () => {
     const onSubmit = vi.fn();
     render(<SessionComposer onSubmit={onSubmit} org="acme" />, { wrapper: createWrapper() });
     const textarea = screen.getByRole("textbox");

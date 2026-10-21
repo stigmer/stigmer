@@ -5,12 +5,12 @@ import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/
 import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
 import { useFileDownload } from "../file/useFile.js";
-import { formatArtifactSize } from "./artifact-utils.js";
 import { FileBody } from "./FileBody.js";
 import { FileApplyButton } from "./FileApplyButton.js";
 import { FileAddAsSkillAction, FileDeleteAction } from "./FileActions.js";
 import { useFileInspection } from "./useFileInspection.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
+import { formatFileSize } from "../file/file-size.js";
 
 // ---------------------------------------------------------------------------
 // FilePreviewContent — standalone content component
@@ -72,7 +72,7 @@ export interface FilePreviewContentProps {
  * Orchestrates the shared detection pipeline (see {@link useFileInspection}):
  *
  * it reads a text File via `useFileContent`, renders it via
- * {@link ArtifactContentRenderer} (markdown, YAML, JSON, or plain text based
+ * {@link TextContentRenderer} (markdown, YAML, JSON, or plain text based
  * on file type), and detects Agent resources via
  * {@link useDetectStigmerResource}.
  *
@@ -325,7 +325,7 @@ function ContentHeader({
         </h2>
         <div className="stg:mt-0.5 stg:flex stg:flex-wrap stg:items-center stg:gap-2">
           <span className="stg:text-xs stg:tabular-nums stg:text-muted-foreground">
-            {formatArtifactSize(file.status?.sizeBytes ?? BigInt(0))}
+            {formatFileSize(file.status?.sizeBytes ?? BigInt(0))}
           </span>
           {isDetecting && !detectionLabel && (
             <span

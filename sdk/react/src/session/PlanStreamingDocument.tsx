@@ -18,9 +18,9 @@ export interface PlanStreamingDocumentProps {
 
 /**
  * The plan document tab's LIVE view: renders the plan as it streams, before
- * any artifact exists. The streaming counterpart of {@link PlanEditor} — same
+ * the plan File exists. The streaming counterpart of {@link PlanEditor} — same
  * centered document column, same header-lifted title, same plan-document
- * typography — so the moment the turn completes and the artifact-backed
+ * typography — so the moment the turn completes and the File-backed
  * editor takes over, the document simply stops moving rather than changing
  * shape.
  *

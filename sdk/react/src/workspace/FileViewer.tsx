@@ -12,9 +12,9 @@ import {
 } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { DisplayFileChange } from "@stigmer/client";
-import { AttachmentImageLightbox } from "../attachment/AttachmentImageLightbox.js";
-import { useObjectUrl } from "../attachment/useObjectUrl.js";
-import { ArtifactContentRenderer } from "../run/ArtifactContentRenderer.js";
+import { ImageLightbox } from "../upload/ImageLightbox.js";
+import { useObjectUrl } from "../upload/useObjectUrl.js";
+import { TextContentRenderer } from "../run/TextContentRenderer.js";
 import { FileChangeDiff } from "../run/FileChangesView.js";
 import { useFileChangeContent } from "../run/useFileChangeContent.js";
 import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
@@ -30,7 +30,7 @@ import {
   type WorkspaceFileReader,
 } from "./WorkspaceFileReader.js";
 
-/** Line-skeleton widths, mirroring `ArtifactFileContent` in `execution/`. */
+/** Line-skeleton widths, mirroring `TextContentView` in `execution/`. */
 const SKELETON_LINE_WIDTHS = [85, 72, 90, 65, 78, 88, 70, 82] as const;
 
 /** Props for {@link FileViewer}. */
@@ -98,12 +98,12 @@ export interface FileViewerHandle {
  *
  * A thin shell (no new rendering): it resolves the open file, drives
  * {@link useWorkspaceFileContent}, and — for displayable text — delegates to
- * the shared {@link ArtifactContentRenderer} (markdown / YAML / JSON /
+ * the shared {@link TextContentRenderer} (markdown / YAML / JSON /
  * line-numbered text). Its state body deliberately mirrors
- * `ArtifactFileContent` in `execution/` (same skeleton, error, and
- * delegation), extended with the three states a run artifact never
+ * `TextContentView` in `run/` (same skeleton, error, and
+ * delegation), extended with the three states a File's text never
  * has — binary, too-large, and unsupported-substrate. The two are **not**
- * merged into one shared component: their surrounding chrome (an artifact's
+ * merged into one shared component: their surrounding chrome (a File's
  * copy/download/apply bar vs. this viewer's header) differs enough that a
  * shared shell would need context-flag props. Keep them as sibling shells that
  * share the one renderer.
@@ -329,7 +329,7 @@ function ViewerModeToggle({
 }
 
 // ---------------------------------------------------------------------------
-// Body — exactly one state, mirroring ArtifactFileContent + workspace extras
+// Body — exactly one state, mirroring TextContentView + workspace extras
 // ---------------------------------------------------------------------------
 
 /**
@@ -477,7 +477,7 @@ function FileViewerBody({
           Live — may differ from the reviewed change.
         </p>
       )}
-      <ArtifactContentRenderer
+      <TextContentRenderer
         content={content.text}
         fileName={basename}
         isTruncated={content.truncated}
@@ -491,7 +491,7 @@ function FileViewerBody({
  * Inline image rendering for a workspace file whose reader delivered whole
  * image bytes (stigmer/stigmer#379). The bytes become an object URL for the
  * component's lifetime; clicking the image opens the shared
- * {@link AttachmentImageLightbox} at full size — the same viewer attachment
+ * {@link ImageLightbox} at full size — the same viewer upload
  * chips and conversation media use, so pictures behave identically across
  * surfaces. If the browser cannot decode the bytes (a corrupt file behind an
  * image extension), the component degrades to the binary notice — never a
@@ -564,7 +564,7 @@ function ImageFileContent({
           {size ? ` · ${formatBytes(size)}` : ""}
         </p>
       </div>
-      <AttachmentImageLightbox
+      <ImageLightbox
         src={url}
         filename={basename}
         open={lightboxOpen}
@@ -576,7 +576,7 @@ function ImageFileContent({
 
 /**
  * The captured-content fallback: renders a change's after-side text (the
- * bytes the session already holds — inline or offloaded to artifact storage)
+ * bytes the session already holds — inline or offloaded to the run's storage)
  * when no live substrate can serve the file. Mounted only when eligible, so
  * its content fetch never runs for live-served files.
  */
@@ -608,7 +608,7 @@ function CapturedFileContent({
       <p className="stg:border-b stg:border-border-muted stg:px-4 stg:py-1.5 stg:text-[0.65rem] stg:text-muted-foreground">
         As of the agent&rsquo;s last change — not yet in the workspace source.
       </p>
-      <ArtifactContentRenderer
+      <TextContentRenderer
         content={afterText}
         fileName={basename}
         reveal={reveal}

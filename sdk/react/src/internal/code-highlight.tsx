@@ -29,7 +29,7 @@ import yaml from "highlight.js/lib/languages/yaml";
  *
  * This is the single highlighting engine behind the shared `code` override in
  * {@link file://./markdown-components.tsx} — so chat (Streamdown) and the
- * artifact/skill viewers (react-markdown) colorize code identically.
+ * file/skill viewers (react-markdown) colorize code identically.
  *
  * The engine emits highlight.js token classes (`hljs-keyword`, `hljs-string`,
  * …) which `styles.css` maps onto the `--stgm-syntax-*` theme tokens. Colors

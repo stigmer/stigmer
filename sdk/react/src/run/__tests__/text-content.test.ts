@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
-import { isTextFile } from "../artifact-utils";
+import { isTextFile } from "../text-content";
 
 function file(filename: string, mimeType = "") {
   return create(FileSchema, { spec: { filename, mimeType } });

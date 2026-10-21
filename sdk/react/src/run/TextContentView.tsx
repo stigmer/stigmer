@@ -1,13 +1,13 @@
 "use client";
 
-// The shared file-content state machine for artifact bodies (loading / error /
+// The shared file-content state machine for text bodies (loading / error /
 // unavailable / text). Domain: run (data-model-agnostic).
 
-import { ArtifactContentRenderer } from "./ArtifactContentRenderer.js";
+import { TextContentRenderer } from "./TextContentRenderer.js";
 import { LoadingRegion } from "../internal/LoadingRegion.js";
 
-/** Props for {@link ArtifactFileContent}. */
-export interface ArtifactFileContentProps {
+/** Props for {@link TextContentView}. */
+export interface TextContentViewProps {
   /** File name driving the render-mode dispatch (markdown / yaml / json / text). */
   readonly fileName: string;
   /** Decoded text content, or `null` (binary / loading / error). */
@@ -25,22 +25,22 @@ export interface ArtifactFileContentProps {
 const SKELETON_LINE_WIDTHS = [85, 72, 90, 65, 78, 88, 70, 82] as const;
 
 /**
- * The file-content states of an artifact body: loading skeleton, error,
+ * The file-content states of a text body: loading skeleton, error,
  * "not available for preview" (binary / unfetched), or the rendered text via
- * {@link ArtifactContentRenderer}.
+ * {@link TextContentRenderer}.
  *
  * Extracted from `FileBody` (the output-File bodies, modal +
- * document). Deliberately takes plain fields, not an artifact type,
+ * document). Deliberately takes plain fields, not a File,
  * so a host with its own content model can render file content identically.
  */
-export function ArtifactFileContent({
+export function TextContentView({
   fileName,
   content,
   contentType,
   isLoading,
   error,
   isTruncated,
-}: ArtifactFileContentProps) {
+}: TextContentViewProps) {
   if (isLoading) {
     return (
       <LoadingRegion className="stg:space-y-2 stg:p-4" label="Loading content">
@@ -74,7 +74,7 @@ export function ArtifactFileContent({
   }
 
   return (
-    <ArtifactContentRenderer
+    <TextContentRenderer
       content={content}
       fileName={fileName}
       contentType={contentType}

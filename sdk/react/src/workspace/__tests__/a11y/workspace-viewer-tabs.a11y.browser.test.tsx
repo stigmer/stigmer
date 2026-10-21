@@ -60,7 +60,7 @@ describe("WorkspaceSurface a11y — editor tabs + viewer", () => {
       mode,
     );
     // A change makes the viewer diff-default and exposes the Diff|File toggle;
-    // inline diff content resolves synchronously (no artifact fetch).
+    // inline diff content resolves synchronously (no stored-content fetch).
     await screen.findByRole("radio", { name: "Diff" });
     // Also wait for the explorer tree to settle so we audit the stable surface.
     await screen.findByText("README.md");

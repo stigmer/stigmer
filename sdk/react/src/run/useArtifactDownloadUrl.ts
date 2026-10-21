@@ -9,7 +9,7 @@ import { useFetch } from "../internal/useFetch.js";
 /** Return value of {@link useArtifactDownloadUrl}. */
 export interface UseArtifactDownloadUrlReturn {
   /**
-   * A freshly minted presigned download URL for the artifact, or `null` when:
+   * A freshly minted presigned download URL for the stored content, or `null` when:
    * - Fetching is skipped (`enabled` is `false`, or `executionId`/`storageKey` is `null`)
    * - The request is in-flight
    * - The request failed
@@ -47,19 +47,19 @@ export interface UseArtifactDownloadUrlOptions {
 }
 
 /**
- * Data hook that resolves a **fresh** presigned download URL for a run
- * artifact on demand via `stigmer.run.getArtifactDownloadUrl()`.
+ * Data hook that resolves a **fresh** presigned download URL for the content
+ * stored under a run's storage key (a tool call's offloaded output, or one
+ * side of a captured file change) on demand via
+ * `stigmer.run.getArtifactDownloadUrl()`. A File's link is minted with
+ * `useFileDownloadUrl` instead.
  *
- * This exists because presigned URLs expire. The runner once baked a
- * short-lived URL into the persisted run status and the UI rendered it
- * verbatim — so any link opened after the URL's lifetime failed with
- * `ExpiredRequest`. Minting the URL at view time from the stable `storageKey`
- * guarantees it is always valid, and works for every historical run
- * (the `storageKey` never expires).
+ * Presigned URLs expire, so the URL is minted at view time from the stable
+ * `storageKey`: it is always valid, and works for every historical run (the
+ * `storageKey` never expires).
  *
  * Use this for surfaces that genuinely need a URL — an `<img src>` for an
- * offloaded screenshot, or a direct browser download of a large/binary
- * artifact. For text that should render in-app, prefer {@link useArtifactContent}
+ * offloaded screenshot, or a direct browser download of large or binary
+ * output. For text that should render in-app, prefer {@link useArtifactContent}
  * (CORS-safe, no presign).
  *
  * The URL is cached cross-mount by `storageKey`, so repeated renders
@@ -68,8 +68,8 @@ export interface UseArtifactDownloadUrlOptions {
  * Pass `enabled: false` (or `null` for either id) to skip fetching — consistent
  * with the `useArtifactContent(null, null)` convention.
  *
- * @param executionId - Run that produced the artifact, or `null` to skip.
- * @param storageKey - Storage key from the artifact/output ref, or `null` to skip.
+ * @param executionId - Run whose storage key it is, or `null` to skip.
+ * @param storageKey - Storage key from the output ref, or `null` to skip.
  * @param options - Optional gating (`enabled`).
  *
  * @example
@@ -80,7 +80,7 @@ export interface UseArtifactDownloadUrlOptions {
  * return url ? <img src={url} alt="Tool output" /> : null;
  * ```
  *
- * @see useArtifactContent — reads artifact bytes through the API (text preview)
+ * @see useArtifactContent — reads the stored text through the API (text preview)
  * @see useArtifactDownload — imperative click-to-download counterpart
  */
 export function useArtifactDownloadUrl(

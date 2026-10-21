@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { SessionPlan } from "../library/detect-plan-artifact.js";
+import type { SessionPlan } from "../library/detect-plan-file.js";
 
 /**
  * Identity of a plan for draft scoping: the plan File's id. A File's bytes

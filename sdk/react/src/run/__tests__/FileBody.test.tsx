@@ -9,7 +9,7 @@ import { create } from "@bufbuild/protobuf";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { FileBody } from "../FileBody";
 
-function fileArtifact(filename: string) {
+function outputFile(filename: string) {
   return create(FileSchema, { spec: { filename }, status: { sizeBytes: 64n, runId: "r1" } });
 }
 
@@ -19,7 +19,7 @@ describe("FileBody — file states", () => {
   it("renders a loading skeleton", () => {
     render(
       <FileBody
-        file={fileArtifact("notes.txt")}
+        file={outputFile("notes.txt")}
         content={null}
         contentType={null}
         isLoading
@@ -33,7 +33,7 @@ describe("FileBody — file states", () => {
   it("renders an error message", () => {
     render(
       <FileBody
-        file={fileArtifact("notes.txt")}
+        file={outputFile("notes.txt")}
         content={null}
         contentType={null}
         isLoading={false}
@@ -47,7 +47,7 @@ describe("FileBody — file states", () => {
   it("renders the binary / unavailable state when content is null and settled", () => {
     render(
       <FileBody
-        file={fileArtifact("image.bin")}
+        file={outputFile("image.bin")}
         content={null}
         contentType={null}
         isLoading={false}
@@ -61,14 +61,14 @@ describe("FileBody — file states", () => {
   it("renders text content", () => {
     render(
       <FileBody
-        file={fileArtifact("notes.txt")}
-        content={"hello from the artifact"}
+        file={outputFile("notes.txt")}
+        content={"hello from the file"}
         contentType={"text/plain"}
         isLoading={false}
         error={null}
         isTruncated={false}
       />,
     );
-    expect(screen.getByText(/hello from the artifact/)).toBeTruthy();
+    expect(screen.getByText(/hello from the file/)).toBeTruthy();
   });
 });

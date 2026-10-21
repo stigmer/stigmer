@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
-import { ArtifactContentRenderer } from "../ArtifactContentRenderer";
+import { TextContentRenderer } from "../TextContentRenderer";
 
 afterEach(cleanup);
 
-describe("ArtifactContentRenderer — markdown", () => {
+describe("TextContentRenderer — markdown", () => {
   const wrappedPlan = "```markdown\n# Plan\n\n1. First\n2. Second\n```";
 
   it("unwraps a model-wrapped ```markdown plan in the Rendered view", () => {
     const { container } = render(
-      <ArtifactContentRenderer content={wrappedPlan} fileName="plan.md" />,
+      <TextContentRenderer content={wrappedPlan} fileName="plan.md" />,
     );
 
     // Rendered is the default tab: the heading/list render as real elements and
@@ -19,9 +19,9 @@ describe("ArtifactContentRenderer — markdown", () => {
     expect(container.querySelector("pre")).toBeNull();
   });
 
-  it("keeps the Source view byte-faithful to the stored artifact", () => {
+  it("keeps the Source view byte-faithful to the stored file", () => {
     const { container } = render(
-      <ArtifactContentRenderer content={wrappedPlan} fileName="plan.md" />,
+      <TextContentRenderer content={wrappedPlan} fileName="plan.md" />,
     );
 
     fireEvent.click(screen.getByRole("tab", { name: "Source" }));
@@ -35,7 +35,7 @@ describe("ArtifactContentRenderer — markdown", () => {
 
   it("leaves an already-rich markdown plan unchanged", () => {
     const { container } = render(
-      <ArtifactContentRenderer
+      <TextContentRenderer
         content={"# Plan\n\n- only step"}
         fileName="plan.md"
       />,
@@ -48,11 +48,11 @@ describe("ArtifactContentRenderer — markdown", () => {
   it("syntax-highlights fenced code blocks via the shared seam", () => {
     const md = "# Notes\n\n```go\nfunc main() {}\n```\n";
     const { container } = render(
-      <ArtifactContentRenderer content={md} fileName="notes.md" />,
+      <TextContentRenderer content={md} fileName="notes.md" />,
     );
 
     // Same shared `MARKDOWN_COMPONENTS.code` override the chat stream uses, so
-    // the react-markdown artifact path colorizes code identically.
+    // the react-markdown file path colorizes code identically.
     const code = container.querySelector("code.hljs");
     expect(code).not.toBeNull();
     expect(
@@ -61,7 +61,7 @@ describe("ArtifactContentRenderer — markdown", () => {
   });
 });
 
-describe("ArtifactContentRenderer — reveal (jump-to-line)", () => {
+describe("TextContentRenderer — reveal (jump-to-line)", () => {
   let scrollIntoView: ReturnType<typeof vi.fn>;
   beforeEach(() => {
     // happy-dom lacks a real scrollIntoView; the hook calls it optionally.
@@ -72,7 +72,7 @@ describe("ArtifactContentRenderer — reveal (jump-to-line)", () => {
 
   it("renders addressable lines and highlights the target row for plain text", () => {
     const { container } = render(
-      <ArtifactContentRenderer
+      <TextContentRenderer
         content={"one\ntwo\nthree"}
         fileName="notes.txt"
         reveal={{ line: 2, nonce: 1 }}
@@ -88,7 +88,7 @@ describe("ArtifactContentRenderer — reveal (jump-to-line)", () => {
 
   it("does not highlight anything when the target line is out of range", () => {
     const { container } = render(
-      <ArtifactContentRenderer
+      <TextContentRenderer
         content={"one\ntwo"}
         fileName="notes.txt"
         reveal={{ line: 99, nonce: 1 }}
@@ -99,7 +99,7 @@ describe("ArtifactContentRenderer — reveal (jump-to-line)", () => {
 
   it("forces Markdown to its Source (line-faithful) view when revealing", () => {
     const { container } = render(
-      <ArtifactContentRenderer
+      <TextContentRenderer
         content={"# Heading\n\ntext"}
         fileName="doc.md"
         reveal={{ line: 1, nonce: 1 }}
@@ -117,7 +117,7 @@ describe("ArtifactContentRenderer — reveal (jump-to-line)", () => {
     // Minified single-line JSON: pretty-printing would expand it to many lines
     // and shift line 1. Raw rendering keeps it one addressable row.
     const { container } = render(
-      <ArtifactContentRenderer
+      <TextContentRenderer
         content={'{"a":1,"b":2}'}
         fileName="data.json"
         reveal={{ line: 1, nonce: 1 }}
@@ -130,7 +130,7 @@ describe("ArtifactContentRenderer — reveal (jump-to-line)", () => {
 
   it("scrolls the target line into view", () => {
     render(
-      <ArtifactContentRenderer
+      <TextContentRenderer
         content={"one\ntwo\nthree"}
         fileName="notes.txt"
         reveal={{ line: 3, nonce: 1 }}

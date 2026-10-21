@@ -16,21 +16,21 @@
 import { useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { ContentBlock } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
-import { AttachmentImageLightbox } from "../attachment/AttachmentImageLightbox.js";
-import { formatFileSize } from "../attachment/attachment-utils.js";
+import { ImageLightbox } from "../upload/ImageLightbox.js";
 import { useFile, useFileDownload, useFileDownloadUrl } from "../file/useFile.js";
 import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
 import { TruncatedText } from "../internal/truncated-text.js";
+import { formatFileSize } from "../file/file-size.js";
 
 /**
  * One file given with a message, as the thread shows it.
  *
  * Built from a run's `status.messageFiles` ({@link messageFileViews}) for a
  * turn the server recorded, and from the chat box's hand-off
- * (`FileHandOff.attachments`) for the optimistic bubble.
+ * (`FileHandOff.files`) for the optimistic bubble.
  */
-export interface MessageAttachmentView {
+export interface MessageFileView {
   /** The File's id (`"file_01j…"`): what its name, size and link are read by. */
   readonly fileId?: string;
   /** The filename, when known without reading the File. */
@@ -39,8 +39,8 @@ export interface MessageAttachmentView {
   readonly kind: "image" | "document";
 }
 
-const NO_VIEWS: readonly MessageAttachmentView[] = [];
-const viewsByBlocks = new WeakMap<readonly ContentBlock[], readonly MessageAttachmentView[]>();
+const NO_VIEWS: readonly MessageFileView[] = [];
+const viewsByBlocks = new WeakMap<readonly ContentBlock[], readonly MessageFileView[]>();
 
 /**
  * The chips of a turn's `RunStatus.message_files`: one per image or
@@ -50,11 +50,11 @@ const viewsByBlocks = new WeakMap<readonly ContentBlock[], readonly MessageAttac
  * every streamed frame hands the memoised message rows the same array and
  * only the changing row re-renders.
  */
-export function messageFileViews(blocks: readonly ContentBlock[]): readonly MessageAttachmentView[] {
+export function messageFileViews(blocks: readonly ContentBlock[]): readonly MessageFileView[] {
   if (blocks.length === 0) return NO_VIEWS;
   const cached = viewsByBlocks.get(blocks);
   if (cached) return cached;
-  const views = blocks.flatMap((block): MessageAttachmentView[] => {
+  const views = blocks.flatMap((block): MessageFileView[] => {
     const fileId = block.source?.type === "file" ? block.source.fileId : "";
     if (!fileId) return [];
     return [
@@ -69,10 +69,10 @@ export function messageFileViews(blocks: readonly ContentBlock[]): readonly Mess
   return views;
 }
 
-/** Props for {@link MessageAttachments}. */
-export interface MessageAttachmentsProps {
+/** Props for {@link MessageFiles}. */
+export interface MessageFilesProps {
   /** The turn's files, in the message's order. */
-  readonly attachments: readonly MessageAttachmentView[];
+  readonly files: readonly MessageFileView[];
   /**
    * The run the files were given with. Its presence makes the chips live:
    * image previews and document downloads. Omit for the optimistic bubble
@@ -89,14 +89,14 @@ export interface MessageAttachmentsProps {
  *
  * Images render as preview-only thumbnail tiles (the name stays in the
  * tooltip, the accessible label and the lightbox header), click-to-open in
- * the shared {@link AttachmentImageLightbox}; documents as compact
+ * the shared {@link ImageLightbox}; documents as compact
  * click-to-download chips with their size. Both follow the composer chip
- * grammar ({@link AttachmentChipList}) so a file looks the same before and
+ * grammar ({@link FileChipList}) so a file looks the same before and
  * after send.
  *
  * All visual properties flow through `--stgm-*` tokens.
  */
-export function MessageAttachments({ attachments, runId, className }: MessageAttachmentsProps) {
+export function MessageFiles({ files, runId, className }: MessageFilesProps) {
   // One lightbox serves the row, tracked by File id. It mounts outside the
   // role="list" container: a <dialog> is not valid inside the chips'
   // <span> elements, and a non-listitem child would break the list's
@@ -104,9 +104,9 @@ export function MessageAttachments({ attachments, runId, className }: MessageAtt
   const [previewId, setPreviewId] = useState<string | null>(null);
   const live = runId !== undefined;
   const previewed =
-    previewId !== null ? (attachments.find((a) => a.fileId === previewId) ?? null) : null;
+    previewId !== null ? (files.find((f) => f.fileId === previewId) ?? null) : null;
 
-  if (attachments.length === 0) return null;
+  if (files.length === 0) return null;
 
   return (
     <>
@@ -116,34 +116,34 @@ export function MessageAttachments({ attachments, runId, className }: MessageAtt
       <div
         className={cn("stg:flex stg:flex-wrap stg:items-center stg:gap-1.5", className)}
         role="list"
-        aria-label="Submitted attachments"
+        aria-label="Files sent with this message"
       >
-        {attachments.map((attachment, i) => {
-          const key = attachment.fileId ?? `${attachment.filename ?? "file"}-${i}`;
-          if (attachment.kind === "image" && live && attachment.fileId) {
-            const fileId = attachment.fileId;
+        {files.map((view, i) => {
+          const key = view.fileId ?? `${view.filename ?? "file"}-${i}`;
+          if (view.kind === "image" && live && view.fileId) {
+            const fileId = view.fileId;
             return (
               <ImagePreviewChip
                 key={key}
-                attachment={attachment}
+                view={view}
                 fileId={fileId}
                 onPreview={() => setPreviewId(fileId)}
               />
             );
           }
-          if (attachment.kind === "image") {
+          if (view.kind === "image") {
             // No run record: the optimistic bubble or a failed send. The
             // tile keeps the image grammar but stays static (a glyph, not a
             // pulse): a failed send never gets a run, so a pulse would be
             // a permanent false "loading" signal.
-            return <ImageGlyphTile key={key} name={attachment.filename ?? "image"} />;
+            return <ImageGlyphTile key={key} name={view.filename ?? "image"} />;
           }
-          return <DocumentChip key={key} attachment={attachment} live={live} />;
+          return <DocumentChip key={key} view={view} live={live} />;
         })}
       </div>
       {previewed?.fileId && (
-        <AttachmentPreviewLightbox
-          attachment={previewed}
+        <FilePreviewLightbox
+          view={previewed}
           fileId={previewed.fileId}
           onClose={() => setPreviewId(null)}
         />
@@ -153,12 +153,12 @@ export function MessageAttachments({ attachments, runId, className }: MessageAtt
 }
 
 /** The chip's name: the File's own, else the name the chip carries. */
-function useDisplayName(attachment: MessageAttachmentView, live: boolean): {
+function useDisplayName(view: MessageFileView, live: boolean): {
   readonly name: string;
   readonly sizeBytes: number | null;
 } {
-  const { file } = useFile(live ? (attachment.fileId ?? null) : null);
-  const name = file?.spec?.filename || attachment.filename || "file";
+  const { file } = useFile(live ? (view.fileId ?? null) : null);
+  const name = file?.spec?.filename || view.filename || "file";
   const size = file?.status?.sizeBytes;
   return { name, sizeBytes: size !== undefined ? Number(size) : null };
 }
@@ -173,19 +173,19 @@ function useDisplayName(attachment: MessageAttachmentView, live: boolean): {
  * chip degrades to the document treatment, never a broken-image glyph.
  */
 function ImagePreviewChip({
-  attachment,
+  view,
   fileId,
   onPreview,
 }: {
-  readonly attachment: MessageAttachmentView;
+  readonly view: MessageFileView;
   readonly fileId: string;
   readonly onPreview: () => void;
 }) {
   const { url, error } = useFileDownloadUrl(fileId);
-  const { name } = useDisplayName(attachment, true);
+  const { name } = useDisplayName(view, true);
 
   if (error) {
-    return <DocumentChip attachment={attachment} live />;
+    return <DocumentChip view={view} live />;
   }
 
   return (
@@ -266,15 +266,15 @@ function ImageGlyphTile({ name }: { readonly name: string }) {
  * the file was sent.
  */
 function DocumentChip({
-  attachment,
+  view,
   live,
 }: {
-  readonly attachment: MessageAttachmentView;
+  readonly view: MessageFileView;
   readonly live: boolean;
 }) {
   const { download, isDownloading } = useFileDownload();
-  const { name, sizeBytes } = useDisplayName(attachment, live);
-  const fileId = live ? attachment.fileId : undefined;
+  const { name, sizeBytes } = useDisplayName(view, live);
+  const fileId = live ? view.fileId : undefined;
 
   const content = (
     <>
@@ -319,22 +319,22 @@ function DocumentChip({
 
 /**
  * Feeds the previewed image's link to the shared
- * {@link AttachmentImageLightbox}. The link is cached by File id, so the
+ * {@link ImageLightbox}. The link is cached by File id, so the
  * lightbox reuses the thumbnail's instead of minting a second.
  */
-function AttachmentPreviewLightbox({
-  attachment,
+function FilePreviewLightbox({
+  view,
   fileId,
   onClose,
 }: {
-  readonly attachment: MessageAttachmentView;
+  readonly view: MessageFileView;
   readonly fileId: string;
   readonly onClose: () => void;
 }) {
   const { url } = useFileDownloadUrl(fileId);
-  const { name } = useDisplayName(attachment, true);
+  const { name } = useDisplayName(view, true);
 
-  return <AttachmentImageLightbox src={url} filename={name} open onClose={onClose} />;
+  return <ImageLightbox src={url} filename={name} open onClose={onClose} />;
 }
 
 /** Generic picture glyph for the inert {@link ImageGlyphTile}. */

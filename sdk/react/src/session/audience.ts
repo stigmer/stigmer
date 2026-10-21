@@ -15,7 +15,7 @@
  * - `"guest"` — an anonymous visitor of an agent's public chat link or
  *   embed, authenticated by a guest token. Pure chat: everything
  *   `"endUser"` hides plus the model, harness, and Agent/Plan pickers,
- *   attachments, the workspace picker, and the session panel. Guest is
+ *   file uploads, the workspace picker, and the session panel. Guest is
  *   behavioral, not just cosmetic — the organisms also skip the
  *   org-level reads a guest principal cannot make (session→agent
  *   derivation, vaults) and never fall back to the
@@ -33,7 +33,7 @@
  *   boundary (channel viewers hold `can_view` only, never
  *   `can_create_run_in`), so the presentation simply never
  *   offers what the caller could not do. The session panel stays
- *   available read-only: usage, artifacts, and setup inspection are
+ *   available read-only: usage, outputs, and setup inspection are
  *   the point of observability. `SessionViewer` also self-selects this
  *   audience for Slack and WhatsApp sessions (the
  *   `stigmer.ai/channel-conversation-key` label), so every entry point — a

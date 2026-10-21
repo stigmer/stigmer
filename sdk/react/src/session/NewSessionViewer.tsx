@@ -96,11 +96,11 @@ export interface NewSessionViewerProps {
    * pinned agent (when `initialAgentRef` is set) and hides the
    * plugin, skill, and vault pickers — for product-embedded
    * chat where the agent is configured upstream by the platform. The
-   * model selector, interaction mode, harness selector, attachments,
+   * model selector, interaction mode, harness selector, file uploads,
    * and workspace picker remain.
    *
    * `"guest"` (anonymous visitor with a guest token) is pure chat: it
-   * additionally hides the model/harness/mode pickers, attachments,
+   * additionally hides the model/harness/mode pickers, file uploads,
    * the workspace picker, and the session panel, binds the session to
    * `initialAgentRef` (version included) without any picker machinery,
    * and skips the org-level reads a guest principal cannot make.
@@ -207,7 +207,7 @@ export interface NewSessionViewerProps {
    */
   readonly rememberPluginPicks?: boolean;
   /** Files to auto-attach on mount (used for edit flows). */
-  readonly initialAttachments?: File[];
+  readonly initialFiles?: File[];
 
   /** Heading text above the composer. @default "What would you like to work on?" */
   readonly heading?: string;
@@ -290,7 +290,7 @@ export function NewSessionViewer({
   initialAgentRef,
   initialPluginRefs,
   rememberPluginPicks,
-  initialAttachments,
+  initialFiles,
   heading = "What would you like to work on?",
   placeholder = "Describe what you need help with\u2026",
   initialRows = 3,
@@ -432,7 +432,7 @@ export function NewSessionViewer({
   );
 
   // Launcher facets: Config only — no runs exist yet, so the
-  // execution-derived facets (Changes/Artifacts/Usage) don't apply.
+  // execution-derived facets (Changes/Files/Usage) don't apply.
   const railViews = useSessionRailViews({
     allRuns: [],
     org,
@@ -488,7 +488,7 @@ export function NewSessionViewer({
           // vaults; the flow says where it applies at all.
           enableEnvironmentPicker={flow.offersEnvironment && !isCurated}
           environmentDefaults={flow.environmentDefaults}
-          initialAttachments={isGuest ? undefined : initialAttachments}
+          initialFiles={isGuest ? undefined : initialFiles}
           lockAgent={isCurated && initialAgentRef != null}
           pluginRefs={isCurated ? undefined : flow.pluginRefs}
           onPluginRefsChange={isCurated ? undefined : flow.setPluginRefs}
@@ -501,7 +501,7 @@ export function NewSessionViewer({
           onInteractionModeChange={setInteractionMode}
           showInteractionModePicker={!isGuest}
           showModelSelector={modelSelectorVisible}
-          enableAttachments={!isGuest}
+          enableFiles={!isGuest}
           defaultModelId={flow.modelId}
           agentRunDefaults={flow.agentRunDefaults}
           onModelChange={flow.setModelId}

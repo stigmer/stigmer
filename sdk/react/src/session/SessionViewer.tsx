@@ -37,7 +37,7 @@ import {
   findPlanFile,
   planFilesByRun,
   type SessionPlan,
-} from "../library/detect-plan-artifact.js";
+} from "../library/detect-plan-file.js";
 import { useSessionFiles } from "../file/useSessionFiles.js";
 import { findStreamingPlan } from "../library/detect-streaming-plan.js";
 import { useSessionAccess } from "./useSessionAccess.js";
@@ -188,10 +188,10 @@ export interface SessionViewerProps {
    * configuration in both the composer and the
    * inspector's Setup tab — for product-embedded chat where the agent
    * is configured upstream by the platform. The model selector,
-   * interaction mode, attachments, and workspace picker remain.
+   * interaction mode, file uploads, and workspace picker remain.
    *
    * `"guest"` (anonymous visitor with a guest token) is pure chat: it
-   * additionally hides the model/mode pickers, attachments, the
+   * additionally hides the model/mode pickers, file uploads, the
    * workspace picker, and the session panel, and skips the org-level
    * reads a guest principal cannot make — follow-ups simply continue
    * on the agent and version the session pinned.
@@ -570,7 +570,7 @@ export function SessionViewer({
 
     // `buildFromPlan` (not message text) is what tells the runner to inject
     // the implement directive and the thread to hide the turn's message —
-    // with or without the attachment (the runner picks the directive variant).
+    // with or without the plan File (the runner picks the directive variant).
     const submitImplementTurn = (fileIds?: string[]) => {
       composerRef.current?.submit(BUILD_FROM_PLAN_MESSAGE, {
         interactionMode: "agent",
@@ -599,7 +599,7 @@ export function SessionViewer({
     setIsBuildingFromPlan(true);
     // The edited copy keeps the plan's filename: the runner finds it among
     // the conversation's Files by the plan filename convention
-    // (`isPlanArtifactName`), and the download and the plan card agree on
+    // (`isPlanFileName`), and the download and the plan card agree on
     // one name.
     const planFileName = sessionPlan.file.spec?.filename ?? "plan.md";
     void (async () => {
@@ -615,7 +615,7 @@ export function SessionViewer({
         if (!editedFileId) throw new Error("the uploaded plan came back without an id");
         submitImplementTurn([editedFileId]);
       } catch {
-        // Attachment plumbing must never block the build: implement from
+        // Plan File plumbing must never block the build: implement from
         // conversation history alone, and say so (non-blocking notice).
         setPlanAttachFailed(true);
         submitImplementTurn();
@@ -839,7 +839,7 @@ interface ConversationColumnProps {
   readonly onFilePathClick: (path: string) => boolean;
   /** Curated audience (endUser, guest, or observer): locked agent, no integrator pickers. */
   readonly isCurated: boolean;
-  /** Guest audience: pure chat — additionally no model picker, mode picker, attachments, or workspace. */
+  /** Guest audience: pure chat — additionally no model picker, mode picker, file uploads, or workspace. */
   readonly isGuest: boolean;
   /**
    * Observer audience: a read-only transcript. No composer, no
@@ -1020,7 +1020,7 @@ const ConversationColumn = memo(function ConversationColumn({
         runs={conv.runs}
         planFiles={planFiles}
         pendingUserMessage={conv.pendingUserMessage}
-        pendingAttachments={conv.pendingAttachments}
+        pendingFiles={conv.pendingFiles}
         pendingMessageFailed={!!conv.sendError && !!conv.pendingUserMessage}
         // Observers get a pure transcript: every interaction affordance
         // (retry, approvals, edit, build-from-plan) is opt-in via its
@@ -1150,7 +1150,7 @@ const ConversationColumn = memo(function ConversationColumn({
             onInteractionModeChange={setInteractionMode}
             showInteractionModePicker={!isGuest}
             showModelSelector={modelSelectorVisible}
-            enableAttachments={!isGuest}
+            enableFiles={!isGuest}
             workspace={isGuest ? undefined : flow.workspace}
             gitHubConnection={isGuest ? undefined : gitHubConnection}
             enableGitHub={enableGitHub && !isGuest}

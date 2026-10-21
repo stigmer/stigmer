@@ -10,12 +10,12 @@ import {
 } from "../internal/markdown-components.js";
 import { useRevealLine, type RevealTarget } from "../internal/useRevealLine.js";
 import {
-  getArtifactRenderMode,
-  type ArtifactRenderMode,
-} from "./artifact-utils.js";
+  getTextRenderMode,
+  type TextRenderMode,
+} from "./text-content.js";
 
-/** Props for {@link ArtifactContentRenderer}. */
-export interface ArtifactContentRendererProps {
+/** Props for {@link TextContentRenderer}. */
+export interface TextContentRendererProps {
   /** The text content to render. */
   readonly content: string;
   /**
@@ -44,10 +44,11 @@ export interface ArtifactContentRendererProps {
 }
 
 /**
- * File-type-aware content renderer for run artifacts.
+ * File-type-aware renderer for text content: a File's, or any other text
+ * with a file name.
  *
  * Determines the rendering strategy from the file name (via
- * {@link getArtifactRenderMode}) and dispatches to the appropriate
+ * {@link getTextRenderMode}) and dispatches to the appropriate
  * view:
  *
  * - **Markdown** (`.md`, `.mdx`) — rendered HTML via `react-markdown`
@@ -63,33 +64,33 @@ export interface ArtifactContentRendererProps {
  * is self-contained and works identically in the Stigmer Console and
  * in a third-party host application.
  *
- * Platform builders who want to render artifact content outside of
+ * Platform builders who want to render file content outside of
  * {@link FilePreviewModal} can import this component directly:
  *
  * @example
  * ```tsx
- * import { ArtifactContentRenderer, useArtifactContent } from "@stigmer/react-sdk";
+ * import { TextContentRenderer, useFileContent } from "@stigmer/react-sdk";
  *
- * function MyArtifactPanel({ executionId, storageKey, fileName }) {
- *   const { content } = useArtifactContent(executionId, storageKey);
+ * function MyFilePanel({ fileId, fileName }) {
+ *   const { content } = useFileContent(fileId);
  *   if (!content) return null;
- *   return <ArtifactContentRenderer content={content} fileName={fileName} />;
+ *   return <TextContentRenderer content={content} fileName={fileName} />;
  * }
  * ```
  *
- * @see {@link getArtifactRenderMode} — pure utility for mode detection
+ * @see {@link getTextRenderMode} — pure utility for mode detection
  * @see {@link FilePreviewModal} — full modal that composes this component
- * @see {@link useArtifactContent} — headless content-fetching hook
+ * @see {@link useFileContent} — headless hook that reads a File's text
  */
-export function ArtifactContentRenderer({
+export function TextContentRenderer({
   content,
   fileName,
   contentType,
   isTruncated = false,
   reveal,
   className,
-}: ArtifactContentRendererProps) {
-  const mode = getArtifactRenderMode(fileName, contentType);
+}: TextContentRendererProps) {
+  const mode = getTextRenderMode(fileName, contentType);
 
   return (
     <div className={cn(className)}>
@@ -138,7 +139,7 @@ function MarkdownView({
 
   // A `.md` whose entire body is one ```markdown fence (e.g. a model-wrapped
   // plan) would render flat. Unwrap for the Rendered view only — Source stays
-  // byte-faithful to the stored artifact.
+  // byte-faithful to the stored file.
   const rendered = useMemo(
     () => unwrapEnclosingMarkdownFence(content),
     [content],

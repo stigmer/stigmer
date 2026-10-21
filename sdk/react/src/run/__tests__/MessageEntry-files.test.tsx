@@ -11,7 +11,7 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { MessageEntry, type ThreadMessage } from "../MessageEntry";
-import type { MessageAttachmentView } from "../MessageAttachments";
+import type { MessageFileView } from "../MessageFiles";
 
 const downloadSpy = vi.fn(() => Promise.resolve());
 let urlState: { url: string | null; error: Error | null } = {
@@ -58,23 +58,23 @@ function humanMessage(text: string): ThreadMessage {
   return { kind: "user", id: "u1", text };
 }
 
-const imageAttachment: MessageAttachmentView = {
+const imageFile: MessageFileView = {
   fileId: "file_shot",
   filename: "screenshot.png",
   kind: "image",
 };
 
-const documentAttachment: MessageAttachmentView = {
+const documentFile: MessageFileView = {
   fileId: "file_notes",
   filename: "notes.txt",
   kind: "document",
 };
 
-describe("MessageEntry attachment rendering", () => {
-  it("renders no attachment row when the turn has none", () => {
+describe("MessageEntry file rendering", () => {
+  it("renders no file row when the turn has none", () => {
     render(<MessageEntry message={humanMessage("Just text.")} />);
 
-    expect(screen.queryByRole("list", { name: "Submitted attachments" })).toBeNull();
+    expect(screen.queryByRole("list", { name: "Files sent with this message" })).toBeNull();
     expect(screen.getByText("Just text.")).toBeTruthy();
   });
 
@@ -84,12 +84,12 @@ describe("MessageEntry attachment rendering", () => {
     const { container } = render(
       <MessageEntry
         message={humanMessage("See the screenshot.")}
-        attachments={[imageAttachment]}
+        files={[imageFile]}
         runId="exec-1"
       />,
     );
 
-    expect(screen.getByRole("list", { name: "Submitted attachments" })).toBeTruthy();
+    expect(screen.getByRole("list", { name: "Files sent with this message" })).toBeTruthy();
     const img = container.querySelector("img[aria-hidden='true']");
     expect(img?.getAttribute("src")).toBe("https://r2.example/presigned/screenshot");
 
@@ -101,15 +101,15 @@ describe("MessageEntry attachment rendering", () => {
   });
 
   it("renders no row for an empty file list", () => {
-    render(<MessageEntry message={humanMessage("Nothing given.")} attachments={[]} runId="exec-1" />);
+    render(<MessageEntry message={humanMessage("Nothing given.")} files={[]} runId="exec-1" />);
 
-    expect(screen.queryByRole("list", { name: "Submitted attachments" })).toBeNull();
+    expect(screen.queryByRole("list", { name: "Files sent with this message" })).toBeNull();
   });
 
   it("closes the image lightbox", () => {
     urlState = { url: "https://files.example/screenshot", error: null };
     const { container } = render(
-      <MessageEntry message={humanMessage("See the screenshot.")} attachments={[imageAttachment]} runId="exec-1" />,
+      <MessageEntry message={humanMessage("See the screenshot.")} files={[imageFile]} runId="exec-1" />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Preview screenshot.png" }));
@@ -122,7 +122,7 @@ describe("MessageEntry attachment rendering", () => {
     render(
       <MessageEntry
         message={humanMessage("The notes are attached.")}
-        attachments={[documentAttachment]}
+        files={[documentFile]}
         runId="exec-1"
       />,
     );
@@ -137,7 +137,7 @@ describe("MessageEntry attachment rendering", () => {
     render(
       <MessageEntry
         message={humanMessage("See the screenshot.")}
-        attachments={[imageAttachment]}
+        files={[imageFile]}
         runId="exec-1"
       />,
     );
@@ -159,7 +159,7 @@ describe("MessageEntry attachment rendering", () => {
     const { container } = render(
       <MessageEntry
         message={humanMessage("See the screenshot.")}
-        attachments={[imageAttachment]}
+        files={[imageFile]}
         runId="exec-1"
       />,
     );
@@ -173,13 +173,13 @@ describe("MessageEntry attachment rendering", () => {
     const { container } = render(
       <MessageEntry
         message={humanMessage("Sending files…")}
-        attachments={[imageAttachment, documentAttachment]}
+        files={[imageFile, documentFile]}
       />,
     );
 
     // Both files are present as evidence — the image as a glyph tile
     // (named via aria/tooltip), the document as a filename chip…
-    expect(screen.getByRole("list", { name: "Submitted attachments" })).toBeTruthy();
+    expect(screen.getByRole("list", { name: "Files sent with this message" })).toBeTruthy();
     expect(screen.getByRole("listitem", { name: "screenshot.png" })).toBeTruthy();
     expect(screen.getByText("notes.txt")).toBeTruthy();
     // …but no byte-backed affordances exist yet.
@@ -196,7 +196,7 @@ describe("MessageEntry attachment rendering", () => {
     const { container } = render(
       <MessageEntry
         message={humanMessage("See the screenshot.")}
-        attachments={[imageAttachment]}
+        files={[imageFile]}
         runId="exec-1"
       />,
     );
@@ -213,8 +213,8 @@ describe("MessageEntry attachment rendering", () => {
 
     render(
       <MessageEntry
-        message={humanMessage("Unnamed attachment.")}
-        attachments={[{ fileId: "file_data", kind: "document" }]}
+        message={humanMessage("Unnamed file.")}
+        files={[{ fileId: "file_data", kind: "document" }]}
         runId="exec-1"
       />,
     );
@@ -225,7 +225,7 @@ describe("MessageEntry attachment rendering", () => {
     expect(downloadSpy).toHaveBeenCalledWith("file_data", "data.bin");
   });
 
-  it("ignores attachments on an agent's message", () => {
+  it("ignores files on an agent's message", () => {
     const aiMsg: ThreadMessage = {
       kind: "message",
       id: "m1",
@@ -237,11 +237,11 @@ describe("MessageEntry attachment rendering", () => {
     render(
       <MessageEntry
         message={aiMsg}
-        attachments={[documentAttachment]}
+        files={[documentFile]}
         runId="exec-1"
       />,
     );
 
-    expect(screen.queryByRole("list", { name: "Submitted attachments" })).toBeNull();
+    expect(screen.queryByRole("list", { name: "Files sent with this message" })).toBeNull();
   });
 });

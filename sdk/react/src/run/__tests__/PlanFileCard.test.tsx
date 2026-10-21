@@ -18,9 +18,9 @@ import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/client";
 import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import { StigmerContext } from "../../context";
-import { PlanArtifactCard } from "../PlanArtifactCard";
+import { PlanFileCard } from "../PlanFileCard";
 
-const planArtifact = create(FileSchema, {
+const planFile = create(FileSchema, {
   metadata: { id: "file_plan" },
   spec: { filename: "plan.md", mimeType: "text/markdown" },
   status: { sizeBytes: 4500n, runId: "aex_1", outputPath: "plan.md" },
@@ -47,7 +47,7 @@ function withStigmer(children: ReactNode, stigmer: Stigmer) {
   );
 }
 
-/** PlanArtifactCard now resolves downloads on demand, so it needs a provider. */
+/** PlanFileCard now resolves downloads on demand, so it needs a provider. */
 function renderCard(ui: ReactNode) {
   return render(withStigmer(ui, createStigmerMock().stigmer));
 }
@@ -65,11 +65,11 @@ beforeEach(() => {
     .mockClear();
 });
 
-describe("PlanArtifactCard — compact document card", () => {
+describe("PlanFileCard — compact document card", () => {
   it("is an accessible region with the plan's title, filename, and size", () => {
     renderCard(
-      <PlanArtifactCard
-        file={planArtifact}
+      <PlanFileCard
+        file={planFile}
         title="Refactor the auth flow"
         org="acme"
       />,
@@ -83,7 +83,7 @@ describe("PlanArtifactCard — compact document card", () => {
 
   it("falls back to 'Plan' when the plan has no title", () => {
     renderCard(
-      <PlanArtifactCard file={planArtifact} org="acme" />,
+      <PlanFileCard file={planFile} org="acme" />,
     );
     const region = screen.getByRole("region", { name: "Plan" });
     expect(region.textContent).toContain("Plan");
@@ -93,7 +93,7 @@ describe("PlanArtifactCard — compact document card", () => {
     const { stigmer, getContent } = createStigmerMock();
     render(
       withStigmer(
-        <PlanArtifactCard file={planArtifact} org="acme" />,
+        <PlanFileCard file={planFile} org="acme" />,
         stigmer,
       ),
     );
@@ -105,8 +105,8 @@ describe("PlanArtifactCard — compact document card", () => {
   it("offers exactly one primary 'Build' action that calls onImplement", () => {
     const onImplement = vi.fn();
     renderCard(
-      <PlanArtifactCard
-        file={planArtifact}
+      <PlanFileCard
+        file={planFile}
         org="acme"
         onImplement={onImplement}
       />,
@@ -118,15 +118,15 @@ describe("PlanArtifactCard — compact document card", () => {
 
   it("hides 'Build' when onImplement is not provided", () => {
     renderCard(
-      <PlanArtifactCard file={planArtifact} org="acme" />,
+      <PlanFileCard file={planFile} org="acme" />,
     );
     expect(screen.queryByRole("button", { name: "Build" })).toBeNull();
   });
 
   it("shows the pending label while the approved plan uploads (buildPending)", () => {
     renderCard(
-      <PlanArtifactCard
-        file={planArtifact}
+      <PlanFileCard
+        file={planFile}
         org="acme"
         onImplement={vi.fn()}
         disabled
@@ -144,8 +144,8 @@ describe("PlanArtifactCard — compact document card", () => {
   it("disables 'Build' when disabled", () => {
     const onImplement = vi.fn();
     renderCard(
-      <PlanArtifactCard
-        file={planArtifact}
+      <PlanFileCard
+        file={planFile}
         org="acme"
         onImplement={onImplement}
         disabled
@@ -161,7 +161,7 @@ describe("PlanArtifactCard — compact document card", () => {
   it("reads the plan once while a copy is in flight (Copy is disabled meanwhile)", () => {
     const getContent = vi.fn().mockReturnValue(new Promise(() => {}));
     const stigmer = { file: { getContent, getDownloadUrl: vi.fn() } } as unknown as Stigmer;
-    render(withStigmer(<PlanArtifactCard file={planArtifact} org="acme" />, stigmer));
+    render(withStigmer(<PlanFileCard file={planFile} org="acme" />, stigmer));
 
     fireEvent.click(screen.getByRole("button", { name: "Copy plan" }));
     const copying = screen.getByRole("button", { name: "Copying…" }) as HTMLButtonElement;
@@ -182,7 +182,7 @@ describe("PlanArtifactCard — compact document card", () => {
 
     render(
       withStigmer(
-        <PlanArtifactCard file={planArtifact} org="acme" />,
+        <PlanFileCard file={planFile} org="acme" />,
         stigmer,
       ),
     );
@@ -199,12 +199,12 @@ describe("PlanArtifactCard — compact document card", () => {
     vi.unstubAllGlobals();
   });
 
-  it("downloads the artifact on demand via a freshly minted URL", async () => {
+  it("downloads the plan File on demand via a freshly minted URL", async () => {
     const { stigmer, getDownloadUrl } = createStigmerMock();
     const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, "click");
     render(
       withStigmer(
-        <PlanArtifactCard file={planArtifact} org="acme" />,
+        <PlanFileCard file={planFile} org="acme" />,
         stigmer,
       ),
     );
@@ -219,12 +219,12 @@ describe("PlanArtifactCard — compact document card", () => {
   });
 });
 
-describe("PlanArtifactCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => {
+describe("PlanFileCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => {
   it("fires onImplement on Cmd+Enter from within the card", () => {
     const onImplement = vi.fn();
     renderCard(
-      <PlanArtifactCard
-        file={planArtifact}
+      <PlanFileCard
+        file={planFile}
         org="acme"
         onImplement={onImplement}
       />,
@@ -238,8 +238,8 @@ describe("PlanArtifactCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => 
   it("fires onImplement on Ctrl+Enter", () => {
     const onImplement = vi.fn();
     renderCard(
-      <PlanArtifactCard
-        file={planArtifact}
+      <PlanFileCard
+        file={planFile}
         org="acme"
         onImplement={onImplement}
       />,
@@ -253,8 +253,8 @@ describe("PlanArtifactCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => 
   it("ignores a plain Enter (no modifier) so it never hijacks typing", () => {
     const onImplement = vi.fn();
     renderCard(
-      <PlanArtifactCard
-        file={planArtifact}
+      <PlanFileCard
+        file={planFile}
         org="acme"
         onImplement={onImplement}
       />,
@@ -268,8 +268,8 @@ describe("PlanArtifactCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => 
   it("does not fire when disabled", () => {
     const onImplement = vi.fn();
     renderCard(
-      <PlanArtifactCard
-        file={planArtifact}
+      <PlanFileCard
+        file={planFile}
         org="acme"
         onImplement={onImplement}
         disabled
@@ -282,12 +282,12 @@ describe("PlanArtifactCard — Cmd/Ctrl+Enter accelerator (card-scoped)", () => 
   });
 });
 
-describe("PlanArtifactCard — Open plan modal fallback (org-gated preview)", () => {
+describe("PlanFileCard — Open plan modal fallback (org-gated preview)", () => {
   it("opens the shared preview modal when the open icon is clicked (no onOpenPlan)", () => {
     const { stigmer } = createStigmerMock();
     render(
       withStigmer(
-        <PlanArtifactCard file={planArtifact} org="acme" />,
+        <PlanFileCard file={planFile} org="acme" />,
         stigmer,
       ),
     );
@@ -305,8 +305,8 @@ describe("PlanArtifactCard — Open plan modal fallback (org-gated preview)", ()
   it("hides the open action when org is absent (modal needs org), keeping Build + Download", () => {
     const onImplement = vi.fn();
     renderCard(
-      <PlanArtifactCard
-        file={planArtifact}
+      <PlanFileCard
+        file={planFile}
         onImplement={onImplement}
       />,
     );
@@ -318,12 +318,12 @@ describe("PlanArtifactCard — Open plan modal fallback (org-gated preview)", ()
   });
 });
 
-describe("PlanArtifactCard — Open plan (panel-first review)", () => {
+describe("PlanFileCard — Open plan (panel-first review)", () => {
   it("routes the open action to the panel when onOpenPlan is provided (no modal)", () => {
     const onOpenPlan = vi.fn();
     renderCard(
-      <PlanArtifactCard
-        file={planArtifact}
+      <PlanFileCard
+        file={planFile}
         org="acme"
         onOpenPlan={onOpenPlan}
       />,

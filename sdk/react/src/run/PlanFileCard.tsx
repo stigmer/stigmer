@@ -10,11 +10,11 @@ import { useCopyFeedback } from "../internal/useCopyFeedback.js";
 import { useStigmer } from "../hooks.js";
 import { useFileDownload } from "../file/useFile.js";
 import { FilePreviewModal } from "./FilePreviewModal.js";
-import { formatArtifactSize } from "./artifact-utils.js";
 import { useBuildFromPlanHotkey } from "./use-build-from-plan-hotkey.js";
+import { formatFileSize } from "../file/file-size.js";
 
-/** Props for {@link PlanArtifactCard}. */
-export interface PlanArtifactCardProps {
+/** Props for {@link PlanFileCard}. */
+export interface PlanFileCardProps {
   /** The plan File the Plan-mode turn returned (from `findPlanFile`). */
   readonly file: StigmerFile;
   /**
@@ -72,7 +72,7 @@ export interface PlanArtifactCardProps {
  * All visual properties flow through `--stgm-*` tokens; the component is
  * self-contained and embeddable.
  */
-export const PlanArtifactCard = memo(function PlanArtifactCard({
+export const PlanFileCard = memo(function PlanFileCard({
   file,
   title,
   org,
@@ -81,7 +81,7 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
   disabled,
   buildPending,
   className,
-}: PlanArtifactCardProps) {
+}: PlanFileCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const handleKeyDown = useBuildFromPlanHotkey(onImplement, disabled);
   const { copy, isCopying, copied } = useFileTextCopy();
@@ -109,7 +109,7 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
           {name}
           <span aria-hidden="true"> · </span>
           <span className="stg:tabular-nums">
-            {formatArtifactSize(file.status?.sizeBytes ?? BigInt(0))}
+            {formatFileSize(file.status?.sizeBytes ?? BigInt(0))}
           </span>
         </div>
       </div>
@@ -165,7 +165,7 @@ export const PlanArtifactCard = memo(function PlanArtifactCard({
         {copied && "Plan copied to clipboard"}
       </div>
 
-      {/* The modal open fallback reuses the shared artifact preview popup —
+      {/* The modal open fallback reuses the shared file preview popup —
           the single place that fetches/renders plan content (with Copy +
           Source/Rendered). */}
       {org && previewOpen && (

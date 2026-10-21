@@ -3,7 +3,7 @@
  * message carries the files given with it from two sources: the turn's run
  * (`status.messageFiles`, the blocks the server recorded, each naming the
  * conversation's File; stamped with the run id, which makes the chips live)
- * and the submit context's pending attachments (the optimistic bubble,
+ * and the submit context's pending files (the optimistic bubble,
  * before any run, kept on a failed send). An empty list is omitted, a
  * block with no File is skipped, and the chips keep their identity across
  * rebuilds so a streamed frame never re-renders an unchanged message.
@@ -12,7 +12,7 @@ import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { ContentBlockSchema, type ContentBlock } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 import { buildThreadItems, type ThreadItem } from "../MessageThread";
-import { messageFileViews } from "../MessageAttachments";
+import { messageFileViews } from "../MessageFiles";
 import { runOf, status, turnsOf, user } from "./__fixtures__/thread-events";
 
 function fileBlock(type: "image" | "document", fileId: string, title = ""): ContentBlock {
@@ -39,22 +39,22 @@ describe("buildThreadItems status.messageFiles stamping", () => {
     const prompt = messageByKey(items, "exec-attach-spec");
 
     expect(prompt?.executionId).toBe("exec-attach");
-    expect(prompt?.attachments).toEqual([
+    expect(prompt?.files).toEqual([
       { fileId: "file_notes", filename: undefined, kind: "image" },
       { fileId: "file_report", filename: "report.txt", kind: "document" },
     ]);
     // A rebuild (the next streamed frame) hands the row the same array.
-    expect(messageByKey(buildThreadItems(turns, [run]), "exec-attach-spec")?.attachments).toBe(prompt?.attachments);
+    expect(messageByKey(buildThreadItems(turns, [run]), "exec-attach-spec")?.files).toBe(prompt?.files);
   });
 
-  it("stamps NO attachments when the run recorded no files", () => {
+  it("stamps NO files when the run recorded none", () => {
     const turns = turnsOf(user("exec-plain", "Just text."), status("exec-plain", "completed"));
     const prompt = messageByKey(
       buildThreadItems(turns, [runOf("exec-plain", { spec: { message: "Just text." } })]),
       "exec-plain-spec",
     );
 
-    expect(prompt?.attachments).toBeUndefined();
+    expect(prompt?.files).toBeUndefined();
     expect(prompt?.executionId).toBe("exec-plain");
   });
 });
@@ -68,39 +68,39 @@ describe("messageFileViews", () => {
   });
 });
 
-describe("buildThreadItems pendingAttachments stamping", () => {
-  const pendingAttachments = [
+describe("buildThreadItems pendingFiles stamping", () => {
+  const pendingFiles = [
     { fileId: "file_sketch", filename: "sketch.png", kind: "image" as const },
   ];
 
-  it("carries the submit context's attachments on the pending bubble, without a run id", () => {
+  it("carries the submit context's files on the pending bubble, without a run id", () => {
     const pending = messageByKey(
-      buildThreadItems([], [], { pendingUserMessage: "Here is a sketch.", pendingAttachments }),
+      buildThreadItems([], [], { pendingUserMessage: "Here is a sketch.", pendingFiles }),
       "pending-user-turn",
     );
 
     expect(pending?.isPending).toBe(true);
-    expect(pending?.attachments).toBe(pendingAttachments);
+    expect(pending?.files).toBe(pendingFiles);
     expect(pending?.executionId).toBeUndefined();
   });
 
-  it("keeps the attachments on a FAILED pending bubble (evidence of what Retry re-sends)", () => {
+  it("keeps the files on a FAILED pending bubble (evidence of what Retry re-sends)", () => {
     const pending = messageByKey(
-      buildThreadItems([], [], { pendingUserMessage: "Here is a sketch.", pendingAttachments, pendingMessageFailed: true }),
+      buildThreadItems([], [], { pendingUserMessage: "Here is a sketch.", pendingFiles, pendingMessageFailed: true }),
       "pending-user-turn",
     );
 
     expect(pending?.isFailed).toBe(true);
     expect(pending?.isPending).toBe(false);
-    expect(pending?.attachments).toBe(pendingAttachments);
+    expect(pending?.files).toBe(pendingFiles);
   });
 
-  it("stamps NO attachments on the pending bubble when the submit had none", () => {
+  it("stamps NO files on the pending bubble when the submit had none", () => {
     const pending = messageByKey(
-      buildThreadItems([], [], { pendingUserMessage: "Plain follow-up.", pendingAttachments: [] }),
+      buildThreadItems([], [], { pendingUserMessage: "Plain follow-up.", pendingFiles: [] }),
       "pending-user-turn",
     );
 
-    expect(pending?.attachments).toBeUndefined();
+    expect(pending?.files).toBeUndefined();
   });
 });

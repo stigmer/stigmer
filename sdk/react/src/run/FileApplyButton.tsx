@@ -9,7 +9,7 @@ export interface FileApplyButtonProps {
   readonly label: string;
   /**
    * Whether the producing run is terminal. The apply/push action is only
-   * enabled once the run has finished; a mid-run artifact renders the
+   * enabled once the run has finished; a mid-run File renders the
    * button disabled (its content may still change).
    */
   readonly isTerminal: boolean;
@@ -21,7 +21,7 @@ export interface FileApplyButtonProps {
 
 /**
  * The primary "Apply to [org]" action for a detected
- * artifact resource, shared by every artifact chrome (the preview modal's
+ * resource in a File, shared by every File chrome (the preview modal's
  * action bar and the editor-area `FileDocument` toolbar) so its
  * terminal-gating, in-flight, and disabled states are single-source.
  *

@@ -1,3 +1,5 @@
+import { formatFileSize } from "../file/file-size.js";
+
 /**
  * Maximum size of a file given with a message, in bytes (500 MB).
  *
@@ -6,7 +8,7 @@
  * refused before any bytes move. An operator may set a lower limit, which
  * the server enforces when the upload URL is requested.
  */
-export const MAX_ATTACHMENT_BYTES = 500 * 1024 * 1024;
+export const MAX_FILE_BYTES = 500 * 1024 * 1024;
 
 /**
  * Extension-to-MIME-type mapping for common file types.
@@ -78,37 +80,14 @@ export function detectContentType(file: File): string {
   return "application/octet-stream";
 }
 
-const SIZE_UNITS = ["B", "KB", "MB", "GB"] as const;
-
 /**
- * Formats a byte count as a human-readable string (e.g., `"2.3 MB"`).
- *
- * Uses base-1024 (binary) units with one decimal place, consistent
- * with {@link formatArtifactSize} in the artifact utilities.
- */
-export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return "0 B";
-
-  const unitIndex = Math.min(
-    Math.floor(Math.log(bytes) / Math.log(1024)),
-    SIZE_UNITS.length - 1,
-  );
-
-  const value = bytes / Math.pow(1024, unitIndex);
-
-  return unitIndex === 0
-    ? `${bytes} B`
-    : `${value.toFixed(1)} ${SIZE_UNITS[unitIndex]}`;
-}
-
-/**
- * Validates a file against the attachment size limit.
+ * Validates a file against the upload size limit.
  *
  * Returns `null` when valid, or an error message string when the
- * file exceeds {@link MAX_ATTACHMENT_BYTES}.
+ * file exceeds {@link MAX_FILE_BYTES}.
  */
-export function validateAttachmentSize(file: File): string | null {
-  if (file.size > MAX_ATTACHMENT_BYTES) {
+export function validateFileSize(file: File): string | null {
+  if (file.size > MAX_FILE_BYTES) {
     return `${file.name} exceeds the 500 MB file limit (${formatFileSize(file.size)})`;
   }
   return null;

@@ -11,9 +11,9 @@ import {
 } from "../internal/markdown-components.js";
 import { InteractionModeBadge } from "./InteractionModeBadge.js";
 import {
-  MessageAttachments,
-  type MessageAttachmentView,
-} from "./MessageAttachments.js";
+  MessageFiles,
+  type MessageFileView,
+} from "./MessageFiles.js";
 import { PlanDocumentMessage } from "./PlanDocumentMessage.js";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
@@ -54,10 +54,10 @@ export interface MessageEntryProps {
   /**
    * Renders an agent message as a first-class plan document
    * ({@link PlanDocumentMessage}) instead of a chat bubble. Set by the thread
-   * builder only on the NO-ARTIFACT fallback path: a completed Plan turn that
+   * builder only on the NO-PLAN-FILE fallback path: a completed Plan turn that
    * never published `plan.md` (older runs, failed upload) keeps its
    * plan inline — the message is the only copy of the plan. A turn that
-   * published the artifact collapses the message into the compact plan card
+   * returned the plan File collapses the message into the compact plan card
    * instead (the document lives in the panel's plan tab). Ignored for other
    * messages.
    */
@@ -70,20 +70,20 @@ export interface MessageEntryProps {
    */
   readonly interactionMode?: InteractionMode;
   /**
-   * The turn's submitted attachments, stamped by the thread builder on a
+   * The files sent with the turn's message, stamped by the thread builder on a
    * person's message from the run's `status.messageFiles` (or the pending
-   * submit context). Renders as a {@link MessageAttachments} row above the
+   * submit context). Renders as a {@link MessageFiles} row above the
    * prose. Ignored for other messages.
    *
    * A `MessageEntry` slot override that delegates to the built-in inherits
-   * attachment rendering; one that ignores this prop renders text only.
+   * file rendering; one that ignores this prop renders text only.
    */
-  readonly attachments?: readonly MessageAttachmentView[];
+  readonly files?: readonly MessageFileView[];
   /**
-   * The run the attachments belong to — enables their byte-backed
+   * The run the files were sent with — enables their byte-backed
    * affordances (image previews, document downloads), each link minted
    * from the File when it is needed.
-   * Absent on the optimistic pending bubble, where attachments render as
+   * Absent on the optimistic pending bubble, where the files render as
    * inert chips until the real run record replaces it.
    */
   readonly runId?: string;
@@ -125,7 +125,7 @@ export const MessageEntry = memo(function MessageEntry({
   onEdit,
   isPlanDocument,
   interactionMode,
-  attachments,
+  files,
   runId: executionId,
   actions,
 }: MessageEntryProps) {
@@ -143,7 +143,7 @@ export const MessageEntry = memo(function MessageEntry({
           className={className}
           onEdit={onEdit}
           interactionMode={interactionMode}
-          attachments={attachments}
+          files={files}
           executionId={executionId}
         />
       );
@@ -181,14 +181,14 @@ function HumanMessage({
   className,
   onEdit,
   interactionMode,
-  attachments,
+  files,
   executionId,
 }: {
   content: string;
   className?: string;
   onEdit?: () => void;
   interactionMode?: InteractionMode;
-  attachments?: readonly MessageAttachmentView[];
+  files?: readonly MessageFileView[];
   executionId?: string;
 }) {
   return (
@@ -207,9 +207,9 @@ function HumanMessage({
       )}
       {/* The evidence a file rode with this turn (#372) — above the prose,
           mirroring the composer's chips-above-input layout. */}
-      {attachments && attachments.length > 0 && (
-        <MessageAttachments
-          attachments={attachments}
+      {files && files.length > 0 && (
+        <MessageFiles
+          files={files}
           runId={executionId}
           className="stg:mb-2"
         />

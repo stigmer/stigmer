@@ -20,7 +20,7 @@ const EMPTY_ARTIFACT: ArtifactContentData = {
 /** Return value of {@link useArtifactContent}. */
 export interface UseArtifactContentReturn {
   /**
-   * Decoded text content of the artifact, or `null` when:
+   * Decoded text stored under the key, or `null` when:
    * - Fetching is skipped (`executionId` or `storageKey` is `null`)
    * - The request is in-flight
    * - The request failed
@@ -35,7 +35,7 @@ export interface UseArtifactContentReturn {
 
   /**
    * Whether the returned content was truncated by the server's
-   * `max_bytes` limit. When `true`, the full artifact should be
+   * `max_bytes` limit. When `true`, the full content should be
    * downloaded via `getArtifactDownloadUrl` instead.
    */
   readonly isTruncated: boolean;
@@ -50,7 +50,7 @@ export interface UseArtifactContentReturn {
   readonly error: Error | null;
 
   /**
-   * Re-fetch the artifact content. Uses the `fetchKey` counter pattern
+   * Re-fetch the content. Uses the `fetchKey` counter pattern
    * consistent with `refetch()` in other SDK hooks.
    */
   readonly refetch: () => void;

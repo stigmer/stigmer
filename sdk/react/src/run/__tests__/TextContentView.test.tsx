@@ -1,12 +1,12 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
-import { ArtifactFileContent } from "../ArtifactFileContent";
+import { TextContentView } from "../TextContentView";
 
 function renderContent(
-  overrides: Partial<React.ComponentProps<typeof ArtifactFileContent>> = {},
+  overrides: Partial<React.ComponentProps<typeof TextContentView>> = {},
 ) {
   return render(
-    <ArtifactFileContent
+    <TextContentView
       fileName="notes.txt"
       content={null}
       contentType={null}
@@ -20,7 +20,7 @@ function renderContent(
 
 afterEach(cleanup);
 
-describe("ArtifactFileContent — state machine", () => {
+describe("TextContentView — state machine", () => {
   it("shows the loading skeleton while the fetch is in flight", () => {
     renderContent({ isLoading: true });
     expect(screen.getByText("Loading content")).toBeTruthy();
@@ -47,7 +47,7 @@ describe("ArtifactFileContent — state machine", () => {
       contentType: "text/plain",
       isTruncated: true,
     });
-    // ArtifactContentRenderer owns the truncation copy; assert its presence
+    // TextContentRenderer owns the truncation copy; assert its presence
     // rather than exact wording so this test tracks behavior, not prose.
     expect(screen.getByText(/truncated/i)).toBeTruthy();
   });

@@ -12,13 +12,13 @@ import { FileSchema, type File as StigmerFile } from "@stigmer/apis/ai/stigmer/a
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import {
-  isPlanArtifactName,
+  isPlanFileName,
   isPlanFile,
   findPlanFile,
   findLatestSessionPlan,
   planFilesByRun,
-  PLAN_ARTIFACT_NAME,
-} from "../detect-plan-artifact";
+  PLAN_FILE_NAME,
+} from "../detect-plan-file";
 
 function file(id: string, filename: string, runId = ""): StigmerFile {
   return create(FileSchema, {
@@ -32,19 +32,19 @@ function run(id: string, mode: InteractionMode = InteractionMode.PLAN) {
   return create(RunSchema, { metadata: { id }, spec: { interactionMode: mode } });
 }
 
-describe("isPlanArtifactName", () => {
+describe("isPlanFileName", () => {
   it("accepts the legacy exact name and any *.plan.md", () => {
-    expect(isPlanArtifactName(PLAN_ARTIFACT_NAME)).toBe(true);
-    expect(isPlanArtifactName("feature_x.plan.md")).toBe(true);
+    expect(isPlanFileName(PLAN_FILE_NAME)).toBe(true);
+    expect(isPlanFileName("feature_x.plan.md")).toBe(true);
     // The runner's current shape: hyphenated slug + content-hash discriminator.
-    expect(isPlanArtifactName("fix-the-download-ux_a1b2c3d4.plan.md")).toBe(true);
-    expect(isPlanArtifactName("a1b2c3d4.plan.md")).toBe(true);
+    expect(isPlanFileName("fix-the-download-ux_a1b2c3d4.plan.md")).toBe(true);
+    expect(isPlanFileName("a1b2c3d4.plan.md")).toBe(true);
   });
 
   it("rejects non-plan filenames", () => {
-    expect(isPlanArtifactName("report.md")).toBe(false);
-    expect(isPlanArtifactName("plan.txt")).toBe(false);
-    expect(isPlanArtifactName("myplan.md")).toBe(false);
+    expect(isPlanFileName("report.md")).toBe(false);
+    expect(isPlanFileName("plan.txt")).toBe(false);
+    expect(isPlanFileName("myplan.md")).toBe(false);
   });
 });
 

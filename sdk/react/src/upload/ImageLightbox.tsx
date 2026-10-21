@@ -4,8 +4,8 @@ import { useCallback } from "react";
 import { cn } from "@stigmer/design-tokens";
 import { DialogShell } from "../internal/DialogShell.js";
 
-/** Props for {@link AttachmentImageLightbox}. */
-export interface AttachmentImageLightboxProps {
+/** Props for {@link ImageLightbox}. */
+export interface ImageLightboxProps {
   /**
    * Image source URL. `null` for the first-paint frame before the caller's
    * object URL exists — the lightbox shows a pulse placeholder, never a
@@ -24,7 +24,7 @@ export interface AttachmentImageLightboxProps {
 
 /**
  * Full-size image preview in a native `<dialog>` — the click-to-open target
- * for composer attachment chips (stigmer/stigmer#371).
+ * for composer file chips (stigmer/stigmer#371).
  *
  * A thin modal shell following the SDK's established dialog pattern
  * ({@link FilePreviewModal}): `showModal()`/`close()` driven by the
@@ -33,7 +33,7 @@ export interface AttachmentImageLightboxProps {
  * Backdrop click closes via the canonical `e.target === dialog` check
  * (clicks on content children never match the dialog element itself).
  *
- * Deliberately dumb (`src` + `filename`, no attachment types): liftable to
+ * Deliberately dumb (`src` + `filename`, no upload types): liftable to
  * `internal/` unchanged if other image surfaces (e.g. tool-output
  * screenshots in `ResultView`) later want in-app preview instead of
  * open-in-new-tab.
@@ -42,13 +42,13 @@ export interface AttachmentImageLightboxProps {
  * overlay behind dialogs") rather than the `bg-black/50` hardcode found in
  * older dialogs — the token is the designed value, never a hardcoded color.
  */
-export function AttachmentImageLightbox({
+export function ImageLightbox({
   src,
   filename,
   open,
   onClose,
   className,
-}: AttachmentImageLightboxProps) {
+}: ImageLightboxProps) {
   const handleOpenChange = useCallback(
     (nextOpen: boolean) => {
       if (!nextOpen) onClose();

@@ -7,8 +7,8 @@ import { FileBody } from "./FileBody.js";
 import { FileApplyButton } from "./FileApplyButton.js";
 import { FileAddAsSkillAction, FileDeleteAction } from "./FileActions.js";
 import { useFileDownload } from "../file/useFile.js";
-import { formatArtifactSize } from "./artifact-utils.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
+import { formatFileSize } from "../file/file-size.js";
 
 /** Props for {@link FileDocument}. */
 export interface FileDocumentProps {
@@ -40,9 +40,9 @@ export interface FileDocumentProps {
 /**
  * The editor-pane rendering of a single File — the
  * {@link SurfaceVirtualDocument} counterpart of the {@link FilePreviewModal}
- * popup, mounted as an artifact-family virtual document under
- * {@link FILE_DOCUMENT_ENTRY_ID}. Opening an artifact from the session
- * panel's Artifacts facet lands here (VS Code "each file is a tab") rather than
+ * popup, mounted as a File-family virtual document under
+ * {@link FILE_DOCUMENT_ENTRY_ID}. Opening a File from the session
+ * panel's Files facet lands here (VS Code "each file is a tab") rather than
  * a modal.
  *
  * Shares the modal's exact behavior and body via the two extracted pieces —
@@ -92,7 +92,7 @@ export function FileDocument({
           {name}
         </span>
         <span className="stg:shrink-0 stg:text-[0.65rem] stg:tabular-nums stg:text-muted-foreground-faint">
-          {formatArtifactSize(file.status?.sizeBytes ?? BigInt(0))}
+          {formatFileSize(file.status?.sizeBytes ?? BigInt(0))}
         </span>
         {inspection.isDetecting && !inspection.detectionLabel && (
           <span

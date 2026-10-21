@@ -63,7 +63,7 @@ export interface UseSessionOutputsReturn {
  * that must agree or a tab could fail to resolve its File:
  * 1. de-duplication here (newest turn wins per key),
  * 2. the virtual-document tab `path` when an output opens in the editor area
- *    (see `SessionViewer` / `useSessionPanel.openArtifact`), and
+ *    (see `SessionViewer` / `useSessionPanel.openFileDocument`), and
  * 3. the `outputKey → entry` lookup that renders the open tab's document.
  *
  * Its basename doubles as the editor tab's label (paths render as their last

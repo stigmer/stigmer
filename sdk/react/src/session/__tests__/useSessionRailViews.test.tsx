@@ -76,7 +76,7 @@ afterEach(() => {
 });
 
 describe("useSessionRailViews", () => {
-  it("always offers Config and Usage; Changes/Artifacts are contextual", () => {
+  it("always offers Config and Usage; Changes/Files are contextual", () => {
     const { result } = renderViews();
     expect(result.current.map((v) => v.id)).toEqual(["configure", "usage"]);
   });

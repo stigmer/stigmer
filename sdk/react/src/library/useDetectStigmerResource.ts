@@ -33,7 +33,7 @@ const NOT_DETECTED: StigmerResourceDetection = { detected: false } as const;
  * ```
  *
  * @see {@link detectStigmerResource} for the pure function (non-React usage)
- * @see {@link useArtifactContent} for fetching artifact content
+ * @see {@link useFileContent} for reading a File's text
  */
 export function useDetectStigmerResource(
   content: string | null,

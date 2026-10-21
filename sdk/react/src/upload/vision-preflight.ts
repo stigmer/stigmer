@@ -28,7 +28,7 @@
  */
 
 import type { ModelInfo, VisionLimits } from "../models/registry.js";
-import { formatFileSize } from "./attachment-utils.js";
+import { formatFileSize } from "../file/file-size.js";
 
 /**
  * Content types the runner recognizes as vision candidates (its
@@ -42,13 +42,13 @@ const VISION_CANDIDATE_TYPES: ReadonlySet<string> = new Set([
   "image/gif",
 ]);
 
-/** Minimal attachment shape the preflight needs — pure data, no `File`. */
-export interface VisionPreflightAttachment {
+/** Minimal file shape the preflight needs — pure data, no `File`. */
+export interface VisionPreflightFile {
   /** Display name used in warning copy (the chip's filename). */
   readonly name: string;
   /** Raw byte size — what the runner's budget counts. */
   readonly sizeBytes: number;
-  /** Declared/detected MIME type (`AttachmentEntry.contentType`). */
+  /** Declared/detected MIME type (`FileEntry.contentType`). */
   readonly contentType: string;
 }
 
@@ -73,7 +73,7 @@ export interface VisionPreflightWarning {
 
 /** Result of {@link assessVisionPreflight}. */
 export interface VisionPreflight {
-  /** Predicted-degraded images in attachment order. Empty = all clear. */
+  /** Predicted-degraded images in the order they were added. Empty = all clear. */
   readonly warnings: readonly VisionPreflightWarning[];
   /**
    * True when the selected model is explicitly blind (`vision: false`)
@@ -105,17 +105,17 @@ export interface AssessVisionPreflightOptions {
  * Predict which attached images the runner will degrade this turn.
  *
  * Pure and deterministic — safe to call in render (memoized by callers).
- * Non-image attachments never warn. The byte assessment replicates the
+ * Non-image files never warn. The byte assessment replicates the
  * runner's sequential admission: an image over the per-image cap is
  * degraded WITHOUT consuming budget; remaining images are admitted in
  * order until the count or total-byte budget is exhausted.
  */
 export function assessVisionPreflight(
-  attachments: readonly VisionPreflightAttachment[],
+  files: readonly VisionPreflightFile[],
   options?: AssessVisionPreflightOptions,
 ): VisionPreflight {
-  const candidates = attachments.filter((a) =>
-    VISION_CANDIDATE_TYPES.has(a.contentType.toLowerCase()),
+  const candidates = files.filter((f) =>
+    VISION_CANDIDATE_TYPES.has(f.contentType.toLowerCase()),
   );
   if (candidates.length === 0) return NO_WARNINGS;
 

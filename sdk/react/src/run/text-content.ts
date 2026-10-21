@@ -40,21 +40,6 @@ const TEXT_EXTENSIONS = new Set([
 ]);
 
 /**
- * Extracts the lowercase file extension from a File's filename.
- *
- * Returns `null` when the filename has no extension or is empty.
- * Delegates to {@link getFileExtension} for the actual parsing.
- *
- * @example
- * ```ts
- * getArtifactExtension(file); // "yaml"
- * ```
- */
-export function getArtifactExtension(file: StigmerFile): string | null {
-  return getFileExtension(file.spec?.filename ?? "");
-}
-
-/**
  * Determines whether a File likely holds human-readable text: a `text/*`
  * media type, or a filename extension in the {@link TEXT_EXTENSIONS} set.
  *
@@ -68,7 +53,7 @@ export function getArtifactExtension(file: StigmerFile): string | null {
  */
 export function isTextFile(file: StigmerFile): boolean {
   if ((file.spec?.mimeType ?? "").startsWith("text/")) return true;
-  const ext = getArtifactExtension(file);
+  const ext = getFileExtension(file.spec?.filename ?? "");
   return ext !== null && TEXT_EXTENSIONS.has(ext);
 }
 
@@ -77,9 +62,9 @@ export function isTextFile(file: StigmerFile): boolean {
 // ---------------------------------------------------------------------------
 
 /**
- * Content rendering strategy for artifact file preview.
+ * Content rendering strategy for a text file preview.
  *
- * Used by {@link ArtifactContentRenderer} to dispatch to the correct
+ * Used by {@link TextContentRenderer} to dispatch to the correct
  * renderer, and by platform builders who want to implement custom
  * rendering logic based on file type.
  *
@@ -88,7 +73,7 @@ export function isTextFile(file: StigmerFile): boolean {
  * - `"json"` — pretty-printed JSON with key/value coloring
  * - `"text"` — monospace plain text with line numbers
  */
-export type ArtifactRenderMode = "markdown" | "yaml" | "json" | "text";
+export type TextRenderMode = "markdown" | "yaml" | "json" | "text";
 
 const YAML_EXTENSIONS = new Set(["yaml", "yml"]);
 const JSON_EXTENSIONS = new Set(["json"]);
@@ -98,8 +83,6 @@ const MARKDOWN_EXTENSIONS = new Set(["md", "mdx"]);
  * Extracts the lowercase file extension from a file name string.
  *
  * Returns `null` when the name has no extension or is empty.
- * Unlike {@link getArtifactExtension}, this operates on a plain
- * string — usable without a File.
  *
  * @example
  * ```ts
@@ -115,29 +98,29 @@ export function getFileExtension(fileName: string): string | null {
 }
 
 /**
- * Determines the optimal rendering strategy for a text artifact.
+ * Determines the optimal rendering strategy for a text file.
  *
  * Inspects the file extension first, then falls back to the optional
  * `contentType` MIME string returned by the server. Platform builders
  * can use this to implement custom rendering or to display a mode
  * indicator in their UI.
  *
- * @param fileName - Artifact file name (e.g., `"README.md"`, `"config.yaml"`)
+ * @param fileName - File name (e.g., `"README.md"`, `"config.yaml"`)
  * @param contentType - Optional MIME content type from the server response
  *
  * @example
  * ```ts
- * getArtifactRenderMode("README.md");                   // "markdown"
- * getArtifactRenderMode("config.yaml");                 // "yaml"
- * getArtifactRenderMode("data.json");                   // "json"
- * getArtifactRenderMode("script.py");                   // "text"
- * getArtifactRenderMode("unknown", "application/json"); // "json"
+ * getTextRenderMode("README.md");                   // "markdown"
+ * getTextRenderMode("config.yaml");                 // "yaml"
+ * getTextRenderMode("data.json");                   // "json"
+ * getTextRenderMode("script.py");                   // "text"
+ * getTextRenderMode("unknown", "application/json"); // "json"
  * ```
  */
-export function getArtifactRenderMode(
+export function getTextRenderMode(
   fileName: string,
   contentType?: string | null,
-): ArtifactRenderMode {
+): TextRenderMode {
   const ext = getFileExtension(fileName);
 
   if (ext && MARKDOWN_EXTENSIONS.has(ext)) return "markdown";
@@ -152,43 +135,4 @@ export function getArtifactRenderMode(
   }
 
   return "text";
-}
-
-// ---------------------------------------------------------------------------
-// Size formatting
-// ---------------------------------------------------------------------------
-
-const SIZE_UNITS = ["B", "KB", "MB", "GB", "TB"] as const;
-
-/**
- * Formats a byte count as a human-readable file size string.
- *
- * Accepts both `bigint` (from protobuf `int64` fields like
- * `FileStatus.sizeBytes`) and `number`.
- *
- * Uses base-1024 (binary) units with one decimal place.
- *
- * @example
- * ```ts
- * formatArtifactSize(0n);       // "0 B"
- * formatArtifactSize(1024);     // "1.0 KB"
- * formatArtifactSize(1536n);    // "1.5 KB"
- * formatArtifactSize(2621440n); // "2.5 MB"
- * ```
- */
-export function formatArtifactSize(sizeBytes: bigint | number): string {
-  const bytes = typeof sizeBytes === "bigint" ? Number(sizeBytes) : sizeBytes;
-
-  if (bytes === 0) return "0 B";
-
-  const unitIndex = Math.min(
-    Math.floor(Math.log(bytes) / Math.log(1024)),
-    SIZE_UNITS.length - 1,
-  );
-
-  const value = bytes / Math.pow(1024, unitIndex);
-
-  return unitIndex === 0
-    ? `${bytes} B`
-    : `${value.toFixed(1)} ${SIZE_UNITS[unitIndex]}`;
 }

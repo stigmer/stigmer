@@ -29,7 +29,7 @@ vi.mock("../prepare-image.js", () => ({
 import { useStigmer } from "../../hooks";
 import { prepareImageForVision } from "../prepare-image.js";
 import { MAX_MESSAGE_FILES, useFileUploads } from "../useFileUploads.js";
-import { MAX_ATTACHMENT_BYTES } from "../attachment-utils.js";
+import { MAX_FILE_BYTES } from "../upload-utils.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -123,7 +123,7 @@ describe("useFileUploads — Files", () => {
     expect(result.current.entries).toHaveLength(0);
     expect(deleteFile).not.toHaveBeenCalled();
     expect(handOff.fileIds).toEqual(["file_1", "file_2"]);
-    expect(handOff.attachments).toEqual([
+    expect(handOff.files).toEqual([
       { fileId: "file_1", filename: "shot.png", kind: "image" },
       { fileId: "file_2", filename: "notes.md", kind: "document" },
     ]);
@@ -237,7 +237,7 @@ describe("useFileUploads — Files", () => {
     const { uploadFile, deleteFile } = mockStigmer("ses_1");
     const seeded = [makeFile("seed.png", 32)];
 
-    // A composer's initial attachments: added by a mount effect, which runs
+    // A composer's initial files: added by a mount effect, which runs
     // before StrictMode's simulated unmount and remount.
     const { result } = renderHook(
       () => {
@@ -515,7 +515,7 @@ describe("useFileUploads — prepareImages lifecycle", () => {
     const { result } = renderHook(() => useFileUploads({ org: "acme", onValidationError }));
 
     act(() => {
-      result.current.addFiles([makeSizedFile("huge-screenshot.png", MAX_ATTACHMENT_BYTES + 1)], {
+      result.current.addFiles([makeSizedFile("huge-screenshot.png", MAX_FILE_BYTES + 1)], {
         prepareImages: true,
       });
     });
@@ -533,7 +533,7 @@ describe("useFileUploads — prepareImages lifecycle", () => {
   it("removes the entry and reports via onValidationError when still oversized after preparation", async () => {
     const { uploadFile } = mockStigmer();
     const onValidationError = vi.fn();
-    const oversized = makeSizedFile("giant.zip", MAX_ATTACHMENT_BYTES + 1, "application/zip");
+    const oversized = makeSizedFile("giant.zip", MAX_FILE_BYTES + 1, "application/zip");
     // Non-image passthrough: preparation returns the original untouched.
     prepareMock.mockResolvedValue(oversized);
 
@@ -648,7 +648,7 @@ describe("useFileUploads — unflagged addFiles", () => {
     const { result } = renderHook(() => useFileUploads({ org: "acme", onValidationError }));
 
     act(() => {
-      result.current.addFiles([makeSizedFile("too-big.png", MAX_ATTACHMENT_BYTES + 1)]);
+      result.current.addFiles([makeSizedFile("too-big.png", MAX_FILE_BYTES + 1)]);
     });
 
     expect(result.current.entries).toHaveLength(0);

@@ -1,4 +1,4 @@
-export { MAX_MESSAGE_FILES, useFileUploads, toAttachmentView } from "./useFileUploads.js";
+export { MAX_MESSAGE_FILES, useFileUploads, toFileChipView } from "./useFileUploads.js";
 export type {
   AddFilesOptions,
   FileHandOff,
@@ -8,16 +8,15 @@ export type {
   UseFileUploadsReturn,
 } from "./useFileUploads.js";
 
-export { AttachmentChipList } from "./AttachmentChipList.js";
-export type { AttachmentChipListProps } from "./AttachmentChipList.js";
+export { FileChipList } from "./FileChipList.js";
+export type { FileChipListProps } from "./FileChipList.js";
 
 export {
-  MAX_ATTACHMENT_BYTES,
+  MAX_FILE_BYTES,
   detectContentType,
-  formatFileSize,
   uniquifyFilename,
-  validateAttachmentSize,
-} from "./attachment-utils.js";
+  validateFileSize,
+} from "./upload-utils.js";
 
 export { extractClipboardFiles } from "./clipboard.js";
 export type { ClipboardFilesSource } from "./clipboard.js";
@@ -30,7 +29,7 @@ export {
 export type {
   AssessVisionPreflightOptions,
   VisionPreflight,
-  VisionPreflightAttachment,
+  VisionPreflightFile,
   VisionPreflightMessageOptions,
   VisionPreflightReason,
   VisionPreflightWarning,

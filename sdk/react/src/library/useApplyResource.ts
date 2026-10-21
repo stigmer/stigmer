@@ -142,7 +142,7 @@ export function useApplyResource(): UseApplyResourceReturn {
         const documents = parseManifest(content, { org });
         if (documents.length > 1) {
           throw new Error(
-            "This artifact contains multiple resource documents. " +
+            "This file contains multiple resource documents. " +
               "Use Apply YAML in the Library to apply multi-document manifests.",
           );
         }

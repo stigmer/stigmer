@@ -4,9 +4,9 @@ import type { File as StigmerFile } from "@stigmer/apis/ai/stigmer/agentic/file/
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import type { WorkbenchColumnDef } from "../resource-workbench/types.js";
-import { formatArtifactSize } from "../run/artifact-utils.js";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { FileTypeIcon } from "../internal/file-icons/index.js";
+import { formatFileSize } from "./file-size.js";
 
 /** A File's media type in a list's few words: "image/png", or "—" when it has none. */
 export function describeFileType(file: StigmerFile): string {
@@ -54,7 +54,7 @@ export function createFileColumns(): WorkbenchColumnDef<StigmerFile>[] {
       header: "Size",
       cell: (item) => (
         <span className="stg:tabular-nums stg:text-muted-foreground">
-          {formatArtifactSize(item.status?.sizeBytes ?? BigInt(0))}
+          {formatFileSize(item.status?.sizeBytes ?? BigInt(0))}
         </span>
       ),
       flex: 0.8,

@@ -41,10 +41,10 @@ const IMAGE_MIME_EXTENSIONS: Record<string, string> = {
 
 /**
  * Monotonic per-page-session counter. Combined with the time component this
- * keeps synthesized names unique even across page reloads within one agent
- * session — required because attachments materialize at
- * `.stigmer/inputs/{filename}` in a session-scoped directory, where a
- * repeated name from a later turn silently replaces the earlier turn's file.
+ * keeps synthesized names distinct even across page reloads within one
+ * conversation, so two pasted screenshots read as two files in the
+ * conversation's Files and under `.stigmer/uploads/`, not as `image.png`
+ * and the `image-2.png` the server would rename a clash to.
  */
 let pasteSequence = 0;
 
@@ -61,10 +61,10 @@ function synthesizePastedImageName(mimeType: string, now: Date): string {
  * browser's generic `image.png` name a unique, human-readable one
  * (`pasted-image-<HHMMSS>-<n>.<ext>`).
  *
- * Unique names are load-bearing, not cosmetic: attachments mount at
- * `.stigmer/inputs/{filename}`, and two same-named attachments either fail
- * the run (deep-agent harness) or silently overwrite each other
- * (Cursor harness). Files with real names (pasted from a file manager) are
+ * A message's files mount at `.stigmer/uploads/{filename}`, where the server
+ * renames a clash (`image-2.png`); a name that says what the file is serves
+ * the person reading the conversation's Files and the agent reading its
+ * uploads better. Files with real names (pasted from a file manager) are
  * returned unchanged.
  *
  * Returns an empty array for a text-only paste — callers use that to let
@@ -80,7 +80,7 @@ function synthesizePastedImageName(mimeType: string, now: Date): string {
  *   const files = extractClipboardFiles(e);
  *   if (files.length === 0) return; // plain text paste — leave it alone
  *   e.preventDefault();
- *   attachments.addFiles(files);
+ *   uploads.addFiles(files);
  * }
  * ```
  */

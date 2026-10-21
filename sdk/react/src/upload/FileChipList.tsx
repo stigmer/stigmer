@@ -3,14 +3,14 @@
 import { useState } from "react";
 import { cn } from "@stigmer/design-tokens";
 import type { FileUploadEntry } from "./useFileUploads.js";
-import { formatFileSize } from "./attachment-utils.js";
 import { useObjectUrl } from "./useObjectUrl.js";
-import { AttachmentImageLightbox } from "./AttachmentImageLightbox.js";
+import { ImageLightbox } from "./ImageLightbox.js";
 import { UNSTYLED_BUTTON } from "../internal/form-primitives.js";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../internal/tooltip.js";
+import { formatFileSize } from "../file/file-size.js";
 
-/** Props for {@link AttachmentChipList}. */
-export interface AttachmentChipListProps {
+/** Props for {@link FileChipList}. */
+export interface FileChipListProps {
   /** Entries from {@link useFileUploads}. */
   readonly entries: readonly FileUploadEntry[];
   /** Remove callback (by entry ID). */
@@ -31,7 +31,7 @@ export interface AttachmentChipListProps {
 }
 
 /**
- * Renders a horizontal list of attachment chips: image attachments as
+ * Renders a horizontal list of upload chips: images as
  * preview-only thumbnail tiles (the image IS the chip — no filename
  * text; visible from the moment of paste, through upload, and on error
  * — stigmer/stigmer#371, #372), other files as compact filename chips.
@@ -41,7 +41,7 @@ export interface AttachmentChipListProps {
  *
  * Designed to sit between the context chips and toolbar in
  * {@link SessionComposer}, but usable standalone by platform builders
- * who compose their own attachment UI.
+ * who compose their own upload UI.
  *
  * All visual properties flow through `--stgm-*` tokens.
  *
@@ -51,7 +51,7 @@ export interface AttachmentChipListProps {
  *   const uploads = useFileUploads({ org, sessionId });
  *
  *   return (
- *     <AttachmentChipList
+ *     <FileChipList
  *       entries={uploads.entries}
  *       onRemove={uploads.removeEntry}
  *       onRetry={uploads.retryEntry}
@@ -60,17 +60,17 @@ export interface AttachmentChipListProps {
  * }
  * ```
  */
-export function AttachmentChipList({
+export function FileChipList({
   entries,
   onRemove,
   onRetry,
   onPreview,
   disabled,
   className,
-}: AttachmentChipListProps) {
+}: FileChipListProps) {
   // The built-in lightbox tracks the previewed entry by ID (direct identity,
   // never object reference), and the entry itself is derived from `entries`
-  // on render — so removing an attachment while its preview is open closes
+  // on render — so removing a file while its preview is open closes
   // the lightbox without any effect-based synchronization.
   const [previewId, setPreviewId] = useState<string | null>(null);
   const previewEntry =
@@ -89,7 +89,7 @@ export function AttachmentChipList({
         aria-label="Attached files"
       >
         {entries.map((entry) => (
-          <AttachmentChip
+          <FileChip
             key={entry.id}
             entry={entry}
             onRemove={() => onRemove(entry.id)}
@@ -121,7 +121,7 @@ export function AttachmentChipList({
 // Individual chip — dispatches on content type
 // ---------------------------------------------------------------------------
 
-function AttachmentChip({
+function FileChip({
   entry,
   onRemove,
   onRetry,
@@ -135,7 +135,7 @@ function AttachmentChip({
   readonly disabled?: boolean;
 }) {
   return entry.contentType.startsWith("image/") ? (
-    <ImageAttachmentChip
+    <ImageChip
       entry={entry}
       onRemove={onRemove}
       onRetry={onRetry}
@@ -143,7 +143,7 @@ function AttachmentChip({
       disabled={disabled}
     />
   ) : (
-    <FileAttachmentChip
+    <DocumentChip
       entry={entry}
       onRemove={onRemove}
       onRetry={onRetry}
@@ -177,7 +177,7 @@ function isChipBusy(entry: FileUploadEntry): boolean {
 /**
  * The preview-only image tile: the thumbnail IS the chip. No filename
  * text, no size caption — the image is its own identity (the grammar
- * users know from Cursor/ChatGPT attachment tiles), while filename,
+ * users know from Cursor/ChatGPT file tiles), while filename,
  * size, and upload status stay one hover away in the tooltip and are
  * always in the accessible label.
  *
@@ -195,7 +195,7 @@ function isChipBusy(entry: FileUploadEntry): boolean {
  * zero-byte), the chip degrades to the compact file-chip treatment — a
  * generic icon and no preview affordance, never a broken-image glyph.
  */
-function ImageAttachmentChip({
+function ImageChip({
   entry,
   onRemove,
   onRetry,
@@ -213,7 +213,7 @@ function ImageAttachmentChip({
 
   if (loadFailed) {
     return (
-      <FileAttachmentChip
+      <DocumentChip
         entry={entry}
         onRemove={onRemove}
         onRetry={onRetry}
@@ -318,10 +318,10 @@ function ImageAttachmentChip({
 }
 
 // ---------------------------------------------------------------------------
-// File chip — the compact treatment for non-image attachments
+// File chip — the compact treatment for non-image files
 // ---------------------------------------------------------------------------
 
-function FileAttachmentChip({
+function DocumentChip({
   entry,
   onRemove,
   onRetry,
@@ -422,7 +422,7 @@ function RemoveButton({
 // ---------------------------------------------------------------------------
 
 /**
- * Bridges the previewed entry to the dumb {@link AttachmentImageLightbox}:
+ * Bridges the previewed entry to the dumb {@link ImageLightbox}:
  * mounted only while a preview is open, so its object URL is created on
  * open and revoked on close (independent of the chip's own URL, whose
  * lifetime tracks the chip).
@@ -437,7 +437,7 @@ function ChipPreviewLightbox({
   const src = useObjectUrl(entry.file);
 
   return (
-    <AttachmentImageLightbox
+    <ImageLightbox
       src={src}
       filename={entry.file.name}
       open
