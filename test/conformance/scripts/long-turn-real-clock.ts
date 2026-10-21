@@ -14,32 +14,43 @@
 // subagent whose model call the mock holds, real output big enough to compact
 // the conversation. A `kill` or `drain` step ends the runner through the
 // target's restartRunner while the step is provably open (its marker), and
-// releases the step once the runner is replaced.
+// releases the step once the runner is replaced. A `server-restart` step
+// replaces the server through the target's restartServer, behind the front
+// the runner and every client dial: on `--target local-postgres-execution`
+// the two servers serve together and the step ends while they do (a
+// rolling update's overlap), on `local-execution` (SQLite) the server stops
+// and starts on the same file.
 //
 // The report (src/long-turn/report.ts) is rewritten after every minute, so a
-// run that is stopped still leaves one. At the end it reads the session's log
-// back and checks the sequence numbers run unbroken. What it cannot see is
+// run that is stopped still leaves one. A streaming follower reads the
+// session from its first event through every restart. At the end the
+// session's log is read back: its sequence numbers must run unbroken and the
+// follower must have been sent exactly them, once and in order, or the
+// transcript reads broken and the script exits 1. What it cannot see is
 // said in the report: against the mock the runner holds a static token, so
 // the token re-mint a hosted runner does at 0.8 of its lifetime never runs.
 //
 // Needs: the `temporal` CLI on PATH, and the `stigmer` CLI (`make
-// install-cli-shim`), as the execution lane does.
+// install-cli-shim`), as the execution lane does; CONFORMANCE_POSTGRES_URL for
+// the Postgres target.
 //
 // Flags:
 //   --profile goal|endurance   what the turn plays (src/long-turn/profile.ts); default goal
 //   --minutes N                endurance's length (default 180)
 //   --steps a,b                play only these steps of the profile, in its order
+//   --target <name>            local-execution (default, SQLite) or local-postgres-execution
 //   --out <dir>                where the report lands (default .test-output/long-turn-real-clock/<profile>-<stamp>)
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { driveLongTurn } from "../src/long-turn/drive";
 import { parseLongTurnFlags, profileOf, shellCommandOf, timeoutSecondsOf, type LongTurnStep, type StepFiles } from "../src/long-turn/profile";
-import type { LongTurnReport } from "../src/long-turn/report";
+import { transcriptVerdictOf, type LongTurnReport } from "../src/long-turn/report";
 import { agentRefOf, makeAgent } from "../src/support/agents";
 import { uniqueName } from "../src/support/naming";
 import { makeAgentExecution } from "../src/support/runs";
 import { LocalExecutionTarget } from "../src/targets/local-execution";
+import { LocalPostgresExecutionTarget } from "../src/targets/local-postgres";
 
 async function main(): Promise<void> {
   const flags = parseLongTurnFlags(process.argv.slice(2));
@@ -59,7 +70,7 @@ async function main(): Promise<void> {
     runnerEvents: [],
   };
 
-  const target = new LocalExecutionTarget();
+  const target = flags.target === "local-postgres-execution" ? new LocalPostgresExecutionTarget() : new LocalExecutionTarget();
   console.log(`[long-turn] booting the stack; the report goes to ${out}`);
   try {
     // Inside the try: a stack whose boot fails (a runner not built yet, say)
@@ -100,7 +111,7 @@ async function main(): Promise<void> {
       }),
     );
     console.log(`[long-turn] run ${created.metadata!.id} (${profile.steps.length} steps on ${profile.model})`);
-    await driveLongTurn({
+    const ended = await driveLongTurn({
       clients,
       runId: created.metadata!.id,
       profile,
@@ -109,8 +120,14 @@ async function main(): Promise<void> {
       report,
       startedAtMs: startedAt.getTime(),
       restartRunner: (signal) => target.restartRunner({ signal }),
+      restartServer: (options) => target.restartServer(options),
       counts: () => ({ modelCalls: mock.scriptedRequests().length, compactions: mock.summaryRequests() }),
     });
+    const verdict = transcriptVerdictOf(ended.end!);
+    if (!verdict.whole) {
+      console.error(`[long-turn] the transcript is broken: ${verdict.reasons.join("; ")}`);
+      process.exitCode = 1;
+    }
   } finally {
     // An orphaned held step would outlive the run: release every one.
     for (const step of profile.steps) if (!existsSync(files.releaseOf(step.id))) writeFileSync(files.releaseOf(step.id), "released at teardown\n");
