@@ -43,7 +43,7 @@ export async function startTcpFront(): Promise<TcpFront> {
   let next = 0;
 
   const pipeTo = (client: net.Socket, backendPort: number): void => {
-    const upstream = net.connect({ host: HOST, port: backendPort });
+    const upstream = net.connect({ host: HOST, port: backendPort, noDelay: true });
     open.add(upstream);
     upstream.on("close", () => open.delete(upstream));
     // Each direction ends the other side only once what it carried is
@@ -71,7 +71,10 @@ export async function startTcpFront(): Promise<TcpFront> {
     pipeTo(client, backendPort);
   };
 
-  const server = net.createServer((client) => {
+  // No Nagle on either side: a proxy that coalesces small writes adds a
+  // delayed-ACK wait (tens of milliseconds on Linux) to every request and
+  // answer, which a Service's kernel forwarding never does.
+  const server = net.createServer({ noDelay: true }, (client) => {
     open.add(client);
     client.on("close", () => {
       open.delete(client);

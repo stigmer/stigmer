@@ -365,10 +365,14 @@ describe("a long turn on a real runner", () => {
       console.log(`[long turn] kill: ${RunPhase[settled.status?.phase ?? 0]}, the task in the last request ${handed} time(s), the step began ${step.started()} time(s)`);
 
       const notes = await clients.sessionQuery.listEvents({ sessionId: sessionIdOf(settled), pageSize: 1000, types: ["stigmer.harness.note"] });
+      const story = (await clients.sessionQuery.listEvents({ sessionId: sessionIdOf(settled), pageSize: 1000 })).events
+        .filter((event) => event.runId === run.id)
+        .map((event) => event.event.case)
+        .join(", ");
 
       expect(settled.status?.phase, `the killed turn: ${settled.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
       expect(handed, "the model was handed the task once").toBe(1);
-      expect(notes.events.length, "the log says once why the turn paused").toBe(1);
+      expect(notes.events.length, `the log says once why the turn paused (the run's log: ${story})`).toBe(1);
       expect(mock.remaining(), "the replacement asked only the round after the step").toBe(0);
     },
     KILL_ARM_TIMEOUT_MS,
