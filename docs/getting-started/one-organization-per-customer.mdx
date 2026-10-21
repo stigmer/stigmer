@@ -42,10 +42,11 @@ belongs to their customer's Organization, not yours.
 ## Share the Agent with your customers
 
 Your customers' Organizations run the Agent you already have. In the console,
-open the `variance-reporter` Agent and set its visibility to **Child
-organizations**. Everyone in every child organization can then use it, including
-the ones you create later, and nobody else can. Each customer runs it inside
-their own Organization.
+open **Library → Agents → variance-reporter**. Its visibility reads
+**Organization**: click it to open **Manage access**, choose **Child
+organizations** under **General access**, and confirm. Everyone in every child
+organization can then use it, including the ones you create later, and nobody
+else can. Each customer runs it inside their own Organization.
 
 </Step>
 <Step>
@@ -53,14 +54,25 @@ their own Organization.
 ## Create the customer's organization
 
 When a customer signs up for your product, your backend creates their
-Organization under yours. Create `onboard-customer.ts` in your app's folder:
+Organization under yours. Creating an Organization decides who belongs where, so
+Stigmer refuses it from a service account, and a leaked key can't add any. An
+admin's own key does it. Signed in to the CLI as an admin, make a key limited to
+your Organization, which works there and in the Organizations under it and
+nowhere else:
+
+```bash
+stigmer apikey create --name onboarding --bound-org <your-org>
+export STIGMER_ADMIN_KEY=<the key>
+```
+
+Create `onboard-customer.ts` in your app's folder:
 
 ```typescript title="onboard-customer.ts"
 import { createNodeClient } from "@stigmer/client/node";
 
 const stigmer = createNodeClient({
   baseUrl: process.env.STIGMER_URL ?? "https://api.stigmer.ai",
-  apiKey: process.env.STIGMER_API_KEY!,
+  apiKey: process.env.STIGMER_ADMIN_KEY!,
 });
 
 const customer = await stigmer.organization.create({
@@ -80,8 +92,9 @@ later without storing its slug. Run it:
 npx tsx onboard-customer.ts
 ```
 
-The service account's key works in every Organization under yours, because an
-admin of your Organization is an admin of each of its children.
+Your backend keeps signing people in with the service account's key: an admin of
+your Organization is an admin of each of its children, so it can mint tokens in
+the customer's Organization too.
 
 </Step>
 <Step>
