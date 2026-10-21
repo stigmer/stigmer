@@ -172,7 +172,11 @@ test.describe("The organization's default Environment", () => {
     await pinActiveOrg(page, stigmerClient);
   });
 
-  test("is set on the Preferences page and saved by id", async ({ page, stigmerClient }) => {
+  // Clearing the default after setting it can still read the old id 15 s on,
+  // on the plain stack's shard; it has failed on three pull requests that touch
+  // neither the console nor the organization API.
+  // quarantined: stigmer/stigmer#2482
+  test.skip("is set on the Preferences page and saved by id", async ({ page, stigmerClient }) => {
     const environment = await createTestEnvironment(stigmerClient, {
       org: ENVIRONMENTS_ORG,
       name: uniqueName("e2e-env-default"),
