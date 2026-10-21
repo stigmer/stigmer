@@ -201,8 +201,9 @@ function CodePreview() {
  * What a developer's backend runs to hand a customer's ledger to an agent and
  * get its report back: three calls from variance-report.ts on the docs'
  * "Call it from your app" page, in order. The Getting Started smoke runs that
- * file on every change, and sections/__tests__/snippets.test.tsx fails when a
- * line here stops being one of its lines; `ELIDED` stands for lines left out.
+ * file on every change, and sections/__tests__/snippets.test.tsx fails when
+ * the lines between two `ELIDED` marks stop being consecutive lines of it;
+ * `ELIDED` stands wherever lines are left out.
  */
 const ELIDED = null;
 
@@ -218,8 +219,10 @@ const VARIANCE_REPORT_EXCERPT: readonly (string | typeof ELIDED)[] = [
   '  message: "Review this quarter\'s ledger.",',
   "  fileIds: [ledger.metadata!.id],",
   "});",
+  ELIDED,
   "",
   "for await (const file of stigmer.file.listAll({ org, runId: turn.runId })) {",
+  ELIDED,
   "  const { url } = await stigmer.file.getDownloadUrl(file.metadata!.id);",
   ELIDED,
   "}",
@@ -245,8 +248,12 @@ function CodePreviewCard() {
         <code>
           {VARIANCE_REPORT_EXCERPT.map((line, index) =>
             line === ELIDED ? (
-              <div key={index} className="text-subtle">
-                {"  …"}
+              <div key={index} data-code-elided="" className="text-subtle">
+                {[VARIANCE_REPORT_EXCERPT[index - 1], VARIANCE_REPORT_EXCERPT[index + 1]].some(
+                  (neighbour) => neighbour?.startsWith("  "),
+                )
+                  ? "  …"
+                  : "…"}
               </div>
             ) : (
               <div key={index} data-code-line="" className="text-muted-foreground">
