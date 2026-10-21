@@ -39,7 +39,9 @@
 // it (the lexical scan scripts/turbo-inputs.test.mjs uses) names files every
 // list watching the package must match; a read only its tests make binds the
 // gate lane's list alone, since a deploy builds the site but does not run its
-// tests. A path computed at runtime is not seen, as there.
+// tests. A path computed at runtime is not seen, as there. A read that lands
+// inside the package must name a tracked file, so a literal resolved against
+// another base than its own file (process.cwd(), say) cannot hide there.
 //
 // Trigger lists are each CI lane's list in scripts/ci-lanes.mjs (the map
 // ci.gate.yaml selects lanes by), and `on.pull_request.paths`, `on.push.paths`
@@ -370,22 +372,31 @@ const TEST_SIDE_FILE = /(\.test\.[cm]?[jt]sx?$|\/__tests__\/|(^|\/)vitest[^/]*\.
 
 /**
  * Every read the tracked source of the package in `dir` makes by a `../`
- * string literal that resolves outside the package, as `{ file, target,
- * testSide }` with repo-relative paths. A literal is cut at its first `${`,
- * so a path built from a template names the folder it reads from.
+ * string literal, as `{ file, target, testSide, inside }` with repo-relative
+ * paths; `inside` marks a target within the package. A literal built from a
+ * template is cut after the last `/` before its first `${`, so it names the
+ * folder it reads from.
  */
-export function outsideReads(dir, tracked, read) {
+export function relativeReads(dir, tracked, read) {
   const reads = [];
   for (const file of tracked) {
     if (!file.startsWith(`${dir}/`) || !SOURCE_FILE.test(file)) continue;
     for (const match of read(file).matchAll(RELATIVE_PARENT_LITERAL)) {
-      const literal = match[1].split("${")[0];
+      const template = match[1].indexOf("${");
+      const literal = template === -1 ? match[1] : match[1].slice(0, match[1].lastIndexOf("/", template) + 1);
       const target = posix.normalize(posix.join(posix.dirname(file), literal)).replace(/\/$/, "");
-      if (target === dir || target.startsWith(`${dir}/`)) continue;
-      reads.push({ file, target, testSide: TEST_SIDE_FILE.test(file) });
+      const inside = target === dir || target.startsWith(`${dir}/`);
+      reads.push({ file, target, testSide: TEST_SIDE_FILE.test(file), inside });
     }
   }
   return reads;
+}
+
+/** The reads of `relativeReads` that leave the package. */
+export function outsideReads(dir, tracked, read) {
+  return relativeReads(dir, tracked, read)
+    .filter(({ inside }) => !inside)
+    .map(({ file, target, testSide }) => ({ file, target, testSide }));
 }
 
 /**
@@ -394,10 +405,12 @@ export function outsideReads(dir, tracked, read) {
  * extensionless import resolves to, or everything under a folder.
  */
 export function reachedBy(target, tracked) {
-  const source = target.replace(/\.([cm]?)js$/, ".$1ts");
+  const sources = /\.[cm]?js$/.test(target)
+    ? [target.replace(/\.([cm]?)js$/, ".$1ts"), target.replace(/\.js$/, ".tsx")]
+    : [];
   return [...tracked].filter(
     (file) =>
-      file === target || file === source || file.startsWith(`${target}/`) || file.startsWith(`${target}.`),
+      file === target || sources.includes(file) || file.startsWith(`${target}/`) || file.startsWith(`${target}.`),
   );
 }
 
@@ -923,11 +936,24 @@ test("a lane that watches the docs site runs when a file the site reads by relat
   assert.deepEqual([...new Set(problems)], []);
 });
 
+test("every relative read the docs site makes inside itself names a tracked file", () => {
+  // A literal resolved against another base than its own file (a path joined
+  // to process.cwd(), say) can land inside the package on nothing, and would
+  // hide there from the rule above.
+  const read = (path) => readFileSync(join(root, path), "utf8");
+  const problems = RELATIVE_READERS.flatMap((dir) =>
+    relativeReads(dir, tracked, read)
+      .filter(({ inside, target }) => inside && reachedBy(target, tracked).length === 0)
+      .map(({ file, target }) => `${file} reads ${target}, which names no tracked file`),
+  );
+  assert.deepEqual([...new Set(problems)], []);
+});
+
 test("outsideReads finds the site's reads outside it, and which ones only its tests make", () => {
   const files = new Map([
     ["site/src/icon.tsx", 'import { PATHS } from "../../brand/geometry";\nimport x from "./local";'],
     ["site/src/__tests__/words.test.ts", 'const page = resolve(here, "../../../docs/index.mdx");'],
-    ["site/scripts/assets.ts", "const asset = `../../brand/${name}.svg`;"],
+    ["site/scripts/assets.ts", "const asset = `../../brand/${name}.svg`;\nconst logo = `../../brand/logo-${v}.svg`;"],
     ["site/src/inside.ts", 'import y from "../lib/y";'],
     ["site/README.md", 'see "../brand/README.md"'],
   ]);
@@ -935,11 +961,19 @@ test("outsideReads finds the site's reads outside it, and which ones only its te
     { file: "site/src/icon.tsx", target: "brand/geometry", testSide: false },
     { file: "site/src/__tests__/words.test.ts", target: "docs/index.mdx", testSide: true },
     { file: "site/scripts/assets.ts", target: "brand", testSide: false },
+    { file: "site/scripts/assets.ts", target: "brand", testSide: false },
   ]);
-  const tracked = new Set(["brand/assets.mts", "brand/geometry.ts", "brand/logo.svg", "branding.md", "docs/index.mdx"]);
+  assert.deepEqual(
+    relativeReads("site", files.keys(), (path) => files.get(path))
+      .filter(({ inside }) => inside)
+      .map(({ target }) => target),
+    ["site/lib/y"],
+  );
+  const tracked = new Set(["brand/assets.mts", "brand/geometry.ts", "brand/logo.svg", "brand/mark.tsx", "branding.md", "docs/index.mdx"]);
   assert.deepEqual(reachedBy("brand/geometry", tracked), ["brand/geometry.ts"]);
   assert.deepEqual(reachedBy("brand/assets.mjs", tracked), ["brand/assets.mts"]);
-  assert.deepEqual(reachedBy("brand", tracked), ["brand/assets.mts", "brand/geometry.ts", "brand/logo.svg"]);
+  assert.deepEqual(reachedBy("brand/mark.js", tracked), ["brand/mark.tsx"]);
+  assert.deepEqual(reachedBy("brand", tracked), ["brand/assets.mts", "brand/geometry.ts", "brand/logo.svg", "brand/mark.tsx"]);
   assert.deepEqual(reachedBy("blog", tracked), []);
 });
 
