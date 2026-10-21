@@ -23,7 +23,10 @@
 // door (`restartRunner`, src/benchmark/run.ts), as the real-clock run does
 // against the mock: a SIGKILL while the step's shell runs, or a SIGTERM and
 // the step's release a moment later. `--steps` picks the steps a run plays,
-// so an opening leaves them out and a kill-and-drain run names them.
+// so an opening leaves them out and a kill-and-drain run names them. The
+// stack has no server door, so a `server-restart` step is released as it is.
+// A streaming follower reads the session throughout, and a transcript that
+// reads broken (report.ts `transcriptVerdictOf`) exits the script 1.
 //
 // Needs: the `temporal` CLI on PATH; ANTHROPIC_API_KEY for native,
 // CURSOR_API_KEY for Cursor; the `stigmer` CLI (`make install-cli-shim`).
@@ -38,7 +41,7 @@ import type { BenchmarkHarness } from "../src/benchmark/report";
 import { bootBenchmarkStack } from "../src/benchmark/run";
 import { driveLongTurn } from "../src/long-turn/drive";
 import { narrateStep, parseLongTurnFlags, profileOf, type StepFiles } from "../src/long-turn/profile";
-import type { LongTurnReport } from "../src/long-turn/report";
+import { transcriptVerdictOf, type LongTurnReport } from "../src/long-turn/report";
 import { agentRefOf, makeAgent } from "../src/support/agents";
 import { uniqueName } from "../src/support/naming";
 import { createUniqueOrganization } from "../src/support/organizations";
@@ -114,7 +117,7 @@ async function main(): Promise<void> {
         runConfig: { modelName: profile.model, maxCostUsd },
       }),
     );
-    await driveLongTurn({
+    const ended = await driveLongTurn({
       clients,
       runId: created.metadata!.id,
       profile,
@@ -124,6 +127,11 @@ async function main(): Promise<void> {
       startedAtMs: startedAt.getTime(),
       restartRunner: (signal) => stack.restartRunner(signal),
     });
+    const verdict = transcriptVerdictOf(ended.end!);
+    if (!verdict.whole) {
+      console.error(`[long-turn] the transcript is broken: ${verdict.reasons.join("; ")}`);
+      process.exitCode = 1;
+    }
   } finally {
     await stack.stop();
   }

@@ -40,7 +40,8 @@ describe("the profiles", () => {
   it("goal plays the definition of done in order, on the model whose window compaction is measured against", () => {
     const goal = goalProfile();
     expect(goal.model).toBe(LONG_TURN_MODEL);
-    expect(goal.steps.map((s) => s.kind).filter((k, i, all) => all.indexOf(k) === i)).toEqual(["silent", "streamed", "subagent", "bulk", "kill", "drain"]);
+    expect(goal.steps.map((s) => s.kind).filter((k, i, all) => all.indexOf(k) === i)).toEqual(["silent", "streamed", "subagent", "bulk", "server-restart", "kill", "drain"]);
+    expect(goal.steps.find((s) => s.kind === "server-restart")?.id).toBe("server-restarted-mid-tool");
     expect(goal.steps.find((s) => s.kind === "silent")).toMatchObject({ seconds: 600 });
     expect(goal.steps.filter((s) => s.kind === "bulk")).toHaveLength(bulkReadsFor(3));
   });
@@ -99,6 +100,7 @@ describe("the step shells", () => {
     expect(await exited).toBe(0);
     expect(stepProgressOf(readMarkers(files))).toMatchObject({ ended: ["d"], open: undefined });
     expect(shellCommandOf({ kind: "kill", id: "k" }, files)).toContain(files.releaseOf("k"));
+    expect(shellCommandOf({ kind: "server-restart", id: "r" }, files)).toContain(files.releaseOf("r"));
   });
 
   it("a subagent's work is a silent shell its subagent runs, and the live narration hands that shell over", () => {
@@ -117,6 +119,7 @@ describe("the step shells", () => {
     expect(timeoutSecondsOf({ kind: "streamed", id: "t", seconds: 600, everySeconds: 30, bytesPerLine: 80 })).toBe(720);
     expect(timeoutSecondsOf({ kind: "kill", id: "k" })).toBe(3_000);
     expect(timeoutSecondsOf({ kind: "drain", id: "d" })).toBe(3_000);
+    expect(timeoutSecondsOf({ kind: "server-restart", id: "r" })).toBe(3_000);
     expect(timeoutSecondsOf({ kind: "bulk", id: "b", bytes: 1 })).toBeUndefined();
     const files = stepFiles();
     expect(narrateStep({ kind: "silent", id: "s", seconds: 600 }, files)).toBe(
@@ -140,15 +143,19 @@ function readMarkers(files: StepFiles): string {
 }
 
 describe("the flags", () => {
-  it("reads the profile, its minutes, a step subset, the report directory and the harness, with defaults", () => {
-    expect(parseLongTurnFlags(["--profile", "endurance", "--minutes", "30", "--steps", "a,b", "--out", "/tmp/x", "--harness", "cursor"])).toEqual({
+  it("reads the profile, its minutes, a step subset, the report directory, the harness and the target, with defaults", () => {
+    expect(
+      parseLongTurnFlags(["--profile", "endurance", "--minutes", "30", "--steps", "a,b", "--out", "/tmp/x", "--harness", "cursor", "--target", "local-postgres-execution"]),
+    ).toEqual({
       profile: "endurance",
       minutes: 30,
       steps: ["a", "b"],
       out: "/tmp/x",
       harness: "cursor",
+      target: "local-postgres-execution",
     });
-    expect(parseLongTurnFlags([])).toEqual({ profile: "goal", minutes: undefined, steps: [], out: undefined, harness: "deep-agent" });
+    expect(parseLongTurnFlags([])).toEqual({ profile: "goal", minutes: undefined, steps: [], out: undefined, harness: "deep-agent", target: "local-execution" });
+    expect(() => parseLongTurnFlags(["--target", "cloud"])).toThrow(/--target must be local-execution or local-postgres-execution/);
     expect(() => parseLongTurnFlags(["--minutes", "soon"])).toThrow(/--minutes must be a positive number/);
   });
 });
