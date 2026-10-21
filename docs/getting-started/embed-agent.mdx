@@ -1,65 +1,123 @@
 ---
-title: Add agent chat to your app
+title: Put the agent in your app
 description:
-  Embed your Agent as a chat panel inside your own React app with
-  @stigmer/react-sdk — two components and a provider.
+  Sign the people using your product in to Stigmer from your backend, and give
+  them the variance report job inside your React app, ledger upload included.
 ---
 
 ## What you'll build
 
-Your Agent, chatting with users inside your own React app. You'll install
-`@stigmer/react-sdk`, wrap your app in a provider, and drop in two components: a
-launcher that starts the conversation and a viewer that streams it. The same
-components power the Stigmer Console — your app gets the production chat
-experience, themed to match your product.
+On the last page your backend ran the variance report job. Now the customer runs
+it themselves, inside your product. Your backend signs them in to Stigmer with
+the service account's key, your React app shows them the chat, and they upload
+the ledger and get the report back on the page.
 
-**Time**: ~10 minutes **Prerequisites**: the local stack running (`stigmer up`),
-Node.js 22.13 or newer, and the Agent you created in
-[Create your Agent](/docs/getting-started/create-agent) — the embed below pins
-the conversation to it by name.
+The moment to watch for: a person signed in to your app, not you, uploads a
+ledger and sees the report appear among the conversation's files.
 
-<Callout type="info">
-  Want a chat widget on a website, without a React app? The [embed
-  widget](/docs/guides/channels/embed-an-agent) does that in two lines of HTML.
-  This tutorial is for products: your app, your users, your UI.
-</Callout>
+**Time**: about 20 minutes. **Prerequisites**:
+
+- A Stigmer that signs its callers in: Stigmer Cloud, or a server of your own
+  with [sign-in turned on](/docs/guides/self-hosting/authentication). This works
+  in every edition. The Stigmer that `stigmer up` starts trusts every caller, so
+  it has no one to sign in, and it refuses to make sign-in tokens.
+- The `report-backend` service account's key from
+  [Do the same job from your app](/docs/getting-started/call-from-your-app), as
+  `STIGMER_API_KEY`, with your Organization's slug as `STIGMER_ORG`.
+- The `variance-reporter` Agent and `ledger.csv` from
+  [Your first agent job](/docs/getting-started/quickstart), and Node.js 22.13 or
+  newer.
 
 <Steps>
 <Step>
 
-## Create a React app
+## Let your users in
 
-Skip this step if you're embedding into an existing app. Otherwise, scaffold one
-with Vite:
+Your Organization's **embedding settings** decide what happens the first time
+your backend signs a user in. In the console, open **Settings → Embedding** and
+turn on **Create accounts on sign-in** with the sign-in role **member**, so each
+of your users gets a Stigmer account that can start conversations.
+
+</Step>
+<Step>
+
+## Create the app
+
+Skip this step if you're adding the chat to an app you already have. Otherwise,
+make one with Vite and add the SDK:
 
 ```bash
 npm create vite@latest my-app -- --template react-ts
 cd my-app
 npm install
-```
-
-</Step>
-<Step>
-
-## Install the SDK packages
-
-```bash
 npm install @stigmer/react-sdk @stigmer/client @stigmer/apis @bufbuild/protobuf
 ```
 
-`@stigmer/react-sdk` provides the components, `@stigmer/client` the API client,
-and `@stigmer/apis` (with its `@bufbuild/protobuf` runtime) the types. React 19
-is required — the Vite template from the first step already uses it.
+`@stigmer/react-sdk` holds the chat components and needs React 19, which the
+Vite template already uses.
 
 </Step>
 <Step>
 
-## Wire the provider
+## Sign your user in from your backend
 
-Replace the contents of `src/App.tsx`:
+Your backend already knows who is signed in to your product. For that person, it
+asks Stigmer for a short-lived token, using the service account's key, which
+never reaches the browser. Create `server.ts`:
 
-```tsx
-import { useMemo, useState } from "react";
+```typescript title="server.ts"
+import { createServer } from "node:http";
+import { createNodeClient } from "@stigmer/client/node";
+
+const stigmer = createNodeClient({
+  baseUrl: process.env.STIGMER_URL ?? "https://api.stigmer.ai",
+  apiKey: process.env.STIGMER_API_KEY!,
+});
+
+createServer(async (req, res) => {
+  if (req.url !== "/api/stigmer-token") {
+    res.writeHead(404).end();
+    return;
+  }
+  // Your product's own sign-in says who this request is from.
+  const user = { id: "user_123", email: "dana@example.com", name: "Dana" };
+  const { accessToken, expiresAt } = await stigmer.tokens.mintUserToken({
+    org: process.env.STIGMER_ORG!,
+    userId: user.id,
+    userEmail: user.email,
+    userName: user.name,
+  });
+  res.writeHead(200, { "content-type": "application/json" });
+  res.end(JSON.stringify({ accessToken, expiresAt: expiresAt.toISOString() }));
+}).listen(3001);
+```
+
+The fixed `user` stands in for your sign-in. Pass a stable ID, such as your user
+table's primary key: every token minted for the same ID belongs to the same
+Stigmer account.
+
+Send the app's `/api` requests to this server while you develop. Replace
+`vite.config.ts`:
+
+```typescript title="vite.config.ts"
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [react()],
+  server: { proxy: { "/api": "http://localhost:3001" } },
+});
+```
+
+</Step>
+<Step>
+
+## Show the chat
+
+Replace `src/App.tsx`:
+
+```tsx title="src/App.tsx"
+import { useState } from "react";
 import { Stigmer } from "@stigmer/client";
 import {
   NewSessionViewer,
@@ -68,169 +126,112 @@ import {
 } from "@stigmer/react-sdk";
 import "@stigmer/react-sdk/styles.css";
 
-export default function App() {
-  const client = useMemo(
-    () =>
-      new Stigmer({
-        baseUrl: "http://localhost:7234",
-        getAccessToken: () => null,
-      }),
-    [],
-  );
+const org = import.meta.env.VITE_STIGMER_ORG;
 
+const stigmer = new Stigmer({
+  baseUrl: import.meta.env.VITE_STIGMER_URL ?? "https://api.stigmer.ai",
+  getAccessToken: async () => {
+    const res = await fetch("/api/stigmer-token");
+    const { accessToken } = await res.json();
+    return accessToken;
+  },
+});
+
+export default function App() {
   return (
-    <StigmerProvider client={client} deploymentMode="local">
-      <main style={{ maxWidth: 960, margin: "0 auto", padding: 24 }}>
-        <h1>Acme Support</h1>
-        <div style={{ height: 600 }}>
-          <SupportChat />
-        </div>
+    <StigmerProvider client={stigmer}>
+      <main style={{ height: "100vh" }}>
+        <VarianceReports />
       </main>
     </StigmerProvider>
   );
 }
-```
 
-Three things happen here:
-
-1. **The client** points at your local server. It runs without authentication,
-   so `getAccessToken: () => null` tells the SDK to send requests without a
-   token.
-2. **`StigmerProvider`** hands the client to every Stigmer component below it
-   and scopes all Stigmer styles to its own container — nothing leaks into your
-   app's CSS.
-3. **The stylesheet import** loads the components' compiled styles once, at the
-   app root.
-
-</Step>
-<Step>
-
-## Add the chat component
-
-The chat is two components with one hand-off. `NewSessionViewer` renders the
-composer where the user types their first message; when they send it, the
-platform creates a <Term>Session</Term> and hands you its ID. `SessionViewer`
-takes over from there and streams the conversation. Add this below your `App`
-component:
-
-```tsx
-function SupportChat() {
+function VarianceReports() {
   const [sessionId, setSessionId] = useState<string | null>(null);
-
   if (sessionId) {
-    return (
-      <SessionViewer sessionId={sessionId} org="stigmer" audience="endUser" />
-    );
+    return <SessionViewer sessionId={sessionId} org={org} audience="endUser" />;
   }
-
   return (
     <NewSessionViewer
-      org="stigmer"
+      org={org}
       audience="endUser"
-      initialAgentRef={{ org: "stigmer", slug: "support-agent" }}
+      initialAgentRef={{ org, slug: "variance-reporter" }}
       onSessionCreated={setSessionId}
     />
   );
 }
 ```
 
-`initialAgentRef` pins the conversation to one Agent, and `audience="endUser"`
-presents it as product chat: your user can't swap the Agent or reconfigure its
-tools — you decided that upstream.
-
-On a local or self-hosted open-source server everything lives in the one
-Organization the server made the first time it started, `stigmer`, so
-`org="stigmer"` works as written, and `support-agent` is the slug of the Agent
-you created earlier. Leave `initialAgentRef` out and the embed talks to the
-built-in assistant instead, with no tools of its own.
+- `getAccessToken` asks your backend for a token each time the client needs one.
+  A real app keeps the token until its `expiresAt`.
+- `NewSessionViewer` is where your user writes the first message and attaches
+  files. When they send it, Stigmer starts a Session (a conversation) and hands
+  you its ID.
+- `SessionViewer` takes over from there: it shows the conversation as it
+  happens, with the files given to it and the files the Agent saved.
+- `audience="endUser"` fixes the conversation to the Agent you named. Your user
+  can't swap it for another or change its tools.
 
 </Step>
 <Step>
 
-## Run it
+## Run the job as your user
+
+Start your backend, then the app, in two terminals:
 
 ```bash
-npm run dev
+npx tsx server.ts
 ```
 
-Open `http://localhost:5173`, type a message, and press Enter. The composer
-becomes a conversation: your message posts, the Agent's reply streams in token
-by token, and a follow-up composer waits at the bottom.
-
-<Callout type="info">
-  If the reply fails with "Anthropic API key not found", your local stack has no
-  LLM key yet — run `stigmer setup`, then retry from the error card in the chat.
-</Callout>
-
-</Step>
-<Step>
-
-## Make it match your product
-
-The components are themed with design tokens, not hardcoded styles. Pass a
-preset to restyle every component at once:
-
-```tsx
-<StigmerProvider client={client} deploymentMode="local" preset="corporate">
+```bash
+VITE_STIGMER_ORG=$STIGMER_ORG npm run dev
 ```
 
-Five presets ship with the SDK — `default`, `corporate`, `startup`, `friendly`,
-and `fintech` — and every token they set can be overridden individually to match
-your brand. See [Theming](/docs/sdk/theme/theming) for the full model.
+For a server of your own, set `STIGMER_URL` and `VITE_STIGMER_URL` to its
+address.
+
+Open `http://localhost:5173`. Attach `ledger.csv` in the message box, write
+"Review this quarter's ledger." and send it. The Agent's reply streams in while
+it works. When it finishes, open the conversation's **Files**:
+`variance-report.md` is listed under **Saved by the agent**, ready to open or
+download.
 
 </Step>
 </Steps>
 
 ## What just happened
 
-You embedded the Stigmer Console's own chat surface into your app. Behind the
-two components:
+Your user did the job in your product. Your backend vouched for them with a
+token it minted, so Stigmer knew who they were without a sign-in of its own. The
+conversation is theirs: it belongs to their Stigmer account, and the report came
+back to them.
 
-1. `NewSessionViewer` collected the first message and created a Session bound to
-   your Agent — the same Session model you used from the SDK in earlier
-   tutorials.
-2. `onSessionCreated` handed the new Session's ID to your state, and your
-   component swapped in `SessionViewer`.
-3. `SessionViewer` followed the Session's events and rendered them live —
-   messages, tool calls, and approval gates, with a composer for follow-ups.
+Before you ship, list your app's address under **Allowed origins** in the
+embedding settings, so tokens only work from your pages. The
+[sign-in guide](/docs/guides/authentication/product-users) has the details, the
+errors and the other SDKs. The components take your product's look through
+[theming](/docs/sdk/theme/theming).
 
-Every piece is independently replaceable. Want your own UI? The same package
-exports the hooks these components are built on — start with
-[`useNewSessionFlow` and `useSessionConversation`](/docs/sdk/react/session).
+The chat on this page is for people signed in to your product. For a chat open
+to anyone visiting your site, signed in or not, give the Agent a chat link and
+put the `<stigmer-agent>` element on your page, as
+[Embed an Agent](/docs/guides/channels/embed-an-agent) shows. Stigmer Cloud
+serves it.
 
-## Going to production
+## Next step
 
-Your local server accepts unauthenticated requests; Stigmer Cloud and a
-self-hosted server with sign-in configured do not — and browsers must never hold
-API keys. In production, `getAccessToken` returns a real token per request. Two
-paths provide one:
-
-- **[Identity federation](/docs/guides/authentication/federation/overview)** —
-  your users already sign in through an OIDC provider (Auth0, Okta, Cognito,
-  Entra ID); the SDK forwards their JWT to Stigmer.
-- **[Minted user tokens](/docs/guides/authentication/product-users)** — your
-  backend authenticates users its own way and mints Stigmer tokens with a
-  service account's API key, through one endpoint.
-
-Everything else on this page stays the same — swap the client config, keep the
-components.
-
-## What's next
+Every user you sign in this way lands in your own Organization, beside every
+other customer's users. The next page gives each of your customers an
+Organization of their own, so one customer's conversations, files and keys stay
+apart from another's.
 
 <Cards>
   <Card
-    title="React SDK reference"
-    description="Every hook, component, and prop — session, run, agent, and more."
-    href="/docs/sdk/react"
-  />
-  <Card
-    title="Theming"
-    description="Presets, design tokens, dark mode, and style isolation for embedded components."
-    href="/docs/sdk/theme/theming"
-  />
-  <Card
-    title="Embed widget"
-    description="Put an Agent's chat link on any website with two lines of HTML."
-    href="/docs/guides/channels/embed-an-agent"
-  />
+    title="Give each customer their own organization"
+    href="/docs/getting-started/one-organization-per-customer"
+  >
+    Create an Organization for each customer under yours, and sign their people
+    in to it.
+  </Card>
 </Cards>

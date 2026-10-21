@@ -1,0 +1,165 @@
+---
+title: Give each customer their own organization
+description:
+  Create an Organization for each of your customers under yours, share the
+  variance report Agent with them, and sign each customer's people in to their
+  own.
+---
+
+## What you'll build
+
+On the last page your users ran the variance report job inside your app, all of
+them in your own Organization. Here each of your customers gets an Organization
+of their own under yours, a **child organization**. A customer's people sign in
+to it, and their conversations, files and keys stay inside it: another
+customer's people can't see them.
+
+The moment to watch for: your user runs the same job, and the conversation
+belongs to their customer's Organization, not yours.
+
+**Time**: about 15 minutes. **Prerequisites**:
+
+- The app and backend from
+  [Put the agent in your app](/docs/getting-started/embed-agent), with the
+  `report-backend` service account's key as `STIGMER_API_KEY` and your
+  Organization's slug as `STIGMER_ORG`.
+- Child organizations, which Stigmer Cloud has on a plan that includes them, and
+  Stigmer Enterprise has as far as its license allows. [Pricing](/pricing) says
+  which plans include them, and
+  [Open source, Enterprise and Cloud](/docs/guides/self-hosting/cloud-vs-self-hosted)
+  compares the editions.
+
+<Callout type="info">
+  The open-source server holds one Organization. There, keep each customer's
+  keys in a vault of their own, and have your backend start each customer's
+  conversations with that vault: [Keep your customers'
+  keys](/docs/guides/authentication/customer-keys) shows how.
+</Callout>
+
+<Steps>
+<Step>
+
+## Share the Agent with your customers
+
+Your customers' Organizations run the Agent you already have. In the console,
+open the `variance-reporter` Agent and set its visibility to **Child
+organizations**. Everyone in every child organization can then use it, including
+the ones you create later, and nobody else can. Each customer runs it inside
+their own Organization.
+
+</Step>
+<Step>
+
+## Create the customer's organization
+
+When a customer signs up for your product, your backend creates their
+Organization under yours. Create `onboard-customer.ts` in your app's folder:
+
+```typescript title="onboard-customer.ts"
+import { createNodeClient } from "@stigmer/client/node";
+
+const stigmer = createNodeClient({
+  baseUrl: process.env.STIGMER_URL ?? "https://api.stigmer.ai",
+  apiKey: process.env.STIGMER_API_KEY!,
+});
+
+const customer = await stigmer.organization.create({
+  name: "Northwind Books",
+  slug: "northwind-books",
+  parentOrg: process.env.STIGMER_ORG!,
+  externalId: "cust-4411",
+});
+
+console.log(`Created ${customer.metadata!.slug}`);
+```
+
+`externalId` is your own ID for the customer, so you can find their Organization
+later without storing its slug. Run it:
+
+```bash
+npx tsx onboard-customer.ts
+```
+
+The service account's key works in every Organization under yours, because an
+admin of your Organization is an admin of each of its children.
+
+</Step>
+<Step>
+
+## Sign the customer's people in to it
+
+In `server.ts`, mint each user's token into their customer's Organization
+instead of yours. Change the `org` the mint names:
+
+```typescript
+const { accessToken, expiresAt } = await stigmer.tokens.mintUserToken({
+  org: "northwind-books",
+  userId: user.id,
+  userEmail: user.email,
+  userName: user.name,
+});
+```
+
+In your product, `org` is the Organization of the customer this user belongs to.
+The token works there and nowhere else. The first mint for a user creates their
+account in that Organization, with the sign-in role from your own Organization's
+embedding settings.
+
+In `src/App.tsx`, the conversation now lives in the customer's Organization,
+while the Agent still lives in yours. Read both:
+
+```tsx
+const org = import.meta.env.VITE_STIGMER_ORG;
+const agentOrg = import.meta.env.VITE_STIGMER_AGENT_ORG;
+```
+
+and name the Agent by your Organization:
+
+```tsx
+initialAgentRef={{ org: agentOrg, slug: "variance-reporter" }}
+```
+
+</Step>
+<Step>
+
+## Run the job as the customer's user
+
+Restart your backend, and start the app with both Organizations:
+
+```bash
+npx tsx server.ts
+```
+
+```bash
+VITE_STIGMER_ORG=northwind-books VITE_STIGMER_AGENT_ORG=$STIGMER_ORG npm run dev
+```
+
+Open `http://localhost:5173`, attach `ledger.csv`, and send "Review this
+quarter's ledger." The report comes back as before. This time the conversation
+and its files belong to Northwind Books' Organization.
+
+</Step>
+</Steps>
+
+## What just happened
+
+Your customer has a place of their own in Stigmer. Their people sign in to it
+through your backend, the Agent you shared runs inside it, and what they upload
+and get back stays there. A second customer gets a second Organization, and
+neither sees the other's conversations.
+
+Your Organization's admins manage every customer's Organization, and your
+customers' people see only what you share with them. One thing stays private
+even from your admins: each person's own conversations.
+
+## Go further
+
+- [Child organizations](/docs/guides/authentication/federation/child-organizations):
+  find a customer's Organization by your ID, grant roles, route sign-ins from
+  your own identity provider, and share Skills and plugins.
+- [Keep your customers' keys](/docs/guides/authentication/customer-keys): give a
+  customer's Agent their own API keys and logins.
+- [Sign your product's users in](/docs/guides/authentication/product-users): the
+  embedding settings, allowed origins and errors.
+- [Run it on your servers](/docs/guides/self-hosting/overview): everything on
+  these pages, on machines you control.

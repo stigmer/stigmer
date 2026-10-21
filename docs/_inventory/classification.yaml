@@ -115,14 +115,22 @@ pages:
     fate: keep
     diataxis: tutorial
     teaches:
-      Install @stigmer/react-sdk, wrap a React app in StigmerProvider, and embed a
-      pinned-Agent chat with NewSessionViewer and SessionViewer against the
-      local server.
+      Mint a user token from your backend with a service account's key, and give
+      the signed-in user a pinned-Agent chat with file uploads through
+      NewSessionViewer and SessionViewer in a React app.
     medium: animated-tour
     why:
       The payoff is the chat streaming inside a third-party product; the motion
       is the demonstration (a deliberate deviation from the screenshot-journey
       default for getting-started pages, 2026-08-23).
+
+  getting-started/one-organization-per-customer:
+    fate: keep
+    diataxis: tutorial
+    teaches:
+      Share an Agent with child organizations, create a child organization per
+      customer, and mint each customer's users into their own.
+    medium: none
 
   # ── Agents ─────────────────────────────────────────────────────────────
   concepts/agents:
