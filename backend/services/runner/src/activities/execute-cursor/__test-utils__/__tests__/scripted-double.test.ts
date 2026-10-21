@@ -16,13 +16,24 @@
  *  - `ScriptedLocalAgentStore.open` (the `@cursor/sdk/sqlite` double) records
  *    every open and dispose on the bound SDK, so a scenario can assert the
  *    adapter's session-store lifetime.
+ *  - The held run (stigmer#2487): a send while the agent's newest run is
+ *    still active is refused as the SDK refuses it, unless it passes
+ *    `local.force`, which expires that run; a run whose process was killed
+ *    (`strand`) stays active in the store though the harness cancelled it;
+ *    and the store double's `agents.get` / `runs.get` read what is held.
  */
 
 import { describe, it, expect } from "vitest";
-import type { AgentOptions, SDKMessage } from "@cursor/sdk";
+import type { AgentOptions, Run, SDKMessage } from "@cursor/sdk";
 
 import { ScriptedCursorAgent, defaultRunId, sdkEvents, step } from "../scripted-agent.js";
 import { ScriptedCursorSdk, ScriptedLocalAgentStore, bindScriptedSdk } from "../scripted-sdk.js";
+
+/** Play a run to its end, as the harness consumes one. */
+async function finish(run: Run): Promise<void> {
+  for await (const event of run.stream()) void event;
+  await run.wait();
+}
 
 /** An agent whose declared turns each play the given events and finish. */
 function agent(id: string, turns: SDKMessage[][] = []): ScriptedCursorAgent {
@@ -72,6 +83,7 @@ describe("ScriptedCursorAgent.nextRunId", () => {
     expect(declared.nextRunId).toBe("run-x");
     const run1 = await declared.send("go");
     expect(run1.id).toBe("run-x");
+    await finish(run1);
     expect(declared.nextRunId, "no second id declared: the default, counting sends from 1").toBe(defaultRunId("a4", 1));
     const run2 = await declared.send("go");
     expect(run2.id).toBe("run-a4-2");
@@ -122,5 +134,40 @@ describe("ScriptedLocalAgentStore (the @cursor/sdk/sqlite double)", () => {
 
     await store.dispose();
     expect(store.disposeCalls).toBe(1);
+  });
+});
+
+describe("the held run", () => {
+  const twoTurns = (id: string): ScriptedCursorAgent => new ScriptedCursorAgent({ agentId: id, turns: [[step.finished()], [step.finished()]] });
+
+  it("refuses a send while the newest run is active, as the SDK does, and a forced send expires it", async () => {
+    const a = twoTurns("a-held-1");
+    const first = await a.send("go");
+    await expect(a.send("again")).rejects.toThrow("Agent a-held-1 already has active run");
+    await a.send("again", { local: { force: true } });
+    expect(a.runs.map((r) => r.storeStatus)).toEqual(["expired", "running"]);
+    expect(first.status, "the expired run's own view is untouched").toBe("running");
+  });
+
+  it("takes the next send once the run ended, unforced", async () => {
+    const a = twoTurns("a-held-2");
+    await finish(await a.send("go"));
+    await finish(await a.send("again"));
+    expect(a.sends.map((s) => s.force)).toEqual([false, false]);
+  });
+
+  it("keeps a stranded run active in the store though the harness cancelled it, and the store reads what is held", async () => {
+    const a = twoTurns("a-held-3");
+    const sdk = new ScriptedCursorSdk({ agents: [a], catalog: [] });
+    bindScriptedSdk(sdk);
+    const store = new ScriptedLocalAgentStore("stigmer-session:held", "/tmp/held");
+    const run = await a.send("go");
+    a.strand();
+    await run.cancel();
+    expect(run.status, "the killed process's own view ends").toBe("cancelled");
+    expect(await store.agents.get({ agentId: "a-held-3" })).toMatchObject({ activeRunId: run.id, status: "running" });
+    expect(await store.runs.get({ agentId: "a-held-3", runId: run.id })).toMatchObject({ status: "running" });
+    await expect(a.send("again")).rejects.toThrow(/already has active run/);
+    expect(await store.agents.get({ agentId: "nobody" })).toBeNull();
   });
 });

@@ -7,11 +7,17 @@
  * run wrote), and the prompt it sends depends on which agent it gets:
  *
  *  - the agent that held the run, resumed on the new runner: a continuation
- *    prompt (`<turn_continuation>`, the digest, never the task), sent with
- *    `local.force` so the SDK expires the run the drained process left
- *    active;
+ *    prompt (`<turn_continuation>`, the digest, never the task), sent without
+ *    `local.force`: the drained runner cancelled its run on the way out, so
+ *    the store holds none open (a killed runner's run is the harness contract
+ *    kit's lost-runner arms, stigmer#2487);
  *  - a fresh agent, because the old one could not be resumed: the task, once,
  *    with the digest (`<turn_recovery>`), because that context never held it.
+ *
+ * And a runner killed before its send returned (stigmer#2487): its run stays
+ * active in the agent's store and the runner never recorded the send, so the
+ * next runner expires that run (`local.force`, or the SDK refuses the send)
+ * and, with no record that the task went through, hands it once.
  *
  * The drain lands from a script `effect` step, never a timer. Each
  * invocation's scenario is a new runner over the same record: its own SDK
@@ -30,9 +36,13 @@ vi.mock("../../../../client/stigmer-client.js", async () =>
   (await import("../../../../__test-utils__/hermetic-activity.js")).hermeticStigmerClientModule(),
 );
 
+import { rmSync } from "node:fs";
+import { join } from "node:path";
+
 import {
   ScriptedClock,
   continuationCauseOf,
+  threwCancelledFailure,
   createHermeticEnvironment,
   type ExecutionRecord,
   type HermeticEnvironment,
@@ -41,6 +51,8 @@ import {
 import { ScriptedCursorAgent, sdkEvents, step, type ScriptStep } from "../../__test-utils__/scripted-agent.js";
 import { FIXTURE, SDK_CATALOG, beginCursorScenario, cursorExecutionRecord, runCursorTurn } from "../../__test-utils__/hermetic-cursor.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
+import { SENT_RUN_FILE } from "../../held-run.js";
+import { resolveSessionStoreLocation } from "../../session-store.js";
 
 const USER_MESSAGE = "Refactor the parser module.";
 const BEFORE_THE_DRAIN = "Starting on the parser.";
@@ -97,7 +109,7 @@ describe("ExecuteCursor hermetic — a drained turn continues without the task",
     return record;
   }
 
-  it("resumes the agent that held the run with a continuation prompt and force, never the task", async () => {
+  it("resumes the agent that held the run with a continuation prompt, never the task", async () => {
     clock.reset();
     const agentId = "agent-hermetic-continue-0001";
     const controls: { current?: InvocationControls } = {};
@@ -121,8 +133,8 @@ describe("ExecuteCursor hermetic — a drained turn continues without the task",
     expect(continued).toContain("<turn_continuation>");
     expect(continued, "the continuation carries what the run already said").toContain(BEFORE_THE_DRAIN);
     expect(continued, "the resumed agent is never handed the task again").not.toContain(USER_MESSAGE);
-    expect(agent.sends[1]!.force, "the send expires the run the drained process left active").toBe(true);
-    expect(agent.sends[0]!.force, "a first send forces nothing").toBe(false);
+    expect(agent.runs[0]!.storeStatus, "the drained runner ended its run").toBe("cancelled");
+    expect(agent.sends.map((s) => s.force), "nothing was held open, so no send forces").toEqual([false, false]);
   });
 
   it("hands a fresh agent the task once, with the digest, when the held agent cannot be resumed", async () => {
@@ -156,5 +168,46 @@ describe("ExecuteCursor hermetic — a drained turn continues without the task",
     expect(recovery).toContain("<turn_recovery>");
     expect(recovery, "with what the run already did").toContain(BEFORE_THE_DRAIN);
     expect(fresh.sends[0]!.force, "a fresh agent has no active run to expire").toBe(false);
+  });
+
+  it("expires the run a runner killed before its send returned left active, and hands the task once", async () => {
+    clock.reset();
+    const agentId = "agent-hermetic-continue-killed-0001";
+    const controls: { current?: InvocationControls } = {};
+    const record = cursorExecutionRecord({ message: USER_MESSAGE });
+    const sessionId = record.session.metadata!.id;
+    const ev = sdkEvents(agentId, "run-hermetic-continue-killed-0001");
+    const agent = new ScriptedCursorAgent({
+      agentId,
+      runIds: ["run-hermetic-continue-killed-0001", "run-hermetic-continue-killed-0002"],
+      observeStep: () => clock.tick(),
+      turns: [
+        [
+          step.event(ev.init()),
+          step.effect("the runner is killed before its send returned", () => {
+            // Nothing of the send reached the runner's record, and the run stays active in the store.
+            rmSync(join(resolveSessionStoreLocation(sessionId, env.workspaceRootDir).stateRoot, SENT_RUN_FILE), { force: true });
+            agent.strand();
+            controls.current!.cancelTimedOut();
+          }),
+          step.event(ev.assistant(NEVER_SEEN)),
+          step.finished({ result: NEVER_SEEN }),
+        ],
+        finishingTurn(agentId, "run-hermetic-continue-killed-0002"),
+      ],
+    });
+    const first = await runCursorTurn(beginCursorScenario({ env, clock, record, sdk: { agents: [agent], catalog: SDK_CATALOG } }), {
+      onControls: (c) => (controls.current = c),
+    });
+    expect(threwCancelledFailure(first.outcome), "the killed invocation throws as cancelled").toBe(true);
+    expect(agent.runs[0]!.storeStatus, "the killed runner's run is still active").toBe("running");
+
+    const scenario = beginCursorScenario({ env, clock, record, sdk: { agents: [], resumableAgents: [agent], catalog: SDK_CATALOG } });
+    const second = await runCursorTurn(scenario, { threadId: agentId });
+
+    expect((second.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
+    expect(agent.sends.map((s) => s.force), "the next send expires the run the killed runner left").toEqual([false, true]);
+    expect(agent.runs[0]!.storeStatus).toBe("expired");
+    expect(String(agent.sends[1]!.message).split(USER_MESSAGE).length - 1, "no record says the task went through, so it goes once").toBe(1);
   });
 });

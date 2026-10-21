@@ -257,4 +257,12 @@ export interface LongTurnControls {
   tasksHanded(sessionId: string, message: string): number;
   /** How many times the session's engine compacted its context, across every invocation. */
   compactions(sessionId: string): number;
+  /**
+   * The runner driving the session's turn is killed: what the engine keeps
+   * outside the process stays as the process left it, and nothing the
+   * process would do on its way out reaches it (a Cursor agent's run stays
+   * active in its store). The kit calls it just before it cancels the lost
+   * invocation, so the cancel stands for the process's end, not its stop.
+   */
+  loseRunner(sessionId: string): void;
 }

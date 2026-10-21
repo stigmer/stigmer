@@ -210,6 +210,7 @@ class CursorSubject implements CursorContractSubject {
     tasksHanded: (sessionId, message) =>
       (this.agents.get(sessionId)?.sends ?? []).filter((send) => textOfSend(send.message).includes(message)).length,
     compactions: (sessionId) => this.compactionCounts.get(sessionId) ?? 0,
+    loseRunner: (sessionId) => this.agents.get(sessionId)?.strand(),
   };
 
   constructor(private readonly env: HermeticEnvironment) {
