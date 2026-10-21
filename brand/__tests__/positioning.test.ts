@@ -67,12 +67,27 @@ test("docs/index.mdx carries the headline, the subhead and the one sentence", ()
 /** Where the site and the console keep their text sources. */
 const CODE_ROOTS = ["site/src", "site/scripts", "site/public", "client-apps/web/src"];
 
-const TEXT_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".json", ".txt", ".webmanifest"]);
+const TEXT_EXTENSIONS = new Set([
+  ".ts",
+  ".tsx",
+  ".mts",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".json",
+  ".txt",
+  ".md",
+  ".mdx",
+  ".html",
+  ".webmanifest",
+]);
 
 /**
  * The words no source may spell out: the current ones (with the trailing
  * period dropped, so a copy without it is caught too) and the taglines they
- * replaced.
+ * replaced. A source is compared with its whitespace collapsed and its case
+ * folded, so prose wrapped across lines, or a copy in another case, is
+ * caught too.
  */
 const HAND_COPIES = [
   POSITIONING.headline,
@@ -90,7 +105,7 @@ function* textSources(dir: string): Generator<string> {
       if (entry.name !== "node_modules" && entry.name !== "__tests__") {
         yield* textSources(path);
       }
-    } else if (TEXT_EXTENSIONS.has(extname(entry.name)) && !/\.test\.[cm]?tsx?$/.test(entry.name)) {
+    } else if (TEXT_EXTENSIONS.has(extname(entry.name)) && !/\.test\.[cm]?[jt]sx?$/.test(entry.name)) {
       yield path;
     }
   }
@@ -100,9 +115,9 @@ test("no site or console source holds the words as a literal of its own", () => 
   const copies: string[] = [];
   for (const root of CODE_ROOTS) {
     for (const path of textSources(root)) {
-      const text = read(path);
+      const text = collapse(read(path)).toLowerCase();
       for (const words of HAND_COPIES) {
-        if (text.includes(words)) copies.push(`${path}: "${words}"`);
+        if (text.includes(words.toLowerCase())) copies.push(`${path}: "${words}"`);
       }
     }
   }
