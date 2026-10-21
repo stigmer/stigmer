@@ -38,8 +38,8 @@ The docs are organized by capability. Stable anchor pages, by area:
 
 **Get started** — what Stigmer is and the first hour of using it.
 - What is Stigmer: https://stigmer.ai/docs/concepts/what-is-stigmer
-- Quickstart (cloud): https://stigmer.ai/docs/getting-started/quickstart
-- Local quickstart: https://stigmer.ai/docs/getting-started/local
+- Your first agent job: https://stigmer.ai/docs/getting-started/quickstart
+- Do the same job from your app: https://stigmer.ai/docs/getting-started/call-from-your-app
 
 **Agents** — the core building block and how people reach one.
 - Agents: https://stigmer.ai/docs/concepts/agents

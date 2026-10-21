@@ -180,8 +180,7 @@ profile images. Use `brand/avatar.png` for GitHub and other profile uploads.
 
 ## Documentation
 
-- [Getting Started (Cloud)](https://stigmer.ai/docs/getting-started/quickstart) — Create your first agent in 5 minutes
-- [Getting Started (Local)](https://stigmer.ai/docs/getting-started/local) — Run agents on your machine
+- [Getting Started](https://stigmer.ai/docs/getting-started/quickstart) — Give an agent a job and get its report back, on your machine or on Stigmer Cloud
 - [Try it in one container](https://stigmer.ai/docs/guides/self-hosting/all-in-one) — `docker run ghcr.io/stigmer/stigmer` for evaluation (not for production)
 - [Self-hosting](https://stigmer.ai/docs/guides/self-hosting/docker-compose) — Run the full stack on your own machine with Docker Compose
 - [Kubernetes](https://stigmer.ai/docs/guides/self-hosting/kubernetes) — The same stack on a cluster with the Helm chart (`oci://ghcr.io/stigmer/charts/stigmer`)

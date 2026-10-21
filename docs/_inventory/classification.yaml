@@ -31,8 +31,8 @@ pages:
     fate: keep
     diataxis: landing
     teaches:
-      Stigmer's one-line pitch and which entry point matches the reader's goal,
-      from a first run to self-hosting.
+      Stigmer's headline and subhead, and the path from a first agent job to
+      putting it in your product or running it on your servers.
     medium: animated-tour
     why:
       The hero exists to show the product working; motion is the pitch. The
@@ -66,50 +66,6 @@ pages:
       Run the same job from TypeScript: upload the ledger, start the turn with
       sendAndWait, list the turn's Files by its run and save the report.
     medium: none
-
-  getting-started/local:
-    fate: keep
-    diataxis: tutorial
-    teaches:
-      Run the local SQLite-backed server with your own Anthropic key and apply
-      and run a YAML Agent from the terminal.
-    medium: none
-
-  getting-started/first-skill:
-    fate: keep
-    diataxis: tutorial
-    teaches:
-      Package domain knowledge as a SKILL.md zip, upload it in the console, and
-      attach it to a Session so answers become grounded.
-    medium: screenshot-journey
-    why:
-      A console upload procedure the reader performs alongside the page, one
-      screen at a time.
-
-  getting-started/connect-tools:
-    fate: keep
-    diataxis: tutorial
-    teaches:
-      Add an MCP server by its address as a plugin of one server, sign in, see
-      its tools and which ask first, then wire the plugin and an approval loop
-      into SDK code.
-    medium: screenshot-journey
-    why:
-      The Add MCP server form, the sign-in and the plugin page's Check tools are
-      a console procedure the reader replays on their own screen; reference
-      journeys read at the reader's pace.
-
-  getting-started/create-agent:
-    fate: keep
-    diataxis: tutorial
-    teaches:
-      Bundle instructions, Skills, and plugins into a named Agent and replace
-      per-Session ref lists with one agent lookup.
-    medium: screenshot-journey
-    why:
-      The console offers three creation entry points (YAML upload, template,
-      form); a still sequence covers all three. The conversational tours that
-      depicted an in-product creator agent were retired with that agent.
 
   getting-started/embed-agent:
     fate: keep
