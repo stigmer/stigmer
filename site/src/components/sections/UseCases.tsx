@@ -24,13 +24,13 @@ function UseCases({ className, ...props }: UseCasesProps) {
         <FadeInUp>
           <div className="text-center mb-16">
             <p className="text-xs font-mono uppercase tracking-wider text-subtle mb-4">
-              Use cases
+              For example
             </p>
             <h2
               id="use-cases-heading"
               className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground"
             >
-              Jobs done inside other teams&apos; products
+              Jobs an agent can do inside your product
             </h2>
           </div>
         </FadeInUp>
