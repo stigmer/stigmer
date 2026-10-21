@@ -226,7 +226,7 @@ async function main(): Promise<void> {
   console.log("[llms] Done.");
 }
 
-main().catch((err: unknown) => {
+export const generation = main().catch((err: unknown) => {
   console.error("[llms] Fatal error:", err);
   process.exit(1);
 });

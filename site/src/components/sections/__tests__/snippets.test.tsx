@@ -14,6 +14,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render } from "@testing-library/react";
 import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { docSteps } from "../../../../../test/install/lib/doc-steps.mjs";
 import { Hero } from "../Hero";
@@ -21,10 +22,15 @@ import { FinalCTA } from "../FinalCTA";
 
 afterEach(cleanup);
 
-const GETTING_STARTED = fileURLToPath(new URL("../../../../../docs/getting-started/", import.meta.url));
+const GETTING_STARTED = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../docs/getting-started");
 
-function steps(page: string) {
-  return docSteps(readFileSync(`${GETTING_STARTED}${page}`, "utf8"));
+/** A page's steps, in the shapes docSteps documents. */
+type Step =
+  | { kind: "file"; path: string; content: string }
+  | { kind: "command" | "harness"; line: string };
+
+function steps(page: string): Step[] {
+  return docSteps(readFileSync(resolve(GETTING_STARTED, page), "utf8")) as Step[];
 }
 
 /** The code lines a rendered section shows, blank lines left out. */
@@ -50,18 +56,16 @@ describe("the homepage's snippets", () => {
     const file = steps("call-from-your-app.mdx").find(
       (step) => step.kind === "file" && step.path === "variance-report.ts",
     );
-    expect(file, "call-from-your-app.mdx writes variance-report.ts").toBeDefined();
+    expect(file?.kind, "call-from-your-app.mdx writes variance-report.ts").toBe("file");
 
     const shown = shownLines(render(<Hero />).container);
 
     expect(shown.length).toBeGreaterThan(10);
-    expect(firstOutOfOrder(shown, file!.content.split("\n"))).toBeUndefined();
+    expect(firstOutOfOrder(shown, file?.kind === "file" ? file.content.split("\n") : [])).toBeUndefined();
   });
 
   it("shows the closing commands as the quickstart's own steps, in order", () => {
-    const commands = steps("quickstart.mdx")
-      .filter((step) => step.kind === "command" || step.kind === "harness")
-      .map((step) => step.line);
+    const commands = steps("quickstart.mdx").flatMap((step) => (step.kind === "file" ? [] : [step.line]));
 
     const shown = shownLines(render(<FinalCTA />).container);
 
