@@ -446,7 +446,10 @@ export interface UseSessionConversationReturn {
    * usual"); cleared by the next event. Never an error.
    */
   readonly isSlow: boolean;
-  /** Why the follow ended (refused, or its reconnects ran out), or `null`. */
+  /**
+   * Why the follow ended (refused), or `null`. A dropped stream never ends
+   * it: the follow reconnects for as long as the outage lasts.
+   */
   readonly streamError: Error | null;
   /** Re-open the session's follow (the conversation stays on screen). */
   readonly reconnectStream: () => void;
@@ -555,6 +558,7 @@ export function useSessionConversation(
   const conversationStore = useConversationStoreRef();
   const events = useSessionEvents(sessionId, { store: conversationStore });
   const foldTurns = events.fold?.turns;
+  const wakeFollow = events.wake;
 
   // The run a send just created, until its turn appears in the events: it
   // holds the composer closed and the optimistic bubble up across the gap.
@@ -740,6 +744,10 @@ export function useSessionConversation(
     async (message: string, options?: SendFollowUpOptions): Promise<void> => {
       if (!sessionId || !session) return;
 
+      // A follow waiting out a backoff re-opens now, so the new turn's
+      // events arrive as they are written.
+      wakeFollow();
+
       // Capture for retry and clear any prior failure before the new attempt.
       lastSendRef.current = { message, options };
       setSendError(null);
@@ -825,7 +833,7 @@ export function useSessionConversation(
         }
       }
     },
-    [sessionId, session, turnOrg, stigmer, createRun, updateSession, refetch, refetchSession],
+    [sessionId, session, turnOrg, stigmer, createRun, updateSession, refetch, refetchSession, wakeFollow],
   );
 
   const moveToCurrentAgentVersion = useCallback(async (): Promise<void> => {

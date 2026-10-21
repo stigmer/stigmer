@@ -454,7 +454,7 @@ function useSessionConversation(sessionId: string | null, org: string): UseSessi
     skillRefs: { type: "readonly ApiResourceReference[]", description: "Current skill references from the session spec. Empty array when session is not loaded." },
     stop: { type: "(reason?: string) => Promise<void>", description: "Stop the live turn, with progressive escalation: the first call interrupts the session (every unfinished turn stops gracefully); a repeat call, because the turn is still winding down, terminates its run (with `reason` recorded). No-op when nothing is isStoppable." },
     stopError: { type: "Error | null", description: "Error from the last stop attempt, or `null` when healthy." },
-    streamError: { type: "Error | null", description: "Why the follow ended (refused, or its reconnects ran out), or `null`." },
+    streamError: { type: "Error | null", description: "Why the follow ended (refused), or `null`. A dropped stream never ends it: the follow reconnects for as long as the outage lasts." },
     submittingFileDecisionKeys: { type: "ReadonlySet<string>", description: "Decision keys (fileDecisionKey) currently being submitted." },
     turns: { type: "readonly Turn[]", description: "The conversation's turns, in order: the session's events folded (each turn's message, the agent's items, its asks, to-dos, file reviews and phase). Objects no event touched keep their reference from render to render, so memoized rows skip re-renders.  Excludes turns replaced via edit-and-resubmit (a run whose id appears as another run's `supersedesRunId`) — the edited message stands in the original's place — and reconcile turns (`spec.reconcileFileReview`): the message-less turn an Undo starts to put files back is not a turn of the conversation." },
   }}
@@ -497,7 +497,11 @@ tool's output). One `followSession` per session, from `@stigmer/client`.
   animation frame, inside `startTransition`, so a long replay or a burst
   of token previews never blocks typing.
 - A dropped stream reconnects from the last event it delivered, with
-  jittered backoff; the conversation stays visible (`isReconnecting`).
+  jittered backoff, for as long as the outage lasts (stigmer#2418); the
+  conversation stays visible (`isReconnecting`). A stream that stayed
+  open 30 s starts the backoff over, so an idle close re-opens at once.
+- A shown tab or a returned network cuts a backoff wait short, and so
+  does `UseSessionEventsReturn.wake`.
 - A refusal (the session is gone, access was withdrawn) ends the follow
   with `error`.
 - A follow that opens and stays silent is reconnected once, then
@@ -526,7 +530,7 @@ function useSessionEvents(sessionId: string | null, options?: UseSessionEventsOp
 <TypeTable
   type={{
     connectTimedOut: { type: "boolean", description: "`true` when the follow opened but nothing arrived within the connect-timeout window, even after one silent reconnect. Cleared by the next event or a manual reconnect." },
-    error: { type: "Error | null", description: "Why the follow ended: the server refused it (not found, permission denied, ...), or the stream kept dropping until the reconnect attempts ran out. `null` while healthy or reconnecting." },
+    error: { type: "Error | null", description: "Why the follow ended: the server refused it (not found, permission denied, ...), the first drop with `autoReconnect: false`, or the stream kept dropping until a `maxAttempts` the caller set ran out. `null` while healthy or reconnecting: by default the follow never gives up." },
     fold: { type: "SessionFold | null", description: "The session's events, folded: its turns, each turn's items, asks, to-dos and file reviews, and the session's own status. `null` before the first events arrive. Objects no event touched keep their reference from one fold to the next, so memoized rows skip re-renders." },
     isConnecting: { type: "boolean", description: "`true` after the follow starts and before its first event arrives." },
     isReconnecting: { type: "boolean", description: "`true` while a dropped stream is being reconnected in the background. The last fold stays visible and `error` stays `null`." },
@@ -534,6 +538,7 @@ function useSessionEvents(sessionId: string | null, options?: UseSessionEventsOp
     isStreaming: { type: "boolean", description: "`true` while the follow is open and has delivered events." },
     reconnect: { type: "() => void", description: "Re-open the follow, resuming after the newest event already folded (the conversation stays on screen). The way back from an error, and a manual escape hatch in any state." },
     reconnectAttempt: { type: "number", description: "1-based count of the reconnect in flight; `0` when not reconnecting." },
+    wake: { type: "() => void", description: "Re-open the follow now if it is waiting to reconnect, cutting the backoff short, or if its `maxAttempts` ran out. A streaming follow, a refusal and a drop with `autoReconnect: false` are left as they are. The hook calls it itself when the tab is shown again or the network returns; `useSessionConversation` calls it when the person sends a message." },
   }}
 />
 
@@ -2139,7 +2144,7 @@ Options for [`useSessionEvents`](#usesessionevents).
   type={{
     autoReconnect: { type: "boolean", description: "Reconnect a dropped stream automatically, with backoff. Defaults to `true`. `false` surfaces the first drop as `error` for a manual UseSessionEventsReturn.reconnect." },
     connectTimeoutMs: { type: "number", description: "How long (ms) the follow may deliver nothing before the watchdog reconnects once, then surfaces `connectTimedOut`. Defaults to DEFAULT_CONNECT_TIMEOUT_MS." },
-    reconnectOptions: { type: "BackoffOptions & { maxAttempts?: number }", description: "The reconnect backoff (full jitter) and the attempts allowed before the drop is surfaced as `error`. A delivered event resets the count." },
+    reconnectOptions: { type: "BackoffOptions & { maxAttempts?: number }", description: "The reconnect backoff (full jitter, 1 s doubling to 30 s by default) and, optionally, the attempts allowed before the drop is surfaced as `error`. A delivered event, or a stream that stayed open 30 s, resets the count." },
     slowThresholdMs: { type: "number", description: "How long (ms) a working turn may go without an event before `isSlow`. Defaults to DEFAULT_SLOW_THRESHOLD_MS." },
     store: { type: "ConversationStore", description: "The store to fold into. `useSessionConversation` passes its own so the store outlives its consumers' renders; omitted, the hook keeps a private one." },
   }}
