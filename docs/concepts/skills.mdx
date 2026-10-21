@@ -6,10 +6,10 @@ description:
   fastest way to make AI useful for your business.
 ---
 
-A Skill is a versioned knowledge artifact that transforms a generic AI Agent
-into a domain expert. Without Skills, an Agent only knows what the underlying
-LLM was trained on. With Skills, it knows _your_ business — your return policy,
-your product catalog, your internal processes.
+A Skill is a versioned package of domain knowledge that transforms a generic AI
+Agent into a domain expert. Without Skills, an Agent only knows what the
+underlying LLM was trained on. With Skills, it knows _your_ business — your
+return policy, your product catalog, your internal processes.
 
 If you followed the [Quickstart](/docs/getting-started/quickstart) and
 [Your First Skill](/docs/getting-started/first-skill), you've already seen this
@@ -117,12 +117,12 @@ window efficient.
 
 ### Size limits
 
-A Skill's packaged artifact (the ZIP the CLI or SDK uploads) can be up to **100
-MB compressed** (500 MB uncompressed) and contain up to **10,000 files**.
+A Skill's archive (the ZIP the CLI or SDK uploads) can be up to **100 MB
+compressed** (500 MB uncompressed) and contain up to **10,000 files**.
 `SKILL.md` itself is capped at 1 MB.
 
-You don't need to think about how the artifact travels: pushes and downloads
-over ~10 MB automatically move through an HTTP transfer lane instead of the gRPC
+You don't need to think about how the archive travels: pushes and downloads over
+~10 MB automatically move through an HTTP transfer lane instead of the gRPC
 message channel, and the CLI and SDKs handle the switch transparently. If your
 server sits behind a proxy or serves remote clients, see the
 `SKILL_TRANSFER_BASE_URL` setting on the server.

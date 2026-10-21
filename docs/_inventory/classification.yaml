@@ -487,6 +487,18 @@ pages:
       with Claude Managed Agents' environments.
     medium: none
 
+  concepts/files:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      A File is a file uploaded once and named by its id; how a file reaches
+      the Agent (sent with a message, held by a conversation, named by a
+      routine), what the model sees, the uploads and outputs folders and why
+      they sit in the platform folder, what comes back, who sees a File and
+      when it goes, and how it compares with Claude's Files API and Managed
+      Agents.
+    medium: none
+
   concepts/runners:
     fate: keep
     diataxis: explanation

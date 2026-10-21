@@ -37,10 +37,12 @@ export const glossary: Record<string, string> = {
     "A person's or a team's box of the logins and secrets their runs use. Everyone has their own My vault; an organization's admins create shared vaults and decide who may use them.",
   Environment:
     "A named setup for the sandboxes Agents run in: the packages installed in each one and the websites it may reach. A conversation uses the one it names, else its routine's, else its Agent's default, else its Organization's.",
+  File:
+    "A file uploaded once and named by its id, given to a conversation or sent with a message, or saved by the Agent in its outputs folder.",
   Channel:
     "A way people reach an Agent: a hosted chat link, a Slack workspace or a WhatsApp number. Each Channel has one type, and an Agent can have several.",
   Routine:
-    "A saved Agent invocation (which Agent, what to tell it, its workspace, vaults and Environment) that starts on its schedule, when someone runs it, or when another system calls it with a note.",
+    "A saved Agent invocation (which Agent, what to tell it, its files and repositories, vaults and Environment) that starts on its schedule, when someone runs it, or when another system calls it with a note.",
   "Channel App":
     "A customer-owned messaging-platform app (your own Slack app, or your Meta app with WhatsApp Business access) that Slack and WhatsApp channels install through.",
 };
