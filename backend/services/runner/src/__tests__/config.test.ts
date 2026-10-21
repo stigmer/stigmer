@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadConfig } from "../config.js";
 
 describe("loadConfig", () => {
@@ -66,6 +66,24 @@ describe("loadConfig", () => {
     process.env.STIGMER_LIVENESS_INTERVAL_MS = "5000";
     const config = loadConfig();
     expect(config.livenessIntervalMs).toBe(5000);
+  });
+
+  it("falls back to the default liveness interval, warning, for a value that is not a number or outside its bounds", () => {
+    process.env.CURSOR_API_KEY = "test-key";
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      for (const raw of ["soon", "1500.5", "999", "60000", "-1"]) {
+        process.env.STIGMER_LIVENESS_INTERVAL_MS = raw;
+        expect(loadConfig().livenessIntervalMs, raw).toBe(30000);
+      }
+      expect(warn.mock.calls.filter(([line]) => String(line).startsWith("STIGMER_LIVENESS_INTERVAL_MS="))).toHaveLength(5);
+      process.env.STIGMER_LIVENESS_INTERVAL_MS = "1000";
+      expect(loadConfig().livenessIntervalMs).toBe(1000);
+      process.env.STIGMER_LIVENESS_INTERVAL_MS = "59999";
+      expect(loadConfig().livenessIntervalMs).toBe(59999);
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("drains for 25 s by default and respects STIGMER_DRAIN_GRACE_MS", () => {

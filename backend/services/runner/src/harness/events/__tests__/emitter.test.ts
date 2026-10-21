@@ -22,10 +22,19 @@ import {
   FileReviewBlockReason,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
-import { AppendSessionEventsResponseSchema, type SessionEventPreview } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { AppendSessionEventsResponseSchema, SessionEventPreviewSchema, type SessionEventPreview } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import { createValidator } from "@bufbuild/protovalidate";
 
 import { ELISION_MARKER } from "../../../shared/status-offload.js";
-import { POLICY_SOURCE_WORDS, SESSION_EVENT_MAX_BYTES, SessionEventEmitter, nextScopeIndexes, type SessionEventEmitterDeps } from "../emitter.js";
+import {
+  LIVENESS_MAX_OPERATIONS,
+  LIVENESS_NAME_MAX_CHARS,
+  POLICY_SOURCE_WORDS,
+  SESSION_EVENT_MAX_BYTES,
+  SessionEventEmitter,
+  nextScopeIndexes,
+  type SessionEventEmitterDeps,
+} from "../emitter.js";
 import { AgentMessageSchema, ToolCallSchema, TurnRowsSchema, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import {
   ApprovalPolicySource,
@@ -559,6 +568,27 @@ describe("what the turn has open, sent alone", () => {
     await e.sendLiveness({ operations: [], awaitingModelMs: undefined });
     const idle = log.previews.at(-1)!.preview;
     expect(idle.case === "stigmerRunLiveness" ? idle.value.awaitingModelFor : "not a liveness").toBeUndefined();
+  });
+
+  it("clamps a liveness to the contract: at most its operations, names within their bound and never empty", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    const long = "x".repeat(LIVENESS_NAME_MAX_CHARS + 40);
+    const operations = Array.from({ length: LIVENESS_MAX_OPERATIONS + 5 }, (_, i) => ({
+      callId: `c${i}`,
+      name: i === 0 ? long : i === 1 ? "" : "shell",
+      openedAtMs: 0,
+      ageMs: i,
+    }));
+    await e.sendLiveness({ operations, awaitingModelMs: 5 });
+    const preview = log.previews.at(-1)!;
+    expect((await createValidator()).validate(SessionEventPreviewSchema, preview).kind, "the preview meets the contract").toBe("valid");
+    if (preview.preview.case !== "stigmerRunLiveness") throw new Error("not a liveness");
+    const sent = preview.preview.value.operations;
+    expect(sent).toHaveLength(LIVENESS_MAX_OPERATIONS);
+    expect([...sent[0]!.name]).toHaveLength(LIVENESS_NAME_MAX_CHARS);
+    expect(sent[1]!.name).toBe("tool");
   });
 
   it("answers refused when the log refuses the preview, and logs any other failure without resending", async () => {

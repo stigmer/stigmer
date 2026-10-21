@@ -31,6 +31,8 @@
  *
  * Previews are streamed to the session's watchers before the batch's
  * stored events (a stored event replaces its preview), and never stored.
+ * A turn's liveness (`stigmer.run.liveness`) is stamped with the appending
+ * run, as an event is, so a runner never shows liveness on another turn.
  * The reply names each event by identity only (codec.ts `identityOf`), so
  * a request near the transport's limit never answers past it. Ids starting
  * with the server's prefix (`sevt_`) are refused: they are the server's.
@@ -45,12 +47,13 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { RunLivenessSchema, SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import {
   AppendSessionEventsResponseSchema,
   SessionEventPreviewSchema,
   type AppendSessionEventsInput,
   type AppendSessionEventsResponse,
+  type SessionEventPreview,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
@@ -170,9 +173,19 @@ export async function appendSessionEvents(
     }
   }
 
-  deps.sessionEventBroker.publishPreviews(sessionId, input.previews);
+  deps.sessionEventBroker.publishPreviews(sessionId, input.previews.map((preview) => stampedPreview(preview, runId)));
   deps.sessionEventBroker.publish(sessionId, stored.appended.map(eventOf));
   return create(AppendSessionEventsResponseSchema, { events: stored.records.map(identityOf) });
+}
+
+/** A turn's liveness names the run that appends it, as its events do; every other preview passes as sent. */
+function stampedPreview(preview: SessionEventPreview, runId: string): SessionEventPreview {
+  if (preview.preview.case !== "stigmerRunLiveness" || preview.preview.value.runId === runId) {
+    return preview;
+  }
+  const liveness = clone(RunLivenessSchema, preview.preview.value);
+  liveness.runId = runId;
+  return create(SessionEventPreviewSchema, { preview: { case: "stigmerRunLiveness", value: liveness } });
 }
 
 async function loadRun(store: Store, runId: string): Promise<Run> {

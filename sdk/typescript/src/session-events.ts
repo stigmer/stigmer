@@ -12,7 +12,10 @@
  *     live ones, with none missed and none repeated, so a follow needs no
  *     separate list. A stream that drops reconnects from the last place it
  *     delivered, with a backoff; a refusal (not found, permission denied,
- *     an invalid request) ends it.
+ *     an invalid request) ends it. One refusal does not: a server older
+ *     than `stigmer.run.liveness` refuses a request that names it, so a
+ *     follow that asked for it asks again at once without it, and keeps it
+ *     off for the rest of the follow.
  *   - {@link sendAndWait} starts a turn (`run.create`, as every turn
  *     starts) and follows the session until that turn's
  *     `stigmer.run.status` says it ended, or it waits for a person's answer
@@ -92,6 +95,9 @@ export interface FollowSessionOptions {
   readonly sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
 }
 
+/** The preview a server older than it refuses: a follow drops it on that refusal (module header). */
+const LIVENESS_PREVIEW: SessionPreviewType = "stigmer.run.liveness";
+
 /** The codes a reconnect cannot fix: the follow ends with the error. */
 const FINAL_CODES: ReadonlySet<StigmerError["code"]> = new Set([
   "not-found",
@@ -118,11 +124,12 @@ export async function* followSession(
   const base = options.backoffMs ?? 500;
   const max = options.maxBackoffMs ?? 5_000;
   let afterSeq = options.afterSeq ?? NO_PLACE;
+  let previews = [...(options.previews ?? [])];
   let failures = 0;
   while (!isAborted(signal)) {
     const request = create(StreamSessionEventsRequestSchema, {
       sessionId,
-      eventDeltas: [...(options.previews ?? [])],
+      eventDeltas: previews,
       afterSeq,
     });
     try {
@@ -138,6 +145,12 @@ export async function* followSession(
         return;
       }
       const error = wrapError(err);
+      if (error.code === "invalid-argument" && previews.includes(LIVENESS_PREVIEW)) {
+        // A server older than the liveness preview refuses the request that
+        // names it; the follow asks again at once without it, and for good.
+        previews = previews.filter((type) => type !== LIVENESS_PREVIEW);
+        continue;
+      }
       if (FINAL_CODES.has(error.code)) {
         throw error;
       }

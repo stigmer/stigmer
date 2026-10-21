@@ -175,6 +175,12 @@ const CREDENTIAL_RETRY_MS = 60_000;
 /** The refusals that may mean the credential, not the event: re-acquired once before the batch is judged. */
 const CREDENTIAL_REFUSALS: ReadonlySet<Code> = new Set([Code.Unauthenticated, Code.PermissionDenied]);
 
+/** The most operations one liveness names: `RunLiveness.operations`' bound in the contract. */
+export const LIVENESS_MAX_OPERATIONS = 256;
+
+/** The longest tool name a liveness carries, in characters: `RunOpenOperation.name`'s bound in the contract. */
+export const LIVENESS_NAME_MAX_CHARS = 256;
+
 export interface SessionEventEmitterDeps {
   readonly client: Pick<StigmerClient, "appendSessionEvents" | "listRunSessionEvents">;
   readonly runId: string;
@@ -397,18 +403,22 @@ export class SessionEventEmitter {
   async sendLiveness(snapshot: OperationsSnapshot): Promise<"sent" | "refused"> {
     if (!this.began) return "sent";
     const runId = this.deps.runId;
-    const operations = snapshot.operations.flatMap((operation) => {
-      const toolUseId = toolUseEventId(runId, operation.callId);
-      if (this.known(toolResultEventId(toolUseId))) return [];
-      return [
-        {
-          toolUseId,
-          name: operation.name,
-          elapsed: durationOf(operation.ageMs),
-          threadId: operation.subAgentId === undefined ? "" : threadId(runId, operation.subAgentId),
-        },
-      ];
-    });
+    // Clamped to the contract, so a preview the log would refuse as invalid
+    // never stops the pump: the oldest operations, each name within its bound.
+    const operations = snapshot.operations
+      .flatMap((operation) => {
+        const toolUseId = toolUseEventId(runId, operation.callId);
+        if (this.known(toolResultEventId(toolUseId))) return [];
+        return [
+          {
+            toolUseId,
+            name: livenessName(operation.name),
+            elapsed: durationOf(operation.ageMs),
+            threadId: operation.subAgentId === undefined ? "" : threadId(runId, operation.subAgentId),
+          },
+        ];
+      })
+      .slice(0, LIVENESS_MAX_OPERATIONS);
     const preview = create(SessionEventPreviewSchema, {
       preview: {
         case: "stigmerRunLiveness",
@@ -971,6 +981,13 @@ export function nextScopeIndexes(runId: string, ids: readonly string[]): Map<str
     next.set(prefix, Math.max(next.get(prefix) ?? 0, Number(match[2]) + 1));
   }
   return next;
+}
+
+/** A tool's name as a liveness carries it: within the contract's bound, and never empty. */
+function livenessName(name: string): string {
+  const chars = [...name];
+  if (chars.length === 0) return "tool";
+  return chars.length > LIVENESS_NAME_MAX_CHARS ? chars.slice(0, LIVENESS_NAME_MAX_CHARS).join("") : name;
 }
 
 /** A non-negative span in milliseconds as a protobuf Duration. */

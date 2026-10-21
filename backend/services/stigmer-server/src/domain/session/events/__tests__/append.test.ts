@@ -317,6 +317,19 @@ describe("live delivery", () => {
     expect(thinking.previews.map((f) => f.frame.case)).toEqual(["eventStart"]);
   });
 
+  it("a turn's liveness names the appending run, whatever run it named", async () => {
+    await seedRun("run_a", "ses_a");
+    const live = broker.subscribe("ses_a", ["stigmer.run.liveness"]);
+    await append(
+      {
+        runId: "run_a",
+        previews: [{ preview: { case: "stigmerRunLiveness", value: { runId: "run_sibling", operations: [] } } }],
+      },
+      auth.mintRunCredential("run_a"),
+    );
+    expect(live.previews.map((f) => (f.frame.case === "stigmerRunLiveness" ? f.frame.value.runId : ""))).toEqual(["run_a"]);
+  });
+
   it("a resend rings no stream a second time", async () => {
     await seedRun("run_a", "ses_a");
     const token = auth.mintRunCredential("run_a");
