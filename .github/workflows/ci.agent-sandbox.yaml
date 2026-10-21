@@ -8,8 +8,13 @@
 # lane runs the driver's live test (`make test-agent-sandbox`,
 # scripts/agent-sandbox-live.mjs): a kind cluster of its own with
 # agent-sandbox's core manifest, a Temporal dev server, and one session's
-# life through the driver: its runner polls its queue, a file survives a
-# suspend and a wake, and deprovision leaves nothing behind.
+# life through the driver: its runner polls its queue, a file in its
+# workspace and one in its agent's home survive a suspend and a wake, and
+# deprovision leaves nothing behind. Then the turn proof
+# (test/conformance/src/suites-agent-sandbox): the open-source server on the
+# driver runs a native turn whose step is held open in the pod, the pod is
+# deleted gracefully and then by force, and the turn completes on the next
+# pod each time with the model handed the task once.
 #
 # Runs:
 # - from ci.gate.yaml (workflow_call, no input) when scripts/ci-lanes.mjs
@@ -21,10 +26,11 @@
 #
 # The runner image is the published ghcr.io/stigmer/runner:latest, which
 # moves with main, unlike the tools below. That is the trade: the lane proves
-# the driver and the controller, and needs only a runner that boots and polls
-# its queue, which every main build is (ci.runner and ci.compose-stack gate
-# the runner's own build); building the image here would add minutes to every
-# run, and pinning a main tag would need a bump nobody owns. A red that only
+# the driver and the controller, and the turn proof proves the pod's side of a
+# continued turn (its grace, the runner as its PID 1, the home claim) on
+# main's runner, whose own turn behaviour ci.runner and the execution
+# conformance gate; building the image here would add minutes to every run,
+# and pinning a main tag would need a bump nobody owns. A red that only
 # follows a new runner image names the image in the step's log. One change
 # this rules out landing in one step: a launch command (the server's
 # src/sandbox/runner-launch.ts) that the published runner does not yet know.

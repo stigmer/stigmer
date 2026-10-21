@@ -87,6 +87,22 @@ export const LANES = {
       "backend/services/stigmer-server/package.json",
       "backend/services/stigmer-server/package-lock.json",
       "scripts/agent-sandbox-live.mjs",
+      // The turn proof the script runs after the driver's live class, its
+      // config, and the harness it boots the server, the mock LLM and the
+      // run through.
+      "test/conformance/src/suites-agent-sandbox/**",
+      "test/conformance/vitest.agent-sandbox.config.ts",
+      "test/conformance/package.json",
+      "test/conformance/src/harness/clients.ts",
+      "test/conformance/src/harness/grpc-ready.ts",
+      "test/conformance/src/support/agents.ts",
+      "test/conformance/src/support/naming.ts",
+      "test/conformance/src/support/organizations.ts",
+      "test/conformance/src/support/runs.ts",
+      "test/support/src/library-server.mjs",
+      "test/support/src/mock-llm.ts",
+      "test/support/src/server-process.ts",
+      "test/support/src/ts-build.ts",
       // The libraries the server package links: the live test runs the
       // server's source, which imports them.
       "apis/stubs/ts/**",

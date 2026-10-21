@@ -9,7 +9,9 @@
 // status, headers and body as JSON even for a streaming request;
 // requestModels() reads the id the provider saw off every captured request;
 // and every captured request carries the disposition the answering branch
-// decided, so scriptedRequests() is exactly the agent loop's calls.
+// decided, so scriptedRequests() is exactly the agent loop's calls; a mock
+// bound to another address answers there, and urlAt() names it as the
+// runner's side does.
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   DEFAULT_ERROR_BODY,
@@ -238,6 +240,27 @@ describe("MockLlmProxy's capture observer", () => {
       }
     } finally {
       await observed.close();
+    }
+  });
+});
+
+describe("MockLlmProxy bind host", () => {
+  it("listens where it is bound, and urlAt() names the port under the host a runner reaches it by", async () => {
+    const everywhere = new MockLlmProxy({ bindHost: "0.0.0.0" });
+    await everywhere.start();
+    try {
+      everywhere.enqueue(anthropicText("reached"));
+      const port = new URL(everywhere.url()).port;
+      expect(everywhere.urlAt("host.docker.internal")).toBe(`http://host.docker.internal:${port}`);
+      const response = await fetch(`${everywhere.urlAt("127.0.0.1")}${ANTHROPIC_PATH}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-4-6", messages: [{ role: "user", content: "hi" }] }),
+      });
+      expect(response.status).toBe(200);
+      expect(everywhere.remaining(), "the request took the scripted turn").toBe(0);
+    } finally {
+      await everywhere.close();
     }
   });
 });
