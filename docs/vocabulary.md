@@ -28,8 +28,6 @@ have been replaced with pointers to this document:
   load; it points here for every term and register
 - `site/src/components/docs/glossary.ts`---runtime tooltip definitions (keeps
   inline data for performance, but must match this file)
-- `AGENTS.md`---the repository's root guide; it points coding agents at
-  [What Stigmer is, and who it is for](#what-stigmer-is-and-who-it-is-for)
 
 ---
 
@@ -62,13 +60,13 @@ acting on anything you mark as needing a yes; and each customer's agents, files
 and keys stay apart from every other customer's. It runs on your model keys, on
 your servers or ours; the [editions](#edition) say how.
 
-**Examples** are jobs done inside a customer's product, never a chat and never
-code. Say whose product it is, what the customer asks for, what the agent hands
-back, and where it asked first. One: an accounting product's customer uploads a
-ledger, and the agent works through it and hands back a variance report as a
-file. Two: Planton, a DevOps product built by the team that builds Stigmer; its
-customer asks the agent to change their cloud setup, and the agent asks before
-it applies anything.
+**Examples** are jobs done inside a customer's product. They are never a chat
+and never code. Say whose product it is, what the customer asks for, what the
+agent hands back, and where it asked first. One: an accounting product's
+customer uploads a ledger, and the agent works through it and hands back a
+variance report as a file. Two: Planton, a DevOps product built by the team that
+builds Stigmer; its customer asks the agent to change their cloud setup, and the
+agent asks before it applies anything.
 
 **Never**: coding-agent examples (pull-request review, code generation, "your AI
 engineer"); "agent platform" or "agent infrastructure" as the lead; a category

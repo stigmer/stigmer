@@ -7,9 +7,6 @@ through generated SDKs, a CLI, a web console and a desktop app. This file is the
 always-on guide for the whole repository. Keep it short; it is paid for in every
 conversation.
 
-Public words about what Stigmer is and who it is for: `docs/vocabulary.md`,
-"What Stigmer is, and who it is for".
-
 ## How guidance is organised
 
 - This file: repo map, commands, verification, hard laws. Always loaded.
