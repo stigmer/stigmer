@@ -25,6 +25,8 @@ on:
       - "site/**"
       - "brand/**"
       - "docs/**"
+      # The blog, which site/source.config.ts loads as a content collection.
+      - "blog/**"
       - "vale/**"
       # What the site links and the build compiles from source (build:libs,
       # then the site), so a change to one reaches stigmer.ai with its merge

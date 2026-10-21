@@ -29,6 +29,18 @@
 // (dependencies, optionalDependencies, peerDependencies); a reached package's
 // devDependencies are its own build tools.
 //
+// The relative-read rule. A standalone package can also read a file outside
+// itself with no link at all: the docs site imports brand/'s geometry by
+// relative path in app code, loads blog/ through its content config, and its
+// tests read brand/ artwork and docs pages the same way. Those reads are
+// invisible to the link closure, so a change to brand/ could break the site
+// with no lane building it. So for each package in RELATIVE_READERS, every
+// string literal beginning `../` in its tracked source that resolves outside
+// it (the lexical scan scripts/turbo-inputs.test.mjs uses) names files every
+// list watching the package must match; a read only its tests make binds the
+// gate lane's list alone, since a deploy builds the site but does not run its
+// tests. A path computed at runtime is not seen, as there.
+//
 // Trigger lists are each CI lane's list in scripts/ci-lanes.mjs (the map
 // ci.gate.yaml selects lanes by), and `on.pull_request.paths`, `on.push.paths`
 // and every dorny/paths-filter filter of every workflow, matched with the glob dialect
@@ -346,6 +358,46 @@ export function triggerLists(workflow, gatePaths) {
 export function watches(patterns, dir) {
   return patterns.some((pattern) =>
     matchesGlob(pattern, `${dir}/package.json`),
+  );
+}
+
+/** The standalone packages held to the relative-read rule. */
+export const RELATIVE_READERS = ["site"];
+
+const RELATIVE_PARENT_LITERAL = /["'`]((?:\.\.\/)+[^"'`\n]*)["'`]/g;
+const SOURCE_FILE = /\.[cm]?[jt]sx?$/;
+const TEST_SIDE_FILE = /(\.test\.[cm]?[jt]sx?$|\/__tests__\/|(^|\/)vitest[^/]*\.(config|setup)\.)/;
+
+/**
+ * Every read the tracked source of the package in `dir` makes by a `../`
+ * string literal that resolves outside the package, as `{ file, target,
+ * testSide }` with repo-relative paths. A literal is cut at its first `${`,
+ * so a path built from a template names the folder it reads from.
+ */
+export function outsideReads(dir, tracked, read) {
+  const reads = [];
+  for (const file of tracked) {
+    if (!file.startsWith(`${dir}/`) || !SOURCE_FILE.test(file)) continue;
+    for (const match of read(file).matchAll(RELATIVE_PARENT_LITERAL)) {
+      const literal = match[1].split("${")[0];
+      const target = posix.normalize(posix.join(posix.dirname(file), literal)).replace(/\/$/, "");
+      if (target === dir || target.startsWith(`${dir}/`)) continue;
+      reads.push({ file, target, testSide: TEST_SIDE_FILE.test(file) });
+    }
+  }
+  return reads;
+}
+
+/**
+ * The tracked files a read of `target` can reach: the file itself, the
+ * TypeScript source a `.js`/`.mjs`/`.cjs` import resolves to, the file an
+ * extensionless import resolves to, or everything under a folder.
+ */
+export function reachedBy(target, tracked) {
+  const source = target.replace(/\.([cm]?)js$/, ".$1ts");
+  return [...tracked].filter(
+    (file) =>
+      file === target || file === source || file.startsWith(`${target}/`) || file.startsWith(`${target}.`),
   );
 }
 
@@ -840,6 +892,57 @@ test("a lane that watches a standalone package watches every package it links", 
   assert.deepEqual(problems, []);
 });
 
+test("a lane that watches the docs site runs when a file the site reads by relative path changes", () => {
+  const problems = [];
+  const read = (path) => readFileSync(join(root, path), "utf8");
+  for (const dir of RELATIVE_READERS) {
+    const reads = outsideReads(dir, tracked, read);
+    for (const { file, lists } of workflows) {
+      for (const { kind, list, patterns } of lists) {
+        if (!watches(patterns, dir)) continue;
+        for (const { file: reader, target, testSide } of reads) {
+          // A deploy builds the site; only the gate lane runs its tests.
+          if (testSide && kind !== "gate") continue;
+          if (target === ".") {
+            problems.push(`${reader} reads the whole checkout, which no trigger list can watch; name what it reads`);
+            continue;
+          }
+          const reached = reachedBy(target, tracked);
+          if (reached.length === 0) {
+            problems.push(`${reader} reads ${target}, which names no tracked file`);
+            continue;
+          }
+          const missed = reached.find((path) => !patterns.some((pattern) => matchesGlob(pattern, path)));
+          if (missed !== undefined) {
+            problems.push(`${file} ${list} watches ${dir}, whose ${reader} reads ${target}. Add a pattern matching ${missed} to that list.`);
+          }
+        }
+      }
+    }
+  }
+  assert.deepEqual([...new Set(problems)], []);
+});
+
+test("outsideReads finds the site's reads outside it, and which ones only its tests make", () => {
+  const files = new Map([
+    ["site/src/icon.tsx", 'import { PATHS } from "../../brand/geometry";\nimport x from "./local";'],
+    ["site/src/__tests__/words.test.ts", 'const page = resolve(here, "../../../docs/index.mdx");'],
+    ["site/scripts/assets.ts", "const asset = `../../brand/${name}.svg`;"],
+    ["site/src/inside.ts", 'import y from "../lib/y";'],
+    ["site/README.md", 'see "../brand/README.md"'],
+  ]);
+  assert.deepEqual(outsideReads("site", files.keys(), (path) => files.get(path)), [
+    { file: "site/src/icon.tsx", target: "brand/geometry", testSide: false },
+    { file: "site/src/__tests__/words.test.ts", target: "docs/index.mdx", testSide: true },
+    { file: "site/scripts/assets.ts", target: "brand", testSide: false },
+  ]);
+  const tracked = new Set(["brand/assets.mts", "brand/geometry.ts", "brand/logo.svg", "branding.md", "docs/index.mdx"]);
+  assert.deepEqual(reachedBy("brand/geometry", tracked), ["brand/geometry.ts"]);
+  assert.deepEqual(reachedBy("brand/assets.mjs", tracked), ["brand/assets.mts"]);
+  assert.deepEqual(reachedBy("brand", tracked), ["brand/assets.mts", "brand/geometry.ts", "brand/logo.svg"]);
+  assert.deepEqual(reachedBy("blog", tracked), []);
+});
+
 test("the guard still finds the packages and lanes it exists for", () => {
   // If discovery, the YAML read or the matching broke, the tests above would
   // pass on nothing. These are the linking packages and lane pairs of today.
@@ -854,6 +957,11 @@ test("the guard still finds the packages and lanes it exists for", () => {
       "site",
       "test/extension-consumer",
     ],
+  );
+  const siteReads = outsideReads("site", tracked, (path) => readFileSync(join(root, path), "utf8"));
+  assert.ok(
+    siteReads.some(({ target, testSide }) => target.startsWith("brand/") && !testSide),
+    "the site's app code reads brand/ by relative path",
   );
   const pairs = new Set(watchedPairs().map((p) => `${p.file} ${p.dir}`));
   for (const expected of [

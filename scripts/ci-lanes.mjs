@@ -401,6 +401,11 @@ export const LANES = {
       "backend/libs/ts/eval-runtime/**",
       "backend/libs/ts/session-log/**",
       "backend/libs/ts/tool-vocabulary/**",
+      // What the site reads by relative path outside site/ (the same test's
+      // relative-read rule fails when one is missing): brand/ from app code,
+      // the image script and tests; the blog through its content config.
+      "brand/**",
+      "blog/**",
       ".vale.ini",
       ".prettierrc",
       ".lychee.toml",
