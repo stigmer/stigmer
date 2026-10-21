@@ -166,23 +166,23 @@ function CodePreview() {
     setIsHovered(false);
   }, [mouseX, mouseY]);
 
-  if (prefersReducedMotion) {
-    return <CodePreviewCard />;
-  }
+  // The wrapper renders either way, so the exported markup hydrates whatever
+  // the preference; under reduced motion it just never tilts.
+  const tilt = !prefersReducedMotion;
 
   return (
     <motion.div
       ref={ref}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseMove={tilt ? handleMouseMove : undefined}
+      onMouseEnter={tilt ? handleMouseEnter : undefined}
+      onMouseLeave={tilt ? handleMouseLeave : undefined}
       style={{
         rotateX,
         rotateY,
         transformPerspective: 800,
         transformStyle: "preserve-3d",
       }}
-      whileHover={{ scale: 1.02 }}
+      whileHover={tilt ? { scale: 1.02 } : undefined}
       transition={{ scale: { duration: 0.25, ease: "easeOut" } }}
       className="relative will-change-transform"
     >
