@@ -42,7 +42,7 @@ const ROWS: readonly {
   {
     question: "Who runs it and keeps the session history",
     managedAgents:
-      "Anthropic. Conversation history, sandbox state and outputs are stored on Anthropic's servers.",
+      "Anthropic. Sessions store conversation history, sandbox state and outputs server-side.",
     source: "overview",
     stigmer:
       "Whoever runs Stigmer: you, on your own servers, or us, on Stigmer Cloud. The history is kept in that server's database.",
@@ -101,8 +101,9 @@ const ROWS: readonly {
     source: "reference",
     stigmer: (
       <>
-        The same events on the same paths, so Anthropic&apos;s SDK reads and answers a Stigmer
-        session, tested on every change.{" "}
+        Managed Agents&apos; session events, listed, streamed and sent on its own paths, so
+        Anthropic&apos;s SDK reads and answers a Stigmer session, tested on every change. The
+        docs list where they differ.{" "}
         <Link href="/docs/sdk/managed-agents" className={inlineLink}>
           Use Anthropic&apos;s SDK
         </Link>
