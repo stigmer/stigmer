@@ -54,12 +54,18 @@ pages:
     fate: keep
     diataxis: tutorial
     teaches:
-      Install an SDK, authenticate with an API key, and stream a first response
-      from the built-in assistant.
-    medium: screenshot-journey
-    why:
-      The reader compares their console to ours at each step and needs to stop
-      on the frame that matters; playback pace fights that.
+      Start Stigmer on your machine or on Stigmer Cloud with your model key,
+      apply an Agent, give it a customer's ledger and get its variance report
+      back as a file.
+    medium: none
+
+  getting-started/call-from-your-app:
+    fate: keep
+    diataxis: tutorial
+    teaches:
+      Run the same job from TypeScript: upload the ledger, start the turn with
+      sendAndWait, list the turn's Files by its run and save the report.
+    medium: none
 
   getting-started/local:
     fate: keep

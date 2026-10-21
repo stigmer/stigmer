@@ -1,0 +1,189 @@
+---
+title: Do the same job from your app
+description:
+  Upload a customer's ledger, start the variance report job and save the report
+  your Agent hands back, from TypeScript, the way your backend does it.
+---
+
+## What you'll build
+
+On the last page you ran the variance report job from your terminal. Here your
+own code runs it: a short TypeScript program uploads the ledger, starts the job
+on the same Agent, waits for it to finish and saves the report. It's what your
+backend does when a customer uploads a ledger in your product.
+
+The moment to watch for: your program prints the path of a report it didn't
+write, and the file is there.
+
+**Time**: about 10 minutes. **Prerequisites**: the `variance-reporter` Agent and
+`ledger.csv` from [Your first agent job](/docs/getting-started/quickstart), and
+Node.js 22.13 or newer.
+
+<Steps>
+<Step>
+
+## Set up the project
+
+In the folder that holds `ledger.csv`, make it a Node.js project and install the
+TypeScript SDK:
+
+```bash
+npm init -y
+npm pkg set type=module
+npm install @stigmer/client
+```
+
+</Step>
+<Step>
+
+## Connect to Stigmer
+
+Create `client.ts`, which connects to the Stigmer you used on the last page:
+
+<Tabs items={["On your machine", "Stigmer Cloud"]} groupId="stigmer-target" persist>
+<Tab value="On your machine">
+
+```typescript title="client.ts"
+import { createNodeClient } from "@stigmer/client/node";
+
+export const stigmer = createNodeClient({
+  baseUrl: "http://localhost:7234",
+  getAccessToken: () => null,
+});
+
+export const org = "stigmer";
+```
+
+The Stigmer on your machine trusts every caller, so the client sends no key.
+`stigmer` is the one Organization it made the first time it started.
+
+</Tab>
+<Tab value="Stigmer Cloud">
+
+Your backend calls Stigmer as a service account (an account for your code, not a
+person), with its API key:
+
+```bash
+stigmer service-account create report-backend --role admin
+stigmer apikey create --service-account report-backend
+```
+
+Export the key the second command printed, and your Organization's slug:
+
+```bash
+export STIGMER_API_KEY=<the key>
+export STIGMER_ORG=<your-org>
+```
+
+```typescript title="client.ts"
+import { createNodeClient } from "@stigmer/client/node";
+
+export const stigmer = createNodeClient({
+  baseUrl: "https://api.stigmer.ai",
+  apiKey: process.env.STIGMER_API_KEY!,
+});
+
+export const org = process.env.STIGMER_ORG!;
+```
+
+The service account is an admin because the next page uses it to sign your users
+in. A backend that only runs jobs can use `--role member`.
+
+</Tab>
+</Tabs>
+
+</Step>
+<Step>
+
+## Write the job
+
+Create `variance-report.ts`:
+
+```typescript title="variance-report.ts"
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { sendAndWait } from "@stigmer/client";
+import { uploadFileFromPath } from "@stigmer/client/node";
+import { org, stigmer } from "./client.js";
+
+const ledger = await uploadFileFromPath(stigmer.file, {
+  org,
+  path: "ledger.csv",
+});
+
+const turn = await sendAndWait(stigmer, {
+  org,
+  sessionSpec: { agentRef: { org, slug: "variance-reporter" } },
+  message: "Review this quarter's ledger.",
+  fileIds: [ledger.metadata!.id],
+});
+if (turn.phase !== "completed") {
+  throw new Error(`The job ended ${turn.phase}: ${turn.error}`);
+}
+
+for await (const file of stigmer.file.listAll({ org, runId: turn.runId })) {
+  const path = join("out", file.status!.outputPath);
+  const { data } = await stigmer.file.getContent({ id: file.metadata!.id });
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, data);
+  console.log(`Saved ${path}`);
+}
+```
+
+It does the job in three calls:
+
+1. `uploadFileFromPath` uploads the ledger as a file.
+2. `sendAndWait` starts a new Session (a conversation) on the
+   `variance-reporter` Agent, sends the message with the ledger, and waits until
+   the turn ends.
+3. `file.listAll` with the turn's `runId` lists what the Agent handed back, and
+   `file.getContent` reads each one. Every file keeps the path the Agent saved
+   it under, in `outputPath`.
+
+</Step>
+<Step>
+
+## Run it
+
+```bash
+npx tsx variance-report.ts
+```
+
+It prints the report it saved:
+
+```text
+Saved out/variance-report.md
+```
+
+Open `out/variance-report.md`: the same kind of report as the last page, this
+time fetched by your own code.
+
+</Step>
+</Steps>
+
+## What just happened
+
+Your program did everything the CLI did. It uploaded the customer's file,
+started the job on your Agent, waited for the Agent to finish and fetched what
+it handed back. In your product, the ledger comes from your customer's upload,
+and the report goes back to them through your own UI.
+
+`sendAndWait` returns when the turn ends or when the Agent waits for a person's
+answer. The [SDK guide](/docs/sdk/streaming) shows how to stream the Agent's
+reply as it writes, and how to answer when it asks before acting.
+
+## Next step
+
+Your backend can run the job, but your customer still can't see it happen or
+start it themselves. The next page puts the Agent inside your app, for the
+people signed in to your product.
+
+<Cards>
+  <Card
+    title="Put the agent in your app"
+    href="/docs/getting-started/embed-agent"
+  >
+    Sign your users in to Stigmer from your backend and give them the chat, with
+    file uploads, in your React app.
+  </Card>
+</Cards>

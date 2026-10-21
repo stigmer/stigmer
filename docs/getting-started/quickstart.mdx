@@ -1,110 +1,94 @@
 ---
-title: Quickstart
-description: Call the Stigmer API from your code in 5 minutes.
+title: Your first agent job
+description:
+  Create an Agent, hand it a customer's ledger, and get a variance report back
+  as a file, on your machine or on Stigmer Cloud.
 ---
 
 ## What you'll build
 
-A working Agent you can call from your code — in 5 minutes. You will connect to
-Stigmer Cloud, send a message, and get a response through the SDK.
+An accounting product's customer uploads a ledger, and an Agent works through it
+and hands back a variance report as a file. You'll play both parts from your
+terminal: create the Agent, give it the ledger, and open the report it saved.
 
-**Time**: ~5 minutes **Prerequisites**: A browser and one of:
-[Node.js](https://nodejs.org/) 20+, [Go](https://go.dev/) 1.21+,
-[Python](https://python.org/) 3.11+, or [Java](https://jdk.java.net/) 17+
+The moment to watch for is the last step: a file you didn't write appears in
+your folder, made by the Agent from the ledger you gave it.
 
-<Callout type="info">
-  Want to run locally without a cloud account? See the [Local
-  Quickstart](/docs/getting-started/local).
-</Callout>
+**Time**: about 10 minutes. **Prerequisites**: macOS or Linux, and an
+[Anthropic API key](https://console.anthropic.com/). The two places you can run
+this, your own machine or Stigmer Cloud, differ only in the second step.
 
 <Steps>
 <Step>
 
-## Sign up and get your API key
+## Install the CLI
 
-1. Go to [`app.stigmer.ai`](https://app.stigmer.ai) and create an account.
-2. Open **Settings → API Keys** and click **+ New API key**.
-3. Copy the key.
+<Tabs items={["Homebrew", "Shell script", "npm"]}>
+<Tab value="Homebrew">
 
-<Callout type="info">
-  Your API key starts with `sk_`. Keep it secret. Never commit it to source
-  control.
-</Callout>
+```bash
+brew install stigmer/tap/stigmer
+```
+
+</Tab>
+<Tab value="Shell script">
+
+```bash
+curl -fsSL https://stigmer.ai/install.sh | sh
+```
+
+The installer brings its own Node.js runtime under `~/.stigmer`.
+
+</Tab>
+<Tab value="npm">
+
+```bash
+npm install -g @stigmer/cli
+```
+
+This needs Node.js 22.13 or newer.
+
+</Tab>
+</Tabs>
 
 </Step>
 <Step>
 
-## Set up your project
+## Start Stigmer and add your model key
 
-<Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
-<Tab value="TypeScript">
+Agents run on your model key. Pick where Stigmer runs; the steps after this one
+are the same in both places.
+
+<Tabs items={["On your machine", "Stigmer Cloud"]} groupId="stigmer-target" persist>
+<Tab value="On your machine">
+
+Put your key in the shell, then start Stigmer:
 
 ```bash
-mkdir stigmer-quickstart && cd stigmer-quickstart
-npm init -y
-npm install @stigmer/client
+export ANTHROPIC_API_KEY=<your Anthropic API key>
+stigmer up
 ```
+
+`stigmer up` starts the server, the console and the runner (where your Agents
+run) in the background, with nothing to sign in to. It reads the key from your
+shell. To save the key instead of exporting it each time, run `stigmer setup`
+once.
 
 </Tab>
-<Tab value="Go">
+<Tab value="Stigmer Cloud">
+
+Sign in from the CLI:
 
 ```bash
-mkdir stigmer-quickstart && cd stigmer-quickstart
-go mod init stigmer-quickstart
-go get go.stigmer.ai/sdk
+stigmer auth login
 ```
 
-</Tab>
-<Tab value="Python">
+In the [console](https://app.stigmer.ai), open **Settings → Provider keys** and
+add your Anthropic key to your Organization (your team's account). Then point
+the CLI at that Organization:
 
 ```bash
-mkdir stigmer-quickstart && cd stigmer-quickstart
-pip install stigmer-sdk
-```
-
-</Tab>
-<Tab value="Java">
-
-Create a new directory and add this `pom.xml`:
-
-```bash
-mkdir stigmer-quickstart && cd stigmer-quickstart
-mkdir -p src/main/java
-```
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-         http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>com.example</groupId>
-  <artifactId>stigmer-quickstart</artifactId>
-  <version>1.0-SNAPSHOT</version>
-  <properties>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
-  </properties>
-  <dependencies>
-    <dependency>
-      <groupId>ai.stigmer</groupId>
-      <artifactId>stigmer-sdk</artifactId>
-    </dependency>
-  </dependencies>
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>3.5.0</version>
-        <configuration>
-          <mainClass>AskAgent</mainClass>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
-</project>
+stigmer config context set --org <your-org>
 ```
 
 </Tab>
@@ -113,660 +97,130 @@ mkdir -p src/main/java
 </Step>
 <Step>
 
-## Connect to Stigmer
+## Create the Agent
 
-Create a new file and start with the connection code. This uses your API key to
-authenticate with Stigmer Cloud.
+An Agent is the definition of a job: what it does and how. Create
+`variance-reporter.yaml`:
 
-<Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
-<Tab value="TypeScript">
+```yaml title="variance-reporter.yaml"
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: variance-reporter
+spec:
+  description: Turns a customer's ledger into a variance report.
+  instructions: |
+    You review a customer's quarterly ledger. Each row has an account,
+    its budget and its actual amount.
 
-Create `ask-agent.ts`:
+    For every account, work out the variance (actual minus budget), in
+    money and as a percentage of the budget. Flag each account that is
+    more than 10% over or under budget, and say in one line what could
+    explain it.
 
-```typescript
-import { Stigmer, followSession } from "@stigmer/client";
-
-const stigmer = new Stigmer({
-  baseUrl: "https://api.stigmer.ai",
-  apiKey: process.env.STIGMER_API_KEY!,
-});
+    Save the report as variance-report.md in your outputs folder: a
+    two-sentence summary, then one table of every account, flagged
+    accounts first.
 ```
 
-</Tab>
-<Tab value="Go">
+Send it to Stigmer:
 
-Create `main.go`:
-
-```go
-package main
-
-import (
-	"context"
-	"fmt"
-	"io"
-	"log"
-	"os"
-	"time"
-
-	stigmer "go.stigmer.ai/sdk"
-	sessionv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1"
-	"google.golang.org/protobuf/proto"
-)
-
-func main() {
-	client, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer client.Close()
+```bash
+stigmer apply -f variance-reporter.yaml
 ```
 
-</Tab>
-<Tab value="Python">
-
-Create `ask_agent.py`:
-
-```python
-import os
-import time
-
-from ai.stigmer.agentic.session.v1 import io_pb2
-from stigmer import StigmerClient, SessionInput, RunInput
-
-client = StigmerClient(os.environ["STIGMER_API_KEY"])
-```
-
-</Tab>
-<Tab value="Java">
-
-Create `src/main/java/AskAgent.java`:
-
-```java
-import ai.stigmer.agentic.session.v1.StreamSessionEventsRequest;
-import ai.stigmer.sdk.StigmerClient;
-import ai.stigmer.sdk.gen.SessionInput;
-import ai.stigmer.sdk.gen.RunInput;
-import java.util.Set;
-
-public class AskAgent {
-    public static void main(String[] args) {
-        var client = StigmerClient.builder(
-            System.getenv("STIGMER_API_KEY")
-        ).build();
-```
-
-</Tab>
-</Tabs>
+The last instruction is the one that matters for this page: whatever the Agent
+saves in its outputs folder comes back to whoever started the job.
 
 </Step>
 <Step>
 
-## Create a Session and send a message
+## Make the customer's ledger
 
-A Session is a conversation with your Agent. Create one, then send a message to
-start a run. You don't specify which Agent to use — Stigmer's built-in assistant
-handles the request automatically.
+Create `ledger.csv`, the file your customer would upload:
 
-Add the following to the same file you created in the previous step.
-
-<Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
-<Tab value="TypeScript">
-
-Add to `ask-agent.ts`:
-
-```typescript
-async function main() {
-  const session = await stigmer.session.create({
-    name: `session-${Date.now()}`,
-    org: "my-org",
-  });
-
-  const run = await stigmer.run.create({
-    name: `run-${Date.now()}`,
-    org: "my-org",
-    sessionId: session.metadata!.id,
-    message:
-      "What are some best practices for handling customer complaints?",
-  });
+```csv title="ledger.csv"
+account,budget,actual
+Revenue,120000,131500
+Cost of goods sold,48000,55200
+Salaries,36000,36400
+Marketing,9000,14100
+Software,4000,3900
+Travel,3000,1200
 ```
-
-</Tab>
-<Tab value="Go">
-
-Add to `main.go`:
-
-```go
-	ctx := context.Background()
-	ts := fmt.Sprintf("%d", time.Now().UnixMilli())
-
-	session, err := client.Session.Create(ctx, &stigmer.SessionInput{
-		Name: "session-" + ts,
-		Org:  "my-org",
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	run, err := client.Run.Create(ctx, &stigmer.RunInput{
-		Name:      "run-" + ts,
-		Org:       "my-org",
-		SessionId: session.GetMetadata().GetId(),
-		Message:   "What are some best practices for handling customer complaints?",
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-```
-
-</Tab>
-<Tab value="Python">
-
-Add to `ask_agent.py`:
-
-```python
-ts = str(int(time.time() * 1000))
-
-session = client.sessions.create(SessionInput(
-    name=f"session-{ts}",
-    org="my-org",
-))
-
-run = client.runs.create(RunInput(
-    name=f"run-{ts}",
-    org="my-org",
-    session_id=session.metadata.id,
-    message="What are some best practices for handling customer complaints?",
-))
-```
-
-</Tab>
-<Tab value="Java">
-
-Add to `src/main/java/AskAgent.java`:
-
-```java
-        var ts = String.valueOf(System.currentTimeMillis());
-
-        var session = client.session.create(
-            SessionInput.builder()
-                .name("session-" + ts)
-                .org("my-org")
-                .build()
-        );
-
-        var run = client.run.create(
-            RunInput.builder()
-                .name("run-" + ts)
-                .org("my-org")
-                .sessionId(session.getMetadata().getId())
-                .message("What are some best practices for handling customer complaints?")
-                .build()
-        );
-```
-
-</Tab>
-</Tabs>
-
-Replace `my-org` with your Organization slug from the Stigmer dashboard.
 
 </Step>
 <Step>
 
-## Stream the response
+## Give the Agent the job
 
-Follow the Session's events to receive the Agent's response as it arrives. A
-Session's output is one ordered log of events. Streaming it from the start
-(`after_seq` 0) sends every event already stored, then each new one as the Agent
-works. Print the Agent's messages for your run, and stop when the run's
-`stigmer.run.status` event says it ended.
-
-Add the following to the same file, right after the code from the previous step.
-
-<Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
-<Tab value="TypeScript">
-
-Add to `ask-agent.ts`:
-
-```typescript
-  const ended = ["completed", "failed", "cancelled", "terminated"];
-  for await (const frame of followSession(stigmer, session.metadata!.id)) {
-    if (frame.frame.case !== "event") continue;
-    const { runId, threadId, event } = frame.frame.value;
-    if (runId !== run.metadata!.id) continue;
-    if (event.case === "agentMessage" && threadId === "") {
-      console.log(event.value.content.map((block) => block.text).join(""));
-    }
-    if (event.case === "stigmerRunStatus" && ended.includes(event.value.phase)) {
-      break;
-    }
-  }
-}
-
-main();
+```bash
+stigmer run variance-reporter --attach ledger.csv --download ./out -m "Review this quarter's ledger."
 ```
 
-</Tab>
-<Tab value="Go">
-
-Add to `main.go`:
-
-```go
-	stream, err := client.Session.StreamEvents(ctx, &sessionv1.StreamSessionEventsRequest{
-		SessionId: session.GetMetadata().GetId(),
-		AfterSeq:  proto.Int64(0),
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for {
-		frame, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
-		event := frame.GetEvent()
-		if event.GetRunId() != run.GetMetadata().GetId() {
-			continue
-		}
-		if msg := event.GetAgentMessage(); msg != nil && event.GetThreadId() == "" {
-			for _, block := range msg.GetContent() {
-				fmt.Print(block.GetText())
-			}
-			fmt.Println()
-		}
-		if status := event.GetStigmerRunStatus(); status != nil {
-			switch status.GetPhase() {
-			case "completed", "failed", "cancelled", "terminated":
-				return
-			}
-		}
-	}
-}
-```
-
-</Tab>
-<Tab value="Python">
-
-Add to `ask_agent.py`:
-
-```python
-ENDED = {"completed", "failed", "cancelled", "terminated"}
-
-request = io_pb2.StreamSessionEventsRequest(
-    session_id=session.metadata.id,
-    after_seq=0,
-)
-for frame in client.sessions.stream_events(request):
-    event = frame.event
-    if event.run_id != run.metadata.id:
-        continue
-    kind = event.WhichOneof("event")
-    if kind == "agent_message" and not event.thread_id:
-        print("".join(block.text for block in event.agent_message.content))
-    if kind == "stigmer_run_status" and event.stigmer_run_status.phase in ENDED:
-        break
-```
-
-</Tab>
-<Tab value="Java">
-
-Add to `src/main/java/AskAgent.java`:
-
-```java
-        var request = StreamSessionEventsRequest.newBuilder()
-            .setSessionId(session.getMetadata().getId())
-            .setAfterSeq(0)
-            .build();
-        var ended = Set.of("completed", "failed", "cancelled", "terminated");
-
-        var stream = client.session.streamEvents(request);
-        while (stream.hasNext()) {
-            var event = stream.next().getEvent();
-            if (!event.getRunId().equals(run.getMetadata().getId())) {
-                continue;
-            }
-            if (event.hasAgentMessage() && event.getThreadId().isEmpty()) {
-                for (var block : event.getAgentMessage().getContentList()) {
-                    System.out.print(block.getText());
-                }
-                System.out.println();
-            }
-            if (event.hasStigmerRunStatus()
-                    && ended.contains(event.getStigmerRunStatus().getPhase())) {
-                break;
-            }
-        }
-    }
-}
-```
-
-</Tab>
-</Tabs>
+`--attach` hands the ledger to the Agent with the message. The Agent's reply
+streams into your terminal while it works, and when it finishes, `--download`
+saves what it handed back into `./out`.
 
 </Step>
-
-<Accordions>
-<Accordion title="View the complete file">
-
-<Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
-<Tab value="TypeScript">
-
-`ask-agent.ts`
-
-```typescript
-import { Stigmer, followSession } from "@stigmer/client";
-
-const stigmer = new Stigmer({
-  baseUrl: "https://api.stigmer.ai",
-  apiKey: process.env.STIGMER_API_KEY!,
-});
-
-async function main() {
-  const session = await stigmer.session.create({
-    name: `session-${Date.now()}`,
-    org: "my-org",
-  });
-
-  const run = await stigmer.run.create({
-    name: `run-${Date.now()}`,
-    org: "my-org",
-    sessionId: session.metadata!.id,
-    message: "What are some best practices for handling customer complaints?",
-  });
-
-  const ended = ["completed", "failed", "cancelled", "terminated"];
-  for await (const frame of followSession(stigmer, session.metadata!.id)) {
-    if (frame.frame.case !== "event") continue;
-    const { runId, threadId, event } = frame.frame.value;
-    if (runId !== run.metadata!.id) continue;
-    if (event.case === "agentMessage" && threadId === "") {
-      console.log(event.value.content.map((block) => block.text).join(""));
-    }
-    if (
-      event.case === "stigmerRunStatus" &&
-      ended.includes(event.value.phase)
-    ) {
-      break;
-    }
-  }
-}
-
-main();
-```
-
-</Tab>
-<Tab value="Go">
-
-`main.go`
-
-```go
-package main
-
-import (
-	"context"
-	"fmt"
-	"io"
-	"log"
-	"os"
-	"time"
-
-	stigmer "go.stigmer.ai/sdk"
-	sessionv1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1"
-	"google.golang.org/protobuf/proto"
-)
-
-func main() {
-	client, err := stigmer.NewClient(stigmer.WithAPIKey(os.Getenv("STIGMER_API_KEY")))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer client.Close()
-
-	ctx := context.Background()
-	ts := fmt.Sprintf("%d", time.Now().UnixMilli())
-
-	session, err := client.Session.Create(ctx, &stigmer.SessionInput{
-		Name: "session-" + ts,
-		Org:  "my-org",
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	run, err := client.Run.Create(ctx, &stigmer.RunInput{
-		Name:      "run-" + ts,
-		Org:       "my-org",
-		SessionId: session.GetMetadata().GetId(),
-		Message:   "What are some best practices for handling customer complaints?",
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	stream, err := client.Session.StreamEvents(ctx, &sessionv1.StreamSessionEventsRequest{
-		SessionId: session.GetMetadata().GetId(),
-		AfterSeq:  proto.Int64(0),
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for {
-		frame, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
-		event := frame.GetEvent()
-		if event.GetRunId() != run.GetMetadata().GetId() {
-			continue
-		}
-		if msg := event.GetAgentMessage(); msg != nil && event.GetThreadId() == "" {
-			for _, block := range msg.GetContent() {
-				fmt.Print(block.GetText())
-			}
-			fmt.Println()
-		}
-		if status := event.GetStigmerRunStatus(); status != nil {
-			switch status.GetPhase() {
-			case "completed", "failed", "cancelled", "terminated":
-				return
-			}
-		}
-	}
-}
-```
-
-</Tab>
-<Tab value="Python">
-
-`ask_agent.py`
-
-```python
-import os
-import time
-
-from ai.stigmer.agentic.session.v1 import io_pb2
-from stigmer import StigmerClient, SessionInput, RunInput
-
-client = StigmerClient(os.environ["STIGMER_API_KEY"])
-
-ts = str(int(time.time() * 1000))
-
-session = client.sessions.create(SessionInput(
-    name=f"session-{ts}",
-    org="my-org",
-))
-
-run = client.runs.create(RunInput(
-    name=f"run-{ts}",
-    org="my-org",
-    session_id=session.metadata.id,
-    message="What are some best practices for handling customer complaints?",
-))
-
-ENDED = {"completed", "failed", "cancelled", "terminated"}
-
-request = io_pb2.StreamSessionEventsRequest(
-    session_id=session.metadata.id,
-    after_seq=0,
-)
-for frame in client.sessions.stream_events(request):
-    event = frame.event
-    if event.run_id != run.metadata.id:
-        continue
-    kind = event.WhichOneof("event")
-    if kind == "agent_message" and not event.thread_id:
-        print("".join(block.text for block in event.agent_message.content))
-    if kind == "stigmer_run_status" and event.stigmer_run_status.phase in ENDED:
-        break
-```
-
-</Tab>
-<Tab value="Java">
-
-`src/main/java/AskAgent.java`
-
-```java
-import ai.stigmer.agentic.session.v1.StreamSessionEventsRequest;
-import ai.stigmer.sdk.StigmerClient;
-import ai.stigmer.sdk.gen.SessionInput;
-import ai.stigmer.sdk.gen.RunInput;
-import java.util.Set;
-
-public class AskAgent {
-    public static void main(String[] args) {
-        var client = StigmerClient.builder(
-            System.getenv("STIGMER_API_KEY")
-        ).build();
-
-        var ts = String.valueOf(System.currentTimeMillis());
-
-        var session = client.session.create(
-            SessionInput.builder()
-                .name("session-" + ts)
-                .org("my-org")
-                .build()
-        );
-
-        var run = client.run.create(
-            RunInput.builder()
-                .name("run-" + ts)
-                .org("my-org")
-                .sessionId(session.getMetadata().getId())
-                .message("What are some best practices for handling customer complaints?")
-                .build()
-        );
-
-        var request = StreamSessionEventsRequest.newBuilder()
-            .setSessionId(session.getMetadata().getId())
-            .setAfterSeq(0)
-            .build();
-        var ended = Set.of("completed", "failed", "cancelled", "terminated");
-
-        var stream = client.session.streamEvents(request);
-        while (stream.hasNext()) {
-            var event = stream.next().getEvent();
-            if (!event.getRunId().equals(run.getMetadata().getId())) {
-                continue;
-            }
-            if (event.hasAgentMessage() && event.getThreadId().isEmpty()) {
-                for (var block : event.getAgentMessage().getContentList()) {
-                    System.out.print(block.getText());
-                }
-                System.out.println();
-            }
-            if (event.hasStigmerRunStatus()
-                    && ended.contains(event.getStigmerRunStatus().getPhase())) {
-                break;
-            }
-        }
-    }
-}
-```
-
-</Tab>
-</Tabs>
-
-</Accordion>
-</Accordions>
-
 <Step>
 
-## Run it
-
-<Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
-<Tab value="TypeScript">
+## Open the report
 
 ```bash
-STIGMER_API_KEY=sk_your_key npx tsx ask-agent.ts
+cat out/variance-report.md
 ```
 
-</Tab>
-<Tab value="Go">
+The Agent wrote this file. Its words differ from run to run, but it reads
+something like this:
 
-```bash
-STIGMER_API_KEY=sk_your_key go run main.go
+```md
+# Q3 variance report
+
+Revenue came in 9.6% over budget. Cost of goods sold and marketing ran well
+over, and travel well under.
+
+| Account            | Budget  | Actual  | Variance | %      | Flag  |
+| ------------------ | ------- | ------- | -------- | ------ | ----- |
+| Marketing          | 9,000   | 14,100  | +5,100   | +56.7% | Over  |
+| Travel             | 3,000   | 1,200   | -1,800   | -60.0% | Under |
+| Cost of goods sold | 48,000  | 55,200  | +7,200   | +15.0% | Over  |
+| Revenue            | 120,000 | 131,500 | +11,500  | +9.6%  |       |
+| Salaries           | 36,000  | 36,400  | +400     | +1.1%  |       |
+| Software           | 4,000   | 3,900   | -100     | -2.5%  |       |
 ```
-
-</Tab>
-<Tab value="Python">
-
-```bash
-STIGMER_API_KEY=sk_your_key python ask_agent.py
-```
-
-</Tab>
-<Tab value="Java">
-
-```bash
-STIGMER_API_KEY=sk_your_key mvn compile exec:java
-```
-
-</Tab>
-</Tabs>
-
-You should see a helpful response:
-
-```
-Here are some best practices for handling customer complaints:
-
-1. Listen actively — Let the customer explain their issue fully before
-   responding. Acknowledge their frustration.
-
-2. Respond promptly — Speed matters. Aim to acknowledge complaints
-   within hours, not days.
-
-3. Apologize sincerely — Even if the issue wasn't your fault, show
-   empathy. "I'm sorry you had this experience" goes a long way.
-
-4. Offer a clear resolution — Don't just apologize. Explain what
-   you'll do to fix the problem and when.
-
-5. Follow up — After resolving the issue, check back to make sure
-   the customer is satisfied.
-```
-
-It works. Your Agent answered a general knowledge question accurately.
 
 </Step>
 </Steps>
 
 ## What just happened
 
-You called an Agent from your own code through a real API. No Agent
-configuration. No infrastructure setup. The built-in assistant handled your
-request automatically.
+You gave an Agent a job and it handed back a file. Stigmer started a Session (a
+conversation) on your Agent, put the ledger where the Agent could read it, and
+ran the turn on your model key. The Agent saved its report in its outputs
+folder, and Stigmer returned it as a file of that Session. `--download` fetched
+it, the same way your product will fetch it for a customer.
 
-The Agent is good at general knowledge — ask about best practices for handling
-complaints, and it gives a solid answer. But change the question to "What is
-your return policy for defective items?" and it can only guess. It doesn't know
-your return policy, your product catalog, or your escalation process.
+The terminal was only the way in. The CLI made the same calls your product's
+code can make, which is the next page.
 
-In the next guide, you will teach your Agent domain knowledge through the
-Stigmer web app. Same question, completely different answer.
+## Next step
+
+Your customers won't open a terminal: they'll upload a ledger in your product
+and expect the report to come back there. The next page does the same job from
+your app's code.
+
+<Cards>
+  <Card
+    title="Do the same job from your app"
+    href="/docs/getting-started/call-from-your-app"
+  >
+    Upload the ledger, start the job and save the report from TypeScript, the
+    way your backend does it for a customer.
+  </Card>
+</Cards>
+
+When you want your Agent to know more or do more, it gets
+[Skills and plugins](/docs/guides/plugins/install-a-plugin), tools from an
+[MCP server](/docs/guides/integrations/connect-an-mcp-server), and
+[approvals](/docs/concepts/approval-flows) for actions that need a yes first.
