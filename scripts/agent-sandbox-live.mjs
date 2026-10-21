@@ -24,8 +24,10 @@
  *     every interface for the run, because the dev server bound to the
  *     gateway alone dials its own internal services on the loopback and
  *     refuses itself. The dev server has no authentication, so outside CI
- *     (no CI variable) on Linux the run says so before it starts, because
- *     the port is open to the machine's network for those minutes.
+ *     (no CI variable) the run says before it starts which listeners are
+ *     open to the machine's network for those minutes: on Linux the dev
+ *     server, the turn proof's server and its mock LLM; on Docker Desktop
+ *     the proof's server alone (the shipped server takes no listen address).
  * Then it runs `npm run test:live` in the server package with those
  * addresses (the driver's live class), and, when that passes, the turn proof
  * (`npm run test:agent-sandbox` in test/conformance): the open-source server
@@ -223,10 +225,19 @@ export function temporalBindAddress(platform) {
   return DOCKER_DESKTOP.has(platform) ? "127.0.0.1" : "0.0.0.0";
 }
 
-/** The warning a run outside CI prints before it opens Temporal to every interface, or undefined. */
+/**
+ * The warning a run outside CI prints before it opens listeners to every
+ * interface, or undefined in CI. The turn proof's server listens on every
+ * interface wherever it runs (the shipped server takes no listen address),
+ * holding the run's kubeconfig; on Linux, Temporal and the proof's mock LLM
+ * do too, bound where the kind network's gateway lands.
+ */
 export function exposureWarning(platform, env) {
-  if (temporalBindAddress(platform) !== "0.0.0.0" || env.CI) return undefined;
-  return "agent-sandbox-live: warning: the Temporal dev server listens on every interface for this run, without authentication; anyone on this machine's network can reach it until the run ends";
+  if (env.CI) return undefined;
+  const open = temporalBindAddress(platform) === "0.0.0.0"
+    ? "the Temporal dev server, the turn proof's server and its mock LLM listen"
+    : "the turn proof's server listens";
+  return `agent-sandbox-live: warning: ${open} on every interface for this run, without authentication; anyone on this machine's network can reach them until the run ends`;
 }
 
 /** Starts a child and resolves its exit code; a child that cannot start (a missing binary) resolves 127. */

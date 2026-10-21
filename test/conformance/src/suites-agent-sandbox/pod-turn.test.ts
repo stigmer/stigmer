@@ -9,9 +9,12 @@
 // the addresses that script hands it.
 //
 // Two deletions:
-//   - Graceful (`kubectl delete pod`): the pod's grace and the runner as its
-//     PID 1 let the running step finish; the runner yields at the step's
-//     boundary, the turn continues on the new pod, and the step began once.
+//   - Graceful (`kubectl delete pod`): the runner, the pod's PID 1, hears
+//     SIGTERM while the step runs, and the pod's grace lets the step finish;
+//     the runner yields at the step's boundary (the drained pod asks the model
+//     nothing after the step, and says once that the turn moves on), and the
+//     turn continues on the new pod, which asks the next round; the step began
+//     once.
 //   - Forced (`--grace-period=0 --force`): the step is cut, the workflow
 //     recovers the turn once its heartbeat lapses, and the new pod resumes
 //     from the native checkpoint on the Session's home claim, so the cut step
@@ -21,11 +24,12 @@
 //
 // The runner in the pod is the lane's image (the published `latest` on CI,
 // which moves with main), pointed at this file's mock LLM through the
-// operator's runner list (STIGMER_SANDBOX_RUNNER_ENV). The mock and the server
-// listen where the pod reaches the host (STIGMER_AGENT_SANDBOX_LIVE_BIND), and
-// the pod names the host by STIGMER_AGENT_SANDBOX_LIVE_POD_HOST.
+// operator's runner list (STIGMER_SANDBOX_RUNNER_ENV). The mock listens where
+// the pod reaches the host (STIGMER_AGENT_SANDBOX_LIVE_BIND), the server on
+// every interface (the shipped server takes no listen address), and the pod
+// names the host by STIGMER_AGENT_SANDBOX_LIVE_POD_HOST.
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 import { createServer } from "node:net";
 
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
@@ -77,6 +81,26 @@ async function freePort(): Promise<number> {
   await new Promise<void>((resolve) => probe.close(() => resolve()));
   if (address === null || typeof address === "string") throw new Error("no port for the server");
   return address.port;
+}
+
+/**
+ * A pod's runner log as it is written, from now until the pod is gone: the
+ * runner's own word on what it did with its turn. A replacement pod has the
+ * Sandbox's name too, so a pod is read here by the stream opened on it, not
+ * by its name later.
+ */
+function followLog(pod: string): { readonly text: () => string; readonly stop: () => void } {
+  let text = "";
+  const child: ChildProcess = spawn("kubectl", ["-n", namespace, "logs", "-f", pod, "-c", "runner"], { stdio: ["ignore", "pipe", "ignore"] });
+  child.stdout?.on("data", (chunk: Buffer) => {
+    text += chunk.toString("utf8");
+  });
+  return { text: () => text, stop: () => child.kill() };
+}
+
+/** The uid of the pod now holding `name`, or "" when there is none. */
+function podUid(name: string): string {
+  return kubectl("get", "pod", name, "--ignore-not-found", "-o", "jsonpath={.metadata.uid}").trim();
 }
 
 /** The Session's running pod (not one being deleted), or undefined. */
@@ -222,17 +246,33 @@ describe("a turn outlives its sandbox pod", () => {
     const first = await until("the Session's pod to run", () => livePod(run.sessionId), 5 * 60_000);
     await until("the held step to begin", () => step.started(first.name) === 1, 3 * 60_000);
 
-    // The pod is told to stop while its step runs; the step is then let finish inside the grace.
-    kubectl("delete", "pod", first.name, "--wait=false");
-    step.release(first.name);
+    // The pod is told to stop while its step runs. Only once the runner (the
+    // pod's PID 1) has heard SIGTERM is the step let finish, inside the grace.
+    const firstLog = followLog(first.name);
+    try {
+      kubectl("delete", "pod", first.name, "--wait=false");
+      await until("the first pod's runner to hear SIGTERM", () => firstLog.text().includes("Received SIGTERM"), 60_000);
+      expect(mock.scriptedRequests().length, "the first pod had asked only for the step").toBe(1);
+      step.release(first.name);
+      // The runner says it yielded the turn; by then it has asked the model
+      // nothing after the step (its worker stopped with the yield, and the
+      // replacement pod cannot start before this one is gone).
+      await until("the first pod's runner to yield the turn", () => firstLog.text().includes("yielded to continue (drain)"), 2 * 60_000);
+      expect(mock.scriptedRequests().length, "the drained pod yielded at the step's boundary: it asked the model nothing after the step").toBe(1);
+    } finally {
+      firstLog.stop();
+    }
+    await until("the first pod to go", () => podUid(first.name) !== first.uid, RECOVERY_MS);
 
     const settled = await awaitTerminal(clients, run.id, { timeoutMs: RECOVERY_MS });
     const second = await until("the replacement pod to run", () => livePod(run.sessionId), 60_000);
+    const notes = await clients.sessionQuery.listEvents({ sessionId: run.sessionId, pageSize: 1000, types: ["stigmer.harness.note"] });
     expect(settled.status?.phase, `the turn: ${settled.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
-    expect(second.uid, "the turn finished on a new pod").not.toBe(first.uid);
+    expect(mock.scriptedRequests().length, "the round after the step came from the new pod").toBe(2);
     expect(step.started(second.name), "the step finished inside the grace and never ran again").toBe(1);
     expect(taskHandedInLastRequest(task), "the model was handed the task once").toBe(1);
     expect(lastRequestCarriesStepResult(), "the new pod continued the conversation that ran the step").toBe(true);
+    expect(notes.events.length, "the drained pod said once that the turn moves on").toBe(1);
     expect(mock.remaining(), "the new pod asked only the round after the step").toBe(0);
   });
 
