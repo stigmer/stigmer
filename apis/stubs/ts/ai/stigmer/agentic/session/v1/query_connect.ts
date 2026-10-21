@@ -91,8 +91,9 @@ export const SessionQueryController = {
      * Agents' does. With after_seq it first sends the stored events after
      * that seq, then the new ones, with none missing: a client that listed
      * up to some seq, or whose stream ended, resumes from the last seq it
-     * has. A watcher that falls too far behind is ended with
-     * RESOURCE_EXHAUSTED; it resumes the same way.
+     * has. A watcher that reads slowly lags behind the log and is never
+     * ended for it; a server that is restarting ends its streams with
+     * UNAVAILABLE, and a client resumes the same way.
      *
      * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.streamEvents
      */

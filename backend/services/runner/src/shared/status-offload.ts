@@ -9,7 +9,8 @@
  * tool call's result is just as unbounded), and reach the session's log as
  * events. Captured file bodies live on the turn's file-review ledger and
  * reach the server on the run's file record (`RunStatus.file_changes`),
- * re-serialized whole on every `persistStatus` -> `updateStatus` gRPC call.
+ * where each change set is sent at its pin and once more with its candidate,
+ * never on the status writes between (shared/filereview/record.ts).
  * Left unchecked, a large record pushes the message past the server's
  * 4 MiB gRPC receive cap; the call fails with `resource_exhausted`, progress
  * stops persisting, and the live UI freezes mid-execution.

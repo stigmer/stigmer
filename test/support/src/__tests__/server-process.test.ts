@@ -8,8 +8,13 @@
 // the rebuild hint a stale build needs).
 // A fixture child (fixtures/ready-line-server.ts) stands in for the server;
 // the server's own side of the contract is pinned by its boot/ready-line.ts
-// tests and scripts/verify-boot.mjs.
+// tests and scripts/verify-boot.mjs. Also: a shutdown ends the child the way a
+// rollout does (SIGTERM), and a caller-owned state directory outlives the
+// server, so a replacement serves the same state.
 // Domain: test support (stack spawns).
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { spawnServer, type RunningServer } from "../server-process.ts";
@@ -22,7 +27,10 @@ afterEach(async () => {
   await Promise.all(running.splice(0).map((server) => server.stop()));
 });
 
-async function spawnFixture(mode: string, extra: { port?: number; readyTimeoutMs?: number } = {}): Promise<RunningServer> {
+async function spawnFixture(
+  mode: string,
+  extra: { port?: number; readyTimeoutMs?: number; stateDir?: string } = {},
+): Promise<RunningServer> {
   const server = await spawnServer(process.execPath, { args: [FIXTURE], env: { FIXTURE_MODE: mode }, ...extra });
   running.push(server);
   return server;
@@ -86,5 +94,21 @@ describe("spawnServer", () => {
     const failure = spawnFixture("silent", { readyTimeoutMs: 1_500 });
     await expect(failure).rejects.toThrow("stigmer-server did not print its ready line within 1500ms");
     await expect(failure).rejects.toThrow("rebuild it (make build-server)");
+  });
+
+  it("shuts the child down with SIGTERM, and leaves a caller-owned state directory for its replacement", async () => {
+    const stateDir = mkdtempSync(join(tmpdir(), "server-process-state-"));
+    try {
+      writeFileSync(join(stateDir, "kept"), "state");
+      const first = await spawnFixture("report", { stateDir });
+      await first.shutdown();
+      expect(first.logTail()).toContain("fixture: shut down on SIGTERM");
+      expect(existsSync(join(stateDir, "kept")), "the state outlives its server").toBe(true);
+      const second = await spawnFixture("report", { stateDir });
+      await second.stop();
+      expect(existsSync(join(stateDir, "kept"))).toBe(true);
+    } finally {
+      rmSync(stateDir, { recursive: true, force: true });
+    }
   });
 });

@@ -63,8 +63,9 @@ type SessionQueryControllerClient interface {
 	// Agents' does. With after_seq it first sends the stored events after
 	// that seq, then the new ones, with none missing: a client that listed
 	// up to some seq, or whose stream ended, resumes from the last seq it
-	// has. A watcher that falls too far behind is ended with
-	// RESOURCE_EXHAUSTED; it resumes the same way.
+	// has. A watcher that reads slowly lags behind the log and is never
+	// ended for it; a server that is restarting ends its streams with
+	// UNAVAILABLE, and a client resumes the same way.
 	StreamEvents(ctx context.Context, in *StreamSessionEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamSessionEventsResponse], error)
 }
 
@@ -181,8 +182,9 @@ type SessionQueryControllerServer interface {
 	// Agents' does. With after_seq it first sends the stored events after
 	// that seq, then the new ones, with none missing: a client that listed
 	// up to some seq, or whose stream ended, resumes from the last seq it
-	// has. A watcher that falls too far behind is ended with
-	// RESOURCE_EXHAUSTED; it resumes the same way.
+	// has. A watcher that reads slowly lags behind the log and is never
+	// ended for it; a server that is restarting ends its streams with
+	// UNAVAILABLE, and a client resumes the same way.
 	StreamEvents(*StreamSessionEventsRequest, grpc.ServerStreamingServer[StreamSessionEventsResponse]) error
 }
 

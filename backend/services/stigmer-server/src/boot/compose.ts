@@ -9,7 +9,8 @@
  * Boot ordering is contract (Go server.go:739-743, 806, 839-843): health
  * flips SERVING only when wiring is complete, and the port binds AFTER
  * that — the CLI's serverGate TCP probe treats port-bind as readiness.
- * Shutdown is the reverse (grpc lib Stop): NOT_SERVING first, then drain.
+ * Shutdown is the reverse (grpc lib Stop): NOT_SERVING first, then the
+ * session event streams end (a watcher resumes elsewhere), then drain.
  *
  * Extensions: the optional
  * `extensions` units resolve FIRST — a bad registry aborts boot before any
@@ -2665,6 +2666,13 @@ export async function composeServer(
 
     async shutdown(): Promise<void> {
       healthState.setOverall(ServingStatus.NOT_SERVING);
+      // Session event streams end at once with UNAVAILABLE, and new ones
+      // are refused, before the seconds the loops, the workers and the
+      // transport take to stop: a watcher resumes on the server that stays
+      // instead of waiting for this one's socket to be destroyed. Events
+      // still appended here until the transport closes are stored, and the
+      // watchers' tail read on the other server finds them.
+      sessionEventBroker.close();
       ossModelRegistryStore?.stopRefresh();
       await artifactFileServer?.shutdown();
       // The sandbox driver's background work stops first: a pass mid-flight

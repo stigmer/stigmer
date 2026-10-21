@@ -28,6 +28,15 @@
 //     (the agent-hour stretch stays whole), the log says once why the turn
 //     moved, and it completes. The run is followed to its end, not to its
 //     first terminal phase, so a FAILED on the way would be seen.
+//   - A server rollout mid-turn: the target's server is replaced through its
+//     one door, `restartServer`, behind the front its clients and runner
+//     dial. Where two servers can share the store (Postgres) the turn ends on
+//     the outgoing server while a watcher streams from the incoming one, then
+//     the outgoing one shuts down; on SQLite the server stops and its
+//     replacement starts on the same file. Every watcher, the one pinned to
+//     the incoming server and one that follows through the front across the
+//     restart, sees every event of the session's log exactly once and in
+//     order, the turn's end included.
 //   - A `user.message` mid-turn, sent through the Managed Agents wire while
 //     the first turn's shell works. Desired: the message joins the running
 //     turn or waits as its next one, never a second run working beside the
@@ -44,12 +53,13 @@
 // double (the hermetic kit mocks `@cursor/sdk` in the test process), so its
 // continuation is proven in process by the contract kit's re-sent-task arm.
 // The cloud target is excluded by name (vitest.cloud-execution.config.ts): its
-// runner is the composition's and has no restart door.
+// runner and server are the composition's and have no restart door.
 import { appendFileSync, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type Anthropic from "@anthropic-ai/sdk";
+import { Code, ConnectError } from "@connectrpc/connect";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { expectKnownGap } from "@stigmer/test-support/known-gap";
@@ -74,6 +84,9 @@ const fixtures = new FixtureTracker();
 /** The open issue the mid-turn message arm is a known gap of. */
 const MESSAGE_STARTS_A_SECOND_RUN = "stigmer/stigmer#2429";
 
+/** How long a watcher may take to catch the log once the turn has ended: a tail read on the other server (15 s), with room. */
+const WATCHER_CATCHES_UP_MS = 45_000;
+
 /** How long the mid-turn arm's first turn keeps working after the message arrives. */
 const FIRST_TURN_WORKS_ON_MS = 10_000;
 
@@ -87,8 +100,8 @@ beforeAll(async () => {
   await target.setup();
   clients = target.clients();
   mock = requireLlmProxy(target);
-  if (target.restartRunner === undefined) {
-    throw new Error(`${target.name} has no restartRunner; this suite runs only where the target spawns its runner (exclude it by name elsewhere)`);
+  if (target.restartRunner === undefined || target.restartServer === undefined) {
+    throw new Error(`${target.name} has no restartRunner or restartServer; this suite runs only where the target spawns its runner and server (exclude it by name elsewhere)`);
   }
 });
 
@@ -207,6 +220,52 @@ function taskHandedInLastRequest(task: string): number {
 
 describe("a long turn on a real runner", () => {
   it(
+    "a server rolled out mid-turn costs a watcher no event: each sees the whole log once, in order, the turn's end included",
+    async () => {
+      const step = new HeldStep();
+      const run = await startHeldRun(uniqueName("Rebuild the index"), step, "The index is rebuilt.");
+      await step.whenStarted();
+      const sessionId = sessionIdOf(await clients.agentExecutionQuery.get({ value: run.id }));
+      const throughTheFront = new Watcher(clients, sessionId, { resumes: true });
+      let pinned: Watcher | undefined;
+
+      const restart = await target.restartServer!({
+        duringOverlap: async (incoming) => {
+          // The runner's connection stays on the outgoing server, where the
+          // turn ends; this watcher is on the incoming one alone.
+          pinned = new Watcher(incoming, sessionId, { resumes: false });
+          step.release();
+          await awaitTerminal(incoming, run.id, { timeoutMs: ARM_TIMEOUT_MS / 2 });
+        },
+      });
+      if (!restart.overlapped) {
+        step.release();
+      }
+      const settled = await awaitTerminal(clients, run.id, { timeoutMs: ARM_TIMEOUT_MS / 2 });
+      const logged = await loggedSeqs(sessionId);
+      const last = logged.at(-1) ?? 0n;
+      const watchers = pinned === undefined ? [throughTheFront] : [throughTheFront, pinned];
+      for (const watcher of watchers) {
+        await watcher.until(last, WATCHER_CATCHES_UP_MS);
+      }
+      console.log(
+        `[long turn] server rollout (${restart.overlapped ? "overlap" : "stop then start"}): ${RunPhase[settled.status?.phase ?? 0]}, ` +
+          `${logged.length} events; through the front ${throughTheFront.seqs.length} (streams ended: ${throughTheFront.endings.join(", ")})` +
+          (pinned === undefined ? "" : `; pinned ${pinned.seqs.length} (streams ended: ${pinned.endings.join(", ") || "never"})`),
+      );
+
+      expect(settled.status?.phase, `the turn across the rollout: ${settled.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
+      expect((await clients.sessionQuery.listEvents({ sessionId, pageSize: 1000, types: ["session.status_idle"] })).events.length, "the log holds the turn's end").toBe(1);
+      expect(throughTheFront.seqs.filter((seq) => seq <= last), "the watcher through the front: every event once, in order").toEqual(logged);
+      if (pinned !== undefined) {
+        expect(pinned.seqs.filter((seq) => seq <= last), "the watcher on the incoming server: every event once, in order").toEqual(logged);
+        expect(pinned.endings, "the incoming server never ended its stream").toEqual([]);
+      }
+    },
+    ARM_TIMEOUT_MS,
+  );
+
+  it(
     "a user.message sent through the Managed Agents wire while a turn works joins it or waits as its next turn; neither turn fails",
     async () => {
       const step = new HeldStep();
@@ -315,6 +374,71 @@ describe("a long turn on a real runner", () => {
     KILL_ARM_TIMEOUT_MS,
   );
 });
+
+/**
+ * A watcher of a session's log over the native stream, as a client resumes
+ * one: from the last seq it holds, again whenever its stream ends with a
+ * code a client retries. Records every event's seq in arrival order. A
+ * pinned watcher does not resume: its stream ending is the finding.
+ */
+class Watcher {
+  readonly seqs: bigint[] = [];
+  readonly endings: string[] = [];
+  private readonly abort = new AbortController();
+  private readonly done: Promise<void>;
+
+  constructor(watchClients: ConformanceClients, sessionId: string, options: { readonly resumes: boolean }) {
+    this.done = this.follow(watchClients, sessionId, options.resumes);
+    fixtures.defer(() => this.stop());
+  }
+
+  private async follow(watchClients: ConformanceClients, sessionId: string, resumes: boolean): Promise<void> {
+    while (!this.abort.signal.aborted) {
+      try {
+        const after = this.seqs.at(-1) ?? 0n;
+        for await (const frame of watchClients.sessionQuery.streamEvents({ sessionId, afterSeq: after }, { signal: this.abort.signal })) {
+          if (frame.frame.case === "event") this.seqs.push(frame.frame.value.seq);
+        }
+        this.endings.push("ended cleanly");
+      } catch (error) {
+        if (this.abort.signal.aborted) return;
+        const code = ConnectError.from(error).code;
+        this.endings.push(Code[code]);
+        if (code !== Code.Unavailable && code !== Code.Canceled && code !== Code.Unknown && code !== Code.Internal) return;
+      }
+      if (!resumes) return;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+
+  /** Resolves once the watcher holds `seq`; bounded, naming what it holds. */
+  async until(seq: bigint, budgetMs: number): Promise<void> {
+    const deadline = Date.now() + budgetMs;
+    while ((this.seqs.at(-1) ?? 0n) < seq) {
+      if (Date.now() > deadline) {
+        throw new Error(`the watcher reached seq ${this.seqs.at(-1) ?? 0n}, not ${seq}, within ${budgetMs} ms (its streams ended: ${this.endings.join(", ") || "never"})`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+  }
+
+  async stop(): Promise<void> {
+    this.abort.abort();
+    await this.done;
+  }
+}
+
+/** Every seq of the session's log, oldest first. */
+async function loggedSeqs(sessionId: string): Promise<bigint[]> {
+  const seqs: bigint[] = [];
+  let pageToken = "";
+  do {
+    const page = await clients.sessionQuery.listEvents({ sessionId, pageSize: 1000, pageToken });
+    seqs.push(...page.events.map((event) => event.seq));
+    pageToken = page.nextPageToken;
+  } while (pageToken !== "");
+  return seqs;
+}
 
 /** Anthropic's SDK for `org`, with a key minted there (the Managed Agents suite's shape). */
 async function sdkFor(org: string): Promise<Anthropic> {

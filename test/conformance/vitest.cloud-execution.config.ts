@@ -24,7 +24,8 @@
 //   with its composition in front of it.
 // - run-long-turn is EXCLUDED: it ends the target's runner and boots a
 //   replacement on the same state directories (TargetProfile.restartRunner),
-//   and the cloud's runner is the composition's, with no such door.
+//   and replaces its server behind a front (TargetProfile.restartServer);
+//   the cloud's runner and server are the composition's, with no such door.
 // - plugin-tools runs here like every other Class B suite: the
 //   provisioner boots the composition with STIGMER_OAUTH_REDIRECT_URI set to
 //   the suite's pinned constant.
