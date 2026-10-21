@@ -15,8 +15,14 @@
 # The published path (`--published --version`) is re-proven by the release
 # (release.npm-libs.yaml), against the CLI it just published.
 #
+# The same job then runs the Getting Started pages as a reader does
+# (test/install/smoke-getting-started.mjs): their files written and commands
+# run from the pages themselves, on a second `stigmer up` and the SDK packed
+# from source. The release re-proves them against what it published.
+#
 # When it runs (its list in scripts/ci-lanes.mjs): the CLI's source, the
-# smoke and its lib, the slim bundlers and the runner's model address.
+# smokes and their lib, the slim bundlers, the runner's model address, the
+# Getting Started pages and the TypeScript SDK their code uses.
 # =============================================================================
 
 name: ci.cli-up
@@ -41,7 +47,8 @@ jobs:
   smoke:
     name: stigmer up (from source)
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # Two journeys, each with its own `stigmer up`, and the SDK packed for the second.
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -64,3 +71,8 @@ jobs:
       # contributor runs locally.
       - name: Build from source and run the CLI smoke
         run: make smoke-cli-cutover
+
+      # The Getting Started pages, read and run as written on the same build
+      # (test/install/smoke-getting-started.mjs); the builds above are reused.
+      - name: Run the Getting Started pages
+        run: make smoke-getting-started

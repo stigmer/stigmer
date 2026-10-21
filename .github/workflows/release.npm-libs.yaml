@@ -1726,7 +1726,8 @@ jobs:
     # the version (test/install/lib/install-cli.mjs).
     needs: [determine-version, publish, publish-runner, publish-server-slim]
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # Two journeys, each with its own `stigmer up`: the CLI smoke and the Getting Started pages.
+    timeout-minutes: 45
     permissions:
       contents: read
     steps:
@@ -1745,6 +1746,14 @@ jobs:
       - name: stigmer up from the published CLI, end to end
         run: |
           node test/install/smoke-cli-cutover.mjs --published --version="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
+        env:
+          NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
+
+      # The Getting Started pages, run as written against what this release
+      # published: the CLI through install.sh and @stigmer/client from npm.
+      - name: Getting Started from the published CLI and SDK, as written
+        run: |
+          node test/install/smoke-getting-started.mjs --published --version="${NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION}"
         env:
           NEEDS_DETERMINE_VERSION_OUTPUTS_VERSION: ${{ needs.determine-version.outputs.version }}
 

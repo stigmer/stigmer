@@ -560,6 +560,15 @@ smoke-cli-cutover: build-runner build-server build-web ## Run the CLI E2E smoke:
 	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
 	node test/install/smoke-cli-cutover.mjs
 
+# The Getting Started pages run as a reader runs them (the quickstart, then
+# the same job from code), on the same source CLI and slim server as the
+# smoke above; the SDK the second page installs is packed from this checkout.
+.PHONY: smoke-getting-started
+smoke-getting-started: build-runner build-server build-web ## Run the Getting Started pages as written: their files and commands, on `stigmer up` from source and the SDK packed from source
+	@command -v node >/dev/null 2>&1 || { echo "error: node not found"; exit 1; }
+	@cd $(SERVER_DIR) && node scripts/bundle-slim.mjs
+	node test/install/smoke-getting-started.mjs
+
 # The bundle targets linux for THIS machine's arch (the docker daemon's
 # native platform), not the host OS — the smoke builds a linux container.
 .PHONY: smoke-docker-image
