@@ -1,6 +1,6 @@
 # @stigmer/runner
 
-Embeddable Temporal worker for the Stigmer AI agent platform. The runner executes agent sessions — driving the Cursor and native (deep-agent) harnesses, orchestrating MCP servers, and reporting status and artifacts back to the Stigmer backend.
+Embeddable Temporal worker that runs Stigmer's agent sessions: it drives the Cursor and native (deep-agent) harnesses, orchestrates MCP servers, and reports status and artifacts back to the Stigmer backend.
 
 It is the single runtime behind three surfaces:
 

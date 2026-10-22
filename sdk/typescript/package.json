@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/client",
   "version": "0.0.0-dev",
-  "description": "Stigmer TypeScript SDK — typed API client for all Stigmer platform resources",
+  "description": "TypeScript client for Stigmer, the open-source backend for the agents in your product",
   "license": "Apache-2.0",
   "type": "module",
   "sideEffects": false,

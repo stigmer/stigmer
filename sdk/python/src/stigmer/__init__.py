@@ -1,4 +1,4 @@
-"""Stigmer Python SDK — typed API client for all Stigmer platform resources.
+"""Python client for Stigmer, the open-source backend for the agents in your product.
 
 Usage::
 

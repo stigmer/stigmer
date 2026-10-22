@@ -1,6 +1,6 @@
 # Stigmer Go SDK
 
-Go client library for the [Stigmer](https://stigmer.ai) platform API.
+Go client for [Stigmer](https://stigmer.ai), the open-source backend for the agents in your product.
 
 ## Install
 

@@ -1,0 +1,19 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: variance-reporter
+spec:
+  description: Turns a customer's ledger into a variance report.
+  instructions: |
+    You review a customer's quarterly ledger. Each row has an account,
+    its budget and its actual amount.
+
+    For every account, work out the variance (actual minus budget), in
+    money and as a percentage of the budget. Flag each account that is
+    more than 10% over or under budget, and say in one line what could
+    explain it.
+
+    Save the report as variance-report.md in your outputs folder: a
+    two-sentence summary, then one table of every account, flagged
+    accounts first.
+  disallowed_tools: [Bash]

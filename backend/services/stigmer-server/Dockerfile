@@ -45,7 +45,7 @@ ARG TARGETARCH
 ARG IMAGE_VERSION=dev
 ARG IMAGE_REVISION=unknown
 ARG IMAGE_TITLE=stigmer-server
-ARG IMAGE_DESCRIPTION="Stigmer control plane: unified gRPC/Connect/REST port with the bundled web console"
+ARG IMAGE_DESCRIPTION="Stigmer server, the open-source backend for the agents in your product: one gRPC/Connect/REST port with the bundled web console"
 ARG IMAGE_LICENSES=Apache-2.0
 LABEL org.opencontainers.image.source="https://github.com/stigmer/stigmer" \
       org.opencontainers.image.title="${IMAGE_TITLE}" \

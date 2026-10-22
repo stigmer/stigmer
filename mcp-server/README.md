@@ -1,7 +1,7 @@
 # `@stigmer/mcp-server`
 
-A [Model Context Protocol](https://modelcontextprotocol.io) server for the
-Stigmer platform. It exposes Stigmer **agents and skills** as
+A [Model Context Protocol](https://modelcontextprotocol.io) server for
+Stigmer. It exposes Stigmer **agents and skills** as
 MCP tools and resources — covering both the
 authoring loop (create, read, update, delete, version) and the run loop
 (run, observe, approve, cancel) — so any MCP-capable client (Claude Desktop,

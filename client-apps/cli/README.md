@@ -1,7 +1,7 @@
 # @stigmer/cli
 
-The Stigmer command-line interface — manage agents, plugins, skills and runs
-from the terminal.
+Command-line interface for [Stigmer](https://stigmer.ai), the open-source backend for the agents in your product:
+manage agents, plugins, skills and runs from the terminal.
 
 This is the TypeScript CLI that replaced the Go CLI. Its shape, in brief:
 

@@ -1,6 +1,6 @@
 # @stigmer/client
 
-TypeScript SDK for the Stigmer platform. Provides typed API clients for all Stigmer resources with authentication, error handling, and cross-resource search.
+TypeScript client for [Stigmer](https://stigmer.ai), the open-source backend for the agents in your product. Provides typed API clients for every Stigmer resource with authentication, error handling, and cross-resource search.
 
 ## Installation
 

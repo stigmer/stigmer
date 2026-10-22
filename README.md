@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://stigmer.ai">
-    <img src="docs/banner_dark.png" alt="Stigmer — Open-source AI agent platform" width="100%" height="auto" />
+    <img src="docs/banner_dark.png" alt="Stigmer — Put AI agents in your product." width="100%" height="auto" />
   </a>
 </div>
 
@@ -8,9 +8,11 @@
 
 # Stigmer
 
-**An open-source AI agent platform.**
+**The open-source backend for the agents in your product.** It runs behind
+your app, the way your database does. Each of your customers gets an agent with
+its own computer, one that asks before acting and keeps their data apart from
+every other customer's.
 
-Define agents in YAML, deploy with one command, call from any app via API.
 Run it yourself on a laptop, one server or Kubernetes, or use Stigmer Cloud.
 Agents run on your own model provider key.
 
@@ -18,21 +20,27 @@ Agents run on your own model provider key.
 [![Discord](https://img.shields.io/badge/Discord-community-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/EtANnfsJ8B)
 [![GitHub stars](https://img.shields.io/github/stars/stigmer/stigmer?style=flat)](https://github.com/stigmer/stigmer/stargazers)
 
-## Quick Start
+## Quick start
+
+An accounting product's customer uploads a ledger, and an agent hands back a
+variance report as a file:
 
 ```bash
-# Install
 brew install stigmer/tap/stigmer
-
-# Start the server (interactive LLM setup on first run)
-stigmer server
-
-# Deploy an agent from YAML
-stigmer apply -f agent.yaml
-
-# Run it
-stigmer run support-bot "How do I reset my password?"
+export ANTHROPIC_API_KEY=<your Anthropic API key>
+stigmer up
+curl -fsSLO https://raw.githubusercontent.com/stigmer/stigmer/main/examples/variance-report/variance-reporter.yaml
+curl -fsSLO https://raw.githubusercontent.com/stigmer/stigmer/main/examples/variance-report/ledger.csv
+stigmer apply -f variance-reporter.yaml
+stigmer run variance-reporter --attach ledger.csv --download ./out -m "Review this quarter's ledger."
+cat out/variance-report.md
 ```
+
+The customer's ledger went in, and their report came back as a file in `./out`,
+written by the agent. [Your first agent job](https://stigmer.ai/docs/getting-started/quickstart)
+walks through each step, and
+[Do the same job from your app](https://stigmer.ai/docs/getting-started/call-from-your-app)
+starts it from your own code.
 
 <details>
 <summary>Other install methods</summary>
@@ -53,71 +61,38 @@ cd stigmer && make setup && npm install && make local
 
 ## What is Stigmer?
 
-Stigmer turns domain knowledge and tools into AI agents you can call from any application.
+Your app calls Stigmer, and Stigmer runs the agent on your model provider. Each
+of your customers gets an agent that takes what they hand it, works through it
+on a computer of its own, and hands back the result. You build the feature, not
+the machinery.
 
-- **Skills** — Teach agents your domain. Upload versioned knowledge and the agent answers with expertise instead of generic responses.
-- **Plugins** — Give agents tools. Install the Claude Code, Cursor or Codex plugins you already have: a plugin carries skills, hooks, subagents and the [MCP](https://modelcontextprotocol.io) servers that connect agents to your systems. Agents discover the tools and Stigmer handles execution sandboxing.
-- **Approval flows** — Set rules for human oversight. Define which actions need approval before the agent proceeds. Runs are durable — they wait without losing state.
+Bring the plugins you already have: install the Claude Code, Cursor or Codex
+plugins your team uses, and a plugin carries skills, hooks, subagents and the
+[MCP](https://modelcontextprotocol.io) servers that connect agents to your
+systems. Agents discover the tools and Stigmer handles execution sandboxing.
 
-Every capability is exposed via gRPC with public protobuf contracts. Generate type-safe clients in Go, Python, Java, TypeScript, or Rust.
+## Core concepts
 
-## Core Concepts
+- [Agent](https://stigmer.ai/docs/concepts/agents): the definition of a job,
+  what it does and how, written as YAML.
+- [Environment](https://stigmer.ai/docs/concepts/environments): the agent's
+  computer, what is installed on it and what it may reach.
+- [Session](https://stigmer.ai/docs/concepts/sessions): one job, with its
+  conversation, its events and the [files](https://stigmer.ai/docs/concepts/files)
+  that go in and come back.
+- [Vaults](https://stigmer.ai/docs/concepts/vaults) and
+  [model keys](https://stigmer.ai/docs/guides/integrations/model-provider-keys):
+  where your keys and your customers' keys live.
+- Ways to reach an agent: [channels](https://stigmer.ai/docs/concepts/channels),
+  [routines](https://stigmer.ai/docs/concepts/routines),
+  [the API](https://stigmer.ai/docs/getting-started/call-from-your-app) and
+  [your app's UI](https://stigmer.ai/docs/getting-started/embed-agent).
+- [Access](https://stigmer.ai/docs/concepts/sharing-and-access) and
+  [organizations](https://stigmer.ai/docs/concepts/organizations): who may use
+  what, and how each customer is kept apart.
 
-### Agents
-
-An Agent has instructions, optional plugins for skills and tools, optional MCP servers of its own (`mcp_servers`), and optional model configuration.
-
-```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: Agent
-metadata:
-  name: support-bot
-spec:
-  instructions: |
-    You are a helpful customer support agent.
-    Answer questions politely and accurately.
-    Check GitHub issues for known problems.
-  plugins:
-    - kind: plugin
-      slug: github
-```
-
-```bash
-stigmer install github          # the plugin that carries GitHub's MCP server
-stigmer apply -f agent.yaml
-stigmer run support-bot "What's the status of issue #42?"
-```
-
-### Skills
-
-Versioned knowledge artifacts that agents use for domain expertise. A Skill is a directory with a `SKILL.md` file containing YAML frontmatter:
-
-```
-my-skill/
-  SKILL.md          # Required: interface definition with YAML frontmatter
-  tool.sh           # Optional: tool implementation
-  README.md         # Optional: documentation
-```
-
-```bash
-stigmer push                          # push skill from current directory
-```
-
-### Plugins
-
-A plugin is one package of skills, MCP servers, hooks and subagents, in the format Claude Code, Cursor and Codex already use. Installing it stores the plugin alone; an agent or a chat that lists it under `plugins` gets all of it, each part named after the plugin (`<plugin>:<skill>`). See [Plugins](https://stigmer.ai/docs/concepts/plugins).
-
-```bash
-stigmer install github                # from the marketplace
-stigmer push plugin ./my-plugin       # from a folder
-stigmer mcp add orders https://orders.example.com/mcp   # one MCP server, as a plugin of its own
-```
-
-Stigmer uses the [Model Context Protocol](https://modelcontextprotocol.io) to give agents tool access. An MCP server reaches an agent two ways: in a plugin it lists, shared by every agent and chat that lists it, or written in the agent itself under `mcp_servers`, reached over HTTP and added only by an organization's admins. Remote (HTTP) MCP servers work everywhere, including the marketplace catalog and cloud-hosted sessions. STDIO-based servers — npm packages (npx), Python packages (uvx), Go modules (go run) — run on local runners only, where the machine executing the subprocess is your own.
-
-### Stigmer's own MCP server
-
-Stigmer also ships its own MCP server that exposes platform resources to AI-powered IDEs:
+Stigmer also ships its own MCP server, which exposes Stigmer's resources to
+AI-powered IDEs:
 
 ```bash
 stigmer mcp-server
@@ -136,34 +111,49 @@ See [mcp-server/README.md](mcp-server/README.md) for IDE configuration (Cursor, 
 | **React** | `npm install @stigmer/react-sdk` | [Reference](https://stigmer.ai/docs/sdk/react) |
 | **Ink** | `npm install @stigmer/ink-ui` | [Reference](https://stigmer.ai/docs/sdk/ink) |
 
-The Go, TypeScript, Python, and Java SDKs provide typed API clients for all platform resources. The React SDK renders agent UIs — session composers, message threads, and approval views. The Ink SDK brings the same components to the terminal.
+The Go, TypeScript, Python, and Java SDKs provide typed API clients for every Stigmer resource. The React SDK renders agent UIs — session composers, message threads, and approval views. The Ink SDK brings the same components to the terminal.
 
-### Embed in your app
+## Put the agent in your app
 
-The React SDK ships the same chat surface the Stigmer Console uses — as drop-in components. One provider and two components put your agent in front of your users:
+The React SDK ships the same chat surface the Stigmer Console uses, as drop-in
+components. One provider and two components put the variance reporter in front
+of your users:
 
 ```tsx
-<StigmerProvider client={client}>
-  {sessionId ? (
-    <SessionViewer sessionId={sessionId} org="my-org" audience="endUser" />
-  ) : (
+// …
+export default function App() {
+  return (
+    <StigmerProvider client={stigmer}>
+      <main style={{ height: "100vh" }}>
+        <VarianceReports />
+      </main>
+    </StigmerProvider>
+  );
+}
+
+function VarianceReports() {
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  if (sessionId) {
+    return <SessionViewer sessionId={sessionId} org={org} audience="endUser" />;
+  }
+  return (
     <NewSessionViewer
-      org="my-org"
+      org={org}
       audience="endUser"
-      initialAgentRef={{ org: "my-org", slug: "support-agent" }}
+      initialAgentRef={{ org, slug: "variance-reporter" }}
       onSessionCreated={setSessionId}
     />
-  )}
-</StigmerProvider>
+  );
+}
 ```
 
-Every component is themeable with design tokens, and the hooks underneath are exported for fully custom UIs. Follow the [Add agent chat to your app](https://stigmer.ai/docs/getting-started/embed-agent) tutorial for the complete walkthrough.
+Every component is themeable with design tokens, and the hooks underneath are exported for fully custom UIs. [Put the agent in your app](https://stigmer.ai/docs/getting-started/embed-agent) is the complete walkthrough, with the backend route that hands the page its token.
 
 ## Open source, Enterprise and Cloud
 
 | | Stigmer open source | Stigmer Enterprise | Stigmer Cloud |
 |---|---|---|---|
-| **Start with** | `stigmer server`, Docker Compose or the Helm chart | The Helm chart with a license key Secret | `stigmer config backend set cloud` |
+| **Start with** | `stigmer up`, Docker Compose or the Helm chart | The Helm chart with a license key Secret | `stigmer config backend set cloud` |
 | **Storage** | SQLite (`~/.stigmer/stigmer.db`) or your Postgres | Your Postgres | Managed |
 | **Users** | One organization, with sign-in, roles and service accounts | Many organizations, teams, invitations and federation | The same, hosted |
 | **LLM** | Your key, held by the runner (Anthropic, or Cursor) | Your key, held by the runner (Anthropic, or Cursor) | Your organization's keys (Anthropic, OpenAI, compatible endpoints, Cursor) |
@@ -186,8 +176,8 @@ profile images. Use `brand/avatar.png` for GitHub and other profile uploads.
 - [Kubernetes](https://stigmer.ai/docs/guides/self-hosting/kubernetes) — The same stack on a cluster with the Helm chart (`oci://ghcr.io/stigmer/charts/stigmer`)
 - [CLI Reference](https://stigmer.ai/docs/cli) — Commands, flags, and examples
 - [SDK Reference](https://stigmer.ai/docs/sdk) — Go, TypeScript, Python, Java, React, and Ink
-- [Core Concepts](https://stigmer.ai/docs/concepts/what-is-stigmer) — Agents, Skills, Sessions, and how they fit together
-- [Examples](examples/) — Sample agents and skills
+- [What is Stigmer?](https://stigmer.ai/docs/concepts/what-is-stigmer) — What each customer's agent has, and how one job runs end to end
+- [Examples](examples/) — The variance report job, as files to run
 
 ## Development
 
