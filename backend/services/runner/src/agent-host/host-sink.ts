@@ -61,6 +61,8 @@ export class HostTurn {
   private readonly yieldController = new AbortController();
   private casReader: CasTouchedReader | undefined;
   private persistInFlight: Promise<void> | undefined;
+  private pendingInput = false;
+  private readonly pendingListeners = new Set<() => void>();
   private persistFollowUp: Promise<void> | undefined;
 
   constructor(
@@ -90,6 +92,22 @@ export class HostTurn {
       stopSignal: this.stopController.signal,
       yieldSignal: this.yieldController.signal,
       setupTiming,
+      // The runtime's channel, over the pipe: the runtime claims and mounts,
+      // and answers whether more still wait.
+      input: {
+        pending: () => this.pendingInput,
+        onPending: (listener) => {
+          this.pendingListeners.add(listener);
+          return () => this.pendingListeners.delete(listener);
+        },
+        claim: async (options = {}) => {
+          if (!this.pendingInput && options.force !== true) return [];
+          const { messages, pending } = await peer.call("claimInput", { turnId, force: options.force === true });
+          this.pendingInput = pending;
+          return [...messages];
+        },
+        claimed: async (delivered) => [...(await peer.call("claimedInput", { turnId, delivered: [...delivered] }))],
+      },
       requestPersist: () => this.requestPersist(),
       recordActivity: (detail?: string) => peer.notify("activity", { turnId, detail: detail ?? null }),
       reportUsage: (delta: UsageDelta) => {
@@ -116,6 +134,13 @@ export class HostTurn {
   /** The runtime's stop fired. */
   stop(reason: string): void {
     if (!this.stopController.signal.aborted) this.stopController.abort(new Error(reason));
+  }
+
+  /** The session's queue holds messages for the turn. */
+  inputPending(): void {
+    if (this.pendingInput) return;
+    this.pendingInput = true;
+    for (const listener of [...this.pendingListeners]) listener();
   }
 
   /** The runtime asked the turn to yield. */

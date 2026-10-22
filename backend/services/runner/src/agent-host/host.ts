@@ -109,6 +109,7 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
 
   peer.onNotice("stopTurn", ({ turnId, reason }) => turns.get(turnId)?.stop(reason));
   peer.onNotice("yieldTurn", ({ turnId }) => turns.get(turnId)?.yield());
+  peer.onNotice("inputPending", ({ turnId }) => turns.get(turnId)?.inputPending());
 
   // The runtime's operations on the agent's paths, performed with the agent's rights.
   peer.handle("fs", (request) => serveFs(request));
@@ -129,6 +130,7 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
     keys.set(input.executionId, Buffer.from(args.fingerprintKey, "base64"));
     if (args.stopped !== null) turn.stop(args.stopped);
     if (args.yielded) turn.yield();
+    if (args.inputPending) turn.inputPending();
 
     let outcome: TurnOutcome | undefined;
     let thrown: unknown;

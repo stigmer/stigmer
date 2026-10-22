@@ -92,6 +92,7 @@ import { loadStreamingConfig } from "../../shared/streaming-scheduler.js";
 import { confinedReadAdmission, mountPlatformRoute } from "./platform-route.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { RUN_STAMP_KEY, createRunStampMiddleware, stampedRunOf } from "./run-stamp.js";
+import { createTurnInputMiddleware } from "./turn-input-middleware.js";
 import { resumedMessages, threadIsEmpty } from "./resumed-history.js";
 import { buildEnhancedSystemPrompt, composeUserMessage, renderSkillsSection } from "./prompt-builder.js";
 import { buildShellEnv, shellRunValues } from "../../shared/shell-env.js";
@@ -693,9 +694,15 @@ export async function buildEngine(
     // The to-do list rides ahead of Stigmer's stack: deepagents stopped
     // installing it by default (1.12), and the product reads it. The
     // framework's own middleware with Stigmer's texts; parent only
-    // (`todo-list.ts` says why for both).
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    middleware: [createTodoListMiddleware(), createRunStampMiddleware(), ...middleware] as any,
+    // (`todo-list.ts` says why for both). The person's messages sent while
+    // the turn works are the parent's alone too (`turn-input-middleware.ts`).
+    middleware: [
+      createTodoListMiddleware(),
+      createRunStampMiddleware(),
+      createTurnInputMiddleware({ input: sink.input, stopped: () => sink.stopSignal.aborted || sink.yieldSignal.aborted }),
+      ...middleware,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ] as any,
     subagents: compiledSubagents ?? undefined,
     ...(responseFormat ? { responseFormat } : {}),
     ...(planModePermissions ? { permissions: planModePermissions } : {}),

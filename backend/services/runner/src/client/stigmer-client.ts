@@ -618,6 +618,20 @@ export class StigmerClient {
   }
 
   /**
+   * Take the messages queued in a run's session for the run to read
+   * (`harness/turn-input.ts`): the server moves each to the head of the log
+   * as this run's and answers them in the order sent. Admitted only for the
+   * runner acting for the run, with the same scoped token an append carries.
+   */
+  async claimSessionInput(runId: string, scopedToken?: string): Promise<SessionEvent[]> {
+    const response = await this.sessionCommand.claimInput(
+      { runId },
+      scopedToken ? { headers: { authorization: `Bearer ${scopedToken}` } } : undefined,
+    );
+    return response.events;
+  }
+
+  /**
    * Every event of one run in its session's log, oldest first, of `types`
    * when given (every type otherwise): what a resumed turn already sent, or
    * the answers the server recorded on its asks (`harness/approval-answers.ts`).

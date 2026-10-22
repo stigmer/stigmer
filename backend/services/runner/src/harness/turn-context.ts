@@ -65,6 +65,7 @@
 import { CancelledFailure } from "@temporalio/activity";
 import { clone } from "@bufbuild/protobuf";
 import { RunStatusSchema, type Run, type RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { ContentBlock } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { RunSpec } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import type { RunConfig } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
@@ -118,7 +119,7 @@ import { injectSynthesizedAttachment } from "../shared/synthesized-attachment.js
 import { buildMcpApprovalDefault, deriveActiveLeases, NOTHING_LISTED, type LeaseGrant } from "../shared/approval-policy.js";
 import { listTurnTools, type McpToolListing } from "../shared/mcp-tool-listing.js";
 import { ToolScope } from "../shared/tool-lists.js";
-import { fetchRunFileMounts, mountFiles, offerMountedImage, splitMessageFiles } from "../shared/file-mount.js";
+import { fetchRunFileMounts, mountFiles, offerMountedImage, splitMessageFiles, type MessageFile } from "../shared/file-mount.js";
 import { resolveSkills, type SkillMetadata } from "../shared/skill-resolver.js";
 import { prepareOutputsFolder } from "../shared/outputs.js";
 import { holdPlatformMounts, NO_MOUNTS, type PlatformMounts } from "../shared/platform-hold.js";
@@ -1727,7 +1728,44 @@ export async function mountTurnFiles(
   const entries = holdsFiles ? await fetchRunFileMounts(deps.client, deps.input.executionId) : [];
   const mounted = await mountFiles(entries, { sessionId: args.sessionId, primaryWorkspaceDir: args.primaryDir });
   const { message, conversation } = splitMessageFiles(blocks, mounted);
+  const viewed = await viewMessageImages(deps.input.executionId, args, message);
+  deps.timing.mark("mount_files");
+  return { conversation, references: [], ...viewed };
+}
 
+/** A message's files as a turn shows them: the files, and its images seen inline or degraded to their path. */
+export type MessageFilesView = Pick<TurnFiles, "message" | "visionImages" | "visionNotViewable">;
+
+/**
+ * The files of a message a person sent while the turn worked
+ * (`turn-input.ts`), as the turn's own message's are shown: the
+ * conversation's Files mounted again, now holding the message's (the
+ * server made them the conversation's own as it admitted the message),
+ * each of its blocks named among them, and its images offered to a vision
+ * budget of their own, by the same rules (`mountTurnFiles`).
+ */
+export async function mountMessageFiles(
+  client: StigmerClient,
+  turn: Pick<TurnInput, "executionId" | "execution" | "sessionId" | "workspace">,
+  visionProfile: VisionProfile,
+  blocks: readonly ContentBlock[],
+): Promise<MessageFilesView> {
+  const entries = await fetchRunFileMounts(client, turn.executionId);
+  const mounted = await mountFiles(entries, { sessionId: turn.sessionId, primaryWorkspaceDir: turn.workspace.primaryDir });
+  const { message } = splitMessageFiles(blocks, mounted);
+  return viewMessageImages(turn.executionId, { execution: turn.execution, sessionId: turn.sessionId, visionProfile }, message);
+}
+
+/**
+ * A message's images offered to the turn's vision budget
+ * (`shared/attachment-vision.ts` owns all policy), with the model the
+ * turn runs on (the module's phase 5b says which).
+ */
+async function viewMessageImages(
+  executionId: string,
+  args: { readonly execution: Run; readonly sessionId: string; readonly visionProfile: VisionProfile },
+  message: readonly MessageFile[],
+): Promise<MessageFilesView> {
   const visionImages: VisionImage[] = [];
   const visionNotViewable: NotViewableEntry[] = [];
   const images = message.filter((file) => file.kind === "image");
@@ -1740,13 +1778,12 @@ export async function mountTurnFiles(
       else if (outcome.kind === "degraded") visionNotViewable.push({ path: image.relativePath, reason: outcome.reason });
     }
     console.log(
-      `[attachment-vision] execution=${deps.input.executionId} inline=${visionImages.length} ` +
+      `[attachment-vision] execution=${executionId} inline=${visionImages.length} ` +
       `(${visionImages.reduce((n, v) => n + v.byteSize, 0)} bytes) ` +
       `degraded=${JSON.stringify(visionNotViewable.map((d) => `${d.path}:${d.reason}`))}`,
     );
   }
-  deps.timing.mark("mount_files");
-  return { message, conversation, references: [], visionImages, visionNotViewable };
+  return { message, visionImages, visionNotViewable };
 }
 
 /**

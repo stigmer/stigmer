@@ -55,6 +55,9 @@ import { newTurnStreamState } from "./turn-stream.js";
 import { CursorWorkspaceHooksRefusal } from "./workspace-hook-files.js";
 import { CursorRunTelemetry } from "./run-telemetry.js";
 import { cutConnection, streamAndSettle, usageSnapshotFor } from "./turn-settle.js";
+import { FOLLOW_UP_NOTE, followUpText, newCursorTurnInput } from "./turn-input.js";
+import type { TurnMessage } from "../../harness/turn-input.js";
+import { toCursorImages } from "../../shared/attachment-vision.js";
 import {
   buildTurnPrompt,
   checkToolScope,
@@ -68,6 +71,7 @@ import {
   type CursorAdapterConfig,
   type CursorEngine,
   type CursorGate,
+  type CursorPrompt,
 } from "./turn-setup.js";
 
 export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: CursorAdapterConfig): Promise<TurnOutcome> {
@@ -135,7 +139,22 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
       }
     };
 
-    outcome = await streamAndSettle({ input, sink, engine, gate, prompt, rows, streamState, telemetry });
+    const turnInput = await newCursorTurnInput(sink, executionId, engine.sentRunRoot, input.continuation !== undefined);
+    const frame = { input, sink, engine, gate, prompt, rows, streamState, telemetry, turnInput };
+    outcome = await streamAndSettle(frame);
+    // A round that ended completed owes Cursor the messages it has not got
+    // (`turn-input.ts`): one more round of the same turn carries them, and
+    // the turn asks again after it.
+    let noted = false;
+    while (outcome.kind === "completed" && !stopsBeforeTheEngine(sink)) {
+      const owed = await turnInput.owed();
+      if (owed.length === 0) break;
+      if (!noted) {
+        sink.transcript.apply({ kind: "system_note", text: FOLLOW_UP_NOTE });
+        noted = true;
+      }
+      outcome = await streamAndSettle({ ...frame, prompt: followUpPrompt(prompt, owed), onSent: () => turnInput.delivered(owed) });
+    }
     return outcome;
   } catch (err) {
     outcome = await classifyThrown(err, input, sink, config, engine);
@@ -167,6 +186,20 @@ export async function runCursorTurn(input: TurnInput, sink: TurnSink, config: Cu
 
     if (engine) disposeEngine(engine, sessionId, outcome);
   }
+}
+
+/** The follow-up round's prompt: the messages, with their files listed and their images inline, and nothing of the task. */
+function followUpPrompt(prompt: CursorPrompt, messages: readonly TurnMessage[]): CursorPrompt {
+  const text = followUpText(messages);
+  const images = toCursorImages(messages.flatMap((message) => message.visionImages));
+  return {
+    ...prompt,
+    effectivePrompt: text,
+    turnImages: images,
+    primarySendImages: images,
+    promptEstimatedTokens: Math.ceil(text.length / 4),
+    continuesHeldRun: false,
+  };
 }
 
 /**

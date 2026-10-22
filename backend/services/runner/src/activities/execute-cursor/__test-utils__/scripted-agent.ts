@@ -55,6 +55,14 @@
  * it runs — the harness contract kit's Cursor subject — arranges it with
  * {@link ScriptedCursorAgent.arrangeNextTurn}, which REPLACES the slot the
  * next `send()` will consume.
+ *
+ * A steer (`Run.steer`, the SDK's way into a running run) is recorded on the
+ * agent and answered as the SDK's local run answers it: `complete_delivered`
+ * while the run is running, `revert_to_followup` once it is not, or always
+ * when the agent is told to revert (`revertSteers`, a cloud agent or a
+ * stored handle). A follow-up send after a run ends consumes the slot
+ * {@link ScriptedCursorAgent.arrangeFollowUp} wrote after the next one; a
+ * slot never consumed is replaced by the next turn's arrange.
  */
 
 import type {
@@ -283,6 +291,11 @@ export class ScriptedRun implements Run {
     await this.onDelta?.({ update });
   }
 
+  async steer(text: string): Promise<"complete_delivered" | "revert_to_followup"> {
+    this.agent.steers.push(text);
+    return this._status === "running" && !this.cancelled && !this.agent.revertSteers ? "complete_delivered" : "revert_to_followup";
+  }
+
   async cancel(): Promise<void> {
     this.cancelCalls.push(Date.now());
     this.cancelled = true;
@@ -348,6 +361,10 @@ export class ScriptedCursorAgent implements SDKAgent {
   model: ModelSelection | undefined = undefined;
   readonly sends: RecordedSend[] = [];
   readonly runs: ScriptedRun[] = [];
+  /** Every text steered into one of its runs, in order. */
+  readonly steers: string[] = [];
+  /** Every steer is answered `revert_to_followup` (the class header). */
+  revertSteers = false;
   closeCalls = 0;
   private nextTurn = 0;
   /** The scenario's scripts, one slot per send; `arrangeNextTurn` writes the slot the next send consumes. */
@@ -370,6 +387,16 @@ export class ScriptedCursorAgent implements SDKAgent {
    */
   arrangeNextTurn(script: TurnScript): void {
     this.turns[this.nextTurn] = script;
+  }
+
+  /** Set what a follow-up send after the NEXT one plays (the class header). */
+  arrangeFollowUp(script: TurnScript): void {
+    this.turns[this.nextTurn + 1] = script;
+  }
+
+  /** The run id a follow-up send after the next one will be given. */
+  get followUpRunId(): string {
+    return this.options.runIds?.[this.nextTurn + 1] ?? defaultRunId(this.agentId, this.nextTurn + 1);
   }
 
   /** The agent's newest run, which the store holds active until it ends. */

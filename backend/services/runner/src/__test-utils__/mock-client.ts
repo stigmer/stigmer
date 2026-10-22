@@ -20,6 +20,8 @@ export function mockStigmerClient(overrides: MockMethods = {}): StigmerClient {
       signal: RunControlSignal.UNSPECIFIED,
     }),
     getExecution: vi.fn().mockResolvedValue({}),
+    // A session whose queue holds nothing for the turn.
+    claimSessionInput: vi.fn().mockResolvedValue([]),
     fetchExecutionValues: vi.fn().mockResolvedValue({ agent: {}, tools: [], plugins: [], repositories: [] }),
     // A conversation that holds no File.
     mountRunFiles: vi.fn().mockResolvedValue([]),

@@ -81,6 +81,7 @@ import { hasBash } from "../../__test-utils__/cursor-hook-harness.js";
 import { resetCursorModuleState } from "../../__test-utils__/hermetic-cursor.js";
 import { ApprovalAction, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 import { toolUseEventId } from "../../../../harness/events/ids.js";
+import { FOLLOW_UP_NOTE } from "../../turn-input.js";
 
 const env = createHermeticEnvironment();
 const clock = new ScriptedClock();
@@ -140,6 +141,20 @@ describe.skipIf(!hasBash)("ExecuteCursor hermetic — the harness contract kit a
       const resolutions = subject.sdk.resolutions.filter((r) => r.agentId === agent.agentId);
       expect(resolutions.map((r) => r.kind), "one create, no resume").toEqual(["create"]);
       expect(agent.sends, "both turns went to the same parked agent").toHaveLength(2);
+    });
+
+    it("sends a message Cursor would not take mid-run as one more round of the same turn, and says so once", async () => {
+      const driver = new ExecutionDriver(subject, "obs-follow-up");
+      subject.revertSteersFor(driver.sessionId);
+      const text = "Also add a changelog line.";
+
+      const { outcome, sink } = await driver.turn([scenario.say("Working."), scenario.message(text), scenario.say("Done.")]);
+
+      expect(outcome.kind).toBe("completed");
+      const agent = subject.agentFor(driver.sessionId)!;
+      expect(agent.steers, "the steer was tried once").toEqual([text]);
+      expect(agent.sends.map((send) => JSON.stringify(send.message).includes(text)), "the task, then the follow-up").toEqual([false, true]);
+      expect(sink.rows.messages.filter((row) => row.content === FOLLOW_UP_NOTE), "the limit is named once").toHaveLength(1);
     });
 
     it("denies a disobedient re-issue after a SKIP: the action never executes and the turn re-gates", async () => {

@@ -51,7 +51,8 @@ import type { StigmerClient } from "../../client/stigmer-client.js";
 import { mockStigmerClient } from "../../__test-utils__/mock-client.js";
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { TranscriptBuilder } from "../transcript/builder.js";
-import { mountTurnFiles, type ResolutionDeps } from "../turn-context.js";
+import { mountMessageFiles, mountTurnFiles, type ResolutionDeps } from "../turn-context.js";
+import type { TurnInput } from "../types.js";
 import { TurnRowsSchema } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
@@ -258,5 +259,31 @@ describe("mountTurnFiles", () => {
 
     expect(files.message).toHaveLength(1);
     expect(getModelVisionCapability).not.toHaveBeenCalled();
+  });
+});
+
+describe("mountMessageFiles", () => {
+  it("mounts the conversation's Files again and shows a message sent mid-turn its own, as the turn's own are shown", async () => {
+    const entries = [
+      file("file_old", "old.csv", Buffer.from("a,b"), "text/csv"),
+      file("file_img", "late.png", PNG, "image/png"),
+    ];
+    const client = mockStigmerClient({
+      acquireScopedRunnerToken: vi.fn().mockResolvedValue("scoped"),
+      mountRunFiles: vi.fn().mockResolvedValue(entries),
+    });
+    const blocks = [create(ContentBlockSchema, { type: "image", source: create(ContentSourceSchema, { type: "file", fileId: "file_img" }) })];
+
+    const shown = await mountMessageFiles(
+      client,
+      { executionId: "aex_1", execution: execution({ model: "claude-haiku-4.5" }), sessionId: SESSION_ID, workspace: { primaryDir: workspace } as TurnInput["workspace"] },
+      DEEP_AGENT_VISION_PROFILE,
+      blocks,
+    );
+
+    expect(client.mountRunFiles).toHaveBeenCalledWith("aex_1", "scoped");
+    expect(shown.message.map((f) => [f.relativePath, f.kind])).toEqual([[".stigmer/uploads/late.png", "image"]]);
+    expect(shown.visionImages.map((v) => v.filename)).toEqual(["late.png"]);
+    expect(existsSync(join(getPlatformDir(SESSION_ID), "uploads", "old.csv")), "the conversation's other Files stay mounted").toBe(true);
   });
 });

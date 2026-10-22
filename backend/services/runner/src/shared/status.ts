@@ -14,6 +14,7 @@ import {
   SetupProgressSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
+import type { UpdateStatusResponse } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import {
   RunControlSignal,
   RunPhase,
@@ -60,8 +61,12 @@ export interface PersistStatusOptions {
    * Absent for a write that carries no turn (a setup-progress report).
    */
   readonly rows?: TurnRows;
-  /** Told once the status was written, with no failure: the persist chokepoint marks the file record it carried as sent. */
-  readonly onWritten?: () => void;
+  /**
+   * Told once the status was written, with no failure, with the server's
+   * answer: the persist chokepoint marks the file record it carried as
+   * sent, and records whether messages wait for the turn.
+   */
+  readonly onWritten?: (response: UpdateStatusResponse) => void;
   /**
    * When supplied, oversized tool outputs (a screenshot's base64, a multi-MB
    * dump) are spilled to artifact storage before persisting — the only path
@@ -166,7 +171,7 @@ export async function persistStatus(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const response = await client.updateStatus(executionId, status);
-      options.onWritten?.();
+      options.onWritten?.(response);
       return response.signal;
     } catch (err) {
       // Oversize rejection is recoverable exactly once and out-of-band from the
@@ -179,7 +184,7 @@ export async function persistStatus(
         enforceStatusSizeLimit(status, STATUS_PAYLOAD_HARD_LIMIT_BYTES);
         try {
           const response = await client.updateStatus(executionId, status);
-          options.onWritten?.();
+          options.onWritten?.(response);
           return response.signal;
         } catch (retryErr) {
           console.error(`[persistStatus] ${executionId}: still failing after hard elide:`, retryErr);

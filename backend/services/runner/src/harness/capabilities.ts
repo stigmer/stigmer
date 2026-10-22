@@ -130,6 +130,23 @@ export type SubAgentProgress = "streamed" | "at-completion";
 export type ContinuationKind = "checkpoint" | "digest";
 
 /**
+ * Where a working turn reads a message a person sent while it works
+ * (`TurnSink.input`, `turn-input.ts`). Either way the turn reads it: a
+ * message it claimed is delivered by this turn, never left for the next,
+ * and the task is never sent again.
+ *
+ *  - `next-step`: before the engine's next model call, after the results
+ *    of the step it is in (native: a model-call boundary; Cursor: a steer
+ *    into its running run, falling back per message to `round-end`).
+ *  - `round-end`: when the engine's current round ends, as one more round
+ *    of the same turn.
+ *
+ * Read by the harness contract kit, which gates its arms on it; the
+ * adapter claims where it says.
+ */
+export type MidTurnInput = "next-step" | "round-end";
+
+/**
  * The two facts the runtime's file-review capture and reconcile need from
  * the harness and cannot know: the id the projection reads from the
  * BASELINE payload (`shared/filereview/capture.ts`), and the
@@ -199,4 +216,6 @@ export interface HarnessCapabilities {
   readonly subAgentProgress: SubAgentProgress;
   /** How the engine continues a turn it began (see {@link ContinuationKind}). */
   readonly continuation: ContinuationKind;
+  /** Where a working turn reads a message sent while it works (see {@link MidTurnInput}). */
+  readonly midTurnInput: MidTurnInput;
 }

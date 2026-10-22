@@ -253,6 +253,16 @@ export interface ExecutionRecordInput {
  * `listSessionEvents` pages it newest first by type, the read a turn's start
  * makes for the undos still owed.
  *
+ * The session's queue is modelled as the server keeps it (the
+ * `RunCommandController.sendMessage` contract): {@link sendMessage} queues a
+ * person's message with no run; every `UpdateStatus` answers whether one
+ * waits (`input_pending`); `claimSessionInput` moves every waiting message
+ * into the log as the run's, in the order sent, and answers them. The
+ * message a run was created with is the server's, written at create, so a
+ * read of a run's `user.message` events answers it first, as the server's
+ * log would ({@link createdMessageOf}); no other read sees it, so the
+ * runner's own appends stay the whole of every other read.
+ *
  * File review is modelled the way the server's decision core does it:
  * {@link decideCapturedFileChanges} decides the captured files on the held
  * file record and writes each decision into the log as
@@ -297,6 +307,9 @@ export class ExecutionRecord {
   readonly harnessBinds: { readonly runId: string; readonly harnessStateId: string }[] = [];
   /** The session's event log as the runner appended it, in order (one entry per distinct id). */
   readonly sessionEvents: SessionEvent[] = [];
+  /** The session's queue: messages a person sent while the turn worked, not yet claimed, in the order sent. */
+  readonly queuedMessages: SessionEvent[] = [];
+  private sentMessages = 0;
   /** Every preview the runner sent, in order. */
   readonly sessionPreviews: SessionEventPreview[] = [];
   /** Every append the log accepted, by what it carried: its events' count and its previews' cases. */
@@ -673,6 +686,37 @@ export class ExecutionRecord {
     return this.controlSignal(snapshot, rows);
   }
 
+  /** A person sends `text`, with the documents `fileIds` names, to the session while its turn works (the class header); answers the message's id. */
+  sendMessage(text: string, fileIds: readonly string[] = []): string {
+    const id = `sevt-kit-${++this.sentMessages}`;
+    const files = fileIds.map((fileId) => ({ type: "document", source: { type: "file", fileId } }));
+    this.queuedMessages.push(
+      create(SessionEventSchema, {
+        event: { case: "userMessage", value: { id, content: [{ type: "text", text }, ...files] } },
+      }),
+    );
+    return id;
+  }
+
+  /** The runner's claim (the class header): every waiting message, moved into the log as the run's. */
+  claimSessionInput(runId: string): SessionEvent[] {
+    const claimed = this.queuedMessages.splice(0).map((event) => {
+      const own = clone(SessionEventSchema, event);
+      own.runId = runId;
+      return own;
+    });
+    this.sessionEvents.push(...claimed);
+    return claimed.map((event) => clone(SessionEventSchema, event));
+  }
+
+  /** The `user.message` the server wrote as it created run `runId` (the class header). */
+  private createdMessageOf(runId: string): SessionEvent {
+    return create(SessionEventSchema, {
+      runId,
+      event: { case: "userMessage", value: { id: `sevt-created-${runId}`, content: [{ type: "text", text: this.runNamed(runId).spec?.message ?? "" }] } },
+    });
+  }
+
   /** The server's append rules over the modelled log (the class header). */
   appendSessionEvents(runId: string, events: readonly SessionEvent[], previews: readonly SessionEventPreview[]): void {
     const phase = this.runNamed(runId).status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED;
@@ -766,7 +810,7 @@ export class ExecutionRecord {
       updateStatus: vi.fn(async (id: string, status: RunStatus) => {
         // The activity reads only `.signal`; UNSPECIFIED means "keep going".
         const signal = this.runNamed(id) === this.execution ? this.applyStatusUpdate(status) : this.applyReconcileStatus(status);
-        return create(UpdateStatusResponseSchema, { signal });
+        return create(UpdateStatusResponseSchema, { signal, inputPending: this.queuedMessages.length > 0 });
       }),
       bindHarnessState: vi.fn(async (runId: string, harnessStateId: string) => {
         this.harnessBinds.push({ runId, harnessStateId });
@@ -776,12 +820,14 @@ export class ExecutionRecord {
         this.appendSessionEvents(runId, events, previews);
         return create(AppendSessionEventsResponseSchema);
       }),
-      listRunSessionEvents: vi.fn(async (_sessionId: string, runId: string, types: readonly string[] = []) =>
-        this.sessionEvents
+      claimSessionInput: vi.fn(async (runId: string) => this.claimSessionInput(runId)),
+      listRunSessionEvents: vi.fn(async (_sessionId: string, runId: string, types: readonly string[] = []) => [
+        ...(types.includes("user.message") ? [this.createdMessageOf(runId)] : []),
+        ...this.sessionEvents
           .filter((e) => e.runId === runId)
           .filter((e) => types.length === 0 || types.includes(logTypeOf(e)))
           .map((e) => clone(SessionEventSchema, e)),
-      ),
+      ]),
       hasRunSessionEvent: vi.fn(async (_sessionId: string, runId: string, types: readonly string[]) =>
         this.sessionEvents.some((e) => e.runId === runId && types.includes(logTypeOf(e))),
       ),
