@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "stigmer-sdk"
 version = "0.0.0.dev0"
-description = "Stigmer Python SDK — typed API client for all Stigmer platform resources"
+description = "Python client for Stigmer, the open-source backend for the agents in your product"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
@@ -30,7 +30,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://stigmer.ai"
 Repository = "https://github.com/stigmer/stigmer"
-Documentation = "https://docs.stigmer.ai/sdk/python"
+Documentation = "https://stigmer.ai/docs/sdk/python"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/stigmer"]

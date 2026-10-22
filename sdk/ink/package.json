@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/ink-ui",
   "version": "0.0.0-dev",
-  "description": "Ink (React for terminals) components for rendering Stigmer agent sessions in the terminal",
+  "description": "Terminal components for Stigmer, the open-source backend for the agents in your product",
   "license": "Apache-2.0",
   "type": "module",
   "sideEffects": false,

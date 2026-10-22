@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/react-sdk",
   "version": "0.0.0-dev",
-  "description": "React provider and client hook for the Stigmer platform SDK",
+  "description": "React components and hooks for Stigmer, the open-source backend for the agents in your product",
   "license": "Apache-2.0",
   "type": "module",
   "sideEffects": [

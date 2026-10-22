@@ -1,7 +1,8 @@
 # Stigmer on Kubernetes
 
-The open-source Stigmer stack as a Helm chart: the server with the web console,
-the runner, and Postgres and Temporal bundled or yours. It is the
+[Stigmer](https://stigmer.ai), the open-source backend for the agents in your
+product, as a Helm chart: the server with the web console, the runner, and
+Postgres and Temporal bundled or yours. It is the
 [Docker Compose stack](../../../docker-compose.yml) translated. The same four
 parts run, the same environment variables are set (a test holds the two equal,
 name for name), the same keys are yours to supply, and the same things make up a

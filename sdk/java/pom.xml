@@ -10,7 +10,7 @@
     <packaging>jar</packaging>
 
     <name>Stigmer Java SDK</name>
-    <description>Java SDK client for the Stigmer platform</description>
+    <description>Java client for Stigmer, the open-source backend for the agents in your product</description>
     <url>https://github.com/stigmer/stigmer</url>
 
     <organization>

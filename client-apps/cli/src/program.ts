@@ -143,7 +143,7 @@ export function buildProgram(): Command {
 
   program
     .name("stigmer")
-    .description("Stigmer command-line interface")
+    .description("Command-line interface for Stigmer, the open-source backend for the agents in your product")
     .version(VERSION, "--version", "print the CLI version")
     .option("-d, --debug", "enable debug output")
     .option("--standalone", "ignore the config file; use flags and environment only")

@@ -1,6 +1,6 @@
 # Stigmer Java SDK (`ai.stigmer:stigmer-sdk`)
 
-Java SDK for the [Stigmer](https://stigmer.ai) platform. Provides typed API clients for all Stigmer resources with authentication, error handling, and cross-resource search.
+Java client for [Stigmer](https://stigmer.ai), the open-source backend for the agents in your product. Provides typed API clients for every Stigmer resource with authentication, error handling, and cross-resource search.
 
 ## Installation
 

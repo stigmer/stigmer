@@ -1,6 +1,6 @@
 # @stigmer/react-sdk
 
-React provider, hooks, and feature components for the Stigmer platform SDK. Ships the same session, run, and resource surfaces the Stigmer Console is built from — style-isolated, theme-aware, and embeddable in any React application. This README covers the foundational wiring (provider, theming, local run); the full hook and component catalog is documented in the [React SDK reference](https://stigmer.ai/docs/sdk/react), and the [Put the agent in your app](https://stigmer.ai/docs/getting-started/embed-agent) tutorial is the fastest path to a working embed.
+React components and hooks for [Stigmer](https://stigmer.ai), the open-source backend for the agents in your product. Ships the same session, run, and resource surfaces the Stigmer Console is built from — style-isolated, theme-aware, and embeddable in any React application. This README covers the foundational wiring (provider, theming, local run); the full hook and component catalog is documented in the [React SDK reference](https://stigmer.ai/docs/sdk/react), and the [Put the agent in your app](https://stigmer.ai/docs/getting-started/embed-agent) tutorial is the fastest path to a working embed.
 
 ## Install
 
