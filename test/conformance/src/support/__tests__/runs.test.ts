@@ -8,6 +8,9 @@
 //   else is red at the helper, and the plugin's delete is deferred either
 //   way.
 // - interruptRunSession: it interrupts the session the run's target names.
+// - awaitRunThatRead: a send that started a turn answers that run at once; a
+//   queued one is followed in the session's log until a turn's copy of the
+//   message carries a run, and a timeout names the message and session.
 // Pure: hand-built resources and stubbed clients, no target.
 // Domain: conformance support (execution engine).
 import { create } from "@bufbuild/protobuf";
@@ -19,7 +22,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import { FixtureTracker } from "../../harness/fixtures";
 import { DESTRUCTIVE_ECHO_TOOL_NAME, ECHO_TOOL_NAME, type McpToolFixture } from "../../harness/mcp-server";
-import { awaitPhase, interruptRunSession, pollExecution, pushFixturePlugin } from "../runs";
+import { SendMessageResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { awaitPhase, awaitRunThatRead, interruptRunSession, pollExecution, pushFixturePlugin } from "../runs";
 
 // A plugin as push answers it: one server entry at `url`, signed in or not.
 function installed(url: string, oauthOnly = false): Plugin {
@@ -151,5 +156,34 @@ describe("interruptRunSession", () => {
     await interruptRunSession(clients, "aex_unit");
     expect(get).toHaveBeenCalledWith({ value: "aex_unit" });
     expect(interrupt).toHaveBeenCalledWith({ sessionId: "ses_unit" });
+  });
+});
+
+describe("awaitRunThatRead", () => {
+  const message = (runId: string) =>
+    create(SessionEventSchema, { runId, event: { case: "userMessage", value: { id: "sevt_q" } } });
+
+  it("answers the turn a send started at once, reading nothing", async () => {
+    const listEvents = vi.fn();
+    const clients = { sessionQuery: { listEvents } } as unknown as ConformanceClients;
+    const sent = create(SendMessageResponseSchema, { run: { metadata: { id: "run_started" } } });
+    expect(await awaitRunThatRead(clients, "ses_unit", sent)).toBe("run_started");
+    expect(listEvents).not.toHaveBeenCalled();
+  });
+
+  it("follows a queued message until a turn's copy of it carries a run", async () => {
+    const pages = [[message("")], [message(""), message("run_reader")]];
+    const listEvents = vi.fn(async () => ({ events: pages.shift() ?? [] }));
+    const clients = { sessionQuery: { listEvents } } as unknown as ConformanceClients;
+    const sent = create(SendMessageResponseSchema, { message: message("") });
+    expect(await awaitRunThatRead(clients, "ses_unit", sent, { timeoutMs: 1000, pollMs: 1 })).toBe("run_reader");
+  });
+
+  it("names the message and the session when no turn reads it in time", async () => {
+    const clients = { sessionQuery: { listEvents: vi.fn(async () => ({ events: [message("")] })) } } as unknown as ConformanceClients;
+    const sent = create(SendMessageResponseSchema, { message: message("") });
+    await expect(awaitRunThatRead(clients, "ses_unit", sent, { timeoutMs: 1, pollMs: 1 })).rejects.toThrow(
+      "no turn read the queued message sevt_q of session ses_unit within 1ms",
+    );
   });
 });
