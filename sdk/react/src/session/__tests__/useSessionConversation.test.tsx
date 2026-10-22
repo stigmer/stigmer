@@ -466,6 +466,8 @@ describe("useSessionConversation — sending", () => {
     expect(result.current.pendingUserMessage).toBeNull();
 
     act(() => events.push(...turnOpen("run_new", "completed", "Build from plan")));
+    // The composer is open while a turn works, so wait for the turn itself.
+    await waitFor(() => expect(result.current.turns.map((turn) => turn.runId)).toEqual(["run_new"]));
     await waitFor(() => expect(result.current.canSendFollowUp).toBe(true));
     await act(async () => {
       await result.current.sendFollowUp("Build from plan", { buildFromPlan: true });
@@ -897,6 +899,23 @@ describe("useSessionConversation — a message sent while a turn works", () => {
       await result.current.sendFollowUp("now");
     });
     act(() => events.push(stored("run_live", { case: "userMessage", value: { id: "sevt_q", content: [{ type: "text", text: "now" }], processedAt: "t" } })));
+    await waitFor(() => expect(result.current.pendingUserMessage).toBeNull());
+  });
+
+  it("hands over when the working turn read the message after its own answer", async () => {
+    listing(makeRun("run_live", RunPhase.RUN_IN_PROGRESS));
+    events.push(...turnOpen("run_live", "running"));
+    events.push(stored("run_live", { case: "agentMessage", value: { id: "msg_working", content: [{ type: "text", text: "working" }] } }));
+    stigmerClient = {
+      ...stigmerClient,
+      run: { ...(stigmerClient.run as object), sendMessage: vi.fn(async () => ({ message: queuedEvent("sevt_q", "noted") })) },
+    } as unknown as Stigmer;
+    const { result } = open();
+    await waitFor(() => expect(result.current.activeTurn?.runId).toBe("run_live"));
+    await act(async () => {
+      await result.current.sendFollowUp("noted");
+    });
+    act(() => events.push(stored("run_live", { case: "userMessage", value: { id: "sevt_q", content: [{ type: "text", text: "noted" }], processedAt: "t" } })));
     await waitFor(() => expect(result.current.pendingUserMessage).toBeNull());
   });
 
