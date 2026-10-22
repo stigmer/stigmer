@@ -19,7 +19,7 @@
 # exactly this, stigmer#974).
 apiVersion: v2
 name: stigmer
-description: Stigmer on Kubernetes: the open-source backend for the agents in your product, with the server and console, the runner, and Postgres and Temporal bundled or yours. The compose stack, translated; a license Secret runs Stigmer Enterprise.
+description: Stigmer on Kubernetes — the open-source backend for the agents in your product, with the server and console, the runner, and Postgres and Temporal bundled or yours. The compose stack, translated; a license Secret runs Stigmer Enterprise.
 type: application
 version: 3.41.0
 appVersion: "3.41.0"
