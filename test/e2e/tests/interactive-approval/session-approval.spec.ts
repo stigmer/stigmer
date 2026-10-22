@@ -17,7 +17,7 @@
 // Serial + a shared single-FIFO mock queue: the project runs `--workers=1`
 // (Makefile) and resets the queue per test.
 import { test, expect } from "../../fixtures";
-import { assertComposerEnabled } from "../../helpers/session";
+import { assertTurnIdle } from "../../helpers/session";
 import {
   MockControl,
   getMockControlUrl,
@@ -89,7 +89,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
     // The real confirmToolUse fired and the run resumed to completion.
     const phase = await awaitRunTerminal(stigmerClient, seeded.runId);
     expect(phase, "approved execution completes").toBe(RunPhase.RUN_COMPLETED);
-    await assertComposerEnabled(page);
+    await assertTurnIdle(page);
   });
 
   test("Deny with no reason resolves the gate and the run completes", async ({ page, stigmerClient }) => {
@@ -243,7 +243,7 @@ test.describe("HITL approval flow (deterministic mock LLM)", () => {
       RunPhase.RUN_COMPLETED,
     );
     expect(await control.remaining(), "mock script consumed exactly").toBe(0);
-    await assertComposerEnabled(page);
+    await assertTurnIdle(page);
   });
 
   // The peek bar is a scroll-driven affordance, so this case uses a short

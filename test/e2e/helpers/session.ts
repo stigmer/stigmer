@@ -76,12 +76,19 @@ export function getTodoCard(page: Page): Locator {
 // execution state surfaces as the composer lifecycle plus the settled
 // response in the thread (see waitForAIResponse).
 
-export async function assertComposerDisabled(page: Page): Promise<void> {
+/**
+ * A turn works: the composer offers Stop, and stays open, since a message
+ * sent now waits for the working turn.
+ */
+export async function assertTurnWorking(page: Page): Promise<void> {
   const form = getSessionComposer(page);
-  await expect(form.getByRole("textbox")).toBeDisabled();
+  await expect(form.getByRole("button", { name: "Stop generating" })).toBeVisible();
+  await expect(form.getByRole("textbox")).toBeEnabled();
 }
 
-export async function assertComposerEnabled(page: Page): Promise<void> {
+/** No turn works: the composer is open and offers no Stop. */
+export async function assertTurnIdle(page: Page): Promise<void> {
   const form = getSessionComposer(page);
+  await expect(form.getByRole("button", { name: "Stop generating" })).toBeHidden();
   await expect(form.getByRole("textbox")).toBeEnabled();
 }
