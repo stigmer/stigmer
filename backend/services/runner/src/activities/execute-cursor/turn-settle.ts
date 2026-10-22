@@ -65,6 +65,7 @@ import { createFreshAgent } from "./turn-setup.js";
 import { recordSentRun } from "./held-run.js";
 import { declaredServerCount } from "../../shared/mcp-resolver.js";
 import type { CursorTurnObserver } from "./run-telemetry.js";
+import type { CursorTurnInput } from "./turn-input.js";
 
 /** Everything the settle reads that setup produced. */
 export interface CursorTurnFrame {
@@ -77,6 +78,10 @@ export interface CursorTurnFrame {
   readonly streamState: TurnStreamState;
   /** The turn's trace spans, fed by the stream loop (`run-telemetry.ts`). */
   readonly telemetry: CursorTurnObserver;
+  /** The messages a person sends while the turn works: steered into the primary run as it streams (`turn-input.ts`). */
+  readonly turnInput: CursorTurnInput;
+  /** Called once the primary send returned its run: a follow-up round records the messages it carried. */
+  readonly onSent?: () => Promise<void>;
 }
 
 /**
@@ -164,6 +169,7 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
   });
   sink.recordActivity();
   await recordSend(engine.resolution.agentId, run);
+  await frame.onSent?.();
   // Normally send() resolves before any delta arrives, making send_returned
   // the first segment; if a delta beat it, the line is already emitted and
   // adding a mark now would be meaningless.
@@ -321,7 +327,8 @@ export async function streamAndSettle(frame: CursorTurnFrame): Promise<TurnOutco
 
   // ── The primary stream ────────────────────────────────────────────────────
 
-  const reason = await consumeCursorTurnStream(run, streamDeps);
+  const stopSteering = frame.turnInput.steerInto(run);
+  const reason = await consumeCursorTurnStream(run, streamDeps).finally(stopSteering);
   await finalizeStreamPhase();
   if (reason === "interrupted") return { kind: "interrupted" };
 

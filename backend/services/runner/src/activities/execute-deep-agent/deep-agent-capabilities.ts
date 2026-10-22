@@ -52,4 +52,6 @@ export const DEEP_AGENT_CAPABILITIES: HarnessCapabilities = {
   subAgentProgress: "streamed",
   // The session's thread saves every step; the continuation streams it on.
   continuation: "checkpoint",
+  // A message is read before the next model call (turn-input-middleware.ts).
+  midTurnInput: "next-step",
 };

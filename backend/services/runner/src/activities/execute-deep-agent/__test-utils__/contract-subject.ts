@@ -111,6 +111,18 @@
  *                       counts it (`scripted-model.ts`). A step before a
  *                       compaction the engine already did is done: the
  *                       conversation that held it is now the summary.
+ *  - `message(text)`  → the kit's person sends `text` as the engine plays
+ *                       the step before: with the tool call an `open`,
+ *                       `read` or `propose` returns, so it waits while the
+ *                       tool runs and the next model call takes it; after
+ *                       a `say`, the call ends on that answer, so the
+ *                       round's end takes it. The step is done once the
+ *                       conversation holds it as a human message, which
+ *                       this subject's segment reading passes over as a
+ *                       person's word inside the turn, never a new turn; a
+ *                       call that reaches it sent but unread fails the
+ *                       script, naming it: the message was not read where
+ *                       the harness says it reads one.
  */
 
 import { execFileSync } from "node:child_process";
@@ -126,6 +138,7 @@ import type { ProposedAction } from "../../../__test-utils__/approval-contract/t
 import {
   KIT_SUBAGENT_INSTRUCTIONS,
   KIT_SUBAGENT_SLUG,
+  messageAfter,
   type EngineView,
   type HarnessContractSubject,
   type LongTurnControls,
@@ -220,6 +233,8 @@ class DeepAgentSubject implements DeepAgentContractSubject {
   /** Per execution, the `task` call the root is waiting on: the helper's shell runs under its id. */
   private readonly delegations = new Map<string, string>();
   private readonly executionsBySession = new Map<string, string>();
+  /** Per execution, the `message` steps the kit's person has sent: a replayed plan never sends one twice. */
+  private readonly sentMessages = new Map<string, Set<string>>();
   private mintCounter = 0;
   readonly longTurn: LongTurnControls;
 
@@ -235,6 +250,11 @@ class DeepAgentSubject implements DeepAgentContractSubject {
         const executionId = this.executionsBySession.get(sessionId);
         const transcript = executionId ? this.lastTranscripts.get(executionId) : undefined;
         return (transcript ?? []).filter((m) => isHumanMessage(m) && !isSummaryMessage(m) && m.text.includes(message)).length;
+      },
+      messagesRead: (sessionId, text) => {
+        const executionId = this.executionsBySession.get(sessionId);
+        const transcript = executionId ? this.lastTranscripts.get(executionId) : undefined;
+        return (transcript ?? []).filter((m) => isHumanMessage(m) && m.text === text).length;
       },
       compactions: (sessionId) => this.summaries.get(this.executionsBySession.get(sessionId) ?? "") ?? 0,
       // The saver holds what the graph saved; nothing else outlives the process.
@@ -357,12 +377,29 @@ class DeepAgentSubject implements DeepAgentContractSubject {
       case "hang":
       case "limit":
       case "compact":
+      case "message":
         return;
       default: {
         const exhaustive: never = step;
         throw new Error(`${this.name}: unknown scenario step ${JSON.stringify(exhaustive)}`);
       }
     }
+  }
+
+  /** The kit's person sends the `message` step after the step at `index` (the header's `message`), once per execution. */
+  private sendAfter(plan: ArrangedTurn, index: number): void {
+    const message = messageAfter(plan.steps, index);
+    if (message === undefined) return;
+    const sent = this.sentMessages.get(plan.view.executionId) ?? new Set<string>();
+    if (sent.has(message.text)) return;
+    sent.add(message.text);
+    this.sentMessages.set(plan.view.executionId, sent);
+    plan.view.sendMessage(message.text);
+  }
+
+  /** Whether `message` is a person's word sent while the turn worked, by its text: the kit's person sent it. */
+  private isSentMidTurn(executionId: string, message: BaseMessage): boolean {
+    return isHumanMessage(message) && (this.sentMessages.get(executionId)?.has(message.text) ?? false);
   }
 
   /** The shell ledger of one session; outside the session's workspace so the engine's tree holds only what the engine wrote. */
@@ -399,7 +436,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
     if (!plan) throw new Error(`${this.name}: the model was asked for execution '${executionId}' with no turn arranged (kit bug)`);
     this.lastTranscripts.set(executionId, transcript);
     const settled = settledToolCallIds(transcript);
-    const segment = messagesOfThisTurn(transcript);
+    const segment = messagesOfThisTurn(transcript, (m) => this.isSentMidTurn(executionId, m));
     const spoken = new Set(segment.filter((m) => isAIMessage(m)).map((m) => m.text));
     const firstCallOfArrangement = !plan.usageFolded;
     const compacted = (this.summaries.get(executionId) ?? 0) - plan.summariesAtArrange;
@@ -412,7 +449,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
       return { text, usage, ...rest };
     };
 
-    for (const step of plan.steps) {
+    for (const [index, step] of plan.steps.entries()) {
       if (step.kind === "compact") {
         compactsSeen += 1;
         if (compactsSeen <= compacted) continue;
@@ -429,9 +466,11 @@ class DeepAgentSubject implements DeepAgentContractSubject {
           break;
         case "propose":
           if (settled.has(step.toolCallId)) break;
+          this.sendAfter(plan, index);
           return close({ toolCalls: [this.gatedCall(step.toolCallId, step.action, plan.view)] });
         case "read":
           if (settled.has(step.toolCallId)) break;
+          this.sendAfter(plan, index);
           return close({ toolCalls: [{ id: step.toolCallId, name: "read_file", args: { file_path: step.path } }] });
         case "usage":
           if (!firstCallOfArrangement) break;
@@ -445,11 +484,20 @@ class DeepAgentSubject implements DeepAgentContractSubject {
           return close({ toolCalls: [this.neutralCall("limit")] });
         case "open":
           if (settled.has(step.toolCallId)) break;
+          this.sendAfter(plan, index);
           if (step.as === "subagent") {
             this.delegations.set(executionId, step.toolCallId);
             return close({ toolCalls: [{ id: step.toolCallId, name: "task", args: { description: "The kit's delegated work.", subagent_type: KIT_SUBAGENT_SLUG } }] });
           }
           return close({ toolCalls: [{ id: step.toolCallId, name: ENGINE_TOOL.execute, args: { command: this.operations.shellCommand(step.toolCallId) } }] });
+        case "message":
+          if (segment.some((m) => isHumanMessage(m) && m.text === step.text)) break;
+          if (this.sentMessages.get(executionId)?.has(step.text)) {
+            throw new Error(`${this.name}: the model was called again before it read the message sent mid-turn: '${step.text}'`);
+          }
+          // Sent as the answer before it is written: the round's end reads it.
+          this.sendAfter(plan, index - 1);
+          return close({});
         case "cancelled":
         case "cut":
           // Refused at `arrange`; unreachable in a plan that got this far.
@@ -522,11 +570,16 @@ function settledToolCallIds(transcript: readonly BaseMessage[]): ReadonlySet<str
   return ids;
 }
 
-/** The messages after the last human message: what this kit turn has said and done so far. A compaction's summary is not a human turn. */
-function messagesOfThisTurn(transcript: readonly BaseMessage[]): readonly BaseMessage[] {
+/**
+ * The messages after the last human message that starts a turn: what this
+ * kit turn has said and done so far. A compaction's summary is not a human
+ * turn, and neither is a person's word sent while the turn worked
+ * (`sentMidTurn`): the turn it was read in goes on.
+ */
+function messagesOfThisTurn(transcript: readonly BaseMessage[], sentMidTurn: (m: BaseMessage) => boolean): readonly BaseMessage[] {
   let start = 0;
   transcript.forEach((m, i) => {
-    if (isHumanMessage(m) && !isSummaryMessage(m)) start = i + 1;
+    if (isHumanMessage(m) && !isSummaryMessage(m) && !sentMidTurn(m)) start = i + 1;
   });
   return transcript.slice(start);
 }

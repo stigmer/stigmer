@@ -78,6 +78,29 @@ function chokepointOver(
 }
 
 describe("PersistChokepoint: one write", () => {
+  it("hands each landed write's input_pending answer to the turn's input channel", async () => {
+    const answers = [true, false];
+    const client = {
+      updateStatus: vi.fn(async () => create(UpdateStatusResponseSchema, { inputPending: answers.shift() ?? false })),
+    } as unknown as StigmerClient;
+    const heard: boolean[] = [];
+    const chokepoint = new PersistChokepoint({
+      client,
+      executionId: "aex_test",
+      status: create(RunStatusSchema, {}),
+      rows: create(TurnRowsSchema, {}),
+      offload: undefined,
+      usage: () => undefined,
+      progress: () => undefined,
+      heartbeat: vi.fn(),
+      onPlatformStop: vi.fn(),
+      onInputPending: (pending) => heard.push(pending),
+    });
+    await chokepoint.write();
+    await chokepoint.write();
+    expect(heard).toEqual([true, false]);
+  });
+
   it("withholds a secret-like write's content from the session's events: no event and no preview carries it", async () => {
     const appended: SessionEvent[] = [];
     const previews: SessionEventPreview[] = [];

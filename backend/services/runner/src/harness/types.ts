@@ -69,6 +69,7 @@
  * `registry.ts`, no barrel.
  */
 
+import type { TurnInputChannel } from "./turn-input.js";
 import type { TranscriptMessage } from "@stigmer/eval-runtime";
 import type { Run, RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
@@ -632,6 +633,19 @@ export interface TurnSink {
    * Diagnostics only; nothing branches on it.
    */
   readonly setupTiming: TimingRecorder;
+
+  /**
+   * The messages a person sends to the session while this turn works
+   * (`turn-input.ts`). `pending()` says the session's queue holds some, as
+   * the newest status write answered; `claim()` takes them for this turn,
+   * at a point where the engine delivers what it takes, so each sits in the
+   * log where the agent read it. What a claim takes is the turn's to
+   * deliver: at once, or as one more round of the same turn before it
+   * completes, never left for a next turn. An engine about to complete
+   * claims once more with `force`. An adapter that never claims leaves the
+   * messages to the turn the session starts next.
+   */
+  readonly input: TurnInputChannel;
 
   /**
    * "Persist the status": a write through the runtime's single persist

@@ -49,6 +49,14 @@
  * finished operation is in the engine's memory, so a turn that continues
  * does not run it again; one the stop cut is not.
  *
+ * A message a person sends while the turn works (`message`) is sent as the
+ * fake plays the step before it, through the kit's person, and read at the
+ * `message` step, its next step: the fake claims what waits
+ * (`TurnSink.input`) and takes every message the run took that it has not
+ * read, as an engine delivers what it claimed once. A turn's end asks once
+ * more, so a message sent as it finished is read by it. What it read is in
+ * its memory per session, so a continued turn never reads one twice.
+ *
  * A continued invocation is never handed the task: the engine picks the
  * turn up from its memory, the rule every harness keeps (stigmer#2417). The
  * fake records what each invocation was handed, the task or a continuation,
@@ -87,6 +95,7 @@ import type { HarnessAdapter, TurnInput, TurnOutcome, TurnSink } from "../../har
 import { DEEP_AGENT_VISION_PROFILE } from "../../shared/attachment-vision.js";
 import type { ProposedAction } from "../approval-contract/types.js";
 import { testConfig } from "../config-fixture.js";
+import { messageAfter } from "./types.js";
 import type { EngineView, HarnessContractSubject, LongTurnControls, ScenarioStep, TurnScenario } from "./types.js";
 import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
@@ -149,6 +158,12 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   private readonly finishedRuns = new Set<string>();
   /** Per session, every message the engine was handed as a new request. */
   private readonly handed = new Map<string, string[]>();
+  /** Per session, the kit's person, as the last arrange handed it. */
+  private readonly persons = new Map<string, (text: string) => void>();
+  /** Per session, the `message` steps already sent: a replayed script never sends one twice. */
+  private readonly sentMessages = new Map<string, Set<string>>();
+  /** Per session, every message a person sent that the engine read, by id, in the order read. */
+  private readonly readMessages = new Map<string, Map<string, string>>();
   private mintCounter = 0;
   /** One `runId` per `say`, as an engine mints one per model run; the builder keys a message on it. */
   private runCounter = 0;
@@ -168,6 +183,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       fileReview: { harnessId: "scripted", excludePaths: [] },
       subAgentProgress: "streamed",
       continuation: options.continuation ?? "checkpoint",
+      midTurnInput: "next-step",
     };
   }
 
@@ -188,8 +204,9 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
    * and settles a repeated proposal from its own memory, so it has nothing to
    * decide before the turn.
    */
-  arrange(turn: TurnScenario, view: Pick<EngineView, "sessionId">): void {
+  arrange(turn: TurnScenario, view: Pick<EngineView, "sessionId" | "sendMessage">): void {
     this.arranged.set(view.sessionId, turn);
+    this.persons.set(view.sessionId, view.sendMessage);
   }
 
   executionCount(toolCallId: string): number {
@@ -225,6 +242,11 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
   /** How many times the session's engine was handed `message` as a new request. */
   tasksHanded(sessionId: string, message: string): number {
     return (this.handed.get(sessionId) ?? []).filter((m) => m === message).length;
+  }
+
+  /** How many times the session's engine read `text` as a message a person sent while its turn worked. */
+  messagesRead(sessionId: string, text: string): number {
+    return [...(this.readMessages.get(sessionId)?.values() ?? [])].filter((read) => read === text).length;
   }
 
   /** Drop the engine's memory of a session: the self-check's adapter that forgets what it ran. */
@@ -278,12 +300,15 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       return { kind: "completed" };
     }
 
-    for (const step of turn) {
+    for (const [index, step] of turn.entries()) {
       // Stop, or yield, at every step boundary — the Cursor loop's per-event isCancelled().
       if (sink.stopSignal.aborted || sink.yieldSignal.aborted) return { kind: "interrupted" };
+      this.sendDuring(turn, index, input.sessionId);
       const ended = await this.play(step, input, sink);
       if (ended) return ended;
     }
+    // The round's end asks once more: a message sent as the turn finished is its own.
+    await this.readMessagesOf(input.sessionId, sink);
     this.finishedRuns.add(input.executionId);
     return { kind: "completed" };
   }
@@ -380,10 +405,33 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
         throw new Error(`${this.name}: compact() is not producible by this fake (it keeps no context); test bug`);
       case "cut":
         return { kind: "stream_cut", message: SCRIPTED_STREAM_CUT_MESSAGE };
+      case "message":
+        await this.readMessagesOf(input.sessionId, sink);
+        return undefined;
       default: {
         const exhaustive: never = step;
         throw new Error(`${this.name}: unknown scenario step ${JSON.stringify(exhaustive)}`);
       }
+    }
+  }
+
+  /** The kit's person sends the `message` step after the step at `index`, once per session (the header). */
+  private sendDuring(turn: TurnScenario, index: number, sessionId: string): void {
+    const message = messageAfter(turn, index);
+    const sent = this.sentMessages.get(sessionId) ?? new Set<string>();
+    if (message === undefined || sent.has(message.text)) return;
+    sent.add(message.text);
+    this.sentMessages.set(sessionId, sent);
+    this.persons.get(sessionId)?.(message.text);
+  }
+
+  /** Read what waits for the turn, and what the run took and this engine has not read (the header). */
+  private async readMessagesOf(sessionId: string, sink: TurnSink): Promise<void> {
+    const read = this.readMessages.get(sessionId) ?? new Map<string, string>();
+    this.readMessages.set(sessionId, read);
+    await sink.input.claim({ force: true });
+    for (const message of await sink.input.claimed(new Set(read.keys()))) {
+      read.set(message.id, message.text);
     }
   }
 
@@ -553,6 +601,7 @@ function scriptedLongTurn(adapter: ScriptedHarnessAdapter): LongTurnControls {
     release: (toolCallId) => adapter.release(toolCallId),
     opened: (toolCallId) => adapter.opened(toolCallId),
     tasksHanded: (sessionId, message) => adapter.tasksHanded(sessionId, message),
+    messagesRead: (sessionId, text) => adapter.messagesRead(sessionId, text),
     compactions: () => 0,
     // What it keeps between invocations is already as a killed process leaves it.
     loseRunner: () => {},

@@ -59,7 +59,10 @@ import {
   readGateState,
   resolveModelName,
   type DeepAgentAdapterConfig,
+  type DeepAgentGraphInput,
 } from "./turn-setup.js";
+import { RUN_STAMP_KEY } from "./run-stamp.js";
+import { deliveredInputsOf, deliveryOf } from "./turn-input-middleware.js";
 import { consumeDeepAgentStream, createDeepAgentTranscript } from "./turn-stream.js";
 import { settleDeepAgentTurn } from "./turn-settle.js";
 
@@ -85,7 +88,7 @@ export async function runDeepAgentTurn(input: TurnInput, sink: TurnSink, config:
     const engine = await buildEngine(input, sink, config, { modelName, checkpointer, workspace, tools, gate });
     if (sink.stopSignal.aborted) return { kind: "interrupted" };
 
-    const graphInput = await composeGraphInput(input, engine);
+    const graphInput = await deliverOwedToFinished(await composeGraphInput(input, engine), input, sink);
     sink.recordActivity();
 
     const transcript = createDeepAgentTranscript(engine);
@@ -105,6 +108,19 @@ export async function runDeepAgentTurn(input: TurnInput, sink: TurnSink, config:
     const closable = checkpointer as { close?: () => void } | undefined;
     await closeQuietly(input.executionId, "checkpointer", () => closable?.close?.());
   }
+}
+
+/**
+ * A continued turn whose graph had already finished, with messages the run
+ * took that its thread does not hold (an invocation stopped between taking
+ * them and saving), or messages still queued for it: one more round reads
+ * them (`turn-input-middleware.ts`). Any other input is handed on as it is.
+ */
+async function deliverOwedToFinished(graphInput: DeepAgentGraphInput, input: TurnInput, sink: TurnSink): Promise<DeepAgentGraphInput> {
+  if (graphInput.kind !== "finished" || stopsBeforeTheEngine(sink)) return graphInput;
+  await sink.input.claim({ force: true });
+  const delivery = deliveryOf(graphInput.values, await sink.input.claimed(deliveredInputsOf(graphInput.values)));
+  return delivery === undefined ? graphInput : { kind: "message", input: { [RUN_STAMP_KEY]: input.executionId, ...delivery } };
 }
 
 /**
