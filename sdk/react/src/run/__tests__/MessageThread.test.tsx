@@ -31,16 +31,19 @@ import {
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import type { Stigmer, Turn } from "@stigmer/client";
 import { StigmerContext } from "../../context";
-import { MessageThread, type MessageThreadProps } from "../MessageThread";
+import { DROPPED_MESSAGE_LABEL, MessageThread, QUEUED_MESSAGE_LABEL, type MessageThreadProps } from "../MessageThread";
 import {
   asked,
   changes,
+  ev,
   compaction,
   conversation,
   decided,
   result,
   said,
   status,
+  turnsOf,
+  user,
   subagent,
   thought,
   toolId,
@@ -503,5 +506,33 @@ describe("MessageThread liveness status line", () => {
 
     expect(container.querySelector(LINE)).toBeNull();
     expect(screen.getByText("Thinking…")).toBeTruthy();
+  });
+});
+
+describe("MessageThread messages sent while a turn works", () => {
+  it("shows a message the turn read mid-turn where it read it, as the person's", () => {
+    const turns = turnsOf(user("r1", "build it"), said("r1", 0, "Building."), ev("r1", { case: "userMessage", value: { id: "sevt_q", content: [{ type: "text", text: "also the README" }], processedAt: "t" } }), said("r1", 1, "README too."));
+    render(<MessageThread turns={turns} />);
+    const texts = ["build it", "Building.", "also the README", "README too."].map((t) => screen.getByText(t));
+    for (let i = 1; i < texts.length; i++) {
+      expect(texts[i - 1]!.compareDocumentPosition(texts[i]!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+
+  it("shows each message no turn has read after the thread, queued or not read, and no second bubble for a pending one", () => {
+    const turns = turnsOf(user("r1", "build it"), status("r1", "running"));
+    render(
+      <MessageThread
+        turns={turns}
+        queued={[
+          { id: "q1", text: "dropped one", state: "dropped" },
+          { id: "q2", text: "waiting one", state: "waiting" },
+        ]}
+        pendingUserMessage="waiting one"
+      />,
+    );
+    expect(screen.getAllByText("waiting one")).toHaveLength(1);
+    expect(screen.getByText(QUEUED_MESSAGE_LABEL)).toBeTruthy();
+    expect(screen.getByText(DROPPED_MESSAGE_LABEL)).toBeTruthy();
   });
 });

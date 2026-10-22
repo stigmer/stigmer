@@ -264,13 +264,38 @@ export interface CreateRunResult {
   readonly sessionId: string;
 }
 
+/** Input for {@link UseCreateRunReturn.send}: a message to an existing session. */
+export type SendMessageInput = SharedRunFields & {
+  /** Session the message is sent to. */
+  readonly sessionId: string;
+};
+
+/** Resolved output of {@link UseCreateRunReturn.send}. */
+export interface SendMessageResult {
+  /** The message's `user.message` id: the fold lists it under this id, queued or read. */
+  readonly messageId: string;
+  /**
+   * The turn the message started, or `null` when it waits in the session's
+   * queue for the turn that works (read at its next step, or by the turn
+   * after it).
+   */
+  readonly runId: string | null;
+}
+
 /** Return value of {@link useCreateRun}. */
 export interface UseCreateRunReturn {
   /** Create a run within a session. Resolves with the new run ID. */
   readonly create: (
     input: CreateRunInput,
   ) => Promise<CreateRunResult>;
-  /** `true` while the create RPC is in flight. */
+  /**
+   * Send a message to an existing session (`run.sendMessage`): it starts
+   * the session's turn when nothing holds the session, or waits in its
+   * queue while a turn works. Refused while a turn waits for an answer or
+   * is paused.
+   */
+  readonly send: (input: SendMessageInput) => Promise<SendMessageResult>;
+  /** `true` while the create or send RPC is in flight. */
   readonly isCreating: boolean;
   /** Error from the last failed create attempt, or `null` when healthy. */
   readonly error: Error | null;
@@ -279,8 +304,23 @@ export interface UseCreateRunReturn {
 }
 
 /**
- * Behavior hook that wraps `run.create()` with loading/error
- * state.
+ * What a message asks for, and nothing it leaves to a less specific layer:
+ * an absent field is "not set here", so the agent's defaults and the
+ * operator profile still apply to it.
+ */
+function runConfigOf(input: SharedRunFields): RunConfigInput | undefined {
+  return input.modelName || input.serviceTier || input.thinkingMode
+    ? {
+        ...(input.modelName ? { modelName: input.modelName } : {}),
+        ...(input.serviceTier ? { serviceTier: toProtoServiceTier(input.serviceTier) } : {}),
+        ...(input.thinkingMode ? { thinkingMode: toProtoThinkingMode(input.thinkingMode) } : {}),
+      }
+    : undefined;
+}
+
+/**
+ * Behavior hook that wraps `run.create()` and `run.sendMessage()` with
+ * loading/error state.
  *
  * Maps 1:1 to the Run aggregate — a single run of an agent.
  * Two session strategies are supported, mirroring the RPC contract:
@@ -348,21 +388,7 @@ export function useCreateRun(): UseCreateRunReturn {
       setError(null);
 
       try {
-        // What this message asks for, and nothing it leaves to a less
-        // specific layer: an absent field is "not set here", so the
-        // agent's defaults and the operator profile still apply to it.
-        const runConfig: RunConfigInput | undefined =
-          input.modelName || input.serviceTier || input.thinkingMode
-            ? {
-                ...(input.modelName ? { modelName: input.modelName } : {}),
-                ...(input.serviceTier
-                  ? { serviceTier: toProtoServiceTier(input.serviceTier) }
-                  : {}),
-                ...(input.thinkingMode
-                  ? { thinkingMode: toProtoThinkingMode(input.thinkingMode) }
-                  : {}),
-              }
-            : undefined;
+        const runConfig = runConfigOf(input);
 
         const sessionSpec = input.sessionSpec
           ? {
@@ -425,5 +451,41 @@ export function useCreateRun(): UseCreateRunReturn {
     [stigmer],
   );
 
-  return { create, isCreating, error, clearError };
+  const send = useCallback(
+    async (input: SendMessageInput): Promise<SendMessageResult> => {
+      setIsCreating(true);
+      setError(null);
+      try {
+        const response = await stigmer.run.sendMessage({
+          name: `run-${Date.now()}`,
+          org: input.org,
+          sessionId: input.sessionId,
+          message: input.message,
+          runConfig: runConfigOf(input),
+          interactionMode: input.interactionMode
+            ? toProtoInteractionMode(input.interactionMode)
+            : undefined,
+          buildFromPlan: input.buildFromPlan || undefined,
+          structuredOutputSchema: input.structuredOutputSchema,
+          autoApproveAll: input.autoApproveAll,
+          fileIds: input.fileIds?.length ? input.fileIds : undefined,
+          workspaceFileRefs: input.workspaceFileRefs,
+          supersedesRunId: input.supersedesRunId,
+        });
+        const event = response.message?.event;
+        return {
+          messageId: event?.case === "userMessage" ? event.value.id : "",
+          runId: response.run?.metadata?.id || null,
+        };
+      } catch (err) {
+        setError(toError(err));
+        throw err;
+      } finally {
+        setIsCreating(false);
+      }
+    },
+    [stigmer],
+  );
+
+  return { create, send, isCreating, error, clearError };
 }

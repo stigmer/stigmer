@@ -437,6 +437,7 @@ export {
   type MessageItem,
   type NoteItem,
   type PermissionGrant,
+  type QueuedMessage,
   type SessionFold,
   type SessionStatusView,
   type ThinkingItem,
@@ -456,6 +457,7 @@ export {
   type TurnPhase,
   type TurnStatus,
   type UserMessage,
+  type UserMessageItem,
 } from "@stigmer/session-log";
 export {
   ALL_SESSION_PREVIEWS,

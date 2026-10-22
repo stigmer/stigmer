@@ -6,6 +6,9 @@
  * optimistic state hands over to its turn when the turn's events arrive; the
  * run list is read again only when another client's turn appears or a live
  * turn ends; asks are answered with confirmToolUse / grantPermission; the
+ * a message sent while a turn works is sent all the same, waits in the
+ * session's queue and shows queued until a turn reads it, and only a turn
+ * that waits for an answer or is paused holds the composer closed; the
  * newest turn's undecided file reviews are offered and decided with
  * reviewFileChanges; a stop interrupts the session, then terminates the run
  * on a repeat press; the follow's state is passed through, and a send
@@ -126,7 +129,7 @@ interface Methods {
   sessionGet: ReturnType<typeof vi.fn>;
   listBySession: ReturnType<typeof vi.fn>;
   runGet: ReturnType<typeof vi.fn>;
-  runCreate: ReturnType<typeof vi.fn>;
+  runSend: ReturnType<typeof vi.fn>;
   terminate: ReturnType<typeof vi.fn>;
   confirmToolUse: ReturnType<typeof vi.fn>;
   grantPermission: ReturnType<typeof vi.fn>;
@@ -153,7 +156,8 @@ function client(): Stigmer {
     run: {
       listBySession: methods.listBySession,
       get: methods.runGet,
-      create: methods.runCreate,
+      // A follow-up is a send; these tests answer each with the turn it started.
+      sendMessage: async (input: unknown) => ({ run: await methods.runSend(input) }),
       terminate: methods.terminate,
     },
     // The local-worker attach asks who is signed in; answer as a
@@ -187,7 +191,7 @@ beforeEach(() => {
     sessionGet: vi.fn().mockResolvedValue(makeSession()),
     listBySession: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
     runGet: vi.fn().mockRejectedValue(new ConnectError("no run", Code.NotFound)),
-    runCreate: vi.fn(),
+    runSend: vi.fn(),
     terminate: vi.fn().mockResolvedValue(makeRun("run_live", RunPhase.RUN_TERMINATED)),
     confirmToolUse: vi.fn().mockResolvedValue({}),
     grantPermission: vi.fn().mockResolvedValue({}),
@@ -280,7 +284,7 @@ describe("useSessionConversation — turns and runs", () => {
     await waitFor(() => expect(result.current.activeRun).toBe(fresh));
     expect(result.current.activeTurn?.runId).toBe("run_live");
     expect(result.current.activePhase).toBe("running");
-    expect(result.current.canSendFollowUp).toBe(false);
+    expect(result.current.canSendFollowUp, "a message sent now waits for the working turn").toBe(true);
     expect(result.current.runs).toEqual([fresh]);
     expect(result.current.fileChangeProgress).toBe(fresh.status?.fileChangeProgress);
   });
@@ -403,8 +407,8 @@ describe("useSessionConversation — sending", () => {
     return rendered;
   }
 
-  it("shows the message and its files at once, holds the composer, and hands over when the turn arrives", async () => {
-    methods.runCreate.mockResolvedValue(makeRun("run_new", RunPhase.RUN_PENDING));
+  it("shows the message and its files at once, and hands over when the turn arrives", async () => {
+    methods.runSend.mockResolvedValue(makeRun("run_new", RunPhase.RUN_PENDING));
     const files = [
       { fileId: "file_sketch", filename: "sketch.png", kind: "image" as const },
     ];
@@ -413,12 +417,12 @@ describe("useSessionConversation — sending", () => {
     await act(async () => {
       await result.current.sendFollowUp("Here is a sketch", { files });
     });
-    expect(methods.runCreate).toHaveBeenCalledWith(
+    expect(methods.runSend).toHaveBeenCalledWith(
       expect.objectContaining({ org: "org", sessionId: "session-1", message: "Here is a sketch" }),
     );
     expect(result.current.pendingUserMessage).toBe("Here is a sketch");
     expect(result.current.pendingFiles).toBe(files);
-    expect(result.current.canSendFollowUp).toBe(false);
+    expect(result.current.canSendFollowUp).toBe(true);
     expect(result.current.activePhase).toBe("pending");
     expect(result.current.isStoppable).toBe(false);
     const listReads = methods.listBySession.mock.calls.length;
@@ -433,27 +437,27 @@ describe("useSessionConversation — sending", () => {
 
   it("files the turn under the session's organization (#1580)", async () => {
     methods.sessionGet.mockResolvedValue(makeSession("acme"));
-    methods.runCreate.mockResolvedValue(makeRun("run_new", RunPhase.RUN_PENDING));
+    methods.runSend.mockResolvedValue(makeRun("run_new", RunPhase.RUN_PENDING));
     const rendered = open("session-1", "personal");
     await waitFor(() => expect(rendered.result.current.org).toBe("acme"));
     await act(async () => {
       await rendered.result.current.sendFollowUp("Deploy it");
     });
-    expect(methods.runCreate).toHaveBeenCalledWith(expect.objectContaining({ org: "acme" }));
+    expect(methods.runSend).toHaveBeenCalledWith(expect.objectContaining({ org: "acme" }));
   });
 
   it("forwards supersedesRunId", async () => {
-    methods.runCreate.mockResolvedValue(makeRun("run_new", RunPhase.RUN_PENDING));
+    methods.runSend.mockResolvedValue(makeRun("run_new", RunPhase.RUN_PENDING));
     const { result } = await opened();
     await act(async () => {
       await result.current.sendFollowUp("edited", { supersedesRunId: "run_old" });
     });
-    expect(methods.runCreate).toHaveBeenCalledWith(expect.objectContaining({ supersedesRunId: "run_old" }));
+    expect(methods.runSend).toHaveBeenCalledWith(expect.objectContaining({ supersedesRunId: "run_old" }));
   });
 
   it("shows no optimistic message for a build-from-plan send, but does when it fails", async () => {
-    methods.runCreate.mockResolvedValueOnce(makeRun("run_new", RunPhase.RUN_PENDING));
-    methods.runCreate.mockRejectedValueOnce(new Error("create boom"));
+    methods.runSend.mockResolvedValueOnce(makeRun("run_new", RunPhase.RUN_PENDING));
+    methods.runSend.mockRejectedValueOnce(new Error("create boom"));
     const { result } = await opened();
 
     await act(async () => {
@@ -471,8 +475,8 @@ describe("useSessionConversation — sending", () => {
   });
 
   it("keeps the message and files when the send fails, and Retry resends them", async () => {
-    methods.runCreate.mockRejectedValueOnce(new Error("create boom"));
-    methods.runCreate.mockResolvedValue(makeRun("run_retry", RunPhase.RUN_PENDING));
+    methods.runSend.mockRejectedValueOnce(new Error("create boom"));
+    methods.runSend.mockResolvedValue(makeRun("run_retry", RunPhase.RUN_PENDING));
     const files = [
       { fileId: "file_notes", filename: "notes.txt", kind: "document" as const },
     ];
@@ -491,8 +495,8 @@ describe("useSessionConversation — sending", () => {
     await act(async () => {
       result.current.retryLastSend();
     });
-    await waitFor(() => expect(methods.runCreate).toHaveBeenCalledTimes(2));
-    expect(methods.runCreate).toHaveBeenLastCalledWith(expect.objectContaining({ message: "keep me" }));
+    await waitFor(() => expect(methods.runSend).toHaveBeenCalledTimes(2));
+    expect(methods.runSend).toHaveBeenLastCalledWith(expect.objectContaining({ message: "keep me" }));
   });
 
   it("does nothing without a loaded session, and retry does nothing before a send", async () => {
@@ -502,7 +506,7 @@ describe("useSessionConversation — sending", () => {
       await result.current.sendFollowUp("too early");
       result.current.retryLastSend();
     });
-    expect(methods.runCreate).not.toHaveBeenCalled();
+    expect(methods.runSend).not.toHaveBeenCalled();
   });
 });
 
@@ -775,7 +779,7 @@ describe("useSessionConversation — the follow", () => {
 
   it("re-opens a follow waiting out its reconnect backoff when a message is sent", async () => {
     const random = vi.spyOn(Math, "random").mockReturnValue(1);
-    methods.runCreate.mockResolvedValue(makeRun("run_new", RunPhase.RUN_PENDING));
+    methods.runSend.mockResolvedValue(makeRun("run_new", RunPhase.RUN_PENDING));
     let drop = true;
     const follow = events.streamEvents.getMockImplementation()!;
     events.streamEvents.mockImplementation(async function* droppingOnce(input, signal) {
@@ -844,5 +848,66 @@ describe("useSessionConversation — local runner worker lifecycle", () => {
     unmount();
     expect(adapter.onSessionClosed).toHaveBeenCalledTimes(1);
     expect(adapter.onSessionClosed).toHaveBeenCalledWith("session-1");
+  });
+});
+
+describe("useSessionConversation — a message sent while a turn works", () => {
+  function queuedEvent(id: string, text: string): SessionEvent {
+    return stored("", { case: "userMessage", value: { id, content: [{ type: "text", text }], processedAt: "" } });
+  }
+
+  it("is sent, waits in the session's queue, and shows queued until a turn reads it", async () => {
+    listing(makeRun("run_live", RunPhase.RUN_IN_PROGRESS));
+    events.push(...turnOpen("run_live", "running"));
+    methods.runSend.mockImplementation(async () => undefined);
+    stigmerClient = {
+      ...stigmerClient,
+      run: {
+        ...(stigmerClient.run as object),
+        sendMessage: vi.fn(async () => ({ message: queuedEvent("sevt_q", "also the README") })),
+      },
+    } as unknown as Stigmer;
+    const { result } = open();
+    await waitFor(() => expect(result.current.activeTurn?.runId).toBe("run_live"));
+
+    await act(async () => {
+      await result.current.sendFollowUp("also the README");
+    });
+    expect(result.current.pendingUserMessage, "the bubble stays up until the events carry it").toBe("also the README");
+    expect(result.current.activeTurn?.runId, "no second turn").toBe("run_live");
+
+    act(() => events.push(queuedEvent("sevt_q", "also the README")));
+    await waitFor(() => expect(result.current.pendingUserMessage).toBeNull());
+    expect(result.current.queued).toEqual([{ id: "sevt_q", text: "also the README", state: "waiting" }]);
+
+    act(() => events.push(stored("run_live", { case: "userMessage", value: { id: "sevt_q", content: [{ type: "text", text: "also the README" }], processedAt: "t" } })));
+    await waitFor(() => expect(result.current.queued).toEqual([]));
+  });
+
+  it("hands over when the events show the message already read by a turn", async () => {
+    listing(makeRun("run_live", RunPhase.RUN_IN_PROGRESS));
+    events.push(...turnOpen("run_live", "running"));
+    stigmerClient = {
+      ...stigmerClient,
+      run: { ...(stigmerClient.run as object), sendMessage: vi.fn(async () => ({ message: queuedEvent("sevt_q", "now") })) },
+    } as unknown as Stigmer;
+    const { result } = open();
+    await waitFor(() => expect(result.current.activeTurn?.runId).toBe("run_live"));
+    await act(async () => {
+      await result.current.sendFollowUp("now");
+    });
+    act(() => events.push(stored("run_live", { case: "userMessage", value: { id: "sevt_q", content: [{ type: "text", text: "now" }], processedAt: "t" } })));
+    await waitFor(() => expect(result.current.pendingUserMessage).toBeNull());
+  });
+
+  it("holds the composer closed while a turn waits for an answer or is paused", async () => {
+    listing(makeRun("run_live", RunPhase.RUN_WAITING_FOR_APPROVAL));
+    events.push(...turnOpen("run_live", "waiting"));
+    const { result } = open();
+    await waitFor(() => expect(result.current.activePhase).toBe("waiting"));
+    expect(result.current.canSendFollowUp).toBe(false);
+    act(() => events.push(samples.runStatusEvent("paused", { runId: "run_live" })));
+    await waitFor(() => expect(result.current.activePhase).toBe("paused"));
+    expect(result.current.canSendFollowUp).toBe(false);
   });
 });

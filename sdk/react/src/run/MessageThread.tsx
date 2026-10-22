@@ -22,6 +22,7 @@ import {
   type Thread,
   type Todo,
   type ToolUse,
+  type QueuedMessage,
   type Turn,
   type TurnItem,
 } from "@stigmer/client";
@@ -181,6 +182,13 @@ export interface MessageThreadProps {
    * the real turn replaces it.
    */
   readonly pendingFiles?: readonly MessageFileView[] | null;
+  /**
+   * Messages sent while a turn worked that no turn has read yet
+   * (`useSessionConversation`'s `queued`), rendered dimmed after the
+   * thread: "Queued", read at the agent's next step, or "Not read" once a
+   * stop dropped it. A message a turn reads moves into that turn.
+   */
+  readonly queued?: readonly QueuedMessage[];
   /**
    * Marks the pending user message as failed-to-send. The optimistic
    * bubble renders an inline "Couldn't send — Retry" affordance instead
@@ -415,7 +423,13 @@ export function threadContentColumnClass(
  * @internal Exported for internal use by `VirtualizedThread` — not
  * part of the public API.
  */
+/** What a message sent while a turn worked says while no turn has read it. */
+export const QUEUED_MESSAGE_LABEL = "Queued — read at the agent's next step";
+/** What a queued message says once a stop ended the turn before it was read. */
+export const DROPPED_MESSAGE_LABEL = "Not read — the turn was stopped";
+
 export type ThreadItem =
+  | { readonly kind: "queued-message"; readonly message: QueuedMessage; readonly key: string }
   | { readonly kind: "message"; readonly message: ThreadMessage; readonly key: string; readonly isPending?: boolean; readonly isFailed?: boolean; readonly isEditable?: boolean; readonly isPlanDocument?: boolean; readonly interactionMode?: InteractionMode; readonly files?: readonly MessageFileView[]; readonly executionId?: string; readonly scoresRunId?: string }
   | { readonly kind: "tool-group"; readonly toolUses: readonly ToolUse[]; readonly key: string }
   | { readonly kind: "subagent"; readonly toolUse: ToolUse; readonly thread: Thread; readonly key: string }
@@ -495,6 +509,8 @@ export interface BuildThreadItemsOptions {
   /** Suppress a plan being written behind a live plan card. */
   readonly collapseStreamingPlan?: boolean;
   readonly pendingFiles?: readonly MessageFileView[] | null;
+  /** Messages that wait for the working turn, or that a stop dropped. */
+  readonly queued?: readonly QueuedMessage[];
   readonly agentVersionLabel?: (versionHash: string) => string;
   /** Each Plan-mode turn's plan File, by run id. */
   readonly planFiles?: ReadonlyMap<string, StigmerFile>;
@@ -685,6 +701,7 @@ export function buildThreadItems(
     includeFileReviewRecords = false,
     collapseStreamingPlan = false,
     pendingFiles,
+    queued = [],
     agentVersionLabel,
     planFiles,
   } = options;
@@ -912,6 +929,12 @@ export function buildThreadItems(
           flushGroup();
           items.push({ kind: "context-compacted", compacted: item, key: item.id });
           break;
+        case "user_message":
+          // A message the person sent while the turn worked, where the
+          // turn read it.
+          flushGroup();
+          items.push({ kind: "message", message: { kind: "user", id: item.id, text: item.text }, key: item.id });
+          break;
       }
     }
     flushGroup();
@@ -1035,13 +1058,21 @@ export function buildThreadItems(
     items.push({ kind: "liveness", key: "liveness-status" });
   }
 
+  // Messages sent while a turn worked that no turn has read, in the order
+  // sent: waiting for the working turn, or dropped by a stop.
+  for (const message of queued) {
+    items.push({ kind: "queued-message", message, key: `queued-${message.id}` });
+  }
+
   if (pendingUserMessage) {
     // A FAILED send never started a turn, so an existing turn with identical
     // text must never swallow the failed bubble. Suppression applies only to
     // the succeeded-send window where the turn appeared but the pending
     // state has not cleared yet.
     const alreadySynthesized =
-      !pendingMessageFailed && lastTurn?.userMessage?.text === pendingUserMessage;
+      !pendingMessageFailed &&
+      (lastTurn?.userMessage?.text === pendingUserMessage ||
+        queued.some((message) => message.text === pendingUserMessage));
     if (!alreadySynthesized) {
       items.push({
         kind: "message",
@@ -1112,6 +1143,7 @@ export function MessageThread({
   planFiles,
   pendingUserMessage,
   pendingFiles,
+  queued,
   pendingMessageFailed = false,
   onRetrySend,
   scrollOnSend = true,
@@ -1156,10 +1188,11 @@ export function MessageThread({
         includeFileReviewRecords: showFileReviewRecords,
         collapseStreamingPlan,
         pendingFiles,
+        queued,
         agentVersionLabel,
         planFiles,
       }),
-    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingFiles, agentVersionLabel, planFiles],
+    [turns, runs, pendingUserMessage, includeApprovals, resources, pendingMessageFailed, editableActiveTurn, showFileReviewRecords, collapseStreamingPlan, pendingFiles, queued, agentVersionLabel, planFiles],
   );
 
   useKeyStability(items);
@@ -1575,6 +1608,17 @@ export function ThreadItemRenderer({
     case "liveness": {
       const Liveness = slots?.LivenessStatusLine ?? LivenessStatusLine;
       return <Liveness />;
+    }
+    case "queued-message": {
+      const Entry = slots?.MessageEntry ?? MessageEntry;
+      return (
+        <div className="stg:opacity-60">
+          <Entry message={{ kind: "user", id: item.message.id, text: item.message.text }} />
+          <p className="stg:px-4 stg:text-right stg:text-xs stg:text-muted-foreground">
+            {item.message.state === "waiting" ? QUEUED_MESSAGE_LABEL : DROPPED_MESSAGE_LABEL}
+          </p>
+        </div>
+      );
     }
     case "todos": {
       const Todos = slots?.TodoCard ?? TodoCard;

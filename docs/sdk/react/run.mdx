@@ -310,8 +310,8 @@ function useChangeSetCapture(runId: string, changeSetId: string, enabled: boolea
 
 ### useCreateRun
 
-Behavior hook that wraps `run.create()` with loading/error
-state.
+Behavior hook that wraps `run.create()` and `run.sendMessage()` with
+loading/error state.
 
 Maps 1:1 to the Run aggregate — a single run of an agent.
 Two session strategies are supported, mirroring the RPC contract:
@@ -340,7 +340,8 @@ function useCreateRun(): UseCreateRunReturn
     clearError: { type: "() => void", description: "Reset the error state to `null`." },
     create: { type: "(input: CreateRunInput) => Promise<CreateRunResult>", description: "Create a run within a session. Resolves with the new run ID." },
     error: { type: "Error | null", description: "Error from the last failed create attempt, or `null` when healthy." },
-    isCreating: { type: "boolean", description: "`true` while the create RPC is in flight." },
+    isCreating: { type: "boolean", description: "`true` while the create or send RPC is in flight." },
+    send: { type: "(input: SendMessageInput) => Promise<SendMessageResult>", description: "Send a message to an existing session (`run.sendMessage`): it starts the session's turn when nothing holds the session, or waits in its queue while a turn works. Refused while a turn waits for an answer or is paused." },
   }}
 />
 
@@ -1389,6 +1390,7 @@ All visual properties flow through `--stgm-*` tokens.
     planActionsDisabled: { type: "boolean", description: "Disables the plan completion card's actions (Implement / Review). Defense in depth for the brief windows where a follow-up cannot be sent (e.g. a turn is working); the composer also no-ops a disabled submit." },
     planBuildPending: { type: "boolean", description: "True while the approved plan is being uploaded ahead of the build turn." },
     planFiles: { type: "ReadonlyMap<string, File>", description: "Each completed Plan-mode turn's plan File, by run id (`planFilesByRun` over the conversation's Files). A turn with a plan File collapses its plan message into the plan card; a turn without one (or a host that passes none) renders the plan message as the document itself." },
+    queued: { type: "readonly QueuedMessage[]", description: "Messages sent while a turn worked that no turn has read yet (`useSessionConversation`'s `queued`), rendered dimmed after the thread: \"Queued\", read at the agent's next step, or \"Not read\" once a stop dropped it. A message a turn reads moves into that turn." },
     resources: { type: "readonly SessionResource[]", description: "The conversation's resources from the session spec. When provided, file paths in tool call rendering become interactive: a path in a git repository opens on GitHub, a path in a local folder offers copy-to-clipboard.  Passed to FilePathContext for consumption by FilePathLink components deep in the tree." },
     runs: { type: "readonly Run[]", description: "The turns' runs, for what the run record holds and the events do not: the message's files and mode, the agent and skill versions a turn ran, its setup progress, and the captured bytes of its file changes. Matched to turns by run id; a turn whose run is absent renders from its events alone." },
     runScores: { type: "boolean", description: "Show run scores: thumbs up and down on each completed turn's final answer and the run-health flags beside them. The thread then reads the session's scores once (and again shortly after a turn completes, while it is graded). Off by default, and a thread with it off makes no score request; `SessionViewer` sets it from its audience." },

@@ -37,7 +37,7 @@ function sessionOnAgent(version: string): Session {
 
 let sessionGet: ReturnType<typeof vi.fn>;
 let sessionUpdate: ReturnType<typeof vi.fn>;
-let executionCreate: ReturnType<typeof vi.fn>;
+let runSend: ReturnType<typeof vi.fn>;
 
 function client(): Stigmer {
   return {
@@ -46,7 +46,7 @@ function client(): Stigmer {
       listBySession: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
       // The sent turn's run, read while it is live; never answered here.
       get: vi.fn(() => new Promise(() => {})),
-      create: executionCreate,
+      sendMessage: async (input: unknown) => ({ run: await runSend(input) }),
     },
     identityAccount: { whoAmI: vi.fn().mockRejectedValue(new Error("none")) },
   } as unknown as Stigmer;
@@ -73,7 +73,7 @@ describe("useSessionConversation — the agent version a session runs", () => {
   beforeEach(() => {
     sessionGet = vi.fn().mockResolvedValue(sessionOnAgent(""));
     sessionUpdate = vi.fn().mockImplementation(async () => sessionOnAgent(""));
-    executionCreate = vi
+    runSend = vi
       .fn()
       .mockResolvedValue({ metadata: { id: "aex_1" }, spec: {} });
   });
@@ -187,7 +187,7 @@ describe("useSessionConversation — the agent version a session runs", () => {
     });
 
     expect(sessionUpdate).not.toHaveBeenCalled();
-    expect(executionCreate).toHaveBeenCalledWith(
+    expect(runSend).toHaveBeenCalledWith(
       expect.objectContaining({ sessionId: "session-1", org: "org_acme" }),
     );
   });

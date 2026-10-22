@@ -89,6 +89,16 @@ A turn is not ended by what happens to the machine running it. When its runner d
 - **The turn's file changes stay one change set,** to keep or undo as a whole.
 
 The platform keeps continuing a turn while it recovers fewer than ten times within any hour. Past that, or when no runner picks the turn up within five minutes, the run ends `RUN_FAILED`, and its error and stop cause say why: `infrastructure` after a drain, the stall's own error with `timeout` after a stall its model owed, and the cut connection's error with `failed` after a vendor ended it. A stall with nothing owed by the model (an engine wedged before it did anything) ends `RUN_FAILED` at once, with stop cause `timeout`.
+
+### One turn at a time, and messages sent while it works
+
+A session runs one turn at a time. `RunCommandController.sendMessage` sends a person's message to a session:
+
+- **Nothing holds the session:** the message starts a turn at once, as `create` does.
+- **A turn works (`RUN_PENDING` or `RUN_IN_PROGRESS`):** the message waits in the session's queue, its `user.message` stored with no run and no `processed_at`. The working turn reads it at its next step, where its engine can (the native engine before its next model call; Cursor steered into its running run), or as one more round before it completes. A message left once the turn ends starts the next turn. It is never a second run beside the first.
+- **A turn waits for an answer, or is paused:** the message is refused (`FAILED_PRECONDITION`): answer the call, or resume, first.
+
+A message is read by a turn sent with the same authority (the same sender, recording the same person); another sender's waits for a turn of its own. `create` on a session with an unfinished turn is refused (`SESSION_TURN_UNFINISHED`); so are `resume` and `recover` while another turn of the session is unfinished. A stop (`interrupt`, `terminate`) drops the messages still waiting: they stay listed, never read.
 ---
 
 ## Lifecycle Control Operations

@@ -16,6 +16,7 @@ import {
   type FileReviewSet,
   type Thread,
   type ToolUse,
+  type QueuedMessage,
   type Turn,
 } from "@stigmer/client";
 import {
@@ -47,6 +48,12 @@ export interface MessageThreadProps {
   /** Optimistic user message shown before the session's events carry it. */
   readonly pendingUserMessage?: string | null;
   /**
+   * Messages sent while a turn worked that no turn has read yet, shown
+   * dimmed after the thread: queued for the agent's next step, or not read
+   * because a stop ended the turn.
+   */
+  readonly queued?: readonly QueuedMessage[];
+  /**
    * Answers a tool use that waits for a person. The last turn's waiting tool
    * uses render as approval prompts when provided.
    */
@@ -65,12 +72,18 @@ export interface MessageThreadProps {
   readonly showFileReviewRecords?: boolean;
 }
 
+/** What a message sent while a turn worked says while no turn has read it. */
+export const QUEUED_MESSAGE_LABEL = "Queued — read at the agent's next step";
+/** What a queued message says once a stop ended the turn before it was read. */
+export const DROPPED_MESSAGE_LABEL = "Not read — the turn was stopped";
+
 type ThreadItem =
   | { readonly kind: "message"; readonly message: ThreadMessage; readonly key: string }
   | { readonly kind: "tool-group"; readonly toolUses: readonly ToolUse[]; readonly key: string }
   | { readonly kind: "subagent"; readonly toolUse: ToolUse; readonly thread: Thread; readonly key: string }
   | { readonly kind: "phase"; readonly phase: RunPhase; readonly key: string }
   | { readonly kind: "pending-message"; readonly content: string; readonly key: string }
+  | { readonly kind: "queued-message"; readonly message: QueuedMessage; readonly key: string }
   | { readonly kind: "file-review-record"; readonly set: FileReviewSet; readonly key: string }
   | { readonly kind: "approval"; readonly toolUse: ToolUse; readonly key: string };
 
@@ -133,6 +146,9 @@ function buildTurnSegment(
     flush();
     if ((item.kind === "message" && item.text.trim()) || item.kind === "note") {
       seg.push({ kind: "message", message: item, key: item.id });
+    } else if (item.kind === "user_message") {
+      // A message the person sent while the turn worked, where it read it.
+      seg.push({ kind: "message", message: { kind: "user", id: item.id, text: item.text }, key: item.id });
     }
   }
   flush();
@@ -165,6 +181,7 @@ function buildThreadItems(
   pendingUserMessage: string | null | undefined,
   includeApprovals: boolean,
   includeFileReviewRecords: boolean,
+  queued: readonly QueuedMessage[] = [],
 ): { items: ThreadItem[]; liveStart: number } {
   const runsById = new Map<string, Run>();
   for (const run of runs) {
@@ -196,7 +213,15 @@ function buildThreadItems(
     }
   }
 
-  if (pendingUserMessage && lastTurn?.userMessage?.text !== pendingUserMessage) {
+  for (const message of queued) {
+    items.push({ kind: "queued-message", message, key: `queued-${message.id}` });
+  }
+
+  if (
+    pendingUserMessage &&
+    lastTurn?.userMessage?.text !== pendingUserMessage &&
+    !queued.some((message) => message.text === pendingUserMessage)
+  ) {
     items.push({
       kind: "pending-message",
       content: pendingUserMessage,
@@ -242,6 +267,7 @@ export function MessageThread({
   turns,
   runs = EMPTY_RUNS,
   pendingUserMessage,
+  queued,
   onAnswerToolUse,
   answeringToolUseIds,
   expandToolCalls = false,
@@ -256,8 +282,9 @@ export function MessageThread({
         pendingUserMessage,
         includeApprovals,
         showFileReviewRecords,
+        queued,
       ),
-    [turns, runs, pendingUserMessage, includeApprovals, showFileReviewRecords],
+    [turns, runs, pendingUserMessage, includeApprovals, showFileReviewRecords, queued],
   );
 
   const fileReviewContext = useMemo(() => fileReviewContextOf(turns, runs), [turns, runs]);
@@ -339,6 +366,15 @@ function renderItem(
         <Box paddingLeft={1}>
           <Text dimColor italic>
             {item.content}
+          </Text>
+        </Box>
+      );
+    case "queued-message":
+      return (
+        <Box paddingLeft={1} flexDirection="column">
+          <Text dimColor>{item.message.text}</Text>
+          <Text dimColor italic>
+            {item.message.state === "waiting" ? QUEUED_MESSAGE_LABEL : DROPPED_MESSAGE_LABEL}
           </Text>
         </Box>
       );

@@ -38,13 +38,13 @@ const STORED = create(SessionSchema, {
 describe("useSessionPageFlow — a stored repository token", () => {
   it("is kept by a follow-up: the entry keeps its name and echoes the marker", async () => {
     const sessionUpdate = vi.fn().mockResolvedValue(STORED);
-    const runCreate = vi.fn().mockResolvedValue({ metadata: { id: "aex_1" }, spec: {} });
+    const runSend = vi.fn().mockResolvedValue({ metadata: { id: "aex_1" }, spec: {} });
     const releaseFiles = vi.fn().mockResolvedValue(undefined);
     const client = {
       session: { get: vi.fn().mockResolvedValue(STORED), update: sessionUpdate, streamEvents: sessionEventStream().streamEvents },
       run: {
         listBySession: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
-        create: runCreate,
+        sendMessage: async (input: unknown) => ({ run: await runSend(input) }),
         // The sent turn's run, read while it is live; never answered here.
         get: vi.fn(() => new Promise(() => {})),
       },
@@ -75,7 +75,7 @@ describe("useSessionPageFlow — a stored repository token", () => {
       value: { url: "https://github.com/acme/api.git", branch: "main", token: MARKER },
     });
     expect(resources[1]?.resource).toMatchObject({ case: "file", value: { fileId: "file_brief" } });
-    expect(runCreate.mock.calls[0][0].fileIds).toEqual(["file_new"]);
+    expect(runSend.mock.calls[0][0].fileIds).toEqual(["file_new"]);
     expect(releaseFiles).toHaveBeenCalledTimes(1);
   });
 

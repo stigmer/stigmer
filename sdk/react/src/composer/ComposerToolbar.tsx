@@ -30,8 +30,9 @@ export interface ComposerToolbarProps {
   readonly onSend: () => void;
   /**
    * When provided, the primary button becomes a Stop control (enabled even
-   * while the rest of the composer is disabled) and the Send button is hidden.
-   * Driven by the active run being stoppable.
+   * while the rest of the composer is disabled) while nothing can be sent;
+   * once a message can be, it is the Send button again, and the message
+   * waits for the working turn. Driven by the active run being stoppable.
    */
   readonly onStop?: () => void;
   /** `true` while a stop request is in flight — shows a spinner on the Stop button. */
@@ -274,7 +275,7 @@ export function ComposerToolbar({
             disabled={disabled}
           />
 
-          {onStop ? (
+          {onStop && !canSend ? (
             // Circular container (vs. Send's rounded-square) gives the square glyph
             // a proper home — the canonical stop affordance — and the shape morph
             // from Send→Stop signals the running state at a glance. Always
