@@ -4,10 +4,14 @@
  *
  * Pins that each of them reads the headline and the one sentence from
  * brand/positioning.ts through SITE_CONFIG, that the manifest is the
- * metadata route (no static file is linked by hand), and that the manifest's
- * colors are the dark site's own.
+ * metadata route (no static file is linked by hand), that the manifest's
+ * colors are the dark site's own, and that the previews and the structured
+ * data name the site's one preview image.
  */
 import { describe, expect, it, vi } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
+import { SITE_CONFIG } from "@/lib/constants";
+import { SITE_OG_IMAGE } from "@/lib/page-metadata";
 import { POSITIONING } from "../../../../brand/positioning";
 
 vi.mock("next/font/google", () => {
@@ -28,6 +32,19 @@ describe("the site's root metadata", () => {
     expect(metadata.twitter?.description).toBe(POSITIONING.oneSentence);
     expect(metadata.keywords).toBeUndefined();
     expect(metadata.manifest).toBeUndefined();
+  });
+
+  it("names the one preview image in the previews and the structured data", async () => {
+    const { default: RootLayout, metadata } = await import("../layout");
+    const html = renderToStaticMarkup(RootLayout({ children: null }));
+    const jsonLd = html.match(/<script type="application\/ld\+json">(.*?)<\/script>/)?.[1] ?? "{}";
+    const organization = (JSON.parse(jsonLd) as { "@graph": { logo?: { url: string } }[] })[
+      "@graph"
+    ][0];
+
+    expect(metadata.openGraph?.images).toEqual([SITE_OG_IMAGE]);
+    expect(metadata.twitter?.images).toEqual([SITE_OG_IMAGE.url]);
+    expect(organization.logo?.url).toBe(`${SITE_CONFIG.url}${SITE_OG_IMAGE.url}`);
   });
 });
 
