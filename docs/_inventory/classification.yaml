@@ -559,8 +559,9 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      Organizations are the tenant boundary; a parent organization has one child
-      organization per customer, and its admins are admins in every child.
+      An Organization is the account everything belongs to and the wall between
+      customers; on the editions that include it, a parent organization has one
+      child organization per customer, and its admins are admins in every child.
     medium: diagram
     why: Tenancy fan-out is structure; the two existing mermaids carry it.
 
