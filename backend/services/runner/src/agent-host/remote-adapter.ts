@@ -28,8 +28,15 @@
  * the turn settles here: `interrupted` when the runtime had already asked
  * it to stop, otherwise `failed` on the `internal` surface. Anything the
  * host sends for a turn after that is dropped (`supervisor.ts`).
+ *
+ * Each call and notice the host sends is handled in the async context the
+ * turn was entered in, as the runtime's own calls are when the adapter runs
+ * in this process: what it asks of the control plane goes out as the run's
+ * (the run credential the activity entered, `shared/run-credential-store.ts`),
+ * never as the process.
  */
 
+import { AsyncLocalStorage } from "node:async_hooks";
 import { randomBytes, randomUUID } from "node:crypto";
 import { posix } from "node:path";
 import { SessionSpecSchema, type SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
@@ -145,6 +152,23 @@ async function runRemoteTurn(
   }
 }
 
+/**
+ * The endpoint with every handler run in the async context it was built in,
+ * the turn's (the module header): the snapshot is taken here, inside the
+ * activity, and each handler enters it.
+ */
+function withinTurn(endpoint: RemoteTurnEndpoint): RemoteTurnEndpoint {
+  const inTurn = AsyncLocalStorage.snapshot();
+  const wrapped = <T extends object>(handlers: T): T =>
+    Object.fromEntries(
+      Object.entries(handlers).map(([method, handler]) => [
+        method,
+        (args: unknown) => inTurn(() => (handler as (args: unknown) => unknown)(args)),
+      ]),
+    ) as T;
+  return { calls: wrapped(endpoint.calls), notices: wrapped(endpoint.notices) };
+}
+
 /** One remote turn's runner side: the handlers the host's calls reach. */
 class RemoteTurn {
   private readonly runtimeFields: RuntimeFieldTracker;
@@ -163,7 +187,7 @@ class RemoteTurn {
     this.runtimeFields = new RuntimeFieldTracker(sink.status);
     this.seededKeys = storageKeysOf(sink);
     const { executionId } = input;
-    this.endpoint = {
+    this.endpoint = withinTurn({
       calls: {
         persist: async ({ projection }) => {
           applyAdapterProjection(sink, projection);
@@ -209,7 +233,7 @@ class RemoteTurn {
             return confineCasSnapshot(decodeCasSnapshot(await peer.call("readCasObservations", { turnId })));
           }),
       },
-    };
+    });
   }
 
   get settled(): boolean {

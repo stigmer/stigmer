@@ -26,6 +26,7 @@
  * (`remote-adapter.ts`).
  */
 
+import { AsyncResource } from "node:async_hooks";
 import type { Readable, Writable } from "node:stream";
 
 import { MAX_MESSAGE_BYTES, fromWireError, toWireError, type ResultEnvelope, type WireError } from "./protocol.js";
@@ -122,9 +123,13 @@ function malformedEnvelope(message: { kind?: unknown; id?: unknown; method?: unk
  * Two connected in-process channels. Each line is delivered as a microtask
  * (the header says why), in order; a line sent before the far end listens
  * waits for its first listener, as a pipe's bytes wait in its buffer.
- * Closing either end closes both.
+ * Closing either end closes both. A line is delivered in the async context
+ * the pair was made in, never the sender's, as a pipe's data arrives in
+ * the context its stream was opened in: a handler that needs the turn's
+ * context has to enter it itself, here as across a real pipe.
  */
 export function loopbackChannels(): readonly [LineChannel, LineChannel] {
+  const opened = new AsyncResource("stigmer.loopback-channel");
   type End = { lines: ((line: string) => void)[]; closes: ((reason: Error) => void)[]; waiting: string[] };
   const a: End = { lines: [], closes: [], waiting: [] };
   const b: End = { lines: [], closes: [], waiting: [] };
@@ -135,9 +140,11 @@ export function loopbackChannels(): readonly [LineChannel, LineChannel] {
     for (const listener of [...a.closes, ...b.closes]) listener(reason);
   };
   const deliver = (to: End, line: string): void => {
-    queueMicrotask(() => {
-      if (!closed) for (const listener of to.lines) listener(line);
-    });
+    queueMicrotask(() =>
+      opened.runInAsyncScope(() => {
+        if (!closed) for (const listener of to.lines) listener(line);
+      }),
+    );
   };
   const end = (self: End, peer: End): LineChannel => ({
     send(line) {
