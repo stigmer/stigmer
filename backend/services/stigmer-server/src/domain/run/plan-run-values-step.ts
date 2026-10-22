@@ -58,12 +58,14 @@ import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
 import { goWrappedStatusError } from "../../pipeline/errors.js";
+import type { RequestContext } from "../../pipeline/request-context.js";
 import type { PipelineStep } from "../../pipeline/pipeline.js";
 import type { Store } from "../../store/interface.js";
 import type { VaultResolver } from "../vault/resolve.js";
 import { runPersonOfCaller } from "../vault/resolve.js";
 
 import type { AgentLoader } from "./create-steps.js";
+import { QUEUED_MESSAGES_PERSON_KEY } from "./create-steps.js";
 import { admitEnvironment, loadSessionEnvironment } from "./environment-admission.js";
 import type { EnvironmentPolicy } from "./environment-admission.js";
 import { refuseLocalPrograms } from "./local-programs.js";
@@ -120,19 +122,33 @@ export function newStampRunCredentialsStep(): PipelineStep<typeof RunSchema> {
     name: "StampRunCredentials",
     execute(ctx) {
       const execution = ctx.newState;
-      const sender = runPersonOfCaller(ctx.callerIdentity);
-      const stored = storedSessionOf(ctx);
-      const person =
-        stored === undefined ||
-        (stored.status?.audit?.specAudit?.createdBy?.id ?? "") === sender
-          ? sender
-          : undefined;
+      const person = runPersonOfRequest(ctx);
       (execution.status ??= create(RunStatusSchema)).credentials = create(
         RunCredentialsSchema,
         person === undefined ? {} : { person },
       );
     },
   };
+}
+
+/**
+ * The person a turn records (StampRunCredentials, above): the caller by
+ * the platform's rule for a first-party human operator, when the
+ * conversation is theirs; undefined otherwise. Read after the session was
+ * validated, so a queued message records the answer its turn would
+ * (run/send-message.ts), and a turn the queue starts records the answer
+ * its messages recorded (create-steps.ts GuardQueuedMessages).
+ */
+export function runPersonOfRequest(ctx: RequestContext<typeof RunSchema>): string | undefined {
+  const queued = ctx.get(QUEUED_MESSAGES_PERSON_KEY);
+  if (typeof queued === "string") {
+    return queued === "" ? undefined : queued;
+  }
+  const sender = runPersonOfCaller(ctx.callerIdentity);
+  const stored = storedSessionOf(ctx);
+  return stored === undefined || (stored.status?.audit?.specAudit?.createdBy?.id ?? "") === sender
+    ? sender
+    : undefined;
 }
 
 /** PlanRunValues: the create pipeline's step over the shared planner, before Persist. */

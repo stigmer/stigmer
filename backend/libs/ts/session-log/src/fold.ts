@@ -51,7 +51,10 @@
  * the place the turn read it. A sighting with no run is held in `queued`
  * (as `waiting`), never as seen, and the run's copy replaces it, as a
  * stored event replaces its preview. A run's first message is its
- * `userMessage`; a later one is a `user_message` item, in log order. A
+ * `userMessage`, and the messages it took with it, before any item of its
+ * own (a turn the queue started with several, each read at once), join it,
+ * their texts as the turn's message joins them (a blank line between); a
+ * later one is a `user_message` item, in log order. A
  * waiting message that a `user.interrupt`, or a `session.error` of no
  * turn, follows was dropped unread: it stays in `queued` as `dropped`.
  *
@@ -102,6 +105,9 @@ import {
   type UserMessage,
   type UserMessageItem,
 } from "./types.js";
+
+/** How the texts of the messages a turn starts with join: as the server joins them into the turn's message. */
+const MESSAGE_TEXT_SEPARATOR = "\n\n";
 
 // ── The mutable fold ─────────────────────────────────────────────────────────
 
@@ -329,11 +335,16 @@ export class SessionLog {
           this.tick();
         }
         const turn = this.turnOf(runId);
+        const text = textOf(e.value.content);
         if (turn.userMessage === undefined) {
-          turn.userMessage = { id, text: textOf(e.value.content), processedAt: at };
+          turn.userMessage = { id, text, processedAt: at };
+          this.touch(turn);
+        } else if (turn.items.length === 0) {
+          const joined = [turn.userMessage.text, text].filter((each) => each !== "").join(MESSAGE_TEXT_SEPARATOR);
+          turn.userMessage = { ...turn.userMessage, text: joined };
           this.touch(turn);
         } else {
-          this.addText(event, "user_message", textOf(e.value.content));
+          this.addText(event, "user_message", text);
         }
         break;
       }

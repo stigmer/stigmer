@@ -490,7 +490,7 @@ function runAdmissionChain(
     .addStep(newValidateThinkingModeStep(deps.modelRegistry))
     .addStep(newGuardEvalRunCaseStep())
     .addStep(newGuardReconcileFileReviewStep())
-    .addStep(newGuardQueuedMessagesStep())
+    .addStep(newGuardQueuedMessagesStep(deps.store))
     .addStep(newGuardExcludedPluginsStep())
     .addStep(
       newRefuseVisitorAppendedPromptStep(deps.logger, deps.visitorClassifier),

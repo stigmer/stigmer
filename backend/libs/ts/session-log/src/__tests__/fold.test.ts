@@ -9,8 +9,8 @@
  * to the primary thread's completed to-do calls; and snapshots that share
  * every object no event touched. A message sent while a turn works is
  * held as queued until a run's copy replaces it, then is the run's first
- * message or a `user_message` item where it was read; a stop drops what
- * still waits.
+ * message (the messages a turn starts with joined) or a `user_message`
+ * item where it was read; a stop drops what still waits.
  */
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -580,6 +580,22 @@ describe("messages sent while a turn works", () => {
       [R, `${R}.user`],
       [R2, "q1"],
     ]);
+  });
+
+  it("joins the messages a turn starts with, read before any item of its own, into its request", () => {
+    const fold = foldSession([
+      user(R, "build"),
+      queuedMessage("q1", "then test"),
+      queuedMessage("q2", "and lint"),
+      phase(R, "completed"),
+      readBy(R2, "q1", "then test"),
+      readBy(R2, "q2", "and lint"),
+      phase(R2, "running"),
+      said(R2, 0, "Testing."),
+    ]);
+    const second = fold.turns[1]!;
+    expect(second.userMessage).toEqual({ id: "q1", text: "then test\n\nand lint", processedAt: "tq" });
+    expect(second.items.map((item) => item.kind)).toEqual(["message"]);
   });
 
   it("ignores a stale queued sighting of a message already read", () => {

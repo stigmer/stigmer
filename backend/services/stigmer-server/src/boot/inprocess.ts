@@ -290,7 +290,6 @@ export function createInProcessClients(
         agentExecutionCommand.create(run, asCaller(caller)),
     },
     queuedTurnCreator: {
-      /* v8 ignore next -- @preserve: called only once a turn ends with messages queued, which needs an engine */
       create: (run, caller) =>
         agentExecutionCommand.create(run, asCaller(caller)),
     },

@@ -9,13 +9,15 @@
  * new, and a finished one is over.
  *
  * The take is one run write (run-writes.ts `updateRunAppendingEvents`,
- * under the session's lock): every message still queued is taken, its
+ * under the session's lock): every message still queued with the run's own
+ * authority (its sender and the person it records, queue.ts) is taken, its
  * queued row and side row removed, and listed again at the head of the log
  * as this run's, accepted now, in the order sent. The run's row is
  * written unchanged, so its phase writes no status event. A runner claims
  * where its engine delivers what it takes, so a message sits in the log
- * where the agent read it. Nothing queued answers nothing, and writes
- * nothing.
+ * where the agent read it. A message sent with another authority waits
+ * for a turn of its own (run/queued-turn.ts). Nothing to take answers
+ * nothing, and writes nothing.
  *
  * Proven by __tests__/claim-input.test.ts and the session-queue
  * conformance suite.
@@ -47,6 +49,7 @@ import { isWorkingPhase } from "../../run/phases.js";
 import type { AppendSessionEventsDeps } from "./append.js";
 import { NOT_THE_RUNS_RUNNER_MESSAGE } from "./append.js";
 import { eventOf } from "./codec.js";
+import { authorityOfQueued, authorityOfRun, sameAuthority } from "./queue.js";
 import { updateRunAppendingEvents } from "./run-writes.js";
 import { sessionIdOfRun, takenMessage } from "./transitions.js";
 
@@ -66,8 +69,13 @@ export async function claimSessionInput(
   const run = await loadRun(deps, runId);
   admitWorking(run);
   const sessionId = sessionIdOfRun(run);
-  // The common answer, read without the lock: nothing waits, nothing is written.
-  if (sessionId === "" || (await deps.store.sessionEvents.queued(sessionId)).length === 0) {
+  // The common answer, read without the lock: nothing waits for this run,
+  // nothing is written.
+  const authority = authorityOfRun(run);
+  if (
+    sessionId === "" ||
+    !(await deps.store.sessionEvents.queued(sessionId)).some((queued) => sameAuthority(authorityOfQueued(queued), authority))
+  ) {
     return create(ClaimSessionInputResponseSchema);
   }
   let taken;
@@ -77,9 +85,10 @@ export async function claimSessionInput(
       runId,
       (row, session) => {
         admitWorking(row);
+        const own = session.queued.filter((queued) => sameAuthority(authorityOfQueued(queued), authorityOfRun(row)));
         return {
-          last: session.queued.map((queued) => takenMessage(eventOf(queued.record), runId)),
-          takeQueued: session.queued.map((queued) => queued.record.eventId),
+          last: own.map((queued) => takenMessage(eventOf(queued.record), runId)),
+          takeQueued: own.map((queued) => queued.record.eventId),
         };
       },
       { queued: true },

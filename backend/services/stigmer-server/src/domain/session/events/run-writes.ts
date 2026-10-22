@@ -42,8 +42,11 @@
  *
  * One turn at a time. A create refuses, under the session's lock, a run
  * in a session whose other runs are unfinished (working, waiting or
- * paused), or whose queue holds messages it does not take
- * (SESSION_TURN_UNFINISHED, run/constants.ts): a message for a working
+ * paused), or whose queue holds messages it does not start from: a turn
+ * that takes no queued message while any waits, or one whose first is
+ * not the oldest waiting (SESSION_TURN_UNFINISHED, run/constants.ts; the
+ * queue's turn takes the oldest messages sent with one authority, and
+ * those behind them wait, run/queued-turn.ts): a message for a working
  * session waits in its queue (run/send-message.ts) and never races it
  * (stigmer#2429). A reconcile turn (spec.reconcile_file_review) is not a
  * message's turn and is never refused: it runs no model and only puts
@@ -236,7 +239,7 @@ export async function createRunAppendingEvents(deps: RunEventWriteDeps, run: Run
   );
 }
 
-/** Refuses a new turn while another of its session is unfinished or messages it does not take wait. */
+/** Refuses a new turn while another of its session is unfinished, or older messages than it takes wait. */
 function refuseUnlessFree(
   sessionId: string,
   session: SessionEventContext,
@@ -251,7 +254,10 @@ function refuseUnlessFree(
       metadata: { session_id: sessionId },
     });
   }
-  if (session.queuedCount > takes.length) {
+  // A turn whose messages are all gone is refused by takenOf, naming one.
+  const oldest = session.queued[0]?.record.eventId;
+  const startsTheQueue = takes.length === 0 ? session.queuedCount === 0 : oldest === undefined || oldest === takes[0];
+  if (!startsTheQueue) {
     throw failedPreconditionError(sessionQueueWaitsMessage(sessionId), {
       reason: SESSION_TURN_UNFINISHED_REASON,
       metadata: { session_id: sessionId },
