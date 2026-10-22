@@ -47,6 +47,9 @@ import type {
   SessionEventGateDeclaration,
   SessionEventScope,
   SessionEventStore,
+  SessionQueueScope,
+  SessionQueueWriteResult,
+  SessionQueueWriter,
 } from "./session-events.js";
 
 // =============================================================================
@@ -844,6 +847,21 @@ export interface Store {
     write: ResourceEventWriter<Desc>,
     scope: SessionEventScope,
   ): Promise<ResourceEventWriteResult<Desc>>;
+
+  /**
+   * The door for a session's queue (session-events.ts, "The queue"): under
+   * the session's lock, the session's working, waiting and paused rows of
+   * `scope.kind`, its queue and its newest state event are handed to the
+   * synchronous `write`, and the message it queues, the messages it drops
+   * and the events it appends commit in one transaction. Throwing from
+   * `write` writes nothing. The session's organization is `org`.
+   */
+  writeSessionQueue(
+    sessionId: string,
+    org: string,
+    scope: SessionQueueScope,
+    write: SessionQueueWriter,
+  ): Promise<SessionQueueWriteResult>;
 
   /**
    * Finds a single resource whose field at `fieldPath` (dot notation, e.g.

@@ -29,6 +29,7 @@ const (
 	SessionCommandController_Interrupt_FullMethodName         = "/ai.stigmer.agentic.session.v1.SessionCommandController/interrupt"
 	SessionCommandController_Delete_FullMethodName            = "/ai.stigmer.agentic.session.v1.SessionCommandController/delete"
 	SessionCommandController_AppendEvents_FullMethodName      = "/ai.stigmer.agentic.session.v1.SessionCommandController/appendEvents"
+	SessionCommandController_ClaimInput_FullMethodName        = "/ai.stigmer.agentic.session.v1.SessionCommandController/claimInput"
 	SessionCommandController_BindHarnessState_FullMethodName  = "/ai.stigmer.agentic.session.v1.SessionCommandController/bindHarnessState"
 )
 
@@ -133,8 +134,10 @@ type SessionCommandControllerClient interface {
 	// Stop the session's unfinished work.
 	//
 	// Appends a user.interrupt and stops every unfinished turn of the
-	// conversation: queued, working, waiting for an answer or paused. Each
-	// ends cancelled and the session goes idle with end_turn. Files undone
+	// conversation: pending, working, waiting for an answer or paused. Each
+	// ends cancelled and the session goes idle with end_turn. The messages
+	// still queued for a turn (RunCommandController.sendMessage) are dropped
+	// first: they stay listed with no processed_at, never read. Files undone
 	// in a turn that waited are put back at once.
 	//
 	// ## Error Conditions
@@ -165,6 +168,13 @@ type SessionCommandControllerClient interface {
 	// session.thread_* and session.error. The batch is appended whole or not
 	// at all.
 	AppendEvents(ctx context.Context, in *AppendSessionEventsInput, opts ...grpc.CallOption) (*AppendSessionEventsResponse, error)
+	// Take the messages queued in a run's session for the run to read.
+	//
+	// Only the runner acting for the run may call it, while the run works
+	// (pending or in progress). Every message still queued moves to the head
+	// of the log as this run's, with its processed_at, and is answered in
+	// the order sent; none when nothing waits.
+	ClaimInput(ctx context.Context, in *ClaimSessionInputInput, opts ...grpc.CallOption) (*ClaimSessionInputResponse, error)
 	// Record the harness's conversation id for a run's session.
 	//
 	// Only the runner acting for the run may call it, while the run is not
@@ -275,6 +285,16 @@ func (c *sessionCommandControllerClient) AppendEvents(ctx context.Context, in *A
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AppendSessionEventsResponse)
 	err := c.cc.Invoke(ctx, SessionCommandController_AppendEvents_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *sessionCommandControllerClient) ClaimInput(ctx context.Context, in *ClaimSessionInputInput, opts ...grpc.CallOption) (*ClaimSessionInputResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ClaimSessionInputResponse)
+	err := c.cc.Invoke(ctx, SessionCommandController_ClaimInput_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -392,8 +412,10 @@ type SessionCommandControllerServer interface {
 	// Stop the session's unfinished work.
 	//
 	// Appends a user.interrupt and stops every unfinished turn of the
-	// conversation: queued, working, waiting for an answer or paused. Each
-	// ends cancelled and the session goes idle with end_turn. Files undone
+	// conversation: pending, working, waiting for an answer or paused. Each
+	// ends cancelled and the session goes idle with end_turn. The messages
+	// still queued for a turn (RunCommandController.sendMessage) are dropped
+	// first: they stay listed with no processed_at, never read. Files undone
 	// in a turn that waited are put back at once.
 	//
 	// ## Error Conditions
@@ -424,6 +446,13 @@ type SessionCommandControllerServer interface {
 	// session.thread_* and session.error. The batch is appended whole or not
 	// at all.
 	AppendEvents(context.Context, *AppendSessionEventsInput) (*AppendSessionEventsResponse, error)
+	// Take the messages queued in a run's session for the run to read.
+	//
+	// Only the runner acting for the run may call it, while the run works
+	// (pending or in progress). Every message still queued moves to the head
+	// of the log as this run's, with its processed_at, and is answered in
+	// the order sent; none when nothing waits.
+	ClaimInput(context.Context, *ClaimSessionInputInput) (*ClaimSessionInputResponse, error)
 	// Record the harness's conversation id for a run's session.
 	//
 	// Only the runner acting for the run may call it, while the run is not
@@ -468,6 +497,9 @@ func (UnimplementedSessionCommandControllerServer) Delete(context.Context, *Sess
 }
 func (UnimplementedSessionCommandControllerServer) AppendEvents(context.Context, *AppendSessionEventsInput) (*AppendSessionEventsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AppendEvents not implemented")
+}
+func (UnimplementedSessionCommandControllerServer) ClaimInput(context.Context, *ClaimSessionInputInput) (*ClaimSessionInputResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ClaimInput not implemented")
 }
 func (UnimplementedSessionCommandControllerServer) BindHarnessState(context.Context, *BindHarnessStateInput) (*BindHarnessStateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BindHarnessState not implemented")
@@ -672,6 +704,24 @@ func _SessionCommandController_AppendEvents_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SessionCommandController_ClaimInput_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClaimSessionInputInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionCommandControllerServer).ClaimInput(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionCommandController_ClaimInput_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionCommandControllerServer).ClaimInput(ctx, req.(*ClaimSessionInputInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _SessionCommandController_BindHarnessState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(BindHarnessStateInput)
 	if err := dec(in); err != nil {
@@ -736,6 +786,10 @@ var SessionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "appendEvents",
 			Handler:    _SessionCommandController_AppendEvents_Handler,
+		},
+		{
+			MethodName: "claimInput",
+			Handler:    _SessionCommandController_ClaimInput_Handler,
 		},
 		{
 			MethodName: "bindHarnessState",

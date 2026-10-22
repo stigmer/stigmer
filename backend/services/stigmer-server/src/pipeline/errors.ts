@@ -136,6 +136,15 @@ export function permissionDeniedWithReasonError(
   ]);
 }
 
+/**
+ * The reason a refusal carries (its stigmer.ai ErrorInfo), whatever its
+ * code; undefined for an error with none. What a server caller of another
+ * domain's RPC branches on, as a client does.
+ */
+export function errorReasonOf(error: ConnectError): string | undefined {
+  return error.findDetails(ErrorInfoSchema).find((detail) => detail.domain === ERROR_REASON_DOMAIN)?.reason;
+}
+
 /** The ErrorInfo detail every reasoned refusal carries beside its message. */
 function reasonDetail(reason: RefusalReason) {
   return {

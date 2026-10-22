@@ -11,7 +11,7 @@ import { RunCommandController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/co
 import { InteractionMode, ServiceTier, ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { EvalMockKind, EvalMockToolSchema, EvalMockPluginHomeSchema, EvalMockAgentHomeSchema, EvalMockServerSchema, EvalCaseContextSchema, type EvalMockTool, type EvalMockPluginHome, type EvalMockAgentHome, type EvalMockServer, type EvalCaseContext } from "@stigmer/apis/ai/stigmer/agentic/run/v1/eval_case_pb";
 import { RunConfigSchema, type RunConfig } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
-import { RunIdSchema, UpdateRunInputSchema, RunUpdateStatusInputSchema, UpdateStatusResponseSchema, TerminateRunInputSchema, RecoverRunInputSchema, PauseRunInputSchema, ResumeRunInputSchema, ListRunsRequestSchema, RunListSchema, ListRunsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetRunUsageReportInputSchema, GetRunUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetRunSummaryRequestSchema, RunSummarySchema, type RunUpdateStatusInput, type UpdateStatusResponse, type TerminateRunInput, type RecoverRunInput, type PauseRunInput, type ResumeRunInput, type ListRunsRequest, type RunList, type ListRunsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetRunUsageReportInput, type GetRunUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetRunSummaryRequest, type RunSummary } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
+import { RunIdSchema, SendMessageResponseSchema, UpdateRunInputSchema, RunUpdateStatusInputSchema, UpdateStatusResponseSchema, TerminateRunInputSchema, RecoverRunInputSchema, PauseRunInputSchema, ResumeRunInputSchema, ListRunsRequestSchema, RunListSchema, ListRunsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetRunUsageReportInputSchema, GetRunUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetRunSummaryRequestSchema, RunSummarySchema, type SendMessageResponse, type RunUpdateStatusInput, type UpdateStatusResponse, type TerminateRunInput, type RecoverRunInput, type PauseRunInput, type ResumeRunInput, type ListRunsRequest, type RunList, type ListRunsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetArtifactContentRequest, type GetArtifactContentResponse, type GetRunUsageReportInput, type GetRunUsageReportOutput, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput, type GetRunSummaryRequest, type RunSummary } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { RunQueryController } from "@stigmer/apis/ai/stigmer/agentic/run/v1/query_pb";
 import { RunSpecSchema, ConversationCatchupSchema, type ConversationCatchup } from "@stigmer/apis/ai/stigmer/agentic/run/v1/spec_pb";
 import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
@@ -34,6 +34,12 @@ export class RunClient {
   async create(input: RunInput): Promise<Run> {
     try {
       return await this.command.create(buildRunProto(input));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async sendMessage(input: RunInput): Promise<SendMessageResponse> {
+    try {
+      return await this.command.sendMessage(buildRunProto(input));
     } catch (e) { throw wrapError(e); }
   }
 
@@ -200,6 +206,7 @@ export interface RunInput {
   reconcileFileReview?: boolean;
   excludedPluginIds?: string[];
   fileIds?: string[];
+  queuedMessageIds?: string[];
 }
 
 /** SDK input type for SessionSpec. */
@@ -468,6 +475,7 @@ export function buildRunProto(input: RunInput): Run {
     reconcileFileReview: input.reconcileFileReview,
     excludedPluginIds: input.excludedPluginIds,
     fileIds: input.fileIds,
+    queuedMessageIds: input.queuedMessageIds,
   }));
   if (input.sessionId) {
     spec.target = { case: "sessionId", value: input.sessionId };
@@ -655,5 +663,6 @@ export function toRunInput(resource: Run): RunInput {
     reconcileFileReview: spec.reconcileFileReview || undefined,
     excludedPluginIds: spec.excludedPluginIds?.length ? [...spec.excludedPluginIds] : undefined,
     fileIds: spec.fileIds?.length ? [...spec.fileIds] : undefined,
+    queuedMessageIds: spec.queuedMessageIds?.length ? [...spec.queuedMessageIds] : undefined,
   };
 }

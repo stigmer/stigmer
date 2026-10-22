@@ -12,7 +12,10 @@
  *      renders as that variant;
  *   3. a required key whose value may be null (`stop_details`) is a proto3
  *      `optional` field, rendered `null` when unset. A key Managed Agents
- *      marks optional (`?:`) is a plain field, omitted when unset.
+ *      marks optional (`?:`) is a plain field, omitted when unset;
+ *   4. one exception to 3: a `user.message` still queued (its
+ *      `processed_at` empty: no turn has read it) renders `processed_at:
+ *      null`, as Managed Agents streams a queued message.
  *
  * Three things are done here, and nothing else: protobuf JSON with proto
  * field names, the type string from the oneof member's `event_type`
@@ -45,7 +48,11 @@ export function toManagedAgentsJson(event: SessionEvent): JsonObject {
   if (schema === undefined || event.event.value === undefined) {
     throw new Error("a session event must hold an event");
   }
-  return { ...messageJson(schema, event.event.value), type: eventTypeOf(event) };
+  const json: JsonObject = { ...messageJson(schema, event.event.value), type: eventTypeOf(event) };
+  if (event.event.case === "userMessage" && event.event.value.processedAt === "") {
+    json["processed_at"] = null;
+  }
+  return json;
 }
 
 /**

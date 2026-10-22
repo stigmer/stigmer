@@ -34,7 +34,9 @@ const (
 type SessionEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The event's place in the session's log, assigned when it is appended:
-	// later events have higher numbers.
+	// later events have higher numbers. A queued user.message moves to the
+	// head of the log when a turn takes it, under a new number, so it is
+	// listed once, where the agent read it, and streams a second time.
 	Seq int64 `protobuf:"varint,1,opt,name=seq,proto3" json:"seq,omitempty"`
 	// The session the event belongs to.
 	SessionId string `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
@@ -624,7 +626,9 @@ type UserMessageEvent struct {
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The message's content.
 	Content []*ContentBlock `protobuf:"bytes,2,rep,name=content,proto3" json:"content,omitempty"`
-	// When the server accepted the message, as RFC 3339 UTC.
+	// When the agent's turn took the message, as RFC 3339 UTC; empty while
+	// it waits in the session's queue for a turn that is working. A message
+	// still queued when the session was stopped keeps it empty.
 	ProcessedAt   string `protobuf:"bytes,3,opt,name=processed_at,json=processedAt,proto3" json:"processed_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -3430,18 +3434,17 @@ func (x *DeltaContent) GetIndex() int32 {
 // StigmerRunStatusEvent records that a turn (a run) changed phase:
 // stigmer.run.status. Written by the server only, in the same write as the
 // run's change, on every phase change of every run. The session's own
-// status events say what the whole session does; a session can hold more
-// than one unfinished turn (a second message queues behind the first), and
-// when the first ends while the second works the session's status does not
-// change, so this event is how a client learns that one turn ended, and
-// how.
+// status events say what the whole session does, and do not change when a
+// turn ends with messages queued and the next turn starts with them
+// (RunCommandController.sendMessage), so this event is how a client learns
+// that one turn ended, and how.
 type StigmerRunStatusEvent struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The event's id, unique in its session: letters, digits, _ . : -, at most 128.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// When the event was appended, as RFC 3339 UTC.
 	ProcessedAt string `protobuf:"bytes,2,opt,name=processed_at,json=processedAt,proto3" json:"processed_at,omitempty"`
-	// The turn's new phase: pending (queued), running, waiting (for a
+	// The turn's new phase: pending (not started yet), running, waiting (for a
 	// person's answer), paused, completed, failed, cancelled or terminated.
 	// The last four end the turn.
 	Phase string `protobuf:"bytes,3,opt,name=phase,proto3" json:"phase,omitempty"`

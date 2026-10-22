@@ -27,6 +27,7 @@ import ai.stigmer.agentic.run.v1.RunList;
 import ai.stigmer.agentic.run.v1.RunQueryControllerGrpc;
 import ai.stigmer.agentic.run.v1.RunSummary;
 import ai.stigmer.agentic.run.v1.RunUpdateStatusInput;
+import ai.stigmer.agentic.run.v1.SendMessageResponse;
 import ai.stigmer.agentic.run.v1.TerminateRunInput;
 import ai.stigmer.agentic.run.v1.UpdateRunInput;
 import ai.stigmer.agentic.run.v1.UpdateStatusResponse;
@@ -48,6 +49,12 @@ public final class RunClient {
     public Run create(RunInput input) {
         try {
             return command.create(input.toProto());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public SendMessageResponse sendMessage(RunInput input) {
+        try {
+            return command.sendMessage(input.toProto());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

@@ -168,6 +168,7 @@ function itemView(item: TurnItem): JsonObject {
     case "message":
     case "thinking":
     case "note":
+    case "user_message":
       return { type: item.kind, text: item.text };
     case "compacted":
       return { type: item.kind };

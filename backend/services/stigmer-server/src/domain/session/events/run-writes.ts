@@ -23,9 +23,10 @@
  *                       removal ends the session's turn when nothing else
  *                       works, so the session never reads running forever.
  *
- * A run's session, the count of its session's other working runs and its
- * other waiting runs come from the run list index's `session`,
- * `working_session` and `waiting_session` keys (run/list-index.ts), read
+ * A run's session, the count of its session's other working runs, its
+ * other waiting runs and its other paused runs come from the run list
+ * index's `session`, `working_session`, `waiting_session` and
+ * `paused_session` keys (run/list-index.ts), read
  * under the session's lock without decoding a run; the open asks of the
  * waiting runs and of the written run come from the log's gate columns
  * (gates.ts). An update may append events of its own: those that answer
@@ -39,6 +40,21 @@
  * for the run's events of the types it reads (`runEventTypes`); only an
  * update that asks pays either read.
  *
+ * One turn at a time. A create refuses, under the session's lock, a run
+ * in a session whose other runs are unfinished (working, waiting or
+ * paused), or whose queue holds messages it does not take
+ * (SESSION_TURN_UNFINISHED, run/constants.ts): a message for a working
+ * session waits in its queue (run/send-message.ts) and never races it
+ * (stigmer#2429). A reconcile turn (spec.reconcile_file_review) is not a
+ * message's turn and is never refused: it runs no model and only puts
+ * back files a person undid, and each undo needs its own, even while an
+ * earlier one runs (that one may have read what is owed already;
+ * ../filereview/decide.ts). A turn started from the queue
+ * (spec.queued_message_ids) takes those messages in its write: each must
+ * still wait, and the turn's own events list them, moved to the head as
+ * its own. A write that takes queued messages for a working run (the
+ * runner's claim, ../claim-input.ts) does the same without a transition.
+ *
  * Proven by __tests__/run-writes.test.ts on both drivers, and end to end by
  * the session-events conformance suite.
  */
@@ -48,6 +64,7 @@ import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
+import { failedPreconditionError } from "../../../pipeline/errors.js";
 import { ResourceNotFoundError } from "../../../store/interface.js";
 import type { Store } from "../../../store/interface.js";
 import type {
@@ -58,6 +75,13 @@ import type {
   SessionEventDraft,
   SessionEventScope,
 } from "../../../store/session-events.js";
+import {
+  QUEUED_MESSAGE_GONE_REASON,
+  SESSION_TURN_UNFINISHED_REASON,
+  queuedMessageGoneMessage,
+  sessionQueueWaitsMessage,
+  sessionTurnUnfinishedMessage,
+} from "../../run/constants.js";
 import { agentExecutionListIndex } from "../../run/list-index.js";
 import type { SessionEventBroker } from "./broker.js";
 import { SESSION_STATUS_TYPES } from "./catalog.js";
@@ -76,6 +100,7 @@ type RunListKey = keyof typeof agentExecutionListIndex.keys;
 const SESSION_KEY: RunListKey = "session";
 const WORKING_KEY: RunListKey = "working_session";
 const WAITING_KEY: RunListKey = "waiting_session";
+const PAUSED_KEY: RunListKey = "paused_session";
 
 /** What an update may ask the store for beyond what every write is handed. */
 export interface RunUpdateOptions {
@@ -91,6 +116,8 @@ export interface RunUpdateOptions {
    * from what the run's log says (filereview/logged.ts) reads it there.
    */
   readonly runEventTypes?: ReadonlyArray<string>;
+  /** `modify` is handed the session's queue (`SessionEventContext.queued`). */
+  readonly queued?: boolean;
 }
 
 function scopeOf(sessionId?: string, options: RunUpdateOptions = {}): SessionEventScope {
@@ -98,7 +125,9 @@ function scopeOf(sessionId?: string, options: RunUpdateOptions = {}): SessionEve
     sessionKey: SESSION_KEY,
     workingKey: WORKING_KEY,
     waitingKey: WAITING_KEY,
+    pausedKey: PAUSED_KEY,
     stateEventTypes: SESSION_STATUS_TYPES,
+    ...(options.queued === true ? { queued: true } : {}),
     ...(sessionId === undefined ? {} : { sessionId }),
     ...(options.runOfNewestType === undefined ? {} : { runOfNewestType: options.runOfNewestType }),
     ...(options.runEventTypes === undefined ? {} : { runEventTypes: options.runEventTypes }),
@@ -157,6 +186,8 @@ function draftsFor(
       othersWaiting: session.othersWaiting,
       gates: gatesAfter(session, own),
       status: latest,
+      othersPaused: session.othersPaused,
+      queuedCount: session.queuedCount,
     }),
   ].map(draftOf);
 }
@@ -171,18 +202,87 @@ export function runRemover(deps: RunEventWriteDeps): (runId: string) => Promise<
   return (runId) => removeRunAppendingEvents(deps, runId);
 }
 
-/** Persists a new run with its user message and, when it starts the session's work, the running status. */
+/**
+ * Persists a new run with its user message (or the queued messages it
+ * takes) and, when it starts the session's work, the running status;
+ * refuses a run its session's unfinished work or queue holds off (module
+ * header).
+ */
 export async function createRunAppendingEvents(deps: RunEventWriteDeps, run: Run): Promise<void> {
   const runId = run.metadata?.id ?? "";
+  const sessionId = sessionIdOfRun(run);
+  const takes = run.spec?.queuedMessageIds ?? [];
   await write(
     deps,
     runId,
     (_previous, others) => {
-      const transition: RunTransition = { kind: "create", run };
-      return { put: run, events: draftsFor(transition, others, run) };
+      if (run.spec?.reconcileFileReview !== true) {
+        refuseUnlessFree(sessionId, others, takes);
+      }
+      const taken = takenOf(sessionId, others, takes);
+      const transition: RunTransition = {
+        kind: "create",
+        run,
+        ...(taken === undefined ? {} : { taken }),
+      };
+      return {
+        put: run,
+        events: draftsFor(transition, others, run),
+        ...(takes.length === 0 ? {} : { takeQueued: takes }),
+      };
     },
-    sessionIdOfRun(run),
+    sessionId,
+    takes.length === 0 ? {} : { queued: true },
   );
+}
+
+/** Refuses a new turn while another of its session is unfinished or messages it does not take wait. */
+function refuseUnlessFree(
+  sessionId: string,
+  session: SessionEventContext,
+  takes: ReadonlyArray<string>,
+): void {
+  if (sessionId === "") {
+    return;
+  }
+  if (session.othersWorking > 0 || session.othersWaiting.length > 0 || session.othersPaused.length > 0) {
+    throw failedPreconditionError(sessionTurnUnfinishedMessage(sessionId), {
+      reason: SESSION_TURN_UNFINISHED_REASON,
+      metadata: { session_id: sessionId },
+    });
+  }
+  if (session.queuedCount > takes.length) {
+    throw failedPreconditionError(sessionQueueWaitsMessage(sessionId), {
+      reason: SESSION_TURN_UNFINISHED_REASON,
+      metadata: { session_id: sessionId },
+    });
+  }
+}
+
+/**
+ * The queued messages a turn takes, from the queue it is handed, in the
+ * order sent; undefined for a turn that takes none. Each must still wait.
+ */
+function takenOf(
+  sessionId: string,
+  session: SessionEventContext,
+  takes: ReadonlyArray<string>,
+): SessionEvent[] | undefined {
+  if (takes.length === 0) {
+    return undefined;
+  }
+  const waiting = new Map(session.queued.map((queued) => [queued.record.eventId, queued.record]));
+  for (const eventId of takes) {
+    if (!waiting.has(eventId)) {
+      throw failedPreconditionError(queuedMessageGoneMessage(sessionId, eventId), {
+        reason: QUEUED_MESSAGE_GONE_REASON,
+        metadata: { session_id: sessionId, event_id: eventId },
+      });
+    }
+  }
+  return session.queued
+    .filter((queued) => takes.includes(queued.record.eventId))
+    .map((queued) => eventOf(queued.record));
 }
 
 /**
@@ -194,6 +294,12 @@ export async function createRunAppendingEvents(deps: RunEventWriteDeps, run: Run
 export interface RunUpdateEvents {
   readonly first?: ReadonlyArray<SessionEvent>;
   readonly last?: ReadonlyArray<SessionEvent>;
+  /**
+   * Queued messages the change takes, by id (the options must ask for the
+   * queue): `last` carries them again as the run's (store/session-events.ts,
+   * "The queue").
+   */
+  readonly takeQueued?: ReadonlyArray<string>;
 }
 
 /**
@@ -232,6 +338,7 @@ export async function updateRunAppendingEvents(
           ...draftsFor(transition, others, previous, own.first ?? []),
           ...(sessionIdOfRun(previous) === "" ? [] : (own.last ?? []).map(draftOf)),
         ],
+        ...(own.takeQueued === undefined || own.takeQueued.length === 0 ? {} : { takeQueued: own.takeQueued }),
       };
     },
     undefined,

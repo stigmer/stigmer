@@ -93,6 +93,7 @@ import type {
 } from "../list-index.js";
 import { NOOP_STORE_LOGGER } from "../logger.js";
 import {
+  QueuedSessionMessageGoneError,
   SessionEventConflictError,
   assertSessionEventLimit,
   dedupeSessionEventDrafts,
@@ -102,6 +103,7 @@ import {
 } from "../session-events.js";
 import type {
   OpenSessionEventGate,
+  QueuedSessionMessage,
   SessionEventGateDeclaration,
   ResourceEventWriteResult,
   ResourceEventWriter,
@@ -113,6 +115,9 @@ import type {
   SessionEventRecord,
   SessionEventScope,
   SessionEventStore,
+  SessionQueueScope,
+  SessionQueueWriteResult,
+  SessionQueueWriter,
 } from "../session-events.js";
 import { assertRenameMoves } from "../resource-names.js";
 import type { StoreLogger } from "../logger.js";
@@ -657,6 +662,9 @@ export class PostgresStore implements Store {
         othersWaiting: [],
         gates: [],
         runEvents: [],
+        othersPaused: [],
+        queuedCount: 0,
+        queued: [],
       };
       if (sessionId !== "") {
         const latestState = await latestOfTypes(client, sessionId, scope.stateEventTypes);
@@ -664,6 +672,7 @@ export class PostgresStore implements Store {
           scope.waitingKey === undefined
             ? []
             : await this.othersHolding(client, declaration, id, scope.waitingKey, sessionId);
+        const queued = scope.queued === true ? await queuedOf(client, sessionId) : [];
         context = {
           othersWorking: (await this.othersHolding(client, declaration, id, scope.workingKey, sessionId))
             .length,
@@ -682,6 +691,12 @@ export class PostgresStore implements Store {
             scope.runEventTypes === undefined
               ? []
               : await eventsOfRun(client, sessionId, id, scope.runEventTypes),
+          othersPaused:
+            scope.pausedKey === undefined
+              ? []
+              : await this.othersHolding(client, declaration, id, scope.pausedKey, sessionId),
+          queuedCount: scope.queued === true ? queued.length : await queuedCountOf(client, sessionId),
+          queued,
         };
       }
       const outcome = write(previous, context);
@@ -714,6 +729,9 @@ export class PostgresStore implements Store {
         ) {
           await replaceListKeys(client, kindName, id, after);
         }
+        if (outcome.takeQueued !== undefined && outcome.takeQueued.length > 0) {
+          await takeQueued(client, sessionId, outcome.takeQueued);
+        }
       } else {
         await client.query(`DELETE FROM resources WHERE kind = $1 AND id = $2`, [kindName, id]);
         await client.query(`DELETE FROM resource_list_keys WHERE kind = $1 AND id = $2`, [
@@ -739,6 +757,69 @@ export class PostgresStore implements Store {
               this.gates,
             );
       return { previous, row, events };
+    });
+  }
+
+  async writeSessionQueue(
+    sessionId: string,
+    org: string,
+    scope: SessionQueueScope,
+    write: SessionQueueWriter,
+  ): Promise<SessionQueueWriteResult> {
+    const declaration = this.listIndexes.declarationOf(scope.kind);
+    if (declaration === undefined) {
+      throw new Error(`${apiResourceKindName(scope.kind)} is not list-indexed; it cannot count a session's rows`);
+    }
+    if (sessionId === "") {
+      throw new Error("a queue needs a session");
+    }
+    return this.withTransaction(async (client) => {
+      await lockSession(client, sessionId);
+      const outcome = write({
+        working: await this.othersHolding(client, declaration, "", scope.workingKey, sessionId),
+        waiting: await this.othersHolding(client, declaration, "", scope.waitingKey, sessionId),
+        paused: await this.othersHolding(client, declaration, "", scope.pausedKey, sessionId),
+        queued: await queuedOf(client, sessionId),
+        latestState: await latestOfTypes(client, sessionId, scope.stateEventTypes),
+      });
+      let enqueued: SessionEventRecord | undefined;
+      if (outcome.enqueue !== undefined) {
+        [enqueued] = await insertSessionEvents(
+          client,
+          sessionId,
+          org,
+          dedupeSessionEventDrafts(sessionId, [outcome.enqueue.draft]),
+          this.gates,
+          { queued: true },
+        );
+        await client.query(
+          `INSERT INTO session_queued_messages (session_id, event_id, org, sender, turn) VALUES ($1, $2, $3, $4, $5)`,
+          [sessionId, outcome.enqueue.draft.eventId, org, outcome.enqueue.entry.sender, Buffer.from(outcome.enqueue.entry.turn)],
+        );
+      }
+      const dropped =
+        outcome.drop === undefined || outcome.drop.length === 0
+          ? []
+          : (
+              (
+                await client.query(
+                  `DELETE FROM session_queued_messages WHERE session_id = $1 AND event_id = ANY($2::text[])
+                   RETURNING event_id`,
+                  [sessionId, [...outcome.drop]],
+                )
+              ).rows as Array<{ event_id: string }>
+            ).map((row) => row.event_id);
+      const events =
+        outcome.events === undefined || outcome.events.length === 0
+          ? []
+          : await insertSessionEvents(
+              client,
+              sessionId,
+              org,
+              dedupeSessionEventDrafts(sessionId, outcome.events),
+              this.gates,
+            );
+      return { enqueued, dropped, events };
     });
   }
 
@@ -2924,27 +3005,37 @@ async function eventsOfRun(
   return (result.rows as SessionEventRow[]).map(sessionEventOf);
 }
 
-/** The run of the session's newest event of `type`; undefined when it has none. */
+/**
+ * The run of the session's newest event of `type` that belongs to a run;
+ * undefined when it has none. A queued message (no run yet) is passed
+ * over: it is no turn until one takes it.
+ */
 async function runOfNewestOfType(
   client: PoolClient,
   sessionId: string,
   type: string,
 ): Promise<string | undefined> {
   const result = await client.query(
-    `SELECT run_id FROM session_events WHERE session_id = $1 AND type = $2 ORDER BY seq DESC LIMIT 1`,
+    `SELECT run_id FROM session_events WHERE session_id = $1 AND type = $2 AND run_id <> '' ORDER BY seq DESC LIMIT 1`,
     [sessionId, type],
   );
   const row = result.rows[0] as { run_id: string } | undefined;
   return row?.run_id;
 }
 
-/** Appends drafts after the session's newest event, under the caller's session lock. */
+/**
+ * Appends drafts after the session's newest event, under the caller's
+ * session lock. A queued message (`options.queued`) is numbered like any
+ * event and accepted at no time: its `processed_at` stays empty and the
+ * head's accepted time is left as it was (session-events.ts, "The queue").
+ */
 async function insertSessionEvents(
   client: PoolClient,
   sessionId: string,
   org: string,
   drafts: ReadonlyArray<SessionEventDraft>,
   gates: SessionEventGateDeclaration | undefined,
+  options: { readonly queued?: boolean } = {},
 ): Promise<SessionEventRecord[]> {
   if (drafts.length === 0) {
     return [];
@@ -2956,7 +3047,8 @@ async function insertSessionEvents(
     [sessionId],
   );
   const last = head.rows[0] as { last_seq: string; last_processed_at: string } | undefined;
-  const processedAt = instantNotBefore(Date.now(), last?.last_processed_at);
+  const headProcessedAt = instantNotBefore(Date.now(), last?.last_processed_at);
+  const processedAt = options.queued === true ? "" : headProcessedAt;
   let seq = last === undefined ? 0 : Number(last.last_seq);
   const records: SessionEventRecord[] = [];
   const params: unknown[] = [];
@@ -2993,9 +3085,63 @@ async function insertSessionEvents(
   await client.query(
     `INSERT INTO session_event_heads (session_id, org, last_seq, last_processed_at) VALUES ($1, $2, $3, $4)
      ON CONFLICT (session_id) DO UPDATE SET last_seq = excluded.last_seq, last_processed_at = excluded.last_processed_at`,
-    [sessionId, org, seq, processedAt],
+    [sessionId, org, seq, options.queued === true ? (last?.last_processed_at ?? headProcessedAt) : processedAt],
   );
   return records;
+}
+
+/** The session's queue, in the order sent: each waiting side row with its `user.message`. */
+async function queuedOf(client: Pool | PoolClient, sessionId: string): Promise<QueuedSessionMessage[]> {
+  const result = await client.query(
+    `SELECT e.session_id, e.seq, e.event_id, e.run_id, e.thread_id, e.type, e.processed_at, e.data,
+            q.sender, q.turn
+     FROM session_queued_messages q
+     JOIN session_events e ON e.session_id = q.session_id AND e.event_id = q.event_id
+     WHERE q.session_id = $1
+     ORDER BY e.seq ASC`,
+    [sessionId],
+  );
+  return (result.rows as Array<SessionEventRow & { sender: string; turn: Uint8Array }>).map((row) => ({
+    record: sessionEventOf(row),
+    sender: row.sender,
+    turn: row.turn,
+  }));
+}
+
+/** How many messages wait in the session's queue. */
+async function queuedCountOf(client: PoolClient, sessionId: string): Promise<number> {
+  const result = await client.query(
+    `SELECT count(*) AS n FROM session_queued_messages WHERE session_id = $1`,
+    [sessionId],
+  );
+  return Number((result.rows[0] as { n: string }).n);
+}
+
+/**
+ * Removes queued messages a write takes, their side rows and their queued
+ * events, under the caller's session lock; refuses the write when any no
+ * longer waits.
+ */
+async function takeQueued(client: PoolClient, sessionId: string, eventIds: ReadonlyArray<string>): Promise<void> {
+  const removed = new Set(
+    (
+      (
+        await client.query(
+          `DELETE FROM session_queued_messages WHERE session_id = $1 AND event_id = ANY($2::text[])
+           RETURNING event_id`,
+          [sessionId, [...eventIds]],
+        )
+      ).rows as Array<{ event_id: string }>
+    ).map((row) => row.event_id),
+  );
+  const gone = eventIds.find((eventId) => !removed.has(eventId));
+  if (gone !== undefined) {
+    throw new QueuedSessionMessageGoneError(sessionId, gone);
+  }
+  await client.query(`DELETE FROM session_events WHERE session_id = $1 AND event_id = ANY($2::text[])`, [
+    sessionId,
+    [...eventIds],
+  ]);
 }
 
 class PostgresSessionEventStore implements SessionEventStore {
@@ -3052,6 +3198,10 @@ class PostgresSessionEventStore implements SessionEventStore {
 
   async openGates(sessionId: string, runId: string): Promise<OpenSessionEventGate[]> {
     return openGatesOfRuns(this.open(), sessionId, [runId]);
+  }
+
+  async queued(sessionId: string): Promise<QueuedSessionMessage[]> {
+    return queuedOf(this.open(), sessionId);
   }
 
   async append(
@@ -3112,6 +3262,7 @@ class PostgresSessionEventStore implements SessionEventStore {
       const result = await client.query(`DELETE FROM session_events WHERE session_id = $1`, [
         sessionId,
       ]);
+      await client.query(`DELETE FROM session_queued_messages WHERE session_id = $1`, [sessionId]);
       await client.query(`DELETE FROM session_event_heads WHERE session_id = $1`, [sessionId]);
       return result.rowCount ?? 0;
     });
@@ -3120,6 +3271,7 @@ class PostgresSessionEventStore implements SessionEventStore {
   async deleteByOrg(org: string): Promise<number> {
     return this.transaction(async (client) => {
       const result = await client.query(`DELETE FROM session_events WHERE org = $1`, [org]);
+      await client.query(`DELETE FROM session_queued_messages WHERE org = $1`, [org]);
       await client.query(`DELETE FROM session_event_heads WHERE org = $1`, [org]);
       return result.rowCount ?? 0;
     });

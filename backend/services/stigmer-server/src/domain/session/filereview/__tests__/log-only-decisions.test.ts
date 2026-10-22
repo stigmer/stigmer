@@ -207,6 +207,7 @@ describe("file review decided from the session's log alone", () => {
         throw new Error("the close writes no status");
       },
       sessionEventBroker: new SessionEventBroker(silentLogger),
+      queuedTurns: async () => undefined,
     });
     const close = activities[CLOSE_FILE_REVIEW_ACTIVITY_NAME] as (executionId: string, sessionId: string) => Promise<void>;
 

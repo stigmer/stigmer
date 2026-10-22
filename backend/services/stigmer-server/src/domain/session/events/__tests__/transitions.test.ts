@@ -51,9 +51,16 @@ const waitingOn = (...eventIds: string[]): SessionStatusNow => ({ type: "idle", 
 function session(
   othersWorking: number,
   status: SessionStatusNow | undefined,
-  more: Partial<Pick<SessionNow, "othersWaiting" | "gates">> = {},
+  more: Partial<Pick<SessionNow, "othersWaiting" | "gates" | "othersPaused" | "queuedCount">> = {},
 ): SessionNow {
-  return { othersWorking, othersWaiting: more.othersWaiting ?? [], gates: more.gates ?? [], status };
+  return {
+    othersWorking,
+    othersWaiting: more.othersWaiting ?? [],
+    gates: more.gates ?? [],
+    status,
+    othersPaused: more.othersPaused ?? [],
+    queuedCount: more.queuedCount ?? 0,
+  };
 }
 
 /** An open ask of a run, at a place in the log. */

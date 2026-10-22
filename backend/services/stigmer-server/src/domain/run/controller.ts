@@ -55,6 +55,7 @@ import { apiResourceKindKey } from "../../pipeline/interceptors/apiresource.js";
 import { internalError } from "../../pipeline/errors.js";
 import type { KeyedSerializer } from "../../pipeline/keyed-serializer.js";
 import { newPipeline } from "../../pipeline/pipeline.js";
+import type { PipelineBuilder } from "../../pipeline/pipeline.js";
 import { callerIdentityOf } from "../../pipeline/interceptors/auth.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import { newAuthorizeStep } from "../../pipeline/steps/authorize.js";
@@ -108,6 +109,7 @@ import {
 } from "./artifacts.js";
 import type { FileBlobs } from "../file/blobs.js";
 import { newFileInstances } from "../file/instances.js";
+import type { FileInstances } from "../file/instances.js";
 import {
   MESSAGE_FILES_ADDED_KEY,
   newResolveMessageFilesStep,
@@ -122,6 +124,8 @@ import {
   newKeepEvalRunCaseStep,
   newGuardReconcileFileReviewStep,
   newKeepReconcileFileReviewStep,
+  newGuardQueuedMessagesStep,
+  newKeepQueuedMessagesStep,
   newGuardExcludedPluginsStep,
   newKeepExcludedPluginsStep,
   newKeepMessageFilesStep,
@@ -139,6 +143,9 @@ import {
   newStampRunCredentialsStep,
 } from "./plan-run-values-step.js";
 import { newResolveRunAgentStep } from "./resolve-run-agent.js";
+import type { QueuedTurnStarter } from "./queued-turn.js";
+import { sendMessage } from "./send-message.js";
+import type { TurnChain } from "./send-message.js";
 import { newRequireApprovalAuthorityStep } from "./approval-authority.js";
 import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
 import type { ExecutionEngineStateProvider } from "./engine.js";
@@ -283,6 +290,12 @@ export interface AgentExecutionControllerDeps {
   readonly sandboxLane: SandboxLane;
   /** Dispatch config — the sandbox ensure resolves target/queue through it. */
   readonly temporalConfig: AgentExecutionTemporalConfig;
+  /**
+   * Starts the turn a session's queued messages wait for (queued-turn.ts):
+   * sendMessage calls it for a message queued with nothing working, and a
+   * stop's drop leaves it nothing to start.
+   */
+  readonly queuedTurns: QueuedTurnStarter;
 }
 
 /** Registers both agentexecution services on the router (routes stage). */
@@ -312,6 +325,8 @@ export function registerAgentExecutionServices(
   };
   router.service(RunCommandController, {
     create: (execution, ctx) => createExecution(deps, execution, ctx),
+    sendMessage: (turn, ctx) =>
+      sendMessage({ ...deps, chain: runTurnChain(deps) }, turn, callerIdentityOf(ctx)),
     update: (input, ctx) => update(deps, input, ctx),
     updateStatus: (input, ctx) =>
       updateStatus(deps, input, callerIdentityOf(ctx)),
@@ -383,6 +398,24 @@ async function createExecution(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
+  const chain = runTurnChain(deps);
+  try {
+    await chain.admit(reqCtx);
+    await chain.start(reqCtx);
+  } catch (error) {
+    await chain.undo(reqCtx);
+    throw error;
+  }
+  return reqCtx.newState;
+}
+
+/**
+ * The create chain in its two halves, over one request context, and the
+ * take-back of the files an unstored turn's admission made the
+ * conversation's, over the same File instances: create runs one then the
+ * other, sendMessage decides between them (send-message.ts `TurnChain`).
+ */
+export function runTurnChain(deps: AgentExecutionControllerDeps): TurnChain {
   const instances = newFileInstances({
     store: deps.store,
     blobs: deps.fileBlobs,
@@ -390,6 +423,38 @@ async function createExecution(
     lifecycle: deps.authorizationLifecycle,
     logger: deps.logger,
   });
+  const admission = runAdmissionChain(deps, instances).build();
+  const start = runStartChain(deps).build();
+  return {
+    admit: (reqCtx) => admission.execute(reqCtx),
+    start: (reqCtx) => start.execute(reqCtx),
+    undo: async (reqCtx) => {
+      // A run stored before the failure keeps its files; one that never
+      // was takes them back.
+      if (!(await runIsStored(deps.store, reqCtx.newState.metadata?.id ?? ""))) {
+        await undoMessageFiles(
+          deps,
+          reqCtx.get(MESSAGE_FILES_ADDED_KEY) as MessageFilesAdded | undefined,
+          instances,
+          reqCtx.callerIdentity,
+        );
+      }
+    },
+  };
+}
+
+/**
+ * The create chain's admission: every step that decides whether the
+ * caller may send this turn, through the pre-side-effect gate slot, then
+ * the session bootstrap and the turn's files, which become the
+ * conversation's own. A message queued for a working turn
+ * (send-message.ts) is admitted by this chain when it is sent, as a turn
+ * that starts at once is.
+ */
+function runAdmissionChain(
+  deps: AgentExecutionControllerDeps,
+  instances: FileInstances,
+): PipelineBuilder<typeof RunSchema> {
   const builder = newPipeline<typeof RunSchema>(
     "agent-execution-create",
     deps.logger,
@@ -433,6 +498,7 @@ async function createExecution(
     .addStep(newValidateThinkingModeStep(deps.modelRegistry))
     .addStep(newGuardEvalRunCaseStep())
     .addStep(newGuardReconcileFileReviewStep())
+    .addStep(newGuardQueuedMessagesStep())
     .addStep(newGuardExcludedPluginsStep())
     .addStep(
       newRefuseVisitorAppendedPromptStep(deps.logger, deps.visitorClassifier),
@@ -450,7 +516,7 @@ async function createExecution(
   )) {
     builder.addStep(step);
   }
-  await builder
+  return builder
     .addStep(
       newCreateSessionIfNeededStep({
         logger: deps.logger,
@@ -459,7 +525,18 @@ async function createExecution(
         modelRegistry: deps.modelRegistry,
       }),
     )
-    .addStep(newResolveMessageFilesStep(deps.store, instances))
+    .addStep(newResolveMessageFilesStep(deps.store, instances));
+}
+
+/**
+ * The create chain's start: the turn's composed context, its phase, its
+ * values, then the row with its session's events, and the workflow.
+ */
+function runStartChain(deps: AgentExecutionControllerDeps): PipelineBuilder<typeof RunSchema> {
+  return newPipeline<typeof RunSchema>(
+    "agent-execution-start",
+    deps.logger,
+  )
     .addStep(
       newComposeDeclaredPreferencesStep(
         deps.store,
@@ -479,7 +556,8 @@ async function createExecution(
     .addStep(newStampRunCredentialsStep())
     .addStep(newPlanRunValuesStep(deps.runValuePlanner))
     // The run commits with its user message and, when it starts its
-    // session's work, the session's running status.
+    // session's work, the session's running status; a session another
+    // turn holds refuses it (session/events/run-writes.ts).
     .addStep(
       newPersistStep(deps.store, deps.credentialBinding, runCreateWriter(deps)),
     )
@@ -517,23 +595,7 @@ async function createExecution(
         temporalConfig: deps.temporalConfig,
         accounts: deps.personAccounts,
       }),
-    )
-    .build()
-    .execute(reqCtx)
-    .catch(async (error: unknown) => {
-      // A run stored before the failure keeps its files; one that never
-      // was takes them back.
-      if (!(await runIsStored(deps.store, reqCtx.newState.metadata?.id ?? ""))) {
-        await undoMessageFiles(
-          deps,
-          reqCtx.get(MESSAGE_FILES_ADDED_KEY) as MessageFilesAdded | undefined,
-          instances,
-          reqCtx.callerIdentity,
-        );
-      }
-      throw error;
-    });
-  return reqCtx.newState;
+    );
 }
 
 function kindOf(ctx: HandlerContext): ApiResourceKind {
@@ -581,6 +643,7 @@ async function update(
       .addStep(newNormalizeReferencesStep(deps.store))
       .addStep(newKeepEvalRunCaseStep())
       .addStep(newKeepReconcileFileReviewStep())
+      .addStep(newKeepQueuedMessagesStep())
       .addStep(newKeepExcludedPluginsStep())
       .addStep(newKeepMessageFilesStep())
       .addStep(newGuardReservedLabelsStep(deps.authorizer))

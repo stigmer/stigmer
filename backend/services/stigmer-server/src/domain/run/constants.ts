@@ -71,3 +71,49 @@ export function sessionIdImmutableMessage(sessionId: string): string {
   }
   return `session_id cannot be changed — an execution belongs to the session it was created in ('${sessionId}')`;
 }
+
+/**
+ * A turn refused because another turn of its session is unfinished
+ * (stigmer#2429): a session runs one turn at a time, and a message for a
+ * working session goes through sendMessage, which queues it. The reason
+ * code lets a client branch without reading the copy.
+ */
+export function sessionTurnUnfinishedMessage(sessionId: string): string {
+  return `session '${sessionId}' has an unfinished turn; send the message with sendMessage, which queues it for that turn, or stop the turn first`;
+}
+
+/** The reason a turn is refused while another of its session is unfinished. */
+export const SESSION_TURN_UNFINISHED_REASON = "SESSION_TURN_UNFINISHED";
+
+/** A turn refused while messages wait in its session's queue for the turn they start. */
+export function sessionQueueWaitsMessage(sessionId: string): string {
+  return `session '${sessionId}' has messages waiting for their turn; send the message with sendMessage, which queues it behind them`;
+}
+
+/** The reason a message is refused while a turn of its session waits for an answer. */
+export const SESSION_TURN_WAITS_FOR_ANSWER_REASON = "SESSION_TURN_WAITS_FOR_ANSWER";
+
+/** A message refused while a turn of its session waits for an answer: answer it first. */
+export function sessionTurnWaitsForAnswerMessage(sessionId: string, runId: string): string {
+  return `turn '${runId}' of session '${sessionId}' waits for an answer; allow or deny its tool use first (a deny can carry a message for the agent)`;
+}
+
+/** The reason a message is refused while a turn of its session is paused. */
+export const SESSION_TURN_PAUSED_REASON = "SESSION_TURN_PAUSED";
+
+/** A message refused while a turn of its session is paused: resume it first. */
+export function sessionTurnPausedMessage(sessionId: string, runId: string): string {
+  return `turn '${runId}' of session '${sessionId}' is paused; resume it first`;
+}
+
+/** sendMessage's refusal of a turn that names no existing session. */
+export const SEND_MESSAGE_NEEDS_SESSION_MESSAGE =
+  "a message is sent to an existing session: set spec.session_id";
+
+/** The reason a turn started from a session's queue is refused: a message it would take no longer waits. */
+export const QUEUED_MESSAGE_GONE_REASON = "QUEUED_MESSAGE_GONE";
+
+/** A turn from a session's queue refused because another write took or dropped one of its messages first. */
+export function queuedMessageGoneMessage(sessionId: string, eventId: string): string {
+  return `queued message '${eventId}' of session '${sessionId}' no longer waits: another turn took it or the session was stopped`;
+}

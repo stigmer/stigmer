@@ -56,6 +56,7 @@ public final class RunInput {
     private final boolean reconcileFileReview;
     private final java.util.List<String> excludedPluginIds;
     private final java.util.List<String> fileIds;
+    private final java.util.List<String> queuedMessageIds;
 
     private RunInput(Builder builder) {
         this.id = builder.id;
@@ -82,6 +83,7 @@ public final class RunInput {
         this.reconcileFileReview = builder.reconcileFileReview;
         this.excludedPluginIds = builder.excludedPluginIds;
         this.fileIds = builder.fileIds;
+        this.queuedMessageIds = builder.queuedMessageIds;
     }
 
     Run toProto() {
@@ -133,6 +135,9 @@ public final class RunInput {
         }
         if (this.fileIds != null && !this.fileIds.isEmpty()) {
             spec.addAllFileIds(this.fileIds);
+        }
+        if (this.queuedMessageIds != null && !this.queuedMessageIds.isEmpty()) {
+            spec.addAllQueuedMessageIds(this.queuedMessageIds);
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name);
@@ -186,6 +191,7 @@ public final class RunInput {
         private boolean reconcileFileReview;
         private java.util.List<String> excludedPluginIds;
         private java.util.List<String> fileIds;
+        private java.util.List<String> queuedMessageIds;
 
         private Builder() {}
 
@@ -218,6 +224,7 @@ public final class RunInput {
         public Builder reconcileFileReview(boolean reconcileFileReview) { this.reconcileFileReview = reconcileFileReview; return this; }
         public Builder excludedPluginIds(java.util.List<String> excludedPluginIds) { this.excludedPluginIds = excludedPluginIds; return this; }
         public Builder fileIds(java.util.List<String> fileIds) { this.fileIds = fileIds; return this; }
+        public Builder queuedMessageIds(java.util.List<String> queuedMessageIds) { this.queuedMessageIds = queuedMessageIds; return this; }
 
         public RunInput build() { return new RunInput(this); }
     }

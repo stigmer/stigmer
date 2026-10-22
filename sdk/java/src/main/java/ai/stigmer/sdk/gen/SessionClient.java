@@ -6,6 +6,8 @@ import ai.stigmer.agentic.session.v1.AppendSessionEventsInput;
 import ai.stigmer.agentic.session.v1.AppendSessionEventsResponse;
 import ai.stigmer.agentic.session.v1.BindHarnessStateInput;
 import ai.stigmer.agentic.session.v1.BindHarnessStateResponse;
+import ai.stigmer.agentic.session.v1.ClaimSessionInputInput;
+import ai.stigmer.agentic.session.v1.ClaimSessionInputResponse;
 import ai.stigmer.agentic.session.v1.ConfirmToolUseInput;
 import ai.stigmer.agentic.session.v1.GrantPermissionInput;
 import ai.stigmer.agentic.session.v1.GrantPermissionResponse;
@@ -102,6 +104,12 @@ public final class SessionClient {
     public AppendSessionEventsResponse appendEvents(AppendSessionEventsInput input) {
         try {
             return command.appendEvents(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ClaimSessionInputResponse claimInput(ClaimSessionInputInput input) {
+        try {
+            return command.claimInput(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

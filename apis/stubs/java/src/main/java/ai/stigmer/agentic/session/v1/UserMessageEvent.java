@@ -168,7 +168,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object processedAt_ = "";
   /**
    * <pre>
-   * When the server accepted the message, as RFC 3339 UTC.
+   * When the agent's turn took the message, as RFC 3339 UTC; empty while
+   * it waits in the session's queue for a turn that is working. A message
+   * still queued when the session was stopped keeps it empty.
    * </pre>
    *
    * <code>string processed_at = 3 [json_name = "processedAt"];</code>
@@ -189,7 +191,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * When the server accepted the message, as RFC 3339 UTC.
+   * When the agent's turn took the message, as RFC 3339 UTC; empty while
+   * it waits in the session's queue for a turn that is working. A message
+   * still queued when the session was stopped keeps it empty.
    * </pre>
    *
    * <code>string processed_at = 3 [json_name = "processedAt"];</code>
@@ -1016,7 +1020,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object processedAt_ = "";
     /**
      * <pre>
-     * When the server accepted the message, as RFC 3339 UTC.
+     * When the agent's turn took the message, as RFC 3339 UTC; empty while
+     * it waits in the session's queue for a turn that is working. A message
+     * still queued when the session was stopped keeps it empty.
      * </pre>
      *
      * <code>string processed_at = 3 [json_name = "processedAt"];</code>
@@ -1036,7 +1042,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When the server accepted the message, as RFC 3339 UTC.
+     * When the agent's turn took the message, as RFC 3339 UTC; empty while
+     * it waits in the session's queue for a turn that is working. A message
+     * still queued when the session was stopped keeps it empty.
      * </pre>
      *
      * <code>string processed_at = 3 [json_name = "processedAt"];</code>
@@ -1057,7 +1065,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When the server accepted the message, as RFC 3339 UTC.
+     * When the agent's turn took the message, as RFC 3339 UTC; empty while
+     * it waits in the session's queue for a turn that is working. A message
+     * still queued when the session was stopped keeps it empty.
      * </pre>
      *
      * <code>string processed_at = 3 [json_name = "processedAt"];</code>
@@ -1074,7 +1084,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When the server accepted the message, as RFC 3339 UTC.
+     * When the agent's turn took the message, as RFC 3339 UTC; empty while
+     * it waits in the session's queue for a turn that is working. A message
+     * still queued when the session was stopped keeps it empty.
      * </pre>
      *
      * <code>string processed_at = 3 [json_name = "processedAt"];</code>
@@ -1088,7 +1100,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When the server accepted the message, as RFC 3339 UTC.
+     * When the agent's turn took the message, as RFC 3339 UTC; empty while
+     * it waits in the session's queue for a turn that is working. A message
+     * still queued when the session was stopped keeps it empty.
      * </pre>
      *
      * <code>string processed_at = 3 [json_name = "processedAt"];</code>

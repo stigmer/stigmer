@@ -28,8 +28,9 @@
  *
  * The session's event log (events/): listEvents and streamEvents read it
  * under can_view on the session, appendEvents is the runner's own lane
- * (events/append.ts carries its gate), and delete removes the log before
- * the row (DeleteSessionEvents).
+ * (events/append.ts carries its gate), claimInput the runner's take of the
+ * session's queued messages through the same gate (events/claim-input.ts),
+ * and delete removes the log before the row (DeleteSessionEvents).
  *
  * reviewFileChanges keeps or undoes a turn's file edits under can_edit on
  * the session (filereview/review-file-changes.ts, deciding through
@@ -168,6 +169,7 @@ import type { SecretService } from "../../encryption/encryption.js";
 import type { VaultAttachmentOptions } from "../vault/attachments.js";
 import type { RunnerCredentialProvider } from "../../runnerauth/runner-credential-provider.js";
 import { appendSessionEvents } from "./events/append.js";
+import { claimSessionInput } from "./events/claim-input.js";
 import { bindHarnessState } from "./bind-harness.js";
 import type { SessionEventBroker } from "./events/broker.js";
 import { newDeleteSessionEventsStep } from "./events/delete-step.js";
@@ -271,6 +273,7 @@ export function registerSessionServices(
     delete: (id, ctx) => deleteSession(deps, id, ctx),
     appendEvents: (input, ctx) => appendSessionEvents(deps, input, ctx),
     bindHarnessState: (input, ctx) => bindHarnessState(deps, input, ctx),
+    claimInput: (input, ctx) => claimSessionInput(deps, input, ctx),
     reviewFileChanges: (input, ctx) =>
       reviewFileChanges(deps, input, callerIdentityOf(ctx)),
     confirmToolUse: (input, ctx) => confirmToolUse(deps, input, callerIdentityOf(ctx)),

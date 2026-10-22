@@ -438,6 +438,48 @@ export function newGuardReconcileFileReviewStep(): PipelineStep<CreateDesc> {
   };
 }
 
+/** The refusal of a turn naming queued messages on a request the server did not compose. */
+export const QUEUED_MESSAGES_NOT_COMPOSED_MESSAGE =
+  "spec.queued_message_ids is set only by the server's start of a session's queued messages";
+
+/**
+ * GuardQueuedMessages: `spec.queued_message_ids` makes a turn that writes
+ * no message of its own and takes the session's queued messages as its
+ * own (queued-turn.ts). Only the server's start of a session's queue
+ * composes it, as the newest sender; any other request that carries it is
+ * refused, whoever sends it, so no caller takes another person's queued
+ * message into a turn of their own.
+ */
+export function newGuardQueuedMessagesStep(): PipelineStep<CreateDesc> {
+  return {
+    name: "GuardQueuedMessages",
+    async execute(ctx) {
+      if ((ctx.newState.spec?.queuedMessageIds ?? []).length === 0) {
+        return;
+      }
+      if (!isServerComposedRequest(ctx.callerIdentity)) {
+        throw permissionDeniedError(QUEUED_MESSAGES_NOT_COMPOSED_MESSAGE);
+      }
+    },
+  };
+}
+
+/**
+ * KeepQueuedMessages: on update, a run's `spec.queued_message_ids` stays
+ * what the create stored, whatever the request carries, for the reason
+ * KeepReconcileFileReview gives.
+ */
+export function newKeepQueuedMessagesStep(): PipelineStep<CreateDesc> {
+  return {
+    name: "KeepQueuedMessages",
+    execute(ctx) {
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as Run | undefined;
+      ctx.newState.spec ??= create(RunSpecSchema);
+      ctx.newState.spec.queuedMessageIds = [...(existing?.spec?.queuedMessageIds ?? [])];
+    },
+  };
+}
+
 /**
  * KeepReconcileFileReview: on update, a run's `spec.reconcile_file_review`
  * stays what the create stored, whatever the request carries. Run update

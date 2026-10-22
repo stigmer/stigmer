@@ -27,6 +27,7 @@ import type { WorkerFactory } from "../manager.js";
 import { resolveWorkflowSource } from "../workflow-source.js";
 import type { ExecutionStatusWriter } from "./activities.js";
 import { createAgentExecutionActivities } from "./activities.js";
+import type { QueuedTurnStarter } from "../../domain/run/queued-turn.js";
 
 export interface AgentExecutionWorkerDeps {
   readonly store: Store;
@@ -40,6 +41,8 @@ export interface AgentExecutionWorkerDeps {
   readonly statusWriter: () => ExecutionStatusWriter;
   /** The session event fan-out the CloseFileReview activity's write publishes to. */
   readonly sessionEventBroker: SessionEventBroker;
+  /** Starts the turn a session's queued messages wait for (the StartQueuedTurn activity). */
+  readonly queuedTurns: QueuedTurnStarter;
   readonly temporalConfig: AgentExecutionTemporalConfig;
 }
 
@@ -52,6 +55,7 @@ export function newAgentExecutionWorkerFactory(
       logger: deps.logger,
       statusWriter: deps.statusWriter,
       sessionEventBroker: deps.sessionEventBroker,
+      queuedTurns: deps.queuedTurns,
     });
 
     const workflowSource = resolveWorkflowSource({

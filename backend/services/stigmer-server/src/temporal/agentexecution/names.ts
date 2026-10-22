@@ -123,3 +123,18 @@ export const COUNT_OPEN_GATES_ACTIVITY_NAME = "CountOpenGates";
  * loaded the run for its pending approvals replays that load. Byte-pinned.
  */
 export const OPEN_GATES_FROM_LOG_PATCH_ID = "open-gates-from-log";
+
+/**
+ * The start of the turn a session's queued messages wait for
+ * (domain/run/queued-turn.ts), run as a run's workflow ends, however it
+ * ends: the durable start of messages sent while the turn worked.
+ * Byte-pinned.
+ */
+export const START_QUEUED_TURN_ACTIVITY_NAME = "StartQueuedTurn";
+
+/**
+ * The workflow patch behind which a run's workflow starts its session's
+ * queued turn as it ends: a run started before the step has no such call in
+ * its history, so a replay of it makes none. Byte-pinned.
+ */
+export const START_QUEUED_TURN_PATCH_ID = "start-queued-turn";

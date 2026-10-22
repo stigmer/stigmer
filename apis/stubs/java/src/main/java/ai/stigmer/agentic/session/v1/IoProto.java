@@ -147,6 +147,16 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_session_v1_AppendSessionEventsResponse_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_session_v1_ClaimSessionInputInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_session_v1_ClaimSessionInputInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_session_v1_ClaimSessionInputResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_session_v1_ClaimSessionInputResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_session_v1_UpdateSessionInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -298,26 +308,30 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "wB\t\272H\006\222\001\003\020\350\007R\010previews\"b\n\033AppendSessionE" +
       "ventsResponse\022C\n\006events\030\001 \003(\0132+.ai.stigm" +
       "er.agentic.session.v1.SessionEventR\006even" +
-      "ts\"\347\002\n\022UpdateSessionInput\022J\n\010resource\030\001 " +
-      "\001(\0132&.ai.stigmer.agentic.session.v1.Sess" +
-      "ionB\006\272H\003\330\001\003R\010resource\022C\n\013update_mask\030\002 \001" +
-      "(\0132\032.google.protobuf.FieldMaskB\006\272H\003\310\001\001R\n" +
-      "updateMask:\277\001\272H\273\001\032\270\001\n\027update_names_its_t" +
-      "arget\022Gresource.metadata.id is required:" +
-      " an update names the session by its id\032T" +
-      "has(this.resource) && has(this.resource." +
-      "metadata) && this.resource.metadata.id !" +
-      "= \'\'\"h\n\025BindHarnessStateInput\022\035\n\006run_id\030" +
-      "\001 \001(\tB\006\272H\003\310\001\001R\005runId\0220\n\020harness_state_id" +
-      "\030\002 \001(\tB\006\272H\003\310\001\001R\016harnessStateId\"}\n\030BindHa" +
-      "rnessStateResponse\022(\n\020harness_state_id\030\001" +
-      " \001(\tR\016harnessStateId\0227\n\030harness_state_id" +
-      "_history\030\002 \003(\tR\025harnessStateIdHistoryB\242\001" +
-      "B\007IoProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic." +
-      "Session.V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\" +
-      "V1\342\002)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMe" +
-      "tadata\352\002!Ai::Stigmer::Agentic::Session::" +
-      "V1b\006proto3"
+      "ts\"8\n\026ClaimSessionInputInput\022\036\n\006run_id\030\001" +
+      " \001(\tB\007\272H\004r\002\020\001R\005runId\"`\n\031ClaimSessionInpu" +
+      "tResponse\022C\n\006events\030\001 \003(\0132+.ai.stigmer.a" +
+      "gentic.session.v1.SessionEventR\006events\"\347" +
+      "\002\n\022UpdateSessionInput\022J\n\010resource\030\001 \001(\0132" +
+      "&.ai.stigmer.agentic.session.v1.SessionB" +
+      "\006\272H\003\330\001\003R\010resource\022C\n\013update_mask\030\002 \001(\0132\032" +
+      ".google.protobuf.FieldMaskB\006\272H\003\310\001\001R\nupda" +
+      "teMask:\277\001\272H\273\001\032\270\001\n\027update_names_its_targe" +
+      "t\022Gresource.metadata.id is required: an " +
+      "update names the session by its id\032Thas(" +
+      "this.resource) && has(this.resource.meta" +
+      "data) && this.resource.metadata.id != \'\'" +
+      "\"h\n\025BindHarnessStateInput\022\035\n\006run_id\030\001 \001(" +
+      "\tB\006\272H\003\310\001\001R\005runId\0220\n\020harness_state_id\030\002 \001" +
+      "(\tB\006\272H\003\310\001\001R\016harnessStateId\"}\n\030BindHarnes" +
+      "sStateResponse\022(\n\020harness_state_id\030\001 \001(\t" +
+      "R\016harnessStateId\0227\n\030harness_state_id_his" +
+      "tory\030\002 \003(\tR\025harnessStateIdHistoryB\242\001B\007Io" +
+      "ProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Sess" +
+      "ion.V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002" +
+      ")Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetada" +
+      "ta\352\002!Ai::Stigmer::Agentic::Session::V1b\006" +
+      "proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -472,20 +486,32 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_AppendSessionEventsResponse_descriptor,
         new java.lang.String[] { "Events", });
-    internal_static_ai_stigmer_agentic_session_v1_UpdateSessionInput_descriptor =
+    internal_static_ai_stigmer_agentic_session_v1_ClaimSessionInputInput_descriptor =
       getDescriptor().getMessageType(21);
+    internal_static_ai_stigmer_agentic_session_v1_ClaimSessionInputInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_session_v1_ClaimSessionInputInput_descriptor,
+        new java.lang.String[] { "RunId", });
+    internal_static_ai_stigmer_agentic_session_v1_ClaimSessionInputResponse_descriptor =
+      getDescriptor().getMessageType(22);
+    internal_static_ai_stigmer_agentic_session_v1_ClaimSessionInputResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_session_v1_ClaimSessionInputResponse_descriptor,
+        new java.lang.String[] { "Events", });
+    internal_static_ai_stigmer_agentic_session_v1_UpdateSessionInput_descriptor =
+      getDescriptor().getMessageType(23);
     internal_static_ai_stigmer_agentic_session_v1_UpdateSessionInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_UpdateSessionInput_descriptor,
         new java.lang.String[] { "Resource", "UpdateMask", });
     internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateInput_descriptor =
-      getDescriptor().getMessageType(22);
+      getDescriptor().getMessageType(24);
     internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateInput_descriptor,
         new java.lang.String[] { "RunId", "HarnessStateId", });
     internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateResponse_descriptor =
-      getDescriptor().getMessageType(23);
+      getDescriptor().getMessageType(25);
     internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateResponse_descriptor,

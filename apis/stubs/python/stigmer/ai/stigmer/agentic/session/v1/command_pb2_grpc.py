@@ -67,6 +67,11 @@ class SessionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AppendSessionEventsInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AppendSessionEventsResponse.FromString,
                 _registered_method=True)
+        self.claimInput = channel.unary_unary(
+                '/ai.stigmer.agentic.session.v1.SessionCommandController/claimInput',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ClaimSessionInputInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ClaimSessionInputResponse.FromString,
+                _registered_method=True)
         self.bindHarnessState = channel.unary_unary(
                 '/ai.stigmer.agentic.session.v1.SessionCommandController/bindHarnessState',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.BindHarnessStateInput.SerializeToString,
@@ -209,8 +214,10 @@ class SessionCommandControllerServicer(object):
         """Stop the session's unfinished work.
 
         Appends a user.interrupt and stops every unfinished turn of the
-        conversation: queued, working, waiting for an answer or paused. Each
-        ends cancelled and the session goes idle with end_turn. Files undone
+        conversation: pending, working, waiting for an answer or paused. Each
+        ends cancelled and the session goes idle with end_turn. The messages
+        still queued for a turn (RunCommandController.sendMessage) are dropped
+        first: they stay listed with no processed_at, never read. Files undone
         in a turn that waited are put back at once.
 
         ## Error Conditions
@@ -250,6 +257,18 @@ class SessionCommandControllerServicer(object):
         finished. It accepts the events a runner produces: agent.*,
         session.thread_* and session.error. The batch is appended whole or not
         at all.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def claimInput(self, request, context):
+        """Take the messages queued in a run's session for the run to read.
+
+        Only the runner acting for the run may call it, while the run works
+        (pending or in progress). Every message still queued moves to the head
+        of the log as this run's, with its processed_at, and is answered in
+        the order sent; none when nothing waits.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -318,6 +337,11 @@ def add_SessionCommandControllerServicer_to_server(servicer, server):
                     servicer.appendEvents,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AppendSessionEventsInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AppendSessionEventsResponse.SerializeToString,
+            ),
+            'claimInput': grpc.unary_unary_rpc_method_handler(
+                    servicer.claimInput,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ClaimSessionInputInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ClaimSessionInputResponse.SerializeToString,
             ),
             'bindHarnessState': grpc.unary_unary_rpc_method_handler(
                     servicer.bindHarnessState,
@@ -596,6 +620,33 @@ class SessionCommandController(object):
             '/ai.stigmer.agentic.session.v1.SessionCommandController/appendEvents',
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AppendSessionEventsInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.AppendSessionEventsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def claimInput(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.session.v1.SessionCommandController/claimInput',
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ClaimSessionInputInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ClaimSessionInputResponse.FromString,
             options,
             channel_credentials,
             insecure,

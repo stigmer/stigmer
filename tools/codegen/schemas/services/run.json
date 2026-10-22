@@ -14,7 +14,15 @@
           "inputFullType": "ai.stigmer.agentic.run.v1.Run",
           "outputType": "Run",
           "outputFullType": "ai.stigmer.agentic.run.v1.Run",
-          "description": "Create and trigger a new run: a turn in an existing session,\n or the first turn of a new one created from session_spec."
+          "description": "Create and trigger a new run: a turn in an existing session,\n or the first turn of a new one created from session_spec.\n\n A session works on one turn at a time. A turn in a session that already\n has an unfinished turn (pending, in progress, waiting for an answer or\n paused), or messages queued for the turn they start, is refused: send\n the message with sendMessage, which queues it.\n\n ## Error Conditions\n\n - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain\n   \"stigmer.ai\", reason SESSION_TURN_UNFINISHED, metadata session_id):\n   another turn of the session is unfinished, or messages wait for\n   their turn"
+        },
+        {
+          "name": "SendMessage",
+          "inputType": "Run",
+          "inputFullType": "ai.stigmer.agentic.run.v1.Run",
+          "outputType": "SendMessageResponse",
+          "outputFullType": "ai.stigmer.agentic.run.v1.SendMessageResponse",
+          "description": "Send a message to a session: the turn starts now, or the message waits\n for the turn that is working.\n\n run is the turn as create takes it, in an existing session\n (spec.session_id). When no turn of the session is unfinished, the turn\n starts at once, exactly as create starts it, and the reply names it.\n While a turn works, the message is queued instead: its user.message is\n stored with no processed_at and no run_id, and the reply carries it.\n The working turn reads it, or, once that turn has ended, the next turn\n starts with every message still queued, in the order sent: their texts\n joined, their files together, with the settings of the newest. A\n message read is listed once, where the agent read it, with its\n processed_at and the run that read it; it streams a second time as it\n moves there.\n\n A queued message meets every check a turn meets when it is sent, and\n the turn it starts meets them again. Stopping the session (interrupt,\n or terminating a turn) drops the messages still queued: they stay\n listed with no processed_at. A turn that cannot start (its agent was\n removed since, or a check refuses it) leaves them so too, and the\n session records the reason as a session.error.\n\n ## Error Conditions\n\n - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain\n   \"stigmer.ai\", metadata session_id and run_id): reason\n   SESSION_TURN_WAITS_FOR_ANSWER while a turn of the session waits for\n   an answer (allow or deny it first; a deny can carry a message), or\n   SESSION_TURN_PAUSED while one is paused (resume it first)\n - FAILED_PRECONDITION: spec names no existing session\n - every refusal create answers"
         },
         {
           "name": "Update",
@@ -46,7 +54,7 @@
           "inputFullType": "ai.stigmer.agentic.run.v1.TerminateRunInput",
           "outputType": "Run",
           "outputFullType": "ai.stigmer.agentic.run.v1.Run",
-          "description": "Terminate a run immediately.\n\n Force-stops the run without allowing cleanup. Unlike the session's\n interrupt, the agent cannot respond to termination - it is stopped immediately.\n Use this for stuck or unresponsive agents."
+          "description": "Terminate a run immediately.\n\n Force-stops the run without allowing cleanup. Unlike the session's\n interrupt, the agent cannot respond to termination - it is stopped immediately.\n Use this for stuck or unresponsive agents. The messages still queued in\n the run's session (sendMessage) are dropped with it: they stay listed,\n never read."
         },
         {
           "name": "Recover",
@@ -164,6 +172,36 @@
   ],
   "methodTypes": [
     {
+      "name": "SendMessageResponse",
+      "description": "SendMessageResponse answers a message sent to a session.",
+      "protoType": "ai.stigmer.agentic.run.v1.SendMessageResponse",
+      "protoFile": "apis/ai/stigmer/agentic/run/v1/io.proto",
+      "fields": [
+        {
+          "name": "Message",
+          "jsonName": "message",
+          "protoField": "message",
+          "type": {
+            "kind": "message",
+            "messageType": "SessionEvent"
+          },
+          "description": "The message's user.message: queued, with no processed_at and no\n run_id, or the one the started turn was created with.",
+          "required": false
+        },
+        {
+          "name": "Run",
+          "jsonName": "run",
+          "protoField": "run",
+          "type": {
+            "kind": "message",
+            "messageType": "Run"
+          },
+          "description": "The turn the message started; absent when it was queued.",
+          "required": false
+        }
+      ]
+    },
+    {
       "name": "UpdateRunInput",
       "description": "The changes an update makes to a run: the fields update_mask names,\n taken from resource.",
       "protoType": "ai.stigmer.agentic.run.v1.UpdateRunInput",
@@ -260,6 +298,16 @@
             "kind": "string"
           },
           "description": "Human-readable reason for the signal (optional).\n Logged by the runner and may be surfaced to the user in the stop summary.",
+          "required": false
+        },
+        {
+          "name": "InputPending",
+          "jsonName": "inputPending",
+          "protoField": "input_pending",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Messages sent to the run's session wait to be read\n (RunCommandController.sendMessage).",
           "required": false
         }
       ]

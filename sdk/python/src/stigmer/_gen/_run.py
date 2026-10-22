@@ -36,6 +36,12 @@ class RunClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def send_message(self, input: RunInput) -> io_pb2.SendMessageResponse:
+        try:
+            return self._command.sendMessage(input._to_proto())
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def update(self, resource: api_pb2.Run, paths: list[str]) -> api_pb2.Run:
         try:
             return self._command.update(
@@ -193,6 +199,7 @@ class RunInput:
     reconcile_file_review: bool = False
     excluded_plugin_ids: list[str] = field(default_factory=list)
     file_ids: list[str] = field(default_factory=list)
+    queued_message_ids: list[str] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.Run:
         spec = spec_pb2.RunSpec(
@@ -222,6 +229,8 @@ class RunInput:
             spec.excluded_plugin_ids.extend(self.excluded_plugin_ids)
         if self.file_ids:
             spec.file_ids.extend(self.file_ids)
+        if self.queued_message_ids:
+            spec.queued_message_ids.extend(self.queued_message_ids)
         if self.session_spec is not None:
             spec.session_spec.CopyFrom(self.session_spec._to_proto())
         if self.session_id:

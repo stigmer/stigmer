@@ -19,7 +19,9 @@
  *     written against. The log writes a message, then its tool uses, then
  *     their results, and no message for one without text; so a tool use
  *     after the previous uses' results opens an assistant line of its
- *     own, and a message's calls stay on its line. A block's id is the
+ *     own, and a message's calls stay on its line. A message the person
+ *     sent while the turn worked is a user line where the turn read it;
+ *     the request stays the turn's first message. A block's id is the
  *     provider's call id (../turn.ts `callIdOf`);
  *   - the tool calls, each with its Claude name and its JSON-encoded
  *     input. An engine name reads as the Claude tool it covers
@@ -262,6 +264,12 @@ export async function evalTraceOf(
         group.uses.push(item);
         break;
       }
+      case "user_message":
+        // A message the person sent while the turn worked, read at this
+        // point: a user line of its own, after what came before it.
+        flush();
+        traceLines.push(line({ type: "user", message: { role: "user", content: item.text } }));
+        break;
       case "thinking":
       case "note":
       case "compacted":

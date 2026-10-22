@@ -908,5 +908,58 @@ public interface RunSpecOrBuilder extends
   com.google.protobuf.ByteString
       getFileIdsBytes(int index);
 
+  /**
+   * <pre>
+   * The queued messages this turn reads, by their user.message ids, in
+   * the order they were sent: set on the turn a session starts with the
+   * messages still queued when its working turn ended
+   * (RunCommandController.sendMessage).
+   * </pre>
+   *
+   * <code>repeated string queued_message_ids = 29 [json_name = "queuedMessageIds", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the queuedMessageIds.
+   */
+  java.util.List<java.lang.String>
+      getQueuedMessageIdsList();
+  /**
+   * <pre>
+   * The queued messages this turn reads, by their user.message ids, in
+   * the order they were sent: set on the turn a session starts with the
+   * messages still queued when its working turn ended
+   * (RunCommandController.sendMessage).
+   * </pre>
+   *
+   * <code>repeated string queued_message_ids = 29 [json_name = "queuedMessageIds", (.buf.validate.field) = { ... }</code>
+   * @return The count of queuedMessageIds.
+   */
+  int getQueuedMessageIdsCount();
+  /**
+   * <pre>
+   * The queued messages this turn reads, by their user.message ids, in
+   * the order they were sent: set on the turn a session starts with the
+   * messages still queued when its working turn ended
+   * (RunCommandController.sendMessage).
+   * </pre>
+   *
+   * <code>repeated string queued_message_ids = 29 [json_name = "queuedMessageIds", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The queuedMessageIds at the given index.
+   */
+  java.lang.String getQueuedMessageIds(int index);
+  /**
+   * <pre>
+   * The queued messages this turn reads, by their user.message ids, in
+   * the order they were sent: set on the turn a session starts with the
+   * messages still queued when its working turn ended
+   * (RunCommandController.sendMessage).
+   * </pre>
+   *
+   * <code>repeated string queued_message_ids = 29 [json_name = "queuedMessageIds", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the queuedMessageIds at the given index.
+   */
+  com.google.protobuf.ByteString
+      getQueuedMessageIdsBytes(int index);
+
   ai.stigmer.agentic.run.v1.RunSpec.TargetCase getTargetCase();
 }

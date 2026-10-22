@@ -131,6 +131,7 @@ describe("own-behalf status writes under an enforcing Authorizer", () => {
       logger: createLogger({ level: "error", pretty: false, write: () => {} }),
       statusWriter: () => statusWriter,
       sessionEventBroker: server.sessionEventBroker,
+      queuedTurns: async () => undefined,
     })[UPDATE_EXECUTION_STATUS_ACTIVITY_NAME] as UpdateStatusActivity;
   });
 

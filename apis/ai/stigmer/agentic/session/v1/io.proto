@@ -395,6 +395,20 @@ message AppendSessionEventsResponse {
   repeated SessionEvent events = 1;
 }
 
+// ClaimSessionInputInput names the run that takes its session's queued
+// messages.
+message ClaimSessionInputInput {
+  // The run that reads them.
+  string run_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// ClaimSessionInputResponse answers the messages the run took.
+message ClaimSessionInputResponse {
+  // Their user.message events as the log now holds them, in the order
+  // they were sent.
+  repeated SessionEvent events = 1;
+}
+
 // The changes an update makes to a session: the fields update_mask names,
 // taken from resource.
 message UpdateSessionInput {

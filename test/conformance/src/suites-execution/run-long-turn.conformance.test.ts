@@ -38,16 +38,13 @@
 //     restart, sees every event of the session's log exactly once and in
 //     order, the turn's end included.
 //   - A `user.message` mid-turn, sent through the Managed Agents wire while
-//     the first turn's shell works. Desired: the message joins the running
-//     turn or waits as its next one, never a second run working beside the
-//     first, and neither fails. The runner's own workspace lock is today's
-//     only order between the two (15 minutes by default; no boot path lets a
-//     test shrink it, stigmer#1731), so this arm reads the overlap from the
-//     two runs' own start and completion stamps.
-//
-// Whatever is not true today is a known gap, marked by its open issue
-// (`@stigmer/test-support/known-gap`): the arm asserts what the user should
-// get, passes while today's named outcome holds, and fails once the gap closes.
+//     the first turn's shell works (stigmer#2429). The message is queued:
+//     the send answers it with processed_at null and starts no second run.
+//     It is read by the working turn or, once that turn has ended, starts
+//     the next one, never a run working beside the first; neither fails, and
+//     the log lists the message once, read, where the turn that read it
+//     read it. The overlap is read from the runs' own start and completion
+//     stamps.
 //
 // Cursor is not here: its SDK cannot run inside a runner process against a
 // double (the hermetic kit mocks `@cursor/sdk` in the test process), so its
@@ -62,7 +59,6 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
-import { expectKnownGap } from "@stigmer/test-support/known-gap";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -80,9 +76,6 @@ let target: TargetProfile;
 let clients: ConformanceClients;
 let mock: MockLlmProxy;
 const fixtures = new FixtureTracker();
-
-/** The open issue the mid-turn message arm is a known gap of. */
-const MESSAGE_STARTS_A_SECOND_RUN = "stigmer/stigmer#2429";
 
 /** How long a watcher may take to catch the log once the turn has ended: a tail read on the other server (15 s), with room. */
 const WATCHER_CATCHES_UP_MS = 45_000;
@@ -266,7 +259,7 @@ describe("a long turn on a real runner", () => {
   );
 
   it(
-    "a user.message sent through the Managed Agents wire while a turn works joins it or waits as its next turn; neither turn fails",
+    "a user.message sent through the Managed Agents wire while a turn works is queued, then joins it or starts the next turn; never a second run beside it",
     async () => {
       const step = new HeldStep();
       const first = await startHeldRun(uniqueName("Build the project"), step, "The build is done.");
@@ -275,39 +268,40 @@ describe("a long turn on a real runner", () => {
 
       mock.enqueue(anthropicText("Here is the answer to the second message."));
       const sdk = await sdkFor(first.org);
-      await sdk.beta.sessions.events.send(sessionId, { events: [{ type: "user.message", content: [{ type: "text", text: "While you build: what is left?" }] }] });
-      const secondId = await newestRunId(sessionId);
-      fixtures.defer(async () => {
-        await awaitTerminal(clients, secondId, { timeoutMs: ARM_TIMEOUT_MS }).catch(() => undefined);
-        await clients.agentExecutionCommand.delete({ value: secondId }).catch(() => undefined);
+      const sent = await sdk.beta.sessions.events.send(sessionId, {
+        events: [{ type: "user.message", content: [{ type: "text", text: "While you build: what is left?" }] }],
       });
+      const message = sent.data?.[0];
+      expect(message?.type, "the send answers the message").toBe("user.message");
+      expect(message?.processed_at ?? null, "the message waits while the turn works").toBeNull();
+      const messageId = message?.id ?? "";
+      expect(await runIdsOf(sessionId), "no second run starts while the first works").toEqual([first.id]);
 
       await new Promise((resolve) => setTimeout(resolve, FIRST_TURN_WORKS_ON_MS));
       step.release();
       const firstSettled = await awaitTerminal(clients, first.id, { timeoutMs: ARM_TIMEOUT_MS });
-      const secondSettled = await awaitTerminal(clients, secondId, { timeoutMs: ARM_TIMEOUT_MS });
+      const readerId = await runThatRead(sessionId, messageId, ARM_TIMEOUT_MS);
+      fixtures.defer(async () => {
+        if (readerId !== first.id) {
+          await awaitTerminal(clients, readerId, { timeoutMs: ARM_TIMEOUT_MS }).catch(() => undefined);
+          await clients.agentExecutionCommand.delete({ value: readerId }).catch(() => undefined);
+        }
+      });
+      const readerSettled = await awaitTerminal(clients, readerId, { timeoutMs: ARM_TIMEOUT_MS });
       console.log(
-        `[long turn] mid-turn message: first ${RunPhase[firstSettled.status?.phase ?? 0]} (started ${firstSettled.status?.startedAt}, completed ${firstSettled.status?.completedAt}), ` +
-          `second ${RunPhase[secondSettled.status?.phase ?? 0]} (started ${secondSettled.status?.startedAt}, completed ${secondSettled.status?.completedAt}) ${secondSettled.status?.error ?? ""}`,
+        `[long turn] mid-turn message: first ${RunPhase[firstSettled.status?.phase ?? 0]} (completed ${firstSettled.status?.completedAt}), ` +
+          `read by ${readerId === first.id ? "the working turn" : `the next turn, started ${readerSettled.status?.startedAt}`} ` +
+          `(${RunPhase[readerSettled.status?.phase ?? 0]}) ${readerSettled.status?.error ?? ""}`,
       );
 
-      await expectKnownGap(
-        {
-          issue: MESSAGE_STARTS_A_SECOND_RUN,
-          today: {
-            says: "the message starts a second run at once, which waits beside the first on the runner's workspace lock",
-            holds: () =>
-              firstSettled.status?.phase === RunPhase.RUN_COMPLETED &&
-              secondSettled.status?.phase === RunPhase.RUN_COMPLETED &&
-              overlapped(firstSettled, secondSettled),
-          },
-        },
-        () => {
-          expect(firstSettled.status?.phase, `the working turn: ${firstSettled.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
-          expect(secondSettled.status?.phase, `the message's turn: ${secondSettled.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
-          expect(overlapped(firstSettled, secondSettled), "the message never ran as a second run beside the working one").toBe(false);
-        },
+      expect(firstSettled.status?.phase, `the working turn: ${firstSettled.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
+      expect(readerSettled.status?.phase, `the turn that read the message: ${readerSettled.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
+      expect(overlapped(firstSettled, readerSettled), "the message never ran as a second run beside the working one").toBe(false);
+      const listed = (await clients.sessionQuery.listEvents({ sessionId, pageSize: 1000, types: ["user.message"] })).events.filter(
+        (event) => event.event.case === "userMessage" && event.event.value.id === messageId,
       );
+      expect(listed.map((event) => event.runId), "the message is listed once, as the run's that read it").toEqual([readerId]);
+      expect(listed[0]?.event.value?.processedAt, "the listed message was read").not.toBe("");
     },
     ARM_TIMEOUT_MS,
   );
@@ -457,10 +451,24 @@ async function sdkFor(org: string): Promise<Anthropic> {
   return managedAgentsClient(target.managedAgentsBaseUrl(), { apiKey: key.spec?.keyHash ?? "" });
 }
 
-/** The run the newest user.message started, from the native log. */
-async function newestRunId(sessionId: string): Promise<string> {
-  const { events } = await clients.sessionQuery.listEvents({ sessionId, order: "desc", types: ["user.message"], pageSize: 1 });
-  const runId = events[0]?.runId ?? "";
-  expect(runId, "the sent message started a turn").not.toBe("");
-  return runId;
+/** The session's runs, by id, oldest first. */
+async function runIdsOf(sessionId: string): Promise<string[]> {
+  const page = await clients.agentExecutionQuery.listBySession({ sessionId });
+  return page.entries.map((run) => run.metadata?.id ?? "").reverse();
+}
+
+/** The run whose user.message `messageId` is, once a run has read it; bounded, naming what it waited for. */
+async function runThatRead(sessionId: string, messageId: string, budgetMs: number): Promise<string> {
+  const deadline = Date.now() + budgetMs;
+  for (;;) {
+    const { events } = await clients.sessionQuery.listEvents({ sessionId, types: ["user.message"], pageSize: 1000 });
+    const read = events.find((event) => event.event.case === "userMessage" && event.event.value.id === messageId && event.runId !== "");
+    if (read !== undefined) {
+      return read.runId;
+    }
+    if (Date.now() > deadline) {
+      throw new Error(`no run read the queued message ${messageId} within ${budgetMs} ms`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
 }

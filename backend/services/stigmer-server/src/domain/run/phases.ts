@@ -70,3 +70,6 @@ export const WAITING_PHASES: ReadonlyArray<RunPhase> = [RunPhase.RUN_WAITING_FOR
 export function isWaitingPhase(phase: RunPhase): boolean {
   return WAITING_PHASES.includes(phase);
 }
+
+/** The phase in which a run's turn is paused until a person resumes it. */
+export const PAUSED_PHASES: ReadonlyArray<RunPhase> = [RunPhase.RUN_PAUSED];

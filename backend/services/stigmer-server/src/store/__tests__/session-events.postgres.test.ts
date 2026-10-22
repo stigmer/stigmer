@@ -67,6 +67,12 @@ const CONTRACT_CASE_NAMES = [
   "a write that names no session finds it through the row, and a row that is not stored is not found",
   "a row in no session writes no events",
   "deleteBySession removes one session's events; deleteByOrg removes an organization's",
+  "a queued message takes the session's next number, is accepted at no time and waits with its side row, in the order sent",
+  "a write that takes queued messages moves them to the head as its run's, and is refused whole for one that no longer waits",
+  "a queue write is handed the session's working, waiting and paused runs and its queue, and drops by id, keeping the event",
+  "every write is handed its session's queue length and paused runs, and the queue itself when it asks",
+  "the run of a session's newest event of a type passes over a queued message",
+  "a session's delete and an organization's purge remove its queue with its events",
   "a disconnected store is an infrastructure fault, never 'not found'",
 ] as const;
 

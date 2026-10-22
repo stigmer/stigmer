@@ -54,6 +54,13 @@
  *     user-cancel and pause-resume replay histories.
  *   - Recovery is terminate-and-start-fresh ONLY (stigmer#200); no
  *     version gates (no Go-era history can replay here).
+ *   - The session's queue: however the workflow ends (it completes, fails
+ *     or is cancelled), its last act is StartQueuedTurn, which starts the
+ *     turn the session's queued messages wait for, if any
+ *     (domain/run/queued-turn.ts): a retried activity on a non-cancellable
+ *     scope, behind START_QUEUED_TURN_PATCH_ID, so messages sent while the
+ *     turn worked are read even across a server restart. A failure after
+ *     its retries is logged; the workflow ends as it would have.
  *
  * Payload-boundary rule: proto
  * Message instances never cross activity payloads — statuses travel as
@@ -121,6 +128,8 @@ import {
   SIGNAL_APPROVAL_GATE_RESOLVED,
   SIGNAL_PAUSE,
   SIGNAL_RESUME,
+  START_QUEUED_TURN_ACTIVITY_NAME,
+  START_QUEUED_TURN_PATCH_ID,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
   VALUES_FETCHED_PATCH_ID,
 } from "../names.js";
@@ -321,6 +330,7 @@ interface ServerActivities {
     executionId: string,
     statusJson: JsonValue,
   ) => Promise<void>;
+  [START_QUEUED_TURN_ACTIVITY_NAME]: (sessionId: string) => Promise<void>;
 }
 
 /**
@@ -336,6 +346,18 @@ const failurePathActivities = proxyActivities<
 >({
   startToCloseTimeout: "30s",
   retry: { maximumAttempts: 3, initialInterval: "2s" },
+});
+
+/**
+ * The queue's start runs a whole run create, so it is a regular activity
+ * on the workflow's own (stigmer) queue, retried with backoff: a server
+ * restart between the turn's end and the start loses nothing.
+ */
+const queuedTurnActivities = proxyActivities<
+  Pick<ServerActivities, typeof START_QUEUED_TURN_ACTIVITY_NAME>
+>({
+  startToCloseTimeout: "2m",
+  retry: { maximumAttempts: 10, initialInterval: "2s", backoffCoefficient: 2, maximumInterval: "1m" },
 });
 
 interface LocalActivities {
@@ -419,6 +441,7 @@ export async function invokeAgentExecution(
     if (workflowCancelled) {
       log.info("Workflow cancelled, running cancellation cleanup", { executionId });
       await handleCancellation(executionId);
+      await startQueuedTurn(input);
       throw (
         findInCauseChain(flowError, CancelledFailure) ??
         new CancelledFailure("Workflow cancelled")
@@ -439,6 +462,7 @@ export async function invokeAgentExecution(
     }
 
     await retiredContextCleanup(executionId);
+    await startQueuedTurn(input);
     throw ApplicationFailure.create({
       message: "Workflow execution failed",
       cause: flowError instanceof Error ? flowError : new Error(String(flowError)),
@@ -451,6 +475,34 @@ export async function invokeAgentExecution(
   );
 
   await retiredContextCleanup(executionId);
+  await startQueuedTurn(input);
+}
+
+/**
+ * The workflow's last act, however it ends (module header): starts the
+ * turn the session's queued messages wait for. Never throws: the workflow
+ * ends as it would have, and the queue's own status observer started or
+ * will start the turn where this could not.
+ */
+async function startQueuedTurn(input: InvokeAgentExecutionWorkflowInput): Promise<void> {
+  if (!patched(START_QUEUED_TURN_PATCH_ID)) {
+    return;
+  }
+  const sessionId = input.session_id ?? "";
+  if (sessionId === "") {
+    return;
+  }
+  try {
+    await CancellationScope.nonCancellable(() =>
+      queuedTurnActivities[START_QUEUED_TURN_ACTIVITY_NAME](sessionId),
+    );
+  } catch (error) {
+    log.warn("The session's queued turn could not be started", {
+      executionId: input.execution_id,
+      sessionId,
+      error: errorMessage(error),
+    });
+  }
 }
 
 // ─── Signal buffering (Go's buffered signal channels) ───────────────────

@@ -93,7 +93,8 @@ falls behind only lags; its stream is not ended for it.
 
 `send` takes the events a person sends to a Session. Stigmer accepts three:
 
-- `user.message` starts a turn. Its content is text blocks.
+- `user.message` starts a turn, or, while a turn works, waits for it. Its
+  content is text blocks.
 - `user.tool_confirmation` answers a tool call that waits for a person:
   `result: "allow"` runs it, `result: "deny"` refuses it, with an optional
   `deny_message` the Agent reads. The calls that wait are the `event_ids` of the
@@ -109,6 +110,15 @@ await client.beta.sessions.events.send(sessionId, {
   events: [{ type: "user.tool_confirmation", tool_use_id: toolUseId, result: "allow" }],
 });
 ```
+
+A message sent while a turn works is queued, as in Managed Agents: the answer
+holds it with `processed_at: null`, and no second turn starts. The working turn
+reads it, or the next turn starts with it once the working turn ends. When a
+turn reads it, it streams again under the same `id`, with its `processed_at`,
+and a list shows it once, where the turn read it. While a turn waits for an
+answer or is paused, a message is refused: send the confirmation first.
+`user.interrupt` drops the messages still queued; they stay listed with no
+`processed_at`.
 
 The answer holds the events as Stigmer recorded them. Stigmer checks every event
 in a request before it applies any: one it does not accept refuses the whole
@@ -148,8 +158,9 @@ learns at once that this server does not serve it.
 Every event keeps Managed Agents' shape, but a few mean something slightly
 different:
 
-- **`processed_at` on a `user.message`** is when Stigmer accepted the message,
-  not when the agent finished with it. It is set from the start.
+- **`processed_at` on a `user.message`** is when a turn took the message (the
+  turn it started, or the working turn that read it), not when the agent
+  finished with it. It is `null` while the message waits in the queue.
 - **`retries_exhausted`** stops any turn that failed. Stigmer doesn't retry a
   failed turn, so one failure already ends it. The `session.error` before it
   says what went wrong.

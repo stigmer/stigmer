@@ -6,7 +6,9 @@
  * session's log, the set staying on the run's record; the conversation's
  * newest turn leaves its set undecided; and a write that carries no
  * captured set closes nothing, because only a capture's write asks for
- * the newest turn.
+ * the newest turn. The reply says whether messages wait in the session's
+ * queue for a turn that works (input_pending), and never for one that
+ * waits or has ended.
  */
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
@@ -28,7 +30,8 @@ import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { SessionEventBroker } from "../../session/events/broker.js";
 import { eventOf } from "../../session/events/codec.js";
-import { createRunAppendingEvents } from "../../session/events/run-writes.js";
+import { enqueueMessage } from "../../session/events/queue.js";
+import { createRunAppendingEvents, updateRunAppendingEvents } from "../../session/events/run-writes.js";
 import { updateStatus } from "../update-status.js";
 import type { UpdateStatusDeps } from "../update-status.js";
 import { fileReviewSeed } from "./file-review-seed.js";
@@ -110,10 +113,25 @@ async function decided(): Promise<Array<[string, string]>> {
   ]);
 }
 
+/**
+ * A later message's turn while `earlier` still works: a session runs one
+ * turn at a time now, so the later turn is created with the earlier one
+ * ended and the earlier one put back to work, as a session written before
+ * that rule could hold the two.
+ */
+async function laterTurnBeside(earlier: string, later: string): Promise<void> {
+  const setPhase = (phase: RunPhase) => (run: Run) => {
+    run.status!.phase = phase;
+  };
+  await updateRunAppendingEvents(deps, earlier, setPhase(RunPhase.RUN_COMPLETED));
+  await createRunAppendingEvents(deps, turn(later));
+  await updateRunAppendingEvents(deps, earlier, setPhase(RunPhase.RUN_IN_PROGRESS));
+}
+
 describe("a turn that captures after a later message was sent", () => {
   it("is kept as it lands, origin next turn, with its decided event in the session's log", async () => {
     await createRunAppendingEvents(deps, turn("run_a"));
-    await createRunAppendingEvents(deps, turn("run_b"));
+    await laterTurnBeside("run_a", "run_b");
 
     await runnerWrites("run_a", true);
 
@@ -143,11 +161,29 @@ describe("a turn that captures after a later message was sent", () => {
 
   it("a capture written again on the outdated turn adds nothing: the log shows it kept", async () => {
     await createRunAppendingEvents(deps, turn("run_a"));
-    await createRunAppendingEvents(deps, turn("run_b"));
+    await laterTurnBeside("run_a", "run_b");
     await runnerWrites("run_a", true);
 
     await runnerWrites("run_a", true);
 
     expect(await decided()).toEqual([["run_a", "next_turn"]]);
+  });
+});
+
+describe("the reply's input_pending", () => {
+  it("says messages wait while the turn works, and nothing once the turn waits or has ended", async () => {
+    await createRunAppendingEvents(deps, turn("run_a"));
+    const write = (phase: RunPhase) =>
+      updateStatus(deps, create(RunUpdateStatusInputSchema, { runId: "run_a", status: { phase } }), testCallerIdentity());
+    expect((await write(RunPhase.RUN_IN_PROGRESS)).inputPending).toBe(false);
+    await enqueueMessage(deps, {
+      sessionId: SESSION,
+      org: "acme",
+      sender: "person-a",
+      turn: create(RunSchema, { spec: { message: "and the README" } }),
+    });
+    expect((await write(RunPhase.RUN_IN_PROGRESS)).inputPending).toBe(true);
+    expect((await write(RunPhase.RUN_WAITING_FOR_APPROVAL)).inputPending).toBe(false);
+    expect((await write(RunPhase.RUN_COMPLETED)).inputPending).toBe(false);
   });
 });

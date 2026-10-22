@@ -5,7 +5,7 @@
 
 import { Session } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { AppendSessionEventsInput, AppendSessionEventsResponse, BindHarnessStateInput, BindHarnessStateResponse, ConfirmToolUseInput, GrantPermissionInput, GrantPermissionResponse, InterruptSessionInput, InterruptSessionResponse, ReviewFileChangesInput, ReviewFileChangesResponse, SessionId, UpdateSessionInput, UpdateSessionSubjectRequest } from "./io_pbjs";
+import { AppendSessionEventsInput, AppendSessionEventsResponse, BindHarnessStateInput, BindHarnessStateResponse, ClaimSessionInputInput, ClaimSessionInputResponse, ConfirmToolUseInput, GrantPermissionInput, GrantPermissionResponse, InterruptSessionInput, InterruptSessionResponse, ReviewFileChangesInput, ReviewFileChangesResponse, SessionId, UpdateSessionInput, UpdateSessionSubjectRequest } from "./io_pbjs";
 import { SessionEvent } from "./event_pbjs";
 
 /**
@@ -175,8 +175,10 @@ export const SessionCommandController = {
      * Stop the session's unfinished work.
      *
      * Appends a user.interrupt and stops every unfinished turn of the
-     * conversation: queued, working, waiting for an answer or paused. Each
-     * ends cancelled and the session goes idle with end_turn. Files undone
+     * conversation: pending, working, waiting for an answer or paused. Each
+     * ends cancelled and the session goes idle with end_turn. The messages
+     * still queued for a turn (RunCommandController.sendMessage) are dropped
+     * first: they stay listed with no processed_at, never read. Files undone
      * in a turn that waited are put back at once.
      *
      * ## Error Conditions
@@ -231,6 +233,22 @@ export const SessionCommandController = {
       name: "appendEvents",
       I: AppendSessionEventsInput,
       O: AppendSessionEventsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Take the messages queued in a run's session for the run to read.
+     *
+     * Only the runner acting for the run may call it, while the run works
+     * (pending or in progress). Every message still queued moves to the head
+     * of the log as this run's, with its processed_at, and is answered in
+     * the order sent; none when nothing waits.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.claimInput
+     */
+    claimInput: {
+      name: "claimInput",
+      I: ClaimSessionInputInput,
+      O: ClaimSessionInputResponse,
       kind: MethodKind.Unary,
     },
     /**

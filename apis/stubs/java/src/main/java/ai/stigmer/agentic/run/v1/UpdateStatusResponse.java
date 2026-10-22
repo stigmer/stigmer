@@ -136,6 +136,22 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int INPUT_PENDING_FIELD_NUMBER = 3;
+  private boolean inputPending_ = false;
+  /**
+   * <pre>
+   * Messages sent to the run's session wait to be read
+   * (RunCommandController.sendMessage).
+   * </pre>
+   *
+   * <code>bool input_pending = 3 [json_name = "inputPending"];</code>
+   * @return The inputPending.
+   */
+  @java.lang.Override
+  public boolean getInputPending() {
+    return inputPending_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -156,6 +172,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(signalReason_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, signalReason_);
     }
+    if (inputPending_ != false) {
+      output.writeBool(3, inputPending_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -171,6 +190,10 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(signalReason_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, signalReason_);
+    }
+    if (inputPending_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(3, inputPending_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -190,6 +213,8 @@ private static final long serialVersionUID = 0L;
     if (signal_ != other.signal_) return false;
     if (!getSignalReason()
         .equals(other.getSignalReason())) return false;
+    if (getInputPending()
+        != other.getInputPending()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -205,6 +230,9 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + signal_;
     hash = (37 * hash) + SIGNAL_REASON_FIELD_NUMBER;
     hash = (53 * hash) + getSignalReason().hashCode();
+    hash = (37 * hash) + INPUT_PENDING_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getInputPending());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -349,6 +377,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       signal_ = 0;
       signalReason_ = "";
+      inputPending_ = false;
       return this;
     }
 
@@ -388,6 +417,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.signalReason_ = signalReason_;
       }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.inputPending_ = inputPending_;
+      }
     }
 
     @java.lang.Override
@@ -409,6 +441,9 @@ private static final long serialVersionUID = 0L;
         signalReason_ = other.signalReason_;
         bitField0_ |= 0x00000002;
         onChanged();
+      }
+      if (other.getInputPending() != false) {
+        setInputPending(other.getInputPending());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -446,6 +481,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
+            case 24: {
+              inputPending_ = input.readBool();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 24
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -628,6 +668,53 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       signalReason_ = value;
       bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+
+    private boolean inputPending_ ;
+    /**
+     * <pre>
+     * Messages sent to the run's session wait to be read
+     * (RunCommandController.sendMessage).
+     * </pre>
+     *
+     * <code>bool input_pending = 3 [json_name = "inputPending"];</code>
+     * @return The inputPending.
+     */
+    @java.lang.Override
+    public boolean getInputPending() {
+      return inputPending_;
+    }
+    /**
+     * <pre>
+     * Messages sent to the run's session wait to be read
+     * (RunCommandController.sendMessage).
+     * </pre>
+     *
+     * <code>bool input_pending = 3 [json_name = "inputPending"];</code>
+     * @param value The inputPending to set.
+     * @return This builder for chaining.
+     */
+    public Builder setInputPending(boolean value) {
+
+      inputPending_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Messages sent to the run's session wait to be read
+     * (RunCommandController.sendMessage).
+     * </pre>
+     *
+     * <code>bool input_pending = 3 [json_name = "inputPending"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearInputPending() {
+      bitField0_ = (bitField0_ & ~0x00000004);
+      inputPending_ = false;
       onChanged();
       return this;
     }

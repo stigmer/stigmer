@@ -110,14 +110,22 @@ describe("one turn", () => {
   });
 });
 
+/**
+ * A second turn working beside the first, as a session written before one
+ * turn at a time held could have one: stored as such a write left it.
+ */
+async function beside(id: string, sessionId: string): Promise<void> {
+  await temp.store.saveResource(ApiResourceKind.run, id, RunSchema, run(id, sessionId, RunPhase.RUN_IN_PROGRESS));
+}
+
 describe("two turns in one session", () => {
   it("stays running until the last turn stops, whichever stops first", async () => {
     await createRunAppendingEvents(deps, run("a", "s1"));
-    await createRunAppendingEvents(deps, run("b", "s1"));
+    await beside("b", "s1");
     await updateRunAppendingEvents(deps, "b", setPhase(RunPhase.RUN_COMPLETED));
     expect(await readSessionState(temp.store, "s1")).toBe("running");
     await updateRunAppendingEvents(deps, "a", setPhase(RunPhase.RUN_COMPLETED));
-    expect(await log("s1")).toEqual(["a:user.message", "a:session.status_running", "b:user.message", "a:session.status_idle"]);
+    expect(await log("s1")).toEqual(["a:user.message", "a:session.status_running", "a:session.status_idle"]);
     expect(await readSessionState(temp.store, "s1")).toBe("idle");
   });
 
@@ -149,7 +157,7 @@ describe("removing a run", () => {
 
   it("removing a working run while another works keeps the session running", async () => {
     await createRunAppendingEvents(deps, run("a", "s1"));
-    await createRunAppendingEvents(deps, run("b", "s1"));
+    await beside("b", "s1");
     await removeRunAppendingEvents(deps, "b");
     expect(await readSessionState(temp.store, "s1")).toBe("running");
   });
@@ -186,17 +194,17 @@ describe("an overwrite from a copy held in memory", () => {
 describe("each turn's own status", () => {
   it("every phase change of a run commits its stigmer.run.status with the run, whatever the session does", async () => {
     await createRunAppendingEvents(deps, run("a", "s1"));
-    await createRunAppendingEvents(deps, run("b", "s1"));
     await updateRunAppendingEvents(deps, "a", setPhase(RunPhase.RUN_IN_PROGRESS));
     await updateRunAppendingEvents(deps, "a", setPhase(RunPhase.RUN_IN_PROGRESS));
     await updateRunAppendingEvents(deps, "a", setPhase(RunPhase.RUN_COMPLETED));
+    await createRunAppendingEvents(deps, run("b", "s1"));
     const records = await temp.store.sessionEvents.list("s1", { order: "asc", limit: 100, types: ["stigmer.run.status"] });
     expect(
       records.map((record) => {
         const event = eventOf(record).event;
         return `${record.runId}:${event.case === "stigmerRunStatus" ? event.value.phase : ""}`;
       }),
-    ).toEqual(["a:pending", "b:pending", "a:running", "a:completed"]);
+    ).toEqual(["a:pending", "a:running", "a:completed", "b:pending"]);
     expect(await fullLog("s1")).toContain("a:stigmer.run.status");
   });
 });
@@ -248,6 +256,9 @@ describe("the chain writers and store faults", () => {
             latestState: undefined,
             runOfNewestType: undefined,
             othersWaiting: [],
+            othersPaused: [],
+            queuedCount: 0,
+            queued: [],
             gates: [],
             runEvents: [],
           });
@@ -271,9 +282,10 @@ describe("the chain writers and store faults", () => {
 
 describe("a log that drifted from its runs", () => {
   it("a run working from before the log holds the session running from the next write on, and the last stop idles it", async () => {
-    // Written before the log existed: working, and no status event.
-    await temp.store.saveResource(ApiResourceKind.run, "old", RunSchema, run("old", "s1", RunPhase.RUN_IN_PROGRESS));
+    // Written before the log existed: working, and no status event (a turn
+    // that worked beside another before one turn at a time held).
     await createRunAppendingEvents(deps, run("new", "s1"));
+    await temp.store.saveResource(ApiResourceKind.run, "old", RunSchema, run("old", "s1", RunPhase.RUN_IN_PROGRESS));
     expect(await readSessionState(temp.store, "s1")).toBe("running");
     await updateRunAppendingEvents(deps, "new", setPhase(RunPhase.RUN_COMPLETED));
     expect(await readSessionState(temp.store, "s1")).toBe("running");
@@ -285,6 +297,7 @@ describe("a log that drifted from its runs", () => {
 describe("the session's newest turn", () => {
   it("an update that asks is handed the run of the newest user.message; one that does not is handed none", async () => {
     await createRunAppendingEvents(deps, run("a", "s1"));
+    await updateRunAppendingEvents(deps, "a", setPhase(RunPhase.RUN_COMPLETED));
     await createRunAppendingEvents(deps, run("b", "s1"));
     const seen: Array<string | undefined> = [];
     await updateRunAppendingEvents(deps, "a", (_r, session) => void seen.push(session.runOfNewestType), {
