@@ -1,0 +1,85 @@
+---
+title: Coming from Claude Managed Agents
+description:
+  If you built on Claude Managed Agents, most of what you know carries over.
+  Each Managed Agents idea mapped to its Stigmer counterpart, or to none where
+  Stigmer has none, with the page that explains it.
+---
+
+If you built on Claude Managed Agents, most of what you know carries over.
+Agents, Environments, Sessions and their events keep their names in Stigmer, an
+Environment takes Managed Agents' fields as they are, and code that reads a
+session's events with Anthropic's SDK reads a Stigmer Session's the same way.
+This page maps each Managed Agents idea to its Stigmer counterpart, and says so
+plainly where Stigmer has none.
+
+## Idea by idea
+
+Each row names the Managed Agents idea, linked to Anthropic's page for it, then
+what Stigmer has instead and the Stigmer page that explains the difference.
+
+| In Managed Agents                                                                                       | In Stigmer                                                                 | Where to read                                                                                                    |
+| ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| [Agent](https://platform.claude.com/docs/en/managed-agents/agent-setup)                                 | Agent, versioned too, with plugins, hooks and variables                    | [Agents](/docs/concepts/agents)                                                                                  |
+| [Environment](https://platform.claude.com/docs/en/managed-agents/environments)                          | Environment, with the same fields                                          | [Environments](/docs/concepts/environments#how-it-compares)                                                      |
+| [Self-hosted sandboxes](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes)       | A runner on your servers, and the rest of Stigmer there too                | [The runner when you self-host](/docs/guides/self-hosting/runners)                                               |
+| [Session](https://platform.claude.com/docs/en/managed-agents/sessions)                                  | Session, created through Stigmer's API or console                          | [Sessions](/docs/concepts/sessions)                                                                              |
+| [Session events and streaming](https://platform.claude.com/docs/en/managed-agents/events-and-streaming) | The same events, served on Managed Agents' own paths                       | [Use Anthropic's SDK](/docs/sdk/managed-agents), [Streaming](/docs/sdk/streaming)                                |
+| [Event deltas](https://platform.claude.com/docs/en/managed-agents/event-deltas)                         | The same previews of the Agent's words as it writes them                   | [Use Anthropic's SDK](/docs/sdk/managed-agents#follow-events-as-they-arrive)                                     |
+| [Files](https://platform.claude.com/docs/en/managed-agents/files)                                       | Files, step for step                                                       | [Files](/docs/concepts/files#how-it-compares)                                                                    |
+| [Vaults](https://platform.claude.com/docs/en/managed-agents/vaults)                                     | Vaults, matched the same way; a person's own vault joins their runs too    | [Vaults](/docs/concepts/vaults#how-a-key-is-matched)                                                             |
+| [Agent Skills](https://platform.claude.com/docs/en/managed-agents/skills)                               | Skills, the same `SKILL.md` folder                                         | [Skills](/docs/concepts/skills)                                                                                  |
+| [MCP connector](https://platform.claude.com/docs/en/managed-agents/mcp-connector)                       | MCP servers, the Agent's own or a plugin's                                 | [Tools](/docs/concepts/tools)                                                                                    |
+| [Tools](https://platform.claude.com/docs/en/managed-agents/tools)                                       | Claude Code's tool names, in an allow list and a deny list                 | [Approval flows](/docs/concepts/approval-flows#keeping-an-agent-away-from-a-tool)                                |
+| [Web tool restrictions](https://platform.claude.com/docs/en/managed-agents/tools-web-restrictions)      | None per tool; the Environment's hosts govern web fetch                    | [Environments](/docs/concepts/environments#what-a-blocked-website-looks-like)                                    |
+| [Custom tools](https://platform.claude.com/docs/en/managed-agents/tools)                                | None; serve the tool from an MCP server                                    | [Use Anthropic's SDK](/docs/sdk/managed-agents#where-stigmers-events-differ)                                     |
+| [Permission policies](https://platform.claude.com/docs/en/managed-agents/permission-policies)           | Approval flows, answered with the same confirmation event                  | [Approval flows](/docs/concepts/approval-flows)                                                                  |
+| [Multiagent orchestration](https://platform.claude.com/docs/en/managed-agents/multiagent-orchestration) | Subagents, one level deep                                                  | [Agents](/docs/concepts/agents#subagents)                                                                        |
+| [Session threads](https://platform.claude.com/docs/en/managed-agents/session-threads)                   | A subagent's own thread in the Session's events                            | [Use Anthropic's SDK](/docs/sdk/managed-agents#where-stigmers-events-differ)                                     |
+| [Scheduled deployments](https://platform.claude.com/docs/en/managed-agents/scheduled-deployments)       | Routines, which also start by hand or from another system                  | [Routines](/docs/concepts/routines#how-it-compares)                                                              |
+| [Session budgets](https://platform.claude.com/docs/en/managed-agents/budgets)                           | A cost cap per message, in the Agent's run settings                        | [Agents](/docs/concepts/agents#run-settings)                                                                     |
+| [GitHub access](https://platform.claude.com/docs/en/managed-agents/github)                              | A Session's repositories, and the `github.com` login in a vault            | [Sessions](/docs/concepts/sessions#files-and-repositories), [Vaults](/docs/concepts/vaults#how-a-key-is-matched) |
+| [Usage](https://platform.claude.com/docs/en/managed-agents/session-observability)                       | Usage per run, with no total on the Session                                | [Use Anthropic's SDK](/docs/sdk/managed-agents#where-stigmers-events-differ)                                     |
+| [Outcomes](https://platform.claude.com/docs/en/managed-agents/define-outcomes)                          | None; Scores grade a finished run afterwards                               | [Scores](/docs/concepts/scores)                                                                                  |
+| [Webhooks](https://platform.claude.com/docs/en/managed-agents/webhooks)                                 | None; follow the Session's events instead                                  | [Streaming](/docs/sdk/streaming)                                                                                 |
+| [Memory stores](https://platform.claude.com/docs/en/managed-agents/memory)                              | None; facts a person confirms are recalled in their later runs             | [Memory](/docs/sdk/resources/memory)                                                                             |
+| [Dreams](https://platform.claude.com/docs/en/managed-agents/dreams)                                     | None                                                                       |                                                                                                                  |
+| [Workflow runs](https://platform.claude.com/docs/en/managed-agents/workflow-runs)                       | None; an Agent hands work to subagents instead                             | [Agents](/docs/concepts/agents#subagents)                                                                        |
+| [Archiving a session](https://platform.claude.com/docs/en/managed-agents/session-operations)            | None; deleting a Session removes it and its events                         | [Use Anthropic's SDK](/docs/sdk/managed-agents#where-stigmers-events-differ)                                     |
+| [Console](https://platform.claude.com/docs/en/managed-agents/onboarding)                                | Stigmer's web console, where each section of an Agent is one of its fields | [Agents](/docs/concepts/agents#anatomy-of-an-agent)                                                              |
+
+## What carries over in your code
+
+Your Environment definitions carry over field by field. Code that lists, follows
+and answers a session's events with Anthropic's SDK works against a Stigmer
+Session the same way: Stigmer serves those events on Managed Agents' own paths,
+and [Use Anthropic's SDK](/docs/sdk/managed-agents) says how to point the SDK at
+Stigmer and which events Stigmer writes differently. Sessions themselves are
+created through Stigmer's API or its console, not Anthropic's SDK.
+
+## What Stigmer adds
+
+Beyond the counterparts above, Stigmer:
+
+- gives each of your customers an Organization of their own, on the editions
+  that include it
+  ([Give each customer their own organization](/docs/getting-started/one-organization-per-customer));
+- puts an Agent in front of people through a chat link, Slack or WhatsApp
+  ([Channels](/docs/concepts/channels));
+- shares each Agent, Skill and conversation with roles you know from Google
+  Drive or GitHub ([Sharing and access](/docs/concepts/sharing-and-access));
+- runs whole on your own servers, the control plane and the session history as
+  well as the agent's computer
+  ([Self-hosting](/docs/guides/self-hosting/overview));
+- lets each Session choose its engine, Stigmer's own or Cursor's
+  ([Harnesses](/docs/concepts/harnesses));
+- installs plugins in the format Claude Code, Cursor and Codex already use
+  ([Plugins](/docs/concepts/plugins)).
+
+## Where the Managed Agents facts come from
+
+What this page says about Claude Managed Agents comes from Anthropic's
+documentation, read on 22 October 2026: the
+[Managed Agents overview](https://platform.claude.com/docs/en/managed-agents/overview)
+and the page each row links. Managed Agents is in beta, and it may have changed
+since. Claude and Claude Managed Agents are Anthropic's products.

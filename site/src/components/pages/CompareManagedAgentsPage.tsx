@@ -289,20 +289,16 @@ function CompareManagedAgentsPage() {
                 Already on Managed Agents?
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-8">
-                Code that reads a session&apos;s events with Anthropic&apos;s SDK reads a Stigmer
-                session the same way.{" "}
+                <Link href="/docs/concepts/coming-from-claude-managed-agents" className={inlineLink}>
+                  Coming from Claude Managed Agents
+                </Link>{" "}
+                maps each Managed Agents idea to its Stigmer counterpart, and says where there is
+                none. Code that reads a session&apos;s events with Anthropic&apos;s SDK reads a
+                Stigmer session the same way:{" "}
                 <Link href="/docs/sdk/managed-agents" className={inlineLink}>
                   Use Anthropic&apos;s SDK
                 </Link>{" "}
-                says how, and two concept pages say what carries over:{" "}
-                <Link href="/docs/concepts/environments" className={inlineLink}>
-                  Environments
-                </Link>{" "}
-                and{" "}
-                <Link href="/docs/concepts/files" className={inlineLink}>
-                  Files
-                </Link>
-                .
+                says how.
               </p>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-3">
                 <Button asChild size="lg">

@@ -91,6 +91,15 @@ pages:
       customer, and mint each customer's users into their own.
     medium: none
 
+  concepts/coming-from-claude-managed-agents:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      Each Claude Managed Agents idea mapped to its Stigmer counterpart, or to
+      none where Stigmer has none, what carries over in your code, and what
+      Stigmer adds.
+    medium: none
+
   # ── Agents ─────────────────────────────────────────────────────────────
   concepts/agents:
     fate: keep
