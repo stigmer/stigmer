@@ -686,12 +686,13 @@ export class ExecutionRecord {
     return this.controlSignal(snapshot, rows);
   }
 
-  /** A person sends `text` to the session while its turn works (the class header); answers the message's id. */
-  sendMessage(text: string): string {
+  /** A person sends `text`, with the documents `fileIds` names, to the session while its turn works (the class header); answers the message's id. */
+  sendMessage(text: string, fileIds: readonly string[] = []): string {
     const id = `sevt-kit-${++this.sentMessages}`;
+    const files = fileIds.map((fileId) => ({ type: "document", source: { type: "file", fileId } }));
     this.queuedMessages.push(
       create(SessionEventSchema, {
-        event: { case: "userMessage", value: { id, content: [{ type: "text", text }] } },
+        event: { case: "userMessage", value: { id, content: [{ type: "text", text }, ...files] } },
       }),
     );
     return id;

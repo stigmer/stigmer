@@ -12,7 +12,10 @@
  *    reads: the engines only upload, and a read would be a path into the
  *    runner's whole store;
  *  - an adapter reads its run's events through the runner, each crossing
- *    whole.
+ *    whole;
+ *  - the turn's input channel crosses: the hint as the turn began and each
+ *    time it rises, a claim the runner answers with whether more wait (and
+ *    none made while nothing waits), and what the run took.
  */
 
 import { create } from "@bufbuild/protobuf";
@@ -39,7 +42,7 @@ const STORE: ArtifactStorage = {
   exists: async () => false,
 };
 
-function served(runTurn: HarnessAdapter["runTurn"], yielded = false) {
+function served(runTurn: HarnessAdapter["runTurn"], yielded = false, inputPending = false) {
   const [runnerEnd, hostEnd] = loopbackChannels();
   const adapter: HarnessAdapter = {
     name: "probe",
@@ -62,7 +65,7 @@ function served(runTurn: HarnessAdapter["runTurn"], yielded = false) {
       fingerprintKey: Buffer.alloc(32).toString("base64"),
       stopped: null,
       yielded,
-      inputPending: false,
+      inputPending,
       turnKey: "turn-key-test",
       traceparent: null,
     });
@@ -85,6 +88,44 @@ describe("the agent host's server", () => {
     await inTurn;
     during.runner.notify("yieldTurn", { turnId: "t1" });
     expect((await settling).outcome).toEqual({ kind: "interrupted" });
+  });
+
+  it("carries the turn's input channel over the pipe", async () => {
+    const message = (id: string) => ({ id, text: id, message: [], visionImages: [], visionNotViewable: [] });
+    const forced: boolean[] = [];
+    const seen: unknown[] = [];
+    let entered: () => void = () => {};
+    const inTurn = new Promise<void>((resolve) => (entered = resolve));
+    let rise: () => void = () => {};
+    const rose = new Promise<void>((resolve) => (rise = resolve));
+    const { runner, call } = served(
+      async (_input, sink) => {
+        seen.push(sink.input.pending());
+        seen.push((await sink.input.claim()).map((m) => m.id));
+        seen.push(sink.input.pending());
+        seen.push(await sink.input.claim());
+        const leave = sink.input.onPending(rise);
+        entered();
+        await rose;
+        leave();
+        seen.push((await sink.input.claimed(new Set(["m1"]))).map((m) => m.id));
+        return { kind: "completed" };
+      },
+      false,
+      true,
+    );
+    runner.handle("claimInput", async ({ force }) => {
+      forced.push(force);
+      return { messages: [message("m1")], pending: false };
+    });
+    runner.handle("claimedInput", async ({ delivered }) => [message("m1"), message("m2")].filter((m) => !delivered.includes(m.id)));
+    const settling = call();
+    await inTurn;
+    runner.notify("inputPending", { turnId: "t1" });
+    runner.notify("inputPending", { turnId: "t1" });
+    expect((await settling).outcome).toEqual({ kind: "completed" });
+    expect(seen).toEqual([true, ["m1"], false, [], ["m2"]]);
+    expect(forced, "one claim crossed, unforced; none while nothing waited").toEqual([false]);
   });
 
   it("answers a CAS read for a turn with no bound reader with an error", async () => {

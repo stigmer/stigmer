@@ -63,12 +63,13 @@ pinned somewhere. Read a row across before searching for anything.
   conversation reads. The runtime hands it on `TurnInput.continuation` to a
   harness whose `continuation` capability is `"digest"`; a `"checkpoint"`
   harness resumes from its engine's own saved state.
-- `harness/turn-input.ts` — `TurnSink.input`, the messages a person sends to
-  the session while the turn works: the server's pending hint, recorded from
-  every status write, and the claim that takes them as the run's, their
-  files mounted as the turn's own are. An adapter claims where its engine
-  delivers what it takes (`midTurnInput`), and a turn delivers every message
-  it took, never a next turn.
+- `harness/turn-input.ts` — the sink's `input` channel, the messages a person
+  sends to the session while the turn works: the server's pending hint,
+  recorded from every status write, and the claim that takes them as the
+  run's, their files mounted as the turn's own are. An adapter claims where
+  its engine delivers what it takes (its `midTurnInput` capability,
+  `harness/capabilities.ts`), and a turn delivers every message it took,
+  never a next turn.
 - `harness/preview-pump.ts` — `PreviewPump`, which sends a running tool's output
   to the session between writes, on the streaming floor, through the persist
   chokepoint's single flight.

@@ -10,7 +10,7 @@
  * as delivered (its prompt carries them); and the follow-up's text lists a
  * message's files before it.
  */
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Run } from "@cursor/sdk";
@@ -143,6 +143,11 @@ describe("newCursorTurnInput", () => {
     const kept = await newCursorTurnInput(q.sink, "run_a", undefined, false);
     await kept.delivered([message("m2", "not yet")]);
     expect((await kept.owed()).map((m) => m.id)).toEqual(["m1"]);
+  });
+
+  it("lets a record it cannot open fail the turn's setup, as the sent-run record does", async () => {
+    mkdirSync(join(root, DELIVERED_INPUTS_FILE));
+    await expect(newCursorTurnInput(queue().sink, "run_a", root, false)).rejects.toThrow();
   });
 
   it("reads an unreadable record as none", async () => {

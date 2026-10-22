@@ -45,7 +45,9 @@
  * this file.
  */
 
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { create } from "@bufbuild/protobuf";
+import { FileMountSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/run_files_pb";
 import { createServer, connect, type AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -66,7 +68,7 @@ import {
   threwCancelledFailure,
   type InvocationControls,
 } from "../../__test-utils__/hermetic-activity.js";
-import { hermeticUploads, stubRegistryFetch } from "../../__test-utils__/model-registry-fixture.js";
+import { HERMETIC_UPLOAD_ORIGIN, hermeticUploads, stubRegistryFetch } from "../../__test-utils__/model-registry-fixture.js";
 import { scriptedSubject } from "../../__test-utils__/harness-contract/scripted-adapter.js";
 import { initGitWorkspace, localPathEntry } from "../../__test-utils__/git-workspace-fixture.js";
 import { scenario } from "../../__test-utils__/harness-contract/types.js";
@@ -130,6 +132,24 @@ describe("run-turn: the fake adapter through the real runtime", () => {
   describe("the fake's own facts", () => {
     beforeAll(async () => {
       await subject.adapter.boot(subject.config);
+    });
+
+    it("a message sent with a file while the turn works is read by it, its file mounted as the turn's own are", async () => {
+      clock.reset();
+      const bytes = Buffer.from("# notes\n");
+      hermeticUploads.set("/file_notes", bytes);
+      const url = `${HERMETIC_UPLOAD_ORIGIN}/file_notes`;
+      const driver = new RuntimeExecutionDriver(harness, "fake-message-file");
+      driver.record.sendMessage("Read my notes.", ["file_notes"]);
+      const mount = create(FileMountSchema, { fileId: "file_notes", mountPath: "notes.md", filename: "notes.md", mimeType: "text/markdown", sizeBytes: BigInt(bytes.length), url });
+      const turn = await driver.turn([scenario.say("Done.")], { clientOverrides: { mountRunFiles: vi.fn(async () => [mount]) } });
+      expect(slimOf(subject, turn).phase).toBe("RUN_COMPLETED");
+      expect(subject.longTurn!.messagesRead(driver.sessionId, "Read my notes."), "the turn read the message").toBe(1);
+      expect(readFileSync(join(getPlatformDir(driver.sessionId), "uploads", "notes.md"), "utf8"), "its file is mounted").toBe("# notes\n");
+      // The File's link is the one fetch besides the registry; the other
+      // tests' "registry only" reads hold for every turn but this one.
+      expect(registry.urls.filter((u) => u === url)).toHaveLength(1);
+      registry.urls.splice(registry.urls.indexOf(url), 1);
     });
 
     it("a completed turn: the runtime's six labels are the whole list, the phases, the stated price and its basis", async () => {
