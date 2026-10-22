@@ -2,10 +2,13 @@
  * Pins a session's queue (../queue.ts) and the run writes that read it
  * (../run-writes.ts) on a real store: a message is queued while a turn
  * works or messages wait, and refused while a turn waits for an answer or
- * is paused; a turn is created only in a session nothing else holds and
- * whose queue holds nothing it does not take; a turn from the queue moves
- * the messages it takes to the head as its own, in the order sent, and is
- * refused when one no longer waits; a turn that ends with messages queued
+ * is paused; a queue nothing works on reads as the queue's turn to start;
+ * a turn is created only in a session nothing else holds and whose queue
+ * holds nothing older than it takes; a turn from the queue moves the
+ * messages it takes to the head as its own, in the order sent, leaves
+ * those behind them waiting, and is refused when one no longer waits; a
+ * message keeps its sender and the person its turn records, its
+ * authority; a turn that ends with messages queued
  * leaves the session running; a drop keeps the events listed, never
  * accepted, records a reason as a session.error and idles the session.
  */
@@ -29,10 +32,13 @@ import {
 import { SessionEventBroker } from "../broker.js";
 import { eventOf } from "../codec.js";
 import {
+  authorityOfQueued,
+  authorityOfRun,
   dropQueuedMessages,
   enqueueMessage,
   queuedTurnOf,
   readQueueState,
+  sameAuthority,
 } from "../queue.js";
 import type { SessionQueueDeps } from "../queue.js";
 import { createRunAppendingEvents, updateRunAppendingEvents } from "../run-writes.js";
@@ -91,7 +97,7 @@ describe("a session's queue", () => {
     await createRunAppendingEvents(deps, run("a", "s1"));
     const outcome = await queue("s1", "also update the README");
     if (!("queued" in outcome)) throw new Error("not queued");
-    expect(outcome.free).toBe(false);
+    expect(outcome.idle).toBe(false);
     expect(outcome.queued.runId).toBe("");
     expect(outcome.queued.event.case === "userMessage" && outcome.queued.event.value.processedAt).toBe("");
     const [waiting] = await temp.store.sessionEvents.queued("s1");
@@ -103,9 +109,38 @@ describe("a session's queue", () => {
   it("is free with nothing working and nothing waiting, and says so when a message is queued then", async () => {
     expect(await readQueueState(temp.store, "s1")).toEqual({ kind: "free" });
     const outcome = await queue("s1", "hello");
-    expect("queued" in outcome && outcome.free).toBe(true);
-    expect(await readQueueState(temp.store, "s1")).toEqual({ kind: "busy" });
+    expect("queued" in outcome && outcome.idle).toBe(true);
+    expect(await readQueueState(temp.store, "s1")).toEqual({ kind: "queued" });
     expect(await readSessionState(temp.store, "s1")).toBe("running");
+  });
+
+  it("reads a queue nothing works on as the queue's turn to start, and says so to every message queued then", async () => {
+    await createRunAppendingEvents(deps, run("a", "s1"));
+    await queue("s1", "one");
+    await updateRunAppendingEvents(deps, "a", setPhase(RunPhase.RUN_FAILED));
+    expect(await readQueueState(temp.store, "s1")).toEqual({ kind: "queued" });
+    const outcome = await queue("s1", "two");
+    expect("queued" in outcome && outcome.idle).toBe(true);
+  });
+
+  it("keeps whose authority a message was sent with: its sender, and the person its turn records", async () => {
+    const turn = create(RunSchema, {
+      metadata: { org: "acme" },
+      spec: { target: { case: "sessionId", value: "s1" }, message: "mine" },
+      status: { credentials: { person: "person-a" } },
+    });
+    await enqueueMessage(deps, { sessionId: "s1", org: "acme", sender: "person-a", turn });
+    await queue("s1", "a participant's", "person-b");
+    const [owner, participant] = await temp.store.sessionEvents.queued("s1");
+    expect(authorityOfQueued(owner!)).toEqual({ sender: "person-a", person: "person-a" });
+    expect(authorityOfQueued(participant!)).toEqual({ sender: "person-b", person: "" });
+    expect(sameAuthority(authorityOfQueued(owner!), authorityOfQueued(participant!))).toBe(false);
+    expect(sameAuthority(authorityOfQueued(owner!), { sender: "person-a", person: "" })).toBe(false);
+    expect(sameAuthority({ sender: "", person: "" }, { sender: "", person: "" })).toBe(false);
+    const ran = create(RunSchema, {
+      status: { audit: { specAudit: { createdBy: { id: "person-a" } } }, credentials: { person: "person-a" } },
+    });
+    expect(sameAuthority(authorityOfRun(ran), authorityOfQueued(owner!))).toBe(true);
   });
 
   it("refuses a message while a turn waits for an answer or is paused, and queues nothing", async () => {
@@ -118,7 +153,7 @@ describe("a session's queue", () => {
     expect(await temp.store.sessionEvents.queued("s1")).toEqual([]);
   });
 
-  it("refuses a second turn while another of its session is unfinished, or while messages it does not take wait", async () => {
+  it("refuses a second turn while another of its session is unfinished, or while messages it does not start from wait", async () => {
     await createRunAppendingEvents(deps, run("a", "s1"));
     await expect(createRunAppendingEvents(deps, run("b", "s1"))).rejects.toSatisfy(
       (error) => reasonOf(error) === SESSION_TURN_UNFINISHED_REASON && (error as ConnectError).code === Code.FailedPrecondition,
@@ -162,6 +197,25 @@ describe("a session's queue", () => {
     const moved = await temp.store.sessionEvents.list("s1", { order: "asc", runId: "b", types: ["user.message"], limit: 10 });
     expect(moved.every((record) => record.processedAt !== "")).toBe(true);
     expect(await temp.store.sessionEvents.queued("s1")).toEqual([]);
+  });
+
+  it("starts a turn from the queue's oldest messages, leaving those behind them waiting, and refuses one that skips the oldest", async () => {
+    await createRunAppendingEvents(deps, run("a", "s1"));
+    const ids = [];
+    for (const [text, sender] of [["one", "person-a"], ["two", "person-b"]] as const) {
+      const outcome = await queue("s1", text, sender);
+      ids.push("queued" in outcome && outcome.queued.event.case === "userMessage" ? outcome.queued.event.value.id : "");
+    }
+    await updateRunAppendingEvents(deps, "a", setPhase(RunPhase.RUN_COMPLETED));
+    const skipping = run("b", "s1");
+    skipping.spec!.queuedMessageIds = [ids[1]!];
+    await expect(createRunAppendingEvents(deps, skipping)).rejects.toSatisfy(
+      (error) => reasonOf(error) === SESSION_TURN_UNFINISHED_REASON,
+    );
+    const oldest = run("b", "s1");
+    oldest.spec!.queuedMessageIds = [ids[0]!];
+    await createRunAppendingEvents(deps, oldest);
+    expect((await temp.store.sessionEvents.queued("s1")).map((queued) => queued.record.eventId)).toEqual([ids[1]]);
   });
 
   it("refuses a turn from the queue whose message no longer waits", async () => {

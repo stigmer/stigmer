@@ -8,8 +8,10 @@
  * queued user.message; a turn waiting for an answer or paused refuses it
  * (FAILED_PRECONDITION with its reason) and takes back its files; a turn
  * that started between the decision and the start queues the message
- * instead; a message queued while nothing works has the queue's turn
- * started at once, and the reply names that turn; a refused admission
+ * instead; a message queued while nothing works (a turn ended in between,
+ * or a queue nothing started) has the queue's turn started at once, and
+ * the reply names that turn when it reads the message; a queued message
+ * keeps the person its turn would record; a refused admission
  * takes back the files and decides nothing. A queued turn keeps the
  * organization its admission settled. Run create (createTurn) admits then
  * starts, taking back the files of a turn that failed.
@@ -36,6 +38,8 @@ import {
   SESSION_TURN_PAUSED_REASON,
   SESSION_TURN_WAITS_FOR_ANSWER_REASON,
 } from "../constants.js";
+import { runPersonOfCaller } from "../../vault/resolve.js";
+import { queuedTurnOf } from "../../session/events/queue.js";
 import { createTurn, sendMessage } from "../send-message.js";
 import type { SendMessageDeps, TurnChain } from "../send-message.js";
 
@@ -206,18 +210,77 @@ describe("sendMessage", () => {
         run.status!.phase = RunPhase.RUN_COMPLETED;
       });
     };
-    const started = create(RunSchema, { metadata: { id: "run_q" } });
     deps = {
       ...deps,
       queuedTurns: async (sessionId) => {
         queuedTurns.push(sessionId);
-        return started;
+        const queued = await temp.store.sessionEvents.queued(sessionId);
+        return create(RunSchema, {
+          metadata: { id: "run_q" },
+          spec: { queuedMessageIds: queued.map((each) => each.record.eventId) },
+        });
       },
     };
     const reply = await sendMessage(deps, message("hello"), caller);
     expect(queuedTurns).toEqual(["s1"]);
     expect(reply.run?.metadata?.id).toBe("run_q");
     expect(reply.message?.runId, "the queue's turn wrote no message here, so the queued one answers").toBe("");
+  });
+
+  it("starts a queue nothing works on when a message is sent, naming no turn that does not read it", async () => {
+    await working();
+    await sendMessage(deps, message("one"), caller);
+    await updateRunAppendingEvents(deps, "a", (run) => {
+      run.status!.phase = RunPhase.RUN_FAILED;
+    });
+    deps = {
+      ...deps,
+      queuedTurns: async (sessionId) => {
+        queuedTurns.push(sessionId);
+        const [oldest] = await temp.store.sessionEvents.queued(sessionId);
+        return create(RunSchema, { metadata: { id: "run_q" }, spec: { queuedMessageIds: [oldest!.record.eventId] } });
+      },
+    };
+    const reply = await sendMessage(deps, message("two"), caller);
+    expect(calls).toEqual(["admit", "admit"]);
+    expect(queuedTurns).toEqual(["s1"]);
+    expect(reply.run).toBeUndefined();
+    expect(reply.message?.runId).toBe("");
+  });
+
+  it("answers the queue's turn with the message as it read it", async () => {
+    await working();
+    await sendMessage(deps, message("one"), caller);
+    await updateRunAppendingEvents(deps, "a", (run) => {
+      run.status!.phase = RunPhase.RUN_COMPLETED;
+    });
+    deps = {
+      ...deps,
+      queuedTurns: async (sessionId) => {
+        const queued = await temp.store.sessionEvents.queued(sessionId);
+        const turn = create(RunSchema, {
+          metadata: { id: "run_q", org: "acme" },
+          spec: {
+            target: { case: "sessionId", value: sessionId },
+            queuedMessageIds: queued.map((each) => each.record.eventId),
+          },
+          status: { phase: RunPhase.RUN_PENDING },
+        });
+        await createRunAppendingEvents(deps, turn);
+        return turn;
+      },
+    };
+    const reply = await sendMessage(deps, message("two"), caller);
+    expect(reply.run?.metadata?.id).toBe("run_q");
+    expect(reply.message?.runId).toBe("run_q");
+    expect(reply.message?.event.case === "userMessage" && reply.message.event.value.content[0]?.text).toBe("two");
+  });
+
+  it("keeps the person the message's turn would record with the queued message, its authority", async () => {
+    await working();
+    await sendMessage(deps, message("mine"), caller);
+    const [queued] = await temp.store.sessionEvents.queued("s1");
+    expect(queuedTurnOf(queued!).status?.credentials?.person ?? "").toBe(runPersonOfCaller(caller) ?? "");
   });
 
   it("refuses the message when the working turn starts waiting between the decision and the enqueue", async () => {

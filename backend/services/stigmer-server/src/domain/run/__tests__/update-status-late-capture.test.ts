@@ -6,8 +6,9 @@
  * session's log, the set staying on the run's record; the conversation's
  * newest turn leaves its set undecided; and a write that carries no
  * captured set closes nothing, because only a capture's write asks for
- * the newest turn. The reply says whether messages wait in the session's
- * queue for a turn that works (input_pending), and never for one that
+ * the newest turn. The reply says whether messages sent with the turn's
+ * own authority wait in the session's queue for a turn that works
+ * (input_pending), never another sender's, and never for a turn that
  * waits or has ended.
  */
 import { create } from "@bufbuild/protobuf";
@@ -22,6 +23,7 @@ import type {
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunUpdateStatusInputSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceAuditSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
@@ -171,17 +173,23 @@ describe("a turn that captures after a later message was sent", () => {
 });
 
 describe("the reply's input_pending", () => {
-  it("says messages wait while the turn works, and nothing once the turn waits or has ended", async () => {
-    await createRunAppendingEvents(deps, turn("run_a"));
+  it("says the turn's own messages wait while it works, and nothing once the turn waits or has ended", async () => {
+    const own = turn("run_a");
+    own.status!.audit = create(ApiResourceAuditSchema, { specAudit: { createdBy: { id: "person-a" } } });
+    await createRunAppendingEvents(deps, own);
     const write = (phase: RunPhase) =>
       updateStatus(deps, create(RunUpdateStatusInputSchema, { runId: "run_a", status: { phase } }), testCallerIdentity());
     expect((await write(RunPhase.RUN_IN_PROGRESS)).inputPending).toBe(false);
-    await enqueueMessage(deps, {
-      sessionId: SESSION,
-      org: "acme",
-      sender: "person-a",
-      turn: create(RunSchema, { spec: { message: "and the README" } }),
-    });
+    const send = (sender: string) =>
+      enqueueMessage(deps, {
+        sessionId: SESSION,
+        org: "acme",
+        sender,
+        turn: create(RunSchema, { spec: { message: "and the README" } }),
+      });
+    await send("person-b");
+    expect((await write(RunPhase.RUN_IN_PROGRESS)).inputPending, "another sender's message waits for its own turn").toBe(false);
+    await send("person-a");
     expect((await write(RunPhase.RUN_IN_PROGRESS)).inputPending).toBe(true);
     expect((await write(RunPhase.RUN_WAITING_FOR_APPROVAL)).inputPending).toBe(false);
     expect((await write(RunPhase.RUN_COMPLETED)).inputPending).toBe(false);

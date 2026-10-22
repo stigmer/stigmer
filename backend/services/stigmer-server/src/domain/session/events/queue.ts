@@ -14,9 +14,10 @@
  *   enqueue ...... unless a turn waits for an answer or is paused
  *                  (Managed Agents accepts only an answer then: a 400),
  *                  when it answers what holds the session and queues
- *                  nothing; it says whether anything was working or
- *                  waiting, for a message queued in a free session is
- *                  its sender's to start (run/send-message.ts)
+ *                  nothing; it says whether a turn was working, for a
+ *                  queue with nothing working is its sender's to start
+ *                  (run/send-message.ts): whatever left it so (a start
+ *                  that failed, a race), the next message starts it
  *   drop ......... the messages still waiting lose their side rows and stay
  *                  listed, never accepted: a stop (interrupt, terminate)
  *                  and a turn from the queue that could not start
@@ -25,6 +26,13 @@
  * (transitions.ts `sessionEventsForQueue`): a drop that empties the queue
  * of a session nothing else holds ends its turn, as end_turn, with the
  * reason first when one is given (a session.error).
+ *
+ * A message keeps whose authority it was sent with ({@link TurnAuthority}):
+ * its sender, and the person its turn records (RunStatus.credentials,
+ * run/plan-run-values-step.ts), decided as it was admitted. A turn reads
+ * only the messages sent with its own authority, and a turn the queue
+ * starts takes only messages that share one, so a participant's message
+ * never runs on the owner's logins or with approvals the owner waived.
  *
  * Proven by __tests__/queue.test.ts on both drivers, and end to end by the
  * session-queue conformance suite.
@@ -80,12 +88,14 @@ export type SessionQueueState =
   | { readonly kind: "waiting"; readonly runId: string }
   /** A turn is paused: the run, the first such. */
   | { readonly kind: "paused"; readonly runId: string }
-  /** A turn works, or messages wait for the turn they start. */
+  /** A turn works. */
   | { readonly kind: "busy" }
+  /** Nothing works, and messages wait: the queue's turn is to start. */
+  | { readonly kind: "queued" }
   /** Nothing holds the session: a turn may start now. */
   | { readonly kind: "free" };
 
-/** The session's state for a message (module header): a turn held first, then one working. */
+/** The session's state for a message (module header): a turn held first, then one working, then the queue. */
 export function queueStateOf(session: SessionQueueContext): SessionQueueState {
   const waiting = session.waiting[0];
   if (waiting !== undefined) {
@@ -95,10 +105,10 @@ export function queueStateOf(session: SessionQueueContext): SessionQueueState {
   if (paused !== undefined) {
     return { kind: "paused", runId: paused };
   }
-  if (session.working.length > 0 || session.queued.length > 0) {
+  if (session.working.length > 0) {
     return { kind: "busy" };
   }
-  return { kind: "free" };
+  return session.queued.length > 0 ? { kind: "queued" } : { kind: "free" };
 }
 
 /** A message to queue: who sends it and the turn it would start, as the run create chain admitted it. */
@@ -113,12 +123,11 @@ export interface MessageToQueue {
 export type HeldQueueState = Extract<SessionQueueState, { kind: "waiting" | "paused" }>;
 
 /**
- * What an enqueue did: the queued `user.message` and whether the session
- * was free as it was queued (nothing working, nothing else waiting), or
- * what kept it out.
+ * What an enqueue did: the queued `user.message` and whether nothing was
+ * working as it was queued, or what kept it out.
  */
 export type EnqueueOutcome =
-  | { readonly queued: SessionEvent; readonly free: boolean }
+  | { readonly queued: SessionEvent; readonly idle: boolean }
   | { readonly refused: HeldQueueState };
 
 /**
@@ -138,14 +147,14 @@ export async function enqueueMessage(deps: SessionQueueDeps, message: MessageToQ
     },
   });
   let refused: HeldQueueState | undefined;
-  let free = false;
+  let idle = false;
   const result = await deps.store.writeSessionQueue(message.sessionId, message.org, SESSION_QUEUE_SCOPE, (session) => {
     const state = queueStateOf(session);
     if (state.kind === "waiting" || state.kind === "paused") {
       refused = state;
       return {};
     }
-    free = state.kind === "free";
+    idle = state.kind !== "busy";
     return {
       enqueue: {
         draft: draftOf(event),
@@ -164,7 +173,7 @@ export async function enqueueMessage(deps: SessionQueueDeps, message: MessageToQ
   if (refused !== undefined) {
     return { refused };
   }
-  return { queued: eventOf(result.enqueued!), free };
+  return { queued: eventOf(result.enqueued!), idle };
 }
 
 /** The session's state for a message, read under its lock; writes nothing. */
@@ -247,6 +256,34 @@ export async function dropQueuedMessages(
 /** A queued message's turn, decoded from its side row. */
 export function queuedTurnOf(queued: QueuedSessionMessage): Run {
   return fromBinary(RunSchema, queued.turn);
+}
+
+/**
+ * Whose authority a message was sent with, or a turn runs with (module
+ * header): the sender's identity id, and the person the turn records, ""
+ * for none.
+ */
+export interface TurnAuthority {
+  readonly sender: string;
+  readonly person: string;
+}
+
+/** A queued message's authority: its sender, and the person its turn recorded as it was admitted. */
+export function authorityOfQueued(queued: QueuedSessionMessage): TurnAuthority {
+  return { sender: queued.sender, person: queuedTurnOf(queued).status?.credentials?.person ?? "" };
+}
+
+/** A run's authority: who created it, and the person it recorded. */
+export function authorityOfRun(run: Run): TurnAuthority {
+  return {
+    sender: run.status?.audit?.specAudit?.createdBy?.id ?? "",
+    person: run.status?.credentials?.person ?? "",
+  };
+}
+
+/** Whether two authorities are one: a sender's message, and a turn that may read it. */
+export function sameAuthority(a: TurnAuthority, b: TurnAuthority): boolean {
+  return a.sender !== "" && a.sender === b.sender && a.person === b.person;
 }
 
 function latestStatusOf(session: SessionQueueContext) {

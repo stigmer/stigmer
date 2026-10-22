@@ -123,6 +123,7 @@ import {
 } from "./status-observers.js";
 import type { SessionEventBroker } from "../session/events/broker.js";
 import { eventOf } from "../session/events/codec.js";
+import { authorityOfQueued, authorityOfRun, sameAuthority } from "../session/events/queue.js";
 import { updateRunAppendingEvents } from "../session/events/run-writes.js";
 
 export interface UpdateStatusDeps {
@@ -213,17 +214,20 @@ export async function updateStatus(
                 captures ? runReviewLogOf(session.runEvents.map(eventOf)) : undefined,
               );
               // Messages wait for this turn when its session's queue holds
-              // any while it works (domain/run/send-message.ts): read under
-              // the lock this write commits under.
+              // any sent with its authority while it works
+              // (domain/run/send-message.ts, ../session/events/queue.ts):
+              // read under the lock this write commits under.
+              const authority = authorityOfRun(execution);
               ctx.set(
                 INPUT_PENDING_KEY,
-                session.queuedCount > 0 && isWorkingPhase(execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED),
+                isWorkingPhase(execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED) &&
+                  session.queued.some((queued) => sameAuthority(authorityOfQueued(queued), authority)),
               );
               return { last };
             },
             captures
-              ? { runOfNewestType: NEWEST_TURN_EVENT_TYPE, runEventTypes: RUN_REVIEW_EVENT_TYPES }
-              : {},
+              ? { runOfNewestType: NEWEST_TURN_EVENT_TYPE, runEventTypes: RUN_REVIEW_EVENT_TYPES, queued: true }
+              : { queued: true },
           ));
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {

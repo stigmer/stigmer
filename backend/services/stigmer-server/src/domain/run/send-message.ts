@@ -15,9 +15,9 @@
  *                     answer or paused refuses the message
  *                     (FAILED_PRECONDITION, SESSION_TURN_WAITS_FOR_ANSWER
  *                     or SESSION_TURN_PAUSED: Managed Agents accepts only
- *                     the answer then); nothing holding it starts the
- *                     turn; a turn working, or messages already waiting,
- *                     queue it.
+ *                     the answer then); nothing holding it and nothing
+ *                     queued starts the turn; a turn working, or messages
+ *                     already waiting, queue it.
  *   Start ........... the create chain's start (`runStartSteps`) on the
  *                     admitted turn; the reply is the turn's user.message
  *                     and the run. Persist refuses the turn when another
@@ -25,11 +25,13 @@
  *                     message is queued instead.
  *   Queue ........... the message's user.message, with no run and no
  *                     accepted time, and the turn it would start, kept
- *                     with the files it was admitted with. The reply is
- *                     that user.message. When nothing was working as it
- *                     was queued (the turn that held the session ended in
- *                     between), the queue's turn is started at once
- *                     (queued-turn.ts), and the reply names it.
+ *                     with the files it was admitted with and the person
+ *                     that turn records (its authority, queue.ts). The
+ *                     reply is that user.message. When nothing was working
+ *                     as it was queued (the turn that held the session
+ *                     ended in between, or a queue nothing started), the
+ *                     queue's turn is started at once (queued-turn.ts),
+ *                     and the reply names it when it reads this message.
  *
  * A message the queue holds is read by the working turn, or starts the
  * next turn once it ends (queued-turn.ts); a stop drops it. A failure
@@ -69,6 +71,8 @@ import {
   sessionTurnPausedMessage,
   sessionTurnWaitsForAnswerMessage,
 } from "./constants.js";
+import { runPersonOfRequest } from "./plan-run-values-step.js";
+import { MAX_TURN_QUEUED_MESSAGES } from "./queued-turn.js";
 import type { QueuedTurnStarter } from "./queued-turn.js";
 
 /** The turn's opening event type, read back for the reply. */
@@ -126,7 +130,7 @@ export async function sendMessage(
       sessionId,
       org: reqCtx.newState.metadata?.org ?? "",
       sender: identity.identityId,
-      turn: queuedTurnOf(turn, reqCtx.newState),
+      turn: queuedTurnOf(turn, reqCtx.newState, runPersonOfRequest(reqCtx)),
     });
     if ("refused" in outcome) {
       throw heldRefusal(sessionId, outcome.refused);
@@ -135,18 +139,21 @@ export async function sendMessage(
     deps.logger.info("A message was queued for the session's turn", {
       sessionId,
       eventId: eventIdOf(outcome.queued),
-      free: outcome.free,
+      idle: outcome.idle,
     });
-    if (!outcome.free) {
+    if (!outcome.idle) {
       return create(SendMessageResponseSchema, { message: outcome.queued });
     }
-    // Nothing held the session as the message was queued (the turn that
-    // held it ended in between): the queue's turn starts it now.
+    // Nothing worked as the message was queued (the turn that held the
+    // session ended in between, or a queue nothing started): the queue's
+    // turn starts now, and the reply names it when it reads this message.
     const run = await deps.queuedTurns(sessionId);
-    const read = run === undefined ? undefined : await turnMessage(deps, sessionId, run);
+    const queuedId = eventIdOf(outcome.queued);
+    const reads = run !== undefined && (run.spec?.queuedMessageIds ?? []).includes(queuedId);
+    const read = reads ? await takenMessage(deps, sessionId, run, queuedId) : undefined;
     return create(SendMessageResponseSchema, {
       message: read ?? outcome.queued,
-      ...(run === undefined ? {} : { run }),
+      ...(reads ? { run } : {}),
     });
   } catch (error) {
     if (!queued) {
@@ -192,6 +199,23 @@ async function turnMessage(deps: SendMessageDeps, sessionId: string, run: Run): 
   return record === undefined ? undefined : eventOf(record);
 }
 
+/** The message a turn took from the queue, as its own; undefined when the log holds none. */
+async function takenMessage(
+  deps: SendMessageDeps,
+  sessionId: string,
+  run: Run,
+  eventId: string,
+): Promise<SessionEvent | undefined> {
+  const records = await deps.store.sessionEvents.list(sessionId, {
+    order: "asc",
+    runId: run.metadata?.id ?? "",
+    types: [USER_MESSAGE_TYPE],
+    limit: MAX_TURN_QUEUED_MESSAGES + 1,
+  });
+  const record = records.find((each) => each.eventId === eventId);
+  return record === undefined ? undefined : eventOf(record);
+}
+
 /** The refusal of a message while a turn of the session waits for an answer or is paused. */
 function heldRefusal(sessionId: string, state: HeldQueueState): ConnectError {
   const metadata = { session_id: sessionId, run_id: state.runId };
@@ -226,16 +250,20 @@ export async function createTurn(chain: TurnChain, reqCtx: RequestContext<typeof
  * The turn a queued message would start: the request as sent, in its
  * session, naming the conversation's own copies of its files, with the
  * blocks its message carries them as (status.message_files, read only to
- * write the queued user.message).
+ * write the queued user.message), and the person its turn records
+ * (status.credentials: the message's authority, queue.ts).
  */
-function queuedTurnOf(request: Run, admitted: Run): Run {
+function queuedTurnOf(request: Run, admitted: Run, person: string | undefined): Run {
   const turn = clone(RunSchema, request);
   const spec = (turn.spec ??= create(RunSpecSchema));
   spec.fileIds = [...(admitted.spec?.fileIds ?? [])];
   if (turn.metadata !== undefined && turn.metadata.org === "") {
     turn.metadata.org = admitted.metadata?.org ?? "";
   }
-  turn.status = create(RunStatusSchema, { messageFiles: admitted.status?.messageFiles ?? [] });
+  turn.status = create(RunStatusSchema, {
+    messageFiles: admitted.status?.messageFiles ?? [],
+    credentials: person === undefined ? {} : { person },
+  });
   return turn;
 }
 

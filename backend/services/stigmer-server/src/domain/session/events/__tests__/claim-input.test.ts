@@ -1,9 +1,11 @@
 /**
  * Pins SessionCommandController.claimInput (../claim-input.ts): only the
  * runner acting for the run takes its session's queue, only while the run
- * works; it takes every message still queued, in the order sent, moved to
- * the head of the log as this run's, each accepted, and answers them; with
- * nothing queued it answers nothing and writes nothing; and the run's
+ * works; it takes every message still queued with the run's authority (its
+ * sender and recorded person), in the order sent, moved to the head of the
+ * log as this run's, each accepted, and answers them, leaving another
+ * sender's waiting; with nothing to take it answers nothing and writes
+ * nothing; and the run's
  * status reply says whether messages wait (UpdateStatusResponse
  * input_pending is pinned with the status merge).
  */
@@ -69,16 +71,16 @@ async function working(id = "a", sessionId = "s1"): Promise<void> {
     create(RunSchema, {
       metadata: { id, org: "acme" },
       spec: { target: { case: "sessionId", value: sessionId }, message: "build it" },
-      status: { phase: RunPhase.RUN_PENDING },
+      status: { phase: RunPhase.RUN_PENDING, audit: { specAudit: { createdBy: { id: "person-a" } } } },
     }),
   );
 }
 
-async function queue(text: string): Promise<string> {
+async function queue(text: string, sender = "person-a"): Promise<string> {
   const outcome = await enqueueMessage(deps, {
     sessionId: "s1",
     org: "acme",
-    sender: "person-a",
+    sender,
     turn: create(RunSchema, { spec: { target: { case: "sessionId", value: "s1" }, message: text } }),
   });
   return "queued" in outcome && outcome.queued.event.case === "userMessage" ? outcome.queued.event.value.id : "";
@@ -110,6 +112,24 @@ describe("claimInput", () => {
     expect(await temp.store.sessionEvents.queued("s1")).toEqual([]);
     const [newest] = await temp.store.sessionEvents.list("s1", { order: "desc", limit: 1 });
     expect(newest?.eventId).toBe(two);
+  });
+
+  it("takes only the messages sent with the run's authority, leaving another sender's for a turn of its own", async () => {
+    await working();
+    const participant = await queue("a participant's", "person-b");
+    const own = await queue("mine");
+    const response = await claim("a");
+    expect(response.events.map((event) => (event.event.case === "userMessage" ? event.event.value.id : ""))).toEqual([own]);
+    expect((await temp.store.sessionEvents.queued("s1")).map((queued) => queued.record.eventId)).toEqual([participant]);
+  });
+
+  it("answers nothing and writes nothing when only another sender's messages wait", async () => {
+    await working();
+    await queue("a participant's", "person-b");
+    const before = await temp.store.getResource(ApiResourceKind.run, "a", RunSchema);
+    expect((await claim("a")).events).toEqual([]);
+    const after = await temp.store.getResource(ApiResourceKind.run, "a", RunSchema);
+    expect(after.metadata?.etag).toBe(before.metadata?.etag);
   });
 
   it("answers nothing and writes nothing when nothing waits", async () => {
