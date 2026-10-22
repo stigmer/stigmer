@@ -146,7 +146,11 @@ test.describe("An agent's run defaults in the console", () => {
       const after = await stigmerClient.agent.get(testAgent.id);
       expect(after.spec?.runConfig?.thinkingMode).toBe(ThinkingMode.ENABLED);
 
-      // A build-from-plan turn on the same conversation still runs.
+      // A build-from-plan turn on the same conversation still runs, once
+      // the turn before it has ended: a session runs one turn at a time.
+      await expect
+        .poll(async () => (await stigmerClient.run.get(second?.metadata?.id ?? "")).status?.phase, { timeout: 90_000 })
+        .toBe(3); // RUN_COMPLETED
       const build = await stigmerClient.run.create({
         org: testAgent.org,
         name: `build-${Date.now()}`,
