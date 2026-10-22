@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { source } from "@/lib/source";
+import { blog, source } from "@/lib/source";
 import { SITE_CONFIG } from "@/lib/constants";
 
 export const dynamic = "force-static";
@@ -52,6 +52,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       changeFrequency: "weekly",
       priority: 0.7,
+    });
+  }
+
+  for (const page of blog.getPages()) {
+    routes.push({
+      url: `${baseUrl}${page.url}`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
     });
   }
 

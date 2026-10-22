@@ -1,17 +1,16 @@
 import type { Metadata } from "next";
-import { SITE_CONFIG } from "@/lib/constants";
+import { pageMetadata } from "@/lib/page-metadata";
 import { PrivacyPage } from "@/components/pages/PrivacyPage";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Privacy Policy",
+  path: "/privacy",
   description:
     "How Stigmer collects, uses, and protects your information across the stigmer.ai website and Stigmer Cloud.",
-  openGraph: {
-    title: `Privacy Policy | ${SITE_CONFIG.name}`,
-    description:
-      "How Stigmer collects, uses, and protects your information.",
+  preview: {
+    description: "How Stigmer collects, uses, and protects your information.",
   },
-};
+});
 
 export default function Page() {
   return <PrivacyPage />;
