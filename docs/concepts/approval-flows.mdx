@@ -16,11 +16,12 @@ indefinitely without losing state.
 
 ## How it works
 
-Take a customer who requests a return: the Agent pauses before processing it
-because the server marks the `process_return` tool destructive. The approval
-request shows the tool name, the arguments the Agent wants to pass, and a
-human-readable message. The human sees exactly what the Agent is about to do and
-can make an informed decision.
+Take an accounting product's customer whose variance report turns up a miscoded
+expense: before the Agent posts the correction to their books, it pauses,
+because the `ledger` server marks its `post_adjustment` tool destructive. The
+approval request shows the tool name, the arguments the Agent wants to pass (the
+account, the amount, the reason), and a human-readable message. The human sees
+exactly what the Agent is about to do and can make an informed decision.
 
 ## What asks for approval
 
@@ -111,16 +112,15 @@ and `disallowed_tools: [Bash(git push *)]` removes the shell entirely.
 spec:
   plugins:
     - kind: plugin
-      slug: order-management-api
-  tools: [Read, Grep, mcp__plugin_order-management-api_order-management-api]
-  disallowed_tools:
-    [mcp__plugin_order-management-api_order-management-api__cancel_order]
+      slug: ledger
+  tools: [Read, Grep, mcp__plugin_ledger_ledger]
+  disallowed_tools: [mcp__plugin_ledger_ledger__post_adjustment]
 ```
 
-This Agent can read files and use the order server's tools, but cannot run shell
-commands, write files, or cancel an order. The lists hold on both
-[harnesses](/docs/concepts/harnesses), and even when someone chooses to trust
-the whole run. A plugin's agents, which join as subagents, can narrow the
+This Agent can read files and use the `ledger` server's tools, but cannot run
+shell commands, write files, or post an adjustment to the books. The lists hold
+on both [harnesses](/docs/concepts/harnesses), and even when someone chooses to
+trust the whole run. A plugin's agents, which join as subagents, can narrow the
 Agent's tools with their own lists but never widen them. A saved Agent listed as
 a [subagent](/docs/concepts/agents#subagents) has lists of its own instead,
 capped by the run's and not by the Agent's. On the Cursor harness a subagent
@@ -183,11 +183,11 @@ for approval, the Agent resumes from the same waiting state.
 A few principles:
 
 - **Mark destructive tools on the server.** If you write an MCP server, set
-  `destructiveHint: true` on every tool that deletes, refunds or changes an
-  account, so every Agent that uses it asks first.
-- **Leave out what an Agent should never do.** A support Agent that only looks
-  things up needs `tools: [Read, Grep, mcp__plugin_<plugin>_<server>]`, not an
-  approval on every write.
+  `destructiveHint: true` on every tool that deletes, posts to the books or
+  changes an account, so every Agent that uses it asks first.
+- **Leave out what an Agent should never do.** An Agent that only reads a
+  customer's ledger needs `tools: [Read, Grep, mcp__plugin_<plugin>_<server>]`,
+  not an approval on every write.
 - **Approval is for the person at the conversation.** On a Slack or WhatsApp
   channel, or a chat link's guest, there is no approver, so a tool that asks, by
   default or because a hook asks, is skipped there; a hook's refusal still
@@ -199,7 +199,6 @@ request and immediately understand what's happening and whether to allow it.
 
 ## What's next
 
-Approval flows control individual tool calls. But conversations often span
-multiple messages, and the Agent needs to remember what happened earlier. The
-next page explains [Sessions](/docs/concepts/sessions) — how Stigmer preserves
-conversation context across interactions.
+Approval flows decide where a person says yes first. They don't tell you whether
+the Agent did the job well: whether the variance report flagged the right
+accounts. [Scores](/docs/concepts/scores) explains how a finished run is graded.

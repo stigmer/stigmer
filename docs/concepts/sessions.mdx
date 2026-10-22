@@ -1,25 +1,28 @@
 ---
 title: Sessions
 description:
-  A Session is a conversation context that preserves memory across interactions.
-  Learn how Sessions work, which Agent version they run, and how to customize
-  them per conversation.
+  A Session is one piece of work an Agent does for someone, with its
+  conversation, the computer it works on, its log of events and its files. Learn
+  how Sessions work, which Agent version they run, and how to customize them per
+  conversation.
 ---
 
-When a user talks to an Agent, the conversation needs memory. The second message
-should know about the first. The Agent should remember an order number mentioned
-earlier without the user repeating it. That context lives in a Session.
+A Session is one piece of work an [Agent](/docs/concepts/agents) does for
+someone: one customer's quarter reviewed, one month's books closed. Your app
+starts it when a customer asks for the work, the way it would put a job on a
+queue. It holds the conversation with whoever asked, the computer the Agent
+works on, an ordered log of everything that happened, and the files that went in
+and came out.
 
-A Session is a conversation context that holds message history and connects a
-user to an [Agent](/docs/concepts/agents). When a user sends a message, the
-Agent sees the full conversation history from that Session — it knows what was
-asked before, what tools were called, and what the outcomes were.
+When someone sends a message, the Agent sees the whole conversation so far: what
+was asked before, what tools it called, and what came back.
 
 ## Sessions in action
 
-The Agent remembers context across messages. When a user mentions an order in
-the first message, the Agent recalls the product and order number in the second
-— without the user repeating any details.
+The Agent remembers context across messages. When a customer asks for this
+quarter's variance report in the first message, and for the flagged accounts
+only in the second, the Agent knows which ledger and which quarter they mean,
+without the customer naming them again.
 
 This works because both messages exist in the same Session. The Agent sees the
 complete thread when processing each new message.
@@ -43,6 +46,27 @@ Each request-response cycle within a Session creates an
 [run](/docs/concepts/agents#blueprint-vs-runtime). The run sees all previous
 messages from the Session — this is how the Agent remembers context.
 
+## What a Session keeps
+
+A Session keeps three things for as long as it exists:
+
+- **The computer its Agent works on.** On Stigmer Cloud, and on a self-hosted
+  server that
+  [starts a runner per Session](/docs/guides/self-hosting/runners#a-runner-per-session),
+  that is a sandbox of its own, which keeps the files the Agent works on between
+  turns and goes when the Session does. What survives while it sleeps depends on
+  the sandbox
+  ([Environments](/docs/concepts/environments#when-packages-install-and-when-a-change-takes-effect)).
+  A self-hosted server with one shared runner runs every Session's turns on that
+  runner instead.
+- **Its events.** Everything the Agent does is written to one ordered log of
+  events, in the Claude Managed Agents event format: its messages, its tool uses
+  and their results, the calls waiting for an approval, and each run's phase.
+  Your app follows the log as it grows ([Streaming](/docs/sdk/streaming)).
+- **Its files.** The Files you give it, and what the Agent saves in its outputs
+  folder, which come back as Files of the Session
+  ([Files](/docs/concepts/files)).
+
 ## Creating a Session
 
 In the SDK, you create a Session by naming the Agent it talks to:
@@ -51,10 +75,10 @@ In the SDK, you create a Session by naming the Agent it talks to:
   <Tab value="TypeScript">
 ```typescript
 const session = await client.session.create({
-  name: "order-inquiry",
+  name: "q3-variance-review",
   org: "acme",
-  subject: "Order inquiry",
-  agentRef: { org: "acme", slug: "support-agent" },
+  subject: "Q3 variance review",
+  agentRef: { org: "acme", slug: "variance-reporter" },
 });
 ```
   </Tab>
@@ -62,10 +86,10 @@ const session = await client.session.create({
 
 ```go
 session, err := client.Session.Create(ctx, &stigmer.SessionInput{
-    Name:    "order-inquiry",
+    Name:    "q3-variance-review",
     Org:     "acme",
-    Subject: "Order inquiry",
-    AgentRef: stigmer.ResourceRef{Org: "acme", Slug: "support-agent"},
+    Subject: "Q3 variance review",
+    AgentRef: stigmer.ResourceRef{Org: "acme", Slug: "variance-reporter"},
 })
 ```
 
@@ -98,7 +122,7 @@ reaches them only when someone updates them:
     agent_ref:
       kind: agent
       org: acme
-      slug: support-agent
+      slug: variance-reporter
       version: latest
   ```
 
@@ -167,7 +191,7 @@ Add domain knowledge for this conversation only:
 spec:
   skill_refs:
     - kind: skill
-      slug: seasonal-promotions
+      slug: year-end-adjustments
 ```
 
 Session-level Skills merge with the Agent's Skills. If the same Skill appears in
@@ -182,15 +206,15 @@ and hooks:
 spec:
   plugins:
     - kind: plugin
-      slug: inventory-api
+      slug: payroll
 ```
 
 Session-level plugins join the Agent's, one entry per plugin; from the CLI,
-`stigmer run --plugin inventory-api` does the same. The Agent's `tools` and
+`stigmer run --plugin payroll` does the same. The Agent's `tools` and
 `disallowed_tools` lists govern them like the Agent's own: an Agent whose
-`tools` list does not name `mcp__plugin_inventory-api_inventory-api` cannot use
-that server. To narrow what an Agent can do, change its lists. A conversation
-with no Agent gets its tools from these plugins alone.
+`tools` list does not name `mcp__plugin_payroll_payroll` cannot use that server.
+To narrow what an Agent can do, change its lists. A conversation with no Agent
+gets its tools from these plugins alone.
 
 ### Environment
 
@@ -244,8 +268,7 @@ conversation.
 
 ## What's next
 
-Sessions capture conversations. But every conversation needs somewhere to run —
-a process that picks up the work, calls the LLM, and executes tools. That's what
-[Runners](/docs/concepts/runners) are. The next page explains how runners work,
-the difference between local and cloud runners, and how Sessions find the right
-runner for each run.
+A Session is where the work happens, but your customer's work arrives as a file:
+a ledger to review, a statement to match. The next page,
+[Files](/docs/concepts/files), explains how a file reaches the Agent and how the
+report it saves comes back to your app.

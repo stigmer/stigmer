@@ -1,15 +1,16 @@
 ---
 title: Skills
 description:
-  A Skill is a piece of domain knowledge that makes an Agent a specialist. Learn
-  how Skills are structured, how they attach to Agents, and why they're the
-  fastest way to make AI useful for your business.
+  A Skill is a folder of instructions an Agent reads when a job calls for it.
+  Learn how Skills are structured, how they attach to Agents, and how they
+  differ from retrieval.
 ---
 
-A Skill is a versioned package of domain knowledge that transforms a generic AI
-Agent into a domain expert. Without Skills, an Agent only knows what the
-underlying LLM was trained on. With Skills, it knows _your_ business — your
-return policy, your product catalog, your internal processes.
+A Skill is a folder of instructions an Agent reads when a job calls for it, the
+way a new hire reads the team's handbook for the task in front of them. The
+model already knows accounting; a Skill tells it how _your_ product does it: how
+a variance report is laid out, which variances get flagged, what your customers'
+accounts are called. Stigmer keeps every version of it.
 
 To add a Skill to an Agent, see
 [Install a plugin](/docs/guides/plugins/install-a-plugin). This page explains
@@ -21,10 +22,10 @@ A Skill is a directory with a required `SKILL.md` file and optional supporting
 resources:
 
 <Files>
-  <Folder name="return-policy" defaultOpen>
+  <Folder name="variance-report" defaultOpen>
     <File name="SKILL.md" />
     <Folder name="references">
-      <File name="escalation-matrix.md" />
+      <File name="report-template.md" />
     </Folder>
   </Folder>
 </Files>
@@ -34,45 +35,44 @@ use the Skill, and a markdown body that provides the actual knowledge.
 
 ```md
 ---
-name: return-policy
+name: variance-report
 description: >
-  Acme Corp return and refund policy. Use when customers ask about returns,
-  exchanges, refunds, or warranty claims.
+  How to lay out a variance report and which variances to flag. Use when a
+  customer asks for a variance report, or hands over a ledger to review against
+  its budget.
 ---
 
-# Return Policy
+# Variance report
 
-## Standard Returns
+## What to flag
 
-Customers may return unused items within 30 days of purchase for a full refund.
-Items must be in original packaging.
+- Flag every account more than 10% over or under its budget.
+- Flag any account more than 5,000 over or under, whatever its percentage.
+- Revenue under budget is always flagged, even by 1%.
 
-## Exceptions
+## Layout
 
-The following items cannot be returned:
+Save the report as `variance-report.md`, laid out like
+`references/report-template.md`:
 
-- Personalized or custom-made products
-- Perishable goods
-- Digital downloads after activation
+- a two-sentence summary of the quarter;
+- one table of every account (budget, actual, variance in money and as a
+  percentage), flagged accounts first;
+- one line under the table for each flagged account, saying what could explain
+  it.
 
-## Refund Processing
+## When the ledger doesn't add up
 
-- Credit card: refund appears within 5–10 business days
-- Store credit: issued immediately upon return approval
-- Always refund to the original payment method unless the customer requests
-  store credit
-
-## Escalation Rules
-
-- Refunds over $500 require manager approval
-- Returns past the 30-day window need case-by-case review
+- An account with no budget is listed but not flagged; say so in its line.
+- If the totals don't match the ledger's own total row, stop and say which rows
+  differ instead of writing the report.
 ```
 
 That two-part split isn't just a file convention — the platform keeps the parts
 separate everywhere. The Stigmer web console renders them as two distinct
 sections of a Skill's detail page: the description sits at the top as its own
 section — the trigger condition the Agent always sees — while the rendered body
-below it (Standard Returns, Exceptions, Refund Processing) is the knowledge the
+below it (What to flag, Layout, When the ledger doesn't add up) is what the
 Agent loads only when that trigger matches. The next two sections cover how to
 write each part.
 
@@ -80,10 +80,10 @@ write each part.
 
 The frontmatter contains two required fields:
 
-| Field         | Purpose                                                                                                                                                                  |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `name`        | A kebab-case identifier for the Skill, optionally scoped with dot-separated namespaces (e.g. `platform.planton-architecture`); dots become hyphens in the slug           |
-| `description` | Tells the Agent _when_ to use this Skill. Write it like a trigger condition — "Use when customers ask about returns" is better than "Contains return policy information" |
+| Field         | Purpose                                                                                                                                                               |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`        | A kebab-case identifier for the Skill, optionally scoped with dot-separated namespaces (e.g. `platform.planton-architecture`); dots become hyphens in the slug        |
+| `description` | Tells the Agent _when_ to use this Skill. Write it like a trigger condition — "Use when a customer asks for a variance report" is better than "Contains report rules" |
 
 The `description` is critical. It's always present in the Agent's context, so
 the Agent can decide whether to consult this Skill's content for a given
@@ -136,9 +136,9 @@ Agent definition:
 spec:
   skill_refs:
     - kind: skill
-      slug: return-policy
+      slug: variance-report
     - kind: skill
-      slug: product-catalog
+      slug: chart-of-accounts
 ```
 
 You write each reference by the Skill's slug, and Stigmer stores the Skill's ID,
@@ -150,8 +150,8 @@ version hash in `version` to hold a Skill at one version.
 
 You can also attach Skills at the [Session](/docs/concepts/sessions) level.
 Session-level Skills are merged with the Agent's Skills — this lets you
-customize what an Agent knows for a specific conversation without changing the
-Agent definition.
+customize what an Agent knows for one customer's job without changing the Agent
+definition.
 
 ## Skills that come from a plugin
 
@@ -177,12 +177,14 @@ If you've used retrieval-augmented generation (RAG), Skills might look familiar
 
 Skills are not a replacement for RAG on every use case. For searching across
 millions of documents, retrieval-based approaches have advantages. But for the
-kind of domain knowledge that makes an Agent useful — policies, procedures,
-product details, escalation rules — Skills are simpler and more predictable.
+kind of knowledge a job needs — how a report is laid out, which thresholds
+matter, what to do when the numbers don't add up — Skills are simpler and more
+predictable.
 
 ## What's next
 
-Your Agent knows your business through Skills. But knowledge alone doesn't let
-it _act_. The next page explains [Plugins](/docs/concepts/plugins) — the
+Your Agent knows how your product does the job through Skills. But knowledge
+alone doesn't let it _act_: it can't read a customer's books or post an
+adjustment. The next page explains [Plugins](/docs/concepts/plugins) — the
 packages that bring an Agent its tools, beside their own Skills, hooks and
 subagents.

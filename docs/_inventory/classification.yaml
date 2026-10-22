@@ -43,12 +43,14 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      What problem Stigmer solves and how it differs from direct LLM calls, RAG,
-      and agent frameworks.
+      That Stigmer is the open-source backend for the agents in your product,
+      what each customer's agent has, one job told through the pieces in the
+      sidebar's order, and how it differs from a model API, an agent framework
+      and Claude Managed Agents.
     medium: diagram
     why:
-      The platform's position between your app and the LLM provider is
-      structure; the existing architecture diagram carries it.
+      Where Stigmer sits between your app and your model provider is structure;
+      one diagram of the job's path carries it.
 
   getting-started/quickstart:
     fate: keep
@@ -89,7 +91,16 @@ pages:
       customer, and mint each customer's users into their own.
     medium: none
 
-  # ── Agents ─────────────────────────────────────────────────────────────
+  concepts/coming-from-claude-managed-agents:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      Each Claude Managed Agents idea mapped to its Stigmer counterpart, or to
+      none where Stigmer has none, what carries over in your code, and what
+      Stigmer adds.
+    medium: none
+
+  # ── How it works ───────────────────────────────────────────────────────
   concepts/agents:
     fate: keep
     diataxis: explanation
@@ -101,12 +112,73 @@ pages:
       The prose says "here's how this Agent looks in the console" — one frame
       answers that; nothing needs to move.
 
+  concepts/environments:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      An Environment is a named setup for the sandboxes Agents run in, its
+      packages and its network; which one a conversation gets and in what order,
+      who creates and who uses one, when packages install and when an edit takes
+      effect, what a blocked website looks like, the package registries and code
+      hosts, what each kind of server can do, deleting one, and how it compares
+      with Claude Managed Agents' environments.
+    medium: none
+
+  guides/environments/set-up-an-environment:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Create an Environment from the console or a manifest, make it an Agent's
+      or the Organization's default, name one for a conversation, check which
+      one a conversation got, and fix each refusal the server gives.
+    medium: screenshot-journey
+    why:
+      A console procedure from the Environments list to a conversation's Setup
+      tab.
+
+  concepts/sessions:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      A Session is one piece of work an Agent does for someone, keeping the
+      computer its Agent works on, an ordered log of events and its files; it
+      names its Agent, runs the version it started on until updated, re-checks
+      run permission on every message, locks a Harness, and can override Skills
+      and tools and name the Environment its sandbox runs in.
+    medium: diagram
+    why:
+      The lifecycle (Agent to Session to runs) is structure; the existing
+      mermaid carries it.
+
+  concepts/files:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      A File is a file uploaded once and named by its id; how a file reaches the
+      Agent (sent with a message, held by a conversation, named by a routine),
+      what the model sees, the uploads and outputs folders and why they sit in
+      the platform folder, what comes back, who sees a File and when it goes,
+      and how it compares with Claude's Files API and Managed Agents.
+    medium: none
+
+  concepts/vaults:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      What a vault holds (secrets by name, logins by address), My vault and
+      shared vaults with Can use, which vaults a run uses and in what order, how
+      a key is matched, the refusal at create, when the values are read, a
+      repository's own token, and Connect links.
+    medium: none
+
+  # ── What an agent can do ───────────────────────────────────────────────
   concepts/skills:
     fate: keep
     diataxis: explanation
     teaches:
-      A Skill is a SKILL.md directory whose frontmatter description is the
-      trigger condition, attachable to Agents and Sessions.
+      A Skill is a folder of instructions an Agent reads when a job calls for
+      it, a SKILL.md directory whose frontmatter description is the trigger
+      condition, attachable to Agents and Sessions.
     medium: still
     why:
       The Skill detail page shown next to its source makes the split visible; a
@@ -120,56 +192,6 @@ pages:
       Claude Code, Cursor and Codex format, its parts named after it, turned on
       for one chat or listed on an Agent, and the three places Stigmer differs.
     medium: none
-
-  concepts/scores:
-    fate: keep
-    diataxis: explanation
-    teaches:
-      A Score records how good a finished run was, as a person's thumbs with a
-      comment, the three free run-health checks with their reasons, or an AI
-      judge's verdict on four standard rubrics, switched on per Agent with a
-      sample rate and a monthly limit in its Quality tab, or an eval run's
-      checks on one try, and the not-graded state; whoever sees the run sees
-      its scores, read with `stigmer runs scores`.
-    medium: none
-
-  concepts/sessions:
-    fate: keep
-    diataxis: explanation
-    teaches:
-      A Session is the durable conversation context that names its Agent, runs
-      the version it started on until updated, re-checks run permission on every
-      message, locks a Harness, and can override Skills and tools and name the
-      Environment its sandbox runs in.
-    medium: diagram
-    why:
-      The lifecycle (Agent to Session to runs) is structure; the existing
-      mermaid carries it.
-
-  concepts/approval-flows:
-    fate: keep
-    diataxis: explanation
-    teaches:
-      How to make specific tool calls pause for a human, at which of four layers
-      to configure it, and what each decision does.
-    medium: animated-tour
-    why:
-      The pause-then-resume beat IS the concept — the agent stops mid-run and a
-      human decision resumes it; motion carries the cause-and-effect.
-
-  concepts/tools:
-    fate: split
-    diataxis: explanation
-    teaches:
-      How MCP servers reach an Agent in a plugin or in the Agent's own
-      mcp_servers, how they are added, authenticated and sandboxed, how their
-      tools are named and listed, and how Agents and Sessions use them.
-    medium: animated-tour
-    why:
-      A tool call firing, streaming results, and returning to the conversation
-      is a sequence that must be seen once. Split because the page mixes
-      concept, marketplace pitch, connect procedure, and auth patterns that
-      guides/integrations already owns.
 
   guides/plugins/install-a-plugin:
     fate: keep
@@ -225,137 +247,20 @@ pages:
       reduce to, what makes an entry installable, and the two error postures.
     medium: none
 
-  guides/evals/test-with-evals:
-    fate: keep
-    diataxis: how-to
+  concepts/tools:
+    fate: split
+    diataxis: explanation
     teaches:
-      Keep an agent's test cases as an eval and push its versions; run evals
-      and the cases of the plugins an agent uses on the agent, from the console
-      or the CLI; compare the agent with and without a plugin, and test a plugin
-      on its own; read the table, the exit codes and the result file; know what
-      runs, what differs from Claude Code, who sees an eval run and who pays;
-      and turn a conversation that went wrong into a case.
-    medium: none
-
-  guides/channels/create-a-chat-link:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      Create and manage hosted chat links for an Agent — audience, who pays,
-      visitor messages, embedding, and credentials.
-    medium: screenshot-journey
+      How MCP servers reach an Agent in a plugin or in the Agent's own
+      mcp_servers, how they are added, authenticated and sandboxed, how their
+      tools are named and listed, and how Agents and Sessions use them.
+    medium: animated-tour
     why:
-      A console procedure across the chat link dialog's tabs.
+      A tool call firing, streaming results, and returning to the conversation
+      is a sequence that must be seen once. Split because the page mixes
+      concept, marketplace pitch, connect procedure, and auth patterns that
+      guides/integrations already owns.
 
-  guides/channels/embed-an-agent:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      Drop the stigmer-agent web component onto a site, size and theme it,
-      restrict origins, and pass per-user session context.
-    medium: still
-    why:
-      The page documents a rendered widget the reader currently never sees; one
-      frame of the widget on a host page shows the outcome.
-
-  guides/channels/connect-slack:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      Install an Agent into a Slack workspace through the platform app, bind
-      credentials, and operate the channel afterward.
-    medium: screenshot-journey
-    why:
-      A multi-screen console procedure (channel wizard, consent, channel card)
-      the reader performs step by step.
-
-  guides/channels/connect-whatsapp:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      Bind an Agent to a WhatsApp Business number through your own Meta app and
-      operate the channel afterward.
-    medium: screenshot-journey
-    why:
-      Same procedural shape as the Slack twin — console screens the reader
-      follows at their own pace.
-
-  guides/channels/bring-your-own-slack-app:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      Register your own Slack app as a Channel App so the bot carries your
-      branding and multiple Agents can serve one workspace.
-    medium: screenshot-journey
-    why:
-      The Stigmer-side screens (Settings, Channel Apps, register form) are
-      depictable stills; Slack's own screens stay prose — we depict only our
-      product.
-
-  guides/channels/send-proactive-messages-with-templates:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      Enable proactive messaging on a WhatsApp channel, author an approved
-      template in WhatsApp Manager, and have the Agent send reminders and
-      invoices with it.
-    medium: none
-
-  guides/channels/set-up-your-meta-app:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      The full Meta prerequisite chain — WABA, app, permanent token, Channel App
-      registration, webhook verification.
-    medium: none
-
-  guides/channels/take-over-conversations:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      Watch customer conversations in the console's Conversations area, take one
-      over, reply through the channel's number, hand it back, and answer an
-      Agent escalation.
-    medium: screenshot-journey
-    why:
-      A console procedure the reader follows at their own pace — the
-      Conversations inbox, timeline, and banners are depictable stills (the
-      connect-guide precedent); the page ships prose-only until the stills are
-      rendered.
-
-  guides/routines/run-an-agent-on-a-schedule:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      Make a routine that runs an Agent on a schedule, from the console or a
-      manifest; test it with Run now, read who started each run, turn it off,
-      resume it after a pause, and pin the Agent's version.
-    medium: screenshot-journey
-    why:
-      A console procedure from the routine list to the routine's history.
-
-  guides/routines/start-a-routine-from-another-system:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      Let another system start a routine with one HTTP call and a note, through
-      a service account holding Participant on it; what the key reaches, the
-      hourly limit, and the open-source path with the owner's own key.
-    medium: none
-
-  guides/environments/set-up-an-environment:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      Create an Environment from the console or a manifest, make it an Agent's
-      or the Organization's default, name one for a conversation, check which
-      one a conversation got, and fix each refusal the server gives.
-    medium: screenshot-journey
-    why:
-      A console procedure from the Environments list to a conversation's Setup
-      tab.
-
-  # ── Tools & MCP ────────────────────────────────────────────────────────
   guides/integrations/overview:
     fate: keep
     diataxis: landing
@@ -435,134 +340,168 @@ pages:
       or Cursor and verify the connection.
     medium: none
 
-  # ── Platform ───────────────────────────────────────────────────────────
-  concepts/vaults:
+  concepts/approval-flows:
     fate: keep
     diataxis: explanation
     teaches:
-      What a vault holds (secrets by name, logins by address), My vault and
-      shared vaults with Can use, which vaults a run uses and in what order, how
-      a key is matched, the refusal at create, when the values are read, a
-      repository's own token, and Connect links.
-    medium: none
-
-  concepts/environments:
-    fate: keep
-    diataxis: explanation
-    teaches:
-      An Environment is a named setup for the sandboxes Agents run in, its
-      packages and its network; which one a conversation gets and in what order,
-      who creates and who uses one, when packages install and when an edit takes
-      effect, what a blocked website looks like, the package registries and code
-      hosts, what each kind of server can do, deleting one, and how it compares
-      with Claude Managed Agents' environments.
-    medium: none
-
-  concepts/files:
-    fate: keep
-    diataxis: explanation
-    teaches:
-      A File is a file uploaded once and named by its id; how a file reaches
-      the Agent (sent with a message, held by a conversation, named by a
-      routine), what the model sees, the uploads and outputs folders and why
-      they sit in the platform folder, what comes back, who sees a File and
-      when it goes, and how it compares with Claude's Files API and Managed
-      Agents.
-    medium: none
-
-  concepts/runners:
-    fate: keep
-    diataxis: explanation
-    teaches:
-      A Runner is the process that executes work, not a resource; where one
-      comes from in each way of running Stigmer; how work reaches it through a
-      task queue and what happens when none is polling.
-    medium: diagram
+      How to make specific tool calls pause for a human, at which of four layers
+      to configure it, and what each decision does.
+    medium: animated-tour
     why:
-      The runner's place at the end of the Agent, Session, run chain is
-      structure; the existing mermaid carries it.
+      The pause-then-resume beat IS the concept — the agent stops mid-run and a
+      human decision resumes it; motion carries the cause-and-effect.
 
-  guides/runners/overview:
+  concepts/scores:
     fate: keep
-    diataxis: landing
+    diataxis: explanation
     teaches:
-      Whether the reader needs the runner-embedding guides at all, and which
-      sub-guide to open.
+      A Score records how good a finished run was, as a person's thumbs with a
+      comment, the three free run-health checks with their reasons, or an AI
+      judge's verdict on four standard rubrics, switched on per Agent with a
+      sample rate and a monthly limit in its Quality tab, or an eval run's
+      checks on one try, and the not-graded state; whoever sees the run sees its
+      scores, read with `stigmer runs scores`.
     medium: none
 
-  guides/runners/cursor-harness:
-    fate: keep
-    diataxis: how-to
-    teaches:
-      Make the Cursor engine available to a runner in direct mode, or on Stigmer
-      Cloud through the Organization's own Cursor key, and pin a Session to it.
-    medium: none
-
-  guides/runners/model-backends:
+  guides/evals/test-with-evals:
     fate: keep
     diataxis: how-to
     teaches:
-      Serve a provider's models from your own cloud account (GCP Vertex AI for
-      Claude) by setting backend env vars on a direct-mode runner.
+      Keep an agent's test cases as an eval and push its versions; run evals and
+      the cases of the plugins an agent uses on the agent, from the console or
+      the CLI; compare the agent with and without a plugin, and test a plugin on
+      its own; read the table, the exit codes and the result file; know what
+      runs, what differs from Claude Code, who sees an eval run and who pays;
+      and turn a conversation that went wrong into a case.
     medium: none
 
-  guides/runners/payload-encryption:
+  # ── Reach an agent ─────────────────────────────────────────────────────
+  concepts/channels:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      A channel is one way people reach one Agent (a chat link, Slack or
+      WhatsApp); what every channel carries, who creates one and who reads its
+      conversations, why a channel is not sharing, and how it compares with
+      Azure Bot Service.
+    medium: none
+
+  guides/channels/create-a-chat-link:
     fate: keep
     diataxis: how-to
     teaches:
-      Encrypt every Temporal payload the runner produces (AES-256-GCM) so
-      decrypted secrets never rest in Temporal history — two env vars set on
-      both the runner and the server.
-    medium: none
+      Create and manage hosted chat links for an Agent — audience, who pays,
+      visitor messages, embedding, and credentials.
+    medium: screenshot-journey
+    why: A console procedure across the chat link dialog's tabs.
 
-  guides/runners/ipc-protocol:
+  guides/channels/embed-an-agent:
     fate: keep
-    diataxis: reference
-    teaches:
-      The complete line-delimited JSON contract for driving the runner as a
-      subprocess.
-    medium: none
-
-  guides/runners/embedding:
-    fate: split
     diataxis: how-to
     teaches:
-      Which runner-embedding path fits your deployment and how to wire a
-      RunnerAdapter in-process or as a subprocess.
-    medium: diagram
+      Drop the stigmer-agent web component onto a site, size and theme it,
+      restrict origins, and pass per-user session context.
+    medium: still
     why:
-      Deployment archetypes and the in-process/subprocess split are structure.
-      Split because 540 lines mix a decision matrix, an infra explainer, an SDK
-      tutorial, an interface contract, and a Tauri worked example.
+      The page documents a rendered widget the reader currently never sees; one
+      frame of the widget on a host page shows the outcome.
 
-  concepts/harnesses:
+  guides/channels/connect-slack:
     fate: keep
-    diataxis: explanation
+    diataxis: how-to
     teaches:
-      Choose between the Native and Cursor execution engines on models, tooling,
-      checkpointing, and cost; the choice locks per Session.
-    medium: diagram
+      Install an Agent into a Slack workspace through the platform app, bind
+      credentials, and operate the channel afterward.
+    medium: screenshot-journey
     why:
-      The engine-selection fork is structure; the existing mermaid carries it.
+      A multi-screen console procedure (channel wizard, consent, channel card)
+      the reader performs step by step.
 
-  concepts/resources:
+  guides/channels/connect-whatsapp:
     fate: keep
-    diataxis: explanation
+    diataxis: how-to
     teaches:
-      Every resource has a permanent ID and a renamable slug, is pointed at by
-      ID, changes by apply or by a named update with an optional freshness
-      check, lists in pages, and carries labels to filter and tags to find.
+      Bind an Agent to a WhatsApp Business number through your own Meta app and
+      operate the channel afterward.
+    medium: screenshot-journey
+    why:
+      Same procedural shape as the Slack twin — console screens the reader
+      follows at their own pace.
+
+  guides/channels/bring-your-own-slack-app:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Register your own Slack app as a Channel App so the bot carries your
+      branding and multiple Agents can serve one workspace.
+    medium: screenshot-journey
+    why:
+      The Stigmer-side screens (Settings, Channel Apps, register form) are
+      depictable stills; Slack's own screens stay prose — we depict only our
+      product.
+
+  guides/channels/send-proactive-messages-with-templates:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Enable proactive messaging on a WhatsApp channel, author an approved
+      template in WhatsApp Manager, and have the Agent send reminders and
+      invoices with it.
     medium: none
 
-  concepts/organizations:
+  guides/channels/set-up-your-meta-app:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      The full Meta prerequisite chain — WABA, app, permanent token, Channel App
+      registration, webhook verification.
+    medium: none
+
+  guides/channels/take-over-conversations:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Watch customer conversations in the console's Conversations area, take one
+      over, reply through the channel's number, hand it back, and answer an
+      Agent escalation.
+    medium: screenshot-journey
+    why:
+      A console procedure the reader follows at their own pace — the
+      Conversations inbox, timeline, and banners are depictable stills (the
+      connect-guide precedent); the page ships prose-only until the stills are
+      rendered.
+
+  concepts/routines:
     fate: keep
     diataxis: explanation
     teaches:
-      Organizations are the tenant boundary; a parent organization has one child
-      organization per customer, and its admins are admins in every child.
-    medium: diagram
-    why: Tenancy fan-out is structure; the two existing mermaids carry it.
+      A routine is a saved Agent invocation that starts on its schedule, by Run
+      now or from another system's call with a note; who it acts as, who may
+      start it and read its conversations by edition, the Environment its runs
+      use, off versus paused, and how it compares with Claude Code's routines
+      and Managed Agents' scheduled deployments.
+    medium: none
 
+  guides/routines/run-an-agent-on-a-schedule:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Make a routine that runs an Agent on a schedule, from the console or a
+      manifest; test it with Run now, read who started each run, turn it off,
+      resume it after a pause, and pin the Agent's version.
+    medium: screenshot-journey
+    why: A console procedure from the routine list to the routine's history.
+
+  guides/routines/start-a-routine-from-another-system:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Let another system start a routine with one HTTP call and a note, through
+      a service account holding Participant on it; what the key reaches, the
+      hourly limit, and the open-source path with the owner's own key.
+    medium: none
+
+  # ── Access and organizations ───────────────────────────────────────────
   concepts/sharing-and-access:
     fate: keep
     diataxis: explanation
@@ -574,26 +513,15 @@ pages:
       with general access, and what each edition grants.
     medium: none
 
-  concepts/channels:
+  concepts/organizations:
     fate: keep
     diataxis: explanation
     teaches:
-      A channel is one way people reach one Agent (a chat link, Slack or
-      WhatsApp); what every channel carries, who creates one and who reads its
-      conversations, why a channel is not sharing, and how it compares with
-      Azure Bot Service.
-    medium: none
-
-  concepts/routines:
-    fate: keep
-    diataxis: explanation
-    teaches:
-      A routine is a saved Agent invocation that starts on its schedule, by Run
-      now or from another system's call with a note; who it acts as, who may
-      start it and read its conversations by edition, the Environment its runs
-      use, off versus paused, and how it compares with Claude Code's routines and
-      Managed Agents' scheduled deployments.
-    medium: none
+      An Organization is the account everything belongs to and the wall between
+      customers; on the editions that include it, a parent organization has one
+      child organization per customer, and its admins are admins in every child.
+    medium: diagram
+    why: Tenancy fan-out is structure; the two existing mermaids carry it.
 
   concepts/identity:
     fate: keep
@@ -687,8 +615,8 @@ pages:
     diataxis: how-to
     teaches:
       Give each customer an isolated child organization under yours, administer
-      it as one of its admins, route sign-ins with externalIdClaim or minted user
-      tokens, and share a catalog with every child.
+      it as one of its admins, route sign-ins with externalIdClaim or minted
+      user tokens, and share a catalog with every child.
     medium: diagram
     why: Parent-to-child fan-out is structure; the two mermaids carry it.
 
@@ -711,6 +639,16 @@ pages:
       check where a run's values came from.
     medium: none
 
+  concepts/resources:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      Every resource has a permanent ID and a renamable slug, is pointed at by
+      ID, changes by apply or by a named update with an optional freshness
+      check, lists in pages, and carries labels to filter and tags to find.
+    medium: none
+
+  # ── Editions and running it ────────────────────────────────────────────
   concepts/billing:
     fate: keep
     diataxis: explanation
@@ -720,6 +658,81 @@ pages:
       model call runs on the Organization's own provider keys, what the model
       catalog's list prices are for, and what reduces model spend.
     medium: none
+
+  concepts/runners:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      A Runner is the process that executes work, not a resource; where one
+      comes from in each way of running Stigmer; how work reaches it through a
+      task queue and what happens when none is polling.
+    medium: diagram
+    why:
+      The runner's place at the end of the Agent, Session, run chain is
+      structure; the existing mermaid carries it.
+
+  guides/runners/overview:
+    fate: keep
+    diataxis: landing
+    teaches:
+      Whether the reader needs the runner-embedding guides at all, and which
+      sub-guide to open.
+    medium: none
+
+  guides/runners/cursor-harness:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Make the Cursor engine available to a runner in direct mode, or on Stigmer
+      Cloud through the Organization's own Cursor key, and pin a Session to it.
+    medium: none
+
+  guides/runners/model-backends:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Serve a provider's models from your own cloud account (GCP Vertex AI for
+      Claude) by setting backend env vars on a direct-mode runner.
+    medium: none
+
+  guides/runners/payload-encryption:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Encrypt every Temporal payload the runner produces (AES-256-GCM) so
+      decrypted secrets never rest in Temporal history — two env vars set on
+      both the runner and the server.
+    medium: none
+
+  guides/runners/ipc-protocol:
+    fate: keep
+    diataxis: reference
+    teaches:
+      The complete line-delimited JSON contract for driving the runner as a
+      subprocess.
+    medium: none
+
+  guides/runners/embedding:
+    fate: split
+    diataxis: how-to
+    teaches:
+      Which runner-embedding path fits your deployment and how to wire a
+      RunnerAdapter in-process or as a subprocess.
+    medium: diagram
+    why:
+      Deployment archetypes and the in-process/subprocess split are structure.
+      Split because 540 lines mix a decision matrix, an infra explainer, an SDK
+      tutorial, an interface contract, and a Tauri worked example.
+
+  concepts/harnesses:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      Choose between the Native and Cursor execution engines on models, tooling,
+      checkpointing, and cost; the choice locks per Session.
+    medium: diagram
+    why:
+      The engine-selection fork is structure; the existing mermaid carries it.
 
   guides/self-hosting/overview:
     fate: keep
@@ -887,8 +900,8 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Install @stigmer/client, construct a client, and make one call with not-found
-      handling.
+      Install @stigmer/client, construct a client, and make one call with
+      not-found handling.
     medium: none
 
   sdk/go:

@@ -387,6 +387,7 @@ export const LANES = {
       // authoring surfaces too (Makefile: --authoring-dirs).
       "examples/**",
       "plugins/**",
+      "docs-agent/**",
       "client-apps/cli/**",
       "sdk/ink/**",
       "sdk/react/**",

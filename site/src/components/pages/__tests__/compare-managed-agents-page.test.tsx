@@ -7,7 +7,8 @@
  * Managed Agents beta version and no Anthropic SDK release: the compatibility
  * claim is stated once, on the docs page this one links, and
  * scripts/managed-agents-claim.test.mjs holds that copy to the versions the
- * tests run.
+ * tests run. And pins that a reader already on Managed Agents is sent first
+ * to the docs page that maps each Managed Agents idea to Stigmer's.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -52,5 +53,13 @@ describe("CompareManagedAgentsPage", () => {
     expect(text).not.toMatch(/managed-agents-\d{4}-\d{2}-\d{2}/);
     expect(text).not.toMatch(/@anthropic-ai\/sdk/);
     expect(container.querySelector('a[href="/docs/sdk/managed-agents"]')).not.toBeNull();
+  });
+
+  it("sends readers already on Managed Agents to the docs' concept-by-concept mapping first", () => {
+    render(<CompareManagedAgentsPage />);
+    const section = screen.getByRole("heading", { name: "Already on Managed Agents?" }).closest("section");
+
+    const first = section?.querySelector("p a");
+    expect(first?.getAttribute("href")).toBe("/docs/concepts/coming-from-claude-managed-agents");
   });
 });

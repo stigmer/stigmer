@@ -1,28 +1,44 @@
 ---
 title: Organizations
 description:
-  Organizations are tenant boundaries that group resources and control access.
-  Learn how a parent organization manages child organizations for its customers,
-  and how resources are scoped.
+  An Organization is the account everything in Stigmer belongs to, and you can
+  give each of your customers one. Learn how a parent organization manages its
+  customers' organizations, and how resources are scoped.
 ---
 
-Every resource in Stigmer — Agents, Skills, Plugins, Sessions, Vaults — belongs
-to an Organization. An Organization is a tenant boundary that groups resources
-and controls who can access them.
+An Organization is the account everything in Stigmer belongs to, the way a
+workspace is in Slack or GitHub. Your Agents, Skills, Plugins, conversations
+(Sessions) and Vaults all live in one, and its members and roles say who can use
+them. What one Organization holds stays in it: only what it shares reaches
+another, and only a parent's admins, who are admins in every organization under
+it, reach in.
+
+That wall is how your customers stay apart. On the editions that include it, you
+can give each of your customers an Organization of their own under yours, so
+their conversations, files and keys never meet another customer's:
+[Give each customer their own organization](/docs/getting-started/one-organization-per-customer)
+does it step by step.
 
 ## Structure
+
+An Organization owns everything made in it. Here the `acme` Organization, the
+team behind an accounting product, owns the `variance-reporter` Agent, the two
+Skills it reads (`variance-report` and `chart-of-accounts`) and the `ledger`
+Plugin, whose MCP server gives the Agent its tools for reading a customer's
+ledger:
 
 {/* prettier-ignore */}
 <Mermaid
   chart={`
 graph TD
-  O["Organization<br/>(acme)"] --> P1["Plugin<br/>(customer-support)"]
-  O --> A2["Agent: ops-assistant"]
-  O --> S2["Skill: runbook"]
-  A2 -. "plugins" .-> P1
-  P1 --> A1["Agent: support-agent"]
-  P1 --> S1["Skill: return-policy"]
-  P1 --> M1["MCP server: order-service"]
+  O["Organization<br/>(acme)"] --> P1["Plugin<br/>(ledger)"]
+  O --> A1["Agent: variance-reporter"]
+  O --> S1["Skill: variance-report"]
+  O --> S2["Skill: chart-of-accounts"]
+  A1 -. "plugins" .-> P1
+  A1 -. "skill_refs" .-> S1
+  A1 -. "skill_refs" .-> S2
+  P1 --> M1["MCP server: ledger"]
 `}
 />
 
@@ -38,7 +54,7 @@ metadata:
   name: Acme Corp
   slug: acme
 spec:
-  description: Acme Corp agent platform
+  description: The team behind Acme's accounting product
 ```
 
 Key properties:
@@ -99,12 +115,12 @@ Codex dialect), and the resource the server keeps records what the folder holds:
 apiVersion: agentic.stigmer.ai/v1
 kind: Plugin
 metadata:
-  name: customer-support
+  name: ledger
   org: acme
 spec:
-  name: customer-support
+  name: ledger
   version: "1.0.0"
-  description: "Customer support agents, skills, and tool connections."
+  description: "Read a customer's ledger and post adjustments to it."
 ```
 
 A resource you author on its own (`stigmer apply -f agent.yaml`) belongs to the
@@ -114,10 +130,11 @@ Organization directly and is managed one at a time. See
 ## Parent and child organizations
 
 An Organization may have a **parent**: another Organization that created it and
-manages it. A platform that builds on Stigmer (Acme Cloud, say) creates one
-**child organization** for each of its own customers under its own Organization,
-the **parent organization**. A child names its parent in `parent_org`, and may
-carry the parent's own identifier for the customer in `external_id`:
+manages it. A product that builds on Stigmer (Acme Cloud, an accounting product,
+say) creates one **child organization** for each of its own customers under its
+own Organization, the **parent organization**, on the editions that include it.
+A child names its parent in `parent_org`, and may carry the parent's own
+identifier for the customer in `external_id`:
 
 ```yaml
 apiVersion: tenancy.stigmer.ai/v1
@@ -134,6 +151,10 @@ Both are fixed when the child is created, and children are one level deep: a
 child has no children of its own. An Organization you create for yourself has no
 parent; that is the usual case.
 
+Here Acme Cloud has three customers, each in a child organization of its own.
+Two run the `variance-reporter` Agent with a chart of accounts of their own; the
+third runs a `month-end-close` Agent with its own closing checklist:
+
 {/* prettier-ignore */}
 <Mermaid
   chart={`
@@ -142,12 +163,12 @@ graph TD
   OrgA["Child organization<br/>(tenant-alpha)"]
   OrgB["Child organization<br/>(tenant-beta)"]
   OrgC["Child organization<br/>(tenant-gamma)"]
-  A1["Agent: support-bot"]
-  A2["Skill: kb-alpha"]
-  B1["Agent: support-bot"]
-  B2["Skill: kb-beta"]
-  C1["Agent: ops-assistant"]
-  C2["Skill: runbook"]
+  A1["Agent: variance-reporter"]
+  A2["Skill: chart-of-accounts"]
+  B1["Agent: variance-reporter"]
+  B2["Skill: chart-of-accounts"]
+  C1["Agent: month-end-close"]
+  C2["Skill: close-checklist"]
   Parent --> OrgA
   Parent --> OrgB
   Parent --> OrgC
@@ -160,8 +181,9 @@ graph TD
 `}
 />
 
-A child organization is a full tenant boundary. Its own people work in it as in
-any Organization, and nothing it holds is visible to another child.
+A child organization is walled off like any other Organization. Its own people
+work in it as in any Organization, and nothing it holds is visible to another
+child.
 
 The parent's admins are **admins in every child**, with no joining step. They
 read and change a child's Agents, Skills, Plugins, shared Vaults, eval runs,
@@ -272,7 +294,7 @@ reference points at your own Organization, which is the common case:
 ```yaml validate-as="Agent.spec"
 skill_refs:
   - kind: skill
-    slug: return-policy
+    slug: variance-report
 ```
 
 An `org` field is accepted only when that Organization is your parent and shares
@@ -282,7 +304,7 @@ the resource with its children at `visibility_child_orgs`:
 # A Skill the parent organization shares with every child organization
 skill_refs:
   - kind: skill
-    slug: return-policy
+    slug: variance-report
     org: acme-cloud
 ```
 
@@ -309,7 +331,7 @@ new resource that takes a deleted one's name.
   mint user tokens from your backend with a service account's key. App users are
   org-scoped --- every mint for your Organization resolves the same user to one
   Identity Account.
-- Need tenant isolation for multiple customers? The
+- Need to keep each of your customers apart? The
   [Child organizations](/docs/guides/authentication/federation/child-organizations)
   guide covers creating a child organization per customer, managing it, and
   routing your customers' sign-ins.

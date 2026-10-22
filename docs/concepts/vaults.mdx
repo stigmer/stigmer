@@ -9,8 +9,9 @@ description:
 [Agents](/docs/concepts/agents) and the [MCP servers](/docs/concepts/tools) in
 their plugins need keys at runtime: an OpenAI API key, a sign-in to Linear, a
 token that lets a private repository clone. Those keys belong to people and
-teams, never to the definition of an Agent or a plugin. The same `support-agent`
-should use Ana's Linear sign-in when Ana chats with it and Ben's when Ben does.
+teams, never to the definition of an Agent or a plugin. The same
+`variance-reporter` should use Ana's sign-in to the ledger when Ana gives it a
+job and Ben's when Ben does.
 
 A **Vault** holds them. An [Environment](/docs/concepts/environments), which
 sets up the sandbox an Agent runs in, never does. A vault holds two kinds of
@@ -305,6 +306,9 @@ GitHub's tool, never the shell.
 
 ## What's next
 
-Vaults hold your keys. But how are resources themselves organized? The next page
-explains [Organizations](/docs/concepts/organizations) — how Stigmer groups
-resources, teams, and access control into tenant boundaries.
+Vaults hold the logins and keys your runs use; on Stigmer Cloud, the model keys
+your Agents run on are your Organization's own
+([Model provider keys](/docs/guides/integrations/model-provider-keys)). The
+Agent now has a job, a computer and its keys, but it only knows what its
+instructions say. [Skills](/docs/concepts/skills) explains how it learns the way
+your product does a job.

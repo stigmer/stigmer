@@ -1,20 +1,19 @@
 ---
 title: Agents
 description:
-  An Agent is a blueprint that defines what an Agent does — its instructions,
-  domain knowledge, and tool access. Learn how Agents are defined, versioned,
-  and run.
+  An Agent is a job description for the agent in your product, saying what it
+  does, what it knows and which tools it may use. Learn how Agents are defined,
+  versioned, and run.
 ---
 
-An Agent is the core resource in Stigmer. It defines _what_ an Agent does — its
-role, its instructions, the domain knowledge it can access, and the tools it can
-use. Think of it as a job description: it describes the Agent's capabilities and
-responsibilities, but it's not a running process.
+An Agent is a job description. It says what the agent in your product does for a
+customer, the Skills it reads when the job calls for them, and the tools it may
+use. Like a job description, it describes the work but does none of it: it's not
+a running process.
 
-When someone wants the Agent to handle a request, they start a conversation on
-it. Each conversation remembers the version of the Agent it started on, so you
-can update an Agent's definition without changing conversations already under
-way.
+When a customer needs the job done, your app starts a conversation on the Agent.
+Each conversation remembers the version of the Agent it started on, so you can
+update an Agent's definition without changing conversations already under way.
 
 ## Anatomy of an Agent
 
@@ -24,43 +23,45 @@ An Agent is defined in YAML with a standard resource structure:
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: support-agent
+  name: variance-reporter
   visibility: visibility_org
 spec:
-  description: Handles customer support requests.
+  description: Turns a customer's ledger into a variance report.
   instructions: |
-    You are a customer support agent for Acme Corp.
+    You review a customer's quarterly ledger and report how each
+    account did against its budget.
 
-    Use the company knowledge base to answer product questions.
-    When customers ask about orders, look up the order details
-    using the available tools before responding.
+    Read the ledger with the ledger tools, map each line to the
+    customer's chart of accounts, and lay out the report the way
+    the variance-report Skill says.
 
-    For returns and refunds, always ask for human approval
-    before processing.
+    When an account needs a correcting entry, propose it with
+    post_adjustment, which waits for a person's yes before
+    anything is posted.
   skill_refs:
     - kind: skill
-      slug: company-knowledge-base
+      slug: variance-report
     - kind: skill
-      slug: return-policy
+      slug: chart-of-accounts
   plugins:
     - kind: plugin
-      slug: order-management-api
-  tools: [Read, Grep, mcp__plugin_order-management-api_order-management-api]
+      slug: ledger
+  tools: [Read, Grep, mcp__plugin_ledger_ledger]
   env:
-    ORDER_API_URL:
+    LEDGER_API_URL:
       is_secret: false
-      description: Base URL of the order management API
-    ORDER_API_KEY:
+      description: Base URL of the ledger API
+    LEDGER_API_KEY:
       is_secret: true
-      description: API key for the order management service
+      description: API key for the ledger API
 ```
 
 The Stigmer web console adds nothing of its own: each section of an Agent's
 detail page is one of the YAML fields above, rendered for reading. The
 description at the top is `spec.description`, the instructions section carries
-the system prompt verbatim, the plugins section lists `order-management-api`,
-the tool list shows `tools`, and the two `skill_refs` appear under Skills. Each
-of those fields serves a purpose:
+the system prompt verbatim, the plugins section lists `ledger`, the tool list
+shows `tools`, and the two `skill_refs` appear under Skills. Each of those
+fields serves a purpose:
 
 | Field             | What it does                                                                                                                            |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
@@ -162,9 +163,9 @@ You can list an Agent's versions, open any of them, and give one a tag such as
 `stable`:
 
 ```bash
-stigmer get agent code-reviewer --version-history
-stigmer get agent code-reviewer --version stable
-stigmer tag agent acme-corp/code-reviewer <version-hash> stable
+stigmer get agent variance-reporter --version-history
+stigmer get agent variance-reporter --version stable
+stigmer tag agent acme-corp/variance-reporter <version-hash> stable
 ```
 
 Every run records the Agent version it ran, and runs that version to the end. If
@@ -191,41 +192,43 @@ channel. An Agent lists its subagents in `subagents`, by reference:
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: pr-bot
+  name: month-end-close
 spec:
-  description: Reviews pull requests and prepares releases.
+  description: Closes a customer's books at the end of the month.
   instructions: |
-    You review pull requests and prepare releases. When someone asks for
-    release notes, hand the work to the release-notes subagent.
+    You close a customer's books for the month. Hand the matching of
+    bank statements to ledger entries to the bank-reconciler subagent,
+    then use what it reports to finish the close.
   plugins:
     - kind: plugin
-      slug: github
-  tools: [Read, Grep, Agent, mcp__plugin_github_github]
+      slug: ledger
+  tools: [Read, Grep, Agent, mcp__plugin_ledger_ledger]
   subagents:
     - kind: agent
-      slug: release-notes
+      slug: bank-reconciler
 ```
 
-`release-notes` is an Agent of its own, saved before `pr-bot` lists it, and it
-works as itself: its own instructions and model, its own plugins and tools, its
-own Skills and hooks, and its own variables, which reach only its shell. It does
-not borrow `pr-bot`'s tools, so it can use a tool `pr-bot` may not, and it gets
-neither the conversation's own plugins nor the channel, conversation and memory
-tools. It runs as the person in the conversation, on the conversation's budget,
-and the conversation's hooks run on its calls before its own.
+`bank-reconciler` is an Agent of its own, saved before `month-end-close` lists
+it, and it works as itself: its own instructions and model, its own plugins and
+tools, its own Skills and hooks, and its own variables, which reach only its
+shell. It does not borrow `month-end-close`'s tools, so it can use a tool
+`month-end-close` may not, and it gets neither the conversation's own plugins
+nor the channel, conversation and memory tools. It runs as the person in the
+conversation, on the conversation's budget, and the conversation's hooks run on
+its calls before its own.
 
-- **Pinned when saved.** Saving `pr-bot` pins each subagent to the version it
-  names, or to its latest version when it names none. When the team improves
-  `release-notes`, `pr-bot` keeps the version it was saved with until someone
-  saves it again, and the console says a newer version exists. Applying a
-  manifest that names no version takes the latest.
+- **Pinned when saved.** Saving `month-end-close` pins each subagent to the
+  version it names, or to its latest version when it names none. When the team
+  improves `bank-reconciler`, `month-end-close` keeps the version it was saved
+  with until someone saves it again, and the console says a newer version
+  exists. Applying a manifest that names no version takes the latest.
 - **One level.** A subagent cannot hand work on: saving an Agent that lists an
   Agent with subagents of its own is refused.
 - **Who may list one.** You can list only an Agent you can run, at most 20, and
   an Agent may not be more visible than the Agents it lists. An Agent that
   another Agent lists cannot be deleted until it is removed from that list.
 - **Which ones may start.** `Agent` in `tools` lets the Agent hand work to any
-  subagent; `Agent(release-notes)` limits it to those named.
+  subagent; `Agent(bank-reconciler)` limits it to those named.
 - **A plugin's agents.** Each joins as a subagent named `<plugin>:<agent>`, as
   in Claude Code: it works with the main Agent's tools, narrowed by the lists in
   its file, on the model its file names when the conversation's
@@ -248,13 +251,14 @@ message may spend. They live in `run_config`, next to `harness`, the
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: pr-reviewer
+  name: variance-reporter
   visibility: visibility_org
 spec:
-  description: Reviews pull requests for correctness and risk.
+  description: Turns a customer's ledger into a variance report.
   instructions: |
-    You review pull requests. Read the diff and the files it touches, then
-    report bugs, risky changes and missing tests, most severe first.
+    You review a customer's quarterly ledger. Work out each account's
+    variance against its budget, flag the ones more than 10% off, and
+    save the report as variance-report.md in your outputs folder.
   tools: [Read, Grep, Glob]
   harness: HARNESS_NATIVE
   run_config:
@@ -349,18 +353,19 @@ assistant. The built-in assistant is for a person opening a conversation.
 The `instructions` field is the Agent's system prompt. It's the single biggest
 factor in how the Agent behaves. Structure it as a brief for a new team member:
 
-- **Be specific about the role.** "You are a customer support Agent for Acme
-  Corp" is better than "You are a helpful assistant."
-- **Define boundaries.** "For returns and refunds, always ask for human
-  approval" tells the Agent what to escalate.
-- **Reference available tools by purpose.** "Look up order details using the
-  available tools" guides the Agent to apply its tools to each user request.
+- **Be specific about the role.** "You review a customer's quarterly ledger and
+  report how each account did against its budget" is better than "You are a
+  helpful assistant."
+- **Define boundaries.** "Propose a correcting entry, never post one without the
+  customer's approval" tells the Agent where to stop and ask.
+- **Reference available tools by purpose.** "Read the ledger with the ledger
+  tools" guides the Agent to apply its tools to each job.
 - **Set the tone.** "Be direct and concise. Act on requests rather than
   explaining steps." shapes conversational style.
 
 ## What's next
 
-An Agent's `instructions` define what it knows from its prompt. But real domain
-expertise — your return policy, your product catalog, your internal processes —
-lives in [Skills](/docs/concepts/skills). The next page explains how Skills work
-and how they transform a generic Agent into a domain expert.
+An Agent's definition says what the job is, but not where the work happens. Your
+variance reporter needs somewhere to open the ledger, run its numbers and save
+the report. The next page, [Environments](/docs/concepts/environments), explains
+the computer each conversation works on.

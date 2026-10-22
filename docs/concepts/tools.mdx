@@ -8,8 +8,10 @@ description:
 ---
 
 [Skills](/docs/concepts/skills) give an Agent domain knowledge. Tools give it
-the ability to _act_. An Agent with tool access can query databases, create
-tickets, look up orders, send emails — any operation your systems support.
+the ability to _act_: the calls it makes into your product's systems, the way
+your own backend calls an internal API. An Agent with tool access can read a
+customer's ledger, list their accounts, post an adjustment to their books — any
+operation your systems support.
 
 Stigmer uses the
 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) to connect
@@ -27,10 +29,10 @@ When an Agent has tool access and receives a request that requires action, it:
 4. The tool returns a result
 5. The Agent uses the result to form its response
 
-Say a customer asks about an order, and the Agent calls the `get_order` tool to
-look up the details. The tool call appears in the conversation with its name and
-result. The Agent then uses that data to answer the customer's question with
-specific, real information instead of a generic response.
+Say an accounting product's customer asks for this quarter's variance report,
+and the Agent calls the `get_ledger` tool to read their ledger. The tool call
+appears in the Session with its name and result. The Agent then works from the
+customer's real numbers instead of guessing.
 
 ## Built-in web fetch
 
@@ -78,10 +80,10 @@ Here is a plugin's MCP configuration with one server of each kind:
 ```json
 {
   "mcpServers": {
-    "orders": {
+    "ledger": {
       "type": "http",
-      "url": "https://orders.acme.example/mcp",
-      "headers": { "Authorization": "Bearer ${ORDER_API_KEY}" }
+      "url": "https://ledger.acme.example/mcp",
+      "headers": { "Authorization": "Bearer ${LEDGER_API_KEY}" }
     },
     "files": {
       "command": "npx",
@@ -100,12 +102,12 @@ An Agent's own server is written in its spec:
 ```yaml validate-as="Agent"
 spec:
   mcp_servers:
-    - name: orders
-      url: https://orders.acme.example/mcp
+    - name: ledger
+      url: https://ledger.acme.example/mcp
       headers:
-        Authorization: Bearer ${ORDER_API_KEY}
+        Authorization: Bearer ${LEDGER_API_KEY}
   tools:
-    - mcp__orders
+    - mcp__ledger
 ```
 
 ### Transport options
@@ -158,10 +160,10 @@ servers. The servers in the Agent's own `mcp_servers` join them.
 spec:
   plugins:
     - kind: plugin
-      slug: orders
+      slug: ledger
   tools:
-    - mcp__plugin_orders_orders__get_order
-    - mcp__plugin_orders_orders__list_orders
+    - mcp__plugin_ledger_ledger__get_ledger
+    - mcp__plugin_ledger_ledger__list_accounts
 ```
 
 The Agent gets every tool its servers offer. To narrow that, it carries Claude
@@ -183,8 +185,8 @@ never narrows `Bash` to some commands.
 
 You install the plugin once and list it on as many Agents as you like. Each
 Agent can keep a different subset: the read-only Agent above only gets
-`get_order` and `list_orders`, while a full-access Agent also gets
-`process_return`. [Approval Flows](/docs/concepts/approval-flows) covers what
+`get_ledger` and `list_accounts`, while a full-access Agent also gets
+`post_adjustment`. [Approval Flows](/docs/concepts/approval-flows) covers what
 the lists guarantee, and how hooks decide a call the lists allow.
 
 ## Seeing a server's tools
@@ -203,10 +205,10 @@ documentation.
 A tool asks for human approval before it runs when its server marks it
 destructive, with the MCP annotation `destructiveHint: true`, and every other
 tool runs without asking. The server's author makes that call, not Stigmer:
-`process_return` asks if the order server annotates it, and `get_order` does
-not. The annotation is read again at the start of every turn, and a server whose
-tools cannot be listed then asks before every one of its tools. Hooks can change
-that call by call: a hook can refuse a tool, ask about it, or let it run
+`post_adjustment` asks if the `ledger` server annotates it, and `get_ledger`
+does not. The annotation is read again at the start of every turn, and a server
+whose tools cannot be listed then asks before every one of its tools. Hooks can
+change that call by call: a hook can refuse a tool, ask about it, or let it run
 ([Guard an agent's tools with hooks](/docs/guides/plugins/use-hooks)).
 
 ## Authentication for tools
@@ -250,14 +252,14 @@ When a turn starts, Stigmer reaches the Agent's own servers and the servers of
 every plugin the Agent and the conversation list, and asks each for its tools.
 Each tool has:
 
-- A **name** — used to call it (for example, `get_order`)
+- A **name** — used to call it (for example, `get_ledger`)
 - A **description** — helps the LLM decide when to use it
 - An **input schema** — defines what arguments it accepts
 
 The Agent sees these tool descriptions in its context and decides which tools to
 call based on the user's request. You don't need to tell the Agent "when the
-user asks about an order, call `get_order`" — the LLM figures that out from the
-tool's description.
+customer asks for a variance report, call `get_ledger`" — the LLM figures that
+out from the tool's description.
 
 ## Sandbox isolation
 

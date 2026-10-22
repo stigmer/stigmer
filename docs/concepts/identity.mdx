@@ -1,14 +1,17 @@
 ---
 title: Identity
 description:
-  How Stigmer identifies users and services. Learn the five account types, how
-  Federation Issuers and minted user tokens establish trust, and how your
-  product's users access Stigmer.
+  Every call to Stigmer is made by someone, a person, your product's user or a
+  service, and Stigmer knows which. Learn the five account types and how your
+  sign-in provider or your backend tells Stigmer who is calling.
 ---
 
-Every API call to Stigmer is made by an **Identity Account**---a principal that
-Stigmer can authenticate and authorize. Identity Accounts come in five types,
-each suited to a different integration pattern.
+Every call to Stigmer is made by someone: a person on your team, a user of your
+product, or a service such as your backend. Stigmer knows which one, the way
+your own app knows who is signed in, and that is what decides what the call may
+see and do. Stigmer's name for that someone is an **Identity Account**: the
+account Stigmer keeps for each person or service that calls it. Identity
+Accounts come in five types, each suited to a different way of calling.
 
 ## Account types
 

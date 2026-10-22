@@ -1,11 +1,12 @@
 /**
  * Hold every copy of Stigmer's words equal to brand/positioning.ts.
  *
- * Code reads the words from POSITIONING; prose cannot import, so the two
- * prose homes (the vocabulary's positioning section and the docs' front
- * page) are read here and must match it, and no text source in the site or
- * the console may carry the words, or a retired tagline, as a literal of its
- * own. A failure names the copy that drifted.
+ * Code reads the words from POSITIONING; prose cannot import, so the prose
+ * homes (the vocabulary's positioning section, the docs' front page, "What
+ * is Stigmer?" and the docs assistant's Skill) are read here and must match
+ * it, and no text source in the site or the console may carry the words, or
+ * a retired tagline, as a literal of its own. A failure names the copy that
+ * drifted.
  */
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
@@ -62,6 +63,29 @@ test("docs/index.mdx carries the headline, the subhead and the one sentence", ()
     POSITIONING.subhead,
     "docs/index.mdx: <Hero description>",
   );
+});
+
+/** Whether `text` carries `words`, compared with whitespace collapsed and case folded. */
+const carries = (text: string, words: string) =>
+  collapse(text).toLowerCase().includes(words.toLowerCase());
+
+test("What is Stigmer? opens with the one sentence and where it runs", () => {
+  const page = read("docs/concepts/what-is-stigmer.mdx");
+  const [, frontmatter = "", body = ""] = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(page) ?? [];
+  const description = /^description:([\s\S]*?)(?=^\S|$(?![\s\S]))/m.exec(frontmatter)?.[1] ?? "";
+  const opening = body.trim().split(/\n\s*\n/)[0] ?? "";
+  const path = "docs/concepts/what-is-stigmer.mdx";
+  assert.ok(carries(description, POSITIONING.oneSentence), `${path}: frontmatter description`);
+  assert.ok(carries(opening, POSITIONING.oneSentence), `${path}: opening paragraph, the one sentence`);
+  assert.ok(carries(opening, POSITIONING.whereItRuns), `${path}: opening paragraph, where it runs`);
+});
+
+test("the docs assistant's Skill says what Stigmer is in the same words", () => {
+  const path = "docs-agent/skills/stigmer-docs/SKILL.md";
+  const section = /^## What Stigmer is\n([\s\S]*?)(?=^## |$(?![\s\S]))/m.exec(read(path))?.[1];
+  assert.ok(section !== undefined, `${path}: a "## What Stigmer is" section`);
+  assert.ok(carries(section, POSITIONING.oneSentence), `${path}: "What Stigmer is", the one sentence`);
+  assert.ok(carries(section, POSITIONING.whereItRuns), `${path}: "What Stigmer is", where it runs`);
 });
 
 /** Where the site and the console keep their text sources. */

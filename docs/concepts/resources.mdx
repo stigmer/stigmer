@@ -6,11 +6,12 @@ description:
   work the same way for every kind.
 ---
 
-Priya runs her team's support Agent, `test-bot`. It answers in the support Slack
-channel, a routine runs it every morning, and another Agent hands it refund
-questions. One day she renames it `support-bot`. The channel keeps answering,
-the routine runs the next morning, and the other Agent keeps handing it work.
-Nothing that used `test-bot` had to change.
+Priya runs the Agent behind her accounting product's variance reports,
+`ledger-check`. Customers start it from a Slack channel, a routine runs it at
+every month-end, and another Agent hands it each customer's ledger. One day she
+renames it `variance-reporter`. The channel keeps working, the routine runs at
+the next month-end, and the other Agent keeps handing it ledgers. Nothing that
+used `ledger-check` had to change.
 
 That works because every resource in Stigmer (Agents, Skills, Plugins, Routines,
 Vaults and the rest) follows the same rules for how it is named, pointed at,
@@ -24,17 +25,17 @@ Every resource has two names:
   Agent). It never changes, and Stigmer files everything about the resource
   under it.
 - **The slug**, the short name people type in URLs, files and commands
-  (`support-bot`). It is unique among the resources of that kind in the
+  (`variance-reporter`). It is unique among the resources of that kind in the
   Organization, and it can be renamed.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: Support bot
-  slug: support-bot
+  name: Variance reporter
+  slug: variance-reporter
 spec:
-  instructions: Answer customer questions about orders and refunds.
+  instructions: Turn a customer's ledger into a variance report.
 ```
 
 Leave the slug out and Stigmer makes one from the name.
@@ -44,24 +45,24 @@ Leave the slug out and Stigmer makes one from the name.
 A rename changes the slug and nothing else. The resource keeps its ID, so
 everything that points at it keeps working, and every page and answer shows the
 new slug. The old slug keeps leading to the resource for 30 days, so a bookmark
-or a script that reads `test-bot` still finds it. For those 30 days no other
+or a script that reads `ledger-check` still finds it. For those 30 days no other
 resource of the kind can take the old slug, and you can take it back; after that
 it is free.
 
 A change that writes through the old slug is refused, with a message that names
-the new one. A file that still says `test-bot` and carries no ID would otherwise
-update the Agent for 30 days and then make a second one.
+the new one. A file that still says `ledger-check` and carries no ID would
+otherwise update the Agent for 30 days and then make a second one.
 
 How you rename depends on where you work:
 
 - **In the console**, edit the slug on the resource's page (an Agent's Overview
   tab) and choose Rename.
 - **From a file**, keep the resource's `id` in the file, change its `slug`, and
-  apply it. The file `stigmer get agent test-bot -o yaml` prints has both. This
-  works for every kind the CLI applies from a file and can rename: Agent,
+  apply it. The file `stigmer get agent ledger-check -o yaml` prints has both.
+  This works for every kind the CLI applies from a file and can rename: Agent,
   Routine, Environment, Channel App, OAuth App, Federation Issuer and
   Organization. The console's Edit YAML dialog follows the same rule, and says
-  "Applying will rename test-bot to support-bot" before you apply.
+  "Applying will rename ledger-check to variance-reporter" before you apply.
 - **Vaults and Teams** have no file: rename them in the console, or with the
   SDK's `rename`.
 
@@ -78,19 +79,20 @@ routine's Agent), you write the target's slug:
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: Triage bot
+  name: Month-end close
 spec:
-  instructions: Hand refund questions to the support bot.
+  instructions:
+    Close the customer's month. Hand their ledger to the variance reporter.
   subagents:
     - kind: agent
-      slug: support-bot
+      slug: variance-reporter
 ```
 
 When the Agent is saved, Stigmer stores the ID that slug named, not the slug.
 Every answer shows the target's current slug. So:
 
-- When `support-bot` is renamed, Triage bot keeps handing it work, and shows the
-  new slug.
+- When `variance-reporter` is renamed, Month-end close keeps handing it ledgers,
+  and shows the new slug.
 - When a Skill is deleted, the Agents that listed it show a deleted Skill, and
   their conversations run without it. If someone later makes a new Skill under
   the old name, those Agents do not pick it up. A reference follows a name only
@@ -98,9 +100,10 @@ Every answer shows the target's current slug. So:
 
 A Skill or Plugin reference without a version follows each new version: every
 turn of a conversation loads the latest at its start, and the run records which
-version it used. The conversation marks the turn where one moved ("Skill refunds
-updated"). A subagent is fixed to the version it had when the Agent that lists
-it was saved. [Skills](/docs/concepts/skills) has more on versions.
+version it used. The conversation marks the turn where one moved ("Skill
+variance-report updated"). A subagent is fixed to the version it had when the
+Agent that lists it was saved. [Skills](/docs/concepts/skills) has more on
+versions.
 
 ## Apply and update
 
@@ -140,30 +143,30 @@ not how many there are.
 
 Two kinds of words help you organize resources, and they do different jobs.
 
-**Labels filter.** A label is a key and value, such as `team: support`. A list
+**Labels filter.** A label is a key and value, such as `team: finance`. A list
 asked for labels returns only the resources that carry every one:
-`stigmer list agents --label team=support`. Use labels for the groupings your
+`stigmer list agents --label team=finance`. Use labels for the groupings your
 team and your scripts rely on: a team, an environment, a cost center.
 
-**Tags help people find things.** A tag is a search word, such as `refunds` or
-`billing`, written in lowercase with hyphens. Tags never filter a list; they are
-there for search and for browsing. A Plugin's tags come from the keywords in its
-manifest.
+**Tags help people find things.** A tag is a search word, such as `ledgers` or
+`month-end`, written in lowercase with hyphens. Tags never filter a list; they
+are there for search and for browsing. A Plugin's tags come from the keywords in
+its manifest.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: Support bot
-  slug: support-bot
+  name: Variance reporter
+  slug: variance-reporter
   labels:
-    team: support
+    team: finance
     env: production
   tags:
-    - refunds
-    - orders
+    - ledgers
+    - month-end
 spec:
-  instructions: Answer customer questions about orders and refunds.
+  instructions: Turn a customer's ledger into a variance report.
 ```
 
 Keys that start with `stigmer.ai/` belong to the platform, and Stigmer refuses
