@@ -19,6 +19,7 @@ import type { InitShape } from "./init-shape";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
+import type { SendMessageResponse } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import type { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
@@ -223,6 +224,42 @@ export function awaitTerminal(
     label: "a terminal phase",
     ...opts,
   });
+}
+
+// The run that read a sent message: the turn it started at once, or, for
+// a message queued behind a working turn (sendMessage, stigmer#2429), the
+// run whose user.message carries its id once a turn has read it.
+export async function awaitRunThatRead(
+  clients: ConformanceClients,
+  sessionId: string,
+  sent: SendMessageResponse,
+  opts: PollOptions = {},
+): Promise<string> {
+  const started = sent.run?.metadata?.id ?? "";
+  if (started !== "") {
+    return started;
+  }
+  const messageId = sent.message?.event.case === "userMessage" ? sent.message.event.value.id : "";
+  return awaitRunThatReadMessage(clients, sessionId, messageId, opts);
+}
+
+// The run whose user.message `messageId` is, once a turn has read it.
+export async function awaitRunThatReadMessage(
+  clients: ConformanceClients,
+  sessionId: string,
+  messageId: string,
+  opts: PollOptions = {},
+): Promise<string> {
+  const read = await pollUntil(
+    async () =>
+      (await clients.sessionQuery.listEvents({ sessionId, types: ["user.message"], pageSize: 1000 })).events.find(
+        (event) => event.event.case === "userMessage" && event.event.value.id === messageId && event.runId !== "",
+      ),
+    (event) => event !== undefined,
+    (_last, timeoutMs) => `no turn read the queued message ${messageId} of session ${sessionId} within ${timeoutMs}ms`,
+    opts,
+  );
+  return read!.runId;
 }
 
 // Obtain the mock LLM proxy from an execution target, failing loudly if the

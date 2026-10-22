@@ -337,6 +337,8 @@ describe("Run conformance — queries", () => {
     const one = await createExecution(org, agent);
     const sessionId = sessionIdOf(one);
     expect(sessionId, "create auto-creates and records a session id").toBeTruthy();
+    // A session runs one turn at a time: the second follows the first.
+    await awaitTerminal(clients, one.metadata!.id);
 
     mock.enqueue(anthropicText("Done."));
     const two = await clients.agentExecutionCommand.create(
@@ -380,6 +382,8 @@ describe("Run conformance — a turn belongs to its session and its session's or
     const first = await createExecution(org, agent);
     const sessionId = sessionIdOf(first);
     expect(sessionId, "create auto-creates and records a session id").toBeTruthy();
+    // A session runs one turn at a time: the second follows the first.
+    await awaitTerminal(clients, first.metadata!.id);
 
     mock.enqueue(anthropicText("Done."));
     const second = await clients.agentExecutionCommand.create(
@@ -388,7 +392,6 @@ describe("Run conformance — a turn belongs to its session and its session's or
     fixtures.defer(() => clients.agentExecutionCommand.delete({ value: second.metadata!.id }));
 
     expect(second.metadata?.org).toBe(org);
-    await awaitTerminal(clients, first.metadata!.id);
     await awaitTerminal(clients, second.metadata!.id);
     const listed = await clients.agentExecutionQuery.listBySession({ sessionId: sessionId });
     expect(listed.entries.map((e) => e.metadata?.id)).toContain(second.metadata?.id);

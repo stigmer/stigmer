@@ -68,7 +68,7 @@ import { FixtureTracker } from "../harness/fixtures";
 import { agentRefOf, makeAgent } from "../support/agents";
 import { managedAgentsClient } from "../support/managed-agents";
 import { uniqueName } from "../support/naming";
-import { awaitPhase, awaitTerminal, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/runs";
+import { awaitPhase, awaitRunThatReadMessage, awaitTerminal, makeAgentExecution, requireLlmProxy, sessionIdOf } from "../support/runs";
 import { createTarget, type TargetProfile } from "../targets";
 import type { RunnerRestartOptions } from "../targets/target";
 
@@ -280,7 +280,7 @@ describe("a long turn on a real runner", () => {
       await new Promise((resolve) => setTimeout(resolve, FIRST_TURN_WORKS_ON_MS));
       step.release();
       const firstSettled = await awaitTerminal(clients, first.id, { timeoutMs: ARM_TIMEOUT_MS });
-      const readerId = await runThatRead(sessionId, messageId, ARM_TIMEOUT_MS);
+      const readerId = await awaitRunThatReadMessage(clients, sessionId, messageId, { timeoutMs: ARM_TIMEOUT_MS });
       fixtures.defer(async () => {
         if (readerId !== first.id) {
           await awaitTerminal(clients, readerId, { timeoutMs: ARM_TIMEOUT_MS }).catch(() => undefined);
@@ -457,18 +457,3 @@ async function runIdsOf(sessionId: string): Promise<string[]> {
   return page.entries.map((run) => run.metadata?.id ?? "").reverse();
 }
 
-/** The run whose user.message `messageId` is, once a run has read it; bounded, naming what it waited for. */
-async function runThatRead(sessionId: string, messageId: string, budgetMs: number): Promise<string> {
-  const deadline = Date.now() + budgetMs;
-  for (;;) {
-    const { events } = await clients.sessionQuery.listEvents({ sessionId, types: ["user.message"], pageSize: 1000 });
-    const read = events.find((event) => event.event.case === "userMessage" && event.event.value.id === messageId && event.runId !== "");
-    if (read !== undefined) {
-      return read.runId;
-    }
-    if (Date.now() > deadline) {
-      throw new Error(`no run read the queued message ${messageId} within ${budgetMs} ms`);
-    }
-    await new Promise((resolve) => setTimeout(resolve, 200));
-  }
-}

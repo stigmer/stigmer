@@ -403,6 +403,7 @@ describe("toAgentExecutionInput", () => {
         },
         reconcileFileReview: true,
         excludedPluginIds: ["plg_compared"],
+        queuedMessageIds: ["sevt_queued_1"],
         evalCase: {
           pluginId: "plg_1",
           pluginDigest: "a".repeat(64),
