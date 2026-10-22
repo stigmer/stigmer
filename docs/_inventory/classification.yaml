@@ -139,10 +139,11 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      A Session is the durable conversation context that names its Agent, runs
-      the version it started on until updated, re-checks run permission on every
-      message, locks a Harness, and can override Skills and tools and name the
-      Environment its sandbox runs in.
+      A Session is one piece of work an Agent does for someone, keeping the
+      computer its Agent works on, an ordered log of events and its files; it
+      names its Agent, runs the version it started on until updated, re-checks
+      run permission on every message, locks a Harness, and can override Skills
+      and tools and name the Environment its sandbox runs in.
     medium: diagram
     why:
       The lifecycle (Agent to Session to runs) is structure; the existing
