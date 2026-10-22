@@ -456,7 +456,8 @@ message StreamAttentionRequest {
   string org = 1 [(buf.validate.field).string.min_len = 1];
 
   // Where to resume: the cursor of the last Attention the client has.
-  // Empty streams only what comes after the stream opens.
+  // Empty streams only what comes after the stream opens. A cursor older
+  // than a day resumes from a day ago.
   string after_cursor = 2 [(buf.validate.field).string.max_len = 256];
 }
 

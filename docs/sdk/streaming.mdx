@@ -598,7 +598,9 @@ nothing.
 
 Each `Attention` carries the conversation's `session_id` and `title`, the
 `run_id` of the turn, and a `cursor`. Pass the last cursor you showed as
-`after_cursor` when you reconnect, and nothing is missed or shown twice.
+`after_cursor` when you reconnect, and nothing is missed. The stream reads a
+short way back from the cursor again, so the same attention can come twice:
+show each `id` once. A cursor older than a day resumes from a day ago.
 
 <SDKTabs>
 <Tab value="TypeScript">

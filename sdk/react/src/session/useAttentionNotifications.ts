@@ -67,8 +67,8 @@ const RECONNECT_MS = 1_000;
  *
  * It follows `SessionQueryController.streamAttention` (`followAttention` in
  * `@stigmer/client`) for as long as it is enabled and mounted: a stream
- * that drops reconnects from the last attention it showed, so nothing is
- * missed and nothing shown twice. It shows nothing itself: the host's
+ * that drops reconnects from the last attention it showed, so nothing after
+ * it is missed and nothing shown twice. It shows nothing itself: the host's
  * `notify` does, and asks the person's permission first (the console from
  * its notification setting, never on load).
  *

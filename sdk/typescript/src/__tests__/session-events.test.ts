@@ -12,7 +12,7 @@
  */
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
@@ -382,5 +382,30 @@ describe("followAttention", () => {
     for await (const next of followAttention(client, "acme", { signal: abort.signal, sleep: async () => abort.abort() })) seen.push(next.id);
     expect(seen).toEqual(["a"]);
     expect(requests[0]?.afterCursor).toBe("");
+  });
+
+  it("forgets the oldest ids past its bound, so an attention that old comes again", async () => {
+    const many = Array.from({ length: 1025 }, (_, i) => attention(`a${i}`));
+    const { client } = attentionServer([{ send: [...many, attention("a0")], then: "refuse" }]);
+    const seen: string[] = [];
+    await expect(
+      (async () => {
+        for await (const next of followAttention(client, "acme", { sleep: noWait })) seen.push(next.id);
+      })(),
+    ).rejects.toMatchObject({ code: "permission-denied" });
+    expect([seen.length, seen.at(-1)]).toEqual([1026, "a0"]);
+  });
+
+  it("ends quietly when its signal aborts while a stream fails or ends", async () => {
+    for (const then of ["drop", "end"] as const) {
+      const abort = new AbortController();
+      const { client, requests } = attentionServer([{ send: [attention("a")], then }]);
+      const sleep = vi.fn(noWait);
+      for await (const next of followAttention(client, "acme", { signal: abort.signal, sleep })) {
+        expect(next.id).toBe("a");
+        abort.abort();
+      }
+      expect([requests.length, sleep.mock.calls.length], then).toEqual([1, 0]);
+    }
   });
 });

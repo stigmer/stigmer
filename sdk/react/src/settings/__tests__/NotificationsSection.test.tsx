@@ -67,12 +67,13 @@ describe("NotificationsSection", () => {
 
 describe("useAttentionNotificationsSetting", () => {
   it("reads off where storage refuses, and off when rendered on a server", () => {
-    const getItem = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+    localStorage.setItem(ATTENTION_NOTIFICATIONS_KEY, "true");
+    const storage = vi.spyOn(window, "localStorage", "get").mockImplementation(() => {
       throw new Error("blocked");
     });
     const { result } = renderHook(() => useAttentionNotificationsSetting());
     expect(result.current.on).toBe(false);
-    getItem.mockRestore();
+    storage.mockRestore();
 
     localStorage.setItem(ATTENTION_NOTIFICATIONS_KEY, "true");
     function Reader() {

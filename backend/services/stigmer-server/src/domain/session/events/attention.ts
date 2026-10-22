@@ -6,10 +6,14 @@
  * The stream is a cursor over the stored log, as streamEvents is
  * (stream.ts): it reads the organization's `session.status_idle` events
  * after its cursor (accepted time, then event id; the store's `listByOrg`),
- * sends the ones that need the caller, and advances. Between reads it
- * waits for the client leaving, the broker's idle bell (a write on this
- * server committed an idle, broker.ts), or the tail timer, which finds
- * what another server process committed, with the event stream's bounds.
+ * sends the ones that need the caller, and advances, one page at a time,
+ * so a read holds one page however far back it starts. Between reads it
+ * waits for the client leaving, the organization's idle bell (a write on
+ * this server committed an idle in it, broker.ts), or the tail timer,
+ * which finds what another server process committed, with the event
+ * stream's bounds. A cursor older than `ATTENTION_RESUME_LIMIT_MS`
+ * resumes from that far back: a client away longer is not told of every
+ * conversation that stopped while it was gone.
  *
  * An idle's accepted time is its writer's clock, and two writers commit in
  * their own order, so a read starts `ATTENTION_OVERLAP_MS` before the
@@ -58,7 +62,7 @@ import { callerIdentityOf } from "../../../pipeline/interceptors/auth.js";
 import { authorizeDirect } from "../../../pipeline/steps/authorize.js";
 import { ResourceNotFoundError, type Store } from "../../../store/interface.js";
 import type { SessionEventRecord } from "../../../store/session-events.js";
-import { SESSION_EVENT_BROKER_CLOSED_MESSAGE, SESSION_IDLE_BELL, type SessionEventBroker } from "./broker.js";
+import { SESSION_EVENT_BROKER_CLOSED_MESSAGE, sessionIdleBellOf, type SessionEventBroker } from "./broker.js";
 import { eventOf } from "./codec.js";
 import {
   SESSION_EVENT_REPLAY_BATCH,
@@ -79,6 +83,12 @@ export interface StreamAttentionDeps {
 
 /** How far before its cursor a read starts (the module header says why). */
 export const ATTENTION_OVERLAP_MS = 30_000;
+
+/** How far back a resumed stream reads at most: a day. */
+export const ATTENTION_RESUME_LIMIT_MS = 24 * 60 * 60_000;
+
+/** The accepted time as the stream writes it in a cursor (`Date.prototype.toISOString`). */
+const CURSOR_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
 const IDLE_TYPE = "session.status_idle";
 
@@ -113,7 +123,7 @@ export function attentionCursorOf(position: Position): string {
 export function positionOfCursor(cursor: string): Position {
   const at = cursor.indexOf("|");
   const processedAt = at < 0 ? "" : cursor.slice(0, at);
-  if (processedAt === "" || Number.isNaN(Date.parse(processedAt))) {
+  if (!CURSOR_TIME.test(processedAt) || Number.isNaN(Date.parse(processedAt))) {
     throw invalidArgumentError(`after_cursor '${cursor}' is not a cursor this stream sent`);
   }
   return { processedAt, eventId: cursor.slice(at + 1) };
@@ -137,7 +147,8 @@ export async function* streamAttention(
   let authorizedAt = now();
 
   const broker = deps.sessionEventBroker;
-  const subscription = broker.subscribe(SESSION_IDLE_BELL, []);
+  const bell = sessionIdleBellOf(request.org);
+  const subscription = broker.subscribe(bell, []);
   const abort = new Promise<void>((resolve) => {
     context.signal.addEventListener("abort", () => resolve(), { once: true });
   });
@@ -153,11 +164,17 @@ export async function* streamAttention(
     endIfClosed();
     let cursor: Position =
       req.afterCursor === "" ? { processedAt: new Date(now()).toISOString(), eventId: "" } : positionOfCursor(req.afterCursor);
+    const oldest = new Date(now() - ATTENTION_RESUME_LIMIT_MS).toISOString();
+    if (cursor.processedAt < oldest) {
+      cursor = { processedAt: oldest, eventId: "" };
+    }
     // A new stream sends nothing from before it opened: the window it
     // would read again is handled as it opens.
     if (req.afterCursor === "") {
-      for (const record of await readWindow(deps, request.org, cursor)) {
-        handled.set(record.eventId, record.processedAt);
+      for await (const page of windowPages(deps, request.org, cursor)) {
+        for (const record of page) {
+          handled.set(record.eventId, record.processedAt);
+        }
       }
     }
     let tailMs = tail.min;
@@ -169,26 +186,31 @@ export async function* streamAttention(
         subscription.dirty = false;
         readDue = false;
         let delivered = false;
-        for (const record of await readWindow(deps, request.org, cursor)) {
-          if (handled.has(record.eventId)) {
-            continue;
+        // A conversation is read once per read, so a rename shows on its
+        // next idle and the stream keeps no conversation it is not reading.
+        conversations.clear();
+        for await (const page of windowPages(deps, request.org, cursor)) {
+          for (const record of page) {
+            if (handled.has(record.eventId)) {
+              continue;
+            }
+            handled.set(record.eventId, record.processedAt);
+            if (record.processedAt > cursor.processedAt) {
+              cursor = { processedAt: record.processedAt, eventId: record.eventId };
+            }
+            const attention = await attentionOf(deps, record, caller.identityId, conversations);
+            if (attention === undefined) {
+              continue;
+            }
+            if (now() - authorizedAt >= SESSION_EVENT_STREAM_REAUTHORIZE_MS) {
+              await authorize();
+              authorizedAt = now();
+            }
+            yield attention;
+            delivered = true;
           }
-          handled.set(record.eventId, record.processedAt);
-          if (record.processedAt > cursor.processedAt) {
-            cursor = { processedAt: record.processedAt, eventId: record.eventId };
-          }
-          const attention = await attentionOf(deps, record, caller.identityId, conversations);
-          if (attention === undefined) {
-            continue;
-          }
-          if (now() - authorizedAt >= SESSION_EVENT_STREAM_REAUTHORIZE_MS) {
-            await authorize();
-            authorizedAt = now();
-          }
-          yield attention;
-          delivered = true;
+          forgetBefore(handled, cursor);
         }
-        forgetBefore(handled, cursor);
         if (delivered) {
           tailMs = tail.min;
         } else if (tailFired) {
@@ -213,7 +235,7 @@ export async function* streamAttention(
       subscription.notify = undefined;
     }
   } finally {
-    broker.unsubscribe(SESSION_IDLE_BELL, subscription);
+    broker.unsubscribe(bell, subscription);
   }
 }
 
@@ -222,9 +244,8 @@ function windowStart(cursor: Position): Position {
   return { processedAt: new Date(Date.parse(cursor.processedAt) - ATTENTION_OVERLAP_MS).toISOString(), eventId: "" };
 }
 
-/** Every idle of the organization from the window's start on, page by page. */
-async function readWindow(deps: StreamAttentionDeps, org: string, cursor: Position): Promise<SessionEventRecord[]> {
-  const records: SessionEventRecord[] = [];
+/** Every idle of the organization from the window's start on, one page at a time. */
+async function* windowPages(deps: StreamAttentionDeps, org: string, cursor: Position): AsyncGenerator<SessionEventRecord[]> {
   let after = windowStart(cursor);
   for (;;) {
     let page: SessionEventRecord[];
@@ -233,10 +254,10 @@ async function readWindow(deps: StreamAttentionDeps, org: string, cursor: Positi
     } catch (error) {
       throw internalError(error, "failed to read the organization's events");
     }
-    records.push(...page);
+    yield page;
     const last = page.at(-1);
     if (last === undefined || page.length < SESSION_EVENT_REPLAY_BATCH) {
-      return records;
+      return;
     }
     after = { processedAt: last.processedAt, eventId: last.eventId };
   }

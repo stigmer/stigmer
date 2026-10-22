@@ -174,7 +174,7 @@ export async function appendSessionEvents(
   }
 
   deps.sessionEventBroker.publishPreviews(sessionId, input.previews.map((preview) => stampedPreview(preview, runId)));
-  deps.sessionEventBroker.publish(sessionId, stored.appended.map(eventOf));
+  deps.sessionEventBroker.publish(sessionId, run.metadata?.org ?? "", stored.appended.map(eventOf));
   return create(AppendSessionEventsResponseSchema, { events: stored.records.map(identityOf) });
 }
 

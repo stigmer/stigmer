@@ -169,7 +169,7 @@ export async function enqueueMessage(deps: SessionQueueDeps, message: MessageToQ
       }).map(draftOf),
     };
   });
-  publish(deps, message.sessionId, result.enqueued === undefined ? result.events : [result.enqueued, ...result.events]);
+  publish(deps, message.sessionId, message.org, result.enqueued === undefined ? result.events : [result.enqueued, ...result.events]);
   if (refused !== undefined) {
     return { refused };
   }
@@ -249,7 +249,7 @@ export async function dropQueuedMessages(
       ].map(draftOf),
     };
   });
-  publish(deps, sessionId, result.events);
+  publish(deps, sessionId, org, result.events);
   return result.dropped;
 }
 
@@ -290,8 +290,8 @@ function latestStatusOf(session: SessionQueueContext) {
   return session.latestState === undefined ? undefined : sessionStatusOf(eventOf(session.latestState));
 }
 
-function publish(deps: SessionQueueDeps, sessionId: string, records: ReadonlyArray<Parameters<typeof eventOf>[0]>): void {
+function publish(deps: SessionQueueDeps, sessionId: string, org: string, records: ReadonlyArray<Parameters<typeof eventOf>[0]>): void {
   if (records.length > 0) {
-    deps.sessionEventBroker.publish(sessionId, records.map(eventOf));
+    deps.sessionEventBroker.publish(sessionId, org, records.map(eventOf));
   }
 }

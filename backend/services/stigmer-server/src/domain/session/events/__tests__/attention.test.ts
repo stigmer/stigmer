@@ -9,9 +9,11 @@
  * the stream wakes on the broker's idle bell and on its tail timer, and
  * ends with UNAVAILABLE when the broker closes; a request with no
  * organization, or a cursor the stream never wrote, is refused. A read
- * pages past one batch, forgets the ids its window has passed, asks the
- * authorizer again once five minutes have gone, and a store that fails a
- * read ends the stream INTERNAL.
+ * pages past one batch, forgets the ids its window has passed, and reads a
+ * conversation's title afresh; a resume from further back than a day reads
+ * from a day ago; the authorizer is asked again once five minutes have
+ * gone, and its refusal then ends the stream with nothing sent; a store
+ * that fails a read ends the stream INTERNAL.
  */
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, createContextValues, type HandlerContext } from "@connectrpc/connect";
@@ -30,8 +32,15 @@ import { callerIdentityKey } from "../../../../pipeline/interceptors/auth.js";
 import { newPermissiveSingleTeamAuthorizer } from "../../../../pipeline/steps/authorize.js";
 import { tempStore } from "../../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
-import { ATTENTION_OVERLAP_MS, attentionCursorOf, positionOfCursor, streamAttention, type StreamAttentionDeps } from "../attention.js";
-import { SESSION_IDLE_BELL, SessionEventBroker } from "../broker.js";
+import {
+  ATTENTION_OVERLAP_MS,
+  ATTENTION_RESUME_LIMIT_MS,
+  attentionCursorOf,
+  positionOfCursor,
+  streamAttention,
+  type StreamAttentionDeps,
+} from "../attention.js";
+import { SessionEventBroker, sessionIdleBellOf } from "../broker.js";
 import { draftOf } from "../codec.js";
 import { createRunAppendingEvents, updateRunAppendingEvents } from "../run-writes.js";
 
@@ -68,7 +77,7 @@ function caller(identityId = ME): CallerIdentity {
  */
 async function listening(stream: AsyncGenerator<Attention>): Promise<{ readonly next: Promise<IteratorResult<Attention>> }> {
   const next = stream.next();
-  await vi.waitFor(() => expect(broker.subscriberCount(SESSION_IDLE_BELL)).toBeGreaterThan(0));
+  await vi.waitFor(() => expect(broker.subscriberCount(sessionIdleBellOf("acme"))).toBeGreaterThan(0));
   await new Promise((resolve) => setImmediate(resolve));
   return { next };
 }
@@ -115,7 +124,7 @@ async function appendToSession(sessionId: string, event: SessionEvent): Promise<
     schema: SessionSchema,
     admit: () => undefined,
   });
-  broker.publish(sessionId, [event]);
+  broker.publish(sessionId, "acme", [event]);
 }
 
 /** A turn of `sessionId` that runs and stops in `phase`, with `stopCause` when given. */
@@ -228,6 +237,51 @@ describe("streamAttention", () => {
     expect(authorize).toHaveBeenCalledTimes(2);
   });
 
+  it("ends with the authorizer's refusal at the five-minute check, and sends nothing", async () => {
+    let clock = Date.now();
+    let allowed = true;
+    const authorize = vi.fn(() => Promise.resolve(allowed ? { kind: "allow" as const } : { kind: "deny" as const, reason: "gone" }));
+    deps = { ...deps, authorizer: { authorize }, now: () => clock };
+    await conversation("s1", ME);
+    const stream = open();
+    const next = (await listening(stream)).next;
+    clock += 5 * 60_000;
+    allowed = false;
+    await stops("a", "s1", RunPhase.RUN_COMPLETED);
+    await expect(next).rejects.toSatisfy((error) => error instanceof ConnectError && error.code === Code.PermissionDenied);
+    expect(authorize).toHaveBeenCalledTimes(2);
+  });
+
+  it("resumes from a day ago at most, whatever cursor it is given", async () => {
+    await conversation("s1", ME);
+    const now = Date.now();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      for (const [id, at] of [["two_days_ago", now - 2 * ATTENTION_RESUME_LIMIT_MS], ["an_hour_ago", now - 3_600_000]] as const) {
+        vi.setSystemTime(at);
+        await appendToSession(
+          "s1",
+          create(SessionEventSchema, { event: { case: "sessionStatusIdle", value: { id, stopReason: { type: "end_turn" } } } }),
+        );
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(((await open(EPOCH_CURSOR).next()).value as Attention).id).toBe("an_hour_ago");
+  });
+
+  it("reads a conversation's title afresh at each idle", async () => {
+    await conversation("s1", ME, "before");
+    const stream = open();
+    const first = (await listening(stream)).next;
+    await stops("a", "s1", RunPhase.RUN_COMPLETED);
+    expect(((await first).value as Attention).title).toBe("before");
+    await conversation("s1", ME, "after");
+    const second = stream.next();
+    await stops("b", "s1", RunPhase.RUN_COMPLETED);
+    expect(((await second).value as Attention).title).toBe("after");
+  });
+
   it("ends INTERNAL when the store fails a read", async () => {
     await conversation("s1", ME);
     await stops("a", "s1", RunPhase.RUN_COMPLETED);
@@ -331,7 +385,9 @@ describe("streamAttention", () => {
     await expect(streamAttention(deps, create(StreamAttentionRequestSchema, { org: "" }), context).next()).rejects.toSatisfy(
       (error) => error instanceof ConnectError && error.code === Code.InvalidArgument,
     );
-    await expect(open("not-a-cursor").next()).rejects.toSatisfy((error) => error instanceof ConnectError && error.code === Code.InvalidArgument);
+    for (const cursor of ["not-a-cursor", "2026|e1", "-271821-04-20T00:00:00.000Z|e1", "2026-10-23T00:00:00Z|e1"]) {
+      await expect(open(cursor).next(), cursor).rejects.toSatisfy((error) => error instanceof ConnectError && error.code === Code.InvalidArgument);
+    }
     expect(positionOfCursor(attentionCursorOf({ processedAt: "2026-10-23T00:00:00.000Z", eventId: "e|1" }))).toEqual({
       processedAt: "2026-10-23T00:00:00.000Z",
       eventId: "e|1",

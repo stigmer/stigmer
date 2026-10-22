@@ -1829,7 +1829,8 @@ type StreamAttentionRequest struct {
 	// The organization whose conversations to watch.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Where to resume: the cursor of the last Attention the client has.
-	// Empty streams only what comes after the stream opens.
+	// Empty streams only what comes after the stream opens. A cursor older
+	// than a day resumes from a day ago.
 	AfterCursor   string `protobuf:"bytes,2,opt,name=after_cursor,json=afterCursor,proto3" json:"after_cursor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

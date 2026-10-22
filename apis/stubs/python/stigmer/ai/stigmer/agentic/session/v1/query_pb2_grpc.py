@@ -130,8 +130,9 @@ class SessionQueryControllerServicer(object):
         It reads the conversations' log, so nothing is missed across a
         reconnect: with after_cursor the stream first sends every attention
         after that cursor, then the new ones; without, only those that come
-        after it opens. A cursor a little old is read again from a short way
-        back, so an attention may come twice: a client keeps the ids it showed.
+        after it opens. A cursor is read again from a short way back, so an
+        attention may come twice: a client keeps the ids it showed. A cursor
+        older than a day resumes from a day ago.
         A server that is restarting ends its streams with UNAVAILABLE, and a
         client resumes with its last cursor.
         """

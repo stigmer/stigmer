@@ -1003,7 +1003,8 @@ export type StreamAttentionRequest = Message<"ai.stigmer.agentic.session.v1.Stre
 
   /**
    * Where to resume: the cursor of the last Attention the client has.
-   * Empty streams only what comes after the stream opens.
+   * Empty streams only what comes after the stream opens. A cursor older
+   * than a day resumes from a day ago.
    *
    * @generated from field: string after_cursor = 2;
    */

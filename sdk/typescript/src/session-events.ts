@@ -198,8 +198,10 @@ const ATTENTION_IDS_KEPT = 1024;
 /**
  * Follows what needs the caller in `org`: each conversation they created
  * that stops working, once (module header). Reconnects from the last
- * cursor it delivered when the stream drops; ends when `signal` aborts, or
- * throws on a refusal.
+ * cursor it delivered when the stream drops; until it has delivered one, a
+ * reconnect follows only what comes after it reopens, so pass
+ * `afterCursor` to resume a follow across a gap. Ends when `signal`
+ * aborts, or throws on a refusal.
  */
 export async function* followAttention(
   client: AttentionClient,

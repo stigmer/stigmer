@@ -108,7 +108,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Where to resume: the cursor of the last Attention the client has.
-   * Empty streams only what comes after the stream opens.
+   * Empty streams only what comes after the stream opens. A cursor older
+   * than a day resumes from a day ago.
    * </pre>
    *
    * <code>string after_cursor = 2 [json_name = "afterCursor", (.buf.validate.field) = { ... }</code>
@@ -130,7 +131,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Where to resume: the cursor of the last Attention the client has.
-   * Empty streams only what comes after the stream opens.
+   * Empty streams only what comes after the stream opens. A cursor older
+   * than a day resumes from a day ago.
    * </pre>
    *
    * <code>string after_cursor = 2 [json_name = "afterCursor", (.buf.validate.field) = { ... }</code>
@@ -570,7 +572,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Where to resume: the cursor of the last Attention the client has.
-     * Empty streams only what comes after the stream opens.
+     * Empty streams only what comes after the stream opens. A cursor older
+     * than a day resumes from a day ago.
      * </pre>
      *
      * <code>string after_cursor = 2 [json_name = "afterCursor", (.buf.validate.field) = { ... }</code>
@@ -591,7 +594,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Where to resume: the cursor of the last Attention the client has.
-     * Empty streams only what comes after the stream opens.
+     * Empty streams only what comes after the stream opens. A cursor older
+     * than a day resumes from a day ago.
      * </pre>
      *
      * <code>string after_cursor = 2 [json_name = "afterCursor", (.buf.validate.field) = { ... }</code>
@@ -613,7 +617,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Where to resume: the cursor of the last Attention the client has.
-     * Empty streams only what comes after the stream opens.
+     * Empty streams only what comes after the stream opens. A cursor older
+     * than a day resumes from a day ago.
      * </pre>
      *
      * <code>string after_cursor = 2 [json_name = "afterCursor", (.buf.validate.field) = { ... }</code>
@@ -631,7 +636,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Where to resume: the cursor of the last Attention the client has.
-     * Empty streams only what comes after the stream opens.
+     * Empty streams only what comes after the stream opens. A cursor older
+     * than a day resumes from a day ago.
      * </pre>
      *
      * <code>string after_cursor = 2 [json_name = "afterCursor", (.buf.validate.field) = { ... }</code>
@@ -646,7 +652,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Where to resume: the cursor of the last Attention the client has.
-     * Empty streams only what comes after the stream opens.
+     * Empty streams only what comes after the stream opens. A cursor older
+     * than a day resumes from a day ago.
      * </pre>
      *
      * <code>string after_cursor = 2 [json_name = "afterCursor", (.buf.validate.field) = { ... }</code>

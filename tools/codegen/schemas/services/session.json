@@ -167,7 +167,7 @@
           "outputType": "Attention",
           "outputFullType": "ai.stigmer.agentic.session.v1.Attention",
           "serverStreaming": true,
-          "description": "Stream what needs the caller: one Attention each time a conversation\n they created in the organization stops working, because its turn\n finished, failed, or waits for their answer. A stop the caller made\n themselves (an interrupt, a terminate) sends nothing.\n\n It reads the conversations' log, so nothing is missed across a\n reconnect: with after_cursor the stream first sends every attention\n after that cursor, then the new ones; without, only those that come\n after it opens. A cursor a little old is read again from a short way\n back, so an attention may come twice: a client keeps the ids it showed.\n A server that is restarting ends its streams with UNAVAILABLE, and a\n client resumes with its last cursor."
+          "description": "Stream what needs the caller: one Attention each time a conversation\n they created in the organization stops working, because its turn\n finished, failed, or waits for their answer. A stop the caller made\n themselves (an interrupt, a terminate) sends nothing.\n\n It reads the conversations' log, so nothing is missed across a\n reconnect: with after_cursor the stream first sends every attention\n after that cursor, then the new ones; without, only those that come\n after it opens. A cursor is read again from a short way back, so an\n attention may come twice: a client keeps the ids it showed. A cursor\n older than a day resumes from a day ago.\n A server that is restarting ends its streams with UNAVAILABLE, and a\n client resumes with its last cursor."
         }
       ]
     }
@@ -1653,7 +1653,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Where to resume: the cursor of the last Attention the client has.\n Empty streams only what comes after the stream opens.",
+          "description": "Where to resume: the cursor of the last Attention the client has.\n Empty streams only what comes after the stream opens. A cursor older\n than a day resumes from a day ago.",
           "required": false,
           "validation": {
             "maxLength": 256
