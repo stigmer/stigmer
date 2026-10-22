@@ -8,8 +8,13 @@ name: reconcile-homebrew
 # deps age out (stigmer/stigmer#210). Rather than bypass the guard (e.g. by
 # bundling deps), we respect it and reconcile the tap on a schedule.
 #
-# The job is idempotent: it is a no-op when the formula already matches the
-# aged `latest`, or when `latest` is still inside the age window.
+# The formula is rendered by scripts/homebrew-formula.mjs, its one author, and
+# replaced whenever the rendered file differs from the tap's, so a change to
+# the formula's words reaches the tap at the next run without a release.
+#
+# The job is idempotent: it is a no-op when the tap's formula already is the
+# rendering for the aged `latest`, or when `latest` is still inside the age
+# window.
 
 on:
   schedule:
@@ -89,34 +94,42 @@ jobs:
           fi
 
           # Current formula version, parsed from the pinned registry tarball URL
-          # (.../@stigmer/cli/-/cli-<version>.tgz). No-op if already current.
+          # (.../@stigmer/cli/-/cli-<version>.tgz); it names the commit.
           CURRENT=""
           if [ -f Formula/stigmer.rb ]; then
             CURRENT=$(sed -n 's#.*/cli/-/cli-\(.*\)\.tgz".*#\1#p' Formula/stigmer.rb | head -n1)
           fi
           echo "formula version: ${CURRENT:-<none>}"
-          if [ "$CURRENT" = "$TARGET" ]; then
-            echo "Formula already at $TARGET; nothing to do."
-            exit 0
-          fi
 
           # Resolve the exact tarball + sha256 Homebrew requires (npm dist
           # metadata only exposes sha1/sha512, so we hash the tarball ourselves).
           TARBALL_URL=$(npm view "$PKG@$TARGET" dist.tarball)
           echo "tarball:         $TARBALL_URL"
-          curl -sL "$TARBALL_URL" -o /tmp/stigmer-cli.tgz
-          SHA256=$(sha256sum /tmp/stigmer-cli.tgz | awk '{print $1}')
+          curl -fsSL "$TARBALL_URL" -o "$RUNNER_TEMP/stigmer-cli.tgz"
+          SHA256=$(sha256sum "$RUNNER_TEMP/stigmer-cli.tgz" | awk '{print $1}')
           echo "sha256:          $SHA256"
-          echo "bumping formula: ${CURRENT:-<none>} -> $TARGET"
 
-          # The formula's words and shape live in scripts/homebrew-formula.mjs.
+          # The formula's words and shape live in scripts/homebrew-formula.mjs;
+          # the tap's copy is replaced only when the rendering differs.
           node ../stigmer/scripts/homebrew-formula.mjs \
-            --tarball-url "$TARBALL_URL" --sha256 "$SHA256" > Formula/stigmer.rb
+            --tarball-url "$TARBALL_URL" --sha256 "$SHA256" > "$RUNNER_TEMP/stigmer.rb"
+          if [ -f Formula/stigmer.rb ] && cmp -s "$RUNNER_TEMP/stigmer.rb" Formula/stigmer.rb; then
+            echo "Formula already is the rendering for $TARGET; nothing to do."
+            exit 0
+          fi
+          if [ "$CURRENT" = "$TARGET" ]; then
+            MESSAGE="Update the formula's words"
+          else
+            MESSAGE="Update stigmer to ${TARGET}"
+          fi
+          echo "updating formula: ${CURRENT:-<none>} -> $TARGET ($MESSAGE)"
+          mkdir -p Formula
+          cp "$RUNNER_TEMP/stigmer.rb" Formula/stigmer.rb
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Formula/stigmer.rb
-          git commit -m "Update stigmer to ${TARGET}"
+          git commit -m "$MESSAGE"
           git push
 
   # Scheduled runs are unattended; manual dispatches are watched (#477).
@@ -132,7 +145,8 @@ jobs:
       label: reconcile-homebrew-failure
       title: "reconcile-homebrew: daily Homebrew tap reconciliation is failing"
       body-context: >-
-        This job bumps stigmer/homebrew-tap to the aged npm latest of
-        @stigmer/cli; while it is red, brew users may be stuck on an old
-        version. Usual suspects: npm registry metadata changes, an expired
-        HOMEBREW_TAP_TOKEN, or drift in the formula template.
+        This job renders stigmer/homebrew-tap's formula for the aged npm
+        latest of @stigmer/cli (scripts/homebrew-formula.mjs); while it is
+        red, brew users may be stuck on an old version or old words. Usual
+        suspects: npm registry metadata changes, an expired
+        HOMEBREW_TAP_TOKEN, or a renderer that refuses its input.

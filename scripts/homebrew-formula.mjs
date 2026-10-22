@@ -9,7 +9,9 @@
  * The formula is the canonical Language::Node shape: Homebrew downloads the
  * @stigmer/cli tarball from npm, installs it (and its @stigmer/* deps) into
  * libexec, and links the `stigmer` launcher into bin. The server is fetched
- * on first use, so nothing else is bundled. The tarball URL and its sha256
+ * on first use, so nothing else is bundled. The caveats say what the
+ * quickstart says: the Anthropic key `stigmer setup` takes (the only provider
+ * the local runner serves), then `stigmer up`. The tarball URL and its sha256
  * are inputs because npm's dist metadata carries only sha1 and sha512; the
  * workflow downloads the tarball and hashes it.
  *
@@ -24,9 +26,10 @@
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 
-export const DESC = "AI-powered workflow automation — agents, skills, MCP servers, workflows";
+/** The one sentence fitted to Homebrew: no leading article, no full stop. */
+export const DESC = "Open-source backend for the agents in your product";
 
-export const HOMEPAGE = "https://github.com/stigmer/stigmer";
+export const HOMEPAGE = "https://stigmer.ai";
 
 /** Where npm serves every @stigmer/cli tarball; the reconcile parses the version back out of it. */
 const TARBALL_URL = /^https:\/\/registry\.npmjs\.org\/@stigmer\/cli\/-\/cli-[0-9A-Za-z.+-]+\.tgz$/;
@@ -62,14 +65,14 @@ class Stigmer < Formula
 
   def caveats
     <<~CAVEATS
-      The Stigmer backend server is downloaded automatically on first use,
-      so no extra binaries are bundled. Provide a model API key first:
+      Agents run on your Anthropic key. Put it in your shell, then start
+      Stigmer:
 
-        Option 1 (recommended):         export ANTHROPIC_API_KEY=sk-ant-...
-        Option 2:                        export OPENAI_API_KEY=sk-...
-        Option 3 (local, lower quality): brew install ollama && ollama serve
+        export ANTHROPIC_API_KEY=<your Anthropic API key>
+        stigmer up
 
-      Then start the local stack with:  stigmer up
+      To save the key instead of exporting it each time, run \`stigmer setup\`
+      once. The Stigmer server is downloaded on first use.
     CAVEATS
   end
 

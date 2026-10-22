@@ -4,10 +4,12 @@
 //
 // What these pin: the rendered formula is the Language::Node shape the tap has
 // always carried, with the tarball and its sha256 in place and nothing else
-// bundled; an input that is not an npm @stigmer/cli tarball or a sha256 is
-// refused rather than rendered. And DESC passes the rules `brew style`
-// enforces, each cited to Homebrew's rubocops/shared/desc_helper.rb, so a
-// wording change the tap would refuse fails here first. What DESC says is
+// bundled; the caveats offer the one model key the local stack runs on
+// (client-apps/cli/src/commands/setup.ts); an input that is not an npm
+// @stigmer/cli tarball or a sha256 is refused rather than rendered. And DESC
+// passes the rules `brew style` enforces, each cited to Homebrew's
+// rubocops/shared/desc_helper.rb, so a wording change the tap would refuse
+// fails here first. What DESC says is
 // the brand test's (brand/__tests__/positioning.test.ts).
 
 import assert from "node:assert/strict";
@@ -32,6 +34,15 @@ test("the formula is the Language::Node shape, pinned to one tarball", () => {
   assert.ok(lines.includes('    system "#{bin}/stigmer", "--version"'), "the test block runs the launcher");
   assert.ok(formula.endsWith("end\n"), "ends with the class's end and a newline");
   assert.equal(formula.match(/^\s*url /gm)?.length, 1, "one url: nothing else is bundled");
+});
+
+test("the caveats offer the one key the local stack runs on, then stigmer up", () => {
+  const formula = renderFormula({ tarballUrl: TARBALL, sha256: SHA256 });
+  const caveats = /<<~CAVEATS\n([\s\S]*?)\n\s*CAVEATS\n/.exec(formula)?.[1] ?? "";
+  assert.match(caveats, /^\s*export ANTHROPIC_API_KEY=/m, "exports the Anthropic key");
+  assert.match(caveats, /^\s*stigmer up$/m, "starts Stigmer");
+  assert.deepEqual(caveats.match(/\b[A-Z]+_API_KEY\b/g), ["ANTHROPIC_API_KEY"], "no other provider's key");
+  assert.doesNotMatch(caveats, /ollama/i, "no local model server");
 });
 
 test("the reconcile's version parse reads the tarball's version back", () => {

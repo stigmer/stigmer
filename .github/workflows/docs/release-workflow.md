@@ -43,4 +43,4 @@ Versions run on one 0.x line whose first release is `v0.1.0`. `make release` tag
 
 ## Homebrew
 
-The Homebrew tap (`stigmer/tap/stigmer`) is deliberately NOT bumped by this workflow: Homebrew runs formula npm installs with `--min-release-age=1`, which rejects same-day `@stigmer/*` versions for ~24h (stigmer/stigmer#210). `reconcile-homebrew.yaml` bumps the tap on a schedule once the packages are old enough.
+The Homebrew tap (`stigmer/tap/stigmer`) is deliberately NOT bumped by this workflow: Homebrew runs formula npm installs with `--min-release-age=1`, which rejects same-day `@stigmer/*` versions for ~24h (stigmer/stigmer#210). `reconcile-homebrew.yaml` runs daily: once the packages are old enough, it renders the formula with `scripts/homebrew-formula.mjs` and replaces the tap's copy whenever the rendering differs, so a new version and a change to the formula's words both reach the tap without anyone editing it.
