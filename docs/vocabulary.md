@@ -28,6 +28,9 @@ have been replaced with pointers to this document:
   load; it points here for every term and register
 - `site/src/components/docs/glossary.ts`---runtime tooltip definitions (keeps
   inline data for performance, but must match this file)
+- `README.md` and every package, chart, image and formula description---held to
+  [What Stigmer is, and who it is for](#what-stigmer-is-and-who-it-is-for) by
+  `brand/__tests__/positioning.test.ts`
 
 ---
 
