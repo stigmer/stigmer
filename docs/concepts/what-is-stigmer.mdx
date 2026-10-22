@@ -46,14 +46,16 @@ product's customer uploads a ledger and gets a variance report back. Here is the
 same job told through Stigmer's pieces.
 
 1. Your app starts a [Session](/docs/concepts/sessions) on the
-   `variance-reporter` [Agent](/docs/concepts/agents), in the customer's
-   Organization. The Agent is the job description; the Session is this one piece
-   of work.
+   `variance-reporter` [Agent](/docs/concepts/agents), in your Organization, or
+   in the customer's own on the editions that include it. The Agent is the job
+   description; the Session is this one piece of work.
 2. The ledger arrives as a [File](/docs/concepts/files), attached to the
    Session's first message.
-3. The Agent works in its own sandbox, set up by an
-   [Environment](/docs/concepts/environments), and calls the model on your
-   Anthropic key.
+3. The Agent works on its computer, and calls the model on your Anthropic key.
+   On Stigmer Cloud, and on a server that starts a sandbox per Session, that
+   computer is a sandbox of its own, set up by an
+   [Environment](/docs/concepts/environments); `stigmer up` on your machine runs
+   every Session on one shared runner instead.
 4. Add the `ledger` plugin to the Agent, and it can read the customer's books
    and post corrections to them as well. It asks before `post_adjustment`
    changes the books, and waits for a person's yes
@@ -63,8 +65,8 @@ same job told through Stigmer's pieces.
    stream to your app while the Agent works ([Streaming](/docs/sdk/streaming)).
 
 Your app talks only to Stigmer, and Stigmer talks to your model provider on your
-key. Inside Stigmer, the Session runs the Agent in a sandbox of its own, which
-holds the ledger that came in and the report that goes back.
+key. Inside Stigmer, the Session runs the Agent on its computer, which holds the
+ledger that came in and the report that goes back.
 
 {/* prettier-ignore */}
 <Mermaid
@@ -76,7 +78,7 @@ holds the ledger that came in and the report that goes back.
     "",
     "  subgraph stigmer [Stigmer]",
     '    session["Session on variance-reporter"]',
-    '    sandbox["Its sandbox<br/>ledger.csv in, variance-report.md out"]',
+    '    sandbox["Its computer<br/>ledger.csv in, variance-report.md out"]',
     "    session --> sandbox",
     "  end",
     "",
@@ -126,12 +128,12 @@ change it in one place.
 ### From Claude Managed Agents
 
 Anthropic describes Claude Managed Agents as a "pre-built, configurable agent
-harness that runs in managed infrastructure": Anthropic runs the agents and
-their sandboxes, on Claude. Stigmer is open source, runs on your servers or
-ours, runs on your own model keys, and gives each of your customers their own
-Organization on the editions that include it. Agents, Environments, Sessions and
-their events carry the same names in both, and Anthropic's SDK reads a Stigmer
-Session's events.
+harness that runs in managed infrastructure": Anthropic runs the agents, on
+Claude, and their sandboxes too unless you host those yourself. Stigmer is open
+source, runs on your servers or ours, runs on your own model keys, and gives
+each of your customers their own Organization on the editions that include it.
+Agents, Environments, Sessions and their events carry the same names in both,
+and Anthropic's SDK reads a Stigmer Session's events.
 [Coming from Claude Managed Agents](/docs/concepts/coming-from-claude-managed-agents)
 maps each idea, and
 [Stigmer and Claude Managed Agents](https://stigmer.ai/compare/claude-managed-agents)
