@@ -283,6 +283,14 @@ async function grpcError(run: () => Promise<unknown>): Promise<ConnectError> {
   }
 }
 
+describe("claimInput over the wire", () => {
+  it("refuses a caller that is not the run's runner", async () => {
+    const error = await command.claimInput({ runId: "run_any" }).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ConnectError);
+    expect((error as ConnectError).code).toBe(Code.PermissionDenied);
+  });
+});
+
 describe("session create and update — the agent it names", () => {
   it("stores no agent_ref and no pin for the built-in assistant", async () => {
     const session = await createSession({});

@@ -10,9 +10,11 @@
  * that started between the decision and the start queues the message
  * instead; a message queued while nothing works has the queue's turn
  * started at once, and the reply names that turn; a refused admission
- * takes back the files and decides nothing.
+ * takes back the files and decides nothing. A queued turn keeps the
+ * organization its admission settled. Run create (createTurn) admits then
+ * starts, taking back the files of a turn that failed.
  */
-import { create } from "@bufbuild/protobuf";
+import { create, fromBinary } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -23,7 +25,8 @@ import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { createLogger } from "../../../boot/logger.js";
 import { errorReasonOf, permissionDeniedError } from "../../../pipeline/errors.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
-import type { RequestContext } from "../../../pipeline/request-context.js";
+import { RequestContext } from "../../../pipeline/request-context.js";
+import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { SessionEventBroker } from "../../session/events/broker.js";
@@ -33,7 +36,7 @@ import {
   SESSION_TURN_PAUSED_REASON,
   SESSION_TURN_WAITS_FOR_ANSWER_REASON,
 } from "../constants.js";
-import { sendMessage } from "../send-message.js";
+import { createTurn, sendMessage } from "../send-message.js";
 import type { SendMessageDeps, TurnChain } from "../send-message.js";
 
 const silentLogger = createLogger({ level: "error", pretty: false, write: () => {} });
@@ -217,6 +220,36 @@ describe("sendMessage", () => {
     expect(reply.message?.runId, "the queue's turn wrote no message here, so the queued one answers").toBe("");
   });
 
+  it("refuses the message when the working turn starts waiting between the decision and the enqueue", async () => {
+    await working();
+    let reads = 0;
+    deps = {
+      ...deps,
+      store: new Proxy(temp.store, {
+        get(target, property, receiver) {
+          if (property === "writeSessionQueue") {
+            return async (...args: Parameters<typeof target.writeSessionQueue>) => {
+              reads += 1;
+              if (reads === 2) {
+                await updateRunAppendingEvents({ store: target, sessionEventBroker: deps.sessionEventBroker }, "a", (run) => {
+                  run.status!.phase = RunPhase.RUN_WAITING_FOR_APPROVAL;
+                });
+              }
+              return target.writeSessionQueue(...args);
+            };
+          }
+          const value: unknown = Reflect.get(target, property, receiver);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      }),
+    };
+    await expect(sendMessage(deps, message("x"), caller)).rejects.toSatisfy(
+      (error) =>
+        JSON.stringify(refusal(error)) === JSON.stringify([Code.FailedPrecondition, SESSION_TURN_WAITS_FOR_ANSWER_REASON]),
+    );
+    expect(calls).toEqual(["admit", "undo"]);
+  });
+
   it("takes back the files and decides nothing when the admission refuses", async () => {
     admitFails = true;
     await expect(sendMessage(deps, message("x"), caller)).rejects.toThrow("unauthorized");
@@ -228,6 +261,51 @@ describe("sendMessage", () => {
       throw permissionDeniedError("a gate refused");
     };
     await expect(sendMessage(deps, message("x"), caller)).rejects.toThrow("a gate refused");
+    expect(calls).toEqual(["admit", "start", "undo"]);
+  });
+});
+
+describe("the turn a message would start", () => {
+  it("takes the organization its admission settled when the request named none", async () => {
+    await working();
+    const request = message("hello");
+    request.metadata!.org = "";
+    await sendMessage(deps, request, caller);
+    const [queued] = await temp.store.sessionEvents.queued("s1");
+    expect(fromBinary(RunSchema, queued!.turn).metadata?.org).toBe("acme");
+  });
+
+  it("is an internal fault when a started turn's message is not in the log", async () => {
+    deps = {
+      ...deps,
+      chain: {
+        ...chain(),
+        start: async (reqCtx) => {
+          reqCtx.newState.status!.phase = RunPhase.RUN_PENDING;
+          await temp.store.saveResource(ApiResourceKind.run, reqCtx.newState.metadata!.id, RunSchema, reqCtx.newState);
+        },
+      },
+    };
+    await expect(sendMessage(deps, message("hello"), caller)).rejects.toSatisfy(
+      (error) => error instanceof ConnectError && error.code === Code.Internal,
+    );
+  });
+});
+
+describe("createTurn", () => {
+  it("admits then starts, and answers the started turn", async () => {
+    const reqCtx = new RequestContext(RunSchema, message("hello"), caller, ApiResourceKind.run);
+    const run = await createTurn(chain(), reqCtx);
+    expect(calls).toEqual(["admit", "start"]);
+    expect(run.metadata?.id).toBe("run_1");
+  });
+
+  it("takes back the files of a turn whose start failed", async () => {
+    beforeStart = async () => {
+      throw permissionDeniedError("a gate refused");
+    };
+    const reqCtx = new RequestContext(RunSchema, message("hello"), caller, ApiResourceKind.run);
+    await expect(createTurn(chain(), reqCtx)).rejects.toThrow("a gate refused");
     expect(calls).toEqual(["admit", "start", "undo"]);
   });
 });

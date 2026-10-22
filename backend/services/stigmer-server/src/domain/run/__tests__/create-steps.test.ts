@@ -93,6 +93,9 @@ import {
   newKeepEvalRunCaseStep,
   newGuardReconcileFileReviewStep,
   newKeepReconcileFileReviewStep,
+  newGuardQueuedMessagesStep,
+  newKeepQueuedMessagesStep,
+  QUEUED_MESSAGES_NOT_COMPOSED_MESSAGE,
   newGuardExcludedPluginsStep,
   newKeepExcludedPluginsStep,
   EXCLUDED_PLUGINS_NOT_COMPOSED_MESSAGE,
@@ -1592,6 +1595,40 @@ describe("newKeepReconcileFileReviewStep", () => {
     const cleared = update(true, false);
     await step.execute(cleared);
     expect(cleared.newState.spec?.reconcileFileReview).toBe(true);
+  });
+});
+
+describe("newGuardQueuedMessagesStep", () => {
+  const step = newGuardQueuedMessagesStep();
+
+  function naming(caller: CallerIdentity, ids: string[]) {
+    const execution = newExecution("ses_1");
+    execution.spec!.queuedMessageIds = ids;
+    return newContext(execution, caller);
+  }
+
+  it("refuses a turn naming queued messages from any caller the server did not compose", async () => {
+    await expect(step.execute(naming(testCallerIdentity(), ["sevt_q"]))).rejects.toThrow(QUEUED_MESSAGES_NOT_COMPOSED_MESSAGE);
+  });
+
+  it("passes the server's own start of a session's queue, and any request naming none", async () => {
+    await step.execute(naming(testCallerIdentity({ origin: "in-process" }), ["sevt_q"]));
+    await step.execute(naming(testCallerIdentity(), []));
+  });
+});
+
+describe("newKeepQueuedMessagesStep", () => {
+  const step = newKeepQueuedMessagesStep();
+
+  it("keeps the queued messages the create stored, whatever the update asks", async () => {
+    const existing = newExecution("ses_1");
+    existing.spec!.queuedMessageIds = ["sevt_q"];
+    const execution = newExecution("ses_1");
+    execution.spec!.queuedMessageIds = ["sevt_forged"];
+    const ctx = newContext(execution, testCallerIdentity());
+    ctx.set(EXISTING_RESOURCE_KEY, existing);
+    await step.execute(ctx);
+    expect(ctx.newState.spec?.queuedMessageIds).toEqual(["sevt_q"]);
   });
 });
 

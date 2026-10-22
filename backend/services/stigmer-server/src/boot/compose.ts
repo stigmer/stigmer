@@ -1152,9 +1152,12 @@ export async function composeServer(
     store,
     logger,
     sessionEventBroker,
+    /* v8 ignore next -- @preserve: called only once a turn ends with messages queued, after boot */
     creator: () => requireInProcess().queuedTurnCreator,
+    /* v8 ignore next -- @preserve: called only once a turn ends with messages queued, after boot */
     callerOf: undoDeciderCaller(personAccounts, () => singleOrganizationCaller),
   };
+  /* v8 ignore next -- @preserve: called only by a run's workflow end and a message queued with nothing working */
   const queuedTurns: QueuedTurnStarter = (sessionId) => startQueuedTurn(queuedTurnDeps, sessionId);
   const queuedTurnObserver = newQueuedTurnObserver(queuedTurnDeps);
   const runStatusObservers = [

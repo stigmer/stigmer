@@ -22,6 +22,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import { createLogger } from "../../../../boot/logger.js";
 import { newExecutionScopedRunnerCredentialProvider } from "../../../../runnerauth/runner-credential-provider.js";
 import { RunnerAuthService } from "../../../../runnerauth/runnerauth.js";
+import { ResourceNotFoundError } from "../../../../store/interface.js";
 import { tempStore } from "../../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../../store/sqlite/__tests__/support.js";
 import type { AppendSessionEventsDeps } from "../append.js";
@@ -143,17 +144,44 @@ describe("claimInput", () => {
     expect(await temp.store.sessionEvents.queued("s1")).toHaveLength(1);
   });
 
-  it("is an internal fault when the store fails the read", async () => {
+  it("answers the store's faults: a refusal under the lock as it is, a run gone as the runner's refusal, any other as Internal", async () => {
     await working();
     await queue("one");
+    const failingWrite = (error: Error) => {
+      deps = {
+        ...deps,
+        store: new Proxy(temp.store, {
+          get(target, property, receiver) {
+            if (property === "writeResourceAppendingEvents") {
+              return () => Promise.reject(error);
+            }
+            const value: unknown = Reflect.get(target, property, receiver);
+            return typeof value === "function" ? value.bind(target) : value;
+          },
+        }),
+      };
+    };
+    failingWrite(new ConnectError("held", Code.FailedPrecondition));
+    expect((await refusal(claim("a"))).code).toBe(Code.FailedPrecondition);
+    failingWrite(new ResourceNotFoundError("run/a"));
+    expect((await refusal(claim("a"))).rawMessage).toBe(NOT_THE_RUNS_RUNNER_MESSAGE);
+    failingWrite(new Error("disk full"));
+    expect((await refusal(claim("a"))).code).toBe(Code.Internal);
+  });
+
+  it("is an internal fault when the run cannot be read", async () => {
+    await working();
     deps = {
       ...deps,
-      store: {
-        ...temp.store,
-        getResource: temp.store.getResource.bind(temp.store),
-        sessionEvents: temp.store.sessionEvents,
-        writeResourceAppendingEvents: () => Promise.reject(new Error("disk full")),
-      } as unknown as typeof temp.store,
+      store: new Proxy(temp.store, {
+        get(target, property, receiver) {
+          if (property === "getResource") {
+            return () => Promise.reject(new Error("disk full"));
+          }
+          const value: unknown = Reflect.get(target, property, receiver);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      }),
     };
     expect((await refusal(claim("a"))).code).toBe(Code.Internal);
   });

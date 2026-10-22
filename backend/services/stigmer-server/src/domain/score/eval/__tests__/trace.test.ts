@@ -485,6 +485,23 @@ describe("the eval trace's files", () => {
 });
 
 describe("the eval trace's edges", () => {
+  it("writes a message the person sent while the turn worked as a user line where the turn read it; the request stays the first", async () => {
+    const run = runOf([]);
+    const events = new RunEventsBuilder("run_try")
+      .user("rename getUser")
+      .turnMessage("Looking.")
+      .user("and update the README", "sevt_mid_turn")
+      .turnMessage("Updating it.")
+      .build();
+    const trace = await evalTraceOf({ run: run.run, events }, deps(Harness.NATIVE));
+    expect(trace.traceLines.map((line) => JSON.parse(line) as unknown)).toEqual([
+      { type: "user", message: { role: "user", content: "rename getUser" } },
+      { type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "Looking." }] } },
+      { type: "user", message: { role: "user", content: "and update the README" } },
+      { type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "Updating it." }] } },
+    ]);
+  });
+
   it("opens an assistant line for a tool use after the previous uses' results, and reads a call that never returned as an empty result", async () => {
     const run = runOf([]);
     const events = new RunEventsBuilder("run_try")

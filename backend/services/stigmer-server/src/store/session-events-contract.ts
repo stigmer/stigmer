@@ -58,6 +58,7 @@ import type {
   SessionEventScope,
   SessionQueueContext,
   SessionQueueScope,
+  SessionQueueWrite,
 } from "./session-events.js";
 
 /** The runner's fixture over the whole Store: the log is the store's own, joined to its rows. */
@@ -103,6 +104,11 @@ async function enqueue(
     };
   });
   return seen!;
+}
+
+/** A queue writer that writes nothing: what a read under the lock hands back. */
+function writesNothing(): SessionQueueWrite {
+  return {};
 }
 
 /** The ids of a session's queue, in the order sent. */
@@ -939,6 +945,32 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
     },
   ],
   [
+    "a queue write whose writer throws commits nothing; one over a kind with no list index, or with no session, is refused",
+    async ({ store }) => {
+      const s = `ses_${unique()}`;
+      await put(store, run(`run_${unique()}`, s, RunPhase.RUN_IN_PROGRESS));
+      await assert.rejects(
+        store.writeSessionQueue(s, "org-kit", QUEUE_SCOPE, () => {
+          throw new Error("the writer refuses");
+        }),
+        /the writer refuses/,
+      );
+      await enqueue(store, s, "q1");
+      await assert.rejects(
+        store.writeSessionQueue(s, "org-kit", QUEUE_SCOPE, () => {
+          throw new Error("refused after reading");
+        }),
+      );
+      assert.deepEqual(idsOf(await store.sessionEvents.queued(s)), ["q1"]);
+      await assert.rejects(
+        store.writeSessionQueue(s, "org-kit", { ...QUEUE_SCOPE, kind: ApiResourceKind.api_resource_kind_unknown }, writesNothing),
+        /not list-indexed/,
+      );
+      await assert.rejects(store.writeSessionQueue("", "org-kit", QUEUE_SCOPE, writesNothing), /needs a session/);
+      assert.deepEqual((await store.writeSessionQueue(s, "org-kit", QUEUE_SCOPE, writesNothing)).events, []);
+    },
+  ],
+  [
     "a disconnected store is an infrastructure fault, never 'not found'",
     async (fixture) => {
       const { store } = fixture;
@@ -954,7 +986,7 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
       await assert.rejects(store.sessionEvents.deleteBySession("ses_x"), notFound);
       await assert.rejects(store.sessionEvents.deleteByOrg("org"), notFound);
       await assert.rejects(store.sessionEvents.queued("ses_x"), notFound);
-      await assert.rejects(store.writeSessionQueue("ses_x", "org", QUEUE_SCOPE, () => ({})), notFound);
+      await assert.rejects(store.writeSessionQueue("ses_x", "org", QUEUE_SCOPE, writesNothing), notFound);
     },
   ],
 ];

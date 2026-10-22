@@ -307,6 +307,14 @@ describe("interrupt's faults", () => {
     }
   });
 
+  it("a store fault dropping the session's queue is Internal, and stops no turn", async () => {
+    await seedTurn("run_working", RunPhase.RUN_IN_PROGRESS);
+    const store = faulty({ writeSessionQueue: () => Promise.reject(new Error("disk")) });
+    const error = await refusal(stop({ ...deps(), store }));
+    expect([error.code, error.rawMessage]).toEqual([Code.Internal, "failed to drop the session's queued messages"]);
+    expect(cancelled).toEqual([]);
+  });
+
   it("a session removed between its load and the event's append is not found", async () => {
     const { ResourceNotFoundError } = await import("../../../../store/interface.js");
     const store = faulty({

@@ -73,6 +73,7 @@ const CONTRACT_CASE_NAMES = [
   "every write is handed its session's queue length and paused runs, and the queue itself when it asks",
   "the run of a session's newest event of a type passes over a queued message",
   "a session's delete and an organization's purge remove its queue with its events",
+  "a queue write whose writer throws commits nothing; one over a kind with no list index, or with no session, is refused",
   "a disconnected store is an infrastructure fault, never 'not found'",
 ] as const;
 

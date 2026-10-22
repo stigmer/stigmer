@@ -144,7 +144,7 @@ import {
 } from "./plan-run-values-step.js";
 import { newResolveRunAgentStep } from "./resolve-run-agent.js";
 import type { QueuedTurnStarter } from "./queued-turn.js";
-import { sendMessage } from "./send-message.js";
+import { createTurn, sendMessage } from "./send-message.js";
 import type { TurnChain } from "./send-message.js";
 import { newRequireApprovalAuthorityStep } from "./approval-authority.js";
 import type { AgentExecutionTemporalConfig } from "./temporal/config.js";
@@ -398,15 +398,7 @@ async function createExecution(
     callerIdentityOf(ctx),
     kindOf(ctx),
   );
-  const chain = runTurnChain(deps);
-  try {
-    await chain.admit(reqCtx);
-    await chain.start(reqCtx);
-  } catch (error) {
-    await chain.undo(reqCtx);
-    throw error;
-  }
-  return reqCtx.newState;
+  return createTurn(runTurnChain(deps), reqCtx);
 }
 
 /**
@@ -426,8 +418,8 @@ export function runTurnChain(deps: AgentExecutionControllerDeps): TurnChain {
   const admission = runAdmissionChain(deps, instances).build();
   const start = runStartChain(deps).build();
   return {
-    admit: (reqCtx) => admission.execute(reqCtx),
-    start: (reqCtx) => start.execute(reqCtx),
+    admit: admission.execute.bind(admission),
+    start: start.execute.bind(start),
     undo: async (reqCtx) => {
       // A run stored before the failure keeps its files; one that never
       // was takes them back.

@@ -1358,6 +1358,44 @@ describe("one turn of a session at a time (stigmer#2429)", () => {
     expect(await store.sessionEvents.queued("ses_one_at_a_time_4")).toEqual([]);
     const [listed] = await store.sessionEvents.list("ses_one_at_a_time_4", { order: "asc", types: ["user.message"], limit: 1 });
     expect([listed?.runId, listed?.processedAt]).toEqual(["", ""]);
+    const [error] = await store.sessionEvents.list("ses_one_at_a_time_4", { order: "asc", types: ["session.error"], limit: 1 });
+    expect(error?.runId, "the session says why the messages were not read").toBe("");
+  });
+
+  it("terminate of a run already terminated drops nothing and touches nothing", async () => {
+    const deps = lifecycleDeps(connected(stubConnectedEngine()));
+    const done = await seedExecution({ phase: RunPhase.RUN_TERMINATED, sessionId: "ses_one_at_a_time_7" });
+    const result = await terminateExecution(deps, terminateInput(done), testCallerIdentity());
+    expect(result.status?.phase).toBe(RunPhase.RUN_TERMINATED);
+  });
+
+  it("terminate of a run in no session drops nothing", async () => {
+    const deps = lifecycleDeps(connected(stubConnectedEngine()));
+    const alone = await seedExecution({ phase: RunPhase.RUN_IN_PROGRESS });
+    const result = await terminateExecution(deps, terminateInput(alone), testCallerIdentity());
+    expect(result.status?.phase).toBe(RunPhase.RUN_TERMINATED);
+  });
+
+  it("a fault reading or dropping the session's queue is a sanitized Internal", async () => {
+    const queueFails = (deps: LifecycleDeps): LifecycleDeps => ({
+      ...deps,
+      store: new Proxy(store, {
+        get(target, property, receiver) {
+          if (property === "writeSessionQueue") {
+            return () => Promise.reject(new Error("disk full"));
+          }
+          const value: unknown = Reflect.get(target, property, receiver);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      }),
+    });
+    const deps = queueFails(lifecycleDeps(connected(stubConnectedEngine())));
+    const paused = await seedExecution({ phase: RunPhase.RUN_PAUSED, sessionId: "ses_one_at_a_time_5" });
+    const read = await expectCode(() => resumeExecution(deps, resumeInput(paused), testCallerIdentity()), Code.Internal);
+    expect(read.rawMessage).toBe("failed to read the session's turns");
+    const working = await seedExecution({ phase: RunPhase.RUN_IN_PROGRESS, sessionId: "ses_one_at_a_time_6" });
+    const dropped = await expectCode(() => terminateExecution(deps, terminateInput(working), testCallerIdentity()), Code.Internal);
+    expect(dropped.rawMessage).toBe("failed to drop the session's queued messages");
   });
 });
 

@@ -433,9 +433,16 @@ function newRefuseAnotherUnfinishedTurnStep<Desc extends DescMessage>(
   };
 }
 
+/** Why terminate's drop leaves the queued messages unread, recorded as the session's error. */
+const TERMINATED_QUEUE_DROP = {
+  type: "unknown_error",
+  message: "the queued messages were not read: the turn was terminated",
+} as const;
+
 /**
  * DropSessionQueue: a person's stop of a turn drops the messages still
- * waiting in its session's queue, which stay listed, never accepted.
+ * waiting in its session's queue, which stay listed, never accepted; the
+ * session's error says why, so a reader of the log sees them dropped.
  */
 function newDropSessionQueueStep<Desc extends DescMessage>(
   deps: Pick<LifecycleDeps, "store" | "sessionEventBroker">,
@@ -452,7 +459,7 @@ function newDropSessionQueueStep<Desc extends DescMessage>(
         return;
       }
       try {
-        await dropQueuedMessages(deps, sessionId, execution.metadata?.org ?? "");
+        await dropQueuedMessages(deps, sessionId, execution.metadata?.org ?? "", { reason: TERMINATED_QUEUE_DROP });
       } catch (error) {
         throw internalError(error, "failed to drop the session's queued messages");
       }

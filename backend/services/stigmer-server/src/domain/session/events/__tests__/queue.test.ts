@@ -194,6 +194,15 @@ describe("a session's queue", () => {
     expect(await dropQueuedMessages(deps, "s1", "acme")).toEqual([]);
   });
 
+  it("a drop while a turn waits for an answer states no status: the waiting turn's writes do", async () => {
+    await createRunAppendingEvents(deps, run("a", "s1"));
+    await queue("s1", "one");
+    await updateRunAppendingEvents(deps, "a", setPhase(RunPhase.RUN_WAITING_FOR_APPROVAL));
+    const before = await log("s1");
+    await dropQueuedMessages(deps, "s1", "acme");
+    expect(await log("s1")).toEqual(before);
+  });
+
   it("a drop while a turn works leaves the session running", async () => {
     await createRunAppendingEvents(deps, run("a", "s1"));
     await queue("s1", "one");

@@ -550,6 +550,26 @@ describe("CloseFileReview activity", () => {
     expect(await decisions("run_b")).toEqual([]);
   });
 
+  it("reads back past a full page of messages that were never a turn's", async () => {
+    const { store, close, turn, decisions } = closeFixture();
+    const writes = { store, sessionEventBroker: new SessionEventBroker(silentLogger) };
+    await turn("run_a", true);
+    for (let i = 0; i < 101; i++) {
+      await enqueueMessage(writes, {
+        sessionId: SESSION,
+        org: "test-org",
+        sender: "person-a",
+        turn: create(RunSchema, { spec: { message: `dropped ${i}` } }),
+      });
+    }
+    await dropQueuedMessages(writes, SESSION, "test-org");
+    await turn("run_b", false);
+
+    await close("run_b", SESSION);
+
+    expect(await decisions("run_a")).toEqual(["next_turn"]);
+  });
+
   it("closes the turn before this run's own message, not the newest, and only once", async () => {
     const { close, turn, decisions, decidedRuns } = closeFixture();
     await turn("run_a", true);

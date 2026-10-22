@@ -60,7 +60,7 @@ import type { Store } from "../../store/interface.js";
 import type { SessionEventBroker } from "../session/events/broker.js";
 import { eventOf } from "../session/events/codec.js";
 import { enqueueMessage, readQueueState } from "../session/events/queue.js";
-import type { SessionQueueState } from "../session/events/queue.js";
+import type { HeldQueueState } from "../session/events/queue.js";
 import {
   SEND_MESSAGE_NEEDS_SESSION_MESSAGE,
   SESSION_TURN_PAUSED_REASON,
@@ -112,7 +112,9 @@ export async function sendMessage(
     await deps.chain.admit(reqCtx);
 
     const state = await readQueueState(deps.store, sessionId);
-    refuseHeld(sessionId, state);
+    if (state.kind === "waiting" || state.kind === "paused") {
+      throw heldRefusal(sessionId, state);
+    }
     if (state.kind === "free") {
       const started = await startNow(deps, reqCtx, sessionId);
       if (started !== undefined) {
@@ -127,8 +129,7 @@ export async function sendMessage(
       turn: queuedTurnOf(turn, reqCtx.newState),
     });
     if ("refused" in outcome) {
-      refuseHeld(sessionId, outcome.refused);
-      throw internalError(new Error("a queue refusal named no holder"), "failed to queue the message");
+      throw heldRefusal(sessionId, outcome.refused);
     }
     queued = true;
     deps.logger.info("A message was queued for the session's turn", {
@@ -191,28 +192,34 @@ async function turnMessage(deps: SendMessageDeps, sessionId: string, run: Run): 
   return record === undefined ? undefined : eventOf(record);
 }
 
-/** Refuses a message while a turn of the session waits for an answer or is paused. */
-function refuseHeld(sessionId: string, state: SessionQueueState): void {
-  switch (state.kind) {
-    case "waiting":
-      throw failedPreconditionError(sessionTurnWaitsForAnswerMessage(sessionId, state.runId), {
+/** The refusal of a message while a turn of the session waits for an answer or is paused. */
+function heldRefusal(sessionId: string, state: HeldQueueState): ConnectError {
+  const metadata = { session_id: sessionId, run_id: state.runId };
+  return state.kind === "waiting"
+    ? failedPreconditionError(sessionTurnWaitsForAnswerMessage(sessionId, state.runId), {
         reason: SESSION_TURN_WAITS_FOR_ANSWER_REASON,
-        metadata: { session_id: sessionId, run_id: state.runId },
-      });
-    case "paused":
-      throw failedPreconditionError(sessionTurnPausedMessage(sessionId, state.runId), {
+        metadata,
+      })
+    : failedPreconditionError(sessionTurnPausedMessage(sessionId, state.runId), {
         reason: SESSION_TURN_PAUSED_REASON,
-        metadata: { session_id: sessionId, run_id: state.runId },
+        metadata,
       });
-    case "busy":
-    case "free":
-      return;
-    /* v8 ignore next -- @preserve: the exhaustiveness guard over a closed union; no value reaches it */
-    default: {
-      const exhaustive: never = state;
-      return exhaustive;
-    }
+}
+
+/**
+ * Admits a turn and starts it at once: run create's whole chain over one
+ * request context. A failure takes back the files an unstored turn's
+ * admission made the conversation's.
+ */
+export async function createTurn(chain: TurnChain, reqCtx: RequestContext<typeof RunSchema>): Promise<Run> {
+  try {
+    await chain.admit(reqCtx);
+    await chain.start(reqCtx);
+  } catch (error) {
+    await chain.undo(reqCtx);
+    throw error;
   }
+  return reqCtx.newState;
 }
 
 /**
