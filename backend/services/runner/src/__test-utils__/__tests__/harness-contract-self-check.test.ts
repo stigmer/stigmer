@@ -83,6 +83,7 @@ function sinkOver(inner: TurnSink, patch: Partial<TurnSink>): TurnSink {
     stopSignal: inner.stopSignal,
     yieldSignal: inner.yieldSignal,
     setupTiming: inner.setupTiming,
+    input: inner.input,
     requestPersist: () => inner.requestPersist(),
     recordActivity: (detail) => inner.recordActivity(detail),
     reportUsage: (delta) => inner.reportUsage(delta),

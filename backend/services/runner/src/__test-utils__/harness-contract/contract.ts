@@ -98,6 +98,7 @@ import type { TurnInput, TurnOutcome, UsageDelta } from "../../harness/types.js"
 import type { ProposedAction } from "../approval-contract/types.js";
 import { emptyStatus, findToolCallRow } from "../proto-helpers.js";
 import { turnInputFixture } from "../turn-input-fixture.js";
+import { KitMessageQueue } from "./message-queue.js";
 import { RecordingTurnSink } from "./recording-sink.js";
 import { scenario } from "./types.js";
 import type { EngineView, HarnessContractSubject, TurnScenario } from "./types.js";
@@ -160,6 +161,8 @@ export class ExecutionDriver {
   private lastRows: TurnRows | undefined;
   /** The session's log as the server holds it: what each turn's emitter wrote and the answers {@link decide} appended, in order. */
   readonly log: SessionEvent[] = [];
+  /** The session's queue: what the kit's person sends while a turn works (`message-queue.ts`). */
+  readonly messages: KitMessageQueue;
 
   constructor(private readonly subject: HarnessContractSubject, label: string) {
     this.executionId = `exec-${label}`;
@@ -168,6 +171,7 @@ export class ExecutionDriver {
     // exists (native's `thread-{sessionId}`); an engine-minted one has nothing
     // until the adapter binds.
     this.threadId = subject.adapter.capabilities.stateIdSource === "deterministic" ? `thread-${this.sessionId}` : "";
+    this.messages = new KitMessageQueue(this.executionId);
   }
 
   /** Start a turn without awaiting it, for invariants about turns in flight. */
@@ -184,6 +188,9 @@ export class ExecutionDriver {
       executionId: this.executionId,
       sessionId: this.sessionId,
       approvalDecisions: answers.decisions,
+      sendMessage: (text) => {
+        this.messages.send(text);
+      },
     };
     this.subject.arrange(turn, view);
     // Registered BEFORE the turn is entered so a hang reached synchronously
@@ -258,7 +265,7 @@ export class ExecutionDriver {
 
   /** A fresh sink for the next turn, its rows seeded with the asks the log holds, as the runtime seeds them. */
   newSink(): RecordingTurnSink {
-    const sink = new RecordingTurnSink({ status: this.seedStatus(), executionId: this.executionId });
+    const sink = new RecordingTurnSink({ status: this.seedStatus(), executionId: this.executionId, input: this.messages.channel() });
     if (this.turnSeq > 0) sink.transcript.seed(resumeSeedOf(this.executionId, this.log).rows);
     sink.markSeeded();
     return sink;

@@ -119,6 +119,20 @@ describe("composeTurnRecoveryDigest", () => {
     expect(digest).toBe("System: Budget warning: 80% used");
   });
 
+  it("keeps a message the person sent while the turn worked, where the turn read it", () => {
+    const digest = composeTurnRecoveryDigest(
+      [
+        ev({ case: "userMessage", value: { id: "sevt_user", content: [{ type: "text", text: "Fix the build" }] } }),
+        message("Building."),
+        ev({ case: "userMessage", value: { id: "sevt_later", content: [{ type: "text", text: "Use the staging database." }] } }),
+        ev({ case: "userMessage", value: { id: "sevt_blank", content: [{ type: "text", text: "  " }] } }),
+        message("On staging now."),
+      ],
+      RUN,
+    );
+    expect(digest).toBe(["Assistant: Building.", "User: Use the staging database.", "Assistant: On staging now."].join("\n"));
+  });
+
   it("returns undefined when nothing renders", () => {
     expect(composeTurnRecoveryDigest([], RUN)).toBeUndefined();
     expect(

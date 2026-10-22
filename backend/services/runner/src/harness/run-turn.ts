@@ -82,6 +82,7 @@ import { terminalizeNonExecutingDecisions } from "./approval-decisions.js";
 import { captureCandidate, pinCaptureBaseline, type TurnCapture } from "./capture.js";
 import { SessionEventEmitter } from "./events/emitter.js";
 import { OpenOperations, OperationLimitError } from "./open-operations.js";
+import { newTurnInput, USER_MESSAGE_EVENT_TYPE } from "./turn-input.js";
 import { PersistChokepoint } from "./persist-chokepoint.js";
 import { LivenessPump } from "./liveness-pump.js";
 import { PreviewPump } from "./preview-pump.js";
@@ -113,7 +114,7 @@ import {
 } from "./terminal-table.js";
 import { TranscriptBuilder } from "./transcript/builder.js";
 import type { TranscriptEvent } from "./transcript/events.js";
-import { resolveTurnContext, type ResolutionDeps, type TurnFrame, type TurnSettlement } from "./turn-context.js";
+import { mountMessageFiles, resolveTurnContext, type ResolutionDeps, type TurnFrame, type TurnSettlement } from "./turn-context.js";
 import { TurnTimeline } from "./turn-timeline.js";
 import { environmentInstalled } from "../environment/install.js";
 import { withRunSpan, type RunSpan } from "./run-span.js";
@@ -334,6 +335,23 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
   const heartbeat = (details?: unknown): void => activity.heartbeat(details);
   const periodicHeartbeat = startHeartbeat(PERIODIC_HEARTBEAT_MS, () => ({ phase: heartbeatPhase, execution: executionId }));
 
+  // The session's queued messages for this turn (turn-input.ts): the
+  // chokepoint records each write's pending hint, the adapter claims them
+  // through the run's own door, as the event append is admitted, and a
+  // message's files are mounted as the turn's own are. Only the engine
+  // claims, so the turn it runs is resolved by then.
+  let engineTurn: TurnInput | undefined;
+  const queuedInput = newTurnInput(
+    {
+      claim: async () => {
+        const token = await client.acquireScopedRunnerToken({ agentExecutionId: executionId });
+        return client.claimSessionInput(executionId, token);
+      },
+      runMessages: () => client.listRunSessionEvents(engineTurn!.sessionId, executionId, [USER_MESSAGE_EVENT_TYPE]),
+      queuedMessageIds: () => engineTurn!.execution.spec?.queuedMessageIds ?? [],
+    },
+    (blocks) => mountMessageFiles(client, engineTurn!, adapter.capabilities.visionProfile, blocks),
+  );
   const chokepoint = new PersistChokepoint({
     client,
     executionId,
@@ -344,6 +362,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     progress: () => capture?.progress,
     heartbeat,
     onPlatformStop: () => stop.stop({ kind: "platform-stop" }),
+    onInputPending: (pending) => queuedInput.setPending(pending),
     events,
   });
 
@@ -502,6 +521,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
   // ── The engine's turn and its outcome ─────────────────────────────────────
 
   async function runEngineTurn(turn: TurnInput): Promise<Settled> {
+    engineTurn = turn;
     // The emitter starts with the engine's turn, after the reinvocation's
     // seed: a run whose engine already wrote to the log (the reinvocation
     // phase's read), or an attempt Temporal retried, reads back what it
@@ -570,6 +590,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
       stopSignal: stop.signal,
       yieldSignal: stop.yieldSignal,
       setupTiming,
+      input: queuedInput,
       requestPersist: () => chokepoint.request(),
       recordActivity: (detail) => {
         if (detail !== undefined) lastActivityDetail = detail;

@@ -101,7 +101,9 @@ const TURN_RECOVERY_NO_TRANSCRIPT =
  *
  * The person's message is skipped — the turn's user message is already
  * rendered in the enhanced prompt's `<user_request>`, and duplicating it
- * here would dilute the budget. Thinking is skipped as model-internal (the
+ * here would dilute the budget. A message the person sent while the turn
+ * worked is kept, where the turn read it: the continued engine has not
+ * necessarily seen it, and the turn owes it (`turn-input.ts`). Thinking is skipped as model-internal (the
  * replacement agent forms its own). The platform's notes are kept: lines
  * like budget warnings or degradation notices are turn context the agent
  * acted under.
@@ -212,6 +214,10 @@ function itemLines(item: TurnItem): string[] {
     }
     case "tool_use":
       return [toolUseLine(item)];
+    case "user_message": {
+      const text = item.text.trim();
+      return text ? [`User: ${truncate(text, MAX_LINE_CHARS)}`] : [];
+    }
     default:
       // Thinking (model-internal) and a compaction marker.
       return [];

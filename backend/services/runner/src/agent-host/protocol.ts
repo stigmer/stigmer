@@ -23,8 +23,8 @@
  *  - `result`: the answer to one call, a value or a {@link WireError}.
  *  - `notify`: a one-way fact ({@link HostNotices}, {@link RunnerNotices}),
  *    for the high-rate signals that need no answer (activity, usage, the
- *    transcript events the runtime's timeline observes) and for the stop
- *    and the yield.
+ *    transcript events the runtime's timeline observes) and for the stop,
+ *    the yield and the session's queue holding messages for the turn.
  *
  * `runTurn` is a call whose result is the turn's settlement: the host
  * answers it when the adapter settles, so one pending call is the whole
@@ -46,13 +46,14 @@
 import type { HarnessName } from "../harness/registry.js";
 import type { UsageDelta } from "../harness/types.js";
 import type { TranscriptEvent } from "../harness/transcript/events.js";
+import type { TurnMessage } from "../harness/turn-input.js";
 import type { AgentFileKind } from "../shared/agent-fs.js";
 import type { RecalledMemoriesContent } from "../shared/recalled-memories.js";
 import type { TimingRecorderWire } from "../shared/cold-start-timing.js";
 import type { TelemetrySettings } from "../otel-export.js";
 import type { RuntimeFieldsWire, WireOffload, WireProjection, WireTurnInput } from "./codec.js";
 
-export const AGENT_HOST_PROTOCOL_VERSION = 15;
+export const AGENT_HOST_PROTOCOL_VERSION = 16;
 
 /**
  * The largest single message either side sends or accepts. A turn's input
@@ -189,6 +190,8 @@ export interface HostCalls {
       readonly stopped: string | null;
       /** Whether the runtime had already asked the turn to yield before the call (`TurnSink.yieldSignal`). */
       readonly yielded: boolean;
+      /** Whether the session's queue held messages for the turn as the call was made (`TurnSink.input`). */
+      readonly inputPending: boolean;
       /** This turn's key at the runner's local proxy, stamped on every call the turn makes there (`shared/execution-context.ts`). */
       readonly turnKey: string;
       /** The run span's W3C `traceparent`, which the host runs the turn under; `null` with tracing off (`shared/trace-context.ts`). */
@@ -312,6 +315,20 @@ export interface RunnerCalls {
   readonly verifyPlugin: { readonly args: { readonly turnId: string; readonly slug: string }; readonly result: null };
   /** `TurnInput.readRunEvents`: the turn's run's events, each a base64 `SessionEvent`; the log is the runner's to read. */
   readonly readRunEvents: { readonly args: { readonly turnId: string }; readonly result: readonly string[] };
+  /**
+   * `TurnSink.input.claim`: the session's queued messages the runtime took
+   * for the turn, their files mounted, and whether more still wait (a claim
+   * the server did not answer leaves them waiting).
+   */
+  readonly claimInput: {
+    readonly args: { readonly turnId: string; readonly force: boolean };
+    readonly result: { readonly messages: readonly TurnMessage[]; readonly pending: boolean };
+  };
+  /** `TurnSink.input.claimed`: every message the run took while it worked but those `delivered` names, their files mounted. */
+  readonly claimedInput: {
+    readonly args: { readonly turnId: string; readonly delivered: readonly string[] };
+    readonly result: readonly TurnMessage[];
+  };
 }
 
 // ─── One-way notices ───────────────────────────────────────────────────────
@@ -336,6 +353,8 @@ export interface RunnerNotices {
   readonly stopTurn: { readonly turnId: string; readonly reason: string };
   /** The runtime asked the turn to yield at its engine's next durable step boundary (`TurnSink.yieldSignal`). */
   readonly yieldTurn: { readonly turnId: string };
+  /** The session's queue holds messages for the turn (`TurnSink.input.onPending`). */
+  readonly inputPending: { readonly turnId: string };
 }
 
 // ─── Envelopes ─────────────────────────────────────────────────────────────

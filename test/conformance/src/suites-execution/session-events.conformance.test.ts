@@ -369,7 +369,7 @@ describe("a session's event log on real turns", () => {
     expect(ended.case === "stigmerRunStatus" && [ended.value.stopCause, ended.value.error]).toEqual(["", ""]);
   });
 
-  it("[rpc:SessionQueryController.listEvents] a turn that ends with a message queued leaves its own end, the session running on into the turn that reads it", async () => {
+  it("[rpc:SessionQueryController.listEvents] a message sent while a turn works is read by that turn, listed as its own where it read it; the session idles once", async () => {
     const { org } = await target.provisionTenancy();
     const sessionId = await newSession(org);
     mock.enqueue(anthropicText("First, held."), { delayMs: HOLD_MS });
@@ -377,24 +377,22 @@ describe("a session's event log on real turns", () => {
     const first = await startTurn(org, sessionId, "first");
     await awaitPhase(clients, first, RunPhase.RUN_IN_PROGRESS);
     const sent = await sendTurnMessage(org, sessionId, "second");
+    expect(sent.run, "the message waits for the working turn").toBeUndefined();
     mock.releaseHolds();
     await awaitTerminal(clients, first);
-    const second = await awaitRunThatRead(clients, sessionId, sent, { timeoutMs: HOLD_MS });
-    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: second }).catch(() => undefined));
-    await awaitTerminal(clients, second);
+    expect(await awaitRunThatRead(clients, sessionId, sent, { timeoutMs: HOLD_MS }), "the working turn read it").toBe(first);
     const events = await pollUntil(
       () => fullLog(sessionId),
       (got) => got.length > 0 && typeOf(got[got.length - 1]!) === "session.status_idle",
       (last) => `the session never went idle: ${JSON.stringify(last?.map(typeOf))}`,
     );
+    const messages = events.flatMap((e, i) => (e.runId === first && e.event.case === "userMessage" ? [i] : []));
     const firstEnd = events.findIndex((e) => e.runId === first && e.event.case === "stigmerRunStatus" && e.event.value.phase === "completed");
-    const read = events.findIndex((e) => e.runId === second && e.event.case === "userMessage");
-    const secondEnd = events.findIndex((e) => e.runId === second && e.event.case === "stigmerRunStatus" && e.event.value.phase === "completed");
-    expect(firstEnd, "the first turn's end is in the log").toBeGreaterThan(0);
-    expect(read, "the message moved after the first turn's end, as the next turn's").toBeGreaterThan(firstEnd);
-    expect(secondEnd, "the next turn's end follows").toBeGreaterThan(read);
+    expect(messages, "the turn's own message, then the one it read").toHaveLength(2);
+    expect(firstEnd, "the turn ends after it read the message").toBeGreaterThan(messages[1]!);
+    expect(new Set(events.map((e) => e.runId).filter((runId) => runId !== "")), "no second turn").toEqual(new Set([first]));
     const idles = events.flatMap((e, i) => (e.event.case === "sessionStatusIdle" ? [i] : []));
-    expect(idles, "the session idles once, after the last turn ended").toEqual([events.length - 1]);
+    expect(idles, "the session idles once, after the turn ended").toEqual([events.length - 1]);
   });
 
   it("[rpc:SessionQueryController.listEvents] an interrupted turn ends the session's turn as end_turn", async () => {

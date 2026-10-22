@@ -85,4 +85,7 @@ export const CURSOR_CAPABILITIES: HarnessCapabilities = {
   // A resumed agent holds its conversation, but a run its server ended has
   // no step to resume: the continuation is a prompt with the turn's digest.
   continuation: "digest",
+  // A message is steered into the running run, or sent once it ends when
+  // Cursor answers that it cannot take it now (turn-input.ts).
+  midTurnInput: "next-step",
 };

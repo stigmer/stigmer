@@ -900,7 +900,7 @@ describe("Run file review — the next message closes the review", () => {
     expectNoModelCallLeft();
   });
 
-  it("[rpc:RunCommandController.sendMessage] a message sent while a turn works waits; the turn's capture is kept by the next turn's close", async () => {
+  it("[rpc:RunCommandController.sendMessage] a message sent while a turn works is read by it; the turn's capture is kept by the next message's close", async () => {
     const workspace = await freshWorkspace();
     const session = await startSession(workspace);
     mock.enqueue(writeFileTurn("toolu_w_late", "late.txt", "late\n"));
@@ -919,11 +919,14 @@ describe("Run file review — the next message closes the review", () => {
 
     const ended = await awaitTerminal(clients, first);
     expect(ended.status?.phase).toBe(RunPhase.RUN_COMPLETED);
-    const second = await sent.run;
-    expect(second, "the next turn reads the message").not.toBe(first);
-    expect((await awaitTerminal(clients, second)).status?.phase).toBe(RunPhase.RUN_COMPLETED);
+    expect(await sent.run, "the working turn read the message").toBe(first);
     const set = (await getRun(first)).status?.fileChanges.find(isCapturedSet);
     expect(set, `execution ${first} captured its edit`).toBeDefined();
+    expect((await reviewSetNow(clients, session.sessionId, set!.id)).undecided, "nothing closed it yet").toBe(true);
+
+    const next = await sendMessageTurn(session, [anthropicText("Third.")], { message: "Moving on." });
+    expect(next.queued, "nothing works now: the message starts a turn").toBe(false);
+    expect((await awaitTerminal(clients, await next.run)).status?.phase).toBe(RunPhase.RUN_COMPLETED);
     const review = await reviewSetNow(clients, session.sessionId, set!.id);
     expect(review.undecided, "the set is settled once the next turn starts").toBe(false);
     expect(review.decisions.map((d) => [d.scope, d.action, d.origin])).toEqual([["change_set", "keep", "next_turn"]]);

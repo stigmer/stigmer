@@ -67,6 +67,12 @@
  *  - `compact`        → the `summary-started`, `summary` and
  *                       `summary-completed` deltas Cursor's server sends when
  *                       it summarizes the conversation; counted once played.
+ *  - `message(text)`  → an `effect` ahead of the step before it, where the
+ *                       kit's person sends `text`; the adapter steers it into
+ *                       the run at the runtime's hint (the run records each
+ *                       steer and takes it while running), or sends it once
+ *                       the run ends, as a follow-up the script arranges a
+ *                       slot for. `messagesRead` counts both.
  * Every script that does not end in `fail`, `cancelled` or `hang` closes with
  * `finished({ result: <last say> })` so `run.wait()` has an answer.
  *
@@ -99,6 +105,7 @@ import type { HarnessAdapter } from "../../../harness/types.js";
 import type { ProposedAction } from "../../../__test-utils__/approval-contract/types.js";
 import {
   KIT_SUBAGENT_SLUG,
+  messageAfter,
   type EngineView,
   type HarnessContractSubject,
   type LongTurnControls,
@@ -119,6 +126,9 @@ import { ApprovalAction } from "../../../gen/turn/ai/stigmer/runner/turn/v1/enum
 
 /** The user's message every kit turn asks; the prompt builder needs one and the kit has none to give. */
 const KIT_USER_MESSAGE = "Do what the scenario says.";
+
+/** What the model answers in a follow-up round, the one a message Cursor did not take mid-run starts. */
+const FOLLOW_UP_ANSWER = "Read the message sent while I worked.";
 
 /** What the double records the SDK "returning" for an allowed tool call. */
 const ALLOWED_RESULT = "ok (kit)";
@@ -157,6 +167,8 @@ export interface CursorContractSubject extends HarnessContractSubject {
   forceReissue(toolCallId: string): void;
   /** Every proposal at which the hook answered other than the script expected; the subject file asserts it stays empty. */
   readonly hookDisagreements: readonly string[];
+  /** The session's agent answers every steer `revert_to_followup`, as a cloud agent's run does. */
+  revertSteersFor(sessionId: string): void;
 }
 
 /**
@@ -209,6 +221,13 @@ class CursorSubject implements CursorContractSubject {
     opened: (toolCallId) => this.opens.get(toolCallId) ?? 0,
     tasksHanded: (sessionId, message) =>
       (this.agents.get(sessionId)?.sends ?? []).filter((send) => textOfSend(send.message).includes(message)).length,
+    // A message is read by a steer Cursor took, or by a follow-up send.
+    messagesRead: (sessionId, text) => {
+      const agent = this.agents.get(sessionId);
+      const steered = (agent?.steers ?? []).filter((steered) => steered === text).length;
+      const followed = (agent?.sends ?? []).filter((send) => textOfSend(send.message).includes(text)).length;
+      return steered + followed;
+    },
     compactions: (sessionId) => this.compactionCounts.get(sessionId) ?? 0,
     loseRunner: (sessionId) => this.agents.get(sessionId)?.strand(),
   };
@@ -261,6 +280,10 @@ class CursorSubject implements CursorContractSubject {
     this.forcedReissues.add(toolCallId);
   }
 
+  revertSteersFor(sessionId: string): void {
+    (this.agents.get(sessionId) ?? this.mintAgent(sessionId)).revertSteers = true;
+  }
+
   // ── The engine ────────────────────────────────────────────────────────────
 
   /** The directory the runtime's provisioner gives a session with no workspace entries (`session-root.ts`). */
@@ -285,7 +308,12 @@ class CursorSubject implements CursorContractSubject {
 
     let lastSay = "";
     let ended = false;
-    for (const s of turn) {
+    for (const [index, s] of turn.entries()) {
+      // A message is sent as the run plays the step before it (`message`).
+      const message = messageAfter(turn, index);
+      if (message !== undefined) {
+        script.push(step.effect("kit: a person sends a message while the run works", () => view.sendMessage(message.text)));
+      }
       switch (s.kind) {
         case "say":
           script.push(step.event(ev.assistant(s.text)));
@@ -355,6 +383,11 @@ class CursorSubject implements CursorContractSubject {
           script.push(step.errored({ error: { message: CURSOR_STREAM_CUT_ERROR } }));
           ended = true;
           break;
+        case "message":
+          // Sent with the step before (above); the adapter steers it in at
+          // the runtime's hint, or sends it once the run ends, into the
+          // follow-up slot arranged below.
+          break;
         case "compact":
           script.push(
             step.delta({ type: "summary-started" }),
@@ -374,6 +407,13 @@ class CursorSubject implements CursorContractSubject {
       if (s.kind === "cut") break;
     }
     if (!ended) script.push(step.finished({ result: lastSay, model: { id: FIXTURE.model, params: [] } }));
+    if (turn.some((s) => s.kind === "message")) {
+      const follow = sdkEvents(agent.agentId, agent.followUpRunId);
+      agent.arrangeFollowUp([
+        step.event(follow.assistant(FOLLOW_UP_ANSWER)),
+        step.finished({ result: FOLLOW_UP_ANSWER, model: { id: FIXTURE.model, params: [] } }),
+      ]);
+    }
     return script;
   }
 

@@ -40,11 +40,11 @@
 //   - A `user.message` mid-turn, sent through the Managed Agents wire while
 //     the first turn's shell works (stigmer#2429). The message is queued:
 //     the send answers it with processed_at null and starts no second run.
-//     It is read by the working turn or, once that turn has ended, starts
-//     the next one, never a run working beside the first; neither fails, and
-//     the log lists the message once, read, where the turn that read it
-//     read it. The overlap is read from the runs' own start and completion
-//     stamps.
+//     The working turn reads it at its next step, the model call after the
+//     shell's result, where the provider receives it as a text-only user
+//     turn after the tool results (read off the mock's recorded request);
+//     no second run ever starts, and the log lists the message once, read,
+//     as the working turn's.
 //
 // Cursor is not here: its SDK cannot run inside a runner process against a
 // double (the hermetic kit mocks `@cursor/sdk` in the test process), so its
@@ -61,6 +61,7 @@ import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
+import { readTurnShapes } from "@stigmer/test-support/llm-wire";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import type { ConformanceClients } from "../harness/clients";
@@ -197,13 +198,6 @@ async function followToTheEnd(id: string, budgetMs: number, settleMs = 15_000): 
   }
 }
 
-/** Whether `second` started before `first` completed: two runs of one conversation working at once. */
-function overlapped(first: Run, second: Run): boolean {
-  const firstCompleted = first.status?.completedAt ?? "";
-  const secondStarted = second.status?.startedAt ?? "";
-  return firstCompleted !== "" && secondStarted !== "" && Date.parse(secondStarted) < Date.parse(firstCompleted);
-}
-
 /** How many user messages carrying `task` the newest model request handed the provider. */
 function taskHandedInLastRequest(task: string): number {
   const last = mock.scriptedRequests().at(-1);
@@ -259,17 +253,17 @@ describe("a long turn on a real runner", () => {
   );
 
   it(
-    "a user.message sent through the Managed Agents wire while a turn works is queued, then joins it or starts the next turn; never a second run beside it",
+    "a user.message sent through the Managed Agents wire while a turn works is queued, then read by that turn at its next step; never a second run",
     async () => {
       const step = new HeldStep();
       const first = await startHeldRun(uniqueName("Build the project"), step, "The build is done.");
       await step.whenStarted();
       const sessionId = sessionIdOf(await clients.agentExecutionQuery.get({ value: first.id }));
 
-      mock.enqueue(anthropicText("Here is the answer to the second message."));
+      const text = `While you build: what is left? ${uniqueName("note")}`;
       const sdk = await sdkFor(first.org);
       const sent = await sdk.beta.sessions.events.send(sessionId, {
-        events: [{ type: "user.message", content: [{ type: "text", text: "While you build: what is left?" }] }],
+        events: [{ type: "user.message", content: [{ type: "text", text }] }],
       });
       const message = sent.data?.[0];
       expect(message?.type, "the send answers the message").toBe("user.message");
@@ -281,22 +275,19 @@ describe("a long turn on a real runner", () => {
       step.release();
       const firstSettled = await awaitTerminal(clients, first.id, { timeoutMs: ARM_TIMEOUT_MS });
       const readerId = await awaitRunThatReadMessage(clients, sessionId, messageId, { timeoutMs: ARM_TIMEOUT_MS });
-      fixtures.defer(async () => {
-        if (readerId !== first.id) {
-          await awaitTerminal(clients, readerId, { timeoutMs: ARM_TIMEOUT_MS }).catch(() => undefined);
-          await clients.agentExecutionCommand.delete({ value: readerId }).catch(() => undefined);
-        }
-      });
-      const readerSettled = await awaitTerminal(clients, readerId, { timeoutMs: ARM_TIMEOUT_MS });
       console.log(
         `[long turn] mid-turn message: first ${RunPhase[firstSettled.status?.phase ?? 0]} (completed ${firstSettled.status?.completedAt}), ` +
-          `read by ${readerId === first.id ? "the working turn" : `the next turn, started ${readerSettled.status?.startedAt}`} ` +
-          `(${RunPhase[readerSettled.status?.phase ?? 0]}) ${readerSettled.status?.error ?? ""}`,
+          `read by ${readerId === first.id ? "the working turn" : `another run, ${readerId}`}`,
       );
 
       expect(firstSettled.status?.phase, `the working turn: ${firstSettled.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
-      expect(readerSettled.status?.phase, `the turn that read the message: ${readerSettled.status?.error}`).toBe(RunPhase.RUN_COMPLETED);
-      expect(overlapped(firstSettled, readerSettled), "the message never ran as a second run beside the working one").toBe(false);
+      expect(readerId, "the working turn read the message").toBe(first.id);
+      expect(await runIdsOf(sessionId), "no second run ever starts").toEqual([first.id]);
+      const carrying = mock.scriptedRequests().filter((request) => JSON.stringify(request.body).includes(text));
+      expect(carrying.length, "the model was handed the message once").toBe(1);
+      const turns = readTurnShapes(carrying[0]!.body);
+      expect(turns.at(-2)?.blocks.every((block) => block === "tool_result"), "the request answers the shell's call first").toBe(true);
+      expect(turns.at(-1), "then the message, its own text-only user turn").toEqual({ role: "user", blocks: ["text"] });
       const listed = (await clients.sessionQuery.listEvents({ sessionId, pageSize: 1000, types: ["user.message"] })).events.filter(
         (event) => event.event.case === "userMessage" && event.event.value.id === messageId,
       );

@@ -28,8 +28,15 @@
  * the turn settles here: `interrupted` when the runtime had already asked
  * it to stop, otherwise `failed` on the `internal` surface. Anything the
  * host sends for a turn after that is dropped (`supervisor.ts`).
+ *
+ * Each call and notice the host sends is handled in the async context the
+ * turn was entered in, as the runtime's own calls are when the adapter runs
+ * in this process: what it asks of the control plane goes out as the run's
+ * (the run credential the activity entered, `shared/run-credential-store.ts`),
+ * never as the process.
  */
 
+import { AsyncLocalStorage } from "node:async_hooks";
 import { randomBytes, randomUUID } from "node:crypto";
 import { posix } from "node:path";
 import { SessionSpecSchema, type SessionSpec } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
@@ -98,12 +105,14 @@ async function runRemoteTurn(
   const closeTurn = turns.openTurn({ executionId: input.executionId, threadId: input.threadId, turnKey });
   let stopListener: (() => void) | undefined;
   let yieldListener: (() => void) | undefined;
+  let inputListener: (() => void) | undefined;
   try {
     const peer = await host.connection();
     stopListener = () => peer.notify("stopTurn", { turnId, reason: describeReason(sink.stopSignal.reason) });
     sink.stopSignal.addEventListener("abort", stopListener, { once: true });
     yieldListener = () => peer.notify("yieldTurn", { turnId });
     sink.yieldSignal.addEventListener("abort", yieldListener, { once: true });
+    inputListener = sink.input.onPending(() => peer.notify("inputPending", { turnId }));
     const settlement = await peer.call("runTurn", {
       turnId,
       harness,
@@ -114,6 +123,7 @@ async function runRemoteTurn(
       fingerprintKey: executionFingerprintKey(input.executionId).toString("base64"),
       stopped: sink.stopSignal.aborted ? describeReason(sink.stopSignal.reason) : null,
       yielded: sink.yieldSignal.aborted,
+      inputPending: sink.input.pending(),
       turnKey,
       traceparent: await activeTraceparent(),
     });
@@ -136,9 +146,27 @@ async function runRemoteTurn(
   } finally {
     if (stopListener) sink.stopSignal.removeEventListener("abort", stopListener);
     if (yieldListener) sink.yieldSignal.removeEventListener("abort", yieldListener);
+    inputListener?.();
     closeTurn();
     detach();
   }
+}
+
+/**
+ * The endpoint with every handler run in the async context it was built in,
+ * the turn's (the module header): the snapshot is taken here, inside the
+ * activity, and each handler enters it.
+ */
+function withinTurn(endpoint: RemoteTurnEndpoint): RemoteTurnEndpoint {
+  const inTurn = AsyncLocalStorage.snapshot();
+  const wrapped = <T extends object>(handlers: T): T =>
+    Object.fromEntries(
+      Object.entries(handlers).map(([method, handler]) => [
+        method,
+        (args: unknown) => inTurn(() => (handler as (args: unknown) => unknown)(args)),
+      ]),
+    ) as T;
+  return { calls: wrapped(endpoint.calls), notices: wrapped(endpoint.notices) };
 }
 
 /** One remote turn's runner side: the handlers the host's calls reach. */
@@ -159,7 +187,7 @@ class RemoteTurn {
     this.runtimeFields = new RuntimeFieldTracker(sink.status);
     this.seededKeys = storageKeysOf(sink);
     const { executionId } = input;
-    this.endpoint = {
+    this.endpoint = withinTurn({
       calls: {
         persist: async ({ projection }) => {
           applyAdapterProjection(sink, projection);
@@ -183,6 +211,11 @@ class RemoteTurn {
           return null;
         },
         readRunEvents: async () => encodeRunEvents(await input.readRunEvents()),
+        claimInput: async ({ force }) => {
+          const messages = await sink.input.claim({ force });
+          return { messages, pending: sink.input.pending() };
+        },
+        claimedInput: ({ delivered }) => sink.input.claimed(new Set(delivered)),
       },
       notices: {
         activity: ({ detail }) => sink.recordActivity(detail ?? undefined),
@@ -200,7 +233,7 @@ class RemoteTurn {
             return confineCasSnapshot(decodeCasSnapshot(await peer.call("readCasObservations", { turnId })));
           }),
       },
-    };
+    });
   }
 
   get settled(): boolean {

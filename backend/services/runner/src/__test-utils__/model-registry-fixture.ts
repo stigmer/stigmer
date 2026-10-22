@@ -108,7 +108,9 @@ export interface StubRegistryFetchOptions {
 /**
  * Where a hermetic server double mints the links a turn puts its outputs to
  * (`hermetic-activity.ts`): the stub keeps each body here, by the link's
- * path, and answers 200, so a turn's outputs travel without a network.
+ * path, and answers 200, so a turn's outputs travel without a network. A GET
+ * of a link answers the bytes held at its path, so a test that holds a
+ * File's bytes there can hand a turn that File's link to mount.
  */
 export const HERMETIC_UPLOAD_ORIGIN = "http://hermetic-uploads.invalid";
 
@@ -149,7 +151,12 @@ export function stubRegistryFetch(options: StubRegistryFetchOptions = {}): { rea
         return { ok: true, status: 200, json: async () => document } as unknown as Response;
       }
       if (originOf(url) === HERMETIC_UPLOAD_ORIGIN) {
-        hermeticUploads.set(new URL(url).pathname, await bodyBytes(init?.body));
+        const path = new URL(url).pathname;
+        if ((init?.method ?? "GET") === "GET") {
+          const held = hermeticUploads.get(path);
+          return held === undefined ? new Response(null, { status: 404 }) : new Response(held, { status: 200 });
+        }
+        hermeticUploads.set(path, await bodyBytes(init?.body));
         return new Response(null, { status: 200 });
       }
       if (options.live) {

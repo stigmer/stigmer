@@ -16,7 +16,11 @@
 //     while the founder's own turn in the same conversation records the
 //     founder;
 //   - a participant cannot waive the owners' approvals: a turn that sets
-//     auto_approve_all is refused PermissionDenied before anything runs.
+//     auto_approve_all is refused PermissionDenied before anything runs;
+//   - a participant's message sent while the founder's turn works is never
+//     read by it (it would run on the founder's logins): it waits, and once
+//     the founder's turn ends it starts a turn of its own, as the
+//     participant, recording no person, and is listed as that turn's.
 //
 // A role on one conversation is a per-resource grant, so the arm runs only
 // where the edition's grant scope admits one (the hosted edition); an
@@ -37,6 +41,8 @@ import { agentRefOf, makeAgent } from "../support/agents";
 import { grantTriple } from "../support/grants";
 import { uniqueName } from "../support/naming";
 import {
+  awaitPhase,
+  awaitRunThatRead,
   awaitTerminal,
   makeAgentExecution,
   requireLlmProxy,
@@ -48,6 +54,9 @@ import {
   type EnforcingLane,
   type TargetProfile,
 } from "../targets";
+
+/** How long the founder's working turn is held on its model call: released once the participant has sent. */
+const HOLD_MS = 120_000;
 
 let target: TargetProfile;
 let enforcing: Awaited<ReturnType<typeof enforcingLaneOf>>;
@@ -62,6 +71,7 @@ beforeAll(async () => {
 });
 
 afterEach(async () => {
+  mock.releaseHolds();
   await fixtures.cleanup();
   mock.reset();
 });
@@ -184,5 +194,52 @@ describe("a conversation's participant sends a message", () => {
     expect(mock.remaining(), "both scripted turns were consumed").toBe(0);
     // No one's own logins: the turn records no person.
     expect(second.status?.credentials?.person ?? "").toBe("");
+  });
+
+  it("[rpc:RunCommandController.sendMessage] a participant's message sent while the founder's turn works waits for a turn of its own", async (ctx) => {
+    const lane = laneOrSkip(ctx);
+    const founder = lane.clients;
+    const context = await target.provisionTenancy();
+    const member = await lane.provisionMember(context);
+
+    const agentInput = makeAgent({ org: context.org, name: uniqueName("participant-queue-agent") });
+    agentInput.metadata = { ...agentInput.metadata, visibility: ApiResourceVisibility.visibility_org };
+    const agent = await founder.agentCommand.create(agentInput);
+    fixtures.defer(() => founder.agentCommand.delete({ value: agent.metadata!.id }).catch(() => undefined));
+
+    // The founder's turn opens the conversation, then a second one works,
+    // held on its model call, while the participant sends.
+    mock.enqueue(anthropicText("Hello from the founder's turn."));
+    const opening = await runTurn(founder, founder, { org: context.org, name: uniqueName("founder-turn"), agentRef: agentRefOf(agent), autoApproveAll: true });
+    expectCompleted(opening);
+    const sessionId = sessionIdOf(opening);
+    fixtures.defer(() => founder.sessionCommand.delete({ value: sessionId }).catch(() => undefined));
+    await founder.grantCommand.create(
+      grantTriple({ kind: "identity_account", id: await lane.accountIdOf(member) }, "participant", { kind: "session", id: sessionId }),
+    );
+
+    mock.enqueue(anthropicText("The founder's work, held."), { delayMs: HOLD_MS });
+    mock.enqueue(anthropicText("Hello from the participant's turn."));
+    const working = await founder.agentExecutionCommand.create(
+      makeAgentExecution({ org: context.org, name: uniqueName("founder-working"), sessionId, message: "Work for a while." }),
+    );
+    const workingId = working.metadata!.id;
+    fixtures.defer(() => founder.agentExecutionCommand.delete({ value: workingId }).catch(() => undefined));
+    await awaitPhase(founder, workingId, RunPhase.RUN_IN_PROGRESS);
+
+    const sent = await member.agentExecutionCommand.sendMessage(
+      makeAgentExecution({ org: context.org, name: uniqueName("participant-message"), sessionId, message: "A question while you work." }),
+    );
+    expect(sent.run, "the message waits").toBeUndefined();
+    mock.releaseHolds();
+
+    expectCompleted(await awaitTerminal(founder, workingId));
+    const readerId = await awaitRunThatRead(founder, sessionId, sent, { timeoutMs: HOLD_MS });
+    fixtures.defer(() => founder.agentExecutionCommand.delete({ value: readerId }).catch(() => undefined));
+    expect(readerId, "the founder's turn never read it").not.toBe(workingId);
+    const reader = await awaitTerminal(founder, readerId);
+    expectCompleted(reader);
+    expect(reader.status?.credentials?.person ?? "", "the participant's turn records no person").toBe("");
+    expect(mock.remaining(), "every scripted turn was consumed").toBe(0);
   });
 });

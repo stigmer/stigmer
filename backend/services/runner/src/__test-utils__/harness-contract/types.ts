@@ -83,6 +83,15 @@ import type { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/en
  *    stigmer#2436); the turn ends `stream_cut`. A subject whose engine has
  *    no vendor connection to lose says so and the arm is reported SKIPPED
  *    there.
+ *  - `message`: a person sends `text` to the session while the engine plays
+ *    the step before it (a tool the engine runs, an answer it writes), and
+ *    the engine reads it where its harness reads a message sent mid-turn
+ *    (`HarnessCapabilities.midTurnInput`): at its next model call after an
+ *    open operation, at its round's end after an answer. The subject sends
+ *    it through the kit's person ({@link EngineView.sendMessage}) as it plays
+ *    the step before, and the engine's reading of it is the step: a subject
+ *    whose engine does not read it there fails the script. Never the first
+ *    step: a message sent before the turn starts is the turn's own.
  */
 export type ScenarioStep =
   | { readonly kind: "say"; readonly text: string }
@@ -95,7 +104,8 @@ export type ScenarioStep =
   | { readonly kind: "limit" }
   | { readonly kind: "open"; readonly toolCallId: string; readonly as: OperationShape; readonly streams: boolean }
   | { readonly kind: "compact" }
-  | { readonly kind: "cut" };
+  | { readonly kind: "cut" }
+  | { readonly kind: "message"; readonly text: string };
 
 /**
  * The saved agent an `open(…, { as: "subagent" })` hands work to: the
@@ -159,7 +169,16 @@ export const scenario = {
   cut(): ScenarioStep {
     return { kind: "cut" };
   },
+  message(text: string): ScenarioStep {
+    return { kind: "message", text };
+  },
 } as const;
+
+/** The `message` step that follows the step at `index`, the one a subject sends as it plays that step; undefined when none does. */
+export function messageAfter(turn: TurnScenario, index: number): Extract<ScenarioStep, { kind: "message" }> | undefined {
+  const next = turn[index + 1];
+  return next?.kind === "message" ? next : undefined;
+}
 
 /**
  * What the engine can know about the turn it is about to play, handed to the
@@ -177,6 +196,13 @@ export interface EngineView {
   readonly executionId: string;
   readonly sessionId: string;
   readonly approvalDecisions: ReadonlyMap<string, ApprovalAction>;
+  /**
+   * The kit's person: sends `text` to the session now, queued for the turn
+   * as the server queues a message sent while a turn works (a `message`
+   * step). Not the engine's to know; the subject calls it as its engine
+   * plays the step before the message.
+   */
+  readonly sendMessage: (text: string) => void;
 }
 
 /**
@@ -264,6 +290,12 @@ export interface LongTurnControls {
   opened(toolCallId: string): number;
   /** How many times the session's engine was handed `message` as a new request, across every invocation. */
   tasksHanded(sessionId: string, message: string): number;
+  /**
+   * How many times the session's engine was handed `text` as a message a
+   * person sent while its turn worked, across every invocation: a message
+   * read twice reads 2, one never read 0.
+   */
+  messagesRead(sessionId: string, text: string): number;
   /** How many times the session's engine compacted its context, across every invocation. */
   compactions(sessionId: string): number;
   /**

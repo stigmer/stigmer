@@ -169,6 +169,7 @@ describe("the agent host process", () => {
       fingerprintKey: handed.toString("base64"),
       stopped: null,
       yielded: false,
+      inputPending: false,
       turnKey: "turn-key-test",
       traceparent: null,
     });

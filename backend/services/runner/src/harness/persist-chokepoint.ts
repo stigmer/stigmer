@@ -38,7 +38,9 @@
  *  6. A Temporal heartbeat, so a long streaming turn's liveness is proven by
  *     the writes it makes.
  *  7. The control plane's answer: STOP becomes the runtime's platform-stop
- *     cause on the stop controller, which aborts the adapter's signal.
+ *     cause on the stop controller, which aborts the adapter's signal, and
+ *     `input_pending` is the turn's input channel's pending hint
+ *     (`turn-input.ts`); a write that did not land leaves the last hint.
  *
  * Single-flight with coalescing: an adapter's `requestPersist()` while a
  * write is in flight does not start a second concurrent write (two writes of
@@ -106,6 +108,8 @@ export interface PersistChokepointDeps {
   readonly heartbeat: () => void;
   /** The control plane answered STOP to this write. */
   readonly onPlatformStop: () => void;
+  /** The control plane answered whether messages wait for the turn (`input_pending`) to a write that landed. */
+  readonly onInputPending?: (pending: boolean) => void;
   /** Writes the session's events from the rows each write carries; absent in tests that do not read the log. */
   readonly events?: Pick<SessionEventEmitter, "flush" | "flushToolOutput" | "sendLiveness">;
 }
@@ -207,7 +211,10 @@ export class PersistChokepoint {
     const signal = await persistStatus(client, executionId, status, {
       rows,
       offload,
-      onWritten: () => this.fileRecord.written(record),
+      onWritten: (response) => {
+        this.fileRecord.written(record);
+        this.deps.onInputPending?.(response.inputPending);
+      },
       ...(events ? { afterOffload: () => events.flush(rows, { final: opts.final === true }) } : {}),
     });
     heartbeat();
