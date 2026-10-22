@@ -2439,7 +2439,7 @@ __metadata:
 
 "@stigmer/client@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/client@file:../sdk/typescript#../sdk/typescript::hash=3eca07&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/client@file:../sdk/typescript#../sdk/typescript::hash=3391c0&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2452,17 +2452,17 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/8b48286d5d91339399d3c1c9892f4ceec3f23332dd798c210542b5f277852401c36c35fa31deebae0b13d7eb459f2d47078f63e60fcb29f70790e53160e0f665
+  checksum: 10c0/87bf2f1c3889ccc2bd92275022a90bd6f5d423837c4334a9965a71134177532c91ed8f0535a8349bbd0ad3160dc4f7169011049140ec48fef5382074916e4f87
   languageName: node
   linkType: hard
 
 "@stigmer/design-tokens@file:../sdk/theme::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/design-tokens@file:../sdk/theme#../sdk/theme::hash=4e7b70&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/design-tokens@file:../sdk/theme#../sdk/theme::hash=7c232f&locator=stigmer-site%40workspace%3A."
   peerDependencies:
     clsx: ^2.0.0
     tailwind-merge: ^3.0.0
-  checksum: 10c0/5ca53babab682058a744c4af948b1a760b702688c6c55eac85daca05f22af6b6948c64d3c23efce83bc76db4d494a38d8d88f8c6398bd678e92e6d5fac06c7a0
+  checksum: 10c0/32eacc3278596152d625a7ad052979c6ea9e1a9546ba1f87933372f65a266c3e1f523d95689901799bbcfd1446c98f91a08a8ada980cd2c1fe95337775015032
   languageName: node
   linkType: hard
 
@@ -2493,7 +2493,7 @@ __metadata:
 
 "@stigmer/react-sdk@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react-sdk@file:../sdk/react#../sdk/react::hash=9cd7e6&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react-sdk@file:../sdk/react#../sdk/react::hash=0b808f&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protovalidate": "npm:^1.1.1"
     "@stigmer/design-tokens": "npm:*"
@@ -2553,7 +2553,7 @@ __metadata:
       optional: true
     react-virtuoso:
       optional: true
-  checksum: 10c0/8065a25c5ad4b85491e7d675169d5deac0d141acde15864ee9aecfbafedb9a6af3c805e22f6a176ef748f0e34b8a918d6db116e7b90df9bc927b816377f65359
+  checksum: 10c0/b25abc7ed08c3ac55d8db6646808c4484934e45a5524ad0d8e93e5fb97b267814c434ac2f85ffd742aed3edb488e12414b7835f40e11d202dba440d922faebea
   languageName: node
   linkType: hard
 

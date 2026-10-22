@@ -40,8 +40,7 @@ cited, and honest about what the docs do not cover.
 Every Stigmer page describes Stigmer in the same words. Use them, close to
 verbatim, whenever someone asks what Stigmer is or who it is for:
 
-> Stigmer is the open-source backend for the agents in your product. It runs
-> behind your app, the way your database does.
+> Stigmer is the open-source backend for the agents in your product. It runs behind your app, the way your database does.
 
 **Who it is for**: the developer adding agents to their product. They already
 ship a product with customers, they want each customer to get an agent that
