@@ -26,6 +26,7 @@ the agent's knowledge cannot drift.
 | [`agents/stigmer-docs.yaml`](agents/stigmer-docs.yaml) | The Agent: instructions and the skill — web retrieval is a harness built-in, so no tool wiring |
 | [`skills/stigmer-docs/SKILL.md`](skills/stigmer-docs/SKILL.md) | The methodology + documentation map (no content snapshot) |
 | [`channels/stigmer-docs.yaml`](channels/stigmer-docs.yaml) | The public web Channel that powers the hosted chat + docs-site embed |
+| [`evals/`](evals/) | Three eval cases, in Claude Code's plugin-eval format, that hold the agent to the docs' own words: what Stigmer is, how it compares with Claude Managed Agents, and keeping each customer apart |
 
 Three deliberate postures, chosen once and worth preserving:
 
@@ -59,6 +60,16 @@ stigmer apply --org stigmer -f agents/stigmer-docs.yaml
 
 # The web channel is its own resource — applying the agent never touches it:
 stigmer apply --org stigmer -f channels/stigmer-docs.yaml
+```
+
+Before a change to the skill or the agent goes out, push the eval and run it
+against the agent ([Test with evals](https://stigmer.ai/docs/guides/evals/test-with-evals)).
+Each case grants only the `Skill` tool, so the answers come from the skill,
+with no web fetch:
+
+```bash
+stigmer push eval evals --name stigmer-docs-evals --org stigmer
+stigmer eval run --agent stigmer-docs --eval stigmer-docs-evals --allow-tools Skill --runs 1 --org stigmer
 ```
 
 The hosted chat goes live at `https://app.stigmer.ai/chat/<channel id>`. The
