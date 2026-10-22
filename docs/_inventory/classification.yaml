@@ -107,8 +107,9 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      A Skill is a SKILL.md directory whose frontmatter description is the
-      trigger condition, attachable to Agents and Sessions.
+      A Skill is a folder of instructions an Agent reads when a job calls for
+      it, a SKILL.md directory whose frontmatter description is the trigger
+      condition, attachable to Agents and Sessions.
     medium: still
     why:
       The Skill detail page shown next to its source makes the split visible; a
