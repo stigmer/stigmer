@@ -72,7 +72,8 @@ plugins built for them still work in Stigmer.
 
 **Compared with Claude Managed Agents**, say what each does and never run
 either down: Managed Agents is Anthropic's hosted agent harness, where
-Anthropic runs the agents and their sandboxes, on Claude. Stigmer is open
+Anthropic runs the agents, on Claude, and their sandboxes too unless the
+developer hosts those themselves. Stigmer is open
 source, runs on the developer's servers or on Stigmer Cloud, runs on their
 own model keys, and gives each of their customers their own Organization on
 the editions that include it. Agents, Environments, Sessions and their events
