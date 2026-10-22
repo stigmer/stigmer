@@ -33,6 +33,11 @@
  * Nothing is taken once the runtime's stop or yield fired; what waits is
  * the next invocation's, or the next turn's.
  *
+ * Before each take, the middleware crosses a barrier (`input-barrier.ts`):
+ * the stream loop has folded what the graph produced before it, and the
+ * claim's write puts that in the log first, so a message sits in the log
+ * after the answer or tool results the agent wrote before reading it.
+ *
  * The message's text is composed as the turn's own (`prompt-builder.ts`
  * `composeUserMessage`): its files listed first, its images inline.
  *
@@ -47,6 +52,8 @@ import { z } from "zod";
 import type { TurnInputChannel, TurnMessage } from "../../harness/turn-input.js";
 import { toLangChainImageBlocks } from "../../shared/attachment-vision.js";
 import { visionPromptInfoOf } from "../../shared/prompt-sections.js";
+import { customStreamWriterOf } from "../../middleware/tool-scope.js";
+import type { InputBarriers } from "./input-barrier.js";
 import { composeUserMessage } from "./prompt-builder.js";
 
 /** The state key the delivered message ids live under. Thread state: renaming it re-delivers every saved message. */
@@ -57,6 +64,8 @@ export interface TurnInputDelivery {
   readonly input: TurnInputChannel;
   /** Whether the runtime's stop or yield fired: nothing more is taken. */
   readonly stopped: () => boolean;
+  /** Crossed before each take (`input-barrier.ts`); none takes at once. */
+  readonly barriers?: InputBarriers;
 }
 
 /** The ids of the messages the thread holds, as its latest save recorded them. */
@@ -106,19 +115,21 @@ export function createTurnInputMiddleware(delivery: TurnInputDelivery) {
   return createMiddleware({
     name: "StigmerTurnInput",
     stateSchema: z.object({ [DELIVERED_INPUTS_KEY]: z.array(z.string()).optional() }),
-    beforeModel: async (state) => {
+    beforeModel: async (state, runtime) => {
       if (delivery.stopped()) return undefined;
       const owed = owedRead ? [] : await delivery.input.claimed(deliveredInputsOf(state));
       owedRead = true;
+      await delivery.barriers?.cross(customStreamWriterOf(runtime));
       return deliveryOf(state, [...owed, ...(await delivery.input.claim({ force: true }))]);
     },
     afterModel: {
       canJumpTo: ["model"],
-      hook: async (state) => {
+      hook: async (state, runtime) => {
         const last = state.messages.at(-1);
         if (delivery.stopped() || last === undefined || !isAIMessage(last) || (last.tool_calls?.length ?? 0) > 0) {
           return undefined;
         }
+        await delivery.barriers?.cross(customStreamWriterOf(runtime));
         await delivery.input.claim({ force: true });
         const update = deliveryOf(state, await delivery.input.claimed(deliveredInputsOf(state)));
         return update === undefined ? undefined : { ...update, jumpTo: "model" };

@@ -93,6 +93,7 @@ import { confinedReadAdmission, mountPlatformRoute } from "./platform-route.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { RUN_STAMP_KEY, createRunStampMiddleware, stampedRunOf } from "./run-stamp.js";
 import { createTurnInputMiddleware } from "./turn-input-middleware.js";
+import { InputBarriers } from "./input-barrier.js";
 import { resumedMessages, threadIsEmpty } from "./resumed-history.js";
 import { buildEnhancedSystemPrompt, composeUserMessage, renderSkillsSection } from "./prompt-builder.js";
 import { buildShellEnv, shellRunValues } from "../../shared/shell-env.js";
@@ -173,6 +174,8 @@ export interface DeepAgentEngine {
   readonly pricing: ModelPricing;
   readonly gate: DeepAgentGateState;
   readonly hasStructuredOutput: boolean;
+  /** The barriers the input middleware crosses before it takes a person's messages (`input-barrier.ts`). */
+  readonly inputBarriers?: InputBarriers;
 }
 
 /**
@@ -684,6 +687,7 @@ export async function buildEngine(
     workspaceDir: primaryDir,
     platformDir: workspace.backend.platformDir,
   });
+  const inputBarriers = new InputBarriers();
   const graph = await createDeepAgent({
     model,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -699,7 +703,11 @@ export async function buildEngine(
     middleware: [
       createTodoListMiddleware(),
       createRunStampMiddleware(),
-      createTurnInputMiddleware({ input: sink.input, stopped: () => sink.stopSignal.aborted || sink.yieldSignal.aborted }),
+      createTurnInputMiddleware({
+        input: sink.input,
+        stopped: () => sink.stopSignal.aborted || sink.yieldSignal.aborted,
+        barriers: inputBarriers,
+      }),
       ...middleware,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ] as any,
@@ -746,6 +754,7 @@ export async function buildEngine(
     pricing,
     gate,
     hasStructuredOutput: !!outputSchema,
+    inputBarriers,
   };
 }
 

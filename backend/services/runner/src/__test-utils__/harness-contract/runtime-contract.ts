@@ -55,6 +55,7 @@ import { type RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { StreamingUsageSummarySchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 import { AppendSessionEventsResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { WorkspaceWriteBackPhase, WorkspaceWriteBackSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/writeback_pb";
 
 import type { StigmerClient } from "../../client/stigmer-client.js";
@@ -1850,6 +1851,20 @@ function expectReadOnce(harness: RuntimeContractHarness, driver: RuntimeExecutio
 }
 
 /**
+ * The message sits in the log where the engine read it: after the agent's
+ * message `before`, which the engine wrote before it took the message, so
+ * a reader of the log sees the turn in the order it happened.
+ */
+function expectReadAfter(harness: RuntimeContractHarness, driver: RuntimeExecutionDriver, text: string, before: string): void {
+  const textOf = (event: SessionEvent): string =>
+    event.event.case === "userMessage" || event.event.case === "agentMessage" ? event.event.value.content.map((block) => block.text).join("") : "";
+  const own = driver.record.sessionEvents.filter((event) => event.runId === driver.record.executionId);
+  const written = own.findIndex((event) => event.event.case === "agentMessage" && textOf(event).includes(before));
+  const read = own.findIndex((event) => event.event.case === "userMessage" && textOf(event) === text);
+  expect([written >= 0, read > written], `${harness.subject.name}: the log holds "${before}" before the message the engine read after it`).toEqual([true, true]);
+}
+
+/**
  * A message a person sends while a tool runs is read by the same turn at
  * its next step, never left for a next turn (stigmer#2429): the turn
  * completes once, having read it once.
@@ -1864,6 +1879,7 @@ export async function assertMessageSentMidToolIsRead(harness: RuntimeContractHar
   const turn = await driver.turn([scenario.say("Building."), scenario.open(id), scenario.message(text), scenario.say("Built, README too.")]);
   expect(slimOf(subject, turn).phase, `${subject.name}: the turn completes`).toBe("RUN_COMPLETED");
   expectReadOnce(harness, driver, text);
+  expectReadAfter(harness, driver, text, "Building.");
   return { driver, invocations: [turn], final: finalStatusOf(harness, driver) };
 }
 
@@ -1879,6 +1895,7 @@ export async function assertMessageSentAsTheTurnAnswersIsRead(harness: RuntimeCo
   const turn = await driver.turn([scenario.say("Done."), scenario.message(text), scenario.say("Changelog line added.")]);
   expect(slimOf(subject, turn).phase, `${subject.name}: the turn completes`).toBe("RUN_COMPLETED");
   expectReadOnce(harness, driver, text);
+  expectReadAfter(harness, driver, text, "Done.");
   return { driver, invocations: [turn], final: finalStatusOf(harness, driver) };
 }
 

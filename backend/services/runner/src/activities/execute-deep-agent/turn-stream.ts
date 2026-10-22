@@ -70,6 +70,7 @@ import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/stre
 import { computeTurnCost } from "../../shared/model-pricing.js";
 import { TimeoutError, withTimeout } from "../../shared/with-timeout.js";
 import { createV3EventRecorder, type V3ProtocolEvent } from "./v3-event-recorder.js";
+import { barrierIdOf } from "./input-barrier.js";
 import { DeepAgentTranslator, usageOf, type V3UsagePayload } from "./translator.js";
 import type { DeepAgentEngine, DeepAgentGraphInput } from "./turn-setup.js";
 
@@ -236,6 +237,17 @@ export async function consumeDeepAgentStream(deps: DeepAgentStreamDeps): Promise
         }
 
         recorder?.record(event, eventsProcessed);
+        // The input middleware waits here (input-barrier.ts): every event
+        // before this one is folded, and written before it takes a message.
+        const barrier = barrierIdOf(event);
+        if (barrier !== undefined) {
+          if (!stopping) {
+            builder.markPersisted();
+            await sink.requestPersist();
+            scheduler.markUpdateSent(eventsProcessed);
+          }
+          engine.inputBarriers?.reach(barrier);
+        }
         let detail: string | undefined;
         for (const normalized of translator.translate(event)) {
           builder.apply(normalized);
