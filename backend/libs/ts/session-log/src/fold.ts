@@ -341,7 +341,7 @@ export class SessionLog {
           this.touch(turn);
         } else if (turn.items.length === 0) {
           const joined = [turn.userMessage.text, text].filter((each) => each !== "").join(MESSAGE_TEXT_SEPARATOR);
-          turn.userMessage = { ...turn.userMessage, text: joined };
+          turn.userMessage = { ...turn.userMessage, text: joined, joinedIds: [...(turn.userMessage.joinedIds ?? []), id] };
           this.touch(turn);
         } else {
           this.addText(event, "user_message", text);

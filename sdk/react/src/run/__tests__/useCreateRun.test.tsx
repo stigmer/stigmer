@@ -18,10 +18,11 @@ import { StigmerContext } from "../../context";
 import { useCreateRun } from "../useCreateRun";
 
 const mockCreate = vi.fn();
+const mockSendMessage = vi.fn();
 
 function makeMockClient(): Stigmer {
   return {
-    run: { create: mockCreate },
+    run: { create: mockCreate, sendMessage: mockSendMessage },
   } as unknown as Stigmer;
 }
 
@@ -382,5 +383,42 @@ describe("useCreateRun — supersede link (edit-and-resubmit)", () => {
     });
 
     expect(mockCreate.mock.calls[0][0].supersedesRunId).toBeUndefined();
+  });
+});
+
+describe("useCreateRun — send", () => {
+  const userMessage = { event: { case: "userMessage", value: { id: "sevt_1" } } };
+
+  it("sends the message to the session with its settings, and answers the turn it started", async () => {
+    mockSendMessage.mockResolvedValue({ message: userMessage, run: { metadata: { id: "aex-2" } } });
+    const { result } = renderHook(() => useCreateRun(), { wrapper: createWrapper(makeMockClient()) });
+    let answered;
+    await act(async () => {
+      answered = await result.current.send({ org: "acme", sessionId: "ses_1", message: "next", modelName: "m1", fileIds: ["file_1"] });
+    });
+    expect(answered).toEqual({ messageId: "sevt_1", runId: "aex-2" });
+    expect(mockSendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ org: "acme", sessionId: "ses_1", message: "next", runConfig: { modelName: "m1" }, fileIds: ["file_1"] }),
+    );
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("answers no turn for a message that waits in the session's queue", async () => {
+    mockSendMessage.mockResolvedValue({ message: userMessage });
+    const { result } = renderHook(() => useCreateRun(), { wrapper: createWrapper(makeMockClient()) });
+    let answered;
+    await act(async () => {
+      answered = await result.current.send({ org: "acme", sessionId: "ses_1", message: "later" });
+    });
+    expect(answered).toEqual({ messageId: "sevt_1", runId: null });
+  });
+
+  it("keeps the refusal as its error, and rethrows it", async () => {
+    mockSendMessage.mockRejectedValue(new Error("turn waits for an answer"));
+    const { result } = renderHook(() => useCreateRun(), { wrapper: createWrapper(makeMockClient()) });
+    await act(async () => {
+      await expect(result.current.send({ org: "acme", sessionId: "ses_1", message: "x" })).rejects.toThrow("turn waits for an answer");
+    });
+    expect(result.current.error?.message).toBe("turn waits for an answer");
   });
 });

@@ -255,14 +255,19 @@ export interface SessionComposerProps {
   ) => void;
   /** Shows loading indicator on the send button. */
   readonly isSubmitting?: boolean;
-  /** Disables the entire composer (e.g., while a run streams). */
+  /**
+   * Disables the entire composer (e.g., while a turn waits for an answer:
+   * a message sent while a turn works waits for it, so a working turn
+   * leaves the composer open).
+   */
   readonly disabled?: boolean;
 
   /**
    * When provided, the Send button becomes a Stop control while a run
-   * is in flight — clicking it calls this handler (graceful cancel, escalating
-   * to terminate on a repeat press). The textarea stays disabled, but the card
-   * is not dimmed so Stop reads as live and clickable.
+   * is in flight and nothing is typed — clicking it calls this handler
+   * (graceful cancel, escalating to terminate on a repeat press). Once a
+   * message is typed the button sends it, to wait for the working turn.
+   * The card is not dimmed so Stop reads as live and clickable.
    *
    * Opt-in: when omitted, the composer behaves exactly as before. Typically
    * wired to `useSessionConversation`'s `stop`, gated on `isStoppable`.

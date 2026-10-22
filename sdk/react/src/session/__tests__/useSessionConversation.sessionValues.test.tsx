@@ -90,7 +90,7 @@ function filesOf(session: Session): Array<{ fileId: string; mountPath: string }>
   );
 }
 let sessionUpdate: ReturnType<typeof vi.fn>;
-let runCreate: ReturnType<typeof vi.fn>;
+let runSend: ReturnType<typeof vi.fn>;
 
 function wrapper({ children }: { children: ReactNode }) {
   const client = {
@@ -99,7 +99,7 @@ function wrapper({ children }: { children: ReactNode }) {
       listBySession: vi.fn().mockResolvedValue({ entries: [], nextPageToken: "" }),
       // The sent turn's run, read while it is live; never answered here.
       get: vi.fn(() => new Promise(() => {})),
-      create: runCreate,
+      sendMessage: async (input: unknown) => ({ run: await runSend(input) }),
     },
     identityAccount: { whoAmI: vi.fn().mockRejectedValue(new Error("none")) },
   } as unknown as Stigmer;
@@ -116,7 +116,7 @@ describe("useSessionConversation — a follow-up's vault pick and repository tok
   beforeEach(() => {
     stored = STORED;
     sessionUpdate = vi.fn().mockResolvedValue(STORED);
-    runCreate = vi.fn().mockResolvedValue({ metadata: { id: "aex_1" }, spec: {} });
+    runSend = vi.fn().mockResolvedValue({ metadata: { id: "aex_1" }, spec: {} });
   });
 
   it("writes the person's pick by a session update, not on the run", async () => {
@@ -133,7 +133,7 @@ describe("useSessionConversation — a follow-up's vault pick and repository tok
     expect(sent.etag).toBe("");
     expect(sent.resource.spec?.includeMyVault).toBe(false);
     expect(sent.resource.spec?.vaults).toEqual([]);
-    const runInput = runCreate.mock.calls[0][0];
+    const runInput = runSend.mock.calls[0][0];
     expect(runInput).not.toHaveProperty("runtimeEnv");
     expect(runInput).not.toHaveProperty("vaults");
   });
@@ -236,7 +236,7 @@ describe("useSessionConversation — a follow-up's vault pick and repository tok
       { fileId: "file_other", mountPath: "file_other.txt" },
     ]);
     expect(result.current.sendError).toBeNull();
-    expect(runCreate).toHaveBeenCalledTimes(1);
+    expect(runSend).toHaveBeenCalledTimes(1);
   });
 
   it("fails the send after three stale refusals, and creates no run", async () => {
@@ -252,7 +252,7 @@ describe("useSessionConversation — a follow-up's vault pick and repository tok
 
     expect(sessionUpdate).toHaveBeenCalledTimes(3);
     expect(result.current.sendError?.message).toMatch(/changed since you read it/);
-    expect(runCreate).not.toHaveBeenCalled();
+    expect(runSend).not.toHaveBeenCalled();
   });
 
   it("does not retry an update refused for another reason", async () => {
@@ -267,7 +267,7 @@ describe("useSessionConversation — a follow-up's vault pick and repository tok
     });
 
     expect(sessionUpdate).toHaveBeenCalledTimes(1);
-    expect(runCreate).not.toHaveBeenCalled();
+    expect(runSend).not.toHaveBeenCalled();
   });
 
   it("names the message's Files on the run and releases them once it exists, never after a failed send", async () => {
@@ -275,7 +275,7 @@ describe("useSessionConversation — a follow-up's vault pick and repository tok
     const releaseFiles = vi.fn().mockResolvedValue(undefined);
     const files = [{ fileId: "file_1", filename: "shot.png", kind: "image" as const }];
 
-    runCreate.mockRejectedValueOnce(new Error("refused"));
+    runSend.mockRejectedValueOnce(new Error("refused"));
     await act(async () => {
       await result.current.sendFollowUp("look", { fileIds: ["file_1"], files, releaseFiles });
     });
@@ -286,7 +286,7 @@ describe("useSessionConversation — a follow-up's vault pick and repository tok
     await act(async () => {
       await result.current.sendFollowUp("look", { fileIds: ["file_1"], files, releaseFiles });
     });
-    expect(runCreate.mock.calls[1][0].fileIds).toEqual(["file_1"]);
+    expect(runSend.mock.calls[1][0].fileIds).toEqual(["file_1"]);
     expect(releaseFiles).toHaveBeenCalledTimes(1);
   });
 
@@ -298,6 +298,6 @@ describe("useSessionConversation — a follow-up's vault pick and repository tok
     });
 
     expect(sessionUpdate).not.toHaveBeenCalled();
-    expect(runCreate).toHaveBeenCalledTimes(1);
+    expect(runSend).toHaveBeenCalledTimes(1);
   });
 });

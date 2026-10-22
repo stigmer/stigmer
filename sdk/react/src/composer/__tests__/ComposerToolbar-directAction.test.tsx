@@ -87,3 +87,22 @@ describe("ComposerToolbar workspace direct action", () => {
     expect(directAction).not.toHaveBeenCalled();
   });
 });
+
+describe("ComposerToolbar while a turn works", () => {
+  it("is a Stop control while nothing can be sent", () => {
+    const onStop = vi.fn();
+    render(<ComposerToolbar {...baseProps({ canSend: false, onStop })} />);
+    fireEvent.click(screen.getByRole("button", { name: "Stop generating" }));
+    expect(onStop).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("button", { name: "Send message" })).toBeNull();
+  });
+
+  it("sends a typed message, which waits for the working turn, instead of stopping", () => {
+    const onSend = vi.fn();
+    const onStop = vi.fn();
+    render(<ComposerToolbar {...baseProps({ canSend: true, onSend, onStop })} />);
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    expect(onSend).toHaveBeenCalledOnce();
+    expect(onStop).not.toHaveBeenCalled();
+  });
+});

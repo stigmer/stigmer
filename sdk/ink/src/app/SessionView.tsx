@@ -154,6 +154,7 @@ export function SessionView({ sessionId, org, mode }: SessionViewProps) {
         turns={conv.turns}
         runs={conv.runs}
         pendingUserMessage={conv.pendingUserMessage}
+        queued={conv.queued}
         onAnswerToolUse={conv.answerToolUse}
         answeringToolUseIds={conv.answeringToolUseIds}
         expandToolCalls={expandTools}

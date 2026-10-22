@@ -280,6 +280,12 @@ export interface UserMessage {
   readonly id: string;
   readonly text: string;
   readonly processedAt: string;
+  /**
+   * The ids of the messages joined into this one after the first (a turn
+   * the queue started with several, or one read before the turn's first
+   * item); absent when it is one message.
+   */
+  readonly joinedIds?: readonly string[];
 }
 
 /** One turn: a run, from the message that started it to how it ended. */

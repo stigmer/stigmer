@@ -14,6 +14,7 @@ import {
   buildSessionProto,
   getErrorReason,
   type FileReviewSet,
+  type QueuedMessage,
   type ResourceRef,
   type ToolUse,
   type Turn,
@@ -72,6 +73,24 @@ const SESSION_EDIT_ATTEMPTS = 3;
 
 const EMPTY_ASKS: readonly ToolUse[] = [];
 const EMPTY_SETS: readonly FileReviewSet[] = [];
+const EMPTY_QUEUED: readonly QueuedMessage[] = [];
+
+/** Whether the session's events hold message `id`: queued, or read by a turn as its message or a later one. */
+function holdsMessage(
+  turns: readonly Turn[] | undefined,
+  queued: readonly QueuedMessage[] | undefined,
+  id: string,
+): boolean {
+  return (
+    (queued ?? []).some((message) => message.id === id) ||
+    (turns ?? []).some(
+      (turn) =>
+        turn.userMessage?.id === id ||
+        (turn.userMessage?.joinedIds ?? []).includes(id) ||
+        turn.items.some((item) => item.kind === "user_message" && item.id === id),
+    )
+  );
+}
 
 /**
  * Options for {@link UseSessionConversationReturn.sendFollowUp}.
@@ -316,6 +335,14 @@ export interface UseSessionConversationReturn {
    * of what Retry will re-send. Wire to `MessageThread.pendingFiles`.
    */
   readonly pendingFiles: readonly MessageFileView[] | null;
+  /**
+   * The messages sent while a turn worked that no turn has read yet, in
+   * the order sent (`SessionFold.queued`): `waiting` until the working turn
+   * reads it at its next step (or the turn after it starts with it),
+   * `dropped` when a stop ended the turn first. Render each after the
+   * thread; a read message moves into its turn.
+   */
+  readonly queued: readonly QueuedMessage[];
 
   /**
    * What the conversation holds, from the session spec: its repositories,
@@ -537,7 +564,7 @@ export function useSessionConversation(
     refetchOnWindowFocus: true,
   });
   const {
-    create: createRun,
+    send: sendMessage,
     isCreating,
     clearError: clearCreateError,
   } = useCreateRun();
@@ -570,8 +597,11 @@ export function useSessionConversation(
   const wakeFollow = events.wake;
 
   // The run a send just created, until its turn appears in the events: it
-  // holds the composer closed and the optimistic bubble up across the gap.
+  // holds the optimistic bubble up across the gap.
   const [pendingRunId, setPendingRunId] = useState<string | null>(null);
+  // The message a send queued for the working turn, until the events show
+  // it (queued, or read by a turn): the optimistic bubble stays up till then.
+  const [pendingMessageId, setPendingMessageId] = useState<string | null>(null);
   const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(
     null,
   );
@@ -629,11 +659,14 @@ export function useSessionConversation(
   // Once the sent turn appears in the events, the optimistic state hands
   // over to it: the pending run, message and files clear, and so
   // does a stale send error.
+  const foldQueued = events.fold?.queued;
   const sentTurnArrived =
-    pendingRunId !== null && (foldTurns ?? []).some((turn) => turn.runId === pendingRunId);
+    (pendingRunId !== null && (foldTurns ?? []).some((turn) => turn.runId === pendingRunId)) ||
+    (pendingMessageId !== null && holdsMessage(foldTurns, foldQueued, pendingMessageId));
   useEffect(() => {
     if (!sentTurnArrived) return;
     setPendingRunId(null);
+    setPendingMessageId(null);
     setPendingUserMessage(null);
     setPendingFiles(null);
     setSendError(null);
@@ -732,7 +765,12 @@ export function useSessionConversation(
     [isStoppable, sessionId, activeRunId, terminate, stigmer],
   );
 
-  const canSendFollowUp = !isCreating && activeRunId === null;
+  // A message is sent while a turn works too: it waits in the session's
+  // queue, and the working turn reads it at its next step. Only a turn that
+  // waits for an answer or is paused holds the composer closed (the server
+  // takes only the answer, or the resume, then).
+  const canSendFollowUp = !isCreating && activePhase !== "waiting" && activePhase !== "paused";
+  const queued = foldQueued ?? EMPTY_QUEUED;
 
   const resources = useMemo<readonly SessionResource[]>(
     () => session?.spec?.resources ?? [],
@@ -807,7 +845,7 @@ export function useSessionConversation(
           refetchSession();
         }
 
-        const result = await createRun({
+        const result = await sendMessage({
           org: turnOrg,
           sessionId,
           message,
@@ -821,9 +859,13 @@ export function useSessionConversation(
           workspaceFileRefs: options?.workspaceFileRefs,
           supersedesRunId: options?.supersedesRunId,
         });
-        requestedRunIdsRef.current.add(result.runId);
-        setPendingRunId(result.runId);
-        refetch();
+        if (result.runId === null) {
+          setPendingMessageId(result.messageId);
+        } else {
+          requestedRunIdsRef.current.add(result.runId);
+          setPendingRunId(result.runId);
+          refetch();
+        }
         // The run exists and names the Files: the originals the
         // conversation copied can go.
         void options?.releaseFiles?.();
@@ -842,7 +884,7 @@ export function useSessionConversation(
         }
       }
     },
-    [sessionId, session, turnOrg, stigmer, createRun, updateSession, refetch, refetchSession, wakeFollow],
+    [sessionId, session, turnOrg, stigmer, sendMessage, updateSession, refetch, refetchSession, wakeFollow],
   );
 
   const moveToCurrentAgentVersion = useCallback(async (): Promise<void> => {
@@ -959,6 +1001,7 @@ export function useSessionConversation(
 
     pendingUserMessage,
     pendingFiles,
+    queued,
 
     resources,
     plugins,

@@ -16,7 +16,7 @@ import { RunProgress } from "../components/RunProgress.js";
 import { ToolCallItem } from "../components/ToolCallItem.js";
 import { ToolCallGroup } from "../components/ToolCallGroup.js";
 import { ApprovalPrompt } from "../components/ApprovalPrompt.js";
-import { MessageThread } from "../components/MessageThread.js";
+import { DROPPED_MESSAGE_LABEL, MessageThread, QUEUED_MESSAGE_LABEL } from "../components/MessageThread.js";
 import { SubagentBlock } from "../components/SubagentBlock.js";
 import { TodoList } from "../components/TodoList.js";
 import { RUN_ID, askEvents, event, threadEvents, toolUseOf, turnOf, waitingToolUse } from "./session-events.js";
@@ -521,5 +521,32 @@ describe("MessageThread — how a turn ended", () => {
     const output = render(<MessageThread turns={[turnIn("completed")]} />).lastFrame() ?? "";
     expect(output).toContain("partial answer");
     expect(output).not.toContain("Completed");
+  });
+});
+
+describe("MessageThread — messages sent while a turn works", () => {
+  it("shows a message the turn read mid-turn where it read it, and each unread one after the thread", () => {
+    const turn = turnOf([
+      samples.userMessageEvent("Build it.", { runId: RUN_ID }),
+      samples.agentMessageEvent("Building.", { runId: RUN_ID, id: `${RUN_ID}.root.m0` }),
+      event({ case: "userMessage", value: { id: "sevt_q", content: [{ type: "text", text: "Also the README." }], processedAt: "t" } }),
+      samples.agentMessageEvent("README too.", { runId: RUN_ID, id: `${RUN_ID}.root.m1` }),
+    ]);
+    const frame =
+      render(
+        <MessageThread
+          turns={[turn]}
+          queued={[
+            { id: "q1", text: "Not now.", state: "dropped" },
+            { id: "q2", text: "Then lint.", state: "waiting" },
+          ]}
+          pendingUserMessage="Then lint."
+        />,
+      ).lastFrame() ?? "";
+    const order = ["Build it.", "Building.", "Also the README.", "README too.", "Not now.", DROPPED_MESSAGE_LABEL, "Then lint.", QUEUED_MESSAGE_LABEL];
+    const positions = order.map((text) => frame.indexOf(text));
+    expect(positions.every((position) => position >= 0)).toBe(true);
+    expect([...positions].sort((a, b) => a - b)).toEqual(positions);
+    expect(frame.split("Then lint.").length - 1, "no second bubble for the pending message").toBe(1);
   });
 });

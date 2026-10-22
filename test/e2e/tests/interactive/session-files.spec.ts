@@ -23,7 +23,7 @@ import {
   waitForAIResponse,
   getAIResponses,
   getSessionComposer,
-  assertComposerEnabled,
+  assertTurnIdle,
   START_SESSION_WAITS_MS,
 } from "../../helpers/session";
 import { MockControl, getMockControlUrl, isFileGateStack } from "../../helpers/mock-llm-control";
@@ -77,7 +77,7 @@ test.describe("A conversation's Files tab", () => {
     await startNewSession(page, "Say exactly: ready");
     await assertNoErrorBoundary(page);
     await waitForAIResponse(page, { timeout: TURN_BUDGET_MS });
-    await assertComposerEnabled(page);
+    await assertTurnIdle(page);
 
     // Paste a real 1x1 PNG (session-run-flow.spec.ts's synthetic paste).
     const form = getSessionComposer(page);
@@ -111,11 +111,11 @@ test.describe("A conversation's Files tab", () => {
     await expect(getAIResponses(page)).toHaveCount(1);
 
     await expect(getAIResponses(page)).toHaveCount(2, { timeout: TURN_BUDGET_MS });
-    await assertComposerEnabled(page);
+    await assertTurnIdle(page);
     await textarea.fill("Save the final report");
     await page.getByRole("button", { name: "Send message" }).click();
     await expect(getAIResponses(page)).toHaveCount(3, { timeout: TURN_BUDGET_MS });
-    await assertComposerEnabled(page);
+    await assertTurnIdle(page);
 
     // The panel returns to the Explorer when a turn starts or ends, so the
     // Files view is chosen again.

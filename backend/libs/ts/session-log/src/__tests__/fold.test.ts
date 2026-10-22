@@ -594,7 +594,7 @@ describe("messages sent while a turn works", () => {
       said(R2, 0, "Testing."),
     ]);
     const second = fold.turns[1]!;
-    expect(second.userMessage).toEqual({ id: "q1", text: "then test\n\nand lint", processedAt: "tq" });
+    expect(second.userMessage).toEqual({ id: "q1", text: "then test\n\nand lint", processedAt: "tq", joinedIds: ["q2"] });
     expect(second.items.map((item) => item.kind)).toEqual(["message"]);
   });
 

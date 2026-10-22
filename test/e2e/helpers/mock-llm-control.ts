@@ -34,7 +34,7 @@ export class MockControl {
   /**
    * Append one canned assistant turn to the proxy's queue. `delayMs` holds
    * the turn back before it streams — simulated model latency for tests
-   * that assert mid-execution states (sidebar phase, disabled composer).
+   * that assert mid-execution states (sidebar phase, the Stop control).
    */
   async enqueue(body: AnthropicMessageBody, delayMs = 0): Promise<void> {
     const res = await fetch(`${this.baseUrl}/__mock/enqueue`, {

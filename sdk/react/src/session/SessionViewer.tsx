@@ -773,7 +773,9 @@ export function SessionViewer({
             // owners' and participants').
             onImplementPlan={isReader ? undefined : handleBuildFromPlan}
             implementPlanDisabled={
-              isReader || !conv.canSendFollowUp || isBuildingFromPlan
+              // A plan is implemented by a turn of its own, never queued
+              // behind a working one.
+              isReader || conv.activePhase !== null || !conv.canSendFollowUp || isBuildingFromPlan
             }
             sessionPlan={sessionPlan}
             sessionFiles={files}
@@ -1022,6 +1024,7 @@ const ConversationColumn = memo(function ConversationColumn({
         planFiles={planFiles}
         pendingUserMessage={conv.pendingUserMessage}
         pendingFiles={conv.pendingFiles}
+        queued={conv.queued}
         pendingMessageFailed={!!conv.sendError && !!conv.pendingUserMessage}
         // Observers get a pure transcript: every interaction affordance
         // (retry, approvals, edit, build-from-plan) is opt-in via its
@@ -1055,7 +1058,7 @@ const ConversationColumn = memo(function ConversationColumn({
         onOpenPlan={onOpenPlan}
         org={org}
         planActionsDisabled={
-          isObserver || !conv.canSendFollowUp || isBuildingFromPlan
+          isObserver || conv.activePhase !== null || !conv.canSendFollowUp || isBuildingFromPlan
         }
         planBuildPending={isBuildingFromPlan}
         contentColumn="center"

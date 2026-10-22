@@ -160,7 +160,7 @@ it. The events you read most often:
 
 | Event | What it says |
 | --- | --- |
-| `user.message` | The message that started a run. |
+| `user.message` | A person's message. The first of a run started it. One sent while a turn works first arrives queued, with no `run_id` and no `processed_at`, and arrives again, under the same `id`, as the run's that read it, where it read it. |
 | `agent.message` | Text the Agent wrote. `content` is a list of blocks; join the `text` blocks. |
 | `agent.thinking` | The Agent thought. The `stigmer.agent.thinking` event that follows carries the text. |
 | `agent.tool_use`, `agent.mcp_tool_use` | A tool call: its `name`, `input`, and `evaluated_permission` (`ask` when it waits for an approval). Its `id` is the `tool_use_id` an answer names. |

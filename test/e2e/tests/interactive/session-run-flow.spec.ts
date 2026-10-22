@@ -7,8 +7,8 @@ import {
   getUserMessages,
   getMessageThread,
   getSessionComposer,
-  assertComposerDisabled,
-  assertComposerEnabled,
+  assertTurnIdle,
+  assertTurnWorking,
   START_SESSION_WAITS_MS,
 } from "../../helpers/session";
 import {
@@ -23,7 +23,7 @@ const HAS_LLM_KEY = !!(
 );
 
 // Simulated model latency for every canned turn in this file: these tests
-// assert MID-execution states (disabled composer), so the run must stay
+// assert MID-execution states (the Stop control), so the run must stay
 // observable for longer than the page needs to reflect it — a zero-latency
 // turn can complete before the UI ever shows the run (stigmer/stigmer#743).
 const TURN_DELAY_MS = 2_000;
@@ -60,8 +60,9 @@ const CASE_BUDGET_MS = SESSION_START_MS + 4 * TURN_BUDGET_MS + 60_000;
 /**
  * Run through the session surface, anchored to the signals the
  * CURRENT session viewer exposes (stigmer/stigmer#743 re-anchor): the
- * composer disables while a run is active and re-enables after, and the
- * response lands in the thread. The pre-redesign sidebar "Execution
+ * composer offers Stop while a run is active and stays open, since a
+ * message sent then waits for the working turn; the response lands in the
+ * thread. The pre-redesign sidebar "Execution
  * progress" phase region these tests originally pinned is no longer
  * rendered by any console page — run phases are deliberately not a
  * header/sidebar surface anymore.
@@ -85,9 +86,9 @@ test.describe("Agent execution via session", () => {
   );
 
   // Folds the old "execution progress appears in sidebar" intent into the
-  // composer lifecycle: the disabled composer IS the user-visible "a run is
-  // in progress" signal on the current surface.
-  test("composer reflects the execution lifecycle: disabled while running, enabled after", async ({
+  // composer lifecycle: the Stop control IS the user-visible "a run is in
+  // progress" signal on the current surface.
+  test("composer reflects the execution lifecycle: Stop while running, open throughout", async ({
     page,
     testAgent,
   }) => {
@@ -100,12 +101,31 @@ test.describe("Agent execution via session", () => {
     const form = getSessionComposer(page);
     await expect(form).toBeVisible({ timeout: 15_000 });
 
-    // Disabled while the run is active — the in-progress signal.
-    await assertComposerDisabled(page);
+    // Stop while the run is active — the in-progress signal.
+    await assertTurnWorking(page);
 
     // The settled response is the completion signal on this surface.
     await waitForAIResponse(page, { timeout: TURN_BUDGET_MS });
-    await assertComposerEnabled(page);
+    await assertTurnIdle(page);
+  });
+
+  test("a message sent while the turn works shows queued, then is read: never a turn beside it", async ({
+    page,
+    testAgent,
+  }) => {
+    await enqueueCannedTextTurns(["working", "noted"], { delayMs: TURN_DELAY_MS });
+
+    await startNewSession(page, "Say exactly: working");
+    await assertNoErrorBoundary(page);
+    await assertTurnWorking(page);
+
+    await sendFollowUp(page, "Say exactly: noted");
+    await expect(page.getByText("Queued — read at the agent's next step")).toBeVisible({ timeout: 10_000 });
+
+    await expect(page.getByText("Queued — read at the agent's next step")).toBeHidden({ timeout: TURN_BUDGET_MS });
+    await expect(getUserMessages(page).last()).toContainText("Say exactly: noted");
+    await expect(getAIResponses(page).last()).toContainText("noted", { timeout: TURN_BUDGET_MS });
+    await assertTurnIdle(page);
   });
 
   test("AI response appears in thread after completion", async ({
@@ -142,7 +162,7 @@ test.describe("Agent execution via session", () => {
     await startNewSession(page, "Say exactly: ready");
     await assertNoErrorBoundary(page);
     await waitForAIResponse(page, { timeout: TURN_BUDGET_MS });
-    await assertComposerEnabled(page);
+    await assertTurnIdle(page);
 
     const form = getSessionComposer(page);
     const textarea = form.locator("textarea");
@@ -193,7 +213,7 @@ test.describe("Agent execution via session", () => {
     // Drain the follow-up's turn before ending: the send above started a
     // second run; its settled response re-enables the composer.
     await expect(getAIResponses(page)).toHaveCount(2, { timeout: TURN_BUDGET_MS });
-    await assertComposerEnabled(page);
+    await assertTurnIdle(page);
   });
 
   test("follow-up message creates new execution", async ({
@@ -209,7 +229,7 @@ test.describe("Agent execution via session", () => {
 
     // Wait for the first run to complete.
     await waitForAIResponse(page, { timeout: TURN_BUDGET_MS });
-    await assertComposerEnabled(page);
+    await assertTurnIdle(page);
 
     // Send follow-up.
     await sendFollowUp(page, "Say exactly: second");
@@ -220,8 +240,8 @@ test.describe("Agent execution via session", () => {
       { timeout: 10_000 },
     );
 
-    // New run should start — composer disables again.
-    await assertComposerDisabled(page);
+    // New run should start — Stop shows again.
+    await assertTurnWorking(page);
 
     // Thread ends with two settled AI responses — the second run's
     // completion signal — and the composer re-enables.
@@ -231,6 +251,6 @@ test.describe("Agent execution via session", () => {
       "true",
       { timeout: TURN_BUDGET_MS },
     );
-    await assertComposerEnabled(page);
+    await assertTurnIdle(page);
   });
 });
