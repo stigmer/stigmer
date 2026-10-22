@@ -3,16 +3,24 @@
  *
  * Code reads the words from POSITIONING; prose cannot import, so the prose
  * homes (the vocabulary's positioning section, the docs' front page, "What
- * is Stigmer?" and the docs assistant's Skill) are read here and must match
- * it, and no text source in the site or the console may carry the words, or
- * a retired tagline, as a literal of its own. A failure names the copy that
- * drifted.
+ * is Stigmer?", the docs assistant's Skill and the root README) are read here
+ * and must match it, and no text source in the site or the console may carry
+ * the words, or a retired tagline, as a literal of its own. A failure names
+ * the copy that drifted.
+ *
+ * The one-line descriptions a developer picks Stigmer by (each entry point's
+ * manifest, README opening, chart, image label, root help and the Homebrew
+ * formula) are hand-written in their own formats, so they are held to the
+ * sentence's core, the part every fitted form keeps, and every public
+ * package's description to carrying no retired phrase.
  */
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { extname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { DESC as HOMEBREW_DESC } from "../../scripts/homebrew-formula.mjs";
 import { POSITIONING } from "../positioning";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
@@ -86,6 +94,107 @@ test("the docs assistant's Skill says what Stigmer is in the same words", () => 
   assert.ok(section !== undefined, `${path}: a "## What Stigmer is" section`);
   assert.ok(carries(section, POSITIONING.oneSentence), `${path}: "What Stigmer is", the one sentence`);
   assert.ok(carries(section, POSITIONING.whereItRuns), `${path}: "What Stigmer is", where it runs`);
+});
+
+/** The README's banner alt text, and its first paragraph under `# Stigmer`. */
+function readmeLead(markdown: string): { alt?: string; opening: string } {
+  const alt = /<img\b[^>]*\balt="([^"]*)"/.exec(markdown)?.[1];
+  const body = /^# Stigmer\n([\s\S]*)$/m.exec(markdown)?.[1] ?? "";
+  return { alt, opening: body.trim().split(/\n\s*\n/)[0] ?? "" };
+}
+
+test("the root README opens with the headline, the one sentence and where it runs", () => {
+  const { alt, opening } = readmeLead(read("README.md"));
+  assert.ok(carries(alt ?? "", POSITIONING.headline), "README.md: the banner's alt text");
+  assert.ok(carries(opening, POSITIONING.oneSentence), "README.md: first paragraph, the one sentence");
+  assert.ok(carries(opening, POSITIONING.whereItRuns), "README.md: first paragraph, where it runs");
+});
+
+/**
+ * The one sentence without its leading article and full stop: what every
+ * fitted form keeps (Homebrew refuses a description that opens with "The"
+ * or ends with a full stop), so what every entry point must carry.
+ */
+const CORE = POSITIONING.oneSentence.replace(/^The /, "").replace(/\.$/, "");
+
+/** The paragraph after a Markdown file's H1. */
+const readmeOpening = (markdown: string) =>
+  (/^# .*\n([\s\S]*)$/m.exec(markdown)?.[1] ?? "").trim().split(/\n\s*\n/)[0] ?? "";
+
+const jsonDescription = (text: string) => String(JSON.parse(text).description ?? "");
+
+/**
+ * Where a developer picks Stigmer, each read in its own format: the CLI, the
+ * four language clients, the React and terminal components, the Helm chart
+ * and the server image, each with the README its registry page shows.
+ */
+const ENTRY_POINTS: ReadonlyArray<readonly [path: string, extract: (text: string) => string | undefined]> = [
+  ["client-apps/cli/package.json", jsonDescription],
+  ["client-apps/cli/src/program.ts", (text) => /\.name\("stigmer"\)\s*\.description\("([^"]*)"\)/.exec(text)?.[1]],
+  ["client-apps/cli/README.md", readmeOpening],
+  ["sdk/typescript/package.json", jsonDescription],
+  ["sdk/typescript/README.md", readmeOpening],
+  ["sdk/python/pyproject.toml", (text) => /^description\s*=\s*"([^"]*)"/m.exec(text)?.[1]],
+  ["sdk/python/README.md", readmeOpening],
+  ["sdk/java/pom.xml", (text) => /<description>([^<]*)<\/description>/.exec(text)?.[1]],
+  ["sdk/java/README.md", readmeOpening],
+  ["sdk/go/README.md", readmeOpening],
+  ["sdk/react/package.json", jsonDescription],
+  ["sdk/react/README.md", readmeOpening],
+  ["sdk/ink/package.json", jsonDescription],
+  ["deploy/helm/stigmer/Chart.yaml", (text) => /^description:\s*(.+)$/m.exec(text)?.[1]],
+  ["deploy/helm/stigmer/README.md", readmeOpening],
+  ["backend/services/stigmer-server/Dockerfile", (text) => /^ARG IMAGE_DESCRIPTION="([^"]*)"/m.exec(text)?.[1]],
+];
+
+const WHERE_THE_WORDS_CHANGE =
+  'the words change in docs/vocabulary.md, "What Stigmer is, and who it is for", first';
+
+test("every entry point describes Stigmer as the open-source backend for the agents in your product", () => {
+  const drifted: string[] = [];
+  for (const [path, extract] of ENTRY_POINTS) {
+    const description = extract(read(path));
+    if (description === undefined) drifted.push(`${path}: no description found`);
+    else if (!carries(description, CORE)) drifted.push(`${path}: "${collapse(description)}"`);
+  }
+  if (!carries(HOMEBREW_DESC, CORE)) drifted.push(`scripts/homebrew-formula.mjs DESC: "${HOMEBREW_DESC}"`);
+  assert.deepEqual(drifted, [], `each must carry "${CORE}"; ${WHERE_THE_WORDS_CHANGE}`);
+});
+
+/** Phrases from the stories Stigmer told before, refused wherever a description lives. */
+const RETIRED_PHRASES = [
+  "workflow automation",
+  "agents and workflows",
+  "AI agent platform",
+  "agent orchestration",
+  "Build agents that work for your business",
+  "Agents as Microservices",
+];
+
+/** Every tracked package.json npm publishes, with its description. */
+function publicPackageDescriptions(): Array<readonly [path: string, description: string]> {
+  return execFileSync("git", ["ls-files", "-z", "--", ":(glob)**/package.json"], { cwd: ROOT, encoding: "utf8" })
+    .split("\0")
+    .filter(Boolean)
+    .map((path) => [path, JSON.parse(read(path))] as const)
+    .filter(([, manifest]) => manifest.private !== true)
+    .map(([path, manifest]) => [path, String(manifest.description ?? "")] as const);
+}
+
+test("no package, entry point or README description tells a retired story", () => {
+  const homes: Array<readonly [string, string]> = [
+    ...publicPackageDescriptions(),
+    ...ENTRY_POINTS.map(([path, extract]) => [path, extract(read(path)) ?? ""] as const),
+    ["scripts/homebrew-formula.mjs DESC", HOMEBREW_DESC],
+    ["README.md", read("README.md")],
+  ];
+  const retired: string[] = [];
+  for (const [path, text] of homes) {
+    for (const phrase of RETIRED_PHRASES) {
+      if (carries(text, phrase)) retired.push(`${path}: "${phrase}"`);
+    }
+  }
+  assert.deepEqual(retired, [], WHERE_THE_WORDS_CHANGE);
 });
 
 /** Where the site and the console keep their text sources. */
