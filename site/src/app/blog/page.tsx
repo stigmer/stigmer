@@ -4,16 +4,15 @@ import Link from "next/link";
 import { blog } from "@/lib/source";
 import { getGitHubDisplayName } from "@/lib/github";
 import { SITE_CONFIG } from "@/lib/constants";
+import { pageMetadata } from "@/lib/page-metadata";
 import { AuthorLink } from "./author-link";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Blog",
-  description: `Engineering blog from the ${SITE_CONFIG.name} team — architecture deep-dives, design decisions, and lessons from building an open-source AI agent platform.`,
-  openGraph: {
-    title: `Blog | ${SITE_CONFIG.name}`,
-    description: `Engineering blog from the ${SITE_CONFIG.name} team.`,
-  },
-};
+  description: `Notes from the ${SITE_CONFIG.name} team on how we build it, and on putting agents into our own product, Planton.`,
+  path: "/blog",
+  preview: { description: `Engineering blog from the ${SITE_CONFIG.name} team.` },
+});
 
 export default async function BlogIndex() {
   const posts = blog

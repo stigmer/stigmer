@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { FadeInUp } from "@/components/ui/motion";
 
@@ -31,6 +32,14 @@ function BuiltForPlanton({ className, ...props }: BuiltForPlantonProps) {
             their cloud setup instead of finding the right screen, and an assistant that only
             answers questions wasn&apos;t worth shipping. So we built agents that do the work and
             ask before they apply anything, and made the backend they run on open source.
+          </p>
+          <p className="mt-6 text-lg">
+            <Link
+              href="/blog/how-we-put-agents-into-planton"
+              className="text-foreground underline underline-offset-4 hover:text-foreground/80"
+            >
+              How we put agents into Planton
+            </Link>
           </p>
         </FadeInUp>
       </div>

@@ -11,6 +11,7 @@ import { createRelativeLink } from "fumadocs-ui/mdx";
 import { PageActions } from "@/components/docs";
 import { buildBreadcrumbItems } from "@/lib/breadcrumb";
 import { markdownExportUrl } from "@/lib/llms-pages";
+import { pageMetadata } from "@/lib/page-metadata";
 import { DocsBreadcrumb } from "../breadcrumb";
 import type { Metadata } from "next";
 
@@ -89,8 +90,9 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
-  return {
+  return pageMetadata({
     title: page.data.title,
     description: page.data.description,
-  };
+    path: page.url,
+  });
 }

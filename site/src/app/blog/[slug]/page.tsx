@@ -6,6 +6,7 @@ import { InlineTOC } from "fumadocs-ui/components/inline-toc";
 import { getMDXComponents } from "@/components/mdx";
 import { blog } from "@/lib/source";
 import { getGitHubDisplayName } from "@/lib/github";
+import { pageMetadata } from "@/lib/page-metadata";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -94,8 +95,10 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
   const page = blog.getPage([params.slug]);
   if (!page) notFound();
 
-  return {
+  return pageMetadata({
     title: page.data.title,
     description: page.data.description,
-  };
+    path: page.url,
+    article: { publishedTime: page.data.date },
+  });
 }

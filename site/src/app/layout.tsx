@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Instrument_Sans, Instrument_Serif, DM_Mono } from "next/font/google";
 import { SITE_CONFIG } from "@/lib/constants";
+import { SITE_OG_IMAGE } from "@/lib/page-metadata";
 import "./globals.css";
 
 const instrumentSans = Instrument_Sans({
@@ -57,20 +58,13 @@ export const metadata: Metadata = {
     title: `${SITE_CONFIG.name} — ${SITE_CONFIG.headline}`,
     description: SITE_CONFIG.description,
     siteName: SITE_CONFIG.name,
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: `${SITE_CONFIG.name} — ${SITE_CONFIG.headline}`,
-      },
-    ],
+    images: [SITE_OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
     title: `${SITE_CONFIG.name} — ${SITE_CONFIG.headline}`,
     description: SITE_CONFIG.description,
-    images: ["/og-image.png"],
+    images: [SITE_OG_IMAGE.url],
   },
   robots: {
     index: true,
@@ -104,7 +98,7 @@ export default function RootLayout({
         "url": SITE_CONFIG.url,
         "logo": {
           "@type": "ImageObject",
-          "url": `${SITE_CONFIG.url}/og-image.png`,
+          "url": `${SITE_CONFIG.url}${SITE_OG_IMAGE.url}`,
         },
         "sameAs": [SITE_CONFIG.githubUrl],
       },
