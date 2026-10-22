@@ -8,7 +8,8 @@
  * Pins too that every docs link on the homepage, the use-cases page and the
  * comparison lands on a docs page that exists, never on one the redirect
  * file moved: the homepage once linked four Getting Started pages that only
- * redirects still answered.
+ * redirects still answered. Every blog link on the homepage names a post
+ * that exists.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -25,6 +26,7 @@ afterEach(cleanup);
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DOCS = resolve(HERE, "../../../../../docs");
 const REDIRECTS = resolve(HERE, "../../../../public/_redirects");
+const BLOG = resolve(HERE, "../../../../../blog");
 
 /** The paths the redirect file sends elsewhere. */
 const MOVED = new Set(
@@ -34,10 +36,10 @@ const MOVED = new Set(
     .map((line) => line.split(/\s+/)[0]),
 );
 
-function docsLinks(container: HTMLElement): string[] {
+function links(container: HTMLElement, prefix: string): string[] {
   return [...container.querySelectorAll("a")]
     .map((link) => link.getAttribute("href") ?? "")
-    .filter((href) => href.startsWith("/docs/"));
+    .filter((href) => href.startsWith(prefix));
 }
 
 describe("HomePage", () => {
@@ -63,10 +65,10 @@ describe("HomePage", () => {
     ["the comparison", CompareManagedAgentsPage],
   ])("sends every docs link on %s to a page that exists", (_, Page) => {
     const { container } = render(<Page />);
-    const links = docsLinks(container);
+    const docs = links(container, "/docs/");
 
-    expect(links.length).toBeGreaterThan(0);
-    for (const href of links) {
+    expect(docs.length).toBeGreaterThan(0);
+    for (const href of docs) {
       const path = href.split("#")[0];
       expect(MOVED.has(path), `${href} is redirected`).toBe(false);
       const page = path.slice("/docs/".length);
@@ -74,6 +76,17 @@ describe("HomePage", () => {
         existsSync(resolve(DOCS, `${page}.mdx`)) || existsSync(resolve(DOCS, page, "index.mdx")),
         `${href} has no docs page`,
       ).toBe(true);
+    }
+  });
+
+  it("sends every blog link on the homepage to a post that exists", () => {
+    const { container } = render(<HomePage />);
+    const posts = links(container, "/blog/");
+
+    expect(posts.length).toBeGreaterThan(0);
+    for (const href of posts) {
+      const slug = href.split("#")[0].slice("/blog/".length);
+      expect(existsSync(resolve(BLOG, `${slug}.mdx`)), `${href} has no post`).toBe(true);
     }
   });
 });
