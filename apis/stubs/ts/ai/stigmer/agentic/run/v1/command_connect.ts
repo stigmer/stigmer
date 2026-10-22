@@ -5,7 +5,7 @@
 
 import { Run } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { PauseRunInput, RecoverRunInput, ResumeRunInput, RunUpdateStatusInput, TerminateRunInput, UpdateRunInput, UpdateStatusResponse } from "./io_pbjs";
+import { PauseRunInput, RecoverRunInput, ResumeRunInput, RunUpdateStatusInput, SendMessageResponse, TerminateRunInput, UpdateRunInput, UpdateStatusResponse } from "./io_pbjs";
 import { ApiResourceId } from "../../../commons/apiresource/io_pbjs";
 
 /**
@@ -21,12 +21,65 @@ export const RunCommandController = {
      * Create and trigger a new run: a turn in an existing session,
      * or the first turn of a new one created from session_spec.
      *
+     * A session works on one turn at a time. A turn in a session that already
+     * has an unfinished turn (pending, in progress, waiting for an answer or
+     * paused), or messages queued for the turn they start, is refused: send
+     * the message with sendMessage, which queues it.
+     *
+     * ## Error Conditions
+     *
+     * - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+     *   "stigmer.ai", reason SESSION_TURN_UNFINISHED, metadata session_id):
+     *   another turn of the session is unfinished, or messages wait for
+     *   their turn
+     *
      * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.create
      */
     create: {
       name: "create",
       I: Run,
       O: Run,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Send a message to a session: the turn starts now, or the message waits
+     * for the turn that is working.
+     *
+     * run is the turn as create takes it, in an existing session
+     * (spec.session_id). When no turn of the session is unfinished, the turn
+     * starts at once, exactly as create starts it, and the reply names it.
+     * While a turn works, the message is queued instead: its user.message is
+     * stored with no processed_at and no run_id, and the reply carries it.
+     * The working turn reads it, or, once that turn has ended, the next turn
+     * starts with every message still queued, in the order sent: their texts
+     * joined, their files together, with the settings of the newest. A
+     * message read is listed once, where the agent read it, with its
+     * processed_at and the run that read it; it streams a second time as it
+     * moves there.
+     *
+     * A queued message meets every check a turn meets when it is sent, and
+     * the turn it starts meets them again. Stopping the session (interrupt,
+     * or terminating a turn) drops the messages still queued: they stay
+     * listed with no processed_at. A turn that cannot start (its agent was
+     * removed since, or a check refuses it) leaves them so too, and the
+     * session records the reason as a session.error.
+     *
+     * ## Error Conditions
+     *
+     * - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+     *   "stigmer.ai", metadata session_id and run_id): reason
+     *   SESSION_TURN_WAITS_FOR_ANSWER while a turn of the session waits for
+     *   an answer (allow or deny it first; a deny can carry a message), or
+     *   SESSION_TURN_PAUSED while one is paused (resume it first)
+     * - FAILED_PRECONDITION: spec names no existing session
+     * - every refusal create answers
+     *
+     * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.sendMessage
+     */
+    sendMessage: {
+      name: "sendMessage",
+      I: Run,
+      O: SendMessageResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -82,7 +135,9 @@ export const RunCommandController = {
      *
      * Force-stops the run without allowing cleanup. Unlike the session's
      * interrupt, the agent cannot respond to termination - it is stopped immediately.
-     * Use this for stuck or unresponsive agents.
+     * Use this for stuck or unresponsive agents. The messages still queued in
+     * the run's session (sendMessage) are dropped with it: they stay listed,
+     * never read.
      *
      * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.terminate
      */

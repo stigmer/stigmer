@@ -8,6 +8,7 @@ package runv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	v1 "go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
@@ -469,7 +470,10 @@ type UpdateStatusResponse struct {
 	Signal RunControlSignal `protobuf:"varint,1,opt,name=signal,proto3,enum=ai.stigmer.agentic.run.v1.RunControlSignal" json:"signal,omitempty"`
 	// Human-readable reason for the signal (optional).
 	// Logged by the runner and may be surfaced to the user in the stop summary.
-	SignalReason  string `protobuf:"bytes,2,opt,name=signal_reason,json=signalReason,proto3" json:"signal_reason,omitempty"`
+	SignalReason string `protobuf:"bytes,2,opt,name=signal_reason,json=signalReason,proto3" json:"signal_reason,omitempty"`
+	// Messages sent to the run's session wait to be read
+	// (RunCommandController.sendMessage).
+	InputPending  bool `protobuf:"varint,3,opt,name=input_pending,json=inputPending,proto3" json:"input_pending,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -516,6 +520,69 @@ func (x *UpdateStatusResponse) GetSignalReason() string {
 		return x.SignalReason
 	}
 	return ""
+}
+
+func (x *UpdateStatusResponse) GetInputPending() bool {
+	if x != nil {
+		return x.InputPending
+	}
+	return false
+}
+
+// SendMessageResponse answers a message sent to a session.
+type SendMessageResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The message's user.message: queued, with no processed_at and no
+	// run_id, or the one the started turn was created with.
+	Message *v1.SessionEvent `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	// The turn the message started; absent when it was queued.
+	Run           *Run `protobuf:"bytes,2,opt,name=run,proto3" json:"run,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendMessageResponse) Reset() {
+	*x = SendMessageResponse{}
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendMessageResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendMessageResponse) ProtoMessage() {}
+
+func (x *SendMessageResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendMessageResponse.ProtoReflect.Descriptor instead.
+func (*SendMessageResponse) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *SendMessageResponse) GetMessage() *v1.SessionEvent {
+	if x != nil {
+		return x.Message
+	}
+	return nil
+}
+
+func (x *SendMessageResponse) GetRun() *Run {
+	if x != nil {
+		return x.Run
+	}
+	return nil
 }
 
 // TerminateRunInput requests immediate termination of a run.
@@ -584,7 +651,7 @@ type TerminateRunInput struct {
 
 func (x *TerminateRunInput) Reset() {
 	*x = TerminateRunInput{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -596,7 +663,7 @@ func (x *TerminateRunInput) String() string {
 func (*TerminateRunInput) ProtoMessage() {}
 
 func (x *TerminateRunInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -609,7 +676,7 @@ func (x *TerminateRunInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TerminateRunInput.ProtoReflect.Descriptor instead.
 func (*TerminateRunInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *TerminateRunInput) GetId() string {
@@ -674,7 +741,7 @@ type RecoverRunInput struct {
 
 func (x *RecoverRunInput) Reset() {
 	*x = RecoverRunInput{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -686,7 +753,7 @@ func (x *RecoverRunInput) String() string {
 func (*RecoverRunInput) ProtoMessage() {}
 
 func (x *RecoverRunInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -699,7 +766,7 @@ func (x *RecoverRunInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecoverRunInput.ProtoReflect.Descriptor instead.
 func (*RecoverRunInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{8}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *RecoverRunInput) GetId() string {
@@ -762,7 +829,7 @@ type PauseRunInput struct {
 
 func (x *PauseRunInput) Reset() {
 	*x = PauseRunInput{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[9]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -774,7 +841,7 @@ func (x *PauseRunInput) String() string {
 func (*PauseRunInput) ProtoMessage() {}
 
 func (x *PauseRunInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[9]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -787,7 +854,7 @@ func (x *PauseRunInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PauseRunInput.ProtoReflect.Descriptor instead.
 func (*PauseRunInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{9}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *PauseRunInput) GetId() string {
@@ -847,7 +914,7 @@ type ResumeRunInput struct {
 
 func (x *ResumeRunInput) Reset() {
 	*x = ResumeRunInput{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[10]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -859,7 +926,7 @@ func (x *ResumeRunInput) String() string {
 func (*ResumeRunInput) ProtoMessage() {}
 
 func (x *ResumeRunInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[10]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -872,7 +939,7 @@ func (x *ResumeRunInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResumeRunInput.ProtoReflect.Descriptor instead.
 func (*ResumeRunInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{10}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ResumeRunInput) GetId() string {
@@ -967,7 +1034,7 @@ type GetArtifactDownloadUrlRequest struct {
 
 func (x *GetArtifactDownloadUrlRequest) Reset() {
 	*x = GetArtifactDownloadUrlRequest{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[11]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -979,7 +1046,7 @@ func (x *GetArtifactDownloadUrlRequest) String() string {
 func (*GetArtifactDownloadUrlRequest) ProtoMessage() {}
 
 func (x *GetArtifactDownloadUrlRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[11]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -992,7 +1059,7 @@ func (x *GetArtifactDownloadUrlRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetArtifactDownloadUrlRequest.ProtoReflect.Descriptor instead.
 func (*GetArtifactDownloadUrlRequest) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{11}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetArtifactDownloadUrlRequest) GetRunId() string {
@@ -1048,7 +1115,7 @@ type GetArtifactDownloadUrlResponse struct {
 
 func (x *GetArtifactDownloadUrlResponse) Reset() {
 	*x = GetArtifactDownloadUrlResponse{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[12]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1060,7 +1127,7 @@ func (x *GetArtifactDownloadUrlResponse) String() string {
 func (*GetArtifactDownloadUrlResponse) ProtoMessage() {}
 
 func (x *GetArtifactDownloadUrlResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[12]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1073,7 +1140,7 @@ func (x *GetArtifactDownloadUrlResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetArtifactDownloadUrlResponse.ProtoReflect.Descriptor instead.
 func (*GetArtifactDownloadUrlResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{12}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetArtifactDownloadUrlResponse) GetDownloadUrl() string {
@@ -1188,7 +1255,7 @@ type GetArtifactContentRequest struct {
 
 func (x *GetArtifactContentRequest) Reset() {
 	*x = GetArtifactContentRequest{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[13]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1200,7 +1267,7 @@ func (x *GetArtifactContentRequest) String() string {
 func (*GetArtifactContentRequest) ProtoMessage() {}
 
 func (x *GetArtifactContentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[13]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1213,7 +1280,7 @@ func (x *GetArtifactContentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetArtifactContentRequest.ProtoReflect.Descriptor instead.
 func (*GetArtifactContentRequest) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{13}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetArtifactContentRequest) GetRunId() string {
@@ -1282,7 +1349,7 @@ type GetArtifactContentResponse struct {
 
 func (x *GetArtifactContentResponse) Reset() {
 	*x = GetArtifactContentResponse{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[14]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1294,7 +1361,7 @@ func (x *GetArtifactContentResponse) String() string {
 func (*GetArtifactContentResponse) ProtoMessage() {}
 
 func (x *GetArtifactContentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[14]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1307,7 +1374,7 @@ func (x *GetArtifactContentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetArtifactContentResponse.ProtoReflect.Descriptor instead.
 func (*GetArtifactContentResponse) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{14}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetArtifactContentResponse) GetContent() []byte {
@@ -1349,7 +1416,7 @@ type GetRunUsageReportInput struct {
 
 func (x *GetRunUsageReportInput) Reset() {
 	*x = GetRunUsageReportInput{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[15]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1361,7 +1428,7 @@ func (x *GetRunUsageReportInput) String() string {
 func (*GetRunUsageReportInput) ProtoMessage() {}
 
 func (x *GetRunUsageReportInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[15]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1374,7 +1441,7 @@ func (x *GetRunUsageReportInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRunUsageReportInput.ProtoReflect.Descriptor instead.
 func (*GetRunUsageReportInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{15}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetRunUsageReportInput) GetRunId() string {
@@ -1397,7 +1464,7 @@ type GetRunUsageReportOutput struct {
 
 func (x *GetRunUsageReportOutput) Reset() {
 	*x = GetRunUsageReportOutput{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[16]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1409,7 +1476,7 @@ func (x *GetRunUsageReportOutput) String() string {
 func (*GetRunUsageReportOutput) ProtoMessage() {}
 
 func (x *GetRunUsageReportOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[16]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1422,7 +1489,7 @@ func (x *GetRunUsageReportOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRunUsageReportOutput.ProtoReflect.Descriptor instead.
 func (*GetRunUsageReportOutput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{16}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetRunUsageReportOutput) GetAggregate() *UsageReportAggregate {
@@ -1451,7 +1518,7 @@ type GetSessionUsageReportInput struct {
 
 func (x *GetSessionUsageReportInput) Reset() {
 	*x = GetSessionUsageReportInput{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[17]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1463,7 +1530,7 @@ func (x *GetSessionUsageReportInput) String() string {
 func (*GetSessionUsageReportInput) ProtoMessage() {}
 
 func (x *GetSessionUsageReportInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[17]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1476,7 +1543,7 @@ func (x *GetSessionUsageReportInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionUsageReportInput.ProtoReflect.Descriptor instead.
 func (*GetSessionUsageReportInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{17}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetSessionUsageReportInput) GetSessionId() string {
@@ -1516,7 +1583,7 @@ type GetSessionUsageReportOutput struct {
 
 func (x *GetSessionUsageReportOutput) Reset() {
 	*x = GetSessionUsageReportOutput{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[18]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1528,7 +1595,7 @@ func (x *GetSessionUsageReportOutput) String() string {
 func (*GetSessionUsageReportOutput) ProtoMessage() {}
 
 func (x *GetSessionUsageReportOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[18]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1541,7 +1608,7 @@ func (x *GetSessionUsageReportOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSessionUsageReportOutput.ProtoReflect.Descriptor instead.
 func (*GetSessionUsageReportOutput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{18}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetSessionUsageReportOutput) GetSessionId() string {
@@ -1624,7 +1691,7 @@ type GetAgentUsageReportInput struct {
 
 func (x *GetAgentUsageReportInput) Reset() {
 	*x = GetAgentUsageReportInput{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[19]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1636,7 +1703,7 @@ func (x *GetAgentUsageReportInput) String() string {
 func (*GetAgentUsageReportInput) ProtoMessage() {}
 
 func (x *GetAgentUsageReportInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[19]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1649,7 +1716,7 @@ func (x *GetAgentUsageReportInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAgentUsageReportInput.ProtoReflect.Descriptor instead.
 func (*GetAgentUsageReportInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{19}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *GetAgentUsageReportInput) GetAgentId() string {
@@ -1706,7 +1773,7 @@ type GetAgentUsageReportOutput struct {
 
 func (x *GetAgentUsageReportOutput) Reset() {
 	*x = GetAgentUsageReportOutput{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[20]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1718,7 +1785,7 @@ func (x *GetAgentUsageReportOutput) String() string {
 func (*GetAgentUsageReportOutput) ProtoMessage() {}
 
 func (x *GetAgentUsageReportOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[20]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1731,7 +1798,7 @@ func (x *GetAgentUsageReportOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAgentUsageReportOutput.ProtoReflect.Descriptor instead.
 func (*GetAgentUsageReportOutput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{20}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetAgentUsageReportOutput) GetAgentId() string {
@@ -1803,7 +1870,7 @@ type GetOrgUsageReportInput struct {
 
 func (x *GetOrgUsageReportInput) Reset() {
 	*x = GetOrgUsageReportInput{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[21]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1815,7 +1882,7 @@ func (x *GetOrgUsageReportInput) String() string {
 func (*GetOrgUsageReportInput) ProtoMessage() {}
 
 func (x *GetOrgUsageReportInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[21]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1828,7 +1895,7 @@ func (x *GetOrgUsageReportInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrgUsageReportInput.ProtoReflect.Descriptor instead.
 func (*GetOrgUsageReportInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{21}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetOrgUsageReportInput) GetOrg() string {
@@ -1884,7 +1951,7 @@ type GetOrgUsageReportOutput struct {
 
 func (x *GetOrgUsageReportOutput) Reset() {
 	*x = GetOrgUsageReportOutput{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[22]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1896,7 +1963,7 @@ func (x *GetOrgUsageReportOutput) String() string {
 func (*GetOrgUsageReportOutput) ProtoMessage() {}
 
 func (x *GetOrgUsageReportOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[22]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1909,7 +1976,7 @@ func (x *GetOrgUsageReportOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrgUsageReportOutput.ProtoReflect.Descriptor instead.
 func (*GetOrgUsageReportOutput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{22}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *GetOrgUsageReportOutput) GetOrg() string {
@@ -2013,7 +2080,7 @@ type RunUsageSummary struct {
 
 func (x *RunUsageSummary) Reset() {
 	*x = RunUsageSummary{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[23]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2025,7 +2092,7 @@ func (x *RunUsageSummary) String() string {
 func (*RunUsageSummary) ProtoMessage() {}
 
 func (x *RunUsageSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[23]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2038,7 +2105,7 @@ func (x *RunUsageSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunUsageSummary.ProtoReflect.Descriptor instead.
 func (*RunUsageSummary) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{23}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *RunUsageSummary) GetRunId() string {
@@ -2151,7 +2218,7 @@ type SessionUsageSummary struct {
 
 func (x *SessionUsageSummary) Reset() {
 	*x = SessionUsageSummary{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[24]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2163,7 +2230,7 @@ func (x *SessionUsageSummary) String() string {
 func (*SessionUsageSummary) ProtoMessage() {}
 
 func (x *SessionUsageSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[24]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2176,7 +2243,7 @@ func (x *SessionUsageSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionUsageSummary.ProtoReflect.Descriptor instead.
 func (*SessionUsageSummary) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{24}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *SessionUsageSummary) GetSessionId() string {
@@ -2245,7 +2312,7 @@ type AgentUsageSummary struct {
 
 func (x *AgentUsageSummary) Reset() {
 	*x = AgentUsageSummary{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[25]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2257,7 +2324,7 @@ func (x *AgentUsageSummary) String() string {
 func (*AgentUsageSummary) ProtoMessage() {}
 
 func (x *AgentUsageSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[25]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2270,7 +2337,7 @@ func (x *AgentUsageSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentUsageSummary.ProtoReflect.Descriptor instead.
 func (*AgentUsageSummary) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{25}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *AgentUsageSummary) GetAgentId() string {
@@ -2325,7 +2392,7 @@ type DailyUsage struct {
 
 func (x *DailyUsage) Reset() {
 	*x = DailyUsage{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[26]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2337,7 +2404,7 @@ func (x *DailyUsage) String() string {
 func (*DailyUsage) ProtoMessage() {}
 
 func (x *DailyUsage) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[26]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2350,7 +2417,7 @@ func (x *DailyUsage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DailyUsage.ProtoReflect.Descriptor instead.
 func (*DailyUsage) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{26}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *DailyUsage) GetDate() string {
@@ -2402,7 +2469,7 @@ type HarnessUsage struct {
 
 func (x *HarnessUsage) Reset() {
 	*x = HarnessUsage{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[27]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2414,7 +2481,7 @@ func (x *HarnessUsage) String() string {
 func (*HarnessUsage) ProtoMessage() {}
 
 func (x *HarnessUsage) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[27]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2427,7 +2494,7 @@ func (x *HarnessUsage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HarnessUsage.ProtoReflect.Descriptor instead.
 func (*HarnessUsage) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{27}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *HarnessUsage) GetHarness() string {
@@ -2474,7 +2541,7 @@ type GetRunSummaryRequest struct {
 
 func (x *GetRunSummaryRequest) Reset() {
 	*x = GetRunSummaryRequest{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[28]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2486,7 +2553,7 @@ func (x *GetRunSummaryRequest) String() string {
 func (*GetRunSummaryRequest) ProtoMessage() {}
 
 func (x *GetRunSummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[28]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2499,7 +2566,7 @@ func (x *GetRunSummaryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRunSummaryRequest.ProtoReflect.Descriptor instead.
 func (*GetRunSummaryRequest) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{28}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GetRunSummaryRequest) GetOrg() string {
@@ -2546,7 +2613,7 @@ type RunSummary struct {
 
 func (x *RunSummary) Reset() {
 	*x = RunSummary{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[29]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2558,7 +2625,7 @@ func (x *RunSummary) String() string {
 func (*RunSummary) ProtoMessage() {}
 
 func (x *RunSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[29]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2571,7 +2638,7 @@ func (x *RunSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunSummary.ProtoReflect.Descriptor instead.
 func (*RunSummary) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{29}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *RunSummary) GetActiveCount() int32 {
@@ -2618,7 +2685,7 @@ type AgentFailureRank struct {
 
 func (x *AgentFailureRank) Reset() {
 	*x = AgentFailureRank{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[30]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2630,7 +2697,7 @@ func (x *AgentFailureRank) String() string {
 func (*AgentFailureRank) ProtoMessage() {}
 
 func (x *AgentFailureRank) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[30]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2643,7 +2710,7 @@ func (x *AgentFailureRank) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentFailureRank.ProtoReflect.Descriptor instead.
 func (*AgentFailureRank) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{30}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *AgentFailureRank) GetAgentSlug() string {
@@ -2685,7 +2752,7 @@ type UpdateRunInput struct {
 
 func (x *UpdateRunInput) Reset() {
 	*x = UpdateRunInput{}
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[31]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2697,7 +2764,7 @@ func (x *UpdateRunInput) String() string {
 func (*UpdateRunInput) ProtoMessage() {}
 
 func (x *UpdateRunInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[31]
+	mi := &file_ai_stigmer_agentic_run_v1_io_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2710,7 +2777,7 @@ func (x *UpdateRunInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRunInput.ProtoReflect.Descriptor instead.
 func (*UpdateRunInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{31}
+	return file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *UpdateRunInput) GetResource() *Run {
@@ -2731,7 +2798,7 @@ var File_ai_stigmer_agentic_run_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"\"ai/stigmer/agentic/run/v1/io.proto\x12\x19ai.stigmer.agentic.run.v1\x1a#ai/stigmer/agentic/run/v1/api.proto\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a%ai/stigmer/agentic/run/v1/usage.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1egoogle/protobuf/duration.proto\x1a google/protobuf/field_mask.proto\"%\n" +
+	"\"ai/stigmer/agentic/run/v1/io.proto\x12\x19ai.stigmer.agentic.run.v1\x1a#ai/stigmer/agentic/run/v1/api.proto\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a%ai/stigmer/agentic/run/v1/usage.proto\x1a)ai/stigmer/agentic/session/v1/event.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1egoogle/protobuf/duration.proto\x1a google/protobuf/field_mask.proto\"%\n" +
 	"\x05RunId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\")\n" +
 	"\tSessionId\x12\x1c\n" +
@@ -2761,10 +2828,14 @@ const file_ai_stigmer_agentic_run_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"|\n" +
 	"\x14RunUpdateStatusInput\x12\x1e\n" +
 	"\x06run_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05runId\x12D\n" +
-	"\x06status\x18\x02 \x01(\v2$.ai.stigmer.agentic.run.v1.RunStatusB\x06\xbaH\x03\xc8\x01\x01R\x06status\"\x80\x01\n" +
+	"\x06status\x18\x02 \x01(\v2$.ai.stigmer.agentic.run.v1.RunStatusB\x06\xbaH\x03\xc8\x01\x01R\x06status\"\xa5\x01\n" +
 	"\x14UpdateStatusResponse\x12C\n" +
 	"\x06signal\x18\x01 \x01(\x0e2+.ai.stigmer.agentic.run.v1.RunControlSignalR\x06signal\x12#\n" +
-	"\rsignal_reason\x18\x02 \x01(\tR\fsignalReason\"D\n" +
+	"\rsignal_reason\x18\x02 \x01(\tR\fsignalReason\x12#\n" +
+	"\rinput_pending\x18\x03 \x01(\bR\finputPending\"\x8e\x01\n" +
+	"\x13SendMessageResponse\x12E\n" +
+	"\amessage\x18\x01 \x01(\v2+.ai.stigmer.agentic.session.v1.SessionEventR\amessage\x120\n" +
+	"\x03run\x18\x02 \x01(\v2\x1e.ai.stigmer.agentic.run.v1.RunR\x03run\"D\n" +
 	"\x11TerminateRunInput\x12\x17\n" +
 	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\"*\n" +
@@ -2942,7 +3013,7 @@ func file_ai_stigmer_agentic_run_v1_io_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_agentic_run_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_run_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
+var file_ai_stigmer_agentic_run_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
 var file_ai_stigmer_agentic_run_v1_io_proto_goTypes = []any{
 	(RunSummaryTimeWindow)(0),              // 0: ai.stigmer.agentic.run.v1.RunSummaryTimeWindow
 	(*RunId)(nil),                          // 1: ai.stigmer.agentic.run.v1.RunId
@@ -2952,75 +3023,79 @@ var file_ai_stigmer_agentic_run_v1_io_proto_goTypes = []any{
 	(*ListRunsBySessionRequest)(nil),       // 5: ai.stigmer.agentic.run.v1.ListRunsBySessionRequest
 	(*RunUpdateStatusInput)(nil),           // 6: ai.stigmer.agentic.run.v1.RunUpdateStatusInput
 	(*UpdateStatusResponse)(nil),           // 7: ai.stigmer.agentic.run.v1.UpdateStatusResponse
-	(*TerminateRunInput)(nil),              // 8: ai.stigmer.agentic.run.v1.TerminateRunInput
-	(*RecoverRunInput)(nil),                // 9: ai.stigmer.agentic.run.v1.RecoverRunInput
-	(*PauseRunInput)(nil),                  // 10: ai.stigmer.agentic.run.v1.PauseRunInput
-	(*ResumeRunInput)(nil),                 // 11: ai.stigmer.agentic.run.v1.ResumeRunInput
-	(*GetArtifactDownloadUrlRequest)(nil),  // 12: ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlRequest
-	(*GetArtifactDownloadUrlResponse)(nil), // 13: ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlResponse
-	(*GetArtifactContentRequest)(nil),      // 14: ai.stigmer.agentic.run.v1.GetArtifactContentRequest
-	(*GetArtifactContentResponse)(nil),     // 15: ai.stigmer.agentic.run.v1.GetArtifactContentResponse
-	(*GetRunUsageReportInput)(nil),         // 16: ai.stigmer.agentic.run.v1.GetRunUsageReportInput
-	(*GetRunUsageReportOutput)(nil),        // 17: ai.stigmer.agentic.run.v1.GetRunUsageReportOutput
-	(*GetSessionUsageReportInput)(nil),     // 18: ai.stigmer.agentic.run.v1.GetSessionUsageReportInput
-	(*GetSessionUsageReportOutput)(nil),    // 19: ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput
-	(*GetAgentUsageReportInput)(nil),       // 20: ai.stigmer.agentic.run.v1.GetAgentUsageReportInput
-	(*GetAgentUsageReportOutput)(nil),      // 21: ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput
-	(*GetOrgUsageReportInput)(nil),         // 22: ai.stigmer.agentic.run.v1.GetOrgUsageReportInput
-	(*GetOrgUsageReportOutput)(nil),        // 23: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput
-	(*RunUsageSummary)(nil),                // 24: ai.stigmer.agentic.run.v1.RunUsageSummary
-	(*SessionUsageSummary)(nil),            // 25: ai.stigmer.agentic.run.v1.SessionUsageSummary
-	(*AgentUsageSummary)(nil),              // 26: ai.stigmer.agentic.run.v1.AgentUsageSummary
-	(*DailyUsage)(nil),                     // 27: ai.stigmer.agentic.run.v1.DailyUsage
-	(*HarnessUsage)(nil),                   // 28: ai.stigmer.agentic.run.v1.HarnessUsage
-	(*GetRunSummaryRequest)(nil),           // 29: ai.stigmer.agentic.run.v1.GetRunSummaryRequest
-	(*RunSummary)(nil),                     // 30: ai.stigmer.agentic.run.v1.RunSummary
-	(*AgentFailureRank)(nil),               // 31: ai.stigmer.agentic.run.v1.AgentFailureRank
-	(*UpdateRunInput)(nil),                 // 32: ai.stigmer.agentic.run.v1.UpdateRunInput
-	nil,                                    // 33: ai.stigmer.agentic.run.v1.ListRunsRequest.LabelsEntry
-	nil,                                    // 34: ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.LabelsEntry
-	nil,                                    // 35: ai.stigmer.agentic.run.v1.RunSummary.PhaseCountsEntry
-	(*Run)(nil),                            // 36: ai.stigmer.agentic.run.v1.Run
-	(RunPhase)(0),                          // 37: ai.stigmer.agentic.run.v1.RunPhase
-	(*RunStatus)(nil),                      // 38: ai.stigmer.agentic.run.v1.RunStatus
-	(RunControlSignal)(0),                  // 39: ai.stigmer.agentic.run.v1.RunControlSignal
-	(*UsageReportAggregate)(nil),           // 40: ai.stigmer.agentic.run.v1.UsageReportAggregate
-	(*ModelUsage)(nil),                     // 41: ai.stigmer.agentic.run.v1.ModelUsage
-	(*durationpb.Duration)(nil),            // 42: google.protobuf.Duration
-	(*fieldmaskpb.FieldMask)(nil),          // 43: google.protobuf.FieldMask
+	(*SendMessageResponse)(nil),            // 8: ai.stigmer.agentic.run.v1.SendMessageResponse
+	(*TerminateRunInput)(nil),              // 9: ai.stigmer.agentic.run.v1.TerminateRunInput
+	(*RecoverRunInput)(nil),                // 10: ai.stigmer.agentic.run.v1.RecoverRunInput
+	(*PauseRunInput)(nil),                  // 11: ai.stigmer.agentic.run.v1.PauseRunInput
+	(*ResumeRunInput)(nil),                 // 12: ai.stigmer.agentic.run.v1.ResumeRunInput
+	(*GetArtifactDownloadUrlRequest)(nil),  // 13: ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlRequest
+	(*GetArtifactDownloadUrlResponse)(nil), // 14: ai.stigmer.agentic.run.v1.GetArtifactDownloadUrlResponse
+	(*GetArtifactContentRequest)(nil),      // 15: ai.stigmer.agentic.run.v1.GetArtifactContentRequest
+	(*GetArtifactContentResponse)(nil),     // 16: ai.stigmer.agentic.run.v1.GetArtifactContentResponse
+	(*GetRunUsageReportInput)(nil),         // 17: ai.stigmer.agentic.run.v1.GetRunUsageReportInput
+	(*GetRunUsageReportOutput)(nil),        // 18: ai.stigmer.agentic.run.v1.GetRunUsageReportOutput
+	(*GetSessionUsageReportInput)(nil),     // 19: ai.stigmer.agentic.run.v1.GetSessionUsageReportInput
+	(*GetSessionUsageReportOutput)(nil),    // 20: ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput
+	(*GetAgentUsageReportInput)(nil),       // 21: ai.stigmer.agentic.run.v1.GetAgentUsageReportInput
+	(*GetAgentUsageReportOutput)(nil),      // 22: ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput
+	(*GetOrgUsageReportInput)(nil),         // 23: ai.stigmer.agentic.run.v1.GetOrgUsageReportInput
+	(*GetOrgUsageReportOutput)(nil),        // 24: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput
+	(*RunUsageSummary)(nil),                // 25: ai.stigmer.agentic.run.v1.RunUsageSummary
+	(*SessionUsageSummary)(nil),            // 26: ai.stigmer.agentic.run.v1.SessionUsageSummary
+	(*AgentUsageSummary)(nil),              // 27: ai.stigmer.agentic.run.v1.AgentUsageSummary
+	(*DailyUsage)(nil),                     // 28: ai.stigmer.agentic.run.v1.DailyUsage
+	(*HarnessUsage)(nil),                   // 29: ai.stigmer.agentic.run.v1.HarnessUsage
+	(*GetRunSummaryRequest)(nil),           // 30: ai.stigmer.agentic.run.v1.GetRunSummaryRequest
+	(*RunSummary)(nil),                     // 31: ai.stigmer.agentic.run.v1.RunSummary
+	(*AgentFailureRank)(nil),               // 32: ai.stigmer.agentic.run.v1.AgentFailureRank
+	(*UpdateRunInput)(nil),                 // 33: ai.stigmer.agentic.run.v1.UpdateRunInput
+	nil,                                    // 34: ai.stigmer.agentic.run.v1.ListRunsRequest.LabelsEntry
+	nil,                                    // 35: ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.LabelsEntry
+	nil,                                    // 36: ai.stigmer.agentic.run.v1.RunSummary.PhaseCountsEntry
+	(*Run)(nil),                            // 37: ai.stigmer.agentic.run.v1.Run
+	(RunPhase)(0),                          // 38: ai.stigmer.agentic.run.v1.RunPhase
+	(*RunStatus)(nil),                      // 39: ai.stigmer.agentic.run.v1.RunStatus
+	(RunControlSignal)(0),                  // 40: ai.stigmer.agentic.run.v1.RunControlSignal
+	(*v1.SessionEvent)(nil),                // 41: ai.stigmer.agentic.session.v1.SessionEvent
+	(*UsageReportAggregate)(nil),           // 42: ai.stigmer.agentic.run.v1.UsageReportAggregate
+	(*ModelUsage)(nil),                     // 43: ai.stigmer.agentic.run.v1.ModelUsage
+	(*durationpb.Duration)(nil),            // 44: google.protobuf.Duration
+	(*fieldmaskpb.FieldMask)(nil),          // 45: google.protobuf.FieldMask
 }
 var file_ai_stigmer_agentic_run_v1_io_proto_depIdxs = []int32{
-	36, // 0: ai.stigmer.agentic.run.v1.RunList.entries:type_name -> ai.stigmer.agentic.run.v1.Run
-	37, // 1: ai.stigmer.agentic.run.v1.ListRunsRequest.phase:type_name -> ai.stigmer.agentic.run.v1.RunPhase
-	33, // 2: ai.stigmer.agentic.run.v1.ListRunsRequest.labels:type_name -> ai.stigmer.agentic.run.v1.ListRunsRequest.LabelsEntry
-	34, // 3: ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.labels:type_name -> ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.LabelsEntry
-	38, // 4: ai.stigmer.agentic.run.v1.RunUpdateStatusInput.status:type_name -> ai.stigmer.agentic.run.v1.RunStatus
-	39, // 5: ai.stigmer.agentic.run.v1.UpdateStatusResponse.signal:type_name -> ai.stigmer.agentic.run.v1.RunControlSignal
-	40, // 6: ai.stigmer.agentic.run.v1.GetRunUsageReportOutput.aggregate:type_name -> ai.stigmer.agentic.run.v1.UsageReportAggregate
-	41, // 7: ai.stigmer.agentic.run.v1.GetRunUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.run.v1.ModelUsage
-	40, // 8: ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.run.v1.UsageReportAggregate
-	24, // 9: ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput.runs:type_name -> ai.stigmer.agentic.run.v1.RunUsageSummary
-	41, // 10: ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.run.v1.ModelUsage
-	40, // 11: ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.run.v1.UsageReportAggregate
-	41, // 12: ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.run.v1.ModelUsage
-	25, // 13: ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput.sessions:type_name -> ai.stigmer.agentic.run.v1.SessionUsageSummary
-	41, // 14: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.run.v1.ModelUsage
-	26, // 15: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.top_agents:type_name -> ai.stigmer.agentic.run.v1.AgentUsageSummary
-	27, // 16: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.daily_usage:type_name -> ai.stigmer.agentic.run.v1.DailyUsage
-	28, // 17: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.harness_usage:type_name -> ai.stigmer.agentic.run.v1.HarnessUsage
-	40, // 18: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.run.v1.UsageReportAggregate
-	37, // 19: ai.stigmer.agentic.run.v1.RunUsageSummary.phase:type_name -> ai.stigmer.agentic.run.v1.RunPhase
-	0,  // 20: ai.stigmer.agentic.run.v1.GetRunSummaryRequest.time_window:type_name -> ai.stigmer.agentic.run.v1.RunSummaryTimeWindow
-	35, // 21: ai.stigmer.agentic.run.v1.RunSummary.phase_counts:type_name -> ai.stigmer.agentic.run.v1.RunSummary.PhaseCountsEntry
-	42, // 22: ai.stigmer.agentic.run.v1.RunSummary.avg_duration:type_name -> google.protobuf.Duration
-	31, // 23: ai.stigmer.agentic.run.v1.RunSummary.top_failing_agents:type_name -> ai.stigmer.agentic.run.v1.AgentFailureRank
-	36, // 24: ai.stigmer.agentic.run.v1.UpdateRunInput.resource:type_name -> ai.stigmer.agentic.run.v1.Run
-	43, // 25: ai.stigmer.agentic.run.v1.UpdateRunInput.update_mask:type_name -> google.protobuf.FieldMask
-	26, // [26:26] is the sub-list for method output_type
-	26, // [26:26] is the sub-list for method input_type
-	26, // [26:26] is the sub-list for extension type_name
-	26, // [26:26] is the sub-list for extension extendee
-	0,  // [0:26] is the sub-list for field type_name
+	37, // 0: ai.stigmer.agentic.run.v1.RunList.entries:type_name -> ai.stigmer.agentic.run.v1.Run
+	38, // 1: ai.stigmer.agentic.run.v1.ListRunsRequest.phase:type_name -> ai.stigmer.agentic.run.v1.RunPhase
+	34, // 2: ai.stigmer.agentic.run.v1.ListRunsRequest.labels:type_name -> ai.stigmer.agentic.run.v1.ListRunsRequest.LabelsEntry
+	35, // 3: ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.labels:type_name -> ai.stigmer.agentic.run.v1.ListRunsBySessionRequest.LabelsEntry
+	39, // 4: ai.stigmer.agentic.run.v1.RunUpdateStatusInput.status:type_name -> ai.stigmer.agentic.run.v1.RunStatus
+	40, // 5: ai.stigmer.agentic.run.v1.UpdateStatusResponse.signal:type_name -> ai.stigmer.agentic.run.v1.RunControlSignal
+	41, // 6: ai.stigmer.agentic.run.v1.SendMessageResponse.message:type_name -> ai.stigmer.agentic.session.v1.SessionEvent
+	37, // 7: ai.stigmer.agentic.run.v1.SendMessageResponse.run:type_name -> ai.stigmer.agentic.run.v1.Run
+	42, // 8: ai.stigmer.agentic.run.v1.GetRunUsageReportOutput.aggregate:type_name -> ai.stigmer.agentic.run.v1.UsageReportAggregate
+	43, // 9: ai.stigmer.agentic.run.v1.GetRunUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.run.v1.ModelUsage
+	42, // 10: ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.run.v1.UsageReportAggregate
+	25, // 11: ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput.runs:type_name -> ai.stigmer.agentic.run.v1.RunUsageSummary
+	43, // 12: ai.stigmer.agentic.run.v1.GetSessionUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.run.v1.ModelUsage
+	42, // 13: ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.run.v1.UsageReportAggregate
+	43, // 14: ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.run.v1.ModelUsage
+	26, // 15: ai.stigmer.agentic.run.v1.GetAgentUsageReportOutput.sessions:type_name -> ai.stigmer.agentic.run.v1.SessionUsageSummary
+	43, // 16: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.model_breakdown:type_name -> ai.stigmer.agentic.run.v1.ModelUsage
+	27, // 17: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.top_agents:type_name -> ai.stigmer.agentic.run.v1.AgentUsageSummary
+	28, // 18: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.daily_usage:type_name -> ai.stigmer.agentic.run.v1.DailyUsage
+	29, // 19: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.harness_usage:type_name -> ai.stigmer.agentic.run.v1.HarnessUsage
+	42, // 20: ai.stigmer.agentic.run.v1.GetOrgUsageReportOutput.total_usage:type_name -> ai.stigmer.agentic.run.v1.UsageReportAggregate
+	38, // 21: ai.stigmer.agentic.run.v1.RunUsageSummary.phase:type_name -> ai.stigmer.agentic.run.v1.RunPhase
+	0,  // 22: ai.stigmer.agentic.run.v1.GetRunSummaryRequest.time_window:type_name -> ai.stigmer.agentic.run.v1.RunSummaryTimeWindow
+	36, // 23: ai.stigmer.agentic.run.v1.RunSummary.phase_counts:type_name -> ai.stigmer.agentic.run.v1.RunSummary.PhaseCountsEntry
+	44, // 24: ai.stigmer.agentic.run.v1.RunSummary.avg_duration:type_name -> google.protobuf.Duration
+	32, // 25: ai.stigmer.agentic.run.v1.RunSummary.top_failing_agents:type_name -> ai.stigmer.agentic.run.v1.AgentFailureRank
+	37, // 26: ai.stigmer.agentic.run.v1.UpdateRunInput.resource:type_name -> ai.stigmer.agentic.run.v1.Run
+	45, // 27: ai.stigmer.agentic.run.v1.UpdateRunInput.update_mask:type_name -> google.protobuf.FieldMask
+	28, // [28:28] is the sub-list for method output_type
+	28, // [28:28] is the sub-list for method input_type
+	28, // [28:28] is the sub-list for extension type_name
+	28, // [28:28] is the sub-list for extension extendee
+	0,  // [0:28] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_run_v1_io_proto_init() }
@@ -3037,7 +3112,7 @@ func file_ai_stigmer_agentic_run_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_run_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_run_v1_io_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   35,
+			NumMessages:   36,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

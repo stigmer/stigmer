@@ -41,6 +41,7 @@ import type {
 } from "../domain/run/create-steps.js";
 import type { SessionLoader } from "../domain/run/plan-run-values-step.js";
 import type { ReconcileTurnCreator } from "../domain/session/filereview/decide.js";
+import type { QueuedTurnCreator } from "../domain/run/queued-turn.js";
 import type {
   JudgeRunCreator,
   JudgeSessionDeleter,
@@ -113,6 +114,15 @@ export interface InProcessClients {
    * person, as for a message they send.
    */
   readonly reconcileTurnCreator: ReconcileTurnCreator;
+  /**
+   * The turn a session's queued messages start when its working turn ends
+   * (domain/run/queued-turn.ts): the FULL run create chain AS THE NEWEST
+   * SENDER (the asCaller lane), so the request is server-composed (the
+   * chain's GuardQueuedMessages admits it) and every create gate, the run
+   * credential and the audit stamp read that person, as for a message
+   * they send.
+   */
+  readonly queuedTurnCreator: QueuedTurnCreator;
   /**
    * A routine's fire edge (the RunStarter's in-process run client): every
    * fire — a schedule tick or a fire call — enters the FULL run create
@@ -276,6 +286,10 @@ export function createInProcessClients(
       },
     },
     reconcileTurnCreator: {
+      create: (run, caller) =>
+        agentExecutionCommand.create(run, asCaller(caller)),
+    },
+    queuedTurnCreator: {
       create: (run, caller) =>
         agentExecutionCommand.create(run, asCaller(caller)),
     },

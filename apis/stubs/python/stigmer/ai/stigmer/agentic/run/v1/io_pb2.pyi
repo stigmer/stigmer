@@ -3,6 +3,7 @@ import datetime
 from ai.stigmer.agentic.run.v1 import api_pb2 as _api_pb2
 from ai.stigmer.agentic.run.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.run.v1 import usage_pb2 as _usage_pb2
+from ai.stigmer.agentic.session.v1 import event_pb2 as _event_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import duration_pb2 as _duration_pb2
 from google.protobuf import field_mask_pb2 as _field_mask_pb2
@@ -97,12 +98,22 @@ class RunUpdateStatusInput(_message.Message):
     def __init__(self, run_id: _Optional[str] = ..., status: _Optional[_Union[_api_pb2.RunStatus, _Mapping]] = ...) -> None: ...
 
 class UpdateStatusResponse(_message.Message):
-    __slots__ = ("signal", "signal_reason")
+    __slots__ = ("signal", "signal_reason", "input_pending")
     SIGNAL_FIELD_NUMBER: _ClassVar[int]
     SIGNAL_REASON_FIELD_NUMBER: _ClassVar[int]
+    INPUT_PENDING_FIELD_NUMBER: _ClassVar[int]
     signal: _enum_pb2.RunControlSignal
     signal_reason: str
-    def __init__(self, signal: _Optional[_Union[_enum_pb2.RunControlSignal, str]] = ..., signal_reason: _Optional[str] = ...) -> None: ...
+    input_pending: bool
+    def __init__(self, signal: _Optional[_Union[_enum_pb2.RunControlSignal, str]] = ..., signal_reason: _Optional[str] = ..., input_pending: bool = ...) -> None: ...
+
+class SendMessageResponse(_message.Message):
+    __slots__ = ("message", "run")
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    RUN_FIELD_NUMBER: _ClassVar[int]
+    message: _event_pb2.SessionEvent
+    run: _api_pb2.Run
+    def __init__(self, message: _Optional[_Union[_event_pb2.SessionEvent, _Mapping]] = ..., run: _Optional[_Union[_api_pb2.Run, _Mapping]] = ...) -> None: ...
 
 class TerminateRunInput(_message.Message):
     __slots__ = ("id", "reason")

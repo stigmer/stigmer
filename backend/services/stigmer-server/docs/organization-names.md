@@ -68,6 +68,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | Method | Organization fields |
 |---|---|
 | RunCommandController.create | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.skill_refs.org`, `spec.session_spec.vaults.org`, `spec.session_spec.plugins.org`, `spec.session_spec.environment_ref.org`, `status.loaded_versions.skills.org`, `status.loaded_versions.plugins.org` |
+| RunCommandController.sendMessage | `metadata.org`, `spec.session_spec.agent_ref.org`, `spec.session_spec.skill_refs.org`, `spec.session_spec.vaults.org`, `spec.session_spec.plugins.org`, `spec.session_spec.environment_ref.org`, `status.loaded_versions.skills.org`, `status.loaded_versions.plugins.org` |
 | RunCommandController.update | `resource.metadata.org`, `resource.spec.session_spec.agent_ref.org`, `resource.spec.session_spec.skill_refs.org`, `resource.spec.session_spec.vaults.org`, `resource.spec.session_spec.plugins.org`, `resource.spec.session_spec.environment_ref.org`, `resource.status.loaded_versions.skills.org`, `resource.status.loaded_versions.plugins.org` |
 | RunCommandController.updateStatus | `status.loaded_versions.skills.org`, `status.loaded_versions.plugins.org` |
 | RunQueryController.getAgentUsageReport | `org` |

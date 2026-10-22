@@ -23,6 +23,11 @@ class RunCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.FromString,
                 _registered_method=True)
+        self.sendMessage = channel.unary_unary(
+                '/ai.stigmer.agentic.run.v1.RunCommandController/sendMessage',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.SendMessageResponse.FromString,
+                _registered_method=True)
         self.update = channel.unary_unary(
                 '/ai.stigmer.agentic.run.v1.RunCommandController/update',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.UpdateRunInput.SerializeToString,
@@ -68,6 +73,55 @@ class RunCommandControllerServicer(object):
     def create(self, request, context):
         """Create and trigger a new run: a turn in an existing session,
         or the first turn of a new one created from session_spec.
+
+        A session works on one turn at a time. A turn in a session that already
+        has an unfinished turn (pending, in progress, waiting for an answer or
+        paused), or messages queued for the turn they start, is refused: send
+        the message with sendMessage, which queues it.
+
+        ## Error Conditions
+
+        - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+        "stigmer.ai", reason SESSION_TURN_UNFINISHED, metadata session_id):
+        another turn of the session is unfinished, or messages wait for
+        their turn
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def sendMessage(self, request, context):
+        """Send a message to a session: the turn starts now, or the message waits
+        for the turn that is working.
+
+        run is the turn as create takes it, in an existing session
+        (spec.session_id). When no turn of the session is unfinished, the turn
+        starts at once, exactly as create starts it, and the reply names it.
+        While a turn works, the message is queued instead: its user.message is
+        stored with no processed_at and no run_id, and the reply carries it.
+        The working turn reads it, or, once that turn has ended, the next turn
+        starts with every message still queued, in the order sent: their texts
+        joined, their files together, with the settings of the newest. A
+        message read is listed once, where the agent read it, with its
+        processed_at and the run that read it; it streams a second time as it
+        moves there.
+
+        A queued message meets every check a turn meets when it is sent, and
+        the turn it starts meets them again. Stopping the session (interrupt,
+        or terminating a turn) drops the messages still queued: they stay
+        listed with no processed_at. A turn that cannot start (its agent was
+        removed since, or a check refuses it) leaves them so too, and the
+        session records the reason as a session.error.
+
+        ## Error Conditions
+
+        - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+        "stigmer.ai", metadata session_id and run_id): reason
+        SESSION_TURN_WAITS_FOR_ANSWER while a turn of the session waits for
+        an answer (allow or deny it first; a deny can carry a message), or
+        SESSION_TURN_PAUSED while one is paused (resume it first)
+        - FAILED_PRECONDITION: spec names no existing session
+        - every refusal create answers
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -122,7 +176,9 @@ class RunCommandControllerServicer(object):
 
         Force-stops the run without allowing cleanup. Unlike the session's
         interrupt, the agent cannot respond to termination - it is stopped immediately.
-        Use this for stuck or unresponsive agents.
+        Use this for stuck or unresponsive agents. The messages still queued in
+        the run's session (sendMessage) are dropped with it: they stay listed,
+        never read.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -165,6 +221,11 @@ def add_RunCommandControllerServicer_to_server(servicer, server):
                     servicer.create,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.SerializeToString,
+            ),
+            'sendMessage': grpc.unary_unary_rpc_method_handler(
+                    servicer.sendMessage,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.SendMessageResponse.SerializeToString,
             ),
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
@@ -231,6 +292,33 @@ class RunCommandController(object):
             '/ai.stigmer.agentic.run.v1.RunCommandController/create',
             ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def sendMessage(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.run.v1.RunCommandController/sendMessage',
+            ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_api__pb2.Run.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_run_dot_v1_dot_io__pb2.SendMessageResponse.FromString,
             options,
             channel_credentials,
             insecure,

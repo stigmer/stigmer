@@ -156,7 +156,19 @@ export interface CompactedItem {
 }
 
 /** One entry of a thread, in the order the agent produced it. */
-export type TurnItem = MessageItem | ThinkingItem | ToolUse | NoteItem | CompactedItem;
+/**
+ * A message the person sent while the turn worked, which the turn read at
+ * that point (a queued `user.message` the turn took): in the turn's items,
+ * in log order. The message that started the turn is `Turn.userMessage`.
+ */
+export interface UserMessageItem {
+  readonly kind: "user_message";
+  readonly id: string;
+  readonly text: string;
+  readonly processedAt: string;
+}
+
+export type TurnItem = MessageItem | ThinkingItem | ToolUse | NoteItem | CompactedItem | UserMessageItem;
 
 /** A sub-agent's thread, opened by its `task` tool use. */
 export interface Thread {
@@ -332,8 +344,23 @@ export interface SessionStatusView {
 }
 
 /** A session's events, folded. */
+/**
+ * A message sent while a turn worked that no turn has read yet: a
+ * `user.message` with no run. `waiting` until a turn reads it (it then
+ * leaves this list for the turn that read it); `dropped` once the session
+ * was stopped, or the turn it would start could not start, before any
+ * turn read it (a later `user.interrupt`, or a `session.error` of no turn).
+ */
+export interface QueuedMessage {
+  readonly id: string;
+  readonly text: string;
+  readonly state: "waiting" | "dropped";
+}
+
 export interface SessionFold {
   readonly turns: ReadonlyArray<Turn>;
+  /** The messages no turn has read, in the order sent. */
+  readonly queued: ReadonlyArray<QueuedMessage>;
   readonly status: SessionStatusView;
   /** The newest event's place in the log; 0n before any. A follow resumes after it. */
   readonly lastSeq: bigint;

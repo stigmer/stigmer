@@ -40,10 +40,11 @@
 //   later call of the class in the same turn runs without asking.
 // - An approved call survives the resume: it runs under its original id and
 //   records its result, and the model gets its next request exactly once.
-// - interrupt stops every unfinished turn of the session: at the gate, a
-//   paused turn, and a second turn queued while an earlier one waits (the
-//   session reads running while that turn is unfinished); each ends
-//   CANCELLED with stop_cause user, and the session idle with end_turn.
+// - interrupt stops every unfinished turn of the session, at the gate or
+//   paused; each ends CANCELLED with stop_cause user, and the session idle
+//   with end_turn. While a turn waits, a message is refused, by sendMessage
+//   and by create alike (one turn of a session at a time, stigmer#2429):
+//   the call is answered first.
 // - spec.auto_approve_all bypasses the gate entirely (no answer needed).
 // - An agent's own hooks block decides before the default: a hook's deny
 //   fails the call (its result is an error carrying the hook's reason) and
@@ -562,33 +563,25 @@ describe("the session answers a waiting call, and stops its turns", () => {
     mock.releaseHolds();
   });
 
-  it("[rpc:SessionCommandController.interrupt] a second turn sent while the first waits reads running; the interrupt stops both", async () => {
+  it("[rpc:RunCommandController.sendMessage] a message while the turn waits is refused, naming the waiting turn; the interrupt stops the turn", async () => {
     const { org } = await target.provisionTenancy();
     const { agentRef } = await provisionGatedAgent(org);
     const { executionId, gated } = await runToGate(org, agentRef, [echoBlock("call_interrupt_queue", "hello")], { done: false });
     const sessionId = sessionIdOf(gated);
     await awaitRequiresAction(clients, sessionId, 1);
 
-    mock.enqueue(anthropicText("Second, held."), { delayMs: 120_000 });
-    const second = await clients.agentExecutionCommand.create(
-      makeAgentExecution({ org, name: uniqueName("aex-queued"), sessionId, message: "and another thing" }),
-    );
-    const secondId = second.metadata!.id;
-    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: secondId }));
-    expect(newestIdle(await sessionLog(clients, sessionId)), "the session reads running while a turn is unfinished").toBeUndefined();
-    const statuses = (await sessionLog(clients, sessionId)).filter((e) => e.event.case?.startsWith("sessionStatus") === true);
-    expect(statuses.at(-1)?.event.case, "the newest status is running").toBe("sessionStatusRunning");
+    const message = makeAgentExecution({ org, name: uniqueName("aex-while-waiting"), sessionId, message: "and another thing" });
+    const refused = await expectGrpcCode(() => clients.agentExecutionCommand.sendMessage(message), Code.FailedPrecondition, "a message while the turn waits");
+    expect(refused.rawMessage).toContain(executionId);
+    await expectGrpcCode(() => clients.agentExecutionCommand.create(message), Code.FailedPrecondition, "a second turn while the first waits");
     expect((await clients.agentExecutionQuery.get({ value: executionId })).status?.phase, "the first turn still waits").toBe(
       RunPhase.RUN_WAITING_FOR_APPROVAL,
     );
 
     const stopped = await clients.sessionCommand.interrupt({ sessionId });
-    expect([...stopped.stoppedRunIds].sort()).toEqual([executionId, secondId].sort());
-    for (const runId of [executionId, secondId]) {
-      const final = await awaitTerminal(clients, runId);
-      expect(RunPhase[final.status?.phase ?? 0], runId).toBe(RunPhase[RunPhase.RUN_CANCELLED]);
-    }
-    mock.releaseHolds();
+    expect([...stopped.stoppedRunIds]).toEqual([executionId]);
+    const final = await awaitTerminal(clients, executionId);
+    expect(RunPhase[final.status?.phase ?? 0]).toBe(RunPhase[RunPhase.RUN_CANCELLED]);
     await awaitIdleWith(clients, sessionId, "end_turn");
   });
 

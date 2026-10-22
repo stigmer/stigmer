@@ -63,6 +63,7 @@ export const CENSUS_TABLES: Readonly<Record<string, CensusClass>> = {
   connect_attempt: "org-column",
   session_events: "org-column",
   session_event_heads: "org-column",
+  session_queued_messages: "org-column",
   file_blobs: "org-column",
   file_blob_refs: "org-column",
   file_conversions: "org-column",

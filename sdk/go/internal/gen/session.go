@@ -89,6 +89,11 @@ func (s *SessionClient) AppendEvents(ctx context.Context, input *sessionv1.Appen
 	return resp, wrapErr(err)
 }
 
+func (s *SessionClient) ClaimInput(ctx context.Context, input *sessionv1.ClaimSessionInputInput) (*sessionv1.ClaimSessionInputResponse, error) {
+	resp, err := s.command.ClaimInput(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (s *SessionClient) BindHarnessState(ctx context.Context, input *sessionv1.BindHarnessStateInput) (*sessionv1.BindHarnessStateResponse, error) {
 	resp, err := s.command.BindHarnessState(ctx, input)
 	return resp, wrapErr(err)

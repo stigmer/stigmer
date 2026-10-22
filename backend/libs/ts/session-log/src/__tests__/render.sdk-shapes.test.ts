@@ -64,6 +64,16 @@ const CASES: ReadonlyArray<Case> = [
     } satisfies BetaManagedAgentsUserMessageEvent,
   },
   {
+    name: "user.message, queued: no turn has read it yet",
+    proto: { case: "userMessage", value: { id: "e1q", content: [{ type: "text", text: "and the README" }], processedAt: "" } },
+    sdk: {
+      id: "e1q",
+      type: "user.message",
+      content: [{ type: "text", text: "and the README" }],
+      processed_at: null,
+    } satisfies BetaManagedAgentsUserMessageEvent,
+  },
+  {
     name: "user.message, an image and a document",
     proto: {
       case: "userMessage",

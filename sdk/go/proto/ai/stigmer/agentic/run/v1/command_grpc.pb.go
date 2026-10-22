@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	RunCommandController_Create_FullMethodName       = "/ai.stigmer.agentic.run.v1.RunCommandController/create"
+	RunCommandController_SendMessage_FullMethodName  = "/ai.stigmer.agentic.run.v1.RunCommandController/sendMessage"
 	RunCommandController_Update_FullMethodName       = "/ai.stigmer.agentic.run.v1.RunCommandController/update"
 	RunCommandController_UpdateStatus_FullMethodName = "/ai.stigmer.agentic.run.v1.RunCommandController/updateStatus"
 	RunCommandController_Delete_FullMethodName       = "/ai.stigmer.agentic.run.v1.RunCommandController/delete"
@@ -39,7 +40,51 @@ const (
 type RunCommandControllerClient interface {
 	// Create and trigger a new run: a turn in an existing session,
 	// or the first turn of a new one created from session_spec.
+	//
+	// A session works on one turn at a time. A turn in a session that already
+	// has an unfinished turn (pending, in progress, waiting for an answer or
+	// paused), or messages queued for the turn they start, is refused: send
+	// the message with sendMessage, which queues it.
+	//
+	// ## Error Conditions
+	//
+	//   - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+	//     "stigmer.ai", reason SESSION_TURN_UNFINISHED, metadata session_id):
+	//     another turn of the session is unfinished, or messages wait for
+	//     their turn
 	Create(ctx context.Context, in *Run, opts ...grpc.CallOption) (*Run, error)
+	// Send a message to a session: the turn starts now, or the message waits
+	// for the turn that is working.
+	//
+	// run is the turn as create takes it, in an existing session
+	// (spec.session_id). When no turn of the session is unfinished, the turn
+	// starts at once, exactly as create starts it, and the reply names it.
+	// While a turn works, the message is queued instead: its user.message is
+	// stored with no processed_at and no run_id, and the reply carries it.
+	// The working turn reads it, or, once that turn has ended, the next turn
+	// starts with every message still queued, in the order sent: their texts
+	// joined, their files together, with the settings of the newest. A
+	// message read is listed once, where the agent read it, with its
+	// processed_at and the run that read it; it streams a second time as it
+	// moves there.
+	//
+	// A queued message meets every check a turn meets when it is sent, and
+	// the turn it starts meets them again. Stopping the session (interrupt,
+	// or terminating a turn) drops the messages still queued: they stay
+	// listed with no processed_at. A turn that cannot start (its agent was
+	// removed since, or a check refuses it) leaves them so too, and the
+	// session records the reason as a session.error.
+	//
+	// ## Error Conditions
+	//
+	//   - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+	//     "stigmer.ai", metadata session_id and run_id): reason
+	//     SESSION_TURN_WAITS_FOR_ANSWER while a turn of the session waits for
+	//     an answer (allow or deny it first; a deny can carry a message), or
+	//     SESSION_TURN_PAUSED while one is paused (resume it first)
+	//   - FAILED_PRECONDITION: spec names no existing session
+	//   - every refusal create answers
+	SendMessage(ctx context.Context, in *Run, opts ...grpc.CallOption) (*SendMessageResponse, error)
 	// Update a run: the fields update_mask names change, every other
 	// field keeps its stored value.
 	//
@@ -65,7 +110,9 @@ type RunCommandControllerClient interface {
 	//
 	// Force-stops the run without allowing cleanup. Unlike the session's
 	// interrupt, the agent cannot respond to termination - it is stopped immediately.
-	// Use this for stuck or unresponsive agents.
+	// Use this for stuck or unresponsive agents. The messages still queued in
+	// the run's session (sendMessage) are dropped with it: they stay listed,
+	// never read.
 	Terminate(ctx context.Context, in *TerminateRunInput, opts ...grpc.CallOption) (*Run, error)
 	// Recover a failed run.
 	//
@@ -96,6 +143,16 @@ func (c *runCommandControllerClient) Create(ctx context.Context, in *Run, opts .
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Run)
 	err := c.cc.Invoke(ctx, RunCommandController_Create_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runCommandControllerClient) SendMessage(ctx context.Context, in *Run, opts ...grpc.CallOption) (*SendMessageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SendMessageResponse)
+	err := c.cc.Invoke(ctx, RunCommandController_SendMessage_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +238,51 @@ func (c *runCommandControllerClient) Resume(ctx context.Context, in *ResumeRunIn
 type RunCommandControllerServer interface {
 	// Create and trigger a new run: a turn in an existing session,
 	// or the first turn of a new one created from session_spec.
+	//
+	// A session works on one turn at a time. A turn in a session that already
+	// has an unfinished turn (pending, in progress, waiting for an answer or
+	// paused), or messages queued for the turn they start, is refused: send
+	// the message with sendMessage, which queues it.
+	//
+	// ## Error Conditions
+	//
+	//   - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+	//     "stigmer.ai", reason SESSION_TURN_UNFINISHED, metadata session_id):
+	//     another turn of the session is unfinished, or messages wait for
+	//     their turn
 	Create(context.Context, *Run) (*Run, error)
+	// Send a message to a session: the turn starts now, or the message waits
+	// for the turn that is working.
+	//
+	// run is the turn as create takes it, in an existing session
+	// (spec.session_id). When no turn of the session is unfinished, the turn
+	// starts at once, exactly as create starts it, and the reply names it.
+	// While a turn works, the message is queued instead: its user.message is
+	// stored with no processed_at and no run_id, and the reply carries it.
+	// The working turn reads it, or, once that turn has ended, the next turn
+	// starts with every message still queued, in the order sent: their texts
+	// joined, their files together, with the settings of the newest. A
+	// message read is listed once, where the agent read it, with its
+	// processed_at and the run that read it; it streams a second time as it
+	// moves there.
+	//
+	// A queued message meets every check a turn meets when it is sent, and
+	// the turn it starts meets them again. Stopping the session (interrupt,
+	// or terminating a turn) drops the messages still queued: they stay
+	// listed with no processed_at. A turn that cannot start (its agent was
+	// removed since, or a check refuses it) leaves them so too, and the
+	// session records the reason as a session.error.
+	//
+	// ## Error Conditions
+	//
+	//   - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+	//     "stigmer.ai", metadata session_id and run_id): reason
+	//     SESSION_TURN_WAITS_FOR_ANSWER while a turn of the session waits for
+	//     an answer (allow or deny it first; a deny can carry a message), or
+	//     SESSION_TURN_PAUSED while one is paused (resume it first)
+	//   - FAILED_PRECONDITION: spec names no existing session
+	//   - every refusal create answers
+	SendMessage(context.Context, *Run) (*SendMessageResponse, error)
 	// Update a run: the fields update_mask names change, every other
 	// field keeps its stored value.
 	//
@@ -207,7 +308,9 @@ type RunCommandControllerServer interface {
 	//
 	// Force-stops the run without allowing cleanup. Unlike the session's
 	// interrupt, the agent cannot respond to termination - it is stopped immediately.
-	// Use this for stuck or unresponsive agents.
+	// Use this for stuck or unresponsive agents. The messages still queued in
+	// the run's session (sendMessage) are dropped with it: they stay listed,
+	// never read.
 	Terminate(context.Context, *TerminateRunInput) (*Run, error)
 	// Recover a failed run.
 	//
@@ -235,6 +338,9 @@ type UnimplementedRunCommandControllerServer struct{}
 
 func (UnimplementedRunCommandControllerServer) Create(context.Context, *Run) (*Run, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
+}
+func (UnimplementedRunCommandControllerServer) SendMessage(context.Context, *Run) (*SendMessageResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendMessage not implemented")
 }
 func (UnimplementedRunCommandControllerServer) Update(context.Context, *UpdateRunInput) (*Run, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
@@ -291,6 +397,24 @@ func _RunCommandController_Create_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RunCommandControllerServer).Create(ctx, req.(*Run))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RunCommandController_SendMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Run)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunCommandControllerServer).SendMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RunCommandController_SendMessage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunCommandControllerServer).SendMessage(ctx, req.(*Run))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -431,6 +555,10 @@ var RunCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "create",
 			Handler:    _RunCommandController_Create_Handler,
+		},
+		{
+			MethodName: "sendMessage",
+			Handler:    _RunCommandController_SendMessage_Handler,
 		},
 		{
 			MethodName: "update",

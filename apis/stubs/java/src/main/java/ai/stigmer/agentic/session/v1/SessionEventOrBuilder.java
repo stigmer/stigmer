@@ -13,7 +13,9 @@ public interface SessionEventOrBuilder extends
   /**
    * <pre>
    * The event's place in the session's log, assigned when it is appended:
-   * later events have higher numbers.
+   * later events have higher numbers. A queued user.message moves to the
+   * head of the log when a turn takes it, under a new number, so it is
+   * listed once, where the agent read it, and streams a second time.
    * </pre>
    *
    * <code>int64 seq = 1 [json_name = "seq"];</code>

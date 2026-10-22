@@ -42,7 +42,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\032&ai/stigmer/agentic/session/v1/io.proto" +
       "\0328ai/stigmer/commons/apiresource/rpc_ser" +
       "vice_options.proto\032+ai/stigmer/commons/r" +
-      "pc/method_options.proto2\230\016\n\030SessionComma" +
+      "pc/method_options.proto2\236\017\n\030SessionComma" +
       "ndController\022W\n\005apply\022&.ai.stigmer.agent" +
       "ic.session.v1.Session\032&.ai.stigmer.agent" +
       "ic.session.v1.Session\022\245\001\n\006create\022&.ai.st" +
@@ -84,15 +84,18 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\001\n\014appendEvents\0227.ai.stigmer.agentic.ses" +
       "sion.v1.AppendSessionEventsInput\032:.ai.st" +
       "igmer.agentic.session.v1.AppendSessionEv" +
-      "entsResponse\"\004\320\270\030\001\022\207\001\n\020bindHarnessState\022" +
-      "4.ai.stigmer.agentic.session.v1.BindHarn" +
-      "essStateInput\0327.ai.stigmer.agentic.sessi" +
-      "on.v1.BindHarnessStateResponse\"\004\320\270\030\001\032\004\240\377" +
-      "+*B\247\001B\014CommandProtoP\001\242\002\004ASAS\252\002\035Ai.Stigme" +
-      "r.Agentic.Session.V1\312\002\035Ai\\Stigmer\\Agenti" +
-      "c\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Sessio" +
-      "n\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agentic:" +
-      ":Session::V1b\006proto3"
+      "entsResponse\"\004\320\270\030\001\022\203\001\n\nclaimInput\0225.ai.s" +
+      "tigmer.agentic.session.v1.ClaimSessionIn" +
+      "putInput\0328.ai.stigmer.agentic.session.v1" +
+      ".ClaimSessionInputResponse\"\004\320\270\030\001\022\207\001\n\020bin" +
+      "dHarnessState\0224.ai.stigmer.agentic.sessi" +
+      "on.v1.BindHarnessStateInput\0327.ai.stigmer" +
+      ".agentic.session.v1.BindHarnessStateResp" +
+      "onse\"\004\320\270\030\001\032\004\240\377+*B\247\001B\014CommandProtoP\001\242\002\004AS" +
+      "AS\252\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\" +
+      "Stigmer\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\" +
+      "Agentic\\Session\\V1\\GPBMetadata\352\002!Ai::Sti" +
+      "gmer::Agentic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

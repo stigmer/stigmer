@@ -250,6 +250,18 @@ class AppendSessionEventsResponse(_message.Message):
     events: _containers.RepeatedCompositeFieldContainer[_event_pb2.SessionEvent]
     def __init__(self, events: _Optional[_Iterable[_Union[_event_pb2.SessionEvent, _Mapping]]] = ...) -> None: ...
 
+class ClaimSessionInputInput(_message.Message):
+    __slots__ = ("run_id",)
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    run_id: str
+    def __init__(self, run_id: _Optional[str] = ...) -> None: ...
+
+class ClaimSessionInputResponse(_message.Message):
+    __slots__ = ("events",)
+    EVENTS_FIELD_NUMBER: _ClassVar[int]
+    events: _containers.RepeatedCompositeFieldContainer[_event_pb2.SessionEvent]
+    def __init__(self, events: _Optional[_Iterable[_Union[_event_pb2.SessionEvent, _Mapping]]] = ...) -> None: ...
+
 class UpdateSessionInput(_message.Message):
     __slots__ = ("resource", "update_mask")
     RESOURCE_FIELD_NUMBER: _ClassVar[int]

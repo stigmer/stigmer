@@ -5,15 +5,17 @@
  * Three events are served, each through the native method that owns it,
  * so each meets that method's own authorization and the composed guards:
  *
- *   - user.message starts a turn: RunCommandController.create in the
- *     session, named `run-<epoch ms>` as the console names its turns (runs
- *     claim no unique name). Its text blocks join into the turn's message;
- *     its image and document blocks name Files by id (a `file` source) and
- *     become the turn's file_ids, so the conversation gets its own copy of
- *     each and the turn's user.message carries the blocks back. The server
- *     writes that event in the same transaction as the run, under an id
- *     the create does not return, so the lane reads it back by the run's
- *     id.
+ *   - user.message: RunCommandController.sendMessage in the session, the
+ *     turn named `run-<epoch ms>` as the console names its turns (runs
+ *     claim no unique name). It starts a turn, or, while a turn works,
+ *     waits in the session's queue and is read by that turn or the next
+ *     (Managed Agents' message queue: the event comes back with
+ *     processed_at null, and streams again once processed). Its text
+ *     blocks join into the turn's message; its image and document blocks
+ *     name Files by id (a `file` source) and become the turn's file_ids,
+ *     so the conversation gets its own copy of each and the user.message
+ *     carries the blocks back. A turn waiting for an answer or paused
+ *     refuses it, as Managed Agents answers 400 then.
  *   - user.tool_confirmation answers a call that waits:
  *     SessionCommandController.confirmToolUse.
  *   - user.interrupt stops the session's unfinished work:
@@ -46,9 +48,10 @@ import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/e
 import {
   ConfirmToolUseInputSchema,
   InterruptSessionInputSchema,
-  ListSessionEventsRequestSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { toManagedAgentsJson } from "@stigmer/session-log";
+
+import { MESSAGE_TEXT_SEPARATOR } from "../../domain/session/events/queue.js";
 
 import type { LaneResponse } from "../lanes.js";
 import type { LaneCall } from "./call.js";
@@ -73,7 +76,7 @@ export interface MessageFile {
 }
 
 /** How a user.message's text blocks join into the turn's one message. */
-export const TEXT_BLOCK_SEPARATOR = "\n\n";
+export const TEXT_BLOCK_SEPARATOR = MESSAGE_TEXT_SEPARATOR;
 
 const SERVED_EVENT_TYPES = "user.message, user.tool_confirmation and user.interrupt";
 
@@ -240,7 +243,7 @@ export async function serveSend(
 async function apply(call: LaneCall, event: SendEvent, now: () => number): Promise<SessionEvent> {
   switch (event.type) {
     case "user.message":
-      return startTurn(call, event, now);
+      return sendMessage(call, event, now);
     case "user.tool_confirmation":
       return call.clients.sessionCommand.confirmToolUse(
         create(ConfirmToolUseInputSchema, {
@@ -269,12 +272,12 @@ async function apply(call: LaneCall, event: SendEvent, now: () => number): Promi
   }
 }
 
-async function startTurn(
+async function sendMessage(
   call: LaneCall,
   message: Extract<SendEvent, { type: "user.message" }>,
   now: () => number,
 ): Promise<SessionEvent> {
-  const run = await call.clients.runCommand.create(
+  const sent = await call.clients.runCommand.sendMessage(
     create(RunSchema, {
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Run",
@@ -287,20 +290,10 @@ async function startTurn(
     }),
     call.options,
   );
-  const page = await call.clients.sessionQuery.listEvents(
-    create(ListSessionEventsRequestSchema, {
-      sessionId: call.sessionId,
-      runId: run.metadata?.id ?? "",
-      types: ["user.message"],
-      pageSize: 1,
-    }),
-    call.options,
-  );
-  const written = page.events[0];
-  if (written === undefined) {
+  if (sent.message === undefined) {
     throw unrecorded("user.message");
   }
-  return written;
+  return sent.message;
 }
 
 /**

@@ -11,6 +11,11 @@
  *                     anything is written
  *   AppendInterrupt . the user.interrupt, a session-level event (no run),
  *                     guarded by the session row
+ *   DropQueue ....... the messages still waiting in the session's queue
+ *                     are dropped (events/queue.ts): they stay listed,
+ *                     never accepted, and no turn the stop ends starts
+ *                     them. Before the runs stop, so a stopped turn's end
+ *                     finds nothing to start (run/queued-turn.ts)
  *   StopRuns ........ every run of the session that is pending, in
  *                     progress, waiting for an answer or paused (the run
  *                     index's `session` key) goes through the cancel
@@ -65,6 +70,7 @@ import type { CancelDeps } from "../../run/lifecycle.js";
 import { agentExecutionListIndex } from "../../run/list-index.js";
 import { SESSION_EVENT_ID_PREFIX } from "../events/catalog.js";
 import { draftOf, eventOf } from "../events/codec.js";
+import { dropQueuedMessages } from "../events/queue.js";
 
 export interface InterruptDeps extends CancelDeps {
   /** The composed authorization seam: the chain's Authorize step calls it. */
@@ -75,6 +81,7 @@ type InterruptDesc = typeof SessionCommandController.method.interrupt.input;
 
 const EVENT_KEY = "interruptEvent";
 const STOPPED_KEY = "interruptStoppedRunIds";
+const ORG_KEY = "interruptSessionOrg";
 
 export async function interrupt(
   deps: InterruptDeps,
@@ -140,6 +147,23 @@ export async function interrupt(
           throw internalError(error, "failed to record the interrupt");
         }
         ctx.set(EVENT_KEY, stored);
+        ctx.set(ORG_KEY, org);
+      },
+    })
+    .addStep({
+      name: "DropQueue",
+      async execute(ctx) {
+        try {
+          const dropped = await dropQueuedMessages(deps, ctx.input.sessionId, ctx.get(ORG_KEY) as string);
+          if (dropped.length > 0) {
+            deps.logger.info("the interrupt dropped the session's queued messages", {
+              sessionId: ctx.input.sessionId,
+              dropped: dropped.length,
+            });
+          }
+        } catch (error) {
+          throw internalError(error, "failed to drop the session's queued messages");
+        }
       },
     })
     .addStep({

@@ -27,6 +27,11 @@
  *     executions never wait on each other. The first recover is released
  *     on whichever comes first, the second entering the serializer or the
  *     second reaching the engine, so no timer decides either outcome;
+ *   - one turn of a session at a time (stigmer#2429): resume refuses while
+ *     another turn of the session is unfinished, recover also while
+ *     messages wait in its queue, each before the engine is touched; a
+ *     resume with only its own messages waiting goes ahead; terminate drops
+ *     the session's queue;
  *   - the pause/record race: the lifecycle persist rides the row-locked
  *     write, so a concurrent write to the run's file record is never
  *     clobbered (the Go 50-iteration regression).
@@ -104,6 +109,9 @@ import {
 import { stubConnectedEngine } from "./engine-stub.js";
 import { capturedSet } from "./file-review-seed.js";
 import { SessionEventBroker } from "../../session/events/broker.js";
+import { enqueueMessage } from "../../session/events/queue.js";
+import { errorReasonOf } from "../../../pipeline/errors.js";
+import { SESSION_TURN_UNFINISHED_REASON } from "../constants.js";
 import { LIST_INDEXES } from "../../../boot/list-indexes.js";
 
 const silentLogger = createLogger({
@@ -257,6 +265,14 @@ describe("applyLifecyclePhaseTransition", () => {
 // ---------------------------------------------------------------------------
 
 let counter = 0;
+
+/**
+ * A session of its own for each recover: one turn of a session works at a
+ * time, so turns recovered by earlier cases would hold a shared one.
+ */
+function freshSession(): string {
+  return `ses_lc_${counter + 1}_${Math.random().toString(36).slice(2, 8)}`;
+}
 
 async function seedExecution(init: {
   phase: RunPhase;
@@ -685,7 +701,7 @@ describe("lifecycle pipelines", () => {
     };
     const id = await seedExecution({
       phase: RunPhase.RUN_FAILED,
-      sessionId: "ses_lc",
+      sessionId: freshSession(),
       error: "runner exploded",
     });
 
@@ -761,7 +777,7 @@ describe("lifecycle pipelines", () => {
 
     const id = await seedExecution({
       phase: RunPhase.RUN_FAILED,
-      sessionId: "ses_lc",
+      sessionId: freshSession(),
       error: "runner exploded",
     });
     const result = await recoverExecution(
@@ -802,7 +818,7 @@ describe("lifecycle pipelines", () => {
     };
     const id = await seedExecution({
       phase: RunPhase.RUN_FAILED,
-      sessionId: "ses_lc",
+      sessionId: freshSession(),
       error: "runner exploded",
     });
     await store.updateResource(ApiResourceKind.run, id, RunSchema, (loaded) => {
@@ -860,7 +876,7 @@ describe("lifecycle pipelines", () => {
     };
     const id = await seedExecution({
       phase: RunPhase.RUN_FAILED,
-      sessionId: "ses_lc",
+      sessionId: freshSession(),
       error: "runner exploded",
     });
     const result = await recoverExecution(
@@ -907,7 +923,7 @@ describe("lifecycle pipelines", () => {
     };
     const id = await seedExecution({
       phase: RunPhase.RUN_FAILED,
-      sessionId: "ses_lc",
+      sessionId: freshSession(),
       error: "runner exploded",
     });
     const err = await expectCode(
@@ -963,7 +979,7 @@ describe("lifecycle pipelines", () => {
     };
     const id = await seedExecution({
       phase: RunPhase.RUN_IN_PROGRESS,
-      sessionId: "ses_lc",
+      sessionId: freshSession(),
     });
     const result = await recoverExecution(
       deps,
@@ -1217,7 +1233,7 @@ describe("lifecycle pipelines", () => {
         }),
       },
     };
-    const id = await seedExecution({ phase: RunPhase.RUN_FAILED, sessionId: "ses_lc" });
+    const id = await seedExecution({ phase: RunPhase.RUN_FAILED, sessionId: freshSession() });
     const failure = await expectCode(
       () => recoverExecution(deps, recoverInput(id), testCallerIdentity()),
       Code.Internal,
@@ -1259,7 +1275,7 @@ describe("lifecycle pipelines", () => {
       ),
       store: failing,
     };
-    const id = await seedExecution({ phase: RunPhase.RUN_FAILED, sessionId: "ses_lc" });
+    const id = await seedExecution({ phase: RunPhase.RUN_FAILED, sessionId: freshSession() });
     await expectCode(() => recoverExecution(deps, recoverInput(id), testCallerIdentity()), code);
     expect(starts, "no fresh workflow starts without its manifest").toEqual([]);
   });
@@ -1268,7 +1284,7 @@ describe("lifecycle pipelines", () => {
     const deps = lifecycleDeps(DISCONNECTED);
     const id = await seedExecution({
       phase: RunPhase.RUN_FAILED,
-      sessionId: "ses_lc",
+      sessionId: freshSession(),
     });
     const err = await expectCode(
       () => recoverExecution(deps, recoverInput(id), testCallerIdentity()),
@@ -1282,6 +1298,104 @@ describe("lifecycle pipelines", () => {
       RunSchema,
     );
     expect(persisted.status?.phase).toBe(RunPhase.RUN_FAILED);
+  });
+});
+
+describe("one turn of a session at a time (stigmer#2429)", () => {
+  async function queueIn(sessionId: string): Promise<void> {
+    const outcome = await enqueueMessage(
+      { store, sessionEventBroker: new SessionEventBroker(silentLogger) },
+      { sessionId, org: "acme", sender: "person-a", turn: create(RunSchema, { spec: { message: "and then" } }) },
+    );
+    expect("queued" in outcome).toBe(true);
+  }
+
+  it("resume refuses while another turn of the session works, before the engine is touched", async () => {
+    const touched: string[] = [];
+    const deps = lifecycleDeps(connected(stubConnectedEngine({ signalResume: async (id) => void touched.push(id) })));
+    const paused = await seedExecution({ phase: RunPhase.RUN_PAUSED, sessionId: "ses_one_at_a_time_1" });
+    await seedExecution({ phase: RunPhase.RUN_IN_PROGRESS, sessionId: "ses_one_at_a_time_1" });
+    const err = await expectCode(() => resumeExecution(deps, resumeInput(paused), testCallerIdentity()), Code.FailedPrecondition);
+    expect(errorReasonOf(err)).toBe(SESSION_TURN_UNFINISHED_REASON);
+    expect(touched).toEqual([]);
+  });
+
+  it("resume goes ahead with only its own messages waiting", async () => {
+    const deps = lifecycleDeps(connected(stubConnectedEngine()));
+    // Queued while the turn worked, before it was paused.
+    const paused = await seedExecution({ phase: RunPhase.RUN_IN_PROGRESS, sessionId: "ses_one_at_a_time_2" });
+    await queueIn("ses_one_at_a_time_2");
+    await store.updateResource(ApiResourceKind.run, paused, RunSchema, (run) => {
+      run.status!.phase = RunPhase.RUN_PAUSED;
+    });
+    const result = await resumeExecution(deps, resumeInput(paused), testCallerIdentity());
+    expect(result.status?.phase).toBe(RunPhase.RUN_IN_PROGRESS);
+  });
+
+  it("recover refuses while another turn works or messages wait for their turn, before the engine is touched", async () => {
+    const terminated: string[] = [];
+    const deps = lifecycleDeps(
+      connected(stubConnectedEngine({ terminateWorkflow: async (id) => void terminated.push(id) })),
+    );
+    const failed = await seedExecution({ phase: RunPhase.RUN_FAILED, sessionId: "ses_one_at_a_time_3" });
+    const working = await seedExecution({ phase: RunPhase.RUN_IN_PROGRESS, sessionId: "ses_one_at_a_time_3" });
+    const busy = await expectCode(() => recoverExecution(deps, recoverInput(failed), testCallerIdentity()), Code.FailedPrecondition);
+    expect(errorReasonOf(busy)).toBe(SESSION_TURN_UNFINISHED_REASON);
+    await store.updateResource(ApiResourceKind.run, working, RunSchema, (run) => {
+      run.status!.phase = RunPhase.RUN_COMPLETED;
+    });
+    await queueIn("ses_one_at_a_time_3");
+    const queued = await expectCode(() => recoverExecution(deps, recoverInput(failed), testCallerIdentity()), Code.FailedPrecondition);
+    expect(errorReasonOf(queued)).toBe(SESSION_TURN_UNFINISHED_REASON);
+    expect(terminated).toEqual([]);
+  });
+
+  it("terminate drops the session's queued messages, which stay listed, never accepted", async () => {
+    const deps = lifecycleDeps(connected(stubConnectedEngine()));
+    const working = await seedExecution({ phase: RunPhase.RUN_IN_PROGRESS, sessionId: "ses_one_at_a_time_4" });
+    await queueIn("ses_one_at_a_time_4");
+    await terminateExecution(deps, terminateInput(working), testCallerIdentity());
+    expect(await store.sessionEvents.queued("ses_one_at_a_time_4")).toEqual([]);
+    const [listed] = await store.sessionEvents.list("ses_one_at_a_time_4", { order: "asc", types: ["user.message"], limit: 1 });
+    expect([listed?.runId, listed?.processedAt]).toEqual(["", ""]);
+    const [error] = await store.sessionEvents.list("ses_one_at_a_time_4", { order: "asc", types: ["session.error"], limit: 1 });
+    expect(error?.runId, "the session says why the messages were not read").toBe("");
+  });
+
+  it("terminate of a run already terminated drops nothing and touches nothing", async () => {
+    const deps = lifecycleDeps(connected(stubConnectedEngine()));
+    const done = await seedExecution({ phase: RunPhase.RUN_TERMINATED, sessionId: "ses_one_at_a_time_7" });
+    const result = await terminateExecution(deps, terminateInput(done), testCallerIdentity());
+    expect(result.status?.phase).toBe(RunPhase.RUN_TERMINATED);
+  });
+
+  it("terminate of a run in no session drops nothing", async () => {
+    const deps = lifecycleDeps(connected(stubConnectedEngine()));
+    const alone = await seedExecution({ phase: RunPhase.RUN_IN_PROGRESS });
+    const result = await terminateExecution(deps, terminateInput(alone), testCallerIdentity());
+    expect(result.status?.phase).toBe(RunPhase.RUN_TERMINATED);
+  });
+
+  it("a fault reading or dropping the session's queue is a sanitized Internal", async () => {
+    const queueFails = (deps: LifecycleDeps): LifecycleDeps => ({
+      ...deps,
+      store: new Proxy(store, {
+        get(target, property, receiver) {
+          if (property === "writeSessionQueue") {
+            return () => Promise.reject(new Error("disk full"));
+          }
+          const value: unknown = Reflect.get(target, property, receiver);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      }),
+    });
+    const deps = queueFails(lifecycleDeps(connected(stubConnectedEngine())));
+    const paused = await seedExecution({ phase: RunPhase.RUN_PAUSED, sessionId: "ses_one_at_a_time_5" });
+    const read = await expectCode(() => resumeExecution(deps, resumeInput(paused), testCallerIdentity()), Code.Internal);
+    expect(read.rawMessage).toBe("failed to read the session's turns");
+    const working = await seedExecution({ phase: RunPhase.RUN_IN_PROGRESS, sessionId: "ses_one_at_a_time_6" });
+    const dropped = await expectCode(() => terminateExecution(deps, terminateInput(working), testCallerIdentity()), Code.Internal);
+    expect(dropped.rawMessage).toBe("failed to drop the session's queued messages");
   });
 });
 
@@ -1326,7 +1440,7 @@ describe("recover runs one at a time per execution (stigmer#1672)", () => {
     };
     const id = await seedExecution({
       phase: RunPhase.RUN_FAILED,
-      sessionId: "ses_lc",
+      sessionId: freshSession(),
       error: "runner exploded",
     });
 
@@ -1402,7 +1516,7 @@ describe("recover runs one at a time per execution (stigmer#1672)", () => {
     };
     const id = await seedExecution({
       phase: RunPhase.RUN_FAILED,
-      sessionId: "ses_lc",
+      sessionId: freshSession(),
       error: "runner exploded",
     });
 
@@ -1452,11 +1566,11 @@ describe("recover runs one at a time per execution (stigmer#1672)", () => {
     );
     const held = await seedExecution({
       phase: RunPhase.RUN_FAILED,
-      sessionId: "ses_lc",
+      sessionId: freshSession(),
     });
     const other = await seedExecution({
       phase: RunPhase.RUN_FAILED,
-      sessionId: "ses_lc",
+      sessionId: freshSession(),
     });
 
     const first = recoverExecution(

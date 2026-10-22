@@ -80,6 +80,7 @@ Run run = client.runs().get("run_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`resume`](#resume) | Resume a paused run. |
 | [`terminate`](#terminate) | Terminate a run immediately. |
 | [`recover`](#recover) | Recover a failed run. |
+| [`sendMessage`](#sendmessage) | Send a message to a session: the turn starts now, or the message waits for the turn that is working. |
 
 ### get
 
@@ -563,6 +564,8 @@ RunList result = client.runs().listBySession(ListRunsBySessionRequest.builder()
 
 Create and trigger a new run: a turn in an existing session, or the first turn of a new one created from session_spec.
 
+A session works on one turn at a time. A turn in a session that already has an unfinished turn (pending, in progress, waiting for an answer or paused), or messages queued for the turn they start, is refused: send the message with sendMessage, which queues it.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -589,6 +592,7 @@ const run = await stigmer.run.create({
   reconcileFileReview: false,
   excludedPluginIds: [],
   fileIds: [],
+  queuedMessageIds: [],
 });
 ```
 </Tab>
@@ -617,6 +621,7 @@ run, err := client.Run.Create(ctx, &stigmer.RunInput{
   ReconcileFileReview:    false,
   ExcludedPluginIds:      []string{},
   FileIds:                []string{},
+  QueuedMessageIds:       []string{},
 })
 ```
 </Tab>
@@ -645,6 +650,7 @@ run = client.runs.create(RunInput(
     reconcile_file_review=False,
     excluded_plugin_ids=[],
     file_ids=[],
+    queued_message_ids=[],
 ))
 ```
 </Tab>
@@ -673,6 +679,7 @@ Run run = client.runs().create(RunInput.builder()
     .reconcileFileReview(false)
     .excludedPluginIds(List.of())
     .fileIds(List.of())
+    .queuedMessageIds(List.of())
     .build());
 ```
 </Tab>
@@ -901,7 +908,7 @@ Run run = client.runs().resume(ResumeRunInput.builder()
 
 Terminate a run immediately.
 
-Force-stops the run without allowing cleanup. Unlike the session's interrupt, the agent cannot respond to termination - it is stopped immediately. Use this for stuck or unresponsive agents.
+Force-stops the run without allowing cleanup. Unlike the session's interrupt, the agent cannot respond to termination - it is stopped immediately. Use this for stuck or unresponsive agents. The messages still queued in the run's session (sendMessage) are dropped with it: they stay listed, never read.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -983,6 +990,137 @@ Run run = client.runs().recover(RecoverRunInput.builder()
 
 **Returns**: [`Run`](#run)
 
+### sendMessage
+
+Send a message to a session: the turn starts now, or the message waits for the turn that is working.
+
+run is the turn as create takes it, in an existing session (spec.session_id). When no turn of the session is unfinished, the turn starts at once, exactly as create starts it, and the reply names it. While a turn works, the message is queued instead: its user.message is stored with no processed_at and no run_id, and the reply carries it. The working turn reads it, or, once that turn has ended, the next turn starts with every message still queued, in the order sent: their texts joined, their files together, with the settings of the newest. A message read is listed once, where the agent read it, with its processed_at and the run that read it; it streams a second time as it moves there.
+
+A queued message meets every check a turn meets when it is sent, and the turn it starts meets them again. Stopping the session (interrupt, or terminating a turn) drops the messages still queued: they stay listed with no processed_at. A turn that cannot start (its agent was removed since, or a check refuses it) leaves them so too, and the session records the reason as a session.error.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const sendMessageResponse = await stigmer.run.sendMessage({
+  name: "my-run",
+  org: "acme",
+  slug: "...",
+  labels: {},
+  sessionId: "...",
+  sessionSpec: {},
+  message: "...",
+  runConfig: {},
+  interactionMode: "...",
+  buildFromPlan: false,
+  structuredOutputSchema: {},
+  tools: [],
+  disallowedTools: [],
+  appendSystemPrompt: "...",
+  autoApproveAll: false,
+  workspaceFileRefs: [],
+  supersedesRunId: "...",
+  conversationCatchup: {},
+  evalCase: {},
+  reconcileFileReview: false,
+  excludedPluginIds: [],
+  fileIds: [],
+  queuedMessageIds: [],
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+sendMessageResponse, err := client.Run.SendMessage(ctx, &stigmer.RunInput{
+  Name:                   "my-run",
+  Org:                    "acme",
+  Slug:                   "...",
+  Labels:                 map[string]string{},
+  SessionId:              "...",
+  SessionSpec:            &stigmer.SessionSpecInput{},
+  Message:                "...",
+  RunConfig:              &stigmer.RunConfigInput{},
+  InteractionMode:        "...",
+  BuildFromPlan:          false,
+  StructuredOutputSchema: nil,
+  Tools:                  []string{},
+  DisallowedTools:        []string{},
+  AppendSystemPrompt:     "...",
+  AutoApproveAll:         false,
+  WorkspaceFileRefs:      []string{},
+  SupersedesRunId:        "...",
+  ConversationCatchup:    &stigmer.ConversationCatchupInput{},
+  EvalCase:               &stigmer.EvalCaseContextInput{},
+  ReconcileFileReview:    false,
+  ExcludedPluginIds:      []string{},
+  FileIds:                []string{},
+  QueuedMessageIds:       []string{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+send_message_response = client.runs.send_message(RunInput(
+    name="my-run",
+    org="acme",
+    slug="...",
+    labels={},
+    session_id="...",
+    session_spec=None,
+    message="...",
+    run_config=None,
+    interaction_mode="...",
+    build_from_plan=False,
+    structured_output_schema=None,
+    tools=[],
+    disallowed_tools=[],
+    append_system_prompt="...",
+    auto_approve_all=False,
+    workspace_file_refs=[],
+    supersedes_run_id="...",
+    conversation_catchup=None,
+    eval_case=None,
+    reconcile_file_review=False,
+    excluded_plugin_ids=[],
+    file_ids=[],
+    queued_message_ids=[],
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Run sendMessageResponse = client.runs().sendMessage(RunInput.builder()
+    .name("my-run")
+    .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .sessionId("...")
+    .sessionSpec(null)
+    .message("...")
+    .runConfig(null)
+    .interactionMode("...")
+    .buildFromPlan(false)
+    .structuredOutputSchema(null)
+    .tools(List.of())
+    .disallowedTools(List.of())
+    .appendSystemPrompt("...")
+    .autoApproveAll(false)
+    .workspaceFileRefs(List.of())
+    .supersedesRunId("...")
+    .conversationCatchup(null)
+    .evalCase(null)
+    .reconcileFileReview(false)
+    .excludedPluginIds(List.of())
+    .fileIds(List.of())
+    .queuedMessageIds(List.of())
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`RunInput`](#runinput)
+
+**Returns**: [`SendMessageResponse`](#sendmessageresponse)
+
 ## Types
 
 ### RunInput
@@ -1013,6 +1151,7 @@ Input for creating or updating a Run.
     reconcileFileReview: { type: "boolean", description: "Set on a turn that only puts back the files a person undid after an earlier turn ended: it runs no model and carries no message." },
     excludedPluginIds: { type: "string[]", description: "Plugins this turn leaves out, by id, wherever the turn would take them from: its agent version, its conversation or one of its subagents." },
     fileIds: { type: "string[]", description: "Files given with this message, by id (\"file_01j…\"), at most 20." },
+    queuedMessageIds: { type: "string[]", description: "The queued messages this turn reads, by their user.message ids, in the order they were sent: set on the turn a session starts with the messages still queued when its working turn ended (RunCommandController.sendMessage)." },
   }}
 />
 
@@ -1203,6 +1342,17 @@ EvalMockAgentHome is one of the evaluated agent's own servers a stand-in replace
   }}
 />
 
+### SendMessageResponse
+
+SendMessageResponse answers a message sent to a session.
+
+<TypeTable
+  type={{
+    message: { type: "SessionEventInput", description: "The message's user.message: queued, with no processed_at and no run_id, or the one the started turn was created with." },
+    run: { type: "RunInput", description: "The turn the message started; absent when it was queued.", typeDescriptionLink: "#runinput" },
+  }}
+/>
+
 ### UpdateRunInput
 
 The changes an update makes to a run: the fields update_mask names, taken from resource.
@@ -1233,6 +1383,7 @@ UpdateStatusResponse is the lightweight response returned by the updateStatus RP
   type={{
     signal: { type: "RunControlSignal", description: "Platform-to-runner directive.", typeDescriptionLink: "#runcontrolsignal" },
     signalReason: { type: "string", description: "Human-readable reason for the signal (optional)." },
+    inputPending: { type: "boolean", description: "Messages sent to the run's session wait to be read (RunCommandController.sendMessage)." },
   }}
 />
 

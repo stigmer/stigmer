@@ -42,38 +42,40 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "s/apiresource/io.proto\0328ai/stigmer/commo" +
       "ns/apiresource/rpc_service_options.proto" +
       "\032+ai/stigmer/commons/rpc/method_options." +
-      "proto2\264\010\n\024RunCommandController\022N\n\006create" +
+      "proto2\231\t\n\024RunCommandController\022N\n\006create" +
       "\022\036.ai.stigmer.agentic.run.v1.Run\032\036.ai.st" +
-      "igmer.agentic.run.v1.Run\"\004\320\270\030\001\022\217\001\n\006updat" +
-      "e\022).ai.stigmer.agentic.run.v1.UpdateRunI" +
-      "nput\032\036.ai.stigmer.agentic.run.v1.Run\":\302\270" +
-      "\0306\010\002\020)\"\024resource.metadata.id*\032unauthoriz" +
-      "ed to update run\022\245\001\n\014updateStatus\022/.ai.s" +
-      "tigmer.agentic.run.v1.RunUpdateStatusInp" +
-      "ut\032/.ai.stigmer.agentic.run.v1.UpdateSta" +
-      "tusResponse\"3\302\270\030/\010\002\020)\"\006run_id*!unauthori" +
-      "zed to update run status\022\204\001\n\006delete\022-.ai" +
-      ".stigmer.commons.apiresource.ApiResource" +
-      "Id\032\036.ai.stigmer.agentic.run.v1.Run\"+\302\270\030\'" +
-      "\010\002\020)\"\005value*\032unauthorized to delete run\022" +
-      "\206\001\n\tterminate\022,.ai.stigmer.agentic.run.v" +
-      "1.TerminateRunInput\032\036.ai.stigmer.agentic" +
-      ".run.v1.Run\"+\302\270\030\'\010\002\020)\"\002id*\035unauthorized " +
-      "to terminate run\022\200\001\n\007recover\022*.ai.stigme" +
-      "r.agentic.run.v1.RecoverRunInput\032\036.ai.st" +
-      "igmer.agentic.run.v1.Run\")\302\270\030%\010\002\020)\"\002id*\033" +
-      "unauthorized to recover run\022z\n\005pause\022(.a" +
-      "i.stigmer.agentic.run.v1.PauseRunInput\032\036" +
-      ".ai.stigmer.agentic.run.v1.Run\"\'\302\270\030#\010\002\020)" +
-      "\"\002id*\031unauthorized to pause run\022}\n\006resum" +
-      "e\022).ai.stigmer.agentic.run.v1.ResumeRunI" +
-      "nput\032\036.ai.stigmer.agentic.run.v1.Run\"(\302\270" +
-      "\030$\010\002\020)\"\002id*\032unauthorized to resume run\032\004" +
-      "\240\377+)B\227\001B\014CommandProtoP\001\242\002\004ASAR\252\002\031Ai.Stig" +
-      "mer.Agentic.Run.V1\312\002\031Ai\\Stigmer\\Agentic\\" +
-      "Run\\V1\342\002%Ai\\Stigmer\\Agentic\\Run\\V1\\GPBMe" +
-      "tadata\352\002\035Ai::Stigmer::Agentic::Run::V1b\006" +
-      "proto3"
+      "igmer.agentic.run.v1.Run\"\004\320\270\030\001\022c\n\013sendMe" +
+      "ssage\022\036.ai.stigmer.agentic.run.v1.Run\032.." +
+      "ai.stigmer.agentic.run.v1.SendMessageRes" +
+      "ponse\"\004\320\270\030\001\022\217\001\n\006update\022).ai.stigmer.agen" +
+      "tic.run.v1.UpdateRunInput\032\036.ai.stigmer.a" +
+      "gentic.run.v1.Run\":\302\270\0306\010\002\020)\"\024resource.me" +
+      "tadata.id*\032unauthorized to update run\022\245\001" +
+      "\n\014updateStatus\022/.ai.stigmer.agentic.run." +
+      "v1.RunUpdateStatusInput\032/.ai.stigmer.age" +
+      "ntic.run.v1.UpdateStatusResponse\"3\302\270\030/\010\002" +
+      "\020)\"\006run_id*!unauthorized to update run s" +
+      "tatus\022\204\001\n\006delete\022-.ai.stigmer.commons.ap" +
+      "iresource.ApiResourceId\032\036.ai.stigmer.age" +
+      "ntic.run.v1.Run\"+\302\270\030\'\010\002\020)\"\005value*\032unauth" +
+      "orized to delete run\022\206\001\n\tterminate\022,.ai." +
+      "stigmer.agentic.run.v1.TerminateRunInput" +
+      "\032\036.ai.stigmer.agentic.run.v1.Run\"+\302\270\030\'\010\002" +
+      "\020)\"\002id*\035unauthorized to terminate run\022\200\001" +
+      "\n\007recover\022*.ai.stigmer.agentic.run.v1.Re" +
+      "coverRunInput\032\036.ai.stigmer.agentic.run.v" +
+      "1.Run\")\302\270\030%\010\002\020)\"\002id*\033unauthorized to rec" +
+      "over run\022z\n\005pause\022(.ai.stigmer.agentic.r" +
+      "un.v1.PauseRunInput\032\036.ai.stigmer.agentic" +
+      ".run.v1.Run\"\'\302\270\030#\010\002\020)\"\002id*\031unauthorized " +
+      "to pause run\022}\n\006resume\022).ai.stigmer.agen" +
+      "tic.run.v1.ResumeRunInput\032\036.ai.stigmer.a" +
+      "gentic.run.v1.Run\"(\302\270\030$\010\002\020)\"\002id*\032unautho" +
+      "rized to resume run\032\004\240\377+)B\227\001B\014CommandPro" +
+      "toP\001\242\002\004ASAR\252\002\031Ai.Stigmer.Agentic.Run.V1\312" +
+      "\002\031Ai\\Stigmer\\Agentic\\Run\\V1\342\002%Ai\\Stigmer" +
+      "\\Agentic\\Run\\V1\\GPBMetadata\352\002\035Ai::Stigme" +
+      "r::Agentic::Run::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

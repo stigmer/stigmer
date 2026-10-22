@@ -47,6 +47,37 @@ public final class RunCommandControllerGrpc {
     return getCreateMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.Run,
+      ai.stigmer.agentic.run.v1.SendMessageResponse> getSendMessageMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "sendMessage",
+      requestType = ai.stigmer.agentic.run.v1.Run.class,
+      responseType = ai.stigmer.agentic.run.v1.SendMessageResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.Run,
+      ai.stigmer.agentic.run.v1.SendMessageResponse> getSendMessageMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.Run, ai.stigmer.agentic.run.v1.SendMessageResponse> getSendMessageMethod;
+    if ((getSendMessageMethod = RunCommandControllerGrpc.getSendMessageMethod) == null) {
+      synchronized (RunCommandControllerGrpc.class) {
+        if ((getSendMessageMethod = RunCommandControllerGrpc.getSendMessageMethod) == null) {
+          RunCommandControllerGrpc.getSendMessageMethod = getSendMessageMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.run.v1.Run, ai.stigmer.agentic.run.v1.SendMessageResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "sendMessage"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.run.v1.Run.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.run.v1.SendMessageResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new RunCommandControllerMethodDescriptorSupplier("sendMessage"))
+              .build();
+        }
+      }
+    }
+    return getSendMessageMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.run.v1.UpdateRunInput,
       ai.stigmer.agentic.run.v1.Run> getUpdateMethod;
 
@@ -335,11 +366,56 @@ public final class RunCommandControllerGrpc {
      * <pre>
      * Create and trigger a new run: a turn in an existing session,
      * or the first turn of a new one created from session_spec.
+     * A session works on one turn at a time. A turn in a session that already
+     * has an unfinished turn (pending, in progress, waiting for an answer or
+     * paused), or messages queued for the turn they start, is refused: send
+     * the message with sendMessage, which queues it.
+     * ## Error Conditions
+     * - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+     *   "stigmer.ai", reason SESSION_TURN_UNFINISHED, metadata session_id):
+     *   another turn of the session is unfinished, or messages wait for
+     *   their turn
      * </pre>
      */
     default void create(ai.stigmer.agentic.run.v1.Run request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreateMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Send a message to a session: the turn starts now, or the message waits
+     * for the turn that is working.
+     * run is the turn as create takes it, in an existing session
+     * (spec.session_id). When no turn of the session is unfinished, the turn
+     * starts at once, exactly as create starts it, and the reply names it.
+     * While a turn works, the message is queued instead: its user.message is
+     * stored with no processed_at and no run_id, and the reply carries it.
+     * The working turn reads it, or, once that turn has ended, the next turn
+     * starts with every message still queued, in the order sent: their texts
+     * joined, their files together, with the settings of the newest. A
+     * message read is listed once, where the agent read it, with its
+     * processed_at and the run that read it; it streams a second time as it
+     * moves there.
+     * A queued message meets every check a turn meets when it is sent, and
+     * the turn it starts meets them again. Stopping the session (interrupt,
+     * or terminating a turn) drops the messages still queued: they stay
+     * listed with no processed_at. A turn that cannot start (its agent was
+     * removed since, or a check refuses it) leaves them so too, and the
+     * session records the reason as a session.error.
+     * ## Error Conditions
+     * - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+     *   "stigmer.ai", metadata session_id and run_id): reason
+     *   SESSION_TURN_WAITS_FOR_ANSWER while a turn of the session waits for
+     *   an answer (allow or deny it first; a deny can carry a message), or
+     *   SESSION_TURN_PAUSED while one is paused (resume it first)
+     * - FAILED_PRECONDITION: spec names no existing session
+     * - every refusal create answers
+     * </pre>
+     */
+    default void sendMessage(ai.stigmer.agentic.run.v1.Run request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.SendMessageResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSendMessageMethod(), responseObserver);
     }
 
     /**
@@ -389,7 +465,9 @@ public final class RunCommandControllerGrpc {
      * Terminate a run immediately.
      * Force-stops the run without allowing cleanup. Unlike the session's
      * interrupt, the agent cannot respond to termination - it is stopped immediately.
-     * Use this for stuck or unresponsive agents.
+     * Use this for stuck or unresponsive agents. The messages still queued in
+     * the run's session (sendMessage) are dropped with it: they stay listed,
+     * never read.
      * </pre>
      */
     default void terminate(ai.stigmer.agentic.run.v1.TerminateRunInput request,
@@ -473,12 +551,58 @@ public final class RunCommandControllerGrpc {
      * <pre>
      * Create and trigger a new run: a turn in an existing session,
      * or the first turn of a new one created from session_spec.
+     * A session works on one turn at a time. A turn in a session that already
+     * has an unfinished turn (pending, in progress, waiting for an answer or
+     * paused), or messages queued for the turn they start, is refused: send
+     * the message with sendMessage, which queues it.
+     * ## Error Conditions
+     * - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+     *   "stigmer.ai", reason SESSION_TURN_UNFINISHED, metadata session_id):
+     *   another turn of the session is unfinished, or messages wait for
+     *   their turn
      * </pre>
      */
     public void create(ai.stigmer.agentic.run.v1.Run request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getCreateMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Send a message to a session: the turn starts now, or the message waits
+     * for the turn that is working.
+     * run is the turn as create takes it, in an existing session
+     * (spec.session_id). When no turn of the session is unfinished, the turn
+     * starts at once, exactly as create starts it, and the reply names it.
+     * While a turn works, the message is queued instead: its user.message is
+     * stored with no processed_at and no run_id, and the reply carries it.
+     * The working turn reads it, or, once that turn has ended, the next turn
+     * starts with every message still queued, in the order sent: their texts
+     * joined, their files together, with the settings of the newest. A
+     * message read is listed once, where the agent read it, with its
+     * processed_at and the run that read it; it streams a second time as it
+     * moves there.
+     * A queued message meets every check a turn meets when it is sent, and
+     * the turn it starts meets them again. Stopping the session (interrupt,
+     * or terminating a turn) drops the messages still queued: they stay
+     * listed with no processed_at. A turn that cannot start (its agent was
+     * removed since, or a check refuses it) leaves them so too, and the
+     * session records the reason as a session.error.
+     * ## Error Conditions
+     * - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+     *   "stigmer.ai", metadata session_id and run_id): reason
+     *   SESSION_TURN_WAITS_FOR_ANSWER while a turn of the session waits for
+     *   an answer (allow or deny it first; a deny can carry a message), or
+     *   SESSION_TURN_PAUSED while one is paused (resume it first)
+     * - FAILED_PRECONDITION: spec names no existing session
+     * - every refusal create answers
+     * </pre>
+     */
+    public void sendMessage(ai.stigmer.agentic.run.v1.Run request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.SendMessageResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getSendMessageMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -531,7 +655,9 @@ public final class RunCommandControllerGrpc {
      * Terminate a run immediately.
      * Force-stops the run without allowing cleanup. Unlike the session's
      * interrupt, the agent cannot respond to termination - it is stopped immediately.
-     * Use this for stuck or unresponsive agents.
+     * Use this for stuck or unresponsive agents. The messages still queued in
+     * the run's session (sendMessage) are dropped with it: they stay listed,
+     * never read.
      * </pre>
      */
     public void terminate(ai.stigmer.agentic.run.v1.TerminateRunInput request,
@@ -604,11 +730,56 @@ public final class RunCommandControllerGrpc {
      * <pre>
      * Create and trigger a new run: a turn in an existing session,
      * or the first turn of a new one created from session_spec.
+     * A session works on one turn at a time. A turn in a session that already
+     * has an unfinished turn (pending, in progress, waiting for an answer or
+     * paused), or messages queued for the turn they start, is refused: send
+     * the message with sendMessage, which queues it.
+     * ## Error Conditions
+     * - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+     *   "stigmer.ai", reason SESSION_TURN_UNFINISHED, metadata session_id):
+     *   another turn of the session is unfinished, or messages wait for
+     *   their turn
      * </pre>
      */
     public ai.stigmer.agentic.run.v1.Run create(ai.stigmer.agentic.run.v1.Run request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getCreateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Send a message to a session: the turn starts now, or the message waits
+     * for the turn that is working.
+     * run is the turn as create takes it, in an existing session
+     * (spec.session_id). When no turn of the session is unfinished, the turn
+     * starts at once, exactly as create starts it, and the reply names it.
+     * While a turn works, the message is queued instead: its user.message is
+     * stored with no processed_at and no run_id, and the reply carries it.
+     * The working turn reads it, or, once that turn has ended, the next turn
+     * starts with every message still queued, in the order sent: their texts
+     * joined, their files together, with the settings of the newest. A
+     * message read is listed once, where the agent read it, with its
+     * processed_at and the run that read it; it streams a second time as it
+     * moves there.
+     * A queued message meets every check a turn meets when it is sent, and
+     * the turn it starts meets them again. Stopping the session (interrupt,
+     * or terminating a turn) drops the messages still queued: they stay
+     * listed with no processed_at. A turn that cannot start (its agent was
+     * removed since, or a check refuses it) leaves them so too, and the
+     * session records the reason as a session.error.
+     * ## Error Conditions
+     * - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+     *   "stigmer.ai", metadata session_id and run_id): reason
+     *   SESSION_TURN_WAITS_FOR_ANSWER while a turn of the session waits for
+     *   an answer (allow or deny it first; a deny can carry a message), or
+     *   SESSION_TURN_PAUSED while one is paused (resume it first)
+     * - FAILED_PRECONDITION: spec names no existing session
+     * - every refusal create answers
+     * </pre>
+     */
+    public ai.stigmer.agentic.run.v1.SendMessageResponse sendMessage(ai.stigmer.agentic.run.v1.Run request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getSendMessageMethod(), getCallOptions(), request);
     }
 
     /**
@@ -658,7 +829,9 @@ public final class RunCommandControllerGrpc {
      * Terminate a run immediately.
      * Force-stops the run without allowing cleanup. Unlike the session's
      * interrupt, the agent cannot respond to termination - it is stopped immediately.
-     * Use this for stuck or unresponsive agents.
+     * Use this for stuck or unresponsive agents. The messages still queued in
+     * the run's session (sendMessage) are dropped with it: they stay listed,
+     * never read.
      * </pre>
      */
     public ai.stigmer.agentic.run.v1.Run terminate(ai.stigmer.agentic.run.v1.TerminateRunInput request) throws io.grpc.StatusException {
@@ -727,11 +900,56 @@ public final class RunCommandControllerGrpc {
      * <pre>
      * Create and trigger a new run: a turn in an existing session,
      * or the first turn of a new one created from session_spec.
+     * A session works on one turn at a time. A turn in a session that already
+     * has an unfinished turn (pending, in progress, waiting for an answer or
+     * paused), or messages queued for the turn they start, is refused: send
+     * the message with sendMessage, which queues it.
+     * ## Error Conditions
+     * - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+     *   "stigmer.ai", reason SESSION_TURN_UNFINISHED, metadata session_id):
+     *   another turn of the session is unfinished, or messages wait for
+     *   their turn
      * </pre>
      */
     public ai.stigmer.agentic.run.v1.Run create(ai.stigmer.agentic.run.v1.Run request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getCreateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Send a message to a session: the turn starts now, or the message waits
+     * for the turn that is working.
+     * run is the turn as create takes it, in an existing session
+     * (spec.session_id). When no turn of the session is unfinished, the turn
+     * starts at once, exactly as create starts it, and the reply names it.
+     * While a turn works, the message is queued instead: its user.message is
+     * stored with no processed_at and no run_id, and the reply carries it.
+     * The working turn reads it, or, once that turn has ended, the next turn
+     * starts with every message still queued, in the order sent: their texts
+     * joined, their files together, with the settings of the newest. A
+     * message read is listed once, where the agent read it, with its
+     * processed_at and the run that read it; it streams a second time as it
+     * moves there.
+     * A queued message meets every check a turn meets when it is sent, and
+     * the turn it starts meets them again. Stopping the session (interrupt,
+     * or terminating a turn) drops the messages still queued: they stay
+     * listed with no processed_at. A turn that cannot start (its agent was
+     * removed since, or a check refuses it) leaves them so too, and the
+     * session records the reason as a session.error.
+     * ## Error Conditions
+     * - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+     *   "stigmer.ai", metadata session_id and run_id): reason
+     *   SESSION_TURN_WAITS_FOR_ANSWER while a turn of the session waits for
+     *   an answer (allow or deny it first; a deny can carry a message), or
+     *   SESSION_TURN_PAUSED while one is paused (resume it first)
+     * - FAILED_PRECONDITION: spec names no existing session
+     * - every refusal create answers
+     * </pre>
+     */
+    public ai.stigmer.agentic.run.v1.SendMessageResponse sendMessage(ai.stigmer.agentic.run.v1.Run request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getSendMessageMethod(), getCallOptions(), request);
     }
 
     /**
@@ -781,7 +999,9 @@ public final class RunCommandControllerGrpc {
      * Terminate a run immediately.
      * Force-stops the run without allowing cleanup. Unlike the session's
      * interrupt, the agent cannot respond to termination - it is stopped immediately.
-     * Use this for stuck or unresponsive agents.
+     * Use this for stuck or unresponsive agents. The messages still queued in
+     * the run's session (sendMessage) are dropped with it: they stay listed,
+     * never read.
      * </pre>
      */
     public ai.stigmer.agentic.run.v1.Run terminate(ai.stigmer.agentic.run.v1.TerminateRunInput request) {
@@ -850,12 +1070,58 @@ public final class RunCommandControllerGrpc {
      * <pre>
      * Create and trigger a new run: a turn in an existing session,
      * or the first turn of a new one created from session_spec.
+     * A session works on one turn at a time. A turn in a session that already
+     * has an unfinished turn (pending, in progress, waiting for an answer or
+     * paused), or messages queued for the turn they start, is refused: send
+     * the message with sendMessage, which queues it.
+     * ## Error Conditions
+     * - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+     *   "stigmer.ai", reason SESSION_TURN_UNFINISHED, metadata session_id):
+     *   another turn of the session is unfinished, or messages wait for
+     *   their turn
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.run.v1.Run> create(
         ai.stigmer.agentic.run.v1.Run request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getCreateMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Send a message to a session: the turn starts now, or the message waits
+     * for the turn that is working.
+     * run is the turn as create takes it, in an existing session
+     * (spec.session_id). When no turn of the session is unfinished, the turn
+     * starts at once, exactly as create starts it, and the reply names it.
+     * While a turn works, the message is queued instead: its user.message is
+     * stored with no processed_at and no run_id, and the reply carries it.
+     * The working turn reads it, or, once that turn has ended, the next turn
+     * starts with every message still queued, in the order sent: their texts
+     * joined, their files together, with the settings of the newest. A
+     * message read is listed once, where the agent read it, with its
+     * processed_at and the run that read it; it streams a second time as it
+     * moves there.
+     * A queued message meets every check a turn meets when it is sent, and
+     * the turn it starts meets them again. Stopping the session (interrupt,
+     * or terminating a turn) drops the messages still queued: they stay
+     * listed with no processed_at. A turn that cannot start (its agent was
+     * removed since, or a check refuses it) leaves them so too, and the
+     * session records the reason as a session.error.
+     * ## Error Conditions
+     * - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+     *   "stigmer.ai", metadata session_id and run_id): reason
+     *   SESSION_TURN_WAITS_FOR_ANSWER while a turn of the session waits for
+     *   an answer (allow or deny it first; a deny can carry a message), or
+     *   SESSION_TURN_PAUSED while one is paused (resume it first)
+     * - FAILED_PRECONDITION: spec names no existing session
+     * - every refusal create answers
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.run.v1.SendMessageResponse> sendMessage(
+        ai.stigmer.agentic.run.v1.Run request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getSendMessageMethod(), getCallOptions()), request);
     }
 
     /**
@@ -908,7 +1174,9 @@ public final class RunCommandControllerGrpc {
      * Terminate a run immediately.
      * Force-stops the run without allowing cleanup. Unlike the session's
      * interrupt, the agent cannot respond to termination - it is stopped immediately.
-     * Use this for stuck or unresponsive agents.
+     * Use this for stuck or unresponsive agents. The messages still queued in
+     * the run's session (sendMessage) are dropped with it: they stay listed,
+     * never read.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.run.v1.Run> terminate(
@@ -958,13 +1226,14 @@ public final class RunCommandControllerGrpc {
   }
 
   private static final int METHODID_CREATE = 0;
-  private static final int METHODID_UPDATE = 1;
-  private static final int METHODID_UPDATE_STATUS = 2;
-  private static final int METHODID_DELETE = 3;
-  private static final int METHODID_TERMINATE = 4;
-  private static final int METHODID_RECOVER = 5;
-  private static final int METHODID_PAUSE = 6;
-  private static final int METHODID_RESUME = 7;
+  private static final int METHODID_SEND_MESSAGE = 1;
+  private static final int METHODID_UPDATE = 2;
+  private static final int METHODID_UPDATE_STATUS = 3;
+  private static final int METHODID_DELETE = 4;
+  private static final int METHODID_TERMINATE = 5;
+  private static final int METHODID_RECOVER = 6;
+  private static final int METHODID_PAUSE = 7;
+  private static final int METHODID_RESUME = 8;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -986,6 +1255,10 @@ public final class RunCommandControllerGrpc {
         case METHODID_CREATE:
           serviceImpl.create((ai.stigmer.agentic.run.v1.Run) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.Run>) responseObserver);
+          break;
+        case METHODID_SEND_MESSAGE:
+          serviceImpl.sendMessage((ai.stigmer.agentic.run.v1.Run) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.run.v1.SendMessageResponse>) responseObserver);
           break;
         case METHODID_UPDATE:
           serviceImpl.update((ai.stigmer.agentic.run.v1.UpdateRunInput) request,
@@ -1040,6 +1313,13 @@ public final class RunCommandControllerGrpc {
               ai.stigmer.agentic.run.v1.Run,
               ai.stigmer.agentic.run.v1.Run>(
                 service, METHODID_CREATE)))
+        .addMethod(
+          getSendMessageMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.run.v1.Run,
+              ai.stigmer.agentic.run.v1.SendMessageResponse>(
+                service, METHODID_SEND_MESSAGE)))
         .addMethod(
           getUpdateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1138,6 +1418,7 @@ public final class RunCommandControllerGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new RunCommandControllerFileDescriptorSupplier())
               .addMethod(getCreateMethod())
+              .addMethod(getSendMessageMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getUpdateStatusMethod())
               .addMethod(getDeleteMethod())

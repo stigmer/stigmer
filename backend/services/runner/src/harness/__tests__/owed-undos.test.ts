@@ -156,6 +156,23 @@ describe("readOwedUndos", () => {
     });
   });
 
+  it("reads past a message still queued (no run) and one this run read while it worked, to the previous turn's", async () => {
+    const log = logClient(
+      [
+        userMessage(EARLIER),
+        decided(CHANGE_SET, "undo"),
+        userMessage(THIS),
+        userMessage(""),
+        userMessage(THIS),
+        decided(`${THIS}:0`, "undo", THIS),
+      ],
+      new Map(),
+    );
+    const owed = await readOwedUndos(log, SESSION, THIS);
+    expect(owed.previousMessageRunId).toBe(EARLIER);
+    expect(owed.undos.map((undo) => undo.changeSetId)).toEqual([CHANGE_SET, `${THIS}:0`]);
+  });
+
   it("a session with no earlier message reads the whole log and names no previous run", async () => {
     const log = logClient([userMessage(THIS), decided(`${THIS}:0`, "undo", THIS)], new Map());
     const owed = await readOwedUndos(log, SESSION, THIS);

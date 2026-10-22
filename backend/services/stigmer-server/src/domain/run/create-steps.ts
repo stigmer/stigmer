@@ -56,6 +56,7 @@ import { EXISTING_RESOURCE_KEY } from "../../pipeline/steps/load-existing.js";
 import type { RequestContext } from "../../pipeline/request-context.js";
 import { ResourceNotFoundError } from "../../store/interface.js";
 import type { Store } from "../../store/interface.js";
+import { authorityOfQueued, sameAuthority } from "../session/events/queue.js";
 import type { AccountsByCaller } from "../identityaccount/resolve.js";
 import { accountForCaller } from "../identityaccount/resolve.js";
 import { listSubjectMemories } from "../memory/queries.js";
@@ -434,6 +435,74 @@ export function newGuardReconcileFileReviewStep(): PipelineStep<CreateDesc> {
       if (!isServerComposedRequest(ctx.callerIdentity)) {
         throw permissionDeniedError(RECONCILE_FILE_REVIEW_NOT_COMPOSED_MESSAGE);
       }
+    },
+  };
+}
+
+/** The refusal of a turn naming queued messages on a request the server did not compose. */
+export const QUEUED_MESSAGES_NOT_COMPOSED_MESSAGE =
+  "spec.queued_message_ids is set only by the server's start of a session's queued messages";
+
+/** The refusal of a turn naming queued messages sent with two authorities. */
+export const QUEUED_MESSAGES_MIXED_AUTHORITY_MESSAGE =
+  "spec.queued_message_ids names messages sent by different senders, or with different authority";
+
+/**
+ * The person the queued messages a turn takes recorded as they were sent
+ * (GuardQueuedMessages), "" for none; set only on a turn that takes them.
+ */
+export const QUEUED_MESSAGES_PERSON_KEY = "queuedMessagesPerson";
+
+/**
+ * GuardQueuedMessages: `spec.queued_message_ids` makes a turn that writes
+ * no message of its own and takes the session's queued messages as its
+ * own (queued-turn.ts). Only the server's start of a session's queue
+ * composes it, as the messages' sender; any other request that carries it
+ * is refused, whoever sends it, so no caller takes another person's queued
+ * message into a turn of their own. The messages still waiting must share
+ * one authority (../session/events/queue.ts), and the turn
+ * records the person they recorded as they were sent
+ * ({@link QUEUED_MESSAGES_PERSON_KEY}, StampRunCredentials): the server's
+ * start acts in-process, which on its own records no person. A message
+ * gone since is refused at Persist (run-writes.ts).
+ */
+export function newGuardQueuedMessagesStep(store: Store): PipelineStep<CreateDesc> {
+  return {
+    name: "GuardQueuedMessages",
+    async execute(ctx) {
+      const takes = ctx.newState.spec?.queuedMessageIds ?? [];
+      if (takes.length === 0) {
+        return;
+      }
+      if (!isServerComposedRequest(ctx.callerIdentity)) {
+        throw permissionDeniedError(QUEUED_MESSAGES_NOT_COMPOSED_MESSAGE);
+      }
+      const sessionId = ctx.newState.spec?.target.case === "sessionId" ? ctx.newState.spec.target.value : "";
+      const named = new Set(takes);
+      const authorities = (await store.sessionEvents.queued(sessionId))
+        .filter((queued) => named.has(queued.record.eventId))
+        .map(authorityOfQueued);
+      const first = authorities[0];
+      if (first !== undefined && authorities.some((each) => !sameAuthority(each, first))) {
+        throw permissionDeniedError(QUEUED_MESSAGES_MIXED_AUTHORITY_MESSAGE);
+      }
+      ctx.set(QUEUED_MESSAGES_PERSON_KEY, first?.person ?? "");
+    },
+  };
+}
+
+/**
+ * KeepQueuedMessages: on update, a run's `spec.queued_message_ids` stays
+ * what the create stored, whatever the request carries, for the reason
+ * KeepReconcileFileReview gives.
+ */
+export function newKeepQueuedMessagesStep(): PipelineStep<CreateDesc> {
+  return {
+    name: "KeepQueuedMessages",
+    execute(ctx) {
+      const existing = ctx.get(EXISTING_RESOURCE_KEY) as Run | undefined;
+      ctx.newState.spec ??= create(RunSpecSchema);
+      ctx.newState.spec.queuedMessageIds = [...(existing?.spec?.queuedMessageIds ?? [])];
     },
   };
 }

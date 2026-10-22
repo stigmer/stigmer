@@ -50,4 +50,15 @@ public interface UpdateStatusResponseOrBuilder extends
    */
   com.google.protobuf.ByteString
       getSignalReasonBytes();
+
+  /**
+   * <pre>
+   * Messages sent to the run's session wait to be read
+   * (RunCommandController.sendMessage).
+   * </pre>
+   *
+   * <code>bool input_pending = 3 [json_name = "inputPending"];</code>
+   * @return The inputPending.
+   */
+  boolean getInputPending();
 }

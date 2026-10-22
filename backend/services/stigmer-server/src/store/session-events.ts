@@ -48,6 +48,22 @@
  * under the same lock its write commits under, so no decision is made
  * from a log another writer has since added to.
  *
+ * The queue. A message sent while a turn of the session works waits in
+ * the log as a `user.message` with no run and no accepted time
+ * (`processedAt` ""), and in a side row beside it holding what the event
+ * does not: who sent it and the turn it would start
+ * (`QueuedSessionMessageEntry`). The side row exists while the message
+ * waits. Taking a message moves it: the write that takes it names its id
+ * (`ResourceEventWrite.takeQueued`), the store deletes the queued row and
+ * its side row under the session's lock, and the write's own events carry
+ * the message again, stamped with the run that read it, at the head of the
+ * log, so it is listed once, where it was read. Dropping a message deletes
+ * its side row alone: the event stays, never accepted. Enqueueing and
+ * dropping are `Store.writeSessionQueue`, which hands its writer the
+ * session's working, waiting and paused rows and its queue under the same
+ * lock. A queued row takes a number from the session's head like any
+ * event, and leaves the head's accepted time as it was.
+ *
  * Lock order, everywhere: the session first, then rows. An append takes
  * the session's lock, then reads the row it is guarded by.
  *
@@ -173,6 +189,27 @@ export function openGatesOf(
     .sort((a, b) => a.seq - b.seq);
 }
 
+/** What a queued message's side row holds beyond its event. */
+export interface QueuedSessionMessageEntry {
+  /** Who sent it: the identity id of the caller the turn it starts acts as. */
+  readonly sender: string;
+  /** The turn the message would start, encoded as the domain encodes it. */
+  readonly turn: Uint8Array;
+}
+
+/** A message waiting in a session's queue: its stored `user.message` and its side row. */
+export interface QueuedSessionMessage extends QueuedSessionMessageEntry {
+  readonly record: SessionEventRecord;
+}
+
+/** A taken or dropped queued message that no longer waits: another write took or dropped it first. */
+export class QueuedSessionMessageGoneError extends Error {
+  constructor(readonly sessionId: string, readonly eventId: string) {
+    super(`queued message '${eventId}' in session '${sessionId}' no longer waits`);
+    this.name = "QueuedSessionMessageGoneError";
+  }
+}
+
 /** A resent event id whose bytes differ from the stored event's. */
 export class SessionEventConflictError extends Error {
   constructor(readonly sessionId: string, readonly eventId: string) {
@@ -209,7 +246,14 @@ export interface SessionEventStore {
     guard: SessionEventGuard,
   ): Promise<SessionEventAppend>;
 
-  /** Removes every event of a session (its delete); returns the count. */
+  /**
+   * The messages waiting in a session's queue, in the order they were
+   * sent. Read without the session's lock: a reader that must act on it
+   * under the lock reads the queue it is handed there.
+   */
+  queued(sessionId: string): Promise<QueuedSessionMessage[]>;
+
+  /** Removes every event of a session (its delete), its queue with them; returns the count. */
   deleteBySession(sessionId: string): Promise<number>;
 
   /** Removes every event of an organization's sessions (its purge's sweep); returns the count. */
@@ -267,6 +311,19 @@ export interface SessionEventScope {
    * Opt-in, so a write that does not ask pays no read.
    */
   readonly runEventTypes?: ReadonlyArray<string>;
+  /**
+   * The kind's list key a row holds, valued with its session, while it is
+   * paused. When set, the writer is handed the other paused rows
+   * (`SessionEventContext.othersPaused`).
+   */
+  readonly pausedKey?: string;
+  /**
+   * The writer is handed the session's queue
+   * (`SessionEventContext.queued`), whose messages it may take
+   * (`ResourceEventWrite.takeQueued`). Opt-in, so a write that does not
+   * ask pays no read; every write is handed the queue's length.
+   */
+  readonly queued?: boolean;
 }
 
 /** What a resource write that carries events persists. */
@@ -275,6 +332,13 @@ export type ResourceEventWrite<Desc extends DescMessage> =
       /** The row to persist. */
       readonly put: MessageShape<Desc>;
       readonly events: ReadonlyArray<SessionEventDraft>;
+      /**
+       * Queued messages the write takes, by event id: each must still wait
+       * (QueuedSessionMessageGoneError otherwise, and nothing is written).
+       * Its queued row and side row are removed before `events` append, and
+       * `events` carry it again, stamped with the run that read it.
+       */
+      readonly takeQueued?: ReadonlyArray<string>;
     }
   | {
       /**
@@ -320,7 +384,65 @@ export interface SessionEventContext {
    * empty when the scope does not ask, or the row is in no session.
    */
   readonly runEvents: ReadonlyArray<SessionEventRecord>;
+  /** The session's other rows holding `scope.pausedKey`; empty when the scope does not ask. */
+  readonly othersPaused: ReadonlyArray<string>;
+  /** How many messages wait in the session's queue. */
+  readonly queuedCount: number;
+  /** The session's queue, in the order sent; empty when the scope does not ask (`scope.queued`). */
+  readonly queued: ReadonlyArray<QueuedSessionMessage>;
 }
+
+/**
+ * How a queue write counts the session's rows: three list keys of one
+ * kind (runs), each valued with the session while a row is working,
+ * waiting for an answer or paused, and the event types that state the
+ * session's state.
+ */
+export interface SessionQueueScope {
+  readonly kind: ApiResourceKind;
+  readonly workingKey: string;
+  readonly waitingKey: string;
+  readonly pausedKey: string;
+  readonly stateEventTypes: ReadonlyArray<string>;
+}
+
+/** What a queue write's writer is told about its session, under the session's lock. */
+export interface SessionQueueContext {
+  /** The session's rows holding each key, by id. */
+  readonly working: ReadonlyArray<string>;
+  readonly waiting: ReadonlyArray<string>;
+  readonly paused: ReadonlyArray<string>;
+  /** The session's queue, in the order sent. */
+  readonly queued: ReadonlyArray<QueuedSessionMessage>;
+  /** The session's newest event among `scope.stateEventTypes`; undefined when it has none. */
+  readonly latestState: SessionEventRecord | undefined;
+}
+
+/** What a queue write commits. */
+export interface SessionQueueWrite {
+  /** A message to queue: its `user.message` (stored with no accepted time) and its side row. */
+  readonly enqueue?: { readonly draft: SessionEventDraft; readonly entry: QueuedSessionMessageEntry };
+  /** Queued messages to drop, by event id: their side rows go, their events stay. */
+  readonly drop?: ReadonlyArray<string>;
+  /** Events to append after the queued one. */
+  readonly events?: ReadonlyArray<SessionEventDraft>;
+}
+
+/** What a queue write committed. */
+export interface SessionQueueWriteResult {
+  /** The queued message's record; undefined when nothing was queued. */
+  readonly enqueued: SessionEventRecord | undefined;
+  /** The ids dropped, those that still waited. */
+  readonly dropped: ReadonlyArray<string>;
+  /** The events appended, numbered and stamped. */
+  readonly events: ReadonlyArray<SessionEventRecord>;
+}
+
+/**
+ * The synchronous half of a queue write. Throwing writes nothing and
+ * propagates.
+ */
+export type SessionQueueWriter = (session: SessionQueueContext) => SessionQueueWrite;
 
 /**
  * The synchronous half of a resource write that carries events. `previous`

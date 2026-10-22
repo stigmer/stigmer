@@ -660,6 +660,10 @@ describe("the answer core's edges", () => {
         .filter((event) => event.event.case === "userToolConfirmation" && event.event.value.toolUseId === use("tc-1", runId));
       expect(answers, `iteration ${i}: answer lost or doubled`).toHaveLength(1);
       expect(await openCalls(runId), `iteration ${i}: the gate stayed open`).toEqual([]);
+      // The turn ends before the next one starts: a session runs one turn at a time.
+      await updateRunAppendingEvents(updateDeps, runId, (r) => {
+        r.status!.phase = RunPhase.RUN_COMPLETED;
+      });
     }
   });
 

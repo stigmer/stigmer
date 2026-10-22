@@ -61,6 +61,18 @@
  * domain/run/filereview/logged.ts), and the write decides again from the
  * log read under its lock. Idempotent, so a retry or a replay that runs
  * it again records nothing new.
+ *
+ * StartQueuedTurn is the workflow's last act: the start of the turn its
+ * session's queued messages wait for (domain/run/queued-turn.ts), which
+ * runs a whole run create in-process as the newest sender. Idempotent,
+ * so a retry, a replay and the queue's own status observer start one turn
+ * between them; a failure it cannot settle is thrown, for Temporal to
+ * retry.
+ *
+ * The previous turn CloseFileReview closes is the run of the newest
+ * `user.message` before this run's first that belongs to another run: a
+ * message still queued (no run) or dropped is no turn, and a message this
+ * run read while it worked is its own.
  */
 import { create, toJson } from "@bufbuild/protobuf";
 import type { JsonValue } from "@bufbuild/protobuf";
@@ -99,8 +111,10 @@ import {
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
+  START_QUEUED_TURN_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
 } from "./names.js";
+import type { QueuedTurnStarter } from "../../domain/run/queued-turn.js";
 import { decodeRunStatusJson } from "./execution-json.js";
 
 /**
@@ -128,6 +142,8 @@ export interface AgentExecutionActivityDeps {
   readonly statusWriter: () => ExecutionStatusWriter;
   /** The fan-out of each session's event log: CloseFileReview's write appends `decided` events. */
   readonly sessionEventBroker: SessionEventBroker;
+  /** Starts the turn a session's queued messages wait for (StartQueuedTurn). */
+  readonly queuedTurns: QueuedTurnStarter;
 }
 
 /** The event that opens a message turn: the user message its run was created with. */
@@ -295,14 +311,23 @@ export function createAgentExecutionActivities(
       });
     },
 
+    /** The session's queued turn, started as the run's workflow ends (module header). */
+    [START_QUEUED_TURN_ACTIVITY_NAME]: async (sessionId: string): Promise<void> => {
+      await deps.queuedTurns(sessionId);
+    },
+
     /** The retired run-end cleanup: nothing is stored to delete (names.ts). */
     [RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME]: async (): Promise<void> => {},
   };
 }
 
+/** One page of the messages read back from the run's first; a session rarely holds many unread. */
+const PREVIOUS_TURN_PAGE_SIZE = 100;
+
 /**
- * The run of the session's `user.message` before `executionId`'s own;
- * undefined when the run's message is not in the log or it is the first.
+ * The run of the session's newest `user.message` before `executionId`'s
+ * first that belongs to another run (module header); undefined when the
+ * run's message is not in the log or no turn came before it.
  */
 async function previousTurnRunId(
   store: Store,
@@ -313,7 +338,7 @@ async function previousTurnRunId(
     return undefined;
   }
   const [own] = await store.sessionEvents.list(sessionId, {
-    order: "desc",
+    order: "asc",
     types: [TURN_MESSAGE_TYPE],
     runId: executionId,
     limit: 1,
@@ -321,13 +346,23 @@ async function previousTurnRunId(
   if (own === undefined) {
     return undefined;
   }
-  const [before] = await store.sessionEvents.list(sessionId, {
-    order: "desc",
-    types: [TURN_MESSAGE_TYPE],
-    afterSeq: own.seq,
-    limit: 1,
-  });
-  return before === undefined || before.runId === "" ? undefined : before.runId;
+  let afterSeq = own.seq;
+  for (;;) {
+    const page = await store.sessionEvents.list(sessionId, {
+      order: "desc",
+      types: [TURN_MESSAGE_TYPE],
+      afterSeq,
+      limit: PREVIOUS_TURN_PAGE_SIZE,
+    });
+    const before = page.find((record) => record.runId !== "" && record.runId !== executionId);
+    if (before !== undefined) {
+      return before.runId;
+    }
+    if (page.length < PREVIOUS_TURN_PAGE_SIZE) {
+      return undefined;
+    }
+    afterSeq = page[page.length - 1]!.seq;
+  }
 }
 
 /**

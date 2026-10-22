@@ -334,6 +334,32 @@ describe("create over the wire (engine gate)", () => {
   });
 });
 
+describe("sendMessage over the wire", () => {
+  it("refuses a message naming no existing session, and admits one as create does, to the engine gate", async () => {
+    const none = await expectCode(
+      () =>
+        command.sendMessage({
+          apiVersion: API_VERSION,
+          kind: KIND,
+          metadata: { name: "a-message", org: ORG },
+          spec: { message: "hello" },
+        }),
+      Code.FailedPrecondition,
+    );
+    expect(none.rawMessage).toContain("spec.session_id");
+    await expectCode(
+      () =>
+        command.sendMessage({
+          apiVersion: API_VERSION,
+          kind: KIND,
+          metadata: { name: "a-message", org: ORG },
+          spec: { target: { case: "sessionId", value: "ses_absent_for_send" }, message: "hello" },
+        }),
+      Code.Unavailable,
+    );
+  });
+});
+
 describe("get / list / listBySession over the wire", () => {
   it("get answers NotFound for an unknown id and the record for a seeded one", async () => {
     await expectCode(

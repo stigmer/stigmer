@@ -70,7 +70,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.InterruptSessionInput",
           "outputType": "InterruptSessionResponse",
           "outputFullType": "ai.stigmer.agentic.session.v1.InterruptSessionResponse",
-          "description": "Stop the session's unfinished work.\n\n Appends a user.interrupt and stops every unfinished turn of the\n conversation: queued, working, waiting for an answer or paused. Each\n ends cancelled and the session goes idle with end_turn. Files undone\n in a turn that waited are put back at once.\n\n ## Error Conditions\n\n - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot\n   be stopped)\n - FAILED_PRECONDITION: the execution engine is not connected\n\n ## Idempotency\n\n An interrupt with nothing unfinished records the event and stops\n nothing."
+          "description": "Stop the session's unfinished work.\n\n Appends a user.interrupt and stops every unfinished turn of the\n conversation: pending, working, waiting for an answer or paused. Each\n ends cancelled and the session goes idle with end_turn. The messages\n still queued for a turn (RunCommandController.sendMessage) are dropped\n first: they stay listed with no processed_at, never read. Files undone\n in a turn that waited are put back at once.\n\n ## Error Conditions\n\n - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot\n   be stopped)\n - FAILED_PRECONDITION: the execution engine is not connected\n\n ## Idempotency\n\n An interrupt with nothing unfinished records the event and stops\n nothing."
         },
         {
           "name": "Delete",
@@ -87,6 +87,14 @@
           "outputType": "AppendSessionEventsResponse",
           "outputFullType": "ai.stigmer.agentic.session.v1.AppendSessionEventsResponse",
           "description": "Append a run's events to its session's log.\n\n Only the runner acting for the run may call it, while the run is not\n finished. It accepts the events a runner produces: agent.*,\n session.thread_* and session.error. The batch is appended whole or not\n at all."
+        },
+        {
+          "name": "ClaimInput",
+          "inputType": "ClaimSessionInputInput",
+          "inputFullType": "ai.stigmer.agentic.session.v1.ClaimSessionInputInput",
+          "outputType": "ClaimSessionInputResponse",
+          "outputFullType": "ai.stigmer.agentic.session.v1.ClaimSessionInputResponse",
+          "description": "Take the messages queued in a run's session for the run to read.\n\n Only the runner acting for the run may call it, while the run works\n (pending or in progress). Every message still queued moves to the head\n of the log as this run's, with its processed_at, and is answered in\n the order sent; none when nothing waits."
         },
         {
           "name": "BindHarnessState",
@@ -426,7 +434,7 @@
           "type": {
             "kind": "int64"
           },
-          "description": "The event's place in the session's log, assigned when it is appended:\n later events have higher numbers.",
+          "description": "The event's place in the session's log, assigned when it is appended:\n later events have higher numbers. A queued user.message moves to the\n head of the log when a turn takes it, under a new number, so it is\n listed once, where the agent read it, and streams a second time.",
           "required": false
         },
         {
@@ -1015,6 +1023,49 @@
             }
           },
           "description": "One entry per event of the request, in order, by identity only: the\n envelope with its seq, and the event's type, id and processed_at. The\n content is not echoed; a resent event answers its first place.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ClaimSessionInputInput",
+      "description": "ClaimSessionInputInput names the run that takes its session's queued\n messages.",
+      "protoType": "ai.stigmer.agentic.session.v1.ClaimSessionInputInput",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The run that reads them.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "ClaimSessionInputResponse",
+      "description": "ClaimSessionInputResponse answers the messages the run took.",
+      "protoType": "ai.stigmer.agentic.session.v1.ClaimSessionInputResponse",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "Events",
+          "jsonName": "events",
+          "protoField": "events",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "SessionEvent"
+            }
+          },
+          "description": "Their user.message events as the log now holds them, in the order\n they were sent.",
           "required": false
         }
       ]

@@ -31,6 +31,7 @@ import {
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
+  START_QUEUED_TURN_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
 } from "../names.js";
 import { newAgentExecutionWorkerFactory } from "../worker.js";
@@ -60,6 +61,7 @@ describe("the agent-execution worker factory", () => {
           throw new Error("no status is written here");
         },
         sessionEventBroker,
+        queuedTurns: async () => undefined,
         temporalConfig: new AgentExecutionTemporalConfig(
           "agent_execution_custom",
           "runner_custom",
@@ -78,6 +80,7 @@ describe("the agent-execution worker factory", () => {
           LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
           READ_HARNESS_STATE_ID_ACTIVITY_NAME,
           RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
+          START_QUEUED_TURN_ACTIVITY_NAME,
           UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
         ].sort(),
       );

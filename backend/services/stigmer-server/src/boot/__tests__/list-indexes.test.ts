@@ -40,11 +40,12 @@ const PINNED: Readonly<
   // session's, revision 5 the schedule label's, revision 6 split the waiting
   // session out of the working one, revision 7 the recorded agent's,
   // revision 8 renamed the plugin eval label's key to the eval run label's,
-  // revision 9 the schedule label's key to the routine label's.
+  // revision 9 the schedule label's key to the routine label's, revision 10
+  // the paused session's.
   run: {
-    revision: 9,
+    revision: 10,
     fingerprint:
-      "run{agent=field:status.agent_id,eval_run=label:stigmer.ai/eval-run,grades=label:stigmer.ai/grades-run,routine=label:stigmer.ai/routine-id,session=field:spec.session_id,waiting_session=fieldWhen:spec.session_id?status.phase=6,working_session=fieldWhen:spec.session_id?status.phase=1|2}",
+      "run{agent=field:status.agent_id,eval_run=label:stigmer.ai/eval-run,grades=label:stigmer.ai/grades-run,paused_session=fieldWhen:spec.session_id?status.phase=7,routine=label:stigmer.ai/routine-id,session=field:spec.session_id,waiting_session=fieldWhen:spec.session_id?status.phase=6,working_session=fieldWhen:spec.session_id?status.phase=1|2}",
   },
   // Revision 2 added the agent's key and the plugin eval label's, which an
   // agent's quality report and flagged list read; revision 3 renamed it to

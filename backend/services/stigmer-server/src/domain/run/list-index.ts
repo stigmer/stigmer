@@ -18,7 +18,9 @@
  * session's other working runs by, from the key table alone
  * (domain/session/events/run-writes.ts); `waiting_session` is the session
  * while the run waits for a person's answer, by which the same write finds
- * the session's waiting runs and their open asks; `agent` is the agent the
+ * the session's waiting runs and their open asks; `paused_session` is the
+ * session while the run is paused, by which a session's queue knows a
+ * message cannot wait for it (domain/run/send-message.ts); `agent` is the agent the
  * run recorded (status.agent_id), by which the agent usage report reads one
  * agent's runs in an organization (usage.ts); the organization and the
  * creation order are every declaration's. Revision 2 added `grades`,
@@ -26,8 +28,9 @@
  * `schedule`, revision 6 took waiting runs out of `working_session` into
  * `waiting_session`, revision 7 added `agent`, and revision 8 renamed
  * `plugin_eval` to `eval_run` with its label (store/eval-kinds-retired.ts),
- * and revision 9 renamed `schedule` to `routine` with its label
- * (store/schedules-become-routines.ts): the store derives every existing
+ * revision 9 renamed `schedule` to `routine` with its label
+ * (store/schedules-become-routines.ts), and revision 10 added
+ * `paused_session`: the store derives every existing
  * run's keys again once, at open.
  *
  * A change to `keys` bumps `revision` (boot/__tests__/list-indexes.test.ts
@@ -40,12 +43,12 @@ import { declareListIndex, field, fieldWhen, label } from "../../store/list-inde
 import { EVAL_RUN_LABEL } from "../eval-run/constants.js";
 import { ROUTINE_ID_LABEL_KEY } from "../routine/labels.js";
 import { GRADES_RUN_LABEL } from "../score/judge/judge-run.js";
-import { WAITING_PHASES, WORKING_PHASES } from "./phases.js";
+import { PAUSED_PHASES, WAITING_PHASES, WORKING_PHASES } from "./phases.js";
 
 export const agentExecutionListIndex = declareListIndex({
   kind: ApiResourceKind.run,
   schema: RunSchema,
-  revision: 9,
+  revision: 10,
   keys: {
     session: field("spec.session_id"),
     grades: label(GRADES_RUN_LABEL),
@@ -53,6 +56,7 @@ export const agentExecutionListIndex = declareListIndex({
     routine: label(ROUTINE_ID_LABEL_KEY),
     working_session: fieldWhen("spec.session_id", "status.phase", WORKING_PHASES),
     waiting_session: fieldWhen("spec.session_id", "status.phase", WAITING_PHASES),
+    paused_session: fieldWhen("spec.session_id", "status.phase", PAUSED_PHASES),
     agent: field("status.agent_id"),
   },
 });

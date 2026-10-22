@@ -22,7 +22,9 @@ import "google/protobuf/struct.proto";
 // from the option.
 message SessionEvent {
   // The event's place in the session's log, assigned when it is appended:
-  // later events have higher numbers.
+  // later events have higher numbers. A queued user.message moves to the
+  // head of the log when a turn takes it, under a new number, so it is
+  // listed once, where the agent read it, and streams a second time.
   int64 seq = 1;
 
   // The session the event belongs to.
@@ -146,7 +148,9 @@ message UserMessageEvent {
   // The message's content.
   repeated ContentBlock content = 2;
 
-  // When the server accepted the message, as RFC 3339 UTC.
+  // When the agent's turn took the message, as RFC 3339 UTC; empty while
+  // it waits in the session's queue for a turn that is working. A message
+  // still queued when the session was stopped keeps it empty.
   string processed_at = 3;
 }
 
@@ -892,11 +896,10 @@ message DeltaContent {
 // StigmerRunStatusEvent records that a turn (a run) changed phase:
 // stigmer.run.status. Written by the server only, in the same write as the
 // run's change, on every phase change of every run. The session's own
-// status events say what the whole session does; a session can hold more
-// than one unfinished turn (a second message queues behind the first), and
-// when the first ends while the second works the session's status does not
-// change, so this event is how a client learns that one turn ended, and
-// how.
+// status events say what the whole session does, and do not change when a
+// turn ends with messages queued and the next turn starts with them
+// (RunCommandController.sendMessage), so this event is how a client learns
+// that one turn ended, and how.
 message StigmerRunStatusEvent {
   // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
   string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
@@ -904,7 +907,7 @@ message StigmerRunStatusEvent {
   // When the event was appended, as RFC 3339 UTC.
   string processed_at = 2;
 
-  // The turn's new phase: pending (queued), running, waiting (for a
+  // The turn's new phase: pending (not started yet), running, waiting (for a
   // person's answer), paused, completed, failed, cancelled or terminated.
   // The last four end the turn.
   string phase = 3 [(buf.validate.field).string = {

@@ -90,6 +90,12 @@ class SessionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def claim_input(self, input: io_pb2.ClaimSessionInputInput) -> io_pb2.ClaimSessionInputResponse:
+        try:
+            return self._command.claimInput(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def bind_harness_state(self, input: io_pb2.BindHarnessStateInput) -> io_pb2.BindHarnessStateResponse:
         try:
             return self._command.bindHarnessState(input)

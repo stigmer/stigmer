@@ -47,7 +47,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { create, clone, toJson } from "@bufbuild/protobuf";
+import { create, clone, toBinary, toJson } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -93,6 +93,11 @@ import {
   newKeepEvalRunCaseStep,
   newGuardReconcileFileReviewStep,
   newKeepReconcileFileReviewStep,
+  newGuardQueuedMessagesStep,
+  newKeepQueuedMessagesStep,
+  QUEUED_MESSAGES_MIXED_AUTHORITY_MESSAGE,
+  QUEUED_MESSAGES_NOT_COMPOSED_MESSAGE,
+  QUEUED_MESSAGES_PERSON_KEY,
   newGuardExcludedPluginsStep,
   newKeepExcludedPluginsStep,
   EXCLUDED_PLUGINS_NOT_COMPOSED_MESSAGE,
@@ -122,6 +127,7 @@ import type {
   StartInvokeWorkflowInput,
 } from "../engine.js";
 import { stubConnectedEngine } from "./engine-stub.js";
+import { runPersonOfRequest } from "../plan-run-values-step.js";
 import { EVAL_RUN_LABEL } from "../../eval-run/constants.js";
 import { GRADES_RUN_LABEL } from "../../score/judge/judge-run.js";
 import { SessionEventBroker } from "../../session/events/broker.js";
@@ -1592,6 +1598,74 @@ describe("newKeepReconcileFileReviewStep", () => {
     const cleared = update(true, false);
     await step.execute(cleared);
     expect(cleared.newState.spec?.reconcileFileReview).toBe(true);
+  });
+});
+
+describe("newGuardQueuedMessagesStep", () => {
+  /** A store whose session queue holds `messages`, each with its sender and the person its turn recorded. */
+  function queueHolding(messages: ReadonlyArray<{ id: string; sender: string; person: string }>): Store {
+    const queued = messages.map(({ id, sender, person }) => ({
+      record: { eventId: id },
+      sender,
+      turn: toBinary(RunSchema, create(RunSchema, { status: { credentials: { person } } })),
+    }));
+    return { sessionEvents: { queued: async () => queued } } as unknown as Store;
+  }
+  const step = newGuardQueuedMessagesStep(queueHolding([]));
+
+  function naming(caller: CallerIdentity, ids: string[]) {
+    const execution = newExecution("ses_1");
+    execution.spec!.queuedMessageIds = ids;
+    return newContext(execution, caller);
+  }
+
+  it("refuses a turn naming queued messages from any caller the server did not compose", async () => {
+    await expect(step.execute(naming(testCallerIdentity(), ["sevt_q"]))).rejects.toThrow(QUEUED_MESSAGES_NOT_COMPOSED_MESSAGE);
+  });
+
+  it("passes the server's own start of a session's queue, and any request naming none", async () => {
+    await step.execute(naming(testCallerIdentity({ origin: "in-process" }), ["sevt_q"]));
+    await step.execute(naming(testCallerIdentity(), []));
+  });
+
+  it("records the person the messages recorded as they were sent, for the turn to record", async () => {
+    const owner = newGuardQueuedMessagesStep(queueHolding([{ id: "sevt_q", sender: "person-a", person: "person-a" }]));
+    const ctx = naming(testCallerIdentity({ origin: "in-process", identityId: "person-a" }), ["sevt_q"]);
+    await owner.execute(ctx);
+    expect(ctx.get(QUEUED_MESSAGES_PERSON_KEY)).toBe("person-a");
+    expect(runPersonOfRequest(ctx)).toBe("person-a");
+    const participant = newGuardQueuedMessagesStep(queueHolding([{ id: "sevt_q", sender: "person-b", person: "" }]));
+    const none = naming(testCallerIdentity({ origin: "in-process", identityId: "person-b" }), ["sevt_q"]);
+    await participant.execute(none);
+    expect(runPersonOfRequest(none)).toBeUndefined();
+  });
+
+  it("refuses messages sent with two authorities", async () => {
+    const mixed = newGuardQueuedMessagesStep(
+      queueHolding([
+        { id: "sevt_1", sender: "person-a", person: "person-a" },
+        { id: "sevt_2", sender: "person-b", person: "" },
+        { id: "sevt_3", sender: "person-c", person: "" },
+      ]),
+    );
+    await expect(
+      mixed.execute(naming(testCallerIdentity({ origin: "in-process" }), ["sevt_1", "sevt_2"])),
+    ).rejects.toThrow(QUEUED_MESSAGES_MIXED_AUTHORITY_MESSAGE);
+  });
+});
+
+describe("newKeepQueuedMessagesStep", () => {
+  const step = newKeepQueuedMessagesStep();
+
+  it("keeps the queued messages the create stored, whatever the update asks", async () => {
+    const existing = newExecution("ses_1");
+    existing.spec!.queuedMessageIds = ["sevt_q"];
+    const execution = newExecution("ses_1");
+    execution.spec!.queuedMessageIds = ["sevt_forged"];
+    const ctx = newContext(execution, testCallerIdentity());
+    ctx.set(EXISTING_RESOURCE_KEY, existing);
+    await step.execute(ctx);
+    expect(ctx.newState.spec?.queuedMessageIds).toEqual(["sevt_q"]);
   });
 });
 

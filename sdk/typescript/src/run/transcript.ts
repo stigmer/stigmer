@@ -545,6 +545,10 @@ function renderItems(
       case "compacted":
         out.push("", "_Context compacted._");
         continue;
+      case "user_message":
+        // A message the person sent while the turn worked, where it read it.
+        out.push("", "**User**", "", item.text);
+        continue;
       case "tool_use":
         if (item.thread !== undefined) {
           renderSubagent(out, item, item.thread, resolvedOutputs);

@@ -325,6 +325,37 @@ public final class SessionCommandControllerGrpc {
     return getAppendEventsMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ClaimSessionInputInput,
+      ai.stigmer.agentic.session.v1.ClaimSessionInputResponse> getClaimInputMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "claimInput",
+      requestType = ai.stigmer.agentic.session.v1.ClaimSessionInputInput.class,
+      responseType = ai.stigmer.agentic.session.v1.ClaimSessionInputResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ClaimSessionInputInput,
+      ai.stigmer.agentic.session.v1.ClaimSessionInputResponse> getClaimInputMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ClaimSessionInputInput, ai.stigmer.agentic.session.v1.ClaimSessionInputResponse> getClaimInputMethod;
+    if ((getClaimInputMethod = SessionCommandControllerGrpc.getClaimInputMethod) == null) {
+      synchronized (SessionCommandControllerGrpc.class) {
+        if ((getClaimInputMethod = SessionCommandControllerGrpc.getClaimInputMethod) == null) {
+          SessionCommandControllerGrpc.getClaimInputMethod = getClaimInputMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.ClaimSessionInputInput, ai.stigmer.agentic.session.v1.ClaimSessionInputResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "claimInput"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.ClaimSessionInputInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.ClaimSessionInputResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new SessionCommandControllerMethodDescriptorSupplier("claimInput"))
+              .build();
+        }
+      }
+    }
+    return getClaimInputMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.BindHarnessStateInput,
       ai.stigmer.agentic.session.v1.BindHarnessStateResponse> getBindHarnessStateMethod;
 
@@ -555,8 +586,10 @@ public final class SessionCommandControllerGrpc {
      * <pre>
      * Stop the session's unfinished work.
      * Appends a user.interrupt and stops every unfinished turn of the
-     * conversation: queued, working, waiting for an answer or paused. Each
-     * ends cancelled and the session goes idle with end_turn. Files undone
+     * conversation: pending, working, waiting for an answer or paused. Each
+     * ends cancelled and the session goes idle with end_turn. The messages
+     * still queued for a turn (RunCommandController.sendMessage) are dropped
+     * first: they stay listed with no processed_at, never read. Files undone
      * in a turn that waited are put back at once.
      * ## Error Conditions
      * - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot
@@ -600,6 +633,20 @@ public final class SessionCommandControllerGrpc {
     default void appendEvents(ai.stigmer.agentic.session.v1.AppendSessionEventsInput request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.AppendSessionEventsResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getAppendEventsMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Take the messages queued in a run's session for the run to read.
+     * Only the runner acting for the run may call it, while the run works
+     * (pending or in progress). Every message still queued moves to the head
+     * of the log as this run's, with its processed_at, and is answered in
+     * the order sent; none when nothing waits.
+     * </pre>
+     */
+    default void claimInput(ai.stigmer.agentic.session.v1.ClaimSessionInputInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.ClaimSessionInputResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getClaimInputMethod(), responseObserver);
     }
 
     /**
@@ -789,8 +836,10 @@ public final class SessionCommandControllerGrpc {
      * <pre>
      * Stop the session's unfinished work.
      * Appends a user.interrupt and stops every unfinished turn of the
-     * conversation: queued, working, waiting for an answer or paused. Each
-     * ends cancelled and the session goes idle with end_turn. Files undone
+     * conversation: pending, working, waiting for an answer or paused. Each
+     * ends cancelled and the session goes idle with end_turn. The messages
+     * still queued for a turn (RunCommandController.sendMessage) are dropped
+     * first: they stay listed with no processed_at, never read. Files undone
      * in a turn that waited are put back at once.
      * ## Error Conditions
      * - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot
@@ -837,6 +886,21 @@ public final class SessionCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.AppendSessionEventsResponse> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getAppendEventsMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Take the messages queued in a run's session for the run to read.
+     * Only the runner acting for the run may call it, while the run works
+     * (pending or in progress). Every message still queued moves to the head
+     * of the log as this run's, with its processed_at, and is answered in
+     * the order sent; none when nothing waits.
+     * </pre>
+     */
+    public void claimInput(ai.stigmer.agentic.session.v1.ClaimSessionInputInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.ClaimSessionInputResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getClaimInputMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
@@ -1006,8 +1070,10 @@ public final class SessionCommandControllerGrpc {
      * <pre>
      * Stop the session's unfinished work.
      * Appends a user.interrupt and stops every unfinished turn of the
-     * conversation: queued, working, waiting for an answer or paused. Each
-     * ends cancelled and the session goes idle with end_turn. Files undone
+     * conversation: pending, working, waiting for an answer or paused. Each
+     * ends cancelled and the session goes idle with end_turn. The messages
+     * still queued for a turn (RunCommandController.sendMessage) are dropped
+     * first: they stay listed with no processed_at, never read. Files undone
      * in a turn that waited are put back at once.
      * ## Error Conditions
      * - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot
@@ -1051,6 +1117,20 @@ public final class SessionCommandControllerGrpc {
     public ai.stigmer.agentic.session.v1.AppendSessionEventsResponse appendEvents(ai.stigmer.agentic.session.v1.AppendSessionEventsInput request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getAppendEventsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Take the messages queued in a run's session for the run to read.
+     * Only the runner acting for the run may call it, while the run works
+     * (pending or in progress). Every message still queued moves to the head
+     * of the log as this run's, with its processed_at, and is answered in
+     * the order sent; none when nothing waits.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.ClaimSessionInputResponse claimInput(ai.stigmer.agentic.session.v1.ClaimSessionInputInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getClaimInputMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1219,8 +1299,10 @@ public final class SessionCommandControllerGrpc {
      * <pre>
      * Stop the session's unfinished work.
      * Appends a user.interrupt and stops every unfinished turn of the
-     * conversation: queued, working, waiting for an answer or paused. Each
-     * ends cancelled and the session goes idle with end_turn. Files undone
+     * conversation: pending, working, waiting for an answer or paused. Each
+     * ends cancelled and the session goes idle with end_turn. The messages
+     * still queued for a turn (RunCommandController.sendMessage) are dropped
+     * first: they stay listed with no processed_at, never read. Files undone
      * in a turn that waited are put back at once.
      * ## Error Conditions
      * - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot
@@ -1264,6 +1346,20 @@ public final class SessionCommandControllerGrpc {
     public ai.stigmer.agentic.session.v1.AppendSessionEventsResponse appendEvents(ai.stigmer.agentic.session.v1.AppendSessionEventsInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getAppendEventsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Take the messages queued in a run's session for the run to read.
+     * Only the runner acting for the run may call it, while the run works
+     * (pending or in progress). Every message still queued moves to the head
+     * of the log as this run's, with its processed_at, and is answered in
+     * the order sent; none when nothing waits.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.ClaimSessionInputResponse claimInput(ai.stigmer.agentic.session.v1.ClaimSessionInputInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getClaimInputMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1439,8 +1535,10 @@ public final class SessionCommandControllerGrpc {
      * <pre>
      * Stop the session's unfinished work.
      * Appends a user.interrupt and stops every unfinished turn of the
-     * conversation: queued, working, waiting for an answer or paused. Each
-     * ends cancelled and the session goes idle with end_turn. Files undone
+     * conversation: pending, working, waiting for an answer or paused. Each
+     * ends cancelled and the session goes idle with end_turn. The messages
+     * still queued for a turn (RunCommandController.sendMessage) are dropped
+     * first: they stay listed with no processed_at, never read. Files undone
      * in a turn that waited are put back at once.
      * ## Error Conditions
      * - INVALID_ARGUMENT: session_thread_id is set (one thread alone cannot
@@ -1491,6 +1589,21 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Take the messages queued in a run's session for the run to read.
+     * Only the runner acting for the run may call it, while the run works
+     * (pending or in progress). Every message still queued moves to the head
+     * of the log as this run's, with its processed_at, and is answered in
+     * the order sent; none when nothing waits.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.ClaimSessionInputResponse> claimInput(
+        ai.stigmer.agentic.session.v1.ClaimSessionInputInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getClaimInputMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Record the harness's conversation id for a run's session.
      * Only the runner acting for the run may call it, while the run is not
      * finished. The id replaced, if any, joins the session's
@@ -1514,7 +1627,8 @@ public final class SessionCommandControllerGrpc {
   private static final int METHODID_INTERRUPT = 7;
   private static final int METHODID_DELETE = 8;
   private static final int METHODID_APPEND_EVENTS = 9;
-  private static final int METHODID_BIND_HARNESS_STATE = 10;
+  private static final int METHODID_CLAIM_INPUT = 10;
+  private static final int METHODID_BIND_HARNESS_STATE = 11;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1572,6 +1686,10 @@ public final class SessionCommandControllerGrpc {
         case METHODID_APPEND_EVENTS:
           serviceImpl.appendEvents((ai.stigmer.agentic.session.v1.AppendSessionEventsInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.AppendSessionEventsResponse>) responseObserver);
+          break;
+        case METHODID_CLAIM_INPUT:
+          serviceImpl.claimInput((ai.stigmer.agentic.session.v1.ClaimSessionInputInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.ClaimSessionInputResponse>) responseObserver);
           break;
         case METHODID_BIND_HARNESS_STATE:
           serviceImpl.bindHarnessState((ai.stigmer.agentic.session.v1.BindHarnessStateInput) request,
@@ -1666,6 +1784,13 @@ public final class SessionCommandControllerGrpc {
               ai.stigmer.agentic.session.v1.AppendSessionEventsResponse>(
                 service, METHODID_APPEND_EVENTS)))
         .addMethod(
+          getClaimInputMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.session.v1.ClaimSessionInputInput,
+              ai.stigmer.agentic.session.v1.ClaimSessionInputResponse>(
+                service, METHODID_CLAIM_INPUT)))
+        .addMethod(
           getBindHarnessStateMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
@@ -1730,6 +1855,7 @@ public final class SessionCommandControllerGrpc {
               .addMethod(getInterruptMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getAppendEventsMethod())
+              .addMethod(getClaimInputMethod())
               .addMethod(getBindHarnessStateMethod())
               .build();
         }

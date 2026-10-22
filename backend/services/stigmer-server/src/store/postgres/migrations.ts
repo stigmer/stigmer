@@ -347,8 +347,11 @@ export const SCHEMA_VERSION_40 = 40;
 /** v41: the files the native engine uploaded for a run wait to become Files of the run. */
 export const SCHEMA_VERSION_41 = 41;
 
+/** v42: a session's queue: the side row of each message waiting for a turn. */
+export const SCHEMA_VERSION_42 = 42;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_41;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_42;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -430,6 +433,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_39, migrateToV39],
       [SCHEMA_VERSION_40, migrateToV40],
       [SCHEMA_VERSION_41, migrateToV41],
+      [SCHEMA_VERSION_42, migrateToV42],
     ];
 
     for (const [version, migrate] of chain) {
@@ -3010,4 +3014,26 @@ async function migrateToV41(client: PoolClient): Promise<void> {
     }
     after = rows[rows.length - 1]!.id;
   }
+}
+
+/**
+ * v42: a session's queue (../session-events.ts, "The queue"). One row per
+ * message waiting for a turn, beside its `user.message` in
+ * `session_events` (same session and event id): who sent it and the turn
+ * it would start, kept until a turn takes it or it is dropped. Read by
+ * session in send order through the event's seq, and purged by
+ * organization. The SQLite driver's v46 in this engine's terms.
+ */
+async function migrateToV42(client: PoolClient): Promise<void> {
+  await client.query(`
+    CREATE TABLE session_queued_messages (
+      session_id TEXT NOT NULL,
+      event_id TEXT NOT NULL,
+      org TEXT NOT NULL DEFAULT '',
+      sender TEXT NOT NULL DEFAULT '',
+      turn BYTEA NOT NULL,
+      PRIMARY KEY (session_id, event_id)
+    );
+    CREATE INDEX idx_session_queued_messages_org ON session_queued_messages (org);
+  `);
 }

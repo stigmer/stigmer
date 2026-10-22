@@ -1,7 +1,8 @@
 /**
  * How a checked send applies, over fake native clients: a user.message is
- * a turn created in the session under the console's name and answered with
- * the user.message the server wrote with it (read back by the run's id);
+ * sent to the session (RunCommandController.sendMessage) as a turn under
+ * the console's name and answered with the user.message the send records,
+ * started (processed) or queued (processed_at null);
  * a confirmation and an interrupt each go through their own method; the
  * events apply in order and the first failure stops the list with the
  * ones before it applied. A message's Files ride the turn by id; the
@@ -17,12 +18,11 @@ import { FileSchema } from "@stigmer/apis/ai/stigmer/agentic/file/v1/api_pb";
 import type { FileId } from "@stigmer/apis/ai/stigmer/agentic/file/v1/io_pb";
 import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionEventSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { SendMessageResponseSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import {
   InterruptSessionResponseSchema,
-  SessionEventListSchema,
   type ConfirmToolUseInput,
   type InterruptSessionInput,
-  type ListSessionEventsRequest,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
 import type { LaneResponse } from "../../lanes.js";
@@ -38,39 +38,38 @@ const FILE_TYPES: Readonly<Record<string, string>> = {
 interface Seen {
   readonly calls: string[];
   run?: Run;
-  readBack?: ListSessionEventsRequest;
   confirmation?: ConfirmToolUseInput;
   interrupt?: InterruptSessionInput;
 }
 
-function harness(options: { readonly failConfirmation?: boolean; readonly noReadBack?: boolean } = {}) {
+function harness(
+  options: { readonly failConfirmation?: boolean; readonly noMessage?: boolean; readonly queued?: boolean } = {},
+) {
   const seen: Seen = { calls: [] };
   const clients = {
     runCommand: {
-      create: (run: Run) => {
-        seen.calls.push("Run.create");
+      sendMessage: (run: Run) => {
+        seen.calls.push("Run.sendMessage");
         seen.run = run;
-        return Promise.resolve(create(RunSchema, { metadata: { id: "run_1" } }));
-      },
-    },
-    sessionQuery: {
-      listEvents: (request: ListSessionEventsRequest) => {
-        seen.calls.push("listEvents");
-        seen.readBack = request;
         return Promise.resolve(
-          create(SessionEventListSchema, {
-            events: options.noReadBack
-              ? []
-              : [
-                  create(SessionEventSchema, {
+          create(SendMessageResponseSchema, {
+            ...(options.noMessage
+              ? {}
+              : {
+                  message: create(SessionEventSchema, {
                     seq: 4n,
-                    runId: "run_1",
+                    runId: options.queued ? "" : "run_1",
                     event: {
                       case: "userMessage",
-                      value: { id: "sevt_msg", content: [{ type: "text", text: "hello" }], processedAt: "t" },
+                      value: {
+                        id: "sevt_msg",
+                        content: [{ type: "text", text: "hello" }],
+                        processedAt: options.queued ? "" : "t",
+                      },
                     },
                   }),
-                ],
+                }),
+            ...(options.queued || options.noMessage ? {} : { run: create(RunSchema, { metadata: { id: "run_1" } }) }),
           }),
         );
       },
@@ -133,19 +132,28 @@ function harness(options: { readonly failConfirmation?: boolean; readonly noRead
 }
 
 describe("serveSend", () => {
-  it("starts a turn for a user.message and answers with the event written with it", async () => {
+  it("sends a user.message to the session and answers with the event the send recorded", async () => {
     const { seen, call, response, answer } = harness();
     await serveSend(call, [{ type: "user.message", text: "hello", files: [] }], response, () => 1234);
+    expect(seen.calls).toEqual(["Run.sendMessage"]);
     expect(seen.run).toMatchObject({
       apiVersion: "agentic.stigmer.ai/v1",
       kind: "Run",
       metadata: { name: "run-1234", org: "" },
       spec: { target: { case: "sessionId", value: "ses_1" }, message: "hello" },
     });
-    expect(seen.readBack).toMatchObject({ sessionId: "ses_1", runId: "run_1", types: ["user.message"], pageSize: 1 });
     expect(answer()).toEqual({
       status: 200,
       body: { data: [{ type: "user.message", id: "sevt_msg", content: [{ type: "text", text: "hello" }], processed_at: "t" }] },
+    });
+  });
+
+  it("answers a message queued for the working turn with processed_at null, as Managed Agents does", async () => {
+    const { call, response, answer } = harness({ queued: true });
+    await serveSend(call, [{ type: "user.message", text: "hello", files: [] }], response, () => 1234);
+    expect(answer()).toEqual({
+      status: 200,
+      body: { data: [{ type: "user.message", id: "sevt_msg", content: [{ type: "text", text: "hello" }], processed_at: null }] },
     });
   });
 
@@ -177,8 +185,8 @@ describe("serveSend", () => {
     expect(seen.calls).toEqual(["interrupt", "confirmToolUse"]);
   });
 
-  it("is an internal fault when the turn's user.message cannot be read back", async () => {
-    const { call, response } = harness({ noReadBack: true });
+  it("is an internal fault when the send answers no user.message", async () => {
+    const { call, response } = harness({ noMessage: true });
     await expect(serveSend(call, [{ type: "user.message", text: "x", files: [] }], response, () => 0)).rejects.toThrow(
       "the user.message was applied but its recorded event could not be read",
     );

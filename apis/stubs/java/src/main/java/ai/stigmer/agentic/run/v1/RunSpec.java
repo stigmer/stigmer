@@ -47,6 +47,8 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.LazyStringArrayList.emptyList();
     fileIds_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
+    queuedMessageIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -1262,6 +1264,71 @@ private static final long serialVersionUID = 0L;
     return fileIds_.getByteString(index);
   }
 
+  public static final int QUEUED_MESSAGE_IDS_FIELD_NUMBER = 29;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList queuedMessageIds_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * The queued messages this turn reads, by their user.message ids, in
+   * the order they were sent: set on the turn a session starts with the
+   * messages still queued when its working turn ended
+   * (RunCommandController.sendMessage).
+   * </pre>
+   *
+   * <code>repeated string queued_message_ids = 29 [json_name = "queuedMessageIds", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the queuedMessageIds.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getQueuedMessageIdsList() {
+    return queuedMessageIds_;
+  }
+  /**
+   * <pre>
+   * The queued messages this turn reads, by their user.message ids, in
+   * the order they were sent: set on the turn a session starts with the
+   * messages still queued when its working turn ended
+   * (RunCommandController.sendMessage).
+   * </pre>
+   *
+   * <code>repeated string queued_message_ids = 29 [json_name = "queuedMessageIds", (.buf.validate.field) = { ... }</code>
+   * @return The count of queuedMessageIds.
+   */
+  public int getQueuedMessageIdsCount() {
+    return queuedMessageIds_.size();
+  }
+  /**
+   * <pre>
+   * The queued messages this turn reads, by their user.message ids, in
+   * the order they were sent: set on the turn a session starts with the
+   * messages still queued when its working turn ended
+   * (RunCommandController.sendMessage).
+   * </pre>
+   *
+   * <code>repeated string queued_message_ids = 29 [json_name = "queuedMessageIds", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The queuedMessageIds at the given index.
+   */
+  public java.lang.String getQueuedMessageIds(int index) {
+    return queuedMessageIds_.get(index);
+  }
+  /**
+   * <pre>
+   * The queued messages this turn reads, by their user.message ids, in
+   * the order they were sent: set on the turn a session starts with the
+   * messages still queued when its working turn ended
+   * (RunCommandController.sendMessage).
+   * </pre>
+   *
+   * <code>repeated string queued_message_ids = 29 [json_name = "queuedMessageIds", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the queuedMessageIds at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getQueuedMessageIdsBytes(int index) {
+    return queuedMessageIds_.getByteString(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1329,6 +1396,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < fileIds_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 28, fileIds_.getRaw(i));
+    }
+    for (int i = 0; i < queuedMessageIds_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 29, queuedMessageIds_.getRaw(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -1427,6 +1497,14 @@ private static final long serialVersionUID = 0L;
       size += dataSize;
       size += 2 * getFileIdsList().size();
     }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < queuedMessageIds_.size(); i++) {
+        dataSize += computeStringSizeNoTag(queuedMessageIds_.getRaw(i));
+      }
+      size += dataSize;
+      size += 2 * getQueuedMessageIdsList().size();
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1485,6 +1563,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getExcludedPluginIdsList())) return false;
     if (!getFileIdsList()
         .equals(other.getFileIdsList())) return false;
+    if (!getQueuedMessageIdsList()
+        .equals(other.getQueuedMessageIdsList())) return false;
     if (!getTargetCase().equals(other.getTargetCase())) return false;
     switch (targetCase_) {
       case 1:
@@ -1561,6 +1641,10 @@ private static final long serialVersionUID = 0L;
     if (getFileIdsCount() > 0) {
       hash = (37 * hash) + FILE_IDS_FIELD_NUMBER;
       hash = (53 * hash) + getFileIdsList().hashCode();
+    }
+    if (getQueuedMessageIdsCount() > 0) {
+      hash = (37 * hash) + QUEUED_MESSAGE_IDS_FIELD_NUMBER;
+      hash = (53 * hash) + getQueuedMessageIdsList().hashCode();
     }
     switch (targetCase_) {
       case 1:
@@ -1759,6 +1843,8 @@ private static final long serialVersionUID = 0L;
           com.google.protobuf.LazyStringArrayList.emptyList();
       fileIds_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
+      queuedMessageIds_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       targetCase_ = 0;
       target_ = null;
       return this;
@@ -1860,6 +1946,10 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00020000) != 0)) {
         fileIds_.makeImmutable();
         result.fileIds_ = fileIds_;
+      }
+      if (((from_bitField0_ & 0x00040000) != 0)) {
+        queuedMessageIds_.makeImmutable();
+        result.queuedMessageIds_ = queuedMessageIds_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1971,6 +2061,16 @@ private static final long serialVersionUID = 0L;
         } else {
           ensureFileIdsIsMutable();
           fileIds_.addAll(other.fileIds_);
+        }
+        onChanged();
+      }
+      if (!other.queuedMessageIds_.isEmpty()) {
+        if (queuedMessageIds_.isEmpty()) {
+          queuedMessageIds_ = other.queuedMessageIds_;
+          bitField0_ |= 0x00040000;
+        } else {
+          ensureQueuedMessageIdsIsMutable();
+          queuedMessageIds_.addAll(other.queuedMessageIds_);
         }
         onChanged();
       }
@@ -2115,6 +2215,11 @@ private static final long serialVersionUID = 0L;
               fileIds_.add(input.readStringRequireUtf8());
               break;
             } // case 226
+            case 234: {
+              ensureQueuedMessageIdsIsMutable();
+              queuedMessageIds_.add(input.readStringRequireUtf8());
+              break;
+            } // case 234
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -5360,6 +5465,180 @@ private static final long serialVersionUID = 0L;
       ensureFileIdsIsMutable();
       fileIds_.add(value);
       bitField0_ |= 0x00020000;
+      onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.LazyStringArrayList queuedMessageIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureQueuedMessageIdsIsMutable() {
+      if (!queuedMessageIds_.isModifiable()) {
+        queuedMessageIds_ = new com.google.protobuf.LazyStringArrayList(queuedMessageIds_);
+      }
+      bitField0_ |= 0x00040000;
+    }
+    /**
+     * <pre>
+     * The queued messages this turn reads, by their user.message ids, in
+     * the order they were sent: set on the turn a session starts with the
+     * messages still queued when its working turn ended
+     * (RunCommandController.sendMessage).
+     * </pre>
+     *
+     * <code>repeated string queued_message_ids = 29 [json_name = "queuedMessageIds", (.buf.validate.field) = { ... }</code>
+     * @return A list containing the queuedMessageIds.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getQueuedMessageIdsList() {
+      queuedMessageIds_.makeImmutable();
+      return queuedMessageIds_;
+    }
+    /**
+     * <pre>
+     * The queued messages this turn reads, by their user.message ids, in
+     * the order they were sent: set on the turn a session starts with the
+     * messages still queued when its working turn ended
+     * (RunCommandController.sendMessage).
+     * </pre>
+     *
+     * <code>repeated string queued_message_ids = 29 [json_name = "queuedMessageIds", (.buf.validate.field) = { ... }</code>
+     * @return The count of queuedMessageIds.
+     */
+    public int getQueuedMessageIdsCount() {
+      return queuedMessageIds_.size();
+    }
+    /**
+     * <pre>
+     * The queued messages this turn reads, by their user.message ids, in
+     * the order they were sent: set on the turn a session starts with the
+     * messages still queued when its working turn ended
+     * (RunCommandController.sendMessage).
+     * </pre>
+     *
+     * <code>repeated string queued_message_ids = 29 [json_name = "queuedMessageIds", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the element to return.
+     * @return The queuedMessageIds at the given index.
+     */
+    public java.lang.String getQueuedMessageIds(int index) {
+      return queuedMessageIds_.get(index);
+    }
+    /**
+     * <pre>
+     * The queued messages this turn reads, by their user.message ids, in
+     * the order they were sent: set on the turn a session starts with the
+     * messages still queued when its working turn ended
+     * (RunCommandController.sendMessage).
+     * </pre>
+     *
+     * <code>repeated string queued_message_ids = 29 [json_name = "queuedMessageIds", (.buf.validate.field) = { ... }</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the queuedMessageIds at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getQueuedMessageIdsBytes(int index) {
+      return queuedMessageIds_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * The queued messages this turn reads, by their user.message ids, in
+     * the order they were sent: set on the turn a session starts with the
+     * messages still queued when its working turn ended
+     * (RunCommandController.sendMessage).
+     * </pre>
+     *
+     * <code>repeated string queued_message_ids = 29 [json_name = "queuedMessageIds", (.buf.validate.field) = { ... }</code>
+     * @param index The index to set the value at.
+     * @param value The queuedMessageIds to set.
+     * @return This builder for chaining.
+     */
+    public Builder setQueuedMessageIds(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureQueuedMessageIdsIsMutable();
+      queuedMessageIds_.set(index, value);
+      bitField0_ |= 0x00040000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The queued messages this turn reads, by their user.message ids, in
+     * the order they were sent: set on the turn a session starts with the
+     * messages still queued when its working turn ended
+     * (RunCommandController.sendMessage).
+     * </pre>
+     *
+     * <code>repeated string queued_message_ids = 29 [json_name = "queuedMessageIds", (.buf.validate.field) = { ... }</code>
+     * @param value The queuedMessageIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addQueuedMessageIds(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureQueuedMessageIdsIsMutable();
+      queuedMessageIds_.add(value);
+      bitField0_ |= 0x00040000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The queued messages this turn reads, by their user.message ids, in
+     * the order they were sent: set on the turn a session starts with the
+     * messages still queued when its working turn ended
+     * (RunCommandController.sendMessage).
+     * </pre>
+     *
+     * <code>repeated string queued_message_ids = 29 [json_name = "queuedMessageIds", (.buf.validate.field) = { ... }</code>
+     * @param values The queuedMessageIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllQueuedMessageIds(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureQueuedMessageIdsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, queuedMessageIds_);
+      bitField0_ |= 0x00040000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The queued messages this turn reads, by their user.message ids, in
+     * the order they were sent: set on the turn a session starts with the
+     * messages still queued when its working turn ended
+     * (RunCommandController.sendMessage).
+     * </pre>
+     *
+     * <code>repeated string queued_message_ids = 29 [json_name = "queuedMessageIds", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearQueuedMessageIds() {
+      queuedMessageIds_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00040000);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The queued messages this turn reads, by their user.message ids, in
+     * the order they were sent: set on the turn a session starts with the
+     * messages still queued when its working turn ended
+     * (RunCommandController.sendMessage).
+     * </pre>
+     *
+     * <code>repeated string queued_message_ids = 29 [json_name = "queuedMessageIds", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes of the queuedMessageIds to add.
+     * @return This builder for chaining.
+     */
+    public Builder addQueuedMessageIdsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureQueuedMessageIdsIsMutable();
+      queuedMessageIds_.add(value);
+      bitField0_ |= 0x00040000;
       onChanged();
       return this;
     }

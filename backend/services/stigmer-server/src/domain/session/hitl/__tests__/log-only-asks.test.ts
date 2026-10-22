@@ -138,6 +138,7 @@ async function openGateCount(): Promise<number> {
       throw new Error("counting gates writes no status");
     },
     sessionEventBroker: new SessionEventBroker(silentLogger),
+    queuedTurns: async () => undefined,
   });
   const count = activities[COUNT_OPEN_GATES_ACTIVITY_NAME] as (executionId: string, sessionId: string) => Promise<number>;
   return count(RUN, SESSION);
@@ -211,9 +212,12 @@ async function codeOf(promise: Promise<unknown>): Promise<Code> {
 describe("what is an ask, read from the log", () => {
   it("is not a tool use another run wrote under this run's id, nor one that never asked", async () => {
     await seedLogOnly([{ callId: "tc-1", name: "Write" }]);
-    const writeDeps = { store: temp.store, sessionEventBroker: new SessionEventBroker(silentLogger) };
-    await createRunAppendingEvents(
-      writeDeps,
+    // Another run of the session, stored beside the waiting one (a session
+    // written before one turn at a time held).
+    await temp.store.saveResource(
+      ApiResourceKind.run,
+      "run_other",
+      RunSchema,
       create(RunSchema, {
         metadata: { id: "run_other", org: "acme" },
         spec: { target: { case: "sessionId", value: SESSION }, message: "again" },

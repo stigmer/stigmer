@@ -582,6 +582,21 @@ describe("delete steps + persist", () => {
     );
     expect((error as ConnectError).code).toBe(Code.Internal);
   });
+
+  it("Persist answers a custom save's own refusal as it is, and any other save failure as Internal", async () => {
+    const refused = await captureError(() =>
+      newPersistStep<typeof OrganizationSchema>(store, UNBOUND_CREDENTIAL_BINDING, () =>
+        Promise.reject(new ConnectError("held", Code.FailedPrecondition)),
+      ).execute(orgCtx(org({ id: "acme", slug: "acme" }))),
+    );
+    expect((refused as ConnectError).code).toBe(Code.FailedPrecondition);
+    const faulted = await captureError(() =>
+      newPersistStep<typeof OrganizationSchema>(store, UNBOUND_CREDENTIAL_BINDING, () =>
+        Promise.reject(new Error("disk full")),
+      ).execute(orgCtx(org({ id: "acme", slug: "acme" }))),
+    );
+    expect((faulted as ConnectError).code).toBe(Code.Internal);
+  });
 });
 
 describe("IndexSearch (best-effort)", () => {

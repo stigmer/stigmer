@@ -25,7 +25,9 @@
  * and which this runner may not write. One bounded read, newest first, of
  * `user.message`, `stigmer.file_review.decided` and
  * `stigmer.file_review.reconciled`, back to and including the newest
- * `user.message` that is not this run's: a change set is decidable only
+ * `user.message` of another run: a message still waiting in the session's
+ * queue has no run and is no turn yet, and one this run read while it
+ * worked is its own. A change set is decidable only
  * while its turn's message is the newest, so no undo older than that slice
  * can still be owed. An `undo` decided in the slice with no `reconciled`
  * answering it is owed. The change set's files are read from its run's
@@ -99,8 +101,8 @@ export interface OwedUndos {
 
 /**
  * Read what is owed from the log (the module header). Pages newest first
- * until the newest `user.message` that is not `runId`'s, that event
- * included, or the log's start.
+ * until the newest `user.message` of another run (not `runId`'s, and not
+ * a queued one with no run), that event included, or the log's start.
  */
 export async function readOwedUndos(
   client: Pick<StigmerClient, "listSessionEvents">,
@@ -119,7 +121,7 @@ export async function readOwedUndos(
     });
     for (const event of page.events) {
       slice.push(event);
-      if (event.event.case === "userMessage" && event.runId !== runId) {
+      if (event.event.case === "userMessage" && event.runId !== runId && event.runId !== "") {
         previousMessageRunId = event.runId;
         break read;
       }

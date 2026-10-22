@@ -6,7 +6,10 @@
  * session's log, the set staying on the run's record; the conversation's
  * newest turn leaves its set undecided; and a write that carries no
  * captured set closes nothing, because only a capture's write asks for
- * the newest turn.
+ * the newest turn. The reply says whether messages sent with the turn's
+ * own authority wait in the session's queue for a turn that works
+ * (input_pending), never another sender's, and never for a turn that
+ * waits or has ended.
  */
 import { create } from "@bufbuild/protobuf";
 import type { MessageInitShape } from "@bufbuild/protobuf";
@@ -20,6 +23,7 @@ import type {
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { RunUpdateStatusInputSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceAuditSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 
 import { createLogger } from "../../../boot/logger.js";
 import { testCallerIdentity } from "../../../pipeline/__tests__/support.js";
@@ -28,7 +32,8 @@ import { tempStore } from "../../../store/sqlite/__tests__/support.js";
 import type { TempStore } from "../../../store/sqlite/__tests__/support.js";
 import { SessionEventBroker } from "../../session/events/broker.js";
 import { eventOf } from "../../session/events/codec.js";
-import { createRunAppendingEvents } from "../../session/events/run-writes.js";
+import { enqueueMessage } from "../../session/events/queue.js";
+import { createRunAppendingEvents, updateRunAppendingEvents } from "../../session/events/run-writes.js";
 import { updateStatus } from "../update-status.js";
 import type { UpdateStatusDeps } from "../update-status.js";
 import { fileReviewSeed } from "./file-review-seed.js";
@@ -110,10 +115,25 @@ async function decided(): Promise<Array<[string, string]>> {
   ]);
 }
 
+/**
+ * A later message's turn while `earlier` still works: a session runs one
+ * turn at a time now, so the later turn is created with the earlier one
+ * ended and the earlier one put back to work, as a session written before
+ * that rule could hold the two.
+ */
+async function laterTurnBeside(earlier: string, later: string): Promise<void> {
+  const setPhase = (phase: RunPhase) => (run: Run) => {
+    run.status!.phase = phase;
+  };
+  await updateRunAppendingEvents(deps, earlier, setPhase(RunPhase.RUN_COMPLETED));
+  await createRunAppendingEvents(deps, turn(later));
+  await updateRunAppendingEvents(deps, earlier, setPhase(RunPhase.RUN_IN_PROGRESS));
+}
+
 describe("a turn that captures after a later message was sent", () => {
   it("is kept as it lands, origin next turn, with its decided event in the session's log", async () => {
     await createRunAppendingEvents(deps, turn("run_a"));
-    await createRunAppendingEvents(deps, turn("run_b"));
+    await laterTurnBeside("run_a", "run_b");
 
     await runnerWrites("run_a", true);
 
@@ -143,11 +163,35 @@ describe("a turn that captures after a later message was sent", () => {
 
   it("a capture written again on the outdated turn adds nothing: the log shows it kept", async () => {
     await createRunAppendingEvents(deps, turn("run_a"));
-    await createRunAppendingEvents(deps, turn("run_b"));
+    await laterTurnBeside("run_a", "run_b");
     await runnerWrites("run_a", true);
 
     await runnerWrites("run_a", true);
 
     expect(await decided()).toEqual([["run_a", "next_turn"]]);
+  });
+});
+
+describe("the reply's input_pending", () => {
+  it("says the turn's own messages wait while it works, and nothing once the turn waits or has ended", async () => {
+    const own = turn("run_a");
+    own.status!.audit = create(ApiResourceAuditSchema, { specAudit: { createdBy: { id: "person-a" } } });
+    await createRunAppendingEvents(deps, own);
+    const write = (phase: RunPhase) =>
+      updateStatus(deps, create(RunUpdateStatusInputSchema, { runId: "run_a", status: { phase } }), testCallerIdentity());
+    expect((await write(RunPhase.RUN_IN_PROGRESS)).inputPending).toBe(false);
+    const send = (sender: string) =>
+      enqueueMessage(deps, {
+        sessionId: SESSION,
+        org: "acme",
+        sender,
+        turn: create(RunSchema, { spec: { message: "and the README" } }),
+      });
+    await send("person-b");
+    expect((await write(RunPhase.RUN_IN_PROGRESS)).inputPending, "another sender's message waits for its own turn").toBe(false);
+    await send("person-a");
+    expect((await write(RunPhase.RUN_IN_PROGRESS)).inputPending).toBe(true);
+    expect((await write(RunPhase.RUN_WAITING_FOR_APPROVAL)).inputPending).toBe(false);
+    expect((await write(RunPhase.RUN_COMPLETED)).inputPending).toBe(false);
   });
 });

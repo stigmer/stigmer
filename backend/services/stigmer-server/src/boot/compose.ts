@@ -252,6 +252,8 @@ import { createOrganizationNameInterceptor } from "../pipeline/interceptors/orga
 import { newOrganizationNameResolver } from "../domain/organization/names.js";
 import { accountAsCaller } from "../domain/identityaccount/actor.js";
 import { newStoppedTurnObserver, undoDeciderCaller } from "../domain/session/filereview/stopped-turn.js";
+import { newQueuedTurnObserver, startQueuedTurn } from "../domain/run/queued-turn.js";
+import type { QueuedTurnStarter } from "../domain/run/queued-turn.js";
 import { ensureSingleOrganization } from "./single-organization.js";
 import { operatorIdentitySnapshot } from "../pipeline/steps/defaults.js";
 import { createErrorBoundaryInterceptor } from "../pipeline/interceptors/error-boundary.js";
@@ -1141,7 +1143,27 @@ export async function composeServer(
     reconcileTurns: () => requireInProcess().reconcileTurnCreator,
     callerOf: undoDeciderCaller(personAccounts, () => singleOrganizationCaller),
   });
-  const runStatusObservers = [...extensions.statusObservers, gradingObserver, stoppedTurnObserver];
+  // A session's queued messages: the turn they wait for starts as the turn
+  // that worked ends, in-process AS THE NEWEST SENDER, every create check
+  // met again (domain/run/queued-turn.ts). The workflow's last activity is
+  // the durable start; the observer starts it at once, and for a turn
+  // that ends outside its workflow.
+  const queuedTurnDeps = {
+    store,
+    logger,
+    sessionEventBroker,
+    creator: () => requireInProcess().queuedTurnCreator,
+    callerOf: undoDeciderCaller(personAccounts, () => singleOrganizationCaller),
+  };
+  /* v8 ignore next -- @preserve: called only by a run's workflow end and by sendMessage past admission, both needing an engine */
+  const queuedTurns: QueuedTurnStarter = (sessionId) => startQueuedTurn(queuedTurnDeps, sessionId);
+  const queuedTurnObserver = newQueuedTurnObserver(queuedTurnDeps);
+  const runStatusObservers = [
+    ...extensions.statusObservers,
+    gradingObserver,
+    stoppedTurnObserver,
+    queuedTurnObserver,
+  ];
   const runScores = newRunScoreCascade({
     store,
     logger,
@@ -1218,6 +1240,7 @@ export async function composeServer(
         // The worker's CloseFileReview write appends `decided` events to
         // the session's log; the one fan-out, as for every other writer.
         sessionEventBroker,
+        queuedTurns,
         temporalConfig,
       }),
       newRoutineWorkerFactory({
@@ -2142,6 +2165,7 @@ export async function composeServer(
       sandboxLane,
       temporalConfig,
       sessionCreator: () => requireInProcess().executionSessionCreator,
+      queuedTurns,
       runValuePlanner: {
         store,
         logger,

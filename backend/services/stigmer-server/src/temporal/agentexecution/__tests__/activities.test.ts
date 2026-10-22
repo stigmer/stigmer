@@ -52,6 +52,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import { createLogger } from "../../../boot/logger.js";
 import { fileReviewSeed } from "../../../domain/run/__tests__/file-review-seed.js";
 import { decidedEvent } from "../../../domain/run/filereview/decided.js";
+import { dropQueuedMessages, enqueueMessage } from "../../../domain/session/events/queue.js";
 import { SessionEventBroker } from "../../../domain/session/events/broker.js";
 import { draftOf, eventOf } from "../../../domain/session/events/codec.js";
 import { createRunAppendingEvents, updateRunAppendingEvents } from "../../../domain/session/events/run-writes.js";
@@ -66,6 +67,7 @@ import {
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
   READ_HARNESS_STATE_ID_ACTIVITY_NAME,
   RETIRED_DELETE_EXECUTION_CONTEXT_ACTIVITY_NAME,
+  START_QUEUED_TURN_ACTIVITY_NAME,
   UPDATE_EXECUTION_STATUS_ACTIVITY_NAME,
 } from "../names.js";
 
@@ -113,6 +115,7 @@ function newFixture() {
     logger: silentLogger,
     statusWriter: () => statusWriter,
     sessionEventBroker: new SessionEventBroker(silentLogger),
+    queuedTurns: async () => undefined,
   });
   return {
     store,
@@ -262,6 +265,35 @@ describe("LoadAgentExecution activity", () => {
   });
 });
 
+describe("StartQueuedTurn activity", () => {
+  it("starts the turn its session's queued messages wait for, and lets a fault through for Temporal to retry", async () => {
+    const temp = tempStore();
+    cleanups.push(() => temp.cleanup());
+    const started: string[] = [];
+    let fail = false;
+    const activities = createAgentExecutionActivities({
+      store: temp.store,
+      logger: silentLogger,
+      statusWriter: () => {
+        throw new Error("starting a queued turn writes no status");
+      },
+      sessionEventBroker: new SessionEventBroker(silentLogger),
+      queuedTurns: async (sessionId) => {
+        if (fail) {
+          throw new Error("unavailable");
+        }
+        started.push(sessionId);
+        return undefined;
+      },
+    });
+    const start = activities[START_QUEUED_TURN_ACTIVITY_NAME] as (sessionId: string) => Promise<void>;
+    await start("ses_q");
+    expect(started).toEqual(["ses_q"]);
+    fail = true;
+    await expect(start("ses_q")).rejects.toThrow("unavailable");
+  });
+});
+
 describe("CountOpenGates activity", () => {
   const SESSION = "ses_gates";
   type CountActivity = (executionId: string, sessionId: string) => Promise<number>;
@@ -277,19 +309,24 @@ describe("CountOpenGates activity", () => {
         throw new Error("counting gates writes no status");
       },
       sessionEventBroker,
+      queuedTurns: async () => undefined,
     });
     const count = activities[COUNT_OPEN_GATES_ACTIVITY_NAME] as CountActivity;
-    const turn = async (id: string, sessionId: string, withSet = false): Promise<void> => {
-      await createRunAppendingEvents(
-        { store: temp.store, sessionEventBroker },
-        create(RunSchema, {
-          metadata: { id, org: "test-org" },
-          spec: { target: sessionId === "" ? { case: undefined } : { case: "sessionId", value: sessionId } },
-          status: withSet
-            ? { ...fileReviewSeed(id, `${id}:0`).status, phase: RunPhase.RUN_WAITING_FOR_APPROVAL }
-            : { phase: RunPhase.RUN_WAITING_FOR_APPROVAL },
-        }),
-      );
+    // `beside` stores a second waiting turn of the session as a session
+    // written before one turn at a time held could hold it.
+    const turn = async (id: string, sessionId: string, withSet = false, beside = false): Promise<void> => {
+      const run = create(RunSchema, {
+        metadata: { id, org: "test-org" },
+        spec: { target: sessionId === "" ? { case: undefined } : { case: "sessionId", value: sessionId } },
+        status: withSet
+          ? { ...fileReviewSeed(id, `${id}:0`).status, phase: RunPhase.RUN_WAITING_FOR_APPROVAL }
+          : { phase: RunPhase.RUN_WAITING_FOR_APPROVAL },
+      });
+      if (beside) {
+        await temp.store.saveResource(ApiResourceKind.run, id, RunSchema, run);
+        return;
+      }
+      await createRunAppendingEvents({ store: temp.store, sessionEventBroker }, run);
     };
     const log = async (runId: string, events: ReadonlyArray<SessionEvent>): Promise<void> => {
       await temp.store.sessionEvents.append(SESSION, "test-org", events.map(draftOf), {
@@ -311,7 +348,7 @@ describe("CountOpenGates activity", () => {
   it("counts the turn's open asks: not one answered, not one its result closed, not another run's, never a set awaiting review", async () => {
     const { count, turn, log } = gatesFixture();
     await turn("run_a", SESSION, true);
-    await turn("run_b", SESSION);
+    await turn("run_b", SESSION, false, true);
     expect(await count("run_a", SESSION)).toBe(0);
     await log("run_a", [ask("run_a", "run_a.1"), ask("run_a", "run_a.2"), ask("run_a", "run_a.3"), ask("run_a", "run_a.4")]);
     await log("run_b", [ask("run_b", "run_b.1")]);
@@ -428,6 +465,7 @@ describe("CloseFileReview activity", () => {
         throw new Error("CloseFileReview writes no status through the in-process edge");
       },
       sessionEventBroker,
+      queuedTurns: async () => undefined,
     });
     const close = activities[CLOSE_FILE_REVIEW_ACTIVITY_NAME] as CloseActivity;
     /** Creates a turn the way the run chain does: its user message into the log. */
@@ -478,6 +516,58 @@ describe("CloseFileReview activity", () => {
     const run = await store.getResource(ApiResourceKind.run, "run_a", RunSchema);
     expect(run.status?.fileChanges.map((cs) => cs.id), "the record keeps the set").toEqual(["run_a:0"]);
     expect(await decidedRuns()).toEqual(["run_a"]);
+  });
+
+  it("reads past a message dropped from the queue and a message this run read while it worked, to the previous turn", async () => {
+    const { store, close, turn, decisions } = closeFixture();
+    const writes = { store, sessionEventBroker: new SessionEventBroker(silentLogger) };
+    await turn("run_a", true);
+    await enqueueMessage(writes, {
+      sessionId: SESSION,
+      org: "test-org",
+      sender: "person-a",
+      turn: create(RunSchema, { spec: { message: "dropped" } }),
+    });
+    await dropQueuedMessages(writes, SESSION, "test-org");
+    await turn("run_b", false);
+    await store.sessionEvents.append(
+      SESSION,
+      "test-org",
+      [
+        draftOf(
+          create(SessionEventSchema, {
+            runId: "run_b",
+            event: { case: "userMessage", value: { id: "sevt_read_mid_turn", content: [{ type: "text", text: "also" }] } },
+          }),
+        ),
+      ],
+      { kind: ApiResourceKind.run, id: "run_b", schema: RunSchema, admit: () => undefined },
+    );
+
+    await close("run_b", SESSION);
+
+    expect(await decisions("run_a")).toEqual(["next_turn"]);
+    expect(await decisions("run_b")).toEqual([]);
+  });
+
+  it("reads back past a full page of messages that were never a turn's", async () => {
+    const { store, close, turn, decisions } = closeFixture();
+    const writes = { store, sessionEventBroker: new SessionEventBroker(silentLogger) };
+    await turn("run_a", true);
+    for (let i = 0; i < 101; i++) {
+      await enqueueMessage(writes, {
+        sessionId: SESSION,
+        org: "test-org",
+        sender: "person-a",
+        turn: create(RunSchema, { spec: { message: `dropped ${i}` } }),
+      });
+    }
+    await dropQueuedMessages(writes, SESSION, "test-org");
+    await turn("run_b", false);
+
+    await close("run_b", SESSION);
+
+    expect(await decisions("run_a")).toEqual(["next_turn"]);
   });
 
   it("closes the turn before this run's own message, not the newest, and only once", async () => {

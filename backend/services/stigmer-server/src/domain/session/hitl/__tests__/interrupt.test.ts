@@ -35,6 +35,7 @@ import type { ConnectedExecutionEngine } from "../../../run/engine.js";
 import { ENGINE_DISCONNECTED } from "../../../run/engine.js";
 import { SessionEventBroker } from "../../events/broker.js";
 import { eventOf } from "../../events/codec.js";
+import { enqueueMessage } from "../../events/queue.js";
 import { createRunAppendingEvents, updateRunAppendingEvents } from "../../events/run-writes.js";
 import { interrupt } from "../interrupt.js";
 import type { InterruptDeps } from "../interrupt.js";
@@ -90,17 +91,25 @@ function deps(
 
 const writeDeps = () => ({ store: temp.store, sessionEventBroker: new SessionEventBroker(silentLogger) });
 
-/** A turn of the session that reached `phase`; a waiting one has an open ask. */
+/**
+ * A turn of the session that reached `phase`; a waiting one has an open ask.
+ * The first is created as a turn is; each later one is stored beside it, as
+ * a session written before one turn at a time held could hold several
+ * unfinished turns, which an interrupt still stops.
+ */
 async function seedTurn(runId: string, phase: RunPhase): Promise<void> {
   const waiting = phase === RunPhase.RUN_WAITING_FOR_APPROVAL;
-  await createRunAppendingEvents(
-    writeDeps(),
-    create(RunSchema, {
-      metadata: { id: runId, org: "acme" },
-      spec: { target: { case: "sessionId", value: SESSION }, message: `turn ${runId}` },
-      status: { phase: RunPhase.RUN_PENDING },
-    }),
-  );
+  const turn = create(RunSchema, {
+    metadata: { id: runId, org: "acme" },
+    spec: { target: { case: "sessionId", value: SESSION }, message: `turn ${runId}` },
+    status: { phase: RunPhase.RUN_PENDING },
+  });
+  const first = (await temp.store.sessionEvents.list(SESSION, { order: "asc", limit: 1 })).length === 0;
+  if (first) {
+    await createRunAppendingEvents(writeDeps(), turn);
+  } else {
+    await temp.store.saveResource(ApiResourceKind.run, runId, RunSchema, turn);
+  }
   if (waiting) {
     await appendAsks(temp.store, runId, [{ id: "tc-1", name: "write" }]);
   }
@@ -141,6 +150,34 @@ async function statusLog(): Promise<string[]> {
 }
 
 describe("interrupt", () => {
+  it("drops the session's queued messages before it stops the turns: they stay listed, never accepted", async () => {
+    await seedTurn("run_working", RunPhase.RUN_IN_PROGRESS);
+    const queued = await enqueueMessage(writeDeps(), {
+      sessionId: SESSION,
+      org: "acme",
+      sender: "person-a",
+      turn: create(RunSchema, { spec: { message: "and the README" } }),
+    });
+    expect("queued" in queued).toBe(true);
+    let queueAtCancel = -1;
+    const response = await stop(
+      deps({
+        engine: {
+          cancelWorkflow: async (runId) => {
+            cancelled.push(runId);
+            queueAtCancel = (await temp.store.sessionEvents.queued(SESSION)).length;
+          },
+        },
+      }),
+    );
+    expect(response.stoppedRunIds).toEqual(["run_working"]);
+    expect(queueAtCancel, "the queue was dropped before the turn was stopped").toBe(0);
+    const [message] = await temp.store.sessionEvents.list(SESSION, { order: "asc", types: ["user.message"], runId: "", limit: 1 });
+    expect([message?.runId, message?.processedAt]).toEqual(["", ""]);
+    const log = await statusLog();
+    expect(log.slice(log.indexOf("user.interrupt"))).toEqual(["user.interrupt", "session.status_idle end_turn"]);
+  });
+
   it("stops every unfinished turn of the session, waiting and paused ones included, and the session ends its turn", async () => {
     await seedTurn("run_waiting", RunPhase.RUN_WAITING_FOR_APPROVAL);
     await seedTurn("run_paused", RunPhase.RUN_PAUSED);
@@ -268,6 +305,14 @@ describe("interrupt's faults", () => {
     ]) {
       expect((await refusal(stop({ ...deps(), store }))).code).toBe(Code.Internal);
     }
+  });
+
+  it("a store fault dropping the session's queue is Internal, and stops no turn", async () => {
+    await seedTurn("run_working", RunPhase.RUN_IN_PROGRESS);
+    const store = faulty({ writeSessionQueue: () => Promise.reject(new Error("disk")) });
+    const error = await refusal(stop({ ...deps(), store }));
+    expect([error.code, error.rawMessage]).toEqual([Code.Internal, "failed to drop the session's queued messages"]);
+    expect(cancelled).toEqual([]);
   });
 
   it("a session removed between its load and the event's append is not found", async () => {

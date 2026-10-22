@@ -99,6 +99,7 @@ import type {
 } from "../list-index.js";
 import { NOOP_STORE_LOGGER } from "../logger.js";
 import {
+  QueuedSessionMessageGoneError,
   SessionEventConflictError,
   assertSessionEventLimit,
   dedupeSessionEventDrafts,
@@ -108,6 +109,7 @@ import {
 } from "../session-events.js";
 import type {
   OpenSessionEventGate,
+  QueuedSessionMessage,
   ResourceEventWriteResult,
   ResourceEventWriter,
   SessionEventAppend,
@@ -119,6 +121,9 @@ import type {
   SessionEventRecord,
   SessionEventScope,
   SessionEventStore,
+  SessionQueueScope,
+  SessionQueueWriteResult,
+  SessionQueueWriter,
 } from "../session-events.js";
 import type { StoreLogger } from "../logger.js";
 import { assertRenameMoves } from "../resource-names.js";
@@ -660,6 +665,9 @@ export class SqliteStore implements Store {
         othersWaiting: [],
         gates: [],
         runEvents: [],
+        othersPaused: [],
+        queuedCount: 0,
+        queued: [],
       };
       if (sessionId !== "") {
         const latestState = latestOfTypes(db, sessionId, scope.stateEventTypes);
@@ -667,6 +675,7 @@ export class SqliteStore implements Store {
           scope.waitingKey === undefined
             ? []
             : othersHolding(db, declaration, id, scope.waitingKey, sessionId);
+        const queued = scope.queued === true ? queuedOf(db, sessionId) : [];
         context = {
           othersWorking: othersHolding(db, declaration, id, scope.workingKey, sessionId).length,
           latestStateType: latestState?.type,
@@ -680,6 +689,10 @@ export class SqliteStore implements Store {
             scope.waitingKey === undefined ? [] : openGatesOfRuns(db, sessionId, [...othersWaiting, id]),
           runEvents:
             scope.runEventTypes === undefined ? [] : eventsOfRun(db, sessionId, id, scope.runEventTypes),
+          othersPaused:
+            scope.pausedKey === undefined ? [] : othersHolding(db, declaration, id, scope.pausedKey, sessionId),
+          queuedCount: scope.queued === true ? queued.length : queuedCountOf(db, sessionId),
+          queued,
         };
       }
       const outcome = write(previous, context);
@@ -712,6 +725,9 @@ export class SqliteStore implements Store {
         ) {
           replaceListKeys(db, kindName, id, after);
         }
+        if (outcome.takeQueued !== undefined && outcome.takeQueued.length > 0) {
+          takeQueued(db, sessionId, outcome.takeQueued);
+        }
       } else {
         db.prepare(`DELETE FROM resources WHERE kind = ? AND id = ?`).run(kindName, id);
         db.prepare(`DELETE FROM resource_list_keys WHERE kind = ? AND id = ?`).run(kindName, id);
@@ -736,6 +752,64 @@ export class SqliteStore implements Store {
             );
       db.exec("COMMIT");
       return { previous, row, events };
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
+  }
+
+  async writeSessionQueue(
+    sessionId: string,
+    org: string,
+    scope: SessionQueueScope,
+    write: SessionQueueWriter,
+  ): Promise<SessionQueueWriteResult> {
+    const declaration = this.listIndexes.declarationOf(scope.kind);
+    if (declaration === undefined) {
+      throw new Error(`${apiResourceKindName(scope.kind)} is not list-indexed; it cannot count a session's rows`);
+    }
+    if (sessionId === "") {
+      throw new Error("a queue needs a session");
+    }
+    const db = this.open();
+    // BEGIN IMMEDIATE serializes every writer of the file
+    // (postgres/store.ts takes the session's lock for the same).
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const outcome = write({
+        working: othersHolding(db, declaration, "", scope.workingKey, sessionId),
+        waiting: othersHolding(db, declaration, "", scope.waitingKey, sessionId),
+        paused: othersHolding(db, declaration, "", scope.pausedKey, sessionId),
+        queued: queuedOf(db, sessionId),
+        latestState: latestOfTypes(db, sessionId, scope.stateEventTypes),
+      });
+      let enqueued: SessionEventRecord | undefined;
+      if (outcome.enqueue !== undefined) {
+        [enqueued] = insertSessionEvents(
+          db,
+          sessionId,
+          org,
+          dedupeSessionEventDrafts(sessionId, [outcome.enqueue.draft]),
+          this.gates,
+          { queued: true },
+        );
+        db.prepare(
+          `INSERT INTO session_queued_messages (session_id, event_id, org, sender, turn) VALUES (?, ?, ?, ?, ?)`,
+        ).run(sessionId, outcome.enqueue.draft.eventId, org, outcome.enqueue.entry.sender, outcome.enqueue.entry.turn);
+      }
+      const dropped: string[] = [];
+      const dropOne = db.prepare(`DELETE FROM session_queued_messages WHERE session_id = ? AND event_id = ?`);
+      for (const eventId of outcome.drop ?? []) {
+        if (Number(dropOne.run(sessionId, eventId).changes) > 0) {
+          dropped.push(eventId);
+        }
+      }
+      const events =
+        outcome.events === undefined || outcome.events.length === 0
+          ? []
+          : insertSessionEvents(db, sessionId, org, dedupeSessionEventDrafts(sessionId, outcome.events), this.gates);
+      db.exec("COMMIT");
+      return { enqueued, dropped, events };
     } catch (error) {
       db.exec("ROLLBACK");
       throw error;
@@ -2831,23 +2905,32 @@ function eventsOfRun(
   return rows.map(sessionEventOf);
 }
 
-/** The run of the session's newest event of `type`; undefined when it has none. */
+/**
+ * The run of the session's newest event of `type` that belongs to a run,
+ * passing over a queued message (postgres/store.ts's twin); undefined when
+ * it has none.
+ */
 function runOfNewestOfType(db: DatabaseSync, sessionId: string, type: string): string | undefined {
   const row = db
     .prepare(
-      `SELECT run_id FROM session_events WHERE session_id = ? AND type = ? ORDER BY seq DESC LIMIT 1`,
+      `SELECT run_id FROM session_events WHERE session_id = ? AND type = ? AND run_id <> '' ORDER BY seq DESC LIMIT 1`,
     )
     .get(sessionId, type) as { run_id: string } | undefined;
   return row?.run_id;
 }
 
-/** Appends drafts after the session's newest event, on the caller's open write transaction. */
+/**
+ * Appends drafts after the session's newest event, on the caller's open
+ * write transaction; a queued message is accepted at no time
+ * (postgres/store.ts's twin).
+ */
 function insertSessionEvents(
   db: DatabaseSync,
   sessionId: string,
   org: string,
   drafts: ReadonlyArray<SessionEventDraft>,
   gates: SessionEventGateDeclaration | undefined,
+  options: { readonly queued?: boolean } = {},
 ): SessionEventRecord[] {
   if (drafts.length === 0) {
     return [];
@@ -2857,7 +2940,8 @@ function insertSessionEvents(
   const last = db
     .prepare(`SELECT last_seq, last_processed_at FROM session_event_heads WHERE session_id = ?`)
     .get(sessionId) as { last_seq: number; last_processed_at: string } | undefined;
-  const processedAt = instantNotBefore(Date.now(), last?.last_processed_at);
+  const headProcessedAt = instantNotBefore(Date.now(), last?.last_processed_at);
+  const processedAt = options.queued === true ? "" : headProcessedAt;
   let seq = last === undefined ? 0 : Number(last.last_seq);
   const insert = db.prepare(
     `INSERT INTO session_events
@@ -2886,8 +2970,43 @@ function insertSessionEvents(
   db.prepare(
     `INSERT INTO session_event_heads (session_id, org, last_seq, last_processed_at) VALUES (?, ?, ?, ?)
      ON CONFLICT (session_id) DO UPDATE SET last_seq = excluded.last_seq, last_processed_at = excluded.last_processed_at`,
-  ).run(sessionId, org, seq, processedAt);
+  ).run(sessionId, org, seq, options.queued === true ? (last?.last_processed_at ?? headProcessedAt) : processedAt);
   return records;
+}
+
+/** The session's queue, in the order sent (postgres/store.ts's twin). */
+function queuedOf(db: DatabaseSync, sessionId: string): QueuedSessionMessage[] {
+  const rows = db
+    .prepare(
+      `SELECT e.session_id, e.seq, e.event_id, e.run_id, e.thread_id, e.type, e.processed_at, e.data,
+              q.sender, q.turn
+       FROM session_queued_messages q
+       JOIN session_events e ON e.session_id = q.session_id AND e.event_id = q.event_id
+       WHERE q.session_id = ?
+       ORDER BY e.seq ASC`,
+    )
+    .all(sessionId) as unknown as Array<SessionEventRow & { sender: string; turn: Uint8Array }>;
+  return rows.map((row) => ({ record: sessionEventOf(row), sender: row.sender, turn: row.turn }));
+}
+
+/** How many messages wait in the session's queue. */
+function queuedCountOf(db: DatabaseSync, sessionId: string): number {
+  const row = db
+    .prepare(`SELECT count(*) AS n FROM session_queued_messages WHERE session_id = ?`)
+    .get(sessionId) as { n: number };
+  return Number(row.n);
+}
+
+/** Removes the queued messages a write takes (postgres/store.ts's twin); refuses when any no longer waits. */
+function takeQueued(db: DatabaseSync, sessionId: string, eventIds: ReadonlyArray<string>): void {
+  const dropSide = db.prepare(`DELETE FROM session_queued_messages WHERE session_id = ? AND event_id = ?`);
+  const dropEvent = db.prepare(`DELETE FROM session_events WHERE session_id = ? AND event_id = ?`);
+  for (const eventId of eventIds) {
+    if (Number(dropSide.run(sessionId, eventId).changes) === 0) {
+      throw new QueuedSessionMessageGoneError(sessionId, eventId);
+    }
+    dropEvent.run(sessionId, eventId);
+  }
 }
 
 class SqliteSessionEventStore implements SessionEventStore {
@@ -2947,6 +3066,10 @@ class SqliteSessionEventStore implements SessionEventStore {
     return openGatesOfRuns(this.open(), sessionId, [runId]);
   }
 
+  async queued(sessionId: string): Promise<QueuedSessionMessage[]> {
+    return queuedOf(this.open(), sessionId);
+  }
+
   async append(
     sessionId: string,
     org: string,
@@ -3003,6 +3126,7 @@ class SqliteSessionEventStore implements SessionEventStore {
   async deleteBySession(sessionId: string): Promise<number> {
     const db = this.open();
     const result = db.prepare(`DELETE FROM session_events WHERE session_id = ?`).run(sessionId);
+    db.prepare(`DELETE FROM session_queued_messages WHERE session_id = ?`).run(sessionId);
     db.prepare(`DELETE FROM session_event_heads WHERE session_id = ?`).run(sessionId);
     return Number(result.changes);
   }
@@ -3010,6 +3134,7 @@ class SqliteSessionEventStore implements SessionEventStore {
   async deleteByOrg(org: string): Promise<number> {
     const db = this.open();
     const result = db.prepare(`DELETE FROM session_events WHERE org = ?`).run(org);
+    db.prepare(`DELETE FROM session_queued_messages WHERE org = ?`).run(org);
     db.prepare(`DELETE FROM session_event_heads WHERE org = ?`).run(org);
     return Number(result.changes);
   }

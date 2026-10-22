@@ -39,6 +39,15 @@ func (r *RunClient) Create(ctx context.Context, input *RunInput) (*runv1.Run, er
 	return resp, wrapErr(err)
 }
 
+func (r *RunClient) SendMessage(ctx context.Context, input *RunInput) (*runv1.SendMessageResponse, error) {
+	req, err := input.toProto()
+	if err != nil {
+		return nil, invalidInputErr(err)
+	}
+	resp, err := r.command.SendMessage(ctx, req)
+	return resp, wrapErr(err)
+}
+
 func (r *RunClient) Update(ctx context.Context, resource *runv1.Run, paths []string) (*runv1.Run, error) {
 	resp, err := r.command.Update(ctx, &runv1.UpdateRunInput{
 		Resource:   resource,
@@ -215,6 +224,7 @@ type RunInput struct {
 	ReconcileFileReview    bool
 	ExcludedPluginIds      []string
 	FileIds                []string
+	QueuedMessageIds       []string
 }
 
 // SessionSpecInput is the SDK input type for SessionSpec.
@@ -392,6 +402,7 @@ func (i *RunInput) toProto() (*runv1.Run, error) {
 	resource.Spec.ReconcileFileReview = i.ReconcileFileReview
 	resource.Spec.ExcludedPluginIds = i.ExcludedPluginIds
 	resource.Spec.FileIds = i.FileIds
+	resource.Spec.QueuedMessageIds = i.QueuedMessageIds
 	return resource, nil
 }
 
@@ -506,6 +517,7 @@ func RunInputFromProto(p *runv1.Run) *RunInput {
 		input.ReconcileFileReview = s.GetReconcileFileReview()
 		input.ExcludedPluginIds = s.GetExcludedPluginIds()
 		input.FileIds = s.GetFileIds()
+		input.QueuedMessageIds = s.GetQueuedMessageIds()
 		input.SessionId = s.GetSessionId()
 		if ov := s.GetSessionSpec(); ov != nil {
 			input.SessionSpec = sessionSpecInputFromProto(ov)

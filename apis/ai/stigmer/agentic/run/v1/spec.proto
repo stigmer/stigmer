@@ -394,6 +394,25 @@ message RunSpec {
       string: {min_len: 1}
     }
   }];
+
+  // The queued messages this turn reads, by their user.message ids, in
+  // the order they were sent: set on the turn a session starts with the
+  // messages still queued when its working turn ended
+  // (RunCommandController.sendMessage).
+  //
+  // @internal
+  // Set only by the server's start of a session's queued messages; run
+  // create refuses it on a request that is not server-composed, as it
+  // refuses eval_case. Its creation writes no user.message: it moves these
+  // queued ones to the head of the log as this turn's, under the session's
+  // lock, and refuses the turn when any of them is no longer queued.
+  repeated string queued_message_ids = 29 [(buf.validate.field).repeated = {
+    max_items: 1000
+    unique: true
+    items: {
+      string: {min_len: 1}
+    }
+  }];
 }
 
 // ConversationCatchup carries the channel-conversation events an agent

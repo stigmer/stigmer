@@ -22,6 +22,13 @@
  * with its phase. A tool call the turn never finished is read as stopped
  * from the turn's end in the session's log; no transition writes it.
  *
+ * One turn of a session at a time (stigmer#2429): resume refuses while
+ * another turn of the run's session is unfinished, and recover also while
+ * messages wait in the session's queue for the turn they start
+ * (RefuseAnotherUnfinishedTurn, SESSION_TURN_UNFINISHED); terminate drops
+ * the session's queue before it stops the turn, as the session's interrupt
+ * does, so the stopped turn's end starts nothing (queued-turn.ts).
+ *
  * That persist makes each transition atomic, not a whole chain. Recover's
  * chain acts on Temporal and on the run's value plan before its
  * persist, all decided on one read of the execution, so two recovers run
@@ -92,7 +99,10 @@ import {
 import { notifyStatusObservers } from "./status-observers.js";
 import { sessionIdOf } from "./target.js";
 import type { SessionEventBroker } from "../session/events/broker.js";
+import { dropQueuedMessages, readSessionTurns } from "../session/events/queue.js";
 import { updateRunAppendingEvents } from "../session/events/run-writes.js";
+import { sessionIdOfRun } from "../session/events/transitions.js";
+import { SESSION_TURN_UNFINISHED_REASON, sessionTurnUnfinishedMessage } from "./constants.js";
 
 // Context keys — Go's key strings, verbatim. The loaded-execution key is
 // the shared pipeline constant (request-context.ts): extension gate steps
@@ -383,6 +393,80 @@ function newUpdateExecutionPhaseAndPersistStep<Desc extends DescMessage>(
   };
 }
 
+/**
+ * RefuseAnotherUnfinishedTurn: a run that would work again (resume,
+ * recover) is refused while another turn of its session is unfinished,
+ * and, with `queueHolds`, while messages wait in the session's queue for
+ * the turn they start. An already-recovered run (the idempotent arm) is
+ * not asked.
+ */
+function newRefuseAnotherUnfinishedTurnStep<Desc extends DescMessage>(
+  deps: Pick<LifecycleDeps, "store">,
+  queueHolds: boolean,
+): PipelineStep<Desc> {
+  return {
+    name: "RefuseAnotherUnfinishedTurn",
+    async execute(ctx) {
+      if (ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true) {
+        return;
+      }
+      const execution = loadedExecution(ctx);
+      const runId = execution.metadata?.id ?? "";
+      const sessionId = sessionIdOfRun(execution);
+      if (sessionId === "") {
+        return;
+      }
+      let turns;
+      try {
+        turns = await readSessionTurns(deps.store, sessionId);
+      } catch (error) {
+        throw internalError(error, "failed to read the session's turns");
+      }
+      const others = [...turns.working, ...turns.waiting, ...turns.paused].filter((id) => id !== runId);
+      if (others.length > 0 || (queueHolds && turns.queued.length > 0)) {
+        throw failedPreconditionError(sessionTurnUnfinishedMessage(sessionId), {
+          reason: SESSION_TURN_UNFINISHED_REASON,
+          metadata: { session_id: sessionId },
+        });
+      }
+    },
+  };
+}
+
+/** Why terminate's drop leaves the queued messages unread, recorded as the session's error. */
+const TERMINATED_QUEUE_DROP = {
+  type: "unknown_error",
+  message: "the queued messages were not read: the turn was terminated",
+} as const;
+
+/**
+ * DropSessionQueue: a person's stop of a turn drops the messages still
+ * waiting in its session's queue, which stay listed, never accepted; the
+ * session's error says why, so a reader of the log sees them dropped.
+ */
+function newDropSessionQueueStep<Desc extends DescMessage>(
+  deps: Pick<LifecycleDeps, "store" | "sessionEventBroker">,
+): PipelineStep<Desc> {
+  return {
+    name: "DropSessionQueue",
+    async execute(ctx) {
+      if (ctx.get(ALREADY_IN_TARGET_STATE_KEY) === true) {
+        return;
+      }
+      const execution = loadedExecution(ctx);
+      const sessionId = sessionIdOfRun(execution);
+      if (sessionId === "") {
+        return;
+      }
+      try {
+        await dropQueuedMessages(deps, sessionId, execution.metadata?.org ?? "", { reason: TERMINATED_QUEUE_DROP });
+      } catch (error) {
+        throw internalError(error, "failed to drop the session's queued messages");
+      }
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // The RPCs.
 // ---------------------------------------------------------------------------
@@ -496,6 +580,7 @@ export async function terminateExecution(
           `cannot terminate execution in phase ${phaseName(phase)}; only PENDING or IN_PROGRESS can be terminated`,
         logger: deps.logger,
       }),
+      newDropSessionQueueStep(deps),
       newEngineLifecycleStep({
         name: "TerminateTemporalWorkflow",
         deps,
@@ -599,6 +684,7 @@ export async function resumeExecution(
           `cannot resume execution in phase ${phaseName(phase)}; only PAUSED executions can be resumed`,
         logger: deps.logger,
       }),
+      newRefuseAnotherUnfinishedTurnStep(deps, false),
       newEngineLifecycleStep({
         name: "SignalResumeToTemporal",
         deps,
@@ -675,6 +761,7 @@ function runRecoverPipeline(
           `cannot recover execution in phase ${phaseName(phase)}; only FAILED executions can be recovered`,
         logger: deps.logger,
       }),
+      newRefuseAnotherUnfinishedTurnStep(deps, true),
       // A rerun runs the agent again, so the caller must still be able
       // to, asked before anything is terminated, charged or written: the
       // agent the turn recorded, or its session's pin for a turn that

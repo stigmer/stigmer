@@ -7,8 +7,9 @@
 //   - the owner lists an event log (empty before any turn);
 //   - an outsider is refused listEvents and streamEvents with each method's
 //     byte-pinned annotation copy, and sees nothing;
-//   - appendEvents admits only the runner acting for a run: a signed-in
-//     person's own credential, even the session owner's, is refused.
+//   - appendEvents, bindHarnessState and claimInput admit only the runner
+//     acting for a run: a signed-in person's own credential, even the
+//     session owner's, is refused.
 //
 // The log's content on real turns, and the runner's own appends, are the
 // execution suite's (suites-execution/session-events.conformance.test.ts).
@@ -108,5 +109,16 @@ describe("a session's event log — who may read and write it (on the enforcing 
       "bindHarnessState with a signed-in person's credential",
     );
     expect(refused.rawMessage).toBe("only the runner acting for this run may record its session's harness state");
+  });
+
+  it("[rpc:SessionCommandController.claimInput] a person's own credential is no runner's: even the session's owner is refused", async (ctx) => {
+    const lane = laneOrSkip(ctx);
+    await ownersSession(lane);
+    const refused = await expectGrpcCode(
+      () => clients.sessionCommand.claimInput({ runId: "run_01conformancenotarunner" }),
+      Code.PermissionDenied,
+      "claimInput with a signed-in person's credential",
+    );
+    expect(refused.rawMessage).toBe("only the runner acting for this run may append its events");
   });
 });

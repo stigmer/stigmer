@@ -21,13 +21,14 @@
 //     they are appended, in the same order as the list;
 //   - every phase change of a turn is a stigmer.run.status of its run (the
 //     server's): pending at its creation, running, and the phase that ends
-//     it, before the session's idle; a turn that ends while another waits
-//     for the workspace says so, though the session's status does not
-//     change. The arms that pin the session's own sequence read the log
-//     without these;
-//   - the session's status describes the whole session: with a second turn
-//     sent while the first still works, the session reads running until
-//     BOTH have ended, with one idle, after both user messages;
+//     it, before the session's idle; a turn that ends with a message
+//     queued says so, though the session's status does not change. The
+//     arms that pin the session's own sequence read the log without these;
+//   - the session's status describes the whole session: a message sent
+//     while the turn works (sendMessage) waits in the log with no run and
+//     no processed_at, and the session reads running until the turn that
+//     reads it has ended, with one idle; the message is then listed once,
+//     as that turn's, after the first turn's end;
 //   - a cancelled turn ends the session's turn as end_turn;
 //   - in a session with file review on, a turn that edits a file writes
 //     stigmer.file_review.changes from its change set before it ends; a
@@ -51,6 +52,7 @@ import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import type { StreamSessionEventsResponse } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import type { SendMessageResponse } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import type { AnthropicMessageBody } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
@@ -67,6 +69,7 @@ import { pollUntil } from "../support/run-poll";
 import {
   type AgentExecutionOptions,
   awaitPhase,
+  awaitRunThatRead,
   awaitTerminal,
   makeAgentExecution,
   pushFixturePlugin,
@@ -189,6 +192,13 @@ async function startTurn(org: string, sessionId: string, message: string): Promi
   return id;
 }
 
+/** A message sent to the session (sendMessage): started at once, or queued while a turn works. */
+async function sendTurnMessage(org: string, sessionId: string, message: string): Promise<SendMessageResponse> {
+  return clients.agentExecutionCommand.sendMessage(
+    makeAgentExecution({ org, name: uniqueName("events-run"), sessionId, message, autoApproveAll: true }),
+  );
+}
+
 /** The session's log as the session's own arms read it (`sessionOnly`). */
 async function log(sessionId: string): Promise<SessionEvent[]> {
   return sessionOnly(await fullLog(sessionId));
@@ -300,26 +310,37 @@ describe("a session's event log on real turns", () => {
     expect(streamed.map((e) => e.seq)).toEqual((await log(sessionId)).map((e) => e.seq));
   });
 
-  it("[rpc:SessionQueryController.listEvents] with a second turn sent while the first works, the session reads running until both have ended", async () => {
+  it("[rpc:RunCommandController.sendMessage] a message sent while the turn works waits in the log, and the session reads running until the turn that reads it has ended", async () => {
     const { org } = await target.provisionTenancy();
     const sessionId = await newSession(org);
     mock.enqueue(anthropicText("First, held."), { delayMs: HOLD_MS });
     mock.enqueue(anthropicText("Second."));
     const first = await startTurn(org, sessionId, "first");
     await awaitPhase(clients, first, RunPhase.RUN_IN_PROGRESS);
-    const second = await startTurn(org, sessionId, "second");
-    const whileWorking = (await log(sessionId)).map(typeOf);
-    expect(whileWorking).toEqual(["user.message", "session.status_running", "user.message"]);
+    const sent = await sendTurnMessage(org, sessionId, "second");
+    expect(sent.run, "no second turn starts while the first works").toBeUndefined();
+    const whileWorking = await log(sessionId);
+    expect(whileWorking.map(typeOf)).toEqual(["user.message", "session.status_running", "user.message"]);
+    const queued = whileWorking[2]!;
+    expect([queued.runId, queued.event.case === "userMessage" && queued.event.value.processedAt]).toEqual(["", ""]);
 
     mock.releaseHolds();
-    await Promise.all([awaitTerminal(clients, first), awaitTerminal(clients, second)]);
-    const events = await log(sessionId);
+    await awaitTerminal(clients, first);
+    const second = await awaitRunThatRead(clients, sessionId, sent, { timeoutMs: HOLD_MS });
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: second }).catch(() => undefined));
+    await awaitTerminal(clients, second);
+    const events = await pollUntil(
+      () => log(sessionId),
+      (got) => got.length > 0 && typeOf(got[got.length - 1]!) === "session.status_idle",
+      (last) => `the session never went idle: ${JSON.stringify(last?.map(typeOf))}`,
+    );
     const statuses = events.filter((e) => typeOf(e).startsWith("session.status_"));
-    expect(statuses.map(typeOf), "one running, then one idle when the last turn ended").toEqual([
+    expect(statuses.map(typeOf), "one running, then one idle when the turn that read the message ended").toEqual([
       "session.status_running",
       "session.status_idle",
     ]);
-    expect(typeOf(events[events.length - 1]!)).toBe("session.status_idle");
+    const messages = events.filter((e) => e.event.case === "userMessage");
+    expect(messages.map((e) => e.runId), "the message is listed once, as the turn's that read it").toEqual([first, second]);
   });
 
   it("[rpc:SessionQueryController.listEvents] each phase change of a turn is a stigmer.run.status of its run, the one that ends it before the session's idle", async () => {
@@ -345,29 +366,32 @@ describe("a session's event log on real turns", () => {
     expect(ended.case === "stigmerRunStatus" && [ended.value.stopCause, ended.value.error]).toEqual(["", ""]);
   });
 
-  it("[rpc:SessionQueryController.listEvents] a turn that ends while the next waits for the workspace leaves its own end, though the session's status stays running", async () => {
+  it("[rpc:SessionQueryController.listEvents] a turn that ends with a message queued leaves its own end, the session running on into the turn that reads it", async () => {
     const { org } = await target.provisionTenancy();
     const sessionId = await newSession(org);
     mock.enqueue(anthropicText("First, held."), { delayMs: HOLD_MS });
     mock.enqueue(anthropicText("Second."));
     const first = await startTurn(org, sessionId, "first");
     await awaitPhase(clients, first, RunPhase.RUN_IN_PROGRESS);
-    const second = await startTurn(org, sessionId, "second");
+    const sent = await sendTurnMessage(org, sessionId, "second");
     mock.releaseHolds();
-    await Promise.all([awaitTerminal(clients, first), awaitTerminal(clients, second)]);
+    await awaitTerminal(clients, first);
+    const second = await awaitRunThatRead(clients, sessionId, sent, { timeoutMs: HOLD_MS });
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: second }).catch(() => undefined));
+    await awaitTerminal(clients, second);
     const events = await pollUntil(
       () => fullLog(sessionId),
       (got) => got.length > 0 && typeOf(got[got.length - 1]!) === "session.status_idle",
       (last) => `the session never went idle: ${JSON.stringify(last?.map(typeOf))}`,
     );
     const firstEnd = events.findIndex((e) => e.runId === first && e.event.case === "stigmerRunStatus" && e.event.value.phase === "completed");
+    const read = events.findIndex((e) => e.runId === second && e.event.case === "userMessage");
     const secondEnd = events.findIndex((e) => e.runId === second && e.event.case === "stigmerRunStatus" && e.event.value.phase === "completed");
     expect(firstEnd, "the first turn's end is in the log").toBeGreaterThan(0);
-    expect(secondEnd, "the second turn's end is in the log").toBeGreaterThan(0);
-    const firstDone = Math.min(firstEnd, secondEnd);
+    expect(read, "the message moved after the first turn's end, as the next turn's").toBeGreaterThan(firstEnd);
+    expect(secondEnd, "the next turn's end follows").toBeGreaterThan(read);
     const idles = events.flatMap((e, i) => (e.event.case === "sessionStatusIdle" ? [i] : []));
     expect(idles, "the session idles once, after the last turn ended").toEqual([events.length - 1]);
-    expect(firstDone, "whichever turn ended first, it said so while the session still worked").toBeLessThan(idles[0]! - 1);
   });
 
   it("[rpc:SessionQueryController.listEvents] an interrupted turn ends the session's turn as end_turn", async () => {

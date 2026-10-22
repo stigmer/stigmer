@@ -5,6 +5,7 @@ package ai.stigmer.agentic.run.v1;
 import "ai/stigmer/agentic/run/v1/api.proto";
 import "ai/stigmer/agentic/run/v1/enum.proto";
 import "ai/stigmer/agentic/run/v1/usage.proto";
+import "ai/stigmer/agentic/session/v1/event.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/field_mask.proto";
@@ -116,6 +117,25 @@ message UpdateStatusResponse {
   // Human-readable reason for the signal (optional).
   // Logged by the runner and may be surfaced to the user in the stop summary.
   string signal_reason = 2;
+
+  // Messages sent to the run's session wait to be read
+  // (RunCommandController.sendMessage).
+  //
+  // @internal
+  // Read under the same lock as the status write it answers. The runner
+  // takes them with SessionCommandController.claimInput at a point where
+  // its engine can deliver them.
+  bool input_pending = 3;
+}
+
+// SendMessageResponse answers a message sent to a session.
+message SendMessageResponse {
+  // The message's user.message: queued, with no processed_at and no
+  // run_id, or the one the started turn was created with.
+  ai.stigmer.agentic.session.v1.SessionEvent message = 1;
+
+  // The turn the message started; absent when it was queued.
+  Run run = 2;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

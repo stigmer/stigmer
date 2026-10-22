@@ -167,8 +167,10 @@ service SessionCommandController {
   // Stop the session's unfinished work.
   //
   // Appends a user.interrupt and stops every unfinished turn of the
-  // conversation: queued, working, waiting for an answer or paused. Each
-  // ends cancelled and the session goes idle with end_turn. Files undone
+  // conversation: pending, working, waiting for an answer or paused. Each
+  // ends cancelled and the session goes idle with end_turn. The messages
+  // still queued for a turn (RunCommandController.sendMessage) are dropped
+  // first: they stay listed with no processed_at, never read. Files undone
   // in a turn that waited are put back at once.
   //
   // ## Error Conditions
@@ -225,6 +227,22 @@ service SessionCommandController {
   // decided by the composed RunnerCredentialProvider (its
   // authorizeRunnerForRun capability, else the execution-scoped binding).
   rpc appendEvents(AppendSessionEventsInput) returns (AppendSessionEventsResponse) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Take the messages queued in a run's session for the run to read.
+  //
+  // Only the runner acting for the run may call it, while the run works
+  // (pending or in progress). Every message still queued moves to the head
+  // of the log as this run's, with its processed_at, and is answered in
+  // the order sent; none when nothing waits.
+  //
+  // @internal
+  // Skip-authorization: a permission cannot tell a runner from the person
+  // it acts for. The handler admits only a runner credential for this run,
+  // as appendEvents admits one. UpdateStatusResponse.input_pending says
+  // when a call would take something.
+  rpc claimInput(ClaimSessionInputInput) returns (ClaimSessionInputResponse) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 

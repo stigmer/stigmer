@@ -7,7 +7,10 @@
  * replaced in place by its stored event, a running tool's output);
  * duplicates folded once; file-review states; the to-do rule applied only
  * to the primary thread's completed to-do calls; and snapshots that share
- * every object no event touched.
+ * every object no event touched. A message sent while a turn works is
+ * held as queued until a run's copy replaces it, then is the run's first
+ * message (the messages a turn starts with joined) or a `user_message`
+ * item where it was read; a stop drops what still waits.
  */
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -538,5 +541,92 @@ describe("snapshots", () => {
 describe("textOf", () => {
   it("joins the text blocks and skips any other", () => {
     expect(textOf([{ type: "text", text: "a" }, { type: "image", text: "" }, { type: "text", text: "b" }] as never)).toBe("ab");
+  });
+});
+
+describe("messages sent while a turn works", () => {
+  function queuedMessage(id: string, message: string): SessionEvent {
+    return ev("", { case: "userMessage", value: { id, content: text(message), processedAt: "" } });
+  }
+  function readBy(runId: string, id: string, message: string): SessionEvent {
+    return ev(runId, { case: "userMessage", value: { id, content: text(message), processedAt: "tq" } });
+  }
+
+  it("holds a queued message until a run's copy replaces it, then lists it where it was read", () => {
+    const log = new SessionLog();
+    log.apply([user(R, "build"), phase(R, "running"), said(R, 0, "Building."), use(R, "c1", "execute"), queuedMessage("q1", "also the README")]);
+    const queued = log.snapshot();
+    expect(queued.queued).toEqual([{ id: "q1", text: "also the README", state: "waiting" }]);
+    expect(queued.turns).toHaveLength(1);
+
+    log.apply([result(R, "c1", "built"), readBy(R, "q1", "also the README"), said(R, 1, "Updating the README too.")]);
+    const read = log.snapshot();
+    expect(read.queued).toEqual([]);
+    expect(read.turns[0]!.userMessage?.text).toBe("build");
+    expect(read.turns[0]!.items.map((item) => item.kind)).toEqual(["message", "tool_use", "user_message", "message"]);
+    expect(read.turns[0]!.items[2]).toEqual({ kind: "user_message", id: "q1", text: "also the README", processedAt: "tq" });
+  });
+
+  it("makes a queued message the first of the turn that starts with it", () => {
+    const fold = foldSession([
+      user(R, "build"),
+      queuedMessage("q1", "then test"),
+      phase(R, "completed"),
+      readBy(R2, "q1", "then test"),
+      phase(R2, "running"),
+    ]);
+    expect(fold.queued).toEqual([]);
+    expect(fold.turns.map((turn) => [turn.runId, turn.userMessage?.id])).toEqual([
+      [R, `${R}.user`],
+      [R2, "q1"],
+    ]);
+  });
+
+  it("joins the messages a turn starts with, read before any item of its own, into its request", () => {
+    const fold = foldSession([
+      user(R, "build"),
+      queuedMessage("q1", "then test"),
+      queuedMessage("q2", "and lint"),
+      phase(R, "completed"),
+      readBy(R2, "q1", "then test"),
+      readBy(R2, "q2", "and lint"),
+      phase(R2, "running"),
+      said(R2, 0, "Testing."),
+    ]);
+    const second = fold.turns[1]!;
+    expect(second.userMessage).toEqual({ id: "q1", text: "then test\n\nand lint", processedAt: "tq" });
+    expect(second.items.map((item) => item.kind)).toEqual(["message"]);
+  });
+
+  it("ignores a stale queued sighting of a message already read", () => {
+    const fold = foldSession([user(R, "build"), readBy(R, "q1", "late"), queuedMessage("q1", "late")]);
+    expect(fold.queued).toEqual([]);
+  });
+
+  it("drops what still waits at a stop or a session error of no turn, and keeps a message sent after it waiting", () => {
+    const interrupted = foldSession([
+      user(R, "build"),
+      queuedMessage("q1", "one"),
+      ev("", { case: "userInterrupt", value: { id: "int1", processedAt: "ti" } }),
+      queuedMessage("q2", "two"),
+    ]);
+    expect(interrupted.queued).toEqual([
+      { id: "q1", text: "one", state: "dropped" },
+      { id: "q2", text: "two", state: "waiting" },
+    ]);
+    const refused = foldSession([
+      user(R, "build"),
+      queuedMessage("q1", "one"),
+      ev("", { case: "sessionError", value: { id: "e1", error: { type: "unknown_error", message: "not read" }, processedAt: "te" } }),
+    ]);
+    expect(refused.queued).toEqual([{ id: "q1", text: "one", state: "dropped" }]);
+  });
+
+  it("shares the queue's snapshot while no queued message changes", () => {
+    const log = new SessionLog();
+    log.apply([user(R, "build"), queuedMessage("q1", "one")]);
+    const first = log.snapshot();
+    log.apply([said(R, 0, "Working.")]);
+    expect(log.snapshot().queued).toBe(first.queued);
   });
 });

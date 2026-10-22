@@ -3,20 +3,24 @@
  * created, changes phase, or is removed: the turn's user message, and the
  * session's status.
  *
- * A status event says what the whole session is doing, never one run. A
- * session can have more than one turn unfinished at once (a channel user
- * who sends two messages quickly has two runs, the second queued behind
- * the first's workspace lock), and Managed Agents has one status per
- * session. So each write computes the session's status from what the
- * store reads under the session's lock (store/session-events.ts) and
- * writes it when it differs from the newest status event:
+ * A status event says what the whole session is doing, never one run.
+ * Managed Agents has one status per session, and a session can hold more
+ * than one unfinished turn (one waiting for an answer while a reconcile
+ * turn puts files back, or runs older than the session's queue), so each
+ * write computes the session's status from what the store reads under the
+ * session's lock (store/session-events.ts) and writes it when it differs
+ * from the newest status event:
  *
  *   running ........ this run works (pending or in progress,
  *                    run/phases.ts `isWorkingPhase`), another does
- *                    (`othersWorking`), or a waiting run has no open ask
+ *                    (`othersWorking`), a waiting run has no open ask
  *                    left: its answers are in and it is about to resume
  *                    (Managed Agents: "resolving all of them transitions
- *                    the session back to running")
+ *                    the session back to running"), or messages wait in
+ *                    the session's queue while no turn waits or is
+ *                    paused: the turn they start is on its way
+ *                    (run/queued-turn.ts), so a turn that ends with
+ *                    messages queued never reads as finished
  *   idle requires_action
  *                    otherwise, while a waiting run has open asks
  *                    (`gates`): event_ids names every open ask of every
@@ -50,8 +54,11 @@
  *
  *   created .................. user.message (none for a reconcile turn,
  *                              `spec.reconcile_file_review`, which has no
- *                              message); stigmer.run.status; then the
- *                              session's status
+ *                              message; the queued messages it takes,
+ *                              moved to the head as its own, for a turn
+ *                              started from the session's queue);
+ *                              stigmer.run.status; then the session's
+ *                              status
  *   this run just FAILED ..... session.error (terminal) first, whether or
  *   (from working or waiting)  not others still work: model_request_failed_
  *                              error when the model provider failed the
@@ -72,7 +79,7 @@
  *
  * Proven by __tests__/transitions.test.ts.
  */
-import { create } from "@bufbuild/protobuf";
+import { clone, create } from "@bufbuild/protobuf";
 import { ContentBlockSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 import type { ContentBlock } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_content_pb";
 import type { MessageInitShape } from "@bufbuild/protobuf";
@@ -91,7 +98,15 @@ import { SESSION_EVENT_ID_PREFIX } from "./catalog.js";
 
 /** What happened to the run. */
 export type RunTransition =
-  | { readonly kind: "create"; readonly run: Run }
+  | {
+      readonly kind: "create";
+      readonly run: Run;
+      /**
+       * The queued user.messages the turn takes, in the order sent, in place
+       * of the message it would write (spec.queued_message_ids).
+       */
+      readonly taken?: ReadonlyArray<SessionEvent>;
+    }
   | { readonly kind: "update"; readonly previousPhase: RunPhase; readonly run: Run }
   | { readonly kind: "remove"; readonly previousPhase: RunPhase; readonly runId: string };
 
@@ -115,6 +130,10 @@ export interface SessionNow {
   readonly gates: ReadonlyArray<OpenSessionEventGate>;
   /** The newest status event; undefined when there is none. */
   readonly status: SessionStatusNow | undefined;
+  /** The session's other runs that are paused. */
+  readonly othersPaused: ReadonlyArray<string>;
+  /** How many messages wait in the session's queue, before the write takes any. */
+  readonly queuedCount: number;
 }
 
 /**
@@ -175,10 +194,14 @@ export function sessionEventsForTransition(
   const id = (): string => generateId(SESSION_EVENT_ID_PREFIX);
 
   const events: SessionEvent[] = [];
-  // A reconcile turn carries no message: the person's act is the decided
-  // event before it, and the conversation's newest turn stays the one
-  // whose files are reviewed.
-  if (transition.kind === "create" && transition.run.spec?.reconcileFileReview !== true) {
+  if (transition.kind === "create" && transition.taken !== undefined) {
+    // A turn started from the session's queue reads the messages that
+    // waited, each moved to the head as this turn's.
+    events.push(...transition.taken.map((message) => takenMessage(message, runId)));
+  } else if (transition.kind === "create" && transition.run.spec?.reconcileFileReview !== true) {
+    // A reconcile turn carries no message: the person's act is the decided
+    // event before it, and the conversation's newest turn stays the one
+    // whose files are reviewed.
     events.push(
       event({
         case: "userMessage",
@@ -252,7 +275,9 @@ export function sessionEventsForTransition(
   const open = session.gates.filter((gate) => waitingRuns.has(gate.runId));
   const withOpenAsks = new Set(open.map((gate) => gate.runId));
   const resuming = [...waitingRuns].some((waiting) => !withOpenAsks.has(waiting));
-  const sessionWorks = isWorking || session.othersWorking > 0 || resuming;
+  const held = waitingRuns.size > 0 || session.othersPaused.length > 0 || nextPhase === RunPhase.RUN_PAUSED;
+  const queueWaits = session.queuedCount > 0 && !held;
+  const sessionWorks = isWorking || session.othersWorking > 0 || resuming || queueWaits;
 
   const now = session.status;
   if (sessionWorks) {
@@ -285,8 +310,56 @@ export function sessionEventsForTransition(
   return events;
 }
 
+/**
+ * A queued user.message as the turn that takes it lists it: the same id
+ * and content, now the run's, its accepted time the store's (cleared here,
+ * stamped when appended).
+ */
+export function takenMessage(message: SessionEvent, runId: string): SessionEvent {
+  const taken = clone(SessionEventSchema, message);
+  taken.runId = runId;
+  taken.seq = 0n;
+  taken.sessionId = "";
+  if (taken.event.case !== undefined) {
+    taken.event.value.processedAt = "";
+  }
+  return taken;
+}
+
+/**
+ * The status events a queue write appends after it: running while the
+ * session's queue holds a message and nothing waits or is paused, idle
+ * with end_turn once nothing works and nothing waits in the queue, from a
+ * running status. A queue write starts and stops no run, so a waiting or
+ * paused run's status is the run writes' to state.
+ */
+export function sessionEventsForQueue(session: {
+  readonly working: number;
+  readonly waiting: number;
+  readonly paused: number;
+  readonly queued: number;
+  readonly status: SessionStatusNow | undefined;
+}): SessionEvent[] {
+  const id = (): string => generateId(SESSION_EVENT_ID_PREFIX);
+  if (session.waiting > 0 || session.paused > 0) {
+    return [];
+  }
+  const works = session.working > 0 || session.queued > 0;
+  if (works && session.status?.type !== "running") {
+    return [create(SessionEventSchema, { event: { case: "sessionStatusRunning", value: { id: id() } } })];
+  }
+  if (!works && session.status?.type === "running") {
+    return [
+      create(SessionEventSchema, {
+        event: { case: "sessionStatusIdle", value: { id: id(), stopReason: { type: "end_turn" } } },
+      }),
+    ];
+  }
+  return [];
+}
+
 /** A turn's user.message blocks: its text, unless the message is files alone, then its files. */
-function messageContent(text: string, files: readonly ContentBlock[]): ContentBlock[] {
+export function messageContent(text: string, files: readonly ContentBlock[]): ContentBlock[] {
   const textBlock = create(ContentBlockSchema, { type: "text", text });
   return text === "" && files.length > 0 ? [...files] : [textBlock, ...files];
 }

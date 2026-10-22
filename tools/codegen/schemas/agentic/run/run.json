@@ -224,6 +224,22 @@
       "validation": {
         "maxItems": 20
       }
+    },
+    {
+      "name": "QueuedMessageIds",
+      "jsonName": "queuedMessageIds",
+      "protoField": "queued_message_ids",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "The queued messages this turn reads, by their user.message ids, in\n the order they were sent: set on the turn a session starts with the\n messages still queued when its working turn ended\n (RunCommandController.sendMessage).",
+      "required": false,
+      "validation": {
+        "maxItems": 1000
+      }
     }
   ]
 }

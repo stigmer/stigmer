@@ -10,11 +10,10 @@ package ai.stigmer.agentic.session.v1;
  * StigmerRunStatusEvent records that a turn (a run) changed phase:
  * stigmer.run.status. Written by the server only, in the same write as the
  * run's change, on every phase change of every run. The session's own
- * status events say what the whole session does; a session can hold more
- * than one unfinished turn (a second message queues behind the first), and
- * when the first ends while the second works the session's status does not
- * change, so this event is how a client learns that one turn ended, and
- * how.
+ * status events say what the whole session does, and do not change when a
+ * turn ends with messages queued and the next turn starts with them
+ * (RunCommandController.sendMessage), so this event is how a client learns
+ * that one turn ended, and how.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.session.v1.StigmerRunStatusEvent}
@@ -163,7 +162,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object phase_ = "";
   /**
    * <pre>
-   * The turn's new phase: pending (queued), running, waiting (for a
+   * The turn's new phase: pending (not started yet), running, waiting (for a
    * person's answer), paused, completed, failed, cancelled or terminated.
    * The last four end the turn.
    * </pre>
@@ -186,7 +185,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The turn's new phase: pending (queued), running, waiting (for a
+   * The turn's new phase: pending (not started yet), running, waiting (for a
    * person's answer), paused, completed, failed, cancelled or terminated.
    * The last four end the turn.
    * </pre>
@@ -508,11 +507,10 @@ private static final long serialVersionUID = 0L;
    * StigmerRunStatusEvent records that a turn (a run) changed phase:
    * stigmer.run.status. Written by the server only, in the same write as the
    * run's change, on every phase change of every run. The session's own
-   * status events say what the whole session does; a session can hold more
-   * than one unfinished turn (a second message queues behind the first), and
-   * when the first ends while the second works the session's status does not
-   * change, so this event is how a client learns that one turn ended, and
-   * how.
+   * status events say what the whole session does, and do not change when a
+   * turn ends with messages queued and the next turn starts with them
+   * (RunCommandController.sendMessage), so this event is how a client learns
+   * that one turn ended, and how.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.session.v1.StigmerRunStatusEvent}
@@ -895,7 +893,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object phase_ = "";
     /**
      * <pre>
-     * The turn's new phase: pending (queued), running, waiting (for a
+     * The turn's new phase: pending (not started yet), running, waiting (for a
      * person's answer), paused, completed, failed, cancelled or terminated.
      * The last four end the turn.
      * </pre>
@@ -917,7 +915,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The turn's new phase: pending (queued), running, waiting (for a
+     * The turn's new phase: pending (not started yet), running, waiting (for a
      * person's answer), paused, completed, failed, cancelled or terminated.
      * The last four end the turn.
      * </pre>
@@ -940,7 +938,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The turn's new phase: pending (queued), running, waiting (for a
+     * The turn's new phase: pending (not started yet), running, waiting (for a
      * person's answer), paused, completed, failed, cancelled or terminated.
      * The last four end the turn.
      * </pre>
@@ -959,7 +957,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The turn's new phase: pending (queued), running, waiting (for a
+     * The turn's new phase: pending (not started yet), running, waiting (for a
      * person's answer), paused, completed, failed, cancelled or terminated.
      * The last four end the turn.
      * </pre>
@@ -975,7 +973,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The turn's new phase: pending (queued), running, waiting (for a
+     * The turn's new phase: pending (not started yet), running, waiting (for a
      * person's answer), paused, completed, failed, cancelled or terminated.
      * The last four end the turn.
      * </pre>

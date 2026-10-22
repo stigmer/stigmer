@@ -38,6 +38,10 @@
  *   - a new run records the values-fetched patch and never calls the
  *     retired run-end cleanup, on any exit;
  *   - the cursor flow's harness_state_id re-read discipline;
+ *   - every end of the workflow (completed, failed by the runner, broken,
+ *     cancelled) calls StartQueuedTurn with the run's session as its last
+ *     act; a run in no session calls nothing; a StartQueuedTurn that fails
+ *     changes nothing about how the workflow ends;
  *   - the run credential handed on (2026-09-16): the workflow input's
  *     `execution_context_token` reaches EVERY Execute* invocation, first
  *     turn and re-invocation, both harnesses, and the key is absent when
@@ -79,6 +83,7 @@ import {
   SIGNAL_APPROVAL_GATE_RESOLVED,
   SIGNAL_PAUSE,
   SIGNAL_RESUME,
+  START_QUEUED_TURN_ACTIVITY_NAME,
 } from "../names.js";
 import type { InvokeAgentExecutionWorkflowInput } from "../workflow-input.js";
 
@@ -124,6 +129,10 @@ interface ActivityScript {
   order: string[];
   /** When set, CloseFileReview fails with it (non-retryable). */
   closeFault: string | undefined;
+  /** Each StartQueuedTurn call's session id, in order. */
+  queuedTurnCalls: string[];
+  /** When set, StartQueuedTurn fails with it (non-retryable). */
+  queuedTurnFault: string | undefined;
   /**
    * The `execution_context_token` each Execute* invocation carried, in
    * order — `undefined` when the key was absent. Recorded beside
@@ -179,6 +188,8 @@ function resetScript(): void {
     closeCalls: [],
     order: [],
     closeFault: undefined,
+    queuedTurnCalls: [],
+    queuedTurnFault: undefined,
     executeCredentials: [],
     subjectArguments: [],
     loadResults: [],
@@ -279,6 +290,14 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
       if (script.closeFault !== undefined) {
         const { ApplicationFailure } = await import("@temporalio/common");
         throw ApplicationFailure.create({ message: script.closeFault, nonRetryable: true });
+      }
+    },
+    StartQueuedTurn: async (sessionId: string): Promise<void> => {
+      script.queuedTurnCalls.push(sessionId);
+      script.order.push("queued");
+      if (script.queuedTurnFault !== undefined) {
+        const { ApplicationFailure } = await import("@temporalio/common");
+        throw ApplicationFailure.create({ message: script.queuedTurnFault, nonRetryable: true });
       }
     },
     LoadAgentExecution: async (): Promise<JsonValue> => {
@@ -509,6 +528,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
         ENSURE_THREAD_ACTIVITY_NAME,
         EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
         GENERATE_SESSION_SUBJECT_ACTIVITY_NAME,
+        START_QUEUED_TURN_ACTIVITY_NAME,
       ].sort(),
     );
   }, 30_000);
@@ -610,7 +630,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     await handle.result();
 
     expect(script.closeCalls).toEqual([[currentExecutionId, "ses-1"]]);
-    expect(script.order).toEqual(["close", "execute"]);
+    expect(script.order).toEqual(["close", "execute", "queued"]);
     expect(script.subjectArguments).toEqual([currentExecutionId]);
   }, 30_000);
 
@@ -623,7 +643,7 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     const handle = await startWorkflow(workflowInput());
     await handle.result();
 
-    expect(script.order).toEqual(["close", "execute"]);
+    expect(script.order).toEqual(["close", "execute", "queued"]);
   }, 30_000);
 
   it("a reconcile turn closes no file review and titles no session, on either harness", async (testCtx) => {    if (!envReady) return testCtx.skip();
@@ -867,6 +887,45 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     expect(cancelled.status.error).toBe("");
     expect(cancelled.status.stopCause).toBe("user");
     expectRetiredCleanupSkipped();
+  }, 60_000);
+
+  it("starts the session's queued turn as the workflow's last act, on every end", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED)];
+    await (await startWorkflow(workflowInput())).result();
+    expect(script.queuedTurnCalls, "completed").toEqual(["ses-1"]);
+    expect(script.order.at(-1)).toBe("queued");
+
+    resetScript();
+    script.executeBehaviors = [async () => slimResult(RunPhase.RUN_FAILED, "agent blew up")];
+    await expect((await startWorkflow(workflowInput())).result()).rejects.toThrow(/Workflow execution failed/);
+    expect(script.queuedTurnCalls, "failed by the runner").toEqual(["ses-1"]);
+
+    resetScript();
+    const started = new Promise<void>((resolve) => {
+      script.executeBehaviors = [
+        (): Promise<Record<string, unknown>> => {
+          resolve();
+          return blockedInvocation();
+        },
+      ];
+    });
+    const cancelled = await startWorkflow(workflowInput());
+    await started;
+    await cancelled.cancel();
+    await expect(cancelled.result()).rejects.toThrow();
+    expect(script.queuedTurnCalls, "cancelled").toEqual(["ses-1"]);
+  }, 60_000);
+
+  it("starts no queued turn for a run in no session, and a failing start changes nothing about the end", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED)];
+    await (await startWorkflow(workflowInput({ session_id: "" }))).result();
+    expect(script.queuedTurnCalls).toEqual([]);
+
+    resetScript();
+    script.queuedTurnFault = "the server is restarting";
+    script.executeBehaviors = [async () => slimResult(RunPhase.RUN_COMPLETED)];
+    await expect((await startWorkflow(workflowInput())).result()).resolves.toBeUndefined();
+    expect(script.queuedTurnCalls).toEqual(["ses-1"]);
   }, 60_000);
 
   it("cursor flow re-reads harness_state_id before each re-invocation", async (testCtx) => {    if (!envReady) return testCtx.skip();

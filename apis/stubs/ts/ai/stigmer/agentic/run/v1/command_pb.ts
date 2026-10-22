@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { RunSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_run_v1_api } from "./api_pb.js";
-import type { PauseRunInputSchema, RecoverRunInputSchema, ResumeRunInputSchema, RunUpdateStatusInputSchema, TerminateRunInputSchema, UpdateRunInputSchema, UpdateStatusResponseSchema } from "./io_pb.js";
+import type { PauseRunInputSchema, RecoverRunInputSchema, ResumeRunInputSchema, RunUpdateStatusInputSchema, SendMessageResponseSchema, TerminateRunInputSchema, UpdateRunInputSchema, UpdateStatusResponseSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_run_v1_io } from "./io_pb.js";
 import type { ApiResourceIdSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/run/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_run_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2NvbW1hbmQucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEytAgKFFJ1bkNvbW1hbmRDb250cm9sbGVyEk4KBmNyZWF0ZRIeLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuGh4uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW4iBNC4GAESjwEKBnVwZGF0ZRIpLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVXBkYXRlUnVuSW5wdXQaHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1biI6wrgYNggCECkiFHJlc291cmNlLm1ldGFkYXRhLmlkKhp1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHJ1bhKlAQoMdXBkYXRlU3RhdHVzEi8uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5VcGRhdGVTdGF0dXNJbnB1dBovLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVXBkYXRlU3RhdHVzUmVzcG9uc2UiM8K4GC8IAhApIgZydW5faWQqIXVuYXV0aG9yaXplZCB0byB1cGRhdGUgcnVuIHN0YXR1cxKEAQoGZGVsZXRlEi0uYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlSWQaHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1biIrwrgYJwgCECkiBXZhbHVlKhp1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHJ1bhKGAQoJdGVybWluYXRlEiwuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5UZXJtaW5hdGVSdW5JbnB1dBoeLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuIivCuBgnCAIQKSICaWQqHXVuYXV0aG9yaXplZCB0byB0ZXJtaW5hdGUgcnVuEoABCgdyZWNvdmVyEiouYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SZWNvdmVyUnVuSW5wdXQaHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1biIpwrgYJQgCECkiAmlkKht1bmF1dGhvcml6ZWQgdG8gcmVjb3ZlciBydW4SegoFcGF1c2USKC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlBhdXNlUnVuSW5wdXQaHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1biInwrgYIwgCECkiAmlkKhl1bmF1dGhvcml6ZWQgdG8gcGF1c2UgcnVuEn0KBnJlc3VtZRIpLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUmVzdW1lUnVuSW5wdXQaHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1biIowrgYJAgCECkiAmlkKhp1bmF1dGhvcml6ZWQgdG8gcmVzdW1lIHJ1bhoEoP8rKWIGcHJvdG8z", [file_ai_stigmer_agentic_run_v1_api, file_ai_stigmer_agentic_run_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2NvbW1hbmQucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEymQkKFFJ1bkNvbW1hbmRDb250cm9sbGVyEk4KBmNyZWF0ZRIeLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuGh4uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW4iBNC4GAESYwoLc2VuZE1lc3NhZ2USHi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1bhouLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuU2VuZE1lc3NhZ2VSZXNwb25zZSIE0LgYARKPAQoGdXBkYXRlEikuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5VcGRhdGVSdW5JbnB1dBoeLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuIjrCuBg2CAIQKSIUcmVzb3VyY2UubWV0YWRhdGEuaWQqGnVuYXV0aG9yaXplZCB0byB1cGRhdGUgcnVuEqUBCgx1cGRhdGVTdGF0dXMSLy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJ1blVwZGF0ZVN0YXR1c0lucHV0Gi8uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5VcGRhdGVTdGF0dXNSZXNwb25zZSIzwrgYLwgCECkiBnJ1bl9pZCohdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBydW4gc3RhdHVzEoQBCgZkZWxldGUSLS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VJZBoeLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuIivCuBgnCAIQKSIFdmFsdWUqGnVuYXV0aG9yaXplZCB0byBkZWxldGUgcnVuEoYBCgl0ZXJtaW5hdGUSLC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlRlcm1pbmF0ZVJ1bklucHV0Gh4uYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW4iK8K4GCcIAhApIgJpZCoddW5hdXRob3JpemVkIHRvIHRlcm1pbmF0ZSBydW4SgAEKB3JlY292ZXISKi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlJlY292ZXJSdW5JbnB1dBoeLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuIinCuBglCAIQKSICaWQqG3VuYXV0aG9yaXplZCB0byByZWNvdmVyIHJ1bhJ6CgVwYXVzZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUGF1c2VSdW5JbnB1dBoeLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuIifCuBgjCAIQKSICaWQqGXVuYXV0aG9yaXplZCB0byBwYXVzZSBydW4SfQoGcmVzdW1lEikuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SZXN1bWVSdW5JbnB1dBoeLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuIijCuBgkCAIQKSICaWQqGnVuYXV0aG9yaXplZCB0byByZXN1bWUgcnVuGgSg/yspYgZwcm90bzM", [file_ai_stigmer_agentic_run_v1_api, file_ai_stigmer_agentic_run_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * RunCommandController handles write operations for runs.
@@ -30,12 +30,64 @@ export const RunCommandController: GenService<{
    * Create and trigger a new run: a turn in an existing session,
    * or the first turn of a new one created from session_spec.
    *
+   * A session works on one turn at a time. A turn in a session that already
+   * has an unfinished turn (pending, in progress, waiting for an answer or
+   * paused), or messages queued for the turn they start, is refused: send
+   * the message with sendMessage, which queues it.
+   *
+   * ## Error Conditions
+   *
+   * - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+   *   "stigmer.ai", reason SESSION_TURN_UNFINISHED, metadata session_id):
+   *   another turn of the session is unfinished, or messages wait for
+   *   their turn
+   *
    * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.create
    */
   create: {
     methodKind: "unary";
     input: typeof RunSchema;
     output: typeof RunSchema;
+  },
+  /**
+   * Send a message to a session: the turn starts now, or the message waits
+   * for the turn that is working.
+   *
+   * run is the turn as create takes it, in an existing session
+   * (spec.session_id). When no turn of the session is unfinished, the turn
+   * starts at once, exactly as create starts it, and the reply names it.
+   * While a turn works, the message is queued instead: its user.message is
+   * stored with no processed_at and no run_id, and the reply carries it.
+   * The working turn reads it, or, once that turn has ended, the next turn
+   * starts with every message still queued, in the order sent: their texts
+   * joined, their files together, with the settings of the newest. A
+   * message read is listed once, where the agent read it, with its
+   * processed_at and the run that read it; it streams a second time as it
+   * moves there.
+   *
+   * A queued message meets every check a turn meets when it is sent, and
+   * the turn it starts meets them again. Stopping the session (interrupt,
+   * or terminating a turn) drops the messages still queued: they stay
+   * listed with no processed_at. A turn that cannot start (its agent was
+   * removed since, or a check refuses it) leaves them so too, and the
+   * session records the reason as a session.error.
+   *
+   * ## Error Conditions
+   *
+   * - FAILED_PRECONDITION with a google.rpc.ErrorInfo detail (domain
+   *   "stigmer.ai", metadata session_id and run_id): reason
+   *   SESSION_TURN_WAITS_FOR_ANSWER while a turn of the session waits for
+   *   an answer (allow or deny it first; a deny can carry a message), or
+   *   SESSION_TURN_PAUSED while one is paused (resume it first)
+   * - FAILED_PRECONDITION: spec names no existing session
+   * - every refusal create answers
+   *
+   * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.sendMessage
+   */
+  sendMessage: {
+    methodKind: "unary";
+    input: typeof RunSchema;
+    output: typeof SendMessageResponseSchema;
   },
   /**
    * Update a run: the fields update_mask names change, every other
@@ -87,7 +139,9 @@ export const RunCommandController: GenService<{
    *
    * Force-stops the run without allowing cleanup. Unlike the session's
    * interrupt, the agent cannot respond to termination - it is stopped immediately.
-   * Use this for stuck or unresponsive agents.
+   * Use this for stuck or unresponsive agents. The messages still queued in
+   * the run's session (sendMessage) are dropped with it: they stay listed,
+   * never read.
    *
    * @generated from rpc ai.stigmer.agentic.run.v1.RunCommandController.terminate
    */

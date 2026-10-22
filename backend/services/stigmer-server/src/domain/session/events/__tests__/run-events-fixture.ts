@@ -52,10 +52,10 @@ export class RunEventsBuilder {
   ) {}
 
   /** The turn's user message (the server's). */
-  user(text: string): this {
+  user(text: string, id = `${this.runId}.user`): this {
     return this.push("", {
       case: "userMessage",
-      value: { id: `${this.runId}.user`, content: [{ type: "text", text }] },
+      value: { id, content: [{ type: "text", text }] },
     });
   }
 

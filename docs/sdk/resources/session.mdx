@@ -84,6 +84,7 @@ Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`delete`](#delete) | Delete a session. | |
 | [`appendEvents`](#appendevents) | Append a run's events to its session's log. | |
 | [`bindHarnessState`](#bindharnessstate) | Record the harness's conversation id for a run's session. | |
+| [`claimInput`](#claiminput) | Take the messages queued in a run's session for the run to read. | |
 | [`confirmToolUse`](#confirmtooluse) | Allow or deny a tool use that waits for an answer. | |
 | [`grantPermission`](#grantpermission) | Allow a tool use, and every call of its class for the rest of the turn. | |
 | [`interrupt`](#interrupt) | Stop the session's unfinished work. | |
@@ -802,6 +803,47 @@ BindHarnessStateResponse bindHarnessStateResponse = client.sessions().bindHarnes
 
 **Returns**: [`BindHarnessStateResponse`](#bindharnessstateresponse)
 
+### claimInput
+
+Take the messages queued in a run's session for the run to read.
+
+Only the runner acting for the run may call it, while the run works (pending or in progress). Every message still queued moves to the head of the log as this run's, with its processed_at, and is answered in the order sent; none when nothing waits.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const claimSessionInputResponse = await stigmer.session.claimInput({
+  runId: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+claimSessionInputResponse, err := client.Session.ClaimInput(ctx, &stigmer.ClaimSessionInputInput{
+  RunId: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+claim_session_input_response = client.sessions.claim_input(ClaimSessionInputInput(
+    run_id="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ClaimSessionInputResponse claimSessionInputResponse = client.sessions().claimInput(ClaimSessionInputInput.builder()
+    .runId("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ClaimSessionInputInput`](#claimsessioninputinput)
+
+**Returns**: [`ClaimSessionInputResponse`](#claimsessioninputresponse)
+
 ### confirmToolUse
 
 Allow or deny a tool use that waits for an answer.
@@ -904,7 +946,7 @@ GrantPermissionResponse grantPermissionResponse = client.sessions().grantPermiss
 
 Stop the session's unfinished work.
 
-Appends a user.interrupt and stops every unfinished turn of the conversation: queued, working, waiting for an answer or paused. Each ends cancelled and the session goes idle with end_turn. Files undone in a turn that waited are put back at once.
+Appends a user.interrupt and stops every unfinished turn of the conversation: pending, working, waiting for an answer or paused. Each ends cancelled and the session goes idle with end_turn. The messages still queued for a turn (RunCommandController.sendMessage) are dropped first: they stay listed with no processed_at, never read. Files undone in a turn that waited are put back at once.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -1319,6 +1361,26 @@ AppendSessionEventsResponse says where each event of the request sits in the log
 <TypeTable
   type={{
     events: { type: "SessionEventInput[]", description: "One entry per event of the request, in order, by identity only: the envelope with its seq, and the event's type, id and processed_at." },
+  }}
+/>
+
+### ClaimSessionInputInput
+
+ClaimSessionInputInput names the run that takes its session's queued messages.
+
+<TypeTable
+  type={{
+    runId: { type: "string", description: "The run that reads them." },
+  }}
+/>
+
+### ClaimSessionInputResponse
+
+ClaimSessionInputResponse answers the messages the run took.
+
+<TypeTable
+  type={{
+    events: { type: "SessionEventInput[]", description: "Their user.message events as the log now holds them, in the order they were sent." },
   }}
 />
 

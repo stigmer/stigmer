@@ -43,14 +43,22 @@ import type {
   PortContractDeclaration,
   PortContractFixture,
 } from "./port-contract.js";
-import { NO_SESSION_EVENT_GATES, SessionEventConflictError } from "./session-events.js";
+import {
+  NO_SESSION_EVENT_GATES,
+  QueuedSessionMessageGoneError,
+  SessionEventConflictError,
+} from "./session-events.js";
 import type {
   OpenSessionEventGate,
+  QueuedSessionMessage,
   ResourceEventWriter,
   SessionEventGateDeclaration,
   SessionEventDraft,
   SessionEventGuard,
   SessionEventScope,
+  SessionQueueContext,
+  SessionQueueScope,
+  SessionQueueWrite,
 } from "./session-events.js";
 
 /** The runner's fixture over the whole Store: the log is the store's own, joined to its rows. */
@@ -63,8 +71,50 @@ const RUN_SCOPE: SessionEventScope = {
   sessionKey: "session",
   workingKey: "working_session",
   waitingKey: "waiting_session",
+  pausedKey: "paused_session",
   stateEventTypes: KEPT,
 };
+
+/** The run keys a queue write counts a session's turns by. */
+const QUEUE_SCOPE: SessionQueueScope = {
+  kind: ApiResourceKind.run,
+  workingKey: "working_session",
+  waitingKey: "waiting_session",
+  pausedKey: "paused_session",
+  stateEventTypes: KEPT,
+};
+
+/** Queues `eventId` in a session, as `sender`, with `turn` as its side row's bytes; answers what the writer saw. */
+async function enqueue(
+  store: Store,
+  sessionId: string,
+  eventId: string,
+  sender = "person-kit",
+  turn = `turn-of-${eventId}`,
+  org = "org-kit",
+): Promise<SessionQueueContext> {
+  let seen: SessionQueueContext | undefined;
+  await store.writeSessionQueue(sessionId, org, QUEUE_SCOPE, (session) => {
+    seen = session;
+    return {
+      enqueue: {
+        draft: draft(eventId, "", "user.message"),
+        entry: { sender, turn: new TextEncoder().encode(turn) },
+      },
+    };
+  });
+  return seen!;
+}
+
+/** A queue writer that writes nothing: what a read under the lock hands back. */
+function writesNothing(): SessionQueueWrite {
+  return {};
+}
+
+/** The ids of a session's queue, in the order sent. */
+function idsOf(queued: ReadonlyArray<QueuedSessionMessage>): string[] {
+  return queued.map((message) => message.record.eventId);
+}
 
 /** The type the kit's gate declaration reads; every other type has no gate. */
 const GATED = "kit.gated";
@@ -127,6 +177,9 @@ interface Seen {
   newestRun?: string | undefined;
   waiting?: ReadonlyArray<string>;
   gates?: ReadonlyArray<OpenSessionEventGate>;
+  paused?: ReadonlyArray<string>;
+  queuedCount?: number;
+  queued?: ReadonlyArray<QueuedSessionMessage>;
 }
 
 /** Writes `row` with `events`, recording what the writer was handed; `runOfNewestType` asks for that run. */
@@ -145,6 +198,9 @@ async function put(
     seen.newestRun = session.runOfNewestType;
     seen.waiting = session.othersWaiting;
     seen.gates = session.gates;
+    seen.paused = session.othersPaused;
+    seen.queuedCount = session.queuedCount;
+    seen.queued = session.queued;
     return { put: row, events };
   };
   const sessionId = row.spec?.target.case === "sessionId" ? row.spec.target.value : "";
@@ -153,6 +209,23 @@ async function put(
     sessionId,
     ...(runOfNewestType === undefined ? {} : { runOfNewestType }),
   });
+}
+
+/** Writes `row` taking the queued messages `take`, appending them again as `events`; the scope asks for the queue. */
+async function putTaking(
+  store: Store,
+  row: Run,
+  take: ReadonlyArray<string>,
+  events: ReadonlyArray<SessionEventDraft>,
+): Promise<void> {
+  const sessionId = row.spec?.target.case === "sessionId" ? row.spec.target.value : "";
+  await store.writeResourceAppendingEvents(
+    ApiResourceKind.run,
+    row.metadata?.id ?? "",
+    RunSchema,
+    () => ({ put: row, events, takeQueued: take }),
+    { ...RUN_SCOPE, sessionId, queued: true },
+  );
 }
 
 async function seqs(store: Store, sessionId: string): Promise<number[]> {
@@ -713,6 +786,191 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
     },
   ],
   [
+    "a queued message takes the session's next number, is accepted at no time and waits with its side row, in the order sent",
+    async ({ store }) => {
+      const s = `ses_${unique()}`;
+      const r = `run_${unique()}`;
+      await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS), [draft("m0", r, "user.message")]);
+      const handed = await enqueue(store, s, "q1", "person-a", "turn-a");
+      assert.deepEqual(handed.working, [r]);
+      await enqueue(store, s, "q2", "person-b", "turn-b");
+      const listed = await store.sessionEvents.list(s, { order: "asc", limit: 10 });
+      assert.deepEqual(
+        listed.map((x) => [x.seq, x.eventId, x.runId, x.processedAt]),
+        [
+          [1, "m0", r, listed[0]!.processedAt],
+          [2, "q1", "", ""],
+          [3, "q2", "", ""],
+        ],
+      );
+      const queued = await store.sessionEvents.queued(s);
+      assert.deepEqual(idsOf(queued), ["q1", "q2"]);
+      assert.deepEqual(
+        queued.map((x) => [x.sender, new TextDecoder().decode(x.turn), x.record.seq]),
+        [
+          ["person-a", "turn-a", 2],
+          ["person-b", "turn-b", 3],
+        ],
+      );
+      const after = await store.sessionEvents.append(s, "org-kit", [draft("m1", r)], runGuard(r));
+      assert.equal(after.records[0]?.seq, 4);
+      assert.match(after.records[0]!.processedAt, INSTANT);
+      assert.ok(after.records[0]!.processedAt >= listed[0]!.processedAt);
+    },
+  ],
+  [
+    "a write that takes queued messages moves them to the head as its run's, and is refused whole for one that no longer waits",
+    async ({ store }) => {
+      const s = `ses_${unique()}`;
+      const r = `run_${unique()}`;
+      await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS), [draft("m0", r, "user.message")]);
+      await enqueue(store, s, "q1");
+      await enqueue(store, s, "q2");
+      await putTaking(store, run(r, s, RunPhase.RUN_IN_PROGRESS), ["q1", "q2"], [
+        draft("q1", r, "user.message"),
+        draft("q2", r, "user.message"),
+      ]);
+      const listed = await store.sessionEvents.list(s, { order: "asc", limit: 10 });
+      assert.deepEqual(listed.map((x) => [x.seq, x.eventId, x.runId]), [
+        [1, "m0", r],
+        [4, "q1", r],
+        [5, "q2", r],
+      ]);
+      for (const record of listed) {
+        assert.match(record.processedAt, INSTANT);
+      }
+      assert.deepEqual(await store.sessionEvents.queued(s), []);
+      await assert.rejects(
+        putTaking(store, run(r, s, RunPhase.RUN_COMPLETED), ["q1"], [draft("q1", r, "user.message")]),
+        QueuedSessionMessageGoneError,
+      );
+      const stored = await store.getResource(ApiResourceKind.run, r, RunSchema);
+      assert.equal(stored.status?.phase, RunPhase.RUN_IN_PROGRESS, "a refused take writes nothing");
+    },
+  ],
+  [
+    "a queue write is handed the session's working, waiting and paused runs and its queue, and drops by id, keeping the event",
+    async ({ store }) => {
+      const s = `ses_${unique()}`;
+      const w = `run_${unique()}`;
+      const a = `run_${unique()}`;
+      const p = `run_${unique()}`;
+      await put(store, run(w, s, RunPhase.RUN_PENDING));
+      await put(store, run(a, s, RunPhase.RUN_WAITING_FOR_APPROVAL));
+      await put(store, run(p, s, RunPhase.RUN_PAUSED));
+      await put(store, run(`run_${unique()}`, s, RunPhase.RUN_COMPLETED));
+      await enqueue(store, s, "q1");
+      let handed: SessionQueueContext | undefined;
+      const result = await store.writeSessionQueue(s, "org-kit", QUEUE_SCOPE, (session) => {
+        handed = session;
+        return { drop: ["q1", "never-queued"], events: [draft("note", "", "session.status_idle")] };
+      });
+      assert.deepEqual(handed!.working, [w]);
+      assert.deepEqual(handed!.waiting, [a]);
+      assert.deepEqual(handed!.paused, [p]);
+      assert.deepEqual(idsOf(handed!.queued), ["q1"]);
+      assert.deepEqual(result.dropped, ["q1"]);
+      assert.equal(result.enqueued, undefined);
+      assert.deepEqual(result.events.map((x) => x.eventId), ["note"]);
+      assert.deepEqual(await store.sessionEvents.queued(s), []);
+      const listed = await store.sessionEvents.list(s, { order: "asc", limit: 10 });
+      assert.deepEqual(listed.map((x) => [x.eventId, x.runId, x.processedAt === ""]), [
+        ["q1", "", true],
+        ["note", "", false],
+      ]);
+      const latest = await store.writeSessionQueue(s, "org-kit", QUEUE_SCOPE, (session) => {
+        assert.equal(session.latestState?.eventId, "note");
+        return {};
+      });
+      assert.deepEqual(latest.events, []);
+    },
+  ],
+  [
+    "every write is handed its session's queue length and paused runs, and the queue itself when it asks",
+    async ({ store }) => {
+      const s = `ses_${unique()}`;
+      const r = `run_${unique()}`;
+      const p = `run_${unique()}`;
+      await put(store, run(p, s, RunPhase.RUN_PAUSED));
+      await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS));
+      await enqueue(store, s, "q1");
+      const seen: Seen = {};
+      await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS), [], seen);
+      assert.equal(seen.queuedCount, 1);
+      assert.deepEqual(seen.queued, []);
+      assert.deepEqual(seen.paused, [p]);
+      let asked: ReadonlyArray<QueuedSessionMessage> = [];
+      await store.writeResourceAppendingEvents(
+        ApiResourceKind.run,
+        r,
+        RunSchema,
+        (_previous, session) => {
+          asked = session.queued;
+          assert.equal(session.queuedCount, 1);
+          return { put: run(r, s, RunPhase.RUN_IN_PROGRESS), events: [] };
+        },
+        { ...RUN_SCOPE, sessionId: s, queued: true },
+      );
+      assert.deepEqual(idsOf(asked), ["q1"]);
+    },
+  ],
+  [
+    "the run of a session's newest event of a type passes over a queued message",
+    async ({ store }) => {
+      const s = `ses_${unique()}`;
+      const r = `run_${unique()}`;
+      await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS), [draft("m", r, "user.message")]);
+      await enqueue(store, s, "q1");
+      const seen: Seen = {};
+      await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS), [], seen, "user.message");
+      assert.equal(seen.newestRun, r);
+    },
+  ],
+  [
+    "a session's delete and an organization's purge remove its queue with its events",
+    async ({ store }) => {
+      const org = `org-${unique()}`;
+      const s = `ses_${unique()}`;
+      const s2 = `ses_${unique()}`;
+      for (const session of [s, s2]) {
+        const r = `run_${unique()}`;
+        await put(store, run(r, session, RunPhase.RUN_IN_PROGRESS, org));
+        await enqueue(store, session, `q-${session}`, "person-kit", "turn", org);
+      }
+      await store.sessionEvents.deleteBySession(s);
+      assert.deepEqual(await store.sessionEvents.queued(s), []);
+      assert.deepEqual(idsOf(await store.sessionEvents.queued(s2)), [`q-${s2}`]);
+      await store.sessionEvents.deleteByOrg(org);
+      assert.deepEqual(await store.sessionEvents.queued(s2), []);
+    },
+  ],
+  [
+    "a queue write whose writer throws commits nothing; one over a kind with no list index, or with no session, is refused",
+    async ({ store }) => {
+      const s = `ses_${unique()}`;
+      await put(store, run(`run_${unique()}`, s, RunPhase.RUN_IN_PROGRESS));
+      await assert.rejects(
+        store.writeSessionQueue(s, "org-kit", QUEUE_SCOPE, () => {
+          throw new Error("the writer refuses");
+        }),
+        /the writer refuses/,
+      );
+      await enqueue(store, s, "q1");
+      await assert.rejects(
+        store.writeSessionQueue(s, "org-kit", QUEUE_SCOPE, () => {
+          throw new Error("refused after reading");
+        }),
+      );
+      assert.deepEqual(idsOf(await store.sessionEvents.queued(s)), ["q1"]);
+      await assert.rejects(
+        store.writeSessionQueue(s, "org-kit", { ...QUEUE_SCOPE, kind: ApiResourceKind.api_resource_kind_unknown }, writesNothing),
+        /not list-indexed/,
+      );
+      await assert.rejects(store.writeSessionQueue("", "org-kit", QUEUE_SCOPE, writesNothing), /needs a session/);
+      assert.deepEqual((await store.writeSessionQueue(s, "org-kit", QUEUE_SCOPE, writesNothing)).events, []);
+    },
+  ],
+  [
     "a disconnected store is an infrastructure fault, never 'not found'",
     async (fixture) => {
       const { store } = fixture;
@@ -727,6 +985,8 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
       await assert.rejects(put(store, run("run_x", "ses_x", RunPhase.RUN_PENDING)), notFound);
       await assert.rejects(store.sessionEvents.deleteBySession("ses_x"), notFound);
       await assert.rejects(store.sessionEvents.deleteByOrg("org"), notFound);
+      await assert.rejects(store.sessionEvents.queued("ses_x"), notFound);
+      await assert.rejects(store.writeSessionQueue("ses_x", "org", QUEUE_SCOPE, writesNothing), notFound);
     },
   ],
 ];

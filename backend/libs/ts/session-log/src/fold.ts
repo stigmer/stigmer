@@ -45,6 +45,19 @@
  * use its ended turn never answered reads `stopped`; nothing more will
  * come for it.
  *
+ * Messages a turn did not start with. A message sent while a turn works
+ * waits in the session's queue: its `user.message` has no run until a turn
+ * reads it, when it streams again, under the same id, as that run's, at
+ * the place the turn read it. A sighting with no run is held in `queued`
+ * (as `waiting`), never as seen, and the run's copy replaces it, as a
+ * stored event replaces its preview. A run's first message is its
+ * `userMessage`, and the messages it took with it, before any item of its
+ * own (a turn the queue started with several, each read at once), join it,
+ * their texts as the turn's message joins them (a blank line between); a
+ * later one is a `user_message` item, in log order. A
+ * waiting message that a `user.interrupt`, or a `session.error` of no
+ * turn, follows was dropped unread: it stays in `queued` as `dropped`.
+ *
  * Duplicates. An event already folded (by id) is skipped, so a stream that
  * resumes from an older place, or a list page that overlaps a stream,
  * folds once.
@@ -81,6 +94,7 @@ import {
   type ToolResult,
   type ToolUse,
   type ToolUseState,
+  type QueuedMessage,
   type Turn,
   type TurnError,
   type TurnItem,
@@ -89,7 +103,11 @@ import {
   type TurnPhase,
   type TurnStatus,
   type UserMessage,
+  type UserMessageItem,
 } from "./types.js";
+
+/** How the texts of the messages a turn starts with join: as the server joins them into the turn's message. */
+const MESSAGE_TEXT_SEPARATOR = "\n\n";
 
 // ── The mutable fold ─────────────────────────────────────────────────────────
 
@@ -105,7 +123,7 @@ interface Node {
 }
 
 interface MutText extends Node {
-  readonly kind: "message" | "thinking" | "note" | "compacted";
+  readonly kind: "message" | "thinking" | "note" | "compacted" | "user_message";
   readonly id: string;
   text: string;
   live: boolean;
@@ -189,6 +207,8 @@ export class SessionLog {
   private readonly seen = new Set<string>();
   private readonly held: Held[] = [];
   private readonly pendingOutput = new Map<string, string>();
+  private readonly queued = new Map<string, QueuedMessage>();
+  private queuedSnapshot: ReadonlyArray<QueuedMessage> = [];
   private status: SessionStatusView = { state: "idle", stopReason: "", waitingOn: [] };
   private lastSeq = 0n;
   private snapshotCache?: { clock: number; value: SessionFold };
@@ -273,6 +293,7 @@ export class SessionLog {
       previous.turns.every((turn, index) => turn === turns[index]);
     const value: SessionFold = {
       turns: sameTurns ? previous.turns : turns,
+      queued: this.queuedSnapshot,
       status: this.status,
       lastSeq: this.lastSeq,
     };
@@ -292,6 +313,13 @@ export class SessionLog {
       this.tick();
     }
     const id = e.value.id;
+    if (e.case === "userMessage" && event.runId === "") {
+      // A queued sighting: held until a run's copy replaces it (module header).
+      if (!this.seen.has(id) && !this.queued.has(id)) {
+        this.setQueued({ id, text: textOf(e.value.content), state: "waiting" });
+      }
+      return;
+    }
     if (id !== "" && this.seen.has(id)) {
       return;
     }
@@ -302,9 +330,22 @@ export class SessionLog {
     const runId = event.runId;
     switch (e.case) {
       case "userMessage": {
+        if (this.queued.delete(id)) {
+          this.queuedSnapshot = [...this.queued.values()];
+          this.tick();
+        }
         const turn = this.turnOf(runId);
-        turn.userMessage = { id, text: textOf(e.value.content), processedAt: at };
-        this.touch(turn);
+        const text = textOf(e.value.content);
+        if (turn.userMessage === undefined) {
+          turn.userMessage = { id, text, processedAt: at };
+          this.touch(turn);
+        } else if (turn.items.length === 0) {
+          const joined = [turn.userMessage.text, text].filter((each) => each !== "").join(MESSAGE_TEXT_SEPARATOR);
+          turn.userMessage = { ...turn.userMessage, text: joined };
+          this.touch(turn);
+        } else {
+          this.addText(event, "user_message", text);
+        }
         break;
       }
       case "sessionStatusRunning":
@@ -320,6 +361,9 @@ export class SessionLog {
         this.tick();
         break;
       case "sessionError": {
+        if (runId === "") {
+          this.dropWaiting();
+        }
         const turn = runId === "" ? this.turns.at(-1) : this.turnOf(runId);
         if (turn !== undefined) {
           turn.errors.push({ id, type: e.value.error?.type ?? "", message: e.value.error?.message ?? "", processedAt: at });
@@ -544,7 +588,9 @@ export class SessionLog {
         break;
       }
       case "userInterrupt":
-        // The turns it stopped say so in their own status.
+        // The turns it stopped say so in their own status; the messages
+        // still waiting were dropped with them.
+        this.dropWaiting();
         break;
       /* v8 ignore next 2 -- @preserve: every case the contract lands is handled above */
       default:
@@ -553,6 +599,24 @@ export class SessionLog {
   }
 
   // ── Building ───────────────────────────────────────────────────────────────
+
+  private setQueued(message: QueuedMessage): void {
+    this.queued.set(message.id, message);
+    this.queuedSnapshot = [...this.queued.values()];
+    this.tick();
+  }
+
+  /** Marks every waiting queued message dropped (module header). */
+  private dropWaiting(): void {
+    const waiting = [...this.queued.values()].filter((message) => message.state === "waiting");
+    for (const message of waiting) {
+      this.queued.set(message.id, { ...message, state: "dropped" });
+    }
+    if (waiting.length > 0) {
+      this.queuedSnapshot = [...this.queued.values()];
+      this.tick();
+    }
+  }
 
   private tick(): void {
     this.clock += 1;
@@ -942,6 +1006,8 @@ function textItemOf(item: MutText): TurnItem {
       return { kind: "note", id: item.id, text: item.text, processedAt: item.processedAt } satisfies NoteItem;
     case "compacted":
       return { kind: "compacted", id: item.id, processedAt: item.processedAt } satisfies CompactedItem;
+    case "user_message":
+      return { kind: "user_message", id: item.id, text: item.text, processedAt: item.processedAt } satisfies UserMessageItem;
   }
 }
 

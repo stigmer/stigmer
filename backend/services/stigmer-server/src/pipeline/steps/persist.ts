@@ -11,7 +11,10 @@
  * `save` replaces the store's own upsert for a kind whose creation must
  * commit with more than the row (a run's, which appends its session's
  * events in the same transaction, domain/session/events/run-writes.ts);
- * the step's name and place in the chain are the same either way.
+ * the step's name and place in the chain are the same either way. A
+ * `save` that refuses the write with a ConnectError of its own (a run in
+ * a session another turn holds) is answered with it; any other failure is
+ * a store fault.
  *
  * An update persists by compare-and-swap on the bytes LoadExisting read
  * (EXISTING_RESOURCE_BYTES_KEY): the new state was built from that row
@@ -21,6 +24,7 @@
  * (pipeline/guarded-write.ts). A create, which loaded nothing, saves.
  */
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf";
+import { ConnectError } from "@connectrpc/connect";
 
 import type { GuardedWritePort } from "../../store/guarded-port.js";
 import type { Store } from "../../store/interface.js";
@@ -76,6 +80,9 @@ export function newPersistStep<Desc extends DescMessage>(
             )
           : save(ctx.newState));
       } catch (error) {
+        if (save !== undefined && error instanceof ConnectError) {
+          throw error;
+        }
         throw internalError(error, SAVE_FAILURE);
       }
     },

@@ -12,7 +12,11 @@
  * sites (the exhaustive list: status-observers.ts): observers fire
  * post-persist; the response decorators run on the reply (the querySignal
  * seam — a composition piggybacks its control signal on this response;
- * OSS answers UNSPECIFIED).
+ * OSS answers UNSPECIFIED). The reply also says whether messages wait in
+ * the session's queue for the turn (input_pending), read under the lock
+ * the merge commits under, so the runner learns of one at its next
+ * status write and takes it with claimInput where its engine can deliver
+ * it (send-message.ts, ../session/events/claim-input.ts).
  *
  * applyUpdateStatusMerge is the merge body run inside the write (and
  * exercised directly by the guard tests): most fields are replaced with
@@ -112,13 +116,14 @@ import { RUN_REVIEW_EVENT_TYPES, runReviewLogOf, withDecisions } from "./filerev
 import type { RunReviewLog } from "./filereview/logged.js";
 import { reconcileFileChangeProgress } from "./filereview/progress.js";
 import { isCaptured, upsertFileChanges } from "./filereview/record.js";
-import { isTerminalExecutionPhase } from "./phases.js";
+import { isTerminalExecutionPhase, isWorkingPhase } from "./phases.js";
 import {
   applyResponseDecorators,
   notifyStatusObservers,
 } from "./status-observers.js";
 import type { SessionEventBroker } from "../session/events/broker.js";
 import { eventOf } from "../session/events/codec.js";
+import { authorityOfQueued, authorityOfRun, sameAuthority } from "../session/events/queue.js";
 import { updateRunAppendingEvents } from "../session/events/run-writes.js";
 
 export interface UpdateStatusDeps {
@@ -141,6 +146,9 @@ const EXECUTION_KEY = "execution";
 // An internal handoff (not a ported Go key): the phase read inside the
 // updateResource closure BEFORE the merge mutates, for the observer step.
 const OLD_PHASE_KEY = "o4OldPhase";
+
+/** Whether messages wait for the turn (UpdateStatusResponse.input_pending), set by the merge. */
+const INPUT_PENDING_KEY = "inputPending";
 
 export async function updateStatus(
   deps: UpdateStatusDeps,
@@ -196,19 +204,30 @@ export async function updateStatus(
           ({ run: updated, previousPhase: oldPhase } = await updateRunAppendingEvents(
             deps,
             ctx.input.runId,
-            (execution, session) => ({
-              last: applyUpdateStatusMerge(
+            (execution, session) => {
+              const last = applyUpdateStatusMerge(
                 execution,
                 ctx.input,
                 deps.logger,
                 isServerComposedRequest(identity) ? "platform" : "wire",
                 captures && isOutdatedTurn(ctx.input.runId, session.runOfNewestType),
                 captures ? runReviewLogOf(session.runEvents.map(eventOf)) : undefined,
-              ),
-            }),
+              );
+              // Messages wait for this turn when its session's queue holds
+              // any sent with its authority while it works
+              // (domain/run/send-message.ts, ../session/events/queue.ts):
+              // read under the lock this write commits under.
+              const authority = authorityOfRun(execution);
+              ctx.set(
+                INPUT_PENDING_KEY,
+                isWorkingPhase(execution.status?.phase ?? RunPhase.RUN_PHASE_UNSPECIFIED) &&
+                  session.queued.some((queued) => sameAuthority(authorityOfQueued(queued), authority)),
+              );
+              return { last };
+            },
             captures
-              ? { runOfNewestType: NEWEST_TURN_EVENT_TYPE, runEventTypes: RUN_REVIEW_EVENT_TYPES }
-              : {},
+              ? { runOfNewestType: NEWEST_TURN_EVENT_TYPE, runEventTypes: RUN_REVIEW_EVENT_TYPES, queued: true }
+              : { queued: true },
           ));
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
@@ -252,6 +271,7 @@ export async function updateStatus(
     reqCtx.get(EXECUTION_KEY) as Run,
     create(UpdateStatusResponseSchema, {
       signal: RunControlSignal.UNSPECIFIED,
+      inputPending: reqCtx.get(INPUT_PENDING_KEY) === true,
     }),
   );
 }

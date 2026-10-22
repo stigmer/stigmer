@@ -24,10 +24,10 @@
 //     reconcile that asked the model would request an unscripted turn, get a
 //     500, and FAIL instead of completing;
 //   - the next message closes the earlier turn's review: what is still
-//     undecided is kept with origin next_turn, a set captured after that
-//     message is kept as it lands, a late decision is refused, and an undo
-//     sent just before a message is put back before that message's agent runs,
-//     reconciled exactly once.
+//     undecided is kept with origin next_turn, a message sent while a turn
+//     works waits and the turn's capture is kept by the next turn's close,
+//     a late decision is refused, and an undo sent just before a message is
+//     put back before that message's agent runs, reconciled exactly once.
 //
 // Capture is selected by a session with file review on whose primary
 // workspace is a real git work tree (harness/git-workspace.ts): the runner,
@@ -67,7 +67,7 @@ import { GitWorkspace, requireGit } from "../harness/git-workspace";
 import type { AnthropicMessageBody, MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { agentRefOf, makeAgent } from "../support/agents";
-import { awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
+import { awaitRunThatRead, awaitTerminal, makeAgentExecution, requireLlmProxy } from "../support/runs";
 import {
   awaitFileReview,
   awaitReconciled,
@@ -192,6 +192,31 @@ async function sendTurn(
   const executionId = execution.metadata!.id;
   fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
   return executionId;
+}
+
+/**
+ * A message sent to the session (sendMessage), which waits while a turn
+ * works: the run that reads it, once one has.
+ */
+async function sendMessageTurn(
+  session: ReviewSession,
+  turns: AnthropicMessageBody[],
+  opts: { message?: string } = {},
+): Promise<{ readonly queued: boolean; readonly run: Promise<string> }> {
+  for (const turn of turns) mock.enqueue(turn);
+  const sent = await clients.agentExecutionCommand.sendMessage(
+    makeAgentExecution({
+      org: session.org,
+      name: uniqueName("aex-filereview"),
+      sessionId: session.sessionId,
+      message: opts.message ?? "Use the filesystem tools as instructed.",
+    }),
+  );
+  const run = awaitRunThatRead(clients, session.sessionId, sent, { timeoutMs: HOLD_MS * 2 }).then((runId) => {
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: runId }));
+    return runId;
+  });
+  return { queued: sent.run === undefined, run };
 }
 
 // A fresh workspace whose cleanup is deferred with the run's other fixtures.
@@ -875,7 +900,7 @@ describe("Run file review — the next message closes the review", () => {
     expectNoModelCallLeft();
   });
 
-  it("a turn that captures after a later message was sent is kept as it lands", async () => {
+  it("[rpc:RunCommandController.sendMessage] a message sent while a turn works waits; the turn's capture is kept by the next turn's close", async () => {
     const workspace = await freshWorkspace();
     const session = await startSession(workspace);
     mock.enqueue(writeFileTurn("toolu_w_late", "late.txt", "late\n"));
@@ -888,16 +913,19 @@ describe("Run file review — the next message closes the review", () => {
       (consumed) => consumed >= 2,
       (last, timeoutMs) => `execution ${first}: the held model call was not reached within ${timeoutMs}ms (consumed ${last})`,
     );
-    const second = await sendTurn(session, [anthropicText("Second.")], { message: "And another thing." });
+    const sent = await sendMessageTurn(session, [anthropicText("Second.")], { message: "And another thing." });
+    expect(sent.queued, "the message waits for the working turn").toBe(true);
     mock.releaseHolds();
 
     const ended = await awaitTerminal(clients, first);
     expect(ended.status?.phase).toBe(RunPhase.RUN_COMPLETED);
+    const second = await sent.run;
+    expect(second, "the next turn reads the message").not.toBe(first);
     expect((await awaitTerminal(clients, second)).status?.phase).toBe(RunPhase.RUN_COMPLETED);
     const set = (await getRun(first)).status?.fileChanges.find(isCapturedSet);
     expect(set, `execution ${first} captured its edit`).toBeDefined();
     const review = await reviewSetNow(clients, session.sessionId, set!.id);
-    expect(review.undecided, "the set is settled the moment it lands").toBe(false);
+    expect(review.undecided, "the set is settled once the next turn starts").toBe(false);
     expect(review.decisions.map((d) => [d.scope, d.action, d.origin])).toEqual([["change_set", "keep", "next_turn"]]);
     const log = await readFileReviewLog(clients, session.sessionId);
     expect(log.decided.filter((e) => e.changeSetId === set!.id).map((e) => [e.scope, e.action, e.origin])).toEqual([
@@ -919,12 +947,13 @@ describe("Run file review — the next message closes the review", () => {
     const { set } = reviewed;
 
     const undone = await reviewChangeSet(clients, reviewed.sessionId, set, "undo");
-    // Sent at once: the next turn and the reconcile turn race for the tree,
-    // and whichever takes it first puts the file back.
-    const next = await sendTurn(reviewed, [readFileTurn("toolu_r_draft", path), anthropicText("Read it.")], {
+    // Sent at once: the message waits for the reconcile turn when it still
+    // works, or starts its turn when it has ended; either way the file is
+    // back before the next turn's agent runs.
+    const next = await sendMessageTurn(reviewed, [readFileTurn("toolu_r_draft", path), anthropicText("Read it.")], {
       message: "Read the draft again.",
     });
-    const nextEnded = await awaitTerminal(clients, next);
+    const nextEnded = await awaitTerminal(clients, await next.run);
     expect(nextEnded.status?.phase).toBe(RunPhase.RUN_COMPLETED);
     const read = toolUsesOf(await turnOfRun(clients, nextEnded)).find((use) => use.name === READ_FILE_TOOL);
     expect(read?.result?.text, "the next turn's agent reads the restored file").toContain("first draft");

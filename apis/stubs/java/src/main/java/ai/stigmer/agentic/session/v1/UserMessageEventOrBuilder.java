@@ -76,7 +76,9 @@ public interface UserMessageEventOrBuilder extends
 
   /**
    * <pre>
-   * When the server accepted the message, as RFC 3339 UTC.
+   * When the agent's turn took the message, as RFC 3339 UTC; empty while
+   * it waits in the session's queue for a turn that is working. A message
+   * still queued when the session was stopped keeps it empty.
    * </pre>
    *
    * <code>string processed_at = 3 [json_name = "processedAt"];</code>
@@ -85,7 +87,9 @@ public interface UserMessageEventOrBuilder extends
   java.lang.String getProcessedAt();
   /**
    * <pre>
-   * When the server accepted the message, as RFC 3339 UTC.
+   * When the agent's turn took the message, as RFC 3339 UTC; empty while
+   * it waits in the session's queue for a turn that is working. A message
+   * still queued when the session was stopped keeps it empty.
    * </pre>
    *
    * <code>string processed_at = 3 [json_name = "processedAt"];</code>

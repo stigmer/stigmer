@@ -65,6 +65,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | Method | Fills |
 |---|---|
 | RunCommandController.create | metadata.org |
+| RunCommandController.sendMessage | metadata.org |
 | RunQueryController.getAgentUsageReport | org |
 | RunQueryController.getRunSummary | org |
 | RunQueryController.getOrgUsageReport | org |

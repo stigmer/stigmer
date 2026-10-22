@@ -52,7 +52,7 @@ public interface StigmerRunStatusEventOrBuilder extends
 
   /**
    * <pre>
-   * The turn's new phase: pending (queued), running, waiting (for a
+   * The turn's new phase: pending (not started yet), running, waiting (for a
    * person's answer), paused, completed, failed, cancelled or terminated.
    * The last four end the turn.
    * </pre>
@@ -63,7 +63,7 @@ public interface StigmerRunStatusEventOrBuilder extends
   java.lang.String getPhase();
   /**
    * <pre>
-   * The turn's new phase: pending (queued), running, waiting (for a
+   * The turn's new phase: pending (not started yet), running, waiting (for a
    * person's answer), paused, completed, failed, cancelled or terminated.
    * The last four end the turn.
    * </pre>

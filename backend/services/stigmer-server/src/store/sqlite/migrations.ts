@@ -340,8 +340,11 @@ export const SCHEMA_VERSION_44 = 44;
 /** v45: the files the native engine uploaded for a run wait to become Files of the run. */
 export const SCHEMA_VERSION_45 = 45;
 
+/** v46: a session's queue: the side row of each message waiting for a turn. */
+export const SCHEMA_VERSION_46 = 46;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_45;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_46;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -412,6 +415,7 @@ export function runMigrations(
     [SCHEMA_VERSION_43, migrateToV43],
     [SCHEMA_VERSION_44, migrateToV44],
     [SCHEMA_VERSION_45, migrateToV45],
+    [SCHEMA_VERSION_46, migrateToV46],
   ];
 
   for (const [version, migrate] of chain) {
@@ -2813,4 +2817,22 @@ function migrateToV45(db: DatabaseSync): void {
     }
     after = rows[rows.length - 1]!.id;
   }
+}
+
+/**
+ * v46: a session's queue (../session-events.ts, "The queue"): the Postgres
+ * driver's v42 in this engine's terms, with the same keys and index.
+ */
+function migrateToV46(db: DatabaseSync): void {
+  db.exec(`
+    CREATE TABLE session_queued_messages (
+      session_id TEXT NOT NULL,
+      event_id   TEXT NOT NULL,
+      org        TEXT NOT NULL DEFAULT '',
+      sender     TEXT NOT NULL DEFAULT '',
+      turn       BLOB NOT NULL,
+      PRIMARY KEY (session_id, event_id)
+    );
+    CREATE INDEX idx_session_queued_messages_org ON session_queued_messages (org);
+  `);
 }

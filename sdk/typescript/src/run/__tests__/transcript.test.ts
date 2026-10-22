@@ -607,6 +607,16 @@ describe("transcriptToMarkdown", () => {
     );
   });
 
+  it("writes a message the person sent while the turn worked as a User block where the turn read it", () => {
+    const events = oneTurn((log) => {
+      log.add("run_x", { case: "agentMessage", value: { id: "run_x.root.m0", content: text("Building.") } });
+      log.add("run_x", { case: "userMessage", value: { id: "sevt_mid", content: text("and the README") } });
+      log.add("run_x", { case: "agentMessage", value: { id: "run_x.root.m1", content: text("Updating it too.") } });
+    });
+    const markdown = transcriptToMarkdown(assembleSessionTranscript(session(), events, []));
+    expect(markdown).toContain("**Assistant**\n\nBuilding.\n\n**User**\n\nand the README\n\n**Assistant**\n\nUpdating it too.");
+  });
+
   it("names an image output with no recorded type as an image", () => {
     const events = oneTurn((log) => {
       log.add("run_x", { case: "agentToolUse", value: { id: "run_x.c1", name: "screenshot" } });
