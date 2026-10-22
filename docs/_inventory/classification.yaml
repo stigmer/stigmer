@@ -43,12 +43,14 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      What problem Stigmer solves and how it differs from direct LLM calls, RAG,
-      and agent frameworks.
+      That Stigmer is the open-source backend for the agents in your product,
+      what each customer's agent has, one job told through the pieces in the
+      sidebar's order, and how it differs from a model API, an agent framework
+      and Claude Managed Agents.
     medium: diagram
     why:
-      The platform's position between your app and the LLM provider is
-      structure; the existing architecture diagram carries it.
+      Where Stigmer sits between your app and your model provider is structure;
+      one diagram of the job's path carries it.
 
   getting-started/quickstart:
     fate: keep
@@ -129,8 +131,8 @@ pages:
       comment, the three free run-health checks with their reasons, or an AI
       judge's verdict on four standard rubrics, switched on per Agent with a
       sample rate and a monthly limit in its Quality tab, or an eval run's
-      checks on one try, and the not-graded state; whoever sees the run sees
-      its scores, read with `stigmer runs scores`.
+      checks on one try, and the not-graded state; whoever sees the run sees its
+      scores, read with `stigmer runs scores`.
     medium: none
 
   concepts/sessions:
@@ -229,10 +231,10 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Keep an agent's test cases as an eval and push its versions; run evals
-      and the cases of the plugins an agent uses on the agent, from the console
-      or the CLI; compare the agent with and without a plugin, and test a plugin
-      on its own; read the table, the exit codes and the result file; know what
+      Keep an agent's test cases as an eval and push its versions; run evals and
+      the cases of the plugins an agent uses on the agent, from the console or
+      the CLI; compare the agent with and without a plugin, and test a plugin on
+      its own; read the table, the exit codes and the result file; know what
       runs, what differs from Claude Code, who sees an eval run and who pays;
       and turn a conversation that went wrong into a case.
     medium: none
@@ -244,8 +246,7 @@ pages:
       Create and manage hosted chat links for an Agent — audience, who pays,
       visitor messages, embedding, and credentials.
     medium: screenshot-journey
-    why:
-      A console procedure across the chat link dialog's tabs.
+    why: A console procedure across the chat link dialog's tabs.
 
   guides/channels/embed-an-agent:
     fate: keep
@@ -331,8 +332,7 @@ pages:
       manifest; test it with Run now, read who started each run, turn it off,
       resume it after a pause, and pin the Agent's version.
     medium: screenshot-journey
-    why:
-      A console procedure from the routine list to the routine's history.
+    why: A console procedure from the routine list to the routine's history.
 
   guides/routines/start-a-routine-from-another-system:
     fate: keep
@@ -462,12 +462,11 @@ pages:
     fate: keep
     diataxis: explanation
     teaches:
-      A File is a file uploaded once and named by its id; how a file reaches
-      the Agent (sent with a message, held by a conversation, named by a
-      routine), what the model sees, the uploads and outputs folders and why
-      they sit in the platform folder, what comes back, who sees a File and
-      when it goes, and how it compares with Claude's Files API and Managed
-      Agents.
+      A File is a file uploaded once and named by its id; how a file reaches the
+      Agent (sent with a message, held by a conversation, named by a routine),
+      what the model sees, the uploads and outputs folders and why they sit in
+      the platform folder, what comes back, who sees a File and when it goes,
+      and how it compares with Claude's Files API and Managed Agents.
     medium: none
 
   concepts/runners:
@@ -591,8 +590,8 @@ pages:
       A routine is a saved Agent invocation that starts on its schedule, by Run
       now or from another system's call with a note; who it acts as, who may
       start it and read its conversations by edition, the Environment its runs
-      use, off versus paused, and how it compares with Claude Code's routines and
-      Managed Agents' scheduled deployments.
+      use, off versus paused, and how it compares with Claude Code's routines
+      and Managed Agents' scheduled deployments.
     medium: none
 
   concepts/identity:
@@ -687,8 +686,8 @@ pages:
     diataxis: how-to
     teaches:
       Give each customer an isolated child organization under yours, administer
-      it as one of its admins, route sign-ins with externalIdClaim or minted user
-      tokens, and share a catalog with every child.
+      it as one of its admins, route sign-ins with externalIdClaim or minted
+      user tokens, and share a catalog with every child.
     medium: diagram
     why: Parent-to-child fan-out is structure; the two mermaids carry it.
 
@@ -887,8 +886,8 @@ pages:
     fate: keep
     diataxis: how-to
     teaches:
-      Install @stigmer/client, construct a client, and make one call with not-found
-      handling.
+      Install @stigmer/client, construct a client, and make one call with
+      not-found handling.
     medium: none
 
   sdk/go:

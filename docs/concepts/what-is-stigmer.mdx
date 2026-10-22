@@ -1,177 +1,159 @@
 ---
 title: What is Stigmer?
 description:
-  Stigmer is an open-source AI agent platform. Learn what it does, who it's for,
-  and how it differs from calling an LLM directly, using RAG, or adopting an
-  agent framework.
+  Stigmer is the open-source backend for the agents in your product. Learn what
+  each customer's agent has, how one job runs end to end, and how Stigmer
+  differs from a model API, an agent framework and Claude Managed Agents.
 ---
 
-## The problem Stigmer solves
+Stigmer is the open-source backend for the agents in your product. It runs
+behind your app, the way your database does.
 
-You called the ChatGPT or Claude API. The demo worked. Then you tried to ship
-it.
+You already ship a product with customers. You want each of them to get an agent
+that does real work inside it: it takes what the customer hands it, works
+through it, and hands back the result. Stigmer runs those agents for you, so you
+build the feature and not the machinery. Your app calls Stigmer, and Stigmer
+runs the agent on your model provider.
 
-The AI doesn't know your business — your return policy, your product catalog,
-your escalation process. It can't take actions in your systems. There's no way
-to add human oversight. Every call is a one-shot interaction with no memory of
-what came before.
+## What each customer's agent has
 
-Building all of that yourself means assembling orchestration, durability, tool
-security, state management, and an API layer — months of infrastructure work
-before you ship a single Agent.
+- **Its own computer.** A sandbox that keeps its files between turns: the agent
+  reads what the customer gave it there, works there, and saves what it hands
+  back. An [Environment](/docs/concepts/environments) says what is installed on
+  it and what it may reach, and
+  [Sessions](/docs/concepts/sessions#what-a-session-keeps) says where it runs on
+  your servers and on ours.
+- **It asks before acting** on anything you mark as needing a yes. The agent
+  stops, a person approves or declines, and the agent carries on
+  ([Approval flows](/docs/concepts/approval-flows)).
+- **Each customer's agents, files and keys stay apart** from every other
+  customer's. On the editions that include it, each customer gets an
+  [Organization](/docs/concepts/organizations) of their own
+  ([Give each customer their own organization](/docs/getting-started/one-organization-per-customer)).
+  On the open-source server, each customer's keys live in a vault of their own
+  ([Keep your customers' keys](/docs/guides/authentication/customer-keys)).
+- **Your model keys, on your servers or ours.** Agents run on your own provider
+  keys, never on one of Stigmer's
+  ([Model provider keys](/docs/guides/integrations/model-provider-keys)). Run it
+  yourself under Apache 2.0, or use Stigmer Cloud;
+  [Open source, Enterprise and Cloud](/docs/guides/self-hosting/cloud-vs-self-hosted)
+  says how the editions differ.
 
-Stigmer is the platform that handles that infrastructure so you can focus on
-building Agents.
+## One job, end to end
 
-## What Stigmer is
+The [quickstart](/docs/getting-started/quickstart) runs one job: an accounting
+product's customer uploads a ledger and gets a variance report back. Here is the
+same job told through Stigmer's pieces.
 
-Stigmer is an open-source AI-powered Agent platform. You define Agents, teach
-them your domain, connect them to your tools, and set rules for when they need
-human approval. Then any application in your stack can call those Agents via a
-standard API.
+1. Your app starts a [Session](/docs/concepts/sessions) on the
+   `variance-reporter` [Agent](/docs/concepts/agents), in the customer's
+   Organization. The Agent is the job description; the Session is this one piece
+   of work.
+2. The ledger arrives as a [File](/docs/concepts/files), attached to the
+   Session's first message.
+3. The Agent works in its own sandbox, set up by an
+   [Environment](/docs/concepts/environments), and calls the model on your
+   Anthropic key.
+4. Add the `ledger` plugin to the Agent, and it can read the customer's books
+   and post corrections to them as well. It asks before `post_adjustment`
+   changes the books, and waits for a person's yes
+   ([Approval flows](/docs/concepts/approval-flows)). The quickstart's Agent has
+   no plugin; [Tools](/docs/concepts/tools) shows how one is added.
+5. The report comes back as a File of the Session, and the Session's events
+   stream to your app while the Agent works ([Streaming](/docs/sdk/streaming)).
 
-Stigmer provides the runtime layer that makes Agents production-ready:
-
-- **Durable Execution** — Agents survive crashes and resume where they left off
-- **Tool sandboxing** — Agents interact with external systems through
-  controlled, validated tool calls
-- **Human approval flows** — you decide which actions require a human decision
-  before proceeding
-- **Conversation memory** — Agents remember context across interactions within a
-  Session
-- **Real API contracts** — gRPC services with public protobuf definitions, so
-  you generate type-safe clients in any language
+Your app talks only to Stigmer, and Stigmer talks to your model provider on your
+key. Inside Stigmer, the Session runs the Agent in a sandbox of its own, which
+holds the ledger that came in and the report that goes back.
 
 {/* prettier-ignore */}
 <Mermaid
   chart={[
-    "graph TB",
-    "  subgraph yourApp [Your Application]",
-    '    sdkCall["SDK / API call"]',
+    "graph LR",
+    "  subgraph product [Your product]",
+    '    app["Your backend"]',
     "  end",
     "",
-    "  subgraph stigmer [Stigmer Platform]",
-    '    runtime["Agent Runtime"]',
-    '    runtime --> skillsNode["Skills<br/>(domain knowledge)"]',
-    '    runtime --> pluginsNode["Plugins<br/>(tools through MCP servers)"]',
-    '    runtime --> approvals["Approval Flows<br/>(human oversight)"]',
-    '    runtime --> sessionsNode["Sessions<br/>(conversation memory)"]',
+    "  subgraph stigmer [Stigmer]",
+    '    session["Session on variance-reporter"]',
+    '    sandbox["Its sandbox<br/>ledger.csv in, variance-report.md out"]',
+    "    session --> sandbox",
     "  end",
     "",
-    "  subgraph llmLayer [LLM Provider]",
-    '    model["Anthropic"]',
-    "  end",
+    '  provider["Your model provider, on your key"]',
     "",
-    "  sdkCall --> runtime",
-    "  runtime --> model",
+    '  app -- "the ledger and the job" --> session',
+    '  session -- "events, then the report" --> app',
+    "  session --> provider",
   ].join("\n")}
 />
 
-## Who Stigmer is for
+## The pieces, in order
 
-**Technical founders and engineering leads** choosing Agent infrastructure for
-their product. You build software used by other people — SaaS platforms,
-internal tools, customer-facing applications — and you want to add AI-powered
-Agent capabilities without building Agent infrastructure from scratch.
+The sidebar follows the order a developer meets these pieces in. Each line links
+the page that explains it.
 
-**Developers on those teams** who implement the integration. You write the YAML,
-use the CLI, call the API, and embed SDK components. You care about developer
-experience, type safety, and local development that matches production.
+| Piece                                                                                                                                                            | What it is                                                                    |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| [Agent](/docs/concepts/agents)                                                                                                                                   | The job description: its instructions, what it knows and the tools it may use |
+| [Environment](/docs/concepts/environments)                                                                                                                       | The computer it works on: what is installed and what it may reach             |
+| [Session](/docs/concepts/sessions)                                                                                                                               | One piece of work for someone, with its sandbox, its events and its files     |
+| [File](/docs/concepts/files)                                                                                                                                     | What a customer hands the Agent, and what it hands back                       |
+| [Vault](/docs/concepts/vaults) and [model provider keys](/docs/guides/integrations/model-provider-keys)                                                          | The logins and keys its runs use                                              |
+| [Skills](/docs/concepts/skills), [plugins](/docs/concepts/plugins), [tools](/docs/concepts/tools) and [approval flows](/docs/concepts/approval-flows)            | What an Agent knows, what it can do, and where it asks first                  |
+| [Channels](/docs/concepts/channels), [Routines](/docs/concepts/routines) and [your app](/docs/getting-started/call-from-your-app)                                | How people, schedules and your code reach an Agent                            |
+| [Sharing and access](/docs/concepts/sharing-and-access), [Organizations](/docs/concepts/organizations) and [identity](/docs/concepts/identity)                   | Who may use what, and each customer's own account                             |
+| [Open source, Enterprise and Cloud](/docs/guides/self-hosting/cloud-vs-self-hosted), [Runners](/docs/concepts/runners) and [Harnesses](/docs/concepts/harnesses) | The editions, and where and how a run executes                                |
 
-Stigmer is not for hobbyists building personal chat assistants, data scientists
-doing model training, or no-code users expecting a visual drag-and-drop builder.
-It's a platform for people building products.
+## How it differs
 
-## Three capability layers
+### From calling a model API
 
-Stigmer's value builds in layers. Each layer adds a capability that makes Agents
-more useful. You adopt them progressively — start with domain knowledge, add
-tools when ready, add human oversight when the use case demands it.
+A model's API answers one request at a time. It has no computer to work on,
+keeps no customer's files between turns, never stops to ask a person, and has no
+wall between one customer's data and the next. You would build each of those
+yourself, along with the queues, retries and tenant checks around them. Stigmer
+is those pieces, behind your app.
 
-### 1. Knows your business
+### From an agent framework
 
-You upload domain knowledge — product docs, process guides, policies,
-institutional knowledge — as Skills. The Agent uses that knowledge to answer
-questions and make decisions specific to your business.
+A framework is a library inside your app. It gives you the agent loop, and you
+still build the server around it: storage, sandboxes, approvals, an API, and a
+redeploy of every app that embeds it when the agent changes. Stigmer is a server
+behind your app instead. You define an Agent once, call it from any service, and
+change it in one place.
 
-Without a Skill, the Agent gives generic answers. With a Skill, it gives
-domain-expert answers. The difference is visible in one prompt.
+### From Claude Managed Agents
 
-### 2. Uses your tools
+Anthropic describes Claude Managed Agents as a "pre-built, configurable agent
+harness that runs in managed infrastructure": Anthropic runs the agents and
+their sandboxes, on Claude. Stigmer is open source, runs on your servers or
+ours, runs on your own model keys, and gives each of your customers their own
+Organization on the editions that include it. Agents, Environments, Sessions and
+their events carry the same names in both, and Anthropic's SDK reads a Stigmer
+Session's events.
+[Coming from Claude Managed Agents](/docs/concepts/coming-from-claude-managed-agents)
+maps each idea, and
+[Stigmer and Claude Managed Agents](https://stigmer.ai/compare/claude-managed-agents)
+sets the two side by side.
 
-Your Agent can query databases, create tickets, send emails, update records —
-any action your systems support. Tool access uses the
-[Model Context Protocol (MCP)](https://modelcontextprotocol.io/), an open
-standard for connecting AI models to external tools.
+## What Stigmer is not for
 
-An Agent with tool access can look up an order, check its status, and initiate a
-return. An Agent without it can only say "I would be happy to help — please
-contact support."
+Stigmer is not a coding agent. Agents that write and review your own code are
+the world of Claude Code, Cursor and Codex, and you may well use one already.
+Stigmer runs the agents you ship to your customers. The plugins you built for
+those tools still work here: Stigmer reads them unchanged
+([Plugins](/docs/concepts/plugins)).
 
-### 3. Asks before acting
+## Next step
 
-You define which actions require human approval. The Agent pauses, presents its
-reasoning, and waits for a human to approve or reject before proceeding. This is
-a control mechanism, not a logging feature.
+You know what each customer's agent has, but you haven't watched one do a job
+yet. The quickstart creates the variance reporter, hands it a ledger and gets
+the report back as a file, in about ten minutes.
 
-Routine questions and queries are handled automatically. Only the actions you
-designate require approval.
-
-## How Stigmer is different
-
-### vs. Direct LLM API calls
-
-Calling the OpenAI or Anthropic API gives you a prompt-in, response-out flow.
-The LLM doesn't know your business, can't take actions, has no state across
-conversations, and offers no approval mechanism. Every call is a one-shot
-interaction.
-
-Stigmer adds domain knowledge, tool access, conversation memory, approval flows,
-and Durable Execution around the LLM.
-
-### vs. RAG solutions
-
-Retrieval-augmented generation makes an Agent better at answering questions from
-documents. It's a read-only capability — the Agent still can't take actions, run
-on a schedule, or ask for human approval. And you manage embedding pipelines,
-vector databases, and retrieval tuning yourself.
-
-Skills provide domain knowledge without embedding pipelines or vector databases.
-And knowledge is just the starting point — tool access, approval flows,
-routines, and channels build on top.
-
-### vs. Agent frameworks
-
-Frameworks give you Agent primitives as a library. You still build the
-infrastructure: orchestration, durability, state management, API layer, tool
-security, deployment. Every app that uses the Agent embeds the framework. Update
-the Agent logic and you redeploy every consumer.
-
-Stigmer is a platform, not a framework. Define the Agent once. Run it as a
-service. Call it from any app via API. Update the Agent — every consumer
-benefits instantly. Stigmer provides the infrastructure layer that frameworks
-leave to you.
-
-## Core resource model
-
-Stigmer manages Agents as declarative resources — similar to how a database
-manages tables or an auth service manages users. You define resources in YAML,
-apply them, and Stigmer handles the rest.
-
-The key resources you'll learn about in the following pages:
-
-| Resource                                     | What it represents                                                                |
-| -------------------------------------------- | --------------------------------------------------------------------------------- |
-| [Agent](/docs/concepts/agents)               | A blueprint that defines what an Agent does — its instructions, Skills, and tools |
-| [Skill](/docs/concepts/skills)               | A piece of domain knowledge that makes an Agent an expert in your business        |
-| [Plugin](/docs/concepts/plugins)             | An installed package of Skills, agents, hooks and the MCP servers that give tools |
-| [Session](/docs/concepts/sessions)           | A conversation context that preserves memory across interactions                  |
-| [Vault](/docs/concepts/vaults)               | The logins and secrets a person's or a team's runs use                            |
-| [Organization](/docs/concepts/organizations) | A tenant boundary that groups resources and teams                                 |
-
-## What's next
-
-You know what Stigmer is and why it exists. The next page explains the most
-important resource — the [Agent](/docs/concepts/agents). You'll learn how Agents
-are defined, how they run, and how the lifecycle flows from blueprint to Agent
-Run.
+<Cards>
+  <Card title="Your first agent job" href="/docs/getting-started/quickstart">
+    Create an Agent, hand it a customer's ledger and get a variance report back
+    as a file.
+  </Card>
+</Cards>
