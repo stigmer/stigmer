@@ -29,7 +29,8 @@
  * (`OWNER_ONLY` and `NONE` scope: accounts, API keys, platform, plans,
  * licences), nested messages other than a VaultTarget (a
  * spec reference follows `metadata.org` through NormalizeReferences), and
- * streams (no streaming method takes an organization). The per-method inventory is
+ * streams (the interceptor reads unary requests only; a stream that takes
+ * an organization is sent one). The per-method inventory is
  * docs/single-organization.md, which single-organization-inventory.test.ts
  * holds equal to this rule over every method the server serves.
  *
@@ -65,7 +66,8 @@ export type FillPath = "org" | "vault.org" | "metadata.org" | undefined;
 /** Why a method that takes an organization is not filled, for the inventory. */
 export type NotFilledReason =
   | "organization service"
-  | "kind belongs to no organization";
+  | "kind belongs to no organization"
+  | "a stream";
 
 export interface FillRule {
   readonly path: FillPath;
@@ -97,6 +99,11 @@ export function fillRuleFor(method: DescMethod): FillRule {
   }
   if (kind === ApiResourceKind.organization) {
     return { path: undefined, notFilled: "organization service" };
+  }
+  // The interceptor reads unary requests only: a stream names its
+  // organization itself.
+  if (method.methodKind !== "unary") {
+    return { path: undefined, notFilled: "a stream" };
   }
   if (topOrg !== undefined) {
     return { path: "org" };

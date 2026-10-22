@@ -34,4 +34,11 @@ describe("SETTINGS_NAV_GROUPS preference entries", () => {
         ?.label,
     ).toBe("Preferences");
   });
+
+  it("lists notifications in the Account group", () => {
+    const account = SETTINGS_NAV_GROUPS.find((g) => g.label === "Account");
+    expect(
+      account!.items.find((i) => i.href === "/settings/notifications")?.label,
+    ).toBe("Notifications");
+  });
 });

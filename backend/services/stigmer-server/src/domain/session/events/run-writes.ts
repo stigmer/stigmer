@@ -431,7 +431,7 @@ async function write(
   );
   const first = result.events[0];
   if (first !== undefined) {
-    deps.sessionEventBroker.publish(first.sessionId, result.events.map(eventOf));
+    deps.sessionEventBroker.publish(first.sessionId, (result.row ?? result.previous)?.metadata?.org ?? "", result.events.map(eventOf));
   }
   return result;
 }

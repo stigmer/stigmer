@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import {
   AppWindow,
   BarChart3,
+  Bell,
   Bot,
   Box,
   Brain,
@@ -121,6 +122,7 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
         label: "Preferences",
         icon: UserCog,
       },
+      { href: "/settings/notifications", label: "Notifications", icon: Bell },
       { href: "/settings/memory", label: "Memory", icon: Brain },
     ],
   },

@@ -350,8 +350,11 @@ export const SCHEMA_VERSION_41 = 41;
 /** v42: a session's queue: the side row of each message waiting for a turn. */
 export const SCHEMA_VERSION_42 = 42;
 
+/** v43: an organization's events of one type, by when they were accepted: what needs a person's attention. */
+export const SCHEMA_VERSION_43 = 43;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_42;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_43;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -434,6 +437,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_40, migrateToV40],
       [SCHEMA_VERSION_41, migrateToV41],
       [SCHEMA_VERSION_42, migrateToV42],
+      [SCHEMA_VERSION_43, migrateToV43],
     ];
 
     for (const [version, migrate] of chain) {
@@ -3036,4 +3040,14 @@ async function migrateToV42(client: PoolClient): Promise<void> {
     );
     CREATE INDEX idx_session_queued_messages_org ON session_queued_messages (org);
   `);
+}
+
+/**
+ * v43: an organization's events of one type, in the order they were
+ * accepted (../session-events.ts `listByOrg`): the read behind a person's
+ * attention stream, across the organization's sessions. The SQLite
+ * driver's v47 in this engine's terms.
+ */
+async function migrateToV43(client: PoolClient): Promise<void> {
+  await client.query(`CREATE INDEX idx_session_events_org_type ON session_events (org, type, processed_at, event_id);`);
 }

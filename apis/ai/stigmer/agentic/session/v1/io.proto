@@ -448,3 +448,44 @@ message BindHarnessStateResponse {
   // The ids the session owned before, oldest first.
   repeated string harness_state_id_history = 2;
 }
+
+// StreamAttentionRequest opens the caller's stream of what needs them in
+// one organization.
+message StreamAttentionRequest {
+  // The organization whose conversations to watch.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Where to resume: the cursor of the last Attention the client has.
+  // Empty streams only what comes after the stream opens. A cursor older
+  // than a day resumes from a day ago.
+  string after_cursor = 2 [(buf.validate.field).string.max_len = 256];
+}
+
+// Attention is one conversation, created by the caller, that stopped
+// working and needs them: its turn finished, failed, or waits for their
+// answer.
+message Attention {
+  // The session.status_idle event it reads from: a client shows each id
+  // once.
+  string id = 1;
+
+  // The conversation.
+  string session_id = 2;
+
+  // The conversation's title (its subject), or its name when it has none.
+  string title = 3;
+
+  // The turn that stopped; empty when no turn's write ended it.
+  string run_id = 4;
+
+  // Why it needs the caller: "finished" (the turn ended its work),
+  // "failed" (retries ran out, or a budget was reached) or "needs_answer"
+  // (a tool call waits for an approval).
+  string reason = 5;
+
+  // When it stopped, RFC 3339.
+  string at = 6;
+
+  // Where a client resumes from: StreamAttentionRequest.after_cursor.
+  string cursor = 7;
+}

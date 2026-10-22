@@ -30,6 +30,12 @@
  * with UNAVAILABLE and a new one is refused, so a watcher resumes on the
  * server that stays instead of waiting on one that is leaving.
  *
+ * One more bell rings across sessions: a write whose events include a
+ * `session.status_idle` rings its organization's attention streams
+ * (attention.ts, `sessionIdleBellOf`), each of which reads that
+ * organization's idles from the store, as an event stream reads its
+ * session's.
+ *
  * One instance serves both routers (serving and in-process), as the run
  * broker does; the composition root owns it.
  *
@@ -67,6 +73,11 @@ export const SESSION_EVENT_PREVIEW_MAX_BYTES = 32 * 1024 * 1024;
  * streaming after this many newer drops could show its hole.
  */
 export const SESSION_EVENT_DROPPED_IDS_KEPT = 4096;
+
+/** Where an organization's attention streams subscribe: a key no session id takes. */
+export function sessionIdleBellOf(org: string): string {
+  return `\u0000session.status_idle:${org}`;
+}
 
 /** The reason a stream ends with when the broker closes. */
 export const SESSION_EVENT_BROKER_CLOSED_MESSAGE =
@@ -158,16 +169,21 @@ export class SessionEventBroker {
   }
 
   /**
-   * Rings the bell of every stream of the session once events committed.
-   * The events are not copied: each stream reads them from the store.
+   * Rings the bell of every stream of the session once events committed,
+   * and the organization's idle bell when they carry an idle. The events
+   * are not copied: each stream reads them from the store.
    */
-  publish(sessionId: string, events: ReadonlyArray<SessionEvent>): void {
+  publish(sessionId: string, org: string, events: ReadonlyArray<SessionEvent>): void {
     if (events.length === 0) {
       return;
     }
-    for (const subscription of this.subscribers.get(sessionId) ?? []) {
-      subscription.dirty = true;
-      this.wake(subscription);
+    const idle = org !== "" && events.some((event) => event.event.case === "sessionStatusIdle");
+    const bells = idle ? [sessionId, sessionIdleBellOf(org)] : [sessionId];
+    for (const bell of bells) {
+      for (const subscription of this.subscribers.get(bell) ?? []) {
+        subscription.dirty = true;
+        this.wake(subscription);
+      }
     }
   }
 

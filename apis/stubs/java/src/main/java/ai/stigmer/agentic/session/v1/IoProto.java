@@ -171,6 +171,16 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_session_v1_StreamAttentionRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_session_v1_StreamAttentionRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_session_v1_Attention_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_session_v1_Attention_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -326,12 +336,18 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "(\tB\006\272H\003\310\001\001R\016harnessStateId\"}\n\030BindHarnes" +
       "sStateResponse\022(\n\020harness_state_id\030\001 \001(\t" +
       "R\016harnessStateId\0227\n\030harness_state_id_his" +
-      "tory\030\002 \003(\tR\025harnessStateIdHistoryB\242\001B\007Io" +
-      "ProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Sess" +
-      "ion.V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002" +
-      ")Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetada" +
-      "ta\352\002!Ai::Stigmer::Agentic::Session::V1b\006" +
-      "proto3"
+      "tory\030\002 \003(\tR\025harnessStateIdHistory\"`\n\026Str" +
+      "eamAttentionRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020" +
+      "\001R\003org\022+\n\014after_cursor\030\002 \001(\tB\010\272H\005r\003\030\200\002R\013" +
+      "afterCursor\"\247\001\n\tAttention\022\016\n\002id\030\001 \001(\tR\002i" +
+      "d\022\035\n\nsession_id\030\002 \001(\tR\tsessionId\022\024\n\005titl" +
+      "e\030\003 \001(\tR\005title\022\025\n\006run_id\030\004 \001(\tR\005runId\022\026\n" +
+      "\006reason\030\005 \001(\tR\006reason\022\016\n\002at\030\006 \001(\tR\002at\022\026\n" +
+      "\006cursor\030\007 \001(\tR\006cursorB\242\001B\007IoProtoP\001\242\002\004AS" +
+      "AS\252\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\" +
+      "Stigmer\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\" +
+      "Agentic\\Session\\V1\\GPBMetadata\352\002!Ai::Sti" +
+      "gmer::Agentic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -516,6 +532,18 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateResponse_descriptor,
         new java.lang.String[] { "HarnessStateId", "HarnessStateIdHistory", });
+    internal_static_ai_stigmer_agentic_session_v1_StreamAttentionRequest_descriptor =
+      getDescriptor().getMessageType(26);
+    internal_static_ai_stigmer_agentic_session_v1_StreamAttentionRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_session_v1_StreamAttentionRequest_descriptor,
+        new java.lang.String[] { "Org", "AfterCursor", });
+    internal_static_ai_stigmer_agentic_session_v1_Attention_descriptor =
+      getDescriptor().getMessageType(27);
+    internal_static_ai_stigmer_agentic_session_v1_Attention_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_session_v1_Attention_descriptor,
+        new java.lang.String[] { "Id", "SessionId", "Title", "RunId", "Reason", "At", "Cursor", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.session.v1.ApiProto.getDescriptor();
     ai.stigmer.agentic.session.v1.EventProto.getDescriptor();

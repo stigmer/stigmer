@@ -9,7 +9,9 @@
 //     byte-pinned annotation copy, and sees nothing;
 //   - appendEvents, bindHarnessState and claimInput admit only the runner
 //     acting for a run: a signed-in person's own credential, even the
-//     session owner's, is refused.
+//     session owner's, is refused;
+//   - streamAttention follows an organization its caller can see, by its
+//     slug: an outsider is refused with the annotation's copy.
 //
 // The log's content on real turns, and the runner's own appends, are the
 // execution suite's (suites-execution/session-events.conformance.test.ts).
@@ -120,5 +122,17 @@ describe("a session's event log — who may read and write it (on the enforcing 
       "claimInput with a signed-in person's credential",
     );
     expect(refused.rawMessage).toBe("only the runner acting for this run may append its events");
+  });
+
+  it("[rpc:SessionQueryController.streamAttention] an outsider is refused the organization's attention, with its annotation copy", async (ctx) => {
+    const lane = laneOrSkip(ctx);
+    const { org } = await lane.provisionTenancy();
+    const outsider = await lane.provisionIdentity();
+    const refused = await expectGrpcCode(
+      () => collectStream((signal) => outsider.sessionQuery.streamAttention({ org, afterCursor: "" }, { signal })),
+      Code.PermissionDenied,
+      "outsider streamAttention on a foreign organization",
+    );
+    expect(refused.rawMessage).toBe("unauthorized to stream attention in this organization");
   });
 });

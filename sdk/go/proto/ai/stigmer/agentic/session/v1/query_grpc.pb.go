@@ -19,12 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SessionQueryController_Get_FullMethodName           = "/ai.stigmer.agentic.session.v1.SessionQueryController/get"
-	SessionQueryController_List_FullMethodName          = "/ai.stigmer.agentic.session.v1.SessionQueryController/list"
-	SessionQueryController_ListByAgent_FullMethodName   = "/ai.stigmer.agentic.session.v1.SessionQueryController/listByAgent"
-	SessionQueryController_ListByChannel_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionQueryController/listByChannel"
-	SessionQueryController_ListEvents_FullMethodName    = "/ai.stigmer.agentic.session.v1.SessionQueryController/listEvents"
-	SessionQueryController_StreamEvents_FullMethodName  = "/ai.stigmer.agentic.session.v1.SessionQueryController/streamEvents"
+	SessionQueryController_Get_FullMethodName             = "/ai.stigmer.agentic.session.v1.SessionQueryController/get"
+	SessionQueryController_List_FullMethodName            = "/ai.stigmer.agentic.session.v1.SessionQueryController/list"
+	SessionQueryController_ListByAgent_FullMethodName     = "/ai.stigmer.agentic.session.v1.SessionQueryController/listByAgent"
+	SessionQueryController_ListByChannel_FullMethodName   = "/ai.stigmer.agentic.session.v1.SessionQueryController/listByChannel"
+	SessionQueryController_ListEvents_FullMethodName      = "/ai.stigmer.agentic.session.v1.SessionQueryController/listEvents"
+	SessionQueryController_StreamEvents_FullMethodName    = "/ai.stigmer.agentic.session.v1.SessionQueryController/streamEvents"
+	SessionQueryController_StreamAttention_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionQueryController/streamAttention"
 )
 
 // SessionQueryControllerClient is the client API for SessionQueryController service.
@@ -67,6 +68,20 @@ type SessionQueryControllerClient interface {
 	// ended for it; a server that is restarting ends its streams with
 	// UNAVAILABLE, and a client resumes the same way.
 	StreamEvents(ctx context.Context, in *StreamSessionEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamSessionEventsResponse], error)
+	// Stream what needs the caller: one Attention each time a conversation
+	// they created in the organization stops working, because its turn
+	// finished, failed, or waits for their answer. A stop the caller made
+	// themselves (an interrupt, a terminate) sends nothing.
+	//
+	// It reads the conversations' log, so nothing is missed across a
+	// reconnect: with after_cursor the stream first sends every attention
+	// after that cursor, then the new ones; without, only those that come
+	// after it opens. A cursor is read again from a short way back, so an
+	// attention may come twice: a client keeps the ids it showed. A cursor
+	// older than a day resumes from a day ago.
+	// A server that is restarting ends its streams with UNAVAILABLE, and a
+	// client resumes with its last cursor.
+	StreamAttention(ctx context.Context, in *StreamAttentionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Attention], error)
 }
 
 type sessionQueryControllerClient struct {
@@ -146,6 +161,25 @@ func (c *sessionQueryControllerClient) StreamEvents(ctx context.Context, in *Str
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type SessionQueryController_StreamEventsClient = grpc.ServerStreamingClient[StreamSessionEventsResponse]
 
+func (c *sessionQueryControllerClient) StreamAttention(ctx context.Context, in *StreamAttentionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Attention], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &SessionQueryController_ServiceDesc.Streams[1], SessionQueryController_StreamAttention_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamAttentionRequest, Attention]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type SessionQueryController_StreamAttentionClient = grpc.ServerStreamingClient[Attention]
+
 // SessionQueryControllerServer is the server API for SessionQueryController service.
 // All implementations should embed UnimplementedSessionQueryControllerServer
 // for forward compatibility.
@@ -186,6 +220,20 @@ type SessionQueryControllerServer interface {
 	// ended for it; a server that is restarting ends its streams with
 	// UNAVAILABLE, and a client resumes the same way.
 	StreamEvents(*StreamSessionEventsRequest, grpc.ServerStreamingServer[StreamSessionEventsResponse]) error
+	// Stream what needs the caller: one Attention each time a conversation
+	// they created in the organization stops working, because its turn
+	// finished, failed, or waits for their answer. A stop the caller made
+	// themselves (an interrupt, a terminate) sends nothing.
+	//
+	// It reads the conversations' log, so nothing is missed across a
+	// reconnect: with after_cursor the stream first sends every attention
+	// after that cursor, then the new ones; without, only those that come
+	// after it opens. A cursor is read again from a short way back, so an
+	// attention may come twice: a client keeps the ids it showed. A cursor
+	// older than a day resumes from a day ago.
+	// A server that is restarting ends its streams with UNAVAILABLE, and a
+	// client resumes with its last cursor.
+	StreamAttention(*StreamAttentionRequest, grpc.ServerStreamingServer[Attention]) error
 }
 
 // UnimplementedSessionQueryControllerServer should be embedded to have
@@ -212,6 +260,9 @@ func (UnimplementedSessionQueryControllerServer) ListEvents(context.Context, *Li
 }
 func (UnimplementedSessionQueryControllerServer) StreamEvents(*StreamSessionEventsRequest, grpc.ServerStreamingServer[StreamSessionEventsResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method StreamEvents not implemented")
+}
+func (UnimplementedSessionQueryControllerServer) StreamAttention(*StreamAttentionRequest, grpc.ServerStreamingServer[Attention]) error {
+	return status.Errorf(codes.Unimplemented, "method StreamAttention not implemented")
 }
 func (UnimplementedSessionQueryControllerServer) testEmbeddedByValue() {}
 
@@ -334,6 +385,17 @@ func _SessionQueryController_StreamEvents_Handler(srv interface{}, stream grpc.S
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type SessionQueryController_StreamEventsServer = grpc.ServerStreamingServer[StreamSessionEventsResponse]
 
+func _SessionQueryController_StreamAttention_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamAttentionRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(SessionQueryControllerServer).StreamAttention(m, &grpc.GenericServerStream[StreamAttentionRequest, Attention]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type SessionQueryController_StreamAttentionServer = grpc.ServerStreamingServer[Attention]
+
 // SessionQueryController_ServiceDesc is the grpc.ServiceDesc for SessionQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -366,6 +428,11 @@ var SessionQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "streamEvents",
 			Handler:       _SessionQueryController_StreamEvents_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "streamAttention",
+			Handler:       _SessionQueryController_StreamAttention_Handler,
 			ServerStreams: true,
 		},
 	},

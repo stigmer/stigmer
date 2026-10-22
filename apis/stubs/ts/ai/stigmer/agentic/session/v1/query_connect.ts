@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ListSessionEventsRequest, ListSessionsByAgentRequest, ListSessionsByChannelRequest, ListSessionsRequest, SessionEventList, SessionId, SessionList, StreamSessionEventsRequest, StreamSessionEventsResponse } from "./io_pbjs";
+import { Attention, ListSessionEventsRequest, ListSessionsByAgentRequest, ListSessionsByChannelRequest, ListSessionsRequest, SessionEventList, SessionId, SessionList, StreamAttentionRequest, StreamSessionEventsRequest, StreamSessionEventsResponse } from "./io_pbjs";
 import { Session } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -101,6 +101,29 @@ export const SessionQueryController = {
       name: "streamEvents",
       I: StreamSessionEventsRequest,
       O: StreamSessionEventsResponse,
+      kind: MethodKind.ServerStreaming,
+    },
+    /**
+     * Stream what needs the caller: one Attention each time a conversation
+     * they created in the organization stops working, because its turn
+     * finished, failed, or waits for their answer. A stop the caller made
+     * themselves (an interrupt, a terminate) sends nothing.
+     *
+     * It reads the conversations' log, so nothing is missed across a
+     * reconnect: with after_cursor the stream first sends every attention
+     * after that cursor, then the new ones; without, only those that come
+     * after it opens. A cursor is read again from a short way back, so an
+     * attention may come twice: a client keeps the ids it showed. A cursor
+     * older than a day resumes from a day ago.
+     * A server that is restarting ends its streams with UNAVAILABLE, and a
+     * client resumes with its last cursor.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.streamAttention
+     */
+    streamAttention: {
+      name: "streamAttention",
+      I: StreamAttentionRequest,
+      O: Attention,
       kind: MethodKind.ServerStreaming,
     },
   }

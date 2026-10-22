@@ -343,8 +343,11 @@ export const SCHEMA_VERSION_45 = 45;
 /** v46: a session's queue: the side row of each message waiting for a turn. */
 export const SCHEMA_VERSION_46 = 46;
 
+/** v47: an organization's events of one type, by when they were accepted: what needs a person's attention. */
+export const SCHEMA_VERSION_47 = 47;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_46;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_47;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -416,6 +419,7 @@ export function runMigrations(
     [SCHEMA_VERSION_44, migrateToV44],
     [SCHEMA_VERSION_45, migrateToV45],
     [SCHEMA_VERSION_46, migrateToV46],
+    [SCHEMA_VERSION_47, migrateToV47],
   ];
 
   for (const [version, migrate] of chain) {
@@ -2835,4 +2839,14 @@ function migrateToV46(db: DatabaseSync): void {
     );
     CREATE INDEX idx_session_queued_messages_org ON session_queued_messages (org);
   `);
+}
+
+/**
+ * v47: an organization's events of one type, in the order they were
+ * accepted (../session-events.ts `listByOrg`): the read behind a person's
+ * attention stream, across the organization's sessions. The Postgres
+ * driver's v43 in this engine's terms.
+ */
+function migrateToV47(db: DatabaseSync): void {
+  db.exec(`CREATE INDEX idx_session_events_org_type ON session_events (org, type, processed_at, event_id);`);
 }

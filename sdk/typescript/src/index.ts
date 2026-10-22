@@ -461,10 +461,13 @@ export {
 } from "@stigmer/session-log";
 export {
   ALL_SESSION_PREVIEWS,
+  followAttention,
   followSession,
   newestSeq,
   sendAndWait,
   waitForTurn,
+  type AttentionClient,
+  type FollowAttentionOptions,
   type FollowSessionOptions,
   type SendAndWaitClient,
   type SendAndWaitInput,

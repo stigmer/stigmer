@@ -140,6 +140,24 @@ is subject-only — this page shows the caller their own records and
 nobody else's.
 
 
+### NotificationsSection
+
+Settings section for the person's choice to be told when a conversation
+they started finishes, fails, or waits for their answer. Turning it on asks
+the system's permission first, so a page never asks on load; a refusal
+leaves it off and says where to allow it. The choice is this browser's
+([`useAttentionNotificationsSetting`](/docs/sdk/react/session#useattentionnotificationssetting)).
+
+**Props** — `NotificationsSectionProps`
+
+<TypeTable
+  type={{
+    requestPermission: { type: "() => Promise<boolean>", description: "Asks the system's permission to show notifications, from the person's own flip of the switch: the console asks the browser, the desktop app its plugin. Resolves whether notifications may be shown.", required: true },
+    unsupported: { type: "boolean", description: "The host cannot show notifications at all: the switch is off and disabled." },
+  }}
+/>
+
+
 ### OAuthAppsSection
 
 Settings section for organization OAuth app credentials.

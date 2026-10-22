@@ -88,4 +88,28 @@ service SessionQueryController {
     option (ai.stigmer.commons.rpc.config).field_path = "session_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to stream session events";
   }
+
+  // Stream what needs the caller: one Attention each time a conversation
+  // they created in the organization stops working, because its turn
+  // finished, failed, or waits for their answer. A stop the caller made
+  // themselves (an interrupt, a terminate) sends nothing.
+  //
+  // It reads the conversations' log, so nothing is missed across a
+  // reconnect: with after_cursor the stream first sends every attention
+  // after that cursor, then the new ones; without, only those that come
+  // after it opens. A cursor is read again from a short way back, so an
+  // attention may come twice: a client keeps the ids it showed. A cursor
+  // older than a day resumes from a day ago.
+  // A server that is restarting ends its streams with UNAVAILABLE, and a
+  // client resumes with its last cursor.
+  //
+  // @internal
+  // A direct handler: authorizeDirect at the start, and again before the
+  // next attention once the stream has served five minutes.
+  rpc streamAttention(StreamAttentionRequest) returns (stream Attention) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to stream attention in this organization";
+  }
 }

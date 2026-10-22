@@ -1,7 +1,8 @@
 /**
  * The session event log over the wire, on a composed server (SQLite, no
  * engine): listEvents' paging, order and filters; streamEvents delivering
- * events appended after it opens and only the previews it asked for; a
+ * events appended after it opens and only the previews it asked for;
+ * streamAttention telling the conversation's creator its turn finished; a
  * run's delete ending its session's turn; and a session's delete removing
  * its log. Events are written the way the run
  * writes write them (../run-writes.ts) and the way a runner appends them,
@@ -91,11 +92,11 @@ function deps() {
   return { store: server.store, sessionEventBroker: server.sessionEventBroker };
 }
 
-async function turn(sessionId: string, runId: string, finish = true): Promise<void> {
+async function turn(sessionId: string, runId: string, finish = true, org = ORG): Promise<void> {
   await createRunAppendingEvents(
     deps(),
     create(RunSchema, {
-      metadata: { id: runId, org: ORG },
+      metadata: { id: runId, org },
       spec: { target: { case: "sessionId", value: sessionId }, message: `message of ${runId}` },
       status: { phase: RunPhase.RUN_PENDING },
     }),
@@ -238,6 +239,40 @@ describe("streamEvents", () => {
       "stigmer.run.status",
       "session.status_idle",
     ]);
+  });
+});
+
+describe("streamAttention", () => {
+  it("tells the conversation's creator its turn finished, from a cursor, by the organization's slug", async () => {
+    const sessionId = await newSession();
+    const runId = `run_${counter}_attention`;
+    // Stored rows carry the organization's id, as a run the server creates does.
+    const org = (await query.get({ value: sessionId })).metadata?.org ?? "";
+    await turn(sessionId, runId, true, org);
+    const controller = new AbortController();
+    const told = [];
+    try {
+      for await (const attention of query.streamAttention(
+        { org: ORG, afterCursor: "1970-01-01T00:00:00.000Z|" },
+        { signal: controller.signal },
+      )) {
+        if (attention.sessionId !== sessionId) continue;
+        told.push({ sessionId: attention.sessionId, runId: attention.runId, reason: attention.reason, title: attention.title });
+        controller.abort();
+      }
+    } catch (error) {
+      if (!controller.signal.aborted) throw error;
+    }
+    expect(told).toEqual([{ sessionId, runId, reason: "finished", title: `Events ${counter}` }]);
+  });
+
+  it("refuses a cursor it never sent", async () => {
+    const error = await refusal(
+      (async () => {
+        for await (const _ of query.streamAttention({ org: ORG, afterCursor: "not-a-cursor" })) break;
+      })(),
+    );
+    expect(error.code).toBe(Code.InvalidArgument);
   });
 });
 

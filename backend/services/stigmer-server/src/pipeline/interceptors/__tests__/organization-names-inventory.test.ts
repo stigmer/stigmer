@@ -67,13 +67,21 @@ function ruleRow(method: DescMethod): string | undefined {
   return `${serviceName}.${method.name} | ${fields.map((f) => `\`${f}\``).join(", ")}`;
 }
 
+/** What a streaming method's row says: the interceptor resolves unary requests only, so its handler resolves its own. */
+const RESOLVED_BY_ITS_HANDLER = " (resolved by its handler)";
+
 function servedRows(server: ComposedServer): string[] {
   return servedMethods(server.routes)
-    .filter((method) => method.methodKind === "unary")
-    .map(ruleRow)
+    .map((method) => {
+      const row = ruleRow(method);
+      return row === undefined || method.methodKind === "unary" ? row : `${row}${RESOLVED_BY_ITS_HANDLER}`;
+    })
     .filter((row): row is string => row !== undefined)
     .sort();
 }
+
+/** The streaming methods that name an organization, each resolving it in its handler (attention.ts says how). */
+const STREAMS_THAT_RESOLVE = ["SessionQueryController.streamAttention"];
 
 describe("the organization-name inventory (docs/organization-names.md) is true to the served server", () => {
   let dir: string;
@@ -100,10 +108,12 @@ describe("the organization-name inventory (docs/organization-names.md) is true t
     );
   });
 
-  it("no served streaming method names an organization: the interceptor resolves unary requests only", () => {
+  it("a served streaming method names an organization only where its handler resolves it: the interceptor resolves unary requests only", () => {
     const streaming = servedMethods(server.routes).filter((method) => method.methodKind !== "unary");
     expect(streaming.length, "the server serves streaming methods to judge").toBeGreaterThan(0);
-    expect(streaming.map(ruleRow).filter((row) => row !== undefined)).toEqual([]);
+    expect(
+      streaming.flatMap((method) => (ruleRow(method) === undefined ? [] : [`${method.parent.typeName.split(".").at(-1)}.${method.name}`])),
+    ).toEqual(STREAMS_THAT_RESOLVE);
   });
 
   it("the comparison bites: a missing row, an extra row and a moved field each differ", () => {

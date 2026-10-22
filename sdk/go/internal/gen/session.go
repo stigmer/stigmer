@@ -235,6 +235,30 @@ func (s *SessionClient) StreamEvents(ctx context.Context, input *sessionv1.Strea
 	return &SessionStreamEventsStream{stream: stream}, nil
 }
 
+// SessionStreamAttentionStream wraps the server stream for StreamAttention.
+type SessionStreamAttentionStream struct {
+	stream sessionv1.SessionQueryController_StreamAttentionClient
+}
+
+func (s *SessionStreamAttentionStream) Recv() (*sessionv1.Attention, error) {
+	msg, err := s.stream.Recv()
+	if err != nil {
+		if err == io.EOF {
+			return nil, io.EOF
+		}
+		return nil, wrapErr(err)
+	}
+	return msg, nil
+}
+
+func (s *SessionClient) StreamAttention(ctx context.Context, input *sessionv1.StreamAttentionRequest) (*SessionStreamAttentionStream, error) {
+	stream, err := s.query.StreamAttention(ctx, input)
+	if err != nil {
+		return nil, wrapErr(err)
+	}
+	return &SessionStreamAttentionStream{stream: stream}, nil
+}
+
 // SessionInput holds the fields for creating or applying a Session.
 type SessionInput struct {
 	// Id is the resource's metadata.id: an apply that carries it changes

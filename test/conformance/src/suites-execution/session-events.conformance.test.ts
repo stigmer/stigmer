@@ -30,6 +30,9 @@
 //     reads it has ended, with one idle; the message is then listed once,
 //     as that turn's, after the first turn's end;
 //   - a cancelled turn ends the session's turn as end_turn;
+//   - the conversation's creator, following streamAttention, is told when
+//     its turn finishes, "finished" with the conversation and the turn, and
+//     never of a turn they stopped themselves;
 //   - in a session with file review on, a turn that edits a file writes
 //     stigmer.file_review.changes from its change set before it ends; a
 //     person's decision is stigmer.file_review.decided, the server's own,
@@ -51,7 +54,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
-import type { StreamSessionEventsResponse } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
+import type { Attention, StreamSessionEventsResponse } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import type { SendMessageResponse } from "@stigmer/apis/ai/stigmer/agentic/run/v1/io_pb";
 import type { MockLlmProxy } from "@stigmer/test-support/mock-llm";
 import type { AnthropicMessageBody } from "@stigmer/test-support/mock-llm";
@@ -522,6 +525,54 @@ describe("a session's event log on real turns", () => {
       "session.status_idle",
     ]);
     expect(final.map(idOf).slice(2, 4), "the append's own, then the runner's").toEqual(["evt-m1", `${runId}.root.m0`]);
+  });
+});
+
+describe("a conversation's creator is told what needs them", () => {
+  it("[rpc:SessionQueryController.streamAttention] the creator is told when a turn finishes, never of a turn they stopped", async () => {
+    const { org } = await target.provisionTenancy();
+    const sessionId = await newSession(org);
+    const abort = new AbortController();
+    fixtures.defer(async () => abort.abort());
+    const received: Attention[] = [];
+    void (async () => {
+      for await (const attention of clients.sessionQuery.streamAttention({ org, afterCursor: "" }, { signal: abort.signal })) {
+        received.push(attention);
+      }
+    })().catch(() => undefined);
+    const toldOf = (runId: string) =>
+      pollUntil(
+        async () => received.find((attention) => attention.runId === runId),
+        (attention) => attention !== undefined,
+        (_last, timeoutMs) => `no attention for turn ${runId} within ${timeoutMs}ms; received ${JSON.stringify(received.map((a) => a.runId))}`,
+        { timeoutMs: 10_000 },
+      );
+    const finish = async (label: string): Promise<string> => {
+      mock.enqueue(anthropicText(`Done: ${label}.`));
+      const runId = await startTurn(org, sessionId, label);
+      await awaitTerminal(clients, runId);
+      return runId;
+    };
+
+    // Nothing tells a client its stream listens, and a stream says nothing
+    // of what came before it does: turns finish until one is told.
+    let told: Attention | undefined;
+    for (let attempt = 0; attempt < 5 && told === undefined; attempt++) {
+      told = await toldOf(await finish(`warm-up ${attempt}`)).catch(() => undefined);
+    }
+    expect(told?.reason, "a finished turn tells its creator").toBe("finished");
+    expect(told?.sessionId).toBe(sessionId);
+
+    mock.enqueue(anthropicText("Held until stopped."), { delayMs: HOLD_MS });
+    const stopped = await startTurn(org, sessionId, "stop me");
+    await awaitPhase(clients, stopped, RunPhase.RUN_IN_PROGRESS);
+    await clients.sessionCommand.interrupt({ sessionId });
+    expect((await awaitTerminal(clients, stopped)).status?.phase).toBe(RunPhase.RUN_CANCELLED);
+    mock.releaseHolds();
+
+    const after = await finish("after the stop");
+    expect((await toldOf(after))?.reason).toBe("finished");
+    expect(received.filter((attention) => attention.runId === stopped), "a turn the person stopped tells them nothing").toEqual([]);
   });
 });
 

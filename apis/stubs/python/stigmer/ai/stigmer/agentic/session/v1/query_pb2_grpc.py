@@ -46,6 +46,11 @@ class SessionQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.StreamSessionEventsRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.StreamSessionEventsResponse.FromString,
                 _registered_method=True)
+        self.streamAttention = channel.unary_stream(
+                '/ai.stigmer.agentic.session.v1.SessionQueryController/streamAttention',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.StreamAttentionRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.Attention.FromString,
+                _registered_method=True)
 
 
 class SessionQueryControllerServicer(object):
@@ -116,6 +121,25 @@ class SessionQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def streamAttention(self, request, context):
+        """Stream what needs the caller: one Attention each time a conversation
+        they created in the organization stops working, because its turn
+        finished, failed, or waits for their answer. A stop the caller made
+        themselves (an interrupt, a terminate) sends nothing.
+
+        It reads the conversations' log, so nothing is missed across a
+        reconnect: with after_cursor the stream first sends every attention
+        after that cursor, then the new ones; without, only those that come
+        after it opens. A cursor is read again from a short way back, so an
+        attention may come twice: a client keeps the ids it showed. A cursor
+        older than a day resumes from a day ago.
+        A server that is restarting ends its streams with UNAVAILABLE, and a
+        client resumes with its last cursor.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SessionQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -148,6 +172,11 @@ def add_SessionQueryControllerServicer_to_server(servicer, server):
                     servicer.streamEvents,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.StreamSessionEventsRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.StreamSessionEventsResponse.SerializeToString,
+            ),
+            'streamAttention': grpc.unary_stream_rpc_method_handler(
+                    servicer.streamAttention,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.StreamAttentionRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.Attention.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -313,6 +342,33 @@ class SessionQueryController(object):
             '/ai.stigmer.agentic.session.v1.SessionQueryController/streamEvents',
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.StreamSessionEventsRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.StreamSessionEventsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def streamAttention(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/ai.stigmer.agentic.session.v1.SessionQueryController/streamAttention',
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.StreamAttentionRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.Attention.FromString,
             options,
             channel_credentials,
             insecure,

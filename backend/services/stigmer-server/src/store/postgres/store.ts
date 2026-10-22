@@ -111,6 +111,7 @@ import type {
   SessionEventContext,
   SessionEventDraft,
   SessionEventGuard,
+  SessionEventOrgQuery,
   SessionEventQuery,
   SessionEventRecord,
   SessionEventScope,
@@ -3191,6 +3192,27 @@ class PostgresSessionEventStore implements SessionEventStore {
       `SELECT ${SESSION_EVENT_COLUMNS} FROM session_events
        WHERE ${where.join(" AND ")}
        ORDER BY seq ${descending ? "DESC" : "ASC"} LIMIT ${param(query.limit)}`,
+      params,
+    );
+    return (result.rows as SessionEventRow[]).map(sessionEventOf);
+  }
+
+  async listByOrg(org: string, query: SessionEventOrgQuery): Promise<SessionEventRecord[]> {
+    assertSessionEventLimit(query.limit);
+    if (query.types.length === 0) {
+      return [];
+    }
+    const params: unknown[] = [org, [...query.types]];
+    const where = ["org = $1", "type = ANY($2::text[])", "processed_at <> ''"];
+    if (query.after !== undefined) {
+      params.push(query.after.processedAt, query.after.eventId);
+      where.push("(processed_at > $3 OR (processed_at = $3 AND event_id > $4))");
+    }
+    params.push(query.limit);
+    const result = await this.open().query(
+      `SELECT ${SESSION_EVENT_COLUMNS} FROM session_events
+       WHERE ${where.join(" AND ")}
+       ORDER BY processed_at ASC, event_id ASC LIMIT $${params.length}`,
       params,
     );
     return (result.rows as SessionEventRow[]).map(sessionEventOf);

@@ -13,7 +13,7 @@ This document is the inventory of which field the fill sets, one row per method 
   - the Organization service's own methods, because an organization's own `metadata.org` stays empty;
   - the kinds that belong to no organization (`AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY` and `AUTHORIZATION_SCOPE_TYPE_NONE`: identity accounts, API keys, the platform, plans and licences);
   - nested messages other than a `VaultTarget`, because a spec reference with no organization takes its resource's own (`NormalizeReferences`, `src/pipeline/steps/references.ts`);
-  - streams, because no streaming method takes an organization.
+  - streams, because the fill reads unary requests only: a stream that takes an organization is sent one (`not filled: a stream`).
 
 Why every plain `org` and not only the ones an authorization annotation names: on a server that holds one organization, every meaning an empty `org` has elsewhere gives the same answer as "the one organization". "The parent's organization", "every organization the caller can see" and "the one organization" are the same set, and the cross-organization probe an anti-enumeration refusal guards cannot exist. The two meanings that differ, a platform-scoped write and a resource that belongs to no organization, are excluded by kind. One read differs and is filled anyway: a search with no `org` that asks for organizations (`kinds` empty, the discover mode, or naming the organization kind) used to answer the organization rows the caller can see, whose index entries carry no organization; filled, it answers none. On a server that holds one organization that row is the one nobody names, so leaving it out of search is what the console wants. In-process calls are never filled: server code names its organization, and three in-process lanes rely on an empty one's other meanings.
 
@@ -149,6 +149,7 @@ Rows read `| Service.method | org |`, `| Service.method | vault.org |`, `| Servi
 | SessionCommandController.apply | metadata.org |
 | SessionCommandController.create | metadata.org |
 | SessionQueryController.list | org |
+| SessionQueryController.streamAttention | not filled: a stream |
 
 ## `ai.stigmer.agentic.skill.v1`
 
