@@ -7,6 +7,7 @@ import {
 import {
   AccessHistorySection,
   AccountPreferencesSection,
+  NotificationsSection,
   ApiKeysSection,
   ChannelAppsSection,
   VaultsSection,
@@ -24,6 +25,7 @@ import {
   ProviderKeysSection,
 } from "@stigmer/react-sdk";
 import { AppShell } from "./shell/AppShell";
+import { requestDesktopNotificationPermission } from "./hooks/useDesktopAttentionNotifications";
 import { SessionLauncher } from "./pages/SessionLauncher";
 
 const SessionPage = lazy(() => import("./pages/SessionPage"));
@@ -316,6 +318,10 @@ const routes: RouteObject[] = [
               {
                 path: "account-preferences",
                 element: <AccountPreferencesSection />,
+              },
+              {
+                path: "notifications",
+                element: <NotificationsSection requestPermission={requestDesktopNotificationPermission} />,
               },
               { path: "memory", element: <MemorySection /> },
               { path: "invitations", element: <InvitationsSection /> },

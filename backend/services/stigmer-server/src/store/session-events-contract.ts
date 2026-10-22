@@ -270,6 +270,31 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
     },
   ],
   [
+    "listByOrg reads an organization's accepted events of a type across its sessions, by accepted time then id, after a position",
+    async ({ store }) => {
+      const org = `org-${unique()}`;
+      const [s1, s2] = [`ses_${unique()}`, `ses_${unique()}`];
+      const [r1, r2] = [`run_${unique()}`, `run_${unique()}`];
+      await put(store, run(r1, s1, RunPhase.RUN_IN_PROGRESS, org));
+      await put(store, run(r2, s2, RunPhase.RUN_IN_PROGRESS, org));
+      const idle = "session.status_idle";
+      await store.sessionEvents.append(s1, org, [draft("i1", r1, idle), draft("m1", r1)], runGuard(r1));
+      await store.sessionEvents.append(s2, org, [draft("i2", r2, idle)], runGuard(r2));
+      await store.sessionEvents.append(s1, "org-other", [draft("elsewhere", r1, idle)], runGuard(r1));
+      const all = await store.sessionEvents.listByOrg(org, { types: [idle], limit: 10 });
+      assert.deepEqual(all.map((x) => [x.sessionId, x.eventId]), [[s1, "i1"], [s2, "i2"]]);
+      assert.ok(all[0]!.processedAt <= all[1]!.processedAt);
+      const after = await store.sessionEvents.listByOrg(org, {
+        types: [idle],
+        after: { processedAt: all[0]!.processedAt, eventId: all[0]!.eventId },
+        limit: 10,
+      });
+      assert.deepEqual(after.map((x) => x.eventId), ["i2"]);
+      assert.deepEqual(await store.sessionEvents.listByOrg(org, { types: [], limit: 10 }), []);
+      assert.deepEqual((await store.sessionEvents.listByOrg(org, { types: [idle], limit: 1 })).length, 1);
+    },
+  ],
+  [
     "concurrent appends to one session leave no gap and no repeated number",
     async ({ store }) => {
       const s = `ses_${unique()}`;

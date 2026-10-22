@@ -1,7 +1,8 @@
 /**
  * Pins the session event bell (../broker.ts) and the stream that reads the
  * log under it (../stream.ts): an append rings the streams of its session
- * and no other, previews reach only the streams that asked for their type
+ * and no other, an idle also rings its organization's attention bell and
+ * no other organization's, previews reach only the streams that asked for their type
  * and are dropped (never the stream) when a reader falls behind, the stream
  * is a cursor over the stored log (exactly once and in order, whichever
  * process wrote the event, and a slow reader only lags), and a closing
@@ -35,6 +36,7 @@ import {
   SESSION_EVENT_PREVIEW_CAPACITY,
   SESSION_EVENT_PREVIEW_MAX_BYTES,
   SessionEventBroker,
+  sessionIdleBellOf,
 } from "../broker.js";
 import {
   SESSION_EVENT_REPLAY_BATCH,
@@ -75,16 +77,30 @@ describe("the broker", () => {
     const broker = new SessionEventBroker(silentLogger);
     const mine = broker.subscribe("s1", []);
     const other = broker.subscribe("s2", []);
-    broker.publish("s1", [thinking("a", 1), thinking("b", 2)]);
+    broker.publish("s1", "acme", [thinking("a", 1), thinking("b", 2)]);
     expect(mine.dirty).toBe(true);
     expect(mine.previews).toEqual([]);
     expect(other.dirty).toBe(false);
   });
 
+  it("an idle rings its organization's attention bell, and no other organization's", () => {
+    const broker = new SessionEventBroker(silentLogger);
+    const acme = broker.subscribe(sessionIdleBellOf("acme"), []);
+    const globex = broker.subscribe(sessionIdleBellOf("globex"), []);
+    broker.publish("s1", "acme", [thinking("a", 1)]);
+    expect(acme.dirty, "an append with no idle rings no organization").toBe(false);
+    const idle = create(SessionEventSchema, { event: { case: "sessionStatusIdle", value: { id: "i1", stopReason: { type: "end_turn" } } } });
+    broker.publish("s1", "acme", [idle]);
+    expect([acme.dirty, globex.dirty]).toEqual([true, false]);
+    acme.dirty = false;
+    broker.publish("s1", "", [idle]);
+    expect(acme.dirty, "an idle with no organization rings none").toBe(false);
+  });
+
   it("an append that added nothing rings no bell", () => {
     const broker = new SessionEventBroker(silentLogger);
     const mine = broker.subscribe("s1", []);
-    broker.publish("s1", []);
+    broker.publish("s1", "acme", []);
     expect(mine.dirty).toBe(false);
   });
 
@@ -254,7 +270,7 @@ describe("the stream", () => {
     const first = stream.next();
     await settle();
     await commit("new");
-    broker.publish("s1", [thinking("new", 2)]);
+    broker.publish("s1", "acme", [thinking("new", 2)]);
     expect(seqOf((await first).value), "nothing from before it opened").toBe(2n);
     abort.abort();
     expect((await stream.next()).done).toBe(true);
@@ -268,7 +284,7 @@ describe("the stream", () => {
     const seqs: bigint[] = [seqOf((await stream.next()).value)];
     // A bell rung while the stream reads: the event is either in this read or the next, never both.
     await commit("d");
-    broker.publish("s1", [thinking("d", 4)]);
+    broker.publish("s1", "acme", [thinking("d", 4)]);
     for (let i = 0; i < 2; i++) {
       seqs.push(seqOf((await stream.next()).value));
     }
@@ -299,7 +315,7 @@ describe("the stream", () => {
     await settle();
     for (let i = 0; i < total; i += 50) {
       await commit(...Array.from({ length: Math.min(50, total - i) }, (_, j) => `e${i + j}`));
-      broker.publish("s1", [thinking("ring", 0)]);
+      broker.publish("s1", "acme", [thinking("ring", 0)]);
     }
     const seqs: bigint[] = [seqOf((await first).value)];
     while (seqs.length < total) {
@@ -358,7 +374,7 @@ describe("the stream", () => {
     await settle();
     await commit("m");
     broker.publishPreviews("s1", [delta("m", "he")]);
-    broker.publish("s1", [thinking("m", 1)]);
+    broker.publish("s1", "acme", [thinking("m", 1)]);
     expect((await first).value?.frame.case).toBe("eventDelta");
     expect(seqOf((await stream.next()).value)).toBe(1n);
     await stream.return(undefined);
@@ -391,7 +407,7 @@ describe("the stream", () => {
     const stream = open(broker, { afterSeq: 0n }, { authorizer, now: () => clock });
     const ring = async (id: string) => {
       await commit(id);
-      broker.publish("s1", [thinking(id, 0)]);
+      broker.publish("s1", "acme", [thinking(id, 0)]);
     };
     const first = stream.next();
     await settle();

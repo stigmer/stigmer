@@ -159,6 +159,15 @@
           "outputFullType": "ai.stigmer.agentic.session.v1.StreamSessionEventsResponse",
           "serverStreaming": true,
           "description": "Stream a session's events as they are appended.\n\n Without after_seq the stream starts at the moment it opens, as Managed\n Agents' does. With after_seq it first sends the stored events after\n that seq, then the new ones, with none missing: a client that listed\n up to some seq, or whose stream ended, resumes from the last seq it\n has. A watcher that reads slowly lags behind the log and is never\n ended for it; a server that is restarting ends its streams with\n UNAVAILABLE, and a client resumes the same way."
+        },
+        {
+          "name": "StreamAttention",
+          "inputType": "StreamAttentionRequest",
+          "inputFullType": "ai.stigmer.agentic.session.v1.StreamAttentionRequest",
+          "outputType": "Attention",
+          "outputFullType": "ai.stigmer.agentic.session.v1.Attention",
+          "serverStreaming": true,
+          "description": "Stream what needs the caller: one Attention each time a conversation\n they created in the organization stops working, because its turn\n finished, failed, or waits for their answer. A stop the caller made\n themselves (an interrupt, a terminate) sends nothing.\n\n It reads the conversations' log, so nothing is missed across a\n reconnect: with after_cursor the stream first sends every attention\n after that cursor, then the new ones; without, only those that come\n after it opens. A cursor is read again from a short way back, so an\n attention may come twice: a client keeps the ids it showed. A cursor\n older than a day resumes from a day ago.\n A server that is restarting ends its streams with UNAVAILABLE, and a\n client resumes with its last cursor."
         }
       ]
     }
@@ -1615,6 +1624,118 @@
           "description": "What a working turn has open now, and for how long.",
           "required": false,
           "oneofGroup": "frame"
+        }
+      ]
+    },
+    {
+      "name": "StreamAttentionRequest",
+      "description": "StreamAttentionRequest opens the caller's stream of what needs them in\n one organization.",
+      "protoType": "ai.stigmer.agentic.session.v1.StreamAttentionRequest",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The organization whose conversations to watch.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "AfterCursor",
+          "jsonName": "afterCursor",
+          "protoField": "after_cursor",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Where to resume: the cursor of the last Attention the client has.\n Empty streams only what comes after the stream opens. A cursor older\n than a day resumes from a day ago.",
+          "required": false,
+          "validation": {
+            "maxLength": 256
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attention",
+      "description": "Attention is one conversation, created by the caller, that stopped\n working and needs them: its turn finished, failed, or waits for their\n answer.",
+      "protoType": "ai.stigmer.agentic.session.v1.Attention",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The session.status_idle event it reads from: a client shows each id\n once.",
+          "required": false
+        },
+        {
+          "name": "SessionId",
+          "jsonName": "sessionId",
+          "protoField": "session_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The conversation.",
+          "required": false
+        },
+        {
+          "name": "Title",
+          "jsonName": "title",
+          "protoField": "title",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The conversation's title (its subject), or its name when it has none.",
+          "required": false
+        },
+        {
+          "name": "RunId",
+          "jsonName": "runId",
+          "protoField": "run_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The turn that stopped; empty when no turn's write ended it.",
+          "required": false
+        },
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "protoField": "reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Why it needs the caller: \"finished\" (the turn ended its work),\n \"failed\" (retries ran out, or a budget was reached) or \"needs_answer\"\n (a tool call waits for an approval).",
+          "required": false
+        },
+        {
+          "name": "At",
+          "jsonName": "at",
+          "protoField": "at",
+          "type": {
+            "kind": "string"
+          },
+          "description": "When it stopped, RFC 3339.",
+          "required": false
+        },
+        {
+          "name": "Cursor",
+          "jsonName": "cursor",
+          "protoField": "cursor",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Where a client resumes from: StreamAttentionRequest.after_cursor.",
+          "required": false
         }
       ]
     }

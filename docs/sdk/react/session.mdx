@@ -7,6 +7,55 @@ description: Hooks for session lifecycle, message history, conversation state, a
 
 ## Hooks
 
+### useAttentionNotifications
+
+Tells a person, through a notification their host shows, each time a
+conversation they created in `org` stops working: its turn finished,
+failed, or waits for their answer. A stop they made themselves tells
+them nothing, and neither does a conversation they are looking at.
+
+It follows `SessionQueryController.streamAttention` (`followAttention` in
+`@stigmer/client`) for as long as it is enabled and mounted: a stream
+that drops reconnects from the last attention it showed, so nothing after
+it is missed and nothing shown twice. It shows nothing itself: the host's
+`notify` does, and asks the person's permission first (the console from
+its notification setting, never on load).
+
+**Signature**
+
+```tsx
+function useAttentionNotifications(options: UseAttentionNotificationsOptions): void
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseAttentionNotificationsOptions", description: "", required: true },
+  }}
+/>
+
+```tsx
+useAttentionNotifications({
+  org,
+  enabled: notificationsOn,
+  isShowing: (sessionId) => sessionId === openSessionId,
+  notify: (notice) => new Notification(notice.title, { body: notice.body, tag: notice.id }),
+});
+```
+
+
+### useAttentionNotificationsSetting
+
+The person's notification choice in this browser: what
+`useAttentionNotifications`'s `enabled` reads, and what the notifications
+settings section writes.
+
+**Signature**
+
+```tsx
+function useAttentionNotificationsSetting(): AttentionNotificationsSetting
+```
+
+
 ### useCreateSession
 
 Behavior hook that wraps `session.create()` with loading/error state.
@@ -1484,6 +1533,46 @@ function agentRefOfSession(session: Pick<Session, "spec"> | null | undefined): R
 ```
 
 
+### ATTENTION_NOTIFICATIONS_KEY
+
+Whether this viewer asked to be told when a conversation needs them: a
+per-browser choice, kept in localStorage and synced across tabs. Off until
+the person turns it on, because turning it on is where a host asks the
+system's permission to show notifications (never on load).
+
+
+### AttentionNotice
+
+One notification the hook asks its host to show.
+
+<TypeTable
+  type={{
+    body: { type: "string", description: "The notice's line: what happened, in the person's words.", required: true },
+    id: { type: "string", description: "The attention's id: a host that keeps notices keys them by it.", required: true },
+    reason: { type: "AttentionReason", description: "", required: true, typeDescriptionLink: "#attentionreason" },
+    sessionId: { type: "string", description: "The conversation it is about: a host opens it when the notice is clicked.", required: true },
+    title: { type: "string", description: "The notice's title: the conversation's title.", required: true },
+  }}
+/>
+
+
+### AttentionNotificationsSetting
+
+Return value of [`useAttentionNotificationsSetting`](#useattentionnotificationssetting).
+
+<TypeTable
+  type={{
+    on: { type: "boolean", description: "Whether the person turned notifications on in this browser.", required: true },
+    set: { type: "(on: boolean) => void", description: "Records the person's choice.", required: true },
+  }}
+/>
+
+
+### AttentionReason
+
+Why a conversation needs its person, as the server says it (`Attention.reason`).
+
+
 ### CHANNEL_SESSION_LABELS
 
 Metadata labels the channel runtime stamps on the sessions a channel
@@ -1672,6 +1761,15 @@ Per-model token breakdown.
     totalTokens: { type: "number", description: "Total tokens for this model (cache-inclusive).", required: true },
   }}
 />
+
+
+### noticeOf
+
+The notice an attention makes; undefined for a reason this client does not know.
+
+```tsx
+function noticeOf(attention: Attention): AttentionNotice | undefined
+```
 
 
 ### outputKey
@@ -2071,6 +2169,20 @@ Shared fields present in both variants of [`CreateSessionInput`](#createsessioni
 ### UPLOADS_FOLDER
 
 The folder a conversation's given Files are placed under, from the workspace root.
+
+
+### UseAttentionNotificationsOptions
+
+Options for [`useAttentionNotifications`](#useattentionnotifications).
+
+<TypeTable
+  type={{
+    enabled: { type: "boolean", description: "Off watches nothing: a person who turned notifications off, or a host with no way to show them.", required: true },
+    isShowing: { type: "(sessionId: string) => boolean", description: "Whether the person is looking at the conversation now: no notice is shown for it." },
+    notify: { type: "(notice: AttentionNotice) => void", description: "Shows one notice: the console's browser `Notification`, the desktop app's system notification. Called once per attention, never for a conversation the person is looking at (isShowing).", required: true },
+    org: { type: "string | null | undefined", description: "The organization whose conversations to watch; none watches nothing.", required: true },
+  }}
+/>
 
 
 ### UseExportTranscriptOptions

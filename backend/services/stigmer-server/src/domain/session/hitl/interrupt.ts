@@ -139,7 +139,7 @@ export async function interrupt(
             admit: () => undefined,
           });
           stored = eventOf(appended.records[0]!);
-          deps.sessionEventBroker.publish(sessionId, appended.appended.map(eventOf));
+          deps.sessionEventBroker.publish(sessionId, org, appended.appended.map(eventOf));
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
             throw notFoundError("Session", sessionId);

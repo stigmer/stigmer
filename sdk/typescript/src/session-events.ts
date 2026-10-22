@@ -22,19 +22,27 @@
  *     (the session idles with `requires_action` naming its tool uses). It
  *     returns the turn's answer, structured output and how it ended;
  *     {@link waitForTurn} resumes the wait after the caller answered.
+ *   - {@link followAttention} follows what needs the caller in an
+ *     organization (`streamAttention`): one Attention each time a
+ *     conversation they created stops working. It reconnects from the last
+ *     cursor it delivered, and delivers each attention once, though the
+ *     server may send one again after a reconnect.
  *
  * Proven by __tests__/session-events.test.ts.
  */
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import type {
+  Attention,
   ListSessionEventsRequest,
   SessionEventList,
+  StreamAttentionRequest,
   StreamSessionEventsRequest,
   StreamSessionEventsResponse,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import {
   ListSessionEventsRequestSchema,
+  StreamAttentionRequestSchema,
   StreamSessionEventsRequestSchema,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionLog, type ToolUse, type Turn, type TurnPhase } from "@stigmer/session-log";
@@ -151,6 +159,81 @@ export async function* followSession(
         previews = previews.filter((type) => type !== LIVENESS_PREVIEW);
         continue;
       }
+      if (FINAL_CODES.has(error.code)) {
+        throw error;
+      }
+    }
+    if (isAborted(signal)) {
+      return;
+    }
+    await sleep(Math.min(max, base * 2 ** failures), signal);
+    failures += 1;
+  }
+}
+
+/** The slice of the client {@link followAttention} reads through. */
+export interface AttentionClient {
+  readonly session: {
+    streamAttention(input: StreamAttentionRequest, signal?: AbortSignal): AsyncIterable<Attention>;
+  };
+}
+
+/** Options for {@link followAttention}. */
+export interface FollowAttentionOptions {
+  /** Ends the follow. */
+  readonly signal?: AbortSignal;
+  /** The cursor of the last attention already shown; none follows only what comes after the follow opens. */
+  readonly afterCursor?: string;
+  /** The first reconnect's wait, doubled per failure up to {@link maxBackoffMs}; 500 ms by default. */
+  readonly backoffMs?: number;
+  /** The longest wait between reconnects; 5 s by default. */
+  readonly maxBackoffMs?: number;
+  /** Waits; a test replaces it. */
+  readonly sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
+}
+
+/** How many delivered attention ids a follow remembers, to deliver each once. */
+const ATTENTION_IDS_KEPT = 1024;
+
+/**
+ * Follows what needs the caller in `org`: each conversation they created
+ * that stops working, once (module header). Reconnects from the last
+ * cursor it delivered when the stream drops; until it has delivered one, a
+ * reconnect follows only what comes after it reopens, so pass
+ * `afterCursor` to resume a follow across a gap. Ends when `signal`
+ * aborts, or throws on a refusal.
+ */
+export async function* followAttention(
+  client: AttentionClient,
+  org: string,
+  options: FollowAttentionOptions = {},
+): AsyncGenerator<Attention> {
+  const { signal } = options;
+  const sleep = options.sleep ?? sleepFor;
+  const base = options.backoffMs ?? 500;
+  const max = options.maxBackoffMs ?? 5_000;
+  let afterCursor = options.afterCursor ?? "";
+  const delivered = new Set<string>();
+  let failures = 0;
+  while (!isAborted(signal)) {
+    try {
+      for await (const attention of client.session.streamAttention(create(StreamAttentionRequestSchema, { org, afterCursor }), signal)) {
+        failures = 0;
+        afterCursor = attention.cursor;
+        if (delivered.has(attention.id)) {
+          continue;
+        }
+        delivered.add(attention.id);
+        if (delivered.size > ATTENTION_IDS_KEPT) {
+          delivered.delete(delivered.values().next().value as string);
+        }
+        yield attention;
+      }
+    } catch (err) {
+      if (isAborted(signal)) {
+        return;
+      }
+      const error = wrapError(err);
       if (FINAL_CODES.has(error.code)) {
         throw error;
       }

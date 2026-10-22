@@ -26,7 +26,7 @@ var File_ai_stigmer_agentic_session_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_query_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/session/v1/query.proto\x12\x1dai.stigmer.agentic.session.v1\x1a'ai/stigmer/agentic/session/v1/api.proto\x1a&ai/stigmer/agentic/session/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x8b\a\n" +
+	")ai/stigmer/agentic/session/v1/query.proto\x12\x1dai.stigmer.agentic.session.v1\x1a'ai/stigmer/agentic/session/v1/api.proto\x1a&ai/stigmer/agentic/session/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xc8\b\n" +
 	"\x16SessionQueryController\x12\x85\x01\n" +
 	"\x03get\x12(.ai.stigmer.agentic.session.v1.SessionId\x1a&.ai.stigmer.agentic.session.v1.Session\",¸\x18(\b\x01\x10*\"\x05value*\x1bunauthorized to get session\x12l\n" +
 	"\x04list\x122.ai.stigmer.agentic.session.v1.ListSessionsRequest\x1a*.ai.stigmer.agentic.session.v1.SessionList\"\x04и\x18\x01\x12z\n" +
@@ -36,7 +36,8 @@ const file_ai_stigmer_agentic_session_v1_query_proto_rawDesc = "" +
 	"listEvents\x127.ai.stigmer.agentic.session.v1.ListSessionEventsRequest\x1a/.ai.stigmer.agentic.session.v1.SessionEventList\"9¸\x185\b\x01\x10*\"\n" +
 	"session_id*#unauthorized to list session events\x12\xc4\x01\n" +
 	"\fstreamEvents\x129.ai.stigmer.agentic.session.v1.StreamSessionEventsRequest\x1a:.ai.stigmer.agentic.session.v1.StreamSessionEventsResponse\";¸\x187\b\x01\x10*\"\n" +
-	"session_id*%unauthorized to stream session events0\x01\x1a\x04\xa0\xff+*B\x89\x02\n" +
+	"session_id*%unauthorized to stream session events0\x01\x12\xba\x01\n" +
+	"\x0fstreamAttention\x125.ai.stigmer.agentic.session.v1.StreamAttentionRequest\x1a(.ai.stigmer.agentic.session.v1.Attention\"D¸\x18@\b\x01\x10\x1e\"\x03org*5unauthorized to stream attention in this organization0\x01\x1a\x04\xa0\xff+*B\x89\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\n" +
 	"QueryProtoP\x01Z?go.stigmer.ai/sdk/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
@@ -47,29 +48,33 @@ var file_ai_stigmer_agentic_session_v1_query_proto_goTypes = []any{
 	(*ListSessionsByChannelRequest)(nil), // 3: ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest
 	(*ListSessionEventsRequest)(nil),     // 4: ai.stigmer.agentic.session.v1.ListSessionEventsRequest
 	(*StreamSessionEventsRequest)(nil),   // 5: ai.stigmer.agentic.session.v1.StreamSessionEventsRequest
-	(*Session)(nil),                      // 6: ai.stigmer.agentic.session.v1.Session
-	(*SessionList)(nil),                  // 7: ai.stigmer.agentic.session.v1.SessionList
-	(*SessionEventList)(nil),             // 8: ai.stigmer.agentic.session.v1.SessionEventList
-	(*StreamSessionEventsResponse)(nil),  // 9: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse
+	(*StreamAttentionRequest)(nil),       // 6: ai.stigmer.agentic.session.v1.StreamAttentionRequest
+	(*Session)(nil),                      // 7: ai.stigmer.agentic.session.v1.Session
+	(*SessionList)(nil),                  // 8: ai.stigmer.agentic.session.v1.SessionList
+	(*SessionEventList)(nil),             // 9: ai.stigmer.agentic.session.v1.SessionEventList
+	(*StreamSessionEventsResponse)(nil),  // 10: ai.stigmer.agentic.session.v1.StreamSessionEventsResponse
+	(*Attention)(nil),                    // 11: ai.stigmer.agentic.session.v1.Attention
 }
 var file_ai_stigmer_agentic_session_v1_query_proto_depIdxs = []int32{
-	0, // 0: ai.stigmer.agentic.session.v1.SessionQueryController.get:input_type -> ai.stigmer.agentic.session.v1.SessionId
-	1, // 1: ai.stigmer.agentic.session.v1.SessionQueryController.list:input_type -> ai.stigmer.agentic.session.v1.ListSessionsRequest
-	2, // 2: ai.stigmer.agentic.session.v1.SessionQueryController.listByAgent:input_type -> ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest
-	3, // 3: ai.stigmer.agentic.session.v1.SessionQueryController.listByChannel:input_type -> ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest
-	4, // 4: ai.stigmer.agentic.session.v1.SessionQueryController.listEvents:input_type -> ai.stigmer.agentic.session.v1.ListSessionEventsRequest
-	5, // 5: ai.stigmer.agentic.session.v1.SessionQueryController.streamEvents:input_type -> ai.stigmer.agentic.session.v1.StreamSessionEventsRequest
-	6, // 6: ai.stigmer.agentic.session.v1.SessionQueryController.get:output_type -> ai.stigmer.agentic.session.v1.Session
-	7, // 7: ai.stigmer.agentic.session.v1.SessionQueryController.list:output_type -> ai.stigmer.agentic.session.v1.SessionList
-	7, // 8: ai.stigmer.agentic.session.v1.SessionQueryController.listByAgent:output_type -> ai.stigmer.agentic.session.v1.SessionList
-	7, // 9: ai.stigmer.agentic.session.v1.SessionQueryController.listByChannel:output_type -> ai.stigmer.agentic.session.v1.SessionList
-	8, // 10: ai.stigmer.agentic.session.v1.SessionQueryController.listEvents:output_type -> ai.stigmer.agentic.session.v1.SessionEventList
-	9, // 11: ai.stigmer.agentic.session.v1.SessionQueryController.streamEvents:output_type -> ai.stigmer.agentic.session.v1.StreamSessionEventsResponse
-	6, // [6:12] is the sub-list for method output_type
-	0, // [0:6] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: ai.stigmer.agentic.session.v1.SessionQueryController.get:input_type -> ai.stigmer.agentic.session.v1.SessionId
+	1,  // 1: ai.stigmer.agentic.session.v1.SessionQueryController.list:input_type -> ai.stigmer.agentic.session.v1.ListSessionsRequest
+	2,  // 2: ai.stigmer.agentic.session.v1.SessionQueryController.listByAgent:input_type -> ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest
+	3,  // 3: ai.stigmer.agentic.session.v1.SessionQueryController.listByChannel:input_type -> ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest
+	4,  // 4: ai.stigmer.agentic.session.v1.SessionQueryController.listEvents:input_type -> ai.stigmer.agentic.session.v1.ListSessionEventsRequest
+	5,  // 5: ai.stigmer.agentic.session.v1.SessionQueryController.streamEvents:input_type -> ai.stigmer.agentic.session.v1.StreamSessionEventsRequest
+	6,  // 6: ai.stigmer.agentic.session.v1.SessionQueryController.streamAttention:input_type -> ai.stigmer.agentic.session.v1.StreamAttentionRequest
+	7,  // 7: ai.stigmer.agentic.session.v1.SessionQueryController.get:output_type -> ai.stigmer.agentic.session.v1.Session
+	8,  // 8: ai.stigmer.agentic.session.v1.SessionQueryController.list:output_type -> ai.stigmer.agentic.session.v1.SessionList
+	8,  // 9: ai.stigmer.agentic.session.v1.SessionQueryController.listByAgent:output_type -> ai.stigmer.agentic.session.v1.SessionList
+	8,  // 10: ai.stigmer.agentic.session.v1.SessionQueryController.listByChannel:output_type -> ai.stigmer.agentic.session.v1.SessionList
+	9,  // 11: ai.stigmer.agentic.session.v1.SessionQueryController.listEvents:output_type -> ai.stigmer.agentic.session.v1.SessionEventList
+	10, // 12: ai.stigmer.agentic.session.v1.SessionQueryController.streamEvents:output_type -> ai.stigmer.agentic.session.v1.StreamSessionEventsResponse
+	11, // 13: ai.stigmer.agentic.session.v1.SessionQueryController.streamAttention:output_type -> ai.stigmer.agentic.session.v1.Attention
+	7,  // [7:14] is the sub-list for method output_type
+	0,  // [0:7] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_query_proto_init() }

@@ -117,6 +117,7 @@ import type {
   SessionEventDraft,
   SessionEventGateDeclaration,
   SessionEventGuard,
+  SessionEventOrgQuery,
   SessionEventQuery,
   SessionEventRecord,
   SessionEventScope,
@@ -3057,6 +3058,28 @@ class SqliteSessionEventStore implements SessionEventStore {
         `SELECT ${SESSION_EVENT_COLUMNS} FROM session_events
          WHERE ${where.join(" AND ")}
          ORDER BY seq ${descending ? "DESC" : "ASC"} LIMIT ?`,
+      )
+      .all(...params) as unknown as SessionEventRow[];
+    return rows.map(sessionEventOf);
+  }
+
+  async listByOrg(org: string, query: SessionEventOrgQuery): Promise<SessionEventRecord[]> {
+    assertSessionEventLimit(query.limit);
+    if (query.types.length === 0) {
+      return [];
+    }
+    const params: Array<string | number> = [org, ...query.types];
+    const where = ["org = ?", `type IN (${query.types.map(() => "?").join(", ")})`, "processed_at <> ''"];
+    if (query.after !== undefined) {
+      where.push("(processed_at > ? OR (processed_at = ? AND event_id > ?))");
+      params.push(query.after.processedAt, query.after.processedAt, query.after.eventId);
+    }
+    params.push(query.limit);
+    const rows = this.open()
+      .prepare(
+        `SELECT ${SESSION_EVENT_COLUMNS} FROM session_events
+         WHERE ${where.join(" AND ")}
+         ORDER BY processed_at ASC, event_id ASC LIMIT ?`,
       )
       .all(...params) as unknown as SessionEventRow[];
     return rows.map(sessionEventOf);

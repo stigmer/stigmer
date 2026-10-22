@@ -218,9 +218,25 @@ export class SessionEventConflictError extends Error {
   }
 }
 
+/** A page of an organization's events (`SessionEventStore.listByOrg`). */
+export interface SessionEventOrgQuery {
+  readonly types: ReadonlyArray<string>;
+  /** Exclusive: the accepted time and event id of the last event already read. */
+  readonly after?: { readonly processedAt: string; readonly eventId: string };
+  readonly limit: number;
+}
+
 export interface SessionEventStore {
   /** One page of a session's events, by seq in the query's order. */
   list(sessionId: string, query: SessionEventQuery): Promise<SessionEventRecord[]>;
+
+  /**
+   * One page of an organization's accepted events of `query.types`, across
+   * its sessions, oldest first by accepted time then event id, after
+   * `query.after` when given. An event no turn accepted yet (a queued
+   * message) is never in it. Read without any session's lock.
+   */
+  listByOrg(org: string, query: SessionEventOrgQuery): Promise<SessionEventRecord[]>;
 
   /**
    * The open gates of one run in a session, in log order: the gates its

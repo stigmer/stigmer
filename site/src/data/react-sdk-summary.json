@@ -284,7 +284,7 @@
       "slug": "session",
       "title": "Session",
       "description": "Hooks for session lifecycle, message history, conversation state, and usage tracking.",
-      "hooks": 23,
+      "hooks": 25,
       "components": 8
     },
     {
@@ -292,7 +292,7 @@
       "title": "Settings",
       "description": "Pre-composed settings sections for organization console embedding.",
       "hooks": 1,
-      "components": 17
+      "components": 18
     },
     {
       "slug": "sidebar",

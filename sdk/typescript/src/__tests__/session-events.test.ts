@@ -7,24 +7,37 @@
  * the turn and returns its answer once its status ends it, or its asks
  * when the session waits on them; `waitForTurn` resumes after an answer.
  * Against a server older than the liveness preview, a follow that asked
- * for it asks again without it, once and for good.
+ * for it asks again without it, once and for good. An attention follow
+ * resumes from the last cursor it delivered and delivers each id once.
  */
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { RunSchema, type Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import {
+  AttentionSchema,
   SessionEventListSchema,
   StreamSessionEventsResponseSchema,
+  type Attention,
   type ListSessionEventsRequest,
+  type StreamAttentionRequest,
   type StreamSessionEventsRequest,
   type StreamSessionEventsResponse,
 } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
 import type { RunInput } from "../gen/run.js";
-import { ALL_SESSION_PREVIEWS, followSession, newestSeq, sendAndWait, waitForTurn, type SendAndWaitClient } from "../session-events.js";
+import {
+  ALL_SESSION_PREVIEWS,
+  followAttention,
+  followSession,
+  newestSeq,
+  sendAndWait,
+  waitForTurn,
+  type AttentionClient,
+  type SendAndWaitClient,
+} from "../session-events.js";
 
 type EventInit = MessageInitShape<typeof SessionEventSchema>["event"];
 
@@ -320,5 +333,79 @@ describe("sendAndWait and waitForTurn", () => {
     const { client } = logDouble([], [other]);
     const outcome = await waitForTurn(client, "ses_1", R, { sleep: noWait });
     expect(outcome.phase).toBe("completed");
+  });
+});
+
+describe("followAttention", () => {
+  const attention = (id: string, cursor = `c-${id}`): Attention => create(AttentionSchema, { id, cursor, sessionId: "s1", reason: "finished" });
+
+  /** A server whose streams answer `rounds` in turn: attentions, then an end, a drop or a refusal. */
+  function attentionServer(rounds: Array<{ readonly send: Attention[]; readonly then: "end" | "drop" | "refuse" }>) {
+    const requests: StreamAttentionRequest[] = [];
+    const client: AttentionClient = {
+      session: {
+        async *streamAttention(input) {
+          requests.push(input);
+          const round = rounds.shift();
+          if (round === undefined) return;
+          yield* round.send;
+          if (round.then === "drop") throw new ConnectError("connection reset", Code.Unavailable);
+          if (round.then === "refuse") throw new ConnectError("not yours", Code.PermissionDenied);
+        },
+      },
+    };
+    return { client, requests };
+  }
+
+  it("follows from the last cursor across a reconnect, and delivers each attention once", async () => {
+    const { client, requests } = attentionServer([
+      { send: [attention("a"), attention("b")], then: "drop" },
+      { send: [attention("b"), attention("c")], then: "refuse" },
+    ]);
+    const seen: string[] = [];
+    await expect(
+      (async () => {
+        for await (const next of followAttention(client, "acme", { afterCursor: "start", sleep: noWait })) seen.push(next.id);
+      })(),
+    ).rejects.toMatchObject({ code: "permission-denied" });
+    expect(seen).toEqual(["a", "b", "c"]);
+    expect(requests.map((request) => [request.org, request.afterCursor])).toEqual([
+      ["acme", "start"],
+      ["acme", "c-b"],
+    ]);
+  });
+
+  it("ends when its signal aborts, and asks with no cursor when given none", async () => {
+    const abort = new AbortController();
+    const { client, requests } = attentionServer([{ send: [attention("a")], then: "end" }]);
+    const seen: string[] = [];
+    for await (const next of followAttention(client, "acme", { signal: abort.signal, sleep: async () => abort.abort() })) seen.push(next.id);
+    expect(seen).toEqual(["a"]);
+    expect(requests[0]?.afterCursor).toBe("");
+  });
+
+  it("forgets the oldest ids past its bound, so an attention that old comes again", async () => {
+    const many = Array.from({ length: 1025 }, (_, i) => attention(`a${i}`));
+    const { client } = attentionServer([{ send: [...many, attention("a0")], then: "refuse" }]);
+    const seen: string[] = [];
+    await expect(
+      (async () => {
+        for await (const next of followAttention(client, "acme", { sleep: noWait })) seen.push(next.id);
+      })(),
+    ).rejects.toMatchObject({ code: "permission-denied" });
+    expect([seen.length, seen.at(-1)]).toEqual([1026, "a0"]);
+  });
+
+  it("ends quietly when its signal aborts while a stream fails or ends", async () => {
+    for (const then of ["drop", "end"] as const) {
+      const abort = new AbortController();
+      const { client, requests } = attentionServer([{ send: [attention("a")], then }]);
+      const sleep = vi.fn(noWait);
+      for await (const next of followAttention(client, "acme", { signal: abort.signal, sleep })) {
+        expect(next.id).toBe("a");
+        abort.abort();
+      }
+      expect([requests.length, sleep.mock.calls.length], then).toEqual([1, 0]);
+    }
   });
 });

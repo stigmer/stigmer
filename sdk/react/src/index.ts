@@ -197,6 +197,10 @@ export {
   PLAN_DOCUMENT_PATH,
   FILE_DOCUMENT_ENTRY_ID,
   SetupTab,
+  useAttentionNotifications,
+  noticeOf,
+  useAttentionNotificationsSetting,
+  ATTENTION_NOTIFICATIONS_KEY,
 } from "./session/index.js";
 export type {
   SharedSessionFields,
@@ -260,6 +264,10 @@ export type {
   SetupTabProps,
   SetupTabMutationCallbacks,
   SetupTabAutoApprove,
+  AttentionNotice,
+  AttentionReason,
+  UseAttentionNotificationsOptions,
+  AttentionNotificationsSetting,
 } from "./session/index.js";
 
 // Activity — recent sessions for the sidebar recents section
@@ -1563,6 +1571,8 @@ export type { OrgProfileSectionProps } from "./settings/index.js";
 export { OrgPreferencesSection, OrgPoliciesSection, OrgEmbeddingSection } from "./settings/index.js";
 export type { OrgEmbeddingSectionProps } from "./settings/index.js";
 export { AccountPreferencesSection } from "./settings/index.js";
+export { NotificationsSection } from "./settings/index.js";
+export type { NotificationsSectionProps } from "./settings/index.js";
 export { MemorySection } from "./settings/index.js";
 export { VaultsSection } from "./settings/index.js";
 export { InvitationsSection } from "./settings/index.js";

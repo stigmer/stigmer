@@ -9,6 +9,7 @@ import { Button } from "@/domain/_shared/ui/button";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 import { useRunNavigation } from "@/domain/runs/run-navigation";
 import { SessionLauncher } from "@/domain/session/SessionLauncher";
+import { AttentionNotifier } from "@/domain/session/AttentionNotifier";
 import { SessionPageInner } from "@/domain/session/SessionPage";
 import { RunLoadFailed } from "@/domain/runs/RunLoadFailed";
 import { RunNotFound } from "@/domain/runs/RunNotFound";
@@ -69,6 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // switch clears it — see the provider composition doc there.
   return (
     <>
+      <AttentionNotifier />
       {/* eslint-disable-next-line stigmer/no-main-tokens-in-sidebar -- app shell wraps both sidebar and main content */}
       <div className="bg-background text-foreground flex h-screen">
         {/* Mobile backdrop */}

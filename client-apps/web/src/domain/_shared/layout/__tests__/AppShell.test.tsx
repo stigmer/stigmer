@@ -52,6 +52,7 @@ vi.mock("@stigmer/react-sdk", () => ({
   },
 }));
 
+vi.mock("@/domain/session/AttentionNotifier", () => ({ AttentionNotifier: () => null }));
 vi.mock("@/domain/runs/RunNotFound", () => ({ RunNotFound: () => <p>not found</p> }));
 vi.mock("@/domain/runs/RunLoadFailed", () => ({
   RunLoadFailed: ({ error, onRetry }: { error: Error; onRetry: () => void }) => (

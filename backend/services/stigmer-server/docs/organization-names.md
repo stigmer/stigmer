@@ -16,7 +16,7 @@ What the resolver does with a value:
 - any other value is looked up in the name table, and an organization's current slug, or a previous one that has not expired, becomes its id;
 - a name nothing holds passes through unchanged, and authorization refuses it exactly as it refuses an organization the caller cannot see, so a caller never learns which names exist.
 
-Serving requests only: an in-process call is server code, which passes the ids it read from storage. Content a person wrote that the server reads from something else is resolved where it is read: a plugin package's manifests at push (`resolveOrganizationNames`). Streams are not resolved; no streaming method takes an organization, which the inventory test holds.
+Serving requests only: an in-process call is server code, which passes the ids it read from storage. Content a person wrote that the server reads from something else is resolved where it is read: a plugin package's manifests at push (`resolveOrganizationNames`). Streams are not resolved by the serving chain: a streaming method that takes an organization resolves it in its handler, by the same rule, and its row says so (`(resolved by its handler)`); the inventory test holds the list.
 
 Rows read `| Service.method | <field>, <field>, … |`.
 
@@ -162,6 +162,7 @@ Rows read `| Service.method | <field>, <field>, … |`.
 | SessionCommandController.create | `metadata.org`, `spec.agent_ref.org`, `spec.skill_refs.org`, `spec.vaults.org`, `spec.plugins.org`, `spec.environment_ref.org`, `status.environment.org` |
 | SessionCommandController.update | `resource.metadata.org`, `resource.spec.agent_ref.org`, `resource.spec.skill_refs.org`, `resource.spec.vaults.org`, `resource.spec.plugins.org`, `resource.spec.environment_ref.org`, `resource.status.environment.org` |
 | SessionQueryController.list | `org` |
+| SessionQueryController.streamAttention | `org` (resolved by its handler) |
 
 ## `ai.stigmer.agentic.skill.v1`
 

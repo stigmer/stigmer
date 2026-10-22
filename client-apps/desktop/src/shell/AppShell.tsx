@@ -7,6 +7,7 @@ import { ManagementSidebar } from "./ManagementSidebar";
 import { Sidebar } from "./Sidebar";
 import { useAppShortcuts } from "../hooks/useAppShortcuts";
 import { useDesktopBillingReturn } from "../hooks/useDesktopBillingReturn";
+import { useDesktopAttentionNotifications } from "../hooks/useDesktopAttentionNotifications";
 import { useSidebarOpen } from "./use-layout-state";
 
 function isSessionZonePath(p: string): boolean {
@@ -16,6 +17,7 @@ function isSessionZonePath(p: string): boolean {
 export function AppShell() {
   useAppShortcuts();
   useDesktopBillingReturn();
+  useDesktopAttentionNotifications();
   const sidebar = useSidebarOpen();
   const { pathname } = useLocation();
 
