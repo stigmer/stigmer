@@ -32,6 +32,18 @@ export type {
 export { useSessionRuns } from "./useSessionRuns.js";
 export type { UseSessionRunsReturn } from "./useSessionRuns.js";
 
+export { useAttentionNotifications, noticeOf } from "./useAttentionNotifications.js";
+export type {
+  AttentionNotice,
+  AttentionReason,
+  UseAttentionNotificationsOptions,
+} from "./useAttentionNotifications.js";
+export {
+  useAttentionNotificationsSetting,
+  ATTENTION_NOTIFICATIONS_KEY,
+} from "./attentionNotificationsSetting.js";
+export type { AttentionNotificationsSetting } from "./attentionNotificationsSetting.js";
+
 export { useSessionEvents } from "./useSessionEvents.js";
 export type { UseSessionEventsOptions, UseSessionEventsReturn } from "./useSessionEvents.js";
 

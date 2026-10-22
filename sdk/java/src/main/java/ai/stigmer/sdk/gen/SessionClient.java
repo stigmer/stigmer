@@ -4,6 +4,7 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.session.v1.AppendSessionEventsInput;
 import ai.stigmer.agentic.session.v1.AppendSessionEventsResponse;
+import ai.stigmer.agentic.session.v1.Attention;
 import ai.stigmer.agentic.session.v1.BindHarnessStateInput;
 import ai.stigmer.agentic.session.v1.BindHarnessStateResponse;
 import ai.stigmer.agentic.session.v1.ClaimSessionInputInput;
@@ -26,6 +27,7 @@ import ai.stigmer.agentic.session.v1.SessionEventList;
 import ai.stigmer.agentic.session.v1.SessionId;
 import ai.stigmer.agentic.session.v1.SessionList;
 import ai.stigmer.agentic.session.v1.SessionQueryControllerGrpc;
+import ai.stigmer.agentic.session.v1.StreamAttentionRequest;
 import ai.stigmer.agentic.session.v1.StreamSessionEventsRequest;
 import ai.stigmer.agentic.session.v1.StreamSessionEventsResponse;
 import ai.stigmer.agentic.session.v1.UpdateSessionInput;
@@ -191,6 +193,13 @@ public final class SessionClient {
     public StigmerStream<StreamSessionEventsResponse> streamEvents(StreamSessionEventsRequest input) {
         try {
             java.util.Iterator<StreamSessionEventsResponse> iter = query.streamEvents(input);
+            return new StigmerStream<>(iter);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public StigmerStream<Attention> streamAttention(StreamAttentionRequest input) {
+        try {
+            java.util.Iterator<Attention> iter = query.streamAttention(input);
             return new StigmerStream<>(iter);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }

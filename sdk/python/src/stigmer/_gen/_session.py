@@ -175,6 +175,13 @@ class SessionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def stream_attention(self, input: io_pb2.StreamAttentionRequest) -> Iterator[io_pb2.Attention]:
+        try:
+            for msg in self._query.streamAttention(input):
+                yield msg
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
 
 @dataclass
 class SessionInput:

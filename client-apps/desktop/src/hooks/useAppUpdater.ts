@@ -34,7 +34,7 @@ const TRAY_CHECK_EVENT = "check-for-update";
  * The toast has a "Restart to Update" action. Clicking it downloads the update,
  * installs it, and relaunches the app.
  *
- * Mount once in the authenticated app root alongside `useRunnerNotifications`.
+ * Mount once in the authenticated app root.
  */
 export function useAppUpdater(): AppUpdaterState {
   const [status, setStatus] = useState<UpdateStatus>("idle");

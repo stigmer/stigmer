@@ -30,6 +30,11 @@
  * with UNAVAILABLE and a new one is refused, so a watcher resumes on the
  * server that stays instead of waiting on one that is leaving.
  *
+ * One more bell rings across sessions: a write whose events include a
+ * `session.status_idle` rings every attention stream (attention.ts), each
+ * of which reads its organization's idles from the store, as an event
+ * stream reads its session's.
+ *
  * One instance serves both routers (serving and in-process), as the run
  * broker does; the composition root owns it.
  *
@@ -67,6 +72,9 @@ export const SESSION_EVENT_PREVIEW_MAX_BYTES = 32 * 1024 * 1024;
  * streaming after this many newer drops could show its hole.
  */
 export const SESSION_EVENT_DROPPED_IDS_KEPT = 4096;
+
+/** Where the attention streams subscribe: a key no session id takes. */
+export const SESSION_IDLE_BELL = "\u0000session.status_idle";
 
 /** The reason a stream ends with when the broker closes. */
 export const SESSION_EVENT_BROKER_CLOSED_MESSAGE =
@@ -165,9 +173,12 @@ export class SessionEventBroker {
     if (events.length === 0) {
       return;
     }
-    for (const subscription of this.subscribers.get(sessionId) ?? []) {
-      subscription.dirty = true;
-      this.wake(subscription);
+    const bells = events.some((event) => event.event.case === "sessionStatusIdle") ? [sessionId, SESSION_IDLE_BELL] : [sessionId];
+    for (const bell of bells) {
+      for (const subscription of this.subscribers.get(bell) ?? []) {
+        subscription.dirty = true;
+        this.wake(subscription);
+      }
     }
   }
 

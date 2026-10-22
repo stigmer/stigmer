@@ -89,6 +89,7 @@ Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`grantPermission`](#grantpermission) | Allow a tool use, and every call of its class for the rest of the turn. | |
 | [`interrupt`](#interrupt) | Stop the session's unfinished work. | |
 | [`reviewFileChanges`](#reviewfilechanges) | Keep or undo the file changes a turn made, or one of its files. | |
+| [`streamAttention`](#streamattention) | Stream what needs the caller: one Attention each time a conversation they created in the organization stops working, because its turn finished, failed, or waits for their answer. | Server |
 | [`streamEvents`](#streamevents) | Stream a session's events as they are appended. | Server |
 
 ### get
@@ -1056,6 +1057,54 @@ ReviewFileChangesResponse reviewFileChangesResponse = client.sessions().reviewFi
 
 **Returns**: [`ReviewFileChangesResponse`](#reviewfilechangesresponse)
 
+### streamAttention
+
+> **Server Streaming** — This method returns a stream of updates, not a single response.
+
+Stream what needs the caller: one Attention each time a conversation they created in the organization stops working, because its turn finished, failed, or waits for their answer. A stop the caller made themselves (an interrupt, a terminate) sends nothing.
+
+It reads the conversations' log, so nothing is missed across a reconnect: with after_cursor the stream first sends every attention after that cursor, then the new ones; without, only those that come after it opens. A cursor a little old is read again from a short way back, so an attention may come twice: a client keeps the ids it showed. A server that is restarting ends its streams with UNAVAILABLE, and a client resumes with its last cursor.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const stream = stigmer.session.streamAttention(input);
+for await (const attention of stream) {
+  // process attention
+}
+```
+</Tab>
+<Tab value="Go">
+```go
+stream, err := client.Session.StreamAttention(ctx, input)
+for {
+    attention, err := stream.Recv()
+    if err != nil {
+        break
+    }
+    // process attention
+}
+```
+</Tab>
+<Tab value="Python">
+```python
+for attention in client.sessions.stream_attention(input):
+    # process attention
+```
+</Tab>
+<Tab value="Java">
+```java
+client.sessions().streamAttention(input, attention -> {
+    // process attention
+});
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`StreamAttentionRequest`](#streamattentionrequest)
+
+**Returns**: Stream&lt;[`Attention`](#attention)&gt;
+
 ### streamEvents
 
 > **Server Streaming** — This method returns a stream of updates, not a single response.
@@ -1509,6 +1558,33 @@ StreamSessionEventsResponse is one frame of a session's event stream: a stored e
     eventDelta: { type: "EventDeltaInput", description: "A fragment of a previewed event." },
     stigmerToolOutputDelta: { type: "ToolOutputDeltaInput", description: "A fragment of a running tool's output." },
     stigmerRunLiveness: { type: "RunLivenessInput", description: "What a working turn has open now, and for how long." },
+  }}
+/>
+
+### StreamAttentionRequest
+
+StreamAttentionRequest opens the caller's stream of what needs them in one organization.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "The organization whose conversations to watch." },
+    afterCursor: { type: "string", description: "Where to resume: the cursor of the last Attention the client has." },
+  }}
+/>
+
+### Attention
+
+Attention is one conversation, created by the caller, that stopped working and needs them: its turn finished, failed, or waits for their answer.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "The session.status_idle event it reads from: a client shows each id once." },
+    sessionId: { type: "string", description: "The conversation." },
+    title: { type: "string", description: "The conversation's title (its subject), or its name when it has none." },
+    runId: { type: "string", description: "The turn that stopped; empty when no turn's write ended it." },
+    reason: { type: "string", description: "Why it needs the caller: \"finished\" (the turn ended its work), \"failed\" (retries ran out, or a budget was reached) or \"needs_answer\" (a tool call waits for an approval)." },
+    at: { type: "string", description: "When it stopped, RFC 3339." },
+    cursor: { type: "string", description: "Where a client resumes from: StreamAttentionRequest.after_cursor." },
   }}
 />
 

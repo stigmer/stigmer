@@ -285,3 +285,29 @@ class BindHarnessStateResponse(_message.Message):
     harness_state_id: str
     harness_state_id_history: _containers.RepeatedScalarFieldContainer[str]
     def __init__(self, harness_state_id: _Optional[str] = ..., harness_state_id_history: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class StreamAttentionRequest(_message.Message):
+    __slots__ = ("org", "after_cursor")
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    AFTER_CURSOR_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    after_cursor: str
+    def __init__(self, org: _Optional[str] = ..., after_cursor: _Optional[str] = ...) -> None: ...
+
+class Attention(_message.Message):
+    __slots__ = ("id", "session_id", "title", "run_id", "reason", "at", "cursor")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    SESSION_ID_FIELD_NUMBER: _ClassVar[int]
+    TITLE_FIELD_NUMBER: _ClassVar[int]
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    AT_FIELD_NUMBER: _ClassVar[int]
+    CURSOR_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    session_id: str
+    title: str
+    run_id: str
+    reason: str
+    at: str
+    cursor: str
+    def __init__(self, id: _Optional[str] = ..., session_id: _Optional[str] = ..., title: _Optional[str] = ..., run_id: _Optional[str] = ..., reason: _Optional[str] = ..., at: _Optional[str] = ..., cursor: _Optional[str] = ...) -> None: ...

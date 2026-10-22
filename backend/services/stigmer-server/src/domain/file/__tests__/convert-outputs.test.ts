@@ -320,7 +320,7 @@ describe("an install with a run's stored file, booted", () => {
       const sessionId = "ses_01bootbootbootbootbootboot";
       const db = new DatabaseSync(dbPath);
       try {
-        db.exec(`DROP TABLE output_conversions; DROP TABLE session_queued_messages; DELETE FROM schema_version WHERE version > ${SCHEMA_VERSION_44};`);
+        db.exec(`DROP TABLE output_conversions; DROP TABLE session_queued_messages; DROP INDEX idx_session_events_org_type; DELETE FROM schema_version WHERE version > ${SCHEMA_VERSION_44};`);
         const insert = db.prepare(`INSERT INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, '2026-10-02 00:00:00')`);
         insert.run(
           "session",

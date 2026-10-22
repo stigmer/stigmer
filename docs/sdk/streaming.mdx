@@ -583,6 +583,51 @@ while (stream.hasNext()) {
   unfinished run of the Session.
 </Callout>
 
+## Know when a conversation needs you
+
+`streamAttention` tells a person each time a conversation they created stops
+working, across every conversation of an organization: its turn finished,
+failed, or waits for their answer. A stop they made themselves tells them
+nothing.
+
+| `reason` | When |
+|---|---|
+| `finished` | The turn ended (`end_turn`). |
+| `failed` | The turn stopped on an error or its budget (`retries_exhausted`, `budget_reached`). |
+| `needs_answer` | A call waits for the person's answer (`requires_action`). |
+
+Each `Attention` carries the conversation's `session_id` and `title`, the
+`run_id` of the turn, and a `cursor`. Pass the last cursor you showed as
+`after_cursor` when you reconnect, and nothing is missed or shown twice.
+
+<SDKTabs>
+<Tab value="TypeScript">
+
+`followAttention` reconnects on its own, from the last cursor it delivered:
+
+```typescript
+import { followAttention } from "@stigmer/client";
+
+for await (const attention of followAttention(stigmer, "acme")) {
+  console.log(`${attention.title}: ${attention.reason}`);
+}
+```
+
+In React, `useAttentionNotifications` follows it and hands each attention to
+your own `notify`, skipping the conversation the person is looking at:
+
+```tsx
+useAttentionNotifications({
+  org,
+  enabled: notificationsOn,
+  isShowing: (sessionId) => sessionId === openSessionId,
+  notify: (notice) => new Notification(notice.title, { body: notice.body }),
+});
+```
+
+</Tab>
+</SDKTabs>
+
 ## What's next
 
 <Cards>

@@ -31,6 +31,8 @@
  * (events/append.ts carries its gate), claimInput the runner's take of the
  * session's queued messages through the same gate (events/claim-input.ts),
  * and delete removes the log before the row (DeleteSessionEvents).
+ * streamAttention reads an organization's idles, under can_view on the
+ * organization, for the conversations the caller created (events/attention.ts).
  *
  * reviewFileChanges keeps or undoes a turn's file edits under can_edit on
  * the session (filereview/review-file-changes.ts, deciding through
@@ -175,6 +177,7 @@ import type { SessionEventBroker } from "./events/broker.js";
 import { newDeleteSessionEventsStep } from "./events/delete-step.js";
 import { listSessionEvents } from "./events/list.js";
 import { newStampSessionStateStep } from "./events/state.js";
+import { streamAttention } from "./events/attention.js";
 import { streamSessionEvents } from "./events/stream.js";
 import type { ReconcileTurnCreatorProvider } from "./filereview/decide.js";
 import { reviewFileChanges } from "./filereview/review-file-changes.js";
@@ -287,6 +290,7 @@ export function registerSessionServices(
     listByChannel: (req, ctx) => listByChannel(deps, req, ctx),
     listEvents: (req, ctx) => listSessionEvents(deps, req, ctx),
     streamEvents: (req, ctx) => streamSessionEvents(deps, req, ctx),
+    streamAttention: (req, ctx) => streamAttention(deps, req, ctx),
   });
 }
 

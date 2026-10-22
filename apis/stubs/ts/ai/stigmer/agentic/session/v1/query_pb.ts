@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { SessionSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_session_v1_api } from "./api_pb.js";
-import type { ListSessionEventsRequestSchema, ListSessionsByAgentRequestSchema, ListSessionsByChannelRequestSchema, ListSessionsRequestSchema, SessionEventListSchema, SessionIdSchema, SessionListSchema, StreamSessionEventsRequestSchema, StreamSessionEventsResponseSchema } from "./io_pb.js";
+import type { AttentionSchema, ListSessionEventsRequestSchema, ListSessionsByAgentRequestSchema, ListSessionsByChannelRequestSchema, ListSessionsRequestSchema, SessionEventListSchema, SessionIdSchema, SessionListSchema, StreamAttentionRequestSchema, StreamSessionEventsRequestSchema, StreamSessionEventsResponseSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_session_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/session/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9xdWVyeS5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEyiwcKFlNlc3Npb25RdWVyeUNvbnRyb2xsZXIShQEKA2dldBIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25JZBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24iLMK4GCgIARAqIgV2YWx1ZSobdW5hdXRob3JpemVkIHRvIGdldCBzZXNzaW9uEmwKBGxpc3QSMi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5MaXN0U2Vzc2lvbnNSZXF1ZXN0GiouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkxpc3QiBNC4GAESegoLbGlzdEJ5QWdlbnQSOS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5MaXN0U2Vzc2lvbnNCeUFnZW50UmVxdWVzdBoqLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25MaXN0IgTQuBgBEn4KDWxpc3RCeUNoYW5uZWwSOy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5MaXN0U2Vzc2lvbnNCeUNoYW5uZWxSZXF1ZXN0GiouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkxpc3QiBNC4GAESsQEKCmxpc3RFdmVudHMSNy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5MaXN0U2Vzc2lvbkV2ZW50c1JlcXVlc3QaLy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uRXZlbnRMaXN0IjnCuBg1CAEQKiIKc2Vzc2lvbl9pZCojdW5hdXRob3JpemVkIHRvIGxpc3Qgc2Vzc2lvbiBldmVudHMSxAEKDHN0cmVhbUV2ZW50cxI5LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlN0cmVhbVNlc3Npb25FdmVudHNSZXF1ZXN0GjouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU3RyZWFtU2Vzc2lvbkV2ZW50c1Jlc3BvbnNlIjvCuBg3CAEQKiIKc2Vzc2lvbl9pZColdW5hdXRob3JpemVkIHRvIHN0cmVhbSBzZXNzaW9uIGV2ZW50czABGgSg/ysqYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9xdWVyeS5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEyyAgKFlNlc3Npb25RdWVyeUNvbnRyb2xsZXIShQEKA2dldBIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25JZBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24iLMK4GCgIARAqIgV2YWx1ZSobdW5hdXRob3JpemVkIHRvIGdldCBzZXNzaW9uEmwKBGxpc3QSMi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5MaXN0U2Vzc2lvbnNSZXF1ZXN0GiouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkxpc3QiBNC4GAESegoLbGlzdEJ5QWdlbnQSOS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5MaXN0U2Vzc2lvbnNCeUFnZW50UmVxdWVzdBoqLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25MaXN0IgTQuBgBEn4KDWxpc3RCeUNoYW5uZWwSOy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5MaXN0U2Vzc2lvbnNCeUNoYW5uZWxSZXF1ZXN0GiouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkxpc3QiBNC4GAESsQEKCmxpc3RFdmVudHMSNy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5MaXN0U2Vzc2lvbkV2ZW50c1JlcXVlc3QaLy5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uRXZlbnRMaXN0IjnCuBg1CAEQKiIKc2Vzc2lvbl9pZCojdW5hdXRob3JpemVkIHRvIGxpc3Qgc2Vzc2lvbiBldmVudHMSxAEKDHN0cmVhbUV2ZW50cxI5LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlN0cmVhbVNlc3Npb25FdmVudHNSZXF1ZXN0GjouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU3RyZWFtU2Vzc2lvbkV2ZW50c1Jlc3BvbnNlIjvCuBg3CAEQKiIKc2Vzc2lvbl9pZColdW5hdXRob3JpemVkIHRvIHN0cmVhbSBzZXNzaW9uIGV2ZW50czABEroBCg9zdHJlYW1BdHRlbnRpb24SNS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TdHJlYW1BdHRlbnRpb25SZXF1ZXN0GiguYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQXR0ZW50aW9uIkTCuBhACAEQHiIDb3JnKjV1bmF1dGhvcml6ZWQgdG8gc3RyZWFtIGF0dGVudGlvbiBpbiB0aGlzIG9yZ2FuaXphdGlvbjABGgSg/ysqYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * SessionQueryController handles read operations for agent sessions.
@@ -104,6 +104,27 @@ export const SessionQueryController: GenService<{
     methodKind: "server_streaming";
     input: typeof StreamSessionEventsRequestSchema;
     output: typeof StreamSessionEventsResponseSchema;
+  },
+  /**
+   * Stream what needs the caller: one Attention each time a conversation
+   * they created in the organization stops working, because its turn
+   * finished, failed, or waits for their answer. A stop the caller made
+   * themselves (an interrupt, a terminate) sends nothing.
+   *
+   * It reads the conversations' log, so nothing is missed across a
+   * reconnect: with after_cursor the stream first sends every attention
+   * after that cursor, then the new ones; without, only those that come
+   * after it opens. A cursor a little old is read again from a short way
+   * back, so an attention may come twice: a client keeps the ids it showed.
+   * A server that is restarting ends its streams with UNAVAILABLE, and a
+   * client resumes with its last cursor.
+   *
+   * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.streamAttention
+   */
+  streamAttention: {
+    methodKind: "server_streaming";
+    input: typeof StreamAttentionRequestSchema;
+    output: typeof AttentionSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_session_v1_query, 0);

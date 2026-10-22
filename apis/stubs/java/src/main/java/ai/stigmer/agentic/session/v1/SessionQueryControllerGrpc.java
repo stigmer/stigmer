@@ -201,6 +201,37 @@ public final class SessionQueryControllerGrpc {
     return getStreamEventsMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.StreamAttentionRequest,
+      ai.stigmer.agentic.session.v1.Attention> getStreamAttentionMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "streamAttention",
+      requestType = ai.stigmer.agentic.session.v1.StreamAttentionRequest.class,
+      responseType = ai.stigmer.agentic.session.v1.Attention.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.StreamAttentionRequest,
+      ai.stigmer.agentic.session.v1.Attention> getStreamAttentionMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.StreamAttentionRequest, ai.stigmer.agentic.session.v1.Attention> getStreamAttentionMethod;
+    if ((getStreamAttentionMethod = SessionQueryControllerGrpc.getStreamAttentionMethod) == null) {
+      synchronized (SessionQueryControllerGrpc.class) {
+        if ((getStreamAttentionMethod = SessionQueryControllerGrpc.getStreamAttentionMethod) == null) {
+          SessionQueryControllerGrpc.getStreamAttentionMethod = getStreamAttentionMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.StreamAttentionRequest, ai.stigmer.agentic.session.v1.Attention>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "streamAttention"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.StreamAttentionRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.Attention.getDefaultInstance()))
+              .setSchemaDescriptor(new SessionQueryControllerMethodDescriptorSupplier("streamAttention"))
+              .build();
+        }
+      }
+    }
+    return getStreamAttentionMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -343,6 +374,26 @@ public final class SessionQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.StreamSessionEventsResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getStreamEventsMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Stream what needs the caller: one Attention each time a conversation
+     * they created in the organization stops working, because its turn
+     * finished, failed, or waits for their answer. A stop the caller made
+     * themselves (an interrupt, a terminate) sends nothing.
+     * It reads the conversations' log, so nothing is missed across a
+     * reconnect: with after_cursor the stream first sends every attention
+     * after that cursor, then the new ones; without, only those that come
+     * after it opens. A cursor a little old is read again from a short way
+     * back, so an attention may come twice: a client keeps the ids it showed.
+     * A server that is restarting ends its streams with UNAVAILABLE, and a
+     * client resumes with its last cursor.
+     * </pre>
+     */
+    default void streamAttention(ai.stigmer.agentic.session.v1.StreamAttentionRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Attention> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getStreamAttentionMethod(), responseObserver);
+    }
   }
 
   /**
@@ -460,6 +511,27 @@ public final class SessionQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncServerStreamingCall(
           getChannel().newCall(getStreamEventsMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Stream what needs the caller: one Attention each time a conversation
+     * they created in the organization stops working, because its turn
+     * finished, failed, or waits for their answer. A stop the caller made
+     * themselves (an interrupt, a terminate) sends nothing.
+     * It reads the conversations' log, so nothing is missed across a
+     * reconnect: with after_cursor the stream first sends every attention
+     * after that cursor, then the new ones; without, only those that come
+     * after it opens. A cursor a little old is read again from a short way
+     * back, so an attention may come twice: a client keeps the ids it showed.
+     * A server that is restarting ends its streams with UNAVAILABLE, and a
+     * client resumes with its last cursor.
+     * </pre>
+     */
+    public void streamAttention(ai.stigmer.agentic.session.v1.StreamAttentionRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Attention> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncServerStreamingCall(
+          getChannel().newCall(getStreamAttentionMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -559,6 +631,28 @@ public final class SessionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2ServerStreamingCall(
           getChannel(), getStreamEventsMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Stream what needs the caller: one Attention each time a conversation
+     * they created in the organization stops working, because its turn
+     * finished, failed, or waits for their answer. A stop the caller made
+     * themselves (an interrupt, a terminate) sends nothing.
+     * It reads the conversations' log, so nothing is missed across a
+     * reconnect: with after_cursor the stream first sends every attention
+     * after that cursor, then the new ones; without, only those that come
+     * after it opens. A cursor a little old is read again from a short way
+     * back, so an attention may come twice: a client keeps the ids it showed.
+     * A server that is restarting ends its streams with UNAVAILABLE, and a
+     * client resumes with its last cursor.
+     * </pre>
+     */
+    @io.grpc.ExperimentalApi("https://github.com/grpc/grpc-java/issues/10918")
+    public io.grpc.stub.BlockingClientCall<?, ai.stigmer.agentic.session.v1.Attention>
+        streamAttention(ai.stigmer.agentic.session.v1.StreamAttentionRequest request) {
+      return io.grpc.stub.ClientCalls.blockingV2ServerStreamingCall(
+          getChannel(), getStreamAttentionMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -657,6 +751,27 @@ public final class SessionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingServerStreamingCall(
           getChannel(), getStreamEventsMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Stream what needs the caller: one Attention each time a conversation
+     * they created in the organization stops working, because its turn
+     * finished, failed, or waits for their answer. A stop the caller made
+     * themselves (an interrupt, a terminate) sends nothing.
+     * It reads the conversations' log, so nothing is missed across a
+     * reconnect: with after_cursor the stream first sends every attention
+     * after that cursor, then the new ones; without, only those that come
+     * after it opens. A cursor a little old is read again from a short way
+     * back, so an attention may come twice: a client keeps the ids it showed.
+     * A server that is restarting ends its streams with UNAVAILABLE, and a
+     * client resumes with its last cursor.
+     * </pre>
+     */
+    public java.util.Iterator<ai.stigmer.agentic.session.v1.Attention> streamAttention(
+        ai.stigmer.agentic.session.v1.StreamAttentionRequest request) {
+      return io.grpc.stub.ClientCalls.blockingServerStreamingCall(
+          getChannel(), getStreamAttentionMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -750,6 +865,7 @@ public final class SessionQueryControllerGrpc {
   private static final int METHODID_LIST_BY_CHANNEL = 3;
   private static final int METHODID_LIST_EVENTS = 4;
   private static final int METHODID_STREAM_EVENTS = 5;
+  private static final int METHODID_STREAM_ATTENTION = 6;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -791,6 +907,10 @@ public final class SessionQueryControllerGrpc {
         case METHODID_STREAM_EVENTS:
           serviceImpl.streamEvents((ai.stigmer.agentic.session.v1.StreamSessionEventsRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.StreamSessionEventsResponse>) responseObserver);
+          break;
+        case METHODID_STREAM_ATTENTION:
+          serviceImpl.streamAttention((ai.stigmer.agentic.session.v1.StreamAttentionRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Attention>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -852,6 +972,13 @@ public final class SessionQueryControllerGrpc {
               ai.stigmer.agentic.session.v1.StreamSessionEventsRequest,
               ai.stigmer.agentic.session.v1.StreamSessionEventsResponse>(
                 service, METHODID_STREAM_EVENTS)))
+        .addMethod(
+          getStreamAttentionMethod(),
+          io.grpc.stub.ServerCalls.asyncServerStreamingCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.session.v1.StreamAttentionRequest,
+              ai.stigmer.agentic.session.v1.Attention>(
+                service, METHODID_STREAM_ATTENTION)))
         .build();
   }
 
@@ -906,6 +1033,7 @@ public final class SessionQueryControllerGrpc {
               .addMethod(getListByChannelMethod())
               .addMethod(getListEventsMethod())
               .addMethod(getStreamEventsMethod())
+              .addMethod(getStreamAttentionMethod())
               .build();
         }
       }

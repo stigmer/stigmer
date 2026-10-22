@@ -44,6 +44,7 @@ import { tempStore } from "../sqlite/__tests__/support.js";
 const CONTRACT_CASE_NAMES = [
   "the row a write appending events puts is stored with the etag its content gives",
   "append numbers a session's events from 1 in order and stamps each append with one fixed-width accepted time",
+  "listByOrg reads an organization's accepted events of a type across its sessions, by accepted time then id, after a position",
   "concurrent appends to one session leave no gap and no repeated number",
   "a resent event with the same bytes answers its stored record and is not appended again",
   "a resent id with other bytes is refused and appends nothing of its batch",
