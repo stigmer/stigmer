@@ -1240,10 +1240,10 @@ agents-sync: ## Regenerate the Cursor shims (.cursor/rules/agents-*.mdc) from ev
 agents-check: ## Verify agent guidance: shims and hooks.json in sync, every cited path resolves, no private-record ids (CI)
 	@node scripts/agents-check.mjs
 
-check-docs-yaml: ## Validate every docs YAML block + raw examples/plugins manifests against the proto contracts, incl. platform-parity protovalidate rules (CI)
+check-docs-yaml: ## Validate every docs YAML block + raw examples/plugins/docs-agent manifests against the proto contracts, incl. platform-parity protovalidate rules (CI)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
 	@npm run build -w @stigmer/apis --silent
-	@node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=docs-yaml-check --docs-dir docs --authoring-dirs examples,plugins --rules=enforce
+	@node_modules/.bin/tsx tools/codegen/src/generator/main.ts --target=docs-yaml-check --docs-dir docs --authoring-dirs examples,plugins,docs-agent --rules=enforce
 
 report-docs-yaml-rules: ## Protovalidate rule report over docs YAML manifests (never fails)
 	@test -x node_modules/.bin/tsx || { echo "error: node_modules/.bin/tsx not found — run 'npm install' at the repo root"; exit 1; }
