@@ -1,64 +1,117 @@
 ---
 title: "How we put agents into Planton"
-description: "Planton's customers wanted to ask for a change instead of finding the screen. Here's what we built, what we threw away, and why it became Stigmer."
+description:
+  "Planton's customers wanted to ask for a change instead of finding the screen.
+  Here's what we built, what we threw away, and why it became Stigmer."
 github: "whysosuresh"
 date: 2026-10-22
 ---
 
-Let's say you run your company's cloud setup on Planton, and you want staging to look like production again. Today that means finding the right screens: the database settings in one place, the service versions in another, the deployments somewhere else. What you actually want is to say "make staging match production", check what's about to change, and say yes.
+Let's say you run your company's cloud setup on Planton, and you want staging to
+look like production again. Today that means finding the right screens: the
+database settings in one place, the service versions in another, the deployments
+somewhere else. What you actually want is to say "make staging match
+production", check what's about to change, and say yes.
 
-That's what Planton's customers wanted. We build Planton too, it's a DevOps product, and this is the story of how we gave it agents, and how that work turned into Stigmer.
+That's what Planton's customers wanted. We build Planton too, it's a DevOps
+product, and this is the story of how we gave it agents, and how that work
+turned into Stigmer.
 
 ## What we tried first
 
-Our first try lived inside Planton. We built a Copilot: a chat in the console, and our own services behind it to run agents.
+Our first try lived inside Planton. We built a Copilot: a chat in the console,
+and our own services behind it to run agents.
 
-Building it taught us two things. An assistant that only answers questions isn't worth shipping. People don't want to be told which screen to open, they want the change made. And an agent that does real work needs a lot underneath it: somewhere to run, a way to ask before it acts, and walls between one customer and the next. That's a product of its own, and we were building it as a corner of another one.
+Building it taught us two things. An assistant that only answers questions isn't
+worth shipping. People don't want to be told which screen to open, they want the
+change made. And an agent that does real work needs a lot underneath it:
+somewhere to run, a way to ask before it acts, and walls between one customer
+and the next. That's a product of its own, and we were building it as a corner
+of another one.
 
-So in April 2026 we took it out. All four of those services left Planton, and Planton's agents moved to Stigmer.
+So in April 2026 we took it out. All four of those services left Planton, and
+Planton's agents moved to Stigmer.
 
 ## What we built instead
 
-Stigmer is that machinery, built once, on its own, and open source. Planton calls it the way it calls its database. Planton asks Stigmer for an agent and a conversation, and Stigmer runs it.
+Stigmer is that machinery, built once, on its own, and open source. Planton
+calls it the way it calls its database. Planton asks Stigmer for an agent and a
+conversation, and Stigmer runs it.
 
-Planton uses Stigmer Cloud, the version we host. The chat you see in Planton's web console and in its desktop app is Stigmer's own React components, placed inside Planton's screens.
+Planton uses Stigmer Cloud, the version we host. The chat you see in Planton's
+web console and in its desktop app is Stigmer's own React components, placed
+inside Planton's screens.
 
 ## What Planton's agent does
 
-There is one agent, the Planton Assistant. It can do what the signed-in person can do in Planton, as that person, through Planton's own tools. Today that's 277 of them, covering the cloud resources, the charts, the projects and the deployments, through their whole lifecycle. So if you can't do something in Planton, the agent working for you can't either.
+There is one agent, the Planton Assistant. It can do what the signed-in person
+can do in Planton, as that person, through Planton's own tools. Today that's 277
+of them, covering the cloud resources, the charts, the projects and the
+deployments, through their whole lifecycle. So if you can't do something in
+Planton, the agent working for you can't either.
 
-Its know-how about Planton lives in one skill: how to design a setup, how to deploy it, and how to work out what went wrong when it breaks.
+Its know-how about Planton lives in one skill: how to design a setup, how to
+deploy it, and how to work out what went wrong when it breaks.
 
-When a deployment fails, it doesn't wait to be asked. It reads the failed job's errors, works out the likely cause, and writes up what it found with the next steps to try. It only reads. It never touches the customer's cloud while it looks.
+When a deployment fails, it doesn't wait to be asked. It reads the failed job's
+errors, works out the likely cause, and writes up what it found with the next
+steps to try. It only reads. It never touches the customer's cloud while it
+looks.
 
-And Planton pays for the model, so Planton's customers never bring a model key. They just ask. That's what Stigmer offers any developer, seen from the other side: you bring your model key, and your customers never see one.
+And Planton pays for the model, so Planton's customers never bring a model key.
+They just ask. That's what Stigmer offers any developer, seen from the other
+side: you bring your model key, and your customers never see one.
 
 ## Every customer gets their own
 
-Each Planton organization gets its own organization inside Stigmer. It's set up the first time someone there starts a conversation, and people sign in through Planton, never to Stigmer directly. One customer's agent never sees another customer's conversations or files.
+Each Planton organization gets its own organization inside Stigmer. It's set up
+the first time someone there starts a conversation, and people sign in through
+Planton, never to Stigmer directly. One customer's agent never sees another
+customer's conversations or files.
 
-Planton asks Stigmer to create the organization, and from then on, keeping them apart is Stigmer's job, not something Planton wrote in its own code. If you want the same for your product, [Give each customer their own organization](/docs/getting-started/one-organization-per-customer) walks through it.
+Planton asks Stigmer to create the organization, and from then on, keeping them
+apart is Stigmer's job, not something Planton wrote in its own code. If you want
+the same for your product,
+[Give each customer their own organization](/docs/getting-started/one-organization-per-customer)
+walks through it.
 
 ## It asks first
 
-The agent never changes anything uninvited. When someone asks for a change, it first says the exact command it will run and what that will change, then waits for a clear yes. One yes per change.
+The agent never changes anything uninvited. When someone asks for a change, it
+first says the exact command it will run and what that will change, then waits
+for a clear yes. One yes per change.
 
-A person can also tell it to carry on without asking, for one task. Then it goes ahead, and afterwards it tells them exactly what it changed or replaced.
+A person can also tell it to carry on without asking, for one task. Then it goes
+ahead, and afterwards it tells them exactly what it changed or replaced.
 
-There's one thing it won't do even then. Some deployments in Planton wait for someone to approve them. The agent can approve one on a person's word, but never a deployment its own person started, even when that person is the only approver.
+There's one thing it won't do even then. Some deployments in Planton wait for
+someone to approve them. The agent can approve one on a person's word, but never
+a deployment its own person started, even when that person is the only approver.
 
-In Planton, we wrote all of this into the agent's instructions. Stigmer can also hold any tool you mark until a person says yes, which [Approval Flows](/docs/concepts/approval-flows) explains.
+In Planton, we wrote all of this into the agent's instructions. Stigmer can also
+hold any tool you mark until a person says yes, which
+[Approval Flows](/docs/concepts/approval-flows) explains.
 
 ## Where it is today
 
-We took the old services out of Planton in April 2026. The assistant moved to Stigmer Cloud in August, and every Planton organization got its own space in Stigmer later that month.
+We took the old services out of Planton in April 2026. The assistant moved to
+Stigmer Cloud in August, and every Planton organization got its own space in
+Stigmer later that month.
 
-Today the assistant is switched on for our own team first, and it reaches Planton's customers as Planton rolls it out. Nothing counts its use yet, so there are no numbers here, only what we built.
+Today the assistant is switched on for our own team first, and it reaches
+Planton's customers as Planton rolls it out. Nothing counts its use yet, so
+there are no numbers here, only what we built.
 
 ## If you're putting agents in your product
 
-Planton didn't need agent machinery of its own. It wrote the parts only Planton could write: its tools, its skill and its agent's instructions. Stigmer runs the rest.
+Planton didn't need agent machinery of its own. It wrote the parts only Planton
+could write: its tools, its skill and its agent's instructions. Stigmer runs the
+rest.
 
-That's what we wanted for Planton, and it's what Stigmer gives you. Each of your customers gets an agent with its own computer that asks before it acts and never sees another customer's data, on your model keys, on your servers or ours. You write the part that's about your product.
+That's what we wanted for Planton, and it's what Stigmer gives you. Each of your
+customers gets an agent with its own computer that asks before it acts and never
+sees another customer's data, on your model keys, on your servers or ours. You
+write the part that's about your product.
 
-[Your first agent job](/docs/getting-started/quickstart) is the place to start. That's the whole idea.
+[Your first agent job](/docs/getting-started/quickstart) is the place to start.
+That's the whole idea.
