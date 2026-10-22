@@ -33,7 +33,7 @@ pinned somewhere. Read a row across before searching for anything.
   `TurnOutcome`, and what was deliberately left off it.
 - `harness/capabilities.ts` — the flags the runtime branches on instead of
   harness names (`HarnessCapabilities`, `PausePrimitive`, `StateIdSource`,
-  `boundaryRewritesRow`, `SubAgentProgress`), the harness matrix the contract was designed against,
+  `boundaryRewritesRow`, `SubAgentProgress`, `MidTurnInput`), the harness matrix the contract was designed against,
   and which values a real adapter stands behind.
 - `__test-utils__/harness-contract/scripted-adapter.ts` — the template: every
   rule of the contract as the smallest code that obeys it, with the reason
@@ -63,6 +63,12 @@ pinned somewhere. Read a row across before searching for anything.
   conversation reads. The runtime hands it on `TurnInput.continuation` to a
   harness whose `continuation` capability is `"digest"`; a `"checkpoint"`
   harness resumes from its engine's own saved state.
+- `harness/turn-input.ts` — `TurnSink.input`, the messages a person sends to
+  the session while the turn works: the server's pending hint, recorded from
+  every status write, and the claim that takes them as the run's, their
+  files mounted as the turn's own are. An adapter claims where its engine
+  delivers what it takes (`midTurnInput`), and a turn delivers every message
+  it took, never a next turn.
 - `harness/preview-pump.ts` — `PreviewPump`, which sends a running tool's output
   to the session between writes, on the streaming floor, through the persist
   chokepoint's single flight.
@@ -357,7 +363,11 @@ waits on its model continues (the provider's); one with nothing owed fails
 as before. A turn of many invocations is one change set, and a turn stopped
 by an arm that returns still leaves its edits to keep or undo. They drive
 the `open` and `compact` steps of `__test-utils__/harness-contract/types.ts`
-through the subject's `longTurn` controls, timed on the scripted clock. An arm
+through the subject's `longTurn` controls, timed on the scripted clock. The
+"messages sent while the turn works" arms drive its `message` step: a message
+sent while a tool runs, or as the turn answers, is read by that turn once,
+never with the task and never left for a next turn, and one a drained turn
+could not read is read once by its continuation. An arm
 that is not true on a harness today is a known gap: its registration names the
 open issue (`knownGaps`), and the arm passes while the gap's own outcome holds
 and fails the day it closes (`__test-utils__/known-gap.ts`), so the fix's pull

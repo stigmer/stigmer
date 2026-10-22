@@ -98,12 +98,14 @@ async function runRemoteTurn(
   const closeTurn = turns.openTurn({ executionId: input.executionId, threadId: input.threadId, turnKey });
   let stopListener: (() => void) | undefined;
   let yieldListener: (() => void) | undefined;
+  let inputListener: (() => void) | undefined;
   try {
     const peer = await host.connection();
     stopListener = () => peer.notify("stopTurn", { turnId, reason: describeReason(sink.stopSignal.reason) });
     sink.stopSignal.addEventListener("abort", stopListener, { once: true });
     yieldListener = () => peer.notify("yieldTurn", { turnId });
     sink.yieldSignal.addEventListener("abort", yieldListener, { once: true });
+    inputListener = sink.input.onPending(() => peer.notify("inputPending", { turnId }));
     const settlement = await peer.call("runTurn", {
       turnId,
       harness,
@@ -114,6 +116,7 @@ async function runRemoteTurn(
       fingerprintKey: executionFingerprintKey(input.executionId).toString("base64"),
       stopped: sink.stopSignal.aborted ? describeReason(sink.stopSignal.reason) : null,
       yielded: sink.yieldSignal.aborted,
+      inputPending: sink.input.pending(),
       turnKey,
       traceparent: await activeTraceparent(),
     });
@@ -136,6 +139,7 @@ async function runRemoteTurn(
   } finally {
     if (stopListener) sink.stopSignal.removeEventListener("abort", stopListener);
     if (yieldListener) sink.yieldSignal.removeEventListener("abort", yieldListener);
+    inputListener?.();
     closeTurn();
     detach();
   }
@@ -183,6 +187,11 @@ class RemoteTurn {
           return null;
         },
         readRunEvents: async () => encodeRunEvents(await input.readRunEvents()),
+        claimInput: async ({ force }) => {
+          const messages = await sink.input.claim({ force });
+          return { messages, pending: sink.input.pending() };
+        },
+        claimedInput: ({ delivered }) => sink.input.claimed(new Set(delivered)),
       },
       notices: {
         activity: ({ detail }) => sink.recordActivity(detail ?? undefined),

@@ -43,6 +43,7 @@ function stubAdapter(name: string, log: string[], behaviour: StubBehaviour = {})
       fileReview: { harnessId: "stub", excludePaths: [] },
       subAgentProgress: "streamed",
       continuation: "checkpoint",
+    midTurnInput: "next-step",
     },
     async boot() {
       log.push(`boot:${name}`);

@@ -204,6 +204,9 @@ export class RuntimeExecutionDriver {
       executionId: this.record.executionId,
       sessionId: this.sessionId,
       approvalDecisions: approvalAnswersOf(this.record.executionId, this.record.rows ?? emptyRows(), this.record.sessionEvents).decisions,
+      sendMessage: (text) => {
+        this.record.sendMessage(text);
+      },
     };
     subject.arrange(turn, view);
     bindHermeticClient(this.record.client(options.clientOverrides));
@@ -1826,6 +1829,88 @@ export async function assertContinuedTurnNeverResendsTheTask(harness: RuntimeCon
   return { driver, invocations: [first, second], final: finalStatusOf(harness, driver) };
 }
 
+// ── Messages sent while the turn works ─────────────────────────────────────
+
+/**
+ * The turn read `text` once, as a message a person sent while it worked
+ * (`harness/turn-input.ts`): the engine was handed it once and the task
+ * once, nothing of it waits in the session's queue, and the log holds it as
+ * this run's, after the message the run started with.
+ */
+function expectReadOnce(harness: RuntimeContractHarness, driver: RuntimeExecutionDriver, text: string): void {
+  const { subject } = harness;
+  const controls = longTurnOf(subject);
+  expect(controls.messagesRead(driver.sessionId, text), `${subject.name}: the engine read the message once`).toBe(1);
+  expect(controls.tasksHanded(driver.sessionId, RUNTIME_USER_MESSAGE), `${subject.name}: the engine was handed the task once, never with the message`).toBe(1);
+  expect(driver.record.queuedMessages, `${subject.name}: nothing waits for a next turn`).toEqual([]);
+  const ownMessages = driver.record.sessionEvents
+    .filter((event) => event.runId === driver.record.executionId && event.event.case === "userMessage")
+    .map((event) => (event.event.case === "userMessage" ? event.event.value.content.map((block) => block.text).join("") : ""));
+  expect(ownMessages, `${subject.name}: the log holds the message as this run's`).toEqual([text]);
+}
+
+/**
+ * A message a person sends while a tool runs is read by the same turn at
+ * its next step, never left for a next turn (stigmer#2429): the turn
+ * completes once, having read it once.
+ */
+export async function assertMessageSentMidToolIsRead(harness: RuntimeContractHarness, label = "rt-message-mid-tool"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const controls = longTurnOf(subject);
+  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
+  const id = `${label}-build`;
+  const text = "Also update the README.";
+  void controls.whenOpen(id).then(() => controls.release(id));
+  const turn = await driver.turn([scenario.say("Building."), scenario.open(id), scenario.message(text), scenario.say("Built, README too.")]);
+  expect(slimOf(subject, turn).phase, `${subject.name}: the turn completes`).toBe("RUN_COMPLETED");
+  expectReadOnce(harness, driver, text);
+  return { driver, invocations: [turn], final: finalStatusOf(harness, driver) };
+}
+
+/**
+ * A message a person sends as the turn writes its answer is read by that
+ * turn before it completes: the round's end asks once more, whatever the
+ * runtime's hint said.
+ */
+export async function assertMessageSentAsTheTurnAnswersIsRead(harness: RuntimeContractHarness, label = "rt-message-at-end"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
+  const text = "And add a changelog line.";
+  const turn = await driver.turn([scenario.say("Done."), scenario.message(text), scenario.say("Changelog line added.")]);
+  expect(slimOf(subject, turn).phase, `${subject.name}: the turn completes`).toBe("RUN_COMPLETED");
+  expectReadOnce(harness, driver, text);
+  return { driver, invocations: [turn], final: finalStatusOf(harness, driver) };
+}
+
+/**
+ * A message sent while a tool runs, in a turn the runner drains at the
+ * boundary after that tool, is read by the turn's continuation, once, and
+ * the continuation is never handed the task: what a turn owes survives the
+ * invocation that could not deliver it.
+ */
+export async function assertMessageSurvivesAContinuation(harness: RuntimeContractHarness, label = "rt-message-continued"): Promise<RuntimeArmResult> {
+  const { subject } = harness;
+  const controls = longTurnOf(subject);
+  const driver = new RuntimeExecutionDriver(harness, label, { autoApproveAll: true });
+  const id = `${label}-build`;
+  const text = "Use the staging database.";
+  let invocationControls: InvocationControls | undefined;
+  const draining = controls.whenOpen(id).then(async () => {
+    invocationControls!.signalWorkerShutdown();
+    await theYieldHasCrossed();
+    await controls.release(id);
+  });
+  const first = await driver.turn([scenario.say("Building."), scenario.open(id), scenario.message(text), scenario.say(NEVER_SEEN)], {
+    onControls: (c) => (invocationControls = c),
+  });
+  await draining;
+  expect(continuationCauseOf(first.outcome), `${subject.name}: the drained invocation throws the typed continuation, cause drain`).toBe("drain");
+  const second = await driver.turn([scenario.open(id), scenario.say("Picked up, on staging.")]);
+  expect(slimOf(subject, second).phase, `${subject.name}: the continuation completes`).toBe("RUN_COMPLETED");
+  expectReadOnce(harness, driver, text);
+  return { driver, invocations: [first, second], final: finalStatusOf(harness, driver) };
+}
+
 // ── The runnable suite ──────────────────────────────────────────────────────
 
 export interface RuntimeContractOptions {
@@ -2099,6 +2184,22 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       it("a drain after an approved call ran continues with neither the task nor the decision handed again", async () => {
         clock.reset();
         await withStopOrphans(subject.name, orphans, () => assertDrainAfterAnApprovedCallContinues(harness));
+      });
+    });
+
+    describe("messages sent while the turn works", () => {
+      const orphans = options.stopOrphans;
+      it("a message sent while a tool runs is read by the same turn, once, and nothing waits for a next turn", async () => {
+        clock.reset();
+        await withStopOrphans(subject.name, orphans, () => assertMessageSentMidToolIsRead(harness));
+      });
+      it("a message sent as the turn answers is read before it completes", async () => {
+        clock.reset();
+        await withStopOrphans(subject.name, orphans, () => assertMessageSentAsTheTurnAnswersIsRead(harness));
+      });
+      it("a message the drained turn could not read is read once by its continuation, without the task", async () => {
+        clock.reset();
+        await withStopOrphans(subject.name, orphans, () => assertMessageSurvivesAContinuation(harness));
       });
     });
   });

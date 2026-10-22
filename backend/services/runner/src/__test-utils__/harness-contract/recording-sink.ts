@@ -26,6 +26,7 @@ import { TurnRowsSchema, type TurnRows } from "../../gen/turn/ai/stigmer/runner/
 
 import { TranscriptBuilder } from "../../harness/transcript/builder.js";
 import type { TurnSink, UsageDelta } from "../../harness/types.js";
+import { NO_TURN_INPUT, type TurnInputChannel } from "../../harness/turn-input.js";
 import type { CasTouchedReader } from "../../shared/filereview/cas-touched.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";
 import { emptyStatus } from "../proto-helpers.js";
@@ -48,6 +49,8 @@ export interface RecordingTurnSinkOptions {
   readonly executionId?: string;
   /** When set, `bindHarnessState` rejects with this error (a failed session write). */
   readonly bindRejectsWith?: Error;
+  /** The turn's input channel (`message-queue.ts`); one that never has input when omitted. */
+  readonly input?: TurnInputChannel;
 }
 
 export class RecordingTurnSink implements TurnSink {
@@ -58,6 +61,7 @@ export class RecordingTurnSink implements TurnSink {
   readonly stopSignal: AbortSignal;
   readonly yieldSignal: AbortSignal;
   readonly setupTiming = new TimingRecorder();
+  readonly input: TurnInputChannel;
 
   private readonly controller = new AbortController();
   private readonly yieldController = new AbortController();
@@ -71,6 +75,7 @@ export class RecordingTurnSink implements TurnSink {
     this.stopSignal = this.controller.signal;
     this.yieldSignal = this.yieldController.signal;
     this.bindRejectsWith = options.bindRejectsWith;
+    this.input = options.input ?? NO_TURN_INPUT;
   }
 
   /** The rows as the turn began (the runtime's seed), once the driver marks them; empty until then. */

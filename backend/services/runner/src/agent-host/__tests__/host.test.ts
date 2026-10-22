@@ -62,6 +62,7 @@ function served(runTurn: HarnessAdapter["runTurn"], yielded = false) {
       fingerprintKey: Buffer.alloc(32).toString("base64"),
       stopped: null,
       yielded,
+      inputPending: false,
       turnKey: "turn-key-test",
       traceparent: null,
     });

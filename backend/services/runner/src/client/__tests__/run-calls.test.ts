@@ -14,6 +14,7 @@ const runUpdateStatus = vi.fn();
 const fileMount = vi.fn();
 const createOutputUploads = vi.fn();
 const registerOutputs = vi.fn();
+const claimInput = vi.fn();
 
 vi.mock("@connectrpc/connect-node", () => ({
   createGrpcTransport: () => ({}),
@@ -29,6 +30,8 @@ vi.mock("@connectrpc/connect", async (importOriginal) => {
           return { updateStatus: runUpdateStatus };
         case "ai.stigmer.agentic.file.v1.RunFileController":
           return { mount: fileMount, createOutputUploads, registerOutputs };
+        case "ai.stigmer.agentic.session.v1.SessionCommandController":
+          return { claimInput };
         default:
           return {};
       }
@@ -51,6 +54,7 @@ beforeEach(() => {
   fileMount.mockReset();
   createOutputUploads.mockReset();
   registerOutputs.mockReset();
+  claimInput.mockReset();
 });
 
 describe("StigmerClient.updateStatus", () => {
@@ -91,6 +95,26 @@ describe("StigmerClient.mountRunFiles", () => {
     fileMount.mockResolvedValue({ entries: [] });
     await newClient().mountRunFiles("aex_1");
     expect(fileMount.mock.calls[0]![1]).toBeUndefined();
+  });
+});
+
+describe("StigmerClient.claimSessionInput", () => {
+  it("names the run, authenticates with the scoped token and answers the messages taken", async () => {
+    const events = [{ runId: "aex_1" }];
+    claimInput.mockResolvedValue({ events });
+
+    const answered = await newClient().claimSessionInput("aex_1", "scoped-tok");
+
+    const [input, options] = claimInput.mock.calls[0]! as [{ runId: string }, { headers: Record<string, string> }];
+    expect(input.runId).toBe("aex_1");
+    expect(options.headers.authorization).toBe("Bearer scoped-tok");
+    expect(answered).toBe(events);
+  });
+
+  it("leaves the credential to the interceptor when no scoped token is handed", async () => {
+    claimInput.mockResolvedValue({ events: [] });
+    await newClient().claimSessionInput("aex_1");
+    expect(claimInput.mock.calls[0]![1]).toBeUndefined();
   });
 });
 
