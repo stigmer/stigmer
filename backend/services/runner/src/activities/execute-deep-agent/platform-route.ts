@@ -101,6 +101,7 @@ import { OUTPUTS_SUBDIR } from "../../shared/outputs.js";
 import { STIGMER_LOCAL_STATE_DIR, stigmerSymlinkPointsAt } from "../../shared/workspace/stigmer-link.js";
 import { offloadDirBeside } from "../../shared/workspace/platform-dir.js";
 import { agentFs } from "../../shared/agent-fs.js";
+import { editLoosely } from "./loose-edit.js";
 
 /** The route prefix, with the trailing slash `CompositeBackend` needs to match `/.stigmer/x` but never `/.stigmerx`. */
 export const PLATFORM_ROUTE_PREFIX = `/${STIGMER_LOCAL_STATE_DIR}/`;
@@ -186,12 +187,24 @@ export class PlatformContentBackend extends FilesystemBackend {
 
 /**
  * The outputs folder, virtual-rooted like every native backend: the agent
- * writes, edits and deletes inside it as in the workspace, and the folder
- * itself is never deleted (the module header).
+ * writes, edits and deletes inside it as in the workspace, an edit quoted
+ * loosely landing as it does there (`loose-edit.ts`), and the folder itself is
+ * never deleted (the module header).
  */
 export class OutputsBackend extends FilesystemBackend {
   constructor(outputsDir: string) {
     super({ rootDir: outputsDir, virtualMode: true });
+  }
+
+  override async edit(
+    filePath: string,
+    oldString: string,
+    newString: string,
+    replaceAll?: boolean,
+  ): Promise<EditResult> {
+    return editLoosely(this, filePath, oldString, newString, replaceAll, (exactOld, exactNew) =>
+      super.edit(filePath, exactOld, exactNew, replaceAll),
+    );
   }
 
   override async delete(filePath: string): Promise<DeleteResult> {

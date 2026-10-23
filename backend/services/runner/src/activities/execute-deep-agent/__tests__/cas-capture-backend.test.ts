@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtemp, mkdir, rm, writeFile, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createDeepAgent, isSandboxBackend } from "deepagents";
+import { FilesystemBackend, LocalShellBackend, createDeepAgent, isSandboxBackend } from "deepagents";
 import {
   CasCaptureFilesystemBackend,
   CasCaptureShellBackend,
@@ -322,5 +322,126 @@ describe("createDeepAgent plan-mode backend guard", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
+  });
+});
+
+/**
+ * An edit the model quoted loosely lands through both capture backends as an
+ * ordinary edit: before-bytes recorded once, first, and every other edit
+ * byte-identical to deepagents' own (the matcher's table is
+ * `shared/__tests__/edit-match.test.ts`).
+ */
+describe.each(["filesystem", "shell"] as const)("loose edits on the %s capture backend", (kind) => {
+  let root: string;
+
+  const isIgnored = async (relPath: string): Promise<boolean> => relPath.startsWith("ignored/");
+
+  async function makeBackend(): Promise<{ backend: CasCaptureFilesystemBackend | CasCaptureShellBackend; observer: CasCaptureObserver }> {
+    const observer = new CasCaptureObserver({ rootDir: root, isIgnored });
+    const backend = await createCasCaptureBackend({
+      rootDir: root,
+      observer,
+      ...(kind === "shell" ? { shellEnv: { PATH: process.env.PATH ?? "/usr/bin:/bin" } } : {}),
+    });
+    return { backend, observer };
+  }
+
+  /** deepagents' own backend of the same kind, the today the capture backend must equal. */
+  function stockBackend(): FilesystemBackend {
+    return kind === "shell"
+      ? new LocalShellBackend({ rootDir: root, virtualMode: true, env: {} })
+      : new FilesystemBackend({ rootDir: root, virtualMode: true });
+  }
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), "cas-loose-edit-"));
+    await mkdir(join(root, "ignored"), { recursive: true });
+  });
+
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("lands a straight-quoted edit on a curly-quoted CRLF file, recording the before-bytes once and first", async () => {
+    const before = "// it’s “fine”\r\nconst limit = 1;\r\n";
+    await writeFile(join(root, "ignored/cfg.ts"), before);
+    const { backend, observer } = await makeBackend();
+    const order: string[] = [];
+    const record = vi.spyOn(observer, "recordBefore").mockImplementation(async function (this: CasCaptureObserver, path: string) {
+      order.push(`record ${path}`);
+      return CasCaptureObserver.prototype.recordBefore.call(this, path);
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => order.push("repaired"));
+
+    const result = await backend.edit("ignored/cfg.ts", '// it\'s "fine"\nconst limit = 1;', '// it\'s "fine"\nconst limit = 2;');
+
+    expect(result.error).toBeUndefined();
+    expect(result.occurrences).toBe(1);
+    expect(await readFile(join(root, "ignored/cfg.ts"), "utf8")).toBe("// it’s “fine”\r\nconst limit = 2;\r\n");
+    expect(record).toHaveBeenCalledTimes(1);
+    expect(Buffer.from(observer.before.get("ignored/cfg.ts")!).toString("utf8")).toBe(before);
+    expect(order).toEqual(["record ignored/cfg.ts", "repaired"]);
+    expect(warn).toHaveBeenCalledWith("[EDIT-REPAIRED] tier=typography");
+  });
+
+  it("answers every edit no tier repairs exactly as deepagents' own backend does", async () => {
+    const cases: Array<[string, string, string, boolean?]> = [
+      ["exact", "const a = 1;", "const a = 2;"],
+      ["not found", "const b = 1;", "const b = 2;"],
+      ["exact twice", "x();", "y();"],
+      ["exact twice, replace_all", "x();", "y();", true],
+    ];
+    const content = "const a = 1;\nx();\nx();\n";
+    for (const [label, oldString, newString, replaceAll] of cases) {
+      await writeFile(join(root, "ignored/ours.ts"), content);
+      await writeFile(join(root, "ignored/theirs.ts"), content);
+      const { backend } = await makeBackend();
+      const stock = stockBackend();
+
+      const ours = await backend.edit("ignored/ours.ts", oldString, newString, replaceAll);
+      const theirs = await stock.edit("ignored/theirs.ts", oldString, newString, replaceAll);
+
+      expect({ ...ours, path: undefined }, label).toEqual({ ...theirs, path: undefined });
+      expect(await readFile(join(root, "ignored/ours.ts"), "utf8"), label).toBe(await readFile(join(root, "ignored/theirs.ts"), "utf8"));
+    }
+  });
+
+  it("refuses an ambiguous loose match in deepagents' words and leaves the file alone", async () => {
+    const content = "say(“hi”);\nsay(“hi”);\n";
+    await writeFile(join(root, "ignored/a.ts"), content);
+    const { backend } = await makeBackend();
+
+    const result = await backend.edit("ignored/a.ts", 'say("hi");', 'say("bye");');
+
+    expect(result.error).toMatch(/^Error: String 'say\("hi"\);' has multiple occurrences \(appears 2 times\) in file\./);
+    expect(await readFile(join(root, "ignored/a.ts"), "utf8")).toBe(content);
+  });
+
+  it("fails as today when the file changed between the repair's read and the edit", async () => {
+    await writeFile(join(root, "ignored/a.ts"), "status: draft\n");
+    const { backend } = await makeBackend();
+    // The read the repair makes sees a curly-quoted file that the edit then no longer finds.
+    vi.spyOn(backend, "readRaw").mockResolvedValue({
+      data: { content: "say(“hi”);\n", mimeType: "text/plain", created_at: "", modified_at: "" },
+    });
+    const warn = vi.spyOn(console, "warn");
+
+    const result = await backend.edit("ignored/a.ts", 'say("hi");', 'say("bye");');
+
+    expect(result.error).toBe("Error: String not found in file: 'say(\"hi\");'");
+    expect(await readFile(join(root, "ignored/a.ts"), "utf8")).toBe("status: draft\n");
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("takes today's path for a missing file and for a binary one", async () => {
+    const { backend } = await makeBackend();
+    const stock = stockBackend();
+    expect(await backend.edit("ignored/missing.ts", "a", "b")).toEqual(await stock.edit("ignored/missing.ts", "a", "b"));
+
+    await writeFile(join(root, "ignored/logo.png"), "it’s");
+    const result = await backend.edit("ignored/logo.png", "it's", "it is");
+    expect(result.error).toBe("Error: String not found in file: 'it's'");
+    expect(await readFile(join(root, "ignored/logo.png"), "utf8")).toBe("it’s");
   });
 });
