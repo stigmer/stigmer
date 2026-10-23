@@ -15,7 +15,8 @@
 //    write that used to make a real directory there, #1123), and the root
 //    listing without it;
 //  - the outputs folder, `.stigmer/outputs/`, the one writable corner: the
-//    file tools write, edit, read and delete inside it, while every other
+//    file tools write, edit (a loosely quoted edit too), read and delete
+//    inside it, while every other
 //    path under `.stigmer/` stays read-only, a `..` out of it reaches
 //    nothing, a link inside it is not written through, and a delete of `/`,
 //    `/.stigmer` or the folder itself removes nothing.
@@ -179,6 +180,15 @@ describe("platform route", () => {
       expect((await backend.read(`${OUTPUTS_ROUTE_PREFIX}reports/q3.md`)).content).toContain("Q3 variance");
       expect((await backend.delete!(`${OUTPUTS_ROUTE_PREFIX}reports/q3.md`)).error).toBeUndefined();
       await expect(access(join(outputsDir(), "reports/q3.md"))).rejects.toThrow();
+    });
+
+    it("lands an edit quoted loosely, while platform content still refuses every edit", async () => {
+      await writeFile(join(outputsDir(), "notes.md"), "# It\u2019s \u201Cdone\u201D\r\nstatus: draft\r\n");
+      const backend = v2(await productionBackend(mode));
+      const result = await backend.edit(`${OUTPUTS_ROUTE_PREFIX}notes.md`, '# It\'s "done"\nstatus: draft', '# It\'s "done"\nstatus: final');
+      expect(result.error).toBeUndefined();
+      expect(await readFile(join(outputsDir(), "notes.md"), "utf8")).toBe("# It\u2019s \u201Cdone\u201D\r\nstatus: final\r\n");
+      expect((await backend.edit(`/${SKILL}`, "My  Skill", "Your Skill")).error).toMatch(/read-only/);
     });
 
     it("keeps every other path under .stigmer/ read-only", async () => {
