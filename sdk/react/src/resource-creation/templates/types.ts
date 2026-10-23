@@ -7,8 +7,6 @@
  * template arrays.
  */
 export type TemplateCategory =
-  | "customer-support"
-  | "code-review"
   | "data-analysis"
   | "devops"
   | "content"
@@ -22,8 +20,6 @@ export type TemplateCategory =
  * Exported so platform builders can reuse or extend them.
  */
 export const TEMPLATE_CATEGORY_LABELS: Record<TemplateCategory, string> = {
-  "customer-support": "Customer Support",
-  "code-review": "Code Review",
   "data-analysis": "Data Analysis",
   devops: "DevOps",
   content: "Content",

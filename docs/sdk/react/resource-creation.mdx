@@ -327,13 +327,16 @@ framework dependencies — works in any React host.
 
 Built-in agent templates shipped with the SDK.
 
-Each template pre-fills the agent creation wizard with a curated
-set of instructions, name, and description. Users can customize
-every field after selection — templates are starting points, not
-constraints.
+Each template is a job done inside a customer's product: a variance
+report from a ledger the customer uploads, and a change to the
+customer's cloud setup that the agent applies only after a yes. A
+template pre-fills only the name, description and instructions, since
+a plugin, Skill or MCP server it named would be missing for most users;
+every field can be changed after selection.
 
-Platform builders can pass their own template arrays to the
-gallery; these built-in templates are a convenience default.
+Platform builders pass their own template arrays to `CreationPicker`
+or `TemplateGallery` for the jobs of their own product; these two are
+the default.
 
 
 ### CreationPath
