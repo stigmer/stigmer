@@ -355,8 +355,7 @@ export function createToolTruncationMiddleware(
     async wrapToolCall(request, handler) {
       const result = await handler(request);
       if (ToolMessage.isInstance(result)) return shorten(result, request);
-      if (isCommand(result)) return shortenCommand(result, request);
-      return result;
+      return isCommand(result) ? shortenCommand(result, request) : result;
     },
 
     afterAgent() {
