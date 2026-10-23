@@ -65,6 +65,8 @@ import { executionFingerprintKey } from "../../shared/fingerprint-secret.js";
 import { getModelPricing, ensureLoaded as ensurePricingLoaded, type ModelPricing } from "../../shared/model-pricing.js";
 import { getDefaultModel, getNativeRequestProfile } from "../../shared/model-registry.js";
 import { buildChatModel } from "../../shared/model-client.js";
+import { recordModelWindow, windowLogLines } from "../../shared/model-window.js";
+import { createCompactionMiddleware } from "../../middleware/compaction.js";
 import { graphThinks, toAnthropicThinking } from "../../shared/thinking-mode.js";
 import { buildMcpApprovalDefault, isUnattendedApprovalMode, type McpApprovalDefault } from "../../shared/approval-policy.js";
 import type { McpToolListing } from "../../shared/mcp-tool-listing.js";
@@ -89,7 +91,7 @@ import { CasCaptureObserver } from "./cas-capture-observer.js";
 import { CasCaptureShellBackend, createCasCaptureBackend } from "./cas-capture-backend.js";
 import { createShellTool } from "./shell-tool.js";
 import { loadStreamingConfig } from "../../shared/streaming-scheduler.js";
-import { confinedReadAdmission, mountPlatformRoute } from "./platform-route.js";
+import { admitsRoutedRead, mountPlatformRoute } from "./platform-route.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { RUN_STAMP_KEY, createRunStampMiddleware, stampedRunOf } from "./run-stamp.js";
 import { createTurnInputMiddleware } from "./turn-input-middleware.js";
@@ -481,9 +483,14 @@ export async function buildEngine(
   //   (thinking-mode.ts toAnthropicThinking).
   // A model with no native row (an unreachable registry) keeps the library
   // defaults and sends no thinking parameter, as before.
+  //
+  // Each model's context window is recorded on it for the summarizer
+  // (`shared/model-window.ts`: the library on the first-party id, then the
+  // row's `contextWindowTokens`), and said once per model in the turn's log.
+  const windowLines = new Set<string>();
   const buildModelFor = async (name: string) => {
     const profile = await getNativeRequestProfile(name);
-    return (await buildChatModel({
+    const built = await buildChatModel({
       modelName: name,
       proxyEndpoint: config.proxyEndpoint ?? undefined,
       stigmerToken: config.stigmerTokenRef.current ?? undefined,
@@ -493,7 +500,15 @@ export async function buildEngine(
       maxTokens: profile?.maxOutputTokens,
       streaming: true,
       thinking: toAnthropicThinking(input.model.thinkingMode, profile?.thinking),
-    })).model;
+    });
+    const windowFacts = { provider: built.provider, apiModelId: built.apiModelId, catalogTokens: profile?.contextWindowTokens };
+    recordModelWindow(built.model, windowFacts);
+    for (const line of windowLogLines(name, { model: built.model, ...windowFacts })) {
+      if (windowLines.has(line)) continue;
+      windowLines.add(line);
+      console.log(line);
+    }
+    return built.model;
   };
   const model = await buildModelFor(modelName);
   // Whether this graph reasons natively, derived from the same mapping the
@@ -521,7 +536,7 @@ export async function buildEngine(
   const scopeBase: SubagentScopeBase = {
     serverToolMap: tools.serverToolMap,
     platformServerSlugs: input.mcp.platformServerSlugs,
-    admitsConfinedRead: confinedReadAdmission(primaryDir),
+    admitsRoutedRead,
     readsSkillContent: skillContentReadCheck(workspace.backend.platformDir),
   };
 
@@ -700,7 +715,10 @@ export async function buildEngine(
     // framework's own middleware with Stigmer's texts; parent only
     // (`todo-list.ts` says why for both). The person's messages sent while
     // the turn works are the parent's alone too (`turn-input-middleware.ts`).
+    // The summarizer replaces deepagents' own by name, here and in the
+    // general-purpose sub-agent it builds (`middleware/compaction.ts`).
     middleware: [
+      createCompactionMiddleware({ backend: fileBackend }),
       createTodoListMiddleware(),
       createRunStampMiddleware(),
       createTurnInputMiddleware({

@@ -13,10 +13,12 @@
  *  - the refusal binds with no approval gate installed (auto-approve-all), and
  *    with the gate installed a refused call raises no interrupt;
  *  - with `Read` excluded, `read_file` stays bound but reads only the
- *    platform's `.stigmer/` content and deepagents' real offload directories,
- *    whatever path dialect the model writes, and no symlink stretches that
- *    over the workspace (`platform-route.ts` `confinedReadAdmission`, pinned
- *    on a real temp workspace);
+ *    platform's `.stigmer/` content and deepagents' offloads, each a route to
+ *    a backend outside the workspace, whatever path dialect the model writes;
+ *    a link in an offload directory reaches nothing outside it, and a
+ *    repository's own directory of an offload root's name is behind the route
+ *    (`platform-route.ts` `admitsRoutedRead`, on the backend the runner
+ *    mounts);
  *  - a sub-agent's graph enforces its own narrowed scope;
  *  - with `Skill` denied, `read_file` of a skill's files is refused whether
  *    `Read` is in scope or confined, and the admission is never asked; a
@@ -46,7 +48,8 @@ import { ToolScope, outOfScopeMessage, type ToolLists } from "../../../shared/to
 import { createCasCaptureBackend } from "../cas-capture-backend.js";
 import { CasCaptureObserver } from "../cas-capture-observer.js";
 import { compileSubagents } from "../subagent-transformer.js";
-import { confinedReadAdmission } from "../platform-route.js";
+import { admitsRoutedRead, mountPlatformRoute } from "../platform-route.js";
+import { offloadDirBeside } from "../../../shared/workspace/platform-dir.js";
 import { skillContentReadCheck } from "../../../shared/skill-mount.js";
 import { ScriptedModel, readPendingInterrupts, type ScriptSelector, type ScriptedToolCall } from "../__test-utils__/scripted-model.js";
 
@@ -72,15 +75,21 @@ interface GraphRun {
 
 describe("tool scope on a real deepagents graph", () => {
   let root: string;
+  let session: string;
+  let platformDir: string;
   let runs: string[];
 
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), "tool-scope-"));
+    session = await mkdtemp(join(tmpdir(), "tool-scope-session-"));
+    platformDir = join(session, "platform");
+    await mkdir(platformDir);
     runs = [];
   });
 
   afterEach(async () => {
     await rm(root, { recursive: true, force: true });
+    await rm(session, { recursive: true, force: true });
   });
 
   /** One parent graph over the runner's stack: a `github` server (two tools) and a platform server (one). */
@@ -99,7 +108,7 @@ describe("tool scope on a real deepagents graph", () => {
         ["stigmer-channels", platform],
       ]),
       platformServerSlugs: new Set(["stigmer-channels"]),
-      admitsConfinedRead: confinedReadAdmission(root),
+      admitsRoutedRead,
       readsSkillContent: skillContentReadCheck(undefined),
     };
     const gate: ApprovalGateConfig | null = options.gate
@@ -123,7 +132,9 @@ describe("tool scope on a real deepagents graph", () => {
       return { toolCalls: options.calls, done: "done" };
     };
     const observer = new CasCaptureObserver({ rootDir: root, isIgnored: async () => true });
-    const backend = await createCasCaptureBackend({ rootDir: root, observer, shellEnv: {} });
+    // The graph's backend as the runner mounts it: the workspace, with the
+    // `.stigmer/` route and deepagents' offload roots routed out of it.
+    const backend = await mountPlatformRoute(await createCasCaptureBackend({ rootDir: root, observer, shellEnv: {} }), { workspaceDir: root, platformDir });
     const graph = await createDeepAgent({
       model: new ScriptedModel(script),
       checkpointer: new MemorySaver() as never,
@@ -210,12 +221,16 @@ describe("tool scope on a real deepagents graph", () => {
   });
 
   it("with Read excluded, read_file reads the platform's .stigmer/ content and its offloads, nothing of the workspace", async () => {
-    await mkdir(join(root, ".stigmer", "skills"), { recursive: true });
-    await writeFile(join(root, ".stigmer", "skills", "SKILL.md"), "skill body");
+    await mkdir(join(platformDir, "skills"));
+    await writeFile(join(platformDir, "skills", "SKILL.md"), "skill body");
+    await symlink(platformDir, join(root, ".stigmer"));
     await writeFile(join(root, "notes.txt"), "workspace secret");
+    const offloaded = join(offloadDirBeside(platformDir), "large_tool_results");
+    await mkdir(offloaded, { recursive: true });
+    await writeFile(join(offloaded, "call_1.txt"), "offloaded body");
+    await symlink(join(root, "notes.txt"), join(offloaded, "leak.txt"));
     await mkdir(join(root, "large_tool_results"));
-    await writeFile(join(root, "large_tool_results", "call_1.txt"), "offloaded body");
-    await symlink(join(root, "notes.txt"), join(root, "large_tool_results", "leak.txt"));
+    await writeFile(join(root, "large_tool_results", "own.txt"), "the repository's own");
     const lists = { tools: ["Grep"], disallowedTools: [] };
     const run = await runParent({
       lists,
@@ -227,16 +242,19 @@ describe("tool scope on a real deepagents graph", () => {
         { name: "read_file", args: { file_path: `${root}/notes.txt` }, id: "call_real" },
         { name: "read_file", args: { file_path: "/large_tool_results/call_1.txt" }, id: "call_offload" },
         { name: "read_file", args: { file_path: "/large_tool_results/leak.txt" }, id: "call_leak" },
+        { name: "read_file", args: { file_path: "/large_tool_results/own.txt" }, id: "call_own" },
       ],
     });
 
     const scope = ToolScope.of('Agent "a"', lists);
     expect(JSON.stringify(toolMessage(run, "call_skill").content)).toContain("skill body");
     expect(JSON.stringify(toolMessage(run, "call_relative").content), "a relative path normalizes first").toContain("skill body");
-    expect(JSON.stringify(toolMessage(run, "call_offload").content), "a real offloaded file reads").toContain("offloaded body");
-    for (const id of ["call_ws", "call_escape", "call_real", "call_leak"]) {
+    expect(JSON.stringify(toolMessage(run, "call_offload").content), "an offloaded file reads, from the session's offload directory").toContain("offloaded body");
+    for (const id of ["call_ws", "call_escape", "call_real"]) {
       expect(toolMessage(run, id).content, id).toBe(outOfScopeMessage("read_file", scope));
     }
+    expect(JSON.stringify(toolMessage(run, "call_leak").content), "a link in the offload directory reaches nothing outside it").not.toContain("workspace secret");
+    expect(JSON.stringify(toolMessage(run, "call_own").content), "the repository's own directory is behind the route").not.toContain("the repository's own");
   });
 
   it("a sub-agent's graph enforces its own narrowed scope, never the parent's wider one", async () => {
@@ -264,7 +282,7 @@ describe("tool scope on a real deepagents graph", () => {
         scopeBase: {
           serverToolMap: new Map(),
           platformServerSlugs: new Set(),
-          admitsConfinedRead: confinedReadAdmission(root),
+          admitsRoutedRead,
           readsSkillContent: skillContentReadCheck(undefined),
         },
         modelFactory: async () => new ScriptedModel(roles),
@@ -300,7 +318,7 @@ describe("tool scope attribution, on the middleware itself", () => {
       ["b", [serverB]],
     ]),
     platformServerSlugs: new Set(),
-    admitsConfinedRead: async () => true,
+    admitsRoutedRead: async () => true,
     readsSkillContent: skillContentReadCheck(undefined),
   });
 
@@ -354,7 +372,7 @@ describe("tool scope attribution, on the middleware itself", () => {
     const asked: string[] = [];
     const cfg: ToolScopeConfig = {
       ...config({ tools: ["Grep"], disallowedTools: [] }),
-      admitsConfinedRead: async (path) => {
+      admitsRoutedRead: async (path) => {
         asked.push(path);
         return path === "/large_tool_results/a.txt";
       },
@@ -369,7 +387,7 @@ describe("tool scope attribution, on the middleware itself", () => {
     const asked: string[] = [];
     const confined: ToolScopeConfig = {
       ...config({ tools: ["Grep"], disallowedTools: ["Skill"] }),
-      admitsConfinedRead: async (path) => {
+      admitsRoutedRead: async (path) => {
         asked.push(path);
         return true;
       },
@@ -461,59 +479,21 @@ describe("tool scope attribution, on the middleware itself", () => {
   });
 });
 
-describe("confinedReadAdmission, on a real temp workspace", () => {
-  let ws: string;
-  let admits: (virtualPath: string) => Promise<boolean>;
-
-  beforeEach(async () => {
-    ws = await mkdtemp(join(tmpdir(), "confined-read-"));
-    await writeFile(join(ws, "secret.ts"), "workspace");
-    admits = confinedReadAdmission(ws);
+describe("admitsRoutedRead", () => {
+  it("admits the .stigmer/ route and deepagents' two offload roots by prefix: each is its own backend outside the workspace", async () => {
+    expect(await admitsRoutedRead("/.stigmer/skills/a/SKILL.md")).toBe(true);
+    expect(await admitsRoutedRead("/../.stigmer/a"), "normalized: a root-level `..` stays at the root").toBe(true);
+    expect(await admitsRoutedRead("/large_tool_results/call_1.txt")).toBe(true);
+    expect(await admitsRoutedRead("/conversation_history/session_0a1b.md")).toBe(true);
   });
 
-  afterEach(async () => {
-    await rm(ws, { recursive: true, force: true });
-  });
-
-  it("admits the .stigmer/ route by prefix: it is its own backend", async () => {
-    expect(await admits("/.stigmer/skills/a/SKILL.md")).toBe(true);
-    expect(await admits("/../.stigmer/a"), "normalized: a root-level `..` stays at the root").toBe(true);
-  });
-
-  it("admits a real file in a real offload directory, the repository's own included", async () => {
-    await mkdir(join(ws, "large_tool_results"));
-    await writeFile(join(ws, "large_tool_results", "call_1.txt"), "offloaded");
-    await mkdir(join(ws, "conversation_history"));
-    await writeFile(join(ws, "conversation_history", "0a1b"), "history");
-    expect(await admits("/large_tool_results/call_1.txt")).toBe(true);
-    expect(await admits("/conversation_history/0a1b")).toBe(true);
-  });
-
-  it("refuses an offload directory that is a symlink, wherever it points", async () => {
-    await symlink(ws, join(ws, "large_tool_results"));
-    expect(await admits("/large_tool_results/secret.ts")).toBe(false);
-  });
-
-  it("refuses a symlink inside the offload directory that points out of it", async () => {
-    await mkdir(join(ws, "large_tool_results"));
-    await symlink(join(ws, "secret.ts"), join(ws, "large_tool_results", "leak.txt"));
-    expect(await admits("/large_tool_results/leak.txt")).toBe(false);
-  });
-
-  it("refuses a `..` traversal out of an offload root or the route", async () => {
-    await mkdir(join(ws, "large_tool_results"));
-    expect(await admits("/large_tool_results/../secret.ts")).toBe(false);
-    expect(await admits("/.stigmer/../secret.ts")).toBe(false);
-  });
-
-  it("refuses the workspace, a sibling prefix, a nested same-named directory, a relative path, an offload root that is a file, and a missing file", async () => {
-    await writeFile(join(ws, "conversation_history"), "a file, not a directory");
-    await mkdir(join(ws, "large_tool_results"));
-    expect(await admits("/secret.ts")).toBe(false);
-    expect(await admits("/.stigmerx/a")).toBe(false);
-    expect(await admits("/docs/large_tool_results/x.md")).toBe(false);
-    expect(await admits(".stigmer/a")).toBe(false);
-    expect(await admits("/conversation_history/x")).toBe(false);
-    expect(await admits("/large_tool_results/missing.txt")).toBe(false);
+  it("refuses a `..` traversal out of a route, the workspace, a sibling prefix, a nested same-named directory and a relative path", async () => {
+    expect(await admitsRoutedRead("/large_tool_results/../secret.ts")).toBe(false);
+    expect(await admitsRoutedRead("/.stigmer/../secret.ts")).toBe(false);
+    expect(await admitsRoutedRead("/secret.ts")).toBe(false);
+    expect(await admitsRoutedRead("/.stigmerx/a")).toBe(false);
+    expect(await admitsRoutedRead("/large_tool_resultsx/a")).toBe(false);
+    expect(await admitsRoutedRead("/docs/large_tool_results/x.md")).toBe(false);
+    expect(await admitsRoutedRead(".stigmer/a")).toBe(false);
   });
 });

@@ -91,6 +91,7 @@ import { resolveApprovalProvenance, type PolicySource } from "../../shared/appro
 import type { DeepAgentGateState } from "./turn-setup.js";
 import { TOOL_REFUSED_EVENT } from "../../middleware/tool-scope.js";
 import { TOOL_POLICY_EVENT } from "../../middleware/approval-gate.js";
+import { CONTEXT_COMPACTED_EVENT } from "../../middleware/compaction.js";
 
 const loggedUnknowns = new Set<string>();
 
@@ -256,7 +257,7 @@ export function normalize(event: V3ProtocolEvent): TranscriptEvent[] {
 // ── Custom Channel ────────────────────────────────────────────────
 
 /**
- * The two custom-stream events this harness reads.
+ * The three custom-stream events this harness reads.
  *
  *  - A refusal (`TOOL_REFUSED_EVENT`): the tool-scope middleware's of a call
  *    the agent's tool lists exclude (`middleware/tool-scope.ts`), or the
@@ -270,12 +271,17 @@ export function normalize(event: V3ProtocolEvent): TranscriptEvent[] {
  *    start, so the session's log reads the skip as the policy's deny.
  *  - A hook's decision on a call that runs (`TOOL_POLICY_EVENT`), as a
  *    `tool_policy` event for the builder to stamp.
+ *  - A summary the compaction middleware's summarizer wrote
+ *    (`CONTEXT_COMPACTED_EVENT`, `middleware/compaction.ts`), as a
+ *    `context_compacted` marker in the scope; its usage is the loop's
+ *    ({@link usageOf}).
  *
  * Any other custom event is not this harness's and is ignored.
  */
 function normalizeCustom(event: V3ProtocolEvent): TranscriptEvent[] {
   const data = event.params.data as Record<string, unknown> | undefined;
   if (!data) return [];
+  if (data.name === CONTEXT_COMPACTED_EVENT) return [{ kind: "context_compacted" as const }];
   const callId = typeof data.tool_call_id === "string" ? data.tool_call_id : "";
   if (!callId) return [];
   const policyHook = typeof data.policy_hook === "string" ? data.policy_hook : "";
@@ -322,7 +328,9 @@ export interface V3UsagePayload {
 /**
  * The usage one raw event carries, or `undefined`. Read from `message-finish`
  * ONLY — v3 also emits a standalone `usage` event for the same turn, and
- * reading both would double-count. Every namespace's finish counts: a
+ * reading both would double-count — and from a compaction's custom event,
+ * which carries the usage of a summary call the stream does not show
+ * (`middleware/compaction.ts`). Every namespace's finish counts: a
  * sub-agent's spend is the execution's spend (since #1096), and the cost
  * cap the runtime enforces reads the whole execution.
  *
@@ -332,8 +340,11 @@ export interface V3UsagePayload {
  * its usage from the SDK's `turn-ended` delta — the same division.
  */
 export function usageOf(event: V3ProtocolEvent): V3UsagePayload | undefined {
-  if (event.method !== "messages") return undefined;
   const data = event.params.data as Record<string, unknown> | undefined;
+  if (event.method === "custom") {
+    return data?.name === CONTEXT_COMPACTED_EVENT ? normalizeUsagePayload(data.usage as Record<string, unknown> | undefined) : undefined;
+  }
+  if (event.method !== "messages") return undefined;
   if (!data || readEventType(data) !== "message-finish") return undefined;
   return normalizeUsagePayload(data.usage as Record<string, unknown> | undefined);
 }

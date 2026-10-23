@@ -42,6 +42,25 @@
  * beneath it. Outputs are deliberately outside file review: they come back
  * as Files, so a review would hold nothing the person does not already get.
  *
+ * WHERE DEEPAGENTS' OFFLOADS GO
+ * -----------------------------
+ * deepagents writes two kinds of file through the agent's backend from its
+ * own middleware: tool results too large to keep in context
+ * ({@link DEEPAGENTS_OFFLOAD_ROOT}) and, at every compaction, the summarized
+ * conversation ({@link DEEPAGENTS_HISTORY_ROOT}), each time telling the model
+ * it can `read_file` them back. They are the runner's scratch, not the
+ * person's work, so each root is a route of its own to the session's offload
+ * directory (`shared/workspace/platform-dir.ts`, beside the platform dir and
+ * outside the workspace), an {@link OffloadBackend} each, where
+ * "attaching a real repo never leaves Stigmer files behind in it" holds for
+ * them too (`platform-dir.ts`); through the workspace backend they were
+ * top-level directories of the person's tree. Routed, they bypass the CAS
+ * observer and live outside the work tree, as the outputs folder does. The two roots are left out of the root listing, as
+ * an empty route is: deepagents names them to the model itself. A
+ * repository's own real directory of either name is behind the route and
+ * unreachable to the file tools, as a real `.stigmer` is; the shell still
+ * sees it.
+ *
  * WHEN IT IS MOUNTED
  * ------------------
  * On every turn: `.stigmer/` is the platform's name whether or not the turn
@@ -62,8 +81,7 @@
  * and resolve `.stigmer/…` through the link.
  */
 
-import { lstat, realpath } from "node:fs/promises";
-import { join, posix, sep } from "node:path";
+import { join, posix } from "node:path";
 import { CompositeBackend, FilesystemBackend } from "deepagents";
 import type {
   AnyBackendProtocol,
@@ -81,6 +99,8 @@ import type {
 } from "deepagents";
 import { OUTPUTS_SUBDIR } from "../../shared/outputs.js";
 import { STIGMER_LOCAL_STATE_DIR, stigmerSymlinkPointsAt } from "../../shared/workspace/stigmer-link.js";
+import { offloadDirBeside } from "../../shared/workspace/platform-dir.js";
+import { agentFs } from "../../shared/agent-fs.js";
 
 /** The route prefix, with the trailing slash `CompositeBackend` needs to match `/.stigmer/x` but never `/.stigmerx`. */
 export const PLATFORM_ROUTE_PREFIX = `/${STIGMER_LOCAL_STATE_DIR}/`;
@@ -91,7 +111,8 @@ export const OUTPUTS_ROUTE_PREFIX = `${PLATFORM_ROUTE_PREFIX}${OUTPUTS_SUBDIR}/`
 /**
  * Where deepagents (1.14) writes a tool result too large to keep in context,
  * telling the model to `read_file` it back. Not exported by deepagents; the
- * literal is its filesystem middleware's.
+ * literal is its filesystem middleware's. Routed to the session's offload
+ * directory (the header).
  */
 export const DEEPAGENTS_OFFLOAD_ROOT = "/large_tool_results/";
 
@@ -99,52 +120,26 @@ export const DEEPAGENTS_OFFLOAD_ROOT = "/large_tool_results/";
  * Where deepagents (1.14) evicts a long human message and the summarized
  * conversation, telling the model it can `read_file` them back. Not exported
  * by deepagents; the literal is its filesystem and summarization middleware's.
+ * Routed to the session's offload directory (the header).
  */
 export const DEEPAGENTS_HISTORY_ROOT = "/conversation_history/";
 
-/** The offload roots: deepagents' own outputs, written through the workspace backend. */
-const OFFLOAD_ROOTS: readonly string[] = [DEEPAGENTS_OFFLOAD_ROOT, DEEPAGENTS_HISTORY_ROOT];
+/** deepagents' two offload roots, each routed to its own directory in the session's offload directory (the header). */
+export const OFFLOAD_ROUTE_PREFIXES: readonly string[] = [DEEPAGENTS_OFFLOAD_ROOT, DEEPAGENTS_HISTORY_ROOT];
 
 /**
  * What `read_file` may still read when an agent's tool lists exclude `Read`
  * (`middleware/tool-scope.ts`): the platform's own content and what deepagents
- * offloads from the agent's own turn, never the rest of the workspace.
- *
- * The `.stigmer/` route is its own backend (above), so a path under it is
- * admitted by prefix. The two offload roots resolve through the workspace
- * backend, which follows in-root symlinks, so deepagents writes them as
- * top-level `large_tool_results/` and `conversation_history/` directories of
- * the workspace and a prefix alone would not confine anything: a repository
- * shipping `large_tool_results -> .`, or a link inside it pointing out, would
- * expose the workspace. An offload path is admitted only when the offload
- * directory is a real directory (not a symlink) and the file's real path
- * lies inside that directory's real path. A repository's own real directory
- * of either name stays readable: an offloaded file and a repository file
- * there are the same path. Routing the offloads elsewhere would close that,
- * at the cost of moving what file review sees.
- *
- * Built where the workspace root is known (`turn-setup.ts`, handed on to
- * every sub-agent); the canonical virtual path is what the tool sees after
- * path normalization.
+ * offloads from the agent's own turn, never the workspace. Each is a route
+ * of its own to a virtual-rooted backend outside the workspace (the header),
+ * which refuses a path that resolves out of its root, so a canonical path
+ * under one is admitted by its prefix. The path is what the tool sees after
+ * path normalization; a `..` is resolved before the prefix is read.
  */
-export function confinedReadAdmission(workspaceDir: string): (virtualPath: string) => Promise<boolean> {
-  return async (virtualPath) => {
-    if (!virtualPath.startsWith("/")) return false;
-    const normalized = posix.normalize(virtualPath);
-    if (normalized.startsWith(PLATFORM_ROUTE_PREFIX)) return true;
-    const root = OFFLOAD_ROOTS.find((r) => normalized.startsWith(r));
-    if (root === undefined) return false;
-    // No trailing slash: `lstat` of `dir/` follows a symlinked `dir`.
-    const rootDir = join(workspaceDir, root.slice(0, -1));
-    try {
-      const stat = await lstat(rootDir);
-      if (stat.isSymbolicLink() || !stat.isDirectory()) return false;
-      const [realRoot, realTarget] = await Promise.all([realpath(rootDir), realpath(join(workspaceDir, normalized))]);
-      return realTarget.startsWith(realRoot + sep);
-    } catch {
-      return false;
-    }
-  };
+export async function admitsRoutedRead(virtualPath: string): Promise<boolean> {
+  if (!virtualPath.startsWith("/")) return false;
+  const normalized = posix.normalize(virtualPath);
+  return [PLATFORM_ROUTE_PREFIX, ...OFFLOAD_ROUTE_PREFIXES].some((prefix) => normalized.startsWith(prefix));
 }
 
 /** The path as the agent named it: the route hands its backend the path with the prefix stripped. */
@@ -212,6 +207,32 @@ export class OutputsBackend extends FilesystemBackend {
 }
 
 /**
+ * One of deepagents' offload roots, in the session's offload directory:
+ * virtual-rooted like every native backend, writable, and never deleted
+ * whole (the outputs folder's rule), so a fan-out delete of `/` never
+ * empties it.
+ */
+export class OffloadBackend extends FilesystemBackend {
+  constructor(
+    private readonly prefix: string,
+    dir: string,
+  ) {
+    super({ rootDir: dir, virtualMode: true });
+  }
+
+  override async delete(filePath: string): Promise<DeleteResult> {
+    if (posix.normalize(filePath) === "/") {
+      return {
+        error:
+          `Error: '${agentPath("/", this.prefix)}' holds what this turn offloaded from its context and stays; ` +
+          "delete the files inside it instead",
+      };
+    }
+    return super.delete(filePath);
+  }
+}
+
+/**
  * The `.stigmer/` route on a turn that exposes no platform content: nothing
  * to read, list or find, and every mutation refused with the same message
  * the platform dir's route gives. It stands on no filesystem, so it cannot
@@ -262,8 +283,9 @@ export class NoPlatformContentBackend implements BackendProtocolV2 {
 
 /**
  * The workspace backend with `.stigmer/` routed to {@link PLATFORM_ROUTE_PREFIX}'s
- * backend for this turn, and, when the platform is exposed, `.stigmer/outputs/`
- * to {@link OutputsBackend}.
+ * backend for this turn, when the platform is exposed `.stigmer/outputs/`
+ * to {@link OutputsBackend}, and deepagents' offload roots to their
+ * {@link OffloadBackend}s.
  *
  * One behaviour differs from the stock router: listing `/`. The composite
  * adds each route to the root listing whatever the route holds. With the
@@ -271,7 +293,8 @@ export class NoPlatformContentBackend implements BackendProtocolV2 {
  * the link, so the stock listing names the same directory twice and is
  * de-duplicated by path. With nothing exposed, `.stigmer/` is left out of the
  * root listing altogether: the route has nothing to show, and a real
- * `.stigmer` the workspace may hold is unreachable behind it.
+ * `.stigmer` the workspace may hold is unreachable behind it. The offload
+ * roots are always left out of it (the header).
  */
 export class PlatformRoutedBackend extends CompositeBackend {
   private readonly exposesPlatform: boolean;
@@ -280,10 +303,12 @@ export class PlatformRoutedBackend extends CompositeBackend {
     backend: AnyBackendProtocol,
     platform: PlatformContentBackend | NoPlatformContentBackend,
     outputs?: OutputsBackend,
+    offloads: Readonly<Record<string, OffloadBackend>> = {},
   ) {
     super(backend, {
       [PLATFORM_ROUTE_PREFIX]: platform,
       ...(outputs === undefined ? {} : { [OUTPUTS_ROUTE_PREFIX]: outputs }),
+      ...offloads,
     });
     this.exposesPlatform = platform instanceof PlatformContentBackend;
   }
@@ -291,14 +316,13 @@ export class PlatformRoutedBackend extends CompositeBackend {
   override async ls(path: string): Promise<LsResult> {
     const result = await super.ls(path);
     if (path !== "/" || !result.files) return result;
-    if (!this.exposesPlatform) {
-      return { ...result, files: result.files.filter((entry) => entry.path !== PLATFORM_ROUTE_PREFIX) };
-    }
+    const hidden = new Set(OFFLOAD_ROUTE_PREFIXES);
+    if (!this.exposesPlatform) hidden.add(PLATFORM_ROUTE_PREFIX);
     const seen = new Set<string>();
     return {
       ...result,
       files: result.files.filter((entry) => {
-        if (seen.has(entry.path)) return false;
+        if (hidden.has(entry.path) || seen.has(entry.path)) return false;
         seen.add(entry.path);
         return true;
       }),
@@ -316,8 +340,9 @@ export interface PlatformRouteOptions {
 /**
  * Mount the `.stigmer/` route over `backend` for this turn: the platform dir
  * and its writable outputs folder when the workspace link points at it, the
- * empty route otherwise. Only a session without a platform dir gets
- * `backend` back unchanged. `execute`
+ * empty route otherwise; and, either way, deepagents' offload roots, each in
+ * the session's offload directory (created here). Only a session without a
+ * platform dir gets `backend` back unchanged. `execute`
  * and the sandbox identity stay the workspace backend's (`CompositeBackend`
  * delegates both to its default), so a shell-capable graph keeps its
  * `execute` tool and a plan-mode graph stays without one.
@@ -328,12 +353,25 @@ export async function mountPlatformRoute(
 ): Promise<AnyBackendProtocol> {
   const { workspaceDir, platformDir } = options;
   if (platformDir === undefined) return backend;
+  const offloads = await offloadRoutes(offloadDirBeside(platformDir));
   if (!(await stigmerSymlinkPointsAt(workspaceDir, platformDir))) {
-    return new PlatformRoutedBackend(backend, new NoPlatformContentBackend());
+    return new PlatformRoutedBackend(backend, new NoPlatformContentBackend(), undefined, offloads);
   }
   return new PlatformRoutedBackend(
     backend,
     new PlatformContentBackend(platformDir),
     new OutputsBackend(join(platformDir, OUTPUTS_SUBDIR)),
+    offloads,
   );
+}
+
+/** One {@link OffloadBackend} per offload root, each in its own directory of the session's offload directory. */
+async function offloadRoutes(offloadDir: string): Promise<Record<string, OffloadBackend>> {
+  const routes: Record<string, OffloadBackend> = {};
+  for (const prefix of OFFLOAD_ROUTE_PREFIXES) {
+    const dir = join(offloadDir, prefix.slice(1, -1));
+    await agentFs().mkdir(dir, { recursive: true });
+    routes[prefix] = new OffloadBackend(prefix, dir);
+  }
+  return routes;
 }

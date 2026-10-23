@@ -14,6 +14,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { DeepAgentTranslator, normalize, usageOf } from "../translator.js";
 import { TOOL_REFUSED_EVENT } from "../../../middleware/tool-scope.js";
 import { TOOL_POLICY_EVENT } from "../../../middleware/approval-gate.js";
+import { CONTEXT_COMPACTED_EVENT } from "../../../middleware/compaction.js";
 import {
   resetSeq,
   makeProtocolEvent,
@@ -502,6 +503,35 @@ describe("V3ProtocolNormalizer", () => {
       const [sub] = t.translate(makeToolStarted("sub-grep", "grep", {}, { namespace: CHILD_TOOL_NS }));
       expect(sub).toMatchObject({ subAgentId: "task-1", mcpServerSlug: "" });
       expect(sub).not.toHaveProperty("provenance");
+    });
+  });
+
+  // ── A compaction (middleware/compaction.ts) ──
+
+  describe("a compaction, from the compaction middleware's custom event", () => {
+    const usage = { input_tokens: 500, output_tokens: 20, total_tokens: 520, input_token_details: { cache_read: 100, cache_creation: 0 } };
+    const compacted = (namespace: string[] = [], withUsage = true) =>
+      makeProtocolEvent("custom", { name: CONTEXT_COMPACTED_EVENT, ...(withUsage ? { usage } : {}) }, { namespace });
+
+    it("is one context_compacted marker at the root", () => {
+      expect(new DeepAgentTranslator(null).translate(compacted())).toEqual([{ kind: "context_compacted" }]);
+    });
+
+    it("inside a sub-agent, under its task's one segment, is scoped to it", () => {
+      const t = new DeepAgentTranslator(null);
+      t.translate(makeToolStarted("task-1", "task", { subagent_type: "helper" }, { namespace: ["tools:pregel-1"] }));
+      expect(t.translate(compacted(["tools:pregel-1"]))).toEqual([{ kind: "context_compacted", subAgentId: "task-1" }]);
+    });
+
+    it("carries the summary's usage to the loop, the one place it is read; none when the model reported none", () => {
+      expect(usageOf(compacted())).toEqual({
+        input_tokens: 500,
+        output_tokens: 20,
+        total_tokens: 520,
+        input_token_details: { cache_creation: 0, cache_read: 100 },
+      });
+      expect(usageOf(compacted([], false))).toBeUndefined();
+      expect(usageOf(makeProtocolEvent("custom", { name: TOOL_REFUSED_EVENT, tool_call_id: "c", usage }))).toBeUndefined();
     });
   });
 

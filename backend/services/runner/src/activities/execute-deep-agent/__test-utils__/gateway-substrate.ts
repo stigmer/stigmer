@@ -49,7 +49,7 @@ import { contractHookSources } from "../../../__test-utils__/approval-contract/h
 import { NativeToolViews } from "../../../shared/hooks/tool-view.js";
 import { buildShellEnv } from "../../../shared/shell-env.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
-import { PLATFORM_ROUTE_PREFIX, confinedReadAdmission } from "../platform-route.js";
+import { PLATFORM_ROUTE_PREFIX, admitsRoutedRead } from "../platform-route.js";
 import { skillContentReadCheck } from "../../../shared/skill-mount.js";
 import type { ToolApprovalCategory } from "../../../shared/tool-kind.js";
 import { ScriptedModel, readPendingInterrupts } from "./scripted-model.js";
@@ -252,7 +252,7 @@ async function runListsProbe(
         scope,
         serverToolMap: new Map(serverSlug ? [[serverSlug, mcpTools]] : []),
         platformServerSlugs: new Set(),
-        admitsConfinedRead: confinedReadAdmission(root),
+        admitsRoutedRead,
         readsSkillContent: skillContentReadCheck(undefined),
       }),
     ];
@@ -383,7 +383,7 @@ async function runHooksProbe(
         scope: ToolScope.of('Agent "contract"', options.lists),
         serverToolMap: new Map(serverSlug ? [[serverSlug, mcpTools]] : []),
         platformServerSlugs: new Set(),
-        admitsConfinedRead: confinedReadAdmission(root),
+        admitsRoutedRead,
         readsSkillContent: skillContentReadCheck(undefined),
       }));
     }

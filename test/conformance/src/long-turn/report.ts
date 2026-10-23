@@ -24,10 +24,20 @@
 // result of the step it was sent during; and a follower of what needs the
 // person must have been told of the turn exactly once, `finished`. Either
 // failing makes the run's verdict failed.
+//
+// Compaction is judged from the log, real-clock and live alike: every
+// summary the engine wrote is one `agent.thread_context_compacted`, so on the
+// mock the count must equal the summary calls it answered, and the turn's
+// reply must never be the mock's summary (until the runner kept the summary
+// off the stream it was, in every long run). A live run also checks its goal:
+// the opening asked for `FINISHED.md` naming the first and the last step and
+// how many ran, which only a model that kept its goal across its compactions
+// can write right ({@link FinishedCheck}).
 
 import { rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { MOCK_CONVERSATION_SUMMARY } from "@stigmer/test-support/mock-llm";
 
 /** What the run saw in one minute. */
 export interface MinuteSample {
@@ -130,6 +140,10 @@ export interface LongTurnEnd {
   /** The mock's counts at the end (absent on a live run): a run shorter than a minute has no sample to carry them. */
   readonly modelCalls?: number;
   readonly compactions?: number;
+  /** The `agent.thread_context_compacted` events in the log read back, every thread's. */
+  readonly compactedEvents?: number;
+  /** What the live run's `FINISHED.md` said against what the opening asked for; absent on the mock. */
+  readonly finished?: FinishedCheck;
   /** What the streaming follower was sent; absent when none ran. */
   readonly follower?: FollowerCheck;
   /** What became of the person's message; absent on a profile with no `message` step. */
@@ -139,6 +153,31 @@ export interface LongTurnEnd {
 }
 
 /** The person's message sent mid-tool, as the run sent it. */
+/** The goal the live opening set at its start and asked for only at its end (`FINISHED.md`), against what the model wrote. */
+export interface FinishedCheck {
+  /** The three lines asked for: the first step's id, the last step's id, the number of steps. */
+  readonly expected: readonly string[];
+  /** The file's non-empty lines, trimmed; absent when the model wrote no file. */
+  readonly found?: readonly string[];
+}
+
+/** The goal check from what the model wrote (`undefined` when it wrote nothing). */
+export function finishedCheckOf(steps: readonly string[], written: string | undefined): FinishedCheck {
+  const expected = [steps[0] ?? "", steps.at(-1) ?? "", String(steps.length)];
+  if (written === undefined) return { expected };
+  return { expected, found: written.split("\n").map((l) => l.trim()).filter((l) => l !== "") };
+}
+
+/** Whether the model kept its goal: it wrote exactly the three lines asked for. */
+export function goalKept(check: FinishedCheck): boolean {
+  return check.found !== undefined && check.found.length === check.expected.length && check.found.every((l, i) => l === check.expected[i]);
+}
+
+/** The compaction markers in a log read back, every thread's. */
+export function compactedEventsOf(log: readonly SessionEvent[]): number {
+  return log.filter((e) => e.event.case === "agentThreadContextCompacted").length;
+}
+
 export interface SentMessage {
   readonly step: string;
   readonly sentAtMinutes: number;
@@ -270,6 +309,16 @@ export function transcriptVerdictOf(end: LongTurnEnd): { readonly whole: boolean
   return { whole: reasons.length === 0, reasons };
 }
 
+/** Whether every compaction was marked in the log, and the summary never stood as the turn's reply. */
+export function compactionVerdictOf(end: LongTurnEnd): { readonly marked: boolean; readonly reasons: readonly string[] } {
+  const reasons: string[] = [];
+  if (end.reply === MOCK_CONVERSATION_SUMMARY) reasons.push("the turn's reply is the summarizer's text, not the agent's");
+  if (end.compactions !== undefined && end.compactedEvents !== undefined && end.compactions !== end.compactedEvents) {
+    reasons.push(`the engine summarized ${end.compactions} times and the log marks ${end.compactedEvents}`);
+  }
+  return { marked: reasons.length === 0, reasons };
+}
+
 /** Whether the person's message was read by the run, once, after its step, and they were told of the turn once, finished. */
 export function messageVerdictOf(end: LongTurnEnd, runId: string): { readonly read: boolean; readonly reasons: readonly string[] } {
   const reasons: string[] = [];
@@ -324,6 +373,19 @@ export function renderSummary(report: LongTurnReport): string {
       }
     }
     if (end.compactions !== undefined) lines.push("", `Model calls: ${end.modelCalls ?? 0}; compactions: ${end.compactions}.`);
+    if (end.compactedEvents !== undefined) {
+      const compaction = compactionVerdictOf(end);
+      lines.push("", `Compactions marked in the log: ${end.compactedEvents}${compaction.marked ? "." : `; ${compaction.reasons.join("; ")}.`}`);
+    }
+    if (end.finished !== undefined) {
+      const f = end.finished;
+      lines.push(
+        "",
+        goalKept(f)
+          ? `**Goal**: kept: FINISHED.md names ${f.expected.join(", ")}, as the opening asked.`
+          : `**Goal**: lost: the opening asked FINISHED.md for ${f.expected.join(", ")}; ${f.found === undefined ? "no file was written" : `it holds ${f.found.length === 0 ? "nothing" : f.found.join(", ")}`}.`,
+      );
+    }
     if (end.error !== "") lines.push("", `Error: ${end.error}`);
     if (end.reply !== undefined && end.reply !== "") lines.push("", `Reply: ${end.reply.length > 600 ? `${end.reply.slice(0, 600)}…` : end.reply}`);
     if (end.transcript !== undefined) {

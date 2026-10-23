@@ -44,6 +44,7 @@ function stubAdapter(name: string, log: string[], behaviour: StubBehaviour = {})
       subAgentProgress: "streamed",
       continuation: "checkpoint",
     midTurnInput: "next-step",
+      contextCompaction: "none",
     },
     async boot() {
       log.push(`boot:${name}`);

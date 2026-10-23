@@ -30,7 +30,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtemp, mkdir, rm, readFile, writeFile, access, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { HumanMessage, ToolMessage, type BaseMessage } from "@langchain/core/messages";
 import { MemorySaver } from "@langchain/langgraph";
 import { createDeepAgent } from "deepagents";
@@ -200,7 +200,10 @@ describe("plan-mode workspace read boundary (issue #528)", () => {
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), "plan-bound-"));
     outside = await mkdtemp(join(tmpdir(), "plan-outside-"));
-    platform = await mkdtemp(join(tmpdir(), "plan-platform-"));
+    // A session's platform dir, inside a session dir of its own: the route
+    // keeps deepagents' offloads beside it (`platform-dir.ts`).
+    platform = join(await mkdtemp(join(tmpdir(), "plan-session-")), "platform");
+    await mkdir(platform);
 
     await mkdir(join(root, "src"), { recursive: true });
     await writeFile(join(root, "src/notes.md"), SEEDED_CONTENT);
@@ -219,7 +222,7 @@ describe("plan-mode workspace read boundary (issue #528)", () => {
   afterEach(async () => {
     await rm(root, { recursive: true, force: true });
     await rm(outside, { recursive: true, force: true });
-    await rm(platform, { recursive: true, force: true });
+    await rm(dirname(platform), { recursive: true, force: true });
   });
 
   async function invokeOnce(script: ScriptSelector, threadId: string) {

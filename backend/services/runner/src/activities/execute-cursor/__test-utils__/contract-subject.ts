@@ -133,6 +133,9 @@ const FOLLOW_UP_ANSWER = "Read the message sent while I worked.";
 /** What the double records the SDK "returning" for an allowed tool call. */
 const ALLOWED_RESULT = "ok (kit)";
 
+/** What Cursor's server says it summarised the conversation to, in its `summary` delta. */
+const KIT_SUMMARY = "The conversation so far, condensed (kit).";
+
 /** The error the SDK surfaces on a hook-denied call, as the goldens script it. */
 const HOOK_BLOCKED_RESULT = "Blocked by hook";
 
@@ -229,6 +232,7 @@ class CursorSubject implements CursorContractSubject {
       return steered + followed;
     },
     compactions: (sessionId) => this.compactionCounts.get(sessionId) ?? 0,
+    compactionSummary: { text: KIT_SUMMARY },
     loseRunner: (sessionId) => this.agents.get(sessionId)?.strand(),
   };
 
@@ -391,7 +395,7 @@ class CursorSubject implements CursorContractSubject {
         case "compact":
           script.push(
             step.delta({ type: "summary-started" }),
-            step.delta({ type: "summary", summary: "The conversation so far, condensed (kit)." }),
+            step.delta({ type: "summary", summary: KIT_SUMMARY }),
             step.delta({ type: "summary-completed" }),
             step.effect("kit: count the compaction the server reported", () => {
               this.compactionCounts.set(view.sessionId, (this.compactionCounts.get(view.sessionId) ?? 0) + 1);

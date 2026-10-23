@@ -45,6 +45,8 @@ interface RegistryModel {
    * the caller then keeps its own default.
    */
   maxOutputTokens?: number;
+  /** The model's context window in input tokens, as the row states it; `undefined` like {@link maxOutputTokens}. */
+  contextWindowTokens?: number;
   /** The thinking form the row declares; see {@link NativeThinkingProfile}. */
   thinking: NativeThinkingProfile;
 }
@@ -78,6 +80,8 @@ export interface NativeThinkingProfile {
  */
 export interface NativeRequestProfile {
   readonly maxOutputTokens: number | undefined;
+  /** The context window the row states, one source of the turn's compaction window (`model-window.ts`). */
+  readonly contextWindowTokens: number | undefined;
   readonly thinking: NativeThinkingProfile;
 }
 
@@ -100,6 +104,7 @@ function parseRegistry(json: unknown): RegistryModel[] {
       featured: !!m.featured,
       visionCapability: parseVisionCapability(m.capabilities),
       maxOutputTokens: parsePositiveInteger(m.maxOutputTokens),
+      contextWindowTokens: parsePositiveInteger(m.contextWindowTokens),
       thinking: parseThinkingProfile(m.capabilities),
     }));
 }
@@ -342,7 +347,7 @@ export async function getNativeRequestProfile(
     (m) => m.harness === "native" && (m.id === modelName || m.apiModelId === modelName),
   );
   if (!entry) return undefined;
-  return { maxOutputTokens: entry.maxOutputTokens, thinking: entry.thinking };
+  return { maxOutputTokens: entry.maxOutputTokens, contextWindowTokens: entry.contextWindowTokens, thinking: entry.thinking };
 }
 
 /** Exposed for testing — resets the in-memory cache. */

@@ -1433,8 +1433,11 @@ export async function assertOpenOperationStopsAtTheBackstop(harness: RuntimeCont
 
 /**
  * Three compactions in one turn: an engine that summarizes its context three
- * times keeps working through each and the turn completes. Whether the user
- * is TOLD of a compaction is not asserted here; that event does not exist yet.
+ * times keeps working through each and the turn completes. The person is
+ * told: each compaction is one `agent.thread_context_compacted` on the root
+ * thread, ahead of the closing reply, and the summary itself never reaches
+ * the log as the agent's message. Where the runner makes the summary call,
+ * the run's usage counts each summary.
  */
 export async function assertTurnSurvivesThreeCompactions(harness: RuntimeContractHarness, gap?: string, label = "rt-three-compactions"): Promise<RuntimeArmResult> {
   const { subject } = harness;
@@ -1449,6 +1452,17 @@ export async function assertTurnSurvivesThreeCompactions(harness: RuntimeContrac
     () => {
       expectCompleted(harness, driver, invocation, "Read it all.");
       expect(controls.compactions(driver.sessionId), `${subject.name}: the engine compacted three times`).toBe(3);
+      const root = driver.record.sessionEvents.filter((e) => e.threadId === "");
+      const compacted = root.flatMap((e, index) => (e.event.case === "agentThreadContextCompacted" ? [index] : []));
+      expect(compacted, `${subject.name}: each compaction is one agent.thread_context_compacted on the root thread`).toHaveLength(3);
+      const replies = root.flatMap((e, index) => (e.event.case === "agentMessage" ? [index] : []));
+      expect(compacted.at(-1), `${subject.name}: the last compaction comes before the closing reply`).toBeLessThan(replies.at(-1) ?? -1);
+      const { text, inputTokens } = controls.compactionSummary;
+      const said = driver.record.sessionEvents.flatMap((e) => (e.event.case === "agentMessage" ? e.event.value.content.map((block) => block.text) : []));
+      expect(said.filter((t) => t.includes(text)), `${subject.name}: the summary never speaks as the agent`).toEqual([]);
+      if (inputTokens !== undefined) {
+        expect(finalStatusOf(harness, driver).streamingUsage?.inputTokens, `${subject.name}: the run's usage counts the three summaries`).toBe(BigInt(3 * inputTokens));
+      }
     },
   );
   return { driver, invocations: [invocation], final: finalStatusOf(harness, driver) };

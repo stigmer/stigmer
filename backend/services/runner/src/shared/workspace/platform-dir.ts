@@ -12,6 +12,12 @@
  *   path is written into the workspace itself.
  * - `displaced/` — a real `.stigmer` entry found in the workspace when the
  *   platform link takes the name, kept rather than deleted (stigmer-link.ts).
+ * - `offload/` — what the native engine offloads from its own context: the
+ *   summarized conversation history and tool results too large to keep
+ *   (`execute-deep-agent/platform-route.ts` routes deepagents' two roots
+ *   here). Beside `platform/`, not under it, so the workspace's `.stigmer`
+ *   link and route never expose it, and outside the workspace, like every
+ *   tree here.
  *
  * This module replaces the `getPlatformDir` helpers the skill and attachment
  * resolvers each once carried.
@@ -82,6 +88,16 @@ export async function ensureHitlGateDir(workspaceRoot: string): Promise<string> 
  */
 export function getPlatformDir(sessionId: string): string {
   return join(getSessionDir(sessionId), "platform");
+}
+
+/** The offload directory of the session whose platform dir is `platformDir` (the header). Pure function. */
+export function offloadDirBeside(platformDir: string): string {
+  return join(dirname(platformDir), "offload");
+}
+
+/** Compute the offload directory for a session. Pure function — does not create the directory or perform I/O. */
+export function getOffloadDir(sessionId: string): string {
+  return offloadDirBeside(getPlatformDir(sessionId));
 }
 
 /**

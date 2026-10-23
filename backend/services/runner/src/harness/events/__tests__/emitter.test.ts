@@ -331,6 +331,38 @@ describe("a resumed invocation's own rows", () => {
   });
 });
 
+describe("a compaction", () => {
+  it("is written as agent.thread_context_compacted under the scope's place sequence, between the messages around it", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    await e.flush(
+      status({
+        messages: [
+          { type: AI, content: "Reading everything." },
+          { type: MessageType.MESSAGE_COMPACTED },
+          { type: AI, content: "Read it all." },
+        ],
+      }),
+      { final: true },
+    );
+    expect(ids(log)).toEqual(["root.m0", "root.c1", "root.m2"]);
+    expect(log.events[1]!.event).toEqual({ case: "agentThreadContextCompacted", value: expect.objectContaining({ id: `${RUN}.root.c1` }) });
+  });
+
+  it("a resumed invocation numbers on past a compaction the log holds", async () => {
+    const log = logDouble();
+    const first = emitter(log);
+    await first.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    await first.flush(status({ messages: [{ type: AI, content: "Before." }, { type: MessageType.MESSAGE_COMPACTED }] }), { final: true });
+
+    const resumed = emitter(log);
+    await resumed.begin({ sessionId: "ses_1", resumed: true, rows: create(TurnRowsSchema) });
+    await resumed.flush(status({ messages: [{ type: AI, content: "After." }] }), { final: true });
+    expect(ids(log)).toEqual(["root.m0", "root.c1", "root.m2"]);
+  });
+});
+
 describe("nextScopeIndexes", () => {
   it("is the index after the highest place each scope's logged ids name; other ids and other runs are ignored", () => {
     expect(
@@ -340,7 +372,9 @@ describe("nextScopeIndexes", () => {
           `${RUN}.root.t4`,
           `${RUN}.root.t4.text`,
           `${RUN}.root.n2`,
-          `${RUN}.task-1.m7`,
+          `${RUN}.root.c4`,
+          `${RUN}.task-1.c7`,
+          `${RUN}.task-1.m6`,
           `${RUN}.call-1`,
           `${RUN}.call-1.r`,
           `${RUN}.output`,

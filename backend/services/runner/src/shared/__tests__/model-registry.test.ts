@@ -422,6 +422,18 @@ describe("getNativeRequestProfile", () => {
     }
   });
 
+  it("reads the row's context window, and states none when it is absent or not a positive integer", async () => {
+    mockRegistryResponse([
+      { id: "sized", provider: "anthropic", costTier: "standard", harness: "native", contextWindowTokens: 1_000_000 },
+      { id: "unsized", provider: "anthropic", costTier: "standard", harness: "native" },
+      { id: "malformed", provider: "anthropic", costTier: "standard", harness: "native", contextWindowTokens: "200000" },
+    ]);
+
+    expect((await getNativeRequestProfile("sized"))?.contextWindowTokens).toBe(1_000_000);
+    expect((await getNativeRequestProfile("unsized"))?.contextWindowTokens).toBeUndefined();
+    expect((await getNativeRequestProfile("malformed"))?.contextWindowTokens).toBeUndefined();
+  });
+
   it("returns undefined for Auto, an unknown model, a cursor-only model, and an unreachable registry", async () => {
     mockRegistryResponse([
       { id: "composer-2.5", provider: "cursor", costTier: "economy", harness: "cursor", maxOutputTokens: 64000 },
@@ -448,6 +460,7 @@ interface MockModel {
   featured?: boolean;
   capabilities?: { vision?: boolean; toolUse?: boolean; thinking?: boolean; adaptiveThinking?: boolean; thinkingRequired?: unknown };
   maxOutputTokens?: unknown;
+  contextWindowTokens?: unknown;
 }
 
 function mockRegistryResponse(models: MockModel[]) {

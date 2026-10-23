@@ -33,12 +33,24 @@
 // the person told once that the turn finished (`messageVerdictOf`), or the
 // script exits 1. The reply says what the model made of the message.
 //
+// Compactions are counted from the log, and the summary must never stand as
+// the reply (`compactionVerdictOf`, exit 1). The goal is checked too: the
+// opening asks, once, for one thing needed only at the end, a `FINISHED.md`
+// in the report directory naming the first and the last step and how many
+// ran. Past three compactions the opening itself has been summarized, so a
+// right file says the model kept its goal; the summary says kept or lost and
+// the script does not fail on it (a lost goal is a measurement, the case for
+// tuning the summarizer). The opening insists on one call per step with its
+// whole output: on 2026-10-23 Haiku 4.5 otherwise ran the bulk steps in loops
+// with their output discarded, and its context never reached a compaction.
+//
 // Needs: the `temporal` CLI on PATH; ANTHROPIC_API_KEY for native,
 // CURSOR_API_KEY for Cursor; the `stigmer` CLI (`make install-cli-shim`).
 //
 // Flags: those of the real-clock run (--profile, --minutes, --steps, --out),
-// plus --harness deep-agent|cursor (default deep-agent) and --max-cost-usd N.
-import { mkdirSync, writeFileSync } from "node:fs";
+// plus --harness deep-agent|cursor (default deep-agent), --model <registry id>
+// (default the harness's parity model) and --max-cost-usd N.
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { PARITY_MODEL } from "../src/benchmark/cells";
@@ -46,7 +58,7 @@ import type { BenchmarkHarness } from "../src/benchmark/report";
 import { bootBenchmarkStack } from "../src/benchmark/run";
 import { driveLongTurn } from "../src/long-turn/drive";
 import { narrateStep, parseLongTurnFlags, profileOf, type StepFiles } from "../src/long-turn/profile";
-import { messageVerdictOf, transcriptVerdictOf, type LongTurnReport } from "../src/long-turn/report";
+import { compactionVerdictOf, finishedCheckOf, messageVerdictOf, transcriptVerdictOf, writeLongTurnReport, type LongTurnReport } from "../src/long-turn/report";
 import { AttentionFollower } from "../src/long-turn/follow";
 import { agentRefOf, makeAgent } from "../src/support/agents";
 import { uniqueName } from "../src/support/naming";
@@ -81,12 +93,13 @@ async function main(): Promise<void> {
   if (!(maxCostUsd > 0)) throw new Error(`--max-cost-usd must be a positive number`);
 
   const full = profileOf(flags.profile, { minutes: flags.minutes, steps: flags.steps });
-  const profile = { ...full, model: PARITY_MODEL[harness] };
+  const profile = { ...full, model: flags.model ?? PARITY_MODEL[harness] };
   const startedAt = new Date();
   const out = resolve(flags.out ?? join(".test-output", "long-turn-live", `${harness}-${profile.name}-${startedAt.toISOString().replace(/[:.]/g, "-")}`));
   mkdirSync(out, { recursive: true });
   const files: StepFiles = { markers: join(out, "markers.log"), releaseOf: (id) => join(out, `release-${id}`) };
   writeFileSync(files.markers, "");
+  const finishedFile = join(out, "FINISHED.md");
   const report: LongTurnReport = {
     profile: `${profile.name} (live, ${harness})`,
     model: profile.model,
@@ -94,7 +107,7 @@ async function main(): Promise<void> {
     steps: profile.steps.map((s) => s.id),
     notes: [
       `The run's ceiling is the product's cost cap: max_cost_usd ${maxCostUsd}.`,
-      "A live run has no mock, so model calls and compactions are not counted here.",
+      "A live run has no mock, so model calls are not counted here; compactions are counted from the log.",
     ],
     samples: [],
     runnerEvents: [],
@@ -110,9 +123,12 @@ async function main(): Promise<void> {
     attention = new AttentionFollower(clients, org);
     const message = [
       "This is the platform's long-turn measurement: the operator wants each step below run exactly as written, to see how a turn that runs for a long time is carried. " +
-        "Perform the steps in order, one at a time, waiting for each to finish before the next. Skip none, add none.",
+        "Perform the steps in order, one at a time, waiting for each to finish before the next. Skip none, add none. " +
+        "Each step is one tool call of its own, its command exactly as written: never put two steps into one call, a loop or a script, and never redirect, " +
+        "pipe away or shorten a command's output, because each call's whole output coming back to you is what is measured.",
       ...profile.steps.map((step, i) => `${i + 1}. ${narrateStep(step, files)}`),
-      "When every step is done, reply with exactly: done",
+      `When every step is done, write the file '${finishedFile}' with the shell, holding three lines: the id of the first step you ran ` +
+        "(the word after 'start' in its command), the id of the last, and how many steps you ran. Then reply with exactly: done",
     ].join("\n");
     const created = await clients.agentExecutionCommand.create(
       makeAgentExecution({
@@ -143,16 +159,25 @@ async function main(): Promise<void> {
       },
       attention,
     });
-    const verdict = transcriptVerdictOf(ended.end!);
+    const finished = finishedCheckOf(profile.steps.map((s) => s.id), existsSync(finishedFile) ? readFileSync(finishedFile, "utf8") : undefined);
+    const end = { ...ended.end!, finished };
+    await writeLongTurnReport(out, { ...ended, end });
+    const verdict = transcriptVerdictOf(end);
     if (!verdict.whole) {
       console.error(`[long-turn] the transcript is broken: ${verdict.reasons.join("; ")}`);
       process.exitCode = 1;
     }
-    const read = messageVerdictOf(ended.end!, created.metadata!.id);
+    const read = messageVerdictOf(end, created.metadata!.id);
     if (!read.read) {
       console.error(`[long-turn] the person's message or attention failed: ${read.reasons.join("; ")}`);
       process.exitCode = 1;
     }
+    const compaction = compactionVerdictOf(end);
+    if (!compaction.marked) {
+      console.error(`[long-turn] the compactions were not told right: ${compaction.reasons.join("; ")}`);
+      process.exitCode = 1;
+    }
+    console.log(`[long-turn] ${end.compactedEvents ?? 0} compactions marked; FINISHED.md ${finished.found === undefined ? "not written" : `holds ${finished.found.join(", ")}`} (asked ${finished.expected.join(", ")})`);
   } finally {
     await attention?.stop();
     await stack.stop();

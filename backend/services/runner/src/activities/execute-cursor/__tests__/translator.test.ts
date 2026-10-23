@@ -639,6 +639,25 @@ describe("CursorTranslator — the delta channel is queued, held for unannounced
     expect(t.drainDeltas()).toEqual([]);
   });
 
+  it("summary-completed ends the open text and queues one compaction marker, applied while idle; summary-started and summary carry nothing", () => {
+    const t = translator();
+    t.translate(ev.assistant("Reading everything."));
+    t.observeDelta({ type: "summary-started" });
+    t.observeDelta({ type: "summary", summary: "The conversation, condensed." });
+    t.observeDelta({ type: "summary-completed" });
+    expect(t.drainIdle()).toEqual([{ kind: "message_finish", runId: `${RUN}:0` }, { kind: "context_compacted" }]);
+    expect(kinds(t.translate(ev.assistant("Read it all."))), "what the agent says next is a message after the marker").toEqual(["message_start", "text_delta"]);
+  });
+
+  it("the idle drain holds back a queued completion, and a marker queued with it, for the loop's drain", () => {
+    const t = translator();
+    t.translate(ev.toolCall("c1", "shell", "running", { command: "make" }));
+    t.observeDelta(completed("c1"));
+    t.observeDelta({ type: "summary-completed" });
+    expect(t.drainIdle()).toEqual([]);
+    expect(t.drainDeltas().map((e) => e.kind)).toEqual(["tool_finished", "context_compacted"]);
+  });
+
   it("shell output text is read from data, output or text; anything else is nothing", () => {
     const t = translator();
     t.translate(ev.toolCall("c1", "shell", "running", { command: "make" }));
