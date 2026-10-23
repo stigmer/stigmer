@@ -88,4 +88,7 @@ export const CURSOR_CAPABILITIES: HarnessCapabilities = {
   // A message is steered into the running run, or sent once it ends when
   // Cursor answers that it cannot take it now (turn-input.ts).
   midTurnInput: "next-step",
+  // Cursor's server summarizes the conversation and bills it; the stream
+  // says so with `summary-completed` (translator.ts).
+  contextCompaction: "vendor-server",
 };

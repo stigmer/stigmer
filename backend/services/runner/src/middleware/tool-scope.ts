@@ -44,11 +44,10 @@
  * skills, attached inputs, the approved plan; `platform-route.ts`) and the
  * results and history deepagents offloads from the agent's own turn
  * (`/large_tool_results/`, `/conversation_history/`). Those are the platform's
- * and the agent's own outputs, not the workspace (`platform-route.ts` states
- * the one overlap), so `read_file` stays bound and visible and a call is
- * refused unless {@link ToolScopeConfig.admitsConfinedRead} admits its path,
- * which for an offload root checks the real path on disk, so a symlink cannot
- * stretch the confinement over the workspace.
+ * and the agent's own outputs, each a route to a backend outside the
+ * workspace (`platform-route.ts`), so `read_file` stays bound and visible and
+ * a call is refused unless {@link ToolScopeConfig.admitsRoutedRead} admits
+ * its path.
  *
  * A scope that denies `Skill` (`ToolScope.hidesSkills`) refuses a `read_file`
  * of a skill's files under `.stigmer/` (`shared/skill-mount.ts`
@@ -117,11 +116,11 @@ export interface ToolScopeConfig {
   readonly platformServerSlugs: ReadonlySet<string>;
   /**
    * Whether `read_file` may still read this canonical virtual path when the
-   * scope excludes `Read`: the platform route and deepagents' offload roots,
-   * confined on disk (`platform-route.ts` `confinedReadAdmission`). Injected
-   * by the harness, which knows the workspace root this middleware does not.
+   * scope excludes `Read`: the platform route and deepagents' offload roots
+   * (`platform-route.ts` `admitsRoutedRead`). Injected by the harness, which
+   * knows its routes as this middleware does not.
    */
-  readonly admitsConfinedRead: (virtualPath: string) => Promise<boolean>;
+  readonly admitsRoutedRead: (virtualPath: string) => Promise<boolean>;
   /**
    * Whether `read_file` of this canonical virtual path would open a skill's
    * files, asked only when the scope denies `Skill`
@@ -139,7 +138,7 @@ function toolNameOf(tool: unknown): string | undefined {
 
 /** The middleware; see the module header. Install only when `scope.restricted`. */
 export function createToolScopeMiddleware(config: ToolScopeConfig): StigmerMiddleware {
-  const { scope, platformServerSlugs, admitsConfinedRead, readsSkillContent } = config;
+  const { scope, platformServerSlugs, admitsRoutedRead, readsSkillContent } = config;
 
   const serverOfTool = new Map<unknown, string>();
   const serversOfName = new Map<string, string[]>();
@@ -179,7 +178,7 @@ export function createToolScopeMiddleware(config: ToolScopeConfig): StigmerMiddl
     // The read alone: grep, glob and the shell are out of this check's scope (the header says why).
     if (read && scope.hidesSkills && (await readsSkillContent(path))) return false;
     if (scope.allowsEngineTool(name, NATIVE_TOOL_COVERS)) return true;
-    return read && (await admitsConfinedRead(path));
+    return read && (await admitsRoutedRead(path));
   };
 
   return {

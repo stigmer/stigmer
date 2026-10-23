@@ -19,18 +19,31 @@
 //    inside it, while every other
 //    path under `.stigmer/` stays read-only, a `..` out of it reaches
 //    nothing, a link inside it is not written through, and a delete of `/`,
-//    `/.stigmer` or the folder itself removes nothing.
+//    `/.stigmer` or the folder itself removes nothing;
+//  - deepagents' offload roots, `/conversation_history/` and
+//    `/large_tool_results/`, routed on every turn to the session's offload
+//    directory beside the platform dir: written, appended and read there,
+//    never in the workspace, a `..` or a link reaching nothing outside it,
+//    left out of the root listing, and never deleted whole.
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { access, lstat, mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { FilesystemBackend, isSandboxBackend } from "deepagents";
 import type { AnyBackendProtocol, BackendProtocolV2 } from "deepagents";
 
 import { createCasCaptureBackend } from "../cas-capture-backend.js";
 import { CasCaptureObserver } from "../cas-capture-observer.js";
-import { OUTPUTS_ROUTE_PREFIX, PLATFORM_ROUTE_PREFIX, PlatformRoutedBackend, mountPlatformRoute } from "../platform-route.js";
+import {
+  DEEPAGENTS_HISTORY_ROOT,
+  DEEPAGENTS_OFFLOAD_ROOT,
+  OUTPUTS_ROUTE_PREFIX,
+  PLATFORM_ROUTE_PREFIX,
+  PlatformRoutedBackend,
+  mountPlatformRoute,
+} from "../platform-route.js";
+import { offloadDirBeside } from "../../../shared/workspace/platform-dir.js";
 import { LocalWorkspaceBackend } from "../../../shared/workspace/local-backend.js";
 import { ensureStigmerSymlink } from "../../../shared/workspace/stigmer-link.js";
 
@@ -43,7 +56,10 @@ describe("platform route", () => {
 
   beforeEach(async () => {
     workspaceDir = await mkdtemp(join(tmpdir(), "platform-route-ws-"));
-    platformDir = await mkdtemp(join(tmpdir(), "platform-route-platform-"));
+    // A session's platform dir, inside a session dir of its own: the route
+    // keeps deepagents' offloads beside it (`platform-dir.ts`).
+    platformDir = join(await mkdtemp(join(tmpdir(), "platform-route-session-")), "platform");
+    await mkdir(platformDir);
     // The same physical writes the skill writer and the attachment resolver
     // perform, through the platform-routing workspace backend.
     const writer = new LocalWorkspaceBackend(workspaceDir, platformDir);
@@ -54,7 +70,7 @@ describe("platform route", () => {
 
   afterEach(async () => {
     await rm(workspaceDir, { recursive: true, force: true });
-    await rm(platformDir, { recursive: true, force: true });
+    await rm(dirname(platformDir), { recursive: true, force: true });
   });
 
   const observer = () => new CasCaptureObserver({ rootDir: workspaceDir, isIgnored: async () => true });
@@ -217,6 +233,58 @@ describe("platform route", () => {
       expect(await readdir(outputsDir())).toEqual(["keep.md"]);
       expect(await readFile(join(workspaceDir, "main.go"), "utf8")).toBe("package main\n");
       expect(await readFile(join(platformDir, "skills/my-skill/SKILL.md"), "utf8")).toContain("My Skill");
+    });
+  });
+
+  describe.each([
+    ["shell", "with the link"],
+    ["plan", "without the link"],
+  ] as const)("the %s backend's offload roots, %s", (mode, link) => {
+    const offloadDir = () => offloadDirBeside(platformDir);
+
+    beforeEach(async () => {
+      if (link === "with the link") await ensureStigmerSymlink(workspaceDir, platformDir);
+    });
+
+    it("writes, appends and reads each root in the session's offload directory, never in the workspace", async () => {
+      const backend = v2(await productionBackend(mode));
+      const history = `${DEEPAGENTS_HISTORY_ROOT}session_0a1b.md`;
+      expect((await backend.write(history, "## Summarized\n")).error).toBeUndefined();
+      const [upload] = await backend.uploadFiles!([[history, new TextEncoder().encode("## Summarized\n## Again\n")]]);
+      expect(upload?.error ?? undefined).toBeUndefined();
+      expect((await backend.write(`${DEEPAGENTS_OFFLOAD_ROOT}call_1`, "a large result")).error).toBeUndefined();
+      expect((await backend.read(history)).content).toContain("## Again");
+      expect(await readFile(join(offloadDir(), "conversation_history", "session_0a1b.md"), "utf8")).toBe("## Summarized\n## Again\n");
+      expect(await readFile(join(offloadDir(), "large_tool_results", "call_1"), "utf8")).toBe("a large result");
+      await expect(access(join(workspaceDir, "conversation_history"))).rejects.toThrow();
+      await expect(access(join(workspaceDir, "large_tool_results"))).rejects.toThrow();
+    });
+
+    it("leaves both roots out of the root listing", async () => {
+      const backend = v2(await productionBackend(mode));
+      const root = ((await backend.ls("/")).files ?? []).map((f) => f.path);
+      expect(root).not.toContain(DEEPAGENTS_HISTORY_ROOT);
+      expect(root).not.toContain(DEEPAGENTS_OFFLOAD_ROOT);
+      expect(root).toContain("/main.go");
+    });
+
+    it("reaches nothing outside the offload directory through `..` or a link inside it", async () => {
+      const backend = v2(await productionBackend(mode));
+      expect((await backend.read(`${DEEPAGENTS_OFFLOAD_ROOT}../../main.go`)).content ?? "").not.toContain("package main");
+      await symlink(join(workspaceDir, "main.go"), join(offloadDir(), "large_tool_results", "leak"));
+      expect((await backend.read(`${DEEPAGENTS_OFFLOAD_ROOT}leak`)).content ?? "").not.toContain("package main");
+    });
+
+    it("removes nothing on a delete of either root, and a file inside one as asked", async () => {
+      const backend = v2(await productionBackend(mode));
+      await backend.write(`${DEEPAGENTS_HISTORY_ROOT}kept.md`, "kept");
+      await backend.write(`${DEEPAGENTS_OFFLOAD_ROOT}gone`, "gone");
+      expect((await backend.delete!(`${DEEPAGENTS_OFFLOAD_ROOT}gone`)).error).toBeUndefined();
+      expect(await readdir(join(offloadDir(), "large_tool_results"))).toEqual([]);
+      for (const target of [DEEPAGENTS_HISTORY_ROOT, DEEPAGENTS_OFFLOAD_ROOT]) {
+        expect((await backend.delete!(target)).error, target).toMatch(/stays/);
+      }
+      expect(await readdir(join(offloadDir(), "conversation_history"))).toEqual(["kept.md"]);
     });
   });
 

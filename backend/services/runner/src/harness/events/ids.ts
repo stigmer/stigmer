@@ -15,6 +15,7 @@
  *   message ............ <run>.<scope>.m<index>
  *   thinking ........... <run>.<scope>.t<index>, its text <...>.text
  *   harness note ....... <run>.<scope>.n<index>
+ *   context compacted .. <run>.<scope>.c<index>
  *   thread ............. <run>.<sub-agent id>       (a thread id, not an event id)
  *   thread events ...... <thread>.created | .running | .sent | .received | .idle
  *   structured output .. <run>.output
@@ -29,8 +30,8 @@
  * builds only its own rows (a reinvocation seeds the asks it resumes onto,
  * on messages that write nothing), so a later invocation's first message
  * takes the next index and no id is ever named twice with other bytes
- * (`emitter.ts` `nextScopeIndexes`). Messages, thinking and notes share one
- * index sequence per scope. The two file-review ids derive from the change set, so the
+ * (`emitter.ts` `nextScopeIndexes`). Messages, thinking, notes and compactions
+ * share one index sequence per scope. The two file-review ids derive from the change set, so the
  * second one begins with the change set's run even when another run (the
  * turn that put the files back) writes it: one per change set, whichever
  * turn reconciles it. A thread's id equals its `task` call's tool use id (the
@@ -117,6 +118,11 @@ export function thinkingTextEventId(thinkingId: string): string {
 /** A `stigmer.harness.note`, by its row's place in its scope. */
 export function harnessNoteEventId(scopePrefix: string, index: number): string {
   return `${scopePrefix}.n${index}`;
+}
+
+/** An `agent.thread_context_compacted`, by its row's place in its scope. */
+export function compactedEventId(scopePrefix: string, index: number): string {
+  return `${scopePrefix}.c${index}`;
 }
 
 /** A sub-agent's thread id: its `task` call's tool use id. */

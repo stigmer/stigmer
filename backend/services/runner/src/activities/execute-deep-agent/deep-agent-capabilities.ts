@@ -54,4 +54,7 @@ export const DEEP_AGENT_CAPABILITIES: HarnessCapabilities = {
   continuation: "checkpoint",
   // A message is read before the next model call (turn-input-middleware.ts).
   midTurnInput: "next-step",
+  // deepagents' summarizer, under the runner's wrapper, on the turn's model
+  // (middleware/compaction.ts).
+  contextCompaction: "runner-summarizer",
 };

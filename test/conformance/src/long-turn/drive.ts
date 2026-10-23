@@ -36,7 +36,7 @@ import { sessionIdOf } from "../support/runs";
 import { foldSession, turnOf } from "@stigmer/session-log";
 import { stepProgressOf, type LongTurnProfile, type StepFiles } from "./profile";
 import { SessionFollower } from "./follow";
-import { followerCheckOf, messageCheckOf, movedSeqsOf, transcriptCheckOf, writeLongTurnReport, type LongTurnReport, type MinuteSample } from "./report";
+import { compactedEventsOf, followerCheckOf, messageCheckOf, movedSeqsOf, transcriptCheckOf, writeLongTurnReport, type LongTurnReport, type MinuteSample } from "./report";
 import type { AttentionFollower } from "./follow";
 
 /* v8 ignore start -- @preserve: the real-clock and live runs are hand-run scripts no vitest config collects; the unit lane tests the pure readers and the report they feed */
@@ -212,6 +212,7 @@ export async function driveLongTurn(options: DriveOptions): Promise<LongTurnRepo
           stoppedByBudget,
           transcript: transcriptCheckOf(seqs, moved),
           reply: turnOf(foldSession(log), runId)?.answer ?? "",
+          compactedEvents: compactedEventsOf(log),
           ...(options.counts === undefined ? {} : options.counts()),
           ...(followed === undefined ? {} : { follower: followed }),
           ...(report.message === undefined ? {} : { message: messageCheckOf(log, report.message) }),

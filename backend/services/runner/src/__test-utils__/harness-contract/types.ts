@@ -299,6 +299,13 @@ export interface LongTurnControls {
   /** How many times the session's engine compacted its context, across every invocation. */
   compactions(sessionId: string): number;
   /**
+   * What the engine's double answers a compaction's summary with, and the
+   * input tokens each summary bills when the runner makes the summary call
+   * itself; absent where the vendor's server summarises and bills its own.
+   * The text must never reach the person as the agent's words.
+   */
+  readonly compactionSummary: { readonly text: string; readonly inputTokens?: number };
+  /**
    * The runner driving the session's turn is killed: what the engine keeps
    * outside the process stays as the process left it, and nothing the
    * process would do on its way out reaches it (a Cursor agent's run stays

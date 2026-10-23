@@ -30,7 +30,10 @@
 // `message` step sends the person's message mid-tool and replaces the server
 // while it waits; the run must read it, once, after that step's result, and
 // a follower of what needs the person (streamAttention, opened before the
-// run) must be told of the turn once, `finished`, or the script exits 1. What it cannot see is
+// run) must be told of the turn once, `finished`, or the script exits 1.
+// Every summary the mock answered must be one compaction marker in the log,
+// and the turn's reply never the mock's summary, or the script exits 1
+// (`compactionVerdictOf`). What it cannot see is
 // said in the report: against the mock the runner holds a static token, so
 // the token re-mint a hosted runner does at 0.8 of its lifetime never runs.
 //
@@ -49,7 +52,7 @@ import { join, resolve } from "node:path";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { driveLongTurn } from "../src/long-turn/drive";
 import { parseLongTurnFlags, profileOf, shellCommandOf, timeoutSecondsOf, type LongTurnStep, type StepFiles } from "../src/long-turn/profile";
-import { messageVerdictOf, transcriptVerdictOf, type LongTurnReport } from "../src/long-turn/report";
+import { compactionVerdictOf, messageVerdictOf, transcriptVerdictOf, type LongTurnReport } from "../src/long-turn/report";
 import { AttentionFollower } from "../src/long-turn/follow";
 import { agentRefOf, makeAgent } from "../src/support/agents";
 import { uniqueName } from "../src/support/naming";
@@ -147,6 +150,11 @@ async function main(): Promise<void> {
     const read = messageVerdictOf(ended.end!, created.metadata!.id);
     if (!read.read) {
       console.error(`[long-turn] the person's message or attention failed: ${read.reasons.join("; ")}`);
+      process.exitCode = 1;
+    }
+    const compaction = compactionVerdictOf(ended.end!);
+    if (!compaction.marked) {
+      console.error(`[long-turn] the compactions were not told right: ${compaction.reasons.join("; ")}`);
       process.exitCode = 1;
     }
   } finally {

@@ -34,6 +34,7 @@
  * | `boundaryRewritesRow` | none                    | the boundary's reopened, hidden and refused rows | (surveyed later)                     | (surveyed later)                               |
  * | `subAgentProgress` | `streamed` (sub-graph events) | `at-completion` (the `task` result only) | (surveyed later)                          | (no sub-agents)                                |
  * | `continuation`    | `checkpoint` (the thread's saved step) | `digest` (a prompt on the resumed agent) | (surveyed later)                  | (surveyed later)                               |
+ * | `contextCompaction` | `runner-summarizer` (deepagents' in the graph) | `vendor-server` (Cursor's server) | `engine-cli` (the SDK's own)           | (surveyed later)                               |
  *
  * Adapter-internal, deliberately NOT flags: how MCP servers are bound, how
  * metering is routed, how the cost cap is applied inside the engine, how a
@@ -147,6 +148,26 @@ export type ContinuationKind = "checkpoint" | "digest";
 export type MidTurnInput = "next-step" | "round-end";
 
 /**
+ * Where an engine's context compaction comes from: whose summarizer
+ * condenses a conversation that no longer fits its model, and so who bills
+ * the summary. A stated fact, never a switch: every engine meets the same
+ * bar (the contract kit's three-compactions arm asks each one for an
+ * `agent.thread_context_compacted` per compaction and no summary spoken as
+ * the agent), and no phase branches on it.
+ *
+ *  - `runner-summarizer`: a summarizer the runner runs in the engine's own
+ *    graph, on the turn's model, billed to the turn (native:
+ *    `middleware/compaction.ts` over deepagents').
+ *  - `vendor-server`: the vendor's server summarizes and bills its own, and
+ *    says so on its stream (Cursor's `summary-completed`).
+ *  - `engine-cli`: the engine's own process compacts and reports a
+ *    boundary (the Claude Agent SDK, surveyed).
+ *  - `none`: the engine keeps no context to compact (the kit's scripted
+ *    fake).
+ */
+export type ContextCompaction = "runner-summarizer" | "vendor-server" | "engine-cli" | "none";
+
+/**
  * The two facts the runtime's file-review capture and reconcile need from
  * the harness and cannot know: the id the projection reads from the
  * BASELINE payload (`shared/filereview/capture.ts`), and the
@@ -218,4 +239,6 @@ export interface HarnessCapabilities {
   readonly continuation: ContinuationKind;
   /** Where a working turn reads a message sent while it works (see {@link MidTurnInput}). */
   readonly midTurnInput: MidTurnInput;
+  /** Whose summarizer compacts the engine's context (see {@link ContextCompaction}). */
+  readonly contextCompaction: ContextCompaction;
 }

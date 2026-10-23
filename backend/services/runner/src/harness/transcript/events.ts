@@ -34,6 +34,9 @@
  *     produce, and `system_note`, a harness's line in its own voice. The
  *     union is complete: a Cursor translator emits it and writes
  *     nothing else.
+ *   - `context_compacted`, a marker where the engine summarized the
+ *     conversation, so the person is told and the summary never reads as
+ *     the agent's words.
  *   - `tool_policy`, the provenance of a call an agent's hook decided. A
  *     hook is a process, not policy state a translator can re-derive, so the
  *     gate that ran it says what it decided, and the builder stamps the row
@@ -251,6 +254,19 @@ export interface ApprovalProposedEvent extends Scoped {
 }
 
 /**
+ * The engine compacted the scope's conversation at this point: the summarizer
+ * ran, and the model reads a summary of what came before from now on. Native
+ * deepagents' summarizer says so through the compaction middleware's
+ * custom-stream event, Cursor's server through its `summary-completed`
+ * delta. A marker, never a message: the summary's text is the engine's and
+ * never the agent's words. The builder appends a COMPACTED row in the scope,
+ * which hosts no rows and moves no boundary.
+ */
+export interface ContextCompactedEvent extends Scoped {
+  readonly kind: "context_compacted";
+}
+
+/**
  * A line the harness adds to the transcript in its own voice — Cursor's
  * `task` SDK event (a status line about the run), the boundary's
  * unresolved-disclosure row. A SYSTEM message in the scope, never
@@ -278,4 +294,5 @@ export type TranscriptEvent =
   | SubAgentFinishedEvent
   | SubAgentFailedEvent
   | ApprovalProposedEvent
+  | ContextCompactedEvent
   | SystemNoteEvent;

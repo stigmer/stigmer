@@ -65,6 +65,7 @@ import type { CasCaptureObserver } from "./cas-capture-observer.js";
 import type { CostAdvisoryMiddleware, StigmerMiddleware } from "../../middleware/index.js";
 import { createWebFetchTool, type GuardPosture } from "../../tools/index.js";
 import { withSubAgentSpan } from "../../middleware/otel-spans.js";
+import { createCompactionMiddleware } from "../../middleware/compaction.js";
 import { buildSubAgentMiddleware } from "./subagent-wiring.js";
 import { SubAgentGate } from "../../shared/subagent-gate.js";
 import type { SkillMetadata } from "../../shared/skill-resolver.js";
@@ -576,7 +577,9 @@ export async function compileSubagents(
         model,
         systemPrompt: compiledPrompt(spec, opts.permissions === undefined),
         tools: spec.tools.length > 0 ? spec.tools : undefined,
-        middleware: buildSubAgentMiddleware({
+        // The summarizer replaces deepagents' own by name, over this
+        // sub-agent's backend and on its own model (`middleware/compaction.ts`).
+        middleware: [createCompactionMiddleware({ backend }), ...buildSubAgentMiddleware({
           costAdvisory: opts.costAdvisory,
           ...(opts.turnBoundary ? { turnBoundary: opts.turnBoundary } : {}),
           approvalGate: approvalGate
@@ -587,7 +590,7 @@ export async function compileSubagents(
           ...(opts.scopeBase ? { toolScope: { ...opts.scopeBase, scope: spec.scope } } : {}),
           otelSpans: { toolServerMap: opts.toolServerMap ?? new Map() },
           ...(shell ? { shell } : {}),
-        }) as unknown[],
+        })] as unknown[],
         backend,
         // Enforced inside this graph's own filesystem tools — and inherited by
         // any spec-style sub-agent deepagents auto-injects one level deeper.

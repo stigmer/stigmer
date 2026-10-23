@@ -165,6 +165,7 @@ export class TurnTimeline {
       case "tool_output_delta":
       case "tool_policy":
       case "approval_proposed":
+      case "context_compacted":
       case "system_note":
         return;
       default: {

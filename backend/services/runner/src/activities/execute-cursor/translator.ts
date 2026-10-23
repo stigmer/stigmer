@@ -26,9 +26,11 @@
  * {@link drainDeltas} after each stream event, and once more before
  * `finalize()`. One exception keeps a running command's output live: while
  * the loop waits for the next stream event (no persist in flight), output
- * that is all the queue holds is applied at once ({@link drainOutputOnly}),
+ * that is all the queue holds is applied at once ({@link drainIdle}),
  * so a long command's lines reach the session as it prints them instead of
- * with its completion. A delta for a call the stream has not announced yet (the
+ * with its completion. A compaction's marker (`summary-completed`) rides the
+ * same exception: it touches no tool row, and applied at the next stream
+ * event it would land after the text the agent says next. A delta for a call the stream has not announced yet (the
  * output that beats the `running` event) is HELD and replayed right after the
  * `tool_started` that announces it. Because the fold is later than
  * the observation, a completion learned from a delta carries `observedAt` —
@@ -244,23 +246,33 @@ export class CursorTranslator {
         );
         return;
       }
+      case "summary-completed":
+        // Cursor's server compacted the conversation: one marker, at the
+        // root, ending the open text as a tool call does, so what the agent
+        // says next is a message after it. The `summary` text is the
+        // server's, never the agent's, and the server bills it (no usage).
+        for (const runId of this.segments.keys()) this.queue.push(...this.closeSegment(runId));
+        this.queue.push({ kind: "context_compacted" });
+        return;
       default:
         // `turn-ended` (the loop prices it), `text-delta`/`thinking-delta` (the
-        // stream carries the text), `thinking-completed`, the step and summary
-        // markers, `partial-tool-call`: no transcript fact.
+        // stream carries the text), `thinking-completed`, the step markers,
+        // `summary-started` and `summary`, `partial-tool-call`: no
+        // transcript fact.
         return;
     }
   }
 
   /**
-   * The queue, when it holds nothing but a running command's output; nothing
+   * The queue, when it holds nothing but a running command's output and a
+   * compaction's marker (the segment it closes, and the marker); nothing
    * otherwise. For the loop's idle moments (the header's exception): a queued
    * completion waits for the stream's own event, so the enricher's order
-   * (the stream's instant first) is kept, and the output queued before it
+   * (the stream's instant first) is kept, and what was queued before it
    * waits with it.
    */
-  drainOutputOnly(): TranscriptEvent[] {
-    if (this.queue.some((event) => event.kind !== "tool_output_delta")) return [];
+  drainIdle(): TranscriptEvent[] {
+    if (this.queue.some((event) => !IDLE_FACTS.has(event.kind))) return [];
     return this.drainDeltas();
   }
 
@@ -432,6 +444,9 @@ export class CursorTranslator {
     else this.held.set(callId, [make]);
   }
 }
+
+/** What the loop may apply while it waits for the next stream event ({@link CursorTranslator.drainIdle}). */
+const IDLE_FACTS: ReadonlySet<TranscriptEvent["kind"]> = new Set(["tool_output_delta", "message_finish", "context_compacted"]);
 
 function segmentId(runId: string, n: number): string {
   return `${runId}:${n}`;

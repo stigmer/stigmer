@@ -241,6 +241,8 @@ export interface LongTurnFlags {
   readonly out: string | undefined;
   /** The live run's harness (`deep-agent` or `cursor`); the real-clock run is native only. */
   readonly harness: string;
+  /** The live run's model, a registry id; absent, the harness's parity model. The real-clock run plays the profile's on the mock. */
+  readonly model: string | undefined;
   /** The real-clock run's execution target: a server restart overlaps two servers only on `local-postgres-execution`. */
   readonly target: LongTurnTarget;
 }
@@ -265,6 +267,7 @@ export function parseLongTurnFlags(argv: readonly string[]): LongTurnFlags {
     steps: (value("steps") ?? "").split(",").filter((s) => s !== ""),
     out: value("out"),
     harness: value("harness") ?? "deep-agent",
+    model: value("model"),
     target,
   };
 }
