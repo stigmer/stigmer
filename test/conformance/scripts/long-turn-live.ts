@@ -38,11 +38,17 @@
 // opening asks, once, for one thing needed only at the end, a `FINISHED.md`
 // in the report directory naming the first and the last step and how many
 // ran. Past three compactions the opening itself has been summarized, so a
-// right file says the model kept its goal; the summary says kept or lost and
-// the script does not fail on it (a lost goal is a measurement, the case for
-// tuning the summarizer). The opening insists on one call per step with its
-// whole output: on 2026-10-23 Haiku 4.5 otherwise ran the bulk steps in loops
-// with their output discarded, and its context never reached a compaction.
+// right file, with the steps run as listed (each once, in order, nothing
+// added), says the model kept its goal (`goalVerdictOf`). The summary says
+// kept, lost or void, and the script does not fail on it (a lost goal is a
+// measurement, the case for tuning the summarizer). The opening insists on
+// one call per step with its whole output: on 2026-10-23 Haiku 4.5 otherwise
+// ran the bulk steps in loops with their output discarded, and its context
+// never reached a compaction. It still ran them three or four to a call, so
+// the `retention` profile chains them: each step takes the key the one
+// before it printed (src/long-turn/profile.ts), and a run whose calls still
+// bundled steps, or that compacted fewer than three times, reads void.
+// `--profile retention --model claude-haiku-4.5` is the goal-retention probe.
 //
 // Needs: the `temporal` CLI on PATH; ANTHROPIC_API_KEY for native,
 // CURSOR_API_KEY for Cursor; the `stigmer` CLI (`make install-cli-shim`).
@@ -57,8 +63,8 @@ import { PARITY_MODEL } from "../src/benchmark/cells";
 import type { BenchmarkHarness } from "../src/benchmark/report";
 import { bootBenchmarkStack } from "../src/benchmark/run";
 import { driveLongTurn } from "../src/long-turn/drive";
-import { narrateStep, parseLongTurnFlags, profileOf, type StepFiles } from "../src/long-turn/profile";
-import { compactionVerdictOf, finishedCheckOf, messageVerdictOf, transcriptVerdictOf, writeLongTurnReport, type LongTurnReport } from "../src/long-turn/report";
+import { CHAIN_KEY, narrateStep, parseLongTurnFlags, profileOf, type StepFiles } from "../src/long-turn/profile";
+import { compactionVerdictOf, finishedCheckOf, goalVerdictOf, messageVerdictOf, stepFidelityOf, transcriptVerdictOf, writeLongTurnReport, type LongTurnReport } from "../src/long-turn/report";
 import { AttentionFollower } from "../src/long-turn/follow";
 import { agentRefOf, makeAgent } from "../src/support/agents";
 import { uniqueName } from "../src/support/naming";
@@ -97,8 +103,9 @@ async function main(): Promise<void> {
   const startedAt = new Date();
   const out = resolve(flags.out ?? join(".test-output", "long-turn-live", `${harness}-${profile.name}-${startedAt.toISOString().replace(/[:.]/g, "-")}`));
   mkdirSync(out, { recursive: true });
-  const files: StepFiles = { markers: join(out, "markers.log"), releaseOf: (id) => join(out, `release-${id}`) };
+  const files: StepFiles = { markers: join(out, "markers.log"), keys: join(out, "keys.log"), releaseOf: (id) => join(out, `release-${id}`) };
   writeFileSync(files.markers, "");
+  writeFileSync(files.keys, "");
   const finishedFile = join(out, "FINISHED.md");
   const report: LongTurnReport = {
     profile: `${profile.name} (live, ${harness})`,
@@ -125,7 +132,10 @@ async function main(): Promise<void> {
       "This is the platform's long-turn measurement: the operator wants each step below run exactly as written, to see how a turn that runs for a long time is carried. " +
         "Perform the steps in order, one at a time, waiting for each to finish before the next. Skip none, add none. " +
         "Each step is one tool call of its own, its command exactly as written: never put two steps into one call, a loop or a script, and never redirect, " +
-        "pipe away or shorten a command's output, because each call's whole output coming back to you is what is measured.",
+        "pipe away or shorten a command's output, because each call's whole output coming back to you is what is measured." +
+        (profile.steps.some((step) => step.kind === "chained")
+          ? ` Each step's output ends with a line 'next key: ...'; the next step's command takes that key in place of ${CHAIN_KEY}.`
+          : ""),
       ...profile.steps.map((step, i) => `${i + 1}. ${narrateStep(step, files)}`),
       `When every step is done, write the file '${finishedFile}' with the shell, holding three lines: the id of the first step you ran ` +
         "(the word after 'start' in its command), the id of the last, and how many steps you ran. Then reply with exactly: done",
@@ -159,8 +169,10 @@ async function main(): Promise<void> {
       },
       attention,
     });
-    const finished = finishedCheckOf(profile.steps.map((s) => s.id), existsSync(finishedFile) ? readFileSync(finishedFile, "utf8") : undefined);
-    const end = { ...ended.end!, finished };
+    const ids = profile.steps.map((s) => s.id);
+    const finished = finishedCheckOf(ids, existsSync(finishedFile) ? readFileSync(finishedFile, "utf8") : undefined);
+    const fidelity = stepFidelityOf(ids, readFileSync(files.markers, "utf8"), readFileSync(files.keys, "utf8"));
+    const end = { ...ended.end!, finished, fidelity };
     await writeLongTurnReport(out, { ...ended, end });
     const verdict = transcriptVerdictOf(end);
     if (!verdict.whole) {
@@ -177,7 +189,8 @@ async function main(): Promise<void> {
       console.error(`[long-turn] the compactions were not told right: ${compaction.reasons.join("; ")}`);
       process.exitCode = 1;
     }
-    console.log(`[long-turn] ${end.compactedEvents ?? 0} compactions marked; FINISHED.md ${finished.found === undefined ? "not written" : `holds ${finished.found.join(", ")}`} (asked ${finished.expected.join(", ")})`);
+    const goal = goalVerdictOf(end)!;
+    console.log(`[long-turn] ${end.compactedEvents ?? 0} compactions marked; goal ${goal.verdict}${goal.reasons.length === 0 ? "" : `: ${goal.reasons.join("; ")}`}`);
   } finally {
     await attention?.stop();
     await stack.stop();

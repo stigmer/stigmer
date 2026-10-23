@@ -14,7 +14,7 @@
 // COMPLETED, on any other terminal phase held for 20 s (a drained turn
 // writes FAILED before the workflow recovers it), or when the profile's
 // budget is spent, then reads the session's whole log back for the
-// transcript check.
+// transcript check and the tool calls that started the steps.
 //
 // Beside the poll, a streaming follower (follow.ts) reads the session from
 // its first event through every restart; at the end it is given the stream's
@@ -36,7 +36,7 @@ import { sessionIdOf } from "../support/runs";
 import { foldSession, turnOf } from "@stigmer/session-log";
 import { stepProgressOf, type LongTurnProfile, type StepFiles } from "./profile";
 import { SessionFollower } from "./follow";
-import { compactedEventsOf, followerCheckOf, messageCheckOf, movedSeqsOf, transcriptCheckOf, writeLongTurnReport, type LongTurnReport, type MinuteSample } from "./report";
+import { compactedEventsOf, followerCheckOf, messageCheckOf, movedSeqsOf, stepCallsOf, transcriptCheckOf, writeLongTurnReport, type LongTurnReport, type MinuteSample } from "./report";
 import type { AttentionFollower } from "./follow";
 
 /* v8 ignore start -- @preserve: the real-clock and live runs are hand-run scripts no vitest config collects; the unit lane tests the pure readers and the report they feed */
@@ -213,6 +213,7 @@ export async function driveLongTurn(options: DriveOptions): Promise<LongTurnRepo
           transcript: transcriptCheckOf(seqs, moved),
           reply: turnOf(foldSession(log), runId)?.answer ?? "",
           compactedEvents: compactedEventsOf(log),
+          stepCalls: stepCallsOf(log, profile.steps.map((s) => s.id)),
           ...(options.counts === undefined ? {} : options.counts()),
           ...(followed === undefined ? {} : { follower: followed }),
           ...(report.message === undefined ? {} : { message: messageCheckOf(log, report.message) }),
