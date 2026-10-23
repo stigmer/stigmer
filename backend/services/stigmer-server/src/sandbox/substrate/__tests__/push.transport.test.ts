@@ -12,8 +12,14 @@
  *   - a CA file replaced on disk is trusted on the next push, and the
  *     idle connection made under the old one is not reused;
  *   - http:// still works, the push's retries included;
- *   - boot refuses an unreadable CA file, one holding no certificate, and
- *     a CA or server name given for an http:// router;
+ *   - a router that asks for a client certificate, as Substrate 0.5's
+ *     does, is reached with the credential bundle's key and chain; one
+ *     presented with none, or with a certificate it does not accept, is a
+ *     RouterTlsError naming the client certificate variable, never
+ *     retried; a bundle replaced on disk is presented from the next push;
+ *   - boot refuses an unreadable CA file, one holding no certificate, a
+ *     client certificate file without a key or a certificate, and a CA,
+ *     server name or client certificate given for an http:// router;
  *   - an aborted push and a reply cut short reject.
  */
 import { mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
@@ -44,6 +50,10 @@ const ROUTER_NAME = "atenet-router.ate-system.svc";
 
 let routerCa: TestCa;
 let otherCa: TestCa;
+/** Signs the server's client certificate, as Substrate's podidentity signer does. */
+let clientCa: TestCa;
+let clientCertificate: TestServerCertificate;
+let strangerCertificate: TestServerCertificate;
 /** Names only the router's in-cluster name, as Substrate's servicedns certificate does. */
 let routerCertificate: TestServerCertificate;
 /** Names 127.0.0.1, so a URL by address checks without an override. */
@@ -58,7 +68,36 @@ beforeAll(async () => {
   addressCertificate = await mintServerCertificate(routerCa, {
     ip: ["127.0.0.1"],
   });
+  clientCa = await mintCa("client test ca");
+  clientCertificate = await mintServerCertificate(clientCa, {
+    dns: ["stigmer-server"],
+  });
+  strangerCertificate = await mintServerCertificate(otherCa, {
+    dns: ["stigmer-server"],
+  });
 });
+
+/** A podCertificate projection's credential bundle: the key, then the chain. */
+function bundle(certificate: TestServerCertificate, name = "bundle.pem"): string {
+  return caFile(`${certificate.key}\n${certificate.cert}\n`, name);
+}
+
+/** An https:// router that refuses any client without a certificate from clientCa. */
+function mtlsRouter(peers: string[]): Promise<Router> {
+  const server = https.createServer({
+    cert: routerCertificate.cert,
+    key: routerCertificate.key,
+    ca: clientCa.pem,
+    requestCert: true,
+    rejectUnauthorized: true,
+  });
+  return listen(server, "https", (req, res) => {
+    const peer = (req.socket as TLSSocket).getPeerCertificate();
+    const name = peer.subject?.CN ?? "";
+    peers.push(Array.isArray(name) ? name.join(",") : name);
+    attached(req, res);
+  });
+}
 
 let dir: string;
 const servers: (http.Server | https.Server)[] = [];
@@ -566,7 +605,81 @@ describe("a push that does not finish", () => {
   });
 });
 
+describe("a router that asks for a client certificate", () => {
+  it("is reached presenting the credential bundle's key and chain", async () => {
+    const peers: string[] = [];
+    const router = await mtlsRouter(peers);
+    const fetch = newRouterFetch({
+      routerUrl: router.url,
+      routerCaFile: caFile(routerCa.pem),
+      routerServerName: ROUTER_NAME,
+      routerClientCertFile: bundle(clientCertificate),
+    });
+    expect(await push(router.url, fetch)).toEqual({ ok: true, started: true });
+    expect(peers).toEqual(["router"]);
+    expect(router.seen).toHaveLength(1);
+  });
+
+  it("fails at once, naming the client certificate variable, when it presents none", async () => {
+    const router = await mtlsRouter([]);
+    const time = clock();
+    const refusal = await push(
+      router.url,
+      newRouterFetch({
+        routerUrl: router.url,
+        routerCaFile: caFile(routerCa.pem),
+        routerServerName: ROUTER_NAME,
+      }),
+      time,
+    ).catch((e: unknown) => e);
+    expect(refusal).toBeInstanceOf(RouterTlsError);
+    expect((refusal as RouterTlsError).code).toBe(
+      "ERR_SSL_TLSV13_ALERT_CERTIFICATE_REQUIRED",
+    );
+    const message = (refusal as Error).message;
+    expect(message).toContain("refused this server's client certificate");
+    expect(message).toContain("it presented none");
+    expect(message).toContain(
+      "STIGMER_SANDBOX_SUBSTRATE_ROUTER_CLIENT_CERT_FILE",
+    );
+    expect(time.elapsed()).toBe(0);
+    expect(router.seen).toEqual([]);
+  });
+
+  it("presents a bundle replaced on disk from the next push", async () => {
+    const router = await mtlsRouter([]);
+    const file = bundle(strangerCertificate);
+    const fetch = newRouterFetch({
+      routerUrl: router.url,
+      routerCaFile: caFile(routerCa.pem),
+      routerServerName: ROUTER_NAME,
+      routerClientCertFile: file,
+    });
+    // Node's TLS server hangs up on a certificate it refuses (Envoy sends
+    // an alert), so the push fails after its window rather than at once.
+    await expect(push(router.url, fetch)).rejects.toThrow();
+    rotate(file, `${clientCertificate.key}\n${clientCertificate.cert}\n`, 1);
+    expect(await push(router.url, fetch)).toEqual({ ok: true, started: true });
+  });
+});
+
 describe("boot", () => {
+  it("refuses a client certificate file without a key or a certificate, naming the variable", () => {
+    const routerUrl = "https://atenet-router.ate-system.svc";
+    for (const contents of [clientCertificate.cert, clientCertificate.key]) {
+      expect(() =>
+        newRouterFetch({
+          routerUrl,
+          routerCaFile: "",
+          routerServerName: "",
+          routerClientCertFile: caFile(contents, "partial.pem"),
+        }),
+      ).toThrow(
+        /STIGMER_SANDBOX_SUBSTRATE_ROUTER_CLIENT_CERT_FILE \(.*partial\.pem\) cannot be used as the router's client certificate: .* must hold a private key and its certificate chain/,
+      );
+    }
+  });
+
   it("refuses an unreadable CA file, and one holding no certificate, naming the variable", () => {
     const routerUrl = "https://atenet-router.ate-system.svc";
     expect(() =>
@@ -605,6 +718,16 @@ describe("boot", () => {
       }),
     ).toThrow(
       /STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME applies only to an https:\/\/ router/,
+    );
+    expect(() =>
+      newRouterFetch({
+        routerUrl: "http://router.example",
+        routerCaFile: "",
+        routerServerName: "",
+        routerClientCertFile: bundle(clientCertificate),
+      }),
+    ).toThrow(
+      /STIGMER_SANDBOX_SUBSTRATE_ROUTER_CLIENT_CERT_FILE applies only to an https:\/\/ router/,
     );
   });
 });

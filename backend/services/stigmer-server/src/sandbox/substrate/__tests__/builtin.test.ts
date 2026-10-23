@@ -142,6 +142,9 @@ describe("newSubstrateSandboxDriver", () => {
     expect(warnings[0]).toMatch(/http:\/\/.*cleartext/);
     expect(warnings[0]).toContain("STIGMER_SANDBOX_SUBSTRATE_ROUTER_CA_FILE");
     expect(warnings[0]).toContain(
+      "STIGMER_SANDBOX_SUBSTRATE_ROUTER_CLIENT_CERT_FILE",
+    );
+    expect(warnings[0]).toContain(
       "STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME",
     );
 

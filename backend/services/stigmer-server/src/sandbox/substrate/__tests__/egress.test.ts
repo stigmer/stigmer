@@ -22,6 +22,8 @@
  *     most 256 names, a cleartext host also a port-80 rule, and under
  *     HTTPS egress `none` it opens no HTTPS rule at all; an archive host
  *     the operator already lists on port 80 stays one rule;
+ *   - every HTTPS rule names port 443, Substrate's default, which Substrate
+ *     0.5 stores filled in, so a policy read back equals the one written;
  *   - egressDigest is equal for equal rules and differs for different ones.
  */
 import { describe, expect, it } from "vitest";
@@ -58,7 +60,9 @@ const settings: SubstrateDriverSettings = {
   routerUrl: "http://127.0.0.1:18200",
   routerCaFile: "",
   routerServerName: "",
+  routerClientCertFile: "",
   atespace: "stigmer",
+  nodeAgentPrincipal: "spiffe://cluster.local/ns/ate-system/sa/atelet",
   storageLocation: "gs://b/p",
   workerSelector: { workload: "stigmer" },
   sandboxConfigName: "gvisor-default",
@@ -104,7 +108,7 @@ describe("the rules", () => {
       "http stigmer.stigmer.svc:7234",
       "http temporal.temporal.svc:7233",
       "http fake-model.example:18555",
-      "https *:-",
+      "https *:443",
     ]);
   });
 });
@@ -132,7 +136,7 @@ describe("an https:// public MCP endpoint", () => {
     ).toEqual([
       "http host.docker.internal:7234",
       "http host.docker.internal:7233",
-      "https *:-",
+      "https *:443",
     ]);
     expect(
       shape(buildEgressRules(hosted, { ...settings, httpsEgress: "none" })),
@@ -270,7 +274,7 @@ describe("a session's Environment", () => {
   it("none gives exactly the rules a sandbox without one gets", () => {
     expect(shape(buildEgressRules(config, open, undefined))).toEqual([
       ...lanes,
-      "https *:-",
+      "https *:443",
     ]);
     expect(shape(buildEgressRules(config, settings, undefined))).toEqual(lanes);
   });
@@ -282,7 +286,7 @@ describe("a session's Environment", () => {
     ).toEqual([
       ...lanes,
       ...APT_ARCHIVE_HOSTS.map((host) => `http ${host}:80`),
-      "https *:-",
+      "https *:443",
     ]);
   });
 
@@ -319,7 +323,7 @@ describe("a session's Environment", () => {
     expect(shape(rules)).toEqual([
       ...lanes,
       "http deb.debian.org:80",
-      "https example.com,deb.debian.org,api.anthropic.com,vertex.example.com:-",
+      "https example.com,deb.debian.org,api.anthropic.com,vertex.example.com:443",
     ]);
     expect(shape(rules).join(" ")).not.toContain("*");
   });
@@ -335,7 +339,7 @@ describe("a session's Environment", () => {
       ),
     ).toEqual([
       ...lanes,
-      "https api2.cursor.sh,api.cursor.com,api.cursor.sh:-",
+      "https api2.cursor.sh,api.cursor.com,api.cursor.sh:443",
     ]);
   });
 

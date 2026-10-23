@@ -929,8 +929,8 @@ export type {
   SubstrateSleepOutcome,
 } from "./sandbox/substrate/driver.js";
 export type { SubstrateRunnerMode } from "./sandbox/substrate/template.js";
-// The bound a composition's own idle windows must keep: a pause no longer
-// than this always wakes a runner whose credential is still renewable.
+// The bound a composition's own idle windows must keep: a paused sandbox's
+// workspace lives on its node only, for no longer than this.
 export { MAX_IN_PLACE_PAUSE_SECONDS as SUBSTRATE_MAX_IN_PLACE_PAUSE_SECONDS } from "./sandbox/substrate/limits.js";
 // The one queue a sandbox serves, for a composition that pushes to it
 // outside a turn (a renewed token).

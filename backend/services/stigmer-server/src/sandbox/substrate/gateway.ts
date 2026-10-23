@@ -19,11 +19,38 @@
  * because Substrate uses it both for a lease held by another operation
  * and for an actor that crashed while resuming; the driver answers it by
  * re-reading the actor, which handles both. RESOURCE_EXHAUSTED (no free
- * worker) becomes SubstrateNoWorkerError. Every call has a deadline.
+ * worker) becomes SubstrateNoWorkerError. PERMISSION_DENIED is thrown
+ * with the grant the server lacks named, because an operator meets it
+ * once, at the first sandbox. Every call has a deadline.
  *
- * Substrate's Control API authorizes nobody: whoever holds this token
- * controls every actor, template and worker of that Substrate. The
- * operator guide says so.
+ * An actor's state is read as the driver needs it (SubstrateSandboxState),
+ * not as Substrate stores it: since Substrate 0.5 a paused actor is
+ * SUSPENDED with a node-local snapshot at its latest generation (a pause
+ * in flight is SUSPENDING with one not yet captured), and only that
+ * snapshot tells it from an actor whose files are in storage (Substrate's
+ * own snapshot_helpers.go reads it the same way).
+ *
+ * Authorization is the install's choice. Without it, whoever holds this
+ * token controls every actor, template and worker of that Substrate. With
+ * it (OpenFGA, Substrate's `--experimental-enable-authz`), the caller is
+ * its token's subject, `system:serviceaccount:<namespace>:<name>`, and
+ * everything the driver does inside its atespace needs `editor` there;
+ * creating the atespace needs a global owner, so the atespace is read
+ * first and created only when it is missing. The operator guide names
+ * both grants.
+ *
+ * With the atespace, the gateway ensures the atespace's access policy:
+ * `editor` for this server (its token's subject, read from the token
+ * file) and `viewer` for Substrate's node agent. The second is a
+ * workaround for a gap in Substrate 0.5's authorization model
+ * (`cmd/ateapi/internal/authz/model.fga`): atelet reads each actor's egress
+ * policy to answer the actor's DNS, the model gives it no
+ * `can_get_egress_policy`, and without the grant every name a sandbox looks
+ * up is refused. A new atespace gets the policy at once; an existing one
+ * gets only the bindings it lacks, and no binding is ever removed. Writing
+ * a policy needs an owner of the atespace (a global owner is one, as a
+ * hosted install's bootstrap owners are), so a refusal is reported, not
+ * thrown: an owner may have made the grants by hand.
  */
 import { readFileSync, statSync } from "node:fs";
 
@@ -39,10 +66,13 @@ import {
 import { createGrpcTransport } from "@connectrpc/connect-node";
 
 import {
+  AccessPolicySchema,
   ActorSchema,
   ActorState,
   ActorTemplateSchema,
+  type ActorStatus,
   AtespaceSchema,
+  BindingSchema,
   Control,
   EgressPolicySchema,
   EgressRuleSchema,
@@ -69,12 +99,33 @@ export class SubstrateNoWorkerError extends Error {
   }
 }
 
+/** The grant the server lacks, named for the operator (module header). */
+export class SubstratePermissionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SubstratePermissionError";
+  }
+}
+
+/** An actor's state, in the platform's words: Substrate's, with a pause told apart (module header). */
+export type SubstrateSandboxState =
+  | "resuming"
+  | "running"
+  | "suspending"
+  | "suspended"
+  | "pausing"
+  | "paused"
+  | "crashed"
+  | "deleting"
+  | "reverting"
+  | "unknown";
+
 /** One actor as the driver sees it. */
 export interface SubstrateActorView {
   readonly name: string;
   readonly uid: string;
   readonly version: bigint;
-  readonly state: ActorState;
+  readonly state: SubstrateSandboxState;
   /** The template's name (always in this server's atespace). */
   readonly template: string;
   readonly createTime: Date | undefined;
@@ -93,8 +144,29 @@ export interface SubstrateTemplateView {
   readonly goldenError: string;
 }
 
+/** One binding the server wants on its atespace's access policy. */
+export interface AtespaceGrant {
+  readonly role: "editor" | "viewer";
+  /** A policy member, `user:<principal id>`. */
+  readonly member: string;
+}
+
+/**
+ * What ensuring the atespace's access policy did: created it, added the
+ * bindings it lacked, found every binding there, or was refused the write
+ * (this server is no owner of the atespace).
+ */
+export type AtespacePolicyOutcome = "created" | "added" | "complete" | "denied";
+
+export interface AtespaceOutcome {
+  readonly policy: AtespacePolicyOutcome;
+  /** The bindings asked for, so a refusal can name them. */
+  readonly grants: readonly AtespaceGrant[];
+}
+
 export interface SubstrateGateway {
-  ensureAtespace(): Promise<void>;
+  /** Makes the atespace exist and its access policy hold the server's grants (module header). */
+  ensureAtespace(): Promise<AtespaceOutcome>;
   getActor(name: string): Promise<SubstrateActorView | undefined>;
   listActors(): Promise<SubstrateActorView[]>;
   createActor(name: string, template: string): Promise<"created" | "exists">;
@@ -134,6 +206,12 @@ const CALL_TIMEOUT_MS = 30_000;
 const LIFECYCLE_TIMEOUT_MS = 120_000;
 /** The largest page Substrate serves. */
 const PAGE_SIZE = 1000;
+/** An actor has at most one egress policy, and it is named so. */
+const EGRESS_POLICY_NAME = "default";
+/** An atespace has at most one access policy, and it is named so. */
+const ACCESS_POLICY_NAME = "default";
+/** How often a policy write that lost a race is read and tried again. */
+const POLICY_ATTEMPTS = 3;
 
 /** A bearer-token interceptor over a file, re-read when its mtime moves. */
 export function bearerFromFile(path: string): Interceptor {
@@ -168,13 +246,83 @@ export function newSubstrateClientGateway(
         : {}),
     },
   });
-  return newSubstrateGatewayOverTransport(transport, settings.atespace);
+  return newSubstrateGatewayOverTransport(transport, settings.atespace, {
+    principal: () => subjectOfTokenFile(settings.apiTokenFile),
+    nodeAgentPrincipal: settings.nodeAgentPrincipal,
+  });
+}
+
+/** The subject of the token in `path`; undefined when the file cannot be read or names none. */
+export function subjectOfTokenFile(path: string): string | undefined {
+  try {
+    return tokenSubject(readFileSync(path, "utf8"));
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * A token's subject, the principal Substrate names its bearer by, read
+ * from the JWT's payload without verifying it (Substrate verifies it);
+ * undefined for a token that is no JWT or names no subject.
+ */
+export function tokenSubject(token: string): string | undefined {
+  const payload = token.trim().split(".")[1];
+  if (payload === undefined) return undefined;
+  try {
+    const claims: unknown = JSON.parse(
+      Buffer.from(payload, "base64url").toString("utf8"),
+    );
+    const sub =
+      typeof claims === "object" && claims !== null && "sub" in claims
+        ? claims.sub
+        : undefined;
+    return typeof sub === "string" && sub !== "" ? sub : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** A principal id as a policy member: `user:<id>`, as Substrate's policies name them. */
+export function policyMember(principal: string): string {
+  return principal.startsWith("user:") ? principal : `user:${principal}`;
+}
+
+/**
+ * The bindings `bindings` gains from `grants`: every one it lacks added,
+ * none removed; undefined when it lacks none.
+ */
+export function withGrants(
+  bindings: readonly { readonly role: string; readonly members: readonly string[] }[],
+  grants: readonly AtespaceGrant[],
+): { role: string; members: string[] }[] | undefined {
+  const merged = bindings.map((binding) => ({
+    role: binding.role,
+    members: [...binding.members],
+  }));
+  let changed = false;
+  for (const grant of grants) {
+    const binding = merged.find((candidate) => candidate.role === grant.role);
+    if (binding === undefined) {
+      merged.push({ role: grant.role, members: [grant.member] });
+      changed = true;
+    } else if (!binding.members.includes(grant.member)) {
+      binding.members.push(grant.member);
+      changed = true;
+    }
+  }
+  return changed ? merged : undefined;
 }
 
 /** The gateway over any transport: the live one above, or a test's in-process one. */
 export function newSubstrateGatewayOverTransport(
   transport: Transport,
   atespace: string,
+  access: {
+    /** This server's principal id, or undefined when it cannot be known. */
+    readonly principal: () => string | undefined;
+    readonly nodeAgentPrincipal: string;
+  } = { principal: () => undefined, nodeAgentPrincipal: "" },
 ): SubstrateGateway {
   const client = createClient(Control, transport);
   const ref = (name: string) => create(ObjectRefSchema, { atespace, name });
@@ -183,7 +331,31 @@ export function newSubstrateGatewayOverTransport(
 
   return {
     async ensureAtespace() {
-      await translate(async () => {
+      // An atespace is global: its reference names it and nothing else.
+      const atespaceRef = create(ObjectRefSchema, { name: atespace });
+      const principal = access.principal();
+      const grants: AtespaceGrant[] = [
+        ...(principal !== undefined
+          ? [{ role: "editor" as const, member: policyMember(principal) }]
+          : []),
+        ...(access.nodeAgentPrincipal !== ""
+          ? [
+              {
+                role: "viewer" as const,
+                member: policyMember(access.nodeAgentPrincipal),
+              },
+            ]
+          : []),
+      ];
+      const created = await translate(async () => {
+        // Read first: under authorization, an atespace someone else created
+        // and granted this server needs no global owner (module header).
+        try {
+          await client.getAtespace({ atespace: atespaceRef }, call);
+          return false;
+        } catch (error) {
+          if (!hasCode(error, Code.NotFound)) throw error;
+        }
         try {
           await client.createAtespace(
             {
@@ -193,10 +365,74 @@ export function newSubstrateGatewayOverTransport(
             },
             call,
           );
+          return true;
         } catch (error) {
           if (!hasCode(error, Code.AlreadyExists)) throw error;
+          return false;
         }
       });
+      if (grants.length === 0) return { policy: "complete", grants };
+
+      const createPolicy = async (): Promise<"created" | "exists"> => {
+        try {
+          await client.createAtespaceAccessPolicy(
+            {
+              atespace: atespaceRef,
+              accessPolicy: create(AccessPolicySchema, {
+                metadata: { name: ACCESS_POLICY_NAME },
+                bindings: withGrants([], grants) ?? [],
+              }),
+            },
+            call,
+          );
+          return "created";
+        } catch (error) {
+          if (hasCode(error, Code.AlreadyExists)) return "exists";
+          throw error;
+        }
+      };
+      const policy = await translate(
+        async (): Promise<AtespacePolicyOutcome> => {
+          try {
+            if (created && (await createPolicy()) === "created") {
+              return "created";
+            }
+            for (let attempt = 1; ; attempt += 1) {
+              let stored;
+              try {
+                stored = await client.getAtespaceAccessPolicy(
+                  { atespace: atespaceRef, name: ACCESS_POLICY_NAME },
+                  call,
+                );
+              } catch (error) {
+                if (!hasCode(error, Code.NotFound)) throw error;
+                if ((await createPolicy()) === "created") return "created";
+                continue;
+              }
+              const bindings = withGrants(stored.bindings, grants);
+              if (bindings === undefined) return "complete";
+              stored.bindings = bindings.map((binding) =>
+                create(BindingSchema, binding),
+              );
+              try {
+                await client.updateAtespaceAccessPolicy(
+                  { atespace: atespaceRef, accessPolicy: stored },
+                  call,
+                );
+                return "added";
+              } catch (error) {
+                // Another writer moved it since the read: read it again.
+                if (!hasCode(error, Code.Aborted) || attempt >= POLICY_ATTEMPTS)
+                  throw error;
+              }
+            }
+          } catch (error) {
+            if (hasCode(error, Code.PermissionDenied)) return "denied";
+            throw error;
+          }
+        },
+      );
+      return { policy, grants };
     },
 
     getActor: (name) =>
@@ -215,7 +451,7 @@ export function newSubstrateGatewayOverTransport(
         let pageToken = "";
         do {
           const page = await client.listActors(
-            { atespace, pageSize: PAGE_SIZE, pageToken },
+            { atespace, options: { pageSize: PAGE_SIZE, pageToken } },
             call,
           );
           actors.push(...page.actors.map(actorView));
@@ -306,8 +542,7 @@ export function newSubstrateGatewayOverTransport(
             {
               actor: ref(name),
               egressPolicy: create(EgressPolicySchema, {
-                // An actor has at most one policy, and it is named "default".
-                metadata: { atespace, name: "default" },
+                metadata: { atespace, name: EGRESS_POLICY_NAME },
                 rules: [...rules],
               }),
             },
@@ -320,7 +555,7 @@ export function newSubstrateGatewayOverTransport(
         // One exists: replace it only when its rules differ, at the version
         // read (a concurrent writer answers ABORTED, and the caller re-reads).
         const stored = await client.getActorEgressPolicy(
-          { actor: ref(name) },
+          { actor: ref(name), name: EGRESS_POLICY_NAME },
           call,
         );
         if (
@@ -360,7 +595,7 @@ export function newSubstrateGatewayOverTransport(
         let pageToken = "";
         do {
           const page = await client.listActorTemplates(
-            { atespace, pageSize: PAGE_SIZE, pageToken },
+            { atespace, options: { pageSize: PAGE_SIZE, pageToken } },
             call,
           );
           templates.push(...page.actorTemplates.map(templateView));
@@ -404,11 +639,16 @@ function hasCode(error: unknown, code: Code): boolean {
   return error instanceof ConnectError && error.code === code;
 }
 
-/** ABORTED and RESOURCE_EXHAUSTED into the driver's two typed errors (module header). */
+/** ABORTED, RESOURCE_EXHAUSTED and PERMISSION_DENIED into the driver's typed errors (module header). */
 async function translate<T>(body: () => Promise<T>): Promise<T> {
   try {
     return await body();
   } catch (error) {
+    if (hasCode(error, Code.PermissionDenied)) {
+      throw new SubstratePermissionError(
+        `Substrate's Control API refused this server (${(error as ConnectError).rawMessage}); with authorization on, the server's identity (its token's subject, system:serviceaccount:<namespace>:<name>) needs the editor role on its atespace, and the atespace must exist unless the server is a global owner`,
+      );
+    }
     if (hasCode(error, Code.Aborted)) {
       throw new SubstrateAbortedError((error as ConnectError).rawMessage);
     }
@@ -424,7 +664,7 @@ function actorView(actor: Actor): SubstrateActorView {
     name: actor.metadata?.name ?? "",
     uid: actor.metadata?.uid ?? "",
     version: actor.metadata?.version ?? 0n,
-    state: actor.status?.state ?? ActorState.UNSPECIFIED,
+    state: stateOf(actor.status),
     template: actor.actorTemplate?.name ?? "",
     createTime: actor.metadata?.createTime
       ? timestampDate(actor.metadata.createTime)
@@ -447,4 +687,41 @@ function templateView(template: ActorTemplate): SubstrateTemplateView {
     goldenReady: (golden?.goldenTag?.name ?? "") !== "",
     goldenError: golden?.errorMessage ?? "",
   };
+}
+
+/**
+ * Substrate's state in the driver's words, a pause told apart by the
+ * snapshot at the actor's latest generation (module header).
+ */
+export function stateOf(status: ActorStatus | undefined): SubstrateSandboxState {
+  const latest = status?.snapshots.find(
+    (snapshot) => snapshot.generation === status.lastAssignedGeneration,
+  );
+  const localOnly =
+    latest !== undefined && latest.durableSnapshot === undefined;
+  const state = status?.state ?? ActorState.UNSPECIFIED;
+  switch (state) {
+    case ActorState.RESUMING:
+      return "resuming";
+    case ActorState.RUNNING:
+      return "running";
+    case ActorState.SUSPENDING:
+      return localOnly && latest.locality === "" ? "pausing" : "suspending";
+    case ActorState.SUSPENDED:
+      return localOnly && latest.locality !== "" ? "paused" : "suspended";
+    case ActorState.CRASHED:
+      return "crashed";
+    case ActorState.DELETING:
+      return "deleting";
+    case ActorState.REVERTING:
+      return "reverting";
+    case ActorState.UNSPECIFIED:
+      return "unknown";
+    default: {
+      // Only a number outside the enum reaches here, from another release.
+      const unexpected: never = state;
+      void unexpected;
+      return "unknown";
+    }
+  }
 }

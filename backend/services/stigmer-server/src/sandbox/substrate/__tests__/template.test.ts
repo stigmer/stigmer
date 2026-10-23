@@ -5,8 +5,9 @@
  *     only plain per-target settings (no runner secret, no token), gives the
  *     runner root's HOME (its user is the image's, which Substrate cannot
  *     set; the start script refuses one that is not root), mounts
- *     the workspace and the actor's own name, and
- *     snapshots FULL on pause, DATA on commit, golden on resume;
+ *     the workspace and the actor's own name, runs in the gVisor class, and
+ *     snapshots volumes only, its golden snapshot on (a pause and a
+ *     suspend alike keep the workspace, never the runner's memory);
  *   - it adds the runner's five capabilities to Substrate's default set and
  *     drops none, so the runner can run the agent as its own user and the
  *     waiter keeps port 80 (#2339);
@@ -19,6 +20,8 @@
  *     development builds keeps the template (stigmer/stigmer#1831);
  *   - it writes the runner's mode it is given (`cloud` for a composition
  *     hosting many organisations), which no operator setting overrides;
+ *   - the keeper says once per process that an owner must grant the
+ *     atespace's bindings when it may not write them;
  *   - the keeper prepares once however many callers wait, waits for the
  *     golden snapshot, recreates a failed template once and then fails, and
  *     gives up after its cap.
@@ -37,9 +40,8 @@ import { FakeSubstrate } from "../__test-utils__/fake-gateway.js";
 import type { SubstrateDriverSettings } from "../config.js";
 import {
   ActorMetadataField,
-  ResumeSource,
-  SandboxClass,
-  SnapshotContentScope,
+  GoldenSnapshotMode,
+  SnapshotFidelity,
 } from "../gen/ateapipb/ateapi_pb.js";
 import { buildRunnerTemplate, newTemplateKeeper } from "../template.js";
 
@@ -71,7 +73,9 @@ const settings: SubstrateDriverSettings = {
   routerUrl: "http://router.example:18200",
   routerCaFile: "",
   routerServerName: "",
+  routerClientCertFile: "",
   atespace: "stigmer",
+  nodeAgentPrincipal: "spiffe://cluster.local/ns/ate-system/sa/atelet",
   storageLocation: "gs://ate-snapshots/stigmer",
   workerSelector: { workload: "stigmer" },
   sandboxConfigName: "gvisor-default",
@@ -155,14 +159,13 @@ describe("the template", () => {
       }),
     ]);
     expect(template.sandboxConfig).toMatchObject({
-      sandboxClass: SandboxClass.GVISOR,
+      sandboxClass: "gvisor",
       configName: "gvisor-default",
     });
     expect(template.snapshotConfig).toMatchObject({
-      onPause: SnapshotContentScope.FULL,
-      onCommit: SnapshotContentScope.DATA,
-      onResume: { fromData: ResumeSource.GOLDEN },
       storageLocation: "gs://ate-snapshots/stigmer",
+      preferredFidelity: SnapshotFidelity.VOLUMES,
+      goldenSnapshotConfig: { mode: GoldenSnapshotMode.ENABLED },
     });
     expect(template.workerSelector?.matchLabels).toEqual({
       workload: "stigmer",
@@ -184,7 +187,7 @@ describe("the template", () => {
     expect(
       template.volumes[1]?.systemInfo?.dataSources[0]?.trustBundle,
     ).toMatchObject({
-      name: "egress-mitm.ate.dev",
+      names: ["egress-mitm.ate.dev"],
       path: "trust-bundle.pem",
     });
     const env = envOf(template);
@@ -264,18 +267,60 @@ describe("the template", () => {
 });
 
 describe("the keeper", () => {
-  function keeper(substrate: FakeSubstrate) {
+  function keeper(substrate: FakeSubstrate, logger = silentLogger) {
     let t = 0;
     return newTemplateKeeper({
       gateway: substrate,
       template: buildRunnerTemplate({ config, settings, runnerMode: "local" }),
-      logger: silentLogger,
+      logger,
       now: () => t,
       sleep: async (ms) => {
         t += ms;
       },
     });
   }
+
+  it("says once per process that an owner must grant the atespace's bindings when it may not write them", async () => {
+    const warnings: string[] = [];
+    const logger = createLogger({
+      level: "info",
+      pretty: false,
+      write: () => {},
+      sink: (entry) => {
+        if (entry.level === "warn") warnings.push(entry.message);
+      },
+    });
+    const substrate = new FakeSubstrate();
+    substrate.atespacePolicy = "denied";
+    substrate.atespaceGrants = [
+      { role: "viewer", member: "user:spiffe://cluster.local/ns/ate-system/sa/atelet" },
+    ];
+    const k = keeper(substrate, logger);
+    await k.ready();
+    k.invalidate();
+    await k.ready();
+    expect(substrate.calls.filter((c) => c.startsWith("ensureAtespace"))).toHaveLength(2);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/an owner of the atespace must grant/);
+  });
+
+  it("says when it granted the atespace's bindings", async () => {
+    const infos: string[] = [];
+    const logger = createLogger({
+      level: "info",
+      pretty: false,
+      write: () => {},
+      sink: (entry) => {
+        if (entry.level === "info") infos.push(entry.message);
+      },
+    });
+    const substrate = new FakeSubstrate();
+    substrate.atespacePolicy = "added";
+    await keeper(substrate, logger).ready();
+    expect(infos).toContain(
+      "Substrate atespace access policy granted this server's bindings",
+    );
+  });
 
   it("prepares once however many callers wait, and reports ready only after", async () => {
     const substrate = new FakeSubstrate();

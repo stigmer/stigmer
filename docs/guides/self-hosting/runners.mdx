@@ -510,11 +510,12 @@ registries and the network decide yours.
 On [Agent Substrate](https://github.com/agent-substrate/substrate), each
 Session's runner lives in a gVisor actor. After
 `STIGMER_SANDBOX_SUBSTRATE_PAUSE_AFTER_SECONDS` idle (300 by default) the server
-pauses it in place, and after `STIGMER_SANDBOX_SUBSTRATE_SUSPEND_AFTER_SECONDS`
-(330) it suspends it, committing the Session's files to storage and releasing
-its memory. The next message wakes it with its files intact and a fresh runner.
-A Session with a run in progress, waiting for approval or paused is never put to
-sleep. Connect sandboxes don't sleep; they end with their run.
+pauses it: the sandbox stops and the Session's files stay on its node. After
+`STIGMER_SANDBOX_SUBSTRATE_SUSPEND_AFTER_SECONDS` (330) it suspends it: the
+files go to storage and the node is free. Paused or suspended, the next message
+wakes it with its files intact and a fresh runner. A Session with a run in
+progress, waiting for approval or paused is never put to sleep. Connect
+sandboxes don't sleep; they end with their run.
 
 The defaults come from measurements on a local Agent Substrate cluster (kind,
 Substrate v0.3.0, 2026-10-03), timed from the server accepting a message to the
@@ -528,28 +529,35 @@ runner starting work on it, at the ninety-fifth percentile:
 | In storage                           | 1.7 s            |
 | New                                  | 1.8 s            |
 
-A pause of minutes wakes slower than storage in its tail, so a Session stays
-paused only briefly: the sweep runs every
-`STIGMER_SANDBOX_SUBSTRATE_SWEEP_INTERVAL_SECONDS` (30), and the suspend lands
-on the pass after the pause. Storage in a cloud bucket adds its download time to
-a wake from storage. A paused runner may sleep at most 30 minutes, so the server
-refuses windows that would keep it paused longer.
+Those were measured on v0.3.0, where a pause kept the runner's memory. From
+v0.5.0 Substrate snapshots a pause and a suspend alike, and the server keeps the
+Session's files only, so every wake starts a fresh runner. On v0.5.0 (kind,
+2026-10-23), a wake took 1.6 to 2.4 s from its start to the runner reaching
+Temporal (seven wakes, pauses and storage alike), and a new Session 1.9 s. A
+short pause wakes slower than it did; a long one wakes faster. A pause still
+spares the upload and download of a Session that is soon used again. The sweep
+runs every `STIGMER_SANDBOX_SUBSTRATE_SWEEP_INTERVAL_SECONDS` (30), and the
+suspend lands on the pass after the pause. Storage in a cloud bucket adds its
+download time to a wake from storage. A paused Session's files live on one node
+until the suspend, so the server refuses windows that would keep it paused
+longer than 30 minutes.
 
 A new value for one of the runner's secrets, a model key for one, takes effect
-when the server restarts with it, and reaches each sandbox at its next fresh
-start: at once for a Session that is asleep, but only after its next idle
-suspend for one whose runner is awake, and never while it stays busy. To cut off
-a leaked key at once, delete or suspend the sandboxes that hold it.
+when the server restarts with it, and reaches each sandbox at its next wake: at
+once for a Session that is asleep, but only after its next idle pause for one
+whose runner is awake, and never while it stays busy. To cut off a leaked key at
+once, delete or suspend the sandboxes that hold it.
 
 Every Session's actor comes from one template the server creates and names by
-its content, so a new runner image or setting makes a new template. Sleeping
-Sessions move to it when they next wake, at the cost of one fresh start, and the
-server deletes old templates nothing uses any more.
+its content, so a new runner image or setting makes a new template. Sessions in
+storage move to it when they next wake, and the server deletes old templates
+nothing uses any more.
 
 What the driver needs:
 
-- **Agent Substrate v0.3.0, exactly.** Substrate refuses fields it doesn't know,
-  so the server speaks the one release its stubs were generated from.
+- **Agent Substrate v0.5.0, exactly.** Substrate refuses fields it doesn't know,
+  so the server speaks the one release its stubs were generated from. Before 1.0
+  every Substrate minor release is a reinstall.
 - **Its Control API**: `STIGMER_SANDBOX_SUBSTRATE_API_ENDPOINT` (an `https://`
   URL; in the cluster, `https://api.ate-system.svc:443`), the CA that signs it
   (`STIGMER_SANDBOX_SUBSTRATE_API_CA_FILE`) and, when you reach it under another
@@ -557,7 +565,11 @@ What the driver needs:
   (`STIGMER_SANDBOX_SUBSTRATE_API_SERVER_NAME`, `api.ate-system.svc`). The
   server authenticates with a bearer token read from
   `STIGMER_SANDBOX_SUBSTRATE_API_TOKEN_FILE`, and reads the file again when it
-  changes, so a projected ServiceAccount token can rotate.
+  changes, so a projected ServiceAccount token can rotate: give it the audience
+  `api.ate-system.svc`. Substrate's namespace denies traffic by default, so the
+  server's own namespace carries the label `ate.dev/api-access=true`, or its
+  calls never arrive. The CA is the cluster's servicedns trust bundle, the
+  ClusterTrustBundle `servicedns.podcert.ate.dev:identity:primary-bundle`.
 - **Its router**: `STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL`, the address the server
   pushes each Session's queue and credentials through. In the cluster, use
   `https://atenet-router.ate-system.svc` with
@@ -566,15 +578,45 @@ What the driver needs:
   reads that file again when it changes, so the CA can rotate under it. The
   router's certificate names only `atenet-router.ate-system.svc`, so when you
   reach the router another way, through a port-forward for instance, set
-  `STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME` to that name. An `http://`
+  `STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME` to that name. From v0.5.0 the
+  router's TLS listener asks for a client certificate: give the server's pod a
+  `podCertificate` projected volume from the signer
+  `podidentity.podcert.ate.dev/identity` (key type `ECDSAP256`, a
+  `credentialBundlePath`), point
+  `STIGMER_SANDBOX_SUBSTRATE_ROUTER_CLIENT_CERT_FILE` at that bundle, and add
+  the server's SPIFFE ID, `spiffe://cluster.local/ns/<namespace>/sa/<name>`, to
+  the router's `--ingress-allowed-spiffe-ids`. The server reads the bundle again
+  when it changes, as the certificate renews daily. Without it the router ends
+  the handshake and the first Session fails naming the setting. An `http://`
   router works too, as a port-forward to its port 80, but the push then carries
   the Session's token and the runner's secrets, model keys among them, across
   the cluster in cleartext, and the server logs a warning at boot.
 - **Where actors live**: an atespace the server owns
-  (`STIGMER_SANDBOX_SUBSTRATE_ATESPACE`; the server creates it), the labels of
-  the WorkerPool they run on (`STIGMER_SANDBOX_SUBSTRATE_WORKER_SELECTOR`, as
-  `key=value,…`), and the bucket prefix their files are committed under
+  (`STIGMER_SANDBOX_SUBSTRATE_ATESPACE`; the server creates it when it is
+  missing), the labels of the WorkerPool they run on
+  (`STIGMER_SANDBOX_SUBSTRATE_WORKER_SELECTOR`, as `key=value,…`, matching the
+  pool's own labels; the pool runs the `gvisor` sandbox class), and the bucket
+  prefix their files are committed under
   (`STIGMER_SANDBOX_SUBSTRATE_STORAGE_LOCATION`).
+- **Grants, when Substrate's authorization is on.** Substrate then names the
+  server by its token's subject, `system:serviceaccount:<namespace>:<name>`. The
+  server needs `editor` on its atespace, and atelet, Substrate's process on each
+  node, needs `viewer` there: in v0.5.0 atelet reads each actor's egress policy
+  to answer its DNS, yet the authorization model gives it no role to, so without
+  that grant every name a sandbox looks up is refused, Temporal's included. The
+  server writes both bindings into the atespace's access policy itself, when it
+  creates the atespace and, for one that exists, adding only the bindings it
+  lacks; it never removes one. That takes an owner: list the server among
+  Substrate's bootstrap owners and nothing else is needed. If it is no owner, it
+  logs once that the grant must be made and carries on; then, as a global owner,
+  create the atespace (`kubectl ate create atespace <name>`) and give it an
+  access policy binding `editor` to
+  `user:system:serviceaccount:<namespace>:<name>` and `viewer` to
+  `user:spiffe://cluster.local/ns/ate-system/sa/atelet`, through the Control
+  API's `CreateAtespaceAccessPolicy` call (the `kubectl ate` plugin has no
+  command for it in v0.5.0). Without `editor` the first Session fails with a
+  message naming it. When atelet runs under another identity, name it in
+  `STIGMER_SANDBOX_SUBSTRATE_NODE_AGENT_PRINCIPAL`.
 - **A runner image pinned by digest** in `STIGMER_SANDBOX_RUNNER_IMAGE`
   (`…@sha256:…`), and fully qualified DNS names, not addresses, short names or
   patterns, in the backend and Temporal endpoints and the extra destinations:
@@ -584,14 +626,14 @@ What the driver needs:
   Temporal in cleartext: an `http://` backend endpoint, and none of the server's
   `STIGMER_TEMPORAL_*` connection settings (TLS, an API key, certificates).
   Substrate's gateway can carry TLS only by decrypting it, which breaks a
-  Temporal client certificate or a pinned CA, and Substrate v0.3.0 doesn't yet
-  serve its rule for passing TLS through untouched. The server refuses to boot
-  otherwise; these lanes can use TLS once Substrate serves that rule. The public
-  MCP endpoint (`STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT`) isn't one of these lanes:
-  an `http://` one gets its own rule, and an `https://` one, a public address
-  such as your server's, is reached like any HTTPS site, so only while HTTPS
-  egress is on. With HTTPS egress off, the server logs a warning at boot that no
-  sandbox can reach it.
+  Temporal client certificate or a pinned CA. Substrate passes TLS through
+  untouched with a rule of its own since v0.4, which the server doesn't write
+  yet. The server refuses to boot otherwise; these lanes can use TLS once it
+  does. The public MCP endpoint (`STIGMER_SANDBOX_MCP_PUBLIC_ENDPOINT`) isn't
+  one of these lanes: an `http://` one gets its own rule, and an `https://` one,
+  a public address such as your server's, is reached like any HTTPS site, so
+  only while HTTPS egress is on. With HTTPS egress off, the server logs a
+  warning at boot that no sandbox can reach it.
 
 What an Agent can reach: the server's endpoints, any extra cleartext `host:port`
 you list in `STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTP`, and HTTPS to any name
@@ -622,9 +664,11 @@ lists them.
   actor's egress name it, and the HTTPS gateway refuses Substrate's own services
   because their certificates come from the cluster's private CA; that holds only
   while you never serve the router or the Control API under a publicly trusted
-  certificate at an address the gateway can reach. And Substrate's Control API
-  has no permissions yet: the server's token controls every actor, template and
-  worker of that Substrate, so give the server one of its own.
+  certificate at an address the gateway can reach. And unless you turn on
+  Substrate's authorization, its Control API checks no permissions: the server's
+  token controls every actor, template and worker of that Substrate, so give the
+  server one of its own, or turn authorization on and grant it its atespace
+  only.
 </Callout>
 
 ## Next step

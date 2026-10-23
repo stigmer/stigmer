@@ -1,10 +1,10 @@
 /**
  * Pins the substrate driver's settings (config.ts): the required values,
- * the defaults, the router's CA and server name (only for an https://
- * router), the parsing of the selector and the extra destinations, the
+ * the defaults (the node agent's principal among them, overridable), the router's CA, server name and client certificate (only
+ * for an https:// router), the parsing of the selector and the extra destinations, the
  * platform HTTPS hosts (EGRESS_HTTPS_PLATFORM, parseHosts: lower-cased,
  * each once, a scheme, port, path or pattern refused), and the two rules the idle windows must keep (a pause before a suspend;
- * no pause longer than a paused runner can sleep and renew).
+ * no pause longer than a workspace may live on one node only).
  */
 import { describe, expect, it } from "vitest";
 
@@ -33,7 +33,9 @@ describe("newSubstrateSettingsFromEnv", () => {
       routerUrl: "http://atenet-router.ate-system.svc",
       routerCaFile: "",
       routerServerName: "",
+      routerClientCertFile: "",
       atespace: "stigmer",
+      nodeAgentPrincipal: "spiffe://cluster.local/ns/ate-system/sa/atelet",
       storageLocation: "gs://ate-snapshots/stigmer",
       workerSelector: { workload: "stigmer" },
       sandboxConfigName: "gvisor-default",
@@ -44,6 +46,16 @@ describe("newSubstrateSettingsFromEnv", () => {
       suspendAfterSeconds: 330,
       sweepIntervalSeconds: 30,
     });
+  });
+
+  it("takes the node agent's principal when one is given", () => {
+    expect(
+      newSubstrateSettingsFromEnv({
+        ...base,
+        STIGMER_SANDBOX_SUBSTRATE_NODE_AGENT_PRINCIPAL:
+          " spiffe://cluster.local/ns/substrate/sa/atelet ",
+      }).nodeAgentPrincipal,
+    ).toBe("spiffe://cluster.local/ns/substrate/sa/atelet");
   });
 
   it("names each missing required value", () => {
@@ -118,7 +130,7 @@ describe("newSubstrateSettingsFromEnv", () => {
     ).toThrow(/http:\/\//);
   });
 
-  it("reads the router's CA and server name for an https:// router, and refuses either for an http:// one", () => {
+  it("reads the router's CA, server name and client certificate for an https:// router, and refuses any of them for an http:// one", () => {
     const tls = newSubstrateSettingsFromEnv({
       ...base,
       STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL:
@@ -126,15 +138,19 @@ describe("newSubstrateSettingsFromEnv", () => {
       STIGMER_SANDBOX_SUBSTRATE_ROUTER_CA_FILE: " /var/run/ate/ca.pem ",
       STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME:
         "atenet-router.ate-system.svc",
+      STIGMER_SANDBOX_SUBSTRATE_ROUTER_CLIENT_CERT_FILE:
+        "/var/run/podidentity/credential-bundle.pem",
     });
     expect(tls).toMatchObject({
       routerUrl: "https://atenet-router.ate-system.svc",
       routerCaFile: "/var/run/ate/ca.pem",
       routerServerName: "atenet-router.ate-system.svc",
+      routerClientCertFile: "/var/run/podidentity/credential-bundle.pem",
     });
     for (const name of [
       "STIGMER_SANDBOX_SUBSTRATE_ROUTER_CA_FILE",
       "STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME",
+      "STIGMER_SANDBOX_SUBSTRATE_ROUTER_CLIENT_CERT_FILE",
     ]) {
       expect(() =>
         newSubstrateSettingsFromEnv({ ...base, [name]: "x" }),

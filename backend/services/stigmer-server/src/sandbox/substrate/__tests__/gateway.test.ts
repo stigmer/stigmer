@@ -6,8 +6,21 @@
  *     file, re-read when the file changes;
  *   - NOT_FOUND reads as absent and deletes as success; ALREADY_EXISTS
  *     creates as "exists"; FAILED_PRECONDITION moves as "refused";
- *   - ABORTED and RESOURCE_EXHAUSTED become the driver's two typed errors;
- *   - lists follow page tokens;
+ *   - ABORTED and RESOURCE_EXHAUSTED become the driver's two typed errors,
+ *     and PERMISSION_DENIED one naming the grant the server needs;
+ *   - the atespace is read first and created only when it is missing, so
+ *     an atespace granted to the server needs no global owner;
+ *   - an actor's state in the driver's words, a pause told apart by the
+ *     snapshot at its latest generation (local, no durable copy), a pause
+ *     in flight by one not yet captured;
+ *   - the atespace's access policy: created with the atespace, holding
+ *     `editor` for the server's principal and `viewer` for the node agent;
+ *     on an existing atespace, the bindings it lacks added and none
+ *     removed, at the version read (read again after a lost race), nothing
+ *     written when it holds them all; a refused write reported as denied,
+ *     never thrown; the principal read from the token's subject;
+ *   - the egress policy is read by its singleton name, "default";
+ *   - lists follow page tokens, in Substrate 0.5's list options;
  *   - a move replaces the stored actor with only its template changed, and
  *     refuses one that changed since it was read.
  */
@@ -26,6 +39,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
+  AccessPolicySchema,
   ActorSchema,
   ActorState,
   ActorTemplateSchema,
@@ -37,8 +51,12 @@ import {
   bearerFromFile,
   newSubstrateClientGateway,
   newSubstrateGatewayOverTransport,
+  stateOf,
+  subjectOfTokenFile,
+  tokenSubject,
   SubstrateAbortedError,
   SubstrateNoWorkerError,
+  SubstratePermissionError,
 } from "../gateway.js";
 
 let dir: string;
@@ -64,7 +82,12 @@ function gatewayOver(impl: Partial<ServiceImpl<typeof Control>>) {
   return newSubstrateGatewayOverTransport(transport, "stigmer");
 }
 
-const actor = (name: string, state: ActorState, version = 3n) =>
+const actor = (
+  name: string,
+  state: ActorState,
+  version = 3n,
+  snapshots: { locality: string; durable: boolean }[] = [],
+) =>
   create(ActorSchema, {
     metadata: {
       atespace: "stigmer",
@@ -75,8 +98,27 @@ const actor = (name: string, state: ActorState, version = 3n) =>
       updateTime: timestampFromDate(new Date("2026-10-03T11:00:00Z")),
     },
     actorTemplate: { atespace: "stigmer", name: "stigmer-runner-old" },
-    status: { state },
+    status: {
+      state,
+      lastAssignedGeneration: snapshots.length,
+      snapshots: snapshots.map((snapshot, i) => ({
+        uuid: `snap-${i + 1}`,
+        generation: i + 1,
+        locality: snapshot.locality,
+        ...(snapshot.durable
+          ? {
+              durableSnapshot: {
+                object: { snapshotUri: `gs://b/snap-${i + 1}` },
+              },
+            }
+          : {}),
+      })),
+    },
   });
+/** The snapshot a pause leaves: on a node, with no durable copy. */
+const PAUSED_SNAPSHOT = { locality: "node-1", durable: false };
+/** The snapshot a suspend leaves: in storage. */
+const STORED_SNAPSHOT = { locality: "", durable: true };
 
 describe("the bearer token", () => {
   it("rides every call and follows the file when it changes", async () => {
@@ -135,6 +177,9 @@ describe("error translation", () => {
           metadata: { name: "default" },
           rules: [],
         }),
+      getAtespace() {
+        throw new ConnectError("no atespace", Code.NotFound);
+      },
       createAtespace: exists,
     });
     expect(await gateway.createActor("a", "t")).toBe("exists");
@@ -144,7 +189,10 @@ describe("error translation", () => {
       ),
     ).toBe("exists");
     expect(await gateway.ensureEgressPolicy("a", [])).toBe("unchanged");
-    await expect(gateway.ensureAtespace()).resolves.toBeUndefined();
+    await expect(gateway.ensureAtespace()).resolves.toEqual({
+      policy: "complete",
+      grants: [],
+    });
   });
 
   it("ABORTED and RESOURCE_EXHAUSTED become the driver's typed errors; anything else passes through", async () => {
@@ -172,11 +220,318 @@ describe("error translation", () => {
       code: Code.Internal,
     });
   });
+
+  it("PERMISSION_DENIED names the grant the server needs", async () => {
+    const gateway = gatewayOver({
+      createActor() {
+        throw new ConnectError("permission denied", Code.PermissionDenied);
+      },
+    });
+    const refusal = gateway.createActor("a", "t");
+    await expect(refusal).rejects.toBeInstanceOf(SubstratePermissionError);
+    await expect(refusal).rejects.toThrow(
+      /needs the editor role on its atespace/,
+    );
+  });
+});
+
+describe("the atespace", () => {
+  it("is read first, and an existing one is never created, so a granted atespace needs no global owner", async () => {
+    const seen: string[] = [];
+    const gateway = gatewayOver({
+      getAtespace(request) {
+        // Global: the reference carries the name only (Substrate refuses an atespace in it).
+        seen.push(
+          `get ${request.atespace?.atespace ?? ""}/${request.atespace?.name ?? ""}`,
+        );
+        return { metadata: { name: request.atespace?.name ?? "" } };
+      },
+      createAtespace() {
+        seen.push("create");
+        throw new ConnectError("permission denied", Code.PermissionDenied);
+      },
+    });
+    await gateway.ensureAtespace();
+    expect(seen).toEqual(["get /stigmer"]);
+  });
+
+  it("is created when it is missing", async () => {
+    const seen: string[] = [];
+    const gateway = gatewayOver({
+      getAtespace() {
+        seen.push("get");
+        throw new ConnectError("no atespace", Code.NotFound);
+      },
+      createAtespace(request) {
+        seen.push(`create ${request.atespace?.metadata?.name ?? ""}`);
+        return request.atespace ?? {};
+      },
+    });
+    await gateway.ensureAtespace();
+    expect(seen).toEqual(["get", "create stigmer"]);
+  });
+});
+
+describe("the atespace's access policy", () => {
+  const SERVER = "system:serviceaccount:stigmer:stigmer-server";
+  const ATELET = "spiffe://cluster.local/ns/ate-system/sa/atelet";
+  const wanted = [
+    { role: "editor", member: `user:${SERVER}` },
+    { role: "viewer", member: `user:${ATELET}` },
+  ];
+
+  function withAccess(impl: Partial<ServiceImpl<typeof Control>>) {
+    const transport = createRouterTransport((router) => {
+      router.service(Control, impl);
+    });
+    return newSubstrateGatewayOverTransport(transport, "stigmer", {
+      principal: () => SERVER,
+      nodeAgentPrincipal: ATELET,
+    });
+  }
+  const missing = () => {
+    throw new ConnectError("absent", Code.NotFound);
+  };
+  const denied = () => {
+    throw new ConnectError("permission denied", Code.PermissionDenied);
+  };
+  const stored = (bindings: { role: string; members: string[] }[]) =>
+    create(AccessPolicySchema, {
+      metadata: { name: "default", uid: "pol-1", version: 4n },
+      bindings,
+    });
+
+  it("is created with a new atespace, holding the server's editor and the node agent's viewer", async () => {
+    let written: unknown;
+    const gateway = withAccess({
+      getAtespace: missing,
+      createAtespace: (request) => request.atespace ?? {},
+      createAtespaceAccessPolicy(request) {
+        written = request;
+        return request.accessPolicy ?? {};
+      },
+    });
+    expect(await gateway.ensureAtespace()).toEqual({
+      policy: "created",
+      grants: wanted,
+    });
+    expect(written).toMatchObject({
+      atespace: { atespace: "", name: "stigmer" },
+      accessPolicy: {
+        metadata: { name: "default" },
+        bindings: [
+          { role: "editor", members: [`user:${SERVER}`] },
+          { role: "viewer", members: [`user:${ATELET}`] },
+        ],
+      },
+    });
+  });
+
+  it("gains only the bindings an existing atespace's policy lacks, keeping every other, at the version read", async () => {
+    let written: unknown;
+    const gateway = withAccess({
+      getAtespace: (request) => ({ metadata: { name: request.atespace?.name ?? "" } }),
+      getAtespaceAccessPolicy: () =>
+        stored([
+          { role: "owner", members: ["user:admin"] },
+          { role: "editor", members: ["user:someone-else"] },
+        ]),
+      updateAtespaceAccessPolicy(request) {
+        written = request.accessPolicy;
+        return request.accessPolicy ?? {};
+      },
+    });
+    expect((await gateway.ensureAtespace()).policy).toBe("added");
+    expect(written).toMatchObject({
+      metadata: { name: "default", uid: "pol-1", version: 4n },
+      bindings: [
+        { role: "owner", members: ["user:admin"] },
+        { role: "editor", members: ["user:someone-else", `user:${SERVER}`] },
+        { role: "viewer", members: [`user:${ATELET}`] },
+      ],
+    });
+  });
+
+  it("writes nothing when the policy already holds every binding", async () => {
+    let writes = 0;
+    const gateway = withAccess({
+      getAtespace: () => ({ metadata: { name: "stigmer" } }),
+      getAtespaceAccessPolicy: () =>
+        stored([
+          { role: "editor", members: [`user:${SERVER}`] },
+          { role: "viewer", members: ["user:other", `user:${ATELET}`] },
+        ]),
+      updateAtespaceAccessPolicy() {
+        writes += 1;
+        return stored([]);
+      },
+    });
+    expect((await gateway.ensureAtespace()).policy).toBe("complete");
+    expect(writes).toBe(0);
+  });
+
+  it("reports a write it may not make as denied, never thrown, for a new atespace and an existing one", async () => {
+    const fresh = withAccess({
+      getAtespace: missing,
+      createAtespace: (request) => request.atespace ?? {},
+      createAtespaceAccessPolicy: denied,
+    });
+    expect((await fresh.ensureAtespace()).policy).toBe("denied");
+    const existing = withAccess({
+      getAtespace: () => ({ metadata: { name: "stigmer" } }),
+      getAtespaceAccessPolicy: () => stored([]),
+      updateAtespaceAccessPolicy: denied,
+    });
+    expect((await existing.ensureAtespace()).policy).toBe("denied");
+    const unreadable = withAccess({
+      getAtespace: () => ({ metadata: { name: "stigmer" } }),
+      getAtespaceAccessPolicy: denied,
+    });
+    expect((await unreadable.ensureAtespace()).policy).toBe("denied");
+  });
+
+  it("creates the policy an existing atespace lacks, and reads it again after losing a race", async () => {
+    const lacking = withAccess({
+      getAtespace: () => ({ metadata: { name: "stigmer" } }),
+      getAtespaceAccessPolicy: missing,
+      createAtespaceAccessPolicy: (request) => request.accessPolicy ?? {},
+    });
+    expect((await lacking.ensureAtespace()).policy).toBe("created");
+    let updates = 0;
+    const raced = withAccess({
+      getAtespace: () => ({ metadata: { name: "stigmer" } }),
+      getAtespaceAccessPolicy: () => stored([]),
+      updateAtespaceAccessPolicy(request) {
+        updates += 1;
+        if (updates === 1) throw new ConnectError("version moved", Code.Aborted);
+        return request.accessPolicy ?? {};
+      },
+    });
+    expect((await raced.ensureAtespace()).policy).toBe("added");
+    expect(updates).toBe(2);
+  });
+
+  it("names the server by its token's subject", () => {
+    const claims = Buffer.from(JSON.stringify({ sub: SERVER })).toString(
+      "base64url",
+    );
+    expect(tokenSubject(`e30.${claims}.c2ln\n`)).toBe(SERVER);
+    expect(tokenSubject("not-a-jwt")).toBeUndefined();
+    expect(tokenSubject(`e30.${Buffer.from("{}").toString("base64url")}.x`)).toBeUndefined();
+    expect(tokenSubject("e30.!!!.x")).toBeUndefined();
+    const file = path.join(dir, "jwt");
+    writeFileSync(file, `e30.${claims}.c2ln`);
+    expect(subjectOfTokenFile(file)).toBe(SERVER);
+    expect(subjectOfTokenFile(path.join(dir, "absent"))).toBeUndefined();
+  });
+
+  it("asks only for the node agent's binding when the server's principal cannot be known", async () => {
+    const transport = createRouterTransport((router) => {
+      router.service(Control, {
+        getAtespace: () => ({ metadata: { name: "stigmer" } }),
+        getAtespaceAccessPolicy: () => stored([]),
+        updateAtespaceAccessPolicy: (request) => request.accessPolicy ?? {},
+      });
+    });
+    const gateway = newSubstrateGatewayOverTransport(transport, "stigmer", {
+      principal: () => undefined,
+      nodeAgentPrincipal: `user:${ATELET}`,
+    });
+    expect(await gateway.ensureAtespace()).toEqual({
+      policy: "added",
+      grants: [{ role: "viewer", member: `user:${ATELET}` }],
+    });
+  });
+
+  it("falls back to reading a policy someone else created first, and gives up after three lost races", async () => {
+    const beaten = withAccess({
+      getAtespace: missing,
+      createAtespace: (request) => request.atespace ?? {},
+      createAtespaceAccessPolicy() {
+        throw new ConnectError("dup", Code.AlreadyExists);
+      },
+      getAtespaceAccessPolicy: () => stored([]),
+      updateAtespaceAccessPolicy: (request) => request.accessPolicy ?? {},
+    });
+    expect((await beaten.ensureAtespace()).policy).toBe("added");
+    let reads = 0;
+    const appeared = withAccess({
+      getAtespace: () => ({ metadata: { name: "stigmer" } }),
+      getAtespaceAccessPolicy() {
+        reads += 1;
+        if (reads === 1) throw new ConnectError("absent", Code.NotFound);
+        return stored([
+          { role: "editor", members: [`user:${SERVER}`] },
+          { role: "viewer", members: [`user:${ATELET}`] },
+        ]);
+      },
+      createAtespaceAccessPolicy() {
+        throw new ConnectError("dup", Code.AlreadyExists);
+      },
+    });
+    expect((await appeared.ensureAtespace()).policy).toBe("complete");
+    const losing = withAccess({
+      getAtespace: () => ({ metadata: { name: "stigmer" } }),
+      getAtespaceAccessPolicy: () => stored([]),
+      updateAtespaceAccessPolicy() {
+        throw new ConnectError("version moved", Code.Aborted);
+      },
+    });
+    await expect(losing.ensureAtespace()).rejects.toBeInstanceOf(
+      SubstrateAbortedError,
+    );
+  });
+});
+
+describe("an actor's state", () => {
+  it("reads Substrate's, with a pause told apart by its latest snapshot", () => {
+    const stateOfActor = (
+      state: ActorState,
+      snapshots: { locality: string; durable: boolean }[] = [],
+    ) => stateOf(actor("a", state, 1n, snapshots).status);
+    expect(stateOfActor(ActorState.SUSPENDED)).toBe("suspended");
+    expect(stateOfActor(ActorState.SUSPENDED, [STORED_SNAPSHOT])).toBe(
+      "suspended",
+    );
+    expect(stateOfActor(ActorState.SUSPENDED, [PAUSED_SNAPSHOT])).toBe(
+      "paused",
+    );
+    // Only the latest generation counts: paused, then suspended.
+    expect(
+      stateOfActor(ActorState.SUSPENDED, [PAUSED_SNAPSHOT, STORED_SNAPSHOT]),
+    ).toBe("suspended");
+    expect(
+      stateOfActor(ActorState.SUSPENDED, [STORED_SNAPSHOT, PAUSED_SNAPSHOT]),
+    ).toBe("paused");
+    // A pause in flight: its snapshot is not captured yet.
+    expect(
+      stateOfActor(ActorState.SUSPENDING, [
+        STORED_SNAPSHOT,
+        { locality: "", durable: false },
+      ]),
+    ).toBe("pausing");
+    expect(stateOfActor(ActorState.SUSPENDING, [STORED_SNAPSHOT])).toBe(
+      "suspending",
+    );
+    // A running actor woken from a pause keeps its local snapshot.
+    expect(stateOfActor(ActorState.RUNNING, [PAUSED_SNAPSHOT])).toBe(
+      "running",
+    );
+    expect(stateOfActor(ActorState.RESUMING)).toBe("resuming");
+    expect(stateOfActor(ActorState.CRASHED)).toBe("crashed");
+    expect(stateOfActor(ActorState.DELETING)).toBe("deleting");
+    expect(stateOfActor(ActorState.REVERTING)).toBe("reverting");
+    expect(stateOfActor(ActorState.UNSPECIFIED)).toBe("unknown");
+    expect(stateOf(undefined)).toBe("unknown");
+    // A state only another release sends (the stubs are this release's).
+    expect(stateOfActor(42 as ActorState)).toBe("unknown");
+  });
 });
 
 describe("an existing egress policy", () => {
   it("is replaced at the version read when its rules differ, and left when they match", async () => {
     let updated: unknown;
+    const read: string[] = [];
     const rule = create(EgressRuleSchema, {
       http: { hostnames: ["stigmer.example"], ports: { numbers: [7234] } },
     });
@@ -185,17 +540,20 @@ describe("an existing egress policy", () => {
       createActorEgressPolicy() {
         throw new ConnectError("dup", Code.AlreadyExists);
       },
-      getActorEgressPolicy: () =>
-        create(EgressPolicySchema, {
+      getActorEgressPolicy: (request) => {
+        read.push(`${request.actor?.name ?? ""}/${request.name}`);
+        return create(EgressPolicySchema, {
           metadata: { name: "default", uid: "pol-1", version: 7n },
           rules: storedRules,
-        }),
+        });
+      },
       updateActorEgressPolicy(request) {
         updated = request.egressPolicy;
         return request.egressPolicy ?? create(EgressPolicySchema, {});
       },
     });
     expect(await gateway.ensureEgressPolicy("a", [rule])).toBe("unchanged");
+    expect(read).toEqual(["a/default"]);
     expect(updated).toBeUndefined();
     const wildcard = create(EgressRuleSchema, { https: { hostnames: ["*"] } });
     expect(await gateway.ensureEgressPolicy("a", [rule, wildcard])).toBe(
@@ -214,15 +572,20 @@ describe("lists and moves", () => {
   it("lists follow page tokens", async () => {
     const gateway = gatewayOver({
       listActors(request) {
-        return request.pageToken === ""
+        return (request.options?.pageToken ?? "") === ""
           ? { actors: [actor("a", ActorState.RUNNING)], nextPageToken: "p2" }
-          : { actors: [actor("b", ActorState.PAUSED)], nextPageToken: "" };
+          : {
+              actors: [
+                actor("b", ActorState.SUSPENDED, 3n, [PAUSED_SNAPSHOT]),
+              ],
+              nextPageToken: "",
+            };
       },
     });
     const actors = await gateway.listActors();
     expect(actors.map((a) => [a.name, a.state, a.template])).toEqual([
-      ["a", ActorState.RUNNING, "stigmer-runner-old"],
-      ["b", ActorState.PAUSED, "stigmer-runner-old"],
+      ["a", "running", "stigmer-runner-old"],
+      ["b", "paused", "stigmer-runner-old"],
     ]);
     expect(actors[0]?.updateTime).toEqual(new Date("2026-10-03T11:00:00Z"));
   });
@@ -304,6 +667,10 @@ describe("the calls that succeed", () => {
         return answer;
       };
     const gateway = gatewayOver({
+      getAtespace() {
+        seen.push("getAtespace");
+        throw new ConnectError("no atespace", Code.NotFound);
+      },
       createAtespace: record("createAtespace", {}),
       createActor: record("createActor", actor("a", ActorState.SUSPENDED)),
       createActorTemplate: record(
@@ -322,7 +689,7 @@ describe("the calls that succeed", () => {
       ),
       listActorTemplates(request) {
         seen.push("listActorTemplates");
-        return request.pageToken === ""
+        return (request.options?.pageToken ?? "") === ""
           ? {
               actorTemplates: [
                 create(ActorTemplateSchema, { metadata: { name: "t1" } }),
@@ -363,6 +730,7 @@ describe("the calls that succeed", () => {
       "t2",
     ]);
     expect(seen).toEqual([
+      "getAtespace",
       "createAtespace",
       "createActor",
       "createActorTemplate",
@@ -383,6 +751,7 @@ describe("the calls that succeed", () => {
       throw new ConnectError("boom", Code.Internal);
     };
     const gateway = gatewayOver({
+      getAtespace: boom,
       createAtespace: boom,
       createActor: boom,
       createActorTemplate: boom,
@@ -397,7 +766,7 @@ describe("the calls that succeed", () => {
       name: "a",
       uid: "u",
       version: 1n,
-      state: ActorState.SUSPENDED,
+      state: "suspended" as const,
       template: "t",
       createTime: undefined,
       updateTime: undefined,
@@ -438,7 +807,9 @@ describe("the live client", () => {
       routerUrl: "http://127.0.0.1:2",
       routerCaFile: "",
       routerServerName: "",
+      routerClientCertFile: "",
       atespace: "stigmer",
+      nodeAgentPrincipal: "spiffe://cluster.local/ns/ate-system/sa/atelet",
       storageLocation: "gs://b/p",
       workerSelector: { workload: "stigmer" },
       sandboxConfigName: "gvisor-default",
@@ -450,5 +821,8 @@ describe("the live client", () => {
       sweepIntervalSeconds: 60,
     });
     await expect(gateway.getActor("a")).rejects.toBeInstanceOf(ConnectError);
+    await expect(gateway.ensureAtespace()).rejects.toBeInstanceOf(
+      ConnectError,
+    );
   });
 });
