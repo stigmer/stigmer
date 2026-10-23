@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   BULK_BYTES,
   ENDURANCE_EVERY_SECONDS,
+  GOAL_MESSAGE,
   ENDURANCE_STEP_SECONDS,
   LONG_TURN_MODEL,
   NATIVE_SHELL_TIMEOUT_SECONDS,
@@ -40,8 +41,13 @@ describe("the profiles", () => {
   it("goal plays the definition of done in order, on the model whose window compaction is measured against", () => {
     const goal = goalProfile();
     expect(goal.model).toBe(LONG_TURN_MODEL);
-    expect(goal.steps.map((s) => s.kind).filter((k, i, all) => all.indexOf(k) === i)).toEqual(["silent", "streamed", "subagent", "bulk", "server-restart", "kill", "drain"]);
+    expect(goal.steps.map((s) => s.kind).filter((k, i, all) => all.indexOf(k) === i)).toEqual(["silent", "streamed", "subagent", "message", "bulk", "server-restart", "kill", "drain"]);
     expect(goal.steps.find((s) => s.kind === "server-restart")?.id).toBe("server-restarted-mid-tool");
+    expect(goal.steps.find((s) => s.kind === "message"), "the person writes to the turn mid-tool, after the subagent's work").toEqual({
+      kind: "message",
+      id: "message-mid-tool",
+      text: GOAL_MESSAGE,
+    });
     expect(goal.steps.find((s) => s.kind === "silent")).toMatchObject({ seconds: 600 });
     expect(goal.steps.filter((s) => s.kind === "bulk")).toHaveLength(bulkReadsFor(3));
   });
@@ -101,6 +107,7 @@ describe("the step shells", () => {
     expect(stepProgressOf(readMarkers(files))).toMatchObject({ ended: ["d"], open: undefined });
     expect(shellCommandOf({ kind: "kill", id: "k" }, files)).toContain(files.releaseOf("k"));
     expect(shellCommandOf({ kind: "server-restart", id: "r" }, files)).toContain(files.releaseOf("r"));
+    expect(shellCommandOf({ kind: "message", id: "m", text: "hi" }, files)).toContain(files.releaseOf("m"));
   });
 
   it("a subagent's work is a silent shell its subagent runs, and the live narration hands that shell over", () => {
@@ -120,6 +127,7 @@ describe("the step shells", () => {
     expect(timeoutSecondsOf({ kind: "kill", id: "k" })).toBe(3_000);
     expect(timeoutSecondsOf({ kind: "drain", id: "d" })).toBe(3_000);
     expect(timeoutSecondsOf({ kind: "server-restart", id: "r" })).toBe(3_000);
+    expect(timeoutSecondsOf({ kind: "message", id: "m", text: "hi" })).toBe(3_000);
     expect(timeoutSecondsOf({ kind: "bulk", id: "b", bytes: 1 })).toBeUndefined();
     const files = stepFiles();
     expect(narrateStep({ kind: "silent", id: "s", seconds: 600 }, files)).toBe(

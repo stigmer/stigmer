@@ -1,13 +1,30 @@
 // The real-clock run's report (../report.ts): the transcript's sequence
 // check, the streaming follower's check against the log, the verdict both
-// give, the Markdown summary while running and at the end, and the writer
-// that leaves both files whole.
+// give, what became of the person's message and what they were told, the
+// Markdown summary while running and at the end, and the writer that leaves
+// both files whole.
 // Domain: conformance long turn (pure, plus the writer on a temp directory).
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { followerCheckOf, renderSummary, seqGapsOf, transcriptCheckOf, transcriptVerdictOf, writeLongTurnReport, type LongTurnReport, type MinuteSample } from "../report";
+import { create } from "@bufbuild/protobuf";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import {
+  followerCheckOf,
+  messageCheckOf,
+  messageVerdictOf,
+  movedSeqsOf,
+  renderSummary,
+  seqGapsOf,
+  transcriptCheckOf,
+  transcriptVerdictOf,
+  writeLongTurnReport,
+  type LongTurnEnd,
+  type LongTurnReport,
+  type MinuteSample,
+  type SentMessage,
+} from "../report";
 
 const sample = (minute: number, over: Partial<MinuteSample> = {}): MinuteSample => ({
   elapsedMinutes: minute,
@@ -152,3 +169,130 @@ describe("the writer", () => {
     }
   });
 });
+
+describe("the person's message and what they are told", () => {
+  const sent: SentMessage = { step: "message-mid-tool", sentAtMinutes: 31, eventId: "sevt_m", queuedWhenSent: true, serverRestartedWhileQueued: true };
+  const use = (id: string, step: string): SessionEvent =>
+    create(SessionEventSchema, {
+      runId: "run_1",
+      event: { case: "agentToolUse", value: { id, name: "execute", input: { command: `echo 'start ${step}'; wait` } } },
+    });
+  const result = (id: string, of: string): SessionEvent =>
+    create(SessionEventSchema, { runId: "run_1", event: { case: "agentToolResult", value: { id, toolUseId: of } } });
+  const message = (runId: string): SessionEvent =>
+    create(SessionEventSchema, { runId, event: { case: "userMessage", value: { id: "sevt_m", content: [{ type: "text", text: "also the notes" }] } } });
+
+  it("finds the message read by the run once, after the result of the step it was sent during", () => {
+    const log = [use("u1", "subagent-work"), result("r1", "u1"), use("u2", "message-mid-tool"), result("r2", "u2"), message("run_1")];
+    expect(messageCheckOf(log, sent)).toMatchObject({ listed: 1, readBy: "run_1", afterStepResult: true });
+  });
+
+  it("says when the message sits before its step's result, is read by another run, or is listed twice", () => {
+    expect(messageCheckOf([use("u2", "message-mid-tool"), message("run_1"), result("r2", "u2")], sent).afterStepResult).toBe(false);
+    expect(messageCheckOf([use("u2", "message-mid-tool"), result("r2", "u2"), message("run_2")], sent).readBy).toBe("run_2");
+    expect(messageCheckOf([message("run_1"), message("run_1")], sent)).toMatchObject({ listed: 2, readBy: "", afterStepResult: false });
+    expect(messageCheckOf([], sent)).toMatchObject({ listed: 0, readBy: "", afterStepResult: false });
+  });
+
+  it("passes a message read once after its step and one attention, finished; names every way it fails", () => {
+    const end: LongTurnEnd = {
+      phase: "RUN_COMPLETED",
+      error: "",
+      elapsedMinutes: 58,
+      atStep: "drained-mid-tool",
+      stepsEnded: 20,
+      stoppedByBudget: false,
+      transcript: undefined,
+      message: { ...sent, listed: 1, readBy: "run_1", afterStepResult: true },
+      attention: { told: [{ reason: "finished", runId: "run_1" }] },
+    };
+    expect(messageVerdictOf(end, "run_1")).toEqual({ read: true, reasons: [] });
+    expect(messageVerdictOf({ ...end, message: undefined, attention: undefined }, "run_1").read, "a profile with neither").toBe(true);
+    const failed = messageVerdictOf(
+      {
+        ...end,
+        message: { ...sent, queuedWhenSent: false, listed: 2, readBy: "", afterStepResult: false },
+        attention: { told: [{ reason: "finished", runId: "run_1" }, { reason: "finished", runId: "run_1" }] },
+      },
+      "run_1",
+    );
+    expect(failed.reasons).toEqual([
+      "the message did not wait for the working turn: it was sent with nothing working",
+      "the log lists the message 2 times",
+      "no run read the message",
+      "the message is not in the log after the result of `message-mid-tool`",
+      "the person was told finished (run_1), finished (run_1), not once that the turn finished",
+    ]);
+    expect(messageVerdictOf({ ...end, message: { ...end.message!, readBy: "run_2" }, attention: { told: [] } }, "run_1").reasons).toEqual([
+      "run run_2 read the message, not the turn",
+      "the person was told nothing, not once that the turn finished",
+    ]);
+  });
+
+  it("says in the summary what became of the message and what the person was told", () => {
+    const summary = renderSummary({
+      ...running,
+      end: {
+        phase: "RUN_COMPLETED",
+        error: "",
+        elapsedMinutes: 58,
+        atStep: "drained-mid-tool",
+        stepsEnded: 2,
+        stoppedByBudget: false,
+        transcript: undefined,
+        message: { ...sent, listed: 1, readBy: "run_1", afterStepResult: true },
+        attention: { told: [{ reason: "finished", runId: "run_1" }] },
+      },
+    });
+    expect(summary).toContain(
+      "Message: sent at minute 31 during `message-mid-tool`, waited in the queue, the server replaced while it waited; listed 1 time, read by run_1, after the step's result.",
+    );
+    expect(summary).toContain("Attention: told finished.");
+    const quiet = renderSummary({
+      ...running,
+      end: {
+        phase: "RUN_COMPLETED",
+        error: "",
+        elapsedMinutes: 1,
+        atStep: undefined,
+        stepsEnded: 0,
+        stoppedByBudget: false,
+        transcript: undefined,
+        message: { ...sent, queuedWhenSent: false, serverRestartedWhileQueued: false, listed: 2, readBy: "", afterStepResult: false },
+        attention: { told: [] },
+      },
+    });
+    expect(quiet).toContain("Message: sent at minute 31 during `message-mid-tool`; listed 2 times, read by no run.");
+    expect(quiet).toContain("Attention: told nothing.");
+  });
+});
+
+describe("a queued message moved to the log's head", () => {
+  it("is found where the follower first saw it, under an id the log lists at another seq", () => {
+    expect(movedSeqsOf([[19, "a"], [20, "msg"], [21, "b"], [30, "msg"]], [[19, "a"], [21, "b"], [30, "msg"]])).toEqual([20]);
+    expect(movedSeqsOf([[1, ""], [2, "gone"]], [[1, "x"]]), "an id the log lacks, or none, moved nowhere").toEqual([]);
+  });
+
+  it("is no gap in the log and no extra for the follower, and the summary says where it moved from", () => {
+    const transcript = transcriptCheckOf([19, 21, 30], [20]);
+    expect(transcript).toMatchObject({ gaps: [[22, 29]], moved: [20] });
+    expect(transcriptCheckOf([1, 2]).moved).toBeUndefined();
+    expect(transcriptCheckOf([1, 4], [3, 2])).toMatchObject({ gaps: [], moved: [2, 3] });
+    const followed = followerCheckOf([19, 20, 21, 30], [19, 21, 30], [], [20]);
+    expect([followed.extra, followed.missing]).toEqual([[], []]);
+    const summary = renderSummary({
+      ...running,
+      end: {
+        phase: "RUN_COMPLETED",
+        error: "",
+        elapsedMinutes: 2,
+        atStep: undefined,
+        stepsEnded: 2,
+        stoppedByBudget: false,
+        transcript: transcriptCheckOf([1, 3], [2]),
+      },
+    });
+    expect(summary).toContain("Transcript: 2 events, seq 1 to 3, unbroken (moved to the head as read: 2).");
+  });
+});
+

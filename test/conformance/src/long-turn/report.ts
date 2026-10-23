@@ -13,9 +13,21 @@
 // every stream), must have been sent exactly that log, once and in order.
 // Either failing makes the verdict broken, and the scripts exit non-zero on
 // it: a lost or repeated event is the one thing a long run must never show.
+//
+// A queued message the turn reads moves to the head of the log, listed once
+// where it was read, and streams a second time there; the seq it stood at
+// first (which the follower was sent) is no gap and no extra
+// (`movedSeqsOf`).
+//
+// A profile with a `message` step is judged on the message too: the person's
+// message sent mid-tool must be read by the run, listed once, after the
+// result of the step it was sent during; and a follower of what needs the
+// person must have been told of the turn exactly once, `finished`. Either
+// failing makes the run's verdict failed.
 
 import { rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 /** What the run saw in one minute. */
 export interface MinuteSample {
@@ -78,6 +90,12 @@ export interface TranscriptCheck {
   readonly lastSeq: number;
   /** Missing sequence numbers, as `[from, to]` ranges. Empty when the log is whole. */
   readonly gaps: ReadonlyArray<readonly [number, number]>;
+  /**
+   * Where a queued message stood before the turn that read it moved it to
+   * the log's head: not a gap (the message is listed once, where it was
+   * read, and streams twice). Absent when none moved.
+   */
+  readonly moved?: readonly number[];
 }
 
 export interface LongTurnReport {
@@ -91,6 +109,8 @@ export interface LongTurnReport {
   readonly runnerEvents: readonly RunnerEvent[];
   /** Where the server was replaced; absent on a run that replaced none. */
   readonly serverRestarts?: readonly ServerRestartEvent[];
+  /** The person's message, once sent; absent before then and on a profile with no `message` step. */
+  readonly message?: SentMessage;
   /** Absent while the run is going. */
   readonly end?: LongTurnEnd;
 }
@@ -112,6 +132,57 @@ export interface LongTurnEnd {
   readonly compactions?: number;
   /** What the streaming follower was sent; absent when none ran. */
   readonly follower?: FollowerCheck;
+  /** What became of the person's message; absent on a profile with no `message` step. */
+  readonly message?: MessageCheck;
+  /** What the follower of what needs the person was told of this turn; absent when none ran. */
+  readonly attention?: AttentionCheck;
+}
+
+/** The person's message sent mid-tool, as the run sent it. */
+export interface SentMessage {
+  readonly step: string;
+  readonly sentAtMinutes: number;
+  /** The message's `user.message` event id. */
+  readonly eventId: string;
+  /** Whether it waited in the session's queue when sent: the turn was working. */
+  readonly queuedWhenSent: boolean;
+  /** Whether the server was replaced while it waited. */
+  readonly serverRestartedWhileQueued: boolean;
+}
+
+/** What the session's log says became of the person's message. */
+export interface MessageCheck extends SentMessage {
+  /** How many times the log lists it: once. */
+  readonly listed: number;
+  /** The run that read it; "" when none did. */
+  readonly readBy: string;
+  /** Whether it sits in the log after the result of the step it was sent during. */
+  readonly afterStepResult: boolean;
+}
+
+/** What a follower of what needs the person was told of the turn's session. */
+export interface AttentionCheck {
+  readonly told: ReadonlyArray<{ readonly reason: string; readonly runId: string }>;
+}
+
+/** What the log says of the message `sent`: whether it is listed once, read by `runId`, after its step's result. */
+export function messageCheckOf(log: readonly SessionEvent[], sent: SentMessage): MessageCheck {
+  const at = log.flatMap((event, index) => (event.event.case === "userMessage" && event.event.value.id === sent.eventId ? [index] : []));
+  const read = at.length === 1 ? log[at[0]!]! : undefined;
+  // The step's call is the tool use whose command marks the step's start.
+  const callIndex = log.findIndex(
+    (event) =>
+      event.event.case === "agentToolUse" &&
+      JSON.stringify(event.event.value.input ?? {}).includes(`start ${sent.step}`),
+  );
+  const call = callIndex >= 0 && log[callIndex]!.event.case === "agentToolUse" ? log[callIndex]!.event.value.id : undefined;
+  const resultIndex = log.findIndex((event) => event.event.case === "agentToolResult" && event.event.value.toolUseId === call);
+  return {
+    ...sent,
+    listed: at.length,
+    readBy: read?.runId ?? "",
+    afterStepResult: read !== undefined && resultIndex >= 0 && at[0]! > resultIndex,
+  };
 }
 
 /** The gaps in a log's sequence numbers, as inclusive ranges. */
@@ -126,20 +197,38 @@ export function seqGapsOf(seqs: readonly number[]): Array<[number, number]> {
   return gaps;
 }
 
-export function transcriptCheckOf(seqs: readonly number[]): TranscriptCheck {
+export function transcriptCheckOf(seqs: readonly number[], moved: readonly number[] = []): TranscriptCheck {
   return {
     events: seqs.length,
     firstSeq: seqs.length === 0 ? 0 : Math.min(...seqs),
     lastSeq: seqs.length === 0 ? 0 : Math.max(...seqs),
-    gaps: seqGapsOf(seqs),
+    gaps: seqGapsOf([...seqs, ...moved]),
+    ...(moved.length === 0 ? {} : { moved: [...moved].sort((a, b) => a - b) }),
   };
 }
 
+/**
+ * The seqs a queued message stood at before it moved to the log's head:
+ * those the follower was sent (as `[seq, event id]`) whose event the log now
+ * lists at another seq.
+ */
+export function movedSeqsOf(followed: ReadonlyArray<readonly [number, string]>, logged: ReadonlyArray<readonly [number, string]>): number[] {
+  const at = new Map(logged.map(([seq, id]) => [id, seq]));
+  const moved = followed.filter(([seq, id]) => id !== "" && at.has(id) && at.get(id) !== seq).map(([seq]) => seq);
+  return [...new Set(moved)].sort((a, b) => a - b);
+}
+
 /** What the follower was sent (`followed`, in arrival order) against the log's seqs, with the endings it resumed from. */
-export function followerCheckOf(followed: readonly number[], logged: readonly number[], endings: readonly string[]): FollowerCheck {
+export function followerCheckOf(
+  followed: readonly number[],
+  logged: readonly number[],
+  endings: readonly string[],
+  moved: readonly number[] = [],
+): FollowerCheck {
   const seen = new Map<number, number>();
   for (const seq of followed) seen.set(seq, (seen.get(seq) ?? 0) + 1);
-  const onLog = new Set(logged);
+  // A moved message's first place was streamed, as the contract streams it twice.
+  const onLog = new Set([...logged, ...moved]);
   const never = [...onLog].filter((seq) => !seen.has(seq)).sort((a, b) => a - b);
   return {
     events: followed.length,
@@ -181,6 +270,26 @@ export function transcriptVerdictOf(end: LongTurnEnd): { readonly whole: boolean
   return { whole: reasons.length === 0, reasons };
 }
 
+/** Whether the person's message was read by the run, once, after its step, and they were told of the turn once, finished. */
+export function messageVerdictOf(end: LongTurnEnd, runId: string): { readonly read: boolean; readonly reasons: readonly string[] } {
+  const reasons: string[] = [];
+  const m = end.message;
+  if (m !== undefined) {
+    if (!m.queuedWhenSent) reasons.push("the message did not wait for the working turn: it was sent with nothing working");
+    if (m.listed !== 1) reasons.push(`the log lists the message ${m.listed} times`);
+    if (m.readBy !== runId) reasons.push(m.readBy === "" ? "no run read the message" : `run ${m.readBy} read the message, not the turn`);
+    if (!m.afterStepResult) reasons.push(`the message is not in the log after the result of \`${m.step}\``);
+  }
+  const a = end.attention;
+  if (a !== undefined) {
+    const told = a.told.map((t) => `${t.reason} (${t.runId})`).join(", ");
+    if (a.told.length !== 1 || a.told[0]!.reason !== "finished" || a.told[0]!.runId !== runId) {
+      reasons.push(`the person was told ${told === "" ? "nothing" : told}, not once that the turn finished`);
+    }
+  }
+  return { read: reasons.length === 0, reasons };
+}
+
 /** The Markdown summary: the outcome first, then the minute table. */
 export function renderSummary(report: LongTurnReport): string {
   const lines: string[] = [`# Long turn, real clock: ${report.profile}`, ""];
@@ -201,6 +310,19 @@ export function renderSummary(report: LongTurnReport): string {
         ? "**Transcript**: whole: the log is unbroken, and the follower was sent every event of it once, in order."
         : `**Transcript**: broken: ${verdict.reasons.join("; ")}.`,
     );
+    if (end.message !== undefined || end.attention !== undefined) {
+      const m = end.message;
+      if (m !== undefined) {
+        lines.push(
+          "",
+          `Message: sent at minute ${m.sentAtMinutes} during \`${m.step}\`${m.queuedWhenSent ? ", waited in the queue" : ""}${m.serverRestartedWhileQueued ? ", the server replaced while it waited" : ""}; listed ${m.listed} time${m.listed === 1 ? "" : "s"}, read by ${m.readBy === "" ? "no run" : m.readBy}${m.afterStepResult ? ", after the step's result" : ""}.`,
+        );
+      }
+      if (end.attention !== undefined) {
+        const told = end.attention.told.map((t) => t.reason).join(", ");
+        lines.push("", `Attention: told ${told === "" ? "nothing" : told}.`);
+      }
+    }
     if (end.compactions !== undefined) lines.push("", `Model calls: ${end.modelCalls ?? 0}; compactions: ${end.compactions}.`);
     if (end.error !== "") lines.push("", `Error: ${end.error}`);
     if (end.reply !== undefined && end.reply !== "") lines.push("", `Reply: ${end.reply.length > 600 ? `${end.reply.slice(0, 600)}…` : end.reply}`);
@@ -209,7 +331,7 @@ export function renderSummary(report: LongTurnReport): string {
       lines.push(
         "",
         t.gaps.length === 0
-          ? `Transcript: ${t.events} events, seq ${t.firstSeq} to ${t.lastSeq}, unbroken.`
+          ? `Transcript: ${t.events} events, seq ${t.firstSeq} to ${t.lastSeq}, unbroken${t.moved === undefined ? "" : ` (moved to the head as read: ${t.moved.join(", ")})`}.`
           : `Transcript: ${t.events} events, seq ${t.firstSeq} to ${t.lastSeq}, gaps ${rangeText(t.gaps)}.`,
       );
     }

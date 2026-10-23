@@ -7,7 +7,9 @@
 // open it acts once and releases the step: `kill` and `drain` ask its caller
 // to end the runner; `server-restart` asks it to replace the server, and
 // where two servers overlap (a Postgres target) releases the step while
-// both serve, so the step's end is written through the outgoing server.
+// both serve, so the step's end is written through the outgoing server;
+// `message` sends the person's message to the session, replaces the server
+// while the message waits in the queue, then releases the step.
 // Every minute it records a sample and rewrites the report. It stops on
 // COMPLETED, on any other terminal phase held for 20 s (a drained turn
 // writes FAILED before the workflow recovers it), or when the profile's
@@ -17,7 +19,10 @@
 // Beside the poll, a streaming follower (follow.ts) reads the session from
 // its first event through every restart; at the end it is given the stream's
 // longest wait (the server's tail read backs off to two minutes) to reach the
-// log's last seq, and what it was sent is checked against the log. Nothing
+// log's last seq, and what it was sent is checked against the log. A
+// follower of what needs the person, when its caller opened one, is given a
+// minute after the turn ends to be told of it, and the person's message is
+// found in the log read back. Nothing
 // about the turn is retried: its fate is the finding. Only the run's own
 // reads are, while a restart leaves the front with no server for a moment.
 
@@ -31,7 +36,8 @@ import { sessionIdOf } from "../support/runs";
 import { foldSession, turnOf } from "@stigmer/session-log";
 import { stepProgressOf, type LongTurnProfile, type StepFiles } from "./profile";
 import { SessionFollower } from "./follow";
-import { followerCheckOf, transcriptCheckOf, writeLongTurnReport, type LongTurnReport, type MinuteSample } from "./report";
+import { followerCheckOf, messageCheckOf, movedSeqsOf, transcriptCheckOf, writeLongTurnReport, type LongTurnReport, type MinuteSample } from "./report";
+import type { AttentionFollower } from "./follow";
 
 /* v8 ignore start -- @preserve: the real-clock and live runs are hand-run scripts no vitest config collects; the unit lane tests the pure readers and the report they feed */
 const TERMINAL = new Set([RunPhase.RUN_COMPLETED, RunPhase.RUN_FAILED, RunPhase.RUN_CANCELLED, RunPhase.RUN_TERMINATED]);
@@ -44,6 +50,8 @@ const OVERLAP_STEP_END_MS = 60_000;
 const FOLLOWER_CATCH_UP_MS = 150_000;
 /** How long the run's own reads retry while a restart leaves the front with no server. */
 const READ_RETRY_MS = 120_000;
+/** How long the follower of what needs the person may take to be told the turn ended. */
+const ATTENTION_WAIT_MS = 60_000;
 
 export interface DriveOptions {
   readonly clients: ConformanceClients;
@@ -59,6 +67,10 @@ export interface DriveOptions {
   readonly restartServer?: (options: ServerRestartOptions) => Promise<ServerRestart>;
   /** The mock's counts, when there is a mock. */
   readonly counts?: () => { readonly modelCalls: number; readonly compactions: number };
+  /** Sends the person's message to the session; absent where the run sends none. */
+  readonly sendMessage?: (sessionId: string, text: string) => Promise<{ readonly eventId: string; readonly queued: boolean }>;
+  /** A follower of what needs the run's person, opened before the run; absent where none runs. */
+  readonly attention?: AttentionFollower;
 }
 
 /** Follow the run to its end and return the final report (also written to `out`). */
@@ -119,6 +131,32 @@ export async function driveLongTurn(options: DriveOptions): Promise<LongTurnRepo
       }
     }
 
+    if (open !== undefined && open.kind === "message" && !acted.has(open.id)) {
+      acted.add(open.id);
+      const release = (): void => {
+        if (!existsSync(files.releaseOf(open.id))) writeFileSync(files.releaseOf(open.id), "released\n");
+      };
+      if (options.sendMessage === undefined) {
+        console.log(`[long-turn] minute ${minutes()}: no message door on this run; ${open.id} released as it is`);
+      } else {
+        const at = minutes();
+        const sent = await retried(() => options.sendMessage!(sessionIdOf(run), open.text));
+        console.log(`[long-turn] minute ${at}: the person's message sent during ${open.id}${sent.queued ? ", waiting in the queue" : ""}`);
+        let restarted = false;
+        if (options.restartServer !== undefined) {
+          const restart = await options.restartServer({});
+          restarted = true;
+          report = { ...report, serverRestarts: [...(report.serverRestarts ?? []), { elapsedMinutes: minutes(), step: open.id, overlapped: restart.overlapped }] };
+          console.log(`[long-turn] minute ${minutes()}: the server replaced while the message waits`);
+        }
+        report = {
+          ...report,
+          message: { step: open.id, sentAtMinutes: at, eventId: sent.eventId, queuedWhenSent: sent.queued, serverRestartedWhileQueued: restarted && sent.queued },
+        };
+      }
+      release();
+    }
+
     if (Date.now() >= nextSample) {
       nextSample += SAMPLE_MS;
       const { events } = await retried(() => clients.sessionQuery.listEvents({ sessionId: sessionIdOf(run), pageSize: 1000 }));
@@ -144,12 +182,24 @@ export async function driveLongTurn(options: DriveOptions): Promise<LongTurnRepo
     if (phase === RunPhase.RUN_COMPLETED || (terminalSince !== undefined && Date.now() - terminalSince >= TERMINAL_SETTLE_MS) || stoppedByBudget) {
       const log = await retried(() => listAllEvents(clients, sessionIdOf(run)));
       const seqs = log.map((e) => Number(e.seq));
+      let moved: number[] = [];
       let followed: ReturnType<typeof followerCheckOf> | undefined;
       if (follower !== undefined) {
         const caughtUp = await follower.until(Math.max(0, ...seqs), FOLLOWER_CATCH_UP_MS);
         await follower.stop();
-        followed = followerCheckOf(follower.seqs, seqs, follower.endings);
+        moved = movedSeqsOf(
+          follower.seqs.map((seq, i) => [seq, follower!.ids[i] ?? ""] as const),
+          log.map((e) => [Number(e.seq), e.event.case === undefined ? "" : e.event.value.id] as const),
+        );
+        followed = followerCheckOf(follower.seqs, seqs, follower.endings, moved);
         console.log(`[long-turn] the follower holds ${follower.seqs.length} events${caughtUp ? "" : `, short of the log's last seq after ${FOLLOWER_CATCH_UP_MS / 1000} s`}`);
+      }
+      let told: Array<{ readonly reason: string; readonly runId: string }> | undefined;
+      if (options.attention !== undefined) {
+        await options.attention.until(sessionIdOf(run), ATTENTION_WAIT_MS);
+        // A moment more, so a second attention for the turn would be counted too.
+        await new Promise((r) => setTimeout(r, 5_000));
+        told = options.attention.told.filter((a) => a.sessionId === sessionIdOf(run)).map((a) => ({ reason: a.reason, runId: a.runId }));
       }
       report = {
         ...report,
@@ -160,10 +210,12 @@ export async function driveLongTurn(options: DriveOptions): Promise<LongTurnRepo
           atStep: progress.open ?? progress.ended.at(-1),
           stepsEnded: progress.ended.length,
           stoppedByBudget,
-          transcript: transcriptCheckOf(seqs),
+          transcript: transcriptCheckOf(seqs, moved),
           reply: turnOf(foldSession(log), runId)?.answer ?? "",
           ...(options.counts === undefined ? {} : options.counts()),
           ...(followed === undefined ? {} : { follower: followed }),
+          ...(report.message === undefined ? {} : { message: messageCheckOf(log, report.message) }),
+          ...(told === undefined ? {} : { attention: { told } }),
         },
       };
       await writeLongTurnReport(out, report);
