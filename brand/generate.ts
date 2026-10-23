@@ -1,4 +1,4 @@
-/** Generate upload assets and runtime SVG copies from brand/logo.svg and brand/source/shaded.svg. */
+/** Generate upload assets and runtime SVG copies from brand/logo.svg and brand/source/shaded.svg, and the LinkedIn covers from the social card and brand/positioning.ts. */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import * as path from "node:path";
@@ -12,6 +12,8 @@ import {
   brandShadedSvg,
   brandSvg,
 } from "./assets.mjs";
+import { POSITIONING } from "./positioning";
+import { SOCIAL_CARDS, socialCardSvg } from "./social-card";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 async function write(relative: string, data: string | Buffer): Promise<void> {
@@ -141,8 +143,19 @@ async function main(): Promise<void> {
       }),
     );
   }
+  for (const [file, layout] of [
+    ["brand/linkedin-cover.png", SOCIAL_CARDS.linkedinCover],
+    ["brand/linkedin-company-cover.png", SOCIAL_CARDS.linkedinCompanyCover],
+  ] as const) {
+    await write(
+      file,
+      await sharp(Buffer.from(await socialCardSvg(layout, POSITIONING)))
+        .png()
+        .toBuffer(),
+    );
+  }
   console.log(
-    "Brand assets generated from brand/logo.svg and brand/source/shaded.svg.",
+    "Brand assets generated from brand/logo.svg, brand/source/shaded.svg and brand/positioning.ts.",
   );
 }
 void main().catch((error: unknown) => {

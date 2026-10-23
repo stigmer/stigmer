@@ -45,6 +45,15 @@ displays without a font download. Keep its proportions and spacing.
 | `logo-lockup.png`       | Dark transparent upload, 1536 × 405  |
 | `logo-lockup-white.png` | White transparent upload, 1536 × 405 |
 
+The LinkedIn covers carry the words as well as the mark. Each is drawn for what
+LinkedIn lays over it: the profile photo at the cover's lower left, the page
+logo at the banner's.
+
+| File                         | Use                                            |
+| ---------------------------- | ---------------------------------------------- |
+| `linkedin-cover.png`         | The founder's LinkedIn cover, 1584 × 396       |
+| `linkedin-company-cover.png` | The Stigmer LinkedIn page's banner, 1128 × 191 |
+
 Use the square symbol files for avatars, favicons, app icons and compact
 navigation. Do not squeeze the horizontal pairing into a square upload.
 
@@ -56,13 +65,15 @@ avatar services can crop the square into a circle without clipping the mark.
 
 `positioning.ts` holds what Stigmer is in the words every surface uses: the
 headline, the subhead and the one sentence. The website's title, description,
-social cards, web manifest and llms.txt, its Open Graph image, and the web
-console's description all import them from there. Their public form, with the
-rules for using them, is the "What Stigmer is, and who it is for" section of
-`docs/vocabulary.md`. To change the words, change that section and this file
-together; `__tests__/positioning.test.ts` fails, naming the copy, while the
-vocabulary or the docs front page disagrees, or while a site or console source
-spells the words out instead of importing them.
+social cards, web manifest and llms.txt, its Open Graph image, the web console's
+description and the two LinkedIn covers all import them from there. Their public
+form, with the rules for using them, is the "What Stigmer is, and who it is for"
+section of `docs/vocabulary.md`. To change the words, change that section and
+this file together; `__tests__/positioning.test.ts` fails, naming the copy,
+while the vocabulary or the docs front page disagrees, or while a site or
+console source spells the words out instead of importing them. The covers are
+uploads, which no test can read: after a words change, run
+`npm run generate:brand` and upload both covers again by hand.
 
 ## Maintenance
 
@@ -106,6 +117,11 @@ npm run generate-images --prefix site
 npm run generate-images -w web
 npm run generate:icons -w desktop
 ```
+
+`social-card.ts` holds the social card's three layouts: the website's Open Graph
+image, which the website generator draws, and the two LinkedIn covers, which
+`npm run generate:brand` draws. Each layout states where its mark, words and
+badges sit; change a layout there, not in a generator.
 
 Desktop ICNS generation requires macOS's `iconutil`. The desktop generator also
 refreshes the monochrome tray icon. The website generator refreshes the README

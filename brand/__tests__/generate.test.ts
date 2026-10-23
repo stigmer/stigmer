@@ -17,6 +17,8 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { test } from "node:test";
 import sharp from "sharp";
+import { POSITIONING } from "../positioning";
+import { SOCIAL_CARDS, socialCardSvg } from "../social-card";
 
 const run = promisify(execFile);
 const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -31,7 +33,13 @@ async function fixture(
   const directory = await mkdtemp(join(tmpdir(), "stigmer-brand-generator-"));
   try {
     await mkdir(join(directory, "brand"));
-    for (const file of ["generate.ts", "assets.mts", "package.json"]) {
+    for (const file of [
+      "generate.ts",
+      "assets.mts",
+      "package.json",
+      "positioning.ts",
+      "social-card.ts",
+    ]) {
       await cp(join(root, "brand", file), join(directory, "brand", file));
     }
     await cp(join(root, "brand/source"), join(directory, "brand/source"), {
@@ -90,6 +98,25 @@ test("the generator exports current upload pixels and identical runtime paths", 
       await readFile(join(directory, "brand/logo-white.svg"), "utf8"),
       await readFile(join(directory, "site/public/logo-white.svg"), "utf8"),
     );
+    for (const [file, layout] of [
+      ["linkedin-cover.png", SOCIAL_CARDS.linkedinCover],
+      ["linkedin-company-cover.png", SOCIAL_CARDS.linkedinCompanyCover],
+    ] as const) {
+      const cover = sharp(join(directory, "brand", file));
+      const metadata = await cover.metadata();
+      assert.deepEqual(
+        [metadata.width, metadata.height],
+        [layout.width, layout.height],
+      );
+      assert.deepEqual(
+        await cover.ensureAlpha().raw().toBuffer(),
+        await sharp(Buffer.from(await socialCardSvg(layout, POSITIONING)))
+          .ensureAlpha()
+          .raw()
+          .toBuffer(),
+        `${file} must be its layout drawn with the positioning words`,
+      );
+    }
   });
 });
 
@@ -176,6 +203,8 @@ for (const [name, invalid] of [
         "generate.ts",
         "logo.svg",
         "package.json",
+        "positioning.ts",
+        "social-card.ts",
         "source",
       ]);
     });
@@ -210,6 +239,8 @@ for (const [name, invalid] of [
           "generate.ts",
           "logo.svg",
           "package.json",
+          "positioning.ts",
+          "social-card.ts",
           "source",
         ]);
       },
