@@ -9,6 +9,7 @@
 
 import type { ToolMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
 import type { Command } from "@langchain/langgraph";
+import type { AnyBackendProtocol } from "deepagents";
 
 export type { ToolMessage, SystemMessage, AIMessage };
 
@@ -84,7 +85,15 @@ export interface ExecutionBudgetConfig {
 }
 
 export interface ToolTruncationConfig {
+  /** The run's `max_tool_result_chars`; a tool deepagents would offload is cut at no more than its threshold (`tool-truncation.ts`). */
   readonly maxChars: number;
+  /**
+   * The graph's file backend. A long result is kept whole through it only
+   * when it routes the offload root outside the workspace
+   * (`platform-route.ts` `routesOffloads`); otherwise, or absent, the result
+   * is cut with nothing kept.
+   */
+  readonly backend?: AnyBackendProtocol;
   readonly onTruncation?: (toolName: string, charsTruncated: number) => void;
 }
 

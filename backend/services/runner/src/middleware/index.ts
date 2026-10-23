@@ -19,7 +19,9 @@
  *      so that extends this declaration, and outside the scope, gate and
  *      truncation, so they see the call and its result as before)
  *   3. Tool intent (always — bind-time shell schema extension, issue #276)
- *   4. Tool truncation (always)
+ *   4. Tool truncation (always — a long result keeps its start and its end,
+ *      the whole of it kept in the session's offload directory through the
+ *      graph's backend, `tool-truncation.ts`)
  *   5. Tool scope (conditional: only when the agent's scope carries a list —
  *      hides and refuses what the agent's tool lists exclude; AHEAD of the
  *      gate, so a listed-out call never reaches an approval card, and

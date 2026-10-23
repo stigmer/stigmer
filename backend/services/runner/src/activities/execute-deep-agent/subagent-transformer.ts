@@ -52,6 +52,7 @@ import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
 import type { ToolScopeConfig } from "../../middleware/tool-scope.js";
+import type { ToolTruncationConfig } from "../../middleware/types.js";
 import type { TurnBoundarySignals } from "../../middleware/turn-boundary.js";
 import type { ToolScope } from "../../shared/tool-lists.js";
 import { CasCaptureShellBackend, createCasCaptureBackend } from "./cas-capture-backend.js";
@@ -59,6 +60,9 @@ import { createShellTool, type ShellToolOptions } from "./shell-tool.js";
 
 /** How a sub-agent's shell tool runs, beside its backend: the parent's ceiling and streaming floor. */
 export type ShellStreaming = Omit<ShellToolOptions, "backend">;
+
+/** The run's tool-result bound a sub-agent takes; its backend is its own. */
+export type SubagentToolTruncation = Pick<ToolTruncationConfig, "maxChars">;
 import { mountPlatformRoute, OUTPUTS_ROUTE_PREFIX as NATIVE_OUTPUTS_FOLDER } from "./platform-route.js";
 import { outputsFolderInstruction } from "../../shared/prompt-sections.js";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
@@ -258,6 +262,13 @@ export interface SubagentTransformOptions {
   readonly costAdvisory?: CostAdvisoryMiddleware;
   /** The turn's stop, taken at every sub-agent's model calls (`middleware/turn-boundary.ts`). */
   readonly turnBoundary?: TurnBoundarySignals;
+  /**
+   * The run's bound on a tool result (`max_tool_result_chars`), which the
+   * contract applies to every tool result, a sub-agent's included. Each
+   * sub-agent keeps a long result through its own backend
+   * (`middleware/tool-truncation.ts`). Absent, the middleware's default.
+   */
+  readonly toolTruncation?: SubagentToolTruncation;
   /**
    * Builds a configured chat-model instance for a given model name. When
    * provided, sub-agents are compiled with the same proxy-aware model client
@@ -506,6 +517,8 @@ export async function compileSubagents(
   opts: {
     readonly costAdvisory?: CostAdvisoryMiddleware;
     readonly turnBoundary?: TurnBoundarySignals;
+    /** See {@link SubagentTransformOptions.toolTruncation}. */
+    readonly toolTruncation?: SubagentToolTruncation;
     readonly approvalGate?: ApprovalGateConfig | null;
     /** Attribution and confinement for each sub-agent's scope middleware; absent, no scope is enforced (unit tests). */
     readonly scopeBase?: SubagentScopeBase;
@@ -582,6 +595,7 @@ export async function compileSubagents(
         middleware: [createCompactionMiddleware({ backend }), ...buildSubAgentMiddleware({
           costAdvisory: opts.costAdvisory,
           ...(opts.turnBoundary ? { turnBoundary: opts.turnBoundary } : {}),
+          toolTruncation: { ...opts.toolTruncation, backend },
           approvalGate: approvalGate
             ? { ...approvalGate, subAgent: { type: spec.name, id: invocationId } }
             : approvalGate,
@@ -670,6 +684,7 @@ export async function transformAndCompileSubagents(
     webFetchPosture,
     costAdvisory,
     turnBoundary,
+    toolTruncation,
     modelFactory,
     shellEnv,
     shellStreaming,
@@ -727,6 +742,7 @@ export async function transformAndCompileSubagents(
   const compiled = await compileSubagents(allSpecs, {
     costAdvisory,
     ...(turnBoundary ? { turnBoundary } : {}),
+    ...(toolTruncation ? { toolTruncation } : {}),
     approvalGate,
     scopeBase,
     parentModelName,

@@ -11,7 +11,9 @@
  * - Tool intent (issue #276) — the shell tool's bind-time schema gains the
  *   optional model-authored `description`, so sub-agent shell rows carry
  *   intent titles exactly like the parent's
- * - Fresh tool truncation (same limits as parent)
+ * - Fresh tool truncation at the run's bound, as on the parent, keeping a
+ *   long result through the sub-agent's own backend (`compileSubagents`
+ *   passes both)
  * - Periodic execution budget (interval=30, max=4 advisories)
  * - Tool scope (`middleware/tool-scope.ts`) with THIS sub-agent's scope —
  *   the parent's narrowed by the sub-agent's own lists, never widened —
