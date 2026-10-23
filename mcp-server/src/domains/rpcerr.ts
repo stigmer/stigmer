@@ -12,7 +12,7 @@ import { log } from "../logger.js";
  * Translate a Connect/gRPC error into a user-friendly Error.
  *
  * `resourceDescription` identifies what was being accessed, e.g.
- * `agent "code-reviewer" in org "stigmer"`.
+ * `agent "variance-reporter" in org "stigmer"`.
  */
 export function rpcError(err: unknown, resourceDescription: string): Error {
   const ce = ConnectError.from(err);

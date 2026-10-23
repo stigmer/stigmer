@@ -28,13 +28,13 @@ import { globalOrg } from "./shared.js";
 /** `eval run`'s help after the options: the model and tools a try runs with, and the exit codes. */
 const EVAL_HELP = `
 Examples:
-  stigmer eval run --plugin refund-policy
+  stigmer eval run --plugin payroll
       the plugin's own cases on the built-in assistant, with and without it
-  stigmer eval run --agent support-agent
+  stigmer eval run --agent variance-reporter
       the cases of every plugin the agent attaches, on the agent
-  stigmer eval run --agent support-agent --eval support-agent-evals
+  stigmer eval run --agent variance-reporter --eval variance-reporter-evals
       the cases of an Eval pushed with stigmer push eval, on the agent
-  stigmer eval run --agent support-agent --plugin refund-policy
+  stigmer eval run --agent variance-reporter --plugin payroll
       the plugin's cases on the agent, with and without the plugin
 
 On an agent, without --model, each case runs on the agent as it runs: its

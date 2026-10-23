@@ -1,10 +1,12 @@
 // The real-clock run's report (../report.ts): the transcript's sequence
 // check, the streaming follower's check against the log, the verdict both
 // give, what became of the person's message and what they were told, the
-// Markdown summary while running and at the end, and the writer that leaves
-// both files whole.
+// live goal's verdict (the steps' fidelity against the list, the calls that
+// started them, the compactions), the Markdown summary while running and at
+// the end, and the writer that leaves both files whole.
 // Domain: conformance long turn (pure, plus the writer on a temp directory).
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -18,11 +20,14 @@ import {
   finishedCheckOf,
   goalKept,
   followerCheckOf,
+  goalVerdictOf,
   messageCheckOf,
   messageVerdictOf,
   movedSeqsOf,
   renderSummary,
   seqGapsOf,
+  stepCallsOf,
+  stepFidelityOf,
   transcriptCheckOf,
   transcriptVerdictOf,
   writeLongTurnReport,
@@ -201,9 +206,92 @@ describe("compaction and the goal", () => {
     const report: LongTurnReport = { ...running, end: ended({ compactedEvents: 3, finished: finishedCheckOf(["a", "b"], "a\nb\n2") }) };
     const text = renderSummary(report);
     expect(text).toContain("Compactions marked in the log: 3.");
-    expect(text).toContain("**Goal**: kept: FINISHED.md names a, b, 2, as the opening asked.");
+    expect(text).toContain("**Goal**: kept: FINISHED.md names a, b, 2, as the opening asked, and the steps ran as listed.");
     const lost = renderSummary({ ...running, end: ended({ compactedEvents: 3, finished: finishedCheckOf(["a", "b"], undefined) }) });
     expect(lost).toContain("**Goal**: lost: the opening asked FINISHED.md for a, b, 2; no file was written.");
+  });
+});
+
+describe("the live goal's verdict", () => {
+  const listed = Array.from({ length: 69 }, (_, i) => `bulk-${i + 1}`);
+  const ended = (over: Partial<LongTurnEnd>): LongTurnEnd => ({
+    phase: "RUN_COMPLETED",
+    error: "",
+    elapsedMinutes: 20,
+    atStep: "bulk-3",
+    stepsEnded: 3,
+    stoppedByBudget: false,
+    transcript: transcriptCheckOf([1, 2, 3]),
+    compactedEvents: 3,
+    finished: finishedCheckOf(["a", "b", "c"], "a\nc\n3\n"),
+    fidelity: stepFidelityOf(["a", "b", "c"], "start a\nstart b k1\nstart c k2\n", "a k1\nb k2\nc k3\n"),
+    stepCalls: { calls: 3, bundled: [] },
+    ...over,
+  });
+  const use = (id: string, command: string): SessionEvent =>
+    create(SessionEventSchema, { event: { case: "agentToolUse", value: { id, name: "execute", input: { command } } } });
+
+  it("reads the 2026-10-23 Haiku probe's markers as one step run twice and one never listed", () => {
+    const markers = readFileSync(fileURLToPath(new URL("./__fixtures__/bundled-bulk-markers.txt", import.meta.url)), "utf8");
+    expect(stepFidelityOf(listed, markers, "")).toEqual({ faithful: false, started: 71, problems: ["bulk-70 is not in the list", "bulk-20 ran twice"] });
+  });
+
+  it("holds the steps faithful when each ran once, in order, given the key the one before it printed; names every way they stray", () => {
+    const steps = ["a", "b", "c"];
+    const keys = "a k1\nb k2\nc k3\n";
+    expect(stepFidelityOf(steps, "start a\nend a\nstart b k1\nend b\nstart c k2\nend c\n", keys)).toEqual({ faithful: true, started: 3, problems: [] });
+    expect(stepFidelityOf(steps, "start a\nstart b\nstart c\n", ""), "a profile that prints no keys checks none").toMatchObject({ faithful: true });
+    expect(stepFidelityOf(steps, "start a\nstart c k9\nstart b k1\n", keys).problems).toEqual(["c ran before b", "c was given k9, not the key b printed"]);
+    expect(stepFidelityOf(steps, "start a\nstart b\n", "a k1\n").problems).toEqual(["c never ran", "b was given no key"]);
+    expect(stepFidelityOf(steps, "start a\nstart a\nstart a\nstart b k1\nstart c k2\n", keys).problems).toEqual(["a ran 3 times"]);
+  });
+
+  it("counts the calls that started a listed step, and names each that started more than one", () => {
+    const log = [
+      use("u1", "echo 'start bulk-1' >> m; head -c 28000 /dev/zero"),
+      use("u2", "echo 'start bulk-2 0123456789ab' >> m; x; echo 'start bulk-3 <KEY>' >> m"),
+      use("u3", "echo 'start bulk-10 ab' >> m"),
+      use("u4", "printf 'bulk-1\\nbulk-69\\n69\\n' > FINISHED.md"),
+      create(SessionEventSchema, { event: { case: "agentMessage", value: { id: "m", content: [] } } }),
+    ];
+    expect(stepCallsOf(log, listed)).toEqual({ calls: 3, bundled: [{ toolUseId: "u2", steps: ["bulk-2", "bulk-3"] }] });
+    expect(stepCallsOf([], listed)).toEqual({ calls: 0, bundled: [] });
+  });
+
+  it("is kept only when FINISHED.md is right, the steps faithful, one step to a call and three compactions marked", () => {
+    expect(goalVerdictOf(ended({}))).toEqual({ verdict: "kept", reasons: [] });
+    expect(goalVerdictOf(ended({ finished: undefined })), "the mock asks for no FINISHED.md").toBeUndefined();
+  });
+
+  it("is lost when FINISHED.md is wrong or a step strayed, and void when a call bundled steps or fewer than three compactions were marked", () => {
+    expect(goalVerdictOf(ended({ finished: finishedCheckOf(["a", "b", "c"], undefined) }))).toEqual({
+      verdict: "lost",
+      reasons: ["the opening asked FINISHED.md for a, c, 3; no file was written"],
+    });
+    const twice = stepFidelityOf(["a", "b", "c"], "start a\nstart b\nstart b\nstart c\n", "");
+    expect(goalVerdictOf(ended({ fidelity: twice, stepCalls: { calls: 4, bundled: [] } }))).toEqual({ verdict: "lost", reasons: ["b ran twice"] });
+    expect(goalVerdictOf(ended({ compactedEvents: 1, finished: finishedCheckOf(["a", "b", "c"], undefined) }))).toEqual({
+      verdict: "void",
+      reasons: ["the log marks 1 compaction, fewer than 3", "the opening asked FINISHED.md for a, c, 3; no file was written"],
+    });
+    expect(goalVerdictOf(ended({ stepCalls: { calls: 2, bundled: [{ toolUseId: "u2", steps: ["b", "c"] }] } }))).toEqual({
+      verdict: "void",
+      reasons: ["call u2 started b, c"],
+    });
+    expect(goalVerdictOf(ended({ stepCalls: { calls: 1, bundled: [] } })), "a loop in one call starts steps no input names").toEqual({
+      verdict: "void",
+      reasons: ["3 steps started from 1 calls"],
+    });
+  });
+
+  it("says the verdict and the calls in the summary", () => {
+    const kept = renderSummary({ ...running, end: ended({}) });
+    expect(kept).toContain("**Goal**: kept: FINISHED.md names a, c, 3, as the opening asked, and the steps ran as listed.");
+    expect(kept).toContain("Step calls: 3, one step each, for 3 steps started.");
+    const bundled = renderSummary({ ...running, end: ended({ stepCalls: { calls: 2, bundled: [{ toolUseId: "u2", steps: ["b", "c"] }] } }) });
+    expect(bundled).toContain("**Goal**: void: call u2 started b, c.");
+    expect(bundled).toContain("Step calls: 2, 1 of them starting more than one step, for 3 steps started.");
+    expect(renderSummary({ ...running, end: ended({ finished: undefined }) })).not.toContain("**Goal**");
   });
 });
 

@@ -306,6 +306,13 @@ export interface LongTurnControls {
    */
   readonly compactionSummary: { readonly text: string; readonly inputTokens?: number };
   /**
+   * What each of the session's summary calls asked, in order, across every
+   * invocation: where the runner makes the summary call, the text of its one
+   * message (the runner's checkpoint prompt with the conversation in it).
+   * Absent where the vendor writes its own summary.
+   */
+  summaryPrompts?(sessionId: string): readonly string[];
+  /**
    * The runner driving the session's turn is killed: what the engine keeps
    * outside the process stays as the process left it, and nothing the
    * process would do on its way out reaches it (a Cursor agent's run stays

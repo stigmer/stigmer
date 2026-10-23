@@ -26,7 +26,7 @@ spec:
       result: criterion_result_passed
     - name: last-action-succeeded
       result: criterion_result_failed
-      reason: "ended on a failed action: create_ticket (step 7)"
+      reason: "ended on a failed action: post_adjustment (step 7)"
     - name: structured-output-delivered
       result: criterion_result_not_applicable
 status:

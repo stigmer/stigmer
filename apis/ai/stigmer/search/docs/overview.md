@@ -7,7 +7,7 @@ discovery depending on the combination of `kinds`, `query`, and `org` parameters
 { "kinds": ["agent"], "org": "acme" }
 
 // Full-text search across agents and skills
-{ "kinds": ["agent", "skill"], "query": "code review" }
+{ "kinds": ["agent", "skill"], "query": "variance report" }
 
 // Discover all resource kinds matching a query
 { "query": "kubernetes" }

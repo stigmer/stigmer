@@ -24,8 +24,6 @@ export interface TemplateCardProps<TData> {
 // ---------------------------------------------------------------------------
 
 const CATEGORY_COLORS: Record<TemplateCategory, string> = {
-  "customer-support": "stg:bg-blue-500/10 stg:text-blue-700 stg:dark:text-blue-400",
-  "code-review": "stg:bg-violet-500/10 stg:text-violet-700 stg:dark:text-violet-400",
   "data-analysis": "stg:bg-amber-500/10 stg:text-amber-700 stg:dark:text-amber-400",
   devops: "stg:bg-emerald-500/10 stg:text-emerald-700 stg:dark:text-emerald-400",
   content: "stg:bg-pink-500/10 stg:text-pink-700 stg:dark:text-pink-400",

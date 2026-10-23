@@ -229,7 +229,8 @@ class DeepAgentSubject implements DeepAgentContractSubject {
   private readonly operations: KitOperations;
   /** Per execution, the context window its engine reports (only an engine whose plan compacts reports one). */
   private readonly windows = new Map<string, number>();
-  private readonly summaries = new Map<string, number>();
+  /** Per execution, what each summary call asked, in order: their count is the compaction count. */
+  private readonly summaries = new Map<string, string[]>();
   /** Per execution, the `task` call the root is waiting on: the helper's shell runs under its id. */
   private readonly delegations = new Map<string, string>();
   private readonly executionsBySession = new Map<string, string>();
@@ -256,8 +257,9 @@ class DeepAgentSubject implements DeepAgentContractSubject {
         const transcript = executionId ? this.lastTranscripts.get(executionId) : undefined;
         return (transcript ?? []).filter((m) => isHumanMessage(m) && m.text === text).length;
       },
-      compactions: (sessionId) => this.summaries.get(this.executionsBySession.get(sessionId) ?? "") ?? 0,
+      compactions: (sessionId) => this.summaryPromptsOf(sessionId).length,
       compactionSummary: { text: SCRIPTED_SUMMARY, inputTokens: SCRIPTED_SUMMARY_USAGE.inputTokens },
+      summaryPrompts: (sessionId) => this.summaryPromptsOf(sessionId),
       // The saver holds what the graph saved; nothing else outlives the process.
       loseRunner: () => {},
     };
@@ -283,7 +285,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
     for (const step of turn) this.refuseUnproducible(step);
     mkdirSync(this.workspaceDirOf(view.sessionId), { recursive: true });
     for (const step of turn) this.seedFor(step, view);
-    this.arranged.set(view.executionId, { steps: turn, view, summariesAtArrange: this.summaries.get(view.executionId) ?? 0, usageFolded: false });
+    this.arranged.set(view.executionId, { steps: turn, view, summariesAtArrange: this.summaries.get(view.executionId)?.length ?? 0, usageFolded: false });
     this.executionsBySession.set(view.sessionId, view.executionId);
     if (turn.some((step) => step.kind === "compact") && !this.windows.has(view.executionId)) this.windows.set(view.executionId, UNSIZED_WINDOW);
     if (!this.engines.has(view.executionId)) this.engines.set(view.executionId, this.mintEngine(view.executionId));
@@ -317,6 +319,11 @@ class DeepAgentSubject implements DeepAgentContractSubject {
     return this.lastTranscripts.get(executionId);
   }
 
+  /** What the session's summary calls asked, in order. */
+  private summaryPromptsOf(sessionId: string): readonly string[] {
+    return this.summaries.get(this.executionsBySession.get(sessionId) ?? "") ?? [];
+  }
+
   /** The directory the runtime's provisioner gives a session with no workspace entries (`session-root.ts`). */
   workspaceDirOf(sessionId: string): string {
     return join(this.env.workspaceRootDir, "sessions", sessionId);
@@ -336,7 +343,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
           for (const waiter of this.hangWaiters.splice(0)) waiter();
         },
         contextWindow: () => this.windows.get(executionId),
-        onSummary: () => this.summaries.set(executionId, (this.summaries.get(executionId) ?? 0) + 1),
+        onSummary: (prompt) => this.summaries.set(executionId, [...(this.summaries.get(executionId) ?? []), prompt]),
       },
     );
   }
@@ -440,7 +447,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
     const segment = messagesOfThisTurn(transcript, (m) => this.isSentMidTurn(executionId, m));
     const spoken = new Set(segment.filter((m) => isAIMessage(m)).map((m) => m.text));
     const firstCallOfArrangement = !plan.usageFolded;
-    const compacted = (this.summaries.get(executionId) ?? 0) - plan.summariesAtArrange;
+    const compacted = (this.summaries.get(executionId)?.length ?? 0) - plan.summariesAtArrange;
     let compactsSeen = 0;
 
     let text: string | undefined;

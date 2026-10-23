@@ -32,25 +32,25 @@ stigmer channel
 
 ```bash
 # Turn on an Agent's chat link for your Organization's members
-stigmer channel link support-agent
+stigmer channel link variance-reporter
 
 # Make the link public and print the embed snippet
-stigmer channel link support-agent --audience public
+stigmer channel link variance-reporter --audience public
 
 # Reset a public link — the old link stops working immediately
-stigmer channel link support-agent --reset-link
+stigmer channel link variance-reporter --reset-link
 
 # Give the link its own name
-stigmer channel link support-agent --name support-chat
+stigmer channel link variance-reporter --name ledger-chat
 
 # Turn the chat link off — the link stops working immediately
-stigmer channel link support-agent --off
+stigmer channel link variance-reporter --off
 
 # Pause any channel (web, Slack or WhatsApp), keeping its configuration
-stigmer channel disable acme-corp/support-agent-slack
+stigmer channel disable acme-corp/variance-reporter-slack
 
 # Turn it back on
-stigmer channel enable acme-corp/support-agent-slack
+stigmer channel enable acme-corp/variance-reporter-slack
 ```
 
 ## Examples
@@ -58,7 +58,7 @@ stigmer channel enable acme-corp/support-agent-slack
 ### Turn on a chat link
 
 ```bash
-stigmer channel link acme-corp/support-agent
+stigmer channel link acme-corp/variance-reporter
 ```
 
 The command turns the Agent's chat link on and prints it
@@ -75,7 +75,7 @@ changes the switch and the audience.
 ### Make a link public
 
 ```bash
-stigmer channel link acme-corp/support-agent --audience public
+stigmer channel link acme-corp/variance-reporter --audience public
 ```
 
 Anyone with the link can chat, and the command prints the embed snippet as well.
@@ -85,7 +85,7 @@ turns an org-members-only link into a public one, or back.
 ### Reset a leaked public link
 
 ```bash
-stigmer channel link acme-corp/support-agent --reset-link
+stigmer channel link acme-corp/variance-reporter --reset-link
 ```
 
 Mints a fresh link carrying a secret key (`?k=<key>`) and kills the current one
@@ -96,7 +96,7 @@ links only; org-members-only access ends with membership instead.
 ### Name a link
 
 ```bash
-stigmer channel link acme-corp/support-agent --name support-chat
+stigmer channel link acme-corp/variance-reporter --name ledger-chat
 ```
 
 An Agent's first chat link is named `<agent slug>-web`. `--name` picks the
@@ -107,7 +107,7 @@ by a Slack channel, or by another Agent's channel. The command then refuses and
 names the holder, for example:
 
 ```text
-the name `support-agent-web` is held by a Slack channel of agent `triage`
+the name `variance-reporter-web` is held by a Slack channel of agent `month-end-close`
 ```
 
 Pass `--name` with a free slug to create the link under it. A name a channel was
@@ -118,7 +118,7 @@ the channel that holds the name.
 ### Turn a chat link off
 
 ```bash
-stigmer channel link acme-corp/support-agent --off
+stigmer channel link acme-corp/variance-reporter --off
 ```
 
 Turning the link off is the kill switch: the hosted link and any embeds stop
@@ -128,8 +128,8 @@ time you turn it on.
 ### Pause and resume any channel
 
 ```bash
-stigmer channel disable acme-corp/support-agent-slack
-stigmer channel enable acme-corp/support-agent-slack
+stigmer channel disable acme-corp/variance-reporter-slack
+stigmer channel enable acme-corp/variance-reporter-slack
 ```
 
 `disable` pauses a channel of any type — a chat link, a Slack workspace or a

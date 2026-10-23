@@ -22,7 +22,7 @@
           "inputFullType": "ai.stigmer.agentic.channel.v1.Channel",
           "outputType": "Channel",
           "outputFullType": "ai.stigmer.agentic.channel.v1.Channel",
-          "description": "Create a channel.\n\n Making a channel is a spending decision: conversations arriving over it\n call models on the channel's organization's own provider keys, and the\n providers bill the organization for them.\n\n A channel created without a name takes the slug `\u003cagent slug\u003e-\u003ctype\u003e`\n (for example `support-agent-web`) and the name `\u003cagent name\u003e (\u003cType\u003e)`.\n\n A slug another channel of the organization holds is refused with\n ALREADY_EXISTS. A slug another channel was renamed away from, which\n still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"):\n\n   - SLUG_RESERVED — another channel held the slug until a recent\n     rename, and it still leads there. Metadata: slug."
+          "description": "Create a channel.\n\n Making a channel is a spending decision: conversations arriving over it\n call models on the channel's organization's own provider keys, and the\n providers bill the organization for them.\n\n A channel created without a name takes the slug `\u003cagent slug\u003e-\u003ctype\u003e`\n (for example `variance-reporter-web`) and the name `\u003cagent name\u003e (\u003cType\u003e)`.\n\n A slug another channel of the organization holds is refused with\n ALREADY_EXISTS. A slug another channel was renamed away from, which\n still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a\n google.rpc.ErrorInfo detail (domain \"stigmer.ai\"):\n\n   - SLUG_RESERVED — another channel held the slug until a recent\n     rename, and it still leads there. Metadata: slug."
         },
         {
           "name": "Update",
@@ -1367,7 +1367,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter\n and end with a letter or digit (e.g., \"web-search\", \"code-reviewer\").\n Length: 2-63 characters.\n\n Written to name the resource; never stored; returned filled with the\n resource's current name, empty when the resource was deleted.",
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter\n and end with a letter or digit (e.g., \"web-search\", \"variance-reporter\").\n Length: 2-63 characters.\n\n Written to name the resource; never stored; returned filled with the\n resource's current name, empty when the resource was deleted.",
           "required": false,
           "validation": {
             "minLength": 2,

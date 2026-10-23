@@ -11,7 +11,9 @@
 // and every captured request carries the disposition the answering branch
 // decided, so scriptedRequests() is exactly the agent loop's calls; a mock
 // bound to another address answers there, and urlAt() names it as the
-// runner's side does.
+// runner's side does; native compaction's summary call is recognized by the
+// runner's own prompt opening, read from the runner's source.
+import { readFileSync } from "node:fs";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   DEFAULT_ERROR_BODY,
@@ -21,6 +23,7 @@ import {
   type CapturedLlmRequest,
   type EmbeddingsResponseBody,
   MOCK_CONVERSATION_SUMMARY,
+  SUMMARY_PROMPT_OPENING,
 } from "../mock-llm.ts";
 
 const mock = new MockLlmProxy();
@@ -185,7 +188,7 @@ describe("MockLlmProxy request disposition", () => {
     mock.enqueue(anthropicText("the agent's turn"));
     const summary = await post(ANTHROPIC_PATH, {
       model: "claude-haiku-4-5-20251001",
-      messages: [{ role: "user", content: [{ type: "text", text: "You are a conversation summarizer. Your task is to create a concise summary." }] }],
+      messages: [{ role: "user", content: [{ type: "text", text: `${SUMMARY_PROMPT_OPENING}\n\nThe conversation below is between a user and an agent.` }] }],
     });
     expect(summary.status).toBe(200);
     expect(JSON.stringify(await summary.json())).toContain(MOCK_CONVERSATION_SUMMARY);
@@ -198,11 +201,16 @@ describe("MockLlmProxy request disposition", () => {
       model: "claude-haiku-4-5-20251001",
       messages: [
         { role: "user", content: "Summarize the repository." },
-        { role: "assistant", content: "You are a conversation summarizer." },
+        { role: "assistant", content: SUMMARY_PROMPT_OPENING },
       ],
     });
     expect(mock.summaryRequests()).toBe(1);
     expect(mock.consumed()).toBe(1);
+  });
+
+  it("recognizes the summary call by the runner's own prompt opening, the source this copy follows", () => {
+    const source = readFileSync(new URL("../../../../backend/services/runner/src/middleware/compaction-prompt.ts", import.meta.url), "utf8");
+    expect(/export const SUMMARY_PROMPT_OPENING = "([^"]+)";/.exec(source)?.[1]).toBe(SUMMARY_PROMPT_OPENING);
   });
 
   it("a request answered by a persistent fault after the queue drained is unscripted, not scripted", async () => {

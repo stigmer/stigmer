@@ -16,9 +16,9 @@ Agents declare skill references via `spec.skill_refs`. Each entry is an `ApiReso
 spec:
   skill_refs:
     - kind: skill
-      slug: code-review-best-practices
+      slug: variance-report
     - kind: skill
-      slug: api-design-guide
+      slug: chart-of-accounts
       version: stable
 ```
 

@@ -42,7 +42,7 @@
 // the Postgres target.
 //
 // Flags:
-//   --profile goal|endurance   what the turn plays (src/long-turn/profile.ts); default goal
+//   --profile goal|endurance   what the turn plays (src/long-turn/profile.ts); default goal; `retention` is live only
 //   --minutes N                endurance's length (default 180)
 //   --steps a,b                play only these steps of the profile, in its order
 //   --target <name>            local-execution (default, SQLite) or local-postgres-execution
@@ -63,10 +63,11 @@ import { LocalPostgresExecutionTarget } from "../src/targets/local-postgres";
 async function main(): Promise<void> {
   const flags = parseLongTurnFlags(process.argv.slice(2));
   const profile = profileOf(flags.profile, { minutes: flags.minutes, steps: flags.steps });
+  if (profile.liveOnly) throw new Error(`profile '${profile.name}' is live only: the mock plays its commands literally and keeps no goal to measure (npm run long-turn:live)`);
   const startedAt = new Date();
   const out = resolve(flags.out ?? join(".test-output", "long-turn-real-clock", `${profile.name}-${startedAt.toISOString().replace(/[:.]/g, "-")}`));
   mkdirSync(out, { recursive: true });
-  const files: StepFiles = { markers: join(out, "markers.log"), releaseOf: (id) => join(out, `release-${id}`) };
+  const files: StepFiles = { markers: join(out, "markers.log"), keys: join(out, "keys.log"), releaseOf: (id) => join(out, `release-${id}`) };
   writeFileSync(files.markers, "");
   const report: LongTurnReport = {
     profile: profile.name,

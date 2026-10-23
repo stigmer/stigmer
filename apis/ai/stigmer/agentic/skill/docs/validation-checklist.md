@@ -151,23 +151,23 @@ The `SKILL.md` body is injected into an agent's context and read by the AI, not 
 ```markdown
 <!-- Wrong — describes the skill from the outside -->
 ## Overview
-This skill was created by the platform team to assist with code reviews.
-It uses pattern matching and static analysis heuristics to detect common issues.
+This skill was created by the finance team to assist with variance reports.
+It uses budget thresholds and account mappings to flag unusual movements.
 
 ## Features
-- Checks for security vulnerabilities
-- Enforces style guidelines
+- Flags accounts over budget
+- Enforces the report layout
 ```
 
 ```markdown
 <!-- Correct — directs the agent -->
 ## When to Use This Skill
-Use this skill for every code review request, regardless of programming language.
+Use this skill for every variance report request, whatever the period.
 
-## How to Review
-1. Check for security vulnerabilities first: SQL injection, exposed secrets, unvalidated input.
-2. Apply the style rules for the detected language.
-3. Report issues in order of severity: critical → major → minor.
+## How to Report
+1. Map every ledger line to the chart of accounts first: unmapped lines, wrong accounts, missing budgets.
+2. Apply the report layout for the customer's chart of accounts.
+3. Report variances in order of severity: critical → major → minor.
 ```
 
 ### Assuming `latest` Points to a Known Version

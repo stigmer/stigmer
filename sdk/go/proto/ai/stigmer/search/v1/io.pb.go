@@ -248,13 +248,13 @@ type SearchResult struct {
 	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	// URL-friendly identifier, unique within the organization.
 	//
-	// Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
+	// Lowercase alphanumeric with hyphens (e.g., "variance-reporter", "web-search").
 	Slug string `protobuf:"bytes,4,opt,name=slug,proto3" json:"slug,omitempty"`
 	// Fully qualified reference: "<org>/<slug>", where org is the owning
 	// organization's id, as metadata.org carries it.
 	//
-	// Example: "org_01j5q3k7m8r2s4tnz2hf6w8x9a/code-reviewer"; an organization
-	// made before ids were minted reads "acme/code-reviewer".
+	// Example: "org_01j5q3k7m8r2s4tnz2hf6w8x9a/variance-reporter"; an organization
+	// made before ids were minted reads "acme/variance-reporter".
 	//
 	// A reference in this form resolves as written. Clients that show it to a
 	// person put the organization's slug in place of its id.

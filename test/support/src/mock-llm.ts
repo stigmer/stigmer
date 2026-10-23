@@ -223,12 +223,14 @@ function isTitleGenerationRequest(body: unknown): boolean {
   return text.toLowerCase().includes(TITLE_GENERATION_SIGNATURE);
 }
 
-// How deepagents' summary prompt opens (DEFAULT_SUMMARY_PROMPT, deepagents
-// 1.14.1; the runner's ScriptedModel recognizes the same opening and a test
-// there provokes a real compaction, so a library that rewords it is caught).
-// The summarization middleware sends it as the request's ONE user message,
-// with no system prompt and no tools.
-const SUMMARY_PROMPT_OPENING = "You are a conversation summarizer.";
+// How the runner's checkpoint prompt opens: a copy of SUMMARY_PROMPT_OPENING
+// in backend/services/runner/src/middleware/compaction-prompt.ts, the source
+// (this package does not depend on the runner). The summarization middleware
+// sends the prompt as the request's ONE user message, with no system prompt
+// and no tools. A copy that drifts would turn every compaction into an agent
+// turn the queue answers; this package's own test reads the runner's source
+// and holds the two equal.
+export const SUMMARY_PROMPT_OPENING = "You are writing the checkpoint another agent will resume this work from.";
 
 // The canned summary every out-of-band summary call receives.
 export const MOCK_CONVERSATION_SUMMARY = "Summary (mock): the conversation so far, condensed.";

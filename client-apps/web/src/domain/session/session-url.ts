@@ -15,7 +15,7 @@
  *
  * @example
  * ```tsx
- * router.push(getAgentSessionUrl("acme", "code-reviewer"));
+ * router.push(getAgentSessionUrl("acme", "variance-reporter"));
  * ```
  */
 export function getAgentSessionUrl(org: string, slug: string): string {

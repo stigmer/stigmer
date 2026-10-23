@@ -12,10 +12,10 @@ metadata:
   org: acme-corp
   visibility: visibility_private
   labels:
-    team: engineering
+    team: finance
   tags:
-    - code-review
-    - security
+    - variance-report
+    - accounting
 spec:
   description: "Human-readable description of the agent"
   icon_url: "https://example.com/icon.svg"
@@ -25,7 +25,7 @@ spec:
   skill_refs: []
   subagents: []
   hooks: []
-  env_spec: {}
+  env: {}
   harness: HARNESS_NATIVE
   run_config: {}
 status: {}  # System-managed, never set by users
@@ -58,7 +58,7 @@ All metadata fields are defined by `ApiResourceMetadata` in `ai/stigmer/commons/
 | `metadata.org` | Recommended | Organization that owns this agent. Set automatically from `context.org` if omitted during apply. Format: lowercase alphanumeric with hyphens (e.g., `acme-corp`). |
 | `metadata.visibility` | No | Access control. `visibility_org` (default): every member of the owning organization can read. `visibility_private`: the creator and anyone granted access directly. `visibility_child_orgs`: everyone in the owning organization's child organizations. Nothing is readable outside the organization otherwise; another organization's agent reaches yours as a plugin you install. |
 | `metadata.labels` | No | Key-value pairs for organization and filtering (e.g., `team: engineering`). Each key is an optional DNS-subdomain prefix and `/`, then a name of at most 63 letters, digits, `-`, `_` and `.`, starting and ending with a letter or digit; each value is empty or such a name; at most 64 pairs. Every list of this kind filters by labels (`--label team=engineering` in the CLI). |
-| `metadata.tags` | No | String array for categorization and search (e.g., `["code-review", "security"]`). Search words: lowercase letters, digits and hyphens, starting with a letter or digit, at most 50 characters each, at most 20, no repeats. |
+| `metadata.tags` | No | String array for categorization and search (e.g., `["variance-report", "accounting"]`). Search words: lowercase letters, digits and hyphens, starting with a letter or digit, at most 50 characters each, at most 20, no repeats. |
 | `metadata.version` | No | System-managed version tracking. Contains `id`, `message`, and `previous_version_id` for audit trail. Never set directly in YAML. |
 
 ### Visibility
@@ -68,7 +68,7 @@ Agents take one of three levels. Organization is the default: a blueprint is a s
 ```yaml
 # Organization agent (default) — every member of acme-corp can read and run it
 metadata:
-  name: internal-reviewer
+  name: variance-reporter
   org: acme-corp
   visibility: visibility_org
 
@@ -105,7 +105,7 @@ All spec fields are defined by `AgentSpec` in `ai/stigmer/agentic/agent/v1/spec.
 | `spec.tools` | No | Tools this agent may use, in Claude Code's names (`Read`, `Bash(git push *)`, `mcp__plugin_<plugin>_<server>`, `mcp__<server>`). Empty means every tool it has. See [plugin-integration.md](plugin-integration.md). |
 | `spec.disallowed_tools` | No | Tools this agent may never use, in the same names. Applied before `spec.tools`. |
 | `spec.hooks` | No | A hooks block written in the agent, run around its tool calls and its subagents' calls after the hooks of the plugins it lists. See [Hooks](#hooks). |
-| `spec.env_spec` | No | Required environment variables (schema only). See below. |
+| `spec.env` | No | The keys the agent needs, each with a description and whether it is secret; values come from vaults at run time. See [Declared Keys](#declared-keys). |
 | `spec.harness` | No | The engine (`HARNESS_NATIVE` or `HARNESS_CURSOR`) the run defaults were chosen for, and the engine a new conversation on this agent starts on when nobody names an engine or a model (a turn naming a model but no engine starts on native). Unspecified: native. See [Run Defaults](#run-defaults). |
 | `spec.run_config` | No | The author's run defaults: model, speed tier, thinking and run limits. Versioned with the agent. See [Run Defaults](#run-defaults). |
 
@@ -223,10 +223,10 @@ stigmer apply -f agent.yaml --dry-run
 stigmer list agents
 
 # List agents from a specific organization
-stigmer list agents --org acme-corp
+stigmer --org acme-corp list agents
 
 # Search for agents by text
-stigmer search agents "code review"
+stigmer search agents "variance report"
 
 # Get agent details (table format)
 stigmer get agent my-agent

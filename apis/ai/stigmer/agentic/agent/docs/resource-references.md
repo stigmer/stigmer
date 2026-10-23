@@ -6,7 +6,7 @@ When an Agent references another resource (plugin, skill, or an agent it lists a
 
 ```yaml
 kind: skill
-slug: code-review-best-practices
+slug: variance-report
 version: stable
 ```
 
@@ -60,7 +60,7 @@ Omit the `org` field to create a relative reference. The server resolves the org
 # Relative — org resolved from the agent's metadata.org
 skill_refs:
   - kind: skill
-    slug: code-review-best-practices
+    slug: variance-report
 ```
 
 ### Absolute References
@@ -72,7 +72,7 @@ Set `org` explicitly when referencing a resource in a different organization. Th
 skill_refs:
   - org: acme-cloud
     kind: skill
-    slug: code-analysis
+    slug: chart-of-accounts
 
 # Absolute — referencing a resource in your own org (explicit)
 skill_refs:
@@ -95,10 +95,10 @@ Slugs are user-friendly identifiers that are unique within an organization. Form
 
 ```yaml
 # Correct
-slug: code-reviewer
+slug: variance-reporter
 ```
 
-`Code_Reviewer` (uppercase and underscores), `codeReviewer` (camelCase) and `2nd-reviewer` (starts with a digit) are refused.
+`Variance_Reporter` (uppercase and underscores), `varianceReporter` (camelCase) and `2nd-reporter` (starts with a digit) are refused.
 
 ## When a Version Is Read
 
@@ -121,18 +121,18 @@ The `version` field is read by three kinds: skills, plugins, and agents listed i
 # Follow the latest version
 skill_refs:
   - kind: skill
-    slug: code-review-best-practices
+    slug: variance-report
 
 # Follow a named tag
 skill_refs:
   - kind: skill
-    slug: code-review-best-practices
+    slug: variance-report
     version: stable
 
 # Pin to an exact content hash
 skill_refs:
   - kind: skill
-    slug: code-review-best-practices
+    slug: variance-report
     version: "a1b2c3d4e5f6..."
 ```
 

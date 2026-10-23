@@ -67,24 +67,54 @@ Non-rendered files that remain in `docs/` but are excluded from the sidebar:
    ---
    ```
 
-3. If you need to control the page's position in the sidebar, edit the
-   `meta.json` file in that section's directory. Each `meta.json` has a `pages`
-   array that determines ordering.
+3. List the page in the sidebar: add it to the `pages` array of the `meta.json`
+   in its directory or, for a folder without one (such as `concepts/` or
+   `getting-started/`), to the root `docs/meta.json` by its path. A page listed
+   nowhere fails the build (see below).
 4. Follow the conventions in [STYLE.md](STYLE.md).
 
 ## Sidebar ordering with `meta.json`
 
-Each directory can contain a `meta.json` that controls sidebar title and page
-order:
+A folder's `meta.json` gives its sidebar title and the order of its pages, as
+`docs/guides/channels/meta.json` does:
 
 ```json
 {
-  "title": "Getting started",
-  "pages": ["quickstart", "local", "first-skill"]
+  "title": "Channels",
+  "pages": [
+    "create-a-chat-link",
+    "embed-an-agent",
+    "connect-slack",
+    "bring-your-own-slack-app",
+    "connect-whatsapp",
+    "set-up-your-meta-app",
+    "send-proactive-messages-with-templates",
+    "take-over-conversations"
+  ]
 }
 ```
 
-Pages not listed in `meta.json` appear alphabetically after the listed pages.
+`pages` is an allowlist, not an ordering hint: a page it leaves out is not in
+the sidebar. A folder's `index` page is the one exception and is included either
+way.
+
+The root `docs/meta.json` orders the top level. Its `pages` array mixes four
+kinds of entry:
+
+- `"---Get Started---"`: a separator that starts a sidebar group with that
+  label;
+- `"concepts/agents"`: one page, by its path under `docs/`, for folders that
+  have no `meta.json` of their own (`concepts/`, `getting-started/`);
+- `"guides/channels"`: a folder, listed with the order its own `meta.json`
+  gives;
+- `"[Run it on your servers](/docs/guides/self-hosting/overview)"`: a link
+  entry: an item with its own label that opens that page, so a page can also
+  appear in a group its folder is not in.
+
+The build checks that every page under `docs/` is reachable from these files:
+`site/scripts/generate-llms-txt.ts` fails the build, naming each page that is
+not, because such a page would vanish from `llms.txt` and the per-page `.md`
+exports.
 
 ## Make targets
 

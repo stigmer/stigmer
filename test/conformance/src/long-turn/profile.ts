@@ -2,7 +2,8 @@
 // each step runs.
 // Domain: conformance long turn (the real-clock run's plan; pure).
 //
-// Two profiles, chosen by `--profile` (scripts/long-turn-real-clock.ts):
+// Three profiles, chosen by `--profile` (scripts/long-turn-real-clock.ts and
+// scripts/long-turn-live.ts):
 //
 //   - `goal` plays what a turn of hours must survive, in real time and in one
 //     turn: a 10-minute silent build, a 10-minute build that prints a line
@@ -18,6 +19,18 @@
 //     hours, so what it finds is what only hours show. Its tool output is
 //     paced to cross the compaction trigger of its model (Claude Haiku 4.5,
 //     whose library profile puts it at 170,000 tokens) three times or more.
+//   - `retention` is live only: does a real model keep its goal across three
+//     compactions. Its bulk reads are chained: each prints a fresh random key
+//     on its last line, and the next takes that key as its argument and
+//     records it in its start marker. No call can be written before the step
+//     before it has run, so a model cannot paste the listed commands into one
+//     call ahead of time (on 2026-10-23 Haiku 4.5 ran `goal`'s bulk reads
+//     three or four to a call, their joined output cut to the runner's 30,000
+//     characters, and compacted once instead of three times); an output
+//     thrown away loses its key, and the report checks every key given
+//     against the one printed (report.ts `stepFidelityOf`). The real-clock run
+//     refuses it: its mock plays the commands literally, and a mock keeps no
+//     goal to measure.
 //
 // Every step's shell appends `start <id>` and `end <id>` to the run's marker
 // file, so the run reads which step is open from disk, never from a guess.
@@ -41,12 +54,14 @@ export type LongTurnStep =
   | { readonly kind: "streamed"; readonly id: string; readonly seconds: number; readonly everySeconds: number; readonly bytesPerLine: number }
   | { readonly kind: "subagent"; readonly id: string; readonly seconds: number }
   | { readonly kind: "bulk"; readonly id: string; readonly bytes: number }
+  /** A bulk read that prints a key on its last line; `after` names the step whose key it takes (absent on the first). */
+  | { readonly kind: "chained"; readonly id: string; readonly bytes: number; readonly after?: string }
   | { readonly kind: "server-restart"; readonly id: string }
   | { readonly kind: "kill"; readonly id: string }
   | { readonly kind: "drain"; readonly id: string }
   | { readonly kind: "message"; readonly id: string; readonly text: string };
 
-export type LongTurnProfileName = "goal" | "endurance";
+export type LongTurnProfileName = "goal" | "endurance" | "retention";
 
 export interface LongTurnProfile {
   readonly name: LongTurnProfileName;
@@ -55,6 +70,8 @@ export interface LongTurnProfile {
   readonly steps: readonly LongTurnStep[];
   /** How long the run may take before it is stopped and reported as such. */
   readonly budgetMs: number;
+  /** Only a real model can play it: the real-clock run refuses it. */
+  readonly liveOnly?: boolean;
 }
 
 /** The model both profiles run on: its library profile (200,000 tokens) puts compaction at 170,000. */
@@ -104,6 +121,28 @@ export function goalProfile(): LongTurnProfile {
   };
 }
 
+/** Where a chained step's command takes the key the step before it printed. */
+export const CHAIN_KEY = "<KEY>";
+
+/** The compactions a live run must reach for its goal to be measured (report.ts `goalVerdictOf`). */
+export const RETENTION_COMPACTIONS = 3;
+
+/** The `retention` profile: `goal`'s bulk reads, chained by key (the header), live only. */
+export function retentionProfile(): LongTurnProfile {
+  return {
+    name: "retention",
+    model: LONG_TURN_MODEL,
+    steps: Array.from({ length: bulkReadsFor(RETENTION_COMPACTIONS) }, (_, i): LongTurnStep => ({
+      kind: "chained",
+      id: `bulk-${i + 1}`,
+      bytes: BULK_BYTES,
+      ...(i === 0 ? {} : { after: `bulk-${i}` }),
+    })),
+    budgetMs: 90 * 60_000,
+    liveOnly: true,
+  };
+}
+
 /**
  * Each endurance command's length, and how often it prints: under every
  * stall window known today, and under the native shell's own 120 s timeout
@@ -140,17 +179,20 @@ export function enduranceProfile(minutes: number): LongTurnProfile {
 
 /** The profile a flag names; `steps` keeps only the steps whose ids it lists, in profile order. */
 export function profileOf(name: string, options: { readonly minutes?: number; readonly steps?: readonly string[] } = {}): LongTurnProfile {
-  const profile = name === "goal" ? goalProfile() : name === "endurance" ? enduranceProfile(options.minutes ?? 180) : undefined;
-  if (profile === undefined) throw new Error(`unknown profile '${name}' (goal or endurance)`);
+  const profile =
+    name === "goal" ? goalProfile() : name === "endurance" ? enduranceProfile(options.minutes ?? 180) : name === "retention" ? retentionProfile() : undefined;
+  if (profile === undefined) throw new Error(`unknown profile '${name}' (goal, endurance or retention)`);
   if (options.steps === undefined || options.steps.length === 0) return profile;
   const unknown = options.steps.filter((id) => !profile.steps.some((step) => step.id === id));
   if (unknown.length > 0) throw new Error(`profile '${name}' has no step ${unknown.join(", ")}`);
   return { ...profile, steps: profile.steps.filter((step) => options.steps!.includes(step.id)) };
 }
 
-/** Where a run's step bookkeeping lives: the marker file the steps append to, and a held step's release file. */
+/** Where a run's step bookkeeping lives: the marker file the steps append to, the keys chained steps printed, and a held step's release file. */
 export interface StepFiles {
   readonly markers: string;
+  /** One `<step id> <key>` line per chained step that ran. */
+  readonly keys: string;
   releaseOf(id: string): string;
 }
 
@@ -177,6 +219,7 @@ export function timeoutSecondsOf(step: LongTurnStep): number | undefined {
     case "message":
       return HELD_TIMEOUT_SECONDS;
     case "bulk":
+    case "chained":
       return undefined;
   }
 }
@@ -196,6 +239,11 @@ export function shellCommandOf(step: LongTurnStep, files: StepFiles): string {
     }
     case "bulk":
       return `${start}; head -c ${step.bytes} /dev/zero | tr '\\0' 'b'; echo; ${end}`;
+    case "chained": {
+      const given = step.after === undefined ? start : `echo 'start ${step.id} ${CHAIN_KEY}' >> '${files.markers}'`;
+      const key = "k=$(head -c 6 /dev/urandom | od -An -tx1 | tr -d ' \\n')";
+      return `${given}; head -c ${step.bytes} /dev/zero | tr '\\0' 'b'; echo; ${key}; echo "${step.id} $k" >> '${files.keys}'; ${end}; echo "next key: $k"`;
+    }
     case "server-restart":
     case "kill":
     case "drain":
@@ -211,14 +259,26 @@ export interface StepProgress {
   readonly open: string | undefined;
 }
 
+/** One line of the marker file: a step began (with the key it was given, on a chained step) or ended. */
+export interface StepMarker {
+  readonly mark: "start" | "end";
+  readonly id: string;
+  readonly key?: string;
+}
+
+/** The marker file's lines, in order; anything else in it is ignored. */
+export function stepMarkersOf(markerText: string): StepMarker[] {
+  return markerText.split("\n").flatMap((line): StepMarker[] => {
+    const match = /^(start|end) (\S+)(?: (\S+))?$/.exec(line.trim());
+    if (match === null) return [];
+    return [{ mark: match[1] as StepMarker["mark"], id: match[2]!, ...(match[3] === undefined ? {} : { key: match[3] }) }];
+  });
+}
+
 export function stepProgressOf(markerText: string): StepProgress {
   const started: string[] = [];
   const ended: string[] = [];
-  for (const line of markerText.split("\n")) {
-    const match = /^(start|end) (\S+)$/.exec(line.trim());
-    if (match === null) continue;
-    (match[1] === "start" ? started : ended).push(match[2]!);
-  }
+  for (const marker of stepMarkersOf(markerText)) (marker.mark === "start" ? started : ended).push(marker.id);
   const open = [...started].reverse().find((id) => started.filter((s) => s === id).length > ended.filter((e) => e === id).length);
   return { started, ended, open };
 }
@@ -229,6 +289,9 @@ export function narrateStep(step: LongTurnStep, files: StepFiles): string {
   const run = `Run exactly this shell command${timeout === undefined ? "" : `, with a timeout of ${timeout} seconds,`} and wait for it to finish: ${shellCommandOf(step, files)}`;
   if (step.kind === "subagent") {
     return `Hand this to a general-purpose subagent with the task tool, and wait for its answer: "${run.replace(/"/g, "'")} Then answer in one line: done."`;
+  }
+  if (step.kind === "chained" && step.after !== undefined) {
+    return `Run this shell command, with ${CHAIN_KEY} replaced by the key step ${step.after} printed on its last line ("next key: ..."), and wait for it to finish: ${shellCommandOf(step, files)}`;
   }
   return run;
 }

@@ -48,7 +48,7 @@ status:
   agent_version_hash: 9c2e4b7d1f3a5c7e9b1d3f5a7c9e1b3d5f7a9c1e3b5d7f9a1c3e5b7d9f1a3c5e
   plugins:
     - plugin_id: plg_01j5q3k7m8r2s4tnz2hfp0q0b3
-      plugin_slug: refund-policy
+      plugin_slug: payroll
       plugin_digest: 3f1c0e9a7b2d4c6e8f0a1b3c5d7e9f1a2b4c6d8e0f1a3b5c7d9e1f2a4b6c8d0e
       attached: true
       compared: true

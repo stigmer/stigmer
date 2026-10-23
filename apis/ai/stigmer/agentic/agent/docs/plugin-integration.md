@@ -63,11 +63,11 @@ subagent's `mcpServers` do. Each entry is an `AgentMcpServer`: a `name`, a
 ```yaml
 spec:
   mcp_servers:
-    - name: tickets
-      url: https://tickets.acme-helpdesk.example/mcp
+    - name: ledger
+      url: https://ledger.acme-books.example/mcp
       headers:
-        Authorization: Bearer ${TICKETS_API_KEY}
-  tools: [Read, mcp__tickets]
+        Authorization: Bearer ${LEDGER_API_KEY}
+  tools: [Read, mcp__ledger]
 ```
 
 - **Who writes them.** Only the organization's admins (`can_create_plugin` on
