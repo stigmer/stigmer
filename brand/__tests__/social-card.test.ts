@@ -12,13 +12,14 @@ import { POSITIONING } from "../positioning";
 import {
   SOCIAL_CARD_BADGES,
   SOCIAL_CARDS,
+  type SocialCardLayout,
   socialCardSvg,
 } from "../social-card";
 
 const texts = (svg: string) =>
   [...svg.matchAll(/<text\b[^>]*>([^<]*)<\/text>/g)].map((match) => match[1]);
 
-for (const [name, layout] of Object.entries(SOCIAL_CARDS)) {
+for (const [name, layout] of Object.entries<SocialCardLayout>(SOCIAL_CARDS)) {
   test(`the ${name} card says the headline and the one sentence, and nothing else but its badges`, async () => {
     const svg = await socialCardSvg(layout, POSITIONING);
     assert.deepEqual(texts(svg), [
