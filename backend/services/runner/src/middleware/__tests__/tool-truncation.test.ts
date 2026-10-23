@@ -238,6 +238,33 @@ describe("ToolTruncationMiddleware", () => {
       .toBe(`${numberedLines(200)}\n${numberedLines(200)}`);
   });
 
+  it("leaves a long text beside a large image within deepagents' threshold as deepagents counts it, so its kept file stands", async () => {
+    // deepagents' stringifyToolContent (1.14): every block joined by a line end, a non-text block as its JSON.
+    const deepagentsMeasure = (content: ToolMessage["content"]): number =>
+      typeof content === "string"
+        ? content.length
+        : content.map((b) => (b.type === "text" && typeof b.text === "string" ? b.text : JSON.stringify(b))).join("\n").length;
+    const image = { type: "image", source_type: "base64", mime_type: "image/png", data: "i".repeat(60_000) };
+    const text = numberedLines(4_000);
+    const message = new ToolMessage({ content: [{ type: "text", text }, image], tool_call_id: "tc_1", name: "mcp_tool" });
+    const mw = createToolTruncationMiddleware({ maxChars: 30_000, backend: routed });
+
+    const result = (await run(mw, message, makeRequest("mcp_tool"))) as ToolMessage;
+    expect(deepagentsMeasure(result.content)).toBeLessThanOrEqual(DEEPAGENTS_OFFLOAD_THRESHOLD_CHARS);
+    expect((result.content as Array<{ text?: string }>)[0]!.text).toContain("/large_tool_results/tc_1.txt");
+    expect((result.content as unknown[])[1]).toEqual(image);
+    expect(await readFile(join(offloadDir, "large_tool_results", "tc_1.txt"), "utf8")).toBe(text);
+  });
+
+  it("leaves a result its non-text blocks all but fill to deepagents, whole, and keeps nothing itself", async () => {
+    const image = { type: "image", source_type: "base64", mime_type: "image/png", data: "i".repeat(DEEPAGENTS_OFFLOAD_THRESHOLD_CHARS) };
+    const message = new ToolMessage({ content: [{ type: "text", text: numberedLines(4_000) }, image], tool_call_id: "tc_1", name: "mcp_tool" });
+    const mw = createToolTruncationMiddleware({ maxChars: 30_000, backend: routed });
+
+    expect(await run(mw, message, makeRequest("mcp_tool"))).toBe(message);
+    expect(await readdir(join(offloadDir, "large_tool_results"))).toEqual([]);
+  });
+
   it("returns an array result with no text block over the bound as it came", async () => {
     const message = new ToolMessage({
       content: [{ type: "image", source_type: "base64", mime_type: "image/png", data: "i".repeat(5000) }],

@@ -55,6 +55,12 @@
  * one message, governs every long result. Above 80,000 the run's setting had
  * no effect for those tools before either. The tools deepagents never
  * offloads ({@link DEEPAGENTS_NEVER_OFFLOADS}) keep the run's bound as given.
+ * deepagents measures a result's non-text blocks too, each as its JSON
+ * ({@link deepagentsMediaChars}), so their length comes off the text's room
+ * under the threshold. Were the text cut without it, deepagents would still
+ * offload the result, to the same file name, overwriting the whole text kept
+ * here with the cut one. A result whose non-text blocks leave less than
+ * {@link MIN_TEXT_ROOM_CHARS} of room is left to deepagents whole, as before.
  *
  * EVERY SHAPE A TOOL RETURNS
  * --------------------------
@@ -121,6 +127,14 @@ const DEEPAGENTS_NEVER_OFFLOADS: ReadonlySet<string> = new Set([
   ENGINE_TOOL.glob,
   ENGINE_TOOL.grep,
 ]);
+
+/**
+ * The least room under deepagents' threshold worth cutting a text into. A gap
+ * line is under 400 characters (every number at seven digits, a 128-byte
+ * file name), so below this the cut text could still pass the threshold;
+ * such a result, almost all non-text blocks, is left to deepagents whole.
+ */
+const MIN_TEXT_ROOM_CHARS = 1_000;
 
 /** What was left out of a cut result, for the gap line. Lines are 1-based. */
 export interface Omission {
@@ -241,6 +255,16 @@ function textOf(content: MessageContent): string {
   return content.filter(isTextBlock).map((block) => block.text).join("\n");
 }
 
+/**
+ * What deepagents (1.14) counts for a result's non-text blocks beside its
+ * text: its `stringifyToolContent` (not exported) joins every block with a
+ * line end, a non-text block as its JSON.
+ */
+export function deepagentsMediaChars(content: MessageContent): number {
+  if (typeof content === "string") return 0;
+  return content.filter((block) => !isTextBlock(block)).reduce((sum, block) => sum + 1 + JSON.stringify(block).length, 0);
+}
+
 /** The cut text in place of the original's: a string, or one text block before the non-text blocks kept as they are. */
 function withText(content: MessageContent, text: string): MessageContent {
   if (typeof content === "string") return text;
@@ -268,8 +292,11 @@ export function createToolTruncationMiddleware(
   let truncationCount = 0;
   let totalCharsTruncated = 0;
 
-  function boundFor(toolName: string): number {
-    return DEEPAGENTS_NEVER_OFFLOADS.has(toolName) ? maxChars : Math.min(maxChars, DEEPAGENTS_OFFLOAD_THRESHOLD_CHARS);
+  /** The text's bound for this result, or `null` when it is left to deepagents whole (the header). */
+  function boundFor(toolName: string, content: MessageContent): number | null {
+    if (DEEPAGENTS_NEVER_OFFLOADS.has(toolName)) return maxChars;
+    const room = DEEPAGENTS_OFFLOAD_THRESHOLD_CHARS - deepagentsMediaChars(content);
+    return room < MIN_TEXT_ROOM_CHARS ? null : Math.min(maxChars, room);
   }
 
   async function keep(toolCallId: string, text: string): Promise<Kept> {
@@ -285,9 +312,9 @@ export function createToolTruncationMiddleware(
 
   async function shorten(message: ToolMessage, request: ToolCallRequest): Promise<ToolMessage> {
     const toolName = request.toolCall.name;
-    const bound = boundFor(toolName);
+    const bound = boundFor(toolName, message.content);
     const text = textOf(message.content);
-    if (text.length <= bound) return message;
+    if (bound === null || text.length <= bound) return message;
 
     const narrow = NARROW_A_CALL.get(toolName);
     const kept = narrow === undefined ? await keep(message.tool_call_id || request.toolCall.id, text) : null;

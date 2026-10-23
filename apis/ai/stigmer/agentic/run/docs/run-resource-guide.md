@@ -110,7 +110,7 @@ Defined in `ai/stigmer/agentic/run/v1/invocation.proto`. The same message is a m
 | `max_tool_rounds` | `int32` | Stop after this many model-to-tools rounds (clamped to 10–1000). Native harness only; subagent rounds are not counted. |
 | `service_tier` | `ServiceTier` | `SERVICE_TIER_STANDARD` (the default when no layer sets it) or `SERVICE_TIER_FAST`, valid only for a model with a fast pricing tier on its engine. |
 | `thinking_mode` | `ThinkingMode` | `THINKING_MODE_DISABLED` (the default when no layer sets it) or `THINKING_MODE_ENABLED`, valid only for a model the registry marks thinking-capable on its engine. |
-| `max_tool_result_chars` | `int32` | Cut a single tool result longer than this many characters to its start and its end. The whole result is kept for the session, outside the workspace, where the agent can read it back; a tool that pages itself (reading a file, searching, listing, fetching a page) is read again a window at a time instead. 30,000 when no layer sets it; the Cursor harness does not read it. |
+| `max_tool_result_chars` | `int32` | Cut a single tool result longer than this many characters to its start and its end. The whole result is kept for the session, outside the workspace, where the agent can read it back; a tool that pages itself (reading a file, searching, listing, fetching a page) is read again a window at a time instead. Above 80,000 it raises the bound only for the file tools. 30,000 when no layer sets it; the Cursor harness does not read it. |
 
 **How a turn's settings are resolved.** Once, at create, from three layers, most specific first: the message (or the routine or channel it came through), the defaults of the agent version the turn runs, and the lane's operator profile.
 
