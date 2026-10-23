@@ -6,14 +6,15 @@
  *
  *   - A busy session is never touched: a run that is pending, running,
  *     waiting on a person or paused keeps its sandbox running.
- *   - RUNNING and idle for `pauseAfter`: pause (memory kept, wakes in about
- *     a second).
- *   - PAUSED and idle for `suspendAfter`: suspend (memory released, the
- *     workspace committed to storage; the next wakeup starts a fresh
- *     runner over it).
- *   - A RUNNING sandbox idle past `suspendAfter` is paused first and
+ *   - running and idle for `pauseAfter`: pause (the sandbox stopped, its
+ *     workspace kept on its node; the next wakeup starts a fresh runner
+ *     over it there).
+ *   - paused and idle for `suspendAfter`: suspend (the workspace committed
+ *     to storage and the node let go; the next wakeup starts a fresh
+ *     runner over it on any worker).
+ *   - A running sandbox idle past `suspendAfter` is paused first and
  *     suspended on a later pass: one rule per step, and every suspend
- *     comes from PAUSED, where no turn can be in flight.
+ *     comes from paused, where no turn can be in flight.
  *   - Every other state is mid-transition or already asleep: nothing.
  */
 import type { SubstrateSandboxState } from "./driver.js";

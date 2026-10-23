@@ -19,11 +19,25 @@
  * because Substrate uses it both for a lease held by another operation
  * and for an actor that crashed while resuming; the driver answers it by
  * re-reading the actor, which handles both. RESOURCE_EXHAUSTED (no free
- * worker) becomes SubstrateNoWorkerError. Every call has a deadline.
+ * worker) becomes SubstrateNoWorkerError. PERMISSION_DENIED is thrown
+ * with the grant the server lacks named, because an operator meets it
+ * once, at the first sandbox. Every call has a deadline.
  *
- * Substrate's Control API authorizes nobody: whoever holds this token
- * controls every actor, template and worker of that Substrate. The
- * operator guide says so.
+ * An actor's state is read as the driver needs it (SubstrateSandboxState),
+ * not as Substrate stores it: since Substrate 0.5 a paused actor is
+ * SUSPENDED with a node-local snapshot at its latest generation (a pause
+ * in flight is SUSPENDING with one not yet captured), and only that
+ * snapshot tells it from an actor whose files are in storage (Substrate's
+ * own snapshot_helpers.go reads it the same way).
+ *
+ * Authorization is the install's choice. Without it, whoever holds this
+ * token controls every actor, template and worker of that Substrate. With
+ * it (OpenFGA, Substrate's `--experimental-enable-authz`), the caller is
+ * its token's subject, `system:serviceaccount:<namespace>:<name>`, and
+ * everything the driver does inside its atespace needs `editor` there;
+ * creating the atespace needs a global owner, so the atespace is read
+ * first and created only when it is missing. The operator guide names
+ * both grants.
  */
 import { readFileSync, statSync } from "node:fs";
 
@@ -42,6 +56,7 @@ import {
   ActorSchema,
   ActorState,
   ActorTemplateSchema,
+  type ActorStatus,
   AtespaceSchema,
   Control,
   EgressPolicySchema,
@@ -69,12 +84,33 @@ export class SubstrateNoWorkerError extends Error {
   }
 }
 
+/** The grant the server lacks, named for the operator (module header). */
+export class SubstratePermissionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SubstratePermissionError";
+  }
+}
+
+/** An actor's state, in the platform's words: Substrate's, with a pause told apart (module header). */
+export type SubstrateSandboxState =
+  | "resuming"
+  | "running"
+  | "suspending"
+  | "suspended"
+  | "pausing"
+  | "paused"
+  | "crashed"
+  | "deleting"
+  | "reverting"
+  | "unknown";
+
 /** One actor as the driver sees it. */
 export interface SubstrateActorView {
   readonly name: string;
   readonly uid: string;
   readonly version: bigint;
-  readonly state: ActorState;
+  readonly state: SubstrateSandboxState;
   /** The template's name (always in this server's atespace). */
   readonly template: string;
   readonly createTime: Date | undefined;
@@ -134,6 +170,8 @@ const CALL_TIMEOUT_MS = 30_000;
 const LIFECYCLE_TIMEOUT_MS = 120_000;
 /** The largest page Substrate serves. */
 const PAGE_SIZE = 1000;
+/** An actor has at most one egress policy, and it is named so. */
+const EGRESS_POLICY_NAME = "default";
 
 /** A bearer-token interceptor over a file, re-read when its mtime moves. */
 export function bearerFromFile(path: string): Interceptor {
@@ -184,6 +222,14 @@ export function newSubstrateGatewayOverTransport(
   return {
     async ensureAtespace() {
       await translate(async () => {
+        // Read first: under authorization, an atespace someone else created
+        // and granted this server needs no global owner (module header).
+        try {
+          await client.getAtespace({ atespace: ref(atespace) }, call);
+          return;
+        } catch (error) {
+          if (!hasCode(error, Code.NotFound)) throw error;
+        }
         try {
           await client.createAtespace(
             {
@@ -215,7 +261,7 @@ export function newSubstrateGatewayOverTransport(
         let pageToken = "";
         do {
           const page = await client.listActors(
-            { atespace, pageSize: PAGE_SIZE, pageToken },
+            { atespace, options: { pageSize: PAGE_SIZE, pageToken } },
             call,
           );
           actors.push(...page.actors.map(actorView));
@@ -306,8 +352,7 @@ export function newSubstrateGatewayOverTransport(
             {
               actor: ref(name),
               egressPolicy: create(EgressPolicySchema, {
-                // An actor has at most one policy, and it is named "default".
-                metadata: { atespace, name: "default" },
+                metadata: { atespace, name: EGRESS_POLICY_NAME },
                 rules: [...rules],
               }),
             },
@@ -320,7 +365,7 @@ export function newSubstrateGatewayOverTransport(
         // One exists: replace it only when its rules differ, at the version
         // read (a concurrent writer answers ABORTED, and the caller re-reads).
         const stored = await client.getActorEgressPolicy(
-          { actor: ref(name) },
+          { actor: ref(name), name: EGRESS_POLICY_NAME },
           call,
         );
         if (
@@ -360,7 +405,7 @@ export function newSubstrateGatewayOverTransport(
         let pageToken = "";
         do {
           const page = await client.listActorTemplates(
-            { atespace, pageSize: PAGE_SIZE, pageToken },
+            { atespace, options: { pageSize: PAGE_SIZE, pageToken } },
             call,
           );
           templates.push(...page.actorTemplates.map(templateView));
@@ -404,11 +449,16 @@ function hasCode(error: unknown, code: Code): boolean {
   return error instanceof ConnectError && error.code === code;
 }
 
-/** ABORTED and RESOURCE_EXHAUSTED into the driver's two typed errors (module header). */
+/** ABORTED, RESOURCE_EXHAUSTED and PERMISSION_DENIED into the driver's typed errors (module header). */
 async function translate<T>(body: () => Promise<T>): Promise<T> {
   try {
     return await body();
   } catch (error) {
+    if (hasCode(error, Code.PermissionDenied)) {
+      throw new SubstratePermissionError(
+        `Substrate's Control API refused this server (${(error as ConnectError).rawMessage}); with authorization on, the server's identity (its token's subject, system:serviceaccount:<namespace>:<name>) needs the editor role on its atespace, and the atespace must exist unless the server is a global owner`,
+      );
+    }
     if (hasCode(error, Code.Aborted)) {
       throw new SubstrateAbortedError((error as ConnectError).rawMessage);
     }
@@ -424,7 +474,7 @@ function actorView(actor: Actor): SubstrateActorView {
     name: actor.metadata?.name ?? "",
     uid: actor.metadata?.uid ?? "",
     version: actor.metadata?.version ?? 0n,
-    state: actor.status?.state ?? ActorState.UNSPECIFIED,
+    state: stateOf(actor.status),
     template: actor.actorTemplate?.name ?? "",
     createTime: actor.metadata?.createTime
       ? timestampDate(actor.metadata.createTime)
@@ -447,4 +497,41 @@ function templateView(template: ActorTemplate): SubstrateTemplateView {
     goldenReady: (golden?.goldenTag?.name ?? "") !== "",
     goldenError: golden?.errorMessage ?? "",
   };
+}
+
+/**
+ * Substrate's state in the driver's words, a pause told apart by the
+ * snapshot at the actor's latest generation (module header).
+ */
+export function stateOf(status: ActorStatus | undefined): SubstrateSandboxState {
+  const latest = status?.snapshots.find(
+    (snapshot) => snapshot.generation === status.lastAssignedGeneration,
+  );
+  const localOnly =
+    latest !== undefined && latest.durableSnapshot === undefined;
+  const state = status?.state ?? ActorState.UNSPECIFIED;
+  switch (state) {
+    case ActorState.RESUMING:
+      return "resuming";
+    case ActorState.RUNNING:
+      return "running";
+    case ActorState.SUSPENDING:
+      return localOnly && latest.locality === "" ? "pausing" : "suspending";
+    case ActorState.SUSPENDED:
+      return localOnly && latest.locality !== "" ? "paused" : "suspended";
+    case ActorState.CRASHED:
+      return "crashed";
+    case ActorState.DELETING:
+      return "deleting";
+    case ActorState.REVERTING:
+      return "reverting";
+    case ActorState.UNSPECIFIED:
+      return "unknown";
+    default: {
+      // Only a number outside the enum reaches here, from another release.
+      const unexpected: never = state;
+      void unexpected;
+      return "unknown";
+    }
+  }
 }

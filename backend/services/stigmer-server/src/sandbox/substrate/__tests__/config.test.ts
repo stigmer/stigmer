@@ -4,7 +4,7 @@
  * router), the parsing of the selector and the extra destinations, the
  * platform HTTPS hosts (EGRESS_HTTPS_PLATFORM, parseHosts: lower-cased,
  * each once, a scheme, port, path or pattern refused), and the two rules the idle windows must keep (a pause before a suspend;
- * no pause longer than a paused runner can sleep and renew).
+ * no pause longer than a workspace may live on one node only).
  */
 import { describe, expect, it } from "vitest";
 

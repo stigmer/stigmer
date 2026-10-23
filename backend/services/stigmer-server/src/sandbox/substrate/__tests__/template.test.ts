@@ -5,8 +5,9 @@
  *     only plain per-target settings (no runner secret, no token), gives the
  *     runner root's HOME (its user is the image's, which Substrate cannot
  *     set; the start script refuses one that is not root), mounts
- *     the workspace and the actor's own name, and
- *     snapshots FULL on pause, DATA on commit, golden on resume;
+ *     the workspace and the actor's own name, runs in the gVisor class, and
+ *     snapshots volumes only, its golden snapshot on (a pause and a
+ *     suspend alike keep the workspace, never the runner's memory);
  *   - it adds the runner's five capabilities to Substrate's default set and
  *     drops none, so the runner can run the agent as its own user and the
  *     waiter keeps port 80 (#2339);
@@ -37,9 +38,8 @@ import { FakeSubstrate } from "../__test-utils__/fake-gateway.js";
 import type { SubstrateDriverSettings } from "../config.js";
 import {
   ActorMetadataField,
-  ResumeSource,
-  SandboxClass,
-  SnapshotContentScope,
+  GoldenSnapshotMode,
+  SnapshotFidelity,
 } from "../gen/ateapipb/ateapi_pb.js";
 import { buildRunnerTemplate, newTemplateKeeper } from "../template.js";
 
@@ -155,14 +155,13 @@ describe("the template", () => {
       }),
     ]);
     expect(template.sandboxConfig).toMatchObject({
-      sandboxClass: SandboxClass.GVISOR,
+      sandboxClass: "gvisor",
       configName: "gvisor-default",
     });
     expect(template.snapshotConfig).toMatchObject({
-      onPause: SnapshotContentScope.FULL,
-      onCommit: SnapshotContentScope.DATA,
-      onResume: { fromData: ResumeSource.GOLDEN },
       storageLocation: "gs://ate-snapshots/stigmer",
+      preferredFidelity: SnapshotFidelity.VOLUMES,
+      goldenSnapshotConfig: { mode: GoldenSnapshotMode.ENABLED },
     });
     expect(template.workerSelector?.matchLabels).toEqual({
       workload: "stigmer",
@@ -184,7 +183,7 @@ describe("the template", () => {
     expect(
       template.volumes[1]?.systemInfo?.dataSources[0]?.trustBundle,
     ).toMatchObject({
-      name: "egress-mitm.ate.dev",
+      names: ["egress-mitm.ate.dev"],
       path: "trust-bundle.pem",
     });
     const env = envOf(template);

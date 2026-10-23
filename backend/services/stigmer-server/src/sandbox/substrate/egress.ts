@@ -21,15 +21,14 @@
  * server's address is one, `https://api.stigmer.ai`); with it off, it is
  * unreachable from the sandbox, as every HTTPS name is.
  *
- * A runner lane over TLS is a boot throw. Substrate's gateway can carry
- * TLS only by intercepting it: its `tls_passthrough` rule, which would
- * forward TLS untouched, is accepted by Substrate 0.3.0 but matches nothing
- * in its gateway yet, so those names are denied. An intercepted lane
- * cannot carry a Temporal client certificate or a pinned Temporal CA, and
- * it needs the gateway's CA in the sandbox even with HTTPS egress off. So
+ * A runner lane over TLS is a boot throw. This driver carries TLS only
+ * through an intercepting `https` rule, and an intercepted lane cannot
+ * carry a Temporal client certificate or a pinned Temporal CA, and it
+ * needs the gateway's CA in the sandbox even with HTTPS egress off. So
  * the runner's lanes are cleartext addresses the gateway can reach, inside
- * the cluster; when passthrough works, a TLS lane becomes a passthrough
- * rule and this refusal goes.
+ * the cluster. Substrate's `tls_passthrough` rule forwards TLS untouched
+ * since 0.4 (agent-substrate/substrate#2019); a TLS lane becomes such a
+ * rule, and this refusal goes, in #1798.
  *
  * Never allowed: Substrate's own services. Its router addresses any actor
  * by a header alone and the attach push trusts whoever reaches it, so
@@ -147,7 +146,7 @@ export function buildEgressRules(
     const destination = { ...given, host: given.host.replace(/\.$/, "") };
     if (destination.tls) {
       throw new Error(
-        `${destination.source} is a TLS lane (${destination.host}:${destination.port}); the substrate driver needs the runner's lanes in cleartext inside the cluster, because Substrate's egress gateway can carry TLS only by intercepting it (its tls_passthrough rule is not served yet), which breaks a Temporal client certificate or a pinned CA and needs the gateway's CA in every sandbox`,
+        `${destination.source} is a TLS lane (${destination.host}:${destination.port}); the substrate driver needs the runner's lanes in cleartext inside the cluster, because Substrate's egress gateway can carry TLS only by intercepting it (this driver does not yet write Substrate's tls_passthrough rule, #1798), which breaks a Temporal client certificate or a pinned CA and needs the gateway's CA in every sandbox`,
       );
     }
     if (isIpAddress(destination.host)) {

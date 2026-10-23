@@ -14,6 +14,14 @@
  * `/readyz` is the template's only wakeup probe, so Substrate takes the
  * snapshot the moment the waiter listens.
  *
+ * The template captures volumes only (`preferred_fidelity: VOLUMES`): a
+ * pause keeps the workspace on the actor's node, a suspend commits it to
+ * storage, and the next wake from either boots the waiter fresh from the
+ * image over it. Substrate 0.5 snapshots a pause and a suspend at the one
+ * fidelity a template names, and memory would bring a suspended runner
+ * back with the secrets it slept with (driver.ts); the golden snapshot is
+ * always memory, so a new actor still starts from the waiter's.
+ *
  * The template is named by its content: `stigmer-runner-<12 hex of the
  * SHA-256 of its encoding>`. Changing the runner image or any setting
  * makes a new template and nothing else does; the previous one keeps
@@ -25,7 +33,8 @@
  * during it awaits the same promise). It creates this server's atespace
  * when missing, creates the template when missing, and waits for its
  * golden snapshot, because an actor created before the snapshot is
- * published cold-boots for the rest of its life (Substrate's API guide).
+ * published cold-boots its first wake instead of starting from it
+ * (Substrate's API guide).
  * A template whose snapshot failed (a terminal error on its status) is
  * deleted and created once more per process; after that its error is
  * thrown into every ensure until the operator fixes the cause.
@@ -58,15 +67,16 @@ import type { SubstrateDriverSettings } from "./config.js";
 import {
   ActorMetadataField,
   ActorTemplateSchema,
+  GoldenSnapshotMode,
   ResourceMetadataSchema,
-  ResumeSource,
-  SandboxClass,
-  SnapshotContentScope,
+  SnapshotFidelity,
   type ActorTemplate,
 } from "./gen/ateapipb/ateapi_pb.js";
 import { delay } from "./delay.js";
 import type { SubstrateGateway } from "./gateway.js";
 
+/** The sandbox class, gVisor: the class Substrate's default SandboxConfig serves. */
+const SANDBOX_CLASS = "gvisor";
 /** The waiter's port: the one Substrate's router reaches without a CONNECT tunnel. */
 const WAITER_PORT = 80;
 /** The workspace mount, the same path every driver gives the runner. */
@@ -176,7 +186,7 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
               ? [
                   {
                     trustBundle: {
-                      name: TRUST_BUNDLE_NAME,
+                      names: [TRUST_BUNDLE_NAME],
                       path: TRUST_BUNDLE_FILE,
                     },
                   },
@@ -194,17 +204,15 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
       },
     ],
     sandboxConfig: {
-      sandboxClass: SandboxClass.GVISOR,
+      sandboxClass: SANDBOX_CLASS,
       configName: settings.sandboxConfigName,
     },
     resources: { limits: LIMITS.map((limit) => ({ ...limit })) },
     snapshotConfig: {
-      // A pause keeps memory; a suspend keeps the workspace only, and a
-      // resume from it starts the golden snapshot (the waiter) over it.
-      onPause: SnapshotContentScope.FULL,
-      onCommit: SnapshotContentScope.DATA,
-      onResume: { fromData: ResumeSource.GOLDEN },
+      // The workspace only, on a pause and a suspend alike (module header).
       storageLocation: settings.storageLocation,
+      preferredFidelity: SnapshotFidelity.VOLUMES,
+      goldenSnapshotConfig: { mode: GoldenSnapshotMode.ENABLED },
     },
   });
   const digest = createHash("sha256")

@@ -33,13 +33,14 @@
  * followed by one more busy check: every turn's execution is saved
  * before its ensure runs (the create chain persists, starts the
  * workflow, then ensures), so a turn that began while the pause was in
- * flight shows as busy here and the sweep resumes the sandbox at once.
- * That closes the race with a turn on another server replica too, for
- * pauses. For suspends it does not: a turn whose push lands on another
- * replica in the moment between this replica's last check and its
- * suspend loses its runner and times out; the user's next message wakes
- * the sandbox again. Every suspend comes from PAUSED, so the window is
- * that narrow.
+ * flight shows as busy here and the sweep wakes the sandbox again at
+ * once, a fresh runner that turn's ensure pushes to. A turn on another
+ * server replica whose push lands in the moment between this replica's
+ * last check and its pause or suspend loses its runner and times out
+ * (a pause keeps no runner since Substrate 0.5, template.ts); the user's
+ * next message wakes the sandbox again. Every suspend comes from paused,
+ * and the check sits right before the call, so the window is that
+ * narrow.
  *
  * The pause and the suspend themselves, and every pass's upkeep (egress
  * made current, a sleeping sandbox moved to the current template, unused

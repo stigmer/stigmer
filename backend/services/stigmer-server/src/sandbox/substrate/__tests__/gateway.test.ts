@@ -6,8 +6,15 @@
  *     file, re-read when the file changes;
  *   - NOT_FOUND reads as absent and deletes as success; ALREADY_EXISTS
  *     creates as "exists"; FAILED_PRECONDITION moves as "refused";
- *   - ABORTED and RESOURCE_EXHAUSTED become the driver's two typed errors;
- *   - lists follow page tokens;
+ *   - ABORTED and RESOURCE_EXHAUSTED become the driver's two typed errors,
+ *     and PERMISSION_DENIED one naming the grant the server needs;
+ *   - the atespace is read first and created only when it is missing, so
+ *     an atespace granted to the server needs no global owner;
+ *   - an actor's state in the driver's words, a pause told apart by the
+ *     snapshot at its latest generation (local, no durable copy), a pause
+ *     in flight by one not yet captured;
+ *   - the egress policy is read by its singleton name, "default";
+ *   - lists follow page tokens, in Substrate 0.5's list options;
  *   - a move replaces the stored actor with only its template changed, and
  *     refuses one that changed since it was read.
  */
@@ -37,8 +44,10 @@ import {
   bearerFromFile,
   newSubstrateClientGateway,
   newSubstrateGatewayOverTransport,
+  stateOf,
   SubstrateAbortedError,
   SubstrateNoWorkerError,
+  SubstratePermissionError,
 } from "../gateway.js";
 
 let dir: string;
@@ -64,7 +73,12 @@ function gatewayOver(impl: Partial<ServiceImpl<typeof Control>>) {
   return newSubstrateGatewayOverTransport(transport, "stigmer");
 }
 
-const actor = (name: string, state: ActorState, version = 3n) =>
+const actor = (
+  name: string,
+  state: ActorState,
+  version = 3n,
+  snapshots: { locality: string; durable: boolean }[] = [],
+) =>
   create(ActorSchema, {
     metadata: {
       atespace: "stigmer",
@@ -75,8 +89,27 @@ const actor = (name: string, state: ActorState, version = 3n) =>
       updateTime: timestampFromDate(new Date("2026-10-03T11:00:00Z")),
     },
     actorTemplate: { atespace: "stigmer", name: "stigmer-runner-old" },
-    status: { state },
+    status: {
+      state,
+      lastAssignedGeneration: snapshots.length,
+      snapshots: snapshots.map((snapshot, i) => ({
+        uuid: `snap-${i + 1}`,
+        generation: i + 1,
+        locality: snapshot.locality,
+        ...(snapshot.durable
+          ? {
+              durableSnapshot: {
+                object: { snapshotUri: `gs://b/snap-${i + 1}` },
+              },
+            }
+          : {}),
+      })),
+    },
   });
+/** The snapshot a pause leaves: on a node, with no durable copy. */
+const PAUSED_SNAPSHOT = { locality: "node-1", durable: false };
+/** The snapshot a suspend leaves: in storage. */
+const STORED_SNAPSHOT = { locality: "", durable: true };
 
 describe("the bearer token", () => {
   it("rides every call and follows the file when it changes", async () => {
@@ -135,6 +168,9 @@ describe("error translation", () => {
           metadata: { name: "default" },
           rules: [],
         }),
+      getAtespace() {
+        throw new ConnectError("no atespace", Code.NotFound);
+      },
       createAtespace: exists,
     });
     expect(await gateway.createActor("a", "t")).toBe("exists");
@@ -172,11 +208,102 @@ describe("error translation", () => {
       code: Code.Internal,
     });
   });
+
+  it("PERMISSION_DENIED names the grant the server needs", async () => {
+    const gateway = gatewayOver({
+      createActor() {
+        throw new ConnectError("permission denied", Code.PermissionDenied);
+      },
+    });
+    const refusal = gateway.createActor("a", "t");
+    await expect(refusal).rejects.toBeInstanceOf(SubstratePermissionError);
+    await expect(refusal).rejects.toThrow(
+      /needs the editor role on its atespace/,
+    );
+  });
+});
+
+describe("the atespace", () => {
+  it("is read first, and an existing one is never created, so a granted atespace needs no global owner", async () => {
+    const seen: string[] = [];
+    const gateway = gatewayOver({
+      getAtespace(request) {
+        seen.push(`get ${request.atespace?.name ?? ""}`);
+        return { metadata: { name: request.atespace?.name ?? "" } };
+      },
+      createAtespace() {
+        seen.push("create");
+        throw new ConnectError("permission denied", Code.PermissionDenied);
+      },
+    });
+    await gateway.ensureAtespace();
+    expect(seen).toEqual(["get stigmer"]);
+  });
+
+  it("is created when it is missing", async () => {
+    const seen: string[] = [];
+    const gateway = gatewayOver({
+      getAtespace() {
+        seen.push("get");
+        throw new ConnectError("no atespace", Code.NotFound);
+      },
+      createAtespace(request) {
+        seen.push(`create ${request.atespace?.metadata?.name ?? ""}`);
+        return request.atespace ?? {};
+      },
+    });
+    await gateway.ensureAtespace();
+    expect(seen).toEqual(["get", "create stigmer"]);
+  });
+});
+
+describe("an actor's state", () => {
+  it("reads Substrate's, with a pause told apart by its latest snapshot", () => {
+    const stateOfActor = (
+      state: ActorState,
+      snapshots: { locality: string; durable: boolean }[] = [],
+    ) => stateOf(actor("a", state, 1n, snapshots).status);
+    expect(stateOfActor(ActorState.SUSPENDED)).toBe("suspended");
+    expect(stateOfActor(ActorState.SUSPENDED, [STORED_SNAPSHOT])).toBe(
+      "suspended",
+    );
+    expect(stateOfActor(ActorState.SUSPENDED, [PAUSED_SNAPSHOT])).toBe(
+      "paused",
+    );
+    // Only the latest generation counts: paused, then suspended.
+    expect(
+      stateOfActor(ActorState.SUSPENDED, [PAUSED_SNAPSHOT, STORED_SNAPSHOT]),
+    ).toBe("suspended");
+    expect(
+      stateOfActor(ActorState.SUSPENDED, [STORED_SNAPSHOT, PAUSED_SNAPSHOT]),
+    ).toBe("paused");
+    // A pause in flight: its snapshot is not captured yet.
+    expect(
+      stateOfActor(ActorState.SUSPENDING, [
+        STORED_SNAPSHOT,
+        { locality: "", durable: false },
+      ]),
+    ).toBe("pausing");
+    expect(stateOfActor(ActorState.SUSPENDING, [STORED_SNAPSHOT])).toBe(
+      "suspending",
+    );
+    // A running actor woken from a pause keeps its local snapshot.
+    expect(stateOfActor(ActorState.RUNNING, [PAUSED_SNAPSHOT])).toBe(
+      "running",
+    );
+    expect(stateOfActor(ActorState.RESUMING)).toBe("resuming");
+    expect(stateOfActor(ActorState.CRASHED)).toBe("crashed");
+    expect(stateOfActor(ActorState.DELETING)).toBe("deleting");
+    expect(stateOfActor(ActorState.REVERTING)).toBe("reverting");
+    expect(stateOfActor(ActorState.UNSPECIFIED)).toBe("unknown");
+    expect(stateOf(undefined)).toBe("unknown");
+  });
 });
 
 describe("an existing egress policy", () => {
   it("is replaced at the version read when its rules differ, and left when they match", async () => {
     let updated: unknown;
+    const read: string[] = [];
     const rule = create(EgressRuleSchema, {
       http: { hostnames: ["stigmer.example"], ports: { numbers: [7234] } },
     });
@@ -185,17 +312,20 @@ describe("an existing egress policy", () => {
       createActorEgressPolicy() {
         throw new ConnectError("dup", Code.AlreadyExists);
       },
-      getActorEgressPolicy: () =>
-        create(EgressPolicySchema, {
+      getActorEgressPolicy: (request) => {
+        read.push(`${request.actor?.name ?? ""}/${request.name}`);
+        return create(EgressPolicySchema, {
           metadata: { name: "default", uid: "pol-1", version: 7n },
           rules: storedRules,
-        }),
+        });
+      },
       updateActorEgressPolicy(request) {
         updated = request.egressPolicy;
         return request.egressPolicy ?? create(EgressPolicySchema, {});
       },
     });
     expect(await gateway.ensureEgressPolicy("a", [rule])).toBe("unchanged");
+    expect(read).toEqual(["a/default"]);
     expect(updated).toBeUndefined();
     const wildcard = create(EgressRuleSchema, { https: { hostnames: ["*"] } });
     expect(await gateway.ensureEgressPolicy("a", [rule, wildcard])).toBe(
@@ -214,15 +344,20 @@ describe("lists and moves", () => {
   it("lists follow page tokens", async () => {
     const gateway = gatewayOver({
       listActors(request) {
-        return request.pageToken === ""
+        return (request.options?.pageToken ?? "") === ""
           ? { actors: [actor("a", ActorState.RUNNING)], nextPageToken: "p2" }
-          : { actors: [actor("b", ActorState.PAUSED)], nextPageToken: "" };
+          : {
+              actors: [
+                actor("b", ActorState.SUSPENDED, 3n, [PAUSED_SNAPSHOT]),
+              ],
+              nextPageToken: "",
+            };
       },
     });
     const actors = await gateway.listActors();
     expect(actors.map((a) => [a.name, a.state, a.template])).toEqual([
-      ["a", ActorState.RUNNING, "stigmer-runner-old"],
-      ["b", ActorState.PAUSED, "stigmer-runner-old"],
+      ["a", "running", "stigmer-runner-old"],
+      ["b", "paused", "stigmer-runner-old"],
     ]);
     expect(actors[0]?.updateTime).toEqual(new Date("2026-10-03T11:00:00Z"));
   });
@@ -304,6 +439,10 @@ describe("the calls that succeed", () => {
         return answer;
       };
     const gateway = gatewayOver({
+      getAtespace() {
+        seen.push("getAtespace");
+        throw new ConnectError("no atespace", Code.NotFound);
+      },
       createAtespace: record("createAtespace", {}),
       createActor: record("createActor", actor("a", ActorState.SUSPENDED)),
       createActorTemplate: record(
@@ -322,7 +461,7 @@ describe("the calls that succeed", () => {
       ),
       listActorTemplates(request) {
         seen.push("listActorTemplates");
-        return request.pageToken === ""
+        return (request.options?.pageToken ?? "") === ""
           ? {
               actorTemplates: [
                 create(ActorTemplateSchema, { metadata: { name: "t1" } }),
@@ -363,6 +502,7 @@ describe("the calls that succeed", () => {
       "t2",
     ]);
     expect(seen).toEqual([
+      "getAtespace",
       "createAtespace",
       "createActor",
       "createActorTemplate",
@@ -383,6 +523,7 @@ describe("the calls that succeed", () => {
       throw new ConnectError("boom", Code.Internal);
     };
     const gateway = gatewayOver({
+      getAtespace: boom,
       createAtespace: boom,
       createActor: boom,
       createActorTemplate: boom,
@@ -397,7 +538,7 @@ describe("the calls that succeed", () => {
       name: "a",
       uid: "u",
       version: 1n,
-      state: ActorState.SUSPENDED,
+      state: "suspended" as const,
       template: "t",
       createTime: undefined,
       updateTime: undefined,

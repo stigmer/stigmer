@@ -24,10 +24,13 @@
  * and once in 12 s, its paused state's restore growing with the pause. So
  * a sandbox stays paused only briefly before it is suspended, and the
  * sweep runs every 30 s, because a suspend lands on the pass after the
- * pause and the interval is what bounds how long a sandbox stays paused. Boot refuses
- * windows that would keep a sandbox paused for longer than
- * MAX_IN_PLACE_PAUSE_SECONDS, the longest a paused runner may sleep and
- * still renew its credential on waking (driver.ts).
+ * pause and the interval is what bounds how long a sandbox stays paused.
+ * Substrate 0.5 keeps no memory across either (template.ts), so both
+ * wakes are now a fresh start over the workspace; the windows stay, a
+ * pause still sparing the upload of a sandbox that is soon used again.
+ * Boot refuses windows that would keep a sandbox paused for longer than
+ * MAX_IN_PLACE_PAUSE_SECONDS, while its workspace lives on one node only
+ * (limits.ts).
  */
 import { MAX_IN_PLACE_PAUSE_SECONDS } from "./limits.js";
 
@@ -176,8 +179,8 @@ export function newSubstrateSettingsFromEnv(
 
 /**
  * The windows' two rules: a sandbox pauses before it is suspended, and it
- * stays paused no longer than a paused runner can sleep and still renew
- * its credential (MAX_IN_PLACE_PAUSE_SECONDS).
+ * stays paused, its workspace on one node only, no longer than
+ * MAX_IN_PLACE_PAUSE_SECONDS (limits.ts).
  */
 export function validateWindows(
   settings: Pick<
@@ -193,7 +196,7 @@ export function validateWindows(
   const paused = settings.suspendAfterSeconds - settings.pauseAfterSeconds;
   if (paused > MAX_IN_PLACE_PAUSE_SECONDS) {
     throw new Error(
-      `the idle windows would keep a sandbox paused for ${paused} s; a paused runner may sleep at most ${MAX_IN_PLACE_PAUSE_SECONDS} s and still renew its credential on waking — bring ${PREFIX}SUSPEND_AFTER_SECONDS within ${MAX_IN_PLACE_PAUSE_SECONDS} s of ${PREFIX}PAUSE_AFTER_SECONDS`,
+      `the idle windows would keep a sandbox paused for ${paused} s; a paused sandbox's workspace lives on its node only, for at most ${MAX_IN_PLACE_PAUSE_SECONDS} s — bring ${PREFIX}SUSPEND_AFTER_SECONDS within ${MAX_IN_PLACE_PAUSE_SECONDS} s of ${PREFIX}PAUSE_AFTER_SECONDS`,
     );
   }
 }

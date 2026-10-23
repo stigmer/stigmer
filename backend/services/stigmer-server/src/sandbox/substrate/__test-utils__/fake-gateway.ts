@@ -1,9 +1,10 @@
 /**
  * An in-memory Substrate behind the SubstrateGateway seam, for the driver's
- * and the sweep's suites: actors and templates with Substrate's state rules
- * (a created actor is SUSPENDED; resume wakes SUSPENDED or PAUSED; pause
- * needs RUNNING; suspend takes RUNNING or PAUSED; a move needs SUSPENDED;
- * revert takes CRASHED), every call recorded in order, and a queue of
+ * and the sweep's suites: actors and templates with Substrate's state rules,
+ * in the driver's words (a created actor is suspended; resume wakes
+ * suspended or paused; pause needs running; suspend takes running or
+ * paused; a move needs suspended, and Substrate's own also takes a paused
+ * one, which the driver never asks; revert takes crashed), every call recorded in order, and a queue of
  * scripted failures per method so a test can make one call answer
  * ABORTED, crash, or run out of workers. An egress policy is created when
  * missing and replaced when its rules differ, as the real gateway does.
@@ -11,7 +12,6 @@
 import { equals } from "@bufbuild/protobuf";
 
 import {
-  ActorState,
   EgressRuleSchema,
   type ActorTemplate,
   type EgressRule,
@@ -20,6 +20,7 @@ import type { RunnerEnvironment } from "../../environment.js";
 import type {
   SubstrateActorView,
   SubstrateGateway,
+  SubstrateSandboxState,
   SubstrateTemplateView,
 } from "../gateway.js";
 
@@ -29,7 +30,7 @@ export interface FakeActor {
   name: string;
   uid: string;
   version: bigint;
-  state: ActorState;
+  state: SubstrateSandboxState;
   template: string;
   createTime: Date;
   updateTime: Date;
@@ -76,7 +77,7 @@ export class FakeSubstrate implements SubstrateGateway {
   put(
     actor: Partial<FakeActor> & {
       name: string;
-      state: ActorState;
+      state: SubstrateSandboxState;
       template: string;
     },
   ): FakeActor {
@@ -116,7 +117,7 @@ export class FakeSubstrate implements SubstrateGateway {
       throw typeof next === "function" ? next(name) : next;
   }
 
-  private mutate(actor: FakeActor, state: ActorState): void {
+  private mutate(actor: FakeActor, state: SubstrateSandboxState): void {
     actor.state = state;
     actor.version += 1n;
     actor.updateTime = new Date(this.clock());
@@ -157,7 +158,7 @@ export class FakeSubstrate implements SubstrateGateway {
       throw new Error("FailedPrecondition: actor template not found");
     this.put({
       name,
-      state: ActorState.SUSPENDED,
+      state: "suspended",
       template,
       policy: undefined,
     });
@@ -170,7 +171,7 @@ export class FakeSubstrate implements SubstrateGateway {
   ): Promise<"moved" | "refused"> {
     this.enter("moveActor", actor.name);
     const stored = this.need(actor.name);
-    if (this.refuseMoves || stored.state !== ActorState.SUSPENDED)
+    if (this.refuseMoves || stored.state !== "suspended")
       return "refused";
     stored.template = template;
     stored.version += 1n;
@@ -180,37 +181,37 @@ export class FakeSubstrate implements SubstrateGateway {
   async resumeActor(name: string): Promise<void> {
     this.enter("resumeActor", name);
     const actor = this.need(name);
-    if (actor.state === ActorState.RUNNING) return;
+    if (actor.state === "running") return;
     this.precondition(
       name,
-      actor.state === ActorState.SUSPENDED || actor.state === ActorState.PAUSED,
-      `resume from ${ActorState[actor.state]}`,
+      actor.state === "suspended" || actor.state === "paused",
+      `resume from ${actor.state}`,
     );
-    this.mutate(actor, ActorState.RUNNING);
+    this.mutate(actor, "running");
   }
 
   async pauseActor(name: string): Promise<void> {
     this.enter("pauseActor", name);
     const actor = this.need(name);
-    if (actor.state === ActorState.PAUSED) return;
+    if (actor.state === "paused") return;
     this.precondition(
       name,
-      actor.state === ActorState.RUNNING,
-      `pause from ${ActorState[actor.state]}`,
+      actor.state === "running",
+      `pause from ${actor.state}`,
     );
-    this.mutate(actor, ActorState.PAUSED);
+    this.mutate(actor, "paused");
   }
 
   async suspendActor(name: string): Promise<void> {
     this.enter("suspendActor", name);
     const actor = this.need(name);
-    if (actor.state === ActorState.SUSPENDED) return;
+    if (actor.state === "suspended") return;
     this.precondition(
       name,
-      actor.state === ActorState.RUNNING || actor.state === ActorState.PAUSED,
-      `suspend from ${ActorState[actor.state]}`,
+      actor.state === "running" || actor.state === "paused",
+      `suspend from ${actor.state}`,
     );
-    this.mutate(actor, ActorState.SUSPENDED);
+    this.mutate(actor, "suspended");
   }
 
   async revertActor(name: string): Promise<void> {
@@ -218,10 +219,10 @@ export class FakeSubstrate implements SubstrateGateway {
     const actor = this.need(name);
     this.precondition(
       name,
-      actor.state === ActorState.CRASHED,
-      `revert from ${ActorState[actor.state]}`,
+      actor.state === "crashed",
+      `revert from ${actor.state}`,
     );
-    this.mutate(actor, ActorState.SUSPENDED);
+    this.mutate(actor, "suspended");
   }
 
   async deleteActor(name: string): Promise<void> {
