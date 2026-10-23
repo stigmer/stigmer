@@ -64,7 +64,10 @@ export const AGENT_TEMPLATES: readonly ResourceTemplate<AgentWizardData>[] = [
 ## Rules
 
 - Never apply a change the customer has not said yes to, and never widen it while applying it.
-- The tool that applies changes is marked as needing a yes when this agent is set up, so the platform also stops for the customer's approval before it runs. That step is made after the agent is created: a hook that asks, or the tool's MCP server marking it destructive.`,
+
+## Setting this agent up
+
+Make the tool that applies changes ask first, so the platform also stops for the customer's yes: a hook that asks before it, or a tool its MCP server marks destructive. Until then, the rules above are the only stop.`,
     },
   },
 ];
