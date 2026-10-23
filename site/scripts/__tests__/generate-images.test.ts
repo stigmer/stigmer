@@ -1,5 +1,9 @@
 // @vitest-environment node
-/** Exercise the real image pipeline in a temporary site, including its failure reporting. */
+/**
+ * Exercise the real image pipeline in a temporary site, including its failure
+ * reporting. Each image is compared with its brand source rendered directly,
+ * so the site draws the shared mark and social card, never a copy of them.
+ */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdtemp, mkdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -79,6 +83,15 @@ describe("website brand exports", () => {
             tight: true,
           }),
         ),
+      ),
+    );
+    const { SOCIAL_CARDS, socialCardSvg } = await import(
+      "../../../brand/social-card"
+    );
+    const { POSITIONING } = await import("../../../brand/positioning");
+    expect(await pixels(join(publicDir, "og-image.png"))).toEqual(
+      await pixels(
+        Buffer.from(await socialCardSvg(SOCIAL_CARDS.openGraph, POSITIONING)),
       ),
     );
     const ico = await readFile(join(publicDir, "favicon.ico"));
