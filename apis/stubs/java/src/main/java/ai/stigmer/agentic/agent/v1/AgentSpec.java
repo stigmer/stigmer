@@ -403,7 +403,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
    * names it, with every character outside letters, digits, _ and - written
    * as _. A specifier in parentheses, as in Bash(git push *), is
-   * accepted and governs the whole tool. Agent(explore, release-notes)
+   * accepted and governs the whole tool. Agent(explore, bank-reconciler)
    * also limits which subagents this agent may start; the Cursor engine
    * cannot hold its built-in subagents back, so it refuses a turn whose agent
    * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -434,7 +434,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
    * names it, with every character outside letters, digits, _ and - written
    * as _. A specifier in parentheses, as in Bash(git push *), is
-   * accepted and governs the whole tool. Agent(explore, release-notes)
+   * accepted and governs the whole tool. Agent(explore, bank-reconciler)
    * also limits which subagents this agent may start; the Cursor engine
    * cannot hold its built-in subagents back, so it refuses a turn whose agent
    * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -464,7 +464,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
    * names it, with every character outside letters, digits, _ and - written
    * as _. A specifier in parentheses, as in Bash(git push *), is
-   * accepted and governs the whole tool. Agent(explore, release-notes)
+   * accepted and governs the whole tool. Agent(explore, bank-reconciler)
    * also limits which subagents this agent may start; the Cursor engine
    * cannot hold its built-in subagents back, so it refuses a turn whose agent
    * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -495,7 +495,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
    * names it, with every character outside letters, digits, _ and - written
    * as _. A specifier in parentheses, as in Bash(git push *), is
-   * accepted and governs the whole tool. Agent(explore, release-notes)
+   * accepted and governs the whole tool. Agent(explore, bank-reconciler)
    * also limits which subagents this agent may start; the Cursor engine
    * cannot hold its built-in subagents back, so it refuses a turn whose agent
    * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -2954,7 +2954,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
      * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -2986,7 +2986,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
      * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -3016,7 +3016,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
      * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -3047,7 +3047,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
      * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -3079,7 +3079,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
      * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -3117,7 +3117,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
      * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -3154,7 +3154,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
      * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -3191,7 +3191,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
      * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -3225,7 +3225,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
      * limits Agent to types. The lists hold on both engines, and under "approve everything"
