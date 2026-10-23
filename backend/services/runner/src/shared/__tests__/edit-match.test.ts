@@ -70,6 +70,12 @@ describe("resolveEdit: line endings", () => {
     expect(applyAsDeepagents(content, resolution)).toBe('say(\u201Chi\u201D)\r\nsay("bye")\r\n');
   });
 
+  it("deletes the quote's trailing lines and keeps the kept line's bytes", () => {
+    const content = "a = \u201C1\u201D\nb\nc\nd\n";
+    const resolution = resolveEdit(content, 'a = "1"\nb\nc', 'a = "1"', false);
+    expect(applyAsDeepagents(content, resolution)).toBe("a = \u201C1\u201D\nd\n");
+  });
+
   it("falls back to the file's dominant ending when the region has no line ending of its own", () => {
     const content = "a\r\nb\r\nit’s";
     const resolution = resolveEdit(content, "it's", "it's\nmore", false);
