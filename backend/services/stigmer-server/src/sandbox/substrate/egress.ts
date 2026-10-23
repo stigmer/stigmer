@@ -103,6 +103,12 @@ const SUBSTRATE_NAMESPACE_LABEL = "ate-system";
 
 /** The most hostnames one gateway rule holds. */
 const MAX_HOSTNAMES_PER_RULE = 256;
+/**
+ * HTTPS rules name their port, Substrate's default: since 0.5 Substrate
+ * stores a rule with its defaults filled in, and a policy read back must
+ * equal the one written, or every wake would replace it.
+ */
+const HTTPS_PORTS = { numbers: [443] };
 
 /**
  * The rules of one actor's policy: the runner's lanes, then what the
@@ -193,7 +199,7 @@ export function buildEgressRules(
       for (const host of APT_ARCHIVE_HOSTS) cleartext(host);
     }
     if (settings.httpsEgress === "all") {
-      rules.push(create(EgressRuleSchema, { https: { hostnames: ["*"] } }));
+      rules.push(create(EgressRuleSchema, { https: { hostnames: ["*"], ports: HTTPS_PORTS } }));
     }
     return rules;
   }
@@ -210,7 +216,7 @@ export function buildEgressRules(
   for (const host of [...runnerPlatformHosts(config), ...settings.platformHttpsHosts]) https.add(host);
   const hostnames = [...https];
   for (let start = 0; start < hostnames.length; start += MAX_HOSTNAMES_PER_RULE) {
-    rules.push(create(EgressRuleSchema, { https: { hostnames: hostnames.slice(start, start + MAX_HOSTNAMES_PER_RULE) } }));
+    rules.push(create(EgressRuleSchema, { https: { hostnames: hostnames.slice(start, start + MAX_HOSTNAMES_PER_RULE), ports: HTTPS_PORTS } }));
   }
   return rules;
 }

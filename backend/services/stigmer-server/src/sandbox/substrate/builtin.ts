@@ -60,7 +60,7 @@ export function newSubstrateSandboxDriver(options: {
   const fetch = newRouterFetch(options.settings);
   if (!options.settings.routerUrl.startsWith("https://")) {
     options.logger.warn(
-      "Substrate's router is reached over http://, so the attach push carries the runner's secrets and session token in cleartext; give STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL as https:// with STIGMER_SANDBOX_SUBSTRATE_ROUTER_CA_FILE (and STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME when the router is reached by another name than its certificate's)",
+      "Substrate's router is reached over http://, so the attach push carries the runner's secrets and session token in cleartext; give STIGMER_SANDBOX_SUBSTRATE_ROUTER_URL as https:// with STIGMER_SANDBOX_SUBSTRATE_ROUTER_CA_FILE and STIGMER_SANDBOX_SUBSTRATE_ROUTER_CLIENT_CERT_FILE (and STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME when the router is reached by another name than its certificate's)",
       { routerUrl: options.settings.routerUrl },
     );
   }

@@ -14,7 +14,8 @@
  *   - paused → resumed on its own template, however long it slept and
  *     whenever it paused, never suspended first: every wake is a fresh
  *     runner (Substrate 0.5 keeps no memory, template.ts);
- *   - running → pushed only; crashed → reverted first; deleting → refused;
+ *   - running → pushed only; crashed → reverted first; deleting → refused,
+ *     and so is a state the driver has no word for;
  *   - ABORTED → re-read, whether contention or a crash; no free worker →
  *     thrown at once;
  *   - a running runner refusing rotated secrets keeps running;
@@ -66,7 +67,11 @@ import {
   validateSubstrateDriverConfig,
 } from "../driver.js";
 import type { EgressRule } from "../gen/ateapipb/ateapi_pb.js";
-import { SubstrateAbortedError, SubstrateNoWorkerError } from "../gateway.js";
+import {
+  SubstrateAbortedError,
+  SubstrateNoWorkerError,
+  type SubstrateSandboxState,
+} from "../gateway.js";
 import { MAX_IN_PLACE_PAUSE_SECONDS } from "../limits.js";
 
 const silentLogger = createLogger({
@@ -97,6 +102,7 @@ const settings: SubstrateDriverSettings = {
   routerUrl: "http://router.example:18200",
   routerCaFile: "",
   routerServerName: "",
+  routerClientCertFile: "",
   atespace: "stigmer",
   storageLocation: "gs://ate-snapshots/stigmer",
   workerSelector: { workload: "stigmer" },
@@ -356,6 +362,18 @@ describe("ensure, from each state", () => {
     await expect(
       h.driver.provisioner.ensureSessionSandbox(SESSION, facts),
     ).rejects.toThrow(/being deleted/);
+  });
+
+  it("a state the driver has no word for: refuses, naming it", async () => {
+    const h = harness();
+    h.substrate.put({
+      name: ACTOR,
+      state: "hibernating" as SubstrateSandboxState,
+      template: "t",
+    });
+    await expect(
+      h.driver.provisioner.ensureSessionSandbox(SESSION, facts),
+    ).rejects.toThrow(/is in an unknown state hibernating/);
   });
 });
 

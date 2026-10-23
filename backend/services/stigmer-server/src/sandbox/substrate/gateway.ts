@@ -225,7 +225,11 @@ export function newSubstrateGatewayOverTransport(
         // Read first: under authorization, an atespace someone else created
         // and granted this server needs no global owner (module header).
         try {
-          await client.getAtespace({ atespace: ref(atespace) }, call);
+          // An atespace is global: its reference names it and nothing else.
+          await client.getAtespace(
+            { atespace: create(ObjectRefSchema, { name: atespace }) },
+            call,
+          );
           return;
         } catch (error) {
           if (!hasCode(error, Code.NotFound)) throw error;

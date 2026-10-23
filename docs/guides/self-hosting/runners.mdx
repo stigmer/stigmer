@@ -531,13 +531,16 @@ runner starting work on it, at the ninety-fifth percentile:
 
 Those were measured on v0.3.0, where a pause kept the runner's memory. From
 v0.5.0 Substrate snapshots a pause and a suspend alike, and the server keeps the
-Session's files only, so every wake starts a fresh runner: a pause still spares
-the upload and download of a Session that is soon used again. The sweep runs
-every `STIGMER_SANDBOX_SUBSTRATE_SWEEP_INTERVAL_SECONDS` (30), and the suspend
-lands on the pass after the pause. Storage in a cloud bucket adds its download
-time to a wake from storage. A paused Session's files live on one node until the
-suspend, so the server refuses windows that would keep it paused longer than 30
-minutes.
+Session's files only, so every wake starts a fresh runner. On v0.5.0 (kind,
+2026-10-23), a wake took 1.6 to 2.4 s from its start to the runner reaching
+Temporal (seven wakes, pauses and storage alike), and a new Session 1.9 s. A
+short pause wakes slower than it did; a long one wakes faster. A pause still
+spares the upload and download of a Session that is soon used again. The sweep
+runs every `STIGMER_SANDBOX_SUBSTRATE_SWEEP_INTERVAL_SECONDS` (30), and the
+suspend lands on the pass after the pause. Storage in a cloud bucket adds its
+download time to a wake from storage. A paused Session's files live on one node
+until the suspend, so the server refuses windows that would keep it paused
+longer than 30 minutes.
 
 A new value for one of the runner's secrets, a model key for one, takes effect
 when the server restarts with it, and reaches each sandbox at its next wake: at
@@ -575,7 +578,16 @@ What the driver needs:
   reads that file again when it changes, so the CA can rotate under it. The
   router's certificate names only `atenet-router.ate-system.svc`, so when you
   reach the router another way, through a port-forward for instance, set
-  `STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME` to that name. An `http://`
+  `STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME` to that name. From v0.5.0 the
+  router's TLS listener asks for a client certificate: give the server's pod a
+  `podCertificate` projected volume from the signer
+  `podidentity.podcert.ate.dev/identity` (key type `ECDSAP256`, a
+  `credentialBundlePath`), point
+  `STIGMER_SANDBOX_SUBSTRATE_ROUTER_CLIENT_CERT_FILE` at that bundle, and add
+  the server's SPIFFE ID, `spiffe://cluster.local/ns/<namespace>/sa/<name>`, to
+  the router's `--ingress-allowed-spiffe-ids`. The server reads the bundle again
+  when it changes, as the certificate renews daily. Without it the router ends
+  the handshake and the first Session fails naming the setting. An `http://`
   router works too, as a port-forward to its port 80, but the push then carries
   the Session's token and the runner's secrets, model keys among them, across
   the cluster in cleartext, and the server logs a warning at boot.
@@ -596,7 +608,11 @@ What the driver needs:
   no command for it in v0.5.0). The server reads the atespace before creating
   it, so it needs no more than that. Listing it among Substrate's bootstrap
   owners works too, but gives it every atespace. Without the grant the first
-  Session fails with a message naming it.
+  Session fails with a message naming it. Bind `viewer` on the same atespace to
+  `user:spiffe://cluster.local/ns/ate-system/sa/atelet` as well: in v0.5.0
+  atelet, Substrate's process on each node, reads each actor's egress policy to
+  answer its DNS, yet the authorization model gives it no role to. Without that
+  grant every name a sandbox looks up is refused, Temporal's included.
 - **A runner image pinned by digest** in `STIGMER_SANDBOX_RUNNER_IMAGE`
   (`…@sha256:…`), and fully qualified DNS names, not addresses, short names or
   patterns, in the backend and Temporal endpoints and the extra destinations:

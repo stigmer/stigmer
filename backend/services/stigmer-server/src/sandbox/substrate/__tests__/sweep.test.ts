@@ -69,6 +69,7 @@ const settings: SubstrateDriverSettings = {
   routerUrl: "http://router.example:18200",
   routerCaFile: "",
   routerServerName: "",
+  routerClientCertFile: "",
   atespace: "stigmer",
   storageLocation: "gs://b/p",
   workerSelector: { workload: "stigmer" },

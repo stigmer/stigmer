@@ -38,6 +38,17 @@
  * name, and a port-forward needs the override. Connections are kept
  * alive. One transport serves both schemes, so a push behaves the same
  * over http:// and https://, retries included.
+ *
+ * Since Substrate 0.5 the router's TLS listener asks for a client
+ * certificate, one chained to its podidentity trust bundle whose SPIFFE ID
+ * (`spiffe://cluster.local/ns/<namespace>/sa/<name>`) it lists in
+ * `--ingress-allowed-spiffe-ids` (measured on kind: a push with none is
+ * refused during the handshake). The server presents the credential bundle
+ * a podCertificate projected volume writes (its private key, then its
+ * certificate chain, in one PEM file), named by ROUTER_CLIENT_CERT_FILE and
+ * read again whenever its mtime moves, since such a certificate lives a
+ * day. A handshake the router refuses for the client certificate, as for
+ * its own, is a RouterTlsError: a configuration fault, never retried.
  */
 
 import { readFileSync, statSync } from "node:fs";
@@ -51,6 +62,8 @@ import { delay } from "./delay.js";
 
 const CA_FILE_VARIABLE = "STIGMER_SANDBOX_SUBSTRATE_ROUTER_CA_FILE";
 const SERVER_NAME_VARIABLE = "STIGMER_SANDBOX_SUBSTRATE_ROUTER_SERVER_NAME";
+const CLIENT_CERT_FILE_VARIABLE =
+  "STIGMER_SANDBOX_SUBSTRATE_ROUTER_CLIENT_CERT_FILE";
 
 /**
  * The router presented a certificate this server does not accept: the CA
@@ -107,6 +120,20 @@ const CERTIFICATE_REFUSALS: ReadonlySet<string> = new Set([
   "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
 ]);
 
+/**
+ * The alerts a router sends when it refuses this server's client
+ * certificate, or its lack of one: OpenSSL's names for them, as Node
+ * reports them.
+ */
+const CLIENT_CERTIFICATE_REFUSALS: ReadonlySet<string> = new Set([
+  "ERR_SSL_TLSV13_ALERT_CERTIFICATE_REQUIRED",
+  "ERR_SSL_TLSV1_ALERT_UNKNOWN_CA",
+  "ERR_SSL_TLSV1_ALERT_ACCESS_DENIED",
+  "ERR_SSL_SSLV3_ALERT_BAD_CERTIFICATE",
+  "ERR_SSL_SSLV3_ALERT_CERTIFICATE_UNKNOWN",
+  "ERR_SSL_SSLV3_ALERT_CERTIFICATE_EXPIRED",
+]);
+
 /** Statuses whose reply carries no body, which a Response refuses one for. */
 const NULL_BODY_STATUSES: ReadonlySet<number> = new Set([204, 205, 304]);
 
@@ -115,13 +142,16 @@ export function newRouterFetch(
   settings: Pick<
     SubstrateDriverSettings,
     "routerUrl" | "routerCaFile" | "routerServerName"
-  >,
+  > &
+    Partial<Pick<SubstrateDriverSettings, "routerClientCertFile">>,
 ): typeof fetch {
   const overTls = new URL(settings.routerUrl).protocol === "https:";
+  const clientCertFile = settings.routerClientCertFile ?? "";
   if (!overTls) {
     for (const [variable, value] of [
       [CA_FILE_VARIABLE, settings.routerCaFile],
       [SERVER_NAME_VARIABLE, settings.routerServerName],
+      [CLIENT_CERT_FILE_VARIABLE, clientCertFile],
     ] as const) {
       if (value !== "") {
         throw new Error(
@@ -134,21 +164,39 @@ export function newRouterFetch(
     settings.routerCaFile !== ""
       ? caFromFile(settings.routerCaFile)
       : undefined;
+  const clientCredential =
+    clientCertFile !== "" ? credentialFromFile(clientCertFile) : undefined;
   const plainAgent = new http.Agent({ keepAlive: true });
-  let secure: { agent: https.Agent; ca: string | undefined } | undefined;
+  let secure:
+    | {
+        agent: https.Agent;
+        ca: string | undefined;
+        credential: ClientCredential | undefined;
+      }
+    | undefined;
 
   const secureAgent = (): https.Agent => {
     const ca = caPem?.();
-    if (secure === undefined || secure.ca !== ca) {
+    const credential = clientCredential?.();
+    if (
+      secure === undefined ||
+      secure.ca !== ca ||
+      secure.credential !== credential
+    ) {
       // Requests in flight finish on the agent they started on; its
-      // connections, made under the old CA, are closed as each falls idle.
+      // connections, made under the old CA or certificate, are closed as
+      // each falls idle.
       if (secure !== undefined) retire(secure.agent);
       secure = {
         agent: new https.Agent({
           keepAlive: true,
           ...(ca !== undefined ? { ca } : {}),
+          ...(credential !== undefined
+            ? { key: credential.key, cert: credential.cert }
+            : {}),
         }),
         ca,
+        credential,
       };
     }
     return secure.agent;
@@ -200,6 +248,20 @@ export function newRouterFetch(
         signal.removeEventListener("abort", onAbort);
         const code =
           error instanceof Error && "code" in error ? String(error.code) : "";
+        if (
+          tls &&
+          error instanceof Error &&
+          CLIENT_CERTIFICATE_REFUSALS.has(code)
+        ) {
+          reject(
+            new RouterTlsError(
+              `the router at ${url.origin} refused this server's client certificate (${code}: ${error.message}); ${clientCertFile !== "" ? `it presented the one in ${clientCertFile}` : "it presented none"} (${CLIENT_CERT_FILE_VARIABLE}). Substrate's router accepts a podidentity certificate whose SPIFFE ID its --ingress-allowed-spiffe-ids lists`,
+              code,
+              error,
+            ),
+          );
+          return;
+        }
         if (tls && error instanceof Error && CERTIFICATE_REFUSALS.has(code)) {
           reject(
             new RouterTlsError(
@@ -304,6 +366,51 @@ function caFromFile(path: string): () => string {
   return () => {
     if (statSync(path).mtimeMs !== cached.mtimeMs) cached = read();
     return cached.pem;
+  };
+}
+
+/** A client certificate: its private key and its chain, as PEM. */
+interface ClientCredential {
+  readonly key: string;
+  readonly cert: string;
+}
+
+/**
+ * The client credential bundle, read now (an unusable file is a boot throw
+ * naming the variable) and read again whenever its mtime moves. The same
+ * object is returned until then, so the agent is rebuilt only on a change.
+ */
+function credentialFromFile(path: string): () => ClientCredential {
+  let cached: { mtimeMs: number; credential: ClientCredential };
+  const read = (): { mtimeMs: number; credential: ClientCredential } => {
+    const mtimeMs = statSync(path).mtimeMs;
+    const blocks =
+      readFileSync(path, "utf8").match(
+        /-----BEGIN ([A-Z ]+)-----[\s\S]*?-----END \1-----/g,
+      ) ?? [];
+    const key = blocks.find((block) =>
+      /^-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(block),
+    );
+    const cert = blocks
+      .filter((block) => block.startsWith("-----BEGIN CERTIFICATE-----"))
+      .join("\n");
+    if (key === undefined || cert === "") {
+      throw new Error(
+        `${path} must hold a private key and its certificate chain as PEM`,
+      );
+    }
+    return { mtimeMs, credential: { key, cert: `${cert}\n` } };
+  };
+  try {
+    cached = read();
+  } catch (error) {
+    throw new Error(
+      `${CLIENT_CERT_FILE_VARIABLE} (${path}) cannot be used as the router's client certificate: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  return () => {
+    if (statSync(path).mtimeMs !== cached.mtimeMs) cached = read();
+    return cached.credential;
   };
 }
 

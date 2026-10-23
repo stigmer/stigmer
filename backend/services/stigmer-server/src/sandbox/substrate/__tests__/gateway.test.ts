@@ -228,7 +228,10 @@ describe("the atespace", () => {
     const seen: string[] = [];
     const gateway = gatewayOver({
       getAtespace(request) {
-        seen.push(`get ${request.atespace?.name ?? ""}`);
+        // Global: the reference carries the name only (Substrate refuses an atespace in it).
+        seen.push(
+          `get ${request.atespace?.atespace ?? ""}/${request.atespace?.name ?? ""}`,
+        );
         return { metadata: { name: request.atespace?.name ?? "" } };
       },
       createAtespace() {
@@ -237,7 +240,7 @@ describe("the atespace", () => {
       },
     });
     await gateway.ensureAtespace();
-    expect(seen).toEqual(["get stigmer"]);
+    expect(seen).toEqual(["get /stigmer"]);
   });
 
   it("is created when it is missing", async () => {
@@ -297,6 +300,8 @@ describe("an actor's state", () => {
     expect(stateOfActor(ActorState.REVERTING)).toBe("reverting");
     expect(stateOfActor(ActorState.UNSPECIFIED)).toBe("unknown");
     expect(stateOf(undefined)).toBe("unknown");
+    // A state only another release sends (the stubs are this release's).
+    expect(stateOfActor(42 as ActorState)).toBe("unknown");
   });
 });
 
@@ -579,6 +584,7 @@ describe("the live client", () => {
       routerUrl: "http://127.0.0.1:2",
       routerCaFile: "",
       routerServerName: "",
+      routerClientCertFile: "",
       atespace: "stigmer",
       storageLocation: "gs://b/p",
       workerSelector: { workload: "stigmer" },

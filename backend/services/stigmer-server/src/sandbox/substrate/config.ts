@@ -10,10 +10,11 @@
  * Control API's address, its CA and server name, and the bearer token's
  * file (a projected ServiceAccount token in a cluster, a token minted for
  * Substrate's `ate-client` account elsewhere); the router's address, and
- * its CA and server name when it is reached over https://. A missing
+ * its CA, server name and the client certificate it asks for since
+ * Substrate 0.5 when it is reached over https:// (push.ts). A missing
  * required value is one boot throw naming the variable, and so is a router
- * CA or server name given for an http:// router, where it would do
- * nothing.
+ * CA, server name or client certificate given for an http:// router, where
+ * it would do nothing.
  *
  * The idle windows default to a pause after 5 idle minutes and a suspend
  * to storage at 5.5, chosen from measurements on a local Agent Substrate
@@ -70,6 +71,13 @@ export interface SubstrateDriverSettings {
    * reached by another name than its certificate's (a port-forward).
    */
   readonly routerServerName: string;
+  /**
+   * PEM file holding this server's client key and certificate chain for
+   * the router (a podCertificate projection's credential bundle), re-read
+   * when it changes; "" presents none. Only for an https:// router, whose
+   * TLS listener asks for one since Substrate 0.5.
+   */
+  readonly routerClientCertFile: string;
   /** The atespace this server's actors and templates live in; the server owns it. */
   readonly atespace: string;
   /** The base object-storage prefix the template's snapshots are written under. */
@@ -135,10 +143,12 @@ export function newSubstrateSettingsFromEnv(
   }
   const routerCaFile = optional("ROUTER_CA_FILE", "");
   const routerServerName = optional("ROUTER_SERVER_NAME", "");
+  const routerClientCertFile = optional("ROUTER_CLIENT_CERT_FILE", "");
   if (!routerUrl.startsWith("https://")) {
     for (const [name, value] of [
       ["ROUTER_CA_FILE", routerCaFile],
       ["ROUTER_SERVER_NAME", routerServerName],
+      ["ROUTER_CLIENT_CERT_FILE", routerClientCertFile],
     ] as const) {
       if (value !== "") {
         throw new Error(
@@ -162,6 +172,7 @@ export function newSubstrateSettingsFromEnv(
     routerUrl: withoutTrailingSlashes(routerUrl),
     routerCaFile,
     routerServerName,
+    routerClientCertFile,
     atespace: required("ATESPACE"),
     storageLocation: required("STORAGE_LOCATION"),
     workerSelector: parseSelector(required("WORKER_SELECTOR")),
