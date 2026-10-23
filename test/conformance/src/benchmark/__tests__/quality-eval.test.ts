@@ -35,6 +35,7 @@ const OPTIONS: RunOptions = {
   qualityReps: 3,
   git: { head_sha: "abc1234", main_sha: "abc1234" },
   titlingSuppressed: true,
+  nativeEndpoint: "api.anthropic.com",
 };
 
 /** A stack whose only reachable seam is the organization create, which refuses. */
@@ -58,6 +59,7 @@ describe("runBenchmark's quality arm", () => {
   it("refuses a target the registry does not carry, runs one eval for the rest, and records a failed push by stage", async () => {
     vi.stubGlobal("fetch", () => Promise.resolve(new Response(JSON.stringify(REGISTRY))));
     const plan: CellPlan = {
+      nativeModel: PARITY_MODEL["deep-agent"],
       cells: [],
       judge: false,
       quality: [
@@ -97,7 +99,7 @@ describe("runBenchmark's quality arm", () => {
 
   it("leaves quality null when no target is planned", async () => {
     vi.stubGlobal("fetch", () => Promise.resolve(new Response(JSON.stringify(REGISTRY))));
-    const report = await runBenchmark(refusingStack(), { cells: [], quality: [], judge: false, refused: [] }, OPTIONS, quietIo());
+    const report = await runBenchmark(refusingStack(), { nativeModel: PARITY_MODEL["deep-agent"], cells: [], quality: [], judge: false, refused: [] }, OPTIONS, quietIo());
     expect(report.quality).toBeNull();
   });
 });

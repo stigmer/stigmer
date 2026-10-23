@@ -8,7 +8,10 @@
 // spawned WITHOUT `proxy` and WITH a log file under the run's directory. The
 // target itself is not reused because it hard-wires the mock proxy into every
 // boot. The runner child inherits this process's environment, which is how
-// ANTHROPIC_API_KEY and CURSOR_API_KEY reach it; nothing is written anywhere.
+// ANTHROPIC_API_KEY, OPENAI_API_KEY (with OPENAI_BASE_URL, when the native
+// model is served on another OpenAI-compatible address) and CURSOR_API_KEY
+// reach it; nothing is written anywhere. So one run holds one OpenAI-slot
+// address, and measures one native model (cells.ts).
 //
 // Every turn of every cell goes through one driver (session.ts), so a turn
 // means the same thing wherever it is measured. Per attempt, a cell gets a
@@ -56,6 +59,8 @@ import {
   BENCHMARK_SESSION_SUBJECT,
   JUDGE_MODEL,
   PARITY_MODEL,
+  explicitProvider,
+  nativeApi,
   type BenchmarkCell,
   type CellPlan,
 } from "./cells";
@@ -178,12 +183,15 @@ export interface RunOptions {
   titlingSuppressed: true;
   /** Every execution asks for thinking; the judge's never does. */
   thinking?: "enabled";
+  /** Where the runner serves the native model (cells.ts `nativeEndpoint`, read from the runner's environment). */
+  nativeEndpoint: string;
 }
 
 /**
  * Runs the plan against the stack and returns the report. Refuses, before
  * any call is paid for, a parity or judge model the registry does not carry
- * for its harness; such cells join the plan's own refusals.
+ * for its harness (an own-endpoint native model needs no row, as on the
+ * server); such cells join the plan's own refusals.
  */
 export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, options: RunOptions, io: RunIo): Promise<BenchmarkReport> {
   const registry = await fetchModelRegistryDocument(stack.serverBaseUrl);
@@ -265,14 +273,28 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
       file_review: "approved-at-review-ready",
       ...(options.thinking !== undefined ? { thinking_mode: options.thinking } : {}),
     },
-    models: { parity_native: PARITY_MODEL["deep-agent"], parity_cursor: PARITY_MODEL.cursor, judge_requested: JUDGE_MODEL },
+    models: {
+      parity_native: plan.nativeModel,
+      parity_cursor: PARITY_MODEL.cursor,
+      judge_requested: JUDGE_MODEL,
+      native_endpoint: options.nativeEndpoint,
+      // The planner refuses every native cell whose provider it cannot place, so an unknown API measured nothing.
+      native_api: nativeApi(plan.nativeModel) ?? "chat-completions",
+      native_cost_basis: registry.models.some((row) => row.id === plan.nativeModel && row.priced) ? "catalog" : "default-rate",
+    },
     comparisons,
     quality,
     refused,
   };
 }
 
+/**
+ * Whether `id` can run on `harness`: a registry row for it, or on native an
+ * explicit `openai:` / `anthropic:` model, which the server admits without a
+ * row (server modelcatalog/pin-validation.ts `unknownModelPinRefusal`).
+ */
 function registryHas(registry: ModelRegistryDocument, id: string, harness: BenchmarkHarness): boolean {
+  if (harness === "deep-agent" && explicitProvider(id) !== undefined) return true;
   const wanted = harness === "cursor" ? "cursor" : "native";
   return registry.models.some((row) => row.id === id && row.harness === wanted);
 }
@@ -376,10 +398,21 @@ export async function writeReport(dir: string, report: BenchmarkReport): Promise
   return path;
 }
 
-/** One row per cell: the medians a reader wants at a glance, the quality medians, and the refusals. Markdown, for stdout. */
+/**
+ * One row per cell: the medians a reader wants at a glance, the quality
+ * medians, and the refusals. Markdown, for stdout. A native cost the runner
+ * took at its default rate is marked, with a line naming why, so it is never
+ * read as a price.
+ */
 export function renderSummary(report: BenchmarkReport): string {
   const lines: string[] = [];
   const cell = (value: number | null | undefined): string => (value === null || value === undefined ? "n/a" : String(Math.round(value)));
+  const defaultRate = report.models.native_cost_basis === "default-rate";
+  let markedNative = false;
+  lines.push(
+    `Native arm: ${report.models.parity_native} at ${report.models.native_endpoint}, ${report.models.native_api} API, cost basis ${report.models.native_cost_basis}`,
+    "",
+  );
   lines.push(
     `| scenario | harness | n | failed | e2e ms | first token ms | runner first token ms | before activity ms | rounds | tool calls | mcp connect ms | cursor send ms | est. cost µ$ | cache hit | model |`,
   );
@@ -388,10 +421,19 @@ export function renderSummary(report: BenchmarkReport): string {
     for (const side of [comparison.native, comparison.cursor]) {
       if (side === undefined) continue;
       const m = side.median;
+      const marked = defaultRate && side.harness === "deep-agent" && m !== null;
+      if (marked) markedNative = true;
+      const cost = `${cell(m?.estimated_cost_micros)}${marked ? "*" : ""}`;
       lines.push(
-        `| ${comparison.scenario} | ${side.harness} | ${side.n} | ${side.failed} | ${cell(m?.end_to_end_ms)} | ${cell(m?.client_first_visible_token_ms)} | ${cell(m?.runner_first_visible_token_ms)} | ${cell(m?.before_activity_ms)} | ${cell(m?.rounds)} | ${cell(m?.tool_calls)} | ${cell(m?.mcp_connect_ms)} | ${cell(m?.cursor_send_returned_ms)} | ${cell(m?.estimated_cost_micros)} | ${Math.round(side.cache_hit_ratio * 100)}% | ${side.models.join(",") || "n/a"} |`,
+        `| ${comparison.scenario} | ${side.harness} | ${side.n} | ${side.failed} | ${cell(m?.end_to_end_ms)} | ${cell(m?.client_first_visible_token_ms)} | ${cell(m?.runner_first_visible_token_ms)} | ${cell(m?.before_activity_ms)} | ${cell(m?.rounds)} | ${cell(m?.tool_calls)} | ${cell(m?.mcp_connect_ms)} | ${cell(m?.cursor_send_returned_ms)} | ${cost} | ${Math.round(side.cache_hit_ratio * 100)}% | ${side.models.join(",") || "n/a"} |`,
       );
     }
+  }
+  if (markedNative) {
+    lines.push(
+      "",
+      `* ${report.models.parity_native} has no priced catalog row: its cost is the runner's default rate, not a price; price it from the samples' tokens at the provider's rate.`,
+    );
   }
   lines.push(...renderQuality(report.quality));
   if (report.refused.length > 0) {
