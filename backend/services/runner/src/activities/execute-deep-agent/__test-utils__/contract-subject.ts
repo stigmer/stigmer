@@ -152,7 +152,7 @@ import { loopbackHostedRow } from "../../../__test-utils__/loopback-host.js";
 import { createDeepAgentAdapter } from "../adapter.js";
 import { ENGINE_TOOL } from "../engine-tools.js";
 import { hermeticDeepAgentConfig } from "./hermetic-deep-agent.js";
-import { ScriptedModel, type ScriptedToolCall, type ScriptedTurn, type ScriptedUsage } from "./scripted-model.js";
+import { SCRIPTED_SUMMARY, SCRIPTED_SUMMARY_USAGE, ScriptedModel, type ScriptedToolCall, type ScriptedTurn, type ScriptedUsage } from "./scripted-model.js";
 import { bindScriptedModel } from "./scripted-model-module.js";
 
 /** The user's message every kit turn asks; the prompt builder needs one and the kit has none to give. */
@@ -257,6 +257,7 @@ class DeepAgentSubject implements DeepAgentContractSubject {
         return (transcript ?? []).filter((m) => isHumanMessage(m) && m.text === text).length;
       },
       compactions: (sessionId) => this.summaries.get(this.executionsBySession.get(sessionId) ?? "") ?? 0,
+      compactionSummary: { text: SCRIPTED_SUMMARY, inputTokens: SCRIPTED_SUMMARY_USAGE.inputTokens },
       // The saver holds what the graph saved; nothing else outlives the process.
       loseRunner: () => {},
     };

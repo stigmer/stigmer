@@ -27,7 +27,8 @@
  * turn on the stall watchdog, a shell's streamed output keeps the turn alive
  * but never reaches the session while it runs, and a turn continued after a
  * drain sends the parked agent the task again. Three compactions (the
- * server's `summary-*` deltas) complete today; that arm is an ordinary pass.
+ * server's `summary-*` deltas) complete, each marked once from its
+ * `summary-completed`; that arm is an ordinary pass.
  *
  * Beside the kit, the Cursor-only observations the kit's vocabulary cannot
  * express: the agent the SDK minted is CLOSED when the session write behind

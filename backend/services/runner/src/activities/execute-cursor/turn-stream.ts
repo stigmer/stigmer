@@ -165,17 +165,18 @@ export function foldDrainedDeltas(
 }
 
 /**
- * Apply a running command's output the moment it arrives, when the loop is
- * waiting for the next stream event (the header's exception): the builder's
- * observer then sends it to the session between writes. Anything else in
- * the queue waits for the loop's drain.
+ * Apply a running command's output, or a compaction's marker, the moment it
+ * arrives, when the loop is waiting for the next stream event (the
+ * translator header's exception): the builder's observer then sends it to
+ * the session between writes. Anything else in the queue waits for the
+ * loop's drain.
  */
 export function foldIdleOutput(
-  translator: Pick<CursorTranslator, "drainOutputOnly">,
+  translator: Pick<CursorTranslator, "drainIdle">,
   transcript: Pick<TurnSink["transcript"], "apply">,
   telemetry: CursorTurnObserver | undefined,
 ): void {
-  const drained = translator.drainOutputOnly();
+  const drained = translator.drainIdle();
   if (drained.length === 0) return;
   for (const fact of drained) transcript.apply(fact);
   telemetry?.observe(drained);

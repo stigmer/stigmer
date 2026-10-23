@@ -18,8 +18,9 @@
  *    turn whose `.stigmer` link points there. Real path, not prefix: a
  *    repository's own `.stigmer` link on an unlinked turn, or a link inside
  *    platform content pointing out, would otherwise stretch the confinement
- *    to any target. The native engine admits the same set
- *    (`execute-deep-agent/platform-route.ts` `confinedReadAdmission`).
+ *    to any target. The native engine admits the platform's content by its
+ *    route, beside deepagents' own offloads
+ *    (`execute-deep-agent/platform-route.ts` `admitsRoutedRead`).
  *  - `Read` of a skill's files when the lists deny `Skill`
  *    (`ToolScope.hidesSkills`): refused whether or not `Read` is in scope, by
  *    the file's real path relative to the platform dir's

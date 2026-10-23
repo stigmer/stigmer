@@ -350,7 +350,10 @@ runs the kit, every fence, the boot-order test and this file's own test.
 The "long turn" arms in `__test-utils__/harness-contract/runtime-contract.ts`
 state what a turn that works for hours owes the user: a silent operation and a
 working subagent outlive the stall window, a running command's output reaches
-the session as it prints, a turn completes through three compactions, a
+the session as it prints, a turn completes through three compactions (each
+one `agent.thread_context_compacted` on the root thread, the summary never
+spoken as the agent, and its cost counted where the runner makes the summary
+call; whose summarizer it is, `HarnessCapabilities.contextCompaction`), a
 drained turn lets its running tool finish and yields at the boundary after it
 (`TurnSink.yieldSignal`) with no ending written, a second signal stops it at
 once and it still continues, a drain or a stop while the log lags behind the

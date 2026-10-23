@@ -151,18 +151,19 @@ function readMarkers(files: StepFiles): string {
 }
 
 describe("the flags", () => {
-  it("reads the profile, its minutes, a step subset, the report directory, the harness and the target, with defaults", () => {
+  it("reads the profile, its minutes, a step subset, the report directory, the harness, the model and the target, with defaults", () => {
     expect(
-      parseLongTurnFlags(["--profile", "endurance", "--minutes", "30", "--steps", "a,b", "--out", "/tmp/x", "--harness", "cursor", "--target", "local-postgres-execution"]),
+      parseLongTurnFlags(["--profile", "endurance", "--minutes", "30", "--steps", "a,b", "--out", "/tmp/x", "--harness", "cursor", "--model", "claude-haiku-4.5", "--target", "local-postgres-execution"]),
     ).toEqual({
       profile: "endurance",
       minutes: 30,
       steps: ["a", "b"],
       out: "/tmp/x",
       harness: "cursor",
+      model: "claude-haiku-4.5",
       target: "local-postgres-execution",
     });
-    expect(parseLongTurnFlags([])).toEqual({ profile: "goal", minutes: undefined, steps: [], out: undefined, harness: "deep-agent", target: "local-execution" });
+    expect(parseLongTurnFlags([])).toEqual({ profile: "goal", minutes: undefined, steps: [], out: undefined, harness: "deep-agent", model: undefined, target: "local-execution" });
     expect(() => parseLongTurnFlags(["--target", "cloud"])).toThrow(/--target must be local-execution or local-postgres-execution/);
     expect(() => parseLongTurnFlags(["--minutes", "soon"])).toThrow(/--minutes must be a positive number/);
   });

@@ -513,6 +513,34 @@ describe("TranscriptBuilder — system_note is the harness's line in its own voi
   });
 });
 
+describe("TranscriptBuilder — context_compacted marks where the engine summarized", () => {
+  it("appends a COMPACTED message with no text to the scope; the next run's text is a message after it", () => {
+    const { status } = feed(builder(), [
+      { kind: "message_start", runId: "run-1" },
+      { kind: "text_delta", runId: "run-1", text: "Reading everything." },
+      { kind: "message_finish", runId: "run-1" },
+      { kind: "context_compacted" },
+      { kind: "message_start", runId: "run-2" },
+      { kind: "text_delta", runId: "run-2", text: "Read it all." },
+    ]);
+    expect(status.messages.map((m) => [m.type, m.content])).toEqual([
+      [MessageType.MESSAGE_AI, "Reading everything."],
+      [MessageType.MESSAGE_COMPACTED, ""],
+      [MessageType.MESSAGE_AI, "Read it all."],
+    ]);
+    expect(status.messages[1].toolCalls).toHaveLength(0);
+  });
+
+  it("lands in a sub-agent's transcript when scoped there", () => {
+    const { status } = feed(builder(), [
+      { kind: "sub_agent_started", subAgentId: "task-1", name: "helper", subject: "s", input: "s" },
+      { kind: "context_compacted", subAgentId: "task-1" },
+    ]);
+    expect(status.messages).toHaveLength(0);
+    expect(status.subAgentRuns[0].messages.map((m) => m.type)).toEqual([MessageType.MESSAGE_COMPACTED]);
+  });
+});
+
 describe("TranscriptBuilder — tool_output_delta streams the row's output", () => {
   it("appends the delta and marks the row streaming its OUTPUT", () => {
     const { status } = feed(builder(), [

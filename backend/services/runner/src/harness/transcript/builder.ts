@@ -75,6 +75,8 @@
  *     empty message of its own). Either way {@link awaitingApproval} is set.
  *   - `system_note` is a SYSTEM message in the scope, in the harness's
  *     voice; it hosts no rows and moves no boundary.
+ *   - `context_compacted` is a COMPACTED message in the scope, with no
+ *     text; like a note, it hosts no rows and moves no boundary.
  *   - A completed `ToolKind.TODO` call in the ROOT scope is projected into
  *     `rows.todos` through the shared `applyTodoUpdate`, a full replace
  *     unless the call's args say `merge: true` (the row stays — the
@@ -370,6 +372,9 @@ export class TranscriptBuilder {
           break;
         case "system_note":
           this.appendSystemNote(scope, event.text);
+          break;
+        case "context_compacted":
+          this.appendCompacted(scope);
           break;
         default: {
           const exhaustive: never = event;
@@ -773,6 +778,15 @@ export class TranscriptBuilder {
     scope.messages.push(create(AgentMessageSchema, {
       type: MessageType.MESSAGE_SYSTEM,
       content: text,
+      timestamp: this.instant(),
+    }));
+    this._dirty = true;
+  }
+
+  private appendCompacted(scope: Transcript): void {
+    scope.messages.push(create(AgentMessageSchema, {
+      type: MessageType.MESSAGE_COMPACTED,
+      content: "",
       timestamp: this.instant(),
     }));
     this._dirty = true;

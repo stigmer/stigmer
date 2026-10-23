@@ -53,7 +53,7 @@ const UNRESTRICTED = ToolScope.unrestricted();
 const SCOPE_BASE: SubagentScopeBase = {
   serverToolMap: new Map(),
   platformServerSlugs: new Set(),
-  admitsConfinedRead: async () => false,
+  admitsRoutedRead: async () => false,
   readsSkillContent: async () => false,
 };
 

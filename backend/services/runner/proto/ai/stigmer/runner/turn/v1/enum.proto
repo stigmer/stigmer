@@ -38,6 +38,11 @@ enum MessageType {
   // Rendered distinctly from assistant text in the UI (e.g., collapsible
   // thinking block with subdued styling).
   MESSAGE_THINKING = 5;
+
+  // The engine compacted the conversation here: what came before reaches the
+  // model as a summary from now on. A marker in the scope, carrying no text;
+  // written to the session as `agent.thread_context_compacted`.
+  MESSAGE_COMPACTED = 6;
 }
 
 // ToolCallStatus defines the status of a tool call.

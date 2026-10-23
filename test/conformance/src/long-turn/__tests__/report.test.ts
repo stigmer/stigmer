@@ -10,7 +10,13 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { create } from "@bufbuild/protobuf";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { create as createEvent } from "@bufbuild/protobuf";
+import { MOCK_CONVERSATION_SUMMARY } from "@stigmer/test-support/mock-llm";
 import {
+  compactedEventsOf,
+  compactionVerdictOf,
+  finishedCheckOf,
+  goalKept,
   followerCheckOf,
   messageCheckOf,
   messageVerdictOf,
@@ -153,6 +159,51 @@ describe("the summary", () => {
     const long = renderSummary({ ...running, end: { phase: "RUN_COMPLETED", error: "", elapsedMinutes: 1, atStep: undefined, stepsEnded: 0, stoppedByBudget: false, transcript: undefined, reply: "x".repeat(700) } });
     expect(long).toContain(`Reply: ${"x".repeat(600)}…`);
     expect(renderSummary({ ...running, end: { phase: "RUN_FAILED", error: "", elapsedMinutes: 1, atStep: "x", stepsEnded: 0, stoppedByBudget: false, transcript: transcriptCheckOf([1, 2, 3, 6]) } })).toContain("gaps 4-5.");
+  });
+});
+
+describe("compaction and the goal", () => {
+  const ended = (over: Partial<LongTurnEnd>): LongTurnEnd => ({
+    phase: "RUN_COMPLETED",
+    error: "",
+    elapsedMinutes: 170,
+    atStep: "step-102",
+    stepsEnded: 102,
+    stoppedByBudget: false,
+    transcript: transcriptCheckOf([1, 2, 3]),
+    ...over,
+  });
+
+  it("counts every thread's compaction markers in the log", () => {
+    const marker = (id: string, threadId = "") => createEvent(SessionEventSchema, { threadId, event: { case: "agentThreadContextCompacted", value: { id } } });
+    const said = createEvent(SessionEventSchema, { event: { case: "agentMessage", value: { id: "m", content: [] } } });
+    expect(compactedEventsOf([marker("a"), said, marker("b", "task-1")])).toBe(2);
+  });
+
+  it("passes a run whose log marks every summary and whose reply is the agent's; names a summary standing as the reply and a mismatch", () => {
+    expect(compactionVerdictOf(ended({ compactions: 3, compactedEvents: 3, reply: "done" }))).toEqual({ marked: true, reasons: [] });
+    expect(compactionVerdictOf(ended({ compactedEvents: 3, reply: "done" })).marked, "a live run counts no summaries").toBe(true);
+    expect(compactionVerdictOf(ended({ compactions: 3, compactedEvents: 0, reply: MOCK_CONVERSATION_SUMMARY })).reasons).toEqual([
+      "the turn's reply is the summarizer's text, not the agent's",
+      "the engine summarized 3 times and the log marks 0",
+    ]);
+  });
+
+  it("keeps the goal only when FINISHED.md names the first step, the last and how many ran", () => {
+    const steps = ["silent-build", "bulk-1", "bulk-2"];
+    expect(goalKept(finishedCheckOf(steps, "silent-build\nbulk-2\n3\n"))).toBe(true);
+    expect(goalKept(finishedCheckOf(steps, "bulk-1\nbulk-2\n2\n"))).toBe(false);
+    expect(finishedCheckOf(steps, undefined)).toEqual({ expected: ["silent-build", "bulk-2", "3"] });
+    expect(goalKept(finishedCheckOf(steps, undefined))).toBe(false);
+  });
+
+  it("says in the summary how many compactions the log marks and whether the goal was kept", () => {
+    const report: LongTurnReport = { ...running, end: ended({ compactedEvents: 3, finished: finishedCheckOf(["a", "b"], "a\nb\n2") }) };
+    const text = renderSummary(report);
+    expect(text).toContain("Compactions marked in the log: 3.");
+    expect(text).toContain("**Goal**: kept: FINISHED.md names a, b, 2, as the opening asked.");
+    const lost = renderSummary({ ...running, end: ended({ compactedEvents: 3, finished: finishedCheckOf(["a", "b"], undefined) }) });
+    expect(lost).toContain("**Goal**: lost: the opening asked FINISHED.md for a, b, 2; no file was written.");
   });
 });
 

@@ -33,7 +33,9 @@
  * shell buffers its output until exit) and a working subagent all fail the
  * turn on the stall watchdog, and a turn continued after a drain puts the
  * task on the thread a second time. Three real compactions by deepagents'
- * summarization middleware complete today; that arm is an ordinary pass.
+ * summarizer, under the runner's compaction middleware, complete, each
+ * marked once and billed, the summary never spoken as the agent; that arm is
+ * an ordinary pass.
  * Stopping a native turn while its `execute` or its subagent runs forces the
  * graph's abort after the stop's grace, and that abort leaves orphaned
  * rejections (`turn-stream.ts` explains the one `@langchain/core` leaves; an
@@ -50,7 +52,8 @@
  * conversation, and the model proposes the call exactly once (the denial is
  * a tool result the model reads, never a second gate); and one sqlite
  * checkpoint per session lands under the hermetic `HOME`, none for a session
- * never served.
+ * never served; and three compactions write the summarized history under the
+ * session's offload directory, never into the person's workspace.
  *
  * No golden: the kit asserts behaviour, the goldens under `goldens/` pin
  * transcripts. The hermetic environment is created at module level because
@@ -59,7 +62,8 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { isAIMessage, isToolMessage } from "@langchain/core/messages";
 
 vi.mock("../../../../shared/model-client.js", async () =>
@@ -70,12 +74,13 @@ vi.mock("../../../../client/stigmer-client.js", async () =>
 );
 
 import { ExecutionDriver, describeHarnessContract } from "../../../../__test-utils__/harness-contract/contract.js";
-import { describeHarnessRuntimeContract } from "../../../../__test-utils__/harness-contract/runtime-contract.js";
+import { RuntimeExecutionDriver, describeHarnessRuntimeContract } from "../../../../__test-utils__/harness-contract/runtime-contract.js";
+import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { scenario } from "../../../../__test-utils__/harness-contract/types.js";
 import { ScriptedClock, createHermeticEnvironment } from "../../../../__test-utils__/hermetic-activity.js";
 import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fixture.js";
 import { findToolCallRow } from "../../../../__test-utils__/proto-helpers.js";
-import { getCheckpointDbPath } from "../../../../shared/workspace/platform-dir.js";
+import { getCheckpointDbPath, getOffloadDir } from "../../../../shared/workspace/platform-dir.js";
 import { createDeepAgentContractSubject } from "../../__test-utils__/contract-subject.js";
 import { ApprovalAction, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
@@ -158,6 +163,18 @@ describe("ExecuteDeepAgent hermetic — the harness contract kit against the rea
       expect(denials, "the model read the gate's answer as a tool result").toHaveLength(1);
       expect(proposals, "and had proposed the call exactly once").toHaveLength(1);
       expect(subject.executionCount(id)).toBe(0);
+    });
+
+    it("keeps deepagents' offloaded history out of the workspace: three compactions write it under the session's offload directory", async () => {
+      // Through the runtime, which provisions the session's platform dir as production does.
+      const driver = new RuntimeExecutionDriver({ subject, env, clock }, "obs-offload-outside-workspace", { autoApproveAll: true });
+      await driver.turn([scenario.say("Reading everything."), scenario.compact(), scenario.compact(), scenario.compact(), scenario.say("Read it all.")]);
+      expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_COMPLETED);
+
+      const workspace = subject.workspaceDirOf(driver.sessionId);
+      expect(existsSync(join(workspace, "conversation_history")), "no history directory in the person's workspace").toBe(false);
+      expect(existsSync(join(workspace, "large_tool_results")), "no large-results directory in the person's workspace").toBe(false);
+      expect(readdirSync(join(getOffloadDir(driver.sessionId), "conversation_history")), "one history file, appended per compaction").toHaveLength(1);
     });
 
     it("keeps one sqlite checkpoint per session under the hermetic HOME, none for a session never served", async () => {

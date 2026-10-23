@@ -184,6 +184,7 @@ export class ScriptedHarnessAdapter implements HarnessAdapter {
       subAgentProgress: "streamed",
       continuation: options.continuation ?? "checkpoint",
       midTurnInput: "next-step",
+      contextCompaction: "none",
     };
   }
 
@@ -603,6 +604,7 @@ function scriptedLongTurn(adapter: ScriptedHarnessAdapter): LongTurnControls {
     tasksHanded: (sessionId, message) => adapter.tasksHanded(sessionId, message),
     messagesRead: (sessionId, text) => adapter.messagesRead(sessionId, text),
     compactions: () => 0,
+    compactionSummary: { text: "no context" },
     // What it keeps between invocations is already as a killed process leaves it.
     loseRunner: () => {},
   };

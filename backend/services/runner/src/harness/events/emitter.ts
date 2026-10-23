@@ -119,6 +119,7 @@ import {
   fileReviewChangesEventId,
   fileReviewReconciledEventId,
   harnessNoteEventId,
+  compactedEventId,
   memoryRecalledEventId,
   messageEventId,
   permissionAskedEventId,
@@ -621,6 +622,11 @@ export class SessionEventEmitter {
         this.push(thread.threadId, id, { case: "stigmerHarnessNote", value: { id, text: message.content } });
         return true;
       }
+      case MessageType.MESSAGE_COMPACTED: {
+        const id = compactedEventId(thread.prefix, this.placeIndex(thread.subAgentId ?? "", thread.prefix, index));
+        this.push(thread.threadId, id, { case: "agentThreadContextCompacted", value: { id } });
+        return true;
+      }
       default:
         // The runner writes no HUMAN row (the turn's message is the server's
         // user.message) and no TOOL row (results ride their tool use's row).
@@ -962,8 +968,8 @@ export class SessionEventEmitter {
   }
 }
 
-/** A place-named id (`ids.ts`): a message, a thinking (and its text) or a note, `<scope prefix>.<m|t|n><index>`. */
-const PLACE_ID = /^(.+)\.[mtn](\d+)(?:\.text)?$/;
+/** A place-named id (`ids.ts`): a message, a thinking (and its text), a note or a compaction, `<scope prefix>.<m|t|n|c><index>`. */
+const PLACE_ID = /^(.+)\.[mtnc](\d+)(?:\.text)?$/;
 
 /**
  * For each scope prefix the run's logged ids name, the index after the
