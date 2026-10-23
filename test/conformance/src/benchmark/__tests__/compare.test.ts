@@ -162,6 +162,7 @@ describe("compareReports: arms and pooling", () => {
   it("takes a named reference, and refuses one no report carries or one that matches several arms", () => {
     const reports = [at("ref.json", report()), at("gpt.json", report({ model: "openai:gpt-5.5" }))];
     expect(compareReports(reports, "native/openai:gpt-5.5").reference).toBe("native/openai:gpt-5.5@api.openai.com");
+    expect(compareReports(reports, "native/openai:gpt-5.5@api.openai.com").reference).toBe("native/openai:gpt-5.5@api.openai.com");
     expect(() => compareReports(reports, "native/claude-opus-4.7")).toThrow("no report carries the reference arm native/claude-opus-4.7");
     const twoEndpoints = [
       at("ref.json", report()),
@@ -244,6 +245,7 @@ describe("the timing-cell clauses", () => {
       refused: [
         { cell: "report-simple/deep-agent", reason: "the native model is pinned by --native-model" },
         { cell: "working-read-edit/deep-agent", reason: "missing OPENAI_API_KEY" },
+        { cell: "working-cross-turn/cursor", reason: "excluded by --only" },
       ],
     });
     expect(reading.cells.map((cell) => [cell.scenario, cell.status, cell.why])).toEqual([
@@ -297,5 +299,12 @@ describe("renderComparison", () => {
     expect(text).toContain("Quality: holds (mean 0.900 against 0.900 over 3 cases (tolerance 0.05)); pass^k 1 against 1");
     expect(text).toContain("| working-read-edit | holds | 0 / 0 | 0.0% / 0.0% | 1000 / 1000 | 1 / 1 | 3000* / 3000 |");
     expect(text).toContain("* the runner's default rate, not a price");
+  });
+
+  it("prints n/a for a side with no successful sample", () => {
+    const failed = samples(3, ["ok"], { outcome: "failed", failure: { stage: "execution", message: "x" } });
+    const reports = [at("ref.json", report({ quality: GOOD_QUALITY })), at("gpt.json", report({ model: "openai:gpt-5.5", quality: GOOD_QUALITY, cells: { "working-read-edit": failed } }))];
+    const text = renderComparison(compareReports(reports), reports);
+    expect(text).toContain("| working-read-edit | misses | 3 / 0 | 0.0% / 0.0% | n/a / 1000 | n/a / 1 | n/a / 3000 |");
   });
 });
