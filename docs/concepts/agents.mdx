@@ -278,7 +278,7 @@ message starts a fresh count.
 | `service_tier`          | `SERVICE_TIER_FAST` runs at the model's fast tier and bills at its fast rates. Needs a model that offers one.                                                                             |
 | `max_cost_usd`          | Stops a message once its estimated cost reaches this many dollars.                                                                                                                        |
 | `max_tool_rounds`       | Stops a message after this many rounds of tool calls (native Harness only).                                                                                                               |
-| `max_tool_result_chars` | Cuts a single tool result longer than this; 30,000 characters when no one sets it.                                                                                                        |
+| `max_tool_result_chars` | Cuts a single tool result longer than this to its start and its end, keeping the whole where the Agent can read it back; 30,000 characters when no one sets it (native Harness only).     |
 
 ### Where each setting comes from
 

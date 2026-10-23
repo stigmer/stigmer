@@ -54,7 +54,10 @@
  * outside the workspace), an {@link OffloadBackend} each, where
  * "attaching a real repo never leaves Stigmer files behind in it" holds for
  * them too (`platform-dir.ts`); through the workspace backend they were
- * top-level directories of the person's tree. Routed, they bypass the CAS
+ * top-level directories of the person's tree. The runner keeps a long tool
+ * result under the first root too, by the same name, through the same route
+ * (`middleware/tool-truncation.ts`, which writes only through a backend
+ * {@link routesOffloads} admits). Routed, they bypass the CAS
  * observer and live outside the work tree, as the outputs folder does. The two roots are left out of the root listing, as
  * an empty route is: deepagents names them to the model itself. A
  * repository's own real directory of either name is behind the route and
@@ -311,6 +314,8 @@ export class NoPlatformContentBackend implements BackendProtocolV2 {
  */
 export class PlatformRoutedBackend extends CompositeBackend {
   private readonly exposesPlatform: boolean;
+  /** Holds the {@link DEEPAGENTS_OFFLOAD_ROOT} route; read through {@link routesOffloads}. */
+  readonly routesToolResults: boolean;
 
   constructor(
     backend: AnyBackendProtocol,
@@ -324,6 +329,7 @@ export class PlatformRoutedBackend extends CompositeBackend {
       ...offloads,
     });
     this.exposesPlatform = platform instanceof PlatformContentBackend;
+    this.routesToolResults = DEEPAGENTS_OFFLOAD_ROOT in offloads;
   }
 
   override async ls(path: string): Promise<LsResult> {
@@ -341,6 +347,19 @@ export class PlatformRoutedBackend extends CompositeBackend {
       }),
     };
   }
+}
+
+/**
+ * Whether a write under {@link DEEPAGENTS_OFFLOAD_ROOT} through `backend` lands
+ * in the session's offload directory, never the workspace: true only for a
+ * routed backend holding that route, which both of {@link mountPlatformRoute}'s
+ * constructions pass. The runner's own keeping of long tool results
+ * (`middleware/tool-truncation.ts`) writes through a backend only when this
+ * holds; the class alone does not prove the route, since `offloads` defaults
+ * to none.
+ */
+export function routesOffloads(backend: AnyBackendProtocol): boolean {
+  return backend instanceof PlatformRoutedBackend && backend.routesToolResults;
 }
 
 export interface PlatformRouteOptions {

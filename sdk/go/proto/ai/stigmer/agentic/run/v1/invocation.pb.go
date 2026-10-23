@@ -238,13 +238,19 @@ type RunConfig struct {
 	// create. Combines freely with service_tier.
 	ThinkingMode ThinkingMode `protobuf:"varint,5,opt,name=thinking_mode,json=thinkingMode,proto3,enum=ai.stigmer.agentic.run.v1.ThinkingMode" json:"thinking_mode,omitempty"`
 	// Maximum number of characters for a single tool result before truncation.
-	// When a tool result exceeds this limit, it is truncated and a marker is
-	// appended: "[truncated — result exceeded {limit} chars, ask for specific sections]"
+	// A longer result reaches the agent as its start and its end, with a line
+	// between them saying how much was left out. The whole result is kept for
+	// the session, outside the workspace, and the line says where, so the
+	// agent reads the rest back instead of running the tool again; a tool that
+	// pages itself (reading a file, searching, listing, fetching a page) keeps
+	// no copy, and the line says how to narrow the call instead. A value above
+	// 80,000 raises the bound only for the file tools (reading, searching,
+	// listing and editing files); every other tool's result is cut at 80,000
+	// at most.
 	//
 	// 0 = not set at this layer; with no layer setting it the platform default
-	// applies (30,000 chars, about 7,500 tokens). Applies to all tool results
-	// (shell, read, write, MCP tools), except built-in tools that already
-	// manage their output size.
+	// applies (30,000 chars, about 7,500 tokens). Applies to every tool result,
+	// a subagent's included; the Cursor harness does not read this field.
 	MaxToolResultChars int32 `protobuf:"varint,6,opt,name=max_tool_result_chars,json=maxToolResultChars,proto3" json:"max_tool_result_chars,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache

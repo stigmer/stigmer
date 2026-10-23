@@ -24,8 +24,12 @@
  *    rather than waiting for input nobody will send.
  *
  * Output is capped per stream at `maxOutputBytes` characters, deepagents'
- * own cap (100,000), so a chatty build cannot grow without bound; the
- * formatted result keeps deepagents' shape byte for byte
+ * own cap (100,000), so a chatty build cannot grow without bound. A stream
+ * over the cap keeps its first half and its last half, cut at line ends
+ * (`shared/text-cut.ts`), with `… [N characters omitted] …` between them:
+ * the end of a long command is where its verdict is (the failing tests, the
+ * last error), and deepagents kept only the start. The formatted result
+ * keeps deepagents' shape and notes byte for byte
  * ({@link formatCommandOutput}), so prompts and goldens read as before.
  *
  * No LangChain here: the tool and the backend own their framework's shapes.
@@ -33,6 +37,7 @@
  */
 
 import { spawn } from "node:child_process";
+import { headCutIndex, tailCutIndex } from "../text-cut.js";
 
 /** deepagents' `LocalShellBackend` cap on a command's output, in characters. */
 export const DEFAULT_MAX_OUTPUT_BYTES = 100_000;
@@ -71,22 +76,46 @@ export interface CommandResult {
   readonly spawnError?: string;
 }
 
-/** Collects one stream up to the cap. */
+/** The line standing in for what a capped stream left out. */
+export function omittedOutputLine(chars: number): string {
+  return `… [${chars} characters omitted] …`;
+}
+
+/**
+ * Collects one stream up to the cap: its first half as it arrives, and a
+ * window over its last half (the module header).
+ */
 class Capped {
-  private text = "";
-  truncated = false;
-  constructor(private readonly max: number) {}
+  private head = "";
+  private tail = "";
+  private total = 0;
+  private readonly headMax: number;
+  private readonly tailMax: number;
+  constructor(max: number) {
+    this.headMax = Math.ceil(max / 2);
+    this.tailMax = max - this.headMax;
+  }
   add(chunk: string): void {
-    if (this.text.length >= this.max) {
-      this.truncated = true;
-      return;
+    this.total += chunk.length;
+    const room = this.headMax - this.head.length;
+    if (room > 0) {
+      this.head += chunk.slice(0, room);
+      chunk = chunk.slice(room);
     }
-    const room = this.max - this.text.length;
-    if (chunk.length > room) this.truncated = true;
-    this.text += chunk.slice(0, room);
+    if (chunk.length === 0) return;
+    // One character more than the tail keeps: the one before it says whether the tail starts a line.
+    this.tail += chunk;
+    if (this.tail.length > this.tailMax + 1) this.tail = this.tail.slice(this.tail.length - this.tailMax - 1);
+  }
+  get truncated(): boolean {
+    return this.total > this.headMax + this.tailMax;
   }
   get value(): string {
-    return this.text;
+    if (!this.truncated) return this.head + this.tail;
+    const head = this.head.slice(0, headCutIndex(this.head, this.headMax));
+    const tail = this.tail.slice(tailCutIndex(this.tail, this.tailMax));
+    const joint = head.endsWith("\n") || head.length === 0 ? "" : "\n";
+    return `${head}${joint}${omittedOutputLine(this.total - head.length - tail.length)}\n${tail}`;
   }
 }
 

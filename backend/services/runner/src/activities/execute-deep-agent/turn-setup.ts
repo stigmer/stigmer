@@ -608,6 +608,18 @@ export async function buildEngine(
     ? { tool: createShellTool({ backend: workspaceBackend, ...shellStreaming }) }
     : null;
 
+  // Platform content (skills, inputs, the approved plan) is mounted over the
+  // workspace backend read-only at `.stigmer/` (`platform-route.ts`): the
+  // virtual-rooted backend refuses to follow the workspace link out of the
+  // root. Mounted before the stack, whose truncation keeps a long tool
+  // result whole through it, in the session's offload directory
+  // (`middleware/tool-truncation.ts`).
+  const fileBackend = await mountPlatformRoute(workspaceBackend, {
+    workspaceDir: primaryDir,
+    platformDir: workspace.backend.platformDir,
+  });
+  const maxToolResultChars = runConfig?.maxToolResultChars || 30_000;
+
   const maxCostUsd = runConfig?.maxCostUsd ?? 0;
   const toolRoundLimit = resolveToolRoundLimit(runConfig?.maxToolRounds);
   // The turn's stop and yield, taken inside the graph at its model calls
@@ -620,7 +632,7 @@ export async function buildEngine(
     shell,
     loopDetection: { historySize: 20, consecutiveThreshold: 7, totalThreshold: 20 },
     executionBudget: { maxToolRounds: toolRoundLimit, warningPct: 80 },
-    toolTruncation: { maxChars: runConfig?.maxToolResultChars || 30_000 },
+    toolTruncation: { maxChars: maxToolResultChars, backend: fileBackend },
     costAdvisory: maxCostUsd > 0
       ? {
           maxCostUsd,
@@ -666,6 +678,7 @@ export async function buildEngine(
     webFetchPosture,
     costAdvisory: costAdvisory ?? undefined,
     turnBoundary,
+    toolTruncation: { maxChars: maxToolResultChars },
     modelFactory: buildModelFor,
     shellEnv,
     shellStreaming,
@@ -694,14 +707,6 @@ export async function buildEngine(
       ? providerStrategy({ schema: transformJSONSchema(outputSchema) as ObjectJsonSchema })
       : jsonSchemaToZod(outputSchema);
 
-  // Platform content (skills, inputs, the approved plan) is mounted over the
-  // workspace backend read-only at `.stigmer/` (`platform-route.ts`): the
-  // virtual-rooted backend refuses to follow the workspace link out of the
-  // root.
-  const fileBackend = await mountPlatformRoute(workspaceBackend, {
-    workspaceDir: primaryDir,
-    platformDir: workspace.backend.platformDir,
-  });
   const inputBarriers = new InputBarriers();
   const graph = await createDeepAgent({
     model,
