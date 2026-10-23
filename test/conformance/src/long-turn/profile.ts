@@ -27,9 +27,13 @@
 // be a hung model call, which the stall window stops by design. Each shell
 // step names its timeout, as a model raises it for a long command
 // (`timeoutSecondsOf`): the native shell's default bound is 120 s.
-// A held step (`server-restart`, `kill`, `drain`) waits for its release
-// file, so the run replaces the server or ends the runner while the step is
-// provably running.
+// A held step (`server-restart`, `kill`, `drain`, `message`) waits for its
+// release file, so the run replaces the server, ends the runner, or sends
+// the person's message while the step is provably running. A `message` step
+// is the person writing to the turn mid-tool: the run sends `text` to the
+// session while the step works, replaces the server while the message still
+// waits in the session's queue, and releases the step, so the turn reads
+// the message at its next step, after this one's result.
 
 /** One thing the long turn does. Seconds are wall time. */
 export type LongTurnStep =
@@ -39,7 +43,8 @@ export type LongTurnStep =
   | { readonly kind: "bulk"; readonly id: string; readonly bytes: number }
   | { readonly kind: "server-restart"; readonly id: string }
   | { readonly kind: "kill"; readonly id: string }
-  | { readonly kind: "drain"; readonly id: string };
+  | { readonly kind: "drain"; readonly id: string }
+  | { readonly kind: "message"; readonly id: string; readonly text: string };
 
 export type LongTurnProfileName = "goal" | "endurance";
 
@@ -76,6 +81,9 @@ export function bulkReadsFor(compactions: number): number {
   return Math.ceil((tokens * CHARS_PER_TOKEN) / BULK_BYTES) + 1;
 }
 
+/** What the person writes to the `goal` turn mid-tool, about half an hour in. */
+export const GOAL_MESSAGE = "Also add a line to NOTES.md saying the long turn ran.";
+
 /** The `goal` profile: the definition of done, played once in real time. */
 export function goalProfile(): LongTurnProfile {
   const bulk = Array.from({ length: bulkReadsFor(3) }, (_, i): LongTurnStep => ({ kind: "bulk", id: `bulk-${i + 1}`, bytes: BULK_BYTES }));
@@ -86,6 +94,7 @@ export function goalProfile(): LongTurnProfile {
       { kind: "silent", id: "silent-build", seconds: 600 },
       { kind: "streamed", id: "streamed-build", seconds: 600, everySeconds: 30, bytesPerLine: 80 },
       { kind: "subagent", id: "subagent-work", seconds: 240 },
+      { kind: "message", id: "message-mid-tool", text: GOAL_MESSAGE },
       ...bulk,
       { kind: "server-restart", id: "server-restarted-mid-tool" },
       { kind: "kill", id: "killed-mid-tool" },
@@ -165,6 +174,7 @@ export function timeoutSecondsOf(step: LongTurnStep): number | undefined {
     case "server-restart":
     case "kill":
     case "drain":
+    case "message":
       return HELD_TIMEOUT_SECONDS;
     case "bulk":
       return undefined;
@@ -189,6 +199,7 @@ export function shellCommandOf(step: LongTurnStep, files: StepFiles): string {
     case "server-restart":
     case "kill":
     case "drain":
+    case "message":
       return `${start}; while [ ! -f '${files.releaseOf(step.id)}' ]; do sleep 0.2; done; ${end}`;
   }
 }

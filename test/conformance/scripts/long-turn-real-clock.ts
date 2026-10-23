@@ -26,7 +26,11 @@
 // session from its first event through every restart. At the end the
 // session's log is read back: its sequence numbers must run unbroken and the
 // follower must have been sent exactly them, once and in order, or the
-// transcript reads broken and the script exits 1. What it cannot see is
+// transcript reads broken and the script exits 1. The `goal` profile's
+// `message` step sends the person's message mid-tool and replaces the server
+// while it waits; the run must read it, once, after that step's result, and
+// a follower of what needs the person (streamAttention, opened before the
+// run) must be told of the turn once, `finished`, or the script exits 1. What it cannot see is
 // said in the report: against the mock the runner holds a static token, so
 // the token re-mint a hosted runner does at 0.8 of its lifetime never runs.
 //
@@ -45,7 +49,8 @@ import { join, resolve } from "node:path";
 import { anthropicText, anthropicToolUse } from "@stigmer/test-support/mock-llm";
 import { driveLongTurn } from "../src/long-turn/drive";
 import { parseLongTurnFlags, profileOf, shellCommandOf, timeoutSecondsOf, type LongTurnStep, type StepFiles } from "../src/long-turn/profile";
-import { transcriptVerdictOf, type LongTurnReport } from "../src/long-turn/report";
+import { messageVerdictOf, transcriptVerdictOf, type LongTurnReport } from "../src/long-turn/report";
+import { AttentionFollower } from "../src/long-turn/follow";
 import { agentRefOf, makeAgent } from "../src/support/agents";
 import { uniqueName } from "../src/support/naming";
 import { makeAgentExecution } from "../src/support/runs";
@@ -71,6 +76,7 @@ async function main(): Promise<void> {
   };
 
   const target = flags.target === "local-postgres-execution" ? new LocalPostgresExecutionTarget() : new LocalExecutionTarget();
+  let attention: AttentionFollower | undefined;
   console.log(`[long-turn] booting the stack; the report goes to ${out}`);
   try {
     // Inside the try: a stack whose boot fails (a runner not built yet, say)
@@ -81,6 +87,8 @@ async function main(): Promise<void> {
     const mock = target.llmProxy();
     const { org } = await target.provisionTenancy();
     const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("long-turn-agent") }));
+    // Opened before the run, as a person's console is open before they start one.
+    attention = new AttentionFollower(clients, org);
 
     // One scripted model turn per step, then the closing answer. A subagent's
     // own model calls are the next queued turns: its shell (the step's work,
@@ -122,15 +130,29 @@ async function main(): Promise<void> {
       restartRunner: (signal) => target.restartRunner({ signal }),
       restartServer: (options) => target.restartServer(options),
       counts: () => ({ modelCalls: mock.scriptedRequests().length, compactions: mock.summaryRequests() }),
+      sendMessage: async (sessionId, text) => {
+        const sent = await clients.agentExecutionCommand.sendMessage(
+          makeAgentExecution({ org, name: uniqueName("long-turn-message"), sessionId, message: text }),
+        );
+        const event = sent.message?.event;
+        return { eventId: event?.case === "userMessage" ? event.value.id : "", queued: sent.run === undefined };
+      },
+      attention,
     });
     const verdict = transcriptVerdictOf(ended.end!);
     if (!verdict.whole) {
       console.error(`[long-turn] the transcript is broken: ${verdict.reasons.join("; ")}`);
       process.exitCode = 1;
     }
+    const read = messageVerdictOf(ended.end!, created.metadata!.id);
+    if (!read.read) {
+      console.error(`[long-turn] the person's message or attention failed: ${read.reasons.join("; ")}`);
+      process.exitCode = 1;
+    }
   } finally {
     // An orphaned held step would outlive the run: release every one.
     for (const step of profile.steps) if (!existsSync(files.releaseOf(step.id))) writeFileSync(files.releaseOf(step.id), "released at teardown\n");
+    await attention?.stop();
     await target.teardown();
   }
 }

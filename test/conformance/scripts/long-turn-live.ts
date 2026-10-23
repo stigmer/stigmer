@@ -26,7 +26,12 @@
 // so an opening leaves them out and a kill-and-drain run names them. The
 // stack has no server door, so a `server-restart` step is released as it is.
 // A streaming follower reads the session throughout, and a transcript that
-// reads broken (report.ts `transcriptVerdictOf`) exits the script 1.
+// reads broken (report.ts `transcriptVerdictOf`) exits the script 1. A
+// `message` step sends the person's message while the step's shell runs (no
+// server door here, so no restart), and a follower of what needs the person
+// watches the turn: the message must be read by the run after that step, and
+// the person told once that the turn finished (`messageVerdictOf`), or the
+// script exits 1. The reply says what the model made of the message.
 //
 // Needs: the `temporal` CLI on PATH; ANTHROPIC_API_KEY for native,
 // CURSOR_API_KEY for Cursor; the `stigmer` CLI (`make install-cli-shim`).
@@ -41,7 +46,8 @@ import type { BenchmarkHarness } from "../src/benchmark/report";
 import { bootBenchmarkStack } from "../src/benchmark/run";
 import { driveLongTurn } from "../src/long-turn/drive";
 import { narrateStep, parseLongTurnFlags, profileOf, type StepFiles } from "../src/long-turn/profile";
-import { transcriptVerdictOf, type LongTurnReport } from "../src/long-turn/report";
+import { messageVerdictOf, transcriptVerdictOf, type LongTurnReport } from "../src/long-turn/report";
+import { AttentionFollower } from "../src/long-turn/follow";
 import { agentRefOf, makeAgent } from "../src/support/agents";
 import { uniqueName } from "../src/support/naming";
 import { createUniqueOrganization } from "../src/support/organizations";
@@ -95,11 +101,13 @@ async function main(): Promise<void> {
   };
 
   const stack = await bootBenchmarkStack(out);
+  let attention: AttentionFollower | undefined;
   console.log(`[long-turn] live ${harness} on ${profile.model}, cap $${maxCostUsd}; the report goes to ${out}`);
   try {
     const { clients } = stack;
     const { id: org } = await createUniqueOrganization(clients.organizationCommand, "the live long turn");
     const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("long-turn-live-agent"), instructions: LIVE_AGENT_INSTRUCTIONS }));
+    attention = new AttentionFollower(clients, org);
     const message = [
       "This is the platform's long-turn measurement: the operator wants each step below run exactly as written, to see how a turn that runs for a long time is carried. " +
         "Perform the steps in order, one at a time, waiting for each to finish before the next. Skip none, add none.",
@@ -126,13 +134,27 @@ async function main(): Promise<void> {
       report,
       startedAtMs: startedAt.getTime(),
       restartRunner: (signal) => stack.restartRunner(signal),
+      sendMessage: async (sessionId, text) => {
+        const sent = await clients.agentExecutionCommand.sendMessage(
+          makeAgentExecution({ org, name: uniqueName("long-turn-live-message"), sessionId, message: text }),
+        );
+        const event = sent.message?.event;
+        return { eventId: event?.case === "userMessage" ? event.value.id : "", queued: sent.run === undefined };
+      },
+      attention,
     });
     const verdict = transcriptVerdictOf(ended.end!);
     if (!verdict.whole) {
       console.error(`[long-turn] the transcript is broken: ${verdict.reasons.join("; ")}`);
       process.exitCode = 1;
     }
+    const read = messageVerdictOf(ended.end!, created.metadata!.id);
+    if (!read.read) {
+      console.error(`[long-turn] the person's message or attention failed: ${read.reasons.join("; ")}`);
+      process.exitCode = 1;
+    }
   } finally {
+    await attention?.stop();
     await stack.stop();
   }
 }
