@@ -38,6 +38,19 @@
  * creating the atespace needs a global owner, so the atespace is read
  * first and created only when it is missing. The operator guide names
  * both grants.
+ *
+ * With the atespace, the gateway ensures the atespace's access policy:
+ * `editor` for this server (its token's subject, read from the token
+ * file) and `viewer` for Substrate's node agent. The second is a
+ * workaround for a gap in Substrate 0.5's authorization model
+ * (`cmd/ateapi/internal/authz/model.fga`): atelet reads each actor's egress
+ * policy to answer the actor's DNS, the model gives it no
+ * `can_get_egress_policy`, and without the grant every name a sandbox looks
+ * up is refused. A new atespace gets the policy at once; an existing one
+ * gets only the bindings it lacks, and no binding is ever removed. Writing
+ * a policy needs an owner of the atespace (a global owner is one, as a
+ * hosted install's bootstrap owners are), so a refusal is reported, not
+ * thrown: an owner may have made the grants by hand.
  */
 import { readFileSync, statSync } from "node:fs";
 
@@ -53,11 +66,13 @@ import {
 import { createGrpcTransport } from "@connectrpc/connect-node";
 
 import {
+  AccessPolicySchema,
   ActorSchema,
   ActorState,
   ActorTemplateSchema,
   type ActorStatus,
   AtespaceSchema,
+  BindingSchema,
   Control,
   EgressPolicySchema,
   EgressRuleSchema,
@@ -129,8 +144,29 @@ export interface SubstrateTemplateView {
   readonly goldenError: string;
 }
 
+/** One binding the server wants on its atespace's access policy. */
+export interface AtespaceGrant {
+  readonly role: "editor" | "viewer";
+  /** A policy member, `user:<principal id>`. */
+  readonly member: string;
+}
+
+/**
+ * What ensuring the atespace's access policy did: created it, added the
+ * bindings it lacked, found every binding there, or was refused the write
+ * (this server is no owner of the atespace).
+ */
+export type AtespacePolicyOutcome = "created" | "added" | "complete" | "denied";
+
+export interface AtespaceOutcome {
+  readonly policy: AtespacePolicyOutcome;
+  /** The bindings asked for, so a refusal can name them. */
+  readonly grants: readonly AtespaceGrant[];
+}
+
 export interface SubstrateGateway {
-  ensureAtespace(): Promise<void>;
+  /** Makes the atespace exist and its access policy hold the server's grants (module header). */
+  ensureAtespace(): Promise<AtespaceOutcome>;
   getActor(name: string): Promise<SubstrateActorView | undefined>;
   listActors(): Promise<SubstrateActorView[]>;
   createActor(name: string, template: string): Promise<"created" | "exists">;
@@ -172,6 +208,10 @@ const LIFECYCLE_TIMEOUT_MS = 120_000;
 const PAGE_SIZE = 1000;
 /** An actor has at most one egress policy, and it is named so. */
 const EGRESS_POLICY_NAME = "default";
+/** An atespace has at most one access policy, and it is named so. */
+const ACCESS_POLICY_NAME = "default";
+/** How often a policy write that lost a race is read and tried again. */
+const POLICY_ATTEMPTS = 3;
 
 /** A bearer-token interceptor over a file, re-read when its mtime moves. */
 export function bearerFromFile(path: string): Interceptor {
@@ -206,13 +246,83 @@ export function newSubstrateClientGateway(
         : {}),
     },
   });
-  return newSubstrateGatewayOverTransport(transport, settings.atespace);
+  return newSubstrateGatewayOverTransport(transport, settings.atespace, {
+    principal: () => subjectOfTokenFile(settings.apiTokenFile),
+    nodeAgentPrincipal: settings.nodeAgentPrincipal,
+  });
+}
+
+/** The subject of the token in `path`; undefined when the file cannot be read or names none. */
+export function subjectOfTokenFile(path: string): string | undefined {
+  try {
+    return tokenSubject(readFileSync(path, "utf8"));
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * A token's subject, the principal Substrate names its bearer by, read
+ * from the JWT's payload without verifying it (Substrate verifies it);
+ * undefined for a token that is no JWT or names no subject.
+ */
+export function tokenSubject(token: string): string | undefined {
+  const payload = token.trim().split(".")[1];
+  if (payload === undefined) return undefined;
+  try {
+    const claims: unknown = JSON.parse(
+      Buffer.from(payload, "base64url").toString("utf8"),
+    );
+    const sub =
+      typeof claims === "object" && claims !== null && "sub" in claims
+        ? claims.sub
+        : undefined;
+    return typeof sub === "string" && sub !== "" ? sub : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** A principal id as a policy member: `user:<id>`, as Substrate's policies name them. */
+export function policyMember(principal: string): string {
+  return principal.startsWith("user:") ? principal : `user:${principal}`;
+}
+
+/**
+ * The bindings `bindings` gains from `grants`: every one it lacks added,
+ * none removed; undefined when it lacks none.
+ */
+export function withGrants(
+  bindings: readonly { readonly role: string; readonly members: readonly string[] }[],
+  grants: readonly AtespaceGrant[],
+): { role: string; members: string[] }[] | undefined {
+  const merged = bindings.map((binding) => ({
+    role: binding.role,
+    members: [...binding.members],
+  }));
+  let changed = false;
+  for (const grant of grants) {
+    const binding = merged.find((candidate) => candidate.role === grant.role);
+    if (binding === undefined) {
+      merged.push({ role: grant.role, members: [grant.member] });
+      changed = true;
+    } else if (!binding.members.includes(grant.member)) {
+      binding.members.push(grant.member);
+      changed = true;
+    }
+  }
+  return changed ? merged : undefined;
 }
 
 /** The gateway over any transport: the live one above, or a test's in-process one. */
 export function newSubstrateGatewayOverTransport(
   transport: Transport,
   atespace: string,
+  access: {
+    /** This server's principal id, or undefined when it cannot be known. */
+    readonly principal: () => string | undefined;
+    readonly nodeAgentPrincipal: string;
+  } = { principal: () => undefined, nodeAgentPrincipal: "" },
 ): SubstrateGateway {
   const client = createClient(Control, transport);
   const ref = (name: string) => create(ObjectRefSchema, { atespace, name });
@@ -221,16 +331,28 @@ export function newSubstrateGatewayOverTransport(
 
   return {
     async ensureAtespace() {
-      await translate(async () => {
+      // An atespace is global: its reference names it and nothing else.
+      const atespaceRef = create(ObjectRefSchema, { name: atespace });
+      const principal = access.principal();
+      const grants: AtespaceGrant[] = [
+        ...(principal !== undefined
+          ? [{ role: "editor" as const, member: policyMember(principal) }]
+          : []),
+        ...(access.nodeAgentPrincipal !== ""
+          ? [
+              {
+                role: "viewer" as const,
+                member: policyMember(access.nodeAgentPrincipal),
+              },
+            ]
+          : []),
+      ];
+      const created = await translate(async () => {
         // Read first: under authorization, an atespace someone else created
         // and granted this server needs no global owner (module header).
         try {
-          // An atespace is global: its reference names it and nothing else.
-          await client.getAtespace(
-            { atespace: create(ObjectRefSchema, { name: atespace }) },
-            call,
-          );
-          return;
+          await client.getAtespace({ atespace: atespaceRef }, call);
+          return false;
         } catch (error) {
           if (!hasCode(error, Code.NotFound)) throw error;
         }
@@ -243,10 +365,74 @@ export function newSubstrateGatewayOverTransport(
             },
             call,
           );
+          return true;
         } catch (error) {
           if (!hasCode(error, Code.AlreadyExists)) throw error;
+          return false;
         }
       });
+      if (grants.length === 0) return { policy: "complete", grants };
+
+      const createPolicy = async (): Promise<"created" | "exists"> => {
+        try {
+          await client.createAtespaceAccessPolicy(
+            {
+              atespace: atespaceRef,
+              accessPolicy: create(AccessPolicySchema, {
+                metadata: { name: ACCESS_POLICY_NAME },
+                bindings: withGrants([], grants) ?? [],
+              }),
+            },
+            call,
+          );
+          return "created";
+        } catch (error) {
+          if (hasCode(error, Code.AlreadyExists)) return "exists";
+          throw error;
+        }
+      };
+      const policy = await translate(
+        async (): Promise<AtespacePolicyOutcome> => {
+          try {
+            if (created && (await createPolicy()) === "created") {
+              return "created";
+            }
+            for (let attempt = 1; ; attempt += 1) {
+              let stored;
+              try {
+                stored = await client.getAtespaceAccessPolicy(
+                  { atespace: atespaceRef, name: ACCESS_POLICY_NAME },
+                  call,
+                );
+              } catch (error) {
+                if (!hasCode(error, Code.NotFound)) throw error;
+                if ((await createPolicy()) === "created") return "created";
+                continue;
+              }
+              const bindings = withGrants(stored.bindings, grants);
+              if (bindings === undefined) return "complete";
+              stored.bindings = bindings.map((binding) =>
+                create(BindingSchema, binding),
+              );
+              try {
+                await client.updateAtespaceAccessPolicy(
+                  { atespace: atespaceRef, accessPolicy: stored },
+                  call,
+                );
+                return "added";
+              } catch (error) {
+                // Another writer moved it since the read: read it again.
+                if (!hasCode(error, Code.Aborted) || attempt >= POLICY_ATTEMPTS)
+                  throw error;
+              }
+            }
+          } catch (error) {
+            if (hasCode(error, Code.PermissionDenied)) return "denied";
+            throw error;
+          }
+        },
+      );
+      return { policy, grants };
     },
 
     getActor: (name) =>

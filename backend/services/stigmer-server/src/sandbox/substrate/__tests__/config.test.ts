@@ -1,6 +1,6 @@
 /**
  * Pins the substrate driver's settings (config.ts): the required values,
- * the defaults, the router's CA, server name and client certificate (only
+ * the defaults (the node agent's principal among them, overridable), the router's CA, server name and client certificate (only
  * for an https:// router), the parsing of the selector and the extra destinations, the
  * platform HTTPS hosts (EGRESS_HTTPS_PLATFORM, parseHosts: lower-cased,
  * each once, a scheme, port, path or pattern refused), and the two rules the idle windows must keep (a pause before a suspend;
@@ -35,6 +35,7 @@ describe("newSubstrateSettingsFromEnv", () => {
       routerServerName: "",
       routerClientCertFile: "",
       atespace: "stigmer",
+      nodeAgentPrincipal: "spiffe://cluster.local/ns/ate-system/sa/atelet",
       storageLocation: "gs://ate-snapshots/stigmer",
       workerSelector: { workload: "stigmer" },
       sandboxConfigName: "gvisor-default",
@@ -45,6 +46,16 @@ describe("newSubstrateSettingsFromEnv", () => {
       suspendAfterSeconds: 330,
       sweepIntervalSeconds: 30,
     });
+  });
+
+  it("takes the node agent's principal when one is given", () => {
+    expect(
+      newSubstrateSettingsFromEnv({
+        ...base,
+        STIGMER_SANDBOX_SUBSTRATE_NODE_AGENT_PRINCIPAL:
+          " spiffe://cluster.local/ns/substrate/sa/atelet ",
+      }).nodeAgentPrincipal,
+    ).toBe("spiffe://cluster.local/ns/substrate/sa/atelet");
   });
 
   it("names each missing required value", () => {

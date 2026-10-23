@@ -80,6 +80,13 @@ export interface SubstrateDriverSettings {
   readonly routerClientCertFile: string;
   /** The atespace this server's actors and templates live in; the server owns it. */
   readonly atespace: string;
+  /**
+   * The principal of Substrate's node agent (atelet), granted `viewer` on
+   * the atespace so it can read each actor's egress policy for the actor's
+   * DNS, which Substrate 0.5's authorization model does not let it do
+   * (gateway.ts). A principal id, with or without `user:`.
+   */
+  readonly nodeAgentPrincipal: string;
   /** The base object-storage prefix the template's snapshots are written under. */
   readonly storageLocation: string;
   /** The labels of the WorkerPool the actors run on. */
@@ -174,6 +181,10 @@ export function newSubstrateSettingsFromEnv(
     routerServerName,
     routerClientCertFile,
     atespace: required("ATESPACE"),
+    nodeAgentPrincipal: optional(
+      "NODE_AGENT_PRINCIPAL",
+      "spiffe://cluster.local/ns/ate-system/sa/atelet",
+    ),
     storageLocation: required("STORAGE_LOCATION"),
     workerSelector: parseSelector(required("WORKER_SELECTOR")),
     sandboxConfigName: optional("SANDBOX_CONFIG", "gvisor-default"),

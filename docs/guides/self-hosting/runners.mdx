@@ -598,21 +598,25 @@ What the driver needs:
   pool's own labels; the pool runs the `gvisor` sandbox class), and the bucket
   prefix their files are committed under
   (`STIGMER_SANDBOX_SUBSTRATE_STORAGE_LOCATION`).
-- **A grant, when Substrate's authorization is on.** Substrate then names the
-  server by its token's subject, `system:serviceaccount:<namespace>:<name>`, and
-  everything the server does happens inside its atespace, which needs the
-  `editor` role there. As one of Substrate's global owners, create the atespace
-  (`kubectl ate create atespace <name>`) and give it an access policy binding
-  `editor` to `user:system:serviceaccount:<namespace>:<name>`, through the
-  Control API's `CreateAtespaceAccessPolicy` call (the `kubectl ate` plugin has
-  no command for it in v0.5.0). The server reads the atespace before creating
-  it, so it needs no more than that. Listing it among Substrate's bootstrap
-  owners works too, but gives it every atespace. Without the grant the first
-  Session fails with a message naming it. Bind `viewer` on the same atespace to
-  `user:spiffe://cluster.local/ns/ate-system/sa/atelet` as well: in v0.5.0
-  atelet, Substrate's process on each node, reads each actor's egress policy to
-  answer its DNS, yet the authorization model gives it no role to. Without that
-  grant every name a sandbox looks up is refused, Temporal's included.
+- **Grants, when Substrate's authorization is on.** Substrate then names the
+  server by its token's subject, `system:serviceaccount:<namespace>:<name>`. The
+  server needs `editor` on its atespace, and atelet, Substrate's process on each
+  node, needs `viewer` there: in v0.5.0 atelet reads each actor's egress policy
+  to answer its DNS, yet the authorization model gives it no role to, so without
+  that grant every name a sandbox looks up is refused, Temporal's included. The
+  server writes both bindings into the atespace's access policy itself, when it
+  creates the atespace and, for one that exists, adding only the bindings it
+  lacks; it never removes one. That takes an owner: list the server among
+  Substrate's bootstrap owners and nothing else is needed. If it is no owner, it
+  logs once that the grant must be made and carries on; then, as a global owner,
+  create the atespace (`kubectl ate create atespace <name>`) and give it an
+  access policy binding `editor` to
+  `user:system:serviceaccount:<namespace>:<name>` and `viewer` to
+  `user:spiffe://cluster.local/ns/ate-system/sa/atelet`, through the Control
+  API's `CreateAtespaceAccessPolicy` call (the `kubectl ate` plugin has no
+  command for it in v0.5.0). Without `editor` the first Session fails with a
+  message naming it. When atelet runs under another identity, name it in
+  `STIGMER_SANDBOX_SUBSTRATE_NODE_AGENT_PRINCIPAL`.
 - **A runner image pinned by digest** in `STIGMER_SANDBOX_RUNNER_IMAGE`
   (`…@sha256:…`), and fully qualified DNS names, not addresses, short names or
   patterns, in the backend and Temporal endpoints and the extra destinations:

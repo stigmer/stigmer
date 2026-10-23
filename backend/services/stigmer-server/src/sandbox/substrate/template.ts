@@ -31,7 +31,9 @@
  *
  * The keeper: one preparation in flight per process (a turn that arrives
  * during it awaits the same promise). It creates this server's atespace
- * when missing, creates the template when missing, and waits for its
+ * when missing and makes its access policy hold the server's grants
+ * (gateway.ts), logging once per process when it may not write them,
+ * creates the template when missing, and waits for its
  * golden snapshot, because an actor created before the snapshot is
  * published cold-boots its first wake instead of starting from it
  * (Substrate's API guide).
@@ -250,6 +252,7 @@ export function newTemplateKeeper(options: {
   readonly template: ActorTemplate;
   readonly logger: {
     info: (msg: string, fields?: Record<string, unknown>) => void;
+    warn: (msg: string, fields?: Record<string, unknown>) => void;
   };
   readonly sleep?: (ms: number) => Promise<void>;
   readonly now?: () => number;
@@ -261,10 +264,24 @@ export function newTemplateKeeper(options: {
   let inFlight: Promise<string> | undefined;
   let isReady = false;
   let recreated = false;
+  let deniedLogged = false;
 
   async function prepare(): Promise<string> {
     const started = now();
-    await gateway.ensureAtespace();
+    const access = await gateway.ensureAtespace();
+    const bindings = access.grants.map((grant) => `${grant.role} ${grant.member}`);
+    if (access.policy === "created" || access.policy === "added") {
+      logger.info("Substrate atespace access policy granted this server's bindings", {
+        outcome: access.policy,
+        bindings,
+      });
+    } else if (access.policy === "denied" && !deniedLogged) {
+      deniedLogged = true;
+      logger.warn(
+        "Substrate refused this server writing its atespace's access policy; an owner of the atespace must grant these bindings (the node agent's viewer works around Substrate 0.5's authorization model, which lets atelet read no egress policy, so without it no sandbox resolves a name)",
+        { bindings },
+      );
+    }
     for (;;) {
       const current = await gateway.getTemplate(name);
       if (current === undefined) {

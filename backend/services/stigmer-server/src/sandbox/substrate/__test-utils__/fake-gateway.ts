@@ -18,6 +18,9 @@ import {
 } from "../gen/ateapipb/ateapi_pb.js";
 import type { RunnerEnvironment } from "../../environment.js";
 import type {
+  AtespaceGrant,
+  AtespaceOutcome,
+  AtespacePolicyOutcome,
   SubstrateActorView,
   SubstrateGateway,
   SubstrateSandboxState,
@@ -63,6 +66,9 @@ export class FakeSubstrate implements SubstrateGateway {
   readonly goldenErrors = new Map<string, string>();
   /** Answer "refused" to moves. */
   refuseMoves = false;
+  /** What ensuring the atespace's access policy answers. */
+  atespacePolicy: AtespacePolicyOutcome = "complete";
+  atespaceGrants: AtespaceGrant[] = [];
   private uid = 0;
 
   constructor(private readonly clock: () => number = Date.now) {}
@@ -133,8 +139,9 @@ export class FakeSubstrate implements SubstrateGateway {
     if (!ok) throw new Error(`FailedPrecondition: ${what} for ${name}`);
   }
 
-  async ensureAtespace(): Promise<void> {
+  async ensureAtespace(): Promise<AtespaceOutcome> {
     this.enter("ensureAtespace", "");
+    return { policy: this.atespacePolicy, grants: this.atespaceGrants };
   }
 
   async getActor(name: string): Promise<SubstrateActorView | undefined> {

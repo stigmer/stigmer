@@ -13,6 +13,12 @@
  *   - an actor's state in the driver's words, a pause told apart by the
  *     snapshot at its latest generation (local, no durable copy), a pause
  *     in flight by one not yet captured;
+ *   - the atespace's access policy: created with the atespace, holding
+ *     `editor` for the server's principal and `viewer` for the node agent;
+ *     on an existing atespace, the bindings it lacks added and none
+ *     removed, at the version read (read again after a lost race), nothing
+ *     written when it holds them all; a refused write reported as denied,
+ *     never thrown; the principal read from the token's subject;
  *   - the egress policy is read by its singleton name, "default";
  *   - lists follow page tokens, in Substrate 0.5's list options;
  *   - a move replaces the stored actor with only its template changed, and
@@ -33,6 +39,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
+  AccessPolicySchema,
   ActorSchema,
   ActorState,
   ActorTemplateSchema,
@@ -45,6 +52,8 @@ import {
   newSubstrateClientGateway,
   newSubstrateGatewayOverTransport,
   stateOf,
+  subjectOfTokenFile,
+  tokenSubject,
   SubstrateAbortedError,
   SubstrateNoWorkerError,
   SubstratePermissionError,
@@ -180,7 +189,10 @@ describe("error translation", () => {
       ),
     ).toBe("exists");
     expect(await gateway.ensureEgressPolicy("a", [])).toBe("unchanged");
-    await expect(gateway.ensureAtespace()).resolves.toBeUndefined();
+    await expect(gateway.ensureAtespace()).resolves.toEqual({
+      policy: "complete",
+      grants: [],
+    });
   });
 
   it("ABORTED and RESOURCE_EXHAUSTED become the driver's typed errors; anything else passes through", async () => {
@@ -257,6 +269,217 @@ describe("the atespace", () => {
     });
     await gateway.ensureAtespace();
     expect(seen).toEqual(["get", "create stigmer"]);
+  });
+});
+
+describe("the atespace's access policy", () => {
+  const SERVER = "system:serviceaccount:stigmer:stigmer-server";
+  const ATELET = "spiffe://cluster.local/ns/ate-system/sa/atelet";
+  const wanted = [
+    { role: "editor", member: `user:${SERVER}` },
+    { role: "viewer", member: `user:${ATELET}` },
+  ];
+
+  function withAccess(impl: Partial<ServiceImpl<typeof Control>>) {
+    const transport = createRouterTransport((router) => {
+      router.service(Control, impl);
+    });
+    return newSubstrateGatewayOverTransport(transport, "stigmer", {
+      principal: () => SERVER,
+      nodeAgentPrincipal: ATELET,
+    });
+  }
+  const missing = () => {
+    throw new ConnectError("absent", Code.NotFound);
+  };
+  const denied = () => {
+    throw new ConnectError("permission denied", Code.PermissionDenied);
+  };
+  const stored = (bindings: { role: string; members: string[] }[]) =>
+    create(AccessPolicySchema, {
+      metadata: { name: "default", uid: "pol-1", version: 4n },
+      bindings,
+    });
+
+  it("is created with a new atespace, holding the server's editor and the node agent's viewer", async () => {
+    let written: unknown;
+    const gateway = withAccess({
+      getAtespace: missing,
+      createAtespace: (request) => request.atespace ?? {},
+      createAtespaceAccessPolicy(request) {
+        written = request;
+        return request.accessPolicy ?? {};
+      },
+    });
+    expect(await gateway.ensureAtespace()).toEqual({
+      policy: "created",
+      grants: wanted,
+    });
+    expect(written).toMatchObject({
+      atespace: { atespace: "", name: "stigmer" },
+      accessPolicy: {
+        metadata: { name: "default" },
+        bindings: [
+          { role: "editor", members: [`user:${SERVER}`] },
+          { role: "viewer", members: [`user:${ATELET}`] },
+        ],
+      },
+    });
+  });
+
+  it("gains only the bindings an existing atespace's policy lacks, keeping every other, at the version read", async () => {
+    let written: unknown;
+    const gateway = withAccess({
+      getAtespace: (request) => ({ metadata: { name: request.atespace?.name ?? "" } }),
+      getAtespaceAccessPolicy: () =>
+        stored([
+          { role: "owner", members: ["user:admin"] },
+          { role: "editor", members: ["user:someone-else"] },
+        ]),
+      updateAtespaceAccessPolicy(request) {
+        written = request.accessPolicy;
+        return request.accessPolicy ?? {};
+      },
+    });
+    expect((await gateway.ensureAtespace()).policy).toBe("added");
+    expect(written).toMatchObject({
+      metadata: { name: "default", uid: "pol-1", version: 4n },
+      bindings: [
+        { role: "owner", members: ["user:admin"] },
+        { role: "editor", members: ["user:someone-else", `user:${SERVER}`] },
+        { role: "viewer", members: [`user:${ATELET}`] },
+      ],
+    });
+  });
+
+  it("writes nothing when the policy already holds every binding", async () => {
+    let writes = 0;
+    const gateway = withAccess({
+      getAtespace: () => ({ metadata: { name: "stigmer" } }),
+      getAtespaceAccessPolicy: () =>
+        stored([
+          { role: "editor", members: [`user:${SERVER}`] },
+          { role: "viewer", members: ["user:other", `user:${ATELET}`] },
+        ]),
+      updateAtespaceAccessPolicy() {
+        writes += 1;
+        return stored([]);
+      },
+    });
+    expect((await gateway.ensureAtespace()).policy).toBe("complete");
+    expect(writes).toBe(0);
+  });
+
+  it("reports a write it may not make as denied, never thrown, for a new atespace and an existing one", async () => {
+    const fresh = withAccess({
+      getAtespace: missing,
+      createAtespace: (request) => request.atespace ?? {},
+      createAtespaceAccessPolicy: denied,
+    });
+    expect((await fresh.ensureAtespace()).policy).toBe("denied");
+    const existing = withAccess({
+      getAtespace: () => ({ metadata: { name: "stigmer" } }),
+      getAtespaceAccessPolicy: () => stored([]),
+      updateAtespaceAccessPolicy: denied,
+    });
+    expect((await existing.ensureAtespace()).policy).toBe("denied");
+    const unreadable = withAccess({
+      getAtespace: () => ({ metadata: { name: "stigmer" } }),
+      getAtespaceAccessPolicy: denied,
+    });
+    expect((await unreadable.ensureAtespace()).policy).toBe("denied");
+  });
+
+  it("creates the policy an existing atespace lacks, and reads it again after losing a race", async () => {
+    const lacking = withAccess({
+      getAtespace: () => ({ metadata: { name: "stigmer" } }),
+      getAtespaceAccessPolicy: missing,
+      createAtespaceAccessPolicy: (request) => request.accessPolicy ?? {},
+    });
+    expect((await lacking.ensureAtespace()).policy).toBe("created");
+    let updates = 0;
+    const raced = withAccess({
+      getAtespace: () => ({ metadata: { name: "stigmer" } }),
+      getAtespaceAccessPolicy: () => stored([]),
+      updateAtespaceAccessPolicy(request) {
+        updates += 1;
+        if (updates === 1) throw new ConnectError("version moved", Code.Aborted);
+        return request.accessPolicy ?? {};
+      },
+    });
+    expect((await raced.ensureAtespace()).policy).toBe("added");
+    expect(updates).toBe(2);
+  });
+
+  it("names the server by its token's subject", () => {
+    const claims = Buffer.from(JSON.stringify({ sub: SERVER })).toString(
+      "base64url",
+    );
+    expect(tokenSubject(`e30.${claims}.c2ln\n`)).toBe(SERVER);
+    expect(tokenSubject("not-a-jwt")).toBeUndefined();
+    expect(tokenSubject(`e30.${Buffer.from("{}").toString("base64url")}.x`)).toBeUndefined();
+    expect(tokenSubject("e30.!!!.x")).toBeUndefined();
+    const file = path.join(dir, "jwt");
+    writeFileSync(file, `e30.${claims}.c2ln`);
+    expect(subjectOfTokenFile(file)).toBe(SERVER);
+    expect(subjectOfTokenFile(path.join(dir, "absent"))).toBeUndefined();
+  });
+
+  it("asks only for the node agent's binding when the server's principal cannot be known", async () => {
+    const transport = createRouterTransport((router) => {
+      router.service(Control, {
+        getAtespace: () => ({ metadata: { name: "stigmer" } }),
+        getAtespaceAccessPolicy: () => stored([]),
+        updateAtespaceAccessPolicy: (request) => request.accessPolicy ?? {},
+      });
+    });
+    const gateway = newSubstrateGatewayOverTransport(transport, "stigmer", {
+      principal: () => undefined,
+      nodeAgentPrincipal: `user:${ATELET}`,
+    });
+    expect(await gateway.ensureAtespace()).toEqual({
+      policy: "added",
+      grants: [{ role: "viewer", member: `user:${ATELET}` }],
+    });
+  });
+
+  it("falls back to reading a policy someone else created first, and gives up after three lost races", async () => {
+    const beaten = withAccess({
+      getAtespace: missing,
+      createAtespace: (request) => request.atespace ?? {},
+      createAtespaceAccessPolicy() {
+        throw new ConnectError("dup", Code.AlreadyExists);
+      },
+      getAtespaceAccessPolicy: () => stored([]),
+      updateAtespaceAccessPolicy: (request) => request.accessPolicy ?? {},
+    });
+    expect((await beaten.ensureAtespace()).policy).toBe("added");
+    let reads = 0;
+    const appeared = withAccess({
+      getAtespace: () => ({ metadata: { name: "stigmer" } }),
+      getAtespaceAccessPolicy() {
+        reads += 1;
+        if (reads === 1) throw new ConnectError("absent", Code.NotFound);
+        return stored([
+          { role: "editor", members: [`user:${SERVER}`] },
+          { role: "viewer", members: [`user:${ATELET}`] },
+        ]);
+      },
+      createAtespaceAccessPolicy() {
+        throw new ConnectError("dup", Code.AlreadyExists);
+      },
+    });
+    expect((await appeared.ensureAtespace()).policy).toBe("complete");
+    const losing = withAccess({
+      getAtespace: () => ({ metadata: { name: "stigmer" } }),
+      getAtespaceAccessPolicy: () => stored([]),
+      updateAtespaceAccessPolicy() {
+        throw new ConnectError("version moved", Code.Aborted);
+      },
+    });
+    await expect(losing.ensureAtespace()).rejects.toBeInstanceOf(
+      SubstrateAbortedError,
+    );
   });
 });
 
@@ -586,6 +809,7 @@ describe("the live client", () => {
       routerServerName: "",
       routerClientCertFile: "",
       atespace: "stigmer",
+      nodeAgentPrincipal: "spiffe://cluster.local/ns/ate-system/sa/atelet",
       storageLocation: "gs://b/p",
       workerSelector: { workload: "stigmer" },
       sandboxConfigName: "gvisor-default",
@@ -597,5 +821,8 @@ describe("the live client", () => {
       sweepIntervalSeconds: 60,
     });
     await expect(gateway.getActor("a")).rejects.toBeInstanceOf(ConnectError);
+    await expect(gateway.ensureAtespace()).rejects.toBeInstanceOf(
+      ConnectError,
+    );
   });
 });

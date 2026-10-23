@@ -20,6 +20,8 @@
  *     development builds keeps the template (stigmer/stigmer#1831);
  *   - it writes the runner's mode it is given (`cloud` for a composition
  *     hosting many organisations), which no operator setting overrides;
+ *   - the keeper says once per process that an owner must grant the
+ *     atespace's bindings when it may not write them;
  *   - the keeper prepares once however many callers wait, waits for the
  *     golden snapshot, recreates a failed template once and then fails, and
  *     gives up after its cap.
@@ -73,6 +75,7 @@ const settings: SubstrateDriverSettings = {
   routerServerName: "",
   routerClientCertFile: "",
   atespace: "stigmer",
+  nodeAgentPrincipal: "spiffe://cluster.local/ns/ate-system/sa/atelet",
   storageLocation: "gs://ate-snapshots/stigmer",
   workerSelector: { workload: "stigmer" },
   sandboxConfigName: "gvisor-default",
@@ -264,18 +267,60 @@ describe("the template", () => {
 });
 
 describe("the keeper", () => {
-  function keeper(substrate: FakeSubstrate) {
+  function keeper(substrate: FakeSubstrate, logger = silentLogger) {
     let t = 0;
     return newTemplateKeeper({
       gateway: substrate,
       template: buildRunnerTemplate({ config, settings, runnerMode: "local" }),
-      logger: silentLogger,
+      logger,
       now: () => t,
       sleep: async (ms) => {
         t += ms;
       },
     });
   }
+
+  it("says once per process that an owner must grant the atespace's bindings when it may not write them", async () => {
+    const warnings: string[] = [];
+    const logger = createLogger({
+      level: "info",
+      pretty: false,
+      write: () => {},
+      sink: (entry) => {
+        if (entry.level === "warn") warnings.push(entry.message);
+      },
+    });
+    const substrate = new FakeSubstrate();
+    substrate.atespacePolicy = "denied";
+    substrate.atespaceGrants = [
+      { role: "viewer", member: "user:spiffe://cluster.local/ns/ate-system/sa/atelet" },
+    ];
+    const k = keeper(substrate, logger);
+    await k.ready();
+    k.invalidate();
+    await k.ready();
+    expect(substrate.calls.filter((c) => c.startsWith("ensureAtespace"))).toHaveLength(2);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatch(/an owner of the atespace must grant/);
+  });
+
+  it("says when it granted the atespace's bindings", async () => {
+    const infos: string[] = [];
+    const logger = createLogger({
+      level: "info",
+      pretty: false,
+      write: () => {},
+      sink: (entry) => {
+        if (entry.level === "info") infos.push(entry.message);
+      },
+    });
+    const substrate = new FakeSubstrate();
+    substrate.atespacePolicy = "added";
+    await keeper(substrate, logger).ready();
+    expect(infos).toContain(
+      "Substrate atespace access policy granted this server's bindings",
+    );
+  });
 
   it("prepares once however many callers wait, and reports ready only after", async () => {
     const substrate = new FakeSubstrate();
