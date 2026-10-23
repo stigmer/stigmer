@@ -5,7 +5,8 @@
  *
  * A turn takes the oldest message and every one after it sent with the
  * same authority (the sender and the person its turn records,
- * ../session/events/queue.ts), as many as one turn holds: its files
+ * ../session/events/queue.ts) through the same lane, as many as one turn
+ * holds: its files
  * together within a turn's {@link MAX_TURN_FILES}, at most
  * {@link MAX_TURN_QUEUED_MESSAGES} messages. A message sent with another
  * authority waits for the turn after, so no message runs on another
@@ -13,7 +14,11 @@
  *
  * It is one run create, the full chain, AS THEIR SENDER (the in-process
  * asCaller lane, as the reconcile turn an undo starts acts as its
- * decider, ../session/filereview/stopped-turn.ts), recording the person
+ * decider, ../session/filereview/stopped-turn.ts), in the lane they were
+ * sent through when the composition kept one (a chat link's guest, a
+ * messaging channel's sender: ../../extensions/queued-sender-lane.ts),
+ * so the lane's gates and run profile admit it as they admitted the
+ * messages, recording the person
  * the messages recorded as they were sent (create-steps.ts
  * GuardQueuedMessages), so every check a turn meets meets it again: a gate
  * may have changed since the messages were accepted. The turn is the
@@ -57,6 +62,7 @@ import type { Run } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
+import type { QueuedSenderLane } from "../../extensions/queued-sender-lane.js";
 import type { RunStatusObserver } from "../../extensions/status-hooks.js";
 import { errorReasonOf } from "../../pipeline/errors.js";
 import type { QueuedSessionMessage } from "../../store/session-events.js";
@@ -66,6 +72,7 @@ import {
   dropQueuedMessages,
   queuedTurnOf,
   sameAuthority,
+  sameLane,
 } from "../session/events/queue.js";
 import type { SessionQueueDeps } from "../session/events/queue.js";
 import { sessionIdOfRun } from "../session/events/transitions.js";
@@ -83,6 +90,8 @@ export interface QueuedTurnDeps extends SessionQueueDeps {
   readonly creator: () => QueuedTurnCreator;
   /** The caller a sender's identity id stands for; undefined when it names nobody this server knows. */
   readonly callerOf: (senderId: string) => Promise<CallerIdentity | undefined>;
+  /** Turns a kept lane back into its caller (extensions/queued-sender-lane.ts); absent, no lane is kept. */
+  readonly queuedSenderLane?: QueuedSenderLane;
 }
 
 /** The queue's start of a session's next turn, as every caller holds it. */
@@ -153,7 +162,11 @@ export function nextTurnMessages(queued: ReadonlyArray<QueuedSessionMessage>): Q
   const taken: QueuedSessionMessage[] = [];
   const files = new Set<string>();
   for (const message of queued) {
-    if (!sameAuthority(authorityOfQueued(message), authority) || taken.length === MAX_TURN_QUEUED_MESSAGES) {
+    if (
+      !sameAuthority(authorityOfQueued(message), authority) ||
+      !sameLane(message, oldest) ||
+      taken.length === MAX_TURN_QUEUED_MESSAGES
+    ) {
       break;
     }
     const own = queuedTurnOf(message).spec?.fileIds ?? [];
@@ -165,6 +178,19 @@ export function nextTurnMessages(queued: ReadonlyArray<QueuedSessionMessage>): Q
     own.forEach((fileId) => files.add(fileId));
   }
   return taken;
+}
+
+/**
+ * The caller a queued message's turn is created as: its sender's lane when
+ * it kept one (extensions/queued-sender-lane.ts), so the turn is admitted
+ * as the message was; its sender's person otherwise. A kept lane with
+ * nothing to turn it back into stands for nobody.
+ */
+async function callerOfQueued(deps: QueuedTurnDeps, message: QueuedSessionMessage): Promise<CallerIdentity | undefined> {
+  if (message.lane.length === 0) {
+    return deps.callerOf(message.sender);
+  }
+  return deps.queuedSenderLane?.decode(message.sender, message.lane);
 }
 
 /** One start: the turn for `messages`, as their sender; what a refusal does is the module header's. */
@@ -183,7 +209,7 @@ async function startTurnOf(
     });
     return dropped.length === 0 ? { kind: "raced" } : { kind: "dropped" };
   };
-  const caller = await deps.callerOf(messages[0]!.sender);
+  const caller = await callerOfQueued(deps, messages[0]!);
   if (caller === undefined) {
     deps.logger.warn("a session's queued messages name a sender nobody stands for; they were dropped", {
       sessionId,

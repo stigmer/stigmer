@@ -72,6 +72,7 @@ import type { MeteredUsageProvider } from "./metered-usage.js";
 import type { SandboxProvisionerFactory } from "../sandbox/provisioner.js";
 import type { GradingCallerMint } from "./grading-caller.js";
 import type { EvalRunCallerMint } from "./eval-run-caller.js";
+import type { QueuedSenderLane } from "./queued-sender-lane.js";
 import type { RoutineFireCaller } from "./routine-fire-caller.js";
 import type { VisitorClassifier } from "./visitor-classifier.js";
 import type { RunLanes } from "./run-lanes.js";
@@ -334,6 +335,12 @@ export interface ResolvedExtensionDrivers {
    */
   readonly routineFireCaller: RoutineFireCaller | undefined;
   /**
+   * The queued-sender lane — undefined = a queued message keeps no lane,
+   * and the queue's turn acts as its sender's person
+   * (queued-sender-lane.ts).
+   */
+  readonly queuedSenderLane: QueuedSenderLane | undefined;
+  /**
    * The grading caller mint — undefined = judge runs enter the create
    * pipeline as the `internal` class, or as the scoring rule's creator under
    * the built-in posture (compose.ts).
@@ -477,6 +484,8 @@ export function resolveExtensions(
   let visitorErrorPolicyDeclaredBy: string | undefined;
   let routineFireCaller: RoutineFireCaller | undefined;
   let routineFireCallerDeclaredBy: string | undefined;
+  let queuedSenderLane: QueuedSenderLane | undefined;
+  let queuedSenderLaneDeclaredBy: string | undefined;
   let gradingCaller: GradingCallerMint | undefined;
   let gradingCallerDeclaredBy: string | undefined;
   let evalRunCaller: EvalRunCallerMint | undefined;
@@ -689,6 +698,16 @@ export function resolveExtensions(
       }
       routineFireCaller = unit.drivers.routineFireCaller;
       routineFireCallerDeclaredBy = unit.name;
+    }
+
+    if (unit.drivers?.queuedSenderLane !== undefined) {
+      if (queuedSenderLaneDeclaredBy !== undefined) {
+        throw new Error(
+          `extension '${unit.name}' registers a QueuedSenderLane, but '${queuedSenderLaneDeclaredBy}' already did — exactly one may be composed`,
+        );
+      }
+      queuedSenderLane = unit.drivers.queuedSenderLane;
+      queuedSenderLaneDeclaredBy = unit.name;
     }
 
     if (unit.drivers?.gradingCaller !== undefined) {
@@ -1035,6 +1054,7 @@ export function resolveExtensions(
       visitorErrorPolicy,
       secretCodecs,
       routineFireCaller,
+      queuedSenderLane,
       gradingCaller,
       evalRunCaller,
       identityAccountStore,

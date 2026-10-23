@@ -41,6 +41,7 @@ import type { Logger } from "../../boot/logger.js";
 import type { Authorizer } from "../../extensions/authorizer.js";
 import type { ListReadScope } from "../../extensions/list-read-scope.js";
 import type { MeteredUsageProvider } from "../../extensions/metered-usage.js";
+import type { QueuedSenderLane } from "../../extensions/queued-sender-lane.js";
 import type { AccountsByCaller } from "../identityaccount/resolve.js";
 import type { ResourceAuthorizationLifecycle } from "../../extensions/resource-authorization.js";
 import type { ResolvedGateSteps } from "../../extensions/gate-slots.js";
@@ -296,6 +297,8 @@ export interface AgentExecutionControllerDeps {
    * stop's drop leaves it nothing to start.
    */
   readonly queuedTurns: QueuedTurnStarter;
+  /** Keeps the lane a queued message was sent through (extensions/queued-sender-lane.ts). */
+  readonly queuedSenderLane?: QueuedSenderLane;
 }
 
 /** Registers both agentexecution services on the router (routes stage). */

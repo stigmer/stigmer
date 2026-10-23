@@ -795,8 +795,15 @@ export class SqliteStore implements Store {
           { queued: true },
         );
         db.prepare(
-          `INSERT INTO session_queued_messages (session_id, event_id, org, sender, turn) VALUES (?, ?, ?, ?, ?)`,
-        ).run(sessionId, outcome.enqueue.draft.eventId, org, outcome.enqueue.entry.sender, outcome.enqueue.entry.turn);
+          `INSERT INTO session_queued_messages (session_id, event_id, org, sender, turn, lane) VALUES (?, ?, ?, ?, ?, ?)`,
+        ).run(
+          sessionId,
+          outcome.enqueue.draft.eventId,
+          org,
+          outcome.enqueue.entry.sender,
+          outcome.enqueue.entry.turn,
+          outcome.enqueue.entry.lane ?? new Uint8Array(),
+        );
       }
       const dropped: string[] = [];
       const dropOne = db.prepare(`DELETE FROM session_queued_messages WHERE session_id = ? AND event_id = ?`);
@@ -2980,14 +2987,14 @@ function queuedOf(db: DatabaseSync, sessionId: string): QueuedSessionMessage[] {
   const rows = db
     .prepare(
       `SELECT e.session_id, e.seq, e.event_id, e.run_id, e.thread_id, e.type, e.processed_at, e.data,
-              q.sender, q.turn
+              q.sender, q.turn, q.lane
        FROM session_queued_messages q
        JOIN session_events e ON e.session_id = q.session_id AND e.event_id = q.event_id
        WHERE q.session_id = ?
        ORDER BY e.seq ASC`,
     )
-    .all(sessionId) as unknown as Array<SessionEventRow & { sender: string; turn: Uint8Array }>;
-  return rows.map((row) => ({ record: sessionEventOf(row), sender: row.sender, turn: row.turn }));
+    .all(sessionId) as unknown as Array<SessionEventRow & { sender: string; turn: Uint8Array; lane: Uint8Array }>;
+  return rows.map((row) => ({ record: sessionEventOf(row), sender: row.sender, turn: row.turn, lane: new Uint8Array(row.lane) }));
 }
 
 /** How many messages wait in the session's queue. */

@@ -117,6 +117,8 @@ export interface MessageToQueue {
   readonly org: string;
   readonly sender: string;
   readonly turn: Run;
+  /** The lane it was sent through (extensions/queued-sender-lane.ts); empty or absent for a person's. */
+  readonly lane?: Uint8Array;
 }
 
 /** A state that holds the session: a turn waiting for an answer, or paused. */
@@ -158,7 +160,7 @@ export async function enqueueMessage(deps: SessionQueueDeps, message: MessageToQ
     return {
       enqueue: {
         draft: draftOf(event),
-        entry: { sender: message.sender, turn: toBinary(RunSchema, message.turn) },
+        entry: { sender: message.sender, turn: toBinary(RunSchema, message.turn), lane: message.lane ?? new Uint8Array() },
       },
       events: sessionEventsForQueue({
         working: session.working.length,
@@ -279,6 +281,11 @@ export function authorityOfRun(run: Run): TurnAuthority {
     sender: run.status?.audit?.specAudit?.createdBy?.id ?? "",
     person: run.status?.credentials?.person ?? "",
   };
+}
+
+/** Whether two queued messages were sent through one lane (extensions/queued-sender-lane.ts). */
+export function sameLane(a: QueuedSessionMessage, b: QueuedSessionMessage): boolean {
+  return a.lane.length === b.lane.length && a.lane.every((byte, at) => byte === b.lane[at]);
 }
 
 /** Whether two authorities are one: a sender's message, and a turn that may read it. */
