@@ -355,7 +355,7 @@ public final class ChannelCommandControllerGrpc {
      * call models on the channel's organization's own provider keys, and the
      * providers bill the organization for them.
      * A channel created without a name takes the slug `&lt;agent slug&gt;-&lt;type&gt;`
-     * (for example `support-agent-web`) and the name `&lt;agent name&gt; (&lt;Type&gt;)`.
+     * (for example `variance-reporter-web`) and the name `&lt;agent name&gt; (&lt;Type&gt;)`.
      * A slug another channel of the organization holds is refused with
      * ALREADY_EXISTS. A slug another channel was renamed away from, which
      * still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
@@ -564,7 +564,7 @@ public final class ChannelCommandControllerGrpc {
      * call models on the channel's organization's own provider keys, and the
      * providers bill the organization for them.
      * A channel created without a name takes the slug `&lt;agent slug&gt;-&lt;type&gt;`
-     * (for example `support-agent-web`) and the name `&lt;agent name&gt; (&lt;Type&gt;)`.
+     * (for example `variance-reporter-web`) and the name `&lt;agent name&gt; (&lt;Type&gt;)`.
      * A slug another channel of the organization holds is refused with
      * ALREADY_EXISTS. A slug another channel was renamed away from, which
      * still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
@@ -765,7 +765,7 @@ public final class ChannelCommandControllerGrpc {
      * call models on the channel's organization's own provider keys, and the
      * providers bill the organization for them.
      * A channel created without a name takes the slug `&lt;agent slug&gt;-&lt;type&gt;`
-     * (for example `support-agent-web`) and the name `&lt;agent name&gt; (&lt;Type&gt;)`.
+     * (for example `variance-reporter-web`) and the name `&lt;agent name&gt; (&lt;Type&gt;)`.
      * A slug another channel of the organization holds is refused with
      * ALREADY_EXISTS. A slug another channel was renamed away from, which
      * still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
@@ -959,7 +959,7 @@ public final class ChannelCommandControllerGrpc {
      * call models on the channel's organization's own provider keys, and the
      * providers bill the organization for them.
      * A channel created without a name takes the slug `&lt;agent slug&gt;-&lt;type&gt;`
-     * (for example `support-agent-web`) and the name `&lt;agent name&gt; (&lt;Type&gt;)`.
+     * (for example `variance-reporter-web`) and the name `&lt;agent name&gt; (&lt;Type&gt;)`.
      * A slug another channel of the organization holds is refused with
      * ALREADY_EXISTS. A slug another channel was renamed away from, which
      * still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
@@ -1154,7 +1154,7 @@ public final class ChannelCommandControllerGrpc {
      * call models on the channel's organization's own provider keys, and the
      * providers bill the organization for them.
      * A channel created without a name takes the slug `&lt;agent slug&gt;-&lt;type&gt;`
-     * (for example `support-agent-web`) and the name `&lt;agent name&gt; (&lt;Type&gt;)`.
+     * (for example `variance-reporter-web`) and the name `&lt;agent name&gt; (&lt;Type&gt;)`.
      * A slug another channel of the organization holds is refused with
      * ALREADY_EXISTS. A slug another channel was renamed away from, which
      * still leads to it for 30 days, is refused with ALREADY_EXISTS carrying a
