@@ -25,7 +25,7 @@ spec:
   skill_refs: []
   subagents: []
   hooks: []
-  env_spec: {}
+  env: {}
   harness: HARNESS_NATIVE
   run_config: {}
 status: {}  # System-managed, never set by users
@@ -105,7 +105,7 @@ All spec fields are defined by `AgentSpec` in `ai/stigmer/agentic/agent/v1/spec.
 | `spec.tools` | No | Tools this agent may use, in Claude Code's names (`Read`, `Bash(git push *)`, `mcp__plugin_<plugin>_<server>`, `mcp__<server>`). Empty means every tool it has. See [plugin-integration.md](plugin-integration.md). |
 | `spec.disallowed_tools` | No | Tools this agent may never use, in the same names. Applied before `spec.tools`. |
 | `spec.hooks` | No | A hooks block written in the agent, run around its tool calls and its subagents' calls after the hooks of the plugins it lists. See [Hooks](#hooks). |
-| `spec.env_spec` | No | Required environment variables (schema only). See below. |
+| `spec.env` | No | The keys the agent needs, each with a description and whether it is secret; values come from vaults at run time. See [Declared Keys](#declared-keys). |
 | `spec.harness` | No | The engine (`HARNESS_NATIVE` or `HARNESS_CURSOR`) the run defaults were chosen for, and the engine a new conversation on this agent starts on when nobody names an engine or a model (a turn naming a model but no engine starts on native). Unspecified: native. See [Run Defaults](#run-defaults). |
 | `spec.run_config` | No | The author's run defaults: model, speed tier, thinking and run limits. Versioned with the agent. See [Run Defaults](#run-defaults). |
 
@@ -223,7 +223,7 @@ stigmer apply -f agent.yaml --dry-run
 stigmer list agents
 
 # List agents from a specific organization
-stigmer list agents --org acme-corp
+stigmer --org acme-corp list agents
 
 # Search for agents by text
 stigmer search agents "variance report"

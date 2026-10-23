@@ -97,7 +97,7 @@ import { RenameInputSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/
 const agent = await stigmer.agent.create({
   name: "my-agent",
   org: "my-org",
-  description: "Handles customer inquiries",
+  description: "Turns a customer's ledger into a variance report",
   instructions: "Be helpful and concise.",
 });
 

@@ -98,7 +98,7 @@ try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
     Agent agent = client.agent.create(AgentInput.builder()
         .name("my-agent")
         .org("my-org")
-        .description("Handles customer inquiries")
+        .description("Turns a customer's ledger into a variance report")
         .instructions("Be helpful and concise.")
         .build());
 

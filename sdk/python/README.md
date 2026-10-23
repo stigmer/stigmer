@@ -60,7 +60,7 @@ with StigmerClient("sk_live_abc123") as client:
     agent = client.agents.create(AgentInput(
         name="my-agent",
         org="my-org",
-        description="Handles customer inquiries",
+        description="Turns a customer's ledger into a variance report",
         instructions="Be helpful and concise.",
     ))
 

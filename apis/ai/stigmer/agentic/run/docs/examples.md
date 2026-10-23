@@ -186,7 +186,7 @@ spec:
       - kind: vault
         org: acme
         slug: ledger-keys
-  message: "Query the production database and summarize recent errors"
+  message: "Report Q3's variances from the ledger"
 ```
 
 For integrations where each customer brings their own credentials, keep a vault per customer (`external_id`) and name it on that customer's conversations.
