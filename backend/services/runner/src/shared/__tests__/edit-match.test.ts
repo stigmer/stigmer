@@ -64,6 +64,12 @@ describe("resolveEdit: line endings", () => {
     expect(applyAsDeepagents(content, resolution)).toBe("keep\r\nchanged\nlast\r\n");
   });
 
+  it("ends a line added after the quote's last line with the file's ending", () => {
+    const content = "say(\u201Chi\u201D)\r\n";
+    const resolution = resolveEdit(content, 'say("hi")', 'say("hi")\nsay("bye")', false);
+    expect(applyAsDeepagents(content, resolution)).toBe('say(\u201Chi\u201D)\r\nsay("bye")\r\n');
+  });
+
   it("falls back to the file's dominant ending when the region has no line ending of its own", () => {
     const content = "a\r\nb\r\nit’s";
     const resolution = resolveEdit(content, "it's", "it's\nmore", false);
@@ -130,6 +136,14 @@ describe("resolveEdit: trailing whitespace", () => {
 
   it("does not match through a newline the file's last line lacks", () => {
     expect(resolveEdit("x()  \ny()", "x()\ny()\n", "x()\nz()\n", false)).toEqual({ kind: "none" });
+  });
+
+  it("counts overlapping line windows once, left to right, as deepagents counts an exact quote", () => {
+    // Windows at lines 0-1, 1-2 and 2-3 all match; 1-2 overlaps the first, so two remain.
+    expect(resolveEdit("x \nx \nx \nx \n", "x\nx", "y\ny", false)).toMatchObject({
+      kind: "ambiguous",
+      error: expect.stringContaining("has multiple occurrences (appears 2 times)"),
+    });
   });
 
   it("applies a change the model made to trailing whitespace itself", () => {
