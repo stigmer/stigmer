@@ -56,7 +56,8 @@
  * not build answers its own profile, `shared/model-window.ts` `windowOf`) and
  * compacts at 0.85 of it, counting the transcript's own content, never
  * reported usage. A summary call is the same model's `invoke` with one human
- * message that opens with the middleware's summary prompt; the double answers
+ * message that opens with the runner's checkpoint prompt
+ * (`middleware/compaction-prompt.ts` `SUMMARY_PROMPT_OPENING`); the double answers
  * it out of band ({@link isSummaryRequest}), billing {@link SCRIPTED_SUMMARY_USAGE},
  * so a compaction never takes a scripted turn, and reports it through
  * `onSummary`.
@@ -98,6 +99,8 @@ import {
 } from "@langchain/core/messages";
 import type { ModelProfile } from "@langchain/core/language_models/profile";
 import { ChatGenerationChunk, type ChatResult } from "@langchain/core/outputs";
+
+import { SUMMARY_PROMPT_OPENING } from "../../../middleware/compaction-prompt.js";
 
 /** A single tool call the scripted model proposes on a turn. */
 export interface ScriptedToolCall {
@@ -261,20 +264,18 @@ export interface ScriptedModelOptions {
   readonly onSummary?: (prompt: string) => void;
 }
 
-/**
- * How deepagents' summary prompt opens (`DEFAULT_SUMMARY_PROMPT`, deepagents
- * 1.14.1 `dist/langsmith-*.js`; not exported). `scripted-model.test.ts`
- * provokes a real compaction, so a library that rewords it fails there.
- */
-export const SUMMARY_PROMPT_OPENING = "You are a conversation summarizer.";
-
 /** What the double answers every summary call with. */
 export const SCRIPTED_SUMMARY = "Summary (scripted): the conversation so far, condensed.";
 
 /** What every summary call bills: a summary is a model call like any other, and the run counts it. */
 export const SCRIPTED_SUMMARY_USAGE: ScriptedUsage = { inputTokens: 900, outputTokens: 30 };
 
-/** A summary call: exactly one human message, opening with the summary prompt. */
+/**
+ * A summary call: exactly one human message, opening with the runner's
+ * checkpoint prompt. `scripted-model.test.ts` provokes a real compaction
+ * through the runner's middleware, so a summary call that stops reaching the
+ * double fails there.
+ */
 export function isSummaryRequest(messages: readonly BaseMessage[]): boolean {
   if (messages.length !== 1 || !HumanMessage.isInstance(messages[0])) return false;
   return messages[0].text.startsWith(SUMMARY_PROMPT_OPENING);

@@ -54,8 +54,8 @@
  *
  * The test doubles recognize a summary call by {@link SUMMARY_PROMPT_OPENING}
  * (the kit's `execute-deep-agent/__test-utils__/scripted-model.ts` imports
- * it; `test/support/src/mock-llm.ts`, another package, keeps a copy that the
- * real-clock run proves end to end).
+ * it; `test/support/src/mock-llm.ts`, another package, keeps a copy that its
+ * own test reads back from this file).
  */
 
 /** The prompt's first sentence: the one line the test doubles match a summary call on. */
