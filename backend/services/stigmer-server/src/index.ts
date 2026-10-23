@@ -440,6 +440,11 @@ export type {
   RoutineFireCallerInput,
 } from "./extensions/routine-fire-caller.js";
 export { RoutineFireRefusedError } from "./extensions/routine-fire-caller.js";
+// The lane a message waiting in a session's queue was sent through
+// (drivers.queuedSenderLane): kept as data beside it, and turned back into
+// the caller the turn the queue starts with it is admitted as, so a guest's
+// or a channel sender's turn meets its lane's gates and run profile again.
+export type { QueuedSenderLane } from "./extensions/queued-sender-lane.js";
 // Core's identity for an account the server acts as (a routine's owner, a
 // grading or eval run's), the default fire caller's answer: an edition's
 // fire caller starts from it, so a fire's creator stamps carry the owner's

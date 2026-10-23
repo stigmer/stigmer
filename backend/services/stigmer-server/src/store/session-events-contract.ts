@@ -92,6 +92,7 @@ async function enqueue(
   sender = "person-kit",
   turn = `turn-of-${eventId}`,
   org = "org-kit",
+  lane?: string,
 ): Promise<SessionQueueContext> {
   let seen: SessionQueueContext | undefined;
   await store.writeSessionQueue(sessionId, org, QUEUE_SCOPE, (session) => {
@@ -99,7 +100,7 @@ async function enqueue(
     return {
       enqueue: {
         draft: draft(eventId, "", "user.message"),
-        entry: { sender, turn: new TextEncoder().encode(turn) },
+        entry: { sender, turn: new TextEncoder().encode(turn), ...(lane === undefined ? {} : { lane: new TextEncoder().encode(lane) }) },
       },
     };
   });
@@ -811,14 +812,14 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
     },
   ],
   [
-    "a queued message takes the session's next number, is accepted at no time and waits with its side row, in the order sent",
+    "a queued message takes the session's next number, is accepted at no time and waits with its side row and lane, in the order sent",
     async ({ store }) => {
       const s = `ses_${unique()}`;
       const r = `run_${unique()}`;
       await put(store, run(r, s, RunPhase.RUN_IN_PROGRESS), [draft("m0", r, "user.message")]);
       const handed = await enqueue(store, s, "q1", "person-a", "turn-a");
       assert.deepEqual(handed.working, [r]);
-      await enqueue(store, s, "q2", "person-b", "turn-b");
+      await enqueue(store, s, "q2", "person-b", "turn-b", "org-kit", "guest:link-kit");
       const listed = await store.sessionEvents.list(s, { order: "asc", limit: 10 });
       assert.deepEqual(
         listed.map((x) => [x.seq, x.eventId, x.runId, x.processedAt]),
@@ -831,10 +832,10 @@ const DECLARATIONS: ReadonlyArray<PortContractDeclaration<Store>> = [
       const queued = await store.sessionEvents.queued(s);
       assert.deepEqual(idsOf(queued), ["q1", "q2"]);
       assert.deepEqual(
-        queued.map((x) => [x.sender, new TextDecoder().decode(x.turn), x.record.seq]),
+        queued.map((x) => [x.sender, new TextDecoder().decode(x.turn), x.record.seq, new TextDecoder().decode(x.lane)]),
         [
-          ["person-a", "turn-a", 2],
-          ["person-b", "turn-b", 3],
+          ["person-a", "turn-a", 2, ""],
+          ["person-b", "turn-b", 3, "guest:link-kit"],
         ],
       );
       const after = await store.sessionEvents.append(s, "org-kit", [draft("m1", r)], runGuard(r));

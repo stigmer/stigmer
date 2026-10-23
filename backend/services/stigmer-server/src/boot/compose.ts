@@ -1154,6 +1154,7 @@ export async function composeServer(
     sessionEventBroker,
     creator: () => requireInProcess().queuedTurnCreator,
     callerOf: undoDeciderCaller(personAccounts, () => singleOrganizationCaller),
+    queuedSenderLane: extensions.drivers.queuedSenderLane,
   };
   /* v8 ignore next -- @preserve: called only by a run's workflow end and by sendMessage past admission, both needing an engine */
   const queuedTurns: QueuedTurnStarter = (sessionId) => startQueuedTurn(queuedTurnDeps, sessionId);
@@ -2166,6 +2167,7 @@ export async function composeServer(
       temporalConfig,
       sessionCreator: () => requireInProcess().executionSessionCreator,
       queuedTurns,
+      queuedSenderLane: extensions.drivers.queuedSenderLane,
       runValuePlanner: {
         store,
         logger,

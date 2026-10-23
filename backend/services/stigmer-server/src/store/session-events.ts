@@ -195,11 +195,19 @@ export interface QueuedSessionMessageEntry {
   readonly sender: string;
   /** The turn the message would start, encoded as the domain encodes it. */
   readonly turn: Uint8Array;
+  /**
+   * The lane it was sent through, as the composition kept it
+   * (extensions/queued-sender-lane.ts): empty for a person's, and when
+   * absent from a write.
+   */
+  readonly lane?: Uint8Array;
 }
 
 /** A message waiting in a session's queue: its stored `user.message` and its side row. */
 export interface QueuedSessionMessage extends QueuedSessionMessageEntry {
   readonly record: SessionEventRecord;
+  /** The lane it was sent through; empty for a person's. */
+  readonly lane: Uint8Array;
 }
 
 /** A taken or dropped queued message that no longer waits: another write took or dropped it first. */

@@ -78,6 +78,7 @@ import type { ResourceAuthorizationLifecycle } from "./resource-authorization.js
 import type { ResourceRowReader } from "./resource-row-reader.js";
 import type { GradingCallerMint } from "./grading-caller.js";
 import type { EvalRunCallerMint } from "./eval-run-caller.js";
+import type { QueuedSenderLane } from "./queued-sender-lane.js";
 import type { RoutineFireCaller } from "./routine-fire-caller.js";
 import type { RunLanes } from "./run-lanes.js";
 import type { VisitorClassifier } from "./visitor-classifier.js";
@@ -194,6 +195,14 @@ export interface ExtensionDrivers {
    * acts as themselves.
    */
   readonly routineFireCaller?: RoutineFireCaller;
+  /**
+   * The queued-sender lane (single-instance point): the lane a message
+   * waiting in a session's queue was sent through, kept as data beside it
+   * and turned back into the caller the queue's turn is created as
+   * (queued-sender-lane.ts). Absent, a queued message's turn acts as its
+   * sender's person.
+   */
+  readonly queuedSenderLane?: QueuedSenderLane;
   /**
    * The grading caller mint (single-instance point): the identity an AI
    * judge run acts as when the grading workflow creates it. When composed,
