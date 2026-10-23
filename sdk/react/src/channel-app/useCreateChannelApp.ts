@@ -32,7 +32,7 @@ export interface UseCreateChannelAppReturn {
  * const { create, isCreating, error } = useCreateChannelApp();
  *
  * const app = await create({
- *   name: "Acme Support Bot",
+ *   name: "Acme Books",
  *   org: "acme",
  *   slack: {
  *     clientId: "123456.789012",

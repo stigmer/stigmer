@@ -126,7 +126,7 @@ const updated = await stigmer.agent.update(
 // Rename: change the slug people type. The id stays, so everything that
 // points at the agent keeps working; the old slug reads for 30 days.
 const renamed = await stigmer.agent.rename(
-  create(RenameInputSchema, { resourceId: "agent-id", slug: "support-bot" }),
+  create(RenameInputSchema, { resourceId: "agent-id", slug: "variance-reporter" }),
 );
 
 // Delete
@@ -145,7 +145,7 @@ for await (const a of stigmer.agent.listAll({ org: "my-org" })) {
 }
 
 // Only the agents carrying every label given.
-for await (const a of stigmer.agent.listAll({ org: "my-org", labels: { team: "support" } })) {
+for await (const a of stigmer.agent.listAll({ org: "my-org", labels: { team: "finance" } })) {
   console.log(a.metadata?.slug);
 }
 ```
@@ -158,7 +158,7 @@ import { ApiResourceKind } from "@stigmer/client";
 const results = await stigmer.search.query({
   kinds: [ApiResourceKind.agent, ApiResourceKind.skill],
   org: "my-org",
-  query: "customer support",
+  query: "variance report",
 });
 ```
 
@@ -254,9 +254,9 @@ const stigmer = new Stigmer({
 
 // A per-call executionTarget takes precedence over the app-level default
 const session = await stigmer.session.create({
-  name: "review",
+  name: "q3-variances",
   org: "my-org",
-  agentRef: { org: "my-org", slug: "code-reviewer" },
+  agentRef: { org: "my-org", slug: "variance-reporter" },
   executionTarget: "cloud",
 });
 ```

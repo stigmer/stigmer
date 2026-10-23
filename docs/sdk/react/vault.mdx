@@ -31,7 +31,7 @@ function useCreateVault(): UseCreateVaultReturn
 
 ```tsx
 const { create } = useCreateVault();
-await create({ org: "acme", name: "Support tools" });
+await create({ org: "acme", name: "Ledger keys" });
 ```
 
 
@@ -187,7 +187,7 @@ function useVaultEntries(org: string | null, vaultId: string | null): UseVaultEn
 
 ```tsx
 const entries = useVaultEntries("acme", vault.metadata!.id);
-await entries.setSecrets({ ZENDESK_API_KEY: "..." });
+await entries.setSecrets({ LEDGER_API_KEY: "..." });
 ```
 
 
@@ -475,7 +475,7 @@ What a new shared vault starts with.
   type={{
     description: { type: "string", description: "What the vault is for." },
     externalId: { type: "string", description: "The integrator's own id for it, unique in the organization." },
-    name: { type: "string", description: "Display name, such as \"Support tools\".", required: true },
+    name: { type: "string", description: "Display name, such as \"Ledger keys\".", required: true },
     org: { type: "string", description: "Organization the vault belongs to.", required: true },
   }}
 />

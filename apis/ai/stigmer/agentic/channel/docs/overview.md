@@ -17,13 +17,13 @@ them.
 apiVersion: agentic.stigmer.ai/v1
 kind: Channel
 metadata:
-  name: support-agent-web
+  name: variance-reporter-web
   org: workshop
 spec:
   agent_ref:
     kind: agent
     org: workshop
-    slug: support-agent
+    slug: variance-reporter
   enabled: true
   web:
     audience: channel_audience_public
@@ -34,7 +34,7 @@ spec:
   vaults:
     - kind: vault
       org: workshop
-      slug: support-tools
+      slug: ledger-keys
 ```
 
 A Slack channel installs through the shared Stigmer app unless `app_ref`
@@ -46,13 +46,13 @@ touches them.
 apiVersion: agentic.stigmer.ai/v1
 kind: Channel
 metadata:
-  name: support-agent-slack
+  name: variance-reporter-slack
   org: workshop
 spec:
   agent_ref:
     kind: agent
     org: workshop
-    slug: support-agent
+    slug: variance-reporter
   enabled: true
   slack: {}
 ```
@@ -66,13 +66,13 @@ messages (reminders, notifications) through `sendMessage`:
 apiVersion: agentic.stigmer.ai/v1
 kind: Channel
 metadata:
-  name: support-agent-whatsapp
+  name: variance-reporter-whatsapp
   org: workshop
 spec:
   agent_ref:
     kind: agent
     org: workshop
-    slug: support-agent
+    slug: variance-reporter
   enabled: true
   whatsapp:
     phone_number_id: "106540352242922"

@@ -80,7 +80,7 @@ with StigmerClient("sk_live_abc123") as client:
     # Rename: change the slug people type. The id stays, so everything that
     # points at the agent keeps working; the old slug reads for 30 days.
     renamed = client.agents.rename(
-        apiresource_io_pb2.RenameInput(resource_id="agent-id", slug="support-bot")
+        apiresource_io_pb2.RenameInput(resource_id="agent-id", slug="variance-reporter")
     )
 
     # Delete
@@ -95,8 +95,8 @@ with StigmerClient("sk_live_abc123") as client:
         print(a.metadata.slug)
 
     # Only the agents carrying every label given.
-    support = client.agents.list(
-        agent_io_pb2.ListAgentsRequest(org="my-org", labels={"team": "support"})
+    finance = client.agents.list(
+        agent_io_pb2.ListAgentsRequest(org="my-org", labels={"team": "finance"})
     )
 ```
 
@@ -109,7 +109,7 @@ with StigmerClient("sk_live_abc123") as client:
     results = client.search.query(SearchParams(
         kinds=[ApiResourceKind.agent, ApiResourceKind.skill],
         org="my-org",
-        query="customer support",
+        query="variance report",
     ))
 ```
 

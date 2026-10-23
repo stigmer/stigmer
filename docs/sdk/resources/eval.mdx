@@ -36,8 +36,8 @@ the run went wrong. The shape below is what `get` returns.
 apiVersion: agentic.stigmer.ai/v1
 kind: Eval
 metadata:
-  name: support-agent-evals
-  slug: support-agent-evals
+  name: variance-reporter-evals
+  slug: variance-reporter-evals
   org: acme
   version:
     id: 3f1c0e9a7b2d4c6e8f0a1b3c5d7e9f1a2b4c6d8e0f1a3b5c7d9e1f2a4b6c8d0e
@@ -47,14 +47,14 @@ spec:
 status:
   digest: 3f1c0e9a7b2d4c6e8f0a1b3c5d7e9f1a2b4c6d8e0f1a3b5c7d9e1f2a4b6c8d0e
   case_count: 2
-  case_tags: [refunds]
+  case_tags: [variances]
   cases:
-    - case_name: refund-within-policy
-      path: refund-within-policy
-      case_tags: [refunds]
-    - case_name: escalates-angry-customer
-      path: escalates-angry-customer
-  mock_servers: [billing]
+    - case_name: over-budget-account
+      path: over-budget-account
+      case_tags: [variances]
+    - case_name: unmapped-ledger-line
+      path: unmapped-ledger-line
+  mock_servers: [ledger]
 ```
 
 ## Client Access

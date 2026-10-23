@@ -41,7 +41,7 @@ export function registerRunTools(server: McpServer, target: BackendTarget): stri
           ),
         agent: z
           .string()
-          .describe("Agent slug — the unique identifier within the org (e.g. code-reviewer)."),
+          .describe("Agent slug — the unique identifier within the org (e.g. variance-reporter)."),
         message: z.string().describe("The instruction or message for the agent to act on."),
         session_id: z
           .string()

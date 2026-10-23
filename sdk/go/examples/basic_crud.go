@@ -27,16 +27,16 @@ func BasicCRUD() {
 
 	// Create an agent
 	agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
-		Name:         "code-reviewer",
+		Name:         "variance-reporter",
 		Org:          "acme",
-		Instructions: "You are a senior code reviewer. Analyze code for bugs and style issues.",
-		// The installed github plugin, whole: its skills, agents, hooks and
+		Instructions: "You review a customer's quarterly ledger and report how each account did against its budget.",
+		// The installed ledger plugin, whole: its skills, agents, hooks and
 		// MCP servers.
-		Plugins: []stigmer.ResourceRef{{Org: "acme", Slug: "github"}},
-		// Claude Code's tool-list names: this reviewer reads code and posts a
-		// review, and never runs shell commands. A plugin's server is named
-		// plugin_<plugin>_<server>.
-		Tools:           []string{"Read", "Grep", "Glob", "mcp__plugin_github_github__get_file_contents", "mcp__plugin_github_github__create_pull_request_review"},
+		Plugins: []stigmer.ResourceRef{{Org: "acme", Slug: "ledger"}},
+		// Claude Code's tool-list names: this agent reads the ledger and
+		// proposes adjustments, and never runs shell commands. A plugin's
+		// server is named plugin_<plugin>_<server>.
+		Tools:           []string{"Read", "Grep", "Glob", "mcp__plugin_ledger_ledger__get_ledger", "mcp__plugin_ledger_ledger__post_adjustment"},
 		DisallowedTools: []string{"Bash"},
 	})
 	if err != nil {
@@ -53,7 +53,7 @@ func BasicCRUD() {
 	// Get by reference (org + slug)
 	agent, err = client.Agent.GetByReference(ctx, stigmer.ResourceRef{
 		Org:  "acme",
-		Slug: "code-reviewer",
+		Slug: "variance-reporter",
 	})
 	if err != nil && !stigmer.IsNotFound(err) {
 		log.Fatal(err)

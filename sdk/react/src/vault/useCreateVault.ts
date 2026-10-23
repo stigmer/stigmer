@@ -14,7 +14,7 @@ import { toError } from "../internal/toError.js";
 export interface CreateVaultInput {
   /** Organization the vault belongs to. */
   readonly org: string;
-  /** Display name, such as "Support tools". */
+  /** Display name, such as "Ledger keys". */
   readonly name: string;
   /** What the vault is for. */
   readonly description?: string;
@@ -41,7 +41,7 @@ export interface UseCreateVaultReturn {
  * @example
  * ```tsx
  * const { create } = useCreateVault();
- * await create({ org: "acme", name: "Support tools" });
+ * await create({ org: "acme", name: "Ledger keys" });
  * ```
  */
 export function useCreateVault(): UseCreateVaultReturn {
