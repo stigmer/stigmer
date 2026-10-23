@@ -223,7 +223,7 @@ export interface AgentDetailViewProps {
  * @example
  * ```tsx
  * // Minimal — self-contained, fetches its own data
- * <AgentDetailView org="acme" slug="pr-review-agent" />
+ * <AgentDetailView org="acme" slug="variance-reporter" />
  * ```
  *
  * @example

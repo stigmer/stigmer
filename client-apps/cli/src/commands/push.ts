@@ -357,7 +357,7 @@ export function evalPushFlags(
   const slug = options.name?.trim() ?? "";
   if (slug === "") {
     throw new UsageError(
-      "push eval needs --name <slug>: the eval's name in the organization, such as support-agent-evals\n\n" +
+      "push eval needs --name <slug>: the eval's name in the organization, such as variance-reporter-evals\n\n" +
         "Claude Code's evals/ folder names nothing, so every push says which eval it adds a version to.",
     );
   }

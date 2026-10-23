@@ -227,7 +227,7 @@ function AgentMcpServerForm({
           id={`${baseId}-name`}
           value={name}
           onChange={(event) => setName(event.target.value)}
-          placeholder="zendesk"
+          placeholder="ledger"
           autoComplete="off"
           spellCheck={false}
           disabled={isSaving}
@@ -247,7 +247,7 @@ function AgentMcpServerForm({
           type="url"
           value={url}
           onChange={(event) => setUrl(event.target.value)}
-          placeholder="https://acme-co.zendesk.com/mcp"
+          placeholder="https://ledger.acme-books.example/mcp"
           autoComplete="off"
           spellCheck={false}
           disabled={isSaving}

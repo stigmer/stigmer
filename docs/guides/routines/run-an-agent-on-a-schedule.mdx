@@ -9,8 +9,8 @@ description:
 A routine runs your Agent on a schedule: every weekday at nine, every hour, the
 first of each month. Each run starts a new conversation from the routine's
 message and acts as you, the person who created it. This guide makes a routine
-that sends fee reminders every morning, tests it before it goes live, and shows
-how to read its history, turn it off and resume it after a failure.
+that reports the ledger's variances every morning, tests it before it goes live,
+and shows how to read its history, turn it off and resume it after a failure.
 [Routines](/docs/concepts/routines) explains what a routine is and who may start
 it.
 
@@ -19,10 +19,11 @@ You need an Agent you can edit in the Organization the routine will live in.
 ## Create a routine in the console
 
 1. Open **Library → Routines** in the web console and click **New routine**.
-2. Give it a **Name**, such as `daily-fee-reminders`, and choose its Agent.
+2. Give it a **Name**, such as `daily-variance-report`, and choose its Agent.
 3. Write the **Message** every run starts from. No one is there to answer
    questions when it runs, so say exactly what to do and what done looks like:
-   "Send fee reminders to members whose dues fall in the next 3 days."
+   "Report yesterday's ledger variances against budget, and save the report as
+   variances.csv."
 4. Choose when it runs, such as every day at 09:00, and its **Time zone**. The
    form reads the schedule back in words, and the routine's page shows it as a
    cron expression too (`0 9 * * *`).
@@ -41,8 +42,8 @@ The same routine as a file, applied with `stigmer apply -f routine.yaml`:
 apiVersion: agentic.stigmer.ai/v1
 kind: Routine
 metadata:
-  name: daily-fee-reminders
-  org: workshop
+  name: daily-variance-report
+  org: acme
 spec:
   cron: "0 9 * * *"
   time_zone: Asia/Kolkata
@@ -50,9 +51,11 @@ spec:
   agent:
     agent_ref:
       kind: agent
-      org: workshop
-      slug: support-agent
-    message: Send fee reminders to members whose dues fall in the next 3 days.
+      org: acme
+      slug: variance-reporter
+    message: >-
+      Report yesterday's ledger variances against budget, and save the report as
+      variances.csv.
 ```
 
 `cron` takes the classic 5-field form or a shorthand such as `@daily`, and
@@ -68,7 +71,7 @@ when someone starts it. `enabled` is off unless the file says `true`.
 3. Click **Enable & run**.
 
 The routine is now on, and its first run is a conversation you can open from its
-history. From the CLI, `stigmer routine fire daily-fee-reminders` starts a run
+history. From the CLI, `stigmer routine fire daily-variance-report` starts a run
 of a routine that is already on.
 
 ## Read its history
@@ -82,7 +85,7 @@ nor an email ([#2404](https://github.com/stigmer/stigmer/issues/2404)).
 The same list from the CLI:
 
 ```bash
-stigmer routine fires daily-fee-reminders
+stigmer routine fires daily-variance-report
 ```
 
 ## Turn it off, and resume it
@@ -97,7 +100,7 @@ on the routine's page. Fix the cause, test with **Run now** (a paused routine
 can still be started by hand), then choose **Resume routine**, or run:
 
 ```bash
-stigmer routine resume daily-fee-reminders
+stigmer routine resume daily-variance-report
 ```
 
 ## When others edit the Agent

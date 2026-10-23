@@ -193,7 +193,7 @@ export function CreateChannelAppForm({
           label="Name"
           value={name}
           onChange={setName}
-          placeholder={provider === "slack" ? "e.g. Acme Support Bot" : "e.g. Acme WhatsApp"}
+          placeholder={provider === "slack" ? "e.g. Acme Books" : "e.g. Acme WhatsApp"}
           hint={
             provider === "slack"
               ? "The bot name your workspace will @mention"

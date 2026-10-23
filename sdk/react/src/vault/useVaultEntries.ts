@@ -48,7 +48,7 @@ export interface UseVaultEntriesReturn {
  * @example
  * ```tsx
  * const entries = useVaultEntries("acme", vault.metadata!.id);
- * await entries.setSecrets({ ZENDESK_API_KEY: "..." });
+ * await entries.setSecrets({ LEDGER_API_KEY: "..." });
  * ```
  */
 export function useVaultEntries(

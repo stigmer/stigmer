@@ -166,7 +166,7 @@ Pin to a content hash when:
 skill_refs:
   - org: acme-corp
     kind: skill
-    slug: code-review-standards
+    slug: chart-of-accounts
     version: "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456"
 ```
 

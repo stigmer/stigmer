@@ -98,7 +98,7 @@ try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
     Agent agent = client.agent.create(AgentInput.builder()
         .name("my-agent")
         .org("my-org")
-        .description("Handles customer inquiries")
+        .description("Turns a customer's ledger into a variance report")
         .instructions("Be helpful and concise.")
         .build());
 
@@ -123,7 +123,7 @@ try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
     // points at the agent keeps working; the old slug reads for 30 days.
     Agent renamed = client.agent.rename(RenameInput.newBuilder()
         .setResourceId(agent.getMetadata().getId())
-        .setSlug("support-bot")
+        .setSlug("variance-reporter")
         .build());
 
     // Delete
@@ -142,9 +142,9 @@ try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
     }
 
     // Only the agents carrying every label given.
-    AgentList support = client.agent.list(ListAgentsRequest.newBuilder()
+    AgentList finance = client.agent.list(ListAgentsRequest.newBuilder()
         .setOrg("my-org")
-        .putLabels("team", "support")
+        .putLabels("team", "finance")
         .build());
 }
 ```
@@ -161,7 +161,7 @@ try (StigmerClient client = StigmerClient.builder("sk_live_abc123").build()) {
         SearchClient.SearchParams.builder()
             .org("my-org")
             .kinds(List.of(ApiResourceKind.agent, ApiResourceKind.skill))
-            .query("customer support")
+            .query("variance report")
             .build());
 }
 ```

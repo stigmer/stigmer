@@ -10,7 +10,7 @@
  * that names no variable, and a header named once in any letter case.
  *
  * How a header's value reads on the page is decided here too: a value that
- * only names keys (`${ZENDESK_KEY}`, or `Bearer ${TOKEN}`) is shown, since
+ * only names keys (`${LEDGER_API_KEY}`, or `Bearer ${TOKEN}`) is shown, since
  * it carries no secret; any other value reads "set". The value is in the
  * agent's spec for anyone who reads the agent, so this is courtesy, not
  * protection: the page need not print a token someone pasted.

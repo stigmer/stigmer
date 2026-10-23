@@ -171,7 +171,7 @@ const stigmer = new Stigmer({
 });
 
 const session = await stigmer.session.create({
-  agentRef: { slug: "support-agent" },
+  agentRef: { slug: "variance-reporter" },
 });
 ```
 
@@ -187,7 +187,7 @@ if err != nil {
 }
 
 session, err := client.Session.Create(ctx, &stigmer.SessionInput{
-  AgentRef: &stigmer.ResourceRef{Slug: "support-agent"},
+  AgentRef: &stigmer.ResourceRef{Slug: "variance-reporter"},
 })
 ```
 
@@ -200,7 +200,7 @@ from stigmer import Stigmer
 client = Stigmer(access_token=user_jwt)
 
 session = client.sessions.create(SessionInput(
-    agent_ref=ResourceRef(slug="support-agent"),
+    agent_ref=ResourceRef(slug="variance-reporter"),
 ))
 ```
 
@@ -213,7 +213,7 @@ StigmerClient client = StigmerClient.builder()
     .build();
 
 Session session = client.sessions().create(SessionInput.builder()
-    .agentRef(ResourceRef.builder().slug("support-agent").build())
+    .agentRef(ResourceRef.builder().slug("variance-reporter").build())
     .build());
 ```
 

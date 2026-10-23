@@ -142,7 +142,7 @@ export interface UseCreateSessionReturn {
  * const { create } = useCreateSession();
  * await create({
  *   org: "acme",
- *   agentRef: { org: "acme", slug: "code-reviewer" },
+ *   agentRef: { org: "acme", slug: "variance-reporter" },
  * });
  * ```
  */

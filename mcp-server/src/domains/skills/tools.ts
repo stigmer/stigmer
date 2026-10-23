@@ -64,7 +64,7 @@ export function registerSkillTools(server: McpServer, target: BackendTarget): st
         slug: z
           .string()
           .describe(
-            "Skill slug — the unique identifier within the org (e.g. code-review-best-practices). Deletes the skill and all its versions.",
+            "Skill slug — the unique identifier within the org (e.g. variance-report). Deletes the skill and all its versions.",
           ),
       },
     },

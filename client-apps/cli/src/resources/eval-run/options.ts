@@ -167,7 +167,7 @@ export function parseEvalTarget(raw: string): EvalTarget {
   const ref = at < 0 ? trimmed : trimmed.slice(0, at);
   const version = at < 0 ? "" : trimmed.slice(at + 1);
   if (ref === "" || ref.length > MAX_REFERENCE) {
-    throw invalid("--eval names an Eval of the agent's organization, as in --eval support-agent-evals");
+    throw invalid("--eval names an Eval of the agent's organization, as in --eval variance-reporter-evals");
   }
   if (at >= 0 && (version === "" || version.length > MAX_NAME || /\s/.test(version))) {
     throw invalid(
@@ -223,14 +223,14 @@ function subjectOf(flags: EvalRunFlags): EvalRunSubjectTarget {
   if (flags.agent === undefined) {
     if (flags.plugin === undefined) {
       throw invalid(
-        "name what to evaluate: --agent <agent>, --plugin <plugin>, or both, as in `stigmer eval run --agent support-agent --plugin refund-policy`",
+        "name what to evaluate: --agent <agent>, --plugin <plugin>, or both, as in `stigmer eval run --agent variance-reporter --plugin payroll`",
       );
     }
     if (casesFrom.length > 0) {
       throw invalid("--cases-from chooses whose cases run on an agent: --plugin alone runs that plugin's own cases");
     }
     if (evalFlags.length > 0) {
-      throw invalid("--eval runs an Eval's cases on an agent: name one with --agent, as in `stigmer eval run --agent support-agent --eval support-agent-evals`");
+      throw invalid("--eval runs an Eval's cases on an agent: name one with --agent, as in `stigmer eval run --agent variance-reporter --eval variance-reporter-evals`");
     }
     return { kind: "plugin", plugin: parsePluginTarget(flags.plugin) };
   }

@@ -20,12 +20,13 @@ ways:
   script starts it with one HTTP request, and can pass a note describing what
   happened.
 
-Two examples show the range. A workshop's support Agent sends fee reminders
-every morning: a routine with a schedule and a message, "Send fee reminders to
-members whose dues fall in the next 3 days", that nobody touches after it is
-made. An engineering team's triage Agent has no schedule at all: their alerting
-tool starts it whenever an alert fires, and passes the alert's text as the note,
-so the Agent investigates that alert.
+Two examples show the range. An accounting product's `variance-reporter` Agent
+reports the ledger's variances every morning: a routine with a schedule and a
+message, "Report yesterday's ledger variances against budget, and save the
+report as variances.csv", that nobody touches after it is made. An engineering
+team's triage Agent has no schedule at all: their alerting tool starts it
+whenever an alert fires, and passes the alert's text as the note, so the Agent
+investigates that alert.
 
 If you want to make one now,
 [Run an Agent on a schedule](/docs/guides/routines/run-an-agent-on-a-schedule)
@@ -61,7 +62,7 @@ other conversation.
 ## A note from whoever starts it
 
 A start by hand or from another system can carry a note of up to 65,536
-characters: an alert body, a failing log, a customer's ticket. The Agent
+characters: an alert body, a failing log, a customer's request. The Agent
 receives it after the routine's message, inside a block marked as information
 from whoever started the run, not instructions. So the routine's own message
 decides what the Agent does with it, as in "Investigate the alert in the note".

@@ -84,7 +84,7 @@ export function CreateVaultForm({
             setName(e.target.value);
             clearError();
           }}
-          placeholder="Support tools"
+          placeholder="Ledger keys"
           disabled={isCreating}
           className={INPUT_CLASS}
           autoFocus
@@ -98,7 +98,7 @@ export function CreateVaultForm({
           id={`${baseId}-description`}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="The support team's Zendesk key"
+          placeholder="The finance team's ledger key"
           disabled={isCreating}
           className={INPUT_CLASS}
         />

@@ -25,7 +25,7 @@ import { DependencyTreeNode } from "./DependencyTreeNode.js";
  * @example
  * ```tsx
  * const { tree } = useDependencyGraph({
- *   agentName: "pr-review-agent",
+ *   agentName: "variance-reporter",
  *   agentOrg: "acme",
  *   spec: agent.spec,
  * });

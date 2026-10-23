@@ -81,7 +81,7 @@ public interface ApiResourceReferenceOrBuilder extends
    * <pre>
    * Resource slug (user-friendly identifier, unique within org).
    * Format: lowercase alphanumeric with hyphens, must start with a letter
-   * and end with a letter or digit (e.g., "web-search", "code-reviewer").
+   * and end with a letter or digit (e.g., "web-search", "variance-reporter").
    * Length: 2-63 characters.
    *
    * Written to name the resource; never stored; returned filled with the
@@ -96,7 +96,7 @@ public interface ApiResourceReferenceOrBuilder extends
    * <pre>
    * Resource slug (user-friendly identifier, unique within org).
    * Format: lowercase alphanumeric with hyphens, must start with a letter
-   * and end with a letter or digit (e.g., "web-search", "code-reviewer").
+   * and end with a letter or digit (e.g., "web-search", "variance-reporter").
    * Length: 2-63 characters.
    *
    * Written to name the resource; never stored; returned filled with the

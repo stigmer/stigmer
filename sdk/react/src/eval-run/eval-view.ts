@@ -353,7 +353,7 @@ export function comparedPluginOf(evalRun: EvalRun): EvalRunPlugin | undefined {
  * started (its id when it carries no start): on a plugin, by the plugin's
  * name, as "thermos · started 10/10/2026, 5:40:12 AM"; on an agent, by the
  * version it ran and the plugin it compared, as "Version 1a2b3c4d with and
- * without refund-policy · started …". `formatTime` defaults to the
+ * without payroll · started …". `formatTime` defaults to the
  * reader's locale.
  */
 export function evalRunLabelOf(

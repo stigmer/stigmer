@@ -31,7 +31,9 @@
  *
  * The observed mutations are `write` (create, or since deepagents 1.12 a
  * whole-file overwrite — `recordBefore` reads the existing bytes either way)
- * and `edit` (modify), so this observes CREATE and MODIFY. deepagents 1.13
+ * and `edit` (modify), so this observes CREATE and MODIFY. An `edit` records
+ * first, then runs the loose-edit path (`loose-edit.ts`), so an edit the model
+ * quoted loosely lands as an ordinary edit with its before-bytes captured. deepagents 1.13
  * added a recursive backend `delete` and a `delete` tool over it; the native
  * harness does not expose that tool (`deepagents-profiles.ts`), and these
  * backends refuse a backend delete outright, so a graph whose model no profile
@@ -61,6 +63,7 @@ import { FilesystemBackend, LocalShellBackend } from "deepagents";
 import type { DeleteResult, ExecuteResponse, LocalShellBackendOptions } from "deepagents";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
 import { endingOf, formatCommandOutput, runCommand, type CommandResult, type RunCommandOptions } from "../../shared/shell/run-command.js";
+import { editLoosely } from "./loose-edit.js";
 
 /** deepagents' default shell timeout, in seconds: the bound of a command the model did not raise. */
 export const DEFAULT_SHELL_TIMEOUT_SECONDS = 120;
@@ -99,7 +102,9 @@ export class CasCaptureFilesystemBackend extends FilesystemBackend {
     replaceAll?: boolean,
   ) {
     await this.observer.recordBefore(filePath);
-    return super.edit(filePath, oldString, newString, replaceAll);
+    return editLoosely(this, filePath, oldString, newString, replaceAll, (exactOld, exactNew) =>
+      super.edit(filePath, exactOld, exactNew, replaceAll),
+    );
   }
 
   override async delete(filePath: string): Promise<DeleteResult> {
@@ -173,7 +178,9 @@ export class CasCaptureShellBackend extends LocalShellBackend {
     replaceAll?: boolean,
   ) {
     await this.observer.recordBefore(filePath);
-    return super.edit(filePath, oldString, newString, replaceAll);
+    return editLoosely(this, filePath, oldString, newString, replaceAll, (exactOld, exactNew) =>
+      super.edit(filePath, exactOld, exactNew, replaceAll),
+    );
   }
 
   override async delete(filePath: string): Promise<DeleteResult> {

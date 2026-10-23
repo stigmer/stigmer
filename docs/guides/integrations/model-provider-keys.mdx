@@ -99,9 +99,9 @@ is `openai:llama-3.3-70b` runs on it:
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: support-triage
+  name: variance-reporter
 spec:
-  instructions: Sort incoming tickets by urgency.
+  instructions: Report each account's variance against budget.
   harness: HARNESS_NATIVE
   run_config:
     model_name: openai:llama-3.3-70b

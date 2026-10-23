@@ -56,7 +56,7 @@ type ChannelCommandControllerClient interface {
 	// providers bill the organization for them.
 	//
 	// A channel created without a name takes the slug `<agent slug>-<type>`
-	// (for example `support-agent-web`) and the name `<agent name> (<Type>)`.
+	// (for example `variance-reporter-web`) and the name `<agent name> (<Type>)`.
 	//
 	// A slug another channel of the organization holds is refused with
 	// ALREADY_EXISTS. A slug another channel was renamed away from, which
@@ -283,7 +283,7 @@ type ChannelCommandControllerServer interface {
 	// providers bill the organization for them.
 	//
 	// A channel created without a name takes the slug `<agent slug>-<type>`
-	// (for example `support-agent-web`) and the name `<agent name> (<Type>)`.
+	// (for example `variance-reporter-web`) and the name `<agent name> (<Type>)`.
 	//
 	// A slug another channel of the organization holds is refused with
 	// ALREADY_EXISTS. A slug another channel was renamed away from, which

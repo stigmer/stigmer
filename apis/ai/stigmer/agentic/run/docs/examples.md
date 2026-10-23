@@ -59,7 +59,7 @@ Ask for a specific model for this message. It replaces the agent's default model
 **CLI:**
 
 ```bash
-stigmer run my-agent -m "Analyze this code" --model claude-sonnet-4.5
+stigmer run my-agent -m "Analyze this ledger" --model claude-sonnet-4.5
 ```
 
 **YAML:**
@@ -71,7 +71,7 @@ spec:
       kind: agent
       org: acme
       slug: my-agent
-  message: "Analyze this code"
+  message: "Analyze this ledger"
   run_config:
     model_name: "claude-sonnet-4.5"
 ```
@@ -81,7 +81,7 @@ spec:
 ```yaml
 spec:
   session_id: ses_abc123
-  message: "Quick question: which file defines the retry policy?"
+  message: "Quick question: which account holds the Q3 rent accrual?"
   run_config:
     thinking_mode: THINKING_MODE_DISABLED
 ```
@@ -146,7 +146,7 @@ spec:
 The CLI uploads each file under the folder (hidden entries and links skipped, at most 500) into the conversation and lists each in its resources at its relative path.
 
 ```bash
-stigmer run code-reviewer -m "Review this project for security vulnerabilities" --attach ./src/
+stigmer run variance-reporter -m "Report Q3's variances" --attach ./ledger/
 ```
 
 ```yaml
@@ -159,14 +159,14 @@ spec:
     resources:
       - file:
           file_id: file_01j9zq6v8w3x4y5z6a7b8c9d0e
-          mount_path: src/main.go
+          mount_path: ledger/q3-ledger.csv
       - file:
           file_id: file_01j9zq7a1b2c3d4e5f6g7h8j9k
-          mount_path: src/handlers/auth.go
-  message: "Review this project for security vulnerabilities"
+          mount_path: ledger/budgets/q3-budget.csv
+  message: "Report Q3's variances"
 ```
 
-The agent finds the files under `.stigmer/uploads/src/`.
+The agent finds the files under `.stigmer/uploads/ledger/`.
 
 ---
 
@@ -185,8 +185,8 @@ spec:
     vaults:
       - kind: vault
         org: acme
-        slug: support-tools
-  message: "Query the production database and summarize recent errors"
+        slug: ledger-keys
+  message: "Report Q3's variances from the ledger"
 ```
 
 For integrations where each customer brings their own credentials, keep a vault per customer (`external_id`) and name it on that customer's conversations.
@@ -229,7 +229,7 @@ spec:
       kind: agent
       org: acme
       slug: my-agent
-  message: "Analyze all PRs from the past 6 months and identify patterns"
+  message: "Analyze every ledger entry from the past 6 months and identify patterns"
   run_config:
     max_cost_usd: 0.50
     max_tool_result_chars: 20000

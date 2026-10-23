@@ -19,7 +19,7 @@ func CrossResourceSearch() {
 
 	result, err := client.Search.Query(ctx, &stigmer.SearchParams{
 		Kinds: []stigmer.ResourceKind{stigmer.KindAgent, stigmer.KindSkill},
-		Query: "code review",
+		Query: "variance report",
 		Org:   "acme",
 	})
 	if err != nil {
@@ -36,7 +36,7 @@ func CrossResourceSearch() {
 	// Every result, page after page: QueryAll follows the page tokens.
 	for entry, err := range client.Search.QueryAll(ctx, &stigmer.SearchParams{
 		Kinds: []stigmer.ResourceKind{stigmer.KindAgent},
-		Query: "code review",
+		Query: "variance report",
 		Org:   "acme",
 	}) {
 		if err != nil {

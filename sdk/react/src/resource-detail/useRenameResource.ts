@@ -62,7 +62,7 @@ export interface UseRenameResourceReturn {
  * ```tsx
  * const { rename, isRenaming, error } = useRenameResource("agent");
  *
- * const renamed = await rename(agent.metadata.id, "support-bot");
+ * const renamed = await rename(agent.metadata.id, "variance-reporter");
  * canonicalSlug(renamed.metadata?.slug ?? "");
  * ```
  */

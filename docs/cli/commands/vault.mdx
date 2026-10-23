@@ -48,9 +48,9 @@ stigmer vault set-connection github.com --mine --from-file ~/.github-token
 # See what your vault holds (names only)
 stigmer vault mine
 
-# Create a shared vault for the support team and add its key
-stigmer vault create "Support tools"
-stigmer vault set-secret ZENDESK_API_KEY --vault support-tools
+# Create a shared vault for the finance team and add its key
+stigmer vault create "Ledger keys"
+stigmer vault set-secret LEDGER_API_KEY --vault ledger-keys
 
 # Remove a key from a script, without the question
 stigmer vault remove-secret LINEAR_API_KEY --mine --force

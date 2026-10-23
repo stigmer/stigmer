@@ -19,28 +19,28 @@ like its own.
 apiVersion: agentic.stigmer.ai/v1
 kind: Session
 metadata:
-  name: refactor-auth-module
+  name: q3-variance-report
   org: acme
 spec:
   agent_ref:
     kind: agent
     org: acme
-    slug: code-reviewer
-  subject: "Refactor the auth module"
+    slug: variance-reporter
+  subject: "Q3 variance report"
   resources:
-    - name: backend
+    - name: budgets
       git_repository:
-        url: https://github.com/acme/backend.git
+        url: https://github.com/acme/budgets.git
         branch: main
     - file:
         file_id: file_01j9x7k2m4q8r3t5v6w7y8z9a0
         mount_path: q3-ledger.xlsx
   plugins:
     - kind: plugin
-      slug: github
+      slug: ledger
   skill_refs:
     - kind: skill
-      slug: go-best-practices
+      slug: variance-report
 ```
 
 ## Client Access
