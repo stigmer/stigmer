@@ -271,6 +271,7 @@ describe("a queued message moved to the log's head", () => {
   it("is found where the follower first saw it, under an id the log lists at another seq", () => {
     expect(movedSeqsOf([[19, "a"], [20, "msg"], [21, "b"], [30, "msg"]], [[19, "a"], [21, "b"], [30, "msg"]])).toEqual([20]);
     expect(movedSeqsOf([[1, ""], [2, "gone"]], [[1, "x"]]), "an id the log lacks, or none, moved nowhere").toEqual([]);
+    expect(movedSeqsOf([[7, "m2"], [5, "m1"], [9, "m1"], [10, "m2"]], [[9, "m1"], [10, "m2"]]), "two messages, in seq order").toEqual([5, 7]);
   });
 
   it("is no gap in the log and no extra for the follower, and the summary says where it moved from", () => {

@@ -353,8 +353,11 @@ export const SCHEMA_VERSION_42 = 42;
 /** v43: an organization's events of one type, by when they were accepted: what needs a person's attention. */
 export const SCHEMA_VERSION_43 = 43;
 
+/** v44: the lane a queued message was sent through (extensions/queued-sender-lane.ts). */
+export const SCHEMA_VERSION_44 = 44;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_43;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_44;
 
 /**
  * Advisory lock key for the migration chain. Arbitrary but stable 64-bit
@@ -438,6 +441,7 @@ export async function runMigrations(
       [SCHEMA_VERSION_41, migrateToV41],
       [SCHEMA_VERSION_42, migrateToV42],
       [SCHEMA_VERSION_43, migrateToV43],
+      [SCHEMA_VERSION_44, migrateToV44],
     ];
 
     for (const [version, migrate] of chain) {
@@ -3050,4 +3054,15 @@ async function migrateToV42(client: PoolClient): Promise<void> {
  */
 async function migrateToV43(client: PoolClient): Promise<void> {
   await client.query(`CREATE INDEX idx_session_events_org_type ON session_events (org, type, processed_at, event_id);`);
+}
+
+/**
+ * v44: a queued message keeps the lane it was sent through, so the turn
+ * the queue starts with it is admitted in that lane
+ * (../../extensions/queued-sender-lane.ts); empty for a person's, which
+ * every row written before this step was. The SQLite driver's v48 in this
+ * engine's terms.
+ */
+async function migrateToV44(client: PoolClient): Promise<void> {
+  await client.query(`ALTER TABLE session_queued_messages ADD COLUMN lane BYTEA NOT NULL DEFAULT ''::bytea;`);
 }

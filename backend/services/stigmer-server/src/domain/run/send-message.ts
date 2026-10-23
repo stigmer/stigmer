@@ -56,6 +56,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 
 import type { Logger } from "../../boot/logger.js";
 import type { CallerIdentity } from "../../extensions/identity.js";
+import type { QueuedSenderLane } from "../../extensions/queued-sender-lane.js";
 import { errorReasonOf, failedPreconditionError, internalError } from "../../pipeline/errors.js";
 import { RequestContext } from "../../pipeline/request-context.js";
 import type { Store } from "../../store/interface.js";
@@ -99,6 +100,8 @@ export interface SendMessageDeps {
   readonly chain: TurnChain;
   /** Starts the queue's turn when a message was queued with nothing working (queued-turn.ts). */
   readonly queuedTurns: QueuedTurnStarter;
+  /** Keeps the lane a queued message was sent through (extensions/queued-sender-lane.ts); absent, none. */
+  readonly queuedSenderLane?: QueuedSenderLane;
 }
 
 export async function sendMessage(
@@ -131,6 +134,7 @@ export async function sendMessage(
       org: reqCtx.newState.metadata?.org ?? "",
       sender: identity.identityId,
       turn: queuedTurnOf(turn, reqCtx.newState, runPersonOfRequest(reqCtx)),
+      lane: deps.queuedSenderLane?.encode(identity),
     });
     if ("refused" in outcome) {
       throw heldRefusal(sessionId, outcome.refused);

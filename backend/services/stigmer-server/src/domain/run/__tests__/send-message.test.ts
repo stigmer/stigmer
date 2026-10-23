@@ -283,6 +283,29 @@ describe("sendMessage", () => {
     expect(queuedTurnOf(queued!).status?.credentials?.person ?? "").toBe(runPersonOfCaller(caller) ?? "");
   });
 
+  it("keeps the lane its sender came through with the queued message, and none with no lane to keep", async () => {
+    await working();
+    const encoded: string[] = [];
+    await sendMessage(
+      {
+        ...deps,
+        queuedSenderLane: {
+          encode: (sender) => {
+            encoded.push(sender.identityId);
+            return new TextEncoder().encode(`lane-of-${sender.identityId}`);
+          },
+          decode: async () => undefined,
+        },
+      },
+      message("from a lane"),
+      caller,
+    );
+    await sendMessage(deps, message("as myself"), caller);
+    const queued = await temp.store.sessionEvents.queued("s1");
+    expect(encoded).toEqual([caller.identityId]);
+    expect(queued.map((one) => new TextDecoder().decode(one.lane))).toEqual([`lane-of-${caller.identityId}`, ""]);
+  });
+
   it("refuses the message when the working turn starts waiting between the decision and the enqueue", async () => {
     await working();
     let reads = 0;

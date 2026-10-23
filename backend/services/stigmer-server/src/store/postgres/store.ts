@@ -794,8 +794,15 @@ export class PostgresStore implements Store {
           { queued: true },
         );
         await client.query(
-          `INSERT INTO session_queued_messages (session_id, event_id, org, sender, turn) VALUES ($1, $2, $3, $4, $5)`,
-          [sessionId, outcome.enqueue.draft.eventId, org, outcome.enqueue.entry.sender, Buffer.from(outcome.enqueue.entry.turn)],
+          `INSERT INTO session_queued_messages (session_id, event_id, org, sender, turn, lane) VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            sessionId,
+            outcome.enqueue.draft.eventId,
+            org,
+            outcome.enqueue.entry.sender,
+            Buffer.from(outcome.enqueue.entry.turn),
+            Buffer.from(outcome.enqueue.entry.lane ?? new Uint8Array()),
+          ],
         );
       }
       const dropped =
@@ -3095,17 +3102,18 @@ async function insertSessionEvents(
 async function queuedOf(client: Pool | PoolClient, sessionId: string): Promise<QueuedSessionMessage[]> {
   const result = await client.query(
     `SELECT e.session_id, e.seq, e.event_id, e.run_id, e.thread_id, e.type, e.processed_at, e.data,
-            q.sender, q.turn
+            q.sender, q.turn, q.lane
      FROM session_queued_messages q
      JOIN session_events e ON e.session_id = q.session_id AND e.event_id = q.event_id
      WHERE q.session_id = $1
      ORDER BY e.seq ASC`,
     [sessionId],
   );
-  return (result.rows as Array<SessionEventRow & { sender: string; turn: Uint8Array }>).map((row) => ({
+  return (result.rows as Array<SessionEventRow & { sender: string; turn: Uint8Array; lane: Uint8Array }>).map((row) => ({
     record: sessionEventOf(row),
     sender: row.sender,
     turn: row.turn,
+    lane: new Uint8Array(row.lane),
   }));
 }
 

@@ -346,8 +346,11 @@ export const SCHEMA_VERSION_46 = 46;
 /** v47: an organization's events of one type, by when they were accepted: what needs a person's attention. */
 export const SCHEMA_VERSION_47 = 47;
 
+/** v48: the lane a queued message was sent through (extensions/queued-sender-lane.ts). */
+export const SCHEMA_VERSION_48 = 48;
+
 /** Target version for new databases. */
-export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_47;
+export const CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_48;
 
 /**
  * Applies every pending migration up to `targetVersion` in order — all of
@@ -420,6 +423,7 @@ export function runMigrations(
     [SCHEMA_VERSION_45, migrateToV45],
     [SCHEMA_VERSION_46, migrateToV46],
     [SCHEMA_VERSION_47, migrateToV47],
+    [SCHEMA_VERSION_48, migrateToV48],
   ];
 
   for (const [version, migrate] of chain) {
@@ -2849,4 +2853,15 @@ function migrateToV46(db: DatabaseSync): void {
  */
 function migrateToV47(db: DatabaseSync): void {
   db.exec(`CREATE INDEX idx_session_events_org_type ON session_events (org, type, processed_at, event_id);`);
+}
+
+/**
+ * v48: a queued message keeps the lane it was sent through, so the turn
+ * the queue starts with it is admitted in that lane
+ * (../../extensions/queued-sender-lane.ts); empty for a person's, which
+ * every row written before this step was. The Postgres driver's v44 in
+ * this engine's terms.
+ */
+function migrateToV48(db: DatabaseSync): void {
+  db.exec(`ALTER TABLE session_queued_messages ADD COLUMN lane BLOB NOT NULL DEFAULT x'';`);
 }

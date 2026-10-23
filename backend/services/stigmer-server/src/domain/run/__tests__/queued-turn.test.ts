@@ -8,7 +8,10 @@
  * the messages it takes, created as their sender; a refusal because
  * another write got there first starts nothing and drops nothing; any other
  * refusal drops the messages with the reason as a session.error and starts
- * the messages behind them; a sender nobody stands for drops them too; an
+ * the messages behind them; a sender nobody stands for drops them too; a
+ * message that kept its sender's lane is started as that lane's caller,
+ * a lane nothing turns back into a caller drops it, and messages of two
+ * lanes start two turns; an
  * infrastructure fault is thrown for
  * the workflow's activity to retry; and the observer starts the turn when
  * a turn of the session ends, logging rather than throwing a fault.
@@ -98,8 +101,15 @@ async function working(): Promise<void> {
   );
 }
 
-async function queue(text: string, sender: string, fileIds: string[] = [], name = "run-1", person = ""): Promise<string> {
-  const outcome = await enqueueMessage(deps, { sessionId: "s1", org: "acme", sender, turn: turn(text, fileIds, name, person) });
+async function queue(
+  text: string,
+  sender: string,
+  fileIds: string[] = [],
+  name = "run-1",
+  person = "",
+  lane?: Uint8Array,
+): Promise<string> {
+  const outcome = await enqueueMessage(deps, { sessionId: "s1", org: "acme", sender, turn: turn(text, fileIds, name, person), lane });
   if (!("queued" in outcome) || outcome.queued.event.case !== "userMessage") {
     throw new Error("not queued");
   }
@@ -237,6 +247,45 @@ describe("the queue's turn", () => {
     expect(await startQueuedTurn(deps, "s1")).toBeUndefined();
     expect(created).toEqual([]);
     expect(await temp.store.sessionEvents.queued("s1")).toEqual([]);
+  });
+
+  it("starts a message that kept its sender's lane as that lane's caller, never the sender's person", async () => {
+    const guest = testCallerIdentity({ identityId: "lane-account", callerClass: "guest" });
+    const decoded: Array<[string, string]> = [];
+    deps = {
+      ...deps,
+      queuedSenderLane: {
+        encode: () => new Uint8Array(),
+        decode: async (senderId, lane) => {
+          decoded.push([senderId, new TextDecoder().decode(lane)]);
+          return guest;
+        },
+      },
+    };
+    await working();
+    await queue("from the chat link", "lane-account", [], "run-1", "", new TextEncoder().encode("guest:link-1"));
+    await end();
+    await startQueuedTurn(deps, "s1");
+    expect(decoded).toEqual([["lane-account", "guest:link-1"]]);
+    expect(created.map(({ caller }) => caller)).toEqual([guest]);
+  });
+
+  it("drops a message whose kept lane nothing turns back into a caller", async () => {
+    await working();
+    await queue("from the chat link", "person-a", [], "run-1", "", new TextEncoder().encode("guest:link-1"));
+    await end();
+    await startQueuedTurn(deps, "s1");
+    expect(created).toEqual([]);
+    expect(await temp.store.sessionEvents.queued("s1")).toEqual([]);
+  });
+
+  it("starts messages of two lanes as two turns, the oldest lane's first", async () => {
+    await working();
+    const person = await queue("as myself", "person-a");
+    const guest = await queue("as a guest", "person-a", [], "run-2", "", new TextEncoder().encode("guest:link-1"));
+    await end();
+    expect(nextTurnMessages(await temp.store.sessionEvents.queued("s1")).map((message) => message.record.eventId)).toEqual([person]);
+    expect(guest).not.toBe(person);
   });
 
   it("throws an infrastructure fault for the workflow's activity to retry", async () => {

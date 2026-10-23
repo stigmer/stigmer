@@ -336,6 +336,18 @@ describe("resolveExtensions — merge semantics", () => {
     );
   });
 
+  it("resolves one QueuedSenderLane and throws on a second, naming both units", () => {
+    const lane = { encode: () => new Uint8Array(), decode: () => Promise.resolve(undefined) };
+    expect(resolveExtensions([{ name: "lanes", drivers: { queuedSenderLane: lane } }]).drivers.queuedSenderLane).toBe(lane);
+    expect(resolveExtensions([]).drivers.queuedSenderLane).toBeUndefined();
+    expect(() =>
+      resolveExtensions([
+        { name: "lane-a", drivers: { queuedSenderLane: lane } },
+        { name: "lane-b", drivers: { queuedSenderLane: lane } },
+      ]),
+    ).toThrowError(/extension 'lane-b' registers a QueuedSenderLane, but 'lane-a' already did/);
+  });
+
   it("resolves one GradingCallerMint and throws on a second, naming both units", () => {
     const mint = {
       mintGradingCaller: () =>
