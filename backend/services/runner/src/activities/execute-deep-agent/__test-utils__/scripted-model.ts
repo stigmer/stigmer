@@ -257,8 +257,8 @@ export interface ScriptedModelOptions {
    * window once it has seen the first request.
    */
   readonly contextWindow?: number | (() => number | undefined);
-  /** Called once per summary call the double answers (see the header): the compaction count. */
-  readonly onSummary?: () => void;
+  /** Called once per summary call the double answers (see the header), with what the call asked: the compaction count and its prompts. */
+  readonly onSummary?: (prompt: string) => void;
 }
 
 /**
@@ -327,7 +327,7 @@ export class ScriptedModel extends BaseChatModel {
   /** The turn for this transcript, after the driver hook has run. */
   private async turnFor(messages: BaseMessage[]): Promise<ScriptedTurn> {
     if (isSummaryRequest(messages)) {
-      this.options.onSummary?.();
+      this.options.onSummary?.(messages[0]!.text);
       return { text: SCRIPTED_SUMMARY, usage: SCRIPTED_SUMMARY_USAGE };
     }
     assertProviderTranscript(messages);

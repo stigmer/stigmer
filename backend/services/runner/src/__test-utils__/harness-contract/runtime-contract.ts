@@ -65,6 +65,7 @@ import { TERMINAL_COPY } from "../../harness/terminal-table.js";
 import { approvalAnswersOf } from "../../harness/approval-answers.js";
 import { REJECTED_BY_USER_ERROR } from "../../harness/approval-decisions.js";
 import { MIN_TOOL_ROUNDS, TOOL_CALL_LIMIT_ERROR_PREFIX, TOOL_CALL_LIMIT_USER_COPY, formatToolCallLimitError } from "../../shared/tool-rounds.js";
+import { SUMMARY_UPDATE_CLAUSE } from "../../middleware/compaction-prompt.js";
 import type { FailureSurface, HarnessAdapter } from "../../harness/types.js";
 import type { ExecuteActivityInput } from "../../shared/activity-input.js";
 import { acquireWorkspaceLock } from "../../shared/workspace/workspace-lock.js";
@@ -1437,7 +1438,11 @@ export async function assertOpenOperationStopsAtTheBackstop(harness: RuntimeCont
  * told: each compaction is one `agent.thread_context_compacted` on the root
  * thread, ahead of the closing reply, and the summary itself never reaches
  * the log as the agent's message. Where the runner makes the summary call,
- * the run's usage counts each summary.
+ * the run's usage counts each summary, and the call asks for the runner's
+ * checkpoint (`middleware/compaction-prompt.ts`): the first holds the
+ * person's opening message, and each later one the summary before it with
+ * the instruction to update it, so the goal is carried from summary to
+ * summary.
  */
 export async function assertTurnSurvivesThreeCompactions(harness: RuntimeContractHarness, gap?: string, label = "rt-three-compactions"): Promise<RuntimeArmResult> {
   const { subject } = harness;
@@ -1462,6 +1467,15 @@ export async function assertTurnSurvivesThreeCompactions(harness: RuntimeContrac
       expect(said.filter((t) => t.includes(text)), `${subject.name}: the summary never speaks as the agent`).toEqual([]);
       if (inputTokens !== undefined) {
         expect(finalStatusOf(harness, driver).streamingUsage?.inputTokens, `${subject.name}: the run's usage counts the three summaries`).toBe(BigInt(3 * inputTokens));
+      }
+      const prompts = controls.summaryPrompts?.(driver.sessionId);
+      if (prompts !== undefined) {
+        expect(prompts, `${subject.name}: one summary call per compaction`).toHaveLength(3);
+        expect(prompts[0], `${subject.name}: the first summary is handed the person's opening message`).toContain(RUNTIME_USER_MESSAGE);
+        for (const [i, prompt] of prompts.slice(1).entries()) {
+          expect(prompt, `${subject.name}: summary ${i + 2} is handed the one before it`).toContain(text);
+          expect(prompt, `${subject.name}: summary ${i + 2} is told to update it`).toContain(SUMMARY_UPDATE_CLAUSE);
+        }
       }
     },
   );
