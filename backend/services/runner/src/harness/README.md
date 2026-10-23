@@ -352,8 +352,11 @@ state what a turn that works for hours owes the user: a silent operation and a
 working subagent outlive the stall window, a running command's output reaches
 the session as it prints, a turn completes through three compactions (each
 one `agent.thread_context_compacted` on the root thread, the summary never
-spoken as the agent, and its cost counted where the runner makes the summary
-call; whose summarizer it is, `HarnessCapabilities.contextCompaction`), a
+spoken as the agent, and, where the runner makes the summary call, its cost
+counted and the call asking for the runner's checkpoint
+(`middleware/compaction-prompt.ts`): the first summary is handed the person's
+opening message and each later one the summary before it to update; whose
+summarizer it is, `HarnessCapabilities.contextCompaction`), a
 drained turn lets its running tool finish and yields at the boundary after it
 (`TurnSink.yieldSignal`) with no ending written, a second signal stops it at
 once and it still continues, a drain or a stop while the log lags behind the

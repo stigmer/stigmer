@@ -12,7 +12,14 @@
  *  - the summarizer's profile is the model's window: what was recorded for
  *    it (`shared/model-window.ts`), else its own profile, else nothing, so
  *    deepagents sizes its trigger against it and otherwise takes its own
- *    fallback.
+ *    fallback;
+ *  - the summary call asks for the runner's checkpoint
+ *    (`middleware/compaction-prompt.ts`): it opens with the prompt's opening,
+ *    names every heading, ends with the conversation and the closing line,
+ *    carries the person's opening message word for word, and on a second
+ *    compaction carries the first checkpoint with the update clause;
+ *  - a `$'` or `$$` in the conversation (deepagents pastes it in with a
+ *    string `replace`) leaves the instructions before it whole.
  *
  * The full graph, its stream and the transcript are the contract kit's
  * (`__test-utils__/harness-contract/runtime-contract.ts`, the three
@@ -29,6 +36,7 @@ import type { RunnableConfig } from "@langchain/core/runnables";
 import { FilesystemBackend } from "deepagents";
 
 import { CONTEXT_COMPACTED_EVENT, createCompactionMiddleware, type ContextCompactedPayload } from "../compaction.js";
+import { CHECKPOINT_HEADINGS, SUMMARY_PROMPT, SUMMARY_PROMPT_CLOSING, SUMMARY_PROMPT_OPENING, SUMMARY_UPDATE_CLAUSE } from "../compaction-prompt.js";
 import { recordModelWindow } from "../../shared/model-window.js";
 
 type CompactionMiddleware = ReturnType<typeof createCompactionMiddleware>;
@@ -38,18 +46,26 @@ type Handler = Parameters<WrapModelCall>[1];
 
 const SUMMARY_USAGE = { input_tokens: 500, output_tokens: 20, total_tokens: 520 };
 
-/** The agent's model: answers deepagents' summary prompt, records how each call was tagged. */
+/** What the recording model answers a summary call with: the first checkpoint, as a later summary call reads it. */
+const CHECKPOINT = "## Objective\n- Run every listed step, then write FINISHED.md.";
+
+/** The agent's model: answers a summary call (one human message), records how each call was tagged and what it asked. */
 class RecordingModel {
   readonly calls: Array<{ readonly summary: boolean; readonly tags: readonly string[] }> = [];
+  readonly prompts: string[] = [];
 
   constructor(readonly profile: { maxInputTokens?: number } = {}) {}
 
   async invoke(input: BaseMessage[], options?: Partial<RunnableConfig>): Promise<AIMessage> {
-    const summary = input.length === 1 && HumanMessage.isInstance(input[0]) && input[0].text.startsWith("You are a conversation summarizer.");
+    const summary = input.length === 1 && HumanMessage.isInstance(input[0]);
     this.calls.push({ summary, tags: options?.tags ?? [] });
-    return new AIMessage({ content: summary ? "the conversation, condensed" : "a reply", usage_metadata: SUMMARY_USAGE });
+    if (summary) this.prompts.push(input[0]!.text);
+    return new AIMessage({ content: summary ? CHECKPOINT : "a reply", usage_metadata: SUMMARY_USAGE });
   }
 }
+
+/** The person's opening message: a goal and a closing instruction ahead of a long conversation. */
+const OPENING = "Run the 69 steps in order, then write FINISHED.md naming the first and the last.";
 
 /** A conversation of about 1,500 tokens whose last message is short: past 0.85 of a 1,000-token window, with a tail inside 0.1 of it. */
 function longConversation(): BaseMessage[] {
@@ -135,6 +151,62 @@ describe("createCompactionMiddleware", () => {
     expect(written).toHaveLength(2);
     expect(writtenAtCall, "each summary is said before the call that reads it").toEqual([1, 2]);
     for (const call of handled) expect(call.model).toBe(model);
+  });
+
+  it("asks for the runner's checkpoint: its opening, every heading, then the conversation and the closing line", async () => {
+    const model = new RecordingModel({ maxInputTokens: 1_000 });
+    await middleware().wrapModelCall!(request(model, longConversation()), handler());
+
+    expect(model.prompts).toHaveLength(1);
+    const prompt = model.prompts[0]!;
+    expect(prompt.startsWith(SUMMARY_PROMPT_OPENING), "the opening the test doubles match on").toBe(true);
+    for (const heading of CHECKPOINT_HEADINGS) expect(prompt, heading).toContain(`\n${heading}\n`);
+    expect(prompt).toContain(SUMMARY_UPDATE_CLAUSE);
+    expect(prompt.endsWith(`\n</conversation>\n\n${SUMMARY_PROMPT_CLOSING}`), "the conversation comes last, then one line").toBe(true);
+    expect(prompt.indexOf("<conversation>\nHuman: aaa"), "the conversation is pasted in after every instruction").toBe(prompt.indexOf("<conversation>"));
+  });
+
+  it("hands the first summary the person's opening message word for word", async () => {
+    const model = new RecordingModel({ maxInputTokens: 1_000 });
+    const messages = [new HumanMessage(`${OPENING} ${"a".repeat(3_000)}`), new AIMessage("b".repeat(3_000)), new HumanMessage("and now?")];
+    await middleware().wrapModelCall!(request(model, messages), handler());
+
+    expect(model.prompts[0]).toContain(`\nHuman: ${OPENING} aaa`);
+  });
+
+  it("hands a second compaction the first checkpoint with the instruction to update it", async () => {
+    const model = new RecordingModel({ maxInputTokens: 1_000 });
+    const first = longConversation();
+    const compacted = (await middleware().wrapModelCall!(request(model, first), handler())) as unknown as { update: Record<string, unknown> };
+    const event = compacted.update._summarizationEvent;
+    expect(event, "deepagents recorded the first compaction").toBeDefined();
+
+    const later = [...first, new AIMessage("c".repeat(4_000)), new HumanMessage("keep going")];
+    await middleware().wrapModelCall!({ ...request(model, later), state: { messages: later, _summarizationEvent: event } } as ModelRequest, handler());
+
+    expect(model.prompts).toHaveLength(2);
+    const second = model.prompts[1]!;
+    expect(second.startsWith(SUMMARY_PROMPT_OPENING)).toBe(true);
+    expect(second.slice(second.indexOf("<conversation>")), "the first checkpoint is in the conversation the update reads").toContain(CHECKPOINT);
+    expect(second).toContain(SUMMARY_UPDATE_CLAUSE);
+  });
+
+  it("keeps every instruction whole when the conversation holds `$'` or `$$`, which deepagents' string replace expands", async () => {
+    const model = new RecordingModel({ maxInputTokens: 1_000 });
+    const shell = "$ printf $'a\\tb' && echo $$ && echo \"$'\"";
+    const messages = [new HumanMessage(`${shell} ${"a".repeat(3_000)}`), new AIMessage("b".repeat(3_000)), new HumanMessage("and now?")];
+    await middleware().wrapModelCall!(request(model, messages), handler());
+
+    const prompt = model.prompts[0]!;
+    const instructions = SUMMARY_PROMPT.slice(0, SUMMARY_PROMPT.indexOf("<conversation>"));
+    expect(prompt.startsWith(instructions), "the instruction block is intact, before the conversation").toBe(true);
+    for (const heading of CHECKPOINT_HEADINGS) expect(prompt.split(`\n${heading}\n`), `${heading} appears once`).toHaveLength(2);
+  });
+
+  it("puts the conversation's placeholder once, after every instruction", () => {
+    expect(SUMMARY_PROMPT.split("{conversation}")).toHaveLength(2);
+    expect(SUMMARY_PROMPT.endsWith(`<conversation>\n{conversation}\n</conversation>\n\n${SUMMARY_PROMPT_CLOSING}`)).toBe(true);
+    expect(SUMMARY_PROMPT.startsWith(`${SUMMARY_PROMPT_OPENING}\n\n`)).toBe(true);
   });
 
   it("sizes deepagents' trigger by the model's window: the one recorded for it, else its own profile, else deepagents' fallback", async () => {

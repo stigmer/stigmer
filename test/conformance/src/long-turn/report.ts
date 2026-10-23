@@ -32,12 +32,21 @@
 // off the stream it was, in every long run). A live run also checks its goal:
 // the opening asked for `FINISHED.md` naming the first and the last step and
 // how many ran, which only a model that kept its goal across its compactions
-// can write right ({@link FinishedCheck}).
+// can write right ({@link FinishedCheck}). A right file is not enough: the
+// steps must have run as listed, each once, in order, nothing added, each
+// chained step given the key the step before it printed ({@link StepFidelity},
+// from the marker and key files). And a run proves retention only when it
+// compacted three times with one tool call per step: a call that started more
+// than one step ({@link StepCalls}, from the log's `agent.tool_use` inputs)
+// carried several outputs in one result, which the runner cuts to its
+// 30,000 characters, so the run never held what it was sized to.
+// {@link goalVerdictOf} says `kept`, `lost` or `void` from the three.
 
 import { rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { MOCK_CONVERSATION_SUMMARY } from "@stigmer/test-support/mock-llm";
+import { RETENTION_COMPACTIONS, stepMarkersOf } from "./profile";
 
 /** What the run saw in one minute. */
 export interface MinuteSample {
@@ -144,6 +153,10 @@ export interface LongTurnEnd {
   readonly compactedEvents?: number;
   /** What the live run's `FINISHED.md` said against what the opening asked for; absent on the mock. */
   readonly finished?: FinishedCheck;
+  /** Whether the steps ran as listed; absent on the mock, whose script plays them as listed. */
+  readonly fidelity?: StepFidelity;
+  /** The tool calls that started the listed steps, and any that started more than one. */
+  readonly stepCalls?: StepCalls;
   /** What the streaming follower was sent; absent when none ran. */
   readonly follower?: FollowerCheck;
   /** What became of the person's message; absent on a profile with no `message` step. */
@@ -171,6 +184,100 @@ export function finishedCheckOf(steps: readonly string[], written: string | unde
 /** Whether the model kept its goal: it wrote exactly the three lines asked for. */
 export function goalKept(check: FinishedCheck): boolean {
   return check.found !== undefined && check.found.length === check.expected.length && check.found.every((l, i) => l === check.expected[i]);
+}
+
+/** Whether the steps ran as listed: each once, in order, nothing added, each chained step given the key the step before it printed. */
+export interface StepFidelity {
+  readonly faithful: boolean;
+  /** Start markers written, listed or not. */
+  readonly started: number;
+  /** Each way the run strayed, in words ("bulk-20 ran twice"). */
+  readonly problems: readonly string[];
+}
+
+/** The run's markers and printed keys (`<step id> <key>` lines) against the listed steps. */
+export function stepFidelityOf(steps: readonly string[], markerText: string, keyText: string): StepFidelity {
+  const starts = stepMarkersOf(markerText).filter((m) => m.mark === "start");
+  const listed = new Set(steps);
+  const runs = new Map<string, number>();
+  for (const { id } of starts) runs.set(id, (runs.get(id) ?? 0) + 1);
+  const problems: string[] = [];
+  for (const id of [...runs.keys()].filter((id) => !listed.has(id))) problems.push(`${id} is not in the list`);
+  for (const id of steps) {
+    const n = runs.get(id) ?? 0;
+    if (n === 0) problems.push(`${id} never ran`);
+    else if (n > 1) problems.push(`${id} ran ${n === 2 ? "twice" : `${n} times`}`);
+  }
+  const ranInOrder = [...new Set(starts.map((m) => m.id).filter((id) => listed.has(id)))];
+  const asListed = steps.filter((id) => runs.has(id));
+  const strayed = ranInOrder.findIndex((id, i) => id !== asListed[i]);
+  if (strayed >= 0) problems.push(`${ranInOrder[strayed]} ran before ${asListed[strayed]}`);
+  const printed = new Map<string, Set<string>>();
+  for (const line of keyText.split("\n")) {
+    const [id, key] = line.trim().split(" ");
+    if (id !== undefined && key !== undefined) printed.set(id, (printed.get(id) ?? new Set()).add(key));
+  }
+  steps.forEach((id, i) => {
+    const before = printed.get(steps[i - 1] ?? "");
+    const given = starts.find((m) => m.id === id);
+    if (before === undefined || given === undefined) return;
+    if (given.key === undefined) problems.push(`${id} was given no key`);
+    else if (!before.has(given.key)) problems.push(`${id} was given ${given.key}, not the key ${steps[i - 1]} printed`);
+  });
+  return { faithful: problems.length === 0, started: starts.length, problems };
+}
+
+/** The tool calls whose command started a listed step, read from the log. */
+export interface StepCalls {
+  readonly calls: number;
+  /** Each call that started more than one step, with the steps it started. */
+  readonly bundled: ReadonlyArray<{ readonly toolUseId: string; readonly steps: readonly string[] }>;
+}
+
+/** Which listed steps each `agent.tool_use` started: its input holding `start <id>`, as a step's command marks it. */
+export function stepCallsOf(log: readonly SessionEvent[], steps: readonly string[]): StepCalls {
+  const markers = steps.map((id) => [id, new RegExp(`\\bstart ${escapeRegExp(id)}(?![\\w-])`, "g")] as const);
+  let calls = 0;
+  const bundled: Array<{ toolUseId: string; steps: string[] }> = [];
+  for (const event of log) {
+    if (event.event.case !== "agentToolUse") continue;
+    const input = JSON.stringify(event.event.value.input ?? {});
+    const started = markers.flatMap(([id, marker]) => Array.from(input.matchAll(marker), () => id));
+    if (started.length === 0) continue;
+    calls += 1;
+    if (started.length > 1) bundled.push({ toolUseId: event.event.value.id, steps: started });
+  }
+  return { calls, bundled };
+}
+
+const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Whether a live run kept its goal: `kept` when FINISHED.md is right and the
+ * steps ran as listed; `lost` when either is wrong; `void` when the run
+ * cannot say, because a call bundled steps (or the markers show more starts
+ * than calls: a loop) or the log marks fewer than three compactions.
+ * Absent where the run asked for no FINISHED.md (the mock).
+ */
+export function goalVerdictOf(end: LongTurnEnd): { readonly verdict: "kept" | "lost" | "void"; readonly reasons: readonly string[] } | undefined {
+  const { finished, fidelity, stepCalls } = end;
+  if (finished === undefined) return undefined;
+  const voided: string[] = [];
+  const marked = end.compactedEvents ?? 0;
+  if (marked < RETENTION_COMPACTIONS) {
+    voided.push(`the log marks ${marked} compaction${marked === 1 ? "" : "s"}, fewer than ${RETENTION_COMPACTIONS}`);
+  }
+  for (const call of stepCalls?.bundled ?? []) voided.push(`call ${call.toolUseId} started ${call.steps.join(", ")}`);
+  if (stepCalls !== undefined && fidelity !== undefined && stepCalls.bundled.length === 0 && fidelity.started > stepCalls.calls) {
+    voided.push(`${fidelity.started} steps started from ${stepCalls.calls} calls`);
+  }
+  const lost: string[] = [];
+  if (!goalKept(finished)) {
+    lost.push(`the opening asked FINISHED.md for ${finished.expected.join(", ")}; ${finished.found === undefined ? "no file was written" : `it holds ${finished.found.length === 0 ? "nothing" : finished.found.join(", ")}`}`);
+  }
+  lost.push(...(fidelity?.problems ?? []));
+  const verdict = voided.length > 0 ? "void" : lost.length > 0 ? "lost" : "kept";
+  return { verdict, reasons: [...voided, ...lost] };
 }
 
 /** The compaction markers in a log read back, every thread's. */
@@ -377,14 +484,18 @@ export function renderSummary(report: LongTurnReport): string {
       const compaction = compactionVerdictOf(end);
       lines.push("", `Compactions marked in the log: ${end.compactedEvents}${compaction.marked ? "." : `; ${compaction.reasons.join("; ")}.`}`);
     }
-    if (end.finished !== undefined) {
-      const f = end.finished;
+    const goal = goalVerdictOf(end);
+    if (goal !== undefined) {
       lines.push(
         "",
-        goalKept(f)
-          ? `**Goal**: kept: FINISHED.md names ${f.expected.join(", ")}, as the opening asked.`
-          : `**Goal**: lost: the opening asked FINISHED.md for ${f.expected.join(", ")}; ${f.found === undefined ? "no file was written" : `it holds ${f.found.length === 0 ? "nothing" : f.found.join(", ")}`}.`,
+        goal.verdict === "kept"
+          ? `**Goal**: kept: FINISHED.md names ${end.finished!.expected.join(", ")}, as the opening asked, and the steps ran as listed.`
+          : `**Goal**: ${goal.verdict}: ${goal.reasons.join("; ")}.`,
       );
+      if (end.stepCalls !== undefined) {
+        const bundled = end.stepCalls.bundled.length;
+        lines.push("", `Step calls: ${end.stepCalls.calls}${bundled === 0 ? ", one step each" : `, ${bundled} of them starting more than one step`}${end.fidelity === undefined ? "" : `, for ${end.fidelity.started} steps started`}.`);
+      }
     }
     if (end.error !== "") lines.push("", `Error: ${end.error}`);
     if (end.reply !== undefined && end.reply !== "") lines.push("", `Reply: ${end.reply.length > 600 ? `${end.reply.slice(0, 600)}…` : end.reply}`);
