@@ -10,8 +10,8 @@ fields are encrypted at rest and redacted in responses.
 apiVersion: agentic.stigmer.ai/v1
 kind: ChannelApp
 metadata:
-  name: Acme Support Bot
-  slug: acme-support-bot
+  name: Acme Books
+  slug: acme-books
   org: acme
 spec:
   slack:

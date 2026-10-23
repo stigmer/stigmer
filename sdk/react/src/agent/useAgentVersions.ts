@@ -56,7 +56,7 @@ export interface UseAgentVersionsReturn {
  *
  * @example
  * ```tsx
- * const { versions, isEmpty } = useAgentVersions("acme", "pr-reviewer");
+ * const { versions, isEmpty } = useAgentVersions("acme", "variance-reporter");
  *
  * if (!isEmpty) {
  *   return <VersionTimeline entries={versions} />;

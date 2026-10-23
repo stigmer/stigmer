@@ -22,7 +22,7 @@ export function registerAgentTools(server: McpServer, target: BackendTarget): st
     "get_agent",
     {
       description:
-        "Get full details of a Stigmer agent by its org and slug (e.g. org=stigmer slug=code-reviewer).",
+        "Get full details of a Stigmer agent by its org and slug (e.g. org=stigmer slug=variance-reporter).",
       inputSchema: {
         org: z
           .string()
@@ -32,7 +32,7 @@ export function registerAgentTools(server: McpServer, target: BackendTarget): st
           ),
         slug: z
           .string()
-          .describe("Agent slug — the unique identifier within the org (e.g. code-reviewer)."),
+          .describe("Agent slug — the unique identifier within the org (e.g. variance-reporter)."),
       },
     },
     (args, extra) =>
@@ -65,7 +65,7 @@ export function registerAgentTools(server: McpServer, target: BackendTarget): st
           ),
         slug: z
           .string()
-          .describe("Agent slug — the unique identifier within the org (e.g. code-reviewer)."),
+          .describe("Agent slug — the unique identifier within the org (e.g. variance-reporter)."),
       },
     },
     (args, extra) =>

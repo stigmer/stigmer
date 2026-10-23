@@ -81,21 +81,21 @@ at the resource keeps working, and the old slug reads for 30 days. A list's
 ```go
 renamed, err := client.Agent.Rename(ctx, &apiresource.RenameInput{
     ResourceId: agent.GetMetadata().GetId(),
-    Slug:       "support-bot",
+    Slug:       "variance-reporter",
 })
 if err != nil {
     log.Fatal(err)
 }
 fmt.Println(renamed.GetMetadata().GetSlug())
 
-support, err := client.Agent.List(ctx, &agentv1.ListAgentsRequest{
+finance, err := client.Agent.List(ctx, &agentv1.ListAgentsRequest{
     Org:    "my-org",
-    Labels: map[string]string{"team": "support"},
+    Labels: map[string]string{"team": "finance"},
 })
 if err != nil {
     log.Fatal(err)
 }
-fmt.Println(len(support.GetEntries()))
+fmt.Println(len(finance.GetEntries()))
 ```
 
 `apiresource` is

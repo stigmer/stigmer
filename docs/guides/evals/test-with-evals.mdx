@@ -8,7 +8,7 @@ description:
 ---
 
 A test case is a request a person might type plus checks on what the Agent did:
-"the reply mentions the renamed function", "the Skill was used", or a pass/fail
+"the reply names the account over budget", "the Skill was used", or a pass/fail
 rubric for a judge model. Stigmer reads test cases in
 [Claude Code's plugin-eval format](https://code.claude.com/docs/en/plugin-evals):
 an `evals/` folder where each case is a folder of its own. There is no Stigmer
@@ -20,8 +20,8 @@ Test cases live in one of two places:
 - **In a plugin**, in its own `evals/` folder, written by the plugin's author
   for what the plugin was built to do.
 - **In an eval**: an `evals/` folder you push on its own, the test cases of your
-  Agent. Acme keeps `support-agent/evals/` in its repository and pushes it as
-  `support-agent-evals` on every merge.
+  Agent. Acme keeps `variance-reporter/evals/` in its repository and pushes it
+  as `variance-reporter-evals` on every merge.
 
 An **eval run** runs test cases several times each, on an Agent or on a plugin,
 and scores every try. Every try is a real conversation. An eval run on an Agent
@@ -37,7 +37,7 @@ does in Claude Code.
 Push the folder, naming the eval:
 
 ```bash
-stigmer push eval ./support-agent/evals --name support-agent-evals -m "$GIT_SHA"
+stigmer push eval ./variance-reporter/evals --name variance-reporter-evals -m "$GIT_SHA"
 ```
 
 The folder is pushed whole, in the form Claude Code reads it: its case folders,
@@ -54,9 +54,9 @@ build Agents in the Organization may push one.
 
 ```bash
 stigmer list evals
-stigmer get eval support-agent-evals
-stigmer download eval support-agent-evals@stable -o ./support-agent/evals
-stigmer delete eval support-agent-evals
+stigmer get eval variance-reporter-evals
+stigmer download eval variance-reporter-evals@stable -o ./variance-reporter/evals
+stigmer delete eval variance-reporter-evals
 ```
 
 `stigmer download eval` gets a version back as the folder you pushed: by default
@@ -73,9 +73,9 @@ plugins the Agent uses and the evals of the Organization you can see; pick any
 of them. From the CLI, name the Agent and the eval:
 
 ```bash
-stigmer eval run --agent support-desk --eval support-agent-evals
-stigmer eval run --agent support-desk --eval support-agent-evals@stable
-stigmer eval run --agent support-desk@v3 --eval support-agent-evals --cases-from refund-policy
+stigmer eval run --agent variance-reporter --eval variance-reporter-evals
+stigmer eval run --agent variance-reporter --eval variance-reporter-evals@stable
+stigmer eval run --agent variance-reporter@v3 --eval variance-reporter-evals --cases-from ledger
 ```
 
 `--eval` runs the eval's current version, or the version a digest or tag after
@@ -93,8 +93,8 @@ listed on the case as "no such server on the Agent", and the case still runs.
 
 The eval run is stamped with the Agent's version and each eval's version, so
 after you change the Agent's instructions you run it again and compare the two,
-case by case: "the refund cases went from 0.8 to 1.0, the tracker cases stayed
-at 0.9."
+case by case: "the over-budget cases went from 0.8 to 1.0, the tracker cases
+stayed at 0.9."
 
 ### What runs, and at which versions
 
@@ -139,7 +139,7 @@ Name a plugin to compare, on the Agent (`--plugin`, or **Compare with a plugin**
 in the console):
 
 ```bash
-stigmer eval run --agent support-desk --plugin refund-policy
+stigmer eval run --agent variance-reporter --plugin payroll
 ```
 
 Each case then runs in two **arms**:
@@ -515,9 +515,9 @@ version. From the CLI, write it into your local folder, or add it to an eval:
 
 ```bash
 stigmer runs to-eval-case run_01abc123
-stigmer runs to-eval-case run_01abc123 --dir evals/ --name rename-call-sites
+stigmer runs to-eval-case run_01abc123 --dir evals/ --name over-budget-account
 stigmer runs to-eval-case run_01abc123 --skill thermos:code-review
-stigmer runs to-eval-case run_01abc123 --eval support-agent-evals
+stigmer runs to-eval-case run_01abc123 --eval variance-reporter-evals
 ```
 
 The case holds:
@@ -541,8 +541,8 @@ type: llm
 ---
 
 PASS if <what a correct response contains>. FAIL if the response repeats what
-went wrong in the run this case was made from: said the ticket was assigned, but
-the assign call failed.
+went wrong in the run this case was made from: said the adjustment was posted,
+but the post_adjustment call failed.
 ```
 
 The case is never a verdict of its own: it records what happened and what went

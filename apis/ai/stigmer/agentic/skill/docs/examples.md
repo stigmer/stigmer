@@ -116,75 +116,75 @@ A skill with a `SKILL.md` that delegates detail to files in `references/`.
 
 **Directory:**
 ```
-skills/code-review/
+skills/variance-report/
 ├── SKILL.md
 └── references/
-    ├── style-rules.md
-    ├── security-checklist.md
+    ├── report-layout.md
+    ├── materiality-checklist.md
     └── examples.md
 ```
 
 **`SKILL.md`:**
 ```markdown
 ---
-name: code-review
-description: "Reviews source code for correctness, style, security vulnerabilities, and maintainability"
+name: variance-report
+description: "Turns a ledger into a variance report: each account's actual against its budget, with the variances that matter explained"
 ---
 
-# Code Review Skill
+# Variance Report Skill
 
 ## When to Use This Skill
-Use this skill when the user asks you to review code, identify bugs, check security issues,
-or evaluate code quality. Applies to all programming languages.
+Use this skill when the user asks for a variance report, a budget-to-actual comparison,
+or an explanation of why an account moved. Applies to any period and any chart of accounts.
 
-## Review Process
-Follow these steps for every code review:
-1. **Correctness**: Does the code do what it claims to do? Are there logical errors?
-2. **Security**: Refer to `references/security-checklist.md` for the full security review checklist.
-3. **Style**: Apply the rules in `references/style-rules.md` for the language in question.
-4. **Maintainability**: Is the code readable? Are abstractions appropriate? Is complexity justified?
+## Report Process
+Follow these steps for every variance report:
+1. **Mapping**: Map each ledger line to the customer's chart of accounts. Are any lines unmapped?
+2. **Materiality**: Refer to `references/materiality-checklist.md` for which variances to explain.
+3. **Layout**: Apply the layout in `references/report-layout.md` for the report's sections and columns.
+4. **Explanation**: Is each material variance explained by the entries behind it?
 
 ## Output Format
-Structure your review as:
-- **Summary**: One paragraph overall assessment
-- **Critical Issues** (must fix before merge): Numbered list
-- **Suggestions** (should consider): Numbered list
-- **Positive Observations**: What is done well
+Structure your report as:
+- **Summary**: One paragraph on the period overall
+- **Material Variances** (must be explained): Numbered list
+- **Watch List** (worth a look next period): Numbered list
+- **On Budget**: Accounts within tolerance
 
-For worked examples of well-structured reviews, see `references/examples.md`.
+For worked examples of well-structured reports, see `references/examples.md`.
 
 ## Severity Levels
-- **Critical**: Security vulnerability, data loss risk, or broken functionality
-- **Major**: Logic error or significant performance issue
-- **Minor**: Style, naming, or documentation issue
+- **Critical**: Variance over 10% of budget, or an entry posted to the wrong account
+- **Major**: Variance over 5% of budget
+- **Minor**: Variance within tolerance but trending away from budget
 ```
 
-**`references/security-checklist.md`:**
+**`references/materiality-checklist.md`:**
 ```markdown
-# Security Review Checklist
+# Materiality Checklist
 
-## Input Validation
-- [ ] All external inputs are validated before use
-- [ ] SQL queries use parameterized statements (no string concatenation)
-- [ ] File paths are sanitized to prevent directory traversal
+## Thresholds
+- [ ] Every account over 5% of budget is explained
+- [ ] Every account over a fixed amount the customer sets is explained
+- [ ] Revenue and cost accounts are checked separately
 
-## Authentication and Authorization
-- [ ] Authentication is required for all sensitive endpoints
-- [ ] Authorization checks occur server-side, not client-side only
-- [ ] Tokens and secrets are not logged or included in error messages
+## Entries
+- [ ] Each explanation names the entries behind it
+- [ ] One-off entries are told apart from recurring ones
+- [ ] Reversals and accruals are matched to their originals
 
-## Secrets and Configuration
-- [ ] No hardcoded secrets, passwords, or API keys in source
-- [ ] Environment variables are used for sensitive configuration
-- [ ] .gitignore excludes .env and credential files
+## Presentation
+- [ ] Amounts use the ledger's currency and rounding
+- [ ] Favourable and unfavourable variances are labelled
+- [ ] Unmapped ledger lines are listed, not dropped
 ```
 
 **Push:**
 ```bash
-stigmer push skill ./skills/code-review --tag stable
+stigmer push skill ./skills/variance-report --tag stable
 ```
 
-The platform packages `SKILL.md` and the entire `references/` directory into the artifact ZIP. The agent loads `references/security-checklist.md` on demand when the `SKILL.md` body directs it to.
+The platform packages `SKILL.md` and the entire `references/` directory into the artifact ZIP. The agent loads `references/materiality-checklist.md` on demand when the `SKILL.md` body directs it to.
 
 ---
 

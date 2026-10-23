@@ -22,11 +22,11 @@ stigmer tag <type> <org/slug> <hash> <tag>
 ### Common patterns
 
 ```bash
-# Tag an agent version as stable
-stigmer tag agent acme-corp/code-reviewer a1b2c3d stable
+# Tag an agent version as stable, by its full 64-character hash
+stigmer tag agent acme-corp/variance-reporter 3f8a1c0e9b7d2a4c6e5f1b3d9a7c0e2f4b6d8a1c3e5f7b9d0a2c4e6f8b1d3a5c stable
 
-# Tag a version as v1
-stigmer tag agent acme-corp/code-reviewer a1b2c3d v1
+# Tag another version as v1
+stigmer tag agent acme-corp/variance-reporter 9c2e4a6b8d0f1a3c5e7b9d1f3a5c7e9b0d2f4a6c8e1b3d5f7a9c0e2b4d6f8a1c v1
 ```
 
 ## Examples
@@ -34,11 +34,13 @@ stigmer tag agent acme-corp/code-reviewer a1b2c3d v1
 ### Promote a version to "stable"
 
 ```bash
-stigmer tag agent acme-corp/code-reviewer a1b2c3d stable
+stigmer get agent acme-corp/variance-reporter -o yaml   # metadata.version.id
+stigmer tag agent acme-corp/variance-reporter 3f8a1c0e9b7d2a4c6e5f1b3d9a7c0e2f4b6d8a1c3e5f7b9d0a2c4e6f8b1d3a5c stable
 ```
 
-The tag now points at the version with hash `a1b2c3d`. Re-tagging moves the tag
-to a new version.
+The tag now points at the version with that hash: the current version's full
+hash is `metadata.version.id` in the agent's YAML. Re-tagging moves the tag to a
+new version.
 
 ## Global Flags
 

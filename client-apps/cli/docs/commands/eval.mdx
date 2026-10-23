@@ -14,16 +14,16 @@ run's creator does.
   assistant, with and without the plugin, the way `claude plugin eval` runs them
   in Claude Code. It runs the plugin's installed version; `thermos@<digest>` is
   refused unless the digest is the installed version's.
-- `--agent support-desk` runs the cases of every plugin the agent uses on the
+- `--agent variance-reporter` runs the cases of every plugin the agent uses on the
   agent itself, with its own instructions, Skills and subagents, at its current
-  version or `support-desk@<version>` (a tag or version hash). The eval run is
+  version or `variance-reporter@<version>` (a tag or version hash). The eval run is
   stamped with the agent's version, so two versions' results compare case by
   case.
-- `--agent support-desk --eval support-agent-evals` runs an eval's cases on the
-  agent, at its current version or `support-agent-evals@<digest|tag>`; its mocks
+- `--agent variance-reporter --eval variance-reporter-evals` runs an eval's cases on the
+  agent, at its current version or `variance-reporter-evals@<digest|tag>`; its mocks
   stand in for the agent's own servers and its plugins' by the names a
   conversation gives them. An agent that uses no plugin runs evals alone.
-- `--agent support-desk --plugin refund-policy` runs the plugin's cases on the
+- `--agent variance-reporter --plugin payroll` runs the plugin's cases on the
   agent with the plugin and without it, whether the agent uses it or not: does
   the agent do better with it? Without it, the plugin is left out of the whole
   turn, the agent's subagents included.
@@ -43,16 +43,16 @@ then the table. Closing the terminal leaves it running; Ctrl+C cancels it.
 stigmer eval run --plugin thermos
 
 # Run every plugin's cases on an agent as it runs
-stigmer eval run --agent support-desk
+stigmer eval run --agent variance-reporter
 
 # Run an eval's cases on the agent, at the version tagged stable
-stigmer eval run --agent support-desk --eval support-agent-evals@stable
+stigmer eval run --agent variance-reporter --eval variance-reporter-evals@stable
 
 # Does the agent do better with a plugin than without it?
-stigmer eval run --agent support-desk --plugin refund-policy
+stigmer eval run --agent variance-reporter --plugin payroll
 
 # Run a tagged version, and only one plugin's cases, five times each
-stigmer eval run --agent support-desk@v3 --cases-from tracker --runs 5
+stigmer eval run --agent variance-reporter@v3 --cases-from ledger --runs 5
 
 # Compare two models, with a CI-friendly threshold and spending limit
 stigmer eval run --plugin thermos --model native/claude-sonnet-4-6 --model cursor/gpt-5 \
@@ -62,7 +62,7 @@ stigmer eval run --plugin thermos --model native/claude-sonnet-4-6 --model curso
 stigmer eval run --plugin thermos --case first-case --runs 1 --ablation none
 
 # Let the tries use the agent's Skills and subagents
-stigmer eval run --agent support-desk --allow-tools Skill Agent
+stigmer eval run --agent variance-reporter --allow-tools Skill Agent
 
 # Write the result document for a script, and gate on the exit code
 stigmer eval run --plugin thermos --json results.json

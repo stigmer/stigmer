@@ -1735,7 +1735,7 @@ function lastLoadedVersions(run: Run): ReadonlyMap<string, LoadedVersionChange> 
   return byResource;
 }
 
-/** How one moved resource reads: "Skill refunds updated", or "A deleted skill was updated" once it is gone. */
+/** How one moved resource reads: "Skill variance-report updated", or "A deleted skill was updated" once it is gone. */
 function loadedVersionChangeText(change: LoadedVersionChange): string {
   if (isDeletedReference(change)) {
     return `A ${deletedReferenceLabel(change.kind)} was updated`;
