@@ -283,7 +283,10 @@ private static final long serialVersionUID = 0L;
    * the session, outside the workspace, and the line says where, so the
    * agent reads the rest back instead of running the tool again; a tool that
    * pages itself (reading a file, searching, listing, fetching a page) keeps
-   * no copy, and the line says how to narrow the call instead.
+   * no copy, and the line says how to narrow the call instead. A value above
+   * 80,000 raises the bound only for the file tools (reading, searching,
+   * listing and editing files); every other tool's result is cut at 80,000
+   * at most.
    *
    * 0 = not set at this layer; with no layer setting it the platform default
    * applies (30,000 chars, about 7,500 tokens). Applies to every tool result,
@@ -1233,7 +1236,10 @@ private static final long serialVersionUID = 0L;
      * the session, outside the workspace, and the line says where, so the
      * agent reads the rest back instead of running the tool again; a tool that
      * pages itself (reading a file, searching, listing, fetching a page) keeps
-     * no copy, and the line says how to narrow the call instead.
+     * no copy, and the line says how to narrow the call instead. A value above
+     * 80,000 raises the bound only for the file tools (reading, searching,
+     * listing and editing files); every other tool's result is cut at 80,000
+     * at most.
      *
      * 0 = not set at this layer; with no layer setting it the platform default
      * applies (30,000 chars, about 7,500 tokens). Applies to every tool result,
@@ -1255,7 +1261,10 @@ private static final long serialVersionUID = 0L;
      * the session, outside the workspace, and the line says where, so the
      * agent reads the rest back instead of running the tool again; a tool that
      * pages itself (reading a file, searching, listing, fetching a page) keeps
-     * no copy, and the line says how to narrow the call instead.
+     * no copy, and the line says how to narrow the call instead. A value above
+     * 80,000 raises the bound only for the file tools (reading, searching,
+     * listing and editing files); every other tool's result is cut at 80,000
+     * at most.
      *
      * 0 = not set at this layer; with no layer setting it the platform default
      * applies (30,000 chars, about 7,500 tokens). Applies to every tool result,
@@ -1281,7 +1290,10 @@ private static final long serialVersionUID = 0L;
      * the session, outside the workspace, and the line says where, so the
      * agent reads the rest back instead of running the tool again; a tool that
      * pages itself (reading a file, searching, listing, fetching a page) keeps
-     * no copy, and the line says how to narrow the call instead.
+     * no copy, and the line says how to narrow the call instead. A value above
+     * 80,000 raises the bound only for the file tools (reading, searching,
+     * listing and editing files); every other tool's result is cut at 80,000
+     * at most.
      *
      * 0 = not set at this layer; with no layer setting it the platform default
      * applies (30,000 chars, about 7,500 tokens). Applies to every tool result,
