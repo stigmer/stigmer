@@ -18,6 +18,14 @@
  *     no provenance, since the call never started; and a call a hook
  *     refused, from the same event written by the approval gate, a failure
  *     whose provenance names the hook;
+ *   - which streamed messages are the agent's words: LangGraph's messages
+ *     channel also streams a message a middleware adds to the thread (the
+ *     background middleware's reminder and ending notices, the turn-input
+ *     middleware's delivery of a person's message), marked by its
+ *     `message-start`'s `role` (`human`); the model's own messages carry
+ *     none, or `ai`. A message in any other role is the agent's input, so
+ *     every event of its run is dropped here, and it never reaches the
+ *     transcript, the log or a client as the agent's text;
  *   - which hook decided a call that runs, from the gate's `tool_policy`
  *     custom-stream event: a hook is a process, so its answer is the
  *     gate's to report and never re-derived here; the builder stamps it on
@@ -106,6 +114,8 @@ export class DeepAgentTranslator {
   private readonly subAgentByPrefix = new Map<string, string>();
   /** The `task` call ids whose completion closes a sub-agent. */
   private readonly taskCalls = new Set<string>();
+  /** The streamed message runs that are not the model's (the header): their events are dropped. */
+  private readonly inputRuns = new Set<string>();
 
   /**
    * @param gate the turn's gate posture, for attribution and provenance;
@@ -114,8 +124,28 @@ export class DeepAgentTranslator {
    */
   constructor(private readonly gate: DeepAgentGateState | null) {}
 
+  /**
+   * Whether a messages-channel event belongs to a message the graph added in
+   * a role other than the model's (the header): its `message-start` names
+   * the role, and the run it opens is remembered until its `message-finish`.
+   */
+  private isAgentInput(raw: V3ProtocolEvent): boolean {
+    if (raw.method !== "messages") return false;
+    const data = raw.params.data as Record<string, unknown> | undefined;
+    const runId = typeof data?.run_id === "string" ? data.run_id : "";
+    const eventType = data === undefined ? "" : readEventType(data);
+    if (eventType === "message-start" && typeof data?.role === "string" && data.role !== "ai") {
+      this.inputRuns.add(runId);
+      return true;
+    }
+    if (!this.inputRuns.has(runId)) return false;
+    if (eventType === "message-finish") this.inputRuns.delete(runId);
+    return true;
+  }
+
   /** One raw event to its canonical events — `translate(raw)` is the one signature every harness's translator shares. */
   translate(raw: V3ProtocolEvent): StreamFact[] {
+    if (this.isAgentInput(raw)) return [];
     const namespace = raw.params.namespace;
     if (raw.method === "custom") return this.custom(normalize(raw), this.customScopeOf(namespace));
     const subAgentId = this.scopeOf(namespace);

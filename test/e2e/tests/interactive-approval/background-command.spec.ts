@@ -60,7 +60,9 @@ test.describe("a command the agent runs in the background (deterministic mock LL
     const row = toolCallRow(page).filter({ hasText: "Background" }).first();
     const status = row.locator('[data-cursor-target="background-command-status"]');
     await expect(status).toContainText("Running in the background", { timeout: 30_000 });
-    await expect(row.locator('[data-cursor-target="terminal-live-output"]')).toContainText("tick-1", { timeout: 30_000 });
+    // Previews are not replayed to a page that opens late, so the first tick
+    // may have streamed before it connected: any early tick proves the live view.
+    await expect(row.locator('[data-cursor-target="terminal-live-output"]')).toContainText(/tick-[1-3]/, { timeout: 30_000 });
     await expect(row).not.toContainText("Started in the background");
 
     await expect(status).toHaveText("Exited · code 0", { timeout: 60_000 });
@@ -81,7 +83,7 @@ test.describe("a command the agent runs in the background (deterministic mock LL
     await expect(page.locator('[data-cursor-target="liveness-status-line"]')).toContainText("Waiting for `sleep 300`", { timeout: 30_000 });
 
     const row = toolCallRow(page).filter({ hasText: "Background" }).first();
-    await row.getByRole("button", { name: "Stop" }).click();
+    await row.locator('[data-cursor-target="background-command-stop"]').click();
     await expect(row.locator('[data-cursor-target="background-command-status"]')).toHaveText("Stopped by a person", { timeout: 30_000 });
     await expect(page.getByText("You stopped the server.")).toBeVisible({ timeout: 30_000 });
   });

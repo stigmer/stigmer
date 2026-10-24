@@ -120,6 +120,10 @@ describe("ExecuteDeepAgent hermetic — background commands", () => {
     expect(indexOf(record.sessionEvents, `${useId}.bg`), "the running status follows the start's result").toBeGreaterThan(indexOf(record.sessionEvents, `${useId}.r`));
     const ai = rows.messages.filter((m) => m.type === MessageType.MESSAGE_AI).map((m) => m.content);
     expect(ai.at(-1)).toBe("The check printed done.");
+    expect(
+      ai.filter((text) => text.includes("<background-command")),
+      "the turn's reminder and notices are the agent's input, never its words",
+    ).toEqual([]);
   });
 
   it("stops the command a person stopped, read from the log while the turn waits, and the agent answers", async () => {

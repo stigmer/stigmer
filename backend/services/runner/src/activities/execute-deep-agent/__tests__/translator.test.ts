@@ -547,6 +547,21 @@ describe("V3ProtocolNormalizer", () => {
       expect(t.translate(wait("finished"))).toEqual([{ kind: "background_wait_finished" }]);
     });
 
+    it("drops a message the graph adds in a role other than the model's, its text and its finish, and keeps the model's", () => {
+      const t = new DeepAgentTranslator(null);
+      const notice = (event: Record<string, unknown>) =>
+        makeProtocolEvent("messages", { run_id: "run-notice", ...event }, { namespace: ["StigmerBackgroundCommands.after_model:1"] });
+      expect(t.translate(notice({ event: "message-start", id: "background-ended-bg_1", role: "human" }))).toEqual([]);
+      expect(t.translate(notice({ event: "content-block-delta", index: 0, delta: { type: "text-delta", text: "<background-command ...>" } }))).toEqual([]);
+      expect(t.translate(notice({ event: "message-finish" }))).toEqual([]);
+      expect(t.translate(makeMessageStart("run-model", { messageId: "run-model" }))).toEqual([{ kind: "message_start", runId: "run-model" }]);
+      expect(t.translate(makeTextDelta("run-model", "Done."))).toEqual([{ kind: "text_delta", runId: "run-model", text: "Done." }]);
+      expect(t.translate(makeProtocolEvent("messages", { event: "message-start", run_id: "run-ai", role: "ai" }))).toEqual([{ kind: "message_start", runId: "run-ai" }]);
+      expect(t.translate(notice({ event: "content-block-delta", index: 0, delta: { type: "text-delta", text: "after its finish" } })), "its run was forgotten at its finish").toEqual([
+        { kind: "text_delta", runId: "run-notice", text: "after its finish" },
+      ]);
+    });
+
     it("makes nothing of the retired note event: an ending reaches the person as the command's own status", () => {
       const t = new DeepAgentTranslator(null);
       expect(t.translate(makeProtocolEvent("custom", { name: "stigmer.background_note", text: "Background command `npm test` exited with code 1." }))).toEqual([]);
