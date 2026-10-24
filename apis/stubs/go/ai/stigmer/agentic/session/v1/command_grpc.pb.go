@@ -19,18 +19,19 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SessionCommandController_Apply_FullMethodName             = "/ai.stigmer.agentic.session.v1.SessionCommandController/apply"
-	SessionCommandController_Create_FullMethodName            = "/ai.stigmer.agentic.session.v1.SessionCommandController/create"
-	SessionCommandController_Update_FullMethodName            = "/ai.stigmer.agentic.session.v1.SessionCommandController/update"
-	SessionCommandController_UpdateSubject_FullMethodName     = "/ai.stigmer.agentic.session.v1.SessionCommandController/updateSubject"
-	SessionCommandController_ReviewFileChanges_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionCommandController/reviewFileChanges"
-	SessionCommandController_ConfirmToolUse_FullMethodName    = "/ai.stigmer.agentic.session.v1.SessionCommandController/confirmToolUse"
-	SessionCommandController_GrantPermission_FullMethodName   = "/ai.stigmer.agentic.session.v1.SessionCommandController/grantPermission"
-	SessionCommandController_Interrupt_FullMethodName         = "/ai.stigmer.agentic.session.v1.SessionCommandController/interrupt"
-	SessionCommandController_Delete_FullMethodName            = "/ai.stigmer.agentic.session.v1.SessionCommandController/delete"
-	SessionCommandController_AppendEvents_FullMethodName      = "/ai.stigmer.agentic.session.v1.SessionCommandController/appendEvents"
-	SessionCommandController_ClaimInput_FullMethodName        = "/ai.stigmer.agentic.session.v1.SessionCommandController/claimInput"
-	SessionCommandController_BindHarnessState_FullMethodName  = "/ai.stigmer.agentic.session.v1.SessionCommandController/bindHarnessState"
+	SessionCommandController_Apply_FullMethodName                 = "/ai.stigmer.agentic.session.v1.SessionCommandController/apply"
+	SessionCommandController_Create_FullMethodName                = "/ai.stigmer.agentic.session.v1.SessionCommandController/create"
+	SessionCommandController_Update_FullMethodName                = "/ai.stigmer.agentic.session.v1.SessionCommandController/update"
+	SessionCommandController_UpdateSubject_FullMethodName         = "/ai.stigmer.agentic.session.v1.SessionCommandController/updateSubject"
+	SessionCommandController_ReviewFileChanges_FullMethodName     = "/ai.stigmer.agentic.session.v1.SessionCommandController/reviewFileChanges"
+	SessionCommandController_ConfirmToolUse_FullMethodName        = "/ai.stigmer.agentic.session.v1.SessionCommandController/confirmToolUse"
+	SessionCommandController_GrantPermission_FullMethodName       = "/ai.stigmer.agentic.session.v1.SessionCommandController/grantPermission"
+	SessionCommandController_StopBackgroundCommand_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionCommandController/stopBackgroundCommand"
+	SessionCommandController_Interrupt_FullMethodName             = "/ai.stigmer.agentic.session.v1.SessionCommandController/interrupt"
+	SessionCommandController_Delete_FullMethodName                = "/ai.stigmer.agentic.session.v1.SessionCommandController/delete"
+	SessionCommandController_AppendEvents_FullMethodName          = "/ai.stigmer.agentic.session.v1.SessionCommandController/appendEvents"
+	SessionCommandController_ClaimInput_FullMethodName            = "/ai.stigmer.agentic.session.v1.SessionCommandController/claimInput"
+	SessionCommandController_BindHarnessState_FullMethodName      = "/ai.stigmer.agentic.session.v1.SessionCommandController/bindHarnessState"
 )
 
 // SessionCommandControllerClient is the client API for SessionCommandController service.
@@ -131,6 +132,28 @@ type SessionCommandControllerClient interface {
 	//
 	// The same grant sent again records nothing new.
 	GrantPermission(ctx context.Context, in *GrantPermissionInput, opts ...grpc.CallOption) (*GrantPermissionResponse, error)
+	// Stop one command the agent runs in the background.
+	//
+	// A command started in the background has a
+	// stigmer.background_command.status with phase running, keyed to the
+	// agent.tool_use that started it. The request is appended as a
+	// stigmer.background_command.stop_requested; the turn's runner reads it
+	// within seconds and stops that command alone, whose status then ends
+	// with stopped_by person. The agent is told a person stopped it and
+	// carries on. The turn itself is not stopped (interrupt stops it).
+	//
+	// ## Error Conditions
+	//
+	//   - NOT_FOUND: the tool use is not one of this conversation's calls that
+	//     started a command in the background
+	//   - FAILED_PRECONDITION: the command already ended, or its turn is not
+	//     working
+	//
+	// ## Idempotency
+	//
+	// A second request for the same command records nothing new and returns
+	// the event first recorded.
+	StopBackgroundCommand(ctx context.Context, in *StopBackgroundCommandInput, opts ...grpc.CallOption) (*SessionEvent, error)
 	// Stop the session's unfinished work.
 	//
 	// Appends a user.interrupt and stops every unfinished turn of the
@@ -255,6 +278,16 @@ func (c *sessionCommandControllerClient) GrantPermission(ctx context.Context, in
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GrantPermissionResponse)
 	err := c.cc.Invoke(ctx, SessionCommandController_GrantPermission_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *sessionCommandControllerClient) StopBackgroundCommand(ctx context.Context, in *StopBackgroundCommandInput, opts ...grpc.CallOption) (*SessionEvent, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SessionEvent)
+	err := c.cc.Invoke(ctx, SessionCommandController_StopBackgroundCommand_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -409,6 +442,28 @@ type SessionCommandControllerServer interface {
 	//
 	// The same grant sent again records nothing new.
 	GrantPermission(context.Context, *GrantPermissionInput) (*GrantPermissionResponse, error)
+	// Stop one command the agent runs in the background.
+	//
+	// A command started in the background has a
+	// stigmer.background_command.status with phase running, keyed to the
+	// agent.tool_use that started it. The request is appended as a
+	// stigmer.background_command.stop_requested; the turn's runner reads it
+	// within seconds and stops that command alone, whose status then ends
+	// with stopped_by person. The agent is told a person stopped it and
+	// carries on. The turn itself is not stopped (interrupt stops it).
+	//
+	// ## Error Conditions
+	//
+	//   - NOT_FOUND: the tool use is not one of this conversation's calls that
+	//     started a command in the background
+	//   - FAILED_PRECONDITION: the command already ended, or its turn is not
+	//     working
+	//
+	// ## Idempotency
+	//
+	// A second request for the same command records nothing new and returns
+	// the event first recorded.
+	StopBackgroundCommand(context.Context, *StopBackgroundCommandInput) (*SessionEvent, error)
 	// Stop the session's unfinished work.
 	//
 	// Appends a user.interrupt and stops every unfinished turn of the
@@ -488,6 +543,9 @@ func (UnimplementedSessionCommandControllerServer) ConfirmToolUse(context.Contex
 }
 func (UnimplementedSessionCommandControllerServer) GrantPermission(context.Context, *GrantPermissionInput) (*GrantPermissionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GrantPermission not implemented")
+}
+func (UnimplementedSessionCommandControllerServer) StopBackgroundCommand(context.Context, *StopBackgroundCommandInput) (*SessionEvent, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StopBackgroundCommand not implemented")
 }
 func (UnimplementedSessionCommandControllerServer) Interrupt(context.Context, *InterruptSessionInput) (*InterruptSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Interrupt not implemented")
@@ -650,6 +708,24 @@ func _SessionCommandController_GrantPermission_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SessionCommandController_StopBackgroundCommand_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StopBackgroundCommandInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionCommandControllerServer).StopBackgroundCommand(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionCommandController_StopBackgroundCommand_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionCommandControllerServer).StopBackgroundCommand(ctx, req.(*StopBackgroundCommandInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _SessionCommandController_Interrupt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(InterruptSessionInput)
 	if err := dec(in); err != nil {
@@ -774,6 +850,10 @@ var SessionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "grantPermission",
 			Handler:    _SessionCommandController_GrantPermission_Handler,
+		},
+		{
+			MethodName: "stopBackgroundCommand",
+			Handler:    _SessionCommandController_StopBackgroundCommand_Handler,
 		},
 		{
 			MethodName: "interrupt",

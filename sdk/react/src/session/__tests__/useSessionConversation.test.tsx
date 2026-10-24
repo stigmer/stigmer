@@ -135,6 +135,7 @@ interface Methods {
   grantPermission: ReturnType<typeof vi.fn>;
   interrupt: ReturnType<typeof vi.fn>;
   reviewFileChanges: ReturnType<typeof vi.fn>;
+  stopBackgroundCommand: ReturnType<typeof vi.fn>;
 }
 
 let methods: Methods;
@@ -152,6 +153,7 @@ function client(): Stigmer {
       grantPermission: methods.grantPermission,
       interrupt: methods.interrupt,
       reviewFileChanges: methods.reviewFileChanges,
+      stopBackgroundCommand: methods.stopBackgroundCommand,
     },
     run: {
       listBySession: methods.listBySession,
@@ -197,6 +199,7 @@ beforeEach(() => {
     grantPermission: vi.fn().mockResolvedValue({}),
     interrupt: vi.fn().mockResolvedValue({ stoppedRunIds: [] }),
     reviewFileChanges: vi.fn().mockResolvedValue({}),
+    stopBackgroundCommand: vi.fn().mockResolvedValue({}),
   };
   stigmerClient = client();
 });
@@ -573,13 +576,25 @@ describe("useSessionConversation — asks", () => {
     expect(result.current.answerError).toBeNull();
   });
 
+  it("stops one background command of the session, by the tool use that started it", async () => {
+    const { result } = await waiting();
+    await act(async () => {
+      await result.current.stopBackgroundCommand("run_live.bg-1");
+    });
+    expect(methods.stopBackgroundCommand).toHaveBeenCalledWith(expect.objectContaining({ sessionId: "session-1", toolUseId: "run_live.bg-1" }));
+    expect(result.current.stoppingBackgroundToolUseIds.size).toBe(0);
+    expect(result.current.stopBackgroundErrors.size).toBe(0);
+  });
+
   it("answers nothing without a session", async () => {
     const { result } = open(null);
     await act(async () => {
       await result.current.answerToolUse("t1", "allow");
       await result.current.reviewFileChanges("cs1", "keep", { expectedDigest: "d" });
       await result.current.stop();
+      await result.current.stopBackgroundCommand("run_live.bg-1");
     });
+    expect(methods.stopBackgroundCommand).not.toHaveBeenCalled();
     expect(methods.confirmToolUse).not.toHaveBeenCalled();
     expect(methods.reviewFileChanges).not.toHaveBeenCalled();
     expect(methods.interrupt).not.toHaveBeenCalled();

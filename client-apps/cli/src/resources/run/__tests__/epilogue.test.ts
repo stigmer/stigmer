@@ -8,7 +8,8 @@
 // line; without one it is a single completion line. The best error is the
 // run's own, else the folded turn's status error, its last error event, the
 // platform's last note, the first failed tool use's output (a subagent's
-// included); a turn the stream did not hand over is read from the run's
+// included), never a background command's ending, which is the command's
+// status and not a note; a turn the stream did not hand over is read from the run's
 // events, only when the summary needs it. Tokens with no metered calls were
 // counted from the runner's own report and carry a "~". A usage report the
 // server will not give, or one that counted no tokens, drops the token part
@@ -23,7 +24,7 @@ import type { ListSessionEventsRequest } from "@stigmer/apis/ai/stigmer/agentic/
 import { foldSession, type Stigmer, type Turn } from "@stigmer/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CliExitError, ExitCode } from "../../../errors/index.js";
-import { failure, note, phase, result, said, threadRunning, use, user } from "../../__test-utils__/session-events.js";
+import { background, failure, note, phase, result, said, threadRunning, use, user } from "../../__test-utils__/session-events.js";
 import type { HeadlessResult } from "../../stream/headless.js";
 import { runEpilogue } from "../epilogue.js";
 
@@ -201,6 +202,26 @@ describe("runEpilogue", () => {
       folded([user("aex_1", "go"), note("aex_1", "n0", "first notice"), note("aex_1", "n1", "cost cap reached"), phase("aex_1", "terminated")]),
     );
     expect(stderr).toContain("Stopped: cost cap reached\n");
+  });
+
+  it("never gives a background command's ending as why a turn failed", async () => {
+    const d = double(finalRun({ phase: RunPhase.RUN_FAILED }));
+    await runEpilogue(
+      d.client,
+      "ses_1",
+      "aex_1",
+      folded([
+        user("aex_1", "go"),
+        use("aex_1", "bg1", "execute", { input: { command: "npm test", background: true } }),
+        result("aex_1", "bg1", "Started in the background (id bg1)."),
+        background("aex_1", "bg1"),
+        background("aex_1", "bg1", { ending: "exited", exitCode: 1 }),
+        failure("aex_1", "err1", "model overloaded"),
+        phase("aex_1", "failed"),
+      ]),
+    );
+    expect(stderr).toContain("✗ Failed: model overloaded\n");
+    expect(stderr.join("")).not.toContain("Background command");
   });
 
   it("reports a session turn that exited mid-phase", async () => {

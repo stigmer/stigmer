@@ -9,9 +9,11 @@
 
 import type { JsonObject } from "@bufbuild/protobuf";
 import type {
+  BackgroundCommandView,
   FileReviewFile,
   FileReviewSet,
   PermissionGrant,
+  StoppedBackgroundCommand,
   Thread,
   ToolAsk,
   ToolConfirmation,
@@ -44,6 +46,9 @@ export interface ToolUseInit {
   readonly grant?: Partial<PermissionGrant>;
   readonly fullOutput?: Partial<ToolFullOutput>;
   readonly liveOutput?: string;
+  /** The command the call started in the background; its unnamed fields default to a running command. */
+  readonly background?: Partial<BackgroundCommandView>;
+  readonly stoppedBackground?: StoppedBackgroundCommand;
   readonly thread?: Thread;
 }
 
@@ -109,6 +114,22 @@ export function toolUse(init: ToolUseInit): ToolUse {
         }
       : undefined,
     liveOutput: init.liveOutput ?? "",
+    background: init.background
+      ? {
+          state: "running",
+          timeoutSeconds: 3300,
+          exitCode: undefined,
+          stoppedBy: undefined,
+          stoppedByToolUseId: "",
+          output: "",
+          startedAt: TOOL_STARTED_AT,
+          endedAt: "",
+          liveOutput: "",
+          stopRequested: false,
+          ...init.background,
+        }
+      : undefined,
+    stoppedBackground: init.stoppedBackground,
     thread: init.thread,
     processedAt: TOOL_STARTED_AT,
   };

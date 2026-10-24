@@ -2,7 +2,9 @@
  * The background-command registry against real processes
  * (`shared/shell/background-commands.ts`): a start runs on and writes its
  * file, the file keeps its cap, one command stops at the agent's request
- * and every command stops with the invocation, a stop resolves only once
+ * or a person's and every command stops with the invocation, each naming
+ * who stopped it, the listeners hear every start, chunk and end (the end
+ * before a stop resolves), a stop resolves only once
  * every process in the group has gone (a child that ignores SIGTERM
  * included), the running cap refuses a ninth start, and a waiter wakes on
  * an ending or its own signal.
@@ -91,22 +93,61 @@ describe("background commands", () => {
     expect(file.length).toBe(MAX_BACKGROUND_OUTPUT_BYTES + `\n… [${over} bytes dropped: this file keeps the first ${MAX_BACKGROUND_OUTPUT_BYTES} bytes] …\n`.length);
   });
 
-  it("stops one command at the agent's request, and says so", async () => {
+  it("stops one command at the agent's request, or a person's, and says who", async () => {
     commands.start(request("call_1", "sleep 30"));
     commands.start(request("call_2", "sleep 30"));
-    const stopped = await commands.stop("call_1");
-    expect(stopped?.stoppedOnRequest).toBe(true);
+    commands.start(request("call_3", "sleep 30"));
+    const stopped = await commands.stop("call_1", { agent: "stop_1" });
+    expect(stopped?.stoppedBy).toEqual({ by: "agent", callId: "stop_1" });
     expect(stopped?.result?.aborted).toBe(true);
-    expect(commands.running().map((c) => c.id)).toEqual(["call_2"]);
-    expect(await commands.stop("call_9"), "an id this invocation never started").toBeUndefined();
+    const byPerson = await commands.stop("call_2", "person");
+    expect(byPerson?.stoppedBy).toEqual({ by: "person" });
+    expect(byPerson?.result?.aborted).toBe(true);
+    expect(commands.running().map((c) => c.id)).toEqual(["call_3"]);
+    expect(await commands.stop("call_9", "person"), "an id this invocation never started").toBeUndefined();
   });
 
-  it("returns an ended command as it ended when asked to stop it", async () => {
+  it("returns an ended command as it ended when asked to stop it, naming no one", async () => {
     commands.start(request("call_1", "echo done"));
     await ended("call_1");
-    const command = await commands.stop("call_1");
-    expect(command?.stoppedOnRequest).toBe(false);
+    const command = await commands.stop("call_1", "person");
+    expect(command?.stoppedBy).toBeUndefined();
     expect(command?.result?.exitCode).toBe(0);
+  });
+
+  it("names the invocation's end for what still ran, and keeps an earlier stop's name", async () => {
+    commands.start(request("call_1", "sleep 30"));
+    commands.start(request("call_2", "echo done"));
+    await ended("call_2");
+    const first = commands.stop("call_3", "person");
+    commands.start(request("call_3", "sleep 30"));
+    await first;
+    const stopping = commands.stop("call_3", "person");
+    await commands.stopAll("approval");
+    await stopping;
+    expect(commands.get("call_1")?.stoppedBy).toEqual({ by: "approval" });
+    expect(commands.get("call_2")?.stoppedBy, "it had ended on its own").toBeUndefined();
+    expect(commands.get("call_3")?.stoppedBy).toEqual({ by: "person" });
+  });
+
+  it("tells its listeners each start, each chunk of output and each end, the end before a stop resolves", async () => {
+    const heard: string[] = [];
+    const listened = new BackgroundCommands({
+      onStarted: (command) => heard.push(`started ${command.id} ${command.timeoutSeconds}`),
+      onOutput: (id, chunk) => heard.push(`output ${id} ${chunk.trim()}`),
+      onEnded: (command) => heard.push(`ended ${command.id} ${command.stoppedBy?.by ?? "itself"} ${command.result === undefined ? "unset" : "set"}`),
+    });
+    try {
+      listened.start(request("call_1", "echo one; sleep 30"));
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      await listened.stop("call_1", "person");
+      expect(heard).toEqual(["started call_1 60", "output call_1 one", "ended call_1 person set"]);
+      listened.start(request("call_2", "sleep 30"));
+      await listened.stopAll();
+      expect(heard.slice(3)).toEqual(["started call_2 60", "ended call_2 turn set"]);
+    } finally {
+      await listened.stopAll();
+    }
   });
 
   it("resolves a stop only once every process of the group has gone, a child ignoring SIGTERM included", async () => {
@@ -135,7 +176,7 @@ describe("background commands", () => {
     const ids = Array.from({ length: MAX_RUNNING_BACKGROUND_COMMANDS }, (_, i) => `call_${i}`);
     for (const id of ids) expect(commands.start(request(id, "sleep 30")).kind).toBe("started");
     expect(commands.start(request("call_x", "sleep 30"))).toEqual({ kind: "full", running: ids });
-    await commands.stop("call_0");
+    await commands.stop("call_0", { agent: "stop_1" });
     expect(commands.start(request("call_x", "sleep 30")).kind).toBe("started");
   });
 

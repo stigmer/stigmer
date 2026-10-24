@@ -1,7 +1,7 @@
 /**
  * TranscriptBuilder — folds `TranscriptEvent`s into the turn's rows it is
  * handed (`TurnRows`, the runner's own proto: messages, tool-call rows and
- * their approval status, sub-agent rows, todos), and registers the turn's
+ * their approval status, sub-agent rows, todos, background commands), and registers the turn's
  * artifacts and write-backs on the run's status it is handed beside them.
  *
  * The one transcript builder, for every harness (#1097). It
@@ -82,6 +82,14 @@
  *     `rows.todos` through the shared `applyTodoUpdate`, a full replace
  *     unless the call's args say `merge: true` (the row stays — the
  *     clients filter it); a sub-agent's is not.
+ *   - A command the agent started in the background is projected into
+ *     `rows.background_commands`, one entry per starting call id, created by
+ *     whichever of its start and its end arrives first: the harness's
+ *     registry starts it inside the starting call, before that call's
+ *     `tool_started` is folded, so no entry waits for a row. Its start and
+ *     its end are discrete changes; its first end is final. Its output
+ *     builds nothing and reaches the observer only. The starting call's own
+ *     row and result are untouched.
  *   - `finalize()` clears every streaming flag in every scope.
  *   - Write-backs upsert by `workspaceEntryName`: the write-back coordinator
  *     registers its own here, through the one-method view it declares for
@@ -127,6 +135,8 @@ import { utcTimestamp } from "../../shared/status.js";
 import { TranscriptState, type Transcript, type TranscriptSeed } from "./state.js";
 import type {
   ApprovalProposedEvent,
+  BackgroundCommandEndedEvent,
+  BackgroundCommandStartedEvent,
   SubAgentFailedEvent,
   SubAgentFinishedEvent,
   SubAgentStartedEvent,
@@ -136,7 +146,9 @@ import type {
 } from "./events.js";
 import {
   AgentMessageSchema,
+  BackgroundCommandRowSchema,
   ToolCallSchema,
+  type BackgroundCommandRow,
   type AgentMessage,
   type ToolCall,
   SubAgentRunSchema,
@@ -328,6 +340,15 @@ export class TranscriptBuilder {
         case "sub_agent_failed":
           this.failSubAgent(event);
           return;
+        case "background_command_started":
+          this.startBackgroundCommand(event);
+          return;
+        case "background_command_ended":
+          this.endBackgroundCommand(event);
+          return;
+        case "background_output_delta":
+          // Its observer's alone: the emitter previews it (`events.ts`).
+          return;
         default:
           break;
       }
@@ -415,6 +436,39 @@ export class TranscriptBuilder {
     } else {
       backs.push(wb);
     }
+    this._dirty = true;
+  }
+
+  // ── Background Commands ────────────────────────────────────────────
+
+  /** The command `callId` started, created by whichever of its facts arrives first (the header). */
+  private backgroundCommand(callId: string): BackgroundCommandRow {
+    const rows = this.state.rows.backgroundCommands;
+    const known = rows.find((row) => row.callId === callId);
+    if (known !== undefined) return known;
+    const row = create(BackgroundCommandRowSchema, { callId });
+    rows.push(row);
+    return row;
+  }
+
+  private startBackgroundCommand(event: BackgroundCommandStartedEvent): void {
+    const row = this.backgroundCommand(event.callId);
+    row.timeoutSeconds = event.timeoutSeconds;
+    if (row.startedAt === "") row.startedAt = event.observedAt ?? this.instant();
+    this._dirty = true;
+  }
+
+  private endBackgroundCommand(event: BackgroundCommandEndedEvent): void {
+    const row = this.backgroundCommand(event.callId);
+    if (row.ending !== "") return;
+    const endedAt = event.observedAt ?? this.instant();
+    if (row.startedAt === "") row.startedAt = endedAt;
+    row.ending = event.ending;
+    if (event.exitCode !== undefined) row.exitCode = event.exitCode;
+    row.stoppedBy = event.stoppedBy ?? "";
+    row.stoppedByCallId = event.stoppedByCallId ?? "";
+    row.output = event.output;
+    row.endedAt = endedAt;
     this._dirty = true;
   }
 

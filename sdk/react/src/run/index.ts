@@ -217,6 +217,8 @@ export type { TodoCardProps } from "./TodoCard.js";
 
 export { useAnswerToolUse } from "./useAnswerToolUse.js";
 export type { UseAnswerToolUseReturn, ToolUseAnswer } from "./useAnswerToolUse.js";
+export { useStopBackgroundCommand } from "./useStopBackgroundCommand.js";
+export type { UseStopBackgroundCommandReturn } from "./useStopBackgroundCommand.js";
 
 export { useReviewFileChanges, fileDecisionKey } from "./useReviewFileChanges.js";
 export type {
@@ -273,6 +275,9 @@ export type { FileChangeProgressBarProps } from "./FileChangeProgressBar.js";
 
 export { ApprovalContext, useApproval } from "./ApprovalContext.js";
 export type { ApprovalContextValue, UseApprovalResult } from "./ApprovalContext.js";
+export { BackgroundCommandContext, useBackgroundStop } from "./BackgroundCommandContext.js";
+export type { BackgroundCommandContextValue, UseBackgroundStopResult } from "./BackgroundCommandContext.js";
+export { BackgroundCommandTrail, backgroundStatusLabel } from "./BackgroundCommandStatus.js";
 
 export {
   FileReviewContext,

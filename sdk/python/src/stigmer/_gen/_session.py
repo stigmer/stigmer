@@ -72,6 +72,12 @@ class SessionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def stop_background_command(self, input: io_pb2.StopBackgroundCommandInput) -> event_pb2.SessionEvent:
+        try:
+            return self._command.stopBackgroundCommand(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def interrupt(self, input: io_pb2.InterruptSessionInput) -> io_pb2.InterruptSessionResponse:
         try:
             return self._command.interrupt(input)

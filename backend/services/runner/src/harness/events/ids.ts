@@ -12,6 +12,8 @@
  *   tool result ........ <tool use>.r
  *   its full output .... <tool use>.full    (an offloaded result's storage key)
  *   permission asked ... <tool use>.ask
+ *   background command . <tool use>.bg, its end <tool use>.bg.end (the
+ *                        command the tool use started in the background)
  *   message ............ <run>.<scope>.m<index>
  *   thinking ........... <run>.<scope>.t<index>, its text <...>.text
  *   harness note ....... <run>.<scope>.n<index>
@@ -93,6 +95,16 @@ export function toolResultFullOutputEventId(toolUseId: string): string {
 /** The `stigmer.permission.asked` beside a tool use that waits. */
 export function permissionAskedEventId(toolUseId: string): string {
   return `${toolUseId}.ask`;
+}
+
+/** The `stigmer.background_command.status` that says the command a tool use started in the background runs. */
+export function backgroundRunningEventId(toolUseId: string): string {
+  return `${toolUseId}.bg`;
+}
+
+/** The `stigmer.background_command.status` that says how that command ended. */
+export function backgroundEndedEventId(toolUseId: string): string {
+  return `${toolUseId}.bg.end`;
 }
 
 /** The prefix every message, thinking and note of one scope shares. */

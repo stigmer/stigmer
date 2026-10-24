@@ -525,6 +525,12 @@ export interface TurnInput extends NormalizedActivityInput {
 // The sink
 // ---------------------------------------------------------------------------
 
+/** `TurnSink.backgroundStops`: a person's stops of background commands, by call id. */
+export interface BackgroundStopChannel {
+  /** Be told each command a person stopped, once, by its call id; returns the unsubscribe. */
+  onStop(listener: (callId: string) => void): () => void;
+}
+
 /**
  * The runtime's face during one turn: what an adapter may ask of it, the
  * rows it folds into and the status the runtime writes. One sink per turn,
@@ -534,7 +540,8 @@ export interface TurnInput extends NormalizedActivityInput {
  * transcript; the rows are the runner's own `TurnRows`, written to the
  * session's log and never sent with the status):
  *
- *  - Transcript rows — messages, tool-call rows, sub-agent rows, todos — are
+ *  - Transcript rows — messages, tool-call rows, sub-agent rows, todos,
+ *    and the background commands projected beside them — are
  *    CREATED through `transcript` and nowhere else: the adapter translates
  *    its engine's events and applies them; a reinvocation's asks are seeded
  *    through it by the runtime from the session's log. The one exception, the runtime's own
@@ -646,6 +653,18 @@ export interface TurnSink {
    * messages to the turn the session starts next.
    */
   readonly input: TurnInputChannel;
+
+  /**
+   * A person's stop of one command the agent runs in the background
+   * (`SessionCommandController.stopBackgroundCommand`), read by the
+   * runtime's pump (`background-stops.ts`) while a command runs. `onStop`
+   * hands each stopped command's call id (the id of the call that started
+   * it, as its `background_command_started` named it) to the listener once;
+   * the adapter stops that command alone and tells its agent, and the
+   * command's `background_command_ended` says a person stopped it. A
+   * harness that runs nothing in the background never subscribes.
+   */
+  readonly backgroundStops: BackgroundStopChannel;
 
   /**
    * "Persist the status": a write through the runtime's single persist

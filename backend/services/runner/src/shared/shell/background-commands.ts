@@ -24,6 +24,19 @@
  * framework's own identity, unique in the session, already the key of the
  * start's row in the session's log, with no counter to keep.
  *
+ * Who stopped a command is kept beside its result, because the ending
+ * alone cannot say it: the agent (its stop tool, by that call's id), a
+ * person (`stop(id, "person")`, the session's stop of one command), or the
+ * invocation's end, which the adapter names `approval` when it ends
+ * awaiting a person's answer and `turn` otherwise. The adapter reads its
+ * own outcome for that, never why its stop signal fired.
+ *
+ * What the session sees of each command comes from here too: the
+ * {@link BackgroundListeners} the registry is built with hear each start,
+ * each chunk of output and each end, the end before the command's group is
+ * stopped and before `stop` or `stopAll` resolves, so an invocation that
+ * returns has already reported every ending.
+ *
  * What the registry bounds:
  *  - At most {@link MAX_RUNNING_BACKGROUND_COMMANDS} run at once; a further
  *    start is refused with the running ids, so the agent stops one first.
@@ -82,6 +95,13 @@ export interface BackgroundStartRequest {
   readonly run: (options: BackgroundRunOptions) => Promise<CommandResult>;
 }
 
+/** Who stopped a command (the header). */
+export type BackgroundStoppedBy =
+  | { readonly by: "agent"; readonly callId: string }
+  | { readonly by: "person" }
+  | { readonly by: "approval" }
+  | { readonly by: "turn" };
+
 /** One background command, as read at one moment. */
 export interface BackgroundCommand {
   readonly id: string;
@@ -89,9 +109,20 @@ export interface BackgroundCommand {
   readonly timeoutSeconds: number;
   /** Set once it ended, however it ended. */
   readonly result: CommandResult | undefined;
-  /** It was ended by {@link BackgroundCommands.stop}, the agent's own request. */
-  readonly stoppedOnRequest: boolean;
+  /** Who asked for it to stop, when someone did before it ended on its own. */
+  readonly stoppedBy: BackgroundStoppedBy | undefined;
 }
+
+/** What hears each command's life: the adapter turns it into the turn's transcript facts. */
+export interface BackgroundListeners {
+  readonly onStarted?: (command: BackgroundCommand) => void;
+  readonly onOutput?: (id: string, chunk: string) => void;
+  /** It ended, with its result set; called before `stop` and `stopAll` resolve. */
+  readonly onEnded?: (command: BackgroundCommand) => void;
+}
+
+/** Why `stopAll` stops what still runs: the invocation ends awaiting a person's answer, or otherwise. */
+export type InvocationEnd = "approval" | "turn";
 
 export type BackgroundStartAnswer =
   | { readonly kind: "started" }
@@ -104,7 +135,7 @@ export type PriorStop = "approval" | "interrupted";
 
 class Entry {
   result: CommandResult | undefined;
-  stoppedOnRequest = false;
+  stoppedBy: BackgroundStoppedBy | undefined;
   processGroupId: number | undefined;
   readonly controller = new AbortController();
   /** Resolves once it ended and its file is closed. */
@@ -122,7 +153,7 @@ class Entry {
       command: this.command,
       timeoutSeconds: this.timeoutSeconds,
       result: this.result,
-      stoppedOnRequest: this.stoppedOnRequest,
+      stoppedBy: this.stoppedBy,
     };
   }
 }
@@ -172,6 +203,8 @@ export class BackgroundCommands {
   private reminded = false;
   private prior: PriorStop = "interrupted";
 
+  constructor(private readonly hear: BackgroundListeners = {}) {}
+
   /** Start `request` (its command runs on after this returns); never throws. */
   start(request: BackgroundStartRequest): BackgroundStartAnswer {
     if (this.closed) return { kind: "closed" };
@@ -181,15 +214,20 @@ export class BackgroundCommands {
     const entry = new Entry(request.id, request.command, request.timeoutSeconds);
     this.entries.set(request.id, entry);
     const file = request.outputPath === undefined ? undefined : new OutputFile(request.outputPath);
+    this.hear.onStarted?.(entry.view());
     entry.done = request
       .run({
         signal: entry.controller.signal,
-        onOutput: (chunk) => file?.append(chunk),
+        onOutput: (chunk) => {
+          file?.append(chunk);
+          this.hear.onOutput?.(entry.id, chunk);
+        },
         onSpawn: (processGroupId) => (entry.processGroupId = processGroupId),
       })
       .then(async (result) => {
         await file?.close();
         entry.result = result;
+        this.hear.onEnded?.(entry.view());
         for (const listener of [...this.listeners]) listener();
       });
     return { kind: "started" };
@@ -209,23 +247,31 @@ export class BackgroundCommands {
   }
 
   /**
-   * Stop command `id` at the agent's request and resolve with it once every
-   * process in its group has gone; as it is when it had already ended;
-   * undefined when this invocation started no such command.
+   * Stop command `id` at the agent's request (by its stop call's id) or a
+   * person's, and resolve with it once every process in its group has gone;
+   * as it is when it had already ended; undefined when this invocation
+   * started no such command.
    */
-  async stop(id: string): Promise<BackgroundCommand | undefined> {
+  async stop(id: string, by: { readonly agent: string } | "person"): Promise<BackgroundCommand | undefined> {
     const entry = this.entries.get(id);
     if (entry === undefined) return undefined;
     if (entry.result === undefined) {
-      entry.stoppedOnRequest = true;
+      entry.stoppedBy ??= by === "person" ? { by: "person" } : { by: "agent", callId: by.agent };
       await this.end(entry);
     }
     return entry.view();
   }
 
-  /** Stop every command, and refuse every later start; resolves once every group has gone (the header). */
-  async stopAll(): Promise<void> {
+  /**
+   * Stop every command, and refuse every later start; resolves once every
+   * group has gone and every ending was heard (the header). `why` names
+   * what stopped the ones still running.
+   */
+  async stopAll(why: InvocationEnd = "turn"): Promise<void> {
     this.closed = true;
+    for (const entry of this.entries.values()) {
+      if (entry.result === undefined) entry.stoppedBy ??= { by: why };
+    }
     await Promise.all([...this.entries.values()].map((entry) => this.end(entry)));
   }
 

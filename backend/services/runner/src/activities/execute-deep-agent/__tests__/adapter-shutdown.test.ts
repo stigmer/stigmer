@@ -39,8 +39,10 @@ describe("the native adapter's shutdown", () => {
     const adapter = createDeepAgentAdapter();
     await adapter.boot({} as Config);
 
-    const first = adapter.runTurn({} as never, {} as never);
-    const second = adapter.runTurn({} as never, {} as never);
+    // The registry reports each command to the turn's transcript (`background-facts.ts`).
+    const sink = { transcript: { apply: () => undefined }, requestPersist: async () => undefined };
+    const first = adapter.runTurn({} as never, sink as never);
+    const second = adapter.runTurn({} as never, sink as never);
     await vi.waitFor(() => expect(turns).toHaveLength(2));
     turns[0]!.release();
     await first;

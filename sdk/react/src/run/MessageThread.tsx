@@ -14,6 +14,7 @@ import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/ap
 import {
   deletedReferenceLabel,
   displayFileChangeSets,
+  isBackgroundRunning,
   isDeletedReference,
   syntheticUserPrompt,
   type CompactedItem,
@@ -58,6 +59,7 @@ import { FilePathContext, type FilePathContextValue } from "./FilePathContext.js
 import type { ResolvedPathAction } from "./file-path-resolver.js";
 import { SandboxContext, type SandboxContextValue } from "./SandboxContext.js";
 import { ApprovalContext, type ApprovalContextValue } from "./ApprovalContext.js";
+import { BackgroundCommandContext, type BackgroundCommandContextValue } from "./BackgroundCommandContext.js";
 import { FileReviewContext, type FileReviewContextValue } from "./FileReviewContext.js";
 import {
   extractLeadingH1,
@@ -265,6 +267,20 @@ export interface MessageThreadProps {
    * `errorsByToolUseId`. Only meaningful when `onAnswerToolUse` is provided.
    */
   readonly answerErrors?: ReadonlyMap<string, Error>;
+  /**
+   * Stops one command the agent runs in the background, by the tool use
+   * that started it. When provided, a running command's row, and the
+   * thread's tail line while the turn waits only on such commands, offer
+   * Stop; when omitted, none is shown.
+   */
+  readonly onStopBackgroundCommand?: (toolUseId: string) => void;
+  /** The tool uses whose background stop is in flight, by id. Only meaningful with `onStopBackgroundCommand`. */
+  readonly stoppingBackgroundToolUseIds?: ReadonlySet<string>;
+  /**
+   * Each tool use's last failed background stop, keyed by its id, shown on
+   * its row. Supply {@link useStopBackgroundCommand}'s `errorsByToolUseId`.
+   */
+  readonly stopBackgroundErrors?: ReadonlyMap<string, Error>;
   /**
    * Render each *settled* file review as a read-only record card at its
    * anchor in the thread (after the last row that edited one of its files)
@@ -493,6 +509,12 @@ export type ThreadItem =
        */
       readonly kind: "liveness";
       readonly key: string;
+      /**
+       * The background commands the turn is held for, oldest first, when the
+       * agent's reply has ended and the turn waits only on them (the turn's
+       * liveness shows no wait on its model); empty otherwise.
+       */
+      readonly waitingOn: ReadonlyArray<ToolUse>;
     };
 
 /** Options for {@link buildThreadItems}: everything beyond the turns and their runs. */
@@ -557,6 +579,16 @@ function hasVisiblyRunningActivity(items: ReadonlyArray<TurnItem>): boolean {
         (item.thread !== undefined &&
           (item.thread.state === "running" || hasVisiblyRunningActivity(item.thread.items)))),
   );
+}
+
+/** The background commands running now among `items`, at any depth, oldest first. */
+function runningBackgroundCommands(items: ReadonlyArray<TurnItem>): ToolUse[] {
+  const running = items.flatMap((item): ToolUse[] =>
+    item.kind !== "tool_use"
+      ? []
+      : [...(isBackgroundRunning(item) ? [item] : []), ...(item.thread === undefined ? [] : runningBackgroundCommands(item.thread.items))],
+  );
+  return running.sort((a, b) => (a.background?.startedAt ?? "").localeCompare(b.background?.startedAt ?? ""));
 }
 
 /**
@@ -1055,7 +1087,13 @@ export function buildThreadItems(
     activeTurn.asks.length === 0 &&
     !hasVisiblyRunningActivity(activeTurn.items)
   ) {
-    items.push({ kind: "liveness", key: "liveness-status" });
+    // Held for its background commands alone: the agent's reply has ended
+    // (its liveness names no wait on the model) while commands still run.
+    const waitingOn =
+      activeTurn.liveness !== undefined && activeTurn.liveness.awaitingModelMs === undefined
+        ? runningBackgroundCommands(activeTurn.items)
+        : [];
+    items.push({ kind: "liveness", key: "liveness-status", waitingOn });
   }
 
   // Messages sent while a turn worked that no turn has read, in the order
@@ -1154,6 +1192,9 @@ export function MessageThread({
   onAnswerToolUse,
   answeringToolUseIds,
   answerErrors,
+  onStopBackgroundCommand,
+  stoppingBackgroundToolUseIds,
+  stopBackgroundErrors,
   showFileReviewRecords = false,
   resources,
   onFilePathClick,
@@ -1239,6 +1280,17 @@ export function MessageThread({
     [onAnswerToolUse, answeringToolUseIds, answerErrors],
   );
 
+  // The stop of a command the agent runs in the background, for its row and
+  // the tail line (see BackgroundCommandContext).
+  const backgroundCtx = useMemo<BackgroundCommandContextValue>(
+    () => ({
+      onStop: onStopBackgroundCommand,
+      stoppingIds: stoppingBackgroundToolUseIds ?? EMPTY_SUBMITTING_IDS,
+      errorsByToolUseId: stopBackgroundErrors ?? EMPTY_ANSWER_ERRORS,
+    }),
+    [onStopBackgroundCommand, stoppingBackgroundToolUseIds, stopBackgroundErrors],
+  );
+
   // Each turn's file reviews and the runs' captured bytes, so a file-edit row
   // badges its file's live review state and a write row renders its diff
   // wherever it renders (parent thread or nested groups). Rebuilt only when
@@ -1252,12 +1304,11 @@ export function MessageThread({
   // cards, so the bar reuses the existing scroll machine without a new observer.
   const unresolvedApprovalCount = includeApprovals ? (turns.at(-1)?.asks.length ?? 0) : 0;
 
-  const withRunScores = (thread: ReactNode): ReactNode =>
-    runScores ? (
-      <RunScoresProvider runs={runs}>{thread}</RunScoresProvider>
-    ) : (
-      thread
-    );
+  const withRunScores = (thread: ReactNode): ReactNode => (
+    <BackgroundCommandContext.Provider value={backgroundCtx}>
+      {runScores ? <RunScoresProvider runs={runs}>{thread}</RunScoresProvider> : thread}
+    </BackgroundCommandContext.Provider>
+  );
 
   if (virtualized) {
     return withRunScores(
@@ -1607,7 +1658,7 @@ export function ThreadItemRenderer({
       return <LoadedVersionsMarker changes={item.changes} />;
     case "liveness": {
       const Liveness = slots?.LivenessStatusLine ?? LivenessStatusLine;
-      return <Liveness />;
+      return item.waitingOn.length > 0 ? <Liveness waitingOn={item.waitingOn} /> : <Liveness />;
     }
     case "queued-message": {
       const Entry = slots?.MessageEntry ?? MessageEntry;

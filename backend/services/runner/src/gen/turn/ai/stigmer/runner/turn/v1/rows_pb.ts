@@ -17,7 +17,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/runner/turn/v1/rows.proto.
  */
 export const file_ai_stigmer_runner_turn_v1_rows: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL3J1bm5lci90dXJuL3YxL3Jvd3MucHJvdG8SGWFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEi9AMKCFR1cm5Sb3dzEjkKCG1lc3NhZ2VzGAEgAygLMicuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5BZ2VudE1lc3NhZ2USPgoOc3ViX2FnZW50X3J1bnMYBCADKAsyJi5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlN1YkFnZW50UnVuEj0KBXRvZG9zGAkgAygLMi4uYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5UdXJuUm93cy5Ub2Rvc0VudHJ5EjIKEXN0cnVjdHVyZWRfb3V0cHV0GBUgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBJSChhmaWxlX3Jldmlld19ldmVudF9zdHJlYW0YGCABKAsyMC5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLkZpbGVSZXZpZXdFdmVudFN0cmVhbRJTChhyZWNhbGxlZF9tZW1vcmllc19yZXBvcnQYGiABKAsyMS5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlJlY2FsbGVkTWVtb3JpZXNSZXBvcnQaUQoKVG9kb3NFbnRyeRILCgNrZXkYASABKAkSMgoFdmFsdWUYAiABKAsyIy5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlRvZG9JdGVtOgI4ASLiAQoMQWdlbnRNZXNzYWdlEjQKBHR5cGUYASABKA4yJi5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLk1lc3NhZ2VUeXBlEg8KB2NvbnRlbnQYAiABKAkSEQoJdGltZXN0YW1wGAMgASgJEjcKCnRvb2xfY2FsbHMYBCADKAsyIy5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlRvb2xDYWxsEikKCG1ldGFkYXRhGAUgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBIUCgxpc19zdHJlYW1pbmcYBiABKAgi9wYKCFRvb2xDYWxsEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSJQoEYXJncxgDIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSDgoGcmVzdWx0GAQgASgJEjkKBnN0YXR1cxgFIAEoDjIpLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuVG9vbENhbGxTdGF0dXMSEgoKc3RhcnRlZF9hdBgHIAEoCRIUCgxjb21wbGV0ZWRfYXQYCCABKAkSDQoFZXJyb3IYCSABKAkSGQoRcmVxdWlyZXNfYXBwcm92YWwYCiABKAgSGAoQYXBwcm92YWxfbWVzc2FnZRgLIAEoCRIdChVhcHByb3ZhbF9yZXF1ZXN0ZWRfYXQYDCABKAkSGwoTYXBwcm92YWxfZGVjaWRlZF9hdBgNIAEoCRITCgthcHByb3ZlZF9ieRgOIAEoCRJCCg9hcHByb3ZhbF9hY3Rpb24YDyABKA4yKS5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLkFwcHJvdmFsQWN0aW9uEhQKDGlzX3N0cmVhbWluZxgQIAEoCBJMChBzdHJlYW1pbmdfc291cmNlGBMgASgOMjIuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5Ub29sQ2FsbFN0cmVhbWluZ1NvdXJjZRIXCg9tY3Bfc2VydmVyX3NsdWcYESABKAkSFAoMYXJnc19wcmV2aWV3GBIgASgJEjYKCXRvb2xfa2luZBgUIAEoDjIjLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuVG9vbEtpbmQSQAoKb3V0cHV0X3JlZhgVIAEoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuVG9vbENhbGxPdXRwdXRSZWYSTwoWYXBwcm92YWxfcG9saWN5X3NvdXJjZRgXIAEoDjIvLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuQXBwcm92YWxQb2xpY3lTb3VyY2USHQoVcG9saWN5X2VuZ2luZV92ZXJzaW9uGBggASgJEh8KF2FwcHJvdmFsX2NvbnRlbnRfZGlnZXN0GBkgASgJEhoKEmZpbGVfY2hhbmdlX3NldF9pZBgaIAEoCRIcChRhcHByb3ZhbF9wb2xpY3lfaG9vaxgbIAEoCUoECBYQFyLGAwoLU3ViQWdlbnRSdW4SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVpbnB1dBgDIAEoCRIOCgZvdXRwdXQYBCABKAkSOQoGc3RhdHVzGAUgASgOMikuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5TdWJBZ2VudFN0YXR1cxISCgpzdGFydGVkX2F0GAYgASgJEhQKDGNvbXBsZXRlZF9hdBgHIAEoCRINCgVlcnJvchgIIAEoCRIpCghtZXRhZGF0YRgJIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSOQoIbWVzc2FnZXMYCyADKAsyJy5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLkFnZW50TWVzc2FnZRIPCgdzdWJqZWN0GA0gASgJEkAKBXRvZG9zGA4gAygLMjEuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5TdWJBZ2VudFJ1bi5Ub2Rvc0VudHJ5GlEKClRvZG9zRW50cnkSCwoDa2V5GAEgASgJEjIKBXZhbHVlGAIgASgLMiMuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5Ub2RvSXRlbToCOAEihgEKCFRvZG9JdGVtEgoKAmlkGAEgASgJEg8KB2NvbnRlbnQYAiABKAkSNQoGc3RhdHVzGAMgASgOMiUuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5Ub2RvU3RhdHVzEhIKCmNyZWF0ZWRfYXQYBCABKAkSEgoKdXBkYXRlZF9hdBgFIAEoCSLTAwoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCRIXCg9hZ2VudF9yYXRpb25hbGUYCiABKAkSFgoOYnJhbmNoX2F0X2RlbnkYCyABKAkSGAoQaGVhZF9zaGFfYXRfZGVueRgMIAEoCRI2Cgl0b29sX2tpbmQYDSABKA4yIy5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlRvb2xLaW5kEk8KFmFwcHJvdmFsX3BvbGljeV9zb3VyY2UYDyABKA4yLy5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLkFwcHJvdmFsUG9saWN5U291cmNlEhwKFGFwcHJvdmFsX3BvbGljeV9ob29rGBAgASgJSgQIDhAPImgKFlJlY2FsbGVkTWVtb3JpZXNSZXBvcnQSGAoQc2VsZWN0aW9uX2FjdGl2ZRgBIAEoCBIbChNpbmplY3RlZF9tZW1vcnlfaWRzGAIgAygJEhcKD2VtYmVkZGluZ19tb2RlbBgDIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_run_v1_message, file_ai_stigmer_runner_turn_v1_enum, file_ai_stigmer_runner_turn_v1_ledger, file_google_protobuf_struct]);
+  fileDesc("CiRhaS9zdGlnbWVyL3J1bm5lci90dXJuL3YxL3Jvd3MucHJvdG8SGWFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEiwgQKCFR1cm5Sb3dzEjkKCG1lc3NhZ2VzGAEgAygLMicuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5BZ2VudE1lc3NhZ2USPgoOc3ViX2FnZW50X3J1bnMYBCADKAsyJi5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlN1YkFnZW50UnVuEj0KBXRvZG9zGAkgAygLMi4uYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5UdXJuUm93cy5Ub2Rvc0VudHJ5EjIKEXN0cnVjdHVyZWRfb3V0cHV0GBUgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBJSChhmaWxlX3Jldmlld19ldmVudF9zdHJlYW0YGCABKAsyMC5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLkZpbGVSZXZpZXdFdmVudFN0cmVhbRJTChhyZWNhbGxlZF9tZW1vcmllc19yZXBvcnQYGiABKAsyMS5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlJlY2FsbGVkTWVtb3JpZXNSZXBvcnQSTAoTYmFja2dyb3VuZF9jb21tYW5kcxgeIAMoCzIvLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuQmFja2dyb3VuZENvbW1hbmRSb3caUQoKVG9kb3NFbnRyeRILCgNrZXkYASABKAkSMgoFdmFsdWUYAiABKAsyIy5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlRvZG9JdGVtOgI4ASLcAQoUQmFja2dyb3VuZENvbW1hbmRSb3cSDwoHY2FsbF9pZBgBIAEoCRIXCg90aW1lb3V0X3NlY29uZHMYAiABKAUSDgoGZW5kaW5nGAMgASgJEhYKCWV4aXRfY29kZRgEIAEoBUgAiAEBEhIKCnN0b3BwZWRfYnkYBSABKAkSGgoSc3RvcHBlZF9ieV9jYWxsX2lkGAYgASgJEg4KBm91dHB1dBgHIAEoCRISCgpzdGFydGVkX2F0GAggASgJEhAKCGVuZGVkX2F0GAkgASgJQgwKCl9leGl0X2NvZGUi4gEKDEFnZW50TWVzc2FnZRI0CgR0eXBlGAEgASgOMiYuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5NZXNzYWdlVHlwZRIPCgdjb250ZW50GAIgASgJEhEKCXRpbWVzdGFtcBgDIAEoCRI3Cgp0b29sX2NhbGxzGAQgAygLMiMuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5Ub29sQ2FsbBIpCghtZXRhZGF0YRgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFAoMaXNfc3RyZWFtaW5nGAYgASgIIvcGCghUb29sQ2FsbBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEiUKBGFyZ3MYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Eg4KBnJlc3VsdBgEIAEoCRI5CgZzdGF0dXMYBSABKA4yKS5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlRvb2xDYWxsU3RhdHVzEhIKCnN0YXJ0ZWRfYXQYByABKAkSFAoMY29tcGxldGVkX2F0GAggASgJEg0KBWVycm9yGAkgASgJEhkKEXJlcXVpcmVzX2FwcHJvdmFsGAogASgIEhgKEGFwcHJvdmFsX21lc3NhZ2UYCyABKAkSHQoVYXBwcm92YWxfcmVxdWVzdGVkX2F0GAwgASgJEhsKE2FwcHJvdmFsX2RlY2lkZWRfYXQYDSABKAkSEwoLYXBwcm92ZWRfYnkYDiABKAkSQgoPYXBwcm92YWxfYWN0aW9uGA8gASgOMikuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5BcHByb3ZhbEFjdGlvbhIUCgxpc19zdHJlYW1pbmcYECABKAgSTAoQc3RyZWFtaW5nX3NvdXJjZRgTIAEoDjIyLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuVG9vbENhbGxTdHJlYW1pbmdTb3VyY2USFwoPbWNwX3NlcnZlcl9zbHVnGBEgASgJEhQKDGFyZ3NfcHJldmlldxgSIAEoCRI2Cgl0b29sX2tpbmQYFCABKA4yIy5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLlRvb2xLaW5kEkAKCm91dHB1dF9yZWYYFSABKAsyLC5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlRvb2xDYWxsT3V0cHV0UmVmEk8KFmFwcHJvdmFsX3BvbGljeV9zb3VyY2UYFyABKA4yLy5haS5zdGlnbWVyLnJ1bm5lci50dXJuLnYxLkFwcHJvdmFsUG9saWN5U291cmNlEh0KFXBvbGljeV9lbmdpbmVfdmVyc2lvbhgYIAEoCRIfChdhcHByb3ZhbF9jb250ZW50X2RpZ2VzdBgZIAEoCRIaChJmaWxlX2NoYW5nZV9zZXRfaWQYGiABKAkSHAoUYXBwcm92YWxfcG9saWN5X2hvb2sYGyABKAlKBAgWEBcixgMKC1N1YkFnZW50UnVuEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDQoFaW5wdXQYAyABKAkSDgoGb3V0cHV0GAQgASgJEjkKBnN0YXR1cxgFIAEoDjIpLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuU3ViQWdlbnRTdGF0dXMSEgoKc3RhcnRlZF9hdBgGIAEoCRIUCgxjb21wbGV0ZWRfYXQYByABKAkSDQoFZXJyb3IYCCABKAkSKQoIbWV0YWRhdGEYCSABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0EjkKCG1lc3NhZ2VzGAsgAygLMicuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5BZ2VudE1lc3NhZ2USDwoHc3ViamVjdBgNIAEoCRJACgV0b2RvcxgOIAMoCzIxLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuU3ViQWdlbnRSdW4uVG9kb3NFbnRyeRpRCgpUb2Rvc0VudHJ5EgsKA2tleRgBIAEoCRIyCgV2YWx1ZRgCIAEoCzIjLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuVG9kb0l0ZW06AjgBIoYBCghUb2RvSXRlbRIKCgJpZBgBIAEoCRIPCgdjb250ZW50GAIgASgJEjUKBnN0YXR1cxgDIAEoDjIlLmFpLnN0aWdtZXIucnVubmVyLnR1cm4udjEuVG9kb1N0YXR1cxISCgpjcmVhdGVkX2F0GAQgASgJEhIKCnVwZGF0ZWRfYXQYBSABKAki0wMKD1BlbmRpbmdBcHByb3ZhbBIUCgx0b29sX2NhbGxfaWQYASABKAkSEQoJdG9vbF9uYW1lGAIgASgJEg8KB21lc3NhZ2UYAyABKAkSFAoMYXJnc19wcmV2aWV3GAQgASgJEhQKDHJlcXVlc3RlZF9hdBgFIAEoCRIWCg5mcm9tX3N1Yl9hZ2VudBgGIAEoCBIWCg5zdWJfYWdlbnRfbmFtZRgHIAEoCRIXCg9tY3Bfc2VydmVyX3NsdWcYCCABKAkSGQoRc3ViX2FnZW50X3N1YmplY3QYCSABKAkSFwoPYWdlbnRfcmF0aW9uYWxlGAogASgJEhYKDmJyYW5jaF9hdF9kZW55GAsgASgJEhgKEGhlYWRfc2hhX2F0X2RlbnkYDCABKAkSNgoJdG9vbF9raW5kGA0gASgOMiMuYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5Ub29sS2luZBJPChZhcHByb3ZhbF9wb2xpY3lfc291cmNlGA8gASgOMi8uYWkuc3RpZ21lci5ydW5uZXIudHVybi52MS5BcHByb3ZhbFBvbGljeVNvdXJjZRIcChRhcHByb3ZhbF9wb2xpY3lfaG9vaxgQIAEoCUoECA4QDyJoChZSZWNhbGxlZE1lbW9yaWVzUmVwb3J0EhgKEHNlbGVjdGlvbl9hY3RpdmUYASABKAgSGwoTaW5qZWN0ZWRfbWVtb3J5X2lkcxgCIAMoCRIXCg9lbWJlZGRpbmdfbW9kZWwYAyABKAliBnByb3RvMw", [file_ai_stigmer_agentic_run_v1_message, file_ai_stigmer_runner_turn_v1_enum, file_ai_stigmer_runner_turn_v1_ledger, file_google_protobuf_struct]);
 
 /**
  * TurnRows is what the runner holds for one turn beside the run's public
@@ -70,6 +70,17 @@ export type TurnRows = Message<"ai.stigmer.runner.turn.v1.TurnRows"> & {
    * @generated from field: ai.stigmer.runner.turn.v1.RecalledMemoriesReport recalled_memories_report = 26;
    */
   recalledMemoriesReport?: RecalledMemoriesReport;
+
+  /**
+   * The commands the agent started in the background in this invocation,
+   * in the order the runner heard of them, one per starting call: the
+   * event emitter writes each one's stigmer.background_command.status from
+   * it. Not a row of the transcript: the starting call's own row and its
+   * result are unchanged.
+   *
+   * @generated from field: repeated ai.stigmer.runner.turn.v1.BackgroundCommandRow background_commands = 30;
+   */
+  backgroundCommands: BackgroundCommandRow[];
 };
 
 /**
@@ -78,6 +89,86 @@ export type TurnRows = Message<"ai.stigmer.runner.turn.v1.TurnRows"> & {
  */
 export const TurnRowsSchema: GenMessage<TurnRows> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_runner_turn_v1_rows, 0);
+
+/**
+ * BackgroundCommandRow is one command the agent started in the background,
+ * as the runner's registry reported it. Keyed by call_id. Running while
+ * ending is empty.
+ *
+ * @generated from message ai.stigmer.runner.turn.v1.BackgroundCommandRow
+ */
+export type BackgroundCommandRow = Message<"ai.stigmer.runner.turn.v1.BackgroundCommandRow"> & {
+  /**
+   * The tool call id of the execute call that started it.
+   *
+   * @generated from field: string call_id = 1;
+   */
+  callId: string;
+
+  /**
+   * Its time limit, in seconds.
+   *
+   * @generated from field: int32 timeout_seconds = 2;
+   */
+  timeoutSeconds: number;
+
+  /**
+   * How it ended, as the session log's word (exited, timed_out, stopped,
+   * failed_to_start); empty while it runs.
+   *
+   * @generated from field: string ending = 3;
+   */
+  ending: string;
+
+  /**
+   * The exit code, when it exited.
+   *
+   * @generated from field: optional int32 exit_code = 4;
+   */
+  exitCode?: number;
+
+  /**
+   * Who stopped it, with ending stopped: agent, person, approval or turn.
+   *
+   * @generated from field: string stopped_by = 5;
+   */
+  stoppedBy: string;
+
+  /**
+   * The call that stopped it, when the agent did.
+   *
+   * @generated from field: string stopped_by_call_id = 6;
+   */
+  stoppedByCallId: string;
+
+  /**
+   * What it printed, as a foreground command's result would carry it.
+   *
+   * @generated from field: string output = 7;
+   */
+  output: string;
+
+  /**
+   * ISO 8601 timestamp when it started.
+   *
+   * @generated from field: string started_at = 8;
+   */
+  startedAt: string;
+
+  /**
+   * ISO 8601 timestamp when it ended.
+   *
+   * @generated from field: string ended_at = 9;
+   */
+  endedAt: string;
+};
+
+/**
+ * Describes the message ai.stigmer.runner.turn.v1.BackgroundCommandRow.
+ * Use `create(BackgroundCommandRowSchema)` to create a new message.
+ */
+export const BackgroundCommandRowSchema: GenMessage<BackgroundCommandRow> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_runner_turn_v1_rows, 1);
 
 /**
  * Represents a single message in the agent conversation.
@@ -137,7 +228,7 @@ export type AgentMessage = Message<"ai.stigmer.runner.turn.v1.AgentMessage"> & {
  * Use `create(AgentMessageSchema)` to create a new message.
  */
 export const AgentMessageSchema: GenMessage<AgentMessage> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_runner_turn_v1_rows, 1);
+  messageDesc(file_ai_stigmer_runner_turn_v1_rows, 2);
 
 /**
  * Represents a tool call made by the agent during a run.
@@ -481,7 +572,7 @@ export type ToolCall = Message<"ai.stigmer.runner.turn.v1.ToolCall"> & {
  * Use `create(ToolCallSchema)` to create a new message.
  */
 export const ToolCallSchema: GenMessage<ToolCall> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_runner_turn_v1_rows, 2);
+  messageDesc(file_ai_stigmer_runner_turn_v1_rows, 3);
 
 /**
  * Represents a sub-agent invocation within a run.
@@ -603,7 +694,7 @@ export type SubAgentRun = Message<"ai.stigmer.runner.turn.v1.SubAgentRun"> & {
  * Use `create(SubAgentRunSchema)` to create a new message.
  */
 export const SubAgentRunSchema: GenMessage<SubAgentRun> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_runner_turn_v1_rows, 3);
+  messageDesc(file_ai_stigmer_runner_turn_v1_rows, 4);
 
 /**
  * Represents a single item in the agent's todo list.
@@ -656,7 +747,7 @@ export type TodoItem = Message<"ai.stigmer.runner.turn.v1.TodoItem"> & {
  * Use `create(TodoItemSchema)` to create a new message.
  */
 export const TodoItemSchema: GenMessage<TodoItem> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_runner_turn_v1_rows, 4);
+  messageDesc(file_ai_stigmer_runner_turn_v1_rows, 5);
 
 /**
  * A pending approval request for a tool call that requires user consent before execution.
@@ -860,7 +951,7 @@ export type PendingApproval = Message<"ai.stigmer.runner.turn.v1.PendingApproval
  * Use `create(PendingApprovalSchema)` to create a new message.
  */
 export const PendingApprovalSchema: GenMessage<PendingApproval> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_runner_turn_v1_rows, 5);
+  messageDesc(file_ai_stigmer_runner_turn_v1_rows, 6);
 
 /**
  * RecalledMemoriesReport records the semantic retriever's injection outcome
@@ -916,5 +1007,5 @@ export type RecalledMemoriesReport = Message<"ai.stigmer.runner.turn.v1.Recalled
  * Use `create(RecalledMemoriesReportSchema)` to create a new message.
  */
 export const RecalledMemoriesReportSchema: GenMessage<RecalledMemoriesReport> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_runner_turn_v1_rows, 6);
+  messageDesc(file_ai_stigmer_runner_turn_v1_rows, 7);
 

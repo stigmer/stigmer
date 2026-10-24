@@ -1043,6 +1043,11 @@ const ConversationColumn = memo(function ConversationColumn({
         onAnswerToolUse={isObserver || isGuest || isParticipant ? undefined : flow.answerToolUse}
         answeringToolUseIds={conv.answeringToolUseIds}
         answerErrors={conv.answerErrors}
+        // Stopping one background command follows the session Stop's rule:
+        // the owners' act, never an observer's or a participant's.
+        onStopBackgroundCommand={isObserver || isParticipant ? undefined : conv.stopBackgroundCommand}
+        stoppingBackgroundToolUseIds={conv.stoppingBackgroundToolUseIds}
+        stopBackgroundErrors={conv.stopBackgroundErrors}
         showFileReviewRecords
         // Editing a message stops the run it started: an owner's act.
         onEditMessage={

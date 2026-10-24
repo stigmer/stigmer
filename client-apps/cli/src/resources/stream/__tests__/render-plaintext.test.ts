@@ -4,7 +4,8 @@
 // changes (running, waiting, completed, failed with the head of its output,
 // denied, interrupted), titled by a shell call's intent; a subagent's start,
 // its tool uses indented beneath, and its end, its messages left out; notes,
-// compactions and the turn's errors once each; how an ask was answered; a
+// compactions and the turn's errors once each; a background command's line
+// each time its state changes; how an ask was answered; a
 // turn the fold did not touch is not written again; thinking is silent.
 
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
@@ -12,6 +13,7 @@ import { foldSession, type ToolUse } from "@stigmer/client";
 import { describe, expect, it } from "vitest";
 import {
   asked,
+  background,
   confirmed,
   ev,
   failure,
@@ -124,6 +126,26 @@ describe("PlaintextRenderer", () => {
       phase(R, "failed"),
     ]);
     expect(status()).toBe("\n> go\n\n[system] tools are off\n  … Context compacted\n  ✗ model overloaded\n");
+  });
+
+  it("writes a background command's line each time its state changes, from its own status", () => {
+    const { status } = stream([
+      user(R, "go"),
+      phase(R, "running"),
+      use(R, "bg1", "execute", { input: { command: "npm test", background: true } }),
+      result(R, "bg1", "Started in the background (id bg1)."),
+      background(R, "bg1"),
+      use(R, "bg2", "execute", { input: { command: "npm run dev", background: true } }),
+      result(R, "bg2", "Started in the background (id bg2)."),
+      background(R, "bg2"),
+      background(R, "bg1", { ending: "exited", exitCode: 1 }),
+      background(R, "bg2", { ending: "stopped", stoppedBy: "person" }),
+    ]);
+    expect(status()).toContain("    Background command `npm test` is running\n");
+    expect(status()).toContain("    Background command `npm test` exited with code 1\n");
+    expect(status()).toContain("    Background command `npm run dev` was stopped by the person\n");
+    expect(status()).not.toContain("[system]");
+    expect(status().match(/Background command `npm test` exited/g)).toHaveLength(1);
   });
 
   it("does not walk a turn the fold left untouched", () => {

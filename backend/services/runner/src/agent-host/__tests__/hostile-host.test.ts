@@ -14,7 +14,8 @@
  *  - a plugin verify for a plugin the turn does not have: refused;
  *  - a read of the run's events: only the turn's own run is read, whatever
  *    the host asks;
- *  - a notice for a turn that has settled: dropped;
+ *  - a notice for a turn that has settled: dropped, and the runner sends
+ *    none once a turn settled (a person's stop of a background command);
  *  - tool-output refs that point outside the turn's own key prefix
  *    (another execution's, a traversal): dropped, refs the turn started
  *    with kept; CAS paths that are absolute or leave the workspace:
@@ -364,6 +365,26 @@ describe("a host that does not follow the rules", () => {
     await during.boot(testConfig());
     await during.runTurn(input, sink);
     expect(notices).toBe(1);
+  });
+
+  it("forwards a person's stop of a background command to the host by its call id, and nothing once the turn settled", async () => {
+    const input = turnInputFixture();
+    const sink = new RecordingTurnSink({ executionId: input.executionId });
+    const forwarded: string[] = [];
+    let heard: () => void = () => {};
+    const stopHeard = new Promise<void>((resolve) => (heard = resolve));
+    const adapter = hostileHarness(async (host, turnId) => {
+      host.onNotice("stopBackgroundCommand", (args) => {
+        if (args.turnId === turnId) forwarded.push(args.callId);
+        heard();
+      });
+      sink.stopBackground("bg-1");
+      await stopHeard;
+    });
+    await adapter.boot(testConfig());
+    await adapter.runTurn(input, sink);
+    sink.stopBackground("bg-late");
+    expect(forwarded).toEqual(["bg-1"]);
   });
 
   it("settles a turn asked to yield as interrupted when the host is lost", async () => {

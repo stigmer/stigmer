@@ -95,6 +95,8 @@ private static final long serialVersionUID = 0L;
     STIGMER_PERMISSION_GRANT(108),
     STIGMER_RUN_STATUS(109),
     STIGMER_TOOL_RESULT_FULL_OUTPUT(110),
+    STIGMER_BACKGROUND_COMMAND_STATUS(111),
+    STIGMER_BACKGROUND_COMMAND_STOP_REQUESTED(112),
     EVENT_NOT_SET(0);
     private final int value;
     private EventCase(int value) {
@@ -141,6 +143,8 @@ private static final long serialVersionUID = 0L;
         case 108: return STIGMER_PERMISSION_GRANT;
         case 109: return STIGMER_RUN_STATUS;
         case 110: return STIGMER_TOOL_RESULT_FULL_OUTPUT;
+        case 111: return STIGMER_BACKGROUND_COMMAND_STATUS;
+        case 112: return STIGMER_BACKGROUND_COMMAND_STOP_REQUESTED;
         case 0: return EVENT_NOT_SET;
         default: return null;
       }
@@ -1573,6 +1577,95 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent.getDefaultInstance();
   }
 
+  public static final int STIGMER_BACKGROUND_COMMAND_STATUS_FIELD_NUMBER = 111;
+  /**
+   * <pre>
+   * A command the agent started in the background began running, or
+   * ended and how.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent stigmer_background_command_status = 111 [json_name = "stigmerBackgroundCommandStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.status"];</code>
+   * @return Whether the stigmerBackgroundCommandStatus field is set.
+   */
+  @java.lang.Override
+  public boolean hasStigmerBackgroundCommandStatus() {
+    return eventCase_ == 111;
+  }
+  /**
+   * <pre>
+   * A command the agent started in the background began running, or
+   * ended and how.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent stigmer_background_command_status = 111 [json_name = "stigmerBackgroundCommandStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.status"];</code>
+   * @return The stigmerBackgroundCommandStatus.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent getStigmerBackgroundCommandStatus() {
+    if (eventCase_ == 111) {
+       return (ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * A command the agent started in the background began running, or
+   * ended and how.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent stigmer_background_command_status = 111 [json_name = "stigmerBackgroundCommandStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.status"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEventOrBuilder getStigmerBackgroundCommandStatusOrBuilder() {
+    if (eventCase_ == 111) {
+       return (ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent.getDefaultInstance();
+  }
+
+  public static final int STIGMER_BACKGROUND_COMMAND_STOP_REQUESTED_FIELD_NUMBER = 112;
+  /**
+   * <pre>
+   * A person asked to stop a command running in the background.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent stigmer_background_command_stop_requested = 112 [json_name = "stigmerBackgroundCommandStopRequested", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.stop_requested"];</code>
+   * @return Whether the stigmerBackgroundCommandStopRequested field is set.
+   */
+  @java.lang.Override
+  public boolean hasStigmerBackgroundCommandStopRequested() {
+    return eventCase_ == 112;
+  }
+  /**
+   * <pre>
+   * A person asked to stop a command running in the background.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent stigmer_background_command_stop_requested = 112 [json_name = "stigmerBackgroundCommandStopRequested", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.stop_requested"];</code>
+   * @return The stigmerBackgroundCommandStopRequested.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent getStigmerBackgroundCommandStopRequested() {
+    if (eventCase_ == 112) {
+       return (ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * A person asked to stop a command running in the background.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent stigmer_background_command_stop_requested = 112 [json_name = "stigmerBackgroundCommandStopRequested", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.stop_requested"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEventOrBuilder getStigmerBackgroundCommandStopRequestedOrBuilder() {
+    if (eventCase_ == 112) {
+       return (ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent) event_;
+    }
+    return ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent.getDefaultInstance();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1685,6 +1778,12 @@ private static final long serialVersionUID = 0L;
     }
     if (eventCase_ == 110) {
       output.writeMessage(110, (ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent) event_);
+    }
+    if (eventCase_ == 111) {
+      output.writeMessage(111, (ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent) event_);
+    }
+    if (eventCase_ == 112) {
+      output.writeMessage(112, (ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent) event_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -1823,6 +1922,14 @@ private static final long serialVersionUID = 0L;
     if (eventCase_ == 110) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(110, (ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEvent) event_);
+    }
+    if (eventCase_ == 111) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(111, (ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent) event_);
+    }
+    if (eventCase_ == 112) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(112, (ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent) event_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -1965,6 +2072,14 @@ private static final long serialVersionUID = 0L;
         if (!getStigmerToolResultFullOutput()
             .equals(other.getStigmerToolResultFullOutput())) return false;
         break;
+      case 111:
+        if (!getStigmerBackgroundCommandStatus()
+            .equals(other.getStigmerBackgroundCommandStatus())) return false;
+        break;
+      case 112:
+        if (!getStigmerBackgroundCommandStopRequested()
+            .equals(other.getStigmerBackgroundCommandStopRequested())) return false;
+        break;
       case 0:
       default:
     }
@@ -2104,6 +2219,14 @@ private static final long serialVersionUID = 0L;
       case 110:
         hash = (37 * hash) + STIGMER_TOOL_RESULT_FULL_OUTPUT_FIELD_NUMBER;
         hash = (53 * hash) + getStigmerToolResultFullOutput().hashCode();
+        break;
+      case 111:
+        hash = (37 * hash) + STIGMER_BACKGROUND_COMMAND_STATUS_FIELD_NUMBER;
+        hash = (53 * hash) + getStigmerBackgroundCommandStatus().hashCode();
+        break;
+      case 112:
+        hash = (37 * hash) + STIGMER_BACKGROUND_COMMAND_STOP_REQUESTED_FIELD_NUMBER;
+        hash = (53 * hash) + getStigmerBackgroundCommandStopRequested().hashCode();
         break;
       case 0:
       default:
@@ -2340,6 +2463,12 @@ private static final long serialVersionUID = 0L;
       if (stigmerToolResultFullOutputBuilder_ != null) {
         stigmerToolResultFullOutputBuilder_.clear();
       }
+      if (stigmerBackgroundCommandStatusBuilder_ != null) {
+        stigmerBackgroundCommandStatusBuilder_.clear();
+      }
+      if (stigmerBackgroundCommandStopRequestedBuilder_ != null) {
+        stigmerBackgroundCommandStopRequestedBuilder_.clear();
+      }
       eventCase_ = 0;
       event_ = null;
       return this;
@@ -2514,6 +2643,14 @@ private static final long serialVersionUID = 0L;
           stigmerToolResultFullOutputBuilder_ != null) {
         result.event_ = stigmerToolResultFullOutputBuilder_.build();
       }
+      if (eventCase_ == 111 &&
+          stigmerBackgroundCommandStatusBuilder_ != null) {
+        result.event_ = stigmerBackgroundCommandStatusBuilder_.build();
+      }
+      if (eventCase_ == 112 &&
+          stigmerBackgroundCommandStopRequestedBuilder_ != null) {
+        result.event_ = stigmerBackgroundCommandStopRequestedBuilder_.build();
+      }
     }
 
     @java.lang.Override
@@ -2661,6 +2798,14 @@ private static final long serialVersionUID = 0L;
         }
         case STIGMER_TOOL_RESULT_FULL_OUTPUT: {
           mergeStigmerToolResultFullOutput(other.getStigmerToolResultFullOutput());
+          break;
+        }
+        case STIGMER_BACKGROUND_COMMAND_STATUS: {
+          mergeStigmerBackgroundCommandStatus(other.getStigmerBackgroundCommandStatus());
+          break;
+        }
+        case STIGMER_BACKGROUND_COMMAND_STOP_REQUESTED: {
+          mergeStigmerBackgroundCommandStopRequested(other.getStigmerBackgroundCommandStopRequested());
           break;
         }
         case EVENT_NOT_SET: {
@@ -2916,6 +3061,20 @@ private static final long serialVersionUID = 0L;
               eventCase_ = 110;
               break;
             } // case 882
+            case 890: {
+              input.readMessage(
+                  internalGetStigmerBackgroundCommandStatusFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              eventCase_ = 111;
+              break;
+            } // case 890
+            case 898: {
+              input.readMessage(
+                  internalGetStigmerBackgroundCommandStopRequestedFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              eventCase_ = 112;
+              break;
+            } // case 898
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -8470,6 +8629,371 @@ private static final long serialVersionUID = 0L;
       eventCase_ = 110;
       onChanged();
       return stigmerToolResultFullOutputBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent, ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent.Builder, ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEventOrBuilder> stigmerBackgroundCommandStatusBuilder_;
+    /**
+     * <pre>
+     * A command the agent started in the background began running, or
+     * ended and how.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent stigmer_background_command_status = 111 [json_name = "stigmerBackgroundCommandStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.status"];</code>
+     * @return Whether the stigmerBackgroundCommandStatus field is set.
+     */
+    @java.lang.Override
+    public boolean hasStigmerBackgroundCommandStatus() {
+      return eventCase_ == 111;
+    }
+    /**
+     * <pre>
+     * A command the agent started in the background began running, or
+     * ended and how.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent stigmer_background_command_status = 111 [json_name = "stigmerBackgroundCommandStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.status"];</code>
+     * @return The stigmerBackgroundCommandStatus.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent getStigmerBackgroundCommandStatus() {
+      if (stigmerBackgroundCommandStatusBuilder_ == null) {
+        if (eventCase_ == 111) {
+          return (ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent.getDefaultInstance();
+      } else {
+        if (eventCase_ == 111) {
+          return stigmerBackgroundCommandStatusBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A command the agent started in the background began running, or
+     * ended and how.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent stigmer_background_command_status = 111 [json_name = "stigmerBackgroundCommandStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.status"];</code>
+     */
+    public Builder setStigmerBackgroundCommandStatus(ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent value) {
+      if (stigmerBackgroundCommandStatusBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        event_ = value;
+        onChanged();
+      } else {
+        stigmerBackgroundCommandStatusBuilder_.setMessage(value);
+      }
+      eventCase_ = 111;
+      return this;
+    }
+    /**
+     * <pre>
+     * A command the agent started in the background began running, or
+     * ended and how.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent stigmer_background_command_status = 111 [json_name = "stigmerBackgroundCommandStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.status"];</code>
+     */
+    public Builder setStigmerBackgroundCommandStatus(
+        ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent.Builder builderForValue) {
+      if (stigmerBackgroundCommandStatusBuilder_ == null) {
+        event_ = builderForValue.build();
+        onChanged();
+      } else {
+        stigmerBackgroundCommandStatusBuilder_.setMessage(builderForValue.build());
+      }
+      eventCase_ = 111;
+      return this;
+    }
+    /**
+     * <pre>
+     * A command the agent started in the background began running, or
+     * ended and how.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent stigmer_background_command_status = 111 [json_name = "stigmerBackgroundCommandStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.status"];</code>
+     */
+    public Builder mergeStigmerBackgroundCommandStatus(ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent value) {
+      if (stigmerBackgroundCommandStatusBuilder_ == null) {
+        if (eventCase_ == 111 &&
+            event_ != ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent.getDefaultInstance()) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent.newBuilder((ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent) event_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          event_ = value;
+        }
+        onChanged();
+      } else {
+        if (eventCase_ == 111) {
+          stigmerBackgroundCommandStatusBuilder_.mergeFrom(value);
+        } else {
+          stigmerBackgroundCommandStatusBuilder_.setMessage(value);
+        }
+      }
+      eventCase_ = 111;
+      return this;
+    }
+    /**
+     * <pre>
+     * A command the agent started in the background began running, or
+     * ended and how.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent stigmer_background_command_status = 111 [json_name = "stigmerBackgroundCommandStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.status"];</code>
+     */
+    public Builder clearStigmerBackgroundCommandStatus() {
+      if (stigmerBackgroundCommandStatusBuilder_ == null) {
+        if (eventCase_ == 111) {
+          eventCase_ = 0;
+          event_ = null;
+          onChanged();
+        }
+      } else {
+        if (eventCase_ == 111) {
+          eventCase_ = 0;
+          event_ = null;
+        }
+        stigmerBackgroundCommandStatusBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * A command the agent started in the background began running, or
+     * ended and how.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent stigmer_background_command_status = 111 [json_name = "stigmerBackgroundCommandStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.status"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent.Builder getStigmerBackgroundCommandStatusBuilder() {
+      return internalGetStigmerBackgroundCommandStatusFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * A command the agent started in the background began running, or
+     * ended and how.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent stigmer_background_command_status = 111 [json_name = "stigmerBackgroundCommandStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.status"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEventOrBuilder getStigmerBackgroundCommandStatusOrBuilder() {
+      if ((eventCase_ == 111) && (stigmerBackgroundCommandStatusBuilder_ != null)) {
+        return stigmerBackgroundCommandStatusBuilder_.getMessageOrBuilder();
+      } else {
+        if (eventCase_ == 111) {
+          return (ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A command the agent started in the background began running, or
+     * ended and how.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent stigmer_background_command_status = 111 [json_name = "stigmerBackgroundCommandStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.status"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent, ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent.Builder, ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEventOrBuilder> 
+        internalGetStigmerBackgroundCommandStatusFieldBuilder() {
+      if (stigmerBackgroundCommandStatusBuilder_ == null) {
+        if (!(eventCase_ == 111)) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent.getDefaultInstance();
+        }
+        stigmerBackgroundCommandStatusBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent, ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent.Builder, ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEventOrBuilder>(
+                (ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent) event_,
+                getParentForChildren(),
+                isClean());
+        event_ = null;
+      }
+      eventCase_ = 111;
+      onChanged();
+      return stigmerBackgroundCommandStatusBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent, ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent.Builder, ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEventOrBuilder> stigmerBackgroundCommandStopRequestedBuilder_;
+    /**
+     * <pre>
+     * A person asked to stop a command running in the background.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent stigmer_background_command_stop_requested = 112 [json_name = "stigmerBackgroundCommandStopRequested", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.stop_requested"];</code>
+     * @return Whether the stigmerBackgroundCommandStopRequested field is set.
+     */
+    @java.lang.Override
+    public boolean hasStigmerBackgroundCommandStopRequested() {
+      return eventCase_ == 112;
+    }
+    /**
+     * <pre>
+     * A person asked to stop a command running in the background.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent stigmer_background_command_stop_requested = 112 [json_name = "stigmerBackgroundCommandStopRequested", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.stop_requested"];</code>
+     * @return The stigmerBackgroundCommandStopRequested.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent getStigmerBackgroundCommandStopRequested() {
+      if (stigmerBackgroundCommandStopRequestedBuilder_ == null) {
+        if (eventCase_ == 112) {
+          return (ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent.getDefaultInstance();
+      } else {
+        if (eventCase_ == 112) {
+          return stigmerBackgroundCommandStopRequestedBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A person asked to stop a command running in the background.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent stigmer_background_command_stop_requested = 112 [json_name = "stigmerBackgroundCommandStopRequested", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.stop_requested"];</code>
+     */
+    public Builder setStigmerBackgroundCommandStopRequested(ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent value) {
+      if (stigmerBackgroundCommandStopRequestedBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        event_ = value;
+        onChanged();
+      } else {
+        stigmerBackgroundCommandStopRequestedBuilder_.setMessage(value);
+      }
+      eventCase_ = 112;
+      return this;
+    }
+    /**
+     * <pre>
+     * A person asked to stop a command running in the background.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent stigmer_background_command_stop_requested = 112 [json_name = "stigmerBackgroundCommandStopRequested", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.stop_requested"];</code>
+     */
+    public Builder setStigmerBackgroundCommandStopRequested(
+        ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent.Builder builderForValue) {
+      if (stigmerBackgroundCommandStopRequestedBuilder_ == null) {
+        event_ = builderForValue.build();
+        onChanged();
+      } else {
+        stigmerBackgroundCommandStopRequestedBuilder_.setMessage(builderForValue.build());
+      }
+      eventCase_ = 112;
+      return this;
+    }
+    /**
+     * <pre>
+     * A person asked to stop a command running in the background.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent stigmer_background_command_stop_requested = 112 [json_name = "stigmerBackgroundCommandStopRequested", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.stop_requested"];</code>
+     */
+    public Builder mergeStigmerBackgroundCommandStopRequested(ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent value) {
+      if (stigmerBackgroundCommandStopRequestedBuilder_ == null) {
+        if (eventCase_ == 112 &&
+            event_ != ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent.getDefaultInstance()) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent.newBuilder((ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent) event_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          event_ = value;
+        }
+        onChanged();
+      } else {
+        if (eventCase_ == 112) {
+          stigmerBackgroundCommandStopRequestedBuilder_.mergeFrom(value);
+        } else {
+          stigmerBackgroundCommandStopRequestedBuilder_.setMessage(value);
+        }
+      }
+      eventCase_ = 112;
+      return this;
+    }
+    /**
+     * <pre>
+     * A person asked to stop a command running in the background.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent stigmer_background_command_stop_requested = 112 [json_name = "stigmerBackgroundCommandStopRequested", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.stop_requested"];</code>
+     */
+    public Builder clearStigmerBackgroundCommandStopRequested() {
+      if (stigmerBackgroundCommandStopRequestedBuilder_ == null) {
+        if (eventCase_ == 112) {
+          eventCase_ = 0;
+          event_ = null;
+          onChanged();
+        }
+      } else {
+        if (eventCase_ == 112) {
+          eventCase_ = 0;
+          event_ = null;
+        }
+        stigmerBackgroundCommandStopRequestedBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * A person asked to stop a command running in the background.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent stigmer_background_command_stop_requested = 112 [json_name = "stigmerBackgroundCommandStopRequested", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.stop_requested"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent.Builder getStigmerBackgroundCommandStopRequestedBuilder() {
+      return internalGetStigmerBackgroundCommandStopRequestedFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * A person asked to stop a command running in the background.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent stigmer_background_command_stop_requested = 112 [json_name = "stigmerBackgroundCommandStopRequested", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.stop_requested"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEventOrBuilder getStigmerBackgroundCommandStopRequestedOrBuilder() {
+      if ((eventCase_ == 112) && (stigmerBackgroundCommandStopRequestedBuilder_ != null)) {
+        return stigmerBackgroundCommandStopRequestedBuilder_.getMessageOrBuilder();
+      } else {
+        if (eventCase_ == 112) {
+          return (ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent) event_;
+        }
+        return ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * A person asked to stop a command running in the background.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent stigmer_background_command_stop_requested = 112 [json_name = "stigmerBackgroundCommandStopRequested", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.stop_requested"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent, ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent.Builder, ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEventOrBuilder> 
+        internalGetStigmerBackgroundCommandStopRequestedFieldBuilder() {
+      if (stigmerBackgroundCommandStopRequestedBuilder_ == null) {
+        if (!(eventCase_ == 112)) {
+          event_ = ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent.getDefaultInstance();
+        }
+        stigmerBackgroundCommandStopRequestedBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent, ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent.Builder, ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEventOrBuilder>(
+                (ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent) event_,
+                getParentForChildren(),
+                isClean());
+        event_ = null;
+      }
+      eventCase_ = 112;
+      onChanged();
+      return stigmerBackgroundCommandStopRequestedBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.SessionEvent)

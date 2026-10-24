@@ -42,6 +42,46 @@ message TurnRows {
 
   // Which recalled memories the runner injected into the turn's prompt.
   RecalledMemoriesReport recalled_memories_report = 26;
+
+  // The commands the agent started in the background in this invocation,
+  // in the order the runner heard of them, one per starting call: the
+  // event emitter writes each one's stigmer.background_command.status from
+  // it. Not a row of the transcript: the starting call's own row and its
+  // result are unchanged.
+  repeated BackgroundCommandRow background_commands = 30;
+}
+
+// BackgroundCommandRow is one command the agent started in the background,
+// as the runner's registry reported it. Keyed by call_id. Running while
+// ending is empty.
+message BackgroundCommandRow {
+  // The tool call id of the execute call that started it.
+  string call_id = 1;
+
+  // Its time limit, in seconds.
+  int32 timeout_seconds = 2;
+
+  // How it ended, as the session log's word (exited, timed_out, stopped,
+  // failed_to_start); empty while it runs.
+  string ending = 3;
+
+  // The exit code, when it exited.
+  optional int32 exit_code = 4;
+
+  // Who stopped it, with ending stopped: agent, person, approval or turn.
+  string stopped_by = 5;
+
+  // The call that stopped it, when the agent did.
+  string stopped_by_call_id = 6;
+
+  // What it printed, as a foreground command's result would carry it.
+  string output = 7;
+
+  // ISO 8601 timestamp when it started.
+  string started_at = 8;
+
+  // ISO 8601 timestamp when it ended.
+  string ended_at = 9;
 }
 
 // Represents a single message in the agent conversation.

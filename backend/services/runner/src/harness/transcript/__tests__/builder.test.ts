@@ -513,6 +513,53 @@ describe("TranscriptBuilder — system_note is the harness's line in its own voi
   });
 });
 
+describe("TranscriptBuilder — a background command is projected into rows.background_commands", () => {
+  it("keeps one entry per call id, made by whichever fact arrives first, apart from the starting call's row", () => {
+    const fold = builder();
+    const observed: string[] = [];
+    const watched = { ...fold, sb: new TranscriptBuilder("exec-test", fold.status, fold.run, (event) => observed.push(event.kind)) };
+    feed(watched, [
+      // The registry starts the command inside its call: its start can precede the call's own row.
+      { kind: "background_command_started", callId: "bg-1", timeoutSeconds: 3300 },
+      ...proposedCall("bg-1", "execute"),
+      { kind: "tool_finished", callId: "bg-1", result: "Started in the background (id bg-1)." },
+      { kind: "background_output_delta", callId: "bg-1", delta: "ready\n" },
+      { kind: "background_command_ended", callId: "bg-2", ending: "failed_to_start", output: "spawn /bin/sh ENOENT", observedAt: "2026-10-24T10:00:05.000Z" },
+      { kind: "background_command_ended", callId: "bg-1", ending: "stopped", stoppedBy: "agent", stoppedByCallId: "stop-1", output: "ready\n" },
+    ]);
+    const [first, second] = fold.status.backgroundCommands;
+    expect(fold.status.backgroundCommands.map((row) => row.callId)).toEqual(["bg-1", "bg-2"]);
+    expect(first).toMatchObject({ timeoutSeconds: 3300, ending: "stopped", stoppedBy: "agent", stoppedByCallId: "stop-1", output: "ready\n" });
+    expect(first!.startedAt).not.toBe("");
+    expect(first!.endedAt).not.toBe("");
+    expect(second, "an end with no start stands for both, at its observed instant").toMatchObject({
+      ending: "failed_to_start",
+      output: "spawn /bin/sh ENOENT",
+      startedAt: "2026-10-24T10:00:05.000Z",
+      endedAt: "2026-10-24T10:00:05.000Z",
+    });
+    expect(second!.exitCode).toBeUndefined();
+    expect(rowOf(fold.status, "bg-1").result, "the call's own result is untouched").toBe("Started in the background (id bg-1).");
+    expect(fold.status.messages.flatMap((m) => m.toolCalls).map((tc) => tc.id), "no row of its own").toEqual(["bg-1"]);
+    expect(observed, "the observer sees every fact, the output included").toContain("background_output_delta");
+  });
+
+  it("dirties the fold on a start and an end, never on output, and takes the first end as final", () => {
+    const fold = builder();
+    feed(fold, [{ kind: "background_command_started", callId: "bg-1", timeoutSeconds: 60 }]);
+    expect(fold.sb.dirty).toBe(true);
+    fold.sb.markPersisted();
+    feed(fold, [{ kind: "background_output_delta", callId: "bg-1", delta: "x" }]);
+    expect(fold.sb.dirty, "output rides the preview pump, never a write").toBe(false);
+    feed(fold, [{ kind: "background_command_ended", callId: "bg-1", ending: "exited", exitCode: 2, output: "x" }]);
+    expect(fold.sb.dirty).toBe(true);
+    fold.sb.markPersisted();
+    feed(fold, [{ kind: "background_command_ended", callId: "bg-1", ending: "stopped", stoppedBy: "turn", output: "" }]);
+    expect(fold.status.backgroundCommands[0]).toMatchObject({ ending: "exited", exitCode: 2, stoppedBy: "" });
+    expect(fold.sb.dirty, "a second end changes nothing").toBe(false);
+  });
+});
+
 describe("TranscriptBuilder — context_compacted marks where the engine summarized", () => {
   it("appends a COMPACTED message with no text to the scope; the next run's text is a message after it", () => {
     const { status } = feed(builder(), [

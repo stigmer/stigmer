@@ -3,13 +3,16 @@
 //
 // The agent's messages on its primary thread go to the data sink (stdout);
 // terse status lines go to the status sink (stderr): the person's message,
-// one line per tool use each time its state changes, a subagent's start and
+// one line per tool use each time its state changes, one line each time a
+// command it started in the background changes state ("Background command
+// `npm test` exited with code 1", from the fold's `background`, the fact the
+// console reads), a subagent's start and
 // end with its tool uses indented beneath, the platform's notes, a context
 // compaction, the turn's errors, and how each ask was answered. No ANSI, no
 // frames. Each fold is compared with the last by reference, so a turn no event
 // touched is not walked again, and everything already written stays written.
 
-import { extractShellIntent, type SessionFold, type ToolUse, type Turn, type TurnItem } from "@stigmer/client";
+import { backgroundEndingLine, extractShellIntent, type SessionFold, type ToolUse, type Turn, type TurnItem } from "@stigmer/client";
 import { answerWord, type ApproveDefault, type AskAnswer } from "./answer.js";
 import type { HeadlessRenderer } from "./headless.js";
 import type { LineWriter } from "./render-ndjson.js";
@@ -28,6 +31,7 @@ export class PlaintextRenderer implements HeadlessRenderer {
   private readonly rendered = new Map<string, Turn>();
   private readonly written = new Set<string>();
   private readonly toolStates = new Map<string, string>();
+  private readonly backgroundStates = new Map<string, string>();
   private readonly threadStates = new Map<string, string>();
 
   constructor(private readonly opts: PlaintextRendererOptions) {}
@@ -87,6 +91,11 @@ export class PlaintextRenderer implements HeadlessRenderer {
     if (this.toolStates.get(tool.id) !== tool.state) {
       this.toolStates.set(tool.id, tool.state);
       this.opts.status.write(`${indent}  ${toolLine(tool)}\n`);
+    }
+    const background = tool.background;
+    if (background !== undefined && this.backgroundStates.get(tool.id) !== background.state) {
+      this.backgroundStates.set(tool.id, background.state);
+      this.opts.status.write(`${indent}    ${backgroundEndingLine(tool)}\n`);
     }
     const thread = tool.thread;
     if (thread === undefined) return;

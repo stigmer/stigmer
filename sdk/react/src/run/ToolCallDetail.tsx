@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { CapturedFileChange } from "@stigmer/apis/ai/stigmer/agentic/run/v1/filereview_pb";
-import { toDisplayFileChange } from "@stigmer/client";
+import { isBackgroundRunning, toDisplayFileChange } from "@stigmer/client";
 import type { ToolResultView, ToolUse } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { BoundedContent } from "../internal/BoundedContent.js";
@@ -212,7 +212,18 @@ function CategoryDetail({
       // While the command runs, the session shows what it has printed so far
       // (the fold's `liveOutput`, previews the runner streams), its newest
       // lines in view; when the result lands the fold clears `liveOutput` and
-      // the finished session takes its place.
+      // the finished session takes its place. A command started in the
+      // background reads the same: the result view already carries its own
+      // output (what it printed so far while it runs, then what it printed),
+      // never the start's answer, so one command reads alike either way.
+      if (isBackgroundRunning(toolUse) && result.type === "terminal") {
+        return (
+          <>
+            <ProvenanceNote toolUse={toolUse} />
+            <ResultView view={result} live />
+          </>
+        );
+      }
       if (toolUse.state === "running" && toolUse.liveOutput !== "" && result.type === "terminal") {
         return (
           <>

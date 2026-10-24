@@ -14,11 +14,14 @@ export {
   processedAtOf,
   type SessionEventCase,
 } from "./catalog.js";
-export { SessionLog, foldSession, previewPlaceOf, textOf, turnOf } from "./fold.js";
+export { SessionLog, foldSession, isBackgroundRunning, previewPlaceOf, textOf, turnOf } from "./fold.js";
 export { toManagedAgentsJson, toManagedAgentsStreamJson } from "./render.js";
 export { applyTodoUpdate, isTodoTool } from "./todos.js";
 export {
   TURN_ENDED_PHASES,
+  type BackgroundCommandState,
+  type BackgroundCommandView,
+  type BackgroundStopper,
   type CompactedItem,
   type FileReviewDecision,
   type FileReviewFile,
@@ -31,6 +34,7 @@ export {
   type QueuedMessage,
   type SessionFold,
   type SessionStatusView,
+  type StoppedBackgroundCommand,
   type ThinkingItem,
   type Thread,
   type Todo,

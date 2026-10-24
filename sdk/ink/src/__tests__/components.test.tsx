@@ -150,6 +150,26 @@ describe("ToolCallItem", () => {
     expect(render(<ToolCallItem toolUse={tool} />).lastFrame()).toContain("Subagent");
   });
 
+  it("says a background command's state on a line beneath its row, from its own status", () => {
+    const id = `${RUN_ID}.bg1`;
+    const start = [
+      samples.toolUseEvent("execute", { command: "npm test", background: true }, { id }),
+      event({ case: "agentToolResult", value: { id: `${id}.r`, toolUseId: id, content: [{ type: "text", text: "Started in the background (id bg1)." }] } }),
+      event({ case: "stigmerBackgroundCommandStatus", value: { id: `${id}.bg`, toolUseId: id, phase: "running", timeoutSeconds: 300 } }),
+    ];
+    expect(render(<ToolCallItem toolUse={toolUseOf(start)} />).lastFrame()).toContain("Background command `npm test` is running");
+    const ended = [
+      ...start,
+      event({ case: "stigmerBackgroundCommandStatus", value: { id: `${id}.bg.end`, toolUseId: id, phase: "ended", ending: "exited", exitCode: 1, output: "1 failed\n" } }),
+    ];
+    expect(render(<ToolCallItem toolUse={toolUseOf(ended)} />).lastFrame()).toContain("Background command `npm test` exited with code 1");
+  });
+
+  it("labels the agent's stop of a background command", () => {
+    const tool = samples.toolUse("stop_background_command", "stopped", { input: { id: "bg1" } });
+    expect(render(<ToolCallItem toolUse={tool} />).lastFrame()).toContain("Stop command");
+  });
+
   it("shows MCP server prefix", () => {
     const tool = samples.toolUse("list_resources", "[]", { mcpServerName: "github" });
     expect(render(<ToolCallItem toolUse={tool} />).lastFrame()).toContain("github/list_resources");

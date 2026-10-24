@@ -18,7 +18,7 @@
 // is test/fixtures/tool-view/. Engine result formats are version-fragile, so
 // every assumption here is fixture-backed and degrades gracefully to json/text.
 
-import type { ToolUse } from "@stigmer/session-log";
+import type { BackgroundCommandView, ToolUse } from "@stigmer/session-log";
 
 /**
  * What a tool does, whatever its engine calls it: one word, in the style of
@@ -42,7 +42,8 @@ export type ToolKind =
   | "todo"
   | "subagent"
   | "mcp"
-  | "memory";
+  | "memory"
+  | "background_stop";
 
 /** A single match in a search/grep result. */
 export interface ToolSearchMatch {
@@ -218,6 +219,8 @@ const NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map<string, ToolKind>([
 
   ["task", "subagent"],
   ["Task", "subagent"],
+
+  ["stop_background_command", "background_stop"],
 ]);
 
 /**
@@ -362,7 +365,8 @@ const NEW_TEXT_FIELDS = ["new_string", "new_text", "newText", "replacement"] as 
 const WRITE_CONTENT_FIELDS = ["contents", "content", "file_content"] as const;
 
 /** What {@link normalizeToolResult} reads of a tool use. */
-export type ToolViewInput = Pick<ToolUse, "name" | "mcpServerName" | "input" | "result" | "fullOutput">;
+export type ToolViewInput = Pick<ToolUse, "name" | "mcpServerName" | "input" | "result" | "fullOutput"> &
+  Partial<Pick<ToolUse, "background">>;
 
 /**
  * The start of the marker the runner appends to an offloaded output's head
@@ -396,6 +400,14 @@ export function normalizeToolResult(tool: ToolViewInput): ToolResultView {
 
   if (tool.result?.isError === true && result !== "") {
     return { type: "error", message: result };
+  }
+
+  // A command started in the background: its own output is the content, not
+  // the start's answer ("Started in the background…", the agent's). While it
+  // runs, what it printed so far; once it ended, what it printed, read as a
+  // foreground command's would be, with its exit code.
+  if (tool.background !== undefined) {
+    return normalizeBackground(tool.background, args);
   }
 
   // Output was offloaded to artifact storage (too large to inline): the
@@ -519,6 +531,20 @@ function splitNativeReadFrame(result: string): { body: string; truncated: boolea
 // or "[Command succeeded]". Format owned by the engine; covered by
 // test/fixtures/tool-view/result-views.json so a format change fails one test.
 const SHELL_EXIT_MARKER = /\n?\[Command (?:succeeded|failed with exit code (\d+))\]\s*$/;
+
+function normalizeBackground(background: BackgroundCommandView, args: Args): ToolResultView {
+  const command = firstString(args, ["command"]);
+  switch (background.state) {
+    case "running":
+      return { type: "terminal", command, stdout: background.liveOutput, stderr: "" };
+    case "failed_to_start":
+      return { type: "error", message: background.output };
+    default: {
+      const view = normalizeShell(background.output, args);
+      return view.type === "terminal" && background.exitCode !== undefined ? { ...view, exitCode: background.exitCode } : view;
+    }
+  }
+}
 
 function normalizeShell(result: string, args: Args): ToolResultView {
   // The command is the session's prompt line. "command" matches the shell

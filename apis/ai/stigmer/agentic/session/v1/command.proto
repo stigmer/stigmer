@@ -164,6 +164,38 @@ service SessionCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to grant a permission in session";
   }
 
+  // Stop one command the agent runs in the background.
+  //
+  // A command started in the background has a
+  // stigmer.background_command.status with phase running, keyed to the
+  // agent.tool_use that started it. The request is appended as a
+  // stigmer.background_command.stop_requested; the turn's runner reads it
+  // within seconds and stops that command alone, whose status then ends
+  // with stopped_by person. The agent is told a person stopped it and
+  // carries on. The turn itself is not stopped (interrupt stops it).
+  //
+  // ## Error Conditions
+  //
+  // - NOT_FOUND: the tool use is not one of this conversation's calls that
+  //   started a command in the background
+  // - FAILED_PRECONDITION: the command already ended, or its turn is not
+  //   working
+  //
+  // ## Idempotency
+  //
+  // A second request for the same command records nothing new and returns
+  // the event first recorded.
+  //
+  // @internal
+  // can_edit on the session, the posture of every answer a person gives a
+  // conversation.
+  rpc stopBackgroundCommand(StopBackgroundCommandInput) returns (SessionEvent) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = session;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "session_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to stop a background command in session";
+  }
+
   // Stop the session's unfinished work.
   //
   // Appends a user.interrupt and stops every unfinished turn of the

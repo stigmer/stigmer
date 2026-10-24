@@ -197,6 +197,7 @@ Rows read `| \`Message.field\` | class |`.
 | `ai.stigmer.agentic.session.v1.RunLiveness.run_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.SessionEvent.run_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.SessionEvent.session_id` | stamped id |
+| `ai.stigmer.agentic.session.v1.StopBackgroundCommandInput.session_id` | stamped id |
 | `ai.stigmer.agentic.session.v1.SessionSpec.agent_ref` | manifest reference |
 | `ai.stigmer.agentic.session.v1.SessionSpec.environment_ref` | manifest reference |
 | `ai.stigmer.agentic.session.v1.SessionSpec.plugins` | manifest reference |
