@@ -30,13 +30,13 @@
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { preparePluginFromTree } from "@stigmer/plugin-package/client";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { cargoEdition, changedLines, FORMATTERS, formatAfterEdit } from "../format-on-edit/hooks/format.mjs";
+import { ancestors, cargoEdition, changedLines, FORMATTERS, formatAfterEdit } from "../format-on-edit/hooks/format.mjs";
 import { listDirectory } from "../scripts/lib/candidates.js";
 import { CATALOGUE_ROOT } from "../scripts/lib/catalogue-tree.js";
 
@@ -125,8 +125,13 @@ function notice(title: string, path: string, lines: string): string {
 }
 
 const SILENT = { stdout: "", stderr: "", exitCode: 0 };
+/**
+ * Every case spawns real processes (a fake formatter is a Node process), which
+ * a loaded machine or a coverage run can slow past vitest's 5-second default.
+ */
+const SPAWNS = { timeout: 60_000 };
 
-describe("the formatters the project declares", () => {
+describe("the formatters the project declares", SPAWNS, () => {
   it("runs Prettier from the project's node_modules when a package.json depends on it, in that package's folder", () => {
     const { root, env } = workspace();
     const log = join(root, "..", "calls");
@@ -228,7 +233,7 @@ describe("the formatters the project declares", () => {
     const log = join(root, "..", "calls");
     put(root, "pyproject.toml", '[project]\nname = "x"\ndependencies = ["ruff"]\n');
     fake(join(bin, "ruff"), log);
-    const file = put(root, "app.py", "x = { 1 }\n");
+    const file = put(root, "src/app.py", "x = { 1 }\n");
     expect(formatAfterEdit(hookInput(file), env)).toEqual(SILENT);
     expect(calls(log)).toEqual([]);
   });
@@ -288,7 +293,8 @@ describe("the formatters the project declares", () => {
 
     fake(join(bin, "gofmt"), log);
     fake(join(bin, "terraform"), log);
-    expect(formatAfterEdit(hookInput(file), env).stdout).toBe(notice("gofmt", "cmd/main.go", "lines 1-3"));
+    const withStrayEntries = { ...env, PATH: ["", "relative/bin", bin].join(delimiter) };
+    expect(formatAfterEdit(hookInput(file), withStrayEntries).stdout, "empty and relative PATH entries are skipped").toBe(notice("gofmt", "cmd/main.go", "lines 1-3"));
     const tf = put(root, "infra/main.tf", "x = { a }\n");
     expect(formatAfterEdit(hookInput(tf), env).stdout).toBe(notice("terraform fmt", "infra/main.tf", "lines 1-3"));
     expect(calls(log)).toEqual([
@@ -300,6 +306,8 @@ describe("the formatters the project declares", () => {
   it("passes rustfmt the crate's edition, its own or the workspace's, and none when nothing declares one", () => {
     const { root, bin, env } = workspace();
     const log = join(root, "..", "calls");
+    put(root, "Cargo.toml", '[package]\nname = "x"\nedition = "2021"\n');
+    expect(formatAfterEdit(hookInput(put(root, "src/main.rs", "fn main() { }\n")), env), "no rustfmt installed").toEqual(SILENT);
     fake(join(bin, "rustfmt"), log);
     put(root, "Cargo.toml", '[workspace]\nmembers = ["a", "b"]\n\n[workspace.package]\nedition = "2021"\n');
     put(root, "a/Cargo.toml", '[package]\nname = "a"\nedition = "2024"\n');
@@ -340,7 +348,7 @@ describe("the formatters the project declares", () => {
   });
 });
 
-describe("calls that format nothing", () => {
+describe("calls that format nothing", SPAWNS, () => {
   function prettierProject(): { root: string; env: Record<string, string>; log: string; file: string } {
     const { root, env } = workspace();
     const log = join(root, "..", "calls");
@@ -407,7 +415,7 @@ describe("calls that format nothing", () => {
   });
 });
 
-describe("formatters that fail", () => {
+describe("formatters that fail", SPAWNS, () => {
   it("prints nothing and exits 1 naming each formatter, never the file, when every one fails", () => {
     const { root, env } = workspace();
     const log = join(root, "..", "calls");
@@ -471,6 +479,13 @@ describe("the changed line span", () => {
     expect(changedLines("a\nb\n\n", "a\nb\n"), "a trailing blank line removed").toEqual({ first: 3, last: 3 });
   });
 
+  it("walks from a folder up to the workspace root, and never from a folder outside it", () => {
+    expect(ancestors("/ws/a/b", "/ws")).toEqual(["/ws/a/b", "/ws/a", "/ws"]);
+    expect(ancestors("/ws", "/ws")).toEqual(["/ws"]);
+    expect(ancestors("/elsewhere/a", "/ws")).toEqual([]);
+    expect(ancestors("/ws-other", "/ws")).toEqual([]);
+  });
+
   it("reads a Cargo.toml's literal edition from [package] or [workspace.package] only", () => {
     expect(cargoEdition('[package]\nname = "x"\nedition = "2021"\n')).toBe("2021");
     expect(cargoEdition("[workspace.package]\r\nedition = '2024'\r\n")).toBe("2024");
@@ -479,7 +494,7 @@ describe("the changed line span", () => {
   });
 });
 
-describe("the script as a hook runs it", () => {
+describe("the script as a hook runs it", SPAWNS, () => {
   function run(stdin: string, env: Record<string, string>): { stdout: string; stderr: string; status: number | null } {
     const result = spawnSync(process.execPath, [SCRIPT], { input: stdin, env, encoding: "utf8" });
     return { stdout: result.stdout, stderr: result.stderr, status: result.status };

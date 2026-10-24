@@ -67,7 +67,8 @@ const LOG_PREFIX = "format-on-edit:";
 /**
  * A formatter ready to run on one file.
  * @typedef {object} Invocation
- * @property {readonly string[]} argv the binary's absolute path, then its arguments, the file last
+ * @property {string} command the binary's absolute path
+ * @property {readonly string[]} args its arguments, the file last
  * @property {string} cwd where it runs
  */
 
@@ -119,7 +120,7 @@ export const FORMATTERS = [
     resolve: (file, root, env) => {
       const project = findUp(dirname(file), root, (dir) => isFile(join(dir, "mix.exs")));
       const bin = project === undefined ? undefined : onPath("mix", env);
-      return project === undefined || bin === undefined ? undefined : { argv: [bin, "format", file], cwd: project };
+      return project === undefined || bin === undefined ? undefined : { command: bin, args: ["format", file], cwd: project };
     },
   },
   nodePackage("oxfmt", "oxfmt", "oxfmt", JS_EXTENSIONS, []),
@@ -131,7 +132,7 @@ export const FORMATTERS = [
     resolve: (file, root) => {
       const project = findUp(dirname(file), root, (dir) => isFile(join(dir, "biome.json")) || isFile(join(dir, "biome.jsonc")));
       const bin = project === undefined ? undefined : localBin(dirname(file), root, join("node_modules", ".bin", "biome"));
-      return project === undefined || bin === undefined ? undefined : { argv: [bin, "format", "--write", file], cwd: project };
+      return project === undefined || bin === undefined ? undefined : { command: bin, args: ["format", "--write", file], cwd: project };
     },
   },
   canonical("zig", "zig fmt", [".zig", ".zon"], ["fmt"]),
@@ -144,7 +145,7 @@ export const FORMATTERS = [
       const project = findUp(dirname(file), root, (dir) => isFile(join(dir, "ruff.toml")) || isFile(join(dir, ".ruff.toml")) || readText(join(dir, "pyproject.toml")).includes("[tool.ruff"));
       if (project === undefined) return undefined;
       const bin = localBin(project, root, join(".venv", "bin", "ruff")) ?? onPath("ruff", env);
-      return bin === undefined ? undefined : { argv: [bin, "format", file], cwd: project };
+      return bin === undefined ? undefined : { command: bin, args: ["format", file], cwd: project };
     },
   },
   canonical("dart", "dart format", [".dart"], ["format"]),
@@ -168,7 +169,7 @@ export const FORMATTERS = [
         const declaring = findUp(crate, root, (dir) => cargoEdition(readText(join(dir, "Cargo.toml"))) !== undefined);
         edition = declaring === undefined ? undefined : cargoEdition(readText(join(declaring, "Cargo.toml")));
       }
-      return { argv: [bin, ...(edition === undefined ? [] : ["--edition", edition]), file], cwd: crate ?? dirname(file) };
+      return { command: bin, args: [...(edition === undefined ? [] : ["--edition", edition]), file], cwd: crate ?? dirname(file) };
     },
   },
   {
@@ -181,7 +182,7 @@ export const FORMATTERS = [
         return hasKey(manifest, "require", "laravel/pint") || hasKey(manifest, "require-dev", "laravel/pint");
       });
       const bin = project === undefined ? undefined : executable(join(project, "vendor", "bin", "pint"));
-      return project === undefined || bin === undefined ? undefined : { argv: [bin, file], cwd: project };
+      return project === undefined || bin === undefined ? undefined : { command: bin, args: [file], cwd: project };
     },
   },
 ];
@@ -202,7 +203,7 @@ function canonical(name, title, extensions, args) {
     extensions,
     resolve: (file, _root, env) => {
       const bin = onPath(name, env);
-      return bin === undefined ? undefined : { argv: [bin, ...args, file], cwd: dirname(file) };
+      return bin === undefined ? undefined : { command: bin, args: [...args, file], cwd: dirname(file) };
     },
   };
 }
@@ -225,7 +226,7 @@ function configured(name, title, extensions, configFile, args) {
     resolve: (file, root, env) => {
       const project = findUp(dirname(file), root, (dir) => isFile(join(dir, configFile)));
       const bin = project === undefined ? undefined : onPath(name, env);
-      return project === undefined || bin === undefined ? undefined : { argv: [bin, ...args, file], cwd: project };
+      return project === undefined || bin === undefined ? undefined : { command: bin, args: [...args, file], cwd: project };
     },
   };
 }
@@ -252,7 +253,7 @@ function nodePackage(name, title, pkg, extensions, args) {
         const manifest = readJson(join(dir, "package.json"));
         if (!hasKey(manifest, "dependencies", pkg) && !hasKey(manifest, "devDependencies", pkg)) continue;
         const bin = localBin(dir, root, join("node_modules", ".bin", pkg));
-        if (bin !== undefined) return { argv: [bin, ...args, file], cwd: dir };
+        if (bin !== undefined) return { command: bin, args: [...args, file], cwd: dir };
       }
       return undefined;
     },
@@ -497,9 +498,7 @@ export function formatAfterEdit(stdin, env, options = {}) {
   const failures = [];
   let formatted;
   for (const { formatter, invocation } of candidates) {
-    const [command, ...args] = invocation.argv;
-    if (command === undefined) continue;
-    const run = spawnSync(command, args, { cwd: invocation.cwd, env: { ...env }, stdio: "ignore", timeout, killSignal: "SIGKILL" });
+    const run = spawnSync(invocation.command, invocation.args, { cwd: invocation.cwd, env: { ...env }, stdio: "ignore", timeout, killSignal: "SIGKILL" });
     if (run.status === 0) {
       formatted = formatter;
       break;
