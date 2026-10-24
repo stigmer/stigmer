@@ -12,6 +12,7 @@
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { APIConnectionError, APIConnectionTimeoutError as SdkConnectionTimeoutError, APIError } from "@anthropic-ai/sdk";
+import { MiddlewareError } from "langchain";
 import {
   ORGANIZATION_PROVIDER_KEY_SENTINEL,
   PROVIDER_KEY_REQUIRED_SENTINEL,
@@ -191,8 +192,11 @@ describe("classifyModelCallError — connection heuristics and no-signal", () =>
   it("reads LangChain's OpenAI timeout as the connection timeout it is, and a DOMException timeout as nothing", () => {
     const langchainTimeout = Object.assign(new Error("Request timed out."), { name: "TimeoutError" });
     expect(classifyModelCallError(middlewareWrap(langchainTimeout), { proxyMode: false })?.code).toBe("LLM_CONNECTION_TIMEOUT");
-    expect(classifyModelCallError(new DOMException("The operation timed out.", "TimeoutError"), { proxyMode: false }))
-      .toBeUndefined();
+    const domTimeout = new DOMException("The operation timed out.", "TimeoutError");
+    expect(classifyModelCallError(domTimeout, { proxyMode: false })).toBeUndefined();
+    const wrapped = MiddlewareError.wrap(domTimeout, "promptCaching") as Error;
+    expect(wrapped.name, "LangChain's wrapper copies the name").toBe("TimeoutError");
+    expect(classifyModelCallError(wrapped, { proxyMode: false })).toBeUndefined();
   });
 
   it("words a reply that failed mid-stream by the provider's error type, never as [APIError]", () => {

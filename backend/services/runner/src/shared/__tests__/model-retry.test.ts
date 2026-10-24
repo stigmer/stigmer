@@ -83,6 +83,7 @@ const CASES: readonly (readonly [string, () => Error, Expected])[] = [
   ["the SDK's request timeout", () => new APIConnectionTimeoutError(), { retry: true, reason: "timeout" }],
   ["LangChain's OpenAI timeout", () => Object.assign(new Error("Request timed out."), { name: "TimeoutError" }), { retry: true, reason: "timeout" }],
   ["a stream cut mid-reply", () => new TypeError("terminated"), { retry: true, reason: "connection" }],
+  ["a DOMException timeout, an AbortSignal.timeout of someone's own", () => new DOMException("The operation timed out.", "TimeoutError"), { retry: false, reason: "unrecognized" }],
   ["a TypeError that is not the network's", () => new TypeError("Cannot read properties of undefined (reading 'content')"), { retry: false, reason: "unrecognized" }],
   ["the person's stop (the SDK's abort)", () => new APIUserAbortError(), { retry: false, reason: "aborted" }],
   ["the person's stop (an AbortError)", () => Object.assign(new Error("This operation was aborted"), { name: "AbortError" }), { retry: false, reason: "aborted" }],

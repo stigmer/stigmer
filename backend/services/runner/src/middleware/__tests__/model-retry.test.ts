@@ -126,6 +126,17 @@ describe("model retry middleware", () => {
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
+  it("throws the runtime's string stop as an Error, as the graph's own race does", async () => {
+    const controller = new AbortController();
+    const { handler } = failingThen(midReplyOverload());
+    setTimeout(() => controller.abort("stopped by the runtime"), 20);
+
+    const failure = await Promise.resolve(createModelRetryMiddleware({ random: () => 0 }).wrapModelCall!(request(controller.signal), handler)).catch((err: unknown) => err);
+
+    expect(failure).toBeInstanceOf(Error);
+    expect((failure as Error).message).toBe("stopped by the runtime");
+  });
+
   it("does not wait at all when the run was already stopped", async () => {
     const controller = new AbortController();
     controller.abort(new Error("stopped"));

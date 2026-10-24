@@ -5,7 +5,9 @@
  * sub-agents report at completion (in either order of its two facts), the
  * close of the last counted call is the idle instant, the oldest open
  * call is the backstop's, aged on the fold's clock, and the turn awaits its
- * model while a round is open or while a tool's result is unanswered.
+ * model while a round is open or while a tool's result is unanswered. A
+ * round a model call that threw left open (it never finishes) ends when its
+ * scope's next round starts or its sub-agent ends.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -202,6 +204,36 @@ describe("OpenOperations", () => {
       operations.observe({ kind: "tool_error", callId: "c1", message: "boom" });
       expect(operations.awaitingModel()).toBe(true);
       operations.observe(started("c2"));
+      expect(operations.awaitingModel()).toBe(false);
+    });
+
+    it("ends a round that never finished when the next round of its scope starts: a failed call and its retry", () => {
+      const { operations } = fold();
+      operations.observe({ kind: "message_start", runId: "failed" });
+      operations.observe({ kind: "message_start", runId: "retry" });
+      operations.observe({ kind: "message_finish", runId: "retry" });
+      expect(operations.awaitingModel(), "the failed call's round is over").toBe(false);
+      operations.observe(started("c1"));
+      expect(operations.snapshot().awaitingModelMs, "a running tool is not a wait on the model").toBeUndefined();
+    });
+
+    it("keeps another scope's round open: a sub-agent's call is not the root's", () => {
+      const { operations } = fold();
+      operations.observe({ kind: "message_start", runId: "root" });
+      operations.observe({ kind: "message_start", runId: "sub-1", subAgentId: "task-1" });
+      operations.observe({ kind: "message_start", runId: "sub-2", subAgentId: "task-1" });
+      operations.observe({ kind: "message_finish", runId: "root" });
+      operations.observe({ kind: "message_finish", runId: "sub-2" });
+      expect(operations.awaitingModel(), "the sub-agent's first round ended at its second").toBe(false);
+    });
+
+    it("ends a sub-agent's open round when the sub-agent finishes or fails", () => {
+      const { operations } = fold();
+      operations.observe({ kind: "message_start", runId: "sub-1", subAgentId: "task-1" });
+      operations.observe({ kind: "sub_agent_failed", subAgentId: "task-1", error: "overloaded" });
+      expect(operations.awaitingModel()).toBe(false);
+      operations.observe({ kind: "message_start", runId: "sub-2", subAgentId: "task-2" });
+      operations.observe({ kind: "sub_agent_finished", subAgentId: "task-2" });
       expect(operations.awaitingModel()).toBe(false);
     });
 

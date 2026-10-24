@@ -56,7 +56,8 @@
  *     deterministic refusal as `api_error` too; every other type stops.
  *  8. A failed connection retries: the SDKs' `APIConnectionError` and
  *     `APIConnectionTimeoutError`, an error named `TimeoutError` (the shape
- *     LangChain's OpenAI wrapper gives the SDK's timeout), and a `TypeError`
+ *     LangChain's OpenAI wrapper gives the SDK's timeout; never a
+ *     DOMException's, `model-error.ts` `isModelTimeout`), and a `TypeError`
  *     carrying one of p-retry's network messages (a cut stream surfaces as
  *     undici's bare `terminated`).
  *  9. Anything else stops. The runner retries only what it identifies, as
@@ -79,6 +80,7 @@ import {
 import {
   PROVIDER_KEY_REQUIRED_SENTINEL,
   causeChainOf,
+  isModelTimeout,
   isProviderBillingMessage,
   providerErrorTypeOf,
 } from "./model-error.js";
@@ -181,9 +183,7 @@ export function retryDecisionOf(err: unknown): RetryDecision {
     return { retry: true, reason };
   }
 
-  if (links.some((link) => className(link).includes("APIConnectionTimeout") || link.name === "TimeoutError")) {
-    return { retry: true, reason: "timeout" };
-  }
+  if (isModelTimeout(links)) return { retry: true, reason: "timeout" };
   if (links.some((link) => className(link).includes("APIConnection") || isNetworkTypeError(link))) {
     return { retry: true, reason: "connection" };
   }

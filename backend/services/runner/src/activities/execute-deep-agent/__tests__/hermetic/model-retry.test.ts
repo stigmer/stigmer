@@ -10,11 +10,14 @@
  * graph the runner really builds, the parent's and a sub-agent's.
  *
  * Three arms:
- *  - The parent's first call streams some text and fails with the
- *    provider's mid-reply overload (the SDK's own status-less `APIError`);
- *    the second answers. The turn completes, the model's second request
- *    holds no trace of the partial reply, the person's transcript shows the
- *    partial message and then the reply, and the runner's log holds one
+ *  - The parent's first call streams some thinking and text and fails with
+ *    the provider's mid-reply overload (the SDK's own status-less
+ *    `APIError`); the retry answers with a tool call, then the reply. The
+ *    turn completes, the model's second request holds no trace of the
+ *    partial reply, the person's transcript shows the partial message and
+ *    then the replies, no persist after the retry shows the failed call's
+ *    thinking still streaming (a call that threw never finishes; the next
+ *    run's start closes it), and the runner's log holds one
  *    `phase=stream decision=retry` line.
  *  - A call failing with a 401 fails the turn once, as before, with the
  *    authentication wording.
@@ -47,7 +50,10 @@ import { beginDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn } fr
 import type { ScriptedTurn } from "../../__test-utils__/scripted-model.js";
 import { MessageType } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
+const THOUGHT = "The suite lives under test/.";
 const PARTIAL = "Let me look at the fail";
+const CHECKING = "Checking the suite.";
+const TODOS = "call-hermetic-retry-todos-0001";
 const REPLY = "The suite passes.";
 
 /** The provider's overload after its reply began: the SDK's `event: error` shape, no status. */
@@ -55,15 +61,15 @@ function midReplyOverload(): Error {
   return new APIError(undefined, { type: "error", error: { type: "overloaded_error", message: "Overloaded" } }, undefined, new Headers(), "overloaded_error");
 }
 
-/** A turn player that fails its first call after `partial` with `error`, then answers `answer`; records each request. */
-function failOnceThen(partial: string, error: () => Error, answer: ScriptedTurn) {
+/** A turn player that fails its first call after `partial` with `error`, then plays `answers` in turn; records each request. */
+function failOnceThen(partial: Omit<ScriptedTurn, "ends">, error: () => Error, ...answers: ScriptedTurn[]) {
   const requests: (readonly BaseMessage[])[] = [];
   let failed = false;
   const play = (transcript: readonly BaseMessage[]): ScriptedTurn => {
     requests.push([...transcript]);
-    if (failed) return answer;
+    if (failed) return answers.length > 1 ? answers.shift()! : answers[0]!;
     failed = true;
-    return { text: partial, ends: { kind: "fail", error: error() } };
+    return { ...partial, ends: { kind: "fail", error: error() } };
   };
   return { play, requests };
 }
@@ -104,17 +110,31 @@ describe("ExecuteDeepAgent hermetic — a model reply that fails after it began"
   it("calls the model again; the partial stays on screen and never reaches the model", { timeout: 30_000 }, async () => {
     clock.reset();
     const record = deepAgentExecutionRecord({ message: "Does the suite pass?" });
-    const parent = failOnceThen(PARTIAL, midReplyOverload, { text: REPLY });
+    const parent = failOnceThen(
+      { reasoning: THOUGHT, text: PARTIAL },
+      midReplyOverload,
+      { text: CHECKING, toolCalls: [{ id: TODOS, name: "write_todos", args: { todos: [{ content: "Run the suite", status: "in_progress" }] } }] },
+      { text: REPLY },
+    );
     const scenario = beginDeepAgentScenario({ env, clock, record, script: () => parent.play });
 
     const invocation = await runDeepAgentTurn(scenario);
 
     expect((invocation.outcome as { value: Record<string, unknown> }).value.phase).toBe("RUN_COMPLETED");
-    expect(parent.requests).toHaveLength(2);
+    expect(parent.requests).toHaveLength(3);
     expect(parent.requests[1].some((m) => AIMessage.isInstance(m) && textOf(m).includes(PARTIAL)), "the model never sees the partial").toBe(false);
 
     const ai = record.rowsOf(record.lastFullStatus!).messages.filter((m) => m.type === MessageType.MESSAGE_AI);
-    expect(ai.map((m) => m.content)).toEqual([PARTIAL, REPLY]);
+    expect(ai.map((m) => m.content)).toEqual([PARTIAL, CHECKING, REPLY]);
+
+    // The failed call never finished; the retry's start closed its thinking,
+    // so no persist after the retry shows a spinner on it.
+    const midTurn = record.persistedRows.filter((rows) => rows.messages.some((m) => m.content === CHECKING));
+    expect(midTurn.length, "a persist while the retried reply's tool ran").toBeGreaterThan(0);
+    for (const rows of midTurn) {
+      const thought = rows.messages.find((m) => m.type === MessageType.MESSAGE_THINKING && m.content === THOUGHT);
+      expect(thought?.isStreaming, "the failed call's thinking is closed").toBe(false);
+    }
 
     expect(retryLines()).toHaveLength(1);
     expect(retryLines()[0]).toMatch(/^\[MODEL-RETRY\] phase=stream decision=retry reason=overloaded attempt=1\/3 delay_ms=\d+$/);
@@ -125,7 +145,7 @@ describe("ExecuteDeepAgent hermetic — a model reply that fails after it began"
     const record = deepAgentExecutionRecord({ message: "Does the suite pass?" });
     const unauthorized = () =>
       APIError.generate(401, { type: "error", error: { type: "authentication_error", message: "invalid x-api-key" } }, undefined, new Headers());
-    const parent = failOnceThen("", unauthorized, { text: REPLY });
+    const parent = failOnceThen({}, unauthorized, { text: REPLY });
     const scenario = beginDeepAgentScenario({ env, clock, record, script: () => parent.play });
 
     const invocation = await runDeepAgentTurn(scenario);
@@ -146,7 +166,7 @@ describe("ExecuteDeepAgent hermetic — a model reply that fails after it began"
     });
     const record = deepAgentExecutionRecord({ message: "Have the runner check the suite.", subagents: [helper], autoApproveAll: true });
     const TASK = "call-hermetic-retry-task-0001";
-    const sub = failOnceThen(PARTIAL, midReplyOverload, { text: REPLY });
+    const sub = failOnceThen({ text: PARTIAL }, midReplyOverload, { text: REPLY });
     let report: string | undefined;
     const scenario = beginDeepAgentScenario({
       env,

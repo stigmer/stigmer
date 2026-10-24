@@ -59,7 +59,8 @@
  *     latest with text, the seed's last AI message over a seeded transcript
  *     — and to a new empty one only when the scope has none.
  *   - A THINKING row per `runId`, a text message per `runId`; a
- *     new run closes the previous message's streaming flag, and a run's
+ *     new run closes the previous run's text and thinking (a model call
+ *     that threw never finishes, and its retry is a new run), and a run's
  *     finish closes both its text and its thinking.
  *   - A sub-agent row per `subAgentId`, opened by `sub_agent_started`,
  *     closed COMPLETED/FAILED by `sub_agent_finished/failed` with its
@@ -458,8 +459,9 @@ export class TranscriptBuilder {
     // Record the run for the message boundary but do NOT create the AI
     // message yet: it is created lazily on the first text_delta, so a
     // THINKING row that streams first sits before the text it precedes.
-    if (scope.lastRunId && scope.lastRunId !== runId && scope.currentAiMessage) {
-      scope.currentAiMessage.isStreaming = false;
+    if (scope.lastRunId && scope.lastRunId !== runId) {
+      if (scope.currentAiMessage) scope.currentAiMessage.isStreaming = false;
+      this.handleMessageFinish(scope, scope.lastRunId);
     }
     scope.lastRunId = runId;
   }

@@ -233,10 +233,7 @@ export function classifyModelCallError(
   //    blocks are broad (deep-agent, Cursor), and a WorkspaceLockTimeoutError
   //    is not a model connection timeout, nor a DOMException TimeoutError.
   const links = causeChainOf(err);
-  const isTimeout = links.some((link) =>
-    link.constructor.name.includes("APIConnectionTimeout")
-    || (link.name === "TimeoutError" && !(link instanceof DOMException)));
-  if (isTimeout) {
+  if (isModelTimeout(links)) {
     return {
       code: "LLM_CONNECTION_TIMEOUT",
       message: `Connection timed out for ${modelLabel(ctx)}: ${message}`,
@@ -440,6 +437,18 @@ function classifyStreamFailure(type: string, rawMessage: string, ctx: ModelError
     code: "LLM_API_ERROR",
     message: `${providerSubject(ctx)} returned an error while answering (${type}) for ${context}: ${rawMessage}`,
   };
+}
+
+/**
+ * Whether a failure's chain is a model request's timeout: the SDKs'
+ * `APIConnectionTimeoutError`, or the `TimeoutError` LangChain's OpenAI
+ * wrapper turns it into. Never a DOMException `TimeoutError` (an
+ * `AbortSignal.timeout` of the caller's own), however wrapped: LangChain's
+ * `MiddlewareError` copies its cause's name onto itself.
+ */
+export function isModelTimeout(links: readonly Error[]): boolean {
+  if (links.some((link) => link.constructor.name.includes("APIConnectionTimeout"))) return true;
+  return links.some((link) => link.name === "TimeoutError") && !links.some((link) => link instanceof DOMException);
 }
 
 /** The error and its causes, outermost first, each once. */

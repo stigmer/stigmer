@@ -46,7 +46,12 @@
  * answered yet (no call started, no round opened since) and nothing is open:
  * the engine handed the model a result and the model has not replied. A
  * turn that has folded nothing yet is not waiting on its model by this
- * reading: the stall may be in the engine's own setup.
+ * reading: the stall may be in the engine's own setup. A round also ends
+ * when the next round of its scope (the root, or one sub-agent) starts, and
+ * when its sub-agent finishes or fails: a graph makes one model call at a
+ * time, and a call that threw never finishes (LangGraph emits no
+ * `message-finish` for it, and a retried call is a new run), so without
+ * this a failed round stayed open for the rest of the turn.
  *
  * The oldest open call, with its age, is what the runtime's backstop reads:
  * an operation open longer than `Config.openOperationMaxMs` is stopped
@@ -107,8 +112,8 @@ export class OpenOperations {
   private readonly open = new Map<string, OpenOperation>();
   private readonly closed = new Set<string>();
   private readonly delegating = new Set<string>();
-  /** The model rounds open now, by the run id their `message_start` named, with when each opened. */
-  private readonly openRounds = new Map<string, number>();
+  /** The model rounds open now, by the run id their `message_start` named, with when each opened and whose scope it is. */
+  private readonly openRounds = new Map<string, { readonly openedAtMs: number; readonly scope: string | undefined }>();
   /** The newest fact folded is a tool's result nothing has answered yet. */
   private resultUnanswered = false;
   /** When the newest unanswered result arrived. */
@@ -144,11 +149,18 @@ export class OpenOperations {
         this.resultUnanswered = false;
         return;
       case "message_start":
-        if (!this.openRounds.has(event.runId)) this.openRounds.set(event.runId, this.now());
+        if (!this.openRounds.has(event.runId)) {
+          this.closeRounds(event.subAgentId);
+          this.openRounds.set(event.runId, { openedAtMs: this.now(), scope: event.subAgentId });
+        }
         this.resultUnanswered = false;
         return;
       case "message_finish":
         this.openRounds.delete(event.runId);
+        return;
+      case "sub_agent_finished":
+      case "sub_agent_failed":
+        this.closeRounds(event.subAgentId);
         return;
       case "sub_agent_started": {
         const wasHeld = this.held();
@@ -158,6 +170,13 @@ export class OpenOperations {
       }
       default:
         return;
+    }
+  }
+
+  /** End every round open in `scope` (the root when undefined): see the module header. */
+  private closeRounds(scope: string | undefined): void {
+    for (const [runId, round] of this.openRounds) {
+      if (round.scope === scope) this.openRounds.delete(runId);
     }
   }
 
@@ -186,7 +205,7 @@ export class OpenOperations {
 
   /** How long the turn has waited on its model, by {@link awaitingModel}'s reading; undefined when it is not. */
   private awaitingSinceMs(held: boolean, now: number): number | undefined {
-    if (this.openRounds.size > 0) return now - Math.min(...this.openRounds.values());
+    if (this.openRounds.size > 0) return now - Math.min(...[...this.openRounds.values()].map((round) => round.openedAtMs));
     return this.resultUnanswered && !held ? now - this.resultAtMs : undefined;
   }
 

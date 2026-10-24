@@ -84,16 +84,16 @@ export function createModelRetryMiddleware(config: Partial<ModelRetryConfig> = {
   };
 }
 
-/** Resolves after `ms`, or rejects with the signal's reason the moment it aborts. */
+/** Resolves after `ms`, or rejects with the stop the moment the signal aborts. */
 function sleepUnlessAborted(ms: number, signal: AbortSignal | undefined): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
-      reject(signal.reason);
+      reject(abortErrorOf(signal));
       return;
     }
     const onAbort = () => {
       clearTimeout(timer);
-      reject(signal!.reason);
+      reject(abortErrorOf(signal!));
     };
     const timer = setTimeout(() => {
       signal?.removeEventListener("abort", onAbort);
@@ -101,4 +101,15 @@ function sleepUnlessAborted(ms: number, signal: AbortSignal | undefined): Promis
     }, ms);
     signal?.addEventListener("abort", onAbort, { once: true });
   });
+}
+
+/**
+ * The stop as an error, the way the graph's own race against the signal
+ * throws it: the runtime aborts with a string reason. Twinned from
+ * `@langchain/core` (`dist/utils/signal.js` `getAbortSignalError`, 1.2.13),
+ * which does not export it.
+ */
+function abortErrorOf(signal: AbortSignal): Error {
+  if (signal.reason instanceof Error) return signal.reason;
+  return new Error(typeof signal.reason === "string" ? signal.reason : "Aborted");
 }
