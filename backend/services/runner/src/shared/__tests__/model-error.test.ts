@@ -17,6 +17,7 @@ import {
   PROVIDER_KEY_REQUIRED_SENTINEL,
   classifyModelCallError,
   describeExecutionError,
+  providerErrorTypeOf,
   unwrapModelError,
 } from "../model-error.js";
 
@@ -203,6 +204,13 @@ describe("classifyModelCallError — connection heuristics and no-signal", () =>
     expect(overloaded?.message).toContain("Anthropic failed while answering (overloaded_error)");
     expect(classifyModelCallError(streamed("rate_limit_error"), ctx)?.code).toBe("LLM_RATE_LIMIT");
     expect(classifyModelCallError(streamed("invalid_request_error"), ctx)?.code).toBe("LLM_API_ERROR");
+  });
+
+  it("reads a provider error type only off a status-less error, never off an HTTP answer's body", () => {
+    expect(providerErrorTypeOf(APIError.generate(429, { type: "error", error: { type: "rate_limit_error", message: "slow" } }, undefined, new Headers())))
+      .toBeUndefined();
+    expect(providerErrorTypeOf(new APIError(undefined, { error: { type: "server_error", message: "boom" } }, undefined, new Headers())))
+      .toBe("server_error");
   });
 
   it("does not relabel an arbitrary *TimeoutError class as a model connection timeout", () => {

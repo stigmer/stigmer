@@ -248,14 +248,10 @@ function statusOf(link: Error): number | undefined {
   return typeof status === "number" ? status : undefined;
 }
 
+/** A response header on an SDK error: both provider SDKs keep the answer's `Headers`. */
 function headerOf(link: Error, name: string): string | undefined {
   const headers = (link as { headers?: unknown }).headers;
-  if (headers instanceof Headers) return headers.get(name) ?? undefined;
-  if (typeof headers === "object" && headers !== null) {
-    const value = (headers as Record<string, unknown>)[name];
-    return typeof value === "string" ? value : undefined;
-  }
-  return undefined;
+  return headers instanceof Headers ? (headers.get(name) ?? undefined) : undefined;
 }
 
 function isAbort(link: Error): boolean {
