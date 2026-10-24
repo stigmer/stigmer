@@ -47,6 +47,10 @@
  * a client appends to the command, not to the call (the call's result is
  * in): only once the running status is in the log, held until then, and
  * dropped once the ended status is known, which carries the whole output.
+ * Held output never rides the append that carries its running status: the
+ * log publishes an append's previews before its events, so a client would
+ * see output for a command it has not heard of. It leaves in an append of
+ * previews alone, right after the write that sent the status.
  *
  * File review. A change set the turn captured (a CANDIDATE_CAPTURED on the
  * turn's own ledger, `rows.file_review_event_stream`) is written as one
@@ -390,14 +394,14 @@ export class SessionEventEmitter {
   /**
    * Whether a running tool's output, or a background command's that may be
    * sent now, waits: what the runtime's pump asks before it asks for a
-   * flush. A background command's held output rides the write that sends
-   * its running status instead.
+   * flush. A background command's held output leaves right after the write
+   * that sends its running status ({@link flush}).
    */
   get toolOutputPending(): boolean {
     return this.pendingPreviews.some(
       (preview) =>
         preview.kind === "tool-output" ||
-        (preview.kind === "background-output" && this.backgroundOutput(preview.callId, "alone") === "send"),
+        (preview.kind === "background-output" && this.backgroundOutput(preview.callId) === "send"),
     );
   }
 
@@ -416,7 +420,7 @@ export class SessionEventEmitter {
     const rest: PendingPreview[] = [];
     for (const preview of this.pendingPreviews) {
       if (preview.kind === "background-output") {
-        const fate = this.backgroundOutput(preview.callId, "alone");
+        const fate = this.backgroundOutput(preview.callId);
         if (fate === "hold") rest.push(preview);
         else this.backgroundPreviewDone(preview, fate === "send" ? previews : undefined);
         continue;
@@ -503,6 +507,9 @@ export class SessionEventEmitter {
     const previews = this.decidePreviews(opts.final);
     if (this.queue.length === 0 && previews.length === 0) return;
     await this.append(previews, opts.final);
+    // Output held for a command whose running status this write sent: alone,
+    // after it (the module header).
+    if (!opts.final && this.toolOutputPending) await this.flushToolOutput();
   }
 
   // ── Reading the rows ──────────────────────────────────────────────────────
@@ -889,7 +896,7 @@ export class SessionEventEmitter {
     const held: PendingPreview[] = [];
     for (const preview of pending) {
       if (preview.kind === "background-output") {
-        const fate = this.backgroundOutput(preview.callId, "with-events");
+        const fate = this.backgroundOutput(preview.callId);
         if (fate === "hold") held.push(preview);
         else this.backgroundPreviewDone(preview, fate === "send" ? out : undefined);
         continue;
@@ -931,15 +938,12 @@ export class SessionEventEmitter {
   /**
    * What becomes of a background command's output fragment (the module
    * header): `drop` once its ended status is known; `send` once its running
-   * status is in the log, or, on a write (`with-events`), queued ahead of
-   * the previews in the same append; `hold` until then.
+   * status is in the log; `hold` until then.
    */
-  private backgroundOutput(callId: string, append: "alone" | "with-events"): "send" | "hold" | "drop" {
+  private backgroundOutput(callId: string): "send" | "hold" | "drop" {
     const toolUseId = toolUseEventId(this.deps.runId, callId);
     if (this.known(backgroundEndedEventId(toolUseId))) return "drop";
-    const runningId = backgroundRunningEventId(toolUseId);
-    const shown = append === "alone" ? this.sent.has(runningId) : this.known(runningId);
-    return shown ? "send" : "hold";
+    return this.sent.has(backgroundRunningEventId(toolUseId)) ? "send" : "hold";
   }
 
   /** A background fragment leaves the queue: into `out` as its preview, or dropped when `out` is undefined. */

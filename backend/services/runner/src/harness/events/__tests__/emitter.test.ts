@@ -667,9 +667,16 @@ describe("background commands", () => {
     await e.flushToolOutput();
     expect(outputs()).toEqual([]);
 
-    // The write that sends the running status carries the held output after it.
+    // The write that sends the running status is followed by the held output,
+    // in an append of its own: the log publishes an append's previews before
+    // its events, and a client must hear of the command first.
     await e.flush(st, { final: false });
     expect(outputs()).toEqual([[`${RUN}.bg`, "booting\n"]]);
+    const appends = log.client.appendSessionEvents.mock.calls;
+    const statusAppend = appends.findIndex((call) => call[1].some((ev) => ev.event.case === "stigmerBackgroundCommandStatus"));
+    expect(appends[statusAppend]![2].filter((p) => p.preview.case === "stigmerToolOutputDelta"), "not with the status").toEqual([]);
+    expect(appends[statusAppend + 1]![1], "after it, alone").toEqual([]);
+    expect(appends[statusAppend + 1]![2].map((p) => p.preview.case)).toEqual(["stigmerToolOutputDelta"]);
 
     // Between writes, alone.
     e.observe({ kind: "background_output_delta", callId: "bg", delta: "ready\n" });
