@@ -127,6 +127,49 @@ approval, or `auto_approve_all` on an execution): the call still does not run.
 On a Slack or WhatsApp channel or a chat link, where nobody can approve, a call
 a hook asks about is skipped, as any call that asks is.
 
+## Format every file the agent edits
+
+Stigmer's own catalogue has a plugin whose hook runs the project's formatter on
+every file the Agent writes or edits, right after the change: Prettier for a
+project that depends on it, `gofmt` for Go, Ruff for a Python project configured
+for it, and others. Install it, then add it to the Agent as above, or try it in
+one conversation:
+
+```bash
+stigmer install format-on-edit
+stigmer run --plugin format-on-edit
+```
+
+```yaml validate-as="Agent"
+spec:
+  plugins:
+    - kind: plugin
+      slug: format-on-edit
+```
+
+Its page lists one hook: **After a tool call**, on `Write` and `Edit`, running
+`node` on the plugin's script. The script picks the formatter the project
+declares (a `package.json` dependency, a `biome.json`, a `.clang-format`, a
+`[tool.ruff]` table) or a one-style formatter such as `gofmt` when it is
+installed, and runs it from the project's own `node_modules`, `.venv` or `PATH`.
+Nothing is downloaded, and a formatter the project does not declare never runs.
+The plugin's
+[README](https://github.com/stigmer/stigmer/tree/main/plugins/format-on-edit)
+has the whole table.
+
+When the formatter changed the file, the Agent reads one line after the tool's
+result, so its next edit quotes the formatted text:
+
+```text
+Prettier reformatted src/app.ts after this change (lines 12-18 now differ from what you wrote). Read those lines again before quoting them in another edit.
+```
+
+The change you review is already formatted. When the edit failed, no formatter
+applies, or the file was already formatted, nothing is added. The formatter is
+the project's own code, and a config file such as `prettier.config.js` is code
+too: it runs after every edit without an approval of its own, as every hook
+does, so listing the plugin is that approval.
+
 ## Write your own hooks
 
 An Agent can carry one block of hooks written in it, in Claude Code's
