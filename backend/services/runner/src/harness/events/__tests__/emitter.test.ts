@@ -661,7 +661,8 @@ describe("background commands", () => {
     await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
     const outputs = () => log.previews.flatMap((p) => (p.preview.case === "stigmerToolOutputDelta" ? [[p.preview.value.toolUseId, p.preview.value.delta]] : []));
 
-    // Before any write: held, and the pump is not woken for it.
+    // Before any write: held, and the pump is not woken for it; an empty fragment is nothing.
+    e.observe({ kind: "background_output_delta", callId: "bg", delta: "" });
     e.observe({ kind: "background_output_delta", callId: "bg", delta: "booting\n" });
     expect(e.toolOutputPending, "nothing it may send alone yet").toBe(false);
     await e.flushToolOutput();

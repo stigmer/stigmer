@@ -10,6 +10,11 @@
  *    row holds the start's answer, and the session's log carries the
  *    command's own life after that answer: its running status, then its
  *    ended status (exited 0, with what it printed), and no SYSTEM row.
+ *  - A person's stop of the command while the turn waits, a stop request in
+ *    the log as the server writes it, is read by the runtime's pump and
+ *    stops that command alone: its ended status says a person stopped it,
+ *    the agent is told so, and the turn completes long before the command's
+ *    own end.
  *  - A platform STOP that arrives while the turn waits ends the wait at once:
  *    the command is stopped, its ended status says the turn stopped it, the
  *    agent's thread is told so, and the run completes with the
@@ -41,7 +46,8 @@ import { stubRegistryFetch } from "../../../../__test-utils__/model-registry-fix
 import { beginDeepAgentScenario, deepAgentExecutionRecord, runDeepAgentTurn, sessionWorkspaceDir } from "../../__test-utils__/hermetic-deep-agent.js";
 import type { ScriptedTurn } from "../../__test-utils__/scripted-model.js";
 import { ApprovalAction, MessageType, ToolCallStatus } from "../../../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
-import type { SessionEvent, StigmerBackgroundCommandStatusEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { create } from "@bufbuild/protobuf";
+import { SessionEventSchema, type SessionEvent, type StigmerBackgroundCommandStatusEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 
 function textOf(message: BaseMessage | undefined): string {
   if (message === undefined) return "";
@@ -114,6 +120,49 @@ describe("ExecuteDeepAgent hermetic — background commands", () => {
     expect(indexOf(record.sessionEvents, `${useId}.bg`), "the running status follows the start's result").toBeGreaterThan(indexOf(record.sessionEvents, `${useId}.r`));
     const ai = rows.messages.filter((m) => m.type === MessageType.MESSAGE_AI).map((m) => m.content);
     expect(ai.at(-1)).toBe("The check printed done.");
+  });
+
+  it("stops the command a person stopped, read from the log while the turn waits, and the agent answers", async () => {
+    const START = "call-hermetic-bg-0004";
+    const WAITING = "I will wait for the server.";
+    const record = deepAgentExecutionRecord({ message: "Start the server.", autoApproveAll: true });
+    let toldStopped = "";
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      script: () => (transcript: readonly BaseMessage[]): ScriptedTurn => {
+        const last = transcript.at(-1);
+        if (last !== undefined && isHumanMessage(last) && textOf(last).startsWith("<background-commands-running>")) {
+          // The person presses Stop: the server writes the request into the log.
+          const toolUseId = statusesOf(record.sessionEvents, START)[0]?.toolUseId ?? "";
+          record.sessionEvents.push(
+            create(SessionEventSchema, {
+              runId: record.executionId,
+              event: { case: "stigmerBackgroundCommandStopRequested", value: { id: "sevt_bs_hermetic", toolUseId } },
+            }),
+          );
+          return { text: WAITING };
+        }
+        if (last !== undefined && isHumanMessage(last) && textOf(last).startsWith("<background-command ")) {
+          toldStopped = textOf(last);
+          return { text: "You stopped the server." };
+        }
+        if (isToolMessage(last)) return { text: "It runs." };
+        return { toolCalls: [{ id: START, name: "execute", args: { command: "sleep 120", background: true } }] };
+      },
+    });
+
+    const startedAt = performance.timeOrigin + process.uptime() * 1000;
+    const invocation = await runDeepAgentTurn(scenario);
+    expect(performance.timeOrigin + process.uptime() * 1000 - startedAt, "the person's stop ended it, not its own 120 s").toBeLessThan(60_000);
+
+    expect(phaseOf(invocation.outcome)).toBe("RUN_COMPLETED");
+    expect(statusesOf(record.sessionEvents, START).at(-1)).toMatchObject({ phase: "ended", ending: "stopped", stoppedBy: "person" });
+    expect(toldStopped).toContain('ended="stopped by the person"');
+    const rows = record.rowsOf(record.lastFullStatus!);
+    const ai = rows.messages.filter((m) => m.type === MessageType.MESSAGE_AI).map((m) => m.content);
+    expect(ai.at(-1)).toBe("You stopped the server.");
   });
 
   it("ends the wait at a platform STOP, stopping the command, and completes with the platform-stop row", async () => {

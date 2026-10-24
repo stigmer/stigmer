@@ -103,9 +103,9 @@ export class BackgroundStopPump {
     this.timer = undefined;
   }
 
+  /** A read is due: a timer is set only while a command runs and the pump is not stopped (`schedule`, `clear`). */
   private tick(): void {
     this.timer = undefined;
-    if (this.stopped || this.running.size === 0) return;
     this.reading = this.deps
       .read()
       .then(

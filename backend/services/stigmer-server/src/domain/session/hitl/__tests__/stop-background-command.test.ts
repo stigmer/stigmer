@@ -202,6 +202,13 @@ describe("stopBackgroundCommand", () => {
     expect(await stopRequests()).toHaveLength(1);
   });
 
+  it("reads every page of a run's background events to find the command", async () => {
+    const others = Array.from({ length: 1000 }, (_, i) => status(RUN, `other-${i}`, "running"));
+    await seedTurn([...others, status(RUN, "tc-last", "running")]);
+    const stopped = await stop(use("tc-last"));
+    expect(stopped.event.case).toBe("stigmerBackgroundCommandStopRequested");
+  });
+
   it("finds no command for a tool use that started none, of another session, or of no run", async () => {
     await seedTurn([status(RUN, "tc-1", "running")]);
     await seedTurn([status("run_2", "tc-9", "running")], { runId: "run_2", sessionId: "ses_2" });

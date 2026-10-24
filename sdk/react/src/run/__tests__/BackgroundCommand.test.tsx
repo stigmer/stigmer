@@ -141,6 +141,12 @@ describe("the agent's stop of a background command", () => {
     expect(container.textContent).toContain("npm run dev");
   });
 
+  it("says it is stopping while the call runs", () => {
+    const stop = toolUse({ name: "stop_background_command", id: "run_1.stop-1", input: { id: "bg-1" }, state: "running" });
+    const { container } = render(<ToolCallItem toolUse={stop} />);
+    expect(container.textContent).toContain("Stopping a command");
+  });
+
   it("says the command had already ended when no end names it", () => {
     const stop = toolUse({ name: "stop_background_command", id: "run_1.stop-1", input: { id: "bg-1" }, result: "It had already ended." });
     const { container } = render(<ToolCallItem toolUse={stop} />);
@@ -201,6 +207,37 @@ describe("the thread's tail line while the turn waits on background commands", (
       buildThreadItems([turn(awaitingModelMs)], []).find((item) => item.kind === "liveness");
     const held = liveness(undefined);
     expect(held?.kind === "liveness" && held.waitingOn.map((t) => t.id)).toEqual(["run_1.bg-1"]);
+    const inThread = buildThreadItems(
+      [
+        {
+          ...turn(undefined),
+          items: [
+            toolUse({
+              name: "task",
+              id: "run_1.task-1",
+              result: "",
+              state: "running",
+              thread: { id: "run_1.task-1", agentName: "helper", input: "", reply: "", state: "completed", items: [backgroundStart({}, { id: "run_1.sub-bg" })] },
+            }),
+          ],
+        },
+      ],
+      [],
+    ).find((item) => item.kind === "liveness");
+    expect(inThread, "a sub-agent that still runs shows its own live signal: no tail line").toBeUndefined();
+    const subTurn = {
+      ...turn(undefined),
+      items: [
+        toolUse({
+          name: "task",
+          id: "run_1.task-2",
+          result: "done",
+          thread: { id: "run_1.task-2", agentName: "helper", input: "", reply: "done", state: "completed", items: [backgroundStart({}, { id: "run_1.sub-bg-2" })] },
+        }),
+      ],
+    };
+    const fromThread = buildThreadItems([subTurn], []).find((item) => item.kind === "liveness");
+    expect(fromThread?.kind === "liveness" && fromThread.waitingOn.map((t) => t.id), "a sub-agent's command counts").toEqual(["run_1.sub-bg-2"]);
     const thinking = liveness(4_000);
     expect(thinking?.kind === "liveness" && thinking.waitingOn, "the model is working: the line stays Working…").toEqual([]);
   });

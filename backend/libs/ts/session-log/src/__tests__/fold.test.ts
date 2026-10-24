@@ -459,6 +459,11 @@ describe("background commands", () => {
     expect(toolsOf(fold.turns[0]!.items)[0]!.background).toMatchObject({ state: "timed_out", timeoutSeconds: 60, stopRequested: true });
   });
 
+  it("dates a command's start by its end when the log holds no running status", () => {
+    const fold = foldSession([user(R, "go"), ...started(R, "bg1"), status(R, "bg1", { phase: "ended", ending: "failed_to_start", output: "no shell" })]);
+    expect(toolsOf(fold.turns[0]!.items)[0]!.background).toMatchObject({ state: "failed_to_start", startedAt: "t-ended", output: "no shell" });
+  });
+
   it("reads a command its ended turn never ended as stopped by the turn, with what it printed so far", () => {
     const log = new SessionLog();
     log.apply([user(R, "go"), phase(R, "running"), ...started(R, "bg1"), status(R, "bg1", { phase: "running" })]);
