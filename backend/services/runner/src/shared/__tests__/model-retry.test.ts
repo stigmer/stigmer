@@ -38,8 +38,11 @@ function providerError(status: number, type: string, headers: Record<string, str
   return APIError.generate(status, { type: "error", error: { type, message } }, undefined, new Headers(headers));
 }
 
+/** The provider error types the SDK knows. */
+type ProviderErrorType = NonNullable<ConstructorParameters<typeof APIError>[4]>;
+
 /** An `event: error` after a 200: no status, the provider's type, the 200's headers (`core/streaming.js`). */
-function streamError(type: string, message = type): APIError {
+function streamError(type: ProviderErrorType, message: string = type): APIError {
   return new APIError(undefined, { type: "error", error: { type, message } }, undefined, new Headers(), type);
 }
 

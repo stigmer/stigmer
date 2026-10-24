@@ -195,7 +195,7 @@ describe("classifyModelCallError — connection heuristics and no-signal", () =>
   });
 
   it("words a reply that failed mid-stream by the provider's error type, never as [APIError]", () => {
-    const streamed = (type: string) =>
+    const streamed = (type: NonNullable<ConstructorParameters<typeof APIError>[4]>) =>
       middlewareWrap(new APIError(undefined, { type: "error", error: { type, message: type } }, undefined, new Headers(), type));
     const ctx = { proxyMode: false, provider: "anthropic" as const, modelId: "claude-haiku-4-5" };
     const overloaded = classifyModelCallError(streamed("overloaded_error"), ctx);
