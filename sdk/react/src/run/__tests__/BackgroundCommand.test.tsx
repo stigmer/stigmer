@@ -207,6 +207,9 @@ describe("the thread's tail line while the turn waits on background commands", (
       buildThreadItems([turn(awaitingModelMs)], []).find((item) => item.kind === "liveness");
     const held = liveness(undefined);
     expect(held?.kind === "liveness" && held.waitingOn.map((t) => t.id)).toEqual(["run_1.bg-1"]);
+    const older = backgroundStart({ startedAt: "2026-08-13T09:00:00.000Z" }, { id: "run_1.bg-0" });
+    const two = buildThreadItems([{ ...turn(undefined), items: [running, older] }], []).find((item) => item.kind === "liveness");
+    expect(two?.kind === "liveness" && two.waitingOn.map((t) => t.id), "oldest first").toEqual(["run_1.bg-0", "run_1.bg-1"]);
     const inThread = buildThreadItems(
       [
         {

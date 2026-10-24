@@ -419,8 +419,13 @@ describe("background commands", () => {
     tool = toolsOf(log.snapshot().turns[0]!.items)[0]!;
     expect(tool.background).toMatchObject({ state: "exited", exitCode: 1, output: "ready on :3000\ncrash\n", endedAt: "t-end", liveOutput: "" });
     expect(isBackgroundRunning(tool)).toBe(false);
-    log.apply([status(R, "bg1", { phase: "ended", ending: "stopped", stoppedBy: "person" })]);
-    expect(toolsOf(log.snapshot().turns[0]!.items)[0]!.background?.state, "the first ending is final").toBe("exited");
+    log.apply([
+      ev(R, {
+        case: "stigmerBackgroundCommandStatus",
+        value: { id: `${R}.bg1.bg.end.again`, toolUseId: `${R}.bg1`, phase: "ended", ending: "stopped", stoppedBy: "person" },
+      }),
+    ]);
+    expect(toolsOf(log.snapshot().turns[0]!.items)[0]!.background?.state, "the first ending is final, even against a second event").toBe("exited");
   });
 
   it("says who stopped one, keeps a person's stop request, and links the agent's stop call to the command", () => {
