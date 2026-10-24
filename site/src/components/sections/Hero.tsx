@@ -2,19 +2,13 @@
 
 import * as React from "react";
 import Link from "next/link";
-import {
-  motion,
-  useMotionValue,
-  useSpring,
-  useTransform,
-  useReducedMotion,
-} from "framer-motion";
 import { cn } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
 import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/ui/motion";
+import { JobPath } from "@/components/visuals/JobPath";
 
 export type HeroProps = React.HTMLAttributes<HTMLElement>;
 
@@ -43,7 +37,9 @@ function Hero({ className, ...props }: HeroProps) {
 
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] gap-12 lg:gap-16 items-center">
+        {/* Side by side only from xl, where the picture's column is the 628px it
+            was drawn at; below, the picture sits under the buttons. */}
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] gap-12 xl:gap-16 items-center">
           {/* Left: Copy */}
           <div>
             <StaggerContainer
@@ -97,9 +93,9 @@ function Hero({ className, ...props }: HeroProps) {
             </FadeInUp>
           </div>
 
-          {/* Right: Code preview */}
+          {/* Right: the job, a customer's agent at work in its own computer */}
           <FadeInUp delay={0.4} className="min-w-0">
-            <CodePreview />
+            <JobPath />
           </FadeInUp>
         </div>
 
@@ -115,163 +111,6 @@ function Hero({ className, ...props }: HeroProps) {
         </FadeInUp>
       </div>
     </section>
-  );
-}
-
-const TILT_DEGREES = 8;
-const SPRING_CONFIG = { stiffness: 200, damping: 20, mass: 0.5 };
-
-function CodePreview() {
-  const ref = React.useRef<HTMLDivElement>(null);
-  const prefersReducedMotion = useReducedMotion();
-
-  const mouseX = useMotionValue(0.5);
-  const mouseY = useMotionValue(0.5);
-
-  const rotateX = useSpring(
-    useTransform(mouseY, [0, 1], [TILT_DEGREES, -TILT_DEGREES]),
-    SPRING_CONFIG,
-  );
-  const rotateY = useSpring(
-    useTransform(mouseX, [0, 1], [-TILT_DEGREES, TILT_DEGREES]),
-    SPRING_CONFIG,
-  );
-
-  const glowX = useTransform(mouseX, [0, 1], [0, 100]);
-  const glowY = useTransform(mouseY, [0, 1], [0, 100]);
-  const glowBackground = useTransform(
-    [glowX, glowY],
-    ([x, y]) =>
-      `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.06) 0%, transparent 60%)`,
-  );
-
-  const [isHovered, setIsHovered] = React.useState(false);
-
-  const handleMouseMove = React.useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      const el = ref.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      mouseX.set((e.clientX - rect.left) / rect.width);
-      mouseY.set((e.clientY - rect.top) / rect.height);
-    },
-    [mouseX, mouseY],
-  );
-
-  const handleMouseEnter = React.useCallback(() => setIsHovered(true), []);
-
-  const handleMouseLeave = React.useCallback(() => {
-    mouseX.set(0.5);
-    mouseY.set(0.5);
-    setIsHovered(false);
-  }, [mouseX, mouseY]);
-
-  // The wrapper renders either way, so the exported markup hydrates whatever
-  // the preference; under reduced motion it just never tilts.
-  const tilt = !prefersReducedMotion;
-
-  return (
-    <motion.div
-      ref={ref}
-      onMouseMove={tilt ? handleMouseMove : undefined}
-      onMouseEnter={tilt ? handleMouseEnter : undefined}
-      onMouseLeave={tilt ? handleMouseLeave : undefined}
-      style={{
-        rotateX,
-        rotateY,
-        transformPerspective: 800,
-        transformStyle: "preserve-3d",
-      }}
-      whileHover={tilt ? { scale: 1.02 } : undefined}
-      transition={{ scale: { duration: 0.25, ease: "easeOut" } }}
-      className="relative will-change-transform"
-    >
-      <motion.div
-        className="absolute -inset-px rounded-lg pointer-events-none"
-        animate={{ opacity: isHovered ? 1 : 0 }}
-        transition={{ duration: 0.3 }}
-        style={{ background: glowBackground }}
-      />
-      <CodePreviewCard />
-    </motion.div>
-  );
-}
-
-/**
- * What a developer's backend runs to hand a customer's ledger to an agent and
- * get its report back: three calls from variance-report.ts on the docs'
- * "Call it from your app" page, in order. The Getting Started smoke runs that
- * file on every change, and sections/__tests__/snippets.test.tsx fails when
- * the lines between two `ELIDED` marks stop being consecutive lines of it;
- * `ELIDED` stands wherever lines are left out.
- */
-const ELIDED = null;
-
-const VARIANCE_REPORT_EXCERPT: readonly (string | typeof ELIDED)[] = [
-  "const ledger = await uploadFileFromPath(stigmer.file, {",
-  "  org,",
-  '  path: "ledger.csv",',
-  "});",
-  "",
-  "const turn = await sendAndWait(stigmer, {",
-  "  org,",
-  '  sessionSpec: { agentRef: { org, slug: "variance-reporter" } },',
-  '  message: "Review this quarter\'s ledger.",',
-  "  fileIds: [ledger.metadata!.id],",
-  "});",
-  ELIDED,
-  "",
-  "for await (const file of stigmer.file.listAll({ org, runId: turn.runId })) {",
-  ELIDED,
-  "  const { url } = await stigmer.file.getDownloadUrl(file.metadata!.id);",
-  ELIDED,
-  "}",
-];
-
-/** The calls the excerpt is about, drawn brighter than the code around them. */
-const CALLS = /(uploadFileFromPath|sendAndWait|listAll|getDownloadUrl)/;
-
-function CodePreviewCard() {
-  return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
-      {/* Terminal title bar */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-        <div className="flex gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-[#ff5f57]" />
-          <span className="w-3 h-3 rounded-full bg-[#febc2e]" />
-          <span className="w-3 h-3 rounded-full bg-[#28c840]" />
-        </div>
-        <span className="text-xs font-mono text-subtle ml-2">variance-report.ts</span>
-      </div>
-      {/* Code content */}
-      <pre className="p-4 sm:p-6 font-mono text-xs leading-relaxed overflow-x-auto">
-        <code>
-          {VARIANCE_REPORT_EXCERPT.map((line, index) =>
-            line === ELIDED ? (
-              <div key={index} data-code-elided="" className="text-subtle">
-                {[VARIANCE_REPORT_EXCERPT[index - 1], VARIANCE_REPORT_EXCERPT[index + 1]].some(
-                  (neighbour) => neighbour?.startsWith("  "),
-                )
-                  ? "  …"
-                  : "…"}
-              </div>
-            ) : (
-              <div key={index} data-code-line="" className="text-muted-foreground">
-                {line === "" ? " " : line.split(CALLS).map((part, i) =>
-                  i % 2 === 1 ? (
-                    <span key={i} className="text-foreground">
-                      {part}
-                    </span>
-                  ) : (
-                    part
-                  ),
-                )}
-              </div>
-            ),
-          )}
-        </code>
-      </pre>
-    </div>
   );
 }
 
