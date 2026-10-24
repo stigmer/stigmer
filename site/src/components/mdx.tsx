@@ -8,6 +8,7 @@ import { ImageZoom } from "fumadocs-ui/components/image-zoom";
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Hero, Mermaid, ReactSdkDomains, SDKTabs, Term } from "@/components/docs";
+import { JobPath } from "@/components/visuals/JobPath";
 
 export function getMDXComponents(components?: MDXComponents) {
   return {
@@ -26,6 +27,7 @@ export function getMDXComponents(components?: MDXComponents) {
     Card,
     Cards,
     Hero,
+    JobPath,
     Mermaid,
     ReactSdkDomains,
     SDKTabs,
