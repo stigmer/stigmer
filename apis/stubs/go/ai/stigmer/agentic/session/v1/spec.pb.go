@@ -61,8 +61,10 @@ type SessionSpec struct {
 	// Execution harness for this session.
 	//
 	// Determines which harness runs every turn in this session:
-	// - NATIVE (default): Stigmer's own runner
-	// - CURSOR: the Cursor SDK
+	//   - NATIVE (default): Stigmer's own runner
+	//   - CURSOR: the Cursor SDK
+	//   - CLAUDE: Anthropic's Claude Agent SDK, refused until the platform
+	//     offers it
 	//
 	// The harness affects which tools the agent has, how conversation state
 	// is managed, available models, and billing tier. Once set and a run
@@ -283,15 +285,15 @@ var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a,ai/stigmer/agentic/session/v1/resource.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xb7\t\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a,ai/stigmer/agentic/session/v1/resource.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xc1\t\n" +
 	"\vSessionSpec\x12W\n" +
 	"\tagent_ref\x18\x0e \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,(R\bagentRef\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12T\n" +
 	"\bmetadata\x18\x05 \x03(\v28.ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntryR\bmetadata\x12Y\n" +
 	"\n" +
-	"skill_refs\x18\b \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,+R\tskillRefs\x12@\n" +
+	"skill_refs\x18\b \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x04\xe0\x85,+R\tskillRefs\x12J\n" +
 	"\aharness\x18\n" +
-	" \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x12J\n" +
+	" \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessB\b\xbaH\x05\x82\x01\x02\x10\x01R\aharness\x12J\n" +
 	"\vcursor_mode\x18\v \x01(\x0e2).ai.stigmer.agentic.session.v1.CursorModeR\n" +
 	"cursorMode\x12Y\n" +
 	"\x10execution_target\x18\f \x01(\x0e2..ai.stigmer.agentic.session.v1.ExecutionTargetR\x0fexecutionTarget\x12Z\n" +

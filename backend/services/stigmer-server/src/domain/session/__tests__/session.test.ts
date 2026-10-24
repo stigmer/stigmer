@@ -27,6 +27,10 @@
  *     eval's tries left out), and
  *     refuses an empty agent_id, at the filter step as well as at proto
  *     validation;
+ *   - an engine this platform does not offer is refused at create and at
+ *     update with FailedPrecondition and the engine's name (Claude, until
+ *     it is offered), leaving no row; a number no engine owns is refused by
+ *     proto validation;
  *   - harness immutability locks only once harness_state_id is non-empty,
  *     with a stored UNSPECIFIED read as NATIVE and the exact
  *     FAILED_PRECONDITION copy; an update that names no harness keeps the
@@ -681,6 +685,32 @@ describe("session listByAgent", () => {
     );
     expect(error.code).toBe(Code.InvalidArgument);
     expect(error.rawMessage).toBe("agent_id is required");
+  });
+});
+
+describe("session — the offered-engine rule", () => {
+  it("refuses a conversation on Claude at create, storing nothing", async () => {
+    const before = (await query.list({ org: orgIds.get(ORG)! })).entries.length;
+    const error = await grpcError(() => createSession({ harness: Harness.CLAUDE }));
+    expect(error.code).toBe(Code.FailedPrecondition);
+    expect(error.rawMessage).toBe("Claude is not available on this platform yet (spec.harness)");
+    expect((await query.list({ org: orgIds.get(ORG)! })).entries.length).toBe(before);
+  });
+
+  it("refuses moving a conversation to Claude, leaving its engine", async () => {
+    const session = await createSession({ harness: Harness.NATIVE });
+    const error = await grpcError(() =>
+      command.update({ resource: updateInput(session, { harness: Harness.CLAUDE }), updateMask: { paths: ["*"] } }),
+    );
+    expect(error.code).toBe(Code.FailedPrecondition);
+    const stored = await server.store.getResource(ApiResourceKind.session, session.metadata!.id, SessionSchema);
+    expect(stored.spec?.harness).toBe(Harness.NATIVE);
+  });
+
+  it("refuses a number no engine owns by validation", async () => {
+    const error = await grpcError(() => createSession({ harness: 7 as Harness }));
+    expect(error.code).toBe(Code.InvalidArgument);
+    expect(error.rawMessage).toMatch(/harness/);
   });
 });
 

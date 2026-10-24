@@ -41,8 +41,8 @@ export interface InvokeAgentExecutionWorkflowInput {
   readonly execution_context_token?: string;
   /**
    * Session harness as the proto enum numeric value (0=UNSPECIFIED treated
-   * as NATIVE, 1=NATIVE, 2=CURSOR) — selects ExecuteDeepAgent vs
-   * ExecuteCursor.
+   * as NATIVE, 1=NATIVE, 2=CURSOR, 3=CLAUDE) — selects ExecuteDeepAgent,
+   * ExecuteCursor or ExecuteClaude; any other number fails the run.
    */
   readonly harness?: number;
   /**

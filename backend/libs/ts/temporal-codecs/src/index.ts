@@ -1,13 +1,16 @@
 /**
  * @stigmer/temporal-codecs — the Temporal plumbing Stigmer's TypeScript
  * Temporal processes (the server and the runner) share: payload codecs,
- * and the connection-security settings every Temporal connection reads
- * (`connection/config.ts`). The encryption envelope is a cross-language
- * wire contract (the Java decode-only codec in stigmer-cloud's
- * temporal-starter must match it byte-for-byte, pinned by the fixture in
- * src/__tests__/fixtures/), and the connection settings must mean the same
- * on every connection, which is why both live in one library instead of
- * per-consumer copies that could fork.
+ * the connection-security settings every Temporal connection reads
+ * (`connection/config.ts`), and the activity names the runner registers
+ * and the server's workflow calls (`activity-names/names.ts`, a
+ * dependency-free subpath the workflow sandbox can load). The encryption
+ * envelope is a cross-language wire contract (the Java decode-only codec
+ * in stigmer-cloud's temporal-starter must match it byte-for-byte, pinned
+ * by the fixture in src/__tests__/fixtures/), the connection settings must
+ * mean the same on every connection, and an activity name must be the
+ * same on both ends of a run, which is why all three live in one library
+ * instead of per-consumer copies that could fork.
  *
  * This is the package's ONLY public boundary. Codec order at the consumer
  * is a correctness property: install [encryption, claimcheck] so encode

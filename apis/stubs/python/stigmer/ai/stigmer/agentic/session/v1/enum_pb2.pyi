@@ -14,6 +14,7 @@ class Harness(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     HARNESS_UNSPECIFIED: _ClassVar[Harness]
     HARNESS_NATIVE: _ClassVar[Harness]
     HARNESS_CURSOR: _ClassVar[Harness]
+    HARNESS_CLAUDE: _ClassVar[Harness]
 
 class EnvironmentSource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -39,6 +40,7 @@ GIT_WRITE_BACK_BRANCH_AND_PR: GitWriteBackMode
 HARNESS_UNSPECIFIED: Harness
 HARNESS_NATIVE: Harness
 HARNESS_CURSOR: Harness
+HARNESS_CLAUDE: Harness
 ENVIRONMENT_SOURCE_UNSPECIFIED: EnvironmentSource
 ENVIRONMENT_SOURCE_SESSION: EnvironmentSource
 ENVIRONMENT_SOURCE_ROUTINE: EnvironmentSource

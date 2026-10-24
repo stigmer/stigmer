@@ -80,7 +80,7 @@ message AgentInvocation {
   // owner harness choice changes the engine, never the safety
   // posture. cursor_mode stays runner-owned and is deliberately
   // absent.
-  ai.stigmer.agentic.session.v1.Harness harness = 3;
+  ai.stigmer.agentic.session.v1.Harness harness = 3 [(buf.validate.field).enum.defined_only = true];
 
   // Field 4 held the invocation's workspace entries until a conversation's
   // files, repositories and folders became one list (resources).

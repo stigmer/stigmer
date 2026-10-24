@@ -786,7 +786,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * only new conversations.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness", (.buf.validate.field) = { ... }</code>
    * @return The enum numeric value on the wire for harness.
    */
   @java.lang.Override public int getHarnessValue() {
@@ -806,7 +806,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * only new conversations.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness", (.buf.validate.field) = { ... }</code>
    * @return The harness.
    */
   @java.lang.Override public ai.stigmer.agentic.session.v1.Harness getHarness() {
@@ -4191,7 +4191,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * only new conversations.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @return The enum numeric value on the wire for harness.
      */
     @java.lang.Override public int getHarnessValue() {
@@ -4211,7 +4211,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * only new conversations.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @param value The enum numeric value on the wire for harness to set.
      * @throws IllegalArgumentException if UNRECOGNIZED is provided.
      * @return This builder for chaining.
@@ -4236,7 +4236,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * only new conversations.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @return The harness.
      */
     @java.lang.Override
@@ -4258,7 +4258,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * only new conversations.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @param value The harness to set.
      * @return This builder for chaining.
      */
@@ -4283,7 +4283,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * only new conversations.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearHarness() {

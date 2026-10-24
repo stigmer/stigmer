@@ -170,6 +170,29 @@ export interface EvalTraceDeps {
   readArtifact(storageKey: string): Promise<Uint8Array>;
 }
 
+/**
+ * The tool vocabulary a run's recorded calls are named in. Claude has none
+ * yet: its tool names enter the vocabulary when the platform offers it,
+ * and no Claude run reaches a grader before then (the offered-engine rule,
+ * domain/session/harness.ts). Naming its calls as native's would grade
+ * them against the wrong tools, so its arm fails loudly instead.
+ */
+function toolEngineOf(harness: Harness): ToolEngine {
+  switch (harness) {
+    case Harness.CURSOR:
+      return "cursor";
+    case Harness.NATIVE:
+    case Harness.UNSPECIFIED:
+      return "native";
+    case Harness.CLAUDE:
+      throw new Error("eval trace: the Claude engine has no tool vocabulary yet");
+    default: {
+      const unknown: never = harness;
+      throw new Error(`eval trace: harness ${String(unknown)} names no engine`);
+    }
+  }
+}
+
 /** The graders' view of `transcript`'s run (the module header). */
 export async function evalTraceOf(
   transcript: RunTranscript,
@@ -179,8 +202,7 @@ export async function evalTraceOf(
   const turn = turnOfTranscript(transcript);
   const files = await filesOf(run, deps);
   const created = new Set(files.kind === "recorded" ? files.created : []);
-  const engine: ToolEngine =
-    deps.harness === Harness.CURSOR ? "cursor" : "native";
+  const engine = toolEngineOf(deps.harness);
   const seqOf = new Map(
     transcript.events.map((event) => [eventIdOf(event), event.seq] as const),
   );

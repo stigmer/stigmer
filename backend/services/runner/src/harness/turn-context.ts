@@ -1792,21 +1792,18 @@ async function viewMessageImages(
  * user approved unless the runner pins them itself
  * ({@link applyApprovedWrites}). Keyed on the pause primitive
  * (`capabilities.ts`): `deny-and-retry` denies the call and re-prompts the
- * model with grants; `callback` answers "deny, stop" and the resumed session
- * re-attempts the call — both regenerate. An `interrupt` engine checkpoints
- * AT the call and applies its exact args on `approve`, so a runner-side
- * write would land the same bytes twice and pre-empt a row the engine is
- * about to execute; `none` gates nothing. Until #1096 the phase ran for
+ * model with grants, so it regenerates. An `interrupt` engine stops AT the
+ * call and runs its exact args on `approve`, so a runner-side write would
+ * land the same bytes twice and pre-empt a row the engine is about to
+ * execute. Until #1096 the phase ran for
  * every harness — a deny-and-retry mechanism the native harness would have
  * met on its first deny-gated file approval.
  */
 export function regeneratesApprovedWrites(pausePrimitive: PausePrimitive): boolean {
   switch (pausePrimitive) {
     case "deny-and-retry":
-    case "callback":
       return true;
     case "interrupt":
-    case "none":
       return false;
     default: {
       const exhaustive: never = pausePrimitive;

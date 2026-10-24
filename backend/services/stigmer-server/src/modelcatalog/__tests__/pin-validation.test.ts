@@ -15,6 +15,7 @@ import { createLogger } from "../../boot/logger.js";
 import { ModelRegistryStore } from "../model-registry-store.js";
 import {
   HARNESS_NAME_CURSOR,
+  HARNESS_NAME_CLAUDE,
   HARNESS_NAME_NATIVE,
   harnessName,
   suggestSimilarModels,
@@ -41,10 +42,19 @@ const STORE = makeStore({
 });
 
 describe("harnessName", () => {
-  it("maps cursor to its section and everything else to native", () => {
+  it("maps each engine to its own section, unspecified to native", () => {
     expect(harnessName(Harness.CURSOR)).toBe(HARNESS_NAME_CURSOR);
+    expect(harnessName(Harness.CLAUDE)).toBe(HARNESS_NAME_CLAUDE);
     expect(harnessName(Harness.NATIVE)).toBe(HARNESS_NAME_NATIVE);
     expect(harnessName(Harness.UNSPECIFIED)).toBe(HARNESS_NAME_NATIVE);
+  });
+
+  it("gives a number no engine owns a word no section has, never native's", () => {
+    expect(harnessName(7 as Harness)).toBe("harness-7");
+  });
+
+  it("judges a pin on an engine with no section yet as unverifiable", () => {
+    expect(unknownModelPinRefusal(STORE, "f", harnessName(Harness.CLAUDE), "claude-sonnet-4-6")).toBe("");
   });
 });
 

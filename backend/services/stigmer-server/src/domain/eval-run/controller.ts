@@ -90,6 +90,7 @@ import {
   newValidateEvalRunTargetsStep,
   resolveEvalRunCreateTargets,
 } from "./steps.js";
+import { newRefuseUnofferedHarnessStep, type NamedHarness } from "../session/harness.js";
 import type { EvalSuiteSource } from "./suite.js";
 import type { TrySessionDeleter } from "./tries.js";
 import { EVAL_RUN_VAULT_ATTACHMENTS } from "./vault-attachments.js";
@@ -135,6 +136,14 @@ export function registerEvalRunServices(
   });
 }
 
+/** The engines an eval run's targets run on (domain/session/harness.ts). */
+function evalRunHarnesses(run: EvalRun): readonly NamedHarness[] {
+  return (run.spec?.targets ?? []).map((target, index) => ({
+    field: `spec.targets[${index}].harness`,
+    harness: target.harness,
+  }));
+}
+
 function kindOf(ctx: HandlerContext): ApiResourceKind {
   return ctx.values.get(apiResourceKindKey);
 }
@@ -171,6 +180,7 @@ async function createEvalRun(
     )
     .addStep(newLoadEvalRunSubjectStep(deps.store))
     .addStep(newResolveEvalRunDefaultsStep(deps.store, deps.authorizer))
+    .addStep(newRefuseUnofferedHarnessStep(evalRunHarnesses))
     .addStep(newValidateEvalRunTargetsStep(deps.modelCatalog))
     .addStep(newResolveSlugStep())
     .addStep(newCheckDuplicateStep(deps.store))

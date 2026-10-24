@@ -4,12 +4,14 @@ import {
   toProtoHarness,
   fromProtoHarness,
   isHarnessOption,
+  isNamedHarness,
   DEFAULT_HARNESS,
   HARNESS_LABELS,
   HARNESS_META,
   HARNESS_OPTIONS,
   type HarnessOption,
 } from "../harness";
+import { parseModelKey } from "../registry";
 
 // The option set is the proto enum's, nothing more (stigmer/stigmer#1143): an
 // option the platform cannot run must not type-check, because the SDK would
@@ -19,8 +21,15 @@ const unsupported: HarnessOption = "codex";
 void unsupported;
 
 describe("the option set is the proto's harness set", () => {
-  it("offers exactly the engines Harness names, in proto order", () => {
+  it("offers the engines the platform runs, in proto order, and not Claude until it runs it", () => {
     expect(HARNESS_OPTIONS).toEqual(["native", "cursor"]);
+  });
+
+  it("names every engine Harness names, offered or not", () => {
+    expect(fromProtoHarness(Harness.CLAUDE)).toBe("claude");
+    expect(toProtoHarness("claude")).toBe(Harness.CLAUDE);
+    expect(HARNESS_META.claude.label).toBe("Claude");
+    expect(isNamedHarness("claude")).toBe(true);
   });
 
   it("maps every option to a distinct engine and back to itself", () => {
@@ -32,16 +41,31 @@ describe("the option set is the proto's harness set", () => {
     }
   });
 
-  it("gives every option display metadata and nothing else any", () => {
-    expect(Object.keys(HARNESS_META).sort()).toEqual([...HARNESS_OPTIONS].sort());
+  it("gives every named engine display metadata and nothing else any", () => {
+    expect(Object.keys(HARNESS_META).sort()).toEqual(["claude", "cursor", "native"]);
   });
 
-  it("recognises a stored string only when it names an option", () => {
+  it("recognises a stored string only when it names an offered engine", () => {
     expect(isHarnessOption("native")).toBe(true);
     expect(isHarnessOption("cursor")).toBe(true);
-    for (const stored of ["codex", "devin", "copilot", "claude_code", "", "NATIVE"]) {
+    for (const stored of ["claude", "codex", "devin", "copilot", "claude_code", "", "NATIVE"]) {
       expect(isHarnessOption(stored)).toBe(false);
     }
+    for (const word of ["codex", "devin", "copilot", "claude_code", "", "NATIVE"]) {
+      expect(isNamedHarness(word)).toBe(false);
+    }
+  });
+});
+
+describe("parseModelKey", () => {
+  it("reads a key on every named engine, offered or not", () => {
+    expect(parseModelKey("native/claude-sonnet-4-6")).toEqual({ harness: "native", modelId: "claude-sonnet-4-6" });
+    expect(parseModelKey("claude/claude-opus-5")).toEqual({ harness: "claude", modelId: "claude-opus-5" });
+  });
+
+  it("refuses a key on a word no engine owns, or with no engine", () => {
+    expect(parseModelKey("codex/gpt-5")).toBeUndefined();
+    expect(parseModelKey("/gpt-5")).toBeUndefined();
   });
 });
 

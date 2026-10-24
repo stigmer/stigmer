@@ -338,11 +338,13 @@ export function evalRunTargetLabel(target: EvalRunTarget | undefined): string {
   return `${harnessName(target?.harness ?? Harness.UNSPECIFIED)}/${target?.modelName || "default"}`;
 }
 
-/** The engine's word: `native` (also for unspecified, the platform's default) or `cursor`. */
+/** The engine's word: `native` (also for unspecified, the platform's default), `cursor` or `claude`. */
 function harnessName(harness: Harness): string {
   switch (harness) {
     case Harness.CURSOR:
       return "cursor";
+    case Harness.CLAUDE:
+      return "claude";
     case Harness.NATIVE:
     case Harness.UNSPECIFIED:
       return "native";

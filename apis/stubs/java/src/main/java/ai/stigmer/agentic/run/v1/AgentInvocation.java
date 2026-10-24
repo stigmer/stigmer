@@ -171,7 +171,7 @@ private static final long serialVersionUID = 0L;
    * embedding surface's platform default.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness"];</code>
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness", (.buf.validate.field) = { ... }</code>
    * @return The enum numeric value on the wire for harness.
    */
   @java.lang.Override public int getHarnessValue() {
@@ -185,7 +185,7 @@ private static final long serialVersionUID = 0L;
    * embedding surface's platform default.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness"];</code>
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness", (.buf.validate.field) = { ... }</code>
    * @return The harness.
    */
   @java.lang.Override public ai.stigmer.agentic.session.v1.Harness getHarness() {
@@ -1332,7 +1332,7 @@ private static final long serialVersionUID = 0L;
      * embedding surface's platform default.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @return The enum numeric value on the wire for harness.
      */
     @java.lang.Override public int getHarnessValue() {
@@ -1346,7 +1346,7 @@ private static final long serialVersionUID = 0L;
      * embedding surface's platform default.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @param value The enum numeric value on the wire for harness to set.
      * @throws IllegalArgumentException if UNRECOGNIZED is provided.
      * @return This builder for chaining.
@@ -1365,7 +1365,7 @@ private static final long serialVersionUID = 0L;
      * embedding surface's platform default.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @return The harness.
      */
     @java.lang.Override
@@ -1381,7 +1381,7 @@ private static final long serialVersionUID = 0L;
      * embedding surface's platform default.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @param value The harness to set.
      * @return This builder for chaining.
      */
@@ -1400,7 +1400,7 @@ private static final long serialVersionUID = 0L;
      * embedding surface's platform default.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearHarness() {

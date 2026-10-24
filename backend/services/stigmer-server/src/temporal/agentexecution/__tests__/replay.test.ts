@@ -41,8 +41,9 @@ describe("invoke-agent-execution replay determinism", () => {
     // user-cancel histories captured before stigmer#980 changed the
     // payloads (never the command sequence) of those two paths + a drain
     // recovered before recoveries were counted per hour (no
-    // recovery-window marker) and a drained turn continued after it.
-    expect(historyFiles.length).toBeGreaterThanOrEqual(7);
+    // recovery-window marker) and a drained turn continued after it + a
+    // Claude turn's HITL cycle on the deterministic-state flow.
+    expect(historyFiles.length).toBeGreaterThanOrEqual(8);
   });
 
   it("replays every committed history deterministically", async () => {
