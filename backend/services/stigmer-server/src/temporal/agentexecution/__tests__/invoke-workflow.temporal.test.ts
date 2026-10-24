@@ -38,6 +38,10 @@
  *   - a new run records the values-fetched patch and never calls the
  *     retired run-end cleanup, on any exit;
  *   - the cursor flow's harness_state_id re-read discipline;
+ *   - the engine switch: native and Claude share the deterministic-state
+ *     flow (EnsureThread's thread on every invocation), each on its own
+ *     Execute* activity; a number no engine owns fails the run naming it
+ *     and runs nothing;
  *   - every end of the workflow (completed, failed by the runner, broken,
  *     cancelled) calls StartQueuedTurn with the run's session as its last
  *     act; a run in no session calls nothing; a StartQueuedTurn that fails
@@ -78,6 +82,8 @@ import {
   ENSURE_THREAD_ACTIVITY_NAME,
   EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
   GENERATE_SESSION_SUBJECT_ACTIVITY_NAME,
+} from "@stigmer/temporal-codecs/activity-names";
+import {
   INVOKE_AGENT_EXECUTION_WORKFLOW_NAME,
   MEMO_ACTIVITY_TASK_QUEUE,
   SIGNAL_APPROVAL_GATE_RESOLVED,
@@ -123,6 +129,8 @@ interface ActivityScript {
     }) => Promise<Record<string, unknown>>
   >;
   executeCalls: Array<{ thread_id: string; turn_seq: number }>;
+  /** The Execute* activity each invocation reached, in order. */
+  executeActivities: string[];
   /** Each CloseFileReview call's (execution id, session id), in order. */
   closeCalls: Array<[string, string]>;
   /** What ran, in order: "close" per CloseFileReview, "execute" per Execute* invocation. */
@@ -185,6 +193,7 @@ function resetScript(): void {
   script = {
     executeBehaviors: [],
     executeCalls: [],
+    executeActivities: [],
     closeCalls: [],
     order: [],
     closeFault: undefined,
@@ -273,8 +282,18 @@ function scriptedActivities(): Record<string, (...args: never[]) => Promise<unkn
     GenerateSessionSubject: async (argument: unknown): Promise<void> => {
       script.subjectArguments.push(argument);
     },
-    ExecuteDeepAgent: takeExecuteBehavior as never,
-    ExecuteCursor: takeExecuteBehavior as never,
+    ExecuteDeepAgent: ((input: Parameters<typeof takeExecuteBehavior>[0]) => {
+      script.executeActivities.push("ExecuteDeepAgent");
+      return takeExecuteBehavior(input);
+    }) as never,
+    ExecuteCursor: ((input: Parameters<typeof takeExecuteBehavior>[0]) => {
+      script.executeActivities.push("ExecuteCursor");
+      return takeExecuteBehavior(input);
+    }) as never,
+    ExecuteClaude: ((input: Parameters<typeof takeExecuteBehavior>[0]) => {
+      script.executeActivities.push("ExecuteClaude");
+      return takeExecuteBehavior(input);
+    }) as never,
     UpdateExecutionStatus: async (
       executionId: string,
       statusJson: JsonValue,
@@ -927,6 +946,43 @@ describe("invoke-agent-execution workflow (TestWorkflowEnvironment)", () => {
     await expect((await startWorkflow(workflowInput())).result()).resolves.toBeUndefined();
     expect(script.queuedTurnCalls).toEqual(["ses-1"]);
   }, 60_000);
+
+  for (const [engine, activity] of [
+    [Harness.NATIVE, "ExecuteDeepAgent"],
+    [Harness.UNSPECIFIED, "ExecuteDeepAgent"],
+    [Harness.CLAUDE, "ExecuteClaude"],
+  ] as const) {
+    it(`harness ${Harness[engine]} runs the deterministic-state flow on ${activity}, its thread stable across an approval`, async (testCtx) => {    if (!envReady) return testCtx.skip();
+      script.executeBehaviors = [
+        async () => slimResult(RunPhase.RUN_WAITING_FOR_APPROVAL),
+        async () => slimResult(RunPhase.RUN_COMPLETED),
+      ];
+      script.openGateCounts = [1];
+      script.ensureThreadResult = "thread-ses-1";
+
+      const handle = await startWorkflow(workflowInput({ harness: engine }));
+      await waitForPersistedPhase(RunPhase.RUN_WAITING_FOR_APPROVAL);
+      await handle.signal(SIGNAL_APPROVAL_GATE_RESOLVED);
+      await handle.result();
+
+      expect(script.executeActivities).toEqual([activity, activity]);
+      expect(script.executeCalls).toEqual([
+        { thread_id: "thread-ses-1", turn_seq: 0 },
+        { thread_id: "thread-ses-1", turn_seq: 1 },
+      ]);
+    }, 30_000);
+  }
+
+  it("a harness number no engine owns fails the run, naming it, and runs no engine", async (testCtx) => {    if (!envReady) return testCtx.skip();
+    const handle = await startWorkflow(workflowInput({ harness: 7 }));
+    await expect(handle.result()).rejects.toThrow(/Workflow execution failed/);
+
+    expect(script.executeActivities).toEqual([]);
+    const failed = script.persistedStatuses.filter(
+      (entry) => entry.status.phase === RunPhase.RUN_FAILED,
+    );
+    expect(failed.at(-1)?.status.error).toMatch(/harness 7 names no engine/);
+  }, 30_000);
 
   it("cursor flow re-reads harness_state_id before each re-invocation", async (testCtx) => {    if (!envReady) return testCtx.skip();
     script.executeBehaviors = [

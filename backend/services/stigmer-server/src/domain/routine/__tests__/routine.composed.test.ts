@@ -10,7 +10,8 @@
  *   - the create refusals an unattended run needs: a resource that is a
  *     local folder, a File that does not exist (domain/file/routine-files.ts
  *     owns the File checks), a Cursor routine with no pinned model, and
- *     a pin the model registry does not know;
+ *     a pin the model registry does not know, and an engine this platform
+ *     does not offer (Claude, until it is offered);
  *   - status preservation across apply-as-update (the auto-pause can never
  *     be clobbered declaratively) and the update graft's status honesty;
  *   - an update keeps the tick's pause that lands between its read and its
@@ -255,6 +256,18 @@ describe("create — the defaults resolver through the real chain", () => {
     );
     expect(err.code).toBe(Code.InvalidArgument);
     expect(err.rawMessage).toContain("spec.agent.run_config.model_name");
+  });
+
+  it("refuses a routine on an engine this platform does not offer", async () => {
+    const input = routineInput({ name: "Claude rounds" });
+    const err = await refusal(() =>
+      command.create({
+        ...input,
+        spec: { ...input.spec, agent: { ...input.spec.agent, harness: Harness.CLAUDE } },
+      }),
+    );
+    expect(err.code).toBe(Code.FailedPrecondition);
+    expect(err.rawMessage).toBe("Claude is not available on this platform yet (spec.agent.harness)");
   });
 
   it("refuses a resource that is a local folder", async () => {

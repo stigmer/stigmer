@@ -5,9 +5,11 @@ import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
  *
  * Used on component props and hook options so platform builders
  * do not need to import proto enums to use the SDK. Exactly the
- * engines the platform runs; it grows only when the proto enum does.
+ * engines the proto names; it grows only when the proto enum does.
+ * A named engine is not necessarily an offered one: the pickers offer
+ * {@link HARNESS_OPTIONS}.
  */
-export type HarnessOption = "native" | "cursor";
+export type HarnessOption = "native" | "cursor" | "claude";
 
 /**
  * The proto {@link Harness} member for each option — the one table the
@@ -18,6 +20,7 @@ export type HarnessOption = "native" | "cursor";
 const HARNESS_BY_OPTION = {
   native: Harness.NATIVE,
   cursor: Harness.CURSOR,
+  claude: Harness.CLAUDE,
 } as const satisfies Record<HarnessOption, Exclude<Harness, Harness.UNSPECIFIED>>;
 
 /**
@@ -30,6 +33,7 @@ const HARNESS_BY_OPTION = {
 const OPTION_BY_HARNESS: Readonly<Record<Exclude<Harness, Harness.UNSPECIFIED>, HarnessOption>> = {
   [Harness.NATIVE]: "native",
   [Harness.CURSOR]: "cursor",
+  [Harness.CLAUDE]: "claude",
 };
 
 /** Display metadata for a single harness. */
@@ -41,7 +45,8 @@ export interface HarnessDisplayInfo {
 }
 
 /**
- * Display metadata for all registered harnesses.
+ * Display metadata for every named harness, offered or not (a session the
+ * server ran on an engine this build does not offer still shows its name).
  *
  * Drives the harness dropdown in {@link ModelSelector} and provides
  * labels for the compact trigger button.
@@ -49,6 +54,7 @@ export interface HarnessDisplayInfo {
 export const HARNESS_META: Readonly<Record<HarnessOption, HarnessDisplayInfo>> = {
   native: { label: "Stigmer", description: "Stigmer's native agent runtime" },
   cursor: { label: "Cursor", description: "Cursor IDE agent with codebase indexing" },
+  claude: { label: "Claude", description: "Powered by Claude" },
 };
 
 /**
@@ -61,18 +67,30 @@ export const HARNESS_LABELS: Readonly<Record<HarnessOption, string>> = Object.fr
   Object.entries(HARNESS_META).map(([k, v]) => [k, v.label]),
 ) as Record<HarnessOption, string>;
 
-/** Ordered list of all registered harness IDs, in proto enum order. */
-export const HARNESS_OPTIONS: readonly HarnessOption[] = Object.keys(HARNESS_BY_OPTION) as HarnessOption[];
+/**
+ * The engines the platform offers, in proto enum order: what every picker
+ * lists. A subset of the named engines, kept by hand because offering an
+ * engine is a product decision, not a fact of the proto: Claude is named
+ * but not offered until the server runs it, and the server refuses it
+ * until then.
+ */
+export const HARNESS_OPTIONS: readonly HarnessOption[] = ["native", "cursor"];
 
 /** Platform default — resolves to the native engine. */
 export const DEFAULT_HARNESS: HarnessOption = "native";
 
 /**
- * Whether a string names a {@link HarnessOption} — the check for a value
- * the SDK did not write itself (a stored preference, a URL parameter),
- * which may name an engine this platform does not run.
+ * Whether a string names an engine the platform offers — the check for a
+ * value the SDK did not write itself (a stored preference, a URL
+ * parameter), which may name an engine this platform does not run or does
+ * not offer yet; a picker must never preselect either.
  */
 export function isHarnessOption(value: string): value is HarnessOption {
+  return (HARNESS_OPTIONS as readonly string[]).includes(value);
+}
+
+/** Whether a string names an engine the proto names, offered or not (a registry entry's section). */
+export function isNamedHarness(value: string): value is HarnessOption {
   return Object.hasOwn(HARNESS_BY_OPTION, value);
 }
 

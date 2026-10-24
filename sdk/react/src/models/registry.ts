@@ -9,7 +9,7 @@
  * same endpoint, each with their own local TTL cache.
  */
 
-import type { HarnessOption } from "./harness.js";
+import { isNamedHarness, type HarnessOption } from "./harness.js";
 
 /**
  * Pricing bracket for a model.
@@ -213,7 +213,7 @@ export function parseModelKey(key: string): ParsedModelKey | undefined {
   const idx = key.indexOf("/");
   if (idx < 1) return undefined;
   const harness = key.slice(0, idx);
-  if (harness !== "native" && harness !== "cursor") return undefined;
+  if (!isNamedHarness(harness)) return undefined;
   return { harness, modelId: key.slice(idx + 1) };
 }
 
@@ -306,14 +306,13 @@ function parseVisionLimits(data: Record<string, unknown>): VisionLimits | undefi
 
 const VALID_COST_TIERS = new Set(["economy", "standard", "premium"]);
 const VALID_SPEED_TIERS = new Set(["fastest", "fast", "balanced", "slow"]);
-const VALID_HARNESSES = new Set(["native", "cursor", "copilot", "claude_code", "codex", "devin"]);
 
 function isModelEntry(entry: RegistryJsonEntry): entry is Required<Pick<RegistryJsonEntry, "id" | "displayName" | "provider" | "harness" | "costTier">> & RegistryJsonEntry {
   return (
     typeof entry.id === "string" &&
     typeof entry.displayName === "string" &&
     typeof entry.provider === "string" &&
-    typeof entry.harness === "string" && VALID_HARNESSES.has(entry.harness) &&
+    typeof entry.harness === "string" && isNamedHarness(entry.harness) &&
     typeof entry.costTier === "string" && VALID_COST_TIERS.has(entry.costTier)
   );
 }

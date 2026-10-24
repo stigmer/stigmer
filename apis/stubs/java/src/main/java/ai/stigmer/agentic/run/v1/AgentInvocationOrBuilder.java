@@ -77,7 +77,7 @@ public interface AgentInvocationOrBuilder extends
    * embedding surface's platform default.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness"];</code>
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness", (.buf.validate.field) = { ... }</code>
    * @return The enum numeric value on the wire for harness.
    */
   int getHarnessValue();
@@ -89,7 +89,7 @@ public interface AgentInvocationOrBuilder extends
    * embedding surface's platform default.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness"];</code>
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 3 [json_name = "harness", (.buf.validate.field) = { ... }</code>
    * @return The harness.
    */
   ai.stigmer.agentic.session.v1.Harness getHarness();

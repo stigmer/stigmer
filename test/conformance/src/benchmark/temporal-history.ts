@@ -25,8 +25,8 @@ import {
   ENSURE_THREAD_ACTIVITY_NAME,
   EXECUTE_CURSOR_ACTIVITY_NAME,
   EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
-  invokeWorkflowIdFor,
-} from "../../../../backend/services/stigmer-server/src/temporal/agentexecution/names";
+} from "../../../../backend/libs/ts/temporal-codecs/src/activity-names/names";
+import { invokeWorkflowIdFor } from "../../../../backend/services/stigmer-server/src/temporal/agentexecution/names";
 import type { BenchmarkHarness } from "./report";
 
 const execFileAsync = promisify(execFile);

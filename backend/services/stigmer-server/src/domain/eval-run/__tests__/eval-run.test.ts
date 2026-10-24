@@ -10,8 +10,8 @@
  * plugin's, a case_glob that is not a glob, a missing plugin, a
  * version without eval cases, a filter that keeps no case, a suite larger
  * than an eval may run (naming the counts; 200 cases and 1000 tries run,
- * one more of either is refused) and a target model the catalog
- * does not know; listByPlugin answers a plugin's evals newest first;
+ * one more of either is refused), a target model the catalog
+ * does not know and a target engine the platform does not offer; listByPlugin answers a plugin's evals newest first;
  * cancel answers a finished eval unchanged and is UNAVAILABLE for a running
  * one with no engine to stop it; delete is refused while the eval runs,
  * naming cancel, and otherwise removes the eval with its tries'
@@ -284,6 +284,19 @@ describe("eval run create", () => {
     );
     expect(typo.code).toBe(Code.InvalidArgument);
     expect(typo.rawMessage).toContain("spec.targets[0].model_name: model 'claude-sonet-4.6' is not in the model registry");
+
+    const unoffered = await refusal(
+      evals.create(
+        evalOf(plugin, {
+          targets: [
+            { harness: Harness.NATIVE, modelName: "" },
+            { harness: Harness.CLAUDE, modelName: "" },
+          ],
+        }),
+      ),
+    );
+    expect(unoffered.code).toBe(Code.FailedPrecondition);
+    expect(unoffered.rawMessage).toBe("Claude is not available on this platform yet (spec.targets[1].harness)");
 
     expect((await evalQuery.listByPlugin({ pluginId: plugin.metadata!.id })).entries).toHaveLength(before);
   });
