@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "format-on-edit",
+  "version": "1.0.0",
+  "description": "Runs the project's own formatter (Prettier, Biome, gofmt, Ruff, rustfmt and others) on every file the agent writes or edits, and tells the agent which lines moved. Nothing is downloaded: a formatter runs only when the project uses it and it is installed.",
+  "author": {
+    "name": "Stigmer",
+    "url": "https://stigmer.ai"
+  },
+  "homepage": "https://github.com/stigmer/stigmer/tree/main/plugins/format-on-edit",
+  "repository": "https://github.com/stigmer/stigmer",
+  "license": "Apache-2.0",
+  "keywords": [
+    "formatter",
+    "prettier",
+    "code-style",
+    "hooks"
+  ],
+  "extensions": {
+    "ai.stigmer": {
+      "displayName": "Format on edit"
+    }
+  }
+}

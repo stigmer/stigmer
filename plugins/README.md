@@ -22,6 +22,9 @@ plugins/
   linear/                 an authored plugin for a vendor's public MCP endpoint
     plugin.json           extensions["ai.stigmer"].displayName names the card
     mcp.json              the URL; the control plane completes its OAuth at save
+  format-on-edit/         an authored plugin carrying a hook script
+    .claude-plugin/       the manifest the hooks are read through
+    hooks/                hooks.json and format.mjs, the script it runs
   thermos/                a vendored plugin: Cursor's folder, byte for byte
   __tests__/              the static suite (make test-plugins-static)
   scripts/stage-content.mjs
@@ -53,6 +56,18 @@ is copied, and the control plane completes the server's OAuth from the endpoint
 itself when the plugin is installed. Its `extensions["ai.stigmer"]` carries the
 `displayName` (and may carry `logo` and `category`) a storefront card shows,
 the one place the open format leaves a client for them.
+
+An authored plugin may instead carry a **hook script** of Stigmer's own, as
+`format-on-edit/` does: a tool-call hook and the dependency-free script it runs,
+written by Stigmer, no vendor text. The open format defines no hooks, so the
+hooks are read through a Claude Code manifest beside the open one
+(`.claude-plugin/plugin.json`, holding the plugin's `name` alone, with
+`hooks/hooks.json` in Claude Code's format); the root `plugin.json` still gives
+the plugin its identity and card. Such a plugin carries no Cursor manifest: a
+plugin with hooks in both formats runs one and warns about the other, and
+Stigmer runs the Claude Code format on both its engines. The script is part of
+this package's typecheck and coverage (`tsconfig.json`, `vitest.config.ts`) and
+has its own suite under `__tests__/`.
 
 ## How a plugin joins the catalogue
 
@@ -96,8 +111,9 @@ its report lists every rule an entry fails.
    authored it. A licence the audit cannot recognise is read by a person, never
    assumed.
 2. **It becomes something.** At least one skill, subagent or MCP server. A
-   plugin made only of hooks, rules or commands is not catalogued, though
-   Stigmer runs a plugin's hooks on tool calls.
+   vendored plugin made only of hooks, rules or commands is not catalogued,
+   though Stigmer runs a plugin's hooks on tool calls; an authored hook plugin
+   (above) is the exception, because its hook is the thing it becomes.
 3. **Every MCP server is reachable from Stigmer, as declared.** An HTTP
    endpoint that answers the handshake without a credential, takes a key
    through a declared variable that a header sends, or answers with a standard
