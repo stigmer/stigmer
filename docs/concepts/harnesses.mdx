@@ -42,11 +42,11 @@ names none.
   goes through the same approval gate as other mutating tools. Plan mode
   (read-only Sessions) does not expose shell execution, and its file reads are
   scoped to the Session's Workspace — the Agent cannot read paths outside it.
-  The Agent can run a command in the background, such as a test suite or a
-  dev server, keep working while it runs, and is told when it ends. The
-  console shows the command's output as it arrives and how it ended, and
-  offers Stop, which ends that command alone. A background command stops when
-  its turn ends or pauses for approval.
+  The Agent can run a command in the background, such as a test suite or a dev
+  server, keep working while it runs, and is told when it ends. The console
+  shows the command's output as it arrives and how it ended, and offers Stop,
+  which ends that command alone. A background command stops when its turn ends
+  or pauses for approval.
 - Built-in web retrieval through the `web_fetch` tool — every native Session can
   fetch a public URL and read it as Markdown, with no MCP server to configure.
   The tool is read-only and asks for no approval unless an Agent's hooks ask
