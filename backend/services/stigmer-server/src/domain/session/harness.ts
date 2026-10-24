@@ -39,23 +39,15 @@ export const OFFERED_HARNESSES: ReadonlySet<Harness> = new Set([
   Harness.CURSOR,
 ]);
 
-/** The engine's name as people read it; undefined for a number no engine owns. */
-function engineLabel(harness: Harness): string | undefined {
-  switch (harness) {
-    case Harness.UNSPECIFIED:
-    case Harness.NATIVE:
-      return "Stigmer's native engine";
-    case Harness.CURSOR:
-      return "Cursor";
-    case Harness.CLAUDE:
-      return "Claude";
-    default: {
-      const unknown: never = harness;
-      void unknown;
-      return undefined;
-    }
-  }
-}
+/**
+ * Each engine's name as people read it, keyed by every engine the proto
+ * names, so a new member is a compile error here until it has a name.
+ */
+const ENGINE_LABELS: Readonly<Record<Exclude<Harness, Harness.UNSPECIFIED>, string>> = {
+  [Harness.NATIVE]: "Stigmer's native engine",
+  [Harness.CURSOR]: "Cursor",
+  [Harness.CLAUDE]: "Claude",
+};
 
 /**
  * The refusal copy for `harness` named at `field`, or "" when this
@@ -65,7 +57,7 @@ export function offeredHarnessRefusal(harness: Harness, field: string): string {
   if (harness === Harness.UNSPECIFIED || OFFERED_HARNESSES.has(harness)) {
     return "";
   }
-  const label = engineLabel(harness);
+  const label = (ENGINE_LABELS as Partial<Record<Harness, string>>)[harness];
   if (label === undefined) {
     return `${field} names engine ${String(harness)}, which is not one this platform runs`;
   }

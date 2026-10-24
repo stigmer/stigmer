@@ -23,6 +23,7 @@
  * and refuses an unattended Cursor turn that would run with no model, while
  * passing an attended one. reResolveRunConfig resolves again over another
  * pinned version and leaves an unchanged pin alone; CreateSessionIfNeeded
+ * refuses a created session on an engine the platform does not offer, and
  * judges the re-resolved settings by the same checks (a fast tier the new
  * version cannot price, an unattended Cursor turn left with no model).
  * Refusals name the layer that chose each value, the profile and "no
@@ -672,6 +673,18 @@ describe("ResolveRunConfig over a real store", () => {
       const err = await createSessionPinning(ctx, { harness: Harness.CURSOR, versionHash: PINNED });
       expect(err).toBeInstanceOf(ConnectError);
       expect((err as ConnectError).code).toBe(Code.FailedPrecondition);
+    });
+
+    it("refuses a created session on an engine the platform does not offer", async () => {
+      const ctx = await resolve(
+        execution({ spec: { message: "hi" }, status: { agentId: AGENT, agentVersionHash: PINNED } }),
+      );
+      const err = await createSessionPinning(ctx, { harness: Harness.CLAUDE, versionHash: PINNED });
+      expect(err).toBeInstanceOf(ConnectError);
+      expect((err as ConnectError).code).toBe(Code.FailedPrecondition);
+      expect((err as ConnectError).rawMessage).toBe(
+        "Claude is not available on this platform yet (the conversation's engine)",
+      );
     });
   });
 });
