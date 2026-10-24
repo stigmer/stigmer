@@ -21,7 +21,9 @@
  * text. The mock calls are the calls to the servers the run's case mocked,
  * by the server's key, with the answer the mock gave. A path no change set
  * touched is read from the files the runner returned for the graders, a
- * change set's content winning where both have one.
+ * change set's content winning where both have one. A Claude run fails
+ * loudly: its engine has no tool vocabulary yet, and reading its calls as
+ * native's would grade them against the wrong tools.
  */
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -364,6 +366,20 @@ describe("the eval trace, Cursor transcript", () => {
     expect(trace.toolCalls[0]?.input).toBe(
       JSON.stringify({ skill: "thermos:review" }),
     );
+  });
+});
+
+describe("the eval trace, an engine with no tool vocabulary", () => {
+  it("fails loudly for a Claude run rather than grading its calls as native's", async () => {
+    const run = runOf([call("k1", "Bash", { command: "ls" })], []);
+    await expect(evalTraceOf(run, deps(Harness.CLAUDE))).rejects.toThrow(
+      "eval trace: the Claude engine has no tool vocabulary yet",
+    );
+  });
+
+  it("names a number no engine owns rather than reading its calls as native's", async () => {
+    const run = runOf([call("k1", "Bash", { command: "ls" })], []);
+    await expect(evalTraceOf(run, deps(7 as Harness))).rejects.toThrow("eval trace: harness 7 names no engine");
   });
 });
 

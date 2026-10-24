@@ -16,6 +16,10 @@
  *   - hooks at apply: an inline block is stored with Claude Code's format
  *     filled, and a malformed one is refused on the create and on the
  *     update an apply delegates to (ValidateHooks runs on both chains);
+ *   - an engine this platform does not offer is refused on create and on
+ *     the update an apply delegates to, with FailedPrecondition and the
+ *     engine's name (Claude, until it is offered); an existing agent keeps
+ *     its engine;
  *   - cascade delete (oss#611): same-org channels of every type, and the
  *     agent's routines with their fire history, are
  *     deleted, a stored cross-org channel of the same agent SURVIVES, and
@@ -44,6 +48,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AgentCommandController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ChannelSchema } from "@stigmer/apis/ai/stigmer/agentic/channel/v1/api_pb";
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import { PluginSchema } from "@stigmer/apis/ai/stigmer/agentic/plugin/v1/api_pb";
@@ -375,6 +380,25 @@ describe("agent hooks at apply", () => {
     );
     expect(refusedCreate.code).toBe(Code.InvalidArgument);
     expect(refusedCreate.rawMessage).toContain("more than one inline block");
+  });
+});
+
+describe("agent engine — the offered-engine rule", () => {
+  it("refuses an agent on Claude on create, and moving one to Claude on update", async () => {
+    const input = agentInput({ name: "Claude Agent" });
+    const created = await grpcError(() =>
+      command.apply({ ...input, spec: { ...input.spec, harness: Harness.CLAUDE } }),
+    );
+    expect(created.code).toBe(Code.FailedPrecondition);
+    expect(created.rawMessage).toBe("Claude is not available on this platform yet (spec.harness)");
+
+    const native = await command.apply({ ...input, spec: { ...input.spec, harness: Harness.NATIVE } });
+    const moved = await grpcError(() =>
+      command.apply({ ...input, spec: { ...input.spec, harness: Harness.CLAUDE } }),
+    );
+    expect(moved.code).toBe(Code.FailedPrecondition);
+    const stored = await query.get({ value: native.metadata!.id });
+    expect(stored.spec?.harness).toBe(Harness.NATIVE);
   });
 });
 
