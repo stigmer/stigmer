@@ -12,8 +12,8 @@
  *  - What the command prints while it runs reaches the graph's stream, and
  *    the native translator, as `tool_output_delta` under the call's own id,
  *    before the call finishes.
- *  - A graph whose backend cannot run a shell binds no `execute` and gets
- *    no shell middleware.
+ *  - A graph whose backend cannot run a shell (plan mode) binds no
+ *    `execute`, gets no shell middleware, and so no stop tool either.
  * The profile is resolved from the model's provider, so the scripted model
  * masquerades as ChatAnthropic (`shell-execute-gate.test.ts` explains why).
  */
@@ -199,5 +199,6 @@ describe("the runner's shell on a real graph", () => {
     } as Parameters<typeof createDeepAgent>[0]);
     await graph.invoke({ messages: [new HumanMessage({ content: "go" })] }, { configurable: { thread_id: "t4" }, recursionLimit: 20 });
     expect(boundByName(bound, "execute")).toHaveLength(0);
+    expect(boundByName(bound, "stop_background_command"), "nor the stop tool, which only the shell middleware binds").toHaveLength(0);
   });
 });

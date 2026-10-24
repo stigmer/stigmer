@@ -38,6 +38,14 @@
  *     sub-agent's own calls are what count, so a sub-agent whose model hangs
  *     with nothing open is caught at the window like the root's.
  *
+ * A scope whose agent waits for its background commands at a round's end
+ * (`background_wait_started` until `background_wait_finished`) holds the
+ * watchdog too, and the window counts from the wait's end. It is not an
+ * operation: the turn's liveness names tool calls, and the backstop bounds
+ * what has no bound of its own, while every background command has its
+ * timeout. So a wait is in neither {@link OpenOperations.snapshot} nor
+ * {@link OpenOperations.oldest}.
+ *
  * Whether the turn is waiting on its model ({@link OpenOperations.awaitingModel})
  * is the stall's second question: a stall owed by the model provider is
  * recoverable, and any other is the engine's (`run-turn.ts`). It is true
@@ -118,6 +126,8 @@ export class OpenOperations {
   private resultUnanswered = false;
   /** When the newest unanswered result arrived. */
   private resultAtMs = 0;
+  /** The scopes waiting for their background commands (the root as `""`). */
+  private readonly waiting = new Set<string>();
   private readonly now: () => number;
 
   constructor(private readonly options: OpenOperationsOptions) {
@@ -168,6 +178,15 @@ export class OpenOperations {
         if (wasHeld && !this.held()) this.options.onIdle?.();
         return;
       }
+      case "background_wait_started":
+        this.waiting.add(event.subAgentId ?? "");
+        return;
+      case "background_wait_finished": {
+        const wasHeld = this.held();
+        this.waiting.delete(event.subAgentId ?? "");
+        if (wasHeld && !this.held()) this.options.onIdle?.();
+        return;
+      }
       default:
         return;
     }
@@ -180,8 +199,9 @@ export class OpenOperations {
     }
   }
 
-  /** Whether anything counted is running: the watchdog's `held()`. */
+  /** Whether anything counted is running, or a scope waits for its background commands: the watchdog's `held()`. */
   held(): boolean {
+    if (this.waiting.size > 0) return true;
     for (const operation of this.open.values()) {
       if (this.counts(operation)) return true;
     }

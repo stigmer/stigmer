@@ -3,10 +3,12 @@
  * streams as it is printed; a timeout keeps what was printed and stops the
  * whole process group; an abort does the same at once; a background child
  * that keeps the pipes open no longer holds the call open (stigmer#2432);
- * stdin is closed; the output is capped, keeping its start and its end; and
- * the formatted output keeps deepagents' words.
+ * stdin is closed; the output is capped, keeping its start and its end; the
+ * formatted output keeps deepagents' words; and `stopProcessGroup` ends a
+ * group whose processes ignore SIGTERM, resolving only once it is empty.
  */
 
+import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -18,6 +20,8 @@ import {
   formatCommandOutput,
   omittedOutputLine,
   runCommand,
+  stopProcessGroup,
+  KILL_GRACE_MS,
   type CommandResult,
 } from "../run-command.js";
 
@@ -181,6 +185,26 @@ describe("runCommand", () => {
     const done = await runCommand({ command: "echo hi", cwd: join(cwd, "missing"), env: ENV, timeoutSeconds: 5 });
     expect(done.spawnError).toBeDefined();
     expect(endingOf(done, 5).kind).toBe("spawn-failed");
+  });
+});
+
+describe("stopProcessGroup", () => {
+  it("kills a group that ignores SIGTERM after the grace, and resolves only once it is empty", async () => {
+    const child = spawn("sh", ["-c", "trap '' TERM; sleep 30 & wait"], { detached: true, stdio: "ignore", env: ENV });
+    const pid = child.pid!;
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const started = Date.now();
+    await stopProcessGroup(pid);
+    expect(Date.now() - started, "SIGTERM was ignored: only SIGKILL, after the grace, ended it").toBeGreaterThanOrEqual(KILL_GRACE_MS - 100);
+    expect(() => process.kill(-pid, 0), "nothing of the group is left").toThrow();
+  }, 15_000);
+
+  it("resolves at once for a group that is already empty", async () => {
+    const child = spawn("sh", ["-c", "exit 0"], { detached: true, stdio: "ignore", env: ENV });
+    await new Promise((resolve) => child.on("exit", resolve));
+    const started = Date.now();
+    await stopProcessGroup(child.pid!);
+    expect(Date.now() - started).toBeLessThan(500);
   });
 });
 

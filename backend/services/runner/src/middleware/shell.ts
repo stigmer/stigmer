@@ -25,6 +25,18 @@
  *    with the call's config and its merged abort signal, which carries the
  *    turn's stop.
  *
+ * Where commands can run in the background (every turn's graph; the
+ * config's `background`), the declaration also carries `background`, and
+ * the middleware binds `stop_background_command` beside `execute` through
+ * its own `tools`, which langchain registers with the graph's other tools.
+ * So the stop tool exists exactly where `execute` does: a plan-mode graph
+ * has neither. It is not deepagents' and not in the tool vocabulary's
+ * table; the tool scope keeps it in scope exactly when `execute` is
+ * (`tool-scope.ts`), and it has no tool kind, so the gate never asks for it
+ * (it can only end a command this turn started, which was already allowed).
+ * The middleware that tells the agent when a command ends is
+ * `background-commands.ts`.
+ *
  * This sits outside the scope, gate and truncation middleware, so they see
  * an `execute` call and its result exactly as before: a held call never
  * reaches this tool. It is installed only on a graph whose backend can run a
@@ -41,11 +53,14 @@
 
 import { toJsonSchema } from "@langchain/core/utils/json_schema";
 
-import { SHELL_TIMEOUT_ARG_PROMPT, SHELL_TOOL_NAME } from "../activities/execute-deep-agent/shell-tool.js";
-import type { StigmerMiddleware } from "./types.js";
+import { SHELL_BACKGROUND_ARG_PROMPT, SHELL_TIMEOUT_ARG_PROMPT, SHELL_TOOL_NAME } from "../activities/execute-deep-agent/shell-tool.js";
+import type { ShellMiddlewareConfig, StigmerMiddleware } from "./types.js";
 
 /** The argument the runner's shell adds to deepagents' schema. */
 export const TIMEOUT_ARG = "timeout";
+
+/** The argument that starts a command in the background (`shell-tool.ts`). */
+export const BACKGROUND_ARG = "background";
 
 interface DeclaredTool {
   readonly name: string;
@@ -60,11 +75,12 @@ function isDeclaredTool(candidate: object): candidate is DeclaredTool {
 
 /**
  * The runner's declaration for deepagents' bound `execute`: its description
- * and schema, plus `timeout`. `original` itself when it is not that tool or
- * its schema is not an object (a mangled schema would break the shell for
- * the whole turn; an unextended one only loses the raisable timeout).
+ * and schema, plus `timeout`, and `background` when commands can run there.
+ * `original` itself when it is not that tool or its schema is not an object
+ * (a mangled schema would break the shell for the whole turn; an unextended
+ * one only loses the raisable timeout).
  */
-function declareShell(original: object): unknown {
+function declareShell(original: object, background: boolean): unknown {
   if (!isDeclaredTool(original) || original.name !== SHELL_TOOL_NAME) return original;
   let object: { readonly properties?: Record<string, unknown> };
   try {
@@ -82,26 +98,28 @@ function declareShell(original: object): unknown {
       properties: {
         ...(object.properties ?? {}),
         [TIMEOUT_ARG]: { type: "number", exclusiveMinimum: 0, description: SHELL_TIMEOUT_ARG_PROMPT },
+        ...(background ? { [BACKGROUND_ARG]: { type: "boolean", description: SHELL_BACKGROUND_ARG_PROMPT } } : {}),
       },
     },
   });
 }
 
 /** Install on a shell-capable graph's stack, right before `tool-intent`, with that graph's shell tool. */
-export function createShellMiddleware(options: { readonly tool: unknown }): StigmerMiddleware {
+export function createShellMiddleware(options: ShellMiddlewareConfig): StigmerMiddleware {
   // One declaration per bound tool instance, as tool-intent keeps one clone.
   const declared = new WeakMap<object, unknown>();
   const declare = (candidate: unknown): unknown => {
     if (candidate == null || typeof candidate !== "object") return candidate;
     const cached = declared.get(candidate);
     if (cached !== undefined) return cached;
-    const shaped = declareShell(candidate);
+    const shaped = declareShell(candidate, options.background !== undefined);
     declared.set(candidate, shaped);
     return shaped;
   };
 
   return {
     name: "StigmerShellMiddleware",
+    ...(options.background !== undefined ? { tools: [options.background.stopTool] } : {}),
     async wrapModelCall(request, handler) {
       const tools = request.tools;
       if (!tools || tools.length === 0) return handler(request);

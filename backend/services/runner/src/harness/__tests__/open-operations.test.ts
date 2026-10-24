@@ -7,7 +7,9 @@
  * call is the backstop's, aged on the fold's clock, and the turn awaits its
  * model while a round is open or while a tool's result is unanswered. A
  * round a model call that threw left open (it never finishes) ends when its
- * scope's next round starts or its sub-agent ends.
+ * scope's next round starts or its sub-agent ends. A scope waiting for its
+ * background commands holds the watchdog until its wait ends, which is the
+ * idle instant, and is neither an operation nor the model.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -245,6 +247,48 @@ describe("OpenOperations", () => {
       expect(operations.awaitingModel(), "c2 still runs").toBe(false);
       operations.observe({ kind: "approval_proposed", callId: "c2", name: "execute", mcpServerSlug: "", message: "ok?" });
       expect(operations.awaitingModel(), "the turn waits for a person").toBe(false);
+    });
+  });
+
+  describe("a wait for background commands", () => {
+    it("holds the watchdog from its start to its end, whose instant is the idle one", () => {
+      const { operations, onIdle } = fold();
+      operations.observe({ kind: "message_start", runId: "r1" });
+      operations.observe({ kind: "message_finish", runId: "r1" });
+      operations.observe({ kind: "background_wait_started" });
+      expect(operations.held()).toBe(true);
+      expect(operations.awaitingModel(), "the turn waits for its commands, not its model").toBe(false);
+      operations.observe({ kind: "background_wait_finished" });
+      expect(operations.held()).toBe(false);
+      expect(onIdle).toHaveBeenCalledTimes(1);
+    });
+
+    it("is not an operation: neither the liveness snapshot nor the backstop names it", () => {
+      const { operations, advance } = fold();
+      operations.observe({ kind: "background_wait_started" });
+      advance(7_200_000);
+      expect(operations.snapshot()).toEqual({ operations: [], awaitingModelMs: undefined });
+      expect(operations.oldest()).toBeUndefined();
+    });
+
+    it("keys each scope's wait apart: a sub-agent's end leaves the root's held", () => {
+      const { operations, onIdle } = fold();
+      operations.observe({ kind: "background_wait_started" });
+      operations.observe({ kind: "background_wait_started", subAgentId: "task-1" });
+      operations.observe({ kind: "background_wait_finished", subAgentId: "task-1" });
+      expect(operations.held()).toBe(true);
+      expect(onIdle).not.toHaveBeenCalled();
+      operations.observe({ kind: "background_wait_finished" });
+      expect(operations.held()).toBe(false);
+      expect(onIdle).toHaveBeenCalledTimes(1);
+    });
+
+    it("leaves a call still running in charge of the idle instant", () => {
+      const { operations, onIdle } = fold();
+      operations.observe(started("c1"));
+      operations.observe({ kind: "background_wait_started", subAgentId: "task-1" });
+      operations.observe({ kind: "background_wait_finished", subAgentId: "task-1" });
+      expect(onIdle, "c1 still runs").not.toHaveBeenCalled();
     });
   });
 });

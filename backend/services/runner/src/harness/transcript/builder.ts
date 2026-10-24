@@ -377,6 +377,10 @@ export class TranscriptBuilder {
         case "context_compacted":
           this.appendCompacted(scope);
           break;
+        case "background_wait_started":
+        case "background_wait_finished":
+          // A liveness fact for the runtime's fold, never a row (`events.ts`).
+          break;
         default: {
           const exhaustive: never = event;
           throw new Error(`unknown transcript event ${String((exhaustive as { kind: string }).kind)}`);
