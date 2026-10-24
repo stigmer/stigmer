@@ -239,7 +239,8 @@ describe("ExecuteDeepAgent hermetic — the workspace's own instruction files", 
     await runDeepAgentTurn(next);
     expect(next.record.lastFullStatus!.phase).toBe(RunPhase.RUN_COMPLETED);
 
-    expect(transcripts[0]![0]!.text, "the model sees the summary, not the earlier read").toBe(SUMMARY);
+    const conversation = transcripts[0]!.filter((m) => m.getType() !== "system");
+    expect(conversation[0]!.text, "the model sees the summary, not the earlier read").toBe(SUMMARY);
     expect(transcripts[0]!.some((m) => ToolMessage.isInstance(m) && m.tool_call_id === READ_X)).toBe(false);
     expect(occurrences(secondRead!, PKG_MARK), "shown again: the model no longer sees it").toBe(1);
   });
