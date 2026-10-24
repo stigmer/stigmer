@@ -51,6 +51,15 @@
  * result is decided: the first read under a folder to finish carries its
  * notes and the others do not.
  *
+ * HOW MUCH ONE READ CARRIES
+ * -------------------------
+ * The files one read carries share one budget, the run's
+ * `max_tool_result_chars`: shallowest first, each bounded by what is left,
+ * so a read many folders deep adds no more than one source may. A folder
+ * whose file did not fit is not recorded, and a later read beneath it shows
+ * it. A read of a folder's own instruction file carries nothing more: the
+ * file is the read.
+ *
  * REPAIR, NEVER REFUSE
  * --------------------
  * A failed read, a read under a routed prefix (`.stigmer/`, the offload
@@ -70,6 +79,7 @@
  * hosted runner's log is no place for a person's file names.
  */
 
+import { posix } from "node:path";
 import { AIMessage, ToolMessage, type MessageContent } from "@langchain/core/messages";
 import type { AnyBackendProtocol } from "deepagents";
 import { admitsRoutedRead } from "../activities/execute-deep-agent/platform-route.js";
@@ -97,7 +107,7 @@ export interface FolderInstructionsConfig {
   readonly backend: AnyBackendProtocol;
   /** The workspace's roots, whose files ride the system prompt (`repository-instructions.ts` `workspaceRoots`). */
   readonly roots: readonly string[];
-  /** The run's `max_tool_result_chars`, the bound on each file. */
+  /** The run's `max_tool_result_chars`, the bound on all the files one read carries (the header). */
   readonly maxChars: number;
 }
 
@@ -171,11 +181,16 @@ export function createFolderInstructionsMiddleware(config: FolderInstructionsCon
     if (await admitsRoutedRead(filePath)) return [];
     const history = Array.isArray(request.state.messages) ? request.state.messages : [];
     const shown = modelView ?? shownPaths(history);
+    const reading = posix.normalize(filePath);
     const files: InstructionFile[] = [];
+    let budget = config.maxChars;
     for (const dir of nestedDirectories(filePath, config.roots)) {
+      if (budget <= 0) break;
       if (INSTRUCTION_FILE_NAMES.some((name) => shown.has(`${dir}/${name}`))) continue;
-      const file = await readDirectoryInstructions(config.backend, dir, config.maxChars);
-      if (file !== undefined) files.push(file);
+      const file = await readDirectoryInstructions(config.backend, dir, budget);
+      if (file === undefined || file.path === reading) continue;
+      files.push(file);
+      budget -= file.text.length;
     }
     return files;
   }

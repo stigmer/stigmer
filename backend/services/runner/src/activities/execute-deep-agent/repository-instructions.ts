@@ -46,12 +46,16 @@
  * Model-facing text, so a prompt: its words live in
  * {@link REPOSITORY_INSTRUCTIONS_TEXT} alone. Each file is wrapped in an
  * `<instructions path="…">` tag rather than a heading, because these files
- * carry their own `#` headings, which would scramble the prompt's outline.
+ * carry their own `#` headings, which would scramble the prompt's outline. A
+ * file's own closing tag is neutralised and a quote in its path escaped, so
+ * no text a repository wrote leaves its block; and the file's text is only
+ * ever scanned in linear time (`trimTrailingLineEnds`), since a repository
+ * can plant a file shaped to make a backtracking pattern stall the runner.
  */
 
 import { isAbsolute, posix, relative } from "node:path";
 import { adaptBackendProtocol, type AnyBackendProtocol, type BackendProtocolV2 } from "deepagents";
-import { headCutIndex } from "../../shared/text-cut.js";
+import { headCutIndex, trimTrailingLineEnds } from "../../shared/text-cut.js";
 
 /** The names a directory's instructions may have, in the order one is chosen (the header). */
 export const INSTRUCTION_FILE_NAMES: readonly string[] = ["AGENTS.md", "CLAUDE.md"];
@@ -165,9 +169,14 @@ export function nestedDirectories(filePath: string, roots: readonly string[]): s
   return below.map((_, index) => posix.join(nearest, ...below.slice(0, index + 1)));
 }
 
-/** One file in its tag. */
+/** A closing tag inside a file's own text; no quantifier, so matching it is linear. */
+const CLOSING_TAG = /<\/instructions>/gi;
+
+/** One file in its tag, which nothing in the file can close (the header). */
 function block(file: InstructionFile): string {
-  return `<instructions path="${file.path}">\n${file.text.replace(/\n+$/, "")}\n</instructions>`;
+  const path = file.path.replaceAll('"', "&quot;");
+  const text = trimTrailingLineEnds(file.text).replace(CLOSING_TAG, "<\\/instructions>");
+  return `<instructions path="${path}">\n${text}\n</instructions>`;
 }
 
 /**

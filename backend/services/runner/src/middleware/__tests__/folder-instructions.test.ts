@@ -117,6 +117,33 @@ describe("FolderInstructionsMiddleware", () => {
     expect(texts(result)).toBe(`[image]|${REPOSITORY_INSTRUCTIONS_TEXT.folder("/pkg/")}\n\n<instructions path="/pkg/AGENTS.md">\npkg notes\n</instructions>`);
   });
 
+  it("bounds all the files one read carries by the run's bound, shallowest first", async () => {
+    write("pkg/AGENTS.md", `${"p".repeat(59)}\n`.repeat(10));
+    write("pkg/sub/CLAUDE.md", `${"s".repeat(59)}\n`.repeat(10));
+    const mw = createFolderInstructionsMiddleware({ backend, roots: ROOTS, maxChars: 900 });
+    const state = { messages: [proposing({ id: "r1", path: "/pkg/sub/x.ts" })] };
+    const result = await call(mw, request("r1", "/pkg/sub/x.ts", state));
+    expect(result.additional_kwargs[FOLDER_INSTRUCTIONS_KEY]).toEqual(["/pkg/AGENTS.md", "/pkg/sub/CLAUDE.md"]);
+    const notes = texts(result);
+    expect(notes).toContain("p".repeat(59));
+    expect(notes).toContain("[cut at 300 of 600 characters; read /pkg/sub/CLAUDE.md for the rest]");
+  });
+
+  it("stops at the budget: a folder whose file did not fit is left for a later read", async () => {
+    write("pkg/AGENTS.md", `${"p".repeat(99)}\n`.repeat(10));
+    const mw = createFolderInstructionsMiddleware({ backend, roots: ROOTS, maxChars: 1_000 });
+    const result = await call(mw, request("r1", "/pkg/sub/x.ts", { messages: [proposing({ id: "r1", path: "/pkg/sub/x.ts" })] }));
+    expect(result.additional_kwargs[FOLDER_INSTRUCTIONS_KEY]).toEqual(["/pkg/AGENTS.md"]);
+  });
+
+  it("adds nothing to a read of a folder's own instruction file: the file is the read", async () => {
+    const state = { messages: [proposing({ id: "r1", path: "/pkg/AGENTS.md" })] };
+    const result = readResult("r1");
+    expect(await call(middleware(), request("r1", "/pkg/AGENTS.md", state), result)).toBe(result);
+    const deeper = await call(middleware(), request("r2", "/pkg/sub/CLAUDE.md", { messages: [proposing({ id: "r2", path: "/pkg/sub/CLAUDE.md" })] }));
+    expect(deeper.additional_kwargs[FOLDER_INSTRUCTIONS_KEY], "the folder above still rides it").toEqual(["/pkg/AGENTS.md"]);
+  });
+
   it("attaches nothing to a read directly in a root: the root's file is the system prompt's", async () => {
     const state = { messages: [proposing({ id: "r1", path: "/README.md" })] };
     const result = readResult("r1");

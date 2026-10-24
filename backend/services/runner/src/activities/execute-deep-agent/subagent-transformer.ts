@@ -62,6 +62,7 @@ import type { TurnBoundarySignals } from "../../middleware/turn-boundary.js";
 import type { ToolScope } from "../../shared/tool-lists.js";
 import { CasCaptureShellBackend, createCasCaptureBackend } from "./cas-capture-backend.js";
 import { createShellTool, type ShellToolOptions } from "./shell-tool.js";
+import { trimTrailingLineEnds } from "../../shared/text-cut.js";
 
 /** How a sub-agent's shell tool runs, beside its backend: the parent's ceiling and streaming floor. */
 export type ShellStreaming = Omit<ShellToolOptions, "backend">;
@@ -189,7 +190,7 @@ export function compiledPrompt(spec: TransformedSubagent, writesAllowed: boolean
     ? spec.systemPrompt
     : `${spec.systemPrompt}- ${outputsFolderInstruction(NATIVE_OUTPUTS_FOLDER)}\n`;
   if (repositoryInstructionsSection === "" || !readsWorkspace(spec)) return own;
-  return `${own.replace(/\n+$/, "")}${repositoryInstructionsSection}\n`;
+  return `${trimTrailingLineEnds(own)}${repositoryInstructionsSection}\n`;
 }
 
 /** Whether a sub-agent's own scope lets `read_file` read the workspace, as its scope middleware judges a read (`middleware/tool-scope.ts`). */
