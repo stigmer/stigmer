@@ -1,0 +1,35 @@
+# syntax=docker/dockerfile:1
+#
+# The engine-fit spike's images, over the runner's own targets built locally
+# from this branch (never pushed anywhere):
+#
+#   docker build --target builder -t stigmer-runner-builder:spike -f backend/services/runner/Dockerfile.sandbox .
+#   docker build --target sandbox -t stigmer-sandbox:spike       -f backend/services/runner/Dockerfile.sandbox .
+#
+# claude-layer: the sandbox image plus only the Agent SDK and its Linux engine
+#   package, where the runner layer keeps its one runtime external
+#   (`@cursor/sdk` in /runner/dist/node_modules), so the layer it adds is the
+#   engine's size alone.
+# claude-probe: the sandbox image (its agent user, setpriv, /runner) plus the
+#   builder's tree (the runner's Linux dev install, which carries the SDK and
+#   its linux engine package, and vitest), strace and procps, and the shared
+#   test support, so the spike's probes run where production's host runs.
+
+ARG ENGINE_PKG=claude-agent-sdk-linux-arm64
+
+FROM stigmer-sandbox:spike AS claude-layer
+ARG ENGINE_PKG
+COPY --from=stigmer-runner-builder:spike /build/backend/services/runner/node_modules/@anthropic-ai/claude-agent-sdk /runner/dist/node_modules/@anthropic-ai/claude-agent-sdk
+COPY --from=stigmer-runner-builder:spike /build/backend/services/runner/node_modules/@anthropic-ai/${ENGINE_PKG} /runner/dist/node_modules/@anthropic-ai/${ENGINE_PKG}
+
+FROM stigmer-sandbox:spike AS claude-probe
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends strace procps && rm -rf /var/lib/apt/lists/*
+COPY --from=stigmer-runner-builder:spike /build /build
+COPY test/support/src /build/test/support/src
+COPY test/support/package.json /build/test/support/package.json
+
+# claude-probe-bwrap: the probe image with bubblewrap, which the engine
+# requires on Linux when CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1.
+FROM claude-probe AS claude-probe-bwrap
+RUN apt-get update && apt-get install -y --no-install-recommends bubblewrap && rm -rf /var/lib/apt/lists/*

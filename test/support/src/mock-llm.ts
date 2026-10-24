@@ -137,12 +137,15 @@ export const DEFAULT_ERROR_BODY = {
 // - fenced: refused by the provider fence (a non-Anthropic proxy path);
 // - unscripted: found the queue empty (answered with the 500 authoring error,
 //   or with the persistent fault a scripted turn left behind).
-export type RequestDisposition = "scripted" | "out-of-band" | "fenced" | "unscripted";
+export type RequestDisposition = "scripted" | "out-of-band" | "fenced" | "unscripted" | "routed";
 
 export interface CapturedLlmRequest {
   path: string;
   body: unknown;
   disposition: RequestDisposition;
+  // The request's headers as received (spike branch: the engine-fit probes
+  // read which credential and turn headers each model call carried).
+  headers?: Record<string, string | string[] | undefined>;
   // When the request arrived (epoch milliseconds), for lining a run's model
   // calls up with the runner's and the server's logs.
   receivedAt: number;
@@ -158,7 +161,27 @@ export interface MockLlmProxyOptions {
   // gateway on Linux), so a harness serving one binds where that address
   // lands and hands the runner urlAt(<that address>).
   bindHost?: string;
+  // Spike branch only: answers a request from its own content before the
+  // queue is consulted (disposition "routed"). An engine whose loop makes
+  // its own background calls, runs sub-agents and resumes sessions cannot be
+  // scripted as one FIFO; a router keyed on the conversation answers each
+  // request the same way however many times it arrives. Returning undefined
+  // falls through to the queue (and so to the loud unscripted 500).
+  route?: (request: RoutableRequest) => RoutedResponse | undefined;
 }
+
+// What a router sees of one request.
+export interface RoutableRequest {
+  path: string;
+  body: unknown;
+  headers: Record<string, string | string[] | undefined>;
+}
+
+// What a router answers: a body to stream (or return as JSON), or an error.
+export type RoutedResponse =
+  | { body: AnthropicMessageBody; delayMs?: number }
+  | { json: unknown; status?: number }
+  | { error: { status: number; body: unknown; headers?: Record<string, string> } };
 
 // One embeddings request as the retriever sent it: the model it asked for and
 // the batched inputs (the query first, then every candidate in snapshot order).
@@ -264,9 +287,12 @@ export class MockLlmProxy {
 
   private readonly bindHost: string;
 
+  private readonly route: ((request: RoutableRequest) => RoutedResponse | undefined) | undefined;
+
   constructor(options: MockLlmProxyOptions = {}) {
     this.onCapture = options.onCapture;
     this.bindHost = options.bindHost ?? "127.0.0.1";
+    this.route = options.route;
   }
 
   private server: Server | undefined;
@@ -515,6 +541,7 @@ export class MockLlmProxy {
   private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const receivedAt = Date.now();
     const path = req.url ?? "";
+    const headers = { ...req.headers };
     const isLlm = path.includes("/v1/messages") || path.includes("/v1/proxy/llm/");
     if (!isLlm) {
       writeJson(res, 404, { error: `MockLlmProxy: unhandled path ${path}` });
@@ -556,7 +583,7 @@ export class MockLlmProxy {
     // not a phase-timeout mystery (#715).
     const isForeignProvider = path.includes("/v1/proxy/llm/") && !path.includes("/v1/proxy/llm/anthropic");
     if (isForeignProvider) {
-      this.capture({ path, body: parsedBody, disposition: "fenced", receivedAt });
+      this.capture({ path, body: parsedBody, disposition: "fenced", headers, receivedAt });
       writeJson(res, 500, {
         error:
           `MockLlmProxy speaks only Anthropic but received ${path}. A runner-side LLM caller ` +
@@ -572,7 +599,7 @@ export class MockLlmProxy {
     // wired all the way through — the titling activity really parses it and
     // writes it as the session subject, so suites can pin the feature.
     if (isTitleGenerationRequest(parsedBody)) {
-      this.capture({ path, body: parsedBody, disposition: "out-of-band", receivedAt });
+      this.capture({ path, body: parsedBody, disposition: "out-of-band", headers, receivedAt });
       this.titleRequestCount += 1;
       const body = anthropicText(MOCK_SESSION_TITLE);
       if (streaming) {
@@ -583,8 +610,25 @@ export class MockLlmProxy {
       return;
     }
 
+    if (this.route !== undefined) {
+      const routed = this.route({ path, body: parsedBody, headers });
+      if (routed !== undefined) {
+        this.capture({ path, body: parsedBody, disposition: "routed", headers, receivedAt });
+        if ("error" in routed) {
+          writeJson(res, routed.error.status, routed.error.body, routed.error.headers ?? {});
+        } else if ("json" in routed) {
+          writeJson(res, routed.status ?? 200, routed.json);
+        } else {
+          if (routed.delayMs !== undefined && routed.delayMs > 0 && (await this.hold(req, routed.delayMs))) return;
+          if (streaming) writeAnthropicSse(res, routed.body);
+          else writeJson(res, 200, routed.body);
+        }
+        return;
+      }
+    }
+
     if (isSummaryRequest(parsedBody)) {
-      this.capture({ path, body: parsedBody, disposition: "out-of-band", receivedAt });
+      this.capture({ path, body: parsedBody, disposition: "out-of-band", headers, receivedAt });
       this.summaryRequestCount += 1;
       const body = anthropicText(MOCK_CONVERSATION_SUMMARY);
       if (streaming) {
@@ -600,7 +644,7 @@ export class MockLlmProxy {
     // 500 — unless a persistent error turn was served, in which case the fault
     // it models is what every retry keeps hitting.
     const next = this.queue.shift();
-    this.capture({ path, body: parsedBody, disposition: next === undefined ? "unscripted" : "scripted", receivedAt });
+    this.capture({ path, body: parsedBody, disposition: next === undefined ? "unscripted" : "scripted", headers, receivedAt });
     if (next === undefined) {
       if (this.persistentError !== undefined) {
         writeJson(res, this.persistentError.status, this.persistentError.body, this.persistentError.headers);

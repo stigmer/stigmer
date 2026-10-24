@@ -74,6 +74,13 @@ interface LiveTurn {
 }
 
 export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
+  /**
+   * Spike branch only (never merged): the Anthropic lane admits a live
+   * turn's key in place of the host token, so an engine that runs as its own
+   * process can hold only its turn's credential. Off unless a probe sets it.
+   */
+  static spikeTurnCredential = false;
+
   private hostToken: Buffer | undefined;
   /** Live turns: each one's execution, the thread it checkpoints under, and its key. */
   private readonly live = new Set<LiveTurn>();
@@ -146,7 +153,8 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     const url = new URL(req.url ?? "/", "http://agent-proxy");
     const path = url.pathname;
     try {
-      if (!this.authenticated(req)) throw new LaneRefusal(401, "the agent proxy accepts the current agent host's token only");
+      const turnCredential = AgentProxy.spikeTurnCredential && path.startsWith(`${LLM_PREFIX}anthropic/`) && this.presentsLiveTurnKey(req);
+      if (!turnCredential && !this.authenticated(req)) throw new LaneRefusal(401, "the agent proxy accepts the current agent host's token only");
       if (path === REGISTRY_PATH) {
         if (req.method !== "GET") throw new LaneRefusal(405, "the model registry is read with GET");
         await relay(res, registryUpstream(req));
@@ -186,6 +194,17 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
 
   private authenticated(req: IncomingMessage): boolean {
     return this.isHostToken(bearerOf(req.headers.authorization) ?? headerValue(req.headers["x-api-key"]));
+  }
+
+  /** Spike: the request's bearer or x-api-key is a live turn's key. */
+  private presentsLiveTurnKey(req: IncomingMessage): boolean {
+    const presented = bearerOf(req.headers.authorization) ?? headerValue(req.headers["x-api-key"]);
+    if (presented === undefined) return false;
+    const candidate = Buffer.from(presented);
+    for (const turn of this.live) {
+      if (candidate.length === turn.key.length && timingSafeEqual(candidate, turn.key)) return true;
+    }
+    return false;
   }
 
   private isHostToken(presented: string | undefined): boolean {
