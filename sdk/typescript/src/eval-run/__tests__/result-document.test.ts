@@ -244,6 +244,7 @@ describe("toResultDocument", () => {
 describe("evalRunTargetLabel", () => {
   it("writes harness/model, the native engine for an unspecified one, default for no model", () => {
     expect(evalRunTargetLabel({ harness: Harness.CURSOR, modelName: "gpt-5" } as never)).toBe("cursor/gpt-5");
+    expect(evalRunTargetLabel({ harness: Harness.CLAUDE, modelName: "" } as never)).toBe("claude/default");
     expect(evalRunTargetLabel(undefined)).toBe("native/default");
   });
 

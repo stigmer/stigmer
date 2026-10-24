@@ -54,6 +54,12 @@ enum Harness {
   // Cursor-managed conversation state, Cursor built-in tools + MCP,
   // both local and cloud runtimes. Premium billing tier.
   HARNESS_CURSOR = 2;
+
+  // Anthropic's Claude Agent SDK execution engine.
+  //
+  // Approvals that stop at the exact call, conversation state mirrored to
+  // Stigmer. Refused until the platform offers it.
+  HARNESS_CLAUDE = 3;
 }
 
 // EnvironmentSource names whose choice a conversation's Environment was.

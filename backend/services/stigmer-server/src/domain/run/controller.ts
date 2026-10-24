@@ -171,6 +171,7 @@ import { runCreateWriter, runRemover } from "../session/events/run-writes.js";
 import { updateStatus } from "./update-status.js";
 import { newResolveRunConfigStep } from "./resolve-run-config.js";
 import { newValidateServiceTierStep } from "./validate-service-tier.js";
+import { newRefuseUnofferedEngineStep } from "./refuse-unoffered-engine.js";
 import { newValidateThinkingModeStep } from "./validate-thinking-mode.js";
 import { newValidateVisibilityStep } from "../../pipeline/steps/validate-visibility.js";
 import { newBuildNewStateStep } from "../../pipeline/steps/defaults.js";
@@ -489,6 +490,7 @@ function runAdmissionChain(
         routineProfile: deps.routineRunProfile,
       }),
     )
+    .addStep(newRefuseUnofferedEngineStep())
     .addStep(newValidateServiceTierStep(deps.modelRegistry))
     .addStep(newValidateThinkingModeStep(deps.modelRegistry))
     .addStep(newGuardEvalRunCaseStep())

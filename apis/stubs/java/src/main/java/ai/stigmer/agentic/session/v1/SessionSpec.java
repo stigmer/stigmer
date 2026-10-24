@@ -403,6 +403,8 @@ java.lang.String defaultValue) {
    * Determines which harness runs every turn in this session:
    * - NATIVE (default): Stigmer's own runner
    * - CURSOR: the Cursor SDK
+   * - CLAUDE: Anthropic's Claude Agent SDK, refused until the platform
+   * offers it
    *
    * The harness affects which tools the agent has, how conversation state
    * is managed, available models, and billing tier. Once set and a run
@@ -412,7 +414,7 @@ java.lang.String defaultValue) {
    * When unspecified, defaults to HARNESS_NATIVE.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness"];</code>
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness", (.buf.validate.field) = { ... }</code>
    * @return The enum numeric value on the wire for harness.
    */
   @java.lang.Override public int getHarnessValue() {
@@ -425,6 +427,8 @@ java.lang.String defaultValue) {
    * Determines which harness runs every turn in this session:
    * - NATIVE (default): Stigmer's own runner
    * - CURSOR: the Cursor SDK
+   * - CLAUDE: Anthropic's Claude Agent SDK, refused until the platform
+   * offers it
    *
    * The harness affects which tools the agent has, how conversation state
    * is managed, available models, and billing tier. Once set and a run
@@ -434,7 +438,7 @@ java.lang.String defaultValue) {
    * When unspecified, defaults to HARNESS_NATIVE.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness"];</code>
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness", (.buf.validate.field) = { ... }</code>
    * @return The harness.
    */
   @java.lang.Override public ai.stigmer.agentic.session.v1.Harness getHarness() {
@@ -2796,6 +2800,8 @@ java.lang.String defaultValue) {
      * Determines which harness runs every turn in this session:
      * - NATIVE (default): Stigmer's own runner
      * - CURSOR: the Cursor SDK
+     * - CLAUDE: Anthropic's Claude Agent SDK, refused until the platform
+     * offers it
      *
      * The harness affects which tools the agent has, how conversation state
      * is managed, available models, and billing tier. Once set and a run
@@ -2805,7 +2811,7 @@ java.lang.String defaultValue) {
      * When unspecified, defaults to HARNESS_NATIVE.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @return The enum numeric value on the wire for harness.
      */
     @java.lang.Override public int getHarnessValue() {
@@ -2818,6 +2824,8 @@ java.lang.String defaultValue) {
      * Determines which harness runs every turn in this session:
      * - NATIVE (default): Stigmer's own runner
      * - CURSOR: the Cursor SDK
+     * - CLAUDE: Anthropic's Claude Agent SDK, refused until the platform
+     * offers it
      *
      * The harness affects which tools the agent has, how conversation state
      * is managed, available models, and billing tier. Once set and a run
@@ -2827,7 +2835,7 @@ java.lang.String defaultValue) {
      * When unspecified, defaults to HARNESS_NATIVE.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @param value The enum numeric value on the wire for harness to set.
      * @throws IllegalArgumentException if UNRECOGNIZED is provided.
      * @return This builder for chaining.
@@ -2845,6 +2853,8 @@ java.lang.String defaultValue) {
      * Determines which harness runs every turn in this session:
      * - NATIVE (default): Stigmer's own runner
      * - CURSOR: the Cursor SDK
+     * - CLAUDE: Anthropic's Claude Agent SDK, refused until the platform
+     * offers it
      *
      * The harness affects which tools the agent has, how conversation state
      * is managed, available models, and billing tier. Once set and a run
@@ -2854,7 +2864,7 @@ java.lang.String defaultValue) {
      * When unspecified, defaults to HARNESS_NATIVE.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @return The harness.
      */
     @java.lang.Override
@@ -2869,6 +2879,8 @@ java.lang.String defaultValue) {
      * Determines which harness runs every turn in this session:
      * - NATIVE (default): Stigmer's own runner
      * - CURSOR: the Cursor SDK
+     * - CLAUDE: Anthropic's Claude Agent SDK, refused until the platform
+     * offers it
      *
      * The harness affects which tools the agent has, how conversation state
      * is managed, available models, and billing tier. Once set and a run
@@ -2878,7 +2890,7 @@ java.lang.String defaultValue) {
      * When unspecified, defaults to HARNESS_NATIVE.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @param value The harness to set.
      * @return This builder for chaining.
      */
@@ -2896,6 +2908,8 @@ java.lang.String defaultValue) {
      * Determines which harness runs every turn in this session:
      * - NATIVE (default): Stigmer's own runner
      * - CURSOR: the Cursor SDK
+     * - CLAUDE: Anthropic's Claude Agent SDK, refused until the platform
+     * offers it
      *
      * The harness affects which tools the agent has, how conversation state
      * is managed, available models, and billing tier. Once set and a run
@@ -2905,7 +2919,7 @@ java.lang.String defaultValue) {
      * When unspecified, defaults to HARNESS_NATIVE.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 10 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearHarness() {

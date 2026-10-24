@@ -177,17 +177,10 @@ describe("regeneratesApprovedWrites", () => {
     expect(regeneratesApprovedWrites("deny-and-retry")).toBe(true);
   });
 
-  it("a callback engine's resumed session re-attempts the call, so the runner pins the approved bytes", () => {
-    expect(regeneratesApprovedWrites("callback")).toBe(true);
-  });
-
   it("an interrupt engine applies the exact args it paused on — a runner-side write would land twice and pre-empt the row", () => {
     expect(regeneratesApprovedWrites("interrupt")).toBe(false);
   });
 
-  it("a gate-less engine has nothing approved to apply", () => {
-    expect(regeneratesApprovedWrites("none")).toBe(false);
-  });
 });
 
 describe("runFinishedWhileWaiting", () => {

@@ -196,26 +196,27 @@ export function agentLayerFor(
 }
 
 /**
- * The registry section of the engine the conversation runs on: the stored
- * session's for a turn in an existing session; for a new conversation the
- * engine its session will take (session_spec.harness — native already
- * written there when the turn names a model, pinModelEngine — else the
- * agent's engine, else native: ResolveSessionAgent's rule). A session id naming no
- * row is the loading steps' refusal and is judged on the default.
+ * The engine the conversation runs on: the stored session's for a turn in
+ * an existing session; for a new conversation the engine its session will
+ * take (session_spec.harness — native already written there when the turn
+ * names a model, pinModelEngine — else the agent's engine, else
+ * unspecified, the platform default: ResolveSessionAgent's rule). A session
+ * id naming no row is the loading steps' refusal and is judged on the
+ * default.
  */
-export function conversationHarness(
+export function conversationEngine(
   execution: Run,
   stored: Session | undefined,
   agentSpec: AgentSpec | undefined,
-): string {
+): Harness {
   if (sessionIdOf(execution.spec) !== "") {
-    return harnessName(stored?.spec?.harness ?? Harness.UNSPECIFIED);
+    return stored?.spec?.harness ?? Harness.UNSPECIFIED;
   }
   const requested = newSessionSpecOf(execution.spec)?.harness ?? Harness.UNSPECIFIED;
   if (requested !== Harness.UNSPECIFIED) {
-    return harnessName(requested);
+    return requested;
   }
-  return harnessName(agentSpec?.harness ?? Harness.UNSPECIFIED);
+  return agentSpec?.harness ?? Harness.UNSPECIFIED;
 }
 
 /** The lane a turn came through, as the resolution reads it. */
@@ -239,7 +240,14 @@ export interface PlacedLane {
 /** One turn's resolution and what it was resolved from: what the checks read. */
 export interface RunConfigPlacement {
   readonly lane: PlacedLane;
-  /** The registry section of the engine the conversation runs on. */
+  /**
+   * The engine the conversation runs on, as its session names it
+   * (unspecified: the platform default). What the offered-engine rule
+   * reads (domain/session/harness.ts): two engines may share a registry
+   * section, or have none yet.
+   */
+  readonly engine: Harness;
+  /** The registry section of that engine (harnessName). */
   readonly harness: string;
   readonly resolution: RunConfigResolution;
   /** The agent version the agent layer was read from. */
@@ -306,7 +314,7 @@ export function newResolveRunConfigStep(
       const agentSpec = await readRunAgentSpec(deps.store, agentId, agentVersionHash);
       const placement = place(
         lane,
-        conversationHarness(execution, storedSessionOf(ctx), agentSpec),
+        conversationEngine(execution, storedSessionOf(ctx), agentSpec),
         agentSpec,
         agentId,
         agentVersionHash,
@@ -344,16 +352,17 @@ export async function reResolveRunConfig(
   }
   const agentId = session.status?.agentId ?? "";
   const agentVersionHash = session.status?.agentVersionHash ?? "";
-  const harness = harnessName(session.spec?.harness ?? Harness.UNSPECIFIED);
+  const engine = session.spec?.harness ?? Harness.UNSPECIFIED;
   if (
     agentId === before.agentId &&
     agentVersionHash === before.agentVersionHash &&
-    harness === before.harness
+    // The registry word: unspecified and native place alike.
+    harnessName(engine) === before.harness
   ) {
     return undefined;
   }
   const agentSpec = await readRunAgentSpec(store, agentId, agentVersionHash);
-  const placement = place(before.lane, harness, agentSpec, agentId, agentVersionHash);
+  const placement = place(before.lane, engine, agentSpec, agentId, agentVersionHash);
   stampRunConfig(execution, placement);
   ctx.set(RUN_CONFIG_PLACEMENT_KEY, placement);
   return placement;
@@ -361,13 +370,15 @@ export async function reResolveRunConfig(
 
 function place(
   lane: PlacedLane,
-  harness: string,
+  engine: Harness,
   agentSpec: AgentSpec | undefined,
   agentId: string,
   agentVersionHash: string,
 ): RunConfigPlacement {
+  const harness = harnessName(engine);
   return {
     lane,
+    engine,
     harness,
     resolution: resolveRunConfig(lane.turn, agentLayerFor(agentSpec, harness), lane.profile),
     agentId,

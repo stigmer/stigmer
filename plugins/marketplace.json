@@ -36,6 +36,7 @@
     { "name": "fathom", "source": "./fathom" },
     { "name": "figma", "source": "./figma" },
     { "name": "fireflies", "source": "./fireflies" },
+    { "name": "format-on-edit", "source": "./format-on-edit" },
     { "name": "gamma", "source": "./gamma" },
     { "name": "github", "source": "./github" },
     { "name": "godaddy", "source": "./godaddy" },

@@ -100,25 +100,27 @@ export interface CountedRun {
 // Counting one run
 // ---------------------------------------------------------------------------
 
-/** A harness as the report names it ("native", "cursor"). */
+/**
+ * A harness as the report names it ("native", "cursor", "claude"). Claude
+ * counts with native's arithmetic: its runner reports normalized usage,
+ * as native's does. A number no engine owns is never written (every
+ * `harness` field is `enum.defined_only`), so one here is a defect, named
+ * rather than counted as another engine's.
+ */
 export function harnessName(harness: Harness): string {
   switch (harness) {
     case Harness.CURSOR:
       return "cursor";
+    case Harness.CLAUDE:
+      return "claude";
     case Harness.NATIVE:
     case Harness.UNSPECIFIED:
       return "native";
     default: {
-      // A value this build does not know (an open enum on the wire) runs
-      // as the platform default.
-      return unknownHarness(harness);
+      const unknown: never = harness;
+      throw new Error(`usage report: harness ${String(unknown)} names no engine`);
     }
   }
-}
-
-function unknownHarness(harness: never): string {
-  void harness;
-  return "native";
 }
 
 /**

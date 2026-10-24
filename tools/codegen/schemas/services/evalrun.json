@@ -286,6 +286,11 @@
           "name": "HARNESS_CURSOR",
           "number": 2,
           "description": "Cursor SDK execution engine.\n\n Cursor-managed conversation state, Cursor built-in tools + MCP,\n both local and cloud runtimes. Premium billing tier."
+        },
+        {
+          "name": "HARNESS_CLAUDE",
+          "number": 3,
+          "description": "Anthropic's Claude Agent SDK execution engine.\n\n Approvals that stop at the exact call, conversation state mirrored to\n Stigmer. Refused until the platform offers it."
         }
       ]
     },
@@ -1386,7 +1391,8 @@
             "enumType": "ai.stigmer.agentic.session.v1.Harness",
             "enumValues": [
               "HARNESS_NATIVE",
-              "HARNESS_CURSOR"
+              "HARNESS_CURSOR",
+              "HARNESS_CLAUDE"
             ]
           },
           "description": "The engine. Unspecified is the native engine.",

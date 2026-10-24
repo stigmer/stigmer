@@ -43,6 +43,11 @@
  * boots a fresh process through this module and fails if the facade froze.
  */
 
+import {
+  EXECUTE_CURSOR_ACTIVITY_NAME,
+  EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
+} from "@stigmer/temporal-codecs/activity-names";
+
 import type { Config } from "../config.js";
 import type { StigmerClient } from "../client/stigmer-client.js";
 import { activityFinished, activityStarted } from "../idle-watchdog.js";
@@ -54,15 +59,15 @@ import type { HarnessAdapter } from "./types.js";
 export type HarnessName = "cursor" | "deep-agent";
 
 /**
- * Byte-pinned Temporal activity names, one per harness. The server side of
- * the pin is `stigmer-server/src/temporal/agentexecution/names.ts`
- * (`EXECUTE_CURSOR_ACTIVITY_NAME`, `EXECUTE_DEEP_AGENT_ACTIVITY_NAME`); the
- * two must stay byte-identical or the workflow schedules an activity no
- * worker registers. Never "cleaned up".
+ * The Temporal activity name each harness answers to. The names are
+ * declared once, in `@stigmer/temporal-codecs/activity-names`, which the
+ * server's workflow schedules by too: a split would leave the workflow
+ * scheduling an activity no worker registers. A harness gets its entry
+ * with its adapter row, since only a row is ever looked up.
  */
 export const HARNESS_ACTIVITY_NAMES = {
-  cursor: "ExecuteCursor",
-  "deep-agent": "ExecuteDeepAgent",
+  cursor: EXECUTE_CURSOR_ACTIVITY_NAME,
+  "deep-agent": EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
 } as const satisfies Record<HarnessName, string>;
 
 export type HarnessActivityName = (typeof HARNESS_ACTIVITY_NAMES)[HarnessName];

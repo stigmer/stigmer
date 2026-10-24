@@ -150,7 +150,7 @@ message AgentSpec {
   // model, tier and thinking count only on this engine. A conversation keeps
   // the engine it started on; a later version naming another engine changes
   // only new conversations.
-  ai.stigmer.agentic.session.v1.Harness harness = 14;
+  ai.stigmer.agentic.session.v1.Harness harness = 14 [(buf.validate.field).enum.defined_only = true];
 
   // Field 15 named shared vaults this agent's conversations used; an agent
   // is a blueprint and carries no vaults: each conversation names its own.

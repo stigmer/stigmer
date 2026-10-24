@@ -84,6 +84,7 @@ describe("subagentModel", () => {
           models: [
             { id: "claude-sonnet-4-5", provider: "anthropic", harness: "native" },
             { id: "composer-2", provider: "cursor", harness: "cursor" },
+            { id: "claude-opus-5", provider: "anthropic", harness: "claude" },
           ],
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },
@@ -99,6 +100,16 @@ describe("subagentModel", () => {
   it("answers a listed id chosen for this engine", async () => {
     expect(await subagentModel("claude-sonnet-4-5", Harness.NATIVE, Harness.NATIVE)).toBe("claude-sonnet-4-5");
     expect(await subagentModel("composer-2", Harness.CURSOR, Harness.CURSOR)).toBe("composer-2");
+  });
+
+  it("reads Claude's own section, never native's", async () => {
+    expect(await subagentModel("claude-opus-5", Harness.CLAUDE, Harness.CLAUDE)).toBe("claude-opus-5");
+    expect(await subagentModel("claude-sonnet-4-5", Harness.CLAUDE, Harness.CLAUDE), "listed only for native").toBeUndefined();
+    expect(await subagentModel("claude-opus-5", Harness.NATIVE, Harness.CLAUDE)).toBeUndefined();
+  });
+
+  it("names a number no engine owns rather than reading native's section", async () => {
+    await expect(subagentModel("claude-opus-5", 7 as Harness.CLAUDE)).rejects.toThrow("subagent model: harness 7 names no engine");
   });
 
   it("counts an unspecified engine as the native one", async () => {

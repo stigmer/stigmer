@@ -46,6 +46,7 @@ import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/sessi
 import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type {
   ListSessionsByAgentRequest,
   ListSessionsByChannelRequest,
@@ -158,6 +159,7 @@ import {
   newValidateExecutionTargetImmutabilityStep,
   newValidateHarnessImmutabilityStep,
 } from "./steps.js";
+import { newRefuseUnofferedHarnessStep, type NamedHarness } from "./harness.js";
 import { newVaultAttachmentsStep } from "../vault/attachments.js";
 import {
   newDestroyDroppedSessionValuesStep,
@@ -296,6 +298,11 @@ export function registerSessionServices(
   });
 }
 
+/** The engine a conversation names (harness.ts). */
+function sessionHarnesses(session: Session): readonly NamedHarness[] {
+  return [{ field: "spec.harness", harness: session.spec?.harness ?? Harness.UNSPECIFIED }];
+}
+
 function kindOf(ctx: HandlerContext): ApiResourceKind {
   return ctx.values.get(apiResourceKindKey);
 }
@@ -353,6 +360,7 @@ async function createSession(
       newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
     )
     .addStep(newResolveSessionEnvironmentStep(deps.store, deps.environmentPolicy))
+    .addStep(newRefuseUnofferedHarnessStep(sessionHarnesses))
     .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
     .addStep(
       newRefuseLocalProgramsStep(
@@ -443,6 +451,7 @@ async function update(
       .addStep(newLoadExistingStep(deps.store))
       .addStep(newBuildUpdateStateStep())
       .addStep(newValidateProtoStep({ of: "state" }))
+      .addStep(newRefuseUnofferedHarnessStep(sessionHarnesses))
       .addStep(newValidateHarnessImmutabilityStep())
       .addStep(newValidateExecutionTargetImmutabilityStep(deps.temporalConfig))
       .addStep(newNormalizeReferencesStep(deps.store))

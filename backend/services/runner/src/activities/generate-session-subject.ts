@@ -45,6 +45,7 @@
 
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { ConnectError, Code } from "@connectrpc/connect";
+import { GENERATE_SESSION_SUBJECT_ACTIVITY_NAME } from "@stigmer/temporal-codecs/activity-names";
 import { activityStarted, activityFinished } from "../idle-watchdog.js";
 import { StigmerClient } from "../client/stigmer-client.js";
 import { getSummarizationModel } from "../shared/model-registry.js";
@@ -356,7 +357,8 @@ export function createGenerateSessionSubjectActivities(config: Config) {
   });
 
   return {
-    GenerateSessionSubject: async (
+    // Registered under the name the server's workflow schedules, declared once for both.
+    [GENERATE_SESSION_SUBJECT_ACTIVITY_NAME]: async (
       input: GenerateSessionSubjectInput | string,
     ): Promise<void> => {
       const executionId = typeof input === "string" ? input : input.execution_id;

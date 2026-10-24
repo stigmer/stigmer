@@ -38,6 +38,7 @@ import { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/status_pb";
 import { ApiResourceAuditSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/status_pb";
 import type { Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { AgentId, UpdateAgentInput } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/io_pb";
 import { UpdateAgentInputSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/io_pb";
 import type {
@@ -179,6 +180,7 @@ import {
 } from "./versions.js";
 import type { ModelCatalogProvider } from "../../modelcatalog/model-catalog-provider.js";
 import { newValidateAgentRunConfigStep } from "./validate-run-config.js";
+import { newRefuseUnofferedHarnessStep, type NamedHarness } from "../session/harness.js";
 import {
   newPinSubagentsStep,
   newValidateSubagentListStep,
@@ -240,6 +242,11 @@ export function registerAgentServices(
   });
 }
 
+/** The engine an agent version names (domain/session/harness.ts). */
+function agentHarnesses(agent: Agent): readonly NamedHarness[] {
+  return [{ field: "spec.harness", harness: agent.spec?.harness ?? Harness.UNSPECIFIED }];
+}
+
 function kindOf(ctx: HandlerContext): ApiResourceKind {
   return ctx.values.get(apiResourceKindKey);
 }
@@ -283,6 +290,7 @@ async function createAgent(
     .addStep(newValidatePluginListStep(deps.store))
     .addStep(newValidateSubagentNamesStep(deps.store))
     .addStep(newPinSubagentsStep(deps.store, deps.authorizer))
+    .addStep(newRefuseUnofferedHarnessStep(agentHarnesses))
     .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
     .addStep(newComputeAgentVersionHashStep())
     .addStep(newPopulateAgentVersionStep())
@@ -343,6 +351,7 @@ async function update(
       .addStep(newValidatePluginListStep(deps.store))
       .addStep(newValidateSubagentNamesStep(deps.store))
       .addStep(newPinSubagentsStep(deps.store, deps.authorizer))
+      .addStep(newRefuseUnofferedHarnessStep(agentHarnesses))
       .addStep(newValidateAgentRunConfigStep(deps.modelRegistry))
       .addStep(newComputeAgentVersionHashStep())
       .addStep(newPopulateAgentVersionStep())

@@ -20,7 +20,8 @@
  *  - Framing and placement. The native harness renders `## Heading` sections
  *    into a system prompt rebuilt on every turn; the Cursor harness renders
  *    `<xml_tag>` sections into the FIRST user message of a session
- *    (`capabilities.systemPrompt` is the declared reason). Each builder maps a
+ *    (the system-prompt row of `harness/capabilities.ts`'s matrix is the
+ *    reason). Each builder maps a
  *    section `kind` to its own label (`Record<StandingSectionKind, string>`,
  *    exhaustive by the compiler) and wraps the body itself. This module never
  *    learns a heading or a tag.
