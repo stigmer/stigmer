@@ -21,8 +21,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
-    "@remotion/cli": "4.0.448",
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@remotion/cli": "4.0.538",
     "@stigmer/client": "*",
     "@stigmer/react-sdk": "*",
     "react": "^19.0.0",
