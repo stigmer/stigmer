@@ -67,6 +67,37 @@ A Session keeps three things for as long as it exists:
   folder, which come back as Files of the Session
   ([Files](/docs/concepts/files)).
 
+## A job that runs for hours
+
+A turn in a Session is a job, not one request to a model. When a customer
+uploads a year of ledgers, the Agent can work through them for two hours in one
+turn, and the turn keeps going for as long as the job takes:
+
+- **It stays at work while it waits.** While a tool runs or the model answers,
+  the turn is working, and your app sees what it has open and for how long
+  (`stigmer.run.liveness` in
+  [Stigmer's own events](/docs/sdk/streaming#stigmers-own-events)).
+- **It carries on through a restart.** When the server or the runner restarts in
+  the middle of a turn, for an upgrade or after a crash, the turn picks up where
+  it was. The model is never handed the task a second time.
+- **Your app misses nothing.** A dropped event stream picks up after the last
+  event your app read
+  ([Resume a dropped stream](/docs/sdk/streaming#resume-a-dropped-stream)).
+- **You can steer it while it works.** A message sent during the turn waits in
+  the Session, and the turn reads it at its next step, without starting over. On
+  the [Cursor harness](/docs/concepts/harnesses#cursor-harness), when Cursor
+  can't take the message mid-run, the turn reads it as soon as that run ends
+  (`user.message` in [Read the events](/docs/sdk/streaming#read-the-events)).
+- **It tells its person when it needs them.** When the turn finishes, fails or
+  waits for an answer, the person who started the Session is told, in the
+  console and the desktop app, and your app can follow the same notices
+  ([Know when a conversation needs you](/docs/sdk/streaming#know-when-a-conversation-needs-you)).
+- **It keeps its place as the work grows.** When the conversation outgrows the
+  model's context, it is summarized and the turn carries on, and each summary is
+  an `agent.thread_context_compacted` event in the Session. On the
+  [native harness](/docs/concepts/harnesses#native-harness), each summary
+  carries the person's request forward, so the Agent keeps to its goal.
+
 ## Creating a Session
 
 In the SDK, you create a Session by naming the Agent it talks to:

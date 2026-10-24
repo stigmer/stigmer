@@ -10,6 +10,10 @@ export type ProblemProps = React.HTMLAttributes<HTMLElement>;
 /** What a team would build for itself, beside what Stigmer gives each customer's agent. */
 const ROWS: readonly { build: string; gives: React.ReactNode }[] = [
   { build: "A sandbox you run yourself", gives: "Each customer's agent has its own computer" },
+  {
+    build: "Request-length calls, queues and retries you wrote",
+    gives: "It works on a job for hours and survives restarts",
+  },
   { build: "Hand-rolled approval flags", gives: "It asks before acting on what you mark" },
   {
     build: "Tenant checks in your own code",
@@ -54,8 +58,9 @@ function Problem({ className, ...props }: ProblemProps) {
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               A chat window on a model API answers questions. An agent that does a job for each of
-              your customers needs a computer to work on, a way to ask before it acts, and walls
-              between one customer and the next. Most teams end up building that themselves.
+              your customers needs a computer to work on, hours to finish the job, a way to ask
+              before it acts, and walls between one customer and the next. Most teams end up
+              building that themselves.
             </p>
           </div>
         </FadeInUp>

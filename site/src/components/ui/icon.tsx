@@ -25,6 +25,7 @@ import {
   Shield,
   Download,
   Monitor,
+  Clock,
   type LucideIcon,
 } from "lucide-react";
 
@@ -56,6 +57,7 @@ const iconMap = {
   shield: Shield,
   download: Download,
   monitor: Monitor,
+  clock: Clock,
 } as const;
 
 /**

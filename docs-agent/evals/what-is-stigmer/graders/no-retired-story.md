@@ -1,6 +1,6 @@
 ---
 type: regex
-pattern: agent (platform|infrastructure)|for hours
+pattern: agent (platform|infrastructure)
 flags: i
 match: not_contains
 ---

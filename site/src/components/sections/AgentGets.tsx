@@ -24,6 +24,14 @@ const GETS: readonly {
     href: "/docs/concepts/environments",
   },
   {
+    icon: "clock",
+    title: "It works for hours",
+    description:
+      "A job, not one request: it keeps going through restarts and reads what you send while it works.",
+    cta: "A job that runs for hours",
+    href: "/docs/concepts/sessions#a-job-that-runs-for-hours",
+  },
+  {
     icon: "shield",
     title: "It asks first",
     description:
@@ -48,6 +56,19 @@ const GETS: readonly {
   },
 ];
 
+/**
+ * Where a card sits in the grid, from its place in GETS: two columns on small
+ * screens with an odd last card across both, and on large ones three cards over
+ * the rest on six columns. No width leaves an empty cell, where the grid's
+ * border colour would show as a grey block.
+ */
+function cardSpan(index: number): string {
+  return cn(
+    index === GETS.length - 1 && GETS.length % 2 === 1 && "sm:col-span-2",
+    index < 3 ? "lg:col-span-2" : "lg:col-span-3",
+  );
+}
+
 function AgentGets({ className, ...props }: AgentGetsProps) {
   return (
     <section
@@ -69,12 +90,12 @@ function AgentGets({ className, ...props }: AgentGetsProps) {
         </FadeInUp>
 
         <StaggerContainer
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-lg overflow-hidden border border-border"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-px bg-border rounded-lg overflow-hidden border border-border"
           staggerDelay={0.1}
           delayChildren={0.1}
         >
-          {GETS.map((item) => (
-            <StaggerItem key={item.title}>
+          {GETS.map((item, index) => (
+            <StaggerItem key={item.title} className={cardSpan(index)}>
               <div className="bg-background p-6 sm:p-8 h-full flex flex-col">
                 <Icon name={item.icon} size="lg" className="text-foreground mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-3">{item.title}</h3>
