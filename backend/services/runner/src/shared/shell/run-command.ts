@@ -16,8 +16,11 @@
  *  - It resolved on `close`, which waits for every holder of the pipes, so a
  *    backgrounded or orphaned child that kept them open held the call open
  *    for ever (stigmer#2432). Here the call ends at the shell's `exit`: the
- *    pipes are drained for a short grace, then destroyed. A background child
- *    is not killed when its shell exits normally; it loses its output pipe.
+ *    pipes are drained for a short grace, then destroyed. A child the
+ *    command itself sent to the background (`cmd &`) is not killed when its
+ *    shell exits normally; it loses its output pipe. A command the agent
+ *    asks to run in the background is the runner's own and is stopped with
+ *    its turn (`background-commands.ts`).
  *  - It took no signal, so the turn's stop never reached a running command.
  *    Here an abort stops the group at once.
  *  - stdin is closed (`ignore`): a command that reads input sees end of file
@@ -46,7 +49,10 @@ export const DEFAULT_MAX_OUTPUT_BYTES = 100_000;
 const DRAIN_GRACE_MS = 100;
 
 /** How long a stopped group has after SIGTERM before it is killed. */
-const KILL_GRACE_MS = 2_000;
+export const KILL_GRACE_MS = 2_000;
+
+/** How often {@link stopProcessGroup} looks for a process still in the group. */
+const GROUP_POLL_MS = 25;
 
 export interface RunCommandOptions {
   readonly command: string;
@@ -59,6 +65,8 @@ export interface RunCommandOptions {
   /** Told every chunk as it arrives, in arrival order. */
   readonly onOutput?: (chunk: string, stream: "stdout" | "stderr") => void;
   readonly maxOutputBytes?: number;
+  /** Told the process group's id once the shell has started: the handle {@link stopProcessGroup} takes. */
+  readonly onSpawn?: (processGroupId: number) => void;
 }
 
 export interface CommandResult {
@@ -140,6 +148,7 @@ export function runCommand(options: RunCommandOptions): Promise<CommandResult> {
       env: options.env,
       stdio: ["ignore", "pipe", "pipe"],
     });
+    if (child.pid !== undefined) options.onSpawn?.(child.pid);
 
     let settled = false;
     let killTimer: ReturnType<typeof setTimeout> | undefined;
@@ -216,6 +225,42 @@ export function runCommand(options: RunCommandOptions): Promise<CommandResult> {
       drainTimer.unref?.();
     });
   });
+}
+
+/** Whether any process is still in group `processGroupId` (a zombie not yet reaped counts). */
+function groupAlive(processGroupId: number): boolean {
+  try {
+    process.kill(-processGroupId, 0);
+    return true;
+  } catch (err) {
+    // EPERM: a process is there, owned by someone else; only ESRCH means the group is empty.
+    return (err as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
+/**
+ * Stop every process in group `processGroupId` and resolve once none is
+ * left: SIGTERM, then SIGKILL after {@link KILL_GRACE_MS}. Resolves at once
+ * for an empty group. A process that outlives SIGKILL (one stuck in the
+ * kernel) is given up on a second grace later, so a caller is never held
+ * for ever.
+ */
+export async function stopProcessGroup(processGroupId: number): Promise<void> {
+  if (!groupAlive(processGroupId)) return;
+  const signal = (name: NodeJS.Signals): void => {
+    try {
+      process.kill(-processGroupId, name);
+    } catch {
+      // The group emptied between the look and the signal.
+    }
+  };
+  signal("SIGTERM");
+  // Time is counted in polls, not read from the clock: a test that fakes
+  // `Date` must not hold a stop for ever.
+  for (let waited = 0; waited < 2 * KILL_GRACE_MS && groupAlive(processGroupId); waited += GROUP_POLL_MS) {
+    if (waited === KILL_GRACE_MS) signal("SIGKILL");
+    await new Promise((resolve) => setTimeout(resolve, GROUP_POLL_MS));
+  }
 }
 
 /** How a command ended, as both doors word it. */

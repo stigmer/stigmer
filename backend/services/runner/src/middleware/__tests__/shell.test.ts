@@ -4,7 +4,9 @@
  * no tools, a tool that is not `execute`, and an `execute` whose schema it
  * cannot read or extend all pass through unchanged (a lost `timeout` is
  * better than a broken shell); the declaration it presents is made once per
- * bound tool; and only an `execute` call is handed the runner's tool.
+ * bound tool; only an `execute` call is handed the runner's tool; and where
+ * commands can run in the background the declaration carries `background`
+ * and the middleware binds the stop tool, while without that it does neither.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -32,6 +34,31 @@ async function toolsSeen(tools: unknown[] | undefined): Promise<unknown[] | unde
   });
   return seen;
 }
+
+describe("the shell middleware where commands can run in the background", () => {
+  const execute = { name: "execute", description: "Run.", schema: z.object({ command: z.string() }) };
+  const STOP_TOOL = { name: "stop_background_command" };
+
+  async function declared(config: Parameters<typeof createShellMiddleware>[0]): Promise<Record<string, unknown>> {
+    let seen: unknown[] | undefined;
+    await createShellMiddleware(config).wrapModelCall!(modelRequest([execute]), (request) => {
+      seen = request.tools;
+      return {} as never;
+    });
+    return ((seen?.[0] as { schema: { properties: Record<string, unknown> } }).schema.properties);
+  }
+
+  it("declares background and binds the stop tool beside execute", async () => {
+    const config = { tool: RUNNER_TOOL, background: { commands: {} as never, outputPaths: undefined, stopTool: STOP_TOOL } };
+    expect(Object.keys(await declared(config))).toEqual(["command", "timeout", "background"]);
+    expect(createShellMiddleware(config).tools).toEqual([STOP_TOOL]);
+  });
+
+  it("does neither without it", async () => {
+    expect(Object.keys(await declared({ tool: RUNNER_TOOL }))).toEqual(["command", "timeout"]);
+    expect(createShellMiddleware({ tool: RUNNER_TOOL }).tools).toBeUndefined();
+  });
+});
 
 describe("the shell middleware", () => {
   it("passes a model call with no tools through untouched", async () => {

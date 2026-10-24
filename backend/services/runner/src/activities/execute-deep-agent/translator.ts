@@ -92,6 +92,7 @@ import type { DeepAgentGateState } from "./turn-setup.js";
 import { TOOL_REFUSED_EVENT } from "../../middleware/tool-scope.js";
 import { TOOL_POLICY_EVENT } from "../../middleware/approval-gate.js";
 import { CONTEXT_COMPACTED_EVENT } from "../../middleware/compaction.js";
+import { BACKGROUND_NOTE_EVENT, BACKGROUND_WAIT_EVENT } from "../../middleware/background-commands.js";
 
 const loggedUnknowns = new Set<string>();
 
@@ -257,7 +258,7 @@ export function normalize(event: V3ProtocolEvent): TranscriptEvent[] {
 // ── Custom Channel ────────────────────────────────────────────────
 
 /**
- * The three custom-stream events this harness reads.
+ * The custom-stream events this harness reads.
  *
  *  - A refusal (`TOOL_REFUSED_EVENT`): the tool-scope middleware's of a call
  *    the agent's tool lists exclude (`middleware/tool-scope.ts`), or the
@@ -275,6 +276,11 @@ export function normalize(event: V3ProtocolEvent): TranscriptEvent[] {
  *    (`CONTEXT_COMPACTED_EVENT`, `middleware/compaction.ts`), as a
  *    `context_compacted` marker in the scope; its usage is the loop's
  *    ({@link usageOf}).
+ *  - The background middleware's wait for its commands at a round's end
+ *    (`BACKGROUND_WAIT_EVENT`, `middleware/background-commands.ts`), as
+ *    `background_wait_started` and `background_wait_finished` in the scope,
+ *    and its line to the person when it tells the agent a command ended
+ *    (`BACKGROUND_NOTE_EVENT`), as a `system_note`.
  *
  * Any other custom event is not this harness's and is ignored.
  */
@@ -282,6 +288,10 @@ function normalizeCustom(event: V3ProtocolEvent): TranscriptEvent[] {
   const data = event.params.data as Record<string, unknown> | undefined;
   if (!data) return [];
   if (data.name === CONTEXT_COMPACTED_EVENT) return [{ kind: "context_compacted" as const }];
+  if (data.name === BACKGROUND_WAIT_EVENT) {
+    return [{ kind: data.phase === "started" ? ("background_wait_started" as const) : ("background_wait_finished" as const) }];
+  }
+  if (data.name === BACKGROUND_NOTE_EVENT) return typeof data.text === "string" && data.text !== "" ? [{ kind: "system_note" as const, text: data.text }] : [];
   const callId = typeof data.tool_call_id === "string" ? data.tool_call_id : "";
   if (!callId) return [];
   const policyHook = typeof data.policy_hook === "string" ? data.policy_hook : "";
