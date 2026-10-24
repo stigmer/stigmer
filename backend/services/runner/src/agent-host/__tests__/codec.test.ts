@@ -409,10 +409,14 @@ describe("the turn's fields, split by owner", () => {
         todos: { fresh: { content: "new" } },
         structuredOutput: { answer: 42 },
         recalledMemoriesReport: { selectionActive: false },
+        backgroundCommands: [{ callId: "bg-1", timeoutSeconds: 60, ending: "exited", exitCode: 0 }],
       }),
     };
+    const backgroundCommands = target.rows.backgroundCommands;
 
     applyAdapterProjection(target, encodeAdapterProjection(host));
+    expect(target.rows.backgroundCommands, "replaced in place, like every adapter row").toBe(backgroundCommands);
+    expect(target.rows.backgroundCommands.map((c) => [c.callId, c.ending, c.exitCode])).toEqual([["bg-1", "exited", 0]]);
 
     expect(target.rows.messages, "the same array, which the runtime's builder holds").toBe(messages);
     expect(target.rows.messages.map((m) => m.content)).toEqual(["from the host"]);

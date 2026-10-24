@@ -106,6 +106,7 @@ async function runRemoteTurn(
   let stopListener: (() => void) | undefined;
   let yieldListener: (() => void) | undefined;
   let inputListener: (() => void) | undefined;
+  let backgroundStopListener: (() => void) | undefined;
   try {
     const peer = await host.connection();
     stopListener = () => peer.notify("stopTurn", { turnId, reason: describeReason(sink.stopSignal.reason) });
@@ -113,6 +114,7 @@ async function runRemoteTurn(
     yieldListener = () => peer.notify("yieldTurn", { turnId });
     sink.yieldSignal.addEventListener("abort", yieldListener, { once: true });
     inputListener = sink.input.onPending(() => peer.notify("inputPending", { turnId }));
+    backgroundStopListener = sink.backgroundStops.onStop((callId) => peer.notify("stopBackgroundCommand", { turnId, callId }));
     const settlement = await peer.call("runTurn", {
       turnId,
       harness,
@@ -147,6 +149,7 @@ async function runRemoteTurn(
     if (stopListener) sink.stopSignal.removeEventListener("abort", stopListener);
     if (yieldListener) sink.yieldSignal.removeEventListener("abort", yieldListener);
     inputListener?.();
+    backgroundStopListener?.();
     closeTurn();
     detach();
   }

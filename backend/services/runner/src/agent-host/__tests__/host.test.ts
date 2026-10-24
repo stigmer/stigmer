@@ -128,6 +128,31 @@ describe("the agent host's server", () => {
     expect(forced, "one claim crossed, unforced; none while nothing waited").toEqual([false]);
   });
 
+  it("hands the adapter a person's stop of a background command, by its call id, until it leaves", async () => {
+    const heard: string[] = [];
+    let entered: () => void = () => {};
+    const inTurn = new Promise<void>((resolve) => (entered = resolve));
+    let stopped: () => void = () => {};
+    const both = new Promise<void>((resolve) => (stopped = resolve));
+    const { runner, call } = served(async (_input, sink) => {
+      const leave = sink.backgroundStops.onStop((callId) => {
+        heard.push(callId);
+        if (heard.length === 2) stopped();
+      });
+      entered();
+      await both;
+      leave();
+      return { kind: "completed" };
+    });
+    const settling = call();
+    await inTurn;
+    runner.notify("stopBackgroundCommand", { turnId: "t1", callId: "bg-1" });
+    runner.notify("stopBackgroundCommand", { turnId: "t-other", callId: "bg-x" });
+    runner.notify("stopBackgroundCommand", { turnId: "t1", callId: "bg-2" });
+    expect((await settling).outcome).toEqual({ kind: "completed" });
+    expect(heard, "a stop for another turn reaches no one").toEqual(["bg-1", "bg-2"]);
+  });
+
   it("answers a CAS read for a turn with no bound reader with an error", async () => {
     const { runner } = served(async () => ({ kind: "completed" }));
     await expect(runner.call("readCasObservations", { turnId: "t-none" })).rejects.toThrow("agent host: no CAS observations bound for turn t-none");

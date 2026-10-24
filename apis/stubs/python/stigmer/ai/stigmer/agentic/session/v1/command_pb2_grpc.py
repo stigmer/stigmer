@@ -52,6 +52,11 @@ class SessionCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.GrantPermissionInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.GrantPermissionResponse.FromString,
                 _registered_method=True)
+        self.stopBackgroundCommand = channel.unary_unary(
+                '/ai.stigmer.agentic.session.v1.SessionCommandController/stopBackgroundCommand',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.StopBackgroundCommandInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_event__pb2.SessionEvent.FromString,
+                _registered_method=True)
         self.interrupt = channel.unary_unary(
                 '/ai.stigmer.agentic.session.v1.SessionCommandController/interrupt',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.InterruptSessionInput.SerializeToString,
@@ -210,6 +215,33 @@ class SessionCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def stopBackgroundCommand(self, request, context):
+        """Stop one command the agent runs in the background.
+
+        A command started in the background has a
+        stigmer.background_command.status with phase running, keyed to the
+        agent.tool_use that started it. The request is appended as a
+        stigmer.background_command.stop_requested; the turn's runner reads it
+        within seconds and stops that command alone, whose status then ends
+        with stopped_by person. The agent is told a person stopped it and
+        carries on. The turn itself is not stopped (interrupt stops it).
+
+        ## Error Conditions
+
+        - NOT_FOUND: the tool use is not one of this conversation's calls that
+        started a command in the background
+        - FAILED_PRECONDITION: the command already ended, or its turn is not
+        working
+
+        ## Idempotency
+
+        A second request for the same command records nothing new and returns
+        the event first recorded.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def interrupt(self, request, context):
         """Stop the session's unfinished work.
 
@@ -322,6 +354,11 @@ def add_SessionCommandControllerServicer_to_server(servicer, server):
                     servicer.grantPermission,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.GrantPermissionInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.GrantPermissionResponse.SerializeToString,
+            ),
+            'stopBackgroundCommand': grpc.unary_unary_rpc_method_handler(
+                    servicer.stopBackgroundCommand,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.StopBackgroundCommandInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_event__pb2.SessionEvent.SerializeToString,
             ),
             'interrupt': grpc.unary_unary_rpc_method_handler(
                     servicer.interrupt,
@@ -539,6 +576,33 @@ class SessionCommandController(object):
             '/ai.stigmer.agentic.session.v1.SessionCommandController/grantPermission',
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.GrantPermissionInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.GrantPermissionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def stopBackgroundCommand(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.session.v1.SessionCommandController/stopBackgroundCommand',
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.StopBackgroundCommandInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_event__pb2.SessionEvent.FromString,
             options,
             channel_credentials,
             insecure,

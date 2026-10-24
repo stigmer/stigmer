@@ -150,6 +150,14 @@ class GrantPermissionResponse(_message.Message):
     confirmations: _containers.RepeatedCompositeFieldContainer[_event_pb2.SessionEvent]
     def __init__(self, grant: _Optional[_Union[_event_pb2.SessionEvent, _Mapping]] = ..., confirmations: _Optional[_Iterable[_Union[_event_pb2.SessionEvent, _Mapping]]] = ...) -> None: ...
 
+class StopBackgroundCommandInput(_message.Message):
+    __slots__ = ("session_id", "tool_use_id")
+    SESSION_ID_FIELD_NUMBER: _ClassVar[int]
+    TOOL_USE_ID_FIELD_NUMBER: _ClassVar[int]
+    session_id: str
+    tool_use_id: str
+    def __init__(self, session_id: _Optional[str] = ..., tool_use_id: _Optional[str] = ...) -> None: ...
+
 class InterruptSessionInput(_message.Message):
     __slots__ = ("session_id", "session_thread_id")
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]

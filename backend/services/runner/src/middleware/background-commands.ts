@@ -52,10 +52,9 @@
  * and the end of the wait, which the native translator turns into the
  * `background_wait_started` and `background_wait_finished` facts, and the
  * runtime's open-operations fold holds the stall watchdog between them
- * (`harness/open-operations.ts`). Each notice is also said to the person, in
- * the platform's voice, as {@link BACKGROUND_NOTE_EVENT}, which becomes a
- * `system_note` in the session's log, written when the agent is told so the
- * log and the agent learn of each ending at the same point.
+ * (`harness/open-operations.ts`). The person learns of each ending from the
+ * command's own status in the session's log, written when it ended
+ * (`execute-deep-agent/background-facts.ts`), not from this middleware.
  *
  * Proven by `__tests__/background-commands.test.ts` and on a real graph by
  * `execute-deep-agent/__tests__/background-binding.test.ts`.
@@ -64,7 +63,7 @@
 import { HumanMessage, isAIMessage, isHumanMessage, isToolMessage, type BaseMessage } from "@langchain/core/messages";
 
 import type { TurnInputChannel } from "../harness/turn-input.js";
-import { backgroundArtifactOf, STOP_BACKGROUND_TOOL_NAME, SHELL_TOOL_NAME } from "../activities/execute-deep-agent/shell-tool.js";
+import { backgroundArtifactOf, endingLine, STOP_BACKGROUND_TOOL_NAME, SHELL_TOOL_NAME } from "../activities/execute-deep-agent/shell-tool.js";
 import { deliveredInputsOf } from "../activities/execute-deep-agent/turn-input-middleware.js";
 import type { InputBarriers } from "../activities/execute-deep-agent/input-barrier.js";
 import type { BackgroundCommand, BackgroundCommands, BackgroundOutputPaths, PriorStop } from "../shared/shell/background-commands.js";
@@ -77,17 +76,14 @@ import type { BackgroundShellConfig, StigmerMiddleware } from "./types.js";
 /** The custom-stream event a wait writes at its start and its end (`translator.ts` reads it). Wire-free. */
 export const BACKGROUND_WAIT_EVENT = "stigmer.background_wait";
 
-/** The custom-stream event that says an ending to the person (`translator.ts` reads it). Wire-free. */
-export const BACKGROUND_NOTE_EVENT = "stigmer.background_note";
-
 /** How often a wait asks for a person's message when no status write refreshed the hint. */
 export const BACKGROUND_WAIT_CLAIM_MS = 10_000;
 
 /** The tool-result budget a notice is cut to when the stack names none. */
 const DEFAULT_NOTICE_CHARS = 30_000;
 
-/** How much of a command's text a note to the person quotes. */
-const NOTE_COMMAND_CHARS = 200;
+/** How much of a command's text a notice quotes. */
+const NOTICE_COMMAND_CHARS = 200;
 
 /** The id prefix of a notice message (the header: what the thread was told is read from it). */
 const NOTICE_ID_PREFIX = "background-ended-";
@@ -135,10 +131,10 @@ export function backgroundThreadOf(messages: readonly BaseMessage[]): { readonly
   return { starts, told };
 }
 
-/** A command's text as a note quotes it: one line, at most {@link NOTE_COMMAND_CHARS}. */
+/** A command's text as a notice quotes it: one line, at most {@link NOTICE_COMMAND_CHARS}. */
 function quoted(command: string): string {
   const line = command.replace(/\s+/g, " ").trim();
-  return line.length > NOTE_COMMAND_CHARS ? `${line.slice(0, NOTE_COMMAND_CHARS)}…` : line;
+  return line.length > NOTICE_COMMAND_CHARS ? `${line.slice(0, NOTICE_COMMAND_CHARS)}…` : line;
 }
 
 /** `text` cut to `budget` characters, keeping its start and its end (`shared/text-cut.ts`). */
@@ -150,27 +146,28 @@ function cut(text: string, budget: number): string {
   return `${head}${head.endsWith("\n") ? "" : "\n"}${omittedOutputLine(text.length - head.length - tail.length)}\n${tail}`;
 }
 
-/** What a notice and a note say of one ending. */
+/** What a notice says of one ending. */
 interface Ending {
   readonly attribute: string;
   readonly body: string;
-  readonly note: string;
 }
 
 function endingOfCommand(command: BackgroundCommand, maxChars: number): Ending {
   const result = command.result!;
   const ending = endingOf(result, command.timeoutSeconds);
-  const shown = `Background command \`${quoted(command.command)}\``;
   const output = cut(formatCommandOutput(result), maxChars);
   switch (ending.kind) {
     case "exited":
-      return { attribute: `exit ${ending.exitCode}`, body: output, note: `${shown} exited with code ${ending.exitCode}.` };
+      return { attribute: `exit ${ending.exitCode}`, body: output };
     case "timed-out":
-      return { attribute: "timed out", body: output, note: `${shown} timed out after ${ending.timeoutSeconds} seconds and was stopped.` };
+      return { attribute: "timed out", body: output };
     case "stopped":
-      return { attribute: "stopped", body: `${output}\nStopped with the turn.`, note: `${shown} was stopped with the turn.` };
+      // A person's stop is told as theirs, so the agent does not start it again unasked.
+      return command.stoppedBy?.by === "person"
+        ? { attribute: "stopped by the person", body: `${output}\n${endingLine(ending, command.stoppedBy)}` }
+        : { attribute: "stopped", body: `${output}\nStopped with the turn.` };
     case "spawn-failed":
-      return { attribute: "failed to start", body: ending.message, note: `${shown} failed to start.` };
+      return { attribute: "failed to start", body: ending.message };
     /* v8 ignore start -- @preserve: the never arm; the compiler proves no ending reaches it */
     default: {
       const exhaustive: never = ending;
@@ -180,22 +177,14 @@ function endingOfCommand(command: BackgroundCommand, maxChars: number): Ending {
   }
 }
 
-function priorEnding(start: ThreadStart, prior: PriorStop): Ending {
+function priorEnding(prior: PriorStop): Ending {
   const when = prior === "approval" ? "when the turn paused for your approval" : "when the turn was interrupted";
-  return {
-    attribute: "stopped",
-    body: `Stopped ${when}. Start it again if you still need it.`,
-    note: `Background command \`${quoted(start.command)}\` was stopped ${prior === "approval" ? "when the turn paused for approval" : "when the turn was interrupted"}.`,
-  };
+  return { attribute: "stopped", body: `Stopped ${when}. Start it again if you still need it.` };
 }
 
 /** A command that will be stopped with the invocation that is ending now (a halt during a wait). */
-function haltEnding(start: ThreadStart): Ending {
-  return {
-    attribute: "stopped",
-    body: "Stopped with the turn. Start it again if you still need it.",
-    note: `Background command \`${quoted(start.command)}\` was stopped with the turn.`,
-  };
+function haltEnding(): Ending {
+  return { attribute: "stopped", body: "Stopped with the turn. Start it again if you still need it." };
 }
 
 function escapeAttribute(value: string): string {
@@ -209,8 +198,7 @@ export function createBackgroundCommandsMiddleware(config: BackgroundCommandsMid
   const claimEveryMs = config.claimEveryMs ?? BACKGROUND_WAIT_CLAIM_MS;
   const halted = (): boolean => config.signals !== undefined && haltsAtModelCall(config.signals, scope);
 
-  const notice = (start: ThreadStart, ending: Ending, write: ((chunk: unknown) => void) | undefined): HumanMessage => {
-    write?.({ name: BACKGROUND_NOTE_EVENT, text: ending.note });
+  const notice = (start: ThreadStart, ending: Ending): HumanMessage => {
     const file = outputPaths === undefined ? "" : `\nIts whole output is in ${outputPaths.virtual(start.id)}.`;
     return new HumanMessage({
       id: noticeIdOf(start.id),
@@ -221,14 +209,14 @@ export function createBackgroundCommandsMiddleware(config: BackgroundCommandsMid
   };
 
   /** The notices the thread is owed now: every start it was not told of that is not running. */
-  const owedNotices = (messages: readonly BaseMessage[], write: ((chunk: unknown) => void) | undefined): HumanMessage[] => {
+  const owedNotices = (messages: readonly BaseMessage[]): HumanMessage[] => {
     const { starts, told } = backgroundThreadOf(messages);
     const notices: HumanMessage[] = [];
     for (const start of starts) {
       if (told.has(start.id)) continue;
       const command = commands.get(start.id);
-      if (command === undefined) notices.push(notice(start, priorEnding(start, commands.priorStop()), write));
-      else if (command.result !== undefined) notices.push(notice(start, endingOfCommand(command, maxChars), write));
+      if (command === undefined) notices.push(notice(start, priorEnding(commands.priorStop())));
+      else if (command.result !== undefined) notices.push(notice(start, endingOfCommand(command, maxChars)));
     }
     return notices;
   };
@@ -243,9 +231,9 @@ export function createBackgroundCommandsMiddleware(config: BackgroundCommandsMid
   };
 
   /** At a halt: what ended is told as it ended, what still runs as stopped with the turn (it is, before the invocation returns). */
-  const haltNotices = (messages: readonly BaseMessage[], write: ((chunk: unknown) => void) | undefined): HumanMessage[] => [
-    ...owedNotices(messages, write),
-    ...runningOf(messages).map((start) => notice(start, haltEnding(start), write)),
+  const haltNotices = (messages: readonly BaseMessage[]): HumanMessage[] => [
+    ...owedNotices(messages),
+    ...runningOf(messages).map((start) => notice(start, haltEnding())),
   ];
 
   /** Whether a person's message is waiting for the root, taken now so the turn-input middleware delivers it. */
@@ -309,8 +297,8 @@ export function createBackgroundCommandsMiddleware(config: BackgroundCommandsMid
   return {
     name: scope === "root" ? "StigmerBackgroundCommands" : "StigmerSubAgentBackgroundCommands",
 
-    beforeModel(state, runtime) {
-      const notices = owedNotices((state.messages ?? []) as BaseMessage[], customStreamWriterOf(runtime));
+    beforeModel(state) {
+      const notices = owedNotices((state.messages ?? []) as BaseMessage[]);
       return notices.length > 0 ? { messages: notices } : undefined;
     },
 
@@ -321,11 +309,11 @@ export function createBackgroundCommandsMiddleware(config: BackgroundCommandsMid
         const last = messages.at(-1);
         if (last === undefined || !isAIMessage(last) || (last.tool_calls?.length ?? 0) > 0) return undefined;
         const write = customStreamWriterOf(runtime);
-        const owed = owedNotices(messages, write);
+        const owed = owedNotices(messages);
         if (owed.length > 0) return { messages: owed, jumpTo: "model" };
         const running = runningOf(messages);
         if (running.length === 0) return undefined;
-        if (halted()) return { messages: haltNotices(messages, write), jumpTo: "model" };
+        if (halted()) return { messages: haltNotices(messages), jumpTo: "model" };
         if (await personWaits(state, write)) return undefined;
         if (commands.takeReminder()) return { messages: [reminder(running)], jumpTo: "model" };
 
@@ -337,7 +325,7 @@ export function createBackgroundCommandsMiddleware(config: BackgroundCommandsMid
           write?.({ name: BACKGROUND_WAIT_EVENT, phase: "finished" });
         }
         if (woke === "person") return undefined;
-        return { messages: woke === "halted" ? haltNotices(messages, write) : owedNotices(messages, write), jumpTo: "model" };
+        return { messages: woke === "halted" ? haltNotices(messages) : owedNotices(messages), jumpTo: "model" };
       },
     },
   };

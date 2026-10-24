@@ -3,8 +3,10 @@
  * threads and a registry whose commands end when the test says
  * (`middleware/background-commands.ts`):
  *  - an ended command is told once, cut to the run's budget, with its file,
- *    and said to the person; a thread that holds the notice (a saved and
- *    reloaded one) is not told again, nor one the agent stopped itself;
+ *    and nothing is written for the person (the command's own status says
+ *    it); a thread that holds the notice (a saved and reloaded one) is not
+ *    told again, nor one the agent stopped itself; a person's stop is told
+ *    as theirs;
  *  - a start this invocation does not hold is told as stopped, with the
  *    reason this invocation knows (an approval pause or an interruption);
  *  - at a round's end with commands running: a reminder once, then a wait
@@ -19,7 +21,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AIMessage, HumanMessage, ToolMessage, type BaseMessage } from "@langchain/core/messages";
 
 import {
-  BACKGROUND_NOTE_EVENT,
   BACKGROUND_WAIT_EVENT,
   createBackgroundCommandsMiddleware,
   noticeIdOf,
@@ -123,7 +124,7 @@ afterEach(() => {
 });
 
 describe("the background middleware before a model call", () => {
-  it("tells an ended command once, cut to the budget, with its file, and says it to the person", async () => {
+  it("tells an ended command once, cut to the budget, with its file, and writes nothing for the person", async () => {
     const { commands, start, end } = scriptedCommands();
     start("bg_1", "npm test");
     end("bg_1", exited(1, `${"x".repeat(500)}\nFAILED: 3 tests\n`));
@@ -138,17 +139,17 @@ describe("the background middleware before a model call", () => {
     expect(textOf(notice)).toContain("FAILED: 3 tests");
     expect(textOf(notice)).toContain("characters omitted");
     expect(textOf(notice)).toContain("Its whole output is in /large_tool_results/background-bg_1.log.");
-    expect(written).toEqual([{ name: BACKGROUND_NOTE_EVENT, text: "Background command `npm test` exited with code 1." }]);
+    expect(written).toEqual([]);
 
     const saved = threadWith([{ id: "bg_1", command: "npm test" }], ...update!.messages!, REPLY());
     expect(await beforeModel({ messages: saved }, runtime), "a reloaded thread that holds the notice is not told again").toBeUndefined();
   });
 
   it.each([
-    ["timed out", { ...exited(0, "slow\n"), exitCode: null, timedOut: true }, 'ended="timed out"', "slow", "timed out after 60 seconds and was stopped."],
-    ["failed to start", { ...exited(0), exitCode: null, spawnError: "spawn /bin/sh ENOENT" }, 'ended="failed to start"', "spawn /bin/sh ENOENT", "failed to start."],
-    ["stopped with the turn", { ...exited(0, "half\n"), exitCode: null, aborted: true }, 'ended="stopped"', "Stopped with the turn.", "was stopped with the turn."],
-  ] as const)("tells a command that %s in its own words", async (_label, ending, attribute, body, note) => {
+    ["timed out", { ...exited(0, "slow\n"), exitCode: null, timedOut: true }, 'ended="timed out"', "slow"],
+    ["failed to start", { ...exited(0), exitCode: null, spawnError: "spawn /bin/sh ENOENT" }, 'ended="failed to start"', "spawn /bin/sh ENOENT"],
+    ["stopped with the turn", { ...exited(0, "half\n"), exitCode: null, aborted: true }, 'ended="stopped"', "Stopped with the turn."],
+  ] as const)("tells a command that %s in its own words", async (_label, ending, attribute, body) => {
     const { commands, start, end } = scriptedCommands();
     start("bg_1", "make");
     end("bg_1", ending);
@@ -157,13 +158,23 @@ describe("the background middleware before a model call", () => {
     const update = (await beforeModel({ messages: threadWith([{ id: "bg_1", command: "make" }]) }, runtime)) as Update;
     expect(textOf(update?.messages?.[0])).toContain(attribute);
     expect(textOf(update?.messages?.[0])).toContain(body);
-    expect(written.map((w) => w.text)).toEqual([`Background command \`make\` ${note}`]);
+    expect(written).toEqual([]);
+  });
+
+  it("tells a command a person stopped as stopped by the person", async () => {
+    const { commands, start } = scriptedCommands();
+    start("bg_1", "npm run dev");
+    await commands.stop("bg_1", "person");
+    const { beforeModel, runtime } = build(commands);
+    const update = (await beforeModel({ messages: threadWith([{ id: "bg_1", command: "npm run dev" }]) }, runtime)) as Update;
+    expect(textOf(update?.messages?.[0])).toContain('ended="stopped by the person"');
+    expect(textOf(update?.messages?.[0])).toContain("[Stopped by the person; its processes were stopped]");
   });
 
   it("does not tell an ending the agent's own stop already answered", async () => {
     const { commands, start } = scriptedCommands();
     start("bg_1", "npm run dev");
-    await commands.stop("bg_1");
+    await commands.stop("bg_1", { agent: "stop_1" });
     const { beforeModel, runtime } = build(commands);
     const thread = threadWith(
       [{ id: "bg_1", command: "npm run dev" }],
@@ -182,16 +193,15 @@ describe("the background middleware before a model call", () => {
   });
 
   it.each([
-    ["an interruption", false, "Stopped when the turn was interrupted.", "was stopped when the turn was interrupted."],
-    ["an approval pause", true, "Stopped when the turn paused for your approval.", "was stopped when the turn paused for approval."],
-  ])("tells a start an earlier invocation held as stopped at %s", async (_label, approval, body, note) => {
+    ["an interruption", false, "Stopped when the turn was interrupted."],
+    ["an approval pause", true, "Stopped when the turn paused for your approval."],
+  ])("tells a start an earlier invocation held as stopped at %s", async (_label, approval, body) => {
     const commands = new BackgroundCommands();
     if (approval) commands.resumesApproval();
-    const { beforeModel, runtime, written } = build(commands);
+    const { beforeModel, runtime } = build(commands);
     const update = (await beforeModel({ messages: threadWith([{ id: "bg_1", command: "npm run dev" }]) }, runtime)) as Update;
     expect(textOf(update?.messages?.[0])).toContain('ended="stopped"');
     expect(textOf(update?.messages?.[0])).toContain(body);
-    expect(written.map((w) => w.text)).toEqual([`Background command \`npm run dev\` ${note}`]);
   });
 });
 
@@ -329,7 +339,6 @@ describe("the background middleware at a round's end", () => {
     const update = settled as Update;
     expect(update?.jumpTo, "the model call that follows is refused by the turn boundary").toBe("model");
     expect(textOf(update?.messages?.[0])).toContain("Stopped with the turn.");
-    expect(written).toContainEqual({ name: BACKGROUND_NOTE_EVENT, text: "Background command `npm run dev` was stopped with the turn." });
     await commands.stopAll();
   });
 

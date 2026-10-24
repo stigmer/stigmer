@@ -35,7 +35,13 @@
  * (`shared/shell/background-commands.ts`), with no timeout of its own but
  * the runner's ceiling unless the model asks for less. The agent is told
  * when it ends (`middleware/background-commands.ts`) and can stop it with
- * {@link STOP_BACKGROUND_TOOL_NAME}. The start's result carries
+ * {@link STOP_BACKGROUND_TOOL_NAME}. The person sees it too: the registry
+ * reports its start, its output and its end to the turn's transcript
+ * (`background-facts.ts`), which the session's log carries as
+ * `stigmer.background_command.status` events beside the start's tool use,
+ * its output previewed under the same id; and a person can stop it alone
+ * (`SessionCommandController.stopBackgroundCommand`, reaching the adapter
+ * through `TurnSink.backgroundStops`), which the agent is told. The start's result carries
  * `artifact.background.id`, so the thread itself records the start; the
  * stop's carries `artifact.background.ended`. The middleware reads both
  * back from the thread ({@link backgroundArtifactOf}).
@@ -56,6 +62,7 @@ import { endingOf, formatCommandOutput, type CommandEnding, type CommandResult }
 import {
   MAX_RUNNING_BACKGROUND_COMMANDS,
   type BackgroundCommand,
+  type BackgroundStoppedBy,
   type BackgroundCommands,
   type BackgroundOutputPaths,
 } from "../../shared/shell/background-commands.js";
@@ -143,16 +150,19 @@ function pause(ms: number, done: Promise<unknown>): Promise<void> {
 
 /**
  * The bracketed line that says how a command ended, in deepagents' words;
- * a stop the agent asked for says so, since "with the turn" would be untrue.
+ * a stop the agent or a person asked for says so, since "with the turn"
+ * would be untrue.
  */
-export function endingLine(ending: CommandEnding, stoppedOnRequest = false): string {
+export function endingLine(ending: CommandEnding, stoppedBy?: BackgroundStoppedBy): string {
   switch (ending.kind) {
     case "exited":
       return `[Command ${ending.exitCode === 0 ? "succeeded" : "failed"} with exit code ${ending.exitCode}]`;
     case "timed-out":
       return `[Command timed out after ${ending.timeoutSeconds} seconds; its processes were stopped]`;
     case "stopped":
-      return stoppedOnRequest ? "[Stopped at your request; its processes were stopped]" : "[Command stopped with the turn; its processes were stopped]";
+      if (stoppedBy?.by === "agent") return "[Stopped at your request; its processes were stopped]";
+      if (stoppedBy?.by === "person") return "[Stopped by the person; its processes were stopped]";
+      return "[Command stopped with the turn; its processes were stopped]";
     case "spawn-failed":
       return `[Command failed to start: ${ending.message}]`;
     /* v8 ignore start -- @preserve: the never arm; the compiler proves no ending reaches it */
@@ -287,9 +297,10 @@ const stopArgs = z.object({
 /** The stop tool's answer for a command it found: what it printed, then how it ended. */
 function stoppedResult(command: BackgroundCommand, result: CommandResult, id: string): ToolMessage {
   const ending = endingOf(result, command.timeoutSeconds);
-  const already = command.stoppedOnRequest ? "" : "It had already ended.\n";
+  const mine = command.stoppedBy?.by === "agent" && command.stoppedBy.callId === id;
+  const already = mine ? "" : "It had already ended.\n";
   return new ToolMessage({
-    content: `${already}${formatCommandOutput(result)}\n${endingLine(ending, command.stoppedOnRequest)}`,
+    content: `${already}${formatCommandOutput(result)}\n${endingLine(ending, command.stoppedBy)}`,
     tool_call_id: id,
     name: STOP_BACKGROUND_TOOL_NAME,
     status: "success",
@@ -301,7 +312,7 @@ function stoppedResult(command: BackgroundCommand, result: CommandResult, id: st
 export function createStopBackgroundCommandTool(commands: BackgroundCommands) {
   return tool(
     async (input: z.infer<typeof stopArgs>, config?: ToolRunConfig): Promise<string | ToolMessage> => {
-      const command = await commands.stop(input.id);
+      const command = await commands.stop(input.id, { agent: config?.toolCall?.id ?? "" });
       if (command?.result === undefined) {
         const running = commands.running().map((c) => c.id);
         return `No command started in the background in this turn has id ${input.id}. ${running.length === 0 ? "None is running." : `Running: ${running.join(", ")}.`}`;

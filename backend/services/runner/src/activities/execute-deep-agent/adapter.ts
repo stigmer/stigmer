@@ -24,8 +24,10 @@
  * `releaseSession` resolves as a no-op. The one thing `shutdown` reaches is
  * the background commands of the turns still running
  * (`shared/shell/background-commands.ts`): each `runTurn` creates its
- * invocation's registry, and the adapter keeps the live ones only so that a
- * host stopping under a running turn stops their commands too.
+ * invocation's registry, which reports each command to the turn's
+ * transcript (`background-facts.ts`), and the adapter keeps the live ones
+ * only so that a host stopping under a running turn stops their commands
+ * too.
  *
  * What this adapter never does: throw out of `runTurn` (an engine failure is
  * `failed` on the `internal` surface; the recursion limit is
@@ -41,6 +43,8 @@
 import type { Config } from "../../config.js";
 import type { HarnessAdapter, TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import { BackgroundCommands } from "../../shared/shell/background-commands.js";
+import { loadStreamingConfig } from "../../shared/streaming-scheduler.js";
+import { backgroundFacts } from "./background-facts.js";
 import { DEEP_AGENT_CAPABILITIES } from "./deep-agent-capabilities.js";
 import type { DeepAgentAdapterConfig } from "./turn-setup.js";
 
@@ -99,7 +103,7 @@ export function createDeepAgentAdapter(): HarnessAdapter {
       if (booted === undefined) {
         throw new Error("deep-agent adapter: runTurn before boot (the registry boots every adapter before the worker polls)");
       }
-      const commands = new BackgroundCommands();
+      const commands = new BackgroundCommands(backgroundFacts(sink, loadStreamingConfig().minIntervalMs));
       live.add(commands);
       try {
         return await booted.runDeepAgentTurn(input, sink, booted.config, commands);

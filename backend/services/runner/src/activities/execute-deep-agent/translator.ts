@@ -86,13 +86,13 @@
  */
 
 import type { V3ProtocolEvent } from "./v3-event-recorder.js";
-import type { ToolStartedEvent, TranscriptEvent } from "../../harness/transcript/events.js";
+import type { StreamFact, ToolStartedEvent } from "../../harness/transcript/events.js";
 import { resolveApprovalProvenance, type PolicySource } from "../../shared/approval-policy.js";
 import type { DeepAgentGateState } from "./turn-setup.js";
 import { TOOL_REFUSED_EVENT } from "../../middleware/tool-scope.js";
 import { TOOL_POLICY_EVENT } from "../../middleware/approval-gate.js";
 import { CONTEXT_COMPACTED_EVENT } from "../../middleware/compaction.js";
-import { BACKGROUND_NOTE_EVENT, BACKGROUND_WAIT_EVENT } from "../../middleware/background-commands.js";
+import { BACKGROUND_WAIT_EVENT } from "../../middleware/background-commands.js";
 
 const loggedUnknowns = new Set<string>();
 
@@ -115,11 +115,11 @@ export class DeepAgentTranslator {
   constructor(private readonly gate: DeepAgentGateState | null) {}
 
   /** One raw event to its canonical events — `translate(raw)` is the one signature every harness's translator shares. */
-  translate(raw: V3ProtocolEvent): TranscriptEvent[] {
+  translate(raw: V3ProtocolEvent): StreamFact[] {
     const namespace = raw.params.namespace;
     if (raw.method === "custom") return this.custom(normalize(raw), this.customScopeOf(namespace));
     const subAgentId = this.scopeOf(namespace);
-    const out: TranscriptEvent[] = [];
+    const out: StreamFact[] = [];
     for (const event of normalize(raw)) {
       if (subAgentId !== undefined) {
         out.push({ ...event, subAgentId });
@@ -162,7 +162,7 @@ export class DeepAgentTranslator {
    * the segment it arrived under as the routing prefix (a depth-0 start —
    * tests — gets a synthetic one so its children can still name it).
    */
-  private openSubAgent(event: ToolStartedEvent, namespace: readonly string[]): TranscriptEvent {
+  private openSubAgent(event: ToolStartedEvent, namespace: readonly string[]): StreamFact {
     const prefix = namespace[0] ?? `tools:${event.callId}`;
     this.subAgentByPrefix.set(prefix, event.callId);
     this.taskCalls.add(event.callId);
@@ -197,8 +197,8 @@ export class DeepAgentTranslator {
    * provenance `reconcileUnattendedSkips` stamps on the sub-agent's row
    * after the stream, so the row's use is written as the skip it is.
    */
-  private custom(events: readonly TranscriptEvent[], subAgentId: string | undefined): TranscriptEvent[] {
-    return events.flatMap((event): TranscriptEvent[] => {
+  private custom(events: readonly StreamFact[], subAgentId: string | undefined): StreamFact[] {
+    return events.flatMap((event): StreamFact[] => {
       if (subAgentId !== undefined) {
         if (event.kind === "tool_policy") return [];
         if (event.kind !== "tool_started" || event.provenance === "unattended_skip") return [{ ...event, subAgentId }];
@@ -243,7 +243,7 @@ function stringArg(input: Record<string, unknown>, key: string): string {
  * gate). The translator layers scope and the gate's answers on top; the arms
  * that pin the wire's shape read this directly.
  */
-export function normalize(event: V3ProtocolEvent): TranscriptEvent[] {
+export function normalize(event: V3ProtocolEvent): StreamFact[] {
   const method = event.method;
 
   switch (method) {
@@ -278,20 +278,19 @@ export function normalize(event: V3ProtocolEvent): TranscriptEvent[] {
  *    ({@link usageOf}).
  *  - The background middleware's wait for its commands at a round's end
  *    (`BACKGROUND_WAIT_EVENT`, `middleware/background-commands.ts`), as
- *    `background_wait_started` and `background_wait_finished` in the scope,
- *    and its line to the person when it tells the agent a command ended
- *    (`BACKGROUND_NOTE_EVENT`), as a `system_note`.
+ *    `background_wait_started` and `background_wait_finished` in the scope.
+ *    A background command's own start, output and end are not on the
+ *    graph's stream: its registry reports them (`background-facts.ts`).
  *
  * Any other custom event is not this harness's and is ignored.
  */
-function normalizeCustom(event: V3ProtocolEvent): TranscriptEvent[] {
+function normalizeCustom(event: V3ProtocolEvent): StreamFact[] {
   const data = event.params.data as Record<string, unknown> | undefined;
   if (!data) return [];
   if (data.name === CONTEXT_COMPACTED_EVENT) return [{ kind: "context_compacted" as const }];
   if (data.name === BACKGROUND_WAIT_EVENT) {
     return [{ kind: data.phase === "started" ? ("background_wait_started" as const) : ("background_wait_finished" as const) }];
   }
-  if (data.name === BACKGROUND_NOTE_EVENT) return typeof data.text === "string" && data.text !== "" ? [{ kind: "system_note" as const, text: data.text }] : [];
   const callId = typeof data.tool_call_id === "string" ? data.tool_call_id : "";
   if (!callId) return [];
   const policyHook = typeof data.policy_hook === "string" ? data.policy_hook : "";
@@ -361,7 +360,7 @@ export function usageOf(event: V3ProtocolEvent): V3UsagePayload | undefined {
 
 // ── Messages Channel ──────────────────────────────────────────────
 
-function normalizeMessage(event: V3ProtocolEvent): TranscriptEvent[] {
+function normalizeMessage(event: V3ProtocolEvent): StreamFact[] {
   const data = event.params.data as Record<string, unknown> | undefined;
   if (!data) return [];
 
@@ -394,7 +393,7 @@ function normalizeMessage(event: V3ProtocolEvent): TranscriptEvent[] {
 function normalizeContentBlockDelta(
   data: Record<string, unknown>,
   runId: string,
-): TranscriptEvent[] {
+): StreamFact[] {
   const delta = data.delta as Record<string, unknown> | undefined;
   if (!delta) return [];
 
@@ -428,7 +427,7 @@ function normalizeContentBlockDelta(
 
 // ── Tools Channel ─────────────────────────────────────────────────
 
-function normalizeTool(event: V3ProtocolEvent): TranscriptEvent[] {
+function normalizeTool(event: V3ProtocolEvent): StreamFact[] {
   const data = event.params.data as Record<string, unknown> | undefined;
   if (!data) return [];
 

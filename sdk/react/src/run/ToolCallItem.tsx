@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import type { ToolUse } from "@stigmer/client";
+import { isBackgroundRunning, type ToolUse } from "@stigmer/client";
 import { cn } from "@stigmer/design-tokens";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
@@ -22,6 +22,7 @@ import { SubagentSection, subagentSubjectOf } from "./SubagentSection.js";
 import { ApprovalCardBody } from "./ApprovalCard.js";
 import { MemoryProposalCardBody } from "../memory/MemoryProposalCard.js";
 import { useApproval } from "./ApprovalContext.js";
+import { BackgroundCommandTrail, BackgroundStopError } from "./BackgroundCommandStatus.js";
 import { useFileReviewRowState } from "./FileReviewContext.js";
 import type { FileReviewRowState } from "./file-review-status.js";
 import { FilePathLink } from "./FilePathLink.js";
@@ -97,6 +98,13 @@ export interface ToolCallItemProps {
  * or failed; its disclosed body renders under a light left rail instead of a
  * border. See {@link ToolChrome}.
  *
+ * A call that started a command in the background (`toolUse.background`)
+ * is the command's row: a "Background" chip and the command's state beside
+ * the call's own, the running look (shimmer, spinner, forced open) for as
+ * long as the command runs though the call itself returned, its output in
+ * the body, and Stop while a stop handler is wired
+ * ({@link BackgroundCommandContext}).
+ *
  * Shows category-aware labels (e.g., "Shell", "Read", "Edit") with
  * the primary argument as a subtitle, a category-specific icon, and
  * an inline approval decision badge when applicable. A shell row whose
@@ -119,7 +127,11 @@ export const ToolCallItem = memo(function ToolCallItem({
 }: ToolCallItemProps) {
   useRenderTracer("ToolCallItem", { status: toolUse.state, id: toolUse.id });
 
-  const status = ITEM_STATUS[toolUse.state];
+  // A background command still running keeps the row live though its call
+  // returned: the call and the command are two facts, and the row shows the
+  // one still moving.
+  const backgroundRunning = isBackgroundRunning(toolUse);
+  const status = backgroundRunning ? "running" : ITEM_STATUS[toolUse.state];
   const isRunning = status === "running";
   // Success is the silent default: a completed row renders NO status icon —
   // a green check on every settled row teaches the eye to ignore status
@@ -162,6 +174,7 @@ export const ToolCallItem = memo(function ToolCallItem({
   // though preview rows do not read `expanded`.
   const autoOpen =
     toolUse.state === "running" ||
+    backgroundRunning ||
     approval != null ||
     tailFailed;
   const [expanded, handleToggle] = useAutoDisclosure(autoOpen, {
@@ -263,6 +276,8 @@ export const ToolCallItem = memo(function ToolCallItem({
           {toolUse.mcpServerName}
         </span>
       )}
+
+      <BackgroundCommandTrail toolUse={toolUse} />
 
       {StatusIcon && (
         <span
@@ -377,10 +392,13 @@ export const ToolCallItem = memo(function ToolCallItem({
     // row's card owns the chrome (the ApprovalCardBody posture).
     <MemoryProposalCardBody memoryId={result.memoryId} fact={result.fact} />
   ) : (
-    <ToolCallDetail
-      toolUse={toolUse}
-      primaryArgTruncated={primaryArgTruncated}
-    />
+    <>
+      <BackgroundStopError toolUse={toolUse} />
+      <ToolCallDetail
+        toolUse={toolUse}
+        primaryArgTruncated={primaryArgTruncated}
+      />
+    </>
   );
 
   // The header's metadata, identical in both layouts (the chevron is appended
@@ -613,8 +631,17 @@ export const CATEGORY_ICON: Record<ToolCategory, () => React.JSX.Element> = {
   internal: WrenchIcon,
   mcp: McpPlugIcon,
   memory: BookmarkIcon,
+  "background-stop": StopSquareIcon,
   unknown: WrenchIcon,
 };
+
+function StopSquareIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="6" height="6" rx="1" />
+    </svg>
+  );
+}
 
 function BookmarkIcon() {
   return (

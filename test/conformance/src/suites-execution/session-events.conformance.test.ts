@@ -44,7 +44,14 @@
 //     is ALREADY_EXISTS, a stream that asked for agent.message previews
 //     gets the preview, the user's turn and the session's status are
 //     refused (the server's alone), another run's credential is
-//     PERMISSION_DENIED, and a finished run takes no more events.
+//     PERMISSION_DENIED, and a finished run takes no more events;
+//   - a command the agent runs in the background: the runner writes its
+//     stigmer.background_command.status, never the stop request, which is
+//     the server's; a person's stopBackgroundCommand on a running command
+//     records one stigmer.background_command.stop_requested in the
+//     command's thread and answers a second with the first; a stop of a
+//     command that ended, of a call that started none, or once its turn
+//     stopped working is refused.
 //
 // The append arm presents a run credential through the RPC itself, beside
 // the runner's own writes, to pin the gate.
@@ -152,6 +159,8 @@ const TYPE_BY_CASE: Readonly<Record<string, string>> = {
   stigmerPermissionGrant: "stigmer.permission.grant",
   stigmerRunStatus: "stigmer.run.status",
   stigmerToolResultFullOutput: "stigmer.tool_result.full_output",
+  stigmerBackgroundCommandStatus: "stigmer.background_command.status",
+  stigmerBackgroundCommandStopRequested: "stigmer.background_command.stop_requested",
 };
 
 /** The log without each turn's own stigmer.run.status: the sequence the session's arms pin. */
@@ -525,6 +534,66 @@ describe("a session's event log on real turns", () => {
       "session.status_idle",
     ]);
     expect(final.map(idOf).slice(2, 4), "the append's own, then the runner's").toEqual(["evt-m1", `${runId}.root.m0`]);
+  });
+});
+
+describe("a command the agent runs in the background", () => {
+  it("[rpc:SessionCommandController.stopBackgroundCommand] the runner writes its status and never the stop; a person's stop is recorded once, in the command's thread, and refused once the command or its turn ended", async () => {
+    const { org } = await target.provisionTenancy();
+    const sessionId = await newSession(org);
+    mock.enqueue(anthropicText("Held while its commands run."), { delayMs: HOLD_MS });
+    const runId = await startTurn(org, sessionId, "run the server");
+    await awaitPhase(clients, runId, RunPhase.RUN_IN_PROGRESS);
+    const minted = await clients.platformQuery.getRunnerScopedToken({ scope: { case: "runId", value: runId } });
+    const runner = target.clientsPresenting(minted.runnerScopedToken);
+
+    // Each command's start, as the runner writes it: the call, its at-once
+    // result, then the command's running status keyed to the call.
+    const started = (call: string, threadId = "") => {
+      const toolUseId = `${runId}.${call}`;
+      return [
+        { threadId, event: { case: "agentToolUse" as const, value: { id: toolUseId, name: "execute", input: { command: "npm run dev", background: true }, sessionThreadId: threadId } } },
+        { threadId, event: { case: "agentToolResult" as const, value: { id: `${toolUseId}.r`, toolUseId, content: [{ type: "text", text: "Started in the background." }] } } },
+        { threadId, event: { case: "stigmerBackgroundCommandStatus" as const, value: { id: `${toolUseId}.bg`, toolUseId, sessionThreadId: threadId, phase: "running", timeoutSeconds: 3300 } } },
+      ];
+    };
+    const ended = (call: string) => {
+      const toolUseId = `${runId}.${call}`;
+      return { event: { case: "stigmerBackgroundCommandStatus" as const, value: { id: `${toolUseId}.bg.end`, toolUseId, phase: "ended", ending: "exited", exitCode: 0, output: "ok\n" } } };
+    };
+    const appended = await runner.sessionCommand.appendEvents({ runId, events: [...started("bg1"), ...started("bg2"), ended("bg2")] });
+    expect(appended.events.map(typeOf).filter((type) => type.startsWith("stigmer.background_command")), "a runner writes the status").toEqual([
+      "stigmer.background_command.status",
+      "stigmer.background_command.status",
+      "stigmer.background_command.status",
+    ]);
+
+    const forged = await refusal(
+      runner.sessionCommand.appendEvents({
+        runId,
+        events: [{ event: { case: "stigmerBackgroundCommandStopRequested", value: { id: "evt-stop", toolUseId: `${runId}.bg1` } } }],
+      }),
+    );
+    expect(forged.code, "a stop request is the server's alone").toBe(Code.InvalidArgument);
+
+    const stop = await clients.sessionCommand.stopBackgroundCommand({ sessionId, toolUseId: `${runId}.bg1` });
+    expect([typeOf(stop), stop.runId, stop.threadId]).toEqual(["stigmer.background_command.stop_requested", runId, ""]);
+    expect(stop.event.case === "stigmerBackgroundCommandStopRequested" && stop.event.value.toolUseId).toBe(`${runId}.bg1`);
+    const again = await clients.sessionCommand.stopBackgroundCommand({ sessionId, toolUseId: `${runId}.bg1` });
+    expect([idOf(again), again.seq], "a second stop answers the first").toEqual([idOf(stop), stop.seq]);
+
+    const endedStop = await refusal(clients.sessionCommand.stopBackgroundCommand({ sessionId, toolUseId: `${runId}.bg2` }));
+    expect(endedStop.code, "the command already ended").toBe(Code.FailedPrecondition);
+    const none = await refusal(clients.sessionCommand.stopBackgroundCommand({ sessionId, toolUseId: `${runId}.no-such-call` }));
+    expect(none.code, "a call that started no command").toBe(Code.NotFound);
+
+    await runner.sessionCommand.appendEvents({ runId, events: started("bg3") });
+    mock.releaseHolds();
+    await awaitTerminal(clients, runId);
+    const afterTurn = await refusal(clients.sessionCommand.stopBackgroundCommand({ sessionId, toolUseId: `${runId}.bg3` }));
+    expect(afterTurn.code, "its turn no longer works").toBe(Code.FailedPrecondition);
+    const stops = (await log(sessionId)).filter((event) => typeOf(event) === "stigmer.background_command.stop_requested");
+    expect(stops.map(idOf), "one request in the log").toEqual([idOf(stop)]);
   });
 });
 

@@ -7,9 +7,10 @@
  * maps a tool name to the wire-level ToolKind, so every client renders a tool
  * the same way regardless of which harness produced it.
  *
- * The SDK fallback resolver and the Go CLI mirror this mapping. The shared,
- * machine-checked contract is test/fixtures/tool-view/classification.json — keep
- * this table and that fixture in lockstep.
+ * The SDK's resolver (`sdk/typescript/src/run/tool-view.ts`) mirrors this
+ * mapping. The shared, machine-checked contract is
+ * test/fixtures/tool-view/classification.json — keep this table and that
+ * fixture in lockstep.
  */
 
 
@@ -73,6 +74,8 @@ const TOOL_NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map([
 
   ["task", ToolKind.SUBAGENT],
   ["Task", ToolKind.SUBAGENT],
+
+  ["stop_background_command", ToolKind.BACKGROUND_STOP],
 ]);
 
 /**

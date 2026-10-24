@@ -137,6 +137,13 @@ message SessionEvent {
     // Where the whole output of a tool result that was too large to keep
     // inline is stored.
     StigmerToolResultFullOutputEvent stigmer_tool_result_full_output = 110 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.tool_result.full_output"];
+
+    // A command the agent started in the background began running, or
+    // ended and how.
+    StigmerBackgroundCommandStatusEvent stigmer_background_command_status = 111 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.status"];
+
+    // A person asked to stop a command running in the background.
+    StigmerBackgroundCommandStopRequestedEvent stigmer_background_command_stop_requested = 112 [(ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.stop_requested"];
   }
 }
 
@@ -581,9 +588,12 @@ message StigmerMemoryRecalledEvent {
   string embedding_model = 5;
 }
 
-// ToolOutputDelta is one fragment of a running tool's output:
+// ToolOutputDelta is one fragment of a running tool's output, or, after the
+// result of a tool use that started a command in the background, of that
+// command's output until its stigmer.background_command.status ended:
 // stigmer.tool_output_delta. Streamed, never stored; the tool's result
-// event carries the whole output.
+// event carries the whole output, and the ended status the background
+// command's.
 message ToolOutputDelta {
   // The tool use whose output grows.
   string tool_use_id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
@@ -963,4 +973,107 @@ message StigmerToolResultFullOutputEvent {
 
   // Whether the output is an image to show inline.
   bool is_image = 8;
+}
+
+// StigmerBackgroundCommandStatusEvent records that a command the agent
+// started in the background began running, or ended and how:
+// stigmer.background_command.status. The tool use that started it returned
+// at once, so its agent.tool_result says only that the command started;
+// this event carries the command's own life, keyed to that tool use. It is
+// written twice per command, phase running and then phase ended, after the
+// starting tool use's result. While the command runs, its output streams as
+// stigmer.tool_output_delta under the same tool_use_id. A command lives at
+// most as long as the turn invocation that started it: one still running
+// when its turn stops working, or pauses for a person's answer, is stopped.
+message StigmerBackgroundCommandStatusEvent {
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // When the event was appended, as RFC 3339 UTC.
+  string processed_at = 2;
+
+  // The agent.tool_use event that started the command.
+  string tool_use_id = 3 [(buf.validate.field).string.min_len = 1];
+
+  // The thread that started it; empty for the primary thread.
+  string session_thread_id = 4;
+
+  // running (it started) or ended.
+  string phase = 5 [(buf.validate.field).string = {
+    in: [
+      "running",
+      "ended"
+    ]
+  }];
+
+  // With running: the time limit after which the command is stopped, in
+  // seconds; 0 when it has none.
+  int32 timeout_seconds = 6 [(buf.validate.field).int32.gte = 0];
+
+  // With ended: how it ended. exited (it exited on its own; exit_code says
+  // how), timed_out (its time limit stopped it), stopped (stopped_by says
+  // who stopped it) or failed_to_start. Empty with running.
+  string ending = 7 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).string = {
+      in: [
+        "exited",
+        "timed_out",
+        "stopped",
+        "failed_to_start"
+      ]
+    }
+  ];
+
+  // With ended: the exit code, when it exited.
+  optional int32 exit_code = 8;
+
+  // With ending stopped: who stopped it. agent (the agent stopped it),
+  // person (a person stopped it, by
+  // SessionCommandController.stopBackgroundCommand), approval (the turn
+  // paused for a person's answer) or turn (the turn ended any other way).
+  string stopped_by = 9 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).string = {
+      in: [
+        "agent",
+        "person",
+        "approval",
+        "turn"
+      ]
+    }
+  ];
+
+  // With stopped_by agent: the agent.tool_use event of the call that
+  // stopped it.
+  string stopped_by_tool_use_id = 10;
+
+  // With ended: what it printed, as a command run in the foreground would
+  // have returned it (the head and tail of each stream when it printed
+  // more).
+  string output = 11;
+
+  // With ended: when it ended, as RFC 3339 UTC. processed_at is when this
+  // event was written, which can be later.
+  string ended_at = 12;
+}
+
+// StigmerBackgroundCommandStopRequestedEvent records that a person asked to
+// stop a command running in the background:
+// stigmer.background_command.stop_requested. Written by the server only,
+// by SessionCommandController.stopBackgroundCommand. The turn's runner
+// reads it and stops the command, whose stigmer.background_command.status
+// then ends with stopped_by person.
+message StigmerBackgroundCommandStopRequestedEvent {
+  // The event's id, unique in its session: letters, digits, _ . : -, at most 128.
+  string id = 1 [(buf.validate.field).string.pattern = "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"];
+
+  // When the event was appended, as RFC 3339 UTC.
+  string processed_at = 2;
+
+  // The agent.tool_use event that started the command.
+  string tool_use_id = 3 [(buf.validate.field).string.min_len = 1];
+
+  // The thread that started it; empty for the primary thread.
+  string session_thread_id = 4;
 }

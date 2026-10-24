@@ -232,6 +232,37 @@ public final class SessionCommandControllerGrpc {
     return getGrantPermissionMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.StopBackgroundCommandInput,
+      ai.stigmer.agentic.session.v1.SessionEvent> getStopBackgroundCommandMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "stopBackgroundCommand",
+      requestType = ai.stigmer.agentic.session.v1.StopBackgroundCommandInput.class,
+      responseType = ai.stigmer.agentic.session.v1.SessionEvent.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.StopBackgroundCommandInput,
+      ai.stigmer.agentic.session.v1.SessionEvent> getStopBackgroundCommandMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.StopBackgroundCommandInput, ai.stigmer.agentic.session.v1.SessionEvent> getStopBackgroundCommandMethod;
+    if ((getStopBackgroundCommandMethod = SessionCommandControllerGrpc.getStopBackgroundCommandMethod) == null) {
+      synchronized (SessionCommandControllerGrpc.class) {
+        if ((getStopBackgroundCommandMethod = SessionCommandControllerGrpc.getStopBackgroundCommandMethod) == null) {
+          SessionCommandControllerGrpc.getStopBackgroundCommandMethod = getStopBackgroundCommandMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.StopBackgroundCommandInput, ai.stigmer.agentic.session.v1.SessionEvent>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "stopBackgroundCommand"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.StopBackgroundCommandInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.SessionEvent.getDefaultInstance()))
+              .setSchemaDescriptor(new SessionCommandControllerMethodDescriptorSupplier("stopBackgroundCommand"))
+              .build();
+        }
+      }
+    }
+    return getStopBackgroundCommandMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.InterruptSessionInput,
       ai.stigmer.agentic.session.v1.InterruptSessionResponse> getInterruptMethod;
 
@@ -584,6 +615,31 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Stop one command the agent runs in the background.
+     * A command started in the background has a
+     * stigmer.background_command.status with phase running, keyed to the
+     * agent.tool_use that started it. The request is appended as a
+     * stigmer.background_command.stop_requested; the turn's runner reads it
+     * within seconds and stops that command alone, whose status then ends
+     * with stopped_by person. The agent is told a person stopped it and
+     * carries on. The turn itself is not stopped (interrupt stops it).
+     * ## Error Conditions
+     * - NOT_FOUND: the tool use is not one of this conversation's calls that
+     *   started a command in the background
+     * - FAILED_PRECONDITION: the command already ended, or its turn is not
+     *   working
+     * ## Idempotency
+     * A second request for the same command records nothing new and returns
+     * the event first recorded.
+     * </pre>
+     */
+    default void stopBackgroundCommand(ai.stigmer.agentic.session.v1.StopBackgroundCommandInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionEvent> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getStopBackgroundCommandMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Stop the session's unfinished work.
      * Appends a user.interrupt and stops every unfinished turn of the
      * conversation: pending, working, waiting for an answer or paused. Each
@@ -834,6 +890,32 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Stop one command the agent runs in the background.
+     * A command started in the background has a
+     * stigmer.background_command.status with phase running, keyed to the
+     * agent.tool_use that started it. The request is appended as a
+     * stigmer.background_command.stop_requested; the turn's runner reads it
+     * within seconds and stops that command alone, whose status then ends
+     * with stopped_by person. The agent is told a person stopped it and
+     * carries on. The turn itself is not stopped (interrupt stops it).
+     * ## Error Conditions
+     * - NOT_FOUND: the tool use is not one of this conversation's calls that
+     *   started a command in the background
+     * - FAILED_PRECONDITION: the command already ended, or its turn is not
+     *   working
+     * ## Idempotency
+     * A second request for the same command records nothing new and returns
+     * the event first recorded.
+     * </pre>
+     */
+    public void stopBackgroundCommand(ai.stigmer.agentic.session.v1.StopBackgroundCommandInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionEvent> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getStopBackgroundCommandMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Stop the session's unfinished work.
      * Appends a user.interrupt and stops every unfinished turn of the
      * conversation: pending, working, waiting for an answer or paused. Each
@@ -1068,6 +1150,31 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Stop one command the agent runs in the background.
+     * A command started in the background has a
+     * stigmer.background_command.status with phase running, keyed to the
+     * agent.tool_use that started it. The request is appended as a
+     * stigmer.background_command.stop_requested; the turn's runner reads it
+     * within seconds and stops that command alone, whose status then ends
+     * with stopped_by person. The agent is told a person stopped it and
+     * carries on. The turn itself is not stopped (interrupt stops it).
+     * ## Error Conditions
+     * - NOT_FOUND: the tool use is not one of this conversation's calls that
+     *   started a command in the background
+     * - FAILED_PRECONDITION: the command already ended, or its turn is not
+     *   working
+     * ## Idempotency
+     * A second request for the same command records nothing new and returns
+     * the event first recorded.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.SessionEvent stopBackgroundCommand(ai.stigmer.agentic.session.v1.StopBackgroundCommandInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getStopBackgroundCommandMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Stop the session's unfinished work.
      * Appends a user.interrupt and stops every unfinished turn of the
      * conversation: pending, working, waiting for an answer or paused. Each
@@ -1293,6 +1400,31 @@ public final class SessionCommandControllerGrpc {
     public ai.stigmer.agentic.session.v1.GrantPermissionResponse grantPermission(ai.stigmer.agentic.session.v1.GrantPermissionInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGrantPermissionMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Stop one command the agent runs in the background.
+     * A command started in the background has a
+     * stigmer.background_command.status with phase running, keyed to the
+     * agent.tool_use that started it. The request is appended as a
+     * stigmer.background_command.stop_requested; the turn's runner reads it
+     * within seconds and stops that command alone, whose status then ends
+     * with stopped_by person. The agent is told a person stopped it and
+     * carries on. The turn itself is not stopped (interrupt stops it).
+     * ## Error Conditions
+     * - NOT_FOUND: the tool use is not one of this conversation's calls that
+     *   started a command in the background
+     * - FAILED_PRECONDITION: the command already ended, or its turn is not
+     *   working
+     * ## Idempotency
+     * A second request for the same command records nothing new and returns
+     * the event first recorded.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.SessionEvent stopBackgroundCommand(ai.stigmer.agentic.session.v1.StopBackgroundCommandInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getStopBackgroundCommandMethod(), getCallOptions(), request);
     }
 
     /**
@@ -1533,6 +1665,32 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Stop one command the agent runs in the background.
+     * A command started in the background has a
+     * stigmer.background_command.status with phase running, keyed to the
+     * agent.tool_use that started it. The request is appended as a
+     * stigmer.background_command.stop_requested; the turn's runner reads it
+     * within seconds and stops that command alone, whose status then ends
+     * with stopped_by person. The agent is told a person stopped it and
+     * carries on. The turn itself is not stopped (interrupt stops it).
+     * ## Error Conditions
+     * - NOT_FOUND: the tool use is not one of this conversation's calls that
+     *   started a command in the background
+     * - FAILED_PRECONDITION: the command already ended, or its turn is not
+     *   working
+     * ## Idempotency
+     * A second request for the same command records nothing new and returns
+     * the event first recorded.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.SessionEvent> stopBackgroundCommand(
+        ai.stigmer.agentic.session.v1.StopBackgroundCommandInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getStopBackgroundCommandMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Stop the session's unfinished work.
      * Appends a user.interrupt and stops every unfinished turn of the
      * conversation: pending, working, waiting for an answer or paused. Each
@@ -1624,11 +1782,12 @@ public final class SessionCommandControllerGrpc {
   private static final int METHODID_REVIEW_FILE_CHANGES = 4;
   private static final int METHODID_CONFIRM_TOOL_USE = 5;
   private static final int METHODID_GRANT_PERMISSION = 6;
-  private static final int METHODID_INTERRUPT = 7;
-  private static final int METHODID_DELETE = 8;
-  private static final int METHODID_APPEND_EVENTS = 9;
-  private static final int METHODID_CLAIM_INPUT = 10;
-  private static final int METHODID_BIND_HARNESS_STATE = 11;
+  private static final int METHODID_STOP_BACKGROUND_COMMAND = 7;
+  private static final int METHODID_INTERRUPT = 8;
+  private static final int METHODID_DELETE = 9;
+  private static final int METHODID_APPEND_EVENTS = 10;
+  private static final int METHODID_CLAIM_INPUT = 11;
+  private static final int METHODID_BIND_HARNESS_STATE = 12;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1674,6 +1833,10 @@ public final class SessionCommandControllerGrpc {
         case METHODID_GRANT_PERMISSION:
           serviceImpl.grantPermission((ai.stigmer.agentic.session.v1.GrantPermissionInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.GrantPermissionResponse>) responseObserver);
+          break;
+        case METHODID_STOP_BACKGROUND_COMMAND:
+          serviceImpl.stopBackgroundCommand((ai.stigmer.agentic.session.v1.StopBackgroundCommandInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionEvent>) responseObserver);
           break;
         case METHODID_INTERRUPT:
           serviceImpl.interrupt((ai.stigmer.agentic.session.v1.InterruptSessionInput) request,
@@ -1762,6 +1925,13 @@ public final class SessionCommandControllerGrpc {
               ai.stigmer.agentic.session.v1.GrantPermissionInput,
               ai.stigmer.agentic.session.v1.GrantPermissionResponse>(
                 service, METHODID_GRANT_PERMISSION)))
+        .addMethod(
+          getStopBackgroundCommandMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.session.v1.StopBackgroundCommandInput,
+              ai.stigmer.agentic.session.v1.SessionEvent>(
+                service, METHODID_STOP_BACKGROUND_COMMAND)))
         .addMethod(
           getInterruptMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1852,6 +2022,7 @@ public final class SessionCommandControllerGrpc {
               .addMethod(getReviewFileChangesMethod())
               .addMethod(getConfirmToolUseMethod())
               .addMethod(getGrantPermissionMethod())
+              .addMethod(getStopBackgroundCommandMethod())
               .addMethod(getInterruptMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getAppendEventsMethod())

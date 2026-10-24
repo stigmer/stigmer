@@ -411,12 +411,14 @@ export {
   type HookFormatName,
 } from "./hook-words.js";
 export { isTerminalPhase } from "./run/run-phases.js";
+export { backgroundCommandText, backgroundEndingLine, backgroundEndingPhrase } from "./run/background-command.js";
 // A session's events, folded: the one model every client reads a
 // conversation from (@stigmer/session-log), and the helpers that follow a
 // session and wait for a turn.
 export {
   SessionLog,
   foldSession,
+  isBackgroundRunning,
   turnOf,
   textOf,
   previewPlaceOf,
@@ -428,6 +430,9 @@ export {
   toManagedAgentsJson,
   toManagedAgentsStreamJson,
   TURN_ENDED_PHASES,
+  type BackgroundCommandState,
+  type BackgroundCommandView,
+  type BackgroundStopper,
   type CompactedItem,
   type FileReviewDecision,
   type FileReviewFile,
@@ -440,6 +445,7 @@ export {
   type QueuedMessage,
   type SessionFold,
   type SessionStatusView,
+  type StoppedBackgroundCommand,
   type ThinkingItem,
   type Thread,
   type Todo,

@@ -95,6 +95,51 @@ export interface ToolFullOutput {
   readonly isImage: boolean;
 }
 
+/**
+ * A background command's state: `running`, or how it ended as
+ * `stigmer.background_command.status` says it. A command with no ending
+ * once its turn has ended reads `stopped` by `turn`: nothing more will come
+ * for it.
+ */
+export type BackgroundCommandState = "running" | "exited" | "timed_out" | "stopped" | "failed_to_start";
+
+/** Who stopped a background command: the agent, a person, the turn's pause for an answer, or the turn's end. */
+export type BackgroundStopper = "agent" | "person" | "approval" | "turn";
+
+/**
+ * The command a tool use started in the background, and its life after the
+ * call returned: `stigmer.background_command.status` (running, then
+ * ended), its output previewed as `stigmer.tool_output_delta` under the
+ * tool use's id, and a person's stop (`stigmer.background_command.stop_requested`).
+ */
+export interface BackgroundCommandView {
+  readonly state: BackgroundCommandState;
+  /** Its time limit, in seconds; 0 when it has none. */
+  readonly timeoutSeconds: number;
+  /** The exit code, when it exited. */
+  readonly exitCode: number | undefined;
+  /** Who stopped it, when it was stopped. */
+  readonly stoppedBy: BackgroundStopper | undefined;
+  /** The agent's stop call, when the agent stopped it; "" otherwise. */
+  readonly stoppedByToolUseId: string;
+  /** What it printed, once it ended (the head and tail of each stream); "" while it runs. */
+  readonly output: string;
+  /** When it began running. */
+  readonly startedAt: string;
+  /** When it ended; "" while it runs (and for one its turn's end stopped). */
+  readonly endedAt: string;
+  /** Its output streamed so far while it runs (a preview, never stored); "" once it ended. */
+  readonly liveOutput: string;
+  /** A person asked to stop it and it has not ended yet, or it ended since. */
+  readonly stopRequested: boolean;
+}
+
+/** The command an agent's stop call stopped: the tool use that started it, and that call's input. */
+export interface StoppedBackgroundCommand {
+  readonly toolUseId: string;
+  readonly input: JsonObject;
+}
+
 /** One tool call and everything the log says about it. */
 export interface ToolUse {
   readonly kind: "tool_use";
@@ -117,6 +162,14 @@ export interface ToolUse {
   readonly fullOutput: ToolFullOutput | undefined;
   /** The output streamed so far while it runs (a preview, never stored); "" once it returned. */
   readonly liveOutput: string;
+  /** The command this call started in the background, once the log says it ran; undefined for any other call. */
+  readonly background: BackgroundCommandView | undefined;
+  /**
+   * The command this call stopped, as that command's ended status names
+   * this call (the agent's stop); undefined for any other call, and for a
+   * stop that found the command already ended.
+   */
+  readonly stoppedBackground: StoppedBackgroundCommand | undefined;
   /** The sub-agent this call started (a `task` call); undefined for any other call. */
   readonly thread: Thread | undefined;
   readonly processedAt: string;

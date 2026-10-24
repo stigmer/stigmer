@@ -14,7 +14,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SessionEvent(_message.Message):
-    __slots__ = ("seq", "session_id", "run_id", "thread_id", "user_message", "session_status_running", "session_status_idle", "session_error", "agent_message", "agent_thinking", "agent_tool_use", "agent_tool_result", "agent_mcp_tool_use", "agent_mcp_tool_result", "session_thread_created", "session_thread_status_running", "session_thread_status_idle", "agent_thread_message_sent", "agent_thread_message_received", "agent_thread_context_compacted", "user_tool_confirmation", "user_interrupt", "stigmer_agent_thinking", "stigmer_permission_asked", "stigmer_harness_note", "stigmer_agent_structured_output", "stigmer_memory_recalled", "stigmer_file_review_changes", "stigmer_file_review_decided", "stigmer_file_review_reconciled", "stigmer_permission_grant", "stigmer_run_status", "stigmer_tool_result_full_output")
+    __slots__ = ("seq", "session_id", "run_id", "thread_id", "user_message", "session_status_running", "session_status_idle", "session_error", "agent_message", "agent_thinking", "agent_tool_use", "agent_tool_result", "agent_mcp_tool_use", "agent_mcp_tool_result", "session_thread_created", "session_thread_status_running", "session_thread_status_idle", "agent_thread_message_sent", "agent_thread_message_received", "agent_thread_context_compacted", "user_tool_confirmation", "user_interrupt", "stigmer_agent_thinking", "stigmer_permission_asked", "stigmer_harness_note", "stigmer_agent_structured_output", "stigmer_memory_recalled", "stigmer_file_review_changes", "stigmer_file_review_decided", "stigmer_file_review_reconciled", "stigmer_permission_grant", "stigmer_run_status", "stigmer_tool_result_full_output", "stigmer_background_command_status", "stigmer_background_command_stop_requested")
     SEQ_FIELD_NUMBER: _ClassVar[int]
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
     RUN_ID_FIELD_NUMBER: _ClassVar[int]
@@ -48,6 +48,8 @@ class SessionEvent(_message.Message):
     STIGMER_PERMISSION_GRANT_FIELD_NUMBER: _ClassVar[int]
     STIGMER_RUN_STATUS_FIELD_NUMBER: _ClassVar[int]
     STIGMER_TOOL_RESULT_FULL_OUTPUT_FIELD_NUMBER: _ClassVar[int]
+    STIGMER_BACKGROUND_COMMAND_STATUS_FIELD_NUMBER: _ClassVar[int]
+    STIGMER_BACKGROUND_COMMAND_STOP_REQUESTED_FIELD_NUMBER: _ClassVar[int]
     seq: int
     session_id: str
     run_id: str
@@ -81,7 +83,9 @@ class SessionEvent(_message.Message):
     stigmer_permission_grant: StigmerPermissionGrantEvent
     stigmer_run_status: StigmerRunStatusEvent
     stigmer_tool_result_full_output: StigmerToolResultFullOutputEvent
-    def __init__(self, seq: _Optional[int] = ..., session_id: _Optional[str] = ..., run_id: _Optional[str] = ..., thread_id: _Optional[str] = ..., user_message: _Optional[_Union[UserMessageEvent, _Mapping]] = ..., session_status_running: _Optional[_Union[SessionStatusRunningEvent, _Mapping]] = ..., session_status_idle: _Optional[_Union[SessionStatusIdleEvent, _Mapping]] = ..., session_error: _Optional[_Union[SessionErrorEvent, _Mapping]] = ..., agent_message: _Optional[_Union[AgentMessageEvent, _Mapping]] = ..., agent_thinking: _Optional[_Union[AgentThinkingEvent, _Mapping]] = ..., agent_tool_use: _Optional[_Union[AgentToolUseEvent, _Mapping]] = ..., agent_tool_result: _Optional[_Union[AgentToolResultEvent, _Mapping]] = ..., agent_mcp_tool_use: _Optional[_Union[AgentMcpToolUseEvent, _Mapping]] = ..., agent_mcp_tool_result: _Optional[_Union[AgentMcpToolResultEvent, _Mapping]] = ..., session_thread_created: _Optional[_Union[SessionThreadCreatedEvent, _Mapping]] = ..., session_thread_status_running: _Optional[_Union[SessionThreadStatusRunningEvent, _Mapping]] = ..., session_thread_status_idle: _Optional[_Union[SessionThreadStatusIdleEvent, _Mapping]] = ..., agent_thread_message_sent: _Optional[_Union[AgentThreadMessageSentEvent, _Mapping]] = ..., agent_thread_message_received: _Optional[_Union[AgentThreadMessageReceivedEvent, _Mapping]] = ..., agent_thread_context_compacted: _Optional[_Union[AgentThreadContextCompactedEvent, _Mapping]] = ..., user_tool_confirmation: _Optional[_Union[UserToolConfirmationEvent, _Mapping]] = ..., user_interrupt: _Optional[_Union[UserInterruptEvent, _Mapping]] = ..., stigmer_agent_thinking: _Optional[_Union[StigmerAgentThinkingEvent, _Mapping]] = ..., stigmer_permission_asked: _Optional[_Union[StigmerPermissionAskedEvent, _Mapping]] = ..., stigmer_harness_note: _Optional[_Union[StigmerHarnessNoteEvent, _Mapping]] = ..., stigmer_agent_structured_output: _Optional[_Union[StigmerAgentStructuredOutputEvent, _Mapping]] = ..., stigmer_memory_recalled: _Optional[_Union[StigmerMemoryRecalledEvent, _Mapping]] = ..., stigmer_file_review_changes: _Optional[_Union[StigmerFileReviewChangesEvent, _Mapping]] = ..., stigmer_file_review_decided: _Optional[_Union[StigmerFileReviewDecidedEvent, _Mapping]] = ..., stigmer_file_review_reconciled: _Optional[_Union[StigmerFileReviewReconciledEvent, _Mapping]] = ..., stigmer_permission_grant: _Optional[_Union[StigmerPermissionGrantEvent, _Mapping]] = ..., stigmer_run_status: _Optional[_Union[StigmerRunStatusEvent, _Mapping]] = ..., stigmer_tool_result_full_output: _Optional[_Union[StigmerToolResultFullOutputEvent, _Mapping]] = ...) -> None: ...
+    stigmer_background_command_status: StigmerBackgroundCommandStatusEvent
+    stigmer_background_command_stop_requested: StigmerBackgroundCommandStopRequestedEvent
+    def __init__(self, seq: _Optional[int] = ..., session_id: _Optional[str] = ..., run_id: _Optional[str] = ..., thread_id: _Optional[str] = ..., user_message: _Optional[_Union[UserMessageEvent, _Mapping]] = ..., session_status_running: _Optional[_Union[SessionStatusRunningEvent, _Mapping]] = ..., session_status_idle: _Optional[_Union[SessionStatusIdleEvent, _Mapping]] = ..., session_error: _Optional[_Union[SessionErrorEvent, _Mapping]] = ..., agent_message: _Optional[_Union[AgentMessageEvent, _Mapping]] = ..., agent_thinking: _Optional[_Union[AgentThinkingEvent, _Mapping]] = ..., agent_tool_use: _Optional[_Union[AgentToolUseEvent, _Mapping]] = ..., agent_tool_result: _Optional[_Union[AgentToolResultEvent, _Mapping]] = ..., agent_mcp_tool_use: _Optional[_Union[AgentMcpToolUseEvent, _Mapping]] = ..., agent_mcp_tool_result: _Optional[_Union[AgentMcpToolResultEvent, _Mapping]] = ..., session_thread_created: _Optional[_Union[SessionThreadCreatedEvent, _Mapping]] = ..., session_thread_status_running: _Optional[_Union[SessionThreadStatusRunningEvent, _Mapping]] = ..., session_thread_status_idle: _Optional[_Union[SessionThreadStatusIdleEvent, _Mapping]] = ..., agent_thread_message_sent: _Optional[_Union[AgentThreadMessageSentEvent, _Mapping]] = ..., agent_thread_message_received: _Optional[_Union[AgentThreadMessageReceivedEvent, _Mapping]] = ..., agent_thread_context_compacted: _Optional[_Union[AgentThreadContextCompactedEvent, _Mapping]] = ..., user_tool_confirmation: _Optional[_Union[UserToolConfirmationEvent, _Mapping]] = ..., user_interrupt: _Optional[_Union[UserInterruptEvent, _Mapping]] = ..., stigmer_agent_thinking: _Optional[_Union[StigmerAgentThinkingEvent, _Mapping]] = ..., stigmer_permission_asked: _Optional[_Union[StigmerPermissionAskedEvent, _Mapping]] = ..., stigmer_harness_note: _Optional[_Union[StigmerHarnessNoteEvent, _Mapping]] = ..., stigmer_agent_structured_output: _Optional[_Union[StigmerAgentStructuredOutputEvent, _Mapping]] = ..., stigmer_memory_recalled: _Optional[_Union[StigmerMemoryRecalledEvent, _Mapping]] = ..., stigmer_file_review_changes: _Optional[_Union[StigmerFileReviewChangesEvent, _Mapping]] = ..., stigmer_file_review_decided: _Optional[_Union[StigmerFileReviewDecidedEvent, _Mapping]] = ..., stigmer_file_review_reconciled: _Optional[_Union[StigmerFileReviewReconciledEvent, _Mapping]] = ..., stigmer_permission_grant: _Optional[_Union[StigmerPermissionGrantEvent, _Mapping]] = ..., stigmer_run_status: _Optional[_Union[StigmerRunStatusEvent, _Mapping]] = ..., stigmer_tool_result_full_output: _Optional[_Union[StigmerToolResultFullOutputEvent, _Mapping]] = ..., stigmer_background_command_status: _Optional[_Union[StigmerBackgroundCommandStatusEvent, _Mapping]] = ..., stigmer_background_command_stop_requested: _Optional[_Union[StigmerBackgroundCommandStopRequestedEvent, _Mapping]] = ...) -> None: ...
 
 class UserMessageEvent(_message.Message):
     __slots__ = ("id", "content", "processed_at")
@@ -570,3 +574,43 @@ class StigmerToolResultFullOutputEvent(_message.Message):
     mime_type: str
     is_image: bool
     def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., tool_use_id: _Optional[str] = ..., storage_key: _Optional[str] = ..., size_bytes: _Optional[int] = ..., content_hash: _Optional[str] = ..., mime_type: _Optional[str] = ..., is_image: bool = ...) -> None: ...
+
+class StigmerBackgroundCommandStatusEvent(_message.Message):
+    __slots__ = ("id", "processed_at", "tool_use_id", "session_thread_id", "phase", "timeout_seconds", "ending", "exit_code", "stopped_by", "stopped_by_tool_use_id", "output", "ended_at")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    PROCESSED_AT_FIELD_NUMBER: _ClassVar[int]
+    TOOL_USE_ID_FIELD_NUMBER: _ClassVar[int]
+    SESSION_THREAD_ID_FIELD_NUMBER: _ClassVar[int]
+    PHASE_FIELD_NUMBER: _ClassVar[int]
+    TIMEOUT_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    ENDING_FIELD_NUMBER: _ClassVar[int]
+    EXIT_CODE_FIELD_NUMBER: _ClassVar[int]
+    STOPPED_BY_FIELD_NUMBER: _ClassVar[int]
+    STOPPED_BY_TOOL_USE_ID_FIELD_NUMBER: _ClassVar[int]
+    OUTPUT_FIELD_NUMBER: _ClassVar[int]
+    ENDED_AT_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    processed_at: str
+    tool_use_id: str
+    session_thread_id: str
+    phase: str
+    timeout_seconds: int
+    ending: str
+    exit_code: int
+    stopped_by: str
+    stopped_by_tool_use_id: str
+    output: str
+    ended_at: str
+    def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., tool_use_id: _Optional[str] = ..., session_thread_id: _Optional[str] = ..., phase: _Optional[str] = ..., timeout_seconds: _Optional[int] = ..., ending: _Optional[str] = ..., exit_code: _Optional[int] = ..., stopped_by: _Optional[str] = ..., stopped_by_tool_use_id: _Optional[str] = ..., output: _Optional[str] = ..., ended_at: _Optional[str] = ...) -> None: ...
+
+class StigmerBackgroundCommandStopRequestedEvent(_message.Message):
+    __slots__ = ("id", "processed_at", "tool_use_id", "session_thread_id")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    PROCESSED_AT_FIELD_NUMBER: _ClassVar[int]
+    TOOL_USE_ID_FIELD_NUMBER: _ClassVar[int]
+    SESSION_THREAD_ID_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    processed_at: str
+    tool_use_id: str
+    session_thread_id: str
+    def __init__(self, id: _Optional[str] = ..., processed_at: _Optional[str] = ..., tool_use_id: _Optional[str] = ..., session_thread_id: _Optional[str] = ...) -> None: ...

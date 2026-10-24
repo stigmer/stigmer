@@ -24,7 +24,8 @@
  *  - `notify`: a one-way fact ({@link HostNotices}, {@link RunnerNotices}),
  *    for the high-rate signals that need no answer (activity, usage, the
  *    transcript events the runtime's timeline observes) and for the stop,
- *    the yield and the session's queue holding messages for the turn.
+ *    the yield, the session's queue holding messages for the turn and a
+ *    person's stop of one background command.
  *
  * `runTurn` is a call whose result is the turn's settlement: the host
  * answers it when the adapter settles, so one pending call is the whole
@@ -53,7 +54,7 @@ import type { TimingRecorderWire } from "../shared/cold-start-timing.js";
 import type { TelemetrySettings } from "../otel-export.js";
 import type { RuntimeFieldsWire, WireOffload, WireProjection, WireTurnInput } from "./codec.js";
 
-export const AGENT_HOST_PROTOCOL_VERSION = 16;
+export const AGENT_HOST_PROTOCOL_VERSION = 17;
 
 /**
  * The largest single message either side sends or accepts. A turn's input
@@ -355,6 +356,8 @@ export interface RunnerNotices {
   readonly yieldTurn: { readonly turnId: string };
   /** The session's queue holds messages for the turn (`TurnSink.input.onPending`). */
   readonly inputPending: { readonly turnId: string };
+  /** A person stopped one background command, by the call id that started it (`TurnSink.backgroundStops`). */
+  readonly stopBackgroundCommand: { readonly turnId: string; readonly callId: string };
 }
 
 // ─── Envelopes ─────────────────────────────────────────────────────────────

@@ -42,7 +42,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\032&ai/stigmer/agentic/session/v1/io.proto" +
       "\0328ai/stigmer/commons/apiresource/rpc_ser" +
       "vice_options.proto\032+ai/stigmer/commons/r" +
-      "pc/method_options.proto2\236\017\n\030SessionComma" +
+      "pc/method_options.proto2\354\020\n\030SessionComma" +
       "ndController\022W\n\005apply\022&.ai.stigmer.agent" +
       "ic.session.v1.Session\032&.ai.stigmer.agent" +
       "ic.session.v1.Session\022\245\001\n\006create\022&.ai.st" +
@@ -72,30 +72,35 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "ssion.v1.GrantPermissionInput\0326.ai.stigm" +
       "er.agentic.session.v1.GrantPermissionRes" +
       "ponse\"C\302\270\030?\010\002\020*\"\nsession_id*-unauthorize" +
-      "d to grant a permission in session\022\263\001\n\ti" +
-      "nterrupt\0224.ai.stigmer.agentic.session.v1" +
-      ".InterruptSessionInput\0327.ai.stigmer.agen" +
-      "tic.session.v1.InterruptSessionResponse\"" +
-      "7\302\270\0303\010\002\020*\"\nsession_id*!unauthorized to i" +
-      "nterrupt session\022\213\001\n\006delete\022(.ai.stigmer" +
-      ".agentic.session.v1.SessionId\032&.ai.stigm" +
-      "er.agentic.session.v1.Session\"/\302\270\030+\010\003\020*\"" +
-      "\005value*\036unauthorized to delete session\022\211" +
-      "\001\n\014appendEvents\0227.ai.stigmer.agentic.ses" +
-      "sion.v1.AppendSessionEventsInput\032:.ai.st" +
-      "igmer.agentic.session.v1.AppendSessionEv" +
-      "entsResponse\"\004\320\270\030\001\022\203\001\n\nclaimInput\0225.ai.s" +
-      "tigmer.agentic.session.v1.ClaimSessionIn" +
-      "putInput\0328.ai.stigmer.agentic.session.v1" +
-      ".ClaimSessionInputResponse\"\004\320\270\030\001\022\207\001\n\020bin" +
-      "dHarnessState\0224.ai.stigmer.agentic.sessi" +
-      "on.v1.BindHarnessStateInput\0327.ai.stigmer" +
-      ".agentic.session.v1.BindHarnessStateResp" +
-      "onse\"\004\320\270\030\001\032\004\240\377+*B\247\001B\014CommandProtoP\001\242\002\004AS" +
-      "AS\252\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\" +
-      "Stigmer\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\" +
-      "Agentic\\Session\\V1\\GPBMetadata\352\002!Ai::Sti" +
-      "gmer::Agentic::Session::V1b\006proto3"
+      "d to grant a permission in session\022\313\001\n\025s" +
+      "topBackgroundCommand\0229.ai.stigmer.agenti" +
+      "c.session.v1.StopBackgroundCommandInput\032" +
+      "+.ai.stigmer.agentic.session.v1.SessionE" +
+      "vent\"J\302\270\030F\010\002\020*\"\nsession_id*4unauthorized" +
+      " to stop a background command in session" +
+      "\022\263\001\n\tinterrupt\0224.ai.stigmer.agentic.sess" +
+      "ion.v1.InterruptSessionInput\0327.ai.stigme" +
+      "r.agentic.session.v1.InterruptSessionRes" +
+      "ponse\"7\302\270\0303\010\002\020*\"\nsession_id*!unauthorize" +
+      "d to interrupt session\022\213\001\n\006delete\022(.ai.s" +
+      "tigmer.agentic.session.v1.SessionId\032&.ai" +
+      ".stigmer.agentic.session.v1.Session\"/\302\270\030" +
+      "+\010\003\020*\"\005value*\036unauthorized to delete ses" +
+      "sion\022\211\001\n\014appendEvents\0227.ai.stigmer.agent" +
+      "ic.session.v1.AppendSessionEventsInput\032:" +
+      ".ai.stigmer.agentic.session.v1.AppendSes" +
+      "sionEventsResponse\"\004\320\270\030\001\022\203\001\n\nclaimInput\022" +
+      "5.ai.stigmer.agentic.session.v1.ClaimSes" +
+      "sionInputInput\0328.ai.stigmer.agentic.sess" +
+      "ion.v1.ClaimSessionInputResponse\"\004\320\270\030\001\022\207" +
+      "\001\n\020bindHarnessState\0224.ai.stigmer.agentic" +
+      ".session.v1.BindHarnessStateInput\0327.ai.s" +
+      "tigmer.agentic.session.v1.BindHarnessSta" +
+      "teResponse\"\004\320\270\030\001\032\004\240\377+*B\247\001B\014CommandProtoP" +
+      "\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Session.V1" +
+      "\312\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002)Ai\\St" +
+      "igmer\\Agentic\\Session\\V1\\GPBMetadata\352\002!A" +
+      "i::Stigmer::Agentic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

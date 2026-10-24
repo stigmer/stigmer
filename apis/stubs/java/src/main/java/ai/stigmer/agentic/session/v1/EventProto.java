@@ -221,6 +221,16 @@ public final class EventProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_session_v1_StigmerToolResultFullOutputEvent_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_session_v1_StigmerBackgroundCommandStatusEvent_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_session_v1_StigmerBackgroundCommandStatusEvent_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_session_v1_StigmerBackgroundCommandStopRequestedEvent_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_session_v1_StigmerBackgroundCommandStopRequestedEvent_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -236,7 +246,7 @@ public final class EventProto extends com.google.protobuf.GeneratedFile {
       "proto\0322ai/stigmer/commons/apiresource/fi" +
       "eld_options.proto\032\033buf/validate/validate" +
       ".proto\032\036google/protobuf/duration.proto\032\034" +
-      "google/protobuf/struct.proto\"\301!\n\014Session" +
+      "google/protobuf/struct.proto\"\321$\n\014Session" +
       "Event\022\020\n\003seq\030\001 \001(\003R\003seq\022\035\n\nsession_id\030\002 " +
       "\001(\tR\tsessionId\022\025\n\006run_id\030\003 \001(\tR\005runId\022J\n" +
       "\tthread_id\030\004 \001(\tB-\272H*r%2#^[A-Za-z0-9][A-" +
@@ -343,7 +353,17 @@ public final class EventProto extends com.google.protobuf.GeneratedFile {
       "_full_output\030n \001(\0132?.ai.stigmer.agentic." +
       "session.v1.StigmerToolResultFullOutputEv" +
       "entB#\362\205,\037stigmer.tool_result.full_output" +
-      "H\000R\033stigmerToolResultFullOutputB\007\n\005event" +
+      "H\000R\033stigmerToolResultFullOutput\022\266\001\n!stig" +
+      "mer_background_command_status\030o \001(\0132B.ai" +
+      ".stigmer.agentic.session.v1.StigmerBackg" +
+      "roundCommandStatusEventB%\362\205,!stigmer.bac" +
+      "kground_command.statusH\000R\036stigmerBackgro" +
+      "undCommandStatus\022\324\001\n)stigmer_background_" +
+      "command_stop_requested\030p \001(\0132I.ai.stigme" +
+      "r.agentic.session.v1.StigmerBackgroundCo" +
+      "mmandStopRequestedEventB-\362\205,)stigmer.bac" +
+      "kground_command.stop_requestedH\000R%stigme" +
+      "rBackgroundCommandStopRequestedB\007\n\005event" +
       "\"\270\001\n\020UserMessageEvent\022:\n\002id\030\001 \001(\tB*\272H\'r%" +
       "2#^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$R\002i" +
       "d\022E\n\007content\030\002 \003(\0132+.ai.stigmer.agentic." +
@@ -579,11 +599,32 @@ public final class EventProto extends com.google.protobuf.GeneratedFile {
       "size_bytes\030\005 \001(\003B\007\272H\004\"\002(\000R\tsizeBytes\022!\n\014" +
       "content_hash\030\006 \001(\tR\013contentHash\022\033\n\tmime_" +
       "type\030\007 \001(\tR\010mimeType\022\031\n\010is_image\030\010 \001(\010R\007" +
-      "isImageB\245\001B\nEventProtoP\001\242\002\004ASAS\252\002\035Ai.Sti" +
-      "gmer.Agentic.Session.V1\312\002\035Ai\\Stigmer\\Age" +
-      "ntic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Ses" +
-      "sion\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agent" +
-      "ic::Session::V1b\006proto3"
+      "isImage\"\346\004\n#StigmerBackgroundCommandStat" +
+      "usEvent\022:\n\002id\030\001 \001(\tB*\272H\'r%2#^[A-Za-z0-9]" +
+      "[A-Za-z0-9_.:-]{0,127}$R\002id\022!\n\014processed" +
+      "_at\030\002 \001(\tR\013processedAt\022\'\n\013tool_use_id\030\003 " +
+      "\001(\tB\007\272H\004r\002\020\001R\ttoolUseId\022*\n\021session_threa" +
+      "d_id\030\004 \001(\tR\017sessionThreadId\022+\n\005phase\030\005 \001" +
+      "(\tB\025\272H\022r\020R\007runningR\005endedR\005phase\0220\n\017time" +
+      "out_seconds\030\006 \001(\005B\007\272H\004\032\002(\000R\016timeoutSecon" +
+      "ds\022M\n\006ending\030\007 \001(\tB5\272H2r-R\006exitedR\ttimed" +
+      "_outR\007stoppedR\017failed_to_start\330\001\001R\006endin" +
+      "g\022 \n\texit_code\030\010 \001(\005H\000R\010exitCode\210\001\001\022F\n\ns" +
+      "topped_by\030\t \001(\tB\'\272H$r\037R\005agentR\006personR\010a" +
+      "pprovalR\004turn\330\001\001R\tstoppedBy\0222\n\026stopped_b" +
+      "y_tool_use_id\030\n \001(\tR\022stoppedByToolUseId\022" +
+      "\026\n\006output\030\013 \001(\tR\006output\022\031\n\010ended_at\030\014 \001(" +
+      "\tR\007endedAtB\014\n\n_exit_code\"\340\001\n*StigmerBack" +
+      "groundCommandStopRequestedEvent\022:\n\002id\030\001 " +
+      "\001(\tB*\272H\'r%2#^[A-Za-z0-9][A-Za-z0-9_.:-]{" +
+      "0,127}$R\002id\022!\n\014processed_at\030\002 \001(\tR\013proce" +
+      "ssedAt\022\'\n\013tool_use_id\030\003 \001(\tB\007\272H\004r\002\020\001R\tto" +
+      "olUseId\022*\n\021session_thread_id\030\004 \001(\tR\017sess" +
+      "ionThreadIdB\245\001B\nEventProtoP\001\242\002\004ASAS\252\002\035Ai" +
+      ".Stigmer.Agentic.Session.V1\312\002\035Ai\\Stigmer" +
+      "\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic" +
+      "\\Session\\V1\\GPBMetadata\352\002!Ai::Stigmer::A" +
+      "gentic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -599,7 +640,7 @@ public final class EventProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_session_v1_SessionEvent_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_SessionEvent_descriptor,
-        new java.lang.String[] { "Seq", "SessionId", "RunId", "ThreadId", "UserMessage", "SessionStatusRunning", "SessionStatusIdle", "SessionError", "AgentMessage", "AgentThinking", "AgentToolUse", "AgentToolResult", "AgentMcpToolUse", "AgentMcpToolResult", "SessionThreadCreated", "SessionThreadStatusRunning", "SessionThreadStatusIdle", "AgentThreadMessageSent", "AgentThreadMessageReceived", "AgentThreadContextCompacted", "UserToolConfirmation", "UserInterrupt", "StigmerAgentThinking", "StigmerPermissionAsked", "StigmerHarnessNote", "StigmerAgentStructuredOutput", "StigmerMemoryRecalled", "StigmerFileReviewChanges", "StigmerFileReviewDecided", "StigmerFileReviewReconciled", "StigmerPermissionGrant", "StigmerRunStatus", "StigmerToolResultFullOutput", "Event", });
+        new java.lang.String[] { "Seq", "SessionId", "RunId", "ThreadId", "UserMessage", "SessionStatusRunning", "SessionStatusIdle", "SessionError", "AgentMessage", "AgentThinking", "AgentToolUse", "AgentToolResult", "AgentMcpToolUse", "AgentMcpToolResult", "SessionThreadCreated", "SessionThreadStatusRunning", "SessionThreadStatusIdle", "AgentThreadMessageSent", "AgentThreadMessageReceived", "AgentThreadContextCompacted", "UserToolConfirmation", "UserInterrupt", "StigmerAgentThinking", "StigmerPermissionAsked", "StigmerHarnessNote", "StigmerAgentStructuredOutput", "StigmerMemoryRecalled", "StigmerFileReviewChanges", "StigmerFileReviewDecided", "StigmerFileReviewReconciled", "StigmerPermissionGrant", "StigmerRunStatus", "StigmerToolResultFullOutput", "StigmerBackgroundCommandStatus", "StigmerBackgroundCommandStopRequested", "Event", });
     internal_static_ai_stigmer_agentic_session_v1_UserMessageEvent_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_session_v1_UserMessageEvent_fieldAccessorTable = new
@@ -828,6 +869,18 @@ public final class EventProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_StigmerToolResultFullOutputEvent_descriptor,
         new java.lang.String[] { "Id", "ProcessedAt", "ToolUseId", "StorageKey", "SizeBytes", "ContentHash", "MimeType", "IsImage", });
+    internal_static_ai_stigmer_agentic_session_v1_StigmerBackgroundCommandStatusEvent_descriptor =
+      getDescriptor().getMessageType(39);
+    internal_static_ai_stigmer_agentic_session_v1_StigmerBackgroundCommandStatusEvent_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_session_v1_StigmerBackgroundCommandStatusEvent_descriptor,
+        new java.lang.String[] { "Id", "ProcessedAt", "ToolUseId", "SessionThreadId", "Phase", "TimeoutSeconds", "Ending", "ExitCode", "StoppedBy", "StoppedByToolUseId", "Output", "EndedAt", });
+    internal_static_ai_stigmer_agentic_session_v1_StigmerBackgroundCommandStopRequestedEvent_descriptor =
+      getDescriptor().getMessageType(40);
+    internal_static_ai_stigmer_agentic_session_v1_StigmerBackgroundCommandStopRequestedEvent_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_session_v1_StigmerBackgroundCommandStopRequestedEvent_descriptor,
+        new java.lang.String[] { "Id", "ProcessedAt", "ToolUseId", "SessionThreadId", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.session.v1.EventContentProto.getDescriptor();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();

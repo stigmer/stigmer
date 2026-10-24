@@ -26,7 +26,10 @@
  *
  * The stop is the runner's: its `stopTurn` notice aborts {@link HostTurn.stop},
  * which is the adapter's `stopSignal`, and its `yieldTurn` notice aborts
- * {@link HostTurn.yield}, the adapter's `yieldSignal`. One cause is also seen here, because
+ * {@link HostTurn.yield}, the adapter's `yieldSignal`. A person's stop of one
+ * background command is read by the runner's pump and arrives as its
+ * `stopBackgroundCommand` notice, handed to the adapter's
+ * `backgroundStops` listeners ({@link HostTurn.stopBackgroundCommand}). One cause is also seen here, because
  * it must land synchronously: the cost cap. The runtime stops a turn inside
  * `reportUsage` on the delta that reaches the cap, so in-process the engine
  * stops at its next step boundary; a stop that crossed the pipe would land a
@@ -63,6 +66,7 @@ export class HostTurn {
   private persistInFlight: Promise<void> | undefined;
   private pendingInput = false;
   private readonly pendingListeners = new Set<() => void>();
+  private readonly backgroundStopListeners = new Set<(callId: string) => void>();
   private persistFollowUp: Promise<void> | undefined;
 
   constructor(
@@ -108,6 +112,12 @@ export class HostTurn {
         },
         claimed: async (delivered) => [...(await peer.call("claimedInput", { turnId, delivered: [...delivered] }))],
       },
+      backgroundStops: {
+        onStop: (listener) => {
+          this.backgroundStopListeners.add(listener);
+          return () => this.backgroundStopListeners.delete(listener);
+        },
+      },
       requestPersist: () => this.requestPersist(),
       recordActivity: (detail?: string) => peer.notify("activity", { turnId, detail: detail ?? null }),
       reportUsage: (delta: UsageDelta) => {
@@ -141,6 +151,11 @@ export class HostTurn {
     if (this.pendingInput) return;
     this.pendingInput = true;
     for (const listener of [...this.pendingListeners]) listener();
+  }
+
+  /** A person stopped one background command (the runner's pump read it). */
+  stopBackgroundCommand(callId: string): void {
+    for (const listener of [...this.backgroundStopListeners]) listener(callId);
   }
 
   /** The runtime asked the turn to yield. */

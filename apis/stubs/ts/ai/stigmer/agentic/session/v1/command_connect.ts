@@ -5,7 +5,7 @@
 
 import { Session } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { AppendSessionEventsInput, AppendSessionEventsResponse, BindHarnessStateInput, BindHarnessStateResponse, ClaimSessionInputInput, ClaimSessionInputResponse, ConfirmToolUseInput, GrantPermissionInput, GrantPermissionResponse, InterruptSessionInput, InterruptSessionResponse, ReviewFileChangesInput, ReviewFileChangesResponse, SessionId, UpdateSessionInput, UpdateSessionSubjectRequest } from "./io_pbjs";
+import { AppendSessionEventsInput, AppendSessionEventsResponse, BindHarnessStateInput, BindHarnessStateResponse, ClaimSessionInputInput, ClaimSessionInputResponse, ConfirmToolUseInput, GrantPermissionInput, GrantPermissionResponse, InterruptSessionInput, InterruptSessionResponse, ReviewFileChangesInput, ReviewFileChangesResponse, SessionId, StopBackgroundCommandInput, UpdateSessionInput, UpdateSessionSubjectRequest } from "./io_pbjs";
 import { SessionEvent } from "./event_pbjs";
 
 /**
@@ -169,6 +169,37 @@ export const SessionCommandController = {
       name: "grantPermission",
       I: GrantPermissionInput,
       O: GrantPermissionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Stop one command the agent runs in the background.
+     *
+     * A command started in the background has a
+     * stigmer.background_command.status with phase running, keyed to the
+     * agent.tool_use that started it. The request is appended as a
+     * stigmer.background_command.stop_requested; the turn's runner reads it
+     * within seconds and stops that command alone, whose status then ends
+     * with stopped_by person. The agent is told a person stopped it and
+     * carries on. The turn itself is not stopped (interrupt stops it).
+     *
+     * ## Error Conditions
+     *
+     * - NOT_FOUND: the tool use is not one of this conversation's calls that
+     *   started a command in the background
+     * - FAILED_PRECONDITION: the command already ended, or its turn is not
+     *   working
+     *
+     * ## Idempotency
+     *
+     * A second request for the same command records nothing new and returns
+     * the event first recorded.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.stopBackgroundCommand
+     */
+    stopBackgroundCommand: {
+      name: "stopBackgroundCommand",
+      I: StopBackgroundCommandInput,
+      O: SessionEvent,
       kind: MethodKind.Unary,
     },
     /**

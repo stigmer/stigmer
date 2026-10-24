@@ -15,7 +15,7 @@ import { DeepAgentTranslator, normalize, usageOf } from "../translator.js";
 import { TOOL_REFUSED_EVENT } from "../../../middleware/tool-scope.js";
 import { TOOL_POLICY_EVENT } from "../../../middleware/approval-gate.js";
 import { CONTEXT_COMPACTED_EVENT } from "../../../middleware/compaction.js";
-import { BACKGROUND_NOTE_EVENT, BACKGROUND_WAIT_EVENT } from "../../../middleware/background-commands.js";
+import { BACKGROUND_WAIT_EVENT } from "../../../middleware/background-commands.js";
 import {
   resetSeq,
   makeProtocolEvent,
@@ -540,7 +540,6 @@ describe("V3ProtocolNormalizer", () => {
 
   describe("background commands, from the background middleware's custom events", () => {
     const wait = (phase: string, namespace: string[] = []) => makeProtocolEvent("custom", { name: BACKGROUND_WAIT_EVENT, phase }, { namespace });
-    const note = (text: unknown, namespace: string[] = []) => makeProtocolEvent("custom", { name: BACKGROUND_NOTE_EVENT, text }, { namespace });
 
     it("turns a wait's start and end into the scope's wait facts", () => {
       const t = new DeepAgentTranslator(null);
@@ -548,20 +547,15 @@ describe("V3ProtocolNormalizer", () => {
       expect(t.translate(wait("finished"))).toEqual([{ kind: "background_wait_finished" }]);
     });
 
-    it("turns a note to the person into a system note, and drops an empty one", () => {
+    it("makes nothing of the retired note event: an ending reaches the person as the command's own status", () => {
       const t = new DeepAgentTranslator(null);
-      expect(t.translate(note("Background command `npm test` exited with code 1."))).toEqual([
-        { kind: "system_note", text: "Background command `npm test` exited with code 1." },
-      ]);
-      expect(t.translate(note(""))).toEqual([]);
-      expect(t.translate(note(42))).toEqual([]);
+      expect(t.translate(makeProtocolEvent("custom", { name: "stigmer.background_note", text: "Background command `npm test` exited with code 1." }))).toEqual([]);
     });
 
-    it("scopes both to the sub-agent whose graph wrote them", () => {
+    it("scopes a wait to the sub-agent whose graph wrote it", () => {
       const t = new DeepAgentTranslator(null);
       t.translate(makeToolStarted("task-1", "task", { subagent_type: "helper" }, { namespace: ["tools:pregel-1"] }));
       expect(t.translate(wait("started", ["tools:pregel-1"]))).toEqual([{ kind: "background_wait_started", subAgentId: "task-1" }]);
-      expect(t.translate(note("ended", ["tools:pregel-1"]))).toEqual([{ kind: "system_note", text: "ended", subAgentId: "task-1" }]);
     });
   });
 

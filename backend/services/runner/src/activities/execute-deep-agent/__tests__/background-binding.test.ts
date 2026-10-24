@@ -9,8 +9,12 @@
  *  - At a round's end with a command running, the model is reminded once,
  *    then the turn waits; while it waits the open-operations fold holds a
  *    real stall watchdog whose window is far shorter than the wait, and the
- *    command's notice reaches the next model call. The person is told in a
- *    `system_note`.
+ *    command's notice reaches the next model call. The person is told by
+ *    the registry's facts (`background-facts.ts`): its start, its output
+ *    and its end with what it printed, and no `system_note`.
+ *  - A person's stop, read by the runtime's pump from a stop request in the
+ *    log, stops the command alone during the round-end wait, and the
+ *    agent's next model call reads that the person stopped it.
  *  - With the turn-input middleware ahead of it, a person's message sent
  *    during the wait ends the wait and is delivered once, by that
  *    middleware: langchain runs round-end hooks newest first and a jump
@@ -32,10 +36,16 @@ import { Command, MemorySaver } from "@langchain/langgraph";
 import { createDeepAgent } from "deepagents";
 
 import { createApprovalGateMiddleware } from "../../../middleware/approval-gate.js";
+import { create } from "@bufbuild/protobuf";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+
 import { createBackgroundCommandsMiddleware, noticeIdOf } from "../../../middleware/background-commands.js";
 import { createShellMiddleware } from "../../../middleware/shell.js";
 import { createToolIntentMiddleware } from "../../../middleware/tool-intent.js";
+import { BackgroundStopPump } from "../../../harness/background-stops.js";
+import { toolUseEventId } from "../../../harness/events/ids.js";
 import { OpenOperations } from "../../../harness/open-operations.js";
+import { TranscriptBuilder } from "../../../harness/transcript/builder.js";
 import type { TranscriptEvent } from "../../../harness/transcript/events.js";
 import type { TurnInputChannel, TurnMessage } from "../../../harness/turn-input.js";
 import { SqliteCheckpointSaver } from "../../../shared/checkpointer/sqlite-saver.js";
@@ -46,6 +56,9 @@ import { CasCaptureObserver } from "../cas-capture-observer.js";
 import { registerStigmerDeepagentsProfiles, resetStigmerDeepagentsProfilesForTests } from "../deepagents-profiles.js";
 import { backgroundArtifactOf, createShellBinding, STOP_BACKGROUND_TOOL_NAME } from "../shell-tool.js";
 import { DeepAgentTranslator } from "../translator.js";
+import { backgroundFacts } from "../background-facts.js";
+import { TurnRowsSchema, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { createTurnInputMiddleware } from "../turn-input-middleware.js";
 import { ScriptedModel, readPendingInterrupts, type ScriptedTurn, type TurnPlayer } from "../__test-utils__/scripted-model.js";
 
@@ -108,6 +121,15 @@ class QueueChannel implements TurnInputChannel {
   }
 }
 
+/** A registry whose facts fold into a builder of its own, every fact observed, as the turn's sink folds them. */
+function reportedCommands(): { readonly commands: BackgroundCommands; readonly facts: TranscriptEvent[]; readonly rows: TurnRows } {
+  const facts: TranscriptEvent[] = [];
+  const rows = create(TurnRowsSchema);
+  const builder = new TranscriptBuilder("exec-bg", rows, create(RunStatusSchema), (event) => facts.push(event));
+  const commands = new BackgroundCommands(backgroundFacts({ transcript: builder, requestPersist: async () => undefined }, 50));
+  return { commands, facts, rows };
+}
+
 describe("background commands on a real graph", () => {
   let root: string;
   let offload: string;
@@ -165,7 +187,7 @@ describe("background commands on a real graph", () => {
   });
 
   it("answers at once, reminds once, waits holding the watchdog, and delivers the ending to the next model call", async () => {
-    const commands = new BackgroundCommands();
+    const { commands, facts, rows } = reportedCommands();
     const { backend, middleware } = await stack(commands);
     let endedWhenStartRead: boolean | undefined;
     const graph = await createDeepAgent({
@@ -210,8 +232,18 @@ describe("background commands on a real graph", () => {
     const kinds = seen.map((fact) => fact.kind);
     expect(kinds).toContain("background_wait_started");
     expect(kinds.indexOf("background_wait_finished")).toBeGreaterThan(kinds.indexOf("background_wait_started"));
-    const notes = seen.filter((fact): fact is Extract<TranscriptEvent, { kind: "system_note" }> => fact.kind === "system_note");
-    expect(notes.map((note) => note.text)).toEqual(["Background command `sleep 1.5; echo suite-done` exited with code 0."]);
+    expect(kinds, "the person is told by the command's own facts, not a note").not.toContain("system_note");
+    expect(facts.map((fact) => fact.kind).filter((kind) => kind !== "background_output_delta")).toEqual([
+      "background_command_started",
+      "background_command_ended",
+    ]);
+    expect(
+      facts.flatMap((fact) => (fact.kind === "background_output_delta" ? [fact.delta] : [])).join(""),
+      "its output streamed before its end",
+    ).toContain("suite-done");
+    expect(rows.backgroundCommands).toHaveLength(1);
+    expect(rows.backgroundCommands[0]).toMatchObject({ callId: "bg_1", timeoutSeconds: MAX_TIMEOUT_SECONDS, ending: "exited", exitCode: 0 });
+    expect(rows.backgroundCommands[0]!.output).toContain("suite-done");
 
     const state = (await graph.getState({ configurable: { thread_id: "t2" } })) as { readonly values: { readonly messages: BaseMessage[] } };
     const messages = state.values.messages;
@@ -222,6 +254,59 @@ describe("background commands on a real graph", () => {
     expect(textOf(notice)).toContain("suite-done");
     expect(textOf(notice)).toContain(`/large_tool_results/${backgroundOutputFileName("bg_1")}`);
     expect(textOf(messages.at(-1))).toBe("the suite passed");
+  });
+
+  it("stops a command a person stopped, read from the log by the runtime's pump, and tells the agent who stopped it", async () => {
+    const { commands, facts } = reportedCommands();
+    const runId = "run_bg";
+    let requests: SessionEvent[] = [];
+    const pump = new BackgroundStopPump({ runId, read: async () => requests, intervalMs: 50 });
+    pump.onStop((callId) => void commands.stop(callId, "person"));
+    const { backend, middleware } = await stack(commands);
+    const graph = await createDeepAgent({
+      model: new ScriptedAnthropicModel(() =>
+        player((transcript) => {
+          const last = transcript.at(-1);
+          if (isToolMessage(last)) return { text: "the server runs" };
+          if (last !== undefined && isHumanMessage(last) && textOf(last).startsWith("<background-commands-running>")) {
+            // The person presses Stop while the turn waits: the server writes the request.
+            setTimeout(() => {
+              requests = [
+                create(SessionEventSchema, {
+                  runId,
+                  event: { case: "stigmerBackgroundCommandStopRequested", value: { id: "sevt_bs_1", toolUseId: toolUseEventId(runId, "bg_1") } },
+                }),
+              ];
+            }, 200);
+            return { text: "waiting for the server" };
+          }
+          if (last !== undefined && isHumanMessage(last) && textOf(last).startsWith("<background-command ")) return { text: "you stopped the server" };
+          return { toolCalls: [{ name: "execute", args: { command: "sleep 30", background: true }, id: "bg_1" }] };
+        }),
+      ),
+      systemPrompt: "work",
+      backend,
+      middleware,
+    } as Parameters<typeof createDeepAgent>[0]);
+    // The pump hears the start as the runtime's observer does.
+    const started = setInterval(() => {
+      for (const fact of facts.splice(0)) pump.observe(fact);
+    }, 10);
+    try {
+      const begun = Date.now();
+      const state = await graph.invoke({ messages: [new HumanMessage({ content: "start the server" })] }, { configurable: { thread_id: "t5" }, recursionLimit: 30 });
+      expect(Date.now() - begun, "the person's stop ended the wait, not the command's own end").toBeLessThan(15_000);
+      const messages = state.messages as BaseMessage[];
+      const notice = messages.find((m) => m.id === noticeIdOf("bg_1"));
+      expect(textOf(notice)).toContain('ended="stopped by the person"');
+      expect(textOf(notice)).toContain("[Stopped by the person; its processes were stopped]");
+      expect(textOf(messages.at(-1))).toBe("you stopped the server");
+      expect(commands.get("bg_1")?.stoppedBy).toEqual({ by: "person" });
+    } finally {
+      clearInterval(started);
+      pump.stop();
+      await commands.stopAll();
+    }
   });
 
   it("hands a person's message during the wait to the turn-input middleware, which delivers it once", async () => {

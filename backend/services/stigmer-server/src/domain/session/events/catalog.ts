@@ -12,12 +12,16 @@
  * file-review decision (`stigmer.file_review.decided`,
  * ../../run/filereview/decided.ts), every answer to a waiting tool use
  * (`user.tool_confirmation`, `stigmer.permission.grant`,
- * ../hitl/answer.ts) and the session's stop (`user.interrupt`,
- * ../hitl/interrupt.ts); a runner writes what the agent did, its threads,
+ * ../hitl/answer.ts), the session's stop (`user.interrupt`,
+ * ../hitl/interrupt.ts) and a person's stop of one background command
+ * (`stigmer.background_command.stop_requested`,
+ * ../hitl/stop-background-command.ts); a runner writes what the agent did, its threads,
  * the errors it sees first, and Stigmer's other events about the turn
  * (`RUNNER_EVENT_TYPES`, append.ts), the files a turn changed and the
  * undone files it put back among them, and where an offloaded tool
- * output is stored (`stigmer.tool_result.full_output`). The session's and
+ * output is stored (`stigmer.tool_result.full_output`), and the life of
+ * each command the agent runs in the background
+ * (`stigmer.background_command.status`). The session's and
  * a turn's status have one writer, the server, so a runner may never send
  * a status event; nor a
  * decision or an answer, so a runner can never forge a person's keep,
@@ -38,8 +42,8 @@ export const SESSION_STATUS_TYPES: ReadonlyArray<string> = [
  * The types a runner may append: what the agent did, its threads, errors,
  * and Stigmer's own events about the turn (the stigmer.* types, which no
  * Managed Agents client needs), all but `stigmer.file_review.decided`,
- * `stigmer.permission.grant` and `stigmer.run.status`, which are the
- * server's.
+ * `stigmer.permission.grant`, `stigmer.run.status` and
+ * `stigmer.background_command.stop_requested`, which are the server's.
  */
 export const RUNNER_EVENT_TYPES: ReadonlySet<string> = new Set([
   "agent.message",
@@ -63,4 +67,5 @@ export const RUNNER_EVENT_TYPES: ReadonlySet<string> = new Set([
   "stigmer.file_review.changes",
   "stigmer.file_review.reconciled",
   "stigmer.tool_result.full_output",
+  "stigmer.background_command.status",
 ]);

@@ -10,7 +10,12 @@
  * every object no event touched. A message sent while a turn works is
  * held as queued until a run's copy replaces it, then is the run's first
  * message (the messages a turn starts with joined) or a `user_message`
- * item where it was read; a stop drops what still waits.
+ * item where it was read; a stop drops what still waits. A tool use that
+ * started a background command keeps its result and gains the command's
+ * life: running, its output streamed after the result, its ending and who
+ * stopped it, a person's stop request, the agent's stop call linked to the
+ * command it stopped, and a command its ended turn never ended read as
+ * stopped by the turn.
  */
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
@@ -18,7 +23,7 @@ import { describe, expect, it } from "vitest";
 import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import { StreamSessionEventsResponseSchema, type StreamSessionEventsResponse } from "@stigmer/apis/ai/stigmer/agentic/session/v1/io_pb";
 
-import { SessionLog, foldSession, previewPlaceOf, textOf, turnOf } from "../fold.js";
+import { SessionLog, foldSession, isBackgroundRunning, previewPlaceOf, textOf, turnOf } from "../fold.js";
 import type { MessageItem, ThinkingItem, ToolUse, TurnItem } from "../types.js";
 
 type EventInit = MessageInitShape<typeof SessionEventSchema>["event"];
@@ -380,6 +385,94 @@ describe("previews", () => {
     expect(previewPlaceOf("run_1.root.m3")).toEqual({ runId: "run_1", threadId: "" });
     expect(previewPlaceOf("run_1.call_9.t0")).toEqual({ runId: "run_1", threadId: "run_1.call_9" });
     expect(previewPlaceOf("run_1.root.n3")).toBeUndefined();
+  });
+});
+
+describe("background commands", () => {
+  type StatusInit = { phase: "running" | "ended"; timeoutSeconds?: number; ending?: string; exitCode?: number; stoppedBy?: string; stoppedByToolUseId?: string; output?: string; endedAt?: string };
+  function status(runId: string, call: string, init: StatusInit, threadId = ""): SessionEvent {
+    const toolUseId = `${runId}.${call}`;
+    return ev(
+      runId,
+      {
+        case: "stigmerBackgroundCommandStatus",
+        value: { id: `${toolUseId}.${init.phase === "running" ? "bg" : "bg.end"}`, toolUseId, sessionThreadId: threadId, processedAt: `t-${init.phase}`, ...init },
+      },
+      threadId,
+    );
+  }
+  const started = (runId: string, call: string) => [use(runId, call, "execute", { input: { command: "npm run dev", background: true } }), result(runId, call, "Started in the background (id x).")];
+
+  it("keeps the start's result and adds the command's life, its output streamed after the result until it ends", () => {
+    const log = new SessionLog();
+    log.apply([user(R, "go"), phase(R, "running"), ...started(R, "bg1"), status(R, "bg1", { phase: "running", timeoutSeconds: 3300 })]);
+    log.applyFrame(frame({ case: "stigmerToolOutputDelta", value: { toolUseId: `${R}.bg1`, delta: "ready on :3000\n" } }));
+    let tool = toolsOf(log.snapshot().turns[0]!.items)[0]!;
+    expect(tool.state, "the call completed: the start and the command are two facts").toBe("completed");
+    expect(tool.result?.text).toBe("Started in the background (id x).");
+    expect(tool.liveOutput).toBe("");
+    expect(tool.background).toMatchObject({ state: "running", timeoutSeconds: 3300, liveOutput: "ready on :3000\n", startedAt: "t-running", stopRequested: false });
+    expect(isBackgroundRunning(tool)).toBe(true);
+
+    log.apply([status(R, "bg1", { phase: "ended", ending: "exited", exitCode: 1, output: "ready on :3000\ncrash\n", endedAt: "t-end" })]);
+    expect(log.applyFrame(frame({ case: "stigmerToolOutputDelta", value: { toolUseId: `${R}.bg1`, delta: "late" } })), "output after the end is dropped").toBe(false);
+    tool = toolsOf(log.snapshot().turns[0]!.items)[0]!;
+    expect(tool.background).toMatchObject({ state: "exited", exitCode: 1, output: "ready on :3000\ncrash\n", endedAt: "t-end", liveOutput: "" });
+    expect(isBackgroundRunning(tool)).toBe(false);
+    log.apply([status(R, "bg1", { phase: "ended", ending: "stopped", stoppedBy: "person" })]);
+    expect(toolsOf(log.snapshot().turns[0]!.items)[0]!.background?.state, "the first ending is final").toBe("exited");
+  });
+
+  it("says who stopped one, keeps a person's stop request, and links the agent's stop call to the command", () => {
+    const fold = foldSession([
+      user(R, "go"),
+      phase(R, "running"),
+      ...started(R, "bg1"),
+      ...started(R, "bg2"),
+      status(R, "bg1", { phase: "running" }),
+      status(R, "bg2", { phase: "running" }),
+      ev(R, { case: "stigmerBackgroundCommandStopRequested", value: { id: "sevt_bs_1", toolUseId: `${R}.bg1` } }),
+      status(R, "bg1", { phase: "ended", ending: "stopped", stoppedBy: "person", output: "half" }),
+      use(R, "stop1", "stop_background_command", { input: { id: "bg2" } }),
+      result(R, "stop1", "stopped"),
+      status(R, "bg2", { phase: "ended", ending: "stopped", stoppedBy: "agent", stoppedByToolUseId: `${R}.stop1` }),
+      ...started(R, "bg3"),
+      status(R, "bg3", { phase: "running" }),
+      status(R, "bg3", { phase: "ended", ending: "something new", stoppedBy: "someone new" }),
+    ]);
+    const [bg1, bg2, stop, bg3] = toolsOf(fold.turns[0]!.items);
+    expect(bg1!.background).toMatchObject({ state: "stopped", stoppedBy: "person", stopRequested: true, output: "half" });
+    expect(bg2!.background).toMatchObject({ state: "stopped", stoppedBy: "agent", stoppedByToolUseId: `${R}.stop1` });
+    expect(stop!.stoppedBackground).toEqual({ toolUseId: `${R}.bg2`, input: { command: "npm run dev", background: true } });
+    expect(bg1!.stoppedBackground).toBeUndefined();
+    expect(bg3!.background, "a word the contract does not list reads as a stop by no one named").toMatchObject({ state: "stopped", stoppedBy: undefined });
+  });
+
+  it("holds a status or a stop request that names a tool use the log has not shown yet", () => {
+    const fold = foldSession([
+      user(R, "go"),
+      status(R, "bg1", { phase: "running", timeoutSeconds: 60 }),
+      ev(R, { case: "stigmerBackgroundCommandStopRequested", value: { id: "sevt_bs_1", toolUseId: `${R}.bg1` } }),
+      status(R, "bg1", { phase: "ended", ending: "timed_out", endedAt: "t-end" }),
+      ...started(R, "bg1"),
+    ]);
+    expect(toolsOf(fold.turns[0]!.items)[0]!.background).toMatchObject({ state: "timed_out", timeoutSeconds: 60, stopRequested: true });
+  });
+
+  it("reads a command its ended turn never ended as stopped by the turn, with what it printed so far", () => {
+    const log = new SessionLog();
+    log.apply([user(R, "go"), phase(R, "running"), ...started(R, "bg1"), status(R, "bg1", { phase: "running" })]);
+    log.applyFrame(frame({ case: "stigmerToolOutputDelta", value: { toolUseId: `${R}.bg1`, delta: "partial" } }));
+    log.apply([phase(R, "failed", { error: "the runner was lost" })]);
+    const tool = toolsOf(log.snapshot().turns[0]!.items)[0]!;
+    expect(tool.background).toMatchObject({ state: "stopped", stoppedBy: "turn", output: "partial", liveOutput: "", endedAt: "" });
+    expect(isBackgroundRunning(tool)).toBe(false);
+  });
+
+  it("gives every other tool use no background and no stopped command", () => {
+    const fold = foldSession([user(R, "go"), use(R, "c1", "read"), result(R, "c1", "x")]);
+    const tool = toolsOf(fold.turns[0]!.items)[0]!;
+    expect([tool.background, tool.stoppedBackground]).toEqual([undefined, undefined]);
   });
 });
 

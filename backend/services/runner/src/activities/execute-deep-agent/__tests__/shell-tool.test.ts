@@ -219,7 +219,9 @@ describe("the background artifact and the ending line", () => {
 
   it("says a command that failed to start, and who stopped one", () => {
     expect(endingLine({ kind: "spawn-failed", message: "spawn /bin/sh ENOENT" })).toBe("[Command failed to start: spawn /bin/sh ENOENT]");
-    expect(endingLine({ kind: "stopped" }, true)).toBe("[Stopped at your request; its processes were stopped]");
+    expect(endingLine({ kind: "stopped" }, { by: "agent", callId: "stop_1" })).toBe("[Stopped at your request; its processes were stopped]");
+    expect(endingLine({ kind: "stopped" }, { by: "person" })).toBe("[Stopped by the person; its processes were stopped]");
+    expect(endingLine({ kind: "stopped" }, { by: "approval" })).toBe("[Command stopped with the turn; its processes were stopped]");
     expect(endingLine({ kind: "stopped" })).toBe("[Command stopped with the turn; its processes were stopped]");
   });
 });

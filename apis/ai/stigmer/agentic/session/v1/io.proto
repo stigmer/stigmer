@@ -217,6 +217,17 @@ message GrantPermissionResponse {
   repeated SessionEvent confirmations = 2;
 }
 
+// StopBackgroundCommandInput stops one command the agent runs in the
+// background.
+message StopBackgroundCommandInput {
+  // The conversation.
+  string session_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The agent.tool_use event that started the command, as its
+  // stigmer.background_command.status names it.
+  string tool_use_id = 2 [(buf.validate.field).string.min_len = 1];
+}
+
 // InterruptSessionInput stops a session's unfinished work: Managed Agents'
 // user.interrupt parameters, with the session.
 message InterruptSessionInput {

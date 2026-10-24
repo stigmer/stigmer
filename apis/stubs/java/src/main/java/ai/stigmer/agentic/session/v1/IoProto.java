@@ -102,6 +102,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_session_v1_GrantPermissionResponse_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_session_v1_StopBackgroundCommandInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_session_v1_StopBackgroundCommandInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_session_v1_InterruptSessionInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -257,97 +262,100 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "igmer.agentic.session.v1.SessionEventR\005g" +
       "rant\022Q\n\rconfirmations\030\002 \003(\0132+.ai.stigmer" +
       ".agentic.session.v1.SessionEventR\rconfir" +
-      "mations\"k\n\025InterruptSessionInput\022&\n\nsess" +
-      "ion_id\030\001 \001(\tB\007\272H\004r\002\020\001R\tsessionId\022*\n\021sess" +
-      "ion_thread_id\030\002 \001(\tR\017sessionThreadId\"\205\001\n" +
-      "\030InterruptSessionResponse\022A\n\005event\030\001 \001(\013" +
-      "2+.ai.stigmer.agentic.session.v1.Session" +
-      "EventR\005event\022&\n\017stopped_run_ids\030\002 \003(\tR\rs" +
-      "toppedRunIds\"\232\003\n\030ListSessionEventsReques" +
-      "t\022%\n\nsession_id\030\001 \001(\tB\006\272H\003\310\001\001R\tsessionId" +
-      "\022\'\n\tpage_size\030\002 \001(\005B\n\272H\007\032\005\030\350\007(\000R\010pageSiz" +
-      "e\022\035\n\npage_token\030\003 \001(\tR\tpageToken\022)\n\005orde" +
-      "r\030\004 \001(\tB\023\272H\020r\013R\003ascR\004desc\330\001\001R\005order\0229\n\005t" +
-      "ypes\030\005 \003(\tB#\272H \222\001\035\020@\"\031r\0272\025^[a-z_]+(\\.[a-" +
-      "z_]+)+$R\005types\022\"\n\rcreated_at_gt\030\006 \001(\tR\013c" +
-      "reatedAtGt\022$\n\016created_at_gte\030\007 \001(\tR\014crea" +
-      "tedAtGte\022\"\n\rcreated_at_lt\030\010 \001(\tR\013created" +
-      "AtLt\022$\n\016created_at_lte\030\t \001(\tR\014createdAtL" +
-      "te\022\025\n\006run_id\030\n \001(\tR\005runId\"\177\n\020SessionEven" +
-      "tList\022C\n\006events\030\001 \003(\0132+.ai.stigmer.agent" +
-      "ic.session.v1.SessionEventR\006events\022&\n\017ne" +
-      "xt_page_token\030\002 \001(\tR\rnextPageToken\"\200\002\n\032S" +
-      "treamSessionEventsRequest\022%\n\nsession_id\030" +
-      "\001 \001(\tB\006\272H\003\310\001\001R\tsessionId\022\201\001\n\014event_delta" +
-      "s\030\002 \003(\tB^\272H[\222\001X\020\004\030\001\"RrPR\ragent.messageR\016" +
-      "agent.thinkingR\031stigmer.tool_output_delt" +
-      "aR\024stigmer.run.livenessR\013eventDeltas\022)\n\t" +
-      "after_seq\030\003 \001(\003B\007\272H\004\"\002(\000H\000R\010afterSeq\210\001\001B" +
-      "\014\n\n_after_seq\"\260\004\n\033StreamSessionEventsRes" +
-      "ponse\022C\n\005event\030\001 \001(\0132+.ai.stigmer.agenti" +
-      "c.session.v1.SessionEventH\000R\005event\022]\n\013ev" +
-      "ent_start\030\002 \001(\0132).ai.stigmer.agentic.ses" +
-      "sion.v1.EventStartB\017\362\205,\013event_startH\000R\ne" +
-      "ventStart\022]\n\013event_delta\030\003 \001(\0132).ai.stig" +
-      "mer.agentic.session.v1.EventDeltaB\017\362\205,\013e" +
-      "vent_deltaH\000R\neventDelta\022\212\001\n\031stigmer_too" +
-      "l_output_delta\030\004 \001(\0132..ai.stigmer.agenti" +
-      "c.session.v1.ToolOutputDeltaB\035\362\205,\031stigme" +
-      "r.tool_output_deltaH\000R\026stigmerToolOutput" +
-      "Delta\022x\n\024stigmer_run_liveness\030\005 \001(\0132*.ai" +
-      ".stigmer.agentic.session.v1.RunLivenessB" +
-      "\030\362\205,\024stigmer.run.livenessH\000R\022stigmerRunL" +
-      "ivenessB\007\n\005frame\"\354\003\n\023SessionEventPreview" +
-      "\022]\n\013event_start\030\001 \001(\0132).ai.stigmer.agent" +
-      "ic.session.v1.EventStartB\017\362\205,\013event_star" +
-      "tH\000R\neventStart\022]\n\013event_delta\030\002 \001(\0132).a" +
-      "i.stigmer.agentic.session.v1.EventDeltaB" +
-      "\017\362\205,\013event_deltaH\000R\neventDelta\022\212\001\n\031stigm" +
-      "er_tool_output_delta\030\003 \001(\0132..ai.stigmer." +
-      "agentic.session.v1.ToolOutputDeltaB\035\362\205,\031" +
-      "stigmer.tool_output_deltaH\000R\026stigmerTool" +
-      "OutputDelta\022x\n\024stigmer_run_liveness\030\004 \001(" +
-      "\0132*.ai.stigmer.agentic.session.v1.RunLiv" +
-      "enessB\030\362\205,\024stigmer.run.livenessH\000R\022stigm" +
-      "erRunLivenessB\020\n\007preview\022\005\272H\002\010\001\"\344\001\n\030Appe" +
-      "ndSessionEventsInput\022\035\n\006run_id\030\001 \001(\tB\006\272H" +
-      "\003\310\001\001R\005runId\022N\n\006events\030\002 \003(\0132+.ai.stigmer" +
-      ".agentic.session.v1.SessionEventB\t\272H\006\222\001\003" +
-      "\020\350\007R\006events\022Y\n\010previews\030\003 \003(\01322.ai.stigm" +
-      "er.agentic.session.v1.SessionEventPrevie" +
-      "wB\t\272H\006\222\001\003\020\350\007R\010previews\"b\n\033AppendSessionE" +
-      "ventsResponse\022C\n\006events\030\001 \003(\0132+.ai.stigm" +
-      "er.agentic.session.v1.SessionEventR\006even" +
-      "ts\"8\n\026ClaimSessionInputInput\022\036\n\006run_id\030\001" +
-      " \001(\tB\007\272H\004r\002\020\001R\005runId\"`\n\031ClaimSessionInpu" +
-      "tResponse\022C\n\006events\030\001 \003(\0132+.ai.stigmer.a" +
-      "gentic.session.v1.SessionEventR\006events\"\347" +
-      "\002\n\022UpdateSessionInput\022J\n\010resource\030\001 \001(\0132" +
-      "&.ai.stigmer.agentic.session.v1.SessionB" +
-      "\006\272H\003\330\001\003R\010resource\022C\n\013update_mask\030\002 \001(\0132\032" +
-      ".google.protobuf.FieldMaskB\006\272H\003\310\001\001R\nupda" +
-      "teMask:\277\001\272H\273\001\032\270\001\n\027update_names_its_targe" +
-      "t\022Gresource.metadata.id is required: an " +
-      "update names the session by its id\032Thas(" +
-      "this.resource) && has(this.resource.meta" +
-      "data) && this.resource.metadata.id != \'\'" +
-      "\"h\n\025BindHarnessStateInput\022\035\n\006run_id\030\001 \001(" +
-      "\tB\006\272H\003\310\001\001R\005runId\0220\n\020harness_state_id\030\002 \001" +
-      "(\tB\006\272H\003\310\001\001R\016harnessStateId\"}\n\030BindHarnes" +
-      "sStateResponse\022(\n\020harness_state_id\030\001 \001(\t" +
-      "R\016harnessStateId\0227\n\030harness_state_id_his" +
-      "tory\030\002 \003(\tR\025harnessStateIdHistory\"`\n\026Str" +
-      "eamAttentionRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020" +
-      "\001R\003org\022+\n\014after_cursor\030\002 \001(\tB\010\272H\005r\003\030\200\002R\013" +
-      "afterCursor\"\247\001\n\tAttention\022\016\n\002id\030\001 \001(\tR\002i" +
-      "d\022\035\n\nsession_id\030\002 \001(\tR\tsessionId\022\024\n\005titl" +
-      "e\030\003 \001(\tR\005title\022\025\n\006run_id\030\004 \001(\tR\005runId\022\026\n" +
-      "\006reason\030\005 \001(\tR\006reason\022\016\n\002at\030\006 \001(\tR\002at\022\026\n" +
-      "\006cursor\030\007 \001(\tR\006cursorB\242\001B\007IoProtoP\001\242\002\004AS" +
-      "AS\252\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\" +
-      "Stigmer\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\" +
-      "Agentic\\Session\\V1\\GPBMetadata\352\002!Ai::Sti" +
-      "gmer::Agentic::Session::V1b\006proto3"
+      "mations\"m\n\032StopBackgroundCommandInput\022&\n" +
+      "\nsession_id\030\001 \001(\tB\007\272H\004r\002\020\001R\tsessionId\022\'\n" +
+      "\013tool_use_id\030\002 \001(\tB\007\272H\004r\002\020\001R\ttoolUseId\"k" +
+      "\n\025InterruptSessionInput\022&\n\nsession_id\030\001 " +
+      "\001(\tB\007\272H\004r\002\020\001R\tsessionId\022*\n\021session_threa" +
+      "d_id\030\002 \001(\tR\017sessionThreadId\"\205\001\n\030Interrup" +
+      "tSessionResponse\022A\n\005event\030\001 \001(\0132+.ai.sti" +
+      "gmer.agentic.session.v1.SessionEventR\005ev" +
+      "ent\022&\n\017stopped_run_ids\030\002 \003(\tR\rstoppedRun" +
+      "Ids\"\232\003\n\030ListSessionEventsRequest\022%\n\nsess" +
+      "ion_id\030\001 \001(\tB\006\272H\003\310\001\001R\tsessionId\022\'\n\tpage_" +
+      "size\030\002 \001(\005B\n\272H\007\032\005\030\350\007(\000R\010pageSize\022\035\n\npage" +
+      "_token\030\003 \001(\tR\tpageToken\022)\n\005order\030\004 \001(\tB\023" +
+      "\272H\020r\013R\003ascR\004desc\330\001\001R\005order\0229\n\005types\030\005 \003(" +
+      "\tB#\272H \222\001\035\020@\"\031r\0272\025^[a-z_]+(\\.[a-z_]+)+$R\005" +
+      "types\022\"\n\rcreated_at_gt\030\006 \001(\tR\013createdAtG" +
+      "t\022$\n\016created_at_gte\030\007 \001(\tR\014createdAtGte\022" +
+      "\"\n\rcreated_at_lt\030\010 \001(\tR\013createdAtLt\022$\n\016c" +
+      "reated_at_lte\030\t \001(\tR\014createdAtLte\022\025\n\006run" +
+      "_id\030\n \001(\tR\005runId\"\177\n\020SessionEventList\022C\n\006" +
+      "events\030\001 \003(\0132+.ai.stigmer.agentic.sessio" +
+      "n.v1.SessionEventR\006events\022&\n\017next_page_t" +
+      "oken\030\002 \001(\tR\rnextPageToken\"\200\002\n\032StreamSess" +
+      "ionEventsRequest\022%\n\nsession_id\030\001 \001(\tB\006\272H" +
+      "\003\310\001\001R\tsessionId\022\201\001\n\014event_deltas\030\002 \003(\tB^" +
+      "\272H[\222\001X\020\004\030\001\"RrPR\ragent.messageR\016agent.thi" +
+      "nkingR\031stigmer.tool_output_deltaR\024stigme" +
+      "r.run.livenessR\013eventDeltas\022)\n\tafter_seq" +
+      "\030\003 \001(\003B\007\272H\004\"\002(\000H\000R\010afterSeq\210\001\001B\014\n\n_after" +
+      "_seq\"\260\004\n\033StreamSessionEventsResponse\022C\n\005" +
+      "event\030\001 \001(\0132+.ai.stigmer.agentic.session" +
+      ".v1.SessionEventH\000R\005event\022]\n\013event_start" +
+      "\030\002 \001(\0132).ai.stigmer.agentic.session.v1.E" +
+      "ventStartB\017\362\205,\013event_startH\000R\neventStart" +
+      "\022]\n\013event_delta\030\003 \001(\0132).ai.stigmer.agent" +
+      "ic.session.v1.EventDeltaB\017\362\205,\013event_delt" +
+      "aH\000R\neventDelta\022\212\001\n\031stigmer_tool_output_" +
+      "delta\030\004 \001(\0132..ai.stigmer.agentic.session" +
+      ".v1.ToolOutputDeltaB\035\362\205,\031stigmer.tool_ou" +
+      "tput_deltaH\000R\026stigmerToolOutputDelta\022x\n\024" +
+      "stigmer_run_liveness\030\005 \001(\0132*.ai.stigmer." +
+      "agentic.session.v1.RunLivenessB\030\362\205,\024stig" +
+      "mer.run.livenessH\000R\022stigmerRunLivenessB\007" +
+      "\n\005frame\"\354\003\n\023SessionEventPreview\022]\n\013event" +
+      "_start\030\001 \001(\0132).ai.stigmer.agentic.sessio" +
+      "n.v1.EventStartB\017\362\205,\013event_startH\000R\neven" +
+      "tStart\022]\n\013event_delta\030\002 \001(\0132).ai.stigmer" +
+      ".agentic.session.v1.EventDeltaB\017\362\205,\013even" +
+      "t_deltaH\000R\neventDelta\022\212\001\n\031stigmer_tool_o" +
+      "utput_delta\030\003 \001(\0132..ai.stigmer.agentic.s" +
+      "ession.v1.ToolOutputDeltaB\035\362\205,\031stigmer.t" +
+      "ool_output_deltaH\000R\026stigmerToolOutputDel" +
+      "ta\022x\n\024stigmer_run_liveness\030\004 \001(\0132*.ai.st" +
+      "igmer.agentic.session.v1.RunLivenessB\030\362\205" +
+      ",\024stigmer.run.livenessH\000R\022stigmerRunLive" +
+      "nessB\020\n\007preview\022\005\272H\002\010\001\"\344\001\n\030AppendSession" +
+      "EventsInput\022\035\n\006run_id\030\001 \001(\tB\006\272H\003\310\001\001R\005run" +
+      "Id\022N\n\006events\030\002 \003(\0132+.ai.stigmer.agentic." +
+      "session.v1.SessionEventB\t\272H\006\222\001\003\020\350\007R\006even" +
+      "ts\022Y\n\010previews\030\003 \003(\01322.ai.stigmer.agenti" +
+      "c.session.v1.SessionEventPreviewB\t\272H\006\222\001\003" +
+      "\020\350\007R\010previews\"b\n\033AppendSessionEventsResp" +
+      "onse\022C\n\006events\030\001 \003(\0132+.ai.stigmer.agenti" +
+      "c.session.v1.SessionEventR\006events\"8\n\026Cla" +
+      "imSessionInputInput\022\036\n\006run_id\030\001 \001(\tB\007\272H\004" +
+      "r\002\020\001R\005runId\"`\n\031ClaimSessionInputResponse" +
+      "\022C\n\006events\030\001 \003(\0132+.ai.stigmer.agentic.se" +
+      "ssion.v1.SessionEventR\006events\"\347\002\n\022Update" +
+      "SessionInput\022J\n\010resource\030\001 \001(\0132&.ai.stig" +
+      "mer.agentic.session.v1.SessionB\006\272H\003\330\001\003R\010" +
+      "resource\022C\n\013update_mask\030\002 \001(\0132\032.google.p" +
+      "rotobuf.FieldMaskB\006\272H\003\310\001\001R\nupdateMask:\277\001" +
+      "\272H\273\001\032\270\001\n\027update_names_its_target\022Gresour" +
+      "ce.metadata.id is required: an update na" +
+      "mes the session by its id\032Thas(this.reso" +
+      "urce) && has(this.resource.metadata) && " +
+      "this.resource.metadata.id != \'\'\"h\n\025BindH" +
+      "arnessStateInput\022\035\n\006run_id\030\001 \001(\tB\006\272H\003\310\001\001" +
+      "R\005runId\0220\n\020harness_state_id\030\002 \001(\tB\006\272H\003\310\001" +
+      "\001R\016harnessStateId\"}\n\030BindHarnessStateRes" +
+      "ponse\022(\n\020harness_state_id\030\001 \001(\tR\016harness" +
+      "StateId\0227\n\030harness_state_id_history\030\002 \003(" +
+      "\tR\025harnessStateIdHistory\"`\n\026StreamAttent" +
+      "ionRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022+\n" +
+      "\014after_cursor\030\002 \001(\tB\010\272H\005r\003\030\200\002R\013afterCurs" +
+      "or\"\247\001\n\tAttention\022\016\n\002id\030\001 \001(\tR\002id\022\035\n\nsess" +
+      "ion_id\030\002 \001(\tR\tsessionId\022\024\n\005title\030\003 \001(\tR\005" +
+      "title\022\025\n\006run_id\030\004 \001(\tR\005runId\022\026\n\006reason\030\005" +
+      " \001(\tR\006reason\022\016\n\002at\030\006 \001(\tR\002at\022\026\n\006cursor\030\007" +
+      " \001(\tR\006cursorB\242\001B\007IoProtoP\001\242\002\004ASAS\252\002\035Ai.S" +
+      "tigmer.Agentic.Session.V1\312\002\035Ai\\Stigmer\\A" +
+      "gentic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\S" +
+      "ession\\V1\\GPBMetadata\352\002!Ai::Stigmer::Age" +
+      "ntic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -448,98 +456,104 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_GrantPermissionResponse_descriptor,
         new java.lang.String[] { "Grant", "Confirmations", });
-    internal_static_ai_stigmer_agentic_session_v1_InterruptSessionInput_descriptor =
+    internal_static_ai_stigmer_agentic_session_v1_StopBackgroundCommandInput_descriptor =
       getDescriptor().getMessageType(12);
+    internal_static_ai_stigmer_agentic_session_v1_StopBackgroundCommandInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_session_v1_StopBackgroundCommandInput_descriptor,
+        new java.lang.String[] { "SessionId", "ToolUseId", });
+    internal_static_ai_stigmer_agentic_session_v1_InterruptSessionInput_descriptor =
+      getDescriptor().getMessageType(13);
     internal_static_ai_stigmer_agentic_session_v1_InterruptSessionInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_InterruptSessionInput_descriptor,
         new java.lang.String[] { "SessionId", "SessionThreadId", });
     internal_static_ai_stigmer_agentic_session_v1_InterruptSessionResponse_descriptor =
-      getDescriptor().getMessageType(13);
+      getDescriptor().getMessageType(14);
     internal_static_ai_stigmer_agentic_session_v1_InterruptSessionResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_InterruptSessionResponse_descriptor,
         new java.lang.String[] { "Event", "StoppedRunIds", });
     internal_static_ai_stigmer_agentic_session_v1_ListSessionEventsRequest_descriptor =
-      getDescriptor().getMessageType(14);
+      getDescriptor().getMessageType(15);
     internal_static_ai_stigmer_agentic_session_v1_ListSessionEventsRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_ListSessionEventsRequest_descriptor,
         new java.lang.String[] { "SessionId", "PageSize", "PageToken", "Order", "Types", "CreatedAtGt", "CreatedAtGte", "CreatedAtLt", "CreatedAtLte", "RunId", });
     internal_static_ai_stigmer_agentic_session_v1_SessionEventList_descriptor =
-      getDescriptor().getMessageType(15);
+      getDescriptor().getMessageType(16);
     internal_static_ai_stigmer_agentic_session_v1_SessionEventList_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_SessionEventList_descriptor,
         new java.lang.String[] { "Events", "NextPageToken", });
     internal_static_ai_stigmer_agentic_session_v1_StreamSessionEventsRequest_descriptor =
-      getDescriptor().getMessageType(16);
+      getDescriptor().getMessageType(17);
     internal_static_ai_stigmer_agentic_session_v1_StreamSessionEventsRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_StreamSessionEventsRequest_descriptor,
         new java.lang.String[] { "SessionId", "EventDeltas", "AfterSeq", });
     internal_static_ai_stigmer_agentic_session_v1_StreamSessionEventsResponse_descriptor =
-      getDescriptor().getMessageType(17);
+      getDescriptor().getMessageType(18);
     internal_static_ai_stigmer_agentic_session_v1_StreamSessionEventsResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_StreamSessionEventsResponse_descriptor,
         new java.lang.String[] { "Event", "EventStart", "EventDelta", "StigmerToolOutputDelta", "StigmerRunLiveness", "Frame", });
     internal_static_ai_stigmer_agentic_session_v1_SessionEventPreview_descriptor =
-      getDescriptor().getMessageType(18);
+      getDescriptor().getMessageType(19);
     internal_static_ai_stigmer_agentic_session_v1_SessionEventPreview_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_SessionEventPreview_descriptor,
         new java.lang.String[] { "EventStart", "EventDelta", "StigmerToolOutputDelta", "StigmerRunLiveness", "Preview", });
     internal_static_ai_stigmer_agentic_session_v1_AppendSessionEventsInput_descriptor =
-      getDescriptor().getMessageType(19);
+      getDescriptor().getMessageType(20);
     internal_static_ai_stigmer_agentic_session_v1_AppendSessionEventsInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_AppendSessionEventsInput_descriptor,
         new java.lang.String[] { "RunId", "Events", "Previews", });
     internal_static_ai_stigmer_agentic_session_v1_AppendSessionEventsResponse_descriptor =
-      getDescriptor().getMessageType(20);
+      getDescriptor().getMessageType(21);
     internal_static_ai_stigmer_agentic_session_v1_AppendSessionEventsResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_AppendSessionEventsResponse_descriptor,
         new java.lang.String[] { "Events", });
     internal_static_ai_stigmer_agentic_session_v1_ClaimSessionInputInput_descriptor =
-      getDescriptor().getMessageType(21);
+      getDescriptor().getMessageType(22);
     internal_static_ai_stigmer_agentic_session_v1_ClaimSessionInputInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_ClaimSessionInputInput_descriptor,
         new java.lang.String[] { "RunId", });
     internal_static_ai_stigmer_agentic_session_v1_ClaimSessionInputResponse_descriptor =
-      getDescriptor().getMessageType(22);
+      getDescriptor().getMessageType(23);
     internal_static_ai_stigmer_agentic_session_v1_ClaimSessionInputResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_ClaimSessionInputResponse_descriptor,
         new java.lang.String[] { "Events", });
     internal_static_ai_stigmer_agentic_session_v1_UpdateSessionInput_descriptor =
-      getDescriptor().getMessageType(23);
+      getDescriptor().getMessageType(24);
     internal_static_ai_stigmer_agentic_session_v1_UpdateSessionInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_UpdateSessionInput_descriptor,
         new java.lang.String[] { "Resource", "UpdateMask", });
     internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateInput_descriptor =
-      getDescriptor().getMessageType(24);
+      getDescriptor().getMessageType(25);
     internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateInput_descriptor,
         new java.lang.String[] { "RunId", "HarnessStateId", });
     internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateResponse_descriptor =
-      getDescriptor().getMessageType(25);
+      getDescriptor().getMessageType(26);
     internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_BindHarnessStateResponse_descriptor,
         new java.lang.String[] { "HarnessStateId", "HarnessStateIdHistory", });
     internal_static_ai_stigmer_agentic_session_v1_StreamAttentionRequest_descriptor =
-      getDescriptor().getMessageType(26);
+      getDescriptor().getMessageType(27);
     internal_static_ai_stigmer_agentic_session_v1_StreamAttentionRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_StreamAttentionRequest_descriptor,
         new java.lang.String[] { "Org", "AfterCursor", });
     internal_static_ai_stigmer_agentic_session_v1_Attention_descriptor =
-      getDescriptor().getMessageType(27);
+      getDescriptor().getMessageType(28);
     internal_static_ai_stigmer_agentic_session_v1_Attention_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_Attention_descriptor,

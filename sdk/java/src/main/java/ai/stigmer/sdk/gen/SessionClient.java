@@ -27,6 +27,7 @@ import ai.stigmer.agentic.session.v1.SessionEventList;
 import ai.stigmer.agentic.session.v1.SessionId;
 import ai.stigmer.agentic.session.v1.SessionList;
 import ai.stigmer.agentic.session.v1.SessionQueryControllerGrpc;
+import ai.stigmer.agentic.session.v1.StopBackgroundCommandInput;
 import ai.stigmer.agentic.session.v1.StreamAttentionRequest;
 import ai.stigmer.agentic.session.v1.StreamSessionEventsRequest;
 import ai.stigmer.agentic.session.v1.StreamSessionEventsResponse;
@@ -88,6 +89,12 @@ public final class SessionClient {
     public GrantPermissionResponse grantPermission(GrantPermissionInput input) {
         try {
             return command.grantPermission(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public SessionEvent stopBackgroundCommand(StopBackgroundCommandInput input) {
+        try {
+            return command.stopBackgroundCommand(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

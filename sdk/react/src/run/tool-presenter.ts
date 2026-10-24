@@ -13,7 +13,7 @@
 // presentation seam.
 
 import { useMemo } from "react";
-import { resolveToolKind, normalizeToolResult, type ToolKind } from "@stigmer/client";
+import { backgroundCommandText, resolveToolKind, normalizeToolResult, type ToolKind } from "@stigmer/client";
 import type { ToolResultView, ToolUse } from "@stigmer/client";
 import {
   resolveToolCategoryFromCall,
@@ -116,6 +116,22 @@ export function resolveRunGroupable(toolUse: ToolUse): boolean {
   return isRunGroupableCategory(resolveToolCategoryFromCall(toolUse).category);
 }
 
+/**
+ * The agent's stop of a background command, read from the command's own
+ * end, which names the stop call (`ToolUse.stoppedBackground`): "Stopped"
+ * with the command it stopped, or, once the call returned without one, that
+ * the command had already ended. Never from the stop's prose.
+ */
+function backgroundStopPresentation(toolUse: ToolUse): { readonly title: string; readonly primaryArg: string | null } {
+  const stopped = toolUse.stoppedBackground;
+  if (stopped !== undefined) {
+    const command = backgroundCommandText({ input: stopped.input });
+    return { title: "Stopped", primaryArg: command === "" ? null : command };
+  }
+  if (toolUse.state === "completed") return { title: "The command had already ended", primaryArg: null };
+  return { title: "Stopping a command", primaryArg: null };
+}
+
 /** The fully-resolved presentation for a tool call, returned by {@link useToolPresentation}. */
 export interface ToolPresentation {
   /** Harness-agnostic kind (wire field, with name fallback). */
@@ -184,7 +200,8 @@ export function useToolPresentation(toolUse: ToolUse): ToolPresentation {
     const overrideLabel = override?.label?.(toolUse);
     const label = overrideLabel ?? categoryInfo.label;
     const intent = extractShellIntent(toolUse);
-    const title = overrideLabel ?? intent ?? categoryInfo.label;
+    const stop = categoryInfo.category === "background-stop" ? backgroundStopPresentation(toolUse) : undefined;
+    const title = overrideLabel ?? intent ?? stop?.title ?? categoryInfo.label;
     const resultSummary =
       override?.summary?.(toolUse, result) ?? summarizeResultView(result);
     const disclosure =
@@ -203,7 +220,7 @@ export function useToolPresentation(toolUse: ToolUse): ToolPresentation {
       label,
       intent,
       title,
-      primaryArg: extractPrimaryArg(toolUse),
+      primaryArg: stop !== undefined ? stop.primaryArg : extractPrimaryArg(toolUse),
       result,
       resultSummary,
       disclosure,

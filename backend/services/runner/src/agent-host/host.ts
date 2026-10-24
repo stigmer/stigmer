@@ -110,6 +110,7 @@ export function serveAgentHost(channel: LineChannel, rows: readonly HarnessRow[]
   peer.onNotice("stopTurn", ({ turnId, reason }) => turns.get(turnId)?.stop(reason));
   peer.onNotice("yieldTurn", ({ turnId }) => turns.get(turnId)?.yield());
   peer.onNotice("inputPending", ({ turnId }) => turns.get(turnId)?.inputPending());
+  peer.onNotice("stopBackgroundCommand", ({ turnId, callId }) => turns.get(turnId)?.stopBackgroundCommand(callId));
 
   // The runtime's operations on the agent's paths, performed with the agent's rights.
   peer.handle("fs", (request) => serveFs(request));

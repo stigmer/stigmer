@@ -2,8 +2,8 @@
  * Pins the catalog (../catalog.ts) and the codec (../codec.ts): every event
  * the contract carries declares its Managed Agents type once, on its oneof
  * member; a runner's types are a subset that leaves the user's turn, the
- * session's status, a turn's status and every file-review decision to
- * the server; a
+ * session's status, a turn's status, every file-review decision and a
+ * person's stop of a background command to the server; a
  * draft's bytes carry no seq, session or accepted time, so a resent event
  * encodes to the stored bytes; an ask's policy source admits the word of
  * every source a run records (the shared policy-source corpus,
@@ -37,7 +37,7 @@ import {
 } from "../../filereview/words.js";
 
 describe("the catalog", () => {
-  it("every Stigmer event but a file-review decision, a permission grant and a turn's status is the runner's to append", () => {
+  it("every Stigmer event but a file-review decision, a permission grant, a turn's status and a person's stop is the runner's to append", () => {
     const own = SESSION_EVENT_TYPES.filter(isStigmerEventType);
     expect(own).toEqual([
       "stigmer.agent.thinking",
@@ -51,15 +51,27 @@ describe("the catalog", () => {
       "stigmer.permission.grant",
       "stigmer.run.status",
       "stigmer.tool_result.full_output",
+      "stigmer.background_command.status",
+      "stigmer.background_command.stop_requested",
     ]);
-    const serverOnly = ["stigmer.file_review.decided", "stigmer.permission.grant", "stigmer.run.status"];
+    const serverOnly = [
+      "stigmer.file_review.decided",
+      "stigmer.permission.grant",
+      "stigmer.run.status",
+      "stigmer.background_command.stop_requested",
+    ];
     for (const type of own) {
       expect(RUNNER_EVENT_TYPES.has(type), type).toBe(!serverOnly.includes(type));
     }
   });
 
   it("a person's answers and stop are the server's to write, never a runner's", () => {
-    for (const type of ["user.tool_confirmation", "user.interrupt", "user.message"]) {
+    for (const type of [
+      "user.tool_confirmation",
+      "user.interrupt",
+      "user.message",
+      "stigmer.background_command.stop_requested",
+    ]) {
       expect(RUNNER_EVENT_TYPES.has(type), type).toBe(false);
     }
   });

@@ -184,6 +184,7 @@ import { reviewFileChanges } from "./filereview/review-file-changes.js";
 import { confirmToolUse } from "./hitl/confirm-tool-use.js";
 import { grantPermission } from "./hitl/grant-permission.js";
 import { interrupt } from "./hitl/interrupt.js";
+import { stopBackgroundCommand } from "./hitl/stop-background-command.js";
 import type { ExecutionEngineStateProvider } from "../run/engine.js";
 import type { RunStatusObserver } from "../../extensions/status-hooks.js";
 import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
@@ -282,6 +283,7 @@ export function registerSessionServices(
     confirmToolUse: (input, ctx) => confirmToolUse(deps, input, callerIdentityOf(ctx)),
     grantPermission: (input, ctx) => grantPermission(deps, input, callerIdentityOf(ctx)),
     interrupt: (input, ctx) => interrupt(deps, input, callerIdentityOf(ctx)),
+    stopBackgroundCommand: (input, ctx) => stopBackgroundCommand(deps, input, callerIdentityOf(ctx)),
   });
   router.service(SessionQueryController, {
     get: (id, ctx) => get(deps, id, ctx),

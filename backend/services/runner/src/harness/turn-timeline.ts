@@ -169,6 +169,9 @@ export class TurnTimeline {
       case "system_note":
       case "background_wait_started":
       case "background_wait_finished":
+      case "background_command_started":
+      case "background_output_delta":
+      case "background_command_ended":
         return;
       default: {
         const exhaustive: never = event;

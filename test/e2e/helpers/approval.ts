@@ -77,8 +77,8 @@ export function writeFileBlock(
  * GATE surface itself is pinned by tool-card-ux.spec.ts against the file-gate
  * stack (STIGMER_E2E_FILE_GATES), where writes still gate pre-execution.
  */
-export function shellBlock(toolCallId: string, command: string): ToolUseBlock {
-  return { toolCallId, toolName: "execute", toolInput: { command } };
+export function shellBlock(toolCallId: string, command: string, options: { readonly background?: boolean } = {}): ToolUseBlock {
+  return { toolCallId, toolName: "execute", toolInput: { command, ...(options.background === true ? { background: true } : {}) } };
 }
 
 /**
@@ -209,6 +209,13 @@ export interface SeedToolRunSessionOptions {
    * layer, where the result shape is controllable without a live MCP fixture.
    */
   readonly toolTurns?: ToolUseBlock[][];
+  /**
+   * What the model says after the tool turns, one text turn per model call,
+   * in order. Defaults to `["Done."]`. A turn whose agent ran a command in
+   * the background ends its reply, is reminded the command runs, ends it
+   * again and waits, then answers the command's end: three texts.
+   */
+  readonly closingTexts?: readonly string[];
   /** The user message that triggers the run. */
   readonly message?: string;
   /** The seeded agent's hooks (`AgentSpec.hooks`): a hook's refusal binds even under `auto_approve_all`. */
@@ -261,7 +268,9 @@ export async function seedToolRunSession(
   for (const turn of toolTurns) {
     await control.enqueue(anthropicToolUses(turn));
   }
-  await control.enqueue(anthropicText("Done."));
+  for (const text of opts.closingTexts ?? ["Done."]) {
+    await control.enqueue(anthropicText(text));
+  }
 
   const execution = await client.run.create({
     name: `e2e-toolrun-exec-${stamp}`,

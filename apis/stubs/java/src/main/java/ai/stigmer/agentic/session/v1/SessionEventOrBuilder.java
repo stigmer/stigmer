@@ -877,5 +877,62 @@ public interface SessionEventOrBuilder extends
    */
   ai.stigmer.agentic.session.v1.StigmerToolResultFullOutputEventOrBuilder getStigmerToolResultFullOutputOrBuilder();
 
+  /**
+   * <pre>
+   * A command the agent started in the background began running, or
+   * ended and how.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent stigmer_background_command_status = 111 [json_name = "stigmerBackgroundCommandStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.status"];</code>
+   * @return Whether the stigmerBackgroundCommandStatus field is set.
+   */
+  boolean hasStigmerBackgroundCommandStatus();
+  /**
+   * <pre>
+   * A command the agent started in the background began running, or
+   * ended and how.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent stigmer_background_command_status = 111 [json_name = "stigmerBackgroundCommandStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.status"];</code>
+   * @return The stigmerBackgroundCommandStatus.
+   */
+  ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent getStigmerBackgroundCommandStatus();
+  /**
+   * <pre>
+   * A command the agent started in the background began running, or
+   * ended and how.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEvent stigmer_background_command_status = 111 [json_name = "stigmerBackgroundCommandStatus", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.status"];</code>
+   */
+  ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStatusEventOrBuilder getStigmerBackgroundCommandStatusOrBuilder();
+
+  /**
+   * <pre>
+   * A person asked to stop a command running in the background.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent stigmer_background_command_stop_requested = 112 [json_name = "stigmerBackgroundCommandStopRequested", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.stop_requested"];</code>
+   * @return Whether the stigmerBackgroundCommandStopRequested field is set.
+   */
+  boolean hasStigmerBackgroundCommandStopRequested();
+  /**
+   * <pre>
+   * A person asked to stop a command running in the background.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent stigmer_background_command_stop_requested = 112 [json_name = "stigmerBackgroundCommandStopRequested", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.stop_requested"];</code>
+   * @return The stigmerBackgroundCommandStopRequested.
+   */
+  ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent getStigmerBackgroundCommandStopRequested();
+  /**
+   * <pre>
+   * A person asked to stop a command running in the background.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEvent stigmer_background_command_stop_requested = 112 [json_name = "stigmerBackgroundCommandStopRequested", (.ai.stigmer.commons.apiresource.event_type) = "stigmer.background_command.stop_requested"];</code>
+   */
+  ai.stigmer.agentic.session.v1.StigmerBackgroundCommandStopRequestedEventOrBuilder getStigmerBackgroundCommandStopRequestedOrBuilder();
+
   ai.stigmer.agentic.session.v1.SessionEvent.EventCase getEventCase();
 }

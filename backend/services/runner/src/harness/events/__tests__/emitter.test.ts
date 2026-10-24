@@ -35,7 +35,7 @@ import {
   nextScopeIndexes,
   type SessionEventEmitterDeps,
 } from "../emitter.js";
-import { AgentMessageSchema, ToolCallSchema, TurnRowsSchema, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
+import { AgentMessageSchema, BackgroundCommandRowSchema, ToolCallSchema, TurnRowsSchema, type TurnRows } from "../../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 import {
   ApprovalPolicySource,
   ApprovalPolicySourceSchema,
@@ -553,6 +553,153 @@ describe("previews", () => {
     e.observe({ kind: "text_delta", runId: "r1", text: "Hi" }, { messageIndex: 0 });
     await e.flush(status({ messages: [{ type: AI, content: "Hi" }] }), { final: true });
     expect(log.previews).toEqual([]);
+  });
+});
+
+describe("background commands", () => {
+  /** A command the registry reported, started at t0. */
+  function command(callId: string, init: { readonly timeoutSeconds: number; readonly ending?: string; readonly output?: string; readonly endedAt?: string }) {
+    return create(BackgroundCommandRowSchema, { callId, startedAt: "t0", ...init });
+  }
+
+  /** A turn whose root started `bg` in the background (its result in), and whose sub-agent `t1` started `sub-bg`. */
+  function startedRows(): TurnRows {
+    return status({
+      messages: [
+        {
+          type: AI,
+          content: "Starting the server.",
+          toolCalls: [
+            row("bg", { name: "execute", result: "Started in the background (id bg)." }),
+            row("t1", { name: "task", status: S.TOOL_CALL_RUNNING, result: "" }),
+          ],
+        },
+      ],
+      subAgentRuns: [
+        {
+          id: "t1",
+          name: "helper",
+          status: SubAgentStatus.SUB_AGENT_IN_PROGRESS,
+          messages: [{ type: AI, content: "Testing.", toolCalls: [row("sub-bg", { name: "execute", result: "Started." })] }],
+        },
+      ],
+    });
+  }
+
+  function statuses(log: ReturnType<typeof logDouble>) {
+    return log.events.flatMap((e) =>
+      e.event.case === "stigmerBackgroundCommandStatus" ? [{ id: e.event.value.id.slice(RUN.length + 1), thread: e.threadId, value: e.event.value }] : [],
+    );
+  }
+
+  it("writes running after the start's result, then ended with how and who, each in the start's thread, once", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    const st = startedRows();
+    st.backgroundCommands.push(command("bg", { timeoutSeconds: 3300 }));
+    st.backgroundCommands.push(command("sub-bg", { timeoutSeconds: 60 }));
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    await e.flush(st, { final: false });
+    expect(ids(log).indexOf("bg.bg"), "the running status follows the start's result").toBeGreaterThan(ids(log).indexOf("bg.r"));
+    expect(statuses(log).map((s) => [s.id, s.thread, s.value.phase, s.value.timeoutSeconds])).toEqual([
+      ["bg.bg", "", "running", 3300],
+      ["sub-bg.bg", `${RUN}.t1`, "running", 60],
+    ]);
+    expect(statuses(log)[1]!.value.sessionThreadId).toBe(`${RUN}.t1`);
+
+    st.backgroundCommands[0]!.ending = "stopped";
+    st.backgroundCommands[0]!.stoppedBy = "agent";
+    st.backgroundCommands[0]!.stoppedByCallId = "stop-1";
+    st.backgroundCommands[0]!.output = "listening on :3000\n";
+    st.backgroundCommands[0]!.endedAt = "t9";
+    st.backgroundCommands[1]!.ending = "exited";
+    st.backgroundCommands[1]!.exitCode = 0;
+    await e.flush(st, { final: false });
+    await e.flush(st, { final: true });
+    const ended = statuses(log).slice(2);
+    expect(ended.map((s) => s.id)).toEqual(["bg.bg.end", "sub-bg.bg.end"]);
+    expect(ended[0]!.value).toMatchObject({
+      toolUseId: `${RUN}.bg`,
+      phase: "ended",
+      ending: "stopped",
+      stoppedBy: "agent",
+      stoppedByToolUseId: `${RUN}.stop-1`,
+      output: "listening on :3000\n",
+      endedAt: "t9",
+    });
+    expect(ended[0]!.value.exitCode).toBeUndefined();
+    expect(ended[1]!.value).toMatchObject({ ending: "exited", exitCode: 0, stoppedByToolUseId: "" });
+    expect(statuses(log), "each written once").toHaveLength(4);
+    const validator = createValidator();
+    for (const event of log.events.filter((ev) => ev.event.case === "stigmerBackgroundCommandStatus")) {
+      expect(validator.validate(SessionEventSchema, event).kind, "the contract admits it").toBe("valid");
+    }
+  });
+
+  it("writes nothing for a command whose start's result the log does not hold yet", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    const st = status({ messages: [{ type: AI, content: "Starting.", toolCalls: [row("bg", { name: "execute", status: S.TOOL_CALL_RUNNING, result: "" })] }] });
+    st.backgroundCommands.push(command("bg", { timeoutSeconds: 60, ending: "failed_to_start", output: "spawn /bin/sh ENOENT", endedAt: "t0" }));
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    await e.flush(st, { final: false });
+    expect(statuses(log)).toEqual([]);
+    st.messages[0]!.toolCalls[0]!.status = S.TOOL_CALL_COMPLETED;
+    st.messages[0]!.toolCalls[0]!.result = "Started.";
+    await e.flush(st, { final: false });
+    expect(statuses(log).map((s) => [s.id, s.value.ending])).toEqual([
+      ["bg.bg", ""],
+      ["bg.bg.end", "failed_to_start"],
+    ]);
+  });
+
+  it("previews its output under the start's tool use once the running status is in the log, holds it until then, and drops it once the end is known", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    const st = startedRows();
+    st.backgroundCommands.push(command("bg", { timeoutSeconds: 60 }));
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    const outputs = () => log.previews.flatMap((p) => (p.preview.case === "stigmerToolOutputDelta" ? [[p.preview.value.toolUseId, p.preview.value.delta]] : []));
+
+    // Before any write: held, and the pump is not woken for it.
+    e.observe({ kind: "background_output_delta", callId: "bg", delta: "booting\n" });
+    expect(e.toolOutputPending, "nothing it may send alone yet").toBe(false);
+    await e.flushToolOutput();
+    expect(outputs()).toEqual([]);
+
+    // The write that sends the running status carries the held output after it.
+    await e.flush(st, { final: false });
+    expect(outputs()).toEqual([[`${RUN}.bg`, "booting\n"]]);
+
+    // Between writes, alone.
+    e.observe({ kind: "background_output_delta", callId: "bg", delta: "ready\n" });
+    expect(e.toolOutputPending).toBe(true);
+    await e.flushToolOutput();
+    expect(outputs().at(-1)).toEqual([`${RUN}.bg`, "ready\n"]);
+    expect(log.client.appendSessionEvents.mock.calls.at(-1)![1], "a preview flush carries no event").toEqual([]);
+
+    // Once its end is known, its output is in the ended status: no more previews.
+    st.backgroundCommands[0]!.ending = "exited";
+    st.backgroundCommands[0]!.exitCode = 0;
+    await e.flush(st, { final: false });
+    e.observe({ kind: "background_output_delta", callId: "bg", delta: "late\n" });
+    await e.flushToolOutput();
+    await e.flush(st, { final: false });
+    expect(outputs().map(([, delta]) => delta)).toEqual(["booting\n", "ready\n"]);
+    expect(e.toolOutputPending).toBe(false);
+  });
+
+  it("holds at most a bounded amount of a command's output while its running status waits", async () => {
+    const log = logDouble();
+    const e = emitter(log);
+    await e.begin({ sessionId: "ses_1", resumed: false, rows: create(TurnRowsSchema) });
+    const chunk = "x".repeat(100 * 1024);
+    for (let i = 0; i < 4; i++) e.observe({ kind: "background_output_delta", callId: "bg", delta: chunk });
+    const st = startedRows();
+    st.backgroundCommands.push(command("bg", { timeoutSeconds: 60 }));
+    await e.flush(st, { final: false });
+    const sent = log.previews.filter((p) => p.preview.case === "stigmerToolOutputDelta");
+    expect(sent, "two chunks fit under the bound; the rest is in the ended status").toHaveLength(2);
   });
 });
 

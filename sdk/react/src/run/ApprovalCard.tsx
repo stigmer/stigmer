@@ -374,6 +374,19 @@ export function ApprovalCardBody({
         </p>
       )}
 
+      {/* A background start is approved before it runs on past its call, so
+          the person sees what that costs them: it lives only as long as the
+          turn's invocation, which a later approval pause ends. */}
+      {categoryInfo.category === "shell" && toolUse.input["background"] === true && (
+        <p
+          className="stg:text-[11px] stg:italic stg:text-muted-foreground"
+          data-cursor-target="approval-background-note"
+        >
+          Runs in the background while the agent works; it stops when the turn
+          ends or pauses for approval.
+        </p>
+      )}
+
       {denying ? (
         // The deny row: an optional reason the agent reads, then Deny or
         // Cancel. Enter submits.
