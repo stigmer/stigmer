@@ -124,7 +124,10 @@ export const FORMATTERS = [
     },
   },
   nodePackage("oxfmt", "oxfmt", "oxfmt", JS_EXTENSIONS, []),
-  nodePackage("prettier", "Prettier", "prettier", WEB_EXTENSIONS, ["--write"]),
+  // `--ignore-unknown` and `--files-ignore-unknown=true` make a file type the
+  // formatter cannot parse (a `.toml` without its plugin) a quiet no-op
+  // rather than a failure the runner logs.
+  nodePackage("prettier", "Prettier", "prettier", WEB_EXTENSIONS, ["--write", "--ignore-unknown"]),
   {
     name: "biome",
     title: "Biome",
@@ -132,7 +135,7 @@ export const FORMATTERS = [
     resolve: (file, root) => {
       const project = findUp(dirname(file), root, (dir) => isFile(join(dir, "biome.json")) || isFile(join(dir, "biome.jsonc")));
       const bin = project === undefined ? undefined : localBin(dirname(file), root, join("node_modules", ".bin", "biome"));
-      return project === undefined || bin === undefined ? undefined : { command: bin, args: ["format", "--write", file], cwd: project };
+      return project === undefined || bin === undefined ? undefined : { command: bin, args: ["format", "--write", "--files-ignore-unknown=true", file], cwd: project };
     },
   },
   canonical("zig", "zig fmt", [".zig", ".zon"], ["fmt"]),
@@ -159,6 +162,9 @@ export const FORMATTERS = [
     resolve: (file, root, env) => {
       const bin = onPath("rustfmt", env);
       if (bin === undefined) return undefined;
+      // rustfmt also formats the out-of-line modules a file declares
+      // (`mod name;`); its switch to skip them is nightly-only, and the
+      // plugin's README says so.
       // A bare rustfmt parses the 2015 edition and refuses newer syntax, so
       // the crate's edition is passed: the nearest literal one walking up,
       // which reaches a workspace's `[workspace.package]` when a member

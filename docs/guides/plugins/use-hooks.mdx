@@ -152,8 +152,8 @@ Its page lists one hook: **After a tool call**, on `Write` and `Edit`, running
 declares (a `package.json` dependency, a `biome.json`, a `.clang-format`, a
 `[tool.ruff]` table) or a one-style formatter such as `gofmt` when it is
 installed, and runs it from the project's own `node_modules`, `.venv` or `PATH`.
-Nothing is downloaded, and a formatter the project does not declare never runs.
-The plugin's
+Nothing is downloaded, and a formatter with a style of its own to choose, such
+as Prettier or Ruff, never runs unless the project declares it. The plugin's
 [README](https://github.com/stigmer/stigmer/tree/main/plugins/format-on-edit)
 has the whole table.
 

@@ -141,7 +141,7 @@ describe("the formatters the project declares", SPAWNS, () => {
 
     expect(formatAfterEdit(hookInput(file), env)).toEqual({ stdout: notice("Prettier", "src/app.ts", "lines 1-3"), stderr: "", exitCode: 0 });
     expect(readFileSync(file, "utf8")).toBe(FORMATTED);
-    expect(calls(log)).toEqual([{ name: "prettier", cwd: root, args: ["--write", file] }]);
+    expect(calls(log)).toEqual([{ name: "prettier", cwd: root, args: ["--write", "--ignore-unknown", file] }]);
   });
 
   it("finds a hoisted binary above the package that depends on it, and runs in that package", () => {
@@ -152,7 +152,7 @@ describe("the formatters the project declares", SPAWNS, () => {
     const file = put(root, "packages/web/src/app.ts", UNFORMATTED);
 
     expect(formatAfterEdit(hookInput(file), env).stdout).toBe(notice("Prettier", "packages/web/src/app.ts", "lines 1-3"));
-    expect(calls(log)).toEqual([{ name: "prettier", cwd: join(root, "packages", "web"), args: ["--write", file] }]);
+    expect(calls(log)).toEqual([{ name: "prettier", cwd: join(root, "packages", "web"), args: ["--write", "--ignore-unknown", file] }]);
   });
 
   it("never runs Prettier for a project that does not depend on it, though the binary is there", () => {
@@ -187,7 +187,7 @@ describe("the formatters the project declares", SPAWNS, () => {
     const file = put(root, "app/src/main.ts", UNFORMATTED);
 
     expect(formatAfterEdit(hookInput(file), env).stdout).toBe(notice("Biome", "app/src/main.ts", "lines 1-3"));
-    expect(calls(log)).toEqual([{ name: "biome", cwd: join(root, "app"), args: ["format", "--write", file] }]);
+    expect(calls(log)).toEqual([{ name: "biome", cwd: join(root, "app"), args: ["format", "--write", "--files-ignore-unknown=true", file] }]);
   });
 
   it("gives Prettier the file when the project declares both it and Biome, and Biome when Prettier fails", () => {

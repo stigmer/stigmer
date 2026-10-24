@@ -45,10 +45,13 @@ in the folder its evidence was found in.
 | rustfmt       | `.rs`                                                            | `rustfmt` on `PATH`; `--edition` from the crate's `Cargo.toml`                                       |
 | Pint          | `.php`                                                           | a `composer.json` requires `laravel/pint`, binary in `vendor/bin`                                    |
 
-A formatter the project does not declare is never run, even when it is installed
-on the machine, because formatting a whole file in a style the project does not
-use turns a one-line change into a rewrite. Nothing is downloaded or installed.
-Each formatter is stopped after 20 seconds.
+A configurable formatter the project does not declare is never run, even when it
+is installed on the machine, because formatting a whole file in a style the
+project does not use turns a one-line change into a rewrite; the one-style
+formatters (gofmt, zig fmt, dart format, terraform fmt, gleam format, rustfmt)
+have no style to choose, so they run whenever they are installed. A file type
+Prettier or Biome cannot parse is left alone, quietly. Nothing is downloaded or
+installed. Each formatter is stopped after 20 seconds.
 
 ## What the agent is told
 
@@ -73,6 +76,8 @@ formatter's name and exit, never the file's.
   with this plugin, still have the project's formatter run.
 - It formats the whole file. In a project that keeps its files formatted that is
   the edited lines alone; in one that does not, the first edit to a file
-  reformats all of it.
+  reformats all of it. rustfmt also formats the modules a Rust file declares
+  with `mod name;`, so an edit to `lib.rs` can reformat the files of those
+  modules, which the line the agent is told does not name.
 - It formats what the file tools write. A file changed by a shell command is not
   formatted.
