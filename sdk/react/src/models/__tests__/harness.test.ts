@@ -11,6 +11,7 @@ import {
   HARNESS_OPTIONS,
   type HarnessOption,
 } from "../harness";
+import { parseModelKey } from "../registry";
 
 // The option set is the proto enum's, nothing more (stigmer/stigmer#1143): an
 // option the platform cannot run must not type-check, because the SDK would
@@ -53,6 +54,18 @@ describe("the option set is the proto's harness set", () => {
     for (const word of ["codex", "devin", "copilot", "claude_code", "", "NATIVE"]) {
       expect(isNamedHarness(word)).toBe(false);
     }
+  });
+});
+
+describe("parseModelKey", () => {
+  it("reads a key on every named engine, offered or not", () => {
+    expect(parseModelKey("native/claude-sonnet-4-6")).toEqual({ harness: "native", modelId: "claude-sonnet-4-6" });
+    expect(parseModelKey("claude/claude-opus-5")).toEqual({ harness: "claude", modelId: "claude-opus-5" });
+  });
+
+  it("refuses a key on a word no engine owns, or with no engine", () => {
+    expect(parseModelKey("codex/gpt-5")).toBeUndefined();
+    expect(parseModelKey("/gpt-5")).toBeUndefined();
   });
 });
 
