@@ -127,13 +127,13 @@ approval, or `auto_approve_all` on an execution): the call still does not run.
 On a Slack or WhatsApp channel or a chat link, where nobody can approve, a call
 a hook asks about is skipped, as any call that asks is.
 
-## Format every file the agent edits
+## Format every file the Agent edits
 
 Stigmer's own catalogue has a plugin whose hook runs the project's formatter on
 every file the Agent writes or edits, right after the change: Prettier for a
 project that depends on it, `gofmt` for Go, Ruff for a Python project configured
-for it, and others. Install it, then add it to the Agent as above, or try it in
-one conversation:
+for it, and others. Install it, then add it to the Agent as in
+[Switch the hooks on](#switch-the-hooks-on), or try it in one conversation:
 
 ```bash
 stigmer install format-on-edit
