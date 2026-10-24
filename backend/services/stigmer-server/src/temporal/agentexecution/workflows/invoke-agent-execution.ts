@@ -102,6 +102,13 @@ import { RunStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb"
 import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import {
+  ENSURE_THREAD_ACTIVITY_NAME,
+  EXECUTE_CLAUDE_ACTIVITY_NAME,
+  EXECUTE_CURSOR_ACTIVITY_NAME,
+  EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
+  GENERATE_SESSION_SUBJECT_ACTIVITY_NAME,
+} from "@stigmer/temporal-codecs/activity-names";
 
 import { unresolvedGateCountOfJson } from "../../../domain/run/filereview/gate.js";
 import {
@@ -118,11 +125,6 @@ import {
   CLOSE_FILE_REVIEW_PATCH_ID,
   COUNT_OPEN_GATES_ACTIVITY_NAME,
   DEFAULT_ACTIVITY_TASK_QUEUE,
-  ENSURE_THREAD_ACTIVITY_NAME,
-  EXECUTE_CLAUDE_ACTIVITY_NAME,
-  EXECUTE_CURSOR_ACTIVITY_NAME,
-  EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
-  GENERATE_SESSION_SUBJECT_ACTIVITY_NAME,
   LOAD_AGENT_EXECUTION_ACTIVITY_NAME,
   MEMO_ACTIVITY_TASK_QUEUE,
   OPEN_GATES_FROM_LOG_PATCH_ID,

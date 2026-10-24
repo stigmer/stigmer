@@ -52,18 +52,12 @@ export const MEMO_ACTIVITY_TASK_QUEUE = "activityTaskQueue";
 export const DEFAULT_ACTIVITY_TASK_QUEUE = "stigmer_runner";
 
 // ─── Activity names ─────────────────────────────────────────────────────
-// Runner-owned (the TS unified runner registers these; this server only
-// CALLS them — registering them here would break queue-based routing).
-// Declared once, in the library the runner reads them from too, so the
-// name the workflow schedules is the name the runner polls for.
-
-export {
-  ENSURE_THREAD_ACTIVITY_NAME,
-  EXECUTE_CLAUDE_ACTIVITY_NAME,
-  EXECUTE_CURSOR_ACTIVITY_NAME,
-  EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
-  GENERATE_SESSION_SUBJECT_ACTIVITY_NAME,
-} from "@stigmer/temporal-codecs/activity-names";
+// Runner-owned (the TS unified runner registers them; this server only
+// CALLS them — registering them here would break queue-based routing) are
+// declared once, in `@stigmer/temporal-codecs/activity-names`, which the
+// runner reads too, so the name the workflow schedules is the name the
+// runner polls for. Not re-exported here: this module stays free of
+// package imports for the test trees that read it by source path.
 
 // Server-owned (registered by this worker):
 
