@@ -152,7 +152,8 @@ describe("FolderInstructionsMiddleware", () => {
   it("shows a folder's file once while the model still sees it", async () => {
     const mw = middleware();
     const first = await call(mw, request("r1", "/pkg/x.ts", { messages: [proposing({ id: "r1", path: "/pkg/x.ts" })] }));
-    const state = { messages: [proposing({ id: "r1", path: "/pkg/x.ts" }), first, proposing({ id: "r2", path: "/pkg/sub/x.ts" })] };
+    const plain = readResult("r0", "an earlier result carrying no notes");
+    const state = { messages: [plain, proposing({ id: "r1", path: "/pkg/x.ts" }), first, proposing({ id: "r2", path: "/pkg/sub/x.ts" })] };
     const second = await call(mw, request("r2", "/pkg/sub/x.ts", state));
     expect(second.additional_kwargs[FOLDER_INSTRUCTIONS_KEY]).toEqual(["/pkg/sub/CLAUDE.md"]);
     expect(texts(second)).not.toContain("pkg notes");
@@ -187,6 +188,15 @@ describe("FolderInstructionsMiddleware", () => {
     const results = await Promise.all([call(mw, request("a", "/pkg/a.ts", state)), call(mw, request("b", "/pkg/b.ts", state))]);
     const carried = results.map((result) => result.additional_kwargs[FOLDER_INSTRUCTIONS_KEY]);
     expect(carried.filter((paths) => paths !== undefined)).toEqual([["/pkg/AGENTS.md"]]);
+  });
+
+  it("finds a call's model message past later messages, and keys a call no model message holds by its own id", async () => {
+    const mw = middleware();
+    const held = { messages: [proposing({ id: "a", path: "/pkg/a.ts" }), new HumanMessage("a message sent while the turn works")] };
+    expect((await call(mw, request("a", "/pkg/a.ts", held))).additional_kwargs[FOLDER_INSTRUCTIONS_KEY]).toEqual(["/pkg/AGENTS.md"]);
+    const unheld = { messages: [new HumanMessage("no proposing message")] };
+    const results = await Promise.all([call(mw, request("x", "/pkg/a.ts", unheld)), call(mw, request("y", "/pkg/b.ts", unheld))]);
+    expect(results.map((r) => r.additional_kwargs[FOLDER_INSTRUCTIONS_KEY]), "each its own response").toEqual([["/pkg/AGENTS.md"], ["/pkg/AGENTS.md"]]);
   });
 
   it("claims afresh for the next response", async () => {
