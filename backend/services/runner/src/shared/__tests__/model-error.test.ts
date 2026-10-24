@@ -13,6 +13,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { APIConnectionError, APIConnectionTimeoutError as SdkConnectionTimeoutError, APIError } from "@anthropic-ai/sdk";
 import { MiddlewareError } from "langchain";
+import { TimeoutError as WithTimeoutError } from "../with-timeout.js";
 import {
   ORGANIZATION_PROVIDER_KEY_SENTINEL,
   PROVIDER_KEY_REQUIRED_SENTINEL,
@@ -197,6 +198,9 @@ describe("classifyModelCallError — connection heuristics and no-signal", () =>
     const wrapped = MiddlewareError.wrap(domTimeout, "promptCaching") as Error;
     expect(wrapped.name, "LangChain's wrapper copies the name").toBe("TimeoutError");
     expect(classifyModelCallError(wrapped, { proxyMode: false })).toBeUndefined();
+    const cursorCreate = new WithTimeoutError("Cursor agent create timed out after 30000ms");
+    expect(describeExecutionError(middlewareWrap(cursorCreate), { proxyMode: false }).errorType, "the runner's own timeout keeps its identity")
+      .toBe("TimeoutError");
   });
 
   it("words a reply that failed mid-stream by the provider's error type, never as [APIError]", () => {

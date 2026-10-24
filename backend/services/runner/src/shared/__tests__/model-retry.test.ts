@@ -32,6 +32,7 @@ import {
   type RetryDecision,
 } from "../model-retry.js";
 import { PROVIDER_KEY_REQUIRED_SENTINEL } from "../model-error.js";
+import { TimeoutError as WithTimeoutError } from "../with-timeout.js";
 
 /** A provider's error response, as the SDK builds it from the status, body and headers. */
 function providerError(status: number, type: string, headers: Record<string, string> = {}, message = type): APIError {
@@ -77,6 +78,8 @@ const CASES: readonly (readonly [string, () => Error, Expected])[] = [
   ["mid-reply overloaded_error", () => streamError("overloaded_error"), { retry: true, reason: "overloaded" }],
   ["mid-reply rate_limit_error", () => streamError("rate_limit_error"), { retry: true, reason: "rate_limited" }],
   ["mid-reply invalid_request_error", () => streamError("invalid_request_error"), { retry: false, reason: "refused" }],
+  ["a mid-reply type that names an object's own property", () => streamError("constructor" as ProviderErrorType), { retry: false, reason: "refused" }],
+  ["the runner's own with-timeout bound", () => new WithTimeoutError("Cursor agent create timed out after 30000ms"), { retry: false, reason: "unrecognized" }],
   ["Bedrock's mid-reply throttlingException", () => streamError("api_error", "throttlingException"), { retry: true, reason: "stream_error" }],
   ["Bedrock's mid-reply validationException", () => streamError("api_error", "validationException"), { retry: false, reason: "refused" }],
   ["a dropped connection (the SDK's error over undici's)", () => new APIConnectionError({ cause: new TypeError("fetch failed") }), { retry: true, reason: "connection" }],

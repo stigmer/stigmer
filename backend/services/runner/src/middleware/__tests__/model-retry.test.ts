@@ -16,6 +16,7 @@ import { AIMessage } from "@langchain/core/messages";
 import { stampRetryable } from "@langchain/core/errors";
 import { MiddlewareError } from "langchain";
 
+import { buildMiddlewareStack } from "../index.js";
 import { createModelRetryMiddleware, streamRetryDelayMs } from "../model-retry.js";
 import type { ModelCallRequest } from "../types.js";
 
@@ -45,6 +46,11 @@ function failingThen(...failures: Error[]) {
 }
 
 describe("model retry middleware", () => {
+  it("is last in the parent's stack, inside the span: a retry re-runs none of Stigmer's bookkeeping", () => {
+    const names = buildMiddlewareStack({}).middleware.map((m) => m.name);
+    expect(names.slice(-2)).toEqual(["OtelSpansMiddleware", "ModelRetryMiddleware"]);
+  });
+
   let warn: ReturnType<typeof vi.spyOn>;
   const sleep = vi.fn(async (_ms: number, _signal: AbortSignal | undefined) => {});
 

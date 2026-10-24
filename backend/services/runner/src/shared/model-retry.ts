@@ -177,8 +177,8 @@ export function retryDecisionOf(err: unknown): RetryDecision {
 
   const streamType = links.map(providerErrorTypeOf).find((type) => type !== undefined);
   if (streamType !== undefined) {
-    const reason = RETRYABLE_STREAM_TYPES[streamType];
-    if (reason === undefined) return stop("refused");
+    if (!Object.hasOwn(RETRYABLE_STREAM_TYPES, streamType)) return stop("refused");
+    const reason = RETRYABLE_STREAM_TYPES[streamType]!;
     if (reason === "stream_error" && messages.some((message) => /validationexception/i.test(message))) return stop("refused");
     return { retry: true, reason };
   }
@@ -200,6 +200,11 @@ export function handledByRequestLoop(err: unknown): boolean {
  * on every failed attempt, the last included. It stamps the error as handled
  * (the header's disjointness), hands p-retry the provider's wait as
  * `retryAfterMs`, the floor p-retry keeps, and throws the error to stop.
+ *
+ * LangChain hands it the error alone, never the retries left, so the last
+ * attempt of a loop that ran out logs `decision=retry` like the ones before
+ * it; the turn's own failure line, which follows it, is what says the loop
+ * ran out.
  */
 export const modelRequestFailed: FailedAttemptHandler = (error: unknown) => {
   const decision = retryDecisionOf(error);

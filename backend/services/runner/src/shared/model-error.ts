@@ -441,14 +441,17 @@ function classifyStreamFailure(type: string, rawMessage: string, ctx: ModelError
 
 /**
  * Whether a failure's chain is a model request's timeout: the SDKs'
- * `APIConnectionTimeoutError`, or the `TimeoutError` LangChain's OpenAI
- * wrapper turns it into. Never a DOMException `TimeoutError` (an
- * `AbortSignal.timeout` of the caller's own), however wrapped: LangChain's
- * `MiddlewareError` copies its cause's name onto itself.
+ * `APIConnectionTimeoutError`, or the plain `Error` named `TimeoutError`
+ * LangChain's OpenAI wrapper turns it into. Matched by that exact shape,
+ * because other timeouts share the name: a DOMException's (an
+ * `AbortSignal.timeout` of the caller's own), the runner's own
+ * `with-timeout.ts` class (a Cursor agent's create), and LangChain's
+ * `MiddlewareError`, which copies its cause's name onto itself.
  */
 export function isModelTimeout(links: readonly Error[]): boolean {
-  if (links.some((link) => link.constructor.name.includes("APIConnectionTimeout"))) return true;
-  return links.some((link) => link.name === "TimeoutError") && !links.some((link) => link instanceof DOMException);
+  return links.some((link) =>
+    link.constructor.name.includes("APIConnectionTimeout")
+    || (link.name === "TimeoutError" && link.constructor === Error));
 }
 
 /** The error and its causes, outermost first, each once. */
