@@ -89,9 +89,10 @@ import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
 import { skillContentReadCheck } from "../../shared/skill-mount.js";
 import { CasCaptureObserver } from "./cas-capture-observer.js";
 import { CasCaptureShellBackend, createCasCaptureBackend } from "./cas-capture-backend.js";
-import { createShellTool } from "./shell-tool.js";
+import { createShellBinding } from "./shell-tool.js";
+import type { BackgroundCommands } from "../../shared/shell/background-commands.js";
 import { loadStreamingConfig } from "../../shared/streaming-scheduler.js";
-import { admitsRoutedRead, mountPlatformRoute } from "./platform-route.js";
+import { admitsRoutedRead, backgroundOutputPathsIn, mountPlatformRoute } from "./platform-route.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { RUN_STAMP_KEY, createRunStampMiddleware, stampedRunOf } from "./run-stamp.js";
 import { createTurnInputMiddleware } from "./turn-input-middleware.js";
@@ -451,6 +452,8 @@ export async function buildEngine(
     readonly workspace: DeepAgentWorkspace;
     readonly tools: DeepAgentTools;
     readonly gate: DeepAgentGateState;
+    /** This invocation's background commands (`shared/shell/background-commands.ts`), shared by every graph's shell. */
+    readonly background: BackgroundCommands;
   },
 ): Promise<DeepAgentEngine> {
   const { modelName, checkpointer, workspace, tools, gate } = args;
@@ -603,9 +606,16 @@ export async function buildEngine(
   // shell-capable backend is what the runner's shell tool runs through
   // (`middleware/shell.ts`); plan mode's is filesystem-only and gets none.
   const workspaceBackend = await createCasCaptureBackend({ rootDir: primaryDir, observer: workspace.casObserver, shellEnv });
-  const shellStreaming = { maxTimeoutSeconds: config.shellTimeoutMaxSeconds, floorMs: loadStreamingConfig().minIntervalMs };
+  // Every graph's shell runs its background commands in this invocation's
+  // one registry, writing their output beside the results deepagents
+  // offloads (`platform-route.ts` `backgroundOutputPathsIn`).
+  const shellStreaming = {
+    maxTimeoutSeconds: config.shellTimeoutMaxSeconds,
+    floorMs: loadStreamingConfig().minIntervalMs,
+    background: { commands: args.background, outputPaths: backgroundOutputPathsIn(workspace.backend.platformDir) },
+  };
   const shell = workspaceBackend instanceof CasCaptureShellBackend
-    ? { tool: createShellTool({ backend: workspaceBackend, ...shellStreaming }) }
+    ? createShellBinding({ backend: workspaceBackend, ...shellStreaming })
     : null;
 
   // Platform content (skills, inputs, the approved plan) is mounted over the
@@ -627,9 +637,11 @@ export async function buildEngine(
   // and lags behind it, so a stop the loop takes alone can land after steps
   // the session's log never received (stigmer#2469).
   const turnBoundary = { stopSignal: sink.stopSignal, yieldSignal: sink.yieldSignal };
+  const inputBarriers = new InputBarriers();
   const { middleware, costAdvisory } = buildMiddlewareStack({
     turnBoundary,
     shell,
+    turnInput: { channel: sink.input, barriers: inputBarriers },
     loopDetection: { historySize: 20, consecutiveThreshold: 7, totalThreshold: 20 },
     executionBudget: { maxToolRounds: toolRoundLimit, warningPct: 80 },
     toolTruncation: { maxChars: maxToolResultChars, backend: fileBackend },
@@ -707,7 +719,6 @@ export async function buildEngine(
       ? providerStrategy({ schema: transformJSONSchema(outputSchema) as ObjectJsonSchema })
       : jsonSchemaToZod(outputSchema);
 
-  const inputBarriers = new InputBarriers();
   const graph = await createDeepAgent({
     model,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

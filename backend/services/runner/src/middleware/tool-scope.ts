@@ -38,6 +38,11 @@
  *  - Every other tool is the engine's, judged by its native name
  *    (`NATIVE_TOOL_COVERS`): a name the table does not carry is an engine
  *    extra (hidden only by an allow-list).
+ *  - `stop_background_command` is judged as `execute`: it exists only
+ *    beside the shell (`shell.ts`) and can only end a command the shell
+ *    started, so it is in scope exactly when the shell is. It is not a row
+ *    of the vocabulary's table, where graders would read every stop as a
+ *    `Bash` call.
  *
  * `Read` excluded is the one exception to "out of scope is hidden":
  * `read_file` is how the agent reads the platform's `.stigmer/` content (its
@@ -67,6 +72,7 @@
 import { ToolMessage } from "@langchain/core/messages";
 import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 import { outOfScopeMessage, type ToolScope } from "../shared/tool-lists.js";
+import { SHELL_TOOL_NAME, STOP_BACKGROUND_TOOL_NAME } from "../activities/execute-deep-agent/shell-tool.js";
 import type { StigmerMiddleware, ToolCallRequest } from "./types.js";
 
 /**
@@ -101,6 +107,11 @@ export function customStreamWriterOf<T>(runtime: unknown): ((chunk: T) => void) 
   if (runtime === null || typeof runtime !== "object" || !("writer" in runtime)) return undefined;
   const writer = (runtime as { writer: unknown }).writer;
   return typeof writer === "function" ? (chunk) => void writer(chunk) : undefined;
+}
+
+/** The engine name a tool is judged by: its own, but the stop tool's, which is the shell's (the header). */
+function scopeNameOf(name: string): string {
+  return name === STOP_BACKGROUND_TOOL_NAME ? SHELL_TOOL_NAME : name;
 }
 
 /** The native file-read tool and the argument that names its file. */
@@ -163,7 +174,7 @@ export function createToolScopeMiddleware(config: ToolScopeConfig): StigmerMiddl
     const slug = serverOfTool.get(tool);
     if (slug !== undefined) return mcpToolInScope(slug, name);
     if (name === READ_TOOL) return true;
-    return scope.allowsEngineTool(name, NATIVE_TOOL_COVERS);
+    return scope.allowsEngineTool(scopeNameOf(name), NATIVE_TOOL_COVERS);
   };
 
   /** Whether a call may run, from the tool object when the tool node supplies it, else from the name. */
@@ -177,7 +188,7 @@ export function createToolScopeMiddleware(config: ToolScopeConfig): StigmerMiddl
     const read = name === READ_TOOL && typeof path === "string";
     // The read alone: grep, glob and the shell are out of this check's scope (the header says why).
     if (read && scope.hidesSkills && (await readsSkillContent(path))) return false;
-    if (scope.allowsEngineTool(name, NATIVE_TOOL_COVERS)) return true;
+    if (scope.allowsEngineTool(scopeNameOf(name), NATIVE_TOOL_COVERS)) return true;
     return read && (await admitsRoutedRead(path));
   };
 

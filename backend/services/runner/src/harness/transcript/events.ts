@@ -277,6 +277,24 @@ export interface SystemNoteEvent extends Scoped {
   readonly text: string;
 }
 
+/**
+ * The engine's agent ended its reply while commands it started in the
+ * background still run, and the turn waits for them in the scope (native's
+ * background middleware, `middleware/background-commands.ts`). The turn is
+ * working, not stalled: the runtime's open-operations fold holds the stall
+ * watchdog until the matching {@link BackgroundWaitFinishedEvent}. Not an
+ * operation: it is no tool call, so it is in neither the turn's liveness
+ * nor the backstop (each command has its own bound). No row.
+ */
+export interface BackgroundWaitStartedEvent extends Scoped {
+  readonly kind: "background_wait_started";
+}
+
+/** The scope's wait for its background commands ended (see {@link BackgroundWaitStartedEvent}). No row. */
+export interface BackgroundWaitFinishedEvent extends Scoped {
+  readonly kind: "background_wait_finished";
+}
+
 // ── Union ─────────────────────────────────────────────────────────
 
 export type TranscriptEvent =
@@ -295,4 +313,6 @@ export type TranscriptEvent =
   | SubAgentFailedEvent
   | ApprovalProposedEvent
   | ContextCompactedEvent
-  | SystemNoteEvent;
+  | SystemNoteEvent
+  | BackgroundWaitStartedEvent
+  | BackgroundWaitFinishedEvent;

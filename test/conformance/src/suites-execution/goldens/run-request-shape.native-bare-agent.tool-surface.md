@@ -1,4 +1,4 @@
-<<< tool 1 of 10: web_fetch >>>
+<<< tool 1 of 11: web_fetch >>>
 
 Fetch the contents of a URL over http(s). HTML pages are converted to Markdown; plain text, Markdown, JSON, and other text formats are returned as-is. Binary content is not supported.
 
@@ -34,7 +34,7 @@ input_schema:
 }
 ```
 
-<<< tool 2 of 10: ls >>>
+<<< tool 2 of 11: ls >>>
 
 Lists all files in a directory.
 
@@ -60,7 +60,7 @@ input_schema:
 }
 ```
 
-<<< tool 3 of 10: read_file >>>
+<<< tool 3 of 11: read_file >>>
 
 Reads a file from the filesystem. Assume any path the user provides is valid; reading a missing file returns an error.
 
@@ -102,7 +102,7 @@ input_schema:
 }
 ```
 
-<<< tool 4 of 10: write_file >>>
+<<< tool 4 of 11: write_file >>>
 
 Writes content to a file. Creates the file if it does not exist; replaces it entirely if it does.
 
@@ -132,7 +132,7 @@ input_schema:
 }
 ```
 
-<<< tool 5 of 10: edit_file >>>
+<<< tool 5 of 11: edit_file >>>
 
 Performs exact string replacements in files.
 
@@ -173,7 +173,7 @@ input_schema:
 }
 ```
 
-<<< tool 6 of 10: glob >>>
+<<< tool 6 of 11: glob >>>
 
 Find files matching a glob pattern, returning absolute paths.
 
@@ -200,7 +200,7 @@ input_schema:
 }
 ```
 
-<<< tool 7 of 10: grep >>>
+<<< tool 7 of 11: grep >>>
 
 Search for a LITERAL text pattern across files (NOT regex).
 
@@ -266,7 +266,7 @@ input_schema:
 }
 ```
 
-<<< tool 8 of 10: execute >>>
+<<< tool 8 of 11: execute >>>
 
 Executes a shell command in an isolated sandbox and returns combined stdout/stderr with the exit code (truncated if very large).
 
@@ -295,6 +295,10 @@ input_schema:
       "exclusiveMinimum": 0,
       "description": "How long the command may run, in seconds (default 120). Raise it for a build, a full test suite or an install that takes minutes; a command still running at its timeout is stopped and returns what it printed."
     },
+    "background": {
+      "type": "boolean",
+      "description": "Run the command in the background: the call returns at once with the command's id and the file its output goes to, and you are told when it ends, how it ended and the last of its output, so do not poll it or sleep waiting for it. Use it for a slow build or test suite while you keep working, or for a dev server you then call. Its timeout defaults to this runner's limit. If you end your reply while one still runs, the turn waits for it, so first stop the ones you no longer need with stop_background_command. A pause for the person's approval stops every background command, and you are told."
+    },
     "description": {
       "type": "string",
       "description": "A short present-tense phrase describing what this command does and why, shown to the user as the title of this action (5-10 words, e.g. 'Run unit tests for the parser'). Do not restate the command syntax."
@@ -307,7 +311,7 @@ input_schema:
 }
 ```
 
-<<< tool 9 of 10: task >>>
+<<< tool 9 of 11: task >>>
 
 Launch an ephemeral subagent to handle a complex, multi-step task.
 
@@ -346,7 +350,7 @@ input_schema:
 }
 ```
 
-<<< tool 10 of 10: write_todos >>>
+<<< tool 10 of 11: write_todos >>>
 
 Your to-do list, shown to the user as your progress. Use it when a request has several separate parts, or when the user asks for one. Skip it for a single change, however many steps it takes, and for questions.
 - Send the whole list each time. Each item is pending, in_progress or completed; keep exactly one in_progress while you work.
@@ -389,6 +393,29 @@ input_schema:
   },
   "required": [
     "todos"
+  ],
+  "additionalProperties": false,
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}
+```
+
+<<< tool 11 of 11: stop_background_command >>>
+
+Stop a command you started with execute in the background, by the id its start returned, and get what it printed. Stop the ones you no longer need before you end your reply: the turn waits for those still running.
+
+input_schema:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "The id the command's background start returned."
+    }
+  },
+  "required": [
+    "id"
   ],
   "additionalProperties": false,
   "$schema": "http://json-schema.org/draft-07/schema#"

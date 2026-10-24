@@ -82,6 +82,11 @@ describe("the native views", () => {
       toolName: "Bash",
       toolInput: { command: "git push origin main", intent: "Push the branch" },
     });
+    expect(views.viewOf("execute", { command: "npm test", background: true }), "Claude Code's Bash names it run_in_background").toEqual({
+      toolName: "Bash",
+      toolInput: { command: "npm test", run_in_background: true },
+    });
+    expect(back("execute", { command: "npm test", run_in_background: true })).toEqual({ command: "npm test", background: true });
     expect(views.viewOf("read_file", CALLS["read_file"]!)?.toolInput).toEqual({ file_path: "/work/repo/src/a.ts", offset: 10, limit: 20 });
     expect(views.viewOf("grep", CALLS["grep"]!)?.toolInput["path"]).toBe(ROOT);
     expect(views.viewOf("ls", CALLS["ls"]!)).toEqual({ toolName: "Glob", toolInput: { pattern: "*", path: "/work/repo/src" } });
