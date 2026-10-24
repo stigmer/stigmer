@@ -264,7 +264,9 @@ Every hit falls into one of five classes:
 
 Most mappings from the engine to behaviour are a `switch` with a `never`
 default, so the compiler names them when the enum grows: the workflow's flow
-choice, `harnessName` in `pin-validation.ts` and `usage-fold.ts`, the eval
+choice, `harnessName` in
+`backend/services/stigmer-server/src/modelcatalog/pin-validation.ts` and
+`backend/services/stigmer-server/src/domain/run/usage-fold.ts`, the eval
 trace's tool vocabulary, the React SDK's tables, the TypeScript SDK's result
 document and the runner's sub-agent model check. The lists below are for the
 sites the compiler cannot see: prose, data and rules true of one engine.
@@ -315,10 +317,15 @@ change on that side too.
 
 `backend/services/stigmer-server/src/domain/session/harness.ts` holds the
 offered set (`OFFERED_HARNESSES`) and the refusal. The step that applies it is
-added to the agent, session, routine and eval-run write chains (each domain's
-`controller.ts`), and to the message admission chain after `ResolveRunConfig`
+added to the agent, session, routine and eval-run write chains
+(`backend/services/stigmer-server/src/domain/agent/controller.ts`,
+`backend/services/stigmer-server/src/domain/session/controller.ts`,
+`backend/services/stigmer-server/src/domain/routine/controller.ts`,
+`backend/services/stigmer-server/src/domain/eval-run/controller.ts`), and to
+the message admission chain after `ResolveRunConfig`
 (`backend/services/stigmer-server/src/domain/run/refuse-unoffered-engine.ts`,
-again in `create-steps.ts` after a re-resolve). Offering a harness is one entry
+again in `backend/services/stigmer-server/src/domain/run/create-steps.ts`
+after a re-resolve). Offering a harness is one entry
 in `OFFERED_HARNESSES`, with the surfaces above that offer it.
 
 ### Outside the runner: sites that pass the value through
@@ -405,9 +412,9 @@ Nothing to touch. Listed so a probe's hit here is a stop, not a lead.
 Words the probes match that are not the harness. Nothing to touch.
 
 - The plugin dialects (`claude`, `cursor`, `codex`) and hook formats:
-  `plugins/*/.cursor-plugin/plugin.json` (44 manifests),
-  `backend/libs/ts/plugin-package/src/` (`types.ts`, `detect.ts`,
-  `presentation.ts`, `dialects/`, `marketplace/`, `normalise/`),
+  `plugins/<plugin>/.cursor-plugin/plugin.json` (44 manifests),
+  `backend/libs/ts/plugin-package/src/` (its types, dialect detection,
+  presentation, dialects, marketplace reader and normalisers),
   `backend/services/stigmer-server/src/domain/agent/steps.ts`,
   `backend/services/stigmer-server/src/domain/plugin/push.ts`,
   `sdk/typescript/src/hook-words.ts`.

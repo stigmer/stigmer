@@ -199,7 +199,8 @@ describe("streamAttention", () => {
 
   it("forgets the ids its window has passed, and still sends each idle once", async () => {
     await conversation("s1", ME);
-    const start = Date.parse("2026-10-23T10:00:00.000Z");
+    // An hour ago, so both idles sit inside the resume window on any day (stigmer#2563).
+    const start = Date.now() - 60 * 60_000;
     vi.useFakeTimers({ toFake: ["Date"] });
     try {
       for (const [id, at] of [["early", start], ["late", start + 3 * ATTENTION_OVERLAP_MS]] as const) {
