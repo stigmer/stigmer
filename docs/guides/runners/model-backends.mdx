@@ -321,7 +321,7 @@ export STIGMER_LLM_REQUEST_TIMEOUT_MS=120000   # give up on an attempt after 2 m
 
 Leave it unset to use each SDK's default (10 minutes). Values that are not
 positive integers are ignored. An attempt that exceeds the bound is retried like
-any other passing failure (an overload, a rate limit, a server error or a
+any other passing failure (an overload, a rate limit, a server error, or a
 dropped connection), up to six times with a growing wait. If every attempt
 fails, the run fails with a connection timeout that names the model.
 
