@@ -6,14 +6,17 @@
  * co-located TestWorkflowEnvironment tests).
  *
  * Orchestration only — the TS unified runner owns the agent activities
- * (EnsureThread/ExecuteDeepAgent/ExecuteCursor) on the memo-pinned
+ * (EnsureThread/ExecuteDeepAgent/ExecuteCursor/ExecuteClaude) on the memo-pinned
  * activity queue; this workflow's own activities run on the stigmer
  * queue or in-process (local activities).
  *
  * Shape preserved exactly from Go:
- *   - Harness dispatch: NATIVE/UNSPECIFIED → deep-agent flow
- *     (EnsureThread once, thread stable across re-invocations), CURSOR →
- *     cursor flow (harness_state_id re-read before every re-invocation).
+ *   - Harness dispatch, one exhaustive switch: NATIVE/UNSPECIFIED and
+ *     CLAUDE → the deterministic-state flow (EnsureThread once, thread
+ *     stable across re-invocations; the engine derives its own state from
+ *     the thread id), each with its own Execute* activity; CURSOR → cursor
+ *     flow (harness_state_id re-read before every re-invocation). A number
+ *     no engine owns fails the run, naming it, never runs as native.
  *   - Pause/resume: each attempt runs in a cancellable scope with a
  *     monitor that consumes ONE pause signal and cancels the scope; a
  *     pause queued while no attempt is running pauses the next attempt
@@ -116,6 +119,7 @@ import {
   COUNT_OPEN_GATES_ACTIVITY_NAME,
   DEFAULT_ACTIVITY_TASK_QUEUE,
   ENSURE_THREAD_ACTIVITY_NAME,
+  EXECUTE_CLAUDE_ACTIVITY_NAME,
   EXECUTE_CURSOR_ACTIVITY_NAME,
   EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
   GENERATE_SESSION_SUBJECT_ACTIVITY_NAME,
@@ -247,6 +251,9 @@ interface RunnerActivities {
   [EXECUTE_CURSOR_ACTIVITY_NAME]: (
     input: ExecuteActivityInput,
   ) => Promise<RunnerActivityResult | null>;
+  [EXECUTE_CLAUDE_ACTIVITY_NAME]: (
+    input: ExecuteActivityInput,
+  ) => Promise<RunnerActivityResult | null>;
   [GENERATE_SESSION_SUBJECT_ACTIVITY_NAME]: (
     input: GenerateSessionSubjectInput | string,
   ) => Promise<void>;
@@ -299,6 +306,7 @@ function newExecuteAgentProxy(taskQueue: string) {
       RunnerActivities,
       | typeof EXECUTE_DEEP_AGENT_ACTIVITY_NAME
       | typeof EXECUTE_CURSOR_ACTIVITY_NAME
+      | typeof EXECUTE_CLAUDE_ACTIVITY_NAME
     >
   >({
     taskQueue,
@@ -411,20 +419,43 @@ export async function invokeAgentExecution(
   let flowError: unknown;
   try {
     await closePreviousFileReview(input);
-    if ((input.harness ?? 0) === Harness.CURSOR) {
-      await executeCursorFlow(
-        input,
-        activityTaskQueue,
-        signals,
-        () => workflowCancelled,
-      );
-    } else {
-      await executeDeepAgentFlow(
-        input,
-        activityTaskQueue,
-        signals,
-        () => workflowCancelled,
-      );
+    const harness: Harness = input.harness ?? Harness.UNSPECIFIED;
+    switch (harness) {
+      case Harness.UNSPECIFIED:
+      case Harness.NATIVE:
+        await executeDeterministicStateFlow(
+          input,
+          EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
+          activityTaskQueue,
+          signals,
+          () => workflowCancelled,
+        );
+        break;
+      case Harness.CLAUDE:
+        await executeDeterministicStateFlow(
+          input,
+          EXECUTE_CLAUDE_ACTIVITY_NAME,
+          activityTaskQueue,
+          signals,
+          () => workflowCancelled,
+        );
+        break;
+      case Harness.CURSOR:
+        await executeCursorFlow(
+          input,
+          activityTaskQueue,
+          signals,
+          () => workflowCancelled,
+        );
+        break;
+      default: {
+        // Admission refuses a number no engine owns; one that still
+        // arrives fails the run here rather than running as native.
+        const unknown: never = harness;
+        throw ApplicationFailure.nonRetryable(
+          `harness ${String(unknown)} names no engine this workflow runs`,
+        );
+      }
     }
   } catch (error) {
     flowError = error;
@@ -542,13 +573,24 @@ function installSignalBuffers(): SignalBuffers {
 
 // ─── The two harness flows ──────────────────────────────────────────────
 
+/** The Execute* activities whose engine derives its state from the thread id. */
+type DeterministicStateActivityName =
+  | typeof EXECUTE_DEEP_AGENT_ACTIVITY_NAME
+  | typeof EXECUTE_CLAUDE_ACTIVITY_NAME;
+
 /**
- * Native deep-agent flow: EnsureThread ONCE (the LangGraph thread is the
- * checkpoint identity — stable across pause/recovery re-invocations),
- * then the shared pause/recovery loop around the HITL loop.
+ * The deterministic-state flow, native's and Claude's: EnsureThread ONCE
+ * (the thread is the conversation's identity — for native the LangGraph
+ * checkpoint thread, for Claude the id its engine derives its session
+ * from — stable across pause/recovery re-invocations), then the shared
+ * pause/recovery loop around the HITL loop. The engines differ only in
+ * the Execute* activity the loop calls; native's commands are the ones
+ * this flow scheduled before Claude shared it, which the replay
+ * histories pin.
  */
-async function executeDeepAgentFlow(
+async function executeDeterministicStateFlow(
   input: InvokeAgentExecutionWorkflowInput,
+  executeActivity: DeterministicStateActivityName,
   activityTaskQueue: string,
   signals: SignalBuffers,
   isWorkflowCancelled: () => boolean,
@@ -571,12 +613,12 @@ async function executeDeepAgentFlow(
 
   fireGenerateSessionSubject(activityTaskQueue, input);
 
-  log.info("Step 2: Executing deep agent", { executionId, threadId });
+  log.info("Step 2: Executing agent", { executionId, threadId, executeActivity });
   const agentProxy = newExecuteAgentProxy(activityTaskQueue);
 
   return runWithPauseAndRecovery({
     executionId,
-    activityLabel: "ExecuteDeepAgent",
+    activityLabel: executeActivity,
     signals,
     isWorkflowCancelled,
     executeWithHitl: () =>
@@ -585,12 +627,12 @@ async function executeDeepAgentFlow(
         sessionId,
         signals,
         firstInvoke: () =>
-          agentProxy[EXECUTE_DEEP_AGENT_ACTIVITY_NAME](
+          agentProxy[executeActivity](
             executeActivityInput(input, threadId, 0),
           ),
-        // The LangGraph thread id is stable — re-invocations reuse it.
+        // The thread id is stable — re-invocations reuse it.
         reinvoke: (turnSeq) =>
-          agentProxy[EXECUTE_DEEP_AGENT_ACTIVITY_NAME](
+          agentProxy[executeActivity](
             executeActivityInput(input, threadId, turnSeq),
           ),
         nullResultMessage: "activity returned null status - this should never happen",
@@ -601,7 +643,7 @@ async function executeDeepAgentFlow(
 }
 
 /**
- * Cursor flow: structurally the deep-agent flow with two variation points
+ * Cursor flow: structurally the deterministic-state flow with two variation points
  * (invoke_workflow_impl.go executeCursorFlow) — harness_state_id comes
  * from ReadHarnessStateId instead of EnsureThread (non-fatal on the first
  * read, FATAL before each HITL re-invocation: by then the id must exist,
@@ -624,7 +666,7 @@ async function executeCursorFlow(
 
   return runWithPauseAndRecovery({
     executionId,
-    activityLabel: "ExecuteCursor",
+    activityLabel: EXECUTE_CURSOR_ACTIVITY_NAME,
     signals,
     isWorkflowCancelled,
     executeWithHitl: () =>
@@ -744,7 +786,9 @@ async function closePreviousFileReview(
 
 interface PauseRecoveryOptions {
   readonly executionId: string;
-  readonly activityLabel: "ExecuteDeepAgent" | "ExecuteCursor";
+  readonly activityLabel:
+    | DeterministicStateActivityName
+    | typeof EXECUTE_CURSOR_ACTIVITY_NAME;
   readonly signals: SignalBuffers;
   readonly isWorkflowCancelled: () => boolean;
   readonly executeWithHitl: () => Promise<RunnerActivityResult>;

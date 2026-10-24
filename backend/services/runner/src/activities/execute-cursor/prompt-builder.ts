@@ -1,10 +1,10 @@
 /**
  * The Cursor harness's prompt: the four shapes `buildPrompt` selects from how
  * the agent resolved and whether the turn carries adjudicated approvals
- * (`capabilities.systemPrompt` is false — `@cursor/sdk` takes no system
- * prompt, so the blueprint and the standing context ride the session's FIRST
- * user message and persist in the agent's own conversation store; a resumed
- * agent receives only what is per-turn).
+ * (the system-prompt row of `harness/capabilities.ts`'s matrix:
+ * `@cursor/sdk` takes no system prompt, so the blueprint and the standing
+ * context ride the session's FIRST user message and persist in the agent's
+ * own conversation store; a resumed agent receives only what is per-turn).
  *
  * What is this harness's and what is shared (since #1096):
  *  - Shared through `shared/prompt-sections.ts`: WHICH standing sections

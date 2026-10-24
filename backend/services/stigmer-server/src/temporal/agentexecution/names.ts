@@ -53,12 +53,17 @@ export const DEFAULT_ACTIVITY_TASK_QUEUE = "stigmer_runner";
 
 // ─── Activity names ─────────────────────────────────────────────────────
 // Runner-owned (the TS unified runner registers these; this server only
-// CALLS them — registering them here would break queue-based routing):
+// CALLS them — registering them here would break queue-based routing).
+// Declared once, in the library the runner reads them from too, so the
+// name the workflow schedules is the name the runner polls for.
 
-export const ENSURE_THREAD_ACTIVITY_NAME = "EnsureThread";
-export const EXECUTE_DEEP_AGENT_ACTIVITY_NAME = "ExecuteDeepAgent";
-export const EXECUTE_CURSOR_ACTIVITY_NAME = "ExecuteCursor";
-export const GENERATE_SESSION_SUBJECT_ACTIVITY_NAME = "GenerateSessionSubject";
+export {
+  ENSURE_THREAD_ACTIVITY_NAME,
+  EXECUTE_CLAUDE_ACTIVITY_NAME,
+  EXECUTE_CURSOR_ACTIVITY_NAME,
+  EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
+  GENERATE_SESSION_SUBJECT_ACTIVITY_NAME,
+} from "@stigmer/temporal-codecs/activity-names";
 
 // Server-owned (registered by this worker):
 
