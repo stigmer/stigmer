@@ -50,3 +50,15 @@ export function tailCutIndex(text: string, budget: number): number {
   if (lineEnd >= 0 && lineEnd + 1 - start <= budget * LINE_END_REACH) return lineEnd + 1;
   return start < text.length && isLowSurrogate(text.charCodeAt(start)) ? start + 1 : start;
 }
+
+/**
+ * `text` without its trailing line ends, in one scan from its end. A
+ * `/\n+$/` replace backtracks quadratically over a long run of line ends
+ * that does not close the text, which text a repository or a plugin wrote
+ * can hold (`execute-deep-agent/repository-instructions.ts`).
+ */
+export function trimTrailingLineEnds(text: string): string {
+  let end = text.length;
+  while (end > 0 && text.charCodeAt(end - 1) === 0x0a) end--;
+  return end === text.length ? text : text.slice(0, end);
+}
