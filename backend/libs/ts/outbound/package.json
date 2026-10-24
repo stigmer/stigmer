@@ -83,9 +83,9 @@
   "devDependencies": {
     "@types/node": "^22.13.1",
     "typescript": "^5.7.0",
-    "vitest": "^3.2.4"
+    "vitest": "^5.0.5"
   },
   "dependencies": {
-    "undici": "8.11.2"
+    "undici": "8.12.3"
   }
 }
