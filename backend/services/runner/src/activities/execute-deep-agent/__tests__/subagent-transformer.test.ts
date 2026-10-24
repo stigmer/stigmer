@@ -672,4 +672,54 @@ describe("compiledPrompt", () => {
     expect(explore!.name).toBe("explore");
     expect(compiledPrompt(explore!, true), "the read-only explorer").toBe(explore!.systemPrompt);
   });
+
+  const SECTION = "\n\n## Repository instructions\n\nnotes";
+
+  it("closes the prompt with the workspace's instruction files when the sub-agent may read the workspace", () => {
+    const [explore, , general] = createBuiltinSubagents(true, ToolScope.unrestricted());
+    const own = compiledPrompt(general!, true);
+    expect(compiledPrompt(general!, true, SECTION)).toBe(`${own.replace(/\n+$/, "")}${SECTION}\n`);
+    expect(compiledPrompt(explore!, true, SECTION)).toBe(`${explore!.systemPrompt.replace(/\n+$/, "")}${SECTION}\n`);
+    expect(compiledPrompt(general!, true, ""), "no file read").toBe(own);
+  });
+
+  it("leaves them out of a sub-agent whose lists refuse a workspace read", () => {
+    const [, , general] = createBuiltinSubagents(true, ToolScope.of("Agent \"a\"", { tools: ["Bash"], disallowedTools: [] }));
+    expect(compiledPrompt(general!, true, SECTION)).toBe(compiledPrompt(general!, true));
+  });
+});
+
+describe("the workspace's instruction files, per sub-agent", () => {
+  let root: string;
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), "subagent-repo-instructions-"));
+    vi.spyOn(console, "log").mockImplementation(() => {});
+  });
+
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("gives the folder notes to each sub-agent whose own scope may read the workspace, and no other", async () => {
+    const build = vi.spyOn(subagentWiringModule, "buildSubAgentMiddleware");
+    const readsNothing = ToolScope.of("Subagent \"runner\"", { tools: ["Bash"], disallowedTools: [] });
+    const compiled = await compileSubagents(
+      [
+        { name: "reader", description: "reads", systemPrompt: "read", tools: [], scope: UNRESTRICTED },
+        { name: "runner", description: "runs", systemPrompt: "run", tools: [], scope: readsNothing },
+      ],
+      {
+        parentModelName: "claude-sonnet-4-6",
+        workspaceRootDir: root,
+        repositoryInstructions: { section: "\n\n## Repository instructions", roots: ["/"], maxChars: 1_000 },
+        modelFactory: async () => new ScriptedModel(() => ({ toolCalls: [], done: "ok" })),
+      },
+    );
+    expect(compiled.map((c) => c.name)).toEqual(["reader", "runner"]);
+    const [reader, runner] = build.mock.calls.map((call) => call[0]!.folderInstructions);
+    expect(reader).toMatchObject({ roots: ["/"], maxChars: 1_000 });
+    expect(runner).toBeUndefined();
+  });
 });

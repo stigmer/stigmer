@@ -36,6 +36,10 @@
  * - Sub-agent graphs carry the parent's filesystem permissions explicitly
  *   (issue #255): pre-built CompiledSubAgents never inherit them, so plan
  *   mode's deny-all-writes rule is baked into each graph at compile time
+ * - The workspace's own instruction files reach every sub-agent whose own
+ *   scope may read the workspace: the roots' section closes its prompt, and
+ *   a folder's file rides its first read beneath it, as on the parent
+ *   (`repository-instructions.ts`); a sub-agent edits the same tree
  * - Invalid configurations are logged and skipped (graceful degradation)
  * - Empty subagent list returns null (no subagents configured)
  */
@@ -48,6 +52,7 @@ import type { RunnableConfig } from "@langchain/core/runnables";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
@@ -63,6 +68,16 @@ export type ShellStreaming = Omit<ShellToolOptions, "backend">;
 
 /** The run's tool-result bound a sub-agent takes; its backend is its own. */
 export type SubagentToolTruncation = Pick<ToolTruncationConfig, "maxChars">;
+
+/** The workspace's own instruction files as the turn read them (`repository-instructions.ts`); each sub-agent reads deeper ones through its own backend. */
+export interface SubagentRepositoryInstructions {
+  /** The roots' rendered `## Repository instructions` section; empty when none reads. */
+  readonly section: string;
+  /** The workspace's roots, where the folder walk stops. */
+  readonly roots: readonly string[];
+  /** The run's bound on each file. */
+  readonly maxChars: number;
+}
 import { mountPlatformRoute, OUTPUTS_ROUTE_PREFIX as NATIVE_OUTPUTS_FOLDER } from "./platform-route.js";
 import { outputsFolderInstruction } from "../../shared/prompt-sections.js";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
@@ -165,11 +180,21 @@ same files.
  * A sub-agent's prompt as it is compiled: its own, and, when it may save a
  * file for the person, the outputs folder's line closing its response
  * rules. Not under plan mode, whose rules deny every write, and not on the
- * read-only `explore` agent, whose prompt forbids writing.
+ * read-only `explore` agent, whose prompt forbids writing. Then, when its own
+ * scope may read the workspace, the workspace roots' instruction files, last,
+ * beneath its instructions ({@link readsWorkspace}).
  */
-export function compiledPrompt(spec: TransformedSubagent, writesAllowed: boolean): string {
-  if (!writesAllowed || spec.name === "explore") return spec.systemPrompt;
-  return `${spec.systemPrompt}- ${outputsFolderInstruction(NATIVE_OUTPUTS_FOLDER)}\n`;
+export function compiledPrompt(spec: TransformedSubagent, writesAllowed: boolean, repositoryInstructionsSection = ""): string {
+  const own = !writesAllowed || spec.name === "explore"
+    ? spec.systemPrompt
+    : `${spec.systemPrompt}- ${outputsFolderInstruction(NATIVE_OUTPUTS_FOLDER)}\n`;
+  if (repositoryInstructionsSection === "" || !readsWorkspace(spec)) return own;
+  return `${own.replace(/\n+$/, "")}${repositoryInstructionsSection}\n`;
+}
+
+/** Whether a sub-agent's own scope lets `read_file` read the workspace, as its scope middleware judges a read (`middleware/tool-scope.ts`). */
+export function readsWorkspace(spec: TransformedSubagent): boolean {
+  return spec.scope.allowsEngineTool(ENGINE_TOOL.readFile, NATIVE_TOOL_COVERS);
 }
 
 // =========================================================================
@@ -269,6 +294,12 @@ export interface SubagentTransformOptions {
    * (`middleware/tool-truncation.ts`). Absent, the middleware's default.
    */
   readonly toolTruncation?: SubagentToolTruncation;
+  /**
+   * The workspace's own instruction files (`repository-instructions.ts`),
+   * shown to each sub-agent whose own scope may read the workspace. Absent,
+   * none is shown (unit tests).
+   */
+  readonly repositoryInstructions?: SubagentRepositoryInstructions;
   /**
    * Builds a configured chat-model instance for a given model name. When
    * provided, sub-agents are compiled with the same proxy-aware model client
@@ -519,6 +550,8 @@ export async function compileSubagents(
     readonly turnBoundary?: TurnBoundarySignals;
     /** See {@link SubagentTransformOptions.toolTruncation}. */
     readonly toolTruncation?: SubagentToolTruncation;
+    /** See {@link SubagentTransformOptions.repositoryInstructions}. */
+    readonly repositoryInstructions?: SubagentRepositoryInstructions;
     readonly approvalGate?: ApprovalGateConfig | null;
     /** Attribution and confinement for each sub-agent's scope middleware; absent, no scope is enforced (unit tests). */
     readonly scopeBase?: SubagentScopeBase;
@@ -565,6 +598,12 @@ export async function compileSubagents(
       const shell = workspace instanceof CasCaptureShellBackend && opts.shellStreaming
         ? { tool: createShellTool({ backend: workspace, ...opts.shellStreaming }) }
         : undefined;
+      // The workspace's instruction files, when this sub-agent's own scope
+      // may read the workspace: deeper ones through its own backend.
+      const repository = opts.repositoryInstructions !== undefined && readsWorkspace(spec)
+        ? opts.repositoryInstructions
+        : undefined;
+      const systemPrompt = compiledPrompt(spec, opts.permissions === undefined, repository?.section);
 
       // One graph on one middleware stack per INVOCATION (stigmer/stigmer#1699).
       // Loop detection, the periodic budget and the cost view keep one
@@ -588,7 +627,7 @@ export async function compileSubagents(
       // (`subAgentInvocationId`).
       const buildGraph = (invocationId: string) => createDeepAgent({
         model,
-        systemPrompt: compiledPrompt(spec, opts.permissions === undefined),
+        systemPrompt,
         tools: spec.tools.length > 0 ? spec.tools : undefined,
         // The summarizer replaces deepagents' own by name, over this
         // sub-agent's backend and on its own model (`middleware/compaction.ts`).
@@ -596,6 +635,9 @@ export async function compileSubagents(
           costAdvisory: opts.costAdvisory,
           ...(opts.turnBoundary ? { turnBoundary: opts.turnBoundary } : {}),
           toolTruncation: { ...opts.toolTruncation, backend },
+          ...(repository
+            ? { folderInstructions: { backend, roots: repository.roots, maxChars: repository.maxChars } }
+            : {}),
           approvalGate: approvalGate
             ? { ...approvalGate, subAgent: { type: spec.name, id: invocationId } }
             : approvalGate,
@@ -685,6 +727,7 @@ export async function transformAndCompileSubagents(
     costAdvisory,
     turnBoundary,
     toolTruncation,
+    repositoryInstructions,
     modelFactory,
     shellEnv,
     shellStreaming,
@@ -743,6 +786,7 @@ export async function transformAndCompileSubagents(
     costAdvisory,
     ...(turnBoundary ? { turnBoundary } : {}),
     ...(toolTruncation ? { toolTruncation } : {}),
+    ...(repositoryInstructions ? { repositoryInstructions } : {}),
     approvalGate,
     scopeBase,
     parentModelName,

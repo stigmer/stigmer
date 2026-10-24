@@ -126,6 +126,10 @@ import type { ToolScopeConfig } from "./tool-scope.js";
 import type { TurnBoundarySignals } from "./turn-boundary.js";
 export type { ToolScopeConfig };
 
+// Same idiom: the folder-instructions middleware consumes it.
+import type { FolderInstructionsConfig } from "./folder-instructions.js";
+export type { FolderInstructionsConfig };
+
 /**
  * Top-level configuration for buildMiddlewareStack().
  * All sections are optional — the factory applies sensible defaults.
@@ -150,6 +154,12 @@ export interface MiddlewareStackConfig {
    * the repair seam that keeps model-supplied paths canonical.
    */
   readonly pathNormalization?: PathNormalizationConfig | null;
+  /**
+   * A folder's own instruction file on the first read beneath it
+   * (`folder-instructions.ts`). Set only on a graph whose tool scope may
+   * read the workspace; absent, nothing is attached.
+   */
+  readonly folderInstructions?: FolderInstructionsConfig | null;
   /**
    * The runner's shell for this graph (`middleware/shell.ts`): the
    * executable `execute` tool every `execute` call runs. Present only on a

@@ -19,6 +19,10 @@
  *      so that extends this declaration, and outside the scope, gate and
  *      truncation, so they see the call and its result as before)
  *   3. Tool intent (always — bind-time shell schema extension, issue #276)
+ *   3a. Folder instructions (conditional: only on a graph whose tool scope
+ *      may read the workspace — a folder's own `AGENTS.md` rides the first
+ *      read beneath it, `folder-instructions.ts`; right outside truncation,
+ *      so the notes are never cut, each bounded on its own)
  *   4. Tool truncation (always — a long result keeps its start and its end,
  *      the whole of it kept in the session's offload directory through the
  *      graph's backend, `tool-truncation.ts`)
@@ -67,6 +71,7 @@ import { createExecutionBudgetMiddleware } from "./execution-budget.js";
 import { createToolIntentMiddleware } from "./tool-intent.js";
 import { createShellMiddleware } from "./shell.js";
 import { createToolTruncationMiddleware } from "./tool-truncation.js";
+import { createFolderInstructionsMiddleware } from "./folder-instructions.js";
 import { createApprovalGateMiddleware } from "./approval-gate.js";
 import { createToolScopeMiddleware } from "./tool-scope.js";
 import { createCostAdvisoryMiddleware, type CostAdvisoryMiddleware } from "./cost-advisory.js";
@@ -101,6 +106,7 @@ export function buildMiddlewareStack(
   stack.push(createExecutionBudgetMiddleware(config.executionBudget));
   if (config.shell) stack.push(createShellMiddleware(config.shell));
   stack.push(createToolIntentMiddleware());
+  if (config.folderInstructions) stack.push(createFolderInstructionsMiddleware(config.folderInstructions));
   stack.push(createToolTruncationMiddleware(config.toolTruncation));
 
   if (config.toolScope?.scope.restricted) {

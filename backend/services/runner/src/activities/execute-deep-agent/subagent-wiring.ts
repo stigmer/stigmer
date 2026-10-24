@@ -11,6 +11,10 @@
  * - Tool intent (issue #276) — the shell tool's bind-time schema gains the
  *   optional model-authored `description`, so sub-agent shell rows carry
  *   intent titles exactly like the parent's
+ * - Folder instructions (`middleware/folder-instructions.ts`), right outside
+ *   truncation as on the parent, over the sub-agent's own backend and its
+ *   own messages, when its own scope may read the workspace
+ *   (`compileSubagents` decides)
  * - Fresh tool truncation at the run's bound, as on the parent, keeping a
  *   long result through the sub-agent's own backend (`compileSubagents`
  *   passes both)
@@ -55,6 +59,7 @@
 import type {
   StigmerMiddleware,
   ToolTruncationConfig,
+  FolderInstructionsConfig,
   PathNormalizationConfig,
   ToolScopeConfig,
   OtelSpansConfig,
@@ -63,6 +68,7 @@ import type { CostAdvisoryMiddleware } from "../../middleware/index.js";
 import { createPathNormalizationMiddleware } from "../../middleware/path-normalization.js";
 import { createLoopDetectionMiddleware } from "../../middleware/loop-detection.js";
 import { createToolTruncationMiddleware } from "../../middleware/tool-truncation.js";
+import { createFolderInstructionsMiddleware } from "../../middleware/folder-instructions.js";
 import { createExecutionBudgetMiddleware } from "../../middleware/execution-budget.js";
 import { createToolIntentMiddleware } from "../../middleware/tool-intent.js";
 import { createShellMiddleware } from "../../middleware/shell.js";
@@ -84,6 +90,8 @@ export interface SubAgentMiddlewareOptions {
   /** The parent's cost advisory, whose running total the sub-agent's calls advance. */
   readonly costAdvisory?: CostAdvisoryMiddleware;
   readonly toolTruncation?: Partial<ToolTruncationConfig>;
+  /** A folder's own instruction file on the first read beneath it; absent when this sub-agent's scope may not read the workspace. */
+  readonly folderInstructions?: FolderInstructionsConfig;
   /**
    * Approval gate config inherited from the parent. When present, the sub-agent
    * gates its own mutating tool calls; when null/undefined (e.g. auto-approve-
@@ -123,7 +131,7 @@ export interface SubAgentMiddlewareOptions {
  *
  * Returns an ordered array mirroring the parent composition:
  * [turn boundary] → [path normalization] → loop detection → execution budget (periodic) →
- * [shell] → tool intent → tool truncation → [tool scope] → [approval gate] → cost
+ * [shell] → tool intent → [folder instructions] → tool truncation → [tool scope] → [approval gate] → cost
  * cap view → error hints → OTel spans → model retry.
  * Normalization is outermost so everything downstream observes canonical
  * workspace-absolute paths (matching the parent). The gate sits before the
@@ -157,6 +165,7 @@ export function buildSubAgentMiddleware(
   if (options.shell) stack.push(createShellMiddleware(options.shell));
   stack.push(createToolIntentMiddleware());
 
+  if (options.folderInstructions) stack.push(createFolderInstructionsMiddleware(options.folderInstructions));
   stack.push(createToolTruncationMiddleware(options.toolTruncation));
 
   if (options.toolScope?.scope.restricted) {
