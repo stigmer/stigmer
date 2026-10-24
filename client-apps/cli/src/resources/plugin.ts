@@ -465,6 +465,8 @@ export function renderPushOutcome(
   // Only the kinds the plugin holds are named, as the console's
   // `summariseInstall` names them: most catalogue plugins carry tools
   // alone, and "0 skills, 1 MCP server, 0 agents" reads as three facts.
+  // Hooks are named without a count, as there; the Installed block counts
+  // them per event.
   const named = (
     [
       [skills.length, "skill"],
@@ -474,6 +476,7 @@ export function renderPushOutcome(
   )
     .filter(([n]) => n > 0)
     .map(([n, noun]) => count(n, noun));
+  if ((status?.hooks?.groups.length ?? 0) > 0) named.push("hooks");
   const summary = named.length === 0 ? "nothing installed" : named.join(", ");
   const headline = `Installed plugin '${pluginName(plugin)}' (${summary})`;
   const result =
