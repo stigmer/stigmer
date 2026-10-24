@@ -18,6 +18,11 @@
  *      call runs the runner's tool, `shell.ts`; right before tool intent,
  *      so that extends this declaration, and outside the scope, gate and
  *      truncation, so they see the call and its result as before)
+ *   2b. Background commands (with the shell, wherever commands can run in
+ *      the background — tells the agent when one ends and holds a round's
+ *      end while they run, `background-commands.ts`; registered after the
+ *      parent's turn-input middleware, which rides ahead of this stack, so
+ *      its round-end hook runs before that one's)
  *   3. Tool intent (always — bind-time shell schema extension, issue #276)
  *   3a. Folder instructions (conditional: only on a graph whose tool scope
  *      may read the workspace — a folder's own `AGENTS.md` rides the first
@@ -70,6 +75,7 @@ import { createLoopDetectionMiddleware } from "./loop-detection.js";
 import { createExecutionBudgetMiddleware } from "./execution-budget.js";
 import { createToolIntentMiddleware } from "./tool-intent.js";
 import { createShellMiddleware } from "./shell.js";
+import { createBackgroundCommandsMiddleware } from "./background-commands.js";
 import { createToolTruncationMiddleware } from "./tool-truncation.js";
 import { createFolderInstructionsMiddleware } from "./folder-instructions.js";
 import { createApprovalGateMiddleware } from "./approval-gate.js";
@@ -105,6 +111,15 @@ export function buildMiddlewareStack(
   stack.push(createLoopDetectionMiddleware(config.loopDetection));
   stack.push(createExecutionBudgetMiddleware(config.executionBudget));
   if (config.shell) stack.push(createShellMiddleware(config.shell));
+  if (config.shell?.background) {
+    stack.push(createBackgroundCommandsMiddleware({
+      ...config.shell.background,
+      scope: "root",
+      ...(config.turnBoundary ? { signals: config.turnBoundary } : {}),
+      ...(config.turnInput ? { input: config.turnInput } : {}),
+      ...(config.toolTruncation?.maxChars !== undefined ? { maxNoticeChars: config.toolTruncation.maxChars } : {}),
+    }));
+  }
   stack.push(createToolIntentMiddleware());
   if (config.folderInstructions) stack.push(createFolderInstructionsMiddleware(config.folderInstructions));
   stack.push(createToolTruncationMiddleware(config.toolTruncation));

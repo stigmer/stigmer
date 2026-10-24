@@ -103,6 +103,7 @@ import type {
 import { OUTPUTS_SUBDIR } from "../../shared/outputs.js";
 import { STIGMER_LOCAL_STATE_DIR, stigmerSymlinkPointsAt } from "../../shared/workspace/stigmer-link.js";
 import { offloadDirBeside } from "../../shared/workspace/platform-dir.js";
+import { backgroundOutputFileName, type BackgroundOutputPaths } from "../../shared/shell/background-commands.js";
 import { agentFs } from "../../shared/agent-fs.js";
 import { editLoosely } from "./loose-edit.js";
 
@@ -395,6 +396,23 @@ export async function mountPlatformRoute(
     new OutputsBackend(join(platformDir, OUTPUTS_SUBDIR)),
     offloads,
   );
+}
+
+/**
+ * Where a command the agent runs in the background writes its output
+ * (`shared/shell/background-commands.ts`): beside the results deepagents
+ * offloads, under {@link DEEPAGENTS_OFFLOAD_ROOT}, so `read_file` reads it
+ * like any kept result, outside the workspace and file review, even where
+ * the agent's lists exclude `Read` (`admitsRoutedRead`). Undefined for a
+ * session without a platform dir, which has no offload route.
+ */
+export function backgroundOutputPathsIn(platformDir: string | undefined): BackgroundOutputPaths | undefined {
+  if (platformDir === undefined) return undefined;
+  const dir = join(offloadDirBeside(platformDir), DEEPAGENTS_OFFLOAD_ROOT.slice(1, -1));
+  return {
+    virtual: (id) => `${DEEPAGENTS_OFFLOAD_ROOT}${backgroundOutputFileName(id)}`,
+    real: (id) => join(dir, backgroundOutputFileName(id)),
+  };
 }
 
 /** One {@link OffloadBackend} per offload root, each in its own directory of the session's offload directory. */

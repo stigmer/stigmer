@@ -17,6 +17,7 @@
  * along unchanged. The Claude Code rows:
  *
  *   execute     -> Bash        read_file  -> Read       write_file -> Write
+ *   execute {background} -> Bash {run_in_background}
  *   edit_file   -> Edit        glob       -> Glob       grep       -> Grep
  *   ls {path}   -> Glob {pattern: "*", path}
  *   task {description, subagent_type}
@@ -54,7 +55,9 @@
  * `MCP:<tool>` on `preToolUse`, and the bare tool with its server's slug on
  * `beforeMCPExecution`. Stigmer's own tools (the channel, conversation and
  * memory attachments) have no view and never reach a hook: no plugin can
- * name them, as no tool list can.
+ * name them, as no tool list can. Nor does the runner's
+ * `stop_background_command`, which no format has: a hook saw the command's
+ * start, and a command's end fires no hook.
  *
  * The inverse of each row restores the native call, so view-then-inverse is
  * the identity on what the engine binds (pinned by the module's test).
@@ -198,6 +201,11 @@ interface Row {
   readonly toNative: (input: Args, paths: PathMapping) => Args | string;
 }
 
+/** A row whose only difference from the format's tool is the name of one argument. */
+function renamedArgRow(name: string, from: string, to: string): Row {
+  return { name, toView: (args) => renamed(args, from, to), toNative: (input) => renamed(input, to, from) };
+}
+
 /** A row whose only difference from the format's tool is a path argument. */
 function pathRow(name: string, pathArg: string | undefined): Row {
   if (pathArg === undefined) {
@@ -233,7 +241,7 @@ const GLOB_EVERYTHING = "*";
 
 /** The native tools Claude Code has a name for, by their bound names. */
 const CLAUDE_ROWS: ReadonlyMap<string, Row> = new Map<string, Row>([
-  ["execute", pathRow("Bash", undefined)],
+  ["execute", renamedArgRow("Bash", "background", "run_in_background")],
   ["read_file", pathRow("Read", "file_path")],
   ["write_file", pathRow("Write", "file_path")],
   ["edit_file", pathRow("Edit", "file_path")],

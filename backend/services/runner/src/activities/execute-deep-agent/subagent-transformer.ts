@@ -61,7 +61,7 @@ import type { ToolTruncationConfig } from "../../middleware/types.js";
 import type { TurnBoundarySignals } from "../../middleware/turn-boundary.js";
 import type { ToolScope } from "../../shared/tool-lists.js";
 import { CasCaptureShellBackend, createCasCaptureBackend } from "./cas-capture-backend.js";
-import { createShellTool, type ShellToolOptions } from "./shell-tool.js";
+import { createShellBinding, type ShellToolOptions } from "./shell-tool.js";
 import { trimTrailingLineEnds } from "../../shared/text-cut.js";
 
 /** How a sub-agent's shell tool runs, beside its backend: the parent's ceiling and streaming floor. */
@@ -597,7 +597,7 @@ export async function compileSubagents(
       // The sub-agent's own shell over its own backend (its values, never the
       // parent's), shared by every invocation as the backend is.
       const shell = workspace instanceof CasCaptureShellBackend && opts.shellStreaming
-        ? { tool: createShellTool({ backend: workspace, ...opts.shellStreaming }) }
+        ? createShellBinding({ backend: workspace, ...opts.shellStreaming })
         : undefined;
       // The workspace's instruction files, when this sub-agent's own scope
       // may read the workspace: deeper ones through its own backend.

@@ -167,6 +167,8 @@ export class TurnTimeline {
       case "approval_proposed":
       case "context_compacted":
       case "system_note":
+      case "background_wait_started":
+      case "background_wait_finished":
         return;
       default: {
         const exhaustive: never = event;

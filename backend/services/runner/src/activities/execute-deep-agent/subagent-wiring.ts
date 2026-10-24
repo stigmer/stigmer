@@ -72,6 +72,7 @@ import { createFolderInstructionsMiddleware } from "../../middleware/folder-inst
 import { createExecutionBudgetMiddleware } from "../../middleware/execution-budget.js";
 import { createToolIntentMiddleware } from "../../middleware/tool-intent.js";
 import { createShellMiddleware } from "../../middleware/shell.js";
+import { createBackgroundCommandsMiddleware } from "../../middleware/background-commands.js";
 import type { ShellMiddlewareConfig } from "../../middleware/types.js";
 import { createTurnBoundaryMiddleware, type TurnBoundarySignals } from "../../middleware/turn-boundary.js";
 import {
@@ -131,7 +132,7 @@ export interface SubAgentMiddlewareOptions {
  *
  * Returns an ordered array mirroring the parent composition:
  * [turn boundary] → [path normalization] → loop detection → execution budget (periodic) →
- * [shell] → tool intent → [folder instructions] → tool truncation → [tool scope] → [approval gate] → cost
+ * [shell] → [background commands] → tool intent → [folder instructions] → tool truncation → [tool scope] → [approval gate] → cost
  * cap view → error hints → OTel spans → model retry.
  * Normalization is outermost so everything downstream observes canonical
  * workspace-absolute paths (matching the parent). The gate sits before the
@@ -163,6 +164,16 @@ export function buildSubAgentMiddleware(
   // Sub-agent shell rows render in the same thread as the parent's and must
   // carry the same model-authored intent titles (issue #276).
   if (options.shell) stack.push(createShellMiddleware(options.shell));
+  // A sub-agent hears of its own background commands and waits for them at
+  // its round's end; a person's message and a yield are the parent's.
+  if (options.shell?.background) {
+    stack.push(createBackgroundCommandsMiddleware({
+      ...options.shell.background,
+      scope: "subagent",
+      ...(options.turnBoundary ? { signals: options.turnBoundary } : {}),
+      ...(options.toolTruncation?.maxChars !== undefined ? { maxNoticeChars: options.toolTruncation.maxChars } : {}),
+    }));
+  }
   stack.push(createToolIntentMiddleware());
 
   if (options.folderInstructions) stack.push(createFolderInstructionsMiddleware(options.folderInstructions));

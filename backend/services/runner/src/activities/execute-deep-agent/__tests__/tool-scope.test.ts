@@ -472,6 +472,16 @@ describe("tool scope attribution, on the middleware itself", () => {
     expect(passed, "no tools to filter: the request goes on as it came").toBe(request);
   });
 
+  it("keeps the stop tool in scope exactly when the shell is", async () => {
+    const shell = { name: "execute" };
+    const stop = { name: "stop_background_command" };
+    expect(visibleTools(config({ tools: ["Bash"], disallowedTools: [] }), [shell, stop]), "an allow-list of Bash keeps both").toEqual([shell, stop]);
+    expect(visibleTools(config({ tools: ["Read"], disallowedTools: [] }), [shell, stop]), "one without Bash hides both").toEqual([]);
+    expect(visibleTools(config({ tools: [], disallowedTools: ["Bash"] }), [shell, stop]), "a deny of Bash hides both").toEqual([]);
+    expect(await callRefused(config({ tools: ["Bash"], disallowedTools: [] }), "stop_background_command", undefined, { id: "bg_1" })).toBe(false);
+    expect(await callRefused(config({ tools: ["Read"], disallowedTools: [] }), "stop_background_command", undefined, { id: "bg_1" })).toBe(true);
+  });
+
   it("hides an engine extra under an allow-list and leaves it under a deny-list", () => {
     const extra = { name: "some_engine_extra" };
     expect(visibleTools(config({ tools: ["Read"], disallowedTools: [] }), [extra])).toEqual([]);
