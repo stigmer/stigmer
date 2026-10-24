@@ -22,6 +22,7 @@ vi.mock("@langchain/openai", () => ({
 }));
 
 import { buildChatModel } from "../model-client.js";
+import { MODEL_REQUEST_RETRIES, modelRequestFailed } from "../model-retry.js";
 import { _resetRegistryCache } from "../model-registry.js";
 import { ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
@@ -188,10 +189,13 @@ describe("buildChatModel", () => {
   // Putting it in the shared constructor spread was the regression that made
   // the env var inert on every Anthropic path. The backend factories' half
   // of the chain is pinned in the
-  // vertex/bedrock/foundry adapter tests.
+  // vertex/bedrock/foundry adapter tests. The bound is per attempt and
+  // covers only the wait for a reply to begin, so it keeps the retries:
+  // until 2026-10 a bound switched them off, a rule left from when the
+  // workflow engine's model call handed its retries to Temporal.
 
   describe("request timeout", () => {
-    it("places the OpenAI timeout at the constructor level with maxRetries 0", async () => {
+    it("places the OpenAI timeout at the constructor level and keeps the retries", async () => {
       mockRegistryResponse([
         { id: "gpt-4.1", apiModelId: "gpt-4.1", provider: "openai" },
       ]);
@@ -199,7 +203,7 @@ describe("buildChatModel", () => {
       await buildChatModel({ modelName: "gpt-4.1", timeoutMs: 5000 });
 
       const args = mockOpenAICtor.mock.calls.at(-1)?.[0] as Record<string, unknown>;
-      expect(args).toMatchObject({ timeout: 5000, maxRetries: 0 });
+      expect(args).toMatchObject({ timeout: 5000, maxRetries: MODEL_REQUEST_RETRIES, onFailedAttempt: modelRequestFailed });
     });
 
     it("places the Anthropic timeout in clientOptions, never the inert constructor slot", async () => {
@@ -210,7 +214,7 @@ describe("buildChatModel", () => {
       await buildChatModel({ modelName: "claude-haiku-4.5", timeoutMs: 5000 });
 
       const args = lastAnthropicArgs();
-      expect(args).toMatchObject({ clientOptions: { timeout: 5000 }, maxRetries: 0 });
+      expect(args).toMatchObject({ clientOptions: { timeout: 5000 }, maxRetries: MODEL_REQUEST_RETRIES, onFailedAttempt: modelRequestFailed });
       expect(args).not.toHaveProperty("timeout");
     });
 
@@ -248,7 +252,7 @@ describe("buildChatModel", () => {
 
       expect(lastAnthropicArgs()).toMatchObject({
         clientOptions: { timeout: 7000 },
-        maxRetries: 0,
+        maxRetries: MODEL_REQUEST_RETRIES,
       });
     });
 
@@ -275,9 +279,25 @@ describe("buildChatModel", () => {
 
         const args = lastAnthropicArgs();
         expect(args).not.toHaveProperty("clientOptions");
-        expect(args).not.toHaveProperty("maxRetries");
+        expect(args).toMatchObject({ maxRetries: MODEL_REQUEST_RETRIES, onFailedAttempt: modelRequestFailed });
       },
     );
+  });
+
+  // ─── Retry (model-retry.ts) ─────────────────────────────────────────────────
+
+  describe("retry", () => {
+    it.each([
+      ["claude-haiku-4.5", "claude-haiku-4-5-20251001", "anthropic"],
+      ["gpt-4.1", "gpt-4.1", "openai"],
+    ])("gives every %s build the runner's count and classification, never LangChain's", async (id, apiModelId, provider) => {
+      mockRegistryResponse([{ id, apiModelId, provider }]);
+
+      await buildChatModel({ modelName: id, proxyEndpoint: "https://api.stigmer.ai", stigmerToken: "tok" });
+
+      const args = (provider === "openai" ? mockOpenAICtor : mockAnthropicCtor).mock.calls.at(-1)?.[0];
+      expect(args).toMatchObject({ maxRetries: MODEL_REQUEST_RETRIES, onFailedAttempt: modelRequestFailed });
+    });
   });
 
   // ─── The public API's address (ANTHROPIC_BASE_URL) ─────────────────────────

@@ -1,10 +1,11 @@
 /**
- * The sub-agent middleware stack: its order, the parent's cost advisory view
- * it shares, the periodic budget (advisories every 30 model calls, never a
- * stop), a fresh loop detector per stack, and how the approval gate is
- * inherited or stripped of its CAS routing. The periodic advisory is pinned
- * as a user-role message on the 31st call: until stigmer/stigmer#1354 it was
- * a system message, so every sub-agent on an Anthropic model failed there.
+ * The sub-agent middleware stack: its order (the model retry last), the
+ * parent's cost advisory view it shares, the periodic budget (advisories
+ * every 30 model calls, never a stop), a fresh loop detector per stack, and
+ * how the approval gate is inherited or stripped of its CAS routing. The
+ * periodic advisory is pinned as a user-role message on the 31st call: until
+ * stigmer/stigmer#1354 it was a system message, so every sub-agent on an
+ * Anthropic model failed there.
  */
 
 import { describe, it, expect, vi } from "vitest";
@@ -19,13 +20,14 @@ describe("buildSubAgentMiddleware", () => {
   it("returns the correct middleware order without a cost advisory", () => {
     const stack = buildSubAgentMiddleware();
 
-    expect(stack).toHaveLength(6);
+    expect(stack).toHaveLength(7);
     expect(stack[0].name).toBe("LoopDetectionMiddleware");
     expect(stack[1].name).toBe("ExecutionBudgetMiddleware");
     expect(stack[2].name).toBe("StigmerToolIntentMiddleware");
     expect(stack[3].name).toBe("ToolTruncationMiddleware");
     expect(stack[4].name).toBe("ErrorHintsMiddleware");
     expect(stack[5].name).toBe("OtelSpansMiddleware");
+    expect(stack[6].name, "last, so a retried reply re-runs no bookkeeping").toBe("ModelRetryMiddleware");
   });
 
   it("includes the parent's cost advisory view when one is provided", () => {
@@ -39,10 +41,11 @@ describe("buildSubAgentMiddleware", () => {
 
     const stack = buildSubAgentMiddleware({ costAdvisory: parentCostAdvisory });
 
-    expect(stack).toHaveLength(7);
+    expect(stack).toHaveLength(8);
     expect(stack[4].name).toBe("CostAdvisorySubAgentView");
     expect(stack[5].name).toBe("ErrorHintsMiddleware");
     expect(stack[6].name).toBe("OtelSpansMiddleware");
+    expect(stack[7].name).toBe("ModelRetryMiddleware");
   });
 
   it("the sub-agent advisory view shares the parent's running total and has no tool hook", () => {
@@ -114,8 +117,8 @@ describe("buildSubAgentMiddleware", () => {
       approvalGate: { mcpDefault: { destructive: new Set(), unlisted: new Set<string>(), leasedServers: new Set() }, toolServerMap: new Map() },
     });
 
-    // loop, budget, tool intent, truncation, approval gate, error hints
-    expect(stack).toHaveLength(7);
+    // loop, budget, tool intent, truncation, approval gate, error hints, spans, model retry
+    expect(stack).toHaveLength(8);
     expect(stack[4].name).toBe("ApprovalGateMiddleware");
     expect(stack[4].wrapToolCall).toBeDefined();
   });
@@ -123,7 +126,7 @@ describe("buildSubAgentMiddleware", () => {
   it("omits the approval gate when approvalGate is null (auto-approve-all parity)", () => {
     const stack = buildSubAgentMiddleware({ approvalGate: null });
 
-    expect(stack).toHaveLength(6);
+    expect(stack).toHaveLength(7);
     expect(stack.some((m) => m.name === "ApprovalGateMiddleware")).toBe(false);
   });
 
@@ -144,11 +147,12 @@ describe("buildSubAgentMiddleware", () => {
     // loop, budget, tool intent, truncation, approval gate, cost advisory view,
     // error hints. Hints AFTER the gate matches the parent nesting: the
     // gate's HITL interrupt stays outside the hints' try/catch (issue #255).
-    expect(stack).toHaveLength(8);
+    expect(stack).toHaveLength(9);
     expect(stack[4].name).toBe("ApprovalGateMiddleware");
     expect(stack[5].name).toBe("CostAdvisorySubAgentView");
     expect(stack[6].name).toBe("ErrorHintsMiddleware");
     expect(stack[7].name).toBe("OtelSpansMiddleware");
+    expect(stack[8].name).toBe("ModelRetryMiddleware");
   });
 
   // captureIgnored is the structural coupling that makes sub-agent gitignored

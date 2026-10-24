@@ -31,9 +31,13 @@
  *      ~80% of the cap that the turn runtime enforces)
  *   8. Error hints (always)
  *   9. OTel spans (always, no-op when OTel not configured)
+ *  10. Model retry (always — LAST, so a reply that failed after it began
+ *      is tried again without re-running any Stigmer bookkeeping above it,
+ *      and one span covers the call's attempts, `model-retry.ts`)
  *
  * Every middleware here either shapes the graph's tool surface or ADVISES
- * the model. Advising has one channel, `advisory-message.ts`: a user-role
+ * the model, but the model retry, which only calls the model again when its
+ * reply failed for a passing reason. Advising has one channel, `advisory-message.ts`: a user-role
  * message after the latest tool results of the next model request, never a
  * system message and never written to the graph's state (stigmer/stigmer#1354).
  * None of them decides to stop the run, except the execution budget, which
@@ -69,6 +73,7 @@ import { createCostAdvisoryMiddleware, type CostAdvisoryMiddleware } from "./cos
 import { createErrorHintsMiddleware } from "./error-hints.js";
 import { createOtelSpansMiddleware } from "./otel-spans.js";
 import { createTurnBoundaryMiddleware } from "./turn-boundary.js";
+import { createModelRetryMiddleware } from "./model-retry.js";
 
 export type { CostAdvisoryMiddleware } from "./cost-advisory.js";
 export type { StigmerMiddleware, MiddlewareStackConfig } from "./types.js";
@@ -114,6 +119,7 @@ export function buildMiddlewareStack(
 
   stack.push(createErrorHintsMiddleware());
   stack.push(createOtelSpansMiddleware(config.otelSpans));
+  stack.push(createModelRetryMiddleware());
 
   return { middleware: stack, costAdvisory };
 }
