@@ -339,6 +339,7 @@ Nothing to touch. Listed so a probe's hit here is a stop, not a lead.
   `backend/services/stigmer-server/src/domain/eval-run/try-run.ts`,
   `backend/services/stigmer-server/src/domain/score/judge/judge-run.ts`,
   `backend/services/stigmer-server/src/temporal/agentexecution/dispatch.ts`,
+  `backend/services/stigmer-server/src/temporal/agentexecution/activities.ts`,
   `backend/services/stigmer-server/src/extensions/metered-usage.ts`,
   `backend/services/stigmer-server/src/store/sub-agents-retired.ts` (read the
   session's harness, or default an unspecified one to native).
