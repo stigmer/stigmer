@@ -31,12 +31,19 @@
  * `additional_kwargs` under {@link FOLDER_INSTRUCTIONS_KEY} (deepagents marks
  * its own summary message the same way, `lc_source`; no provider's converter
  * reads a key it does not know). A path counts as shown while a tool message
- * the model still sees carries it. "Still sees" is the messages from the
- * last compaction's cutoff on: deepagents' summarization keeps every message
- * in state and records a cutoff ({@link modelVisibleMessages}), so a ledger
- * over all of `state.messages` would never show a folder's notes again after
- * compaction summarised them away. Each tool call is handed the whole graph
- * state, the private `_summarizationEvent` channel included.
+ * the model still sees carries it. deepagents' summarization keeps every
+ * message in state and records a cutoff, so a ledger over all of
+ * `state.messages` would never show a folder's notes again after compaction
+ * summarised them away. And a tool call cannot see that cutoff: it is handed
+ * the graph's output channels only (`messages`), and the cutoff is a private
+ * channel (`@langchain/langgraph` `graph/state.js`, the branch reader that
+ * builds each call's `Send`). So the middleware also wraps the model call,
+ * which is handed the messages the model is really sent, after the
+ * compaction middleware (outside every Stigmer middleware) has rebuilt them,
+ * and notes which files they carry; the reads that model call proposes
+ * decide against that note. Before any model call in this process (a turn
+ * resumed after an approval re-runs its tool calls first), they decide
+ * against the whole history, so they can show too little once, never twice.
  *
  * Reads made together in one response run at once, each over the same state,
  * so none sees the others' results. They share a claim per model message (the
@@ -94,25 +101,10 @@ export interface FolderInstructionsConfig {
   readonly maxChars: number;
 }
 
-/**
- * The messages the model is shown, as deepagents' (1.14) summarization
- * rebuilds them (`getEffectiveMessages`, not exported): after a compaction,
- * the summary and the messages from the recorded cutoff on; otherwise every
- * message. Held to the installed library by its test.
- */
-export function modelVisibleMessages(state: Record<string, unknown>): unknown[] {
-  const messages = Array.isArray(state.messages) ? (state.messages as unknown[]) : [];
-  const event = state._summarizationEvent;
-  if (typeof event !== "object" || event === null) return messages;
-  const { cutoffIndex, summaryMessage } = event as { cutoffIndex?: unknown; summaryMessage?: unknown };
-  if (typeof cutoffIndex !== "number") return messages;
-  return [summaryMessage, ...messages.slice(cutoffIndex)];
-}
-
-/** The instruction files the model still sees on a tool message. */
-function shownPaths(state: Record<string, unknown>): Set<string> {
+/** The instruction files these messages' tool results carry. */
+function shownPaths(messages: readonly unknown[]): Set<string> {
   const shown = new Set<string>();
-  for (const message of modelVisibleMessages(state)) {
+  for (const message of messages) {
     if (!ToolMessage.isInstance(message)) continue;
     const paths = message.additional_kwargs?.[FOLDER_INSTRUCTIONS_KEY];
     if (!Array.isArray(paths)) continue;
@@ -169,13 +161,16 @@ function withFolderInstructions(message: ToolMessage, files: readonly Instructio
 
 /** The middleware; see the module header. */
 export function createFolderInstructionsMiddleware(config: FolderInstructionsConfig): StigmerMiddleware {
+  /** The instruction files the messages of the latest model call carried (the header); undefined before the first. */
+  let modelView: Set<string> | undefined;
   /** The instruction files claimed by the calls of one model message (the header). */
   let claim: { readonly key: string; readonly paths: Set<string> } | undefined;
 
   /** The folders' files this read may carry, before the claim: read, not yet seen by the model. */
   async function discover(request: ToolCallRequest, filePath: string): Promise<InstructionFile[]> {
     if (await admitsRoutedRead(filePath)) return [];
-    const shown = shownPaths(request.state);
+    const history = Array.isArray(request.state.messages) ? request.state.messages : [];
+    const shown = modelView ?? shownPaths(history);
     const files: InstructionFile[] = [];
     for (const dir of nestedDirectories(filePath, config.roots)) {
       if (INSTRUCTION_FILE_NAMES.some((name) => shown.has(`${dir}/${name}`))) continue;
@@ -187,6 +182,11 @@ export function createFolderInstructionsMiddleware(config: FolderInstructionsCon
 
   return {
     name: "FolderInstructionsMiddleware",
+
+    wrapModelCall(request, handler) {
+      modelView = shownPaths(request.messages);
+      return handler(request);
+    },
 
     async wrapToolCall(request, handler) {
       const result = await handler(request);

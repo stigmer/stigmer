@@ -4,25 +4,20 @@
  * view, and what is left alone.
  *
  * Files are read through a real virtual-rooted `FilesystemBackend` over a
- * temporary tree; requests carry the graph state a tool call is handed. The
- * view's twin of deepagents' unexported `getEffectiveMessages` is held to the
- * installed library through its public summarization middleware.
+ * temporary tree; a tool call's request carries the state it is handed (the
+ * graph's `messages`), a model call's the messages the model is sent.
  */
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AIMessage, HumanMessage, ToolMessage, type BaseMessage, type MessageContent } from "@langchain/core/messages";
-import { FilesystemBackend, createSummarizationMiddleware } from "deepagents";
+import { AIMessage, HumanMessage, ToolMessage, type MessageContent } from "@langchain/core/messages";
+import { FilesystemBackend } from "deepagents";
 
-import {
-  FOLDER_INSTRUCTIONS_KEY,
-  createFolderInstructionsMiddleware,
-  modelVisibleMessages,
-} from "../folder-instructions.js";
+import { FOLDER_INSTRUCTIONS_KEY, createFolderInstructionsMiddleware } from "../folder-instructions.js";
 import { REPOSITORY_INSTRUCTIONS_TEXT } from "../../activities/execute-deep-agent/repository-instructions.js";
-import type { StigmerMiddleware, ToolCallRequest } from "../types.js";
+import type { ModelCallRequest, StigmerMiddleware, ToolCallRequest } from "../types.js";
 import { buildMiddlewareStack } from "../index.js";
 import { buildSubAgentMiddleware } from "../../activities/execute-deep-agent/subagent-wiring.js";
 
@@ -63,6 +58,12 @@ function readResult(id: string, content: MessageContent = [{ type: "text", text:
 
 async function call(mw: StigmerMiddleware, req: ToolCallRequest, result: ToolMessage = readResult(req.toolCall.id)): Promise<ToolMessage> {
   return (await mw.wrapToolCall!(req, async () => result)) as ToolMessage;
+}
+
+/** The model is handed `messages`: what a compaction left of the history, or all of it. */
+async function modelCall(mw: StigmerMiddleware, messages: unknown[]): Promise<void> {
+  const request: ModelCallRequest = { model: undefined, messages, state: { messages }, runtime: {} };
+  await mw.wrapModelCall!(request, async () => new AIMessage("ok"));
 }
 
 function texts(message: ToolMessage): string {
@@ -157,17 +158,27 @@ describe("FolderInstructionsMiddleware", () => {
     expect(texts(second)).not.toContain("pkg notes");
   });
 
-  it("shows it again once a compaction's cutoff passes the message that carried it", async () => {
+  it("shows it again once the messages the model is handed no longer carry it, as after a compaction", async () => {
     const mw = middleware();
     const first = await call(mw, request("r1", "/pkg/x.ts", { messages: [proposing({ id: "r1", path: "/pkg/x.ts" })] }));
-    const messages = [new HumanMessage("go"), proposing({ id: "r1", path: "/pkg/x.ts" }), first, proposing({ id: "r2", path: "/pkg/y.ts" })];
-    const summaryMessage = new HumanMessage({ content: "Summary", additional_kwargs: { lc_source: "summarization" } });
+    const history = [new HumanMessage("go"), proposing({ id: "r1", path: "/pkg/x.ts" }), first, proposing({ id: "r2", path: "/pkg/y.ts" })];
+    const summary = new HumanMessage({ content: "Summary", additional_kwargs: { lc_source: "summarization" } });
 
-    const kept = await call(mw, request("r2", "/pkg/y.ts", { messages, _summarizationEvent: { cutoffIndex: 2, summaryMessage, filePath: null } }));
-    expect(kept.additional_kwargs[FOLDER_INSTRUCTIONS_KEY], "the carrying message is still in view").toBeUndefined();
+    await modelCall(mw, [summary, ...history.slice(2)]);
+    const kept = await call(mw, request("r2", "/pkg/y.ts", { messages: history }));
+    expect(kept.additional_kwargs[FOLDER_INSTRUCTIONS_KEY], "the model was handed the carrying message").toBeUndefined();
 
-    const again = await call(mw, request("r2", "/pkg/y.ts", { messages, _summarizationEvent: { cutoffIndex: 3, summaryMessage, filePath: null } }));
-    expect(again.additional_kwargs[FOLDER_INSTRUCTIONS_KEY]).toEqual(["/pkg/AGENTS.md"]);
+    await modelCall(mw, [summary, history[3]]);
+    const again = await call(mw, request("r2", "/pkg/y.ts", { messages: history }));
+    expect(again.additional_kwargs[FOLDER_INSTRUCTIONS_KEY], "the history still holds it; the model no longer sees it").toEqual(["/pkg/AGENTS.md"]);
+  });
+
+  it("decides against the whole history before any model call, so it never shows a file twice", async () => {
+    const mw = middleware();
+    const first = await call(mw, request("r1", "/pkg/x.ts", { messages: [proposing({ id: "r1", path: "/pkg/x.ts" })] }));
+    // A fresh middleware is a turn resumed in a new process: its tool calls re-run before any model call.
+    const resumed = await call(middleware(), request("r2", "/pkg/y.ts", { messages: [first, proposing({ id: "r2", path: "/pkg/y.ts" })] }));
+    expect(resumed.additional_kwargs[FOLDER_INSTRUCTIONS_KEY]).toBeUndefined();
   });
 
   it("attaches a folder's file to one of two reads beneath it in one response", async () => {
@@ -217,38 +228,5 @@ describe("its place in the stacks", () => {
     const names = buildSubAgentMiddleware({ folderInstructions: { backend, roots: ROOTS, maxChars: BOUND } }).map((m) => m.name);
     expect(aroundTruncation(names)).toEqual(["FolderInstructionsMiddleware", "ToolTruncationMiddleware"]);
     expect(buildSubAgentMiddleware().map((m) => m.name)).not.toContain("FolderInstructionsMiddleware");
-  });
-});
-
-describe("modelVisibleMessages", () => {
-  /** What deepagents' own summarization middleware hands the model for a state, when it does not compact. */
-  async function deepagentsView(state: Record<string, unknown>): Promise<BaseMessage[]> {
-    const summarization = createSummarizationMiddleware({ model: "unused", backend }) as unknown as {
-      wrapModelCall: (request: Record<string, unknown>, handler: (request: { messages: BaseMessage[] }) => Promise<AIMessage>) => Promise<unknown>;
-    };
-    let seen: BaseMessage[] = [];
-    await summarization.wrapModelCall(
-      { messages: state.messages, state, model: { profile: { maxInputTokens: 1_000_000 } }, tools: [] },
-      async (request) => {
-        seen = request.messages;
-        return new AIMessage("ok");
-      },
-    );
-    return seen;
-  }
-
-  const messages = [new HumanMessage("one"), new AIMessage("two"), new HumanMessage("three"), new AIMessage("four")];
-  const summaryMessage = new HumanMessage({ content: "Summary", additional_kwargs: { lc_source: "summarization" } });
-
-  it("agrees with the installed deepagents with no compaction", async () => {
-    const state = { messages };
-    expect(modelVisibleMessages(state)).toEqual(await deepagentsView(state));
-  });
-
-  it("agrees with the installed deepagents after a compaction", async () => {
-    const state = { messages, _summarizationEvent: { cutoffIndex: 2, summaryMessage, filePath: null } };
-    const view = await deepagentsView(state);
-    expect(view.map((message) => message.text)).toEqual(["Summary", "three", "four"]);
-    expect(modelVisibleMessages(state)).toEqual(view);
   });
 });

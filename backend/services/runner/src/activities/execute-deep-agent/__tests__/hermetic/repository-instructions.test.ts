@@ -17,7 +17,9 @@
  *    folder's file; a compaction is then recorded in the thread's checkpoint
  *    with its cutoff past that message, as deepagents' summarization records
  *    one, and the next message's read under `pkg/` carries the file again.
- *    That proves a tool call sees deepagents' private summarization channel.
+ *    A tool call never sees that private cutoff; this proves the middleware
+ *    reads the view from the model call, after deepagents' compaction
+ *    middleware rebuilt it (`middleware/folder-instructions.ts`).
  *
  * Structure and side effects only; no golden.
  */
