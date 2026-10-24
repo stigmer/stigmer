@@ -363,6 +363,14 @@ factor in how the Agent behaves. Structure it as a brief for a new team member:
 - **Set the tone.** "Be direct and concise. Act on requests rather than
   explaining steps." shapes conversational style.
 
+On the native Harness, a repository's own notes for coding agents join the
+instructions. When the files the Agent works on keep an `AGENTS.md` (or, failing
+that, a `CLAUDE.md`) at their root, the Agent reads it at the start of every
+turn, beneath its instructions; a subfolder's own file is shown the first time
+the Agent reads a file beneath it. Where the two disagree, the Agent's
+instructions win. An Agent whose tool lists keep it from reading those files is
+shown none of them.
+
 ## What's next
 
 An Agent's definition says what the job is, but not where the work happens. Your

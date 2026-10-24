@@ -7,8 +7,8 @@
  * the wrappers rendered a plain div under reduced motion, the exported
  * `opacity:0` stayed on the page and every section below the header was
  * blank, and the hero's card rendered another tree, which failed hydration.
- * So the preference may change behaviour (the hero's tilt) but never markup,
- * and the stylesheet, not the render, keeps reveals visible and still.
+ * So the preference never changes markup: the stylesheet, not the render,
+ * keeps reveals visible and the hero's picture still.
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
