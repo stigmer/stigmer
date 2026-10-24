@@ -235,7 +235,7 @@ function JobPath({ className }: { className?: string }) {
         <div className="col-span-full row-start-10 grid grid-cols-2 gap-3 @min-[600px]:col-span-1 @min-[600px]:col-start-5 @min-[600px]:row-span-8 @min-[600px]:row-start-1 @min-[600px]:grid-cols-1 @min-[600px]:self-start">
           <OtherCustomer named />
           <OtherCustomer named={false} />
-          <AgentGetTitle id="walls" className="col-span-full flex min-h-7 items-center pr-9 text-muted-foreground" />
+          <AgentGetTitle id="walls" className="col-span-full flex min-h-7 items-center pr-9 text-muted-foreground @min-[600px]:pr-0" />
         </div>
       </div>
       <figcaption className="sr-only">{CAPTION}</figcaption>
