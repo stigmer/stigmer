@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { headCutIndex, tailCutIndex } from "../text-cut.js";
+import { headCutIndex, tailCutIndex, trimTrailingLineEnds } from "../text-cut.js";
 
 describe("headCutIndex", () => {
   it("ends the kept start just after a line end in the budget's last tenth", () => {
@@ -54,5 +54,22 @@ describe("tailCutIndex", () => {
   it("keeps nothing for a budget of nothing, and the whole of a shorter text", () => {
     expect(tailCutIndex("abc\n", 0)).toBe(4);
     expect(tailCutIndex("abc", 10)).toBe(0);
+  });
+});
+
+describe("trimTrailingLineEnds", () => {
+  it("drops every line end that closes the text, and nothing else", () => {
+    expect(trimTrailingLineEnds("a\n\n\n")).toBe("a");
+    expect(trimTrailingLineEnds("a\nb")).toBe("a\nb");
+    expect(trimTrailingLineEnds("\n\n")).toBe("");
+    expect(trimTrailingLineEnds("")).toBe("");
+    expect(trimTrailingLineEnds("a \n")).toBe("a ");
+  });
+
+  it("takes linear time over a long run of line ends that does not close the text", () => {
+    const planted = `${"\n".repeat(200_000)}x`;
+    const started = performance.now();
+    expect(trimTrailingLineEnds(planted)).toBe(planted);
+    expect(performance.now() - started).toBeLessThan(1_000);
   });
 });

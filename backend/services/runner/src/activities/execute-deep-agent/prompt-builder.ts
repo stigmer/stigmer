@@ -16,6 +16,15 @@
  * (`execute-cursor/prompt-builder.ts` `buildPrompt`) and the runner's rule
  * that user content goes in user messages, never the system prompt.
  *
+ * One section follows the workspace's files rather than the session's
+ * record: the workspace's own `AGENTS.md` (else `CLAUDE.md`) at its roots,
+ * read once at turn setup (`repository-instructions.ts`). It is standing
+ * context like a declared preference, constant within a turn, and an edit to
+ * the file rewrites the cached prompt once on the next turn, as an edited
+ * preference does. It sits right after the workspace section it is about,
+ * beneath the agent's instructions, which win where the two conflict; a
+ * workspace without such a file renders no section and today's bytes.
+ *
  * Pure functions: no side effects, no I/O. `turn-setup.ts` gathers the
  * inputs from the runtime's resolved record and this module renders them.
  *
@@ -140,6 +149,13 @@ export interface PromptBuilderInput {
   containerRoot: string;
   skillsPromptSection: string;
   /**
+   * The `## Repository instructions` section (`repository-instructions.ts`
+   * `renderRepositoryInstructions`): the workspace roots' own instruction
+   * files, read at turn setup; empty or absent when none reads or the
+   * agent's tool lists refuse a workspace read.
+   */
+  repositoryInstructionsSection?: string;
+  /**
    * The `<available_channel_templates>` section
    * (shared/channel-attachment.ts formatChannelTemplatesSection); absent
    * when the agent serves no proactive channel or nothing is sendable.
@@ -256,6 +272,10 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
   );
   if (workspaceSection) {
     prompt += workspaceSection;
+  }
+
+  if (input.repositoryInstructionsSection) {
+    prompt += input.repositoryInstructionsSection;
   }
 
   if (input.skillsPromptSection) {
