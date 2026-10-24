@@ -569,7 +569,6 @@ export interface BackgroundStopChannel {
  *    once `runTurn` returns. An adapter never writes a phase or a terminal
  *    copy: those are Temporal semantics the runtime owns once.
  */
-
 export interface TurnSink {
   /**
    * The one execution status this turn writes: lifecycle, stamps,

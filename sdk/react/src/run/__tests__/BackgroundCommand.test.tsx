@@ -147,10 +147,11 @@ describe("the agent's stop of a background command", () => {
     expect(container.textContent).toContain("Stopping a command");
   });
 
-  it("says the command had already ended when no end names it", () => {
+  it("keeps the kind's label when no end names it: the command had ended, or the id named none", () => {
     const stop = toolUse({ name: "stop_background_command", id: "run_1.stop-1", input: { id: "bg-1" }, result: "It had already ended." });
     const { container } = render(<ToolCallItem toolUse={stop} />);
-    expect(container.textContent).toContain("The command had already ended");
+    expect(container.textContent).toContain("Stop command");
+    expect(container.textContent).not.toContain("Stopped");
   });
 });
 

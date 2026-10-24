@@ -119,17 +119,18 @@ export function resolveRunGroupable(toolUse: ToolUse): boolean {
 /**
  * The agent's stop of a background command, read from the command's own
  * end, which names the stop call (`ToolUse.stoppedBackground`): "Stopped"
- * with the command it stopped, or, once the call returned without one, that
- * the command had already ended. Never from the stop's prose.
+ * with the command it stopped. A call that returned with no end naming it
+ * found the command already ended or named none it started, which the log
+ * does not tell apart, so it keeps the kind's label and its result says
+ * which. Never read from the stop's prose.
  */
-function backgroundStopPresentation(toolUse: ToolUse): { readonly title: string; readonly primaryArg: string | null } {
+function backgroundStopPresentation(toolUse: ToolUse): { readonly title: string | undefined; readonly primaryArg: string | null } {
   const stopped = toolUse.stoppedBackground;
   if (stopped !== undefined) {
     const command = backgroundCommandText({ input: stopped.input });
     return { title: "Stopped", primaryArg: command === "" ? null : command };
   }
-  if (toolUse.state === "completed") return { title: "The command had already ended", primaryArg: null };
-  return { title: "Stopping a command", primaryArg: null };
+  return { title: toolUse.state === "running" ? "Stopping a command" : undefined, primaryArg: null };
 }
 
 /** The fully-resolved presentation for a tool call, returned by {@link useToolPresentation}. */
