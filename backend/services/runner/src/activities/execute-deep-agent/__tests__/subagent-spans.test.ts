@@ -59,9 +59,10 @@ function only(prefix: string): ReadableSpan {
 }
 
 describe("a sub-agent's spans", () => {
-  it("carries the span middleware, innermost, on every sub-agent stack", () => {
+  it("carries the span middleware, innermost but for the model retry, on every sub-agent stack", () => {
     const stack = buildSubAgentMiddleware();
-    expect(stack.at(-1)?.name).toBe("OtelSpansMiddleware");
+    // The retry sits inside the span, so one span covers a call's attempts.
+    expect(stack.map((m) => m.name).slice(-2)).toEqual(["OtelSpansMiddleware", "ModelRetryMiddleware"]);
   });
 
   it("nests the sub-agent's calls under its invoke_agent span, under the parent's task call", async () => {

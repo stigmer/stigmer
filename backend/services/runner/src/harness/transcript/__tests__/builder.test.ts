@@ -948,6 +948,21 @@ describe("TranscriptBuilder — a THINKING row and a text message per runId; a n
     expect(m[3].isStreaming, "still streaming").toBe(true);
   });
 
+  it("a run that never finished (a model call that threw, then its retry) has its thinking closed by the next run's start", () => {
+    const { status } = feed(builder(), [
+      { kind: "message_start", runId: "failed" },
+      { kind: "reasoning_delta", runId: "failed", text: "Let me look" },
+      { kind: "text_delta", runId: "failed", text: "Partial" },
+      { kind: "message_start", runId: "retry" },
+      { kind: "text_delta", runId: "retry", text: "Whole." },
+    ]);
+    expect(status.messages.map((m) => [m.type, m.content, m.isStreaming])).toEqual([
+      [MessageType.MESSAGE_THINKING, "Let me look", false],
+      [MessageType.MESSAGE_AI, "Partial", false],
+      [MessageType.MESSAGE_AI, "Whole.", true],
+    ]);
+  });
+
   it("two runs' tokens never interleave: each streams into its own message", () => {
     const { status } = feed(builder(), [
       { kind: "message_start", runId: "a" },

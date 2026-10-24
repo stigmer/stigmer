@@ -57,6 +57,7 @@ import {
 } from "./service-tier.js";
 import { getRunnerSecret } from "./runner-credential-store.js";
 import { VERTEX_LANE_PROJECT, modelLaneUrl, modelLanes, type ModelLanes } from "./model-lanes.js";
+import { MODEL_REQUEST_RETRIES, modelRequestFailed, modelRequestFailedWholeReplyBound } from "./model-retry.js";
 
 export interface BuildChatModelOptions {
   /** Registry id ("claude-haiku-4.5"), "provider:model", or a provider API id. */
@@ -96,10 +97,17 @@ export interface BuildChatModelOptions {
    */
   readonly streaming?: boolean;
   /**
-   * Per-request bound. When omitted, defaults to the operator's
-   * STIGMER_LLM_REQUEST_TIMEOUT_MS — resolved HERE, not per caller, so no
-   * call site can drop the bound by forgetting to plumb it (the sub-agent
-   * factory did exactly that; stigmer/stigmer#468). An explicit value wins.
+   * Per-attempt bound: the SDKs arm it around the fetch and clear it when
+   * the response headers arrive. A streamed reply's headers come first, so
+   * there it bounds only the wait for the reply to begin, and a timed-out
+   * attempt is retried like any other dropped connection; a reply that does
+   * not stream sends its headers after the whole generation, so there it
+   * bounds the whole reply, and a timed-out attempt is not retried
+   * (`model-retry.ts` `modelRequestFailedWholeReplyBound`). When omitted,
+   * defaults to the operator's STIGMER_LLM_REQUEST_TIMEOUT_MS — resolved
+   * HERE, not per caller, so no call site can drop the bound by forgetting
+   * to plumb it (the sub-agent factory did exactly that;
+   * stigmer/stigmer#468). An explicit value wins.
    */
   readonly timeoutMs?: number;
   /**
@@ -320,10 +328,16 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
         ? (getRunnerSecret("OPENAI_API_KEY") ?? "")
         : (getRunnerSecret("ANTHROPIC_API_KEY") ?? "");
 
-  // maxRetries is 0 when a timeout is bound (a retry loop under a bound
-  // multiplies the wall-clock budget); with no bound, LangChain's default
-  // retry behavior is unchanged.
-  const maxRetries = timeoutMs !== undefined ? { maxRetries: 0 } : {};
+  // LangChain's client retry is the one loop for a request that fails,
+  // with the runner's classification in place of LangChain's
+  // (`model-retry.ts`), bound or no bound. Every model built here carries
+  // it: the turn's, each sub-agent's, structured extraction's and session
+  // subjects'. Under a bound, a model whose reply does not stream stops on a
+  // timed-out attempt (the `timeoutMs` field says why).
+  const retry = {
+    maxRetries: MODEL_REQUEST_RETRIES,
+    onFailedAttempt: timeoutMs !== undefined && !opts.streaming ? modelRequestFailedWholeReplyBound : modelRequestFailed,
+  };
   if (opts.thinking !== undefined && provider !== "anthropic") {
     throw new Error(
       `buildChatModel: a thinking parameter was passed for ${opts.modelName}, a ${provider} model; ` +
@@ -336,7 +350,7 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
     apiKey,
     ...(maxTokens ? { maxTokens } : {}),
     ...(opts.streaming ? { streaming: true } : {}),
-    ...maxRetries,
+    ...retry,
   };
   const anthropicThinkingField = opts.thinking !== undefined ? { thinking: opts.thinking } : {};
 
@@ -347,9 +361,9 @@ export async function buildChatModel(opts: BuildChatModelOptions): Promise<Built
   // SDK constructor. This split is what makes STIGMER_LLM_REQUEST_TIMEOUT_MS
   // bound every path; putting `timeout` in the shared constructor spread is
   // the exact regression that made it inert for Anthropic.
-  // The `maxRetries` half above stays constructor-level for both wrappers:
-  // that is LangChain's own retry knob, distinct from the SDK-level
-  // maxRetries the factories receive.
+  // The retry fields above stay constructor-level for both wrappers: they
+  // are LangChain's own retry knobs, distinct from the SDK-level maxRetries
+  // the factories receive (always 0, so the SDK never retries beneath it).
   const anthropicClientOptions = {
     ...(timeoutMs ? { timeout: timeoutMs } : {}),
     ...(baseUrl ? { baseURL: baseUrl } : {}),

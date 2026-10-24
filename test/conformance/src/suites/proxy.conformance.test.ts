@@ -10,8 +10,8 @@
 //                  through the run's, session's and organization's usage
 //                  reports, the only usage reads there are), scope
 //                  authorization, verbatim relay of upstream errors marked as
-//                  the organization's key, mid-stream abort, hop-by-hop
-//                  header hygiene
+//                  the organization's key with the provider's retry hint,
+//                  mid-stream abort, hop-by-hop header hygiene
 //   cursor       — the three arms that need no upstream: host allow-list 403,
 //                  scope 403, and the 403 for an organization holding no
 //                  Cursor key (relay rows are `smoke`: a served call reaches
@@ -392,6 +392,29 @@ describe.skipIf(!proxyServed)("Side-channel proxy conformance (sideChannelProxy 
       await control.llm.enqueue({ kind: "error", status: 429, body: { error: { type: "rate_limit_error", message: "slow down" } } });
       const plain429 = await anthropicCall(executionId);
       expect(plain429.status, "a plain 429 is transient and passes through").toBe(429);
+    });
+
+    it("[proxy.llm.upstream.retry-hint-relayed] an upstream 429 or 5xx is relayed with the provider's retry-after and retry-after-ms, and no x-* header", async () => {
+      const { org } = await keyedOrg();
+      const executionId = await ownedExecution(org);
+      for (const status of [429, 529]) {
+        await control.llm.enqueue({
+          kind: "error",
+          status,
+          headers: { "retry-after": "7", "retry-after-ms": "6500", "x-should-retry": "true" },
+          body: { type: "error", error: { type: status === 429 ? "rate_limit_error" : "overloaded_error", message: "slow down" } },
+        });
+        const response = await anthropicCall(executionId);
+        expect(response.status).toBe(status);
+        expect(response.headers.get("retry-after"), `${status}`).toBe("7");
+        expect(response.headers.get("retry-after-ms"), `${status}`).toBe("6500");
+        expect(response.headers.get("x-should-retry"), `${status}: no x-* header relays`).toBeNull();
+        await response.text();
+      }
+      await control.llm.enqueue({ kind: "error", status: 429, body: { error: { type: "rate_limit_error", message: "no hint" } } });
+      const bare = await anthropicCall(executionId);
+      expect(bare.headers.get("retry-after"), "an answer without a hint gains none").toBeNull();
+      await bare.text();
     });
 
     it("[proxy.llm.upstream.aborted-mid-stream-truncates-and-records-partial-usage] an upstream cut mid-stream ends the relayed stream early and records the usage seen so far", async () => {

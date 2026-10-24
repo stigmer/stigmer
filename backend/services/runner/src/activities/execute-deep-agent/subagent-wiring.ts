@@ -33,11 +33,14 @@
  *   tool round the model adapts to.
  *
  * - OTel spans: a `chat` span per model call and an `execute_tool` span per
- *   tool call, innermost as on the parent. Until 2026-10 the stack left them
+ *   tool call, innermost but for the model retry, as on the parent. Until 2026-10 the stack left them
  *   out on the belief that the parent's context covered them; nothing in the
  *   parent spans a sub-agent's own calls, so its work was invisible. The
  *   invocation's `invoke_agent` span is the transformer's
  *   (`subagent-transformer.ts`), opened inside the parent's `task` span.
+ * - Model retry (`middleware/model-retry.ts`), LAST as on the parent: a
+ *   sub-agent's reply that fails after it began is tried again inside the
+ *   sub-agent, never by failing its `task` back to the parent.
  *
  * The sub-agent middleware stack does NOT include:
  * - Graceful stop (parent handles STOP signal propagation)
@@ -72,6 +75,7 @@ import {
 import { createErrorHintsMiddleware } from "../../middleware/error-hints.js";
 import { createOtelSpansMiddleware } from "../../middleware/otel-spans.js";
 import { createToolScopeMiddleware } from "../../middleware/tool-scope.js";
+import { createModelRetryMiddleware } from "../../middleware/model-retry.js";
 
 const SUB_AGENT_ADVISORY_INTERVAL = 30;
 const SUB_AGENT_MAX_ADVISORIES = 4;
@@ -120,7 +124,7 @@ export interface SubAgentMiddlewareOptions {
  * Returns an ordered array mirroring the parent composition:
  * [turn boundary] → [path normalization] → loop detection → execution budget (periodic) →
  * [shell] → tool intent → tool truncation → [tool scope] → [approval gate] → cost
- * cap view → error hints → OTel spans.
+ * cap view → error hints → OTel spans → model retry.
  * Normalization is outermost so everything downstream observes canonical
  * workspace-absolute paths (matching the parent). The gate sits before the
  * cost-cap view so an approval pause happens before budget accounting, and
@@ -189,6 +193,7 @@ export function buildSubAgentMiddleware(
 
   stack.push(createErrorHintsMiddleware());
   stack.push(createOtelSpansMiddleware(options.otelSpans));
+  stack.push(createModelRetryMiddleware());
 
   return stack;
 }

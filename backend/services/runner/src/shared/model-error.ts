@@ -217,19 +217,29 @@ export function classifyModelCallError(
     return classifyByStatus(status, message, ctx, backend);
   }
 
-  // 4. Connection/timeout heuristics on the root error's class name: the
-  //    SDKs' own APIConnection* class names only. The callers' catch blocks
-  //    are broad (deep-agent, Cursor), and a WorkspaceLockTimeoutError is not
-  //    a model connection timeout.
-  const errName = root instanceof Error ? root.constructor.name : "";
-  const isTimeout = errName.includes("APIConnectionTimeout");
-  if (isTimeout) {
+  // 3b. A reply that failed after it began carries no status, only the
+  //     provider's error type (the SDKs' stream errors); once the retries
+  //     are spent it reads as the provider's failure, not as `[APIError]`.
+  const streamType = causeChainOf(err).map(providerErrorTypeOf).find((type) => type !== undefined);
+  if (streamType !== undefined) {
+    return classifyStreamFailure(streamType, message, ctx);
+  }
+
+  // 4. Connection/timeout heuristics on a link's class name: the SDKs' own
+  //    APIConnection* class names, and the `TimeoutError` LangChain's OpenAI
+  //    wrapper turns the SDK's timeout into. Any link, not the root: the
+  //    SDK keeps undici's `TypeError` beneath its connection error, so the
+  //    root of a dropped connection is `fetch failed`. The callers' catch
+  //    blocks are broad (deep-agent, Cursor), and a WorkspaceLockTimeoutError
+  //    is not a model connection timeout, nor a DOMException TimeoutError.
+  const links = causeChainOf(err);
+  if (isModelTimeout(links)) {
     return {
       code: "LLM_CONNECTION_TIMEOUT",
       message: `Connection timed out for ${modelLabel(ctx)}: ${message}`,
     };
   }
-  const isConnection = errName.includes("APIConnection");
+  const isConnection = links.some((link) => link.constructor.name.includes("APIConnection"));
   if (isConnection) {
     return {
       code: "LLM_CONNECTION_ERROR",
@@ -285,9 +295,10 @@ function classifyOrganizationKeyError(
 
 /**
  * Maps a provider HTTP status to its code and message: 401, 403, 404, 400,
- * 422 and 429 each have their own code (429's message says the provider
- * SDK's own retry was exhausted), any other 5xx is a provider server
- * error, and anything else a generic API error.
+ * 422 and 429 each have their own code, any other 5xx is a provider server
+ * error, and anything else a generic API error. A 429 reaches here once
+ * the runner's retries are spent or the provider asked for too long a wait
+ * (`model-retry.ts`).
  */
 function classifyByStatus(
   status: number,
@@ -386,7 +397,7 @@ function classifyByStatus(
       return {
         code: "LLM_RATE_LIMIT",
         message:
-          `Rate limit exceeded for ${context}. The provider's built-in retry was exhausted. ` +
+          `Rate limit exceeded for ${context}. ` +
           `Try again later or reduce request frequency.`,
       };
     default:
@@ -401,6 +412,69 @@ function classifyByStatus(
         message: `${providerSubject(ctx)} returned an API error (HTTP ${status}) for ${context}: ${rawMessage}`,
       };
   }
+}
+
+/**
+ * A reply that failed after it began, by the provider's error type: a rate
+ * limit as the 429 it is, the provider's own failures (overloaded, an API
+ * or server error) as a server error, anything else as an API error.
+ */
+function classifyStreamFailure(type: string, rawMessage: string, ctx: ModelErrorContext): ClassifiedModelError {
+  const context = modelLabel(ctx);
+  if (type === "rate_limit_error") {
+    return {
+      code: "LLM_RATE_LIMIT",
+      message: `Rate limit exceeded for ${context}. Try again later or reduce request frequency.`,
+    };
+  }
+  if (type === "overloaded_error" || type === "api_error" || type === "server_error") {
+    return {
+      code: "LLM_PROVIDER_ERROR",
+      message: `${providerSubject(ctx)} failed while answering (${type}) for ${context}: ${rawMessage}`,
+    };
+  }
+  return {
+    code: "LLM_API_ERROR",
+    message: `${providerSubject(ctx)} returned an error while answering (${type}) for ${context}: ${rawMessage}`,
+  };
+}
+
+/**
+ * Whether a failure's chain is a model request's timeout: the SDKs'
+ * `APIConnectionTimeoutError`, or the plain `Error` named `TimeoutError`
+ * LangChain's OpenAI wrapper turns it into. Matched by that exact shape,
+ * because other timeouts share the name: a DOMException's (an
+ * `AbortSignal.timeout` of the caller's own), the runner's own
+ * `with-timeout.ts` class (a Cursor agent's create), and LangChain's
+ * `MiddlewareError`, which copies its cause's name onto itself.
+ */
+export function isModelTimeout(links: readonly Error[]): boolean {
+  return links.some((link) =>
+    link.constructor.name.includes("APIConnectionTimeout")
+    || (link.name === "TimeoutError" && link.constructor === Error));
+}
+
+/** The error and its causes, outermost first, each once. */
+export function causeChainOf(err: unknown): Error[] {
+  const links: Error[] = [];
+  for (let current: unknown = err; current instanceof Error && !links.includes(current); current = current.cause) {
+    links.push(current);
+  }
+  return links;
+}
+
+/**
+ * The provider's error type on a status-less SDK error, the shape of a
+ * reply that failed mid-stream: the Anthropic SDK sets `type` from the
+ * stream's error body, OpenAI's keeps the body's `type` on `error`.
+ */
+export function providerErrorTypeOf(link: Error): string | undefined {
+  if (typeof (link as { status?: unknown }).status === "number") return undefined;
+  const shaped = link as { type?: unknown; error?: { type?: unknown; error?: { type?: unknown } } };
+  for (const type of [shaped.type, shaped.error?.error?.type, shaped.error?.type]) {
+    if (typeof type === "string" && type !== "" && type !== "error") return type;
+  }
+  return undefined;
 }
 
 /**
@@ -522,7 +596,7 @@ function describeFoundryResource(): string {
  * 400 billing prose; OpenAI's insufficient_quota / no-credits 429s). A miss
  * falls through to status classification — never worse than today.
  */
-function isProviderBillingMessage(message: string): boolean {
+export function isProviderBillingMessage(message: string): boolean {
   const lower = message.toLowerCase();
   return (
     lower.includes("credit balance is too low")

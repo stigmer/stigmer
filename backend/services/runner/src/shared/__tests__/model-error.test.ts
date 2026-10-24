@@ -11,11 +11,15 @@
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { APIConnectionError, APIConnectionTimeoutError as SdkConnectionTimeoutError, APIError } from "@anthropic-ai/sdk";
+import { MiddlewareError } from "langchain";
+import { TimeoutError as WithTimeoutError } from "../with-timeout.js";
 import {
   ORGANIZATION_PROVIDER_KEY_SENTINEL,
   PROVIDER_KEY_REQUIRED_SENTINEL,
   classifyModelCallError,
   describeExecutionError,
+  providerErrorTypeOf,
   unwrapModelError,
 } from "../model-error.js";
 
@@ -176,6 +180,45 @@ describe("classifyModelCallError — connection heuristics and no-signal", () =>
     expect(
       classifyModelCallError(new APIConnectionError("refused"), { proxyMode: false })?.code,
     ).toBe("LLM_CONNECTION_ERROR");
+  });
+
+  it("finds the SDK's connection error above undici's TypeError, the shape a real dropped connection has", () => {
+    const dropped = middlewareWrap(new APIConnectionError({ cause: new TypeError("fetch failed") }));
+    expect(classifyModelCallError(dropped, { proxyMode: false })?.code).toBe("LLM_CONNECTION_ERROR");
+    expect(describeExecutionError(dropped, { proxyMode: false }).errorType).toBe("LLM_CONNECTION_ERROR");
+    expect(classifyModelCallError(middlewareWrap(new SdkConnectionTimeoutError()), { proxyMode: false })?.code)
+      .toBe("LLM_CONNECTION_TIMEOUT");
+  });
+
+  it("reads LangChain's OpenAI timeout as the connection timeout it is, and a DOMException timeout as nothing", () => {
+    const langchainTimeout = Object.assign(new Error("Request timed out."), { name: "TimeoutError" });
+    expect(classifyModelCallError(middlewareWrap(langchainTimeout), { proxyMode: false })?.code).toBe("LLM_CONNECTION_TIMEOUT");
+    const domTimeout = new DOMException("The operation timed out.", "TimeoutError");
+    expect(classifyModelCallError(domTimeout, { proxyMode: false })).toBeUndefined();
+    const wrapped = MiddlewareError.wrap(domTimeout, "promptCaching") as Error;
+    expect(wrapped.name, "LangChain's wrapper copies the name").toBe("TimeoutError");
+    expect(classifyModelCallError(wrapped, { proxyMode: false })).toBeUndefined();
+    const cursorCreate = new WithTimeoutError("Cursor agent create timed out after 30000ms");
+    expect(describeExecutionError(middlewareWrap(cursorCreate), { proxyMode: false }).errorType, "the runner's own timeout keeps its identity")
+      .toBe("TimeoutError");
+  });
+
+  it("words a reply that failed mid-stream by the provider's error type, never as [APIError]", () => {
+    const streamed = (type: NonNullable<ConstructorParameters<typeof APIError>[4]>) =>
+      middlewareWrap(new APIError(undefined, { type: "error", error: { type, message: type } }, undefined, new Headers(), type));
+    const ctx = { proxyMode: false, provider: "anthropic" as const, modelId: "claude-haiku-4-5" };
+    const overloaded = classifyModelCallError(streamed("overloaded_error"), ctx);
+    expect(overloaded?.code).toBe("LLM_PROVIDER_ERROR");
+    expect(overloaded?.message).toContain("Anthropic failed while answering (overloaded_error)");
+    expect(classifyModelCallError(streamed("rate_limit_error"), ctx)?.code).toBe("LLM_RATE_LIMIT");
+    expect(classifyModelCallError(streamed("invalid_request_error"), ctx)?.code).toBe("LLM_API_ERROR");
+  });
+
+  it("reads a provider error type only off a status-less error, never off an HTTP answer's body", () => {
+    expect(providerErrorTypeOf(APIError.generate(429, { type: "error", error: { type: "rate_limit_error", message: "slow" } }, undefined, new Headers())))
+      .toBeUndefined();
+    expect(providerErrorTypeOf(new APIError(undefined, { error: { type: "server_error", message: "boom" } }, undefined, new Headers())))
+      .toBe("server_error");
   });
 
   it("does not relabel an arbitrary *TimeoutError class as a model connection timeout", () => {
