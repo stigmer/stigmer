@@ -29,7 +29,8 @@ COPY --from=stigmer-runner-builder:spike /build /build
 COPY test/support/src /build/test/support/src
 COPY test/support/package.json /build/test/support/package.json
 
-# claude-probe-bwrap: the probe image with bubblewrap, which the engine
-# requires on Linux when CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1.
+# claude-probe-bwrap: the probe image with bubblewrap and socat, which the
+# engine requires on Linux when CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1 (without
+# bubblewrap it refuses to start; without socat its Bash tool refuses to run).
 FROM claude-probe AS claude-probe-bwrap
-RUN apt-get update && apt-get install -y --no-install-recommends bubblewrap && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends bubblewrap socat && rm -rf /var/lib/apt/lists/*
