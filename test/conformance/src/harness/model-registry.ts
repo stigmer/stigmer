@@ -4,11 +4,13 @@
 // Domain: conformance harness (execution engine).
 //
 // The harness reads only the fields the arms compare on — the id pair for
-// resolution, the three the runner's economy-tier pick keys on, and the
+// resolution, the three the runner's economy-tier pick keys on, the
 // native request facts a row states (its output ceiling and thinking form,
-// runner shared/model-registry.ts getNativeRequestProfile) — so other
-// registry schema growth (pricing, the remaining capabilities) never
-// touches this module. A
+// runner shared/model-registry.ts getNativeRequestProfile), and whether the
+// row carries pricing at all (the runner's pricing table is the rows that do,
+// runner shared/model-pricing-data.ts; a model with none is costed at its
+// default rate) — so other registry schema growth (the prices themselves,
+// the remaining capabilities) never touches this module. A
 // document with no `models` array is refused by name: the arms would otherwise
 // "pass" against an empty registry exactly the way the runner silently
 // degrades against one.
@@ -24,6 +26,8 @@ export interface ModelRegistryRow {
   thinkingForm: "budget" | "adaptive" | "none";
   // Tri-state `capabilities.thinkingRequired`: undefined when never stated.
   thinkingRequired: boolean | undefined;
+  // The row carries a `pricing` object, so the runner prices its id from it.
+  priced: boolean;
 }
 
 export interface ModelRegistryDocument {
@@ -70,6 +74,7 @@ export function parseModelRegistryDocument(json: unknown, source = "(inline)"): 
         maxOutputTokens: typeof ceiling === "number" && Number.isInteger(ceiling) && ceiling > 0 ? ceiling : undefined,
         thinkingForm: flags.adaptiveThinking === true ? "adaptive" : flags.thinking === true ? "budget" : "none",
         thinkingRequired: typeof flags.thinkingRequired === "boolean" ? flags.thinkingRequired : undefined,
+        priced: typeof record.pricing === "object" && record.pricing !== null,
       }];
     }),
   };

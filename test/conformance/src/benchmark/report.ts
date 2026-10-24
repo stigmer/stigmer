@@ -68,8 +68,17 @@
 //   plugin author reads theirs. The document is kept as JSON, not typed
 //   here, because this module stays a leaf. Grades from v5 and earlier came
 //   from another judge on another scale and are not compared.
+// - The native arm runs on any model (`--native-model`), one per run, so a
+//   report says which arm it measured (schema v8): `models.parity_native` is
+//   that model, `native_endpoint` the host its calls went to (never a key or
+//   a path), `native_api` the API they were made on, and `native_cost_basis`
+//   whether the runner priced them from a catalog row or at its default rate
+//   (runner shared/model-pricing.ts `getModelPricing`: a model with no priced
+//   registry row is costed at one fixed invented rate). A default-rate arm's
+//   `estimated_cost_micros` is not a price; a readout prices it from the
+//   sample's `tokens` at the provider's published rate, and names the rate.
 
-export const BENCHMARK_REPORT_SCHEMA_VERSION = 7;
+export const BENCHMARK_REPORT_SCHEMA_VERSION = 8;
 
 /** The runtime's harness vocabulary, as the runner's `turn_phases` line labels it. */
 export type BenchmarkHarness = "deep-agent" | "cursor";
@@ -89,12 +98,22 @@ export type SampleOutcome = "completed" | "failed" | "cancelled" | "timeout";
 export type RefusalReason =
   | "missing ANTHROPIC_API_KEY"
   | "missing CURSOR_API_KEY"
+  | "missing OPENAI_API_KEY"
+  | "model provider unknown"
+  | "the native model is pinned by --native-model"
+  | "thinking needs a catalog Claude model"
   | "excluded by --only"
   | "excluded by --cells"
   | "model not in registry for harness"
   | "missing stigmer CLI"
   | "thinking needs a pinned model"
   | "runs only when --cells names it";
+
+/** The API a native model's calls were made on. */
+export type NativeApi = "messages" | "chat-completions" | "responses";
+
+/** Whether the runner priced the native model from a catalog row, or at its default rate. */
+export type NativeCostBasis = "catalog" | "default-rate";
 
 /** Where an attempt failed: creating it, running it, or grading it. */
 export type FailureStage = "create" | "execution";
@@ -362,7 +381,16 @@ export interface BenchmarkReport {
      */
     thinking_mode?: "enabled";
   };
-  models: { parity_native: string; parity_cursor: string; judge_requested: string };
+  models: {
+    /** The native arm's model: `--native-model`, else the parity pin. */
+    parity_native: string;
+    parity_cursor: string;
+    judge_requested: string;
+    /** The host the native model's calls went to, or the Anthropic backend's name; never a key or a path. */
+    native_endpoint: string;
+    native_api: NativeApi;
+    native_cost_basis: NativeCostBasis;
+  };
   comparisons: BenchmarkComparison[];
   /** The quality arm's eval; `null` when no quality target was planned. */
   quality: QualityEval | null;
@@ -502,12 +530,15 @@ export function costRatio(native: BenchmarkStat | undefined, cursor: BenchmarkSt
 
 // ─── The reader ─────────────────────────────────────────────────────────────
 
+const NATIVE_APIS: readonly NativeApi[] = ["messages", "chat-completions", "responses"];
+const NATIVE_COST_BASES: readonly NativeCostBasis[] = ["catalog", "default-rate"];
+
 /**
  * Refuses, by naming the field, a body that is not a current benchmark report. It
  * checks the discriminating fields and the shape every consumer walks
- * (`comparisons[].{native,cursor}.median`, `git.main_sha`, `methodology.reps`)
- * and trusts the rest to the producer: a full structural check would be a
- * second copy of the types above.
+ * (`comparisons[].{native,cursor}.median`, `git.main_sha`, `methodology.reps`,
+ * the native arm in `models`) and trusts the rest to the producer: a full
+ * structural check would be a second copy of the types above.
  */
 export function readBenchmarkReport(body: unknown): BenchmarkReport {
   const root = asRecord(body, "report");
@@ -524,6 +555,11 @@ export function readBenchmarkReport(body: unknown): BenchmarkReport {
   const methodology = asRecord(root["methodology"], "report.methodology");
   requireNumber(methodology, "reps", "report.methodology");
   requireNumber(methodology, "quality_reps", "report.methodology");
+  const models = asRecord(root["models"], "report.models");
+  requireString(models, "parity_native", "report.models");
+  requireString(models, "native_endpoint", "report.models");
+  requireOneOf(models, "native_api", NATIVE_APIS, "report.models");
+  requireOneOf(models, "native_cost_basis", NATIVE_COST_BASES, "report.models");
   const comparisons = root["comparisons"];
   if (!Array.isArray(comparisons)) throw new Error("not a benchmark report: comparisons is not an array");
   comparisons.forEach((entry, index) => {
@@ -570,6 +606,15 @@ function requireString(record: Record<string, unknown>, key: string, where: stri
 function requireNumber(record: Record<string, unknown>, key: string, where: string): void {
   if (typeof record[key] !== "number") {
     throw new Error(`not a benchmark report: ${where}.${key} is ${describe(record[key])}, expected a number`);
+  }
+}
+
+function requireOneOf(record: Record<string, unknown>, key: string, allowed: readonly string[], where: string): void {
+  const value = record[key];
+  if (typeof value !== "string" || !allowed.includes(value)) {
+    throw new Error(
+      `not a benchmark report: ${where}.${key} is ${typeof value === "string" ? JSON.stringify(value) : describe(value)}, expected one of ${allowed.join(", ")}`,
+    );
   }
 }
 

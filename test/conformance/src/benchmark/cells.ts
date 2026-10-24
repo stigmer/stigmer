@@ -48,7 +48,19 @@
 // (no key for its provider, no key for the judge) or the flags exclude is a
 // `RefusedCell` in the report, so a reader has one question to ask ("is the
 // side present") and one place to see why not.
-import type { AgentShape, BenchmarkHarness, ComparisonMode, RefusedCell, SessionShape } from "./report";
+//
+// The native arm's model is a flag (`--native-model`): a catalog id, or the
+// own-endpoint form `openai:<name>` / `anthropic:<name>` the server and the
+// runner accept on native without a catalog row (server modelcatalog/
+// pin-validation.ts). It replaces PARITY_MODEL["deep-agent"] in the native
+// parity, turn-2 and working cells and the native quality target; the Cursor
+// arm, the judge and every prompt stay as they are, so the grader is the same
+// in every arm. One run measures one native model, because the runner the
+// benchmark spawns holds one OpenAI-slot key and address (its environment's
+// OPENAI_API_KEY and OPENAI_BASE_URL) for the whole run. Which key a native
+// cell needs follows the model's provider, derived here the way the runner
+// derives it (`nativeProvider`).
+import type { AgentShape, BenchmarkHarness, ComparisonMode, NativeApi, RefusedCell, SessionShape } from "./report";
 
 /** The registry ids the parity cells pin, per harness: one served model, two registry rows. */
 export const PARITY_MODEL: Record<BenchmarkHarness, string> = {
@@ -140,6 +152,8 @@ export interface QualityTarget {
 
 export interface PlanFlags {
   only?: BenchmarkHarness;
+  /** The native arm's model, in place of PARITY_MODEL["deep-agent"]; the native `default` cells are then refused. */
+  nativeModel?: string;
   /** A glob over cell ids (`*` matches any run of characters). */
   cells?: string;
   /**
@@ -152,6 +166,8 @@ export interface PlanFlags {
 
 export interface PlanEnvironment {
   anthropicKey: boolean;
+  /** OPENAI_API_KEY, the key an OpenAI-provider native model is served with (whatever OPENAI_BASE_URL names). */
+  openaiKey: boolean;
   cursorKey: boolean;
   /** `stigmer` is on PATH (the working agent's memory spawns `stigmer mcp-server`). */
   stigmerCli: boolean;
@@ -161,6 +177,8 @@ export interface PlanEnvironment {
 export const JUDGE_CALIBRATION_CELL = "judge/calibration";
 
 export interface CellPlan {
+  /** The native arm's model: `--native-model`, else PARITY_MODEL["deep-agent"]. */
+  nativeModel: string;
   cells: BenchmarkCell[];
   quality: QualityTarget[];
   /** Whether the judge cell runs. */
@@ -168,54 +186,172 @@ export interface CellPlan {
   refused: RefusedCell[];
 }
 
-export function benchmarkCells(): BenchmarkCell[] {
+/** Every cell, the native pinned cells on `nativeModel`. */
+export function benchmarkCells(nativeModel: string = PARITY_MODEL["deep-agent"]): BenchmarkCell[] {
   return SCENARIOS.flatMap((scenario) =>
     HARNESSES.map((harness) => ({
       id: `${scenario.name}/${harness}`,
       scenario,
       harness,
-      modelRequested: scenario.mode === "default" ? null : PARITY_MODEL[harness],
+      modelRequested: scenario.mode === "default" ? null : armModel(harness, nativeModel),
     })),
   );
 }
 
-export function qualityTargets(): QualityTarget[] {
-  return HARNESSES.map((harness) => ({ id: `quality/${harness}`, harness, modelRequested: PARITY_MODEL[harness] }));
+/** One quality target per harness, the native one on `nativeModel`. */
+export function qualityTargets(nativeModel: string = PARITY_MODEL["deep-agent"]): QualityTarget[] {
+  return HARNESSES.map((harness) => ({ id: `quality/${harness}`, harness, modelRequested: armModel(harness, nativeModel) }));
+}
+
+function armModel(harness: BenchmarkHarness, nativeModel: string): string {
+  return harness === "deep-agent" ? nativeModel : PARITY_MODEL[harness];
+}
+
+/** The providers native serves a model through. */
+export type NativeProvider = "anthropic" | "openai";
+
+const OPENAI_NAME_PREFIXES = ["gpt", "o1", "o3", "o4", "chatgpt"] as const;
+
+/**
+ * The provider of an explicit `openai:<name>` / `anthropic:<name>` model,
+ * case-insensitive, with a non-empty name after the colon; `undefined` for
+ * any other name. The server's rule (modelcatalog/document-catalog.ts
+ * `explicitProvider`), copied rather than imported: this suite never imports
+ * server or runner internals.
+ */
+export function explicitProvider(model: string): NativeProvider | undefined {
+  const colon = model.indexOf(":");
+  if (colon <= 0 || colon === model.length - 1) return undefined;
+  const prefix = model.slice(0, colon).toLowerCase();
+  return prefix === "anthropic" || prefix === "openai" ? prefix : undefined;
+}
+
+/**
+ * The provider the runner serves `model` through, in the runner's own order
+ * (runner shared/llm-proxy.ts `inferProvider`): the explicit prefix, then a
+ * name starting `claude`, then one starting `gpt`, `o1`, `o3`, `o4` or
+ * `chatgpt`; `undefined` where the runner would refuse the name.
+ */
+export function nativeProvider(model: string): NativeProvider | undefined {
+  const explicit = explicitProvider(model);
+  if (explicit !== undefined) return explicit;
+  const lower = model.toLowerCase();
+  if (lower.startsWith("claude")) return "anthropic";
+  return OPENAI_NAME_PREFIXES.some((prefix) => lower.startsWith(prefix)) ? "openai" : undefined;
+}
+
+/**
+ * The API a native model is called on: Anthropic's Messages API, or for an
+ * OpenAI-provider model the one LangChain's ChatOpenAI picks by the name
+ * (@langchain/openai utils/misc.js `_modelPrefersResponsesAPI`: a name
+ * containing `gpt-5.2-pro`, `gpt-5.4-pro`, `gpt-5.5-pro` or `codex` goes to
+ * the Responses API, every other to Chat Completions; the runner never sets
+ * `useResponsesApi`). `undefined` where the provider is unknown.
+ */
+export function nativeApi(model: string): NativeApi | undefined {
+  const provider = nativeProvider(model);
+  if (provider === undefined) return undefined;
+  if (provider === "anthropic") return "messages";
+  const prefersResponses = ["gpt-5.2-pro", "gpt-5.4-pro", "gpt-5.5-pro", "codex"].some((marker) => model.includes(marker));
+  return prefersResponses ? "responses" : "chat-completions";
+}
+
+/** The runner environment variables that decide where a native model is served. */
+export interface EndpointEnvironment {
+  OPENAI_BASE_URL?: string | undefined;
+  ANTHROPIC_BASE_URL?: string | undefined;
+  STIGMER_ANTHROPIC_BACKEND?: string | undefined;
+}
+
+/**
+ * Where the runner the benchmark spawns sends a native model's calls, as a
+ * host and never a key or a path: OPENAI_BASE_URL's host for an OpenAI-provider
+ * model (the OpenAI SDK reads it when the runner passes no base URL, which in
+ * direct mode it never does; default api.openai.com); for an Anthropic model,
+ * the backend STIGMER_ANTHROPIC_BACKEND names when it is not `public`
+ * (runner shared/llm-backend.ts), else ANTHROPIC_BASE_URL's host (default
+ * api.anthropic.com). An unparseable URL is recorded as "invalid
+ * <variable>"; the runner refuses it at boot. "unknown" for a model whose
+ * provider is unknown.
+ */
+export function nativeEndpoint(model: string, env: EndpointEnvironment): string {
+  const provider = nativeProvider(model);
+  if (provider === undefined) return "unknown";
+  if (provider === "openai") return hostOf(env.OPENAI_BASE_URL, "OPENAI_BASE_URL", "api.openai.com");
+  const backend = env.STIGMER_ANTHROPIC_BACKEND?.trim() ?? "";
+  if (backend !== "" && backend !== "public") return backend;
+  return hostOf(env.ANTHROPIC_BASE_URL, "ANTHROPIC_BASE_URL", "api.anthropic.com");
+}
+
+function hostOf(raw: string | undefined, variable: string, fallback: string): string {
+  const value = raw?.trim() ?? "";
+  if (value === "") return fallback;
+  try {
+    return new URL(value).host;
+  } catch {
+    return `invalid ${variable}`;
+  }
 }
 
 /**
  * What the environment and the flags allow, decided before the stack boots.
- * A native cell needs the Anthropic key; a Cursor cell the Cursor key; a
- * quality target needs its harness's key AND the Anthropic key, because the
- * judge runs on the native path. Every working-agent timing cell also needs
- * the `stigmer` CLI. The judge cell runs only when `--cells` names it, and
- * needs the Anthropic key. A thinking run refuses the cells on a harness's
- * default model. The first reason that applies is the one recorded: flags,
- * then keys, then the CLI.
+ * A native cell needs the key of its model's provider (`nativeProvider`;
+ * a model it cannot place is refused as the runner would refuse it); a
+ * Cursor cell the Cursor key; a quality target needs its harness's key AND
+ * the Anthropic key, because the judge runs on the native path. Every
+ * working-agent timing cell also needs the `stigmer` CLI. The judge cell runs
+ * only when `--cells` names it, and needs the Anthropic key. Under
+ * `--native-model` the native `default` cells are refused: their point is
+ * that each harness picks its own model. A thinking run refuses the cells on
+ * a harness's default model, and the native cells when the native model is
+ * not a catalog Claude model (the runner maps thinking for Anthropic models
+ * only, and an own-endpoint model has no catalog row to state its form). The
+ * first reason that applies is the one recorded: flags, then keys, then the
+ * CLI.
  */
 export function planCells(env: PlanEnvironment, flags: PlanFlags): CellPlan {
+  const nativeModel = flags.nativeModel ?? PARITY_MODEL["deep-agent"];
   const refused: RefusedCell[] = [];
-  const keyFor = (harness: BenchmarkHarness): boolean => (harness === "cursor" ? env.cursorKey : env.anthropicKey);
-  const keyReason = (harness: BenchmarkHarness): RefusedCell["reason"] =>
-    harness === "cursor" ? "missing CURSOR_API_KEY" : "missing ANTHROPIC_API_KEY";
+  const keyReason = (harness: BenchmarkHarness, model: string | null): RefusedCell["reason"] | undefined => {
+    if (harness === "cursor") return env.cursorKey ? undefined : "missing CURSOR_API_KEY";
+    // A default cell names no model; the harness's default is a catalog Claude model.
+    const provider = model === null ? "anthropic" : nativeProvider(model);
+    if (provider === undefined) return "model provider unknown";
+    if (provider === "openai") return env.openaiKey ? undefined : "missing OPENAI_API_KEY";
+    return env.anthropicKey ? undefined : "missing ANTHROPIC_API_KEY";
+  };
   const excludedByFlags = (id: string, harness: BenchmarkHarness): RefusedCell["reason"] | undefined => {
     if (flags.only !== undefined && flags.only !== harness) return "excluded by --only";
     if (flags.cells !== undefined && !globMatches(flags.cells, id)) return "excluded by --cells";
     return undefined;
   };
+  const thinkingRefusal = (cell: BenchmarkCell): RefusedCell["reason"] | undefined => {
+    if (flags.thinking === undefined) return undefined;
+    if (cell.modelRequested === null) return "thinking needs a pinned model";
+    if (cell.harness === "deep-agent" && (explicitProvider(cell.modelRequested) !== undefined || nativeProvider(cell.modelRequested) !== "anthropic")) {
+      return "thinking needs a catalog Claude model";
+    }
+    return undefined;
+  };
 
-  const cells = benchmarkCells().filter((cell) => {
+  const cells = benchmarkCells(nativeModel).filter((cell) => {
     const flagReason = excludedByFlags(cell.id, cell.harness);
     if (flagReason !== undefined) {
       refused.push({ cell: cell.id, reason: flagReason });
       return false;
     }
-    if (flags.thinking !== undefined && cell.modelRequested === null) {
-      refused.push({ cell: cell.id, reason: "thinking needs a pinned model" });
+    if (flags.nativeModel !== undefined && cell.harness === "deep-agent" && cell.modelRequested === null) {
+      refused.push({ cell: cell.id, reason: "the native model is pinned by --native-model" });
       return false;
     }
-    if (!keyFor(cell.harness)) {
-      refused.push({ cell: cell.id, reason: keyReason(cell.harness) });
+    const thinking = thinkingRefusal(cell);
+    if (thinking !== undefined) {
+      refused.push({ cell: cell.id, reason: thinking });
+      return false;
+    }
+    const missingKey = keyReason(cell.harness, cell.modelRequested);
+    if (missingKey !== undefined) {
+      refused.push({ cell: cell.id, reason: missingKey });
       return false;
     }
     if (cell.scenario.agent === "working" && !env.stigmerCli) {
@@ -225,14 +361,15 @@ export function planCells(env: PlanEnvironment, flags: PlanFlags): CellPlan {
     return true;
   });
 
-  const quality = qualityTargets().filter((cell) => {
+  const quality = qualityTargets(nativeModel).filter((cell) => {
     const flagReason = excludedByFlags(cell.id, cell.harness);
     if (flagReason !== undefined) {
       refused.push({ cell: cell.id, reason: flagReason });
       return false;
     }
-    if (!keyFor(cell.harness)) {
-      refused.push({ cell: cell.id, reason: keyReason(cell.harness) });
+    const missingKey = keyReason(cell.harness, cell.modelRequested);
+    if (missingKey !== undefined) {
+      refused.push({ cell: cell.id, reason: missingKey });
       return false;
     }
     if (!env.anthropicKey) {
@@ -254,7 +391,7 @@ export function planCells(env: PlanEnvironment, flags: PlanFlags): CellPlan {
     judge = true;
   }
 
-  return { cells, quality, judge, refused };
+  return { nativeModel, cells, quality, judge, refused };
 }
 
 /** `*` matches any run of characters; everything else is literal. */

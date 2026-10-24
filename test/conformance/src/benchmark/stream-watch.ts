@@ -6,6 +6,12 @@
 // review (the turn's stigmer.file_review.changes), and when the turn ended
 // (its stigmer.run.status reaching an end phase).
 //
+// The end is the run's own `stigmer.run.status` in an end phase, never the
+// fold's `ended` alone: the fold also reads a turn with no status of its own
+// as ended while the session is idle, and a session's later turn shows its
+// first events before the session reads as running again, so the idle the
+// turn before it left would end its watch at once (stigmer#2536).
+//
 // Review never holds a turn: the edits land, the turn ends, and the offer is
 // in the log beside it. So a watch always follows the turn to its end; the
 // session driver (session.ts) decides on the offer afterwards.
@@ -82,7 +88,7 @@ export async function watchTurn(stream: EventStreamFactory, runId: string, optio
       if (rows.visible && firstVisible === null) firstVisible = at;
       if (rows.text && firstText === null) firstText = at;
       if (reviewAt === null && turn.fileReview.length > 0) reviewAt = at;
-      if (turn.ended) {
+      if (turn.ended && turn.status !== undefined) {
         endAt = at;
         return true;
       }

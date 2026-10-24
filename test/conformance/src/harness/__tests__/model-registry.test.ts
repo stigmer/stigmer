@@ -1,6 +1,7 @@
 // Unit arms for the model-registry reader: a document
 // without a models array is refused by name — the runner degrades silently
-// against one, and the arms must not — and a row lookup names the missing id.
+// against one, and the arms must not — a row lookup names the missing id, and
+// a row is priced only when it carries a pricing object.
 // Pure. Domain: conformance harness (execution engine).
 import { describe, expect, it } from "vitest";
 import {
@@ -21,6 +22,7 @@ const row = (id: string, extra: Partial<Omit<ModelRegistryRow, "id">> = {}): Mod
   maxOutputTokens: undefined,
   thinkingForm: "none",
   thinkingRequired: undefined,
+  priced: false,
   ...extra,
 });
 
@@ -34,8 +36,23 @@ describe("parseModelRegistryDocument", () => {
       ],
     });
     expect(document.models).toEqual([
-      row("claude-haiku-4.5", { apiModelId: "claude-haiku-4-5-20251001" }),
+      row("claude-haiku-4.5", { apiModelId: "claude-haiku-4-5-20251001", priced: true }),
       row("no-api-id"),
+    ]);
+  });
+
+  it("marks a row priced only when it carries a pricing object, the rows the runner prices from", () => {
+    const document = parseModelRegistryDocument({
+      models: [
+        { id: "priced", pricing: { inputPricePerMillion: 3 } },
+        { id: "null-pricing", pricing: null },
+        { id: "no-pricing" },
+      ],
+    });
+    expect(document.models.map((model) => [model.id, model.priced])).toEqual([
+      ["priced", true],
+      ["null-pricing", false],
+      ["no-pricing", false],
     ]);
   });
 
