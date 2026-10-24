@@ -52,41 +52,41 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "o\0322ai/stigmer/commons/apiresource/field_" +
       "options.proto\032\'ai/stigmer/commons/apires" +
       "ource/io.proto\032\033buf/validate/validate.pr" +
-      "oto\"\267\t\n\013SessionSpec\022W\n\tagent_ref\030\016 \001(\01324" +
+      "oto\"\301\t\n\013SessionSpec\022W\n\tagent_ref\030\016 \001(\01324" +
       ".ai.stigmer.commons.apiresource.ApiResou" +
       "rceReferenceB\004\340\205,(R\010agentRef\022\030\n\007subject\030" +
       "\002 \001(\tR\007subject\022T\n\010metadata\030\005 \003(\01328.ai.st" +
       "igmer.agentic.session.v1.SessionSpec.Met" +
       "adataEntryR\010metadata\022Y\n\nskill_refs\030\010 \003(\013" +
       "24.ai.stigmer.commons.apiresource.ApiRes" +
-      "ourceReferenceB\004\340\205,+R\tskillRefs\022@\n\007harne" +
+      "ourceReferenceB\004\340\205,+R\tskillRefs\022J\n\007harne" +
       "ss\030\n \001(\0162&.ai.stigmer.agentic.session.v1" +
-      ".HarnessR\007harness\022J\n\013cursor_mode\030\013 \001(\0162)" +
-      ".ai.stigmer.agentic.session.v1.CursorMod" +
-      "eR\ncursorMode\022Y\n\020execution_target\030\014 \001(\0162" +
-      "..ai.stigmer.agentic.session.v1.Executio" +
-      "nTargetR\017executionTarget\022Z\n\006vaults\030\017 \003(\013" +
-      "24.ai.stigmer.commons.apiresource.ApiRes" +
-      "ourceReferenceB\014\272H\005\222\001\002\020\024\340\205,;R\006vaults\022(\n\020" +
-      "include_my_vault\030\022 \001(\010R\016includeMyVault\022T" +
-      "\n\007plugins\030\023 \003(\01324.ai.stigmer.commons.api" +
-      "resource.ApiResourceReferenceB\004\340\205,:R\007plu" +
-      "gins\022\037\n\013file_review\030\024 \001(\010R\nfileReview\022c\n" +
-      "\017environment_ref\030\025 \001(\01324.ai.stigmer.comm" +
-      "ons.apiresource.ApiResourceReferenceB\004\340\205" +
-      ",CR\016environmentRef\022W\n\tresources\030\026 \003(\0132.." +
-      "ai.stigmer.agentic.session.v1.SessionRes" +
-      "ourceB\t\272H\006\222\001\003\020\350\007R\tresources\032;\n\rMetadataE" +
-      "ntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005v" +
-      "alue:\0028\001J\004\010\001\020\002J\004\010\003\020\004J\004\010\r\020\016J\004\010\006\020\007J\004\010\007\020\010J\004" +
-      "\010\020\020\021J\004\010\021\020\022R\021agent_instance_idR\020harness_s" +
-      "tate_idR\030harness_state_id_historyR\021works" +
-      "pace_entriesR\021mcp_server_usagesR\007secrets" +
-      "R\013connectionsB\244\001B\tSpecProtoP\001\242\002\004ASAS\252\002\035A" +
-      "i.Stigmer.Agentic.Session.V1\312\002\035Ai\\Stigme" +
-      "r\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Agenti" +
-      "c\\Session\\V1\\GPBMetadata\352\002!Ai::Stigmer::" +
-      "Agentic::Session::V1b\006proto3"
+      ".HarnessB\010\272H\005\202\001\002\020\001R\007harness\022J\n\013cursor_mo" +
+      "de\030\013 \001(\0162).ai.stigmer.agentic.session.v1" +
+      ".CursorModeR\ncursorMode\022Y\n\020execution_tar" +
+      "get\030\014 \001(\0162..ai.stigmer.agentic.session.v" +
+      "1.ExecutionTargetR\017executionTarget\022Z\n\006va" +
+      "ults\030\017 \003(\01324.ai.stigmer.commons.apiresou" +
+      "rce.ApiResourceReferenceB\014\272H\005\222\001\002\020\024\340\205,;R\006" +
+      "vaults\022(\n\020include_my_vault\030\022 \001(\010R\016includ" +
+      "eMyVault\022T\n\007plugins\030\023 \003(\01324.ai.stigmer.c" +
+      "ommons.apiresource.ApiResourceReferenceB" +
+      "\004\340\205,:R\007plugins\022\037\n\013file_review\030\024 \001(\010R\nfil" +
+      "eReview\022c\n\017environment_ref\030\025 \001(\01324.ai.st" +
+      "igmer.commons.apiresource.ApiResourceRef" +
+      "erenceB\004\340\205,CR\016environmentRef\022W\n\tresource" +
+      "s\030\026 \003(\0132..ai.stigmer.agentic.session.v1." +
+      "SessionResourceB\t\272H\006\222\001\003\020\350\007R\tresources\032;\n" +
+      "\rMetadataEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005valu" +
+      "e\030\002 \001(\tR\005value:\0028\001J\004\010\001\020\002J\004\010\003\020\004J\004\010\r\020\016J\004\010\006" +
+      "\020\007J\004\010\007\020\010J\004\010\020\020\021J\004\010\021\020\022R\021agent_instance_idR" +
+      "\020harness_state_idR\030harness_state_id_hist" +
+      "oryR\021workspace_entriesR\021mcp_server_usage" +
+      "sR\007secretsR\013connectionsB\244\001B\tSpecProtoP\001\242" +
+      "\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Session.V1\312\002" +
+      "\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002)Ai\\Stig" +
+      "mer\\Agentic\\Session\\V1\\GPBMetadata\352\002!Ai:" +
+      ":Stigmer::Agentic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
