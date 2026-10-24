@@ -115,6 +115,60 @@ test("the root README opens with the headline, the one sentence and where it run
 });
 
 /**
+ * What each customer's agent has, one marker word per point, in the order of
+ * the vocabulary's "What each customer's agent has" paragraph, the list's
+ * public form. Each home words the points in its own register, so only the
+ * markers are held. The model keys and editions are where it runs, which the
+ * README carries apart from this list, so they are not a marker.
+ */
+const AGENT_HAS = ["own computer", "for hours", "asks before", "apart"];
+
+/** The text from the paragraph that opens with `**label**` to the next bold-labelled paragraph. */
+function boldLabelledBlock(markdown: string, label: string): string | undefined {
+  const blocks = markdown.split(/\n\s*\n/);
+  const start = blocks.findIndex((block) => block.startsWith(`**${label}**`));
+  if (start === -1) return undefined;
+  const end = blocks.findIndex((block, index) => index > start && block.startsWith("**"));
+  return blocks.slice(start, end === -1 ? undefined : end).join("\n\n");
+}
+
+/** Where the list of what each customer's agent has lives in each prose home. */
+const AGENT_HAS_HOMES: ReadonlyArray<readonly [path: string, list: (text: string) => string | undefined]> = [
+  [
+    "docs/vocabulary.md",
+    (text) => text.split(/\n\s*\n/).find((block) => block.startsWith("**What each customer's agent has**")),
+  ],
+  [
+    "docs/concepts/what-is-stigmer.mdx",
+    (text) => /^## What each customer's agent has\n([\s\S]*?)(?=^## |$(?![\s\S]))/m.exec(text)?.[1],
+  ],
+  ["docs-agent/skills/stigmer-docs/SKILL.md", (text) => boldLabelledBlock(text, "What each customer's agent has")],
+  ["README.md", (text) => readmeLead(text).opening],
+];
+
+test("every prose home lists what each customer's agent has, in the vocabulary's order", () => {
+  const drifted: string[] = [];
+  for (const [path, extract] of AGENT_HAS_HOMES) {
+    const list = extract(read(path));
+    if (list === undefined) {
+      drifted.push(`${path}: no list found`);
+      continue;
+    }
+    const text = collapse(list).toLowerCase();
+    let from = 0;
+    for (const marker of AGENT_HAS) {
+      const at = text.indexOf(marker, from);
+      if (at === -1) {
+        drifted.push(`${path}: "${marker}" ${text.includes(marker) ? "out of order" : "missing"}`);
+        break;
+      }
+      from = at + marker.length;
+    }
+  }
+  assert.deepEqual(drifted, [], `each lists ${AGENT_HAS.map((marker) => `"${marker}"`).join(", ")} in that order`);
+});
+
+/**
  * The one sentence without its leading article and full stop: what every
  * fitted form keeps (Homebrew refuses a description that opens with "The"
  * or ends with a full stop), so what every entry point must carry.
