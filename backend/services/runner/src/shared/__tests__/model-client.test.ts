@@ -22,7 +22,7 @@ vi.mock("@langchain/openai", () => ({
 }));
 
 import { buildChatModel } from "../model-client.js";
-import { MODEL_REQUEST_RETRIES, modelRequestFailed } from "../model-retry.js";
+import { MODEL_REQUEST_RETRIES, modelRequestFailed, modelRequestFailedWholeReplyBound } from "../model-retry.js";
 import { _resetRegistryCache } from "../model-registry.js";
 import { ServiceTier } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
@@ -203,7 +203,7 @@ describe("buildChatModel", () => {
       await buildChatModel({ modelName: "gpt-4.1", timeoutMs: 5000 });
 
       const args = mockOpenAICtor.mock.calls.at(-1)?.[0] as Record<string, unknown>;
-      expect(args).toMatchObject({ timeout: 5000, maxRetries: MODEL_REQUEST_RETRIES, onFailedAttempt: modelRequestFailed });
+      expect(args).toMatchObject({ timeout: 5000, maxRetries: MODEL_REQUEST_RETRIES, onFailedAttempt: modelRequestFailedWholeReplyBound });
     });
 
     it("places the Anthropic timeout in clientOptions, never the inert constructor slot", async () => {
@@ -214,7 +214,7 @@ describe("buildChatModel", () => {
       await buildChatModel({ modelName: "claude-haiku-4.5", timeoutMs: 5000 });
 
       const args = lastAnthropicArgs();
-      expect(args).toMatchObject({ clientOptions: { timeout: 5000 }, maxRetries: MODEL_REQUEST_RETRIES, onFailedAttempt: modelRequestFailed });
+      expect(args).toMatchObject({ clientOptions: { timeout: 5000 }, maxRetries: MODEL_REQUEST_RETRIES, onFailedAttempt: modelRequestFailedWholeReplyBound });
       expect(args).not.toHaveProperty("timeout");
     });
 
@@ -287,6 +287,16 @@ describe("buildChatModel", () => {
   // ─── Retry (model-retry.ts) ─────────────────────────────────────────────────
 
   describe("retry", () => {
+    it("under a bound, stops a timed-out attempt only of a reply that does not stream (the bound covers its whole reply)", async () => {
+      mockRegistryResponse([{ id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic" }]);
+      await buildChatModel({ modelName: "claude-haiku-4.5", timeoutMs: 5000, streaming: true });
+      expect(lastAnthropicArgs()).toMatchObject({ onFailedAttempt: modelRequestFailed });
+      _resetRegistryCache();
+      mockRegistryResponse([{ id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic" }]);
+      await buildChatModel({ modelName: "claude-haiku-4.5", timeoutMs: 5000 });
+      expect(lastAnthropicArgs()).toMatchObject({ onFailedAttempt: modelRequestFailedWholeReplyBound });
+    });
+
     it.each([
       ["claude-haiku-4.5", "claude-haiku-4-5-20251001", "anthropic"],
       ["gpt-4.1", "gpt-4.1", "openai"],

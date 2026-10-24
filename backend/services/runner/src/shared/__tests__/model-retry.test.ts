@@ -24,13 +24,17 @@ import {
 import { ContextOverflowError, ModelAbortError, getRetryable, stampRetryable } from "@langchain/core/errors";
 import { MiddlewareError } from "langchain";
 
+import { AsyncCaller } from "@langchain/core/utils/async_caller";
 import {
   MODEL_REQUEST_RETRIES,
   MODEL_STREAM_RETRIES,
+  NETWORK_ERROR_MESSAGES,
   modelRequestFailed,
+  modelRequestFailedWholeReplyBound,
   retryDecisionOf,
   type RetryDecision,
 } from "../model-retry.js";
+import { abortErrorOf } from "../../middleware/model-retry.js";
 import { PROVIDER_KEY_REQUIRED_SENTINEL } from "../model-error.js";
 import { TimeoutError as WithTimeoutError } from "../with-timeout.js";
 
@@ -163,9 +167,52 @@ describe("modelRequestFailed (the request loop's hook)", () => {
     expect(warn).toHaveBeenCalledWith("[MODEL-RETRY] phase=request decision=retry reason=connection status=none retry_after_ms=none");
   });
 
+  it("stops a timed-out attempt of a reply that does not stream under a bound, and retries its other passing failures", () => {
+    const timedOut = new APIConnectionTimeoutError();
+    expect(() => modelRequestFailedWholeReplyBound(timedOut)).toThrow(timedOut);
+    expect(getRetryable(timedOut)).toBe(false);
+    expect(warn).toHaveBeenCalledWith("[MODEL-RETRY] phase=request decision=stop reason=reply_timed_out status=none retry_after_ms=none");
+    expect(() => modelRequestFailedWholeReplyBound(providerError(529, "overloaded_error"))).not.toThrow();
+  });
+
   it("leaves the stamp for the stream loop to read: a handled failure is never retried twice", () => {
     const err = providerError(529, "overloaded_error");
     modelRequestFailed(err);
     expect(retryDecisionOf(wrapped(err))).toMatchObject({ retry: false, reason: "handled" });
+  });
+});
+
+// The two twins of LangChain code it does not export, held to the installed
+// library's own behaviour through its public AsyncCaller, so an upgrade
+// that changes either fails here.
+describe("the twins of LangChain's unexported helpers", () => {
+  it("names exactly the TypeError messages p-retry retries", async () => {
+    const caller = new AsyncCaller({ maxRetries: 1, onFailedAttempt: () => {} });
+    const retried = async (message: string) => {
+      let failed = false;
+      return caller
+        .call(async () => {
+          if (failed) return "retried";
+          failed = true;
+          throw new TypeError(message);
+        })
+        .then(() => true, () => false);
+    };
+    const answers = await Promise.all([...NETWORK_ERROR_MESSAGES].map(retried));
+    expect(answers.every(Boolean), "every message in the twin is one p-retry retries").toBe(true);
+    expect(await retried("Cannot read properties of undefined"), "a TypeError outside it is not").toBe(false);
+  }, 15_000);
+
+  it("turns an abort reason into the error LangChain's own race throws", async () => {
+    for (const reason of ["stopped by the runtime", new Error("stopped"), 42]) {
+      const controller = new AbortController();
+      const raced = new AsyncCaller({}).callWithOptions({ signal: controller.signal }, () => new Promise<never>(() => {}));
+      controller.abort(reason);
+      const thrown = await raced.catch((err: unknown) => err);
+      const ours = abortErrorOf(controller.signal);
+      expect(ours).toBeInstanceOf(Error);
+      expect(ours.message, String(reason)).toBe((thrown as Error).message);
+      if (reason instanceof Error) expect(ours).toBe(thrown);
+    }
   });
 });

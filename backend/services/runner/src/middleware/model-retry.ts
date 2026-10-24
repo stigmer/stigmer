@@ -109,7 +109,7 @@ function sleepUnlessAborted(ms: number, signal: AbortSignal | undefined): Promis
  * `@langchain/core` (`dist/utils/signal.js` `getAbortSignalError`, 1.2.13),
  * which does not export it.
  */
-function abortErrorOf(signal: AbortSignal): Error {
+export function abortErrorOf(signal: AbortSignal): Error {
   if (signal.reason instanceof Error) return signal.reason;
   return new Error(typeof signal.reason === "string" ? signal.reason : "Aborted");
 }

@@ -36,6 +36,20 @@ function sse(events: readonly Record<string, unknown>[], named: boolean): string
   return events.map((event) => `${named ? `event: ${String(event.type)}\n` : ""}data: ${JSON.stringify(event)}\n\n`);
 }
 
+/** A whole JSON reply, for a call that does not stream. */
+function goodReply(provider: Provider): Answer {
+  if (provider === "anthropic") {
+    return {
+      status: 200,
+      body: { id: "msg_3", type: "message", role: "assistant", model: PROVIDERS.anthropic.apiModelId, content: [{ type: "text", text: "hello" }], stop_reason: "end_turn", stop_sequence: null, usage: { input_tokens: 5, output_tokens: 2 } },
+    };
+  }
+  return {
+    status: 200,
+    body: { id: "c2", object: "chat.completion", created: 1, model: PROVIDERS.openai.apiModelId, choices: [{ index: 0, message: { role: "assistant", content: "hello" }, finish_reason: "stop" }], usage: { prompt_tokens: 5, completion_tokens: 2, total_tokens: 7 } },
+  };
+}
+
 function goodStream(provider: Provider): Answer {
   if (provider === "anthropic") {
     return {
@@ -122,12 +136,12 @@ describe.each(Object.keys(PROVIDERS) as Provider[])("the request loop's retry, %
     server.closeAllConnections();
   });
 
-  async function call(timeoutMs?: number) {
+  async function call(timeoutMs?: number, streaming = true) {
     const { model } = await buildChatModel({
       modelName: PROVIDERS[provider].id,
       proxyEndpoint: endpoint,
       stigmerToken: "seam-token",
-      streaming: true,
+      streaming,
       maxTokens: 64,
       ...(timeoutMs !== undefined ? { timeoutMs } : {}),
     });
@@ -171,6 +185,21 @@ describe.each(Object.keys(PROVIDERS) as Provider[])("the request loop's retry, %
   it("retries an attempt the bound timed out", { timeout: 15_000 }, async () => {
     answers = ["hang", goodStream(provider)];
     const reply = await call(300);
+    expect(reply.text).toBe("hello");
+    expect(requests).toBe(2);
+  });
+
+  it("does not retry a reply that does not stream once the bound, which covers the whole reply, cut it off", { timeout: 15_000 }, async () => {
+    answers = ["hang", goodReply(provider)];
+    const failure = await call(300, false).then(() => undefined, (err: unknown) => err);
+    expect(failure).toBeInstanceOf(Error);
+    expect(requests).toBe(1);
+    expect(warn).toHaveBeenCalledWith("[MODEL-RETRY] phase=request decision=stop reason=reply_timed_out status=none retry_after_ms=none");
+  });
+
+  it("still rides out an overload on a reply that does not stream, under a bound", { timeout: 15_000 }, async () => {
+    answers = [{ status: 529, body: errorBody("overloaded_error") }, goodReply(provider)];
+    const reply = await call(5_000, false);
     expect(reply.text).toBe("hello");
     expect(requests).toBe(2);
   });

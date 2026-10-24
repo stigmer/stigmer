@@ -127,7 +127,8 @@ export type StopReason =
   | "quota"
   | "retry_after_too_long"
   | "refused"
-  | "unrecognized";
+  | "unrecognized"
+  | "reply_timed_out";
 
 export type RetryDecision =
   | { readonly retry: true; readonly reason: RetryReason; readonly status?: number; readonly retryAfterMs?: number }
@@ -139,7 +140,7 @@ export type RetryDecision =
  * does not export it. Undici says `fetch failed` for a connection that never
  * opened and `terminated` for one cut mid-body.
  */
-const NETWORK_ERROR_MESSAGES: ReadonlySet<string> = new Set([
+export const NETWORK_ERROR_MESSAGES: ReadonlySet<string> = new Set([
   "network error",
   "Failed to fetch",
   "NetworkError when attempting to fetch resource.",
@@ -206,8 +207,27 @@ export function handledByRequestLoop(err: unknown): boolean {
  * it; the turn's own failure line, which follows it, is what says the loop
  * ran out.
  */
-export const modelRequestFailed: FailedAttemptHandler = (error: unknown) => {
-  const decision = retryDecisionOf(error);
+export const modelRequestFailed: FailedAttemptHandler = requestFailedHandler({ boundCoversWholeReply: false });
+
+/**
+ * The hook for a model whose reply does not stream, under a request timeout
+ * (`buildChatModel` picks it). Such a reply's headers arrive only once the
+ * whole generation is done, so the SDK's bound covers the whole reply, and a
+ * timed-out attempt is a generation longer than the bound: the same request
+ * times out again. It stops instead (`reply_timed_out`); every other passing
+ * failure retries as on any model. A streamed reply's bound covers only the
+ * wait for it to begin, so its timed-out attempt retries.
+ */
+export const modelRequestFailedWholeReplyBound: FailedAttemptHandler = requestFailedHandler({ boundCoversWholeReply: true });
+
+function requestFailedHandler(options: { readonly boundCoversWholeReply: boolean }): FailedAttemptHandler {
+  return (error: unknown) => requestFailed(error, options.boundCoversWholeReply);
+}
+
+function requestFailed(error: unknown, boundCoversWholeReply: boolean): void {
+  const ruled = retryDecisionOf(error);
+  const decision: RetryDecision =
+    boundCoversWholeReply && ruled.retry && ruled.reason === "timeout" ? { retry: false, reason: "reply_timed_out" } : ruled;
   console.warn(
     `[MODEL-RETRY] phase=request decision=${decision.retry ? "retry" : "stop"} reason=${decision.reason} ` +
       `status=${decision.status ?? "none"} retry_after_ms=${(decision.retry ? decision.retryAfterMs : undefined) ?? "none"}`,
@@ -217,7 +237,7 @@ export const modelRequestFailed: FailedAttemptHandler = (error: unknown) => {
   if (decision.retryAfterMs !== undefined && typeof error === "object" && error !== null) {
     (error as { retryAfterMs?: number }).retryAfterMs = decision.retryAfterMs;
   }
-};
+}
 
 function decideByStatus(link: Error, status: number): RetryDecision {
   const shouldRetry = headerOf(link, "x-should-retry");
