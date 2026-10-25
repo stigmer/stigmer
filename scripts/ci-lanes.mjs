@@ -590,6 +590,8 @@ export const LANES = {
   "ci.runner.yaml": {
     paths: [
       "backend/services/runner/**",
+      // The wire mock the Claude adapter's tests drive its engine against (a file: link).
+      "test/support/**",
       // Its as-root job runs the start script's suite.
       "scripts/runner-layer-start.test.mjs",
       "apis/stubs/ts/**",

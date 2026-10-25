@@ -113,6 +113,9 @@ jobs:
               - 'backend/services/runner/package-lock.json'
               - 'backend/services/runner/tsconfig*.json'
               - 'backend/services/runner/Dockerfile.sandbox'
+              # A file: dependency of the runner, which the image's install
+              # reads (Dockerfile.sandbox copies its package.json).
+              - 'test/support/**'
               # The layer's start script, and the join the foreign-base
               # checks build as the self-hosting guide prints it.
               - 'backend/services/runner/layer/**'

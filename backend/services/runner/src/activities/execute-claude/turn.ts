@@ -153,21 +153,18 @@ async function connectTools(input: TurnInput, sink: TurnSink): Promise<McpBridge
   return bridge;
 }
 
-/** The backing the session's conversation is kept in (`session-store.ts`). */
+/** The backing the session's conversation is kept in, by the setting that places native's state (`session-store.ts`). */
+const BACKINGS: Record<ClaudeAdapterConfig["checkpointerType"], (config: ClaudeAdapterConfig, sessionId: string) => TranscriptBacking> = {
+  http: (config) => {
+    if (config.checkpointerProxyEndpoint === null) throw new Error("the http checkpointer has no proxy endpoint on this runner");
+    return new HttpTranscripts(config.checkpointerProxyEndpoint, config.stigmerTokenRef);
+  },
+  sqlite: (_config, sessionId) => new FileTranscripts(getClaudeTranscriptDir(sessionId)),
+  memory: () => new MemoryTranscripts(),
+};
+
 function backingFor(config: ClaudeAdapterConfig, sessionId: string): TranscriptBacking {
-  switch (config.checkpointerType) {
-    case "http":
-      if (config.checkpointerProxyEndpoint === null) throw new Error("the http checkpointer has no proxy endpoint on this runner");
-      return new HttpTranscripts(config.checkpointerProxyEndpoint, config.stigmerTokenRef);
-    case "sqlite":
-      return new FileTranscripts(getClaudeTranscriptDir(sessionId));
-    case "memory":
-      return new MemoryTranscripts();
-    default: {
-      const exhaustive: never = config.checkpointerType;
-      throw new Error(`unknown checkpointer type ${String(exhaustive)}`);
-    }
-  }
+  return BACKINGS[config.checkpointerType](config, sessionId);
 }
 
 /** What the engine is handed first, by the transcript's facts (step 3 of the header). */

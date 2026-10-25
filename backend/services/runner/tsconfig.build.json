@@ -8,5 +8,5 @@
     "moduleResolution": "NodeNext",
     "rootDir": "src"
   },
-  "exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/**/__tests__", "src/__test-utils__"]
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/**/__tests__", "src/**/__test-utils__"]
 }

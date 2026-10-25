@@ -99,7 +99,11 @@ export async function connectBridge(
     }
     return bridgeOf(bridged, platformServerSlugs, () => connections.close());
   } catch (err) {
-    await connections.close().catch(() => undefined);
+    try {
+      await connections.close();
+    } catch {
+      // The connect failure is the one to report.
+    }
     throw err;
   }
 }

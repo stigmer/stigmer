@@ -36,7 +36,8 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { CallToolRequestSchema, ListToolsRequestSchema, type CallToolResult, type Tool } from "@modelcontextprotocol/sdk/types.js";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { MultiServerMCPClient } from "@langchain/mcp-adapters";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { ResolvedMcpServer } from "../../../shared/mcp-resolver.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
@@ -314,6 +315,15 @@ describe("connectBridge over a real stdio server and a real HTTP server", () => 
     ).rejects.toThrow("MCP server 'endless' answered more than 100 pages of tools");
     const pid = Number(await readFile(pidFile, "utf8"));
     await until(() => !isAlive(pid), "the half-connected server exits");
+  });
+
+  it("raises a server the connections hold no client for", async () => {
+    const missing = vi.spyOn(MultiServerMCPClient.prototype, "getClient").mockResolvedValue(undefined);
+    try {
+      await expect(connectBridge([stdioServer("local")], ToolScope.unrestricted(), new Set())).rejects.toThrow("MCP server 'local' did not connect");
+    } finally {
+      missing.mockRestore();
+    }
   });
 
   it("raises a server that does not connect", async () => {
