@@ -25,6 +25,14 @@
 //   order lookup answered by the suite's own mock), the eval run's result
 //   document kept as the report's `quality`, and the operator's table read
 //   from it. Gated as well on the runner creating the try's run.
+// - A background start on the working agent, scripted as the background
+//   suite scripts one (run-background-commands.conformance.test.ts): the
+//   start, the reply that ends while it runs, the one reminder, the wait,
+//   the notice and the answer. Every background reading the report lifts
+//   is present: the command's span and the wait on the runner's timeline,
+//   the reminder's count, the call that asked for it. And a scripted
+//   `sleep 300 &` that outlives its shell, which the sweep finds, counts
+//   and stops (gated on the target exposing its runner's pid).
 // Domain: conformance harness (the benchmark instrument's wiring).
 //
 // Why a smoke and not a facet: nothing here is a contract of the platform; it
@@ -49,7 +57,8 @@ import { join } from "node:path";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { JUDGE_MODEL, PARITY_MODEL, TURN_2_PROMPTS } from "../benchmark/cells";
+import { BACKGROUND_SERVER_PORT, JUDGE_MODEL, PARITY_MODEL, TURN_2_PROMPTS } from "../benchmark/cells";
+import { sweepLeftovers } from "../benchmark/orphans";
 import { renderQuality, runQualityEval } from "../benchmark/quality-eval";
 import { measureSession, type SessionStack } from "../benchmark/session";
 import { changedFiles } from "../benchmark/workspace-facts";
@@ -305,6 +314,68 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
       expect(await changedFiles(WORKING_AGENT_WORKSPACE_FIXTURE_DIR, workspaceDir)).toEqual([
         { path: "NOTES.md", change: "added" },
       ]);
+    });
+
+    const measureOne = async (prompt: string, label: string) => {
+      const agent = await provision();
+      const [turn] = await measureSession(
+        stack,
+        {
+          org: agent.org,
+          agentRef: agent.agentRef,
+          harness: "deep-agent",
+          modelRequested: null,
+          sessionSpec: workingAgentSessionSpec(agent, Harness.NATIVE, "benchmark readers smoke"),
+          prompts: [prompt],
+          label,
+        },
+        { log: () => undefined },
+      );
+      return turn!;
+    };
+
+    it("reads a background start, its reminder, its wait and its notice into every background reading", async () => {
+      mock.enqueue(anthropicToolUse("toolu_bg", "execute", { command: "sleep 1; echo suite-ok", background: true }));
+      mock.enqueue(anthropicText("It runs in the background."));
+      mock.enqueue(anthropicText("I will wait for it."));
+      mock.enqueue(anthropicText("The suite printed suite-ok."));
+
+      const turn = await measureOne("Run the slow suite.", "smoke/background");
+      const sample = turn.sample;
+      expect(sample.outcome, `the turn should complete (${JSON.stringify(sample.failure)})`).toBe("completed");
+      expect(turn.reply).toBe("The suite printed suite-ok.");
+      expect(mock.consumed(), "the start, the reply, the reply after the reminder, the answer to the notice").toBe(4);
+
+      const segments = sample.timing.turn_phases?.segments.map((segment) => segment.name) ?? [];
+      expect(segments, "the runner's timeline spans the command by its call").toContain("background_command:toolu_bg");
+      expect(segments).toContain("background_wait");
+      expect(sample.tool_calls[0]).toMatchObject({ name: "execute", background: true });
+      expect(sample.tool_calls[0]!.start_ms, "the call is placed on the timeline").not.toBeNull();
+      expect(sample.background).toMatchObject({
+        starts: 1,
+        endings: expect.objectContaining({ exited: 1 }) as object,
+        polls: 0,
+        waits: 1,
+        reminders: 1,
+        gated_while_running: 0,
+        self_backgrounded: 0,
+        foreground_timeouts: 0,
+      });
+      expect(sample.background?.worked_while_running_ms, "the replies ran while the command did").toBeGreaterThan(0);
+      expect(turn.commandOutputs.join("\n"), "what the command printed is what a cell's checks read").toContain("suite-ok");
+    });
+
+    it.skipIf(probe.runnerPid === undefined)("finds a process a turn left running in its workspace, counts it and stops it", async () => {
+      mock.enqueue(anthropicToolUse("toolu_leak", "execute", { command: "sleep 300 &" }));
+      mock.enqueue(anthropicText("Started it."));
+
+      const turn = await measureOne("Start a long sleep.", "smoke/leak");
+      expect(turn.sample.outcome, `the turn should complete (${JSON.stringify(turn.sample.failure)})`).toBe("completed");
+      expect(turn.sample.background?.self_backgrounded, "the agent put the command in the background itself").toBe(1);
+
+      const sweep = () => sweepLeftovers({ workspaceDir, port: BACKGROUND_SERVER_PORT, runnerPid: target.runnerPid!() });
+      expect(await sweep(), "the sleep outlived its shell and is no longer the runner's").toBe(1);
+      expect(await sweep(), "and the sweep stopped it").toBe(0);
     });
 
     it("two provisionings send the model byte-identical system prompts and tool surfaces", async () => {

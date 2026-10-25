@@ -403,6 +403,13 @@ export class LocalExecutionTarget implements TargetProfile {
     return this.runner.logFile;
   }
 
+  runnerPid(): number {
+    if (this.runner === undefined) {
+      throw new Error("LocalExecutionTarget.setup() must be called before runnerPid()");
+    }
+    return this.runner.pid;
+  }
+
   // The unified port's base URL — gRPC and the plain-HTTP lanes alike (the
   // LocalTarget accessor, here because the stdio-lane fixture's
   // mcp-server dials it and the registry lane lives on it).

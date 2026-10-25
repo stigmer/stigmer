@@ -6,8 +6,9 @@
  *    beside it (bound through the shell middleware's own `tools`).
  *  - A background call answers at once: the model reads the start before
  *    the command has ended.
- *  - At a round's end with a command running, the model is reminded once,
- *    then the turn waits; while it waits the open-operations fold holds a
+ *  - At a round's end with a command running, the model is reminded once
+ *    (the reminder's fact reaches the translator's stream, the turn
+ *    timeline's one trace of it), then the turn waits; while it waits the open-operations fold holds a
  *    real stall watchdog whose window is far shorter than the wait, and the
  *    command's notice reaches the next model call. The person is told by
  *    the registry's facts (`background-facts.ts`): its start, its output
@@ -230,6 +231,8 @@ describe("background commands on a real graph", () => {
     expect(endedWhenStartRead, "the model read the start before the command ended").toBe(false);
     expect(stalled, "the wait held a 300 ms watchdog over a 1.5 s command").toBe(false);
     const kinds = seen.map((fact) => fact.kind);
+    expect(kinds.filter((kind) => kind === "background_reminded"), "the one reminder reaches the stream as its fact").toHaveLength(1);
+    expect(kinds.indexOf("background_reminded")).toBeLessThan(kinds.indexOf("background_wait_started"));
     expect(kinds).toContain("background_wait_started");
     expect(kinds.indexOf("background_wait_finished")).toBeGreaterThan(kinds.indexOf("background_wait_started"));
     expect(kinds, "the person is told by the command's own facts, not a note").not.toContain("system_note");

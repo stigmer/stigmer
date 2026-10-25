@@ -203,6 +203,7 @@ function hostConfig(wire: HostConfigWire): Config {
     // The worker is the runner's; the host has no worker to drain.
     drainGraceMs: 0,
     shellTimeoutMaxSeconds: wire.shellTimeoutMaxSeconds,
+    shellBackgroundEnabled: wire.shellBackgroundEnabled,
     agentResolveTimeoutMs: wire.agentResolveTimeoutMs,
     workspaceLockTimeoutMs: wire.workspaceLockTimeoutMs,
   };

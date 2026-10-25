@@ -100,7 +100,7 @@ import type { DeepAgentGateState } from "./turn-setup.js";
 import { TOOL_REFUSED_EVENT } from "../../middleware/tool-scope.js";
 import { TOOL_POLICY_EVENT } from "../../middleware/approval-gate.js";
 import { CONTEXT_COMPACTED_EVENT } from "../../middleware/compaction.js";
-import { BACKGROUND_WAIT_EVENT } from "../../middleware/background-commands.js";
+import { BACKGROUND_REMINDER_EVENT, BACKGROUND_WAIT_EVENT } from "../../middleware/background-commands.js";
 
 const loggedUnknowns = new Set<string>();
 
@@ -308,7 +308,9 @@ export function normalize(event: V3ProtocolEvent): StreamFact[] {
  *    ({@link usageOf}).
  *  - The background middleware's wait for its commands at a round's end
  *    (`BACKGROUND_WAIT_EVENT`, `middleware/background-commands.ts`), as
- *    `background_wait_started` and `background_wait_finished` in the scope.
+ *    `background_wait_started` and `background_wait_finished` in the scope,
+ *    and its reminder that commands still run (`BACKGROUND_REMINDER_EVENT`)
+ *    as `background_reminded`.
  *    A background command's own start, output and end are not on the
  *    graph's stream: its registry reports them (`background-facts.ts`).
  *
@@ -321,6 +323,7 @@ function normalizeCustom(event: V3ProtocolEvent): StreamFact[] {
   if (data.name === BACKGROUND_WAIT_EVENT) {
     return [{ kind: data.phase === "started" ? ("background_wait_started" as const) : ("background_wait_finished" as const) }];
   }
+  if (data.name === BACKGROUND_REMINDER_EVENT) return [{ kind: "background_reminded" as const }];
   const callId = typeof data.tool_call_id === "string" ? data.tool_call_id : "";
   if (!callId) return [];
   const policyHook = typeof data.policy_hook === "string" ? data.policy_hook : "";

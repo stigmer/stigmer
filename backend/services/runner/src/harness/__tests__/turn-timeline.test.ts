@@ -216,6 +216,53 @@ describe("TurnTimeline — one sub_agent span per subAgentId", () => {
   });
 });
 
+describe("TurnTimeline — background commands, waits and reminders", () => {
+  it("spans each command by its starting call, from its start to its end, an observed end at its instant", () => {
+    const line = run([
+      [100, { kind: "background_command_started", callId: "bg_1", timeoutSeconds: 3300 }],
+      [150, { kind: "background_output_delta", callId: "bg_1", delta: "ok" }],
+      [900, { kind: "background_command_ended", callId: "bg_1", ending: "exited", exitCode: 0, output: "ok", observedAt: observedWall(700) }],
+      [950, { kind: "background_command_ended", callId: "bg_1", ending: "stopped", stoppedBy: "turn", output: "" }],
+      [960, { kind: "background_command_ended", callId: "unknown", ending: "exited", output: "" }],
+    ], 1_000);
+    expect(segment(line, "background_command:bg_1")).toEqual({ name: "background_command:bg_1", start_ms: 100, duration_ms: 600 });
+    expect(line.background_commands).toBe(1);
+    expect(line.tool_calls, "a command is no tool call").toBe(0);
+  });
+
+  it("closes a command still running at settle there, as every open span", () => {
+    const line = run([[100, { kind: "background_command_started", callId: "bg_1", timeoutSeconds: 60 }]], 800);
+    expect(segment(line, "background_command:bg_1").duration_ms).toBe(700);
+  });
+
+  it("spans each wait in its scope, a repeated start inside one wait changing nothing, and counts the reminders", () => {
+    const line = run([
+      [100, { kind: "background_reminded" }],
+      [200, { kind: "background_wait_started" }],
+      [250, { kind: "background_wait_started" }],
+      [300, { kind: "background_wait_started", subAgentId: "s1" }],
+      [500, { kind: "background_wait_finished" }],
+      [550, { kind: "background_wait_finished" }],
+      [600, { kind: "background_reminded", subAgentId: "s1" }],
+      [700, { kind: "background_wait_started" }],
+      [800, { kind: "background_wait_finished", subAgentId: "s1" }],
+    ], 1_000);
+    expect(line.segments.filter((s) => s.name === "background_wait")).toEqual([
+      { name: "background_wait", start_ms: 200, duration_ms: 300 },
+      { name: "background_wait", start_ms: 300, duration_ms: 500 },
+      { name: "background_wait", start_ms: 700, duration_ms: 300 },
+    ]);
+    expect(line.background_reminders).toBe(2);
+    expect(line.rounds, "a reminder is no round of its own").toBe(0);
+  });
+
+  it("reads zero commands and reminders on a turn that started none", () => {
+    const line = run([[100, START], [200, FINISH]], 300);
+    expect(line.background_commands).toBe(0);
+    expect(line.background_reminders).toBe(0);
+  });
+});
+
 describe("TurnTimeline — the longest silence", () => {
   it("max_gap is the largest wait between two consecutive events, of any kind", () => {
     const line = run([[100, START], [150, TEXT], [1_350, TOOL_START], [1_400, TOOL_DONE]], 1_500);
@@ -267,8 +314,9 @@ describe("TurnTimeline — settle and the line's shape", () => {
     expect(line.harness).toBe("deep-agent");
     expect(line.outcome).toBe("completed");
     expect(Object.keys(line).sort()).toEqual([
-      "execution_id", "first_event_ms", "first_text_ms", "first_visible_token_ms", "harness", "max_gap_ms",
-      "outcome", "rounds", "segments", "session_id", "stigmer_timing", "sub_agents", "tool_calls", "total_ms", "turn_seq",
+      "background_commands", "background_reminders", "execution_id", "first_event_ms", "first_text_ms", "first_visible_token_ms",
+      "harness", "max_gap_ms", "outcome", "rounds", "segments", "session_id", "stigmer_timing", "sub_agents", "tool_calls",
+      "total_ms", "turn_seq",
     ]);
   });
 

@@ -20,7 +20,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import { PARITY_MODEL, type CellPlan } from "../cells";
 import { emptyMarkers } from "../log-markers";
-import { summarize, type BenchmarkReport } from "../report";
+import { summarize, type BackgroundReadings, type BenchmarkReport } from "../report";
 import { renderSummary, resolveStackRoot, runBenchmark, type BenchmarkStack, type RunOptions } from "../run";
 import { makeSample } from "./sample-fixture";
 
@@ -30,6 +30,7 @@ const OPTIONS: RunOptions = {
   git: { head_sha: "abc1234", main_sha: "abc1234", code_sha: "def5678" },
   titlingSuppressed: true,
   nativeEndpoint: "generativelanguage.googleapis.com",
+  shellBackground: "on",
 };
 
 /** A stack whose organization create refuses; its run directory holds `logs`, by file name. */
@@ -137,7 +138,7 @@ describe("resolveStackRoot", () => {
 describe("renderSummary's native arm", () => {
   function report(basis: "catalog" | "default-rate"): BenchmarkReport {
     return {
-      schema_version: 9,
+      schema_version: 10,
       timestamp: "2026-10-23T00:00:00Z",
       git: { head_sha: "abc", main_sha: "abc", code_sha: "abc" },
       host: { platform: "darwin/arm64", node: "v22.22.1" },
@@ -148,6 +149,7 @@ describe("renderSummary's native arm", () => {
         cold: "first-call-of-run-per-harness-model-and-agent",
         titling_suppressed: true,
         file_review: "approved-at-review-ready",
+        shell_background: "on",
       },
       models: {
         parity_native: "openai:gpt-5.5",
@@ -199,6 +201,36 @@ describe("renderSummary's native arm", () => {
     const measured = report("catalog");
     measured.git.code_sha = "b997addb91";
     expect(renderSummary(measured).split("\n")[1]).toBe("Code: b997addb91, measured by the instrument at abc");
+  });
+
+  it("adds the background table, headed by the arm, over the samples that ran, and none when no sample carries readings", () => {
+    expect(renderSummary(report("catalog")), "no readings, no table").not.toContain("Background commands");
+    const readings = (starts: number, polls: number, orphans: number): BackgroundReadings => ({
+      starts,
+      endings: { exited: starts, timed_out: 0, stopped_by_agent: 0, stopped_by_person: 0, stopped_by_approval: 0, stopped_by_turn: 0, failed_to_start: 0, running: 0 },
+      worked_while_running_ms: starts > 0 ? 12_000 : 0,
+      polls,
+      sleeps: 0,
+      self_backgrounded: starts > 0 ? 0 : 1,
+      foreground_timeouts: 0,
+      waits: starts,
+      wait_ms: 0,
+      reminders: starts,
+      gated_while_running: 0,
+      orphans,
+    });
+    const off = report("catalog");
+    off.methodology.shell_background = "off";
+    off.comparisons[0]!.native = summarize(
+      "deep-agent",
+      makeSample(),
+      [makeSample({ background: readings(1, 0, 0), task_done: true }), makeSample({ background: readings(0, 1, 1), task_done: false }), makeSample({ background: null, outcome: "failed" })],
+      null,
+    );
+    const lines = renderSummary(off).split("\n");
+    expect(lines).toContain("Background commands (off), over the samples that ran:");
+    expect(lines).toContain("| report-parity-simple | deep-agent | 1/2 | 1 | 1 (max 1) | 12000 | 1 | 1 | 1 | 0 | 0 | 1 | 1/2 |");
+    expect(lines.filter((line) => line.startsWith("| report-parity-medium | deep-agent")), "a cell without readings has its main row alone").toHaveLength(1);
   });
 
   it("marks nothing on a catalog-priced arm", () => {

@@ -15,7 +15,7 @@ import { DeepAgentTranslator, normalize, usageOf } from "../translator.js";
 import { TOOL_REFUSED_EVENT } from "../../../middleware/tool-scope.js";
 import { TOOL_POLICY_EVENT } from "../../../middleware/approval-gate.js";
 import { CONTEXT_COMPACTED_EVENT } from "../../../middleware/compaction.js";
-import { BACKGROUND_WAIT_EVENT } from "../../../middleware/background-commands.js";
+import { BACKGROUND_REMINDER_EVENT, BACKGROUND_WAIT_EVENT } from "../../../middleware/background-commands.js";
 import {
   resetSeq,
   makeProtocolEvent,
@@ -545,6 +545,15 @@ describe("V3ProtocolNormalizer", () => {
       const t = new DeepAgentTranslator(null);
       expect(t.translate(wait("started"))).toEqual([{ kind: "background_wait_started" }]);
       expect(t.translate(wait("finished"))).toEqual([{ kind: "background_wait_finished" }]);
+    });
+
+    it("turns the reminder that commands still run into the scope's reminder fact, a sub-agent's scoped to it", () => {
+      const t = new DeepAgentTranslator(null);
+      expect(t.translate(makeProtocolEvent("custom", { name: BACKGROUND_REMINDER_EVENT }))).toEqual([{ kind: "background_reminded" }]);
+      t.translate(makeToolStarted("task-1", "task", { subagent_type: "helper" }, { namespace: ["tools:pregel-1"] }));
+      expect(t.translate(makeProtocolEvent("custom", { name: BACKGROUND_REMINDER_EVENT }, { namespace: ["tools:pregel-1"] }))).toEqual([
+        { kind: "background_reminded", subAgentId: "task-1" },
+      ]);
     });
 
     it("drops a message the graph adds in a role other than the model's, its text and its finish, and keeps the model's", () => {

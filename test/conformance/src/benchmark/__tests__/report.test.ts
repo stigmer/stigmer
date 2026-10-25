@@ -109,6 +109,7 @@ describe("readBenchmarkReport", () => {
         cold: "first-call-of-run-per-harness-model-and-agent",
         titling_suppressed: true,
         file_review: "approved-at-review-ready",
+        shell_background: "on",
       },
       models: {
         parity_native: "claude-sonnet-4.6",
@@ -190,7 +191,7 @@ describe("readBenchmarkReport", () => {
   });
 
   it("refuses the v8 reports before the measured code and the runner log, and either field missing, by name", () => {
-    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 8 })).toThrow("not a v9 benchmark report: schema_version is 8");
+    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 8 })).toThrow("not a v10 benchmark report: schema_version is 8");
     const withoutCode = validReport() as unknown as { git: Record<string, unknown> };
     delete withoutCode.git["code_sha"];
     expect(() => readBenchmarkReport(withoutCode)).toThrow("report.git.code_sha is missing");
@@ -205,6 +206,19 @@ describe("readBenchmarkReport", () => {
       delete (report.runner_log as unknown as Record<string, unknown>)[key];
       expect(() => readBenchmarkReport(report), key).toThrow(`report.runner_log.${key} is missing`);
     }
+  });
+
+  it("refuses a v9 report, and one whose arm names no background setting or another word", () => {
+    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 9 })).toThrow("not a v10 benchmark report: schema_version is 9");
+    const unnamed = validReport();
+    delete (unnamed.methodology as unknown as Record<string, unknown>)["shell_background"];
+    expect(() => readBenchmarkReport(unnamed)).toThrow("report.methodology.shell_background is missing, expected one of on, off");
+    const other = validReport();
+    (other.methodology as unknown as Record<string, unknown>)["shell_background"] = "auto";
+    expect(() => readBenchmarkReport(other)).toThrow('report.methodology.shell_background is "auto", expected one of on, off');
+    const off = validReport();
+    off.methodology.shell_background = "off";
+    expect(readBenchmarkReport(off).methodology.shell_background).toBe("off");
   });
 
   it("refuses a missing field by name", () => {

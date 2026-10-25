@@ -275,6 +275,7 @@ export class AgentHostSupervisor {
       mcpPublicEndpoint: config.mcpPublicEndpoint,
       cursorStreamStallTimeoutMs: config.cursorStreamStallTimeoutMs,
       shellTimeoutMaxSeconds: config.shellTimeoutMaxSeconds,
+      shellBackgroundEnabled: config.shellBackgroundEnabled,
       agentResolveTimeoutMs: config.agentResolveTimeoutMs,
       workspaceLockTimeoutMs: config.workspaceLockTimeoutMs,
       proxyEndpoint: this.options.proxy.endpoint,

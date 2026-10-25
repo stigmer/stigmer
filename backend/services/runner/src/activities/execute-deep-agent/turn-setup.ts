@@ -118,7 +118,7 @@ import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb
  */
 export type DeepAgentAdapterConfig = Pick<
   Config,
-  "checkpointerType" | "checkpointerProxyEndpoint" | "stigmerTokenRef" | "proxyEndpoint" | "mode" | "cursorStreamStallTimeoutMs" | "shellTimeoutMaxSeconds"
+  "checkpointerType" | "checkpointerProxyEndpoint" | "stigmerTokenRef" | "proxyEndpoint" | "mode" | "cursorStreamStallTimeoutMs" | "shellTimeoutMaxSeconds" | "shellBackgroundEnabled"
 >;
 
 /**
@@ -617,11 +617,16 @@ export async function buildEngine(
   const workspaceBackend = await createCasCaptureBackend({ rootDir: primaryDir, observer: workspace.casObserver, shellEnv });
   // Every graph's shell runs its background commands in this invocation's
   // one registry, writing their output beside the results deepagents
-  // offloads (`platform-route.ts` `backgroundOutputPathsIn`).
+  // offloads (`platform-route.ts` `backgroundOutputPathsIn`). With the
+  // operator's setting off, no graph gets `background`: the model sees
+  // `execute` without it, no stop tool is bound and no round-end wait is
+  // installed (`middleware/index.ts`, `subagent-wiring.ts`).
   const shellStreaming = {
     maxTimeoutSeconds: config.shellTimeoutMaxSeconds,
     floorMs: loadStreamingConfig().minIntervalMs,
-    background: { commands: args.background, outputPaths: backgroundOutputPathsIn(workspace.backend.platformDir) },
+    ...(config.shellBackgroundEnabled
+      ? { background: { commands: args.background, outputPaths: backgroundOutputPathsIn(workspace.backend.platformDir) } }
+      : {}),
   };
   const shell = workspaceBackend instanceof CasCaptureShellBackend
     ? createShellBinding({ backend: workspaceBackend, ...shellStreaming })

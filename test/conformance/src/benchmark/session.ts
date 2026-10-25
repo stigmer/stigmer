@@ -10,8 +10,10 @@
 // kept whole once it ends (the benchmark measures the agent, not a
 // reviewer). Then the status facts, the turn as the session's log folds it,
 // the runner's timing lines (re-read from the log until present) and the
-// Temporal history are joined by execution id, and each primary-thread tool
-// call is placed on its round (`tool-call-facts.ts`).
+// Temporal history are joined by execution id, each primary-thread tool
+// call is placed on its round (`tool-call-facts.ts`), and what the agent did
+// with background commands is read on the runner's clock
+// (`background-readings.ts`).
 //
 // The next turn is sent only after the previous one has ended and its review
 // is kept. That is a correctness rule, not a convenience: the platform
@@ -49,6 +51,7 @@ import { streamSessionEvents, watchTurn } from "./stream-watch";
 import { executeActivityNameFor, historyAxes, invokeWorkflowIdFor, showWorkflow } from "./temporal-history";
 import { awaitTimingLines, axesFromTiming, type ExecutionTiming } from "./timing-lines";
 import { todoCounts, toolCallFacts } from "./tool-call-facts";
+import { backgroundReadings, shellOutputs } from "./background-readings";
 
 /** How long one turn may take before the sample is a `timeout`: a live edit turn outlives the poll core's default. */
 export const EXECUTION_BUDGET_MS = 10 * 60_000;
@@ -91,10 +94,11 @@ export interface SessionIo {
   log: (line: string) => void;
 }
 
-/** One turn as measured, with the agent's final reply (what a grader reads). */
+/** One turn as measured, with the agent's final reply and what its shell commands printed (what a cell's checks read). */
 export interface MeasuredTurn {
   sample: BenchmarkSample;
   reply: string;
+  commandOutputs: string[];
 }
 
 /** The session's turns in order, one each, as long as `plan.prompts`. */
@@ -104,7 +108,7 @@ export async function measureSession(stack: SessionStack, plan: SessionPlan, io:
   for (const [index, prompt] of plan.prompts.entries()) {
     const label = `${plan.label}.${index + 1}`;
     if (index > 0 && sessionId === undefined) {
-      turns.push({ sample: failedAtCreate(plan.modelRequested, "no session: the session's first turn was never created"), reply: "" });
+      turns.push({ sample: failedAtCreate(plan.modelRequested, "no session: the session's first turn was never created"), reply: "", commandOutputs: [] });
       continue;
     }
     const turn = await measureTurn(stack, plan, { prompt, sessionId, label }, io);
@@ -147,7 +151,7 @@ async function measureTurn(stack: SessionStack, plan: SessionPlan, turn: TurnReq
     );
   } catch (error) {
     io.log(`${turn.label}: create refused: ${errorMessage(error)}`);
-    return { sample: failedAtCreate(plan.modelRequested, errorMessage(error)), reply: "" };
+    return { sample: failedAtCreate(plan.modelRequested, errorMessage(error)), reply: "", commandOutputs: [] };
   }
   const executionId = created.metadata!.id;
   const sessionId =
@@ -218,6 +222,7 @@ async function measureTurn(stack: SessionStack, plan: SessionPlan, turn: TurnReq
                 : facts.error || `the execution ended ${outcome}`),
         };
 
+  const toolCalls = toolCallFacts(watched.turn, timing.turn_phases);
   const sample: BenchmarkSample = {
     execution_id: executionId,
     session_id: facts.session_id || sessionId,
@@ -239,12 +244,14 @@ async function measureTurn(stack: SessionStack, plan: SessionPlan, turn: TurnReq
     cost_source: "runner-rate-card-estimate",
     server: facts.server,
     timing,
-    tool_calls: toolCallFacts(watched.turn, timing.turn_phases),
+    tool_calls: toolCalls,
     todos: todoCounts(watched.turn),
+    background: backgroundReadings(watched.turn, timing.turn_phases, toolCalls),
+    task_done: null,
     outcome,
     ...(failure !== undefined ? { failure } : {}),
   };
-  return { sample, reply: finalReply(watched.turn) };
+  return { sample, reply: finalReply(watched.turn), commandOutputs: shellOutputs(watched.turn) };
 }
 
 /** An attempt that never became an execution: every axis unobserved, the refusal kept. */
@@ -264,6 +271,8 @@ export function failedAtCreate(modelRequested: string | null, message: string): 
     timing: { turn_phases: null, execution_setup: null, turn_first_event: null },
     tool_calls: [],
     todos: { pending: 0, in_progress: 0, completed: 0, cancelled: 0 },
+    background: null,
+    task_done: null,
     outcome: "failed",
     failure: { stage: "create", message },
   };

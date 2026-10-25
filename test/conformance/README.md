@@ -184,9 +184,9 @@ with the runner in **direct mode** (no mock proxy) reading
 `CURSOR_API_KEY` from the environment. A missing key,
 or a missing `stigmer` CLI for the cells that need it, refuses those cells by
 name and the run continues with the rest. It is in no vitest config, `npm
-test` cannot reach it, and it spends money: at the defaults, ten scenarios
+test` cannot reach it, and it spends money: at the defaults, twelve scenarios
 on two harnesses with one warm-up plus five samples each, three turns a
-sample on the four three-turn scenarios (216 executions), plus the quality
+sample on the four three-turn scenarios (240 executions), plus the quality
 arm's eval run (eleven cases, three tries each on each harness). Its numbers
 are a new baseline for the machine, model versions and runner they were
 taken on, compared only across arms of one instrument commit, machine and
@@ -214,12 +214,19 @@ cell and in the native quality target; the native `default` cells are refused,
 and the Cursor arm, the judge and the prompts stay as they are. A native cell
 needs the key of its model's provider. One run measures one native model,
 because the runner holds one OpenAI-slot key and address for the whole run.
-The report (schema v9) records the arm in `models`: the model, the host its
+The report records the arm in `models`: the model, the host its
 calls went to (`native_endpoint`, never a key or a path), the API they were
 made on (`native_api`) and whether the runner priced them from a catalog row
 or at its default rate (`native_cost_basis`). A default-rate cost is marked in
 the summary and is not a price; a readout prices such an arm from the
 samples' tokens at the provider's published rate.
+
+`--shell-background off` runs the native agent with background shell
+commands turned off, through the runner's own setting
+(`STIGMER_SHELL_BACKGROUND_ENABLED=false`, the runner README): the engine as
+an operator who turned them off runs it, on the same commit, so an on and an
+off report differ in that alone. The report (schema v10) records the arm as
+`methodology.shell_background`.
 
 Two agents are measured. The **bare** agent (`support/agents.ts`
 `BARE_AGENT_INSTRUCTIONS`, the one the request-shape goldens photograph) runs
@@ -243,6 +250,22 @@ second sampled:
 - `working-long-log`: why last night's sync failed, from a log longer than
   the runner's bound on a tool result whose cause is in its last lines, so the
   sampled turn shows what the agent sees of a result past the bound.
+
+And two single turns where running a command in the background pays, asked
+in a person's words that never name the background, over a workspace that
+gains a minute-long integration suite and an HTTP server from an overlay
+(`fixtures/working-agent-background/README.md`), for these cells only:
+- `background-slow-suite`: run the suite and, while it runs, teach
+  `ParseMinutes` seconds;
+- `background-dev-server`: start the server and call it twice.
+
+Each names checks of its work, read after the turn into the sample's
+`task_done`. Before each of their attempts Go's test cache is cleared and an
+attempt whose server port is already taken is refused by name. After every
+working-agent attempt the processes it left running in the workspace or on
+that port (no longer the runner's, as a command's lone `&` leaves them) are
+counted as `orphans` and stopped (`src/benchmark/orphans.ts`), which needs
+`lsof` and `ps` on PATH.
 
 The working agent is also a plugin (`fixtures/working-agent`), whose `evals/`
 suite holds the quality tasks.
@@ -270,7 +293,16 @@ Per execution it reads its sources and joins them by execution id:
   each tool call is placed on the model round that issued it from the
   timeline's spans, `src/benchmark/tool-call-facts.ts`);
 - the Temporal history, through the `temporal` CLI (the wait before the
-  runner's activity started, the `EnsureThread` hop).
+  runner's activity started, the `EnsureThread` hop);
+- what the agent did with background commands (`background`,
+  `src/benchmark/background-readings.ts`), every instant on the runner's
+  timeline: the commands it started and how each ended, the model and tool
+  time while one ran, the calls that polled one (read its output file, or
+  `sleep`, while it ran), its own `&` and `nohup`, foreground commands that
+  ran out their time, the waits and reminders at a round's end, and the
+  shell calls that started while one ran, each of which would have paused
+  the turn under the default approval policy (an estimate: the benchmark
+  approves everything).
 
 Once every execution has ended, the run's runner logs (`runner.log`, and
 `runner-<n>.log` after a restart) are read for the native runner's marker
@@ -317,7 +349,9 @@ whether each arm holds the bar the reference arm sets (default: native on
 the parity model). An arm is a harness on one model at one endpoint,
 on one version of the code (`native/<model>@<host>#<code>`,
 `cursor/<model>#<code>`, the code being the first ten characters of
-`git.code_sha`); `--reference` takes a label, or a prefix of one ending
+`git.code_sha`); a native report taken with background commands off is an
+arm of its own, `+background-off` after the code, so name the reference in
+full when reading it beside the arm with them on. `--reference` takes a label, or a prefix of one ending
 where its `@` or `#` begins or inside its code, when one arm matches. Reports are compared only when one
 instrument made them: they share a clean `git.head_sha` (an instrument with
 uncommitted changes is refused by name), `reps`, `quality_reps`, the thinking
@@ -333,8 +367,10 @@ against the reference:
 - rounds wasted: the share of settled tool calls that ended `not_found`,
   `not_unique` or `failed` is at most the reference's plus 5 points.
 
-Timing, rounds and cost are printed and never gated, because on another
-model they measure the model; so is each report's `runner_log`. Fewer than three samples that ran, or three
+Timing, rounds, cost and the input-token median are printed and never gated,
+because on another model they measure the model; so is each report's
+`runner_log`, and each arm's background table, cell by cell, whenever its
+samples carry the readings. Fewer than three samples that ran, or three
 cases graded on both arms, reads "not measured"; a cell the arm's report
 refused by design is expected. Exit 0 when every arm holds the bar, 1 when
 any misses it or is not measured, 2 when the reports cannot be compared.
@@ -929,7 +965,8 @@ src/
                     request-shape (the golden renderers), …
   benchmark/        report (the contract a run writes), cells, run (the direct-mode stack and driver), session
                     (the per-turn driver), the readers stream-watch, status-facts, timing-lines, temporal-history,
-                    workspace-facts, and quality-eval (the quality arm's eval run)  (the live benchmark's library; pure parts unit-tested)
+                    workspace-facts, background-readings, orphans (the sweep), and quality-eval (the quality arm's eval run)
+                    (the live benchmark's library; pure parts unit-tested)
   long-turn/        profile (the two profiles, their steps and shells), report (minute samples, the transcript check),
                     drive (the minute loop the real-clock and live runs share)  (pure parts unit-tested)
   suites/           *.conformance.test.ts            (Class A — CRUD, no Temporal)
