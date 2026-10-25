@@ -75,6 +75,22 @@ console source spells the words out instead of importing them. The covers are
 uploads, which no test can read: after a words change, run
 `npm run generate:brand` and upload both covers again by hand.
 
+`agent-gets.ts` holds the five titles of what each customer's agent gets ("Its
+own computer" to "Your keys, your servers"). The homepage's cards and the
+hero's picture read them through `site/src/lib/agent-gets.ts`, and the job film
+in `marketing/` reads them here. The site's card test and the film's test both
+hold them.
+
+`job-story.ts` holds the job those pictures tell: a customer's names for it
+(Northwind Books, `ledger.csv`, `variance-report.md`), its steps, the parts of
+the picture and the rule for when each is shown and lit. The homepage hero's
+loop (`site/src/components/visuals/job-path.ts`) and the job film both read it,
+so they light the same parts at the same steps.
+
+The film is an upload, like the covers: after a change to these titles, to the
+job or to the words above, render it again (`marketing/README.md`) and replace
+the posted copies.
+
 ## Maintenance
 
 Edit `logo.svg`, then run `npm run generate:brand` from the repository root. The
