@@ -10,8 +10,9 @@
 // first of `file_path`, `path`, `pattern`, else the command's head; a paged
 // read keeps its window; a completed call whose result is the engine's
 // returned edit failure is `not_found` or `not_unique` in both backends'
-// words; a denied call is `skipped`; the final to-do list is counted by
-// state.
+// words; a denied call is `skipped`; a shell call that asked for the
+// background says so, and no other call does; the final to-do list is
+// counted by state.
 import type { JsonObject } from "@bufbuild/protobuf";
 import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import type { ToolUse } from "@stigmer/session-log";
@@ -116,6 +117,18 @@ describe("toolCallFacts", () => {
     expect(paged).toMatchObject({ offset: 100, limit: 100 });
     expect(whole).not.toHaveProperty("offset");
     expect(whole).not.toHaveProperty("limit");
+  });
+
+  it("marks a shell call that asked for the background, and no other", () => {
+    const turn = turnWith([
+      { name: "execute", args: { command: "go test ./...", background: true } },
+      { name: "execute", args: { command: "go vet ./..." } },
+      { name: "execute", args: { command: "ls", background: false } },
+      { name: "read_file", args: { file_path: "/a.go", background: true } },
+    ]);
+    const [started, foreground, explicit, read] = toolCallFacts(turn, null);
+    expect(started).toMatchObject({ name: "execute", target: "go test ./...", background: true });
+    for (const fact of [foreground, explicit, read]) expect(fact).not.toHaveProperty("background");
   });
 
   it("names each call's state as the log folds it", () => {

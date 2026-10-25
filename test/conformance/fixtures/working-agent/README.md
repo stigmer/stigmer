@@ -48,6 +48,26 @@ are graded against them:
 `policies/returns.md`, `data/signups.csv` and `CHANGELOG.md` are the sources
 the support, data and changelog tasks answer from.
 
+Two files are there for what the native runner does with a repository, and
+are planted the same way:
+
+- `AGENTS.md` holds the working rules the repository gives its agents. Its one
+  rule, run `go vet ./...` as well as `go test ./...` before finishing a Go
+  change, is written nowhere else: the workspace's `README.md` and the
+  `repo-conventions` skill state the other conventions and ask only for
+  `go test`. So an agent runs `go vet` because it read `AGENTS.md`, and the
+  `follows-repo-instructions` case grades that alone.
+- `logs/sync-2026-10-20.log` is a night's sync log of about 49,000
+  characters in 410 lines: longer than the runner's 30,000-character bound on
+  a tool result, in fewer lines than a read returns by default, so a whole
+  read of it is cut. Its cause (the storefront answering 503 to every try) is
+  written only in its last lines, after slow pages and skipped orders that are
+  not the cause. It never names a config key, so the retry-limit question is
+  not handed a second answer. The `working-long-log` timing cell and the
+  `diagnose-sync-log` case ask why that sync failed. It is data, written once;
+  `src/benchmark/__tests__/quality-suite.test.ts` pins its shape against the
+  bound and the read limit.
+
 The module is outside `go.work`, so the repository's `go vet` and `go build`
 loops never visit it. Keep it `gofmt -s` clean so the repository's `gofmt -s -w .`
 is a no-op here.
@@ -75,13 +95,17 @@ absent test and the grader together.
 
 ## `evals/`
 
-Nine cases in the plugin-eval format, one directory each, every one a
+Eleven cases in the plugin-eval format, one directory each, every one a
 `case.yaml` with its graders, deterministic first (a regex over the reply or
 a file, `tool_used`, `mock_calls`) and an `llm` rubric only for judgement.
 They are the quality tasks the benchmark judged before schema v6, moved
 here: `memory-recall` left (a try loads no memory), and `refine-over-turns`
 is a resumed conversation (`history.jsonl`, one recorded turn; its scaffold
 puts the changelog in that turn's state), so it runs on native only.
+`follows-repo-instructions` and `diagnose-sync-log` were added with the two
+files above, each a case of its own: a case's score is what the report
+keeps, so a check added to an existing case could not be read apart from
+it.
 `evals/mocks/orders-api/` answers `lookup_order` from the same table the MCP
 tool fixture serves (`src/harness/mcp-server.ts`), with the real tool's
 `_tools.json`.

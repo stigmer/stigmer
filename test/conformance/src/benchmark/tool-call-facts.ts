@@ -20,9 +20,6 @@
 //   guessed. A placed call also keeps its span's start (`start_ms`), on the
 //   runner's clock, so a reader can tell which calls ran while a background
 //   command did (`background-readings.ts`).
-// - Whether a shell call asked for the background is its own input's
-//   `background: true`, the argument the runner adds to `execute` while
-//   background commands are on (runner middleware/shell.ts).
 // - The outcome is read from the result, because the native engine RETURNS a
 //   failed edit as a plain result string ("Error: String not found in
 //   file: ..."), so a call can complete and have done nothing (deepagents
@@ -33,18 +30,22 @@
 //   is kept with the record of the work and read by people, and a call's
 //   target (a path, a pattern, the head of a command) is what a reader needs
 //   to tell a re-read from a new read.
+// - A shell call that asked to run its command in the background says so
+//   (`background`), because its result is the command's start, not its
+//   output: the native shell tool's `background: true` argument (runner
+//   middleware/shell.ts `BACKGROUND_ARG`, since #2562).
 import type { ToolUse, Turn } from "@stigmer/session-log";
 import type { TimingLine, TodoCounts, ToolCallFact, ToolCallOutcome } from "./report";
 
 /** The longest command head a fact keeps: enough to tell `go test ./...` from `ls -la`. */
 export const COMMAND_TARGET_CHARS = 80;
 
+/** The native engine's shell tool, the one call that can run in the background. */
+export const SHELL_TOOL = "execute";
+
 const MODEL_ROUND_SEGMENT = "model_round";
 const TOOL_SEGMENT_PREFIX = "tool:";
 const SUB_AGENT_SEGMENT_PREFIX = "sub_agent:";
-
-/** The native shell's tool name, the one call that can ask for the background. */
-export const SHELL_TOOL = "execute";
 
 // The argument that names what a call points at, in the order a call is read:
 // the file tools' `file_path` (native `read_file`, `edit_file`, `write_file`),
@@ -70,12 +71,12 @@ export function toolCallFacts(turn: Turn | undefined, turnPhases: TimingLine | n
       round: span?.round ?? null,
       start_ms: span?.start_ms ?? null,
       name: use.name,
-      ...(use.name === SHELL_TOOL && args["background"] === true ? { background: true as const } : {}),
       target: targetOf(args),
       ...(typeof offset === "number" ? { offset } : {}),
       ...(typeof limit === "number" ? { limit } : {}),
       status: use.state,
       outcome: outcomeOf(use),
+      ...(use.name === SHELL_TOOL && args["background"] === true ? { background: true as const } : {}),
     };
   });
 }

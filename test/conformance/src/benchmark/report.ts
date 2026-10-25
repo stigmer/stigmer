@@ -77,18 +77,27 @@
 //   registry row is costed at one fixed invented rate). A default-rate arm's
 //   `estimated_cost_micros` is not a price; a readout prices it from the
 //   sample's `tokens` at the provider's published rate, and names the rate.
+// - A report says which code it measured, apart from the instrument that
+//   measured it (schema v9): the script can boot another checkout's server
+//   and runner (`--stack`), so `git.code_sha` is that checkout's HEAD and
+//   `git.head_sha` stays the instrument's. One instrument measures two
+//   versions of the code alike, and `benchmark-compare` keys an arm by both
+//   its model and its code. `runner_log` counts the runner's marker lines
+//   over the run (log-markers.ts), the one record of whether an edit was
+//   repaired, a result cut, a model call retried or a repository's own
+//   instructions read; and a tool call's fact says when it asked for a
+//   background command.
 // - A native agent can run a shell command in the background, and an
 //   operator can turn that off (runner STIGMER_SHELL_BACKGROUND_ENABLED), so
-//   a report says which arm it measured (schema v9):
+//   a report says which arm it measured (schema v10):
 //   `methodology.shell_background`. Every sample that ran carries what the
 //   agent did with background commands (`background`, derived in
 //   `background-readings.ts` on the runner's one clock, and the processes
-//   the turn left behind, `orphans.ts`), every tool call whether it asked for
-//   the background and when it started, and `task_done`: whether a cell's
-//   own checks of the work held, so a fast sample that skipped the work
-//   reads as what it is.
+//   the turn left behind, `orphans.ts`), every tool call when it
+//   started, and `task_done`: whether a cell's own checks of the work held,
+//   so a fast sample that skipped the work reads as what it is.
 
-export const BENCHMARK_REPORT_SCHEMA_VERSION = 9;
+export const BENCHMARK_REPORT_SCHEMA_VERSION = 10;
 
 /** The runtime's harness vocabulary, as the runner's `turn_phases` line labels it. */
 export type BenchmarkHarness = "deep-agent" | "cursor";
@@ -247,8 +256,6 @@ export interface ToolCallFact {
   /** Runner clock: the start of the tool span the call was placed on; `null` exactly where `round` is. */
   start_ms: number | null;
   name: string;
-  /** Present, and true, on a shell call that asked to run its command in the background. */
-  background?: true;
   /** The call's `file_path`, `path` or `pattern`, or the head of its `command`; "" when it names none. */
   target: string;
   /** A paged read's window, present only when the call set it. */
@@ -257,6 +264,8 @@ export interface ToolCallFact {
   /** How the call stands in the session's log: `completed`, `failed`, `denied`, `stopped`, ... */
   status: string;
   outcome: ToolCallOutcome;
+  /** Present only on a shell call (`execute`) whose input asked to run the command in the background. */
+  background?: true;
 }
 
 /**
@@ -434,15 +443,40 @@ export interface RefusedCell {
   reason: RefusalReason;
 }
 
+/**
+ * The runner's marker lines over the run, every cell and the quality arm
+ * together (log-markers.ts names each line's writer). Zero means the path
+ * never fired, or the measured code has no such line.
+ */
+export interface RunnerLogMarkers {
+  /** The runner logs read, in the order the runners started. */
+  files: string[];
+  /** Edits the runner repaired, by the tier that matched. */
+  edit_repaired: Record<string, number>;
+  /** Tool results cut to the bound, by whether the whole result was kept (`absent` on code that never said), and by tool. */
+  truncated: { kept_yes: number; kept_no: number; kept_absent: number; by_tool: Record<string, number> };
+  /** Failed model calls, by where they failed and what was decided. */
+  model_retry: { request: { retry: number; stop: number }; stream: { retry: number; stop: number } };
+  /** Turns that read the workspace's own instruction files (`root`), and nested files attached on a read (`nested`). */
+  repo_instructions: { root: number; nested: number };
+  hook_failures: number;
+}
+
 export interface BenchmarkReport {
   schema_version: typeof BENCHMARK_REPORT_SCHEMA_VERSION;
   /** ISO 8601, UTC. */
   timestamp: string;
   git: {
-    /** The measuring checkout's HEAD, `-dirty` when the tree had changes. */
+    /** The instrument's checkout HEAD (the tree the script ran from), `-dirty` when the tree had changes. */
     head_sha: string;
-    /** The merge base with main: the SHA a readout cites. */
+    /** The instrument's merge base with main: the SHA a readout cites. */
     main_sha: string;
+    /**
+     * The HEAD of the checkout whose server and runner were measured
+     * (`--stack`), `-dirty` when that tree had changes; `head_sha` when the
+     * run measured its own tree.
+     */
+    code_sha: string;
     pr?: number;
   };
   host: { platform: string; node: string };
@@ -477,6 +511,7 @@ export interface BenchmarkReport {
   /** The quality arm's eval; `null` when no quality target was planned. */
   quality: QualityEval | null;
   refused: RefusedCell[];
+  runner_log: RunnerLogMarkers;
 }
 
 // ─── Statistics ─────────────────────────────────────────────────────────────
@@ -619,8 +654,9 @@ const SHELL_BACKGROUNDS: readonly ShellBackground[] = ["on", "off"];
 /**
  * Refuses, by naming the field, a body that is not a current benchmark report. It
  * checks the discriminating fields and the shape every consumer walks
- * (`comparisons[].{native,cursor}.median`, `git.main_sha`, `methodology.reps`
- * and `shell_background`, the native arm in `models`) and trusts the rest to the producer: a full
+ * (`comparisons[].{native,cursor}.median`, `git.head_sha` and `git.code_sha`,
+ * `methodology.reps` and `shell_background`, the native arm in `models`,
+ * `runner_log`) and trusts the rest to the producer: a full
  * structural check would be a second copy of the types above.
  */
 export function readBenchmarkReport(body: unknown): BenchmarkReport {
@@ -635,6 +671,7 @@ export function readBenchmarkReport(body: unknown): BenchmarkReport {
   const git = asRecord(root["git"], "report.git");
   requireString(git, "head_sha", "report.git");
   requireString(git, "main_sha", "report.git");
+  requireString(git, "code_sha", "report.git");
   const methodology = asRecord(root["methodology"], "report.methodology");
   requireNumber(methodology, "reps", "report.methodology");
   requireNumber(methodology, "quality_reps", "report.methodology");
@@ -671,6 +708,11 @@ export function readBenchmarkReport(body: unknown): BenchmarkReport {
     if (quality["document"] !== null) asRecord(quality["document"], "report.quality.document");
   }
   if (!Array.isArray(root["refused"])) throw new Error("not a benchmark report: refused is not an array");
+  const runnerLog = asRecord(root["runner_log"], "report.runner_log");
+  if (!Array.isArray(runnerLog["files"])) throw new Error("not a benchmark report: runner_log.files is not an array");
+  asRecord(runnerLog["truncated"], "report.runner_log.truncated");
+  asRecord(runnerLog["model_retry"], "report.runner_log.model_retry");
+  asRecord(runnerLog["repo_instructions"], "report.runner_log.repo_instructions");
   return root as unknown as BenchmarkReport;
 }
 

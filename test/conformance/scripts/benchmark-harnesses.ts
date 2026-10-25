@@ -4,16 +4,17 @@
 // Domain: conformance benchmark (the live instrument's entrypoint).
 //
 // THIS IS AN EXPERIMENT, NOT A TEST. It makes live model calls and spends
-// real money: at the defaults, eleven scenarios on two harnesses, one warm-up
-// plus five samples each, three turns per sample on the three three-turn
-// scenarios (the bare turn-2 cell and the working agent's read-edit and
-// cross-turn cells) — 204 executions — plus the quality arm: one eval run of
-// the working agent's nine cases, three tries per case on each harness, the
-// AI-graded checks judged by three votes each. It is in no vitest config and
-// `npm test` cannot reach it. Its numbers are a new baseline for the machine,
-// the model versions and the runner they were taken on, compared only across
-// arms of one commit, machine and day, as `benchmark-compare` enforces
-// (`npm run benchmark:compare`). They are internal: the benchmark's numbers never
+// real money: at the defaults, twelve scenarios on two harnesses, one warm-up
+// plus five samples each, three turns per sample on the four three-turn
+// scenarios (the bare turn-2 cell and the working agent's read-edit,
+// cross-turn and long-log cells) — 240 executions — plus the quality arm: one
+// eval run of the working agent's eleven cases, three tries per case on each
+// harness, the AI-graded checks judged by three votes each. It is in no vitest
+// config and `npm test` cannot reach it. Its numbers are a new baseline for the
+// machine, the model versions and the runner they were taken on, compared only
+// across arms of one instrument commit, machine and day, as `benchmark-compare`
+// enforces (`npm run benchmark:compare`); an arm is a model on one version of
+// the code. They are internal: the benchmark's numbers never
 // appear on the docs site (`.agents/skills/docs-writing/SKILL.md` carries the
 // rule under "What to refuse").
 //
@@ -41,6 +42,10 @@
 //   --native-model <id>      the native arm's model instead of the parity pin: a catalog id, or the own-endpoint
 //                            form openai:<name> / anthropic:<name>; the native default cells are refused, and the
 //                            report records the host, API and cost basis it ran on. Not with --only cursor.
+//   --stack <checkout>       boot that stigmer checkout's server and runner (built there first: `npm ci`,
+//                            `make build-runner build-server`) instead of this tree's; this tree stays the
+//                            instrument, so its clients and readers measure both alike. The report records
+//                            the checkout's HEAD as `git.code_sha`. Refused when the path is no checkout.
 //   --shell-background on|off  whether the runner lets the native agent start commands in the background (default
 //                            on; off sets the runner's STIGMER_SHELL_BACKGROUND_ENABLED=false): the arm, recorded on
 //                            the report, which benchmark-compare reads as an arm of its own
@@ -68,7 +73,7 @@ import { nativeApi, nativeEndpoint, planCells, type PlanFlags } from "../src/ben
 import { runJudgeCalibration } from "../src/benchmark/judge/calibrate";
 import { renderCalibrationModule, shortfallsOf } from "../src/benchmark/judge/calibration-tally";
 import { JUDGE_EXAMPLES } from "../src/benchmark/judge/examples";
-import { bootBenchmarkStack, renderSummary, runBenchmark, writeReport } from "../src/benchmark/run";
+import { bootBenchmarkStack, renderSummary, resolveStackRoot, runBenchmark, writeReport } from "../src/benchmark/run";
 import type { BenchmarkHarness, BenchmarkReport, ShellBackground } from "../src/benchmark/report";
 
 const execFileAsync = promisify(execFile);
@@ -87,6 +92,8 @@ interface Flags extends PlanFlags {
   qualityReps: number;
   out: string;
   pr: number | undefined;
+  /** `--stack`: the checkout whose server and runner are measured, as given. */
+  stack: string | undefined;
   judgeTries: number;
   judgeConcurrency: number;
   judgeBudgetUsd: number;
@@ -100,6 +107,7 @@ function parseFlags(argv: readonly string[]): Flags {
     qualityReps: DEFAULT_QUALITY_REPS,
     out: DEFAULT_OUT,
     pr: undefined,
+    stack: undefined,
     judgeTries: DEFAULT_JUDGE_TRIES,
     judgeConcurrency: DEFAULT_JUDGE_CONCURRENCY,
     judgeBudgetUsd: DEFAULT_JUDGE_BUDGET_USD,
@@ -163,6 +171,9 @@ function parseFlags(argv: readonly string[]): Flags {
       case "--out":
         flags.out = resolve(value());
         break;
+      case "--stack":
+        flags.stack = value();
+        break;
       case "--judge-tries": {
         const tries = Number(value());
         if (!Number.isInteger(tries) || tries < 1) throw new Error("--judge-tries needs a positive integer");
@@ -207,22 +218,28 @@ function onPath(name: string): boolean {
   });
 }
 
-async function gitFacts(pr: number | undefined): Promise<BenchmarkReport["git"]> {
-  const git = async (...args: string[]): Promise<string> =>
-    (await execFileAsync("git", args, { cwd: REPOSITORY_ROOT })).stdout.trim();
-  const head = await git("rev-parse", "HEAD");
-  const dirty = (await git("status", "--porcelain")) !== "";
+/** The instrument's facts from this tree, and the measured code's HEAD from `stackRoot`'s. */
+async function gitFacts(pr: number | undefined, stackRoot: string): Promise<BenchmarkReport["git"]> {
+  const git = async (cwd: string, ...args: string[]): Promise<string> => (await execFileAsync("git", args, { cwd })).stdout.trim();
+  const headOf = async (cwd: string): Promise<string> => {
+    const head = await git(cwd, "rev-parse", "HEAD");
+    const dirty = (await git(cwd, "status", "--porcelain")) !== "";
+    return dirty ? `${head}-dirty` : head;
+  };
+  const head = await headOf(REPOSITORY_ROOT);
   let mainSha: string;
   try {
-    mainSha = await git("merge-base", "HEAD", "origin/main");
+    mainSha = await git(REPOSITORY_ROOT, "merge-base", "HEAD", "origin/main");
   } catch {
-    mainSha = head;
+    mainSha = head.replace(/-dirty$/, "");
   }
-  return { head_sha: dirty ? `${head}-dirty` : head, main_sha: mainSha, ...(pr !== undefined ? { pr } : {}) };
+  const codeSha = stackRoot === REPOSITORY_ROOT ? head : await headOf(stackRoot);
+  return { head_sha: head, main_sha: mainSha, code_sha: codeSha, ...(pr !== undefined ? { pr } : {}) };
 }
 
 async function main(): Promise<void> {
   const flags = parseFlags(process.argv.slice(2));
+  const stackRoot = resolveStackRoot(flags.stack, REPOSITORY_ROOT);
   const env = {
     anthropicKey: Boolean(process.env["ANTHROPIC_API_KEY"]),
     openaiKey: Boolean(process.env["OPENAI_API_KEY"]),
@@ -257,9 +274,10 @@ async function main(): Promise<void> {
     );
   }
 
-  const git = await gitFacts(flags.pr);
+  const git = await gitFacts(flags.pr, stackRoot);
+  if (stackRoot !== REPOSITORY_ROOT) console.error(`stack: the server and runner of ${stackRoot} at ${git.code_sha}`);
   const runDir = resolve(flags.out, `run-${Date.now()}`);
-  const stack = await bootBenchmarkStack(runDir, { shellBackground: flags.shellBackground });
+  const stack = await bootBenchmarkStack(runDir, stackRoot === REPOSITORY_ROOT ? undefined : stackRoot, { shellBackground: flags.shellBackground });
   const stop = (): void => {
     void stack.stop().finally(() => process.exit(130));
   };

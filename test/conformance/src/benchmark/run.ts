@@ -41,10 +41,19 @@
 //
 // Nothing aborts the run but the stack itself. A provisioning or create error
 // fails its attempt with `failure.stage: "create"`, and the run goes on.
+//
+// The server and the runner are the code under test; everything else is the
+// instrument. They come from this checkout by default, or from another one
+// (`stackRoot`, the script's `--stack`), built there: so one instrument, its
+// clients and its readers from this tree, measures two versions of the code
+// alike, and the report keys the arm by both (report.ts, schema v9). Once
+// every execution has ended, the run's runner logs are read for the runner's
+// marker lines (log-markers.ts).
 import { execFile } from "node:child_process";
+import { statSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
@@ -82,6 +91,7 @@ import {
   type CellPlan,
   type Scenario,
 } from "./cells";
+import { readRunnerLogMarkers, renderRunnerLog } from "./log-markers";
 import { listenersOn, sweepLeftovers } from "./orphans";
 import { summarizeBackground } from "./background-readings";
 import { renderQuality, runQualityEval } from "./quality-eval";
@@ -113,6 +123,8 @@ const execFileAsync = promisify(execFile);
 
 export interface BenchmarkStack extends SessionStack {
   serverBaseUrl: string;
+  /** The run's directory, where every runner log is written. */
+  runDir: string;
   /** The tool fixture the working agent's MCP server points at. */
   mcpFixture: McpToolFixture;
   /**
@@ -128,21 +140,46 @@ export interface BenchmarkStack extends SessionStack {
   stop(): Promise<void>;
 }
 
+/**
+ * The checkout whose server and runner a run boots: `stack`, resolved, when
+ * given, else the instrument's own `instrumentRoot`. A path that is not a
+ * stigmer checkout is refused by name before anything boots.
+ */
+export function resolveStackRoot(
+  stack: string | undefined,
+  instrumentRoot: string,
+  isDirectory: (path: string) => boolean = (path) => statSync(path, { throwIfNoEntry: false })?.isDirectory() === true,
+): string {
+  if (stack === undefined) return instrumentRoot;
+  const root = resolve(stack);
+  if (!isDirectory(join(root, "backend", "services", "runner"))) {
+    throw new Error(`--stack ${root} is not a stigmer checkout: it has no backend/services/runner`);
+  }
+  return root;
+}
+
 export interface BenchmarkStackOptions {
   /** Whether the runner lets the native agent start commands in the background; on unless off. */
   shellBackground?: ShellBackground;
 }
 
-/** The MCP fixture, Temporal, then the server on it, then the runner in direct mode; `stop()` reverses. */
-export async function bootBenchmarkStack(runDir: string, options: BenchmarkStackOptions = {}): Promise<BenchmarkStack> {
+/**
+ * The MCP fixture, Temporal, then the server on it, then the runner in direct
+ * mode; `stop()` reverses. The server and the runner are `stackRoot`'s (this
+ * checkout's when absent), built there when their dist is missing.
+ */
+export async function bootBenchmarkStack(
+  runDir: string,
+  stackRoot?: string,
+  options: BenchmarkStackOptions = {},
+): Promise<BenchmarkStack> {
   await mkdir(runDir, { recursive: true });
   // The library entry: every working-agent cell provisions an organization
   // of its own (support/working-agent.ts).
-  /* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
-  const serverEntry = await ensureLibraryServerEntry();
-  const runnerEntry = await ensureRunnerBuilt();
-
   /* v8 ignore start -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
+  const serverEntry = await ensureLibraryServerEntry(stackRoot);
+  const runnerEntry = await ensureRunnerBuilt(stackRoot);
+
   const mcpFixture = new McpToolFixture();
   await mcpFixture.start();
   // The runner's directories are the stack's, so a replacement runs on them.
@@ -187,6 +224,7 @@ export async function bootBenchmarkStack(runDir: string, options: BenchmarkStack
     return {
       clients,
       serverBaseUrl: server.baseUrl,
+      runDir,
       temporal: { hostPort: temporal.hostPort, namespace: temporal.namespace },
       runnerLogFile: runner.logFile,
       mcpFixture,
@@ -228,7 +266,8 @@ export interface RunOptions {
  * Runs the plan against the stack and returns the report. Refuses, before
  * any call is paid for, a parity or judge model the registry does not carry
  * for its harness (an own-endpoint native model needs no row, as on the
- * server); such cells join the plan's own refusals.
+ * server); such cells join the plan's own refusals. The runner's marker
+ * lines are counted last, when no execution is left running.
  */
 export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, options: RunOptions, io: RunIo): Promise<BenchmarkReport> {
   const registry = await fetchModelRegistryDocument(stack.serverBaseUrl);
@@ -295,6 +334,7 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
     quality = await runQualityEval(stack.clients, qualityTargets, { runs: options.qualityReps, judgeModel: JUDGE_MODEL }, io);
     io.log(`quality: ${quality.failure === undefined ? `eval ${quality.eval_id} ended` : `${quality.failure.stage}: ${quality.failure.message}`}`);
   }
+  const runnerLog = await readRunnerLogMarkers(stack.runDir);
 
   return {
     schema_version: BENCHMARK_REPORT_SCHEMA_VERSION,
@@ -323,6 +363,7 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
     comparisons,
     quality,
     refused,
+    runner_log: runnerLog,
   };
 }
 
@@ -534,6 +575,8 @@ export function renderSummary(report: BenchmarkReport): string {
   let markedNative = false;
   lines.push(
     `Native arm: ${report.models.parity_native} at ${report.models.native_endpoint}, ${report.models.native_api} API, cost basis ${report.models.native_cost_basis}`,
+    `Code: ${report.git.code_sha}${report.git.code_sha === report.git.head_sha ? " (the instrument's own)" : `, measured by the instrument at ${report.git.head_sha}`}`,
+    `Runner log: ${renderRunnerLog(report.runner_log)}`,
     "",
   );
   lines.push(

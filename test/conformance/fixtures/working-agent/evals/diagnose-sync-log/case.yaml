@@ -1,0 +1,29 @@
+schema_version: "1.1"
+name: diagnose-sync-log
+tags: [quality]
+context:
+  scaffold_script: "scaffold.sh"
+execution:
+  prompt: "Last night's sync failed; its log is logs/sync-2026-10-20.log. Why did it fail?"
+  max_turns: 10
+  allowed_tools: ["Read", "Glob", "Grep", "Skill"]
+  append_system_prompt: "Be direct and concise. Act on requests rather than explaining steps. When you do not know something, say so.\n\nYour workspace is the orders-sync repository."
+graders:
+  - name: names-the-cause
+    type: "regex"
+    pattern: "\\b503\\b|[Ss]ervice [Uu]navailable"
+    weight: 3
+  - name: reads-the-end
+    type: "llm"
+    weight: 2
+    criteria: "PASS if the answer says the sync failed because the storefront answered 503 Service Unavailable to every try on page 193 from 03:39:19 until the run gave up at 03:40:57, so pages 193 to 214 were never fetched. FAIL if it names another cause (the slow pages, the skipped orders, the database) or claims anything the log does not say."
+  - name: changes-nothing
+    type: "tool_used"
+    tool: "Edit"
+    max: 0
+    weight: 1
+  - name: writes-nothing
+    type: "tool_used"
+    tool: "Write"
+    max: 0
+    weight: 1

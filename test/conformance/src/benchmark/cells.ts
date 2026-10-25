@@ -8,11 +8,13 @@
 // Two agents are measured. The bare agent's cells are the July cost
 // benchmark's, below. The working agent (support/working-agent.ts) carries an
 // MCP server, memory, eight skills, a sub-agent and a seeded repository. Its
-// two timing cells are three turns in one session with the second sampled:
-// one reads, then edits, then follows up; the other asks three read-only
-// questions that each reach a different skill, the session whose later turns
-// show whether the system prompt, and so the provider's prompt cache, held
-// from one message to the next.
+// three timing cells are three turns in one session with the second sampled:
+// one reads, then edits, then follows up; one asks three read-only questions
+// that each reach a different skill, the session whose later turns show
+// whether the system prompt, and so the provider's prompt cache, held from one
+// message to the next; and one asks why a sync failed, from a log too long to
+// read whole whose cause is written in its last lines, the turn that shows
+// what the agent sees of a tool result past the runner's bound.
 //
 // Two more working-agent cells are single turns where running a command in
 // the background pays, asked in a person's ordinary words that never name
@@ -120,6 +122,19 @@ export const WORKING_CROSS_TURN_PROMPTS: readonly string[] = [
   "Run go test ./... and tell me in one line whether it passes.",
 ];
 
+/**
+ * The working agent's long-log session: a question about the code, then why
+ * last night's sync failed, from a log of about 49,000 characters (above the
+ * runner's 30,000-character bound on a tool result, in fewer lines than a read
+ * returns by default) whose cause sits in its last lines, then the setting
+ * behind it. The second turn is the sampled one.
+ */
+export const WORKING_LONG_LOG_PROMPTS: readonly string[] = [
+  "In one sentence, what does syncer/syncer.go do?",
+  "Last night's sync failed; its log is logs/sync-2026-10-20.log. Why did it fail?",
+  "Which setting in config/sync.yaml decides how long it kept trying?",
+];
+
 /** The port the background cells' server listens on (fixtures/working-agent-background). */
 export const BACKGROUND_SERVER_PORT = 8765;
 
@@ -195,6 +210,7 @@ export const SCENARIOS: readonly Scenario[] = [
   { name: "report-parity-turn-2", mode: "turn-2", sessionShape: "one-session-three-turns", agent: "bare", prompts: TURN_2_PROMPTS },
   { name: "working-read-edit", mode: "working-agent", sessionShape: "one-session-three-turns", agent: "working", prompts: WORKING_READ_EDIT_PROMPTS },
   { name: "working-cross-turn", mode: "working-agent", sessionShape: "one-session-three-turns", agent: "working", prompts: WORKING_CROSS_TURN_PROMPTS },
+  { name: "working-long-log", mode: "working-agent", sessionShape: "one-session-three-turns", agent: "working", prompts: WORKING_LONG_LOG_PROMPTS },
   {
     name: "background-slow-suite",
     mode: "working-agent",

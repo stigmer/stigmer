@@ -184,12 +184,23 @@ with the runner in **direct mode** (no mock proxy) reading
 `CURSOR_API_KEY` from the environment. A missing key,
 or a missing `stigmer` CLI for the cells that need it, refuses those cells by
 name and the run continues with the rest. It is in no vitest config, `npm
-test` cannot reach it, and it spends money: at the defaults, eleven scenarios
-on two harnesses with one warm-up plus five samples each (204 executions),
-plus the quality arm's eval run (nine cases, three tries each on each
-harness). Its numbers are a new baseline for the machine, model versions
-and runner they were taken on, compared only across arms of one commit,
-machine and day, as `benchmark-compare` enforces (below).
+test` cannot reach it, and it spends money: at the defaults, twelve scenarios
+on two harnesses with one warm-up plus five samples each, three turns a
+sample on the four three-turn scenarios (240 executions), plus the quality
+arm's eval run (eleven cases, three tries each on each harness). Its numbers
+are a new baseline for the machine, model versions and runner they were
+taken on, compared only across arms of one instrument commit, machine and
+day, an arm being a model on one version of the code, as `benchmark-compare`
+enforces (below).
+
+`--stack <checkout>` measures another stigmer checkout's server and runner
+with this tree as the instrument: the script, its clients and its readers
+stay this tree's, so two versions of the code are measured alike. Build that
+checkout first (`npm ci`, then `make build-runner build-server`; an existing
+dist is reused, never rebuilt), and point the `stigmer` CLI on PATH at it, so
+the working agent's memory runs its code too. The report records the
+checkout's HEAD as `git.code_sha` beside the instrument's `git.head_sha`; a
+path that is not a stigmer checkout is refused before anything boots.
 
 The native arm runs on Claude Sonnet 4.6 unless `--native-model <id>` names
 another model: a catalog id, or the own-endpoint form `openai:<name>` /
@@ -214,7 +225,7 @@ samples' tokens at the provider's published rate.
 commands turned off, through the runner's own setting
 (`STIGMER_SHELL_BACKGROUND_ENABLED=false`, the runner README): the engine as
 an operator who turned them off runs it, on the same commit, so an on and an
-off report differ in that alone. The report (schema v9) records the arm as
+off report differ in that alone. The report (schema v10) records the arm as
 `methodology.shell_background`.
 
 Two agents are measured. The **bare** agent (`support/agents.ts`
@@ -230,12 +241,15 @@ the July cost benchmark's seven scenarios. The **working** agent
   fixed directory outside the repository (`fixtures/working-agent/README.md`
   says why and what is planted in it).
 
-It runs two timing scenarios, each three turns in one session with the second
-sampled:
+It runs three timing scenarios, each three turns in one session with the
+second sampled:
 - `working-read-edit`: read, edit, follow up;
 - `working-cross-turn`: three read-only questions, each reaching a different
   skill, so its later turns' cache writes show whether the native system
-  prompt held from one message to the next.
+  prompt held from one message to the next;
+- `working-long-log`: why last night's sync failed, from a log longer than
+  the runner's bound on a tool result whose cause is in its last lines, so the
+  sampled turn shows what the agent sees of a result past the bound.
 
 And two single turns where running a command in the background pays, asked
 in a person's words that never name the background, over a workspace that
@@ -290,6 +304,14 @@ Per execution it reads its sources and joins them by execution id:
   the turn under the default approval policy (an estimate: the benchmark
   approves everything).
 
+Once every execution has ended, the run's runner logs (`runner.log`, and
+`runner-<n>.log` after a restart) are read for the native runner's marker
+lines: edits repaired, tool results cut (and whether each was kept whole),
+model calls retried, turns that read the repository's own instruction files,
+and failed PostToolUse hooks (`src/benchmark/log-markers.ts` names each
+line's writer). The lines carry no execution id, so the report's
+`runner_log` counts them per run, over every cell and the quality arm.
+
 The **quality arm** (`src/benchmark/quality-eval.ts`) is one eval run: the
 working agent's plugin pushed into a fresh organization, every case of its
 `evals/` suite run on the built-in assistant on each harness's parity
@@ -324,14 +346,21 @@ through the driver as well as single turns.
 `npm run benchmark:compare -w @stigmer/conformance -- [--reference <arm>] <report.json> ...`
 reads reports (`src/benchmark/compare.ts`) and says, per arm and cell,
 whether each arm holds the bar the reference arm sets (default: native on
-the parity model). An arm is a harness on one model at one endpoint
-(`native/<model>@<host>`, `cursor/<model>`); a native report taken with
-background commands off is an arm of its own, `+background-off`, so name the
-reference in full when reading it beside the arm with them on. Reports are compared only when
-they share `git.main_sha`, `reps`, `quality_reps`, the thinking mode and the
-host, and were taken within 24 hours of each other; anything else is refused
-by naming the field. Reports of one arm pool, a later scenario replacing an
-earlier one. The bar, per arm against the reference:
+the parity model). An arm is a harness on one model at one endpoint,
+on one version of the code (`native/<model>@<host>#<code>`,
+`cursor/<model>#<code>`, the code being the first ten characters of
+`git.code_sha`); a native report taken with background commands off is an
+arm of its own, `+background-off` after the code, so name the reference in
+full when reading it beside the arm with them on. `--reference` takes a label, or a prefix of one ending
+where its `@` or `#` begins or inside its code, when one arm matches. Reports are compared only when one
+instrument made them: they share a clean `git.head_sha` (an instrument with
+uncommitted changes is refused by name), `reps`, `quality_reps`, the thinking
+mode and the host, and were taken within 24 hours of each other; anything
+else is refused by naming the field. Reports of one arm pool, a later
+scenario replacing an earlier one, and two versions of the code are two
+arms, never one. So a fix is measured from `main`'s instrument, once on
+`main` and once with `--stack <the fix's checkout>`. The bar, per arm
+against the reference:
 - quality: the mean case score over the cases graded on both arms is at
   least the reference's minus 0.05;
 - failures: no more failed samples per timing cell than the reference's;
@@ -339,8 +368,9 @@ earlier one. The bar, per arm against the reference:
   `not_unique` or `failed` is at most the reference's plus 5 points.
 
 Timing, rounds, cost and the input-token median are printed and never gated,
-because on another model they measure the model; so is each arm's background
-table, cell by cell, whenever its samples carry the readings. Fewer than three samples that ran, or three
+because on another model they measure the model; so is each report's
+`runner_log`, and each arm's background table, cell by cell, whenever its
+samples carry the readings. Fewer than three samples that ran, or three
 cases graded on both arms, reads "not measured"; a cell the arm's report
 refused by design is expected. Exit 0 when every arm holds the bar, 1 when
 any misses it or is not measured, 2 when the reports cannot be compared.

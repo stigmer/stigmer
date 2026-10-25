@@ -1,0 +1,35 @@
+schema_version: "1.1"
+name: follows-repo-instructions
+tags: [quality]
+context:
+  scaffold_script: "scaffold.sh"
+execution:
+  prompt: "ParseMinutes should also accept days: \"1d\" is 1440 minutes. Make the change and add a test row."
+  max_turns: 30
+  allowed_tools: ["Read", "Glob", "Grep", "Skill"]
+  append_system_prompt: "Be direct and concise. Act on requests rather than explaining steps. When you do not know something, say so.\n\nYour workspace is the orders-sync repository."
+graders:
+  - name: ran-go-vet
+    type: "tool_used"
+    tool: "Bash"
+    input_match: "go vet"
+    weight: 3
+  - name: ran-go-test
+    type: "tool_used"
+    tool: "Bash"
+    input_match: "go test"
+    weight: 1
+  - name: meaningful-test
+    type: "regex"
+    pattern: "\"\\d+d\""
+    target:
+      source: "file"
+      path: "duration/duration_test.go"
+    weight: 1
+  - name: correct-fix
+    type: "llm"
+    weight: 2
+    focus:
+      source: "file"
+      path: "duration/duration.go"
+    criteria: "PASS if ParseMinutes handles the \"d\" unit as 1440 minutes, so \"1d\" is 1440 and \"1d2h\" is 1560, while \"1h30m\" stays 90, \"45m\" 45, \"2h\" 120 and \"\", \"abc\" and \"10\" stay errors. FAIL otherwise."
