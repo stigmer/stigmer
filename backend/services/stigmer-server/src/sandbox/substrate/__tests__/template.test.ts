@@ -5,9 +5,11 @@
  *     only plain per-target settings (no runner secret, no token), gives the
  *     runner root's HOME (its user is the image's, which Substrate cannot
  *     set; the start script refuses one that is not root), mounts
- *     the workspace and the actor's own name, runs in the gVisor class, and
- *     snapshots volumes only, its golden snapshot on (a pause and a
- *     suspend alike keep the workspace, never the runner's memory);
+ *     the workspace and the actor's own name, names no sandbox class or
+ *     configuration (the WorkerPool chooses both), limits the runner to 2
+ *     CPU and 2 GiB in Substrate's integer units, and snapshots volumes
+ *     only, its golden snapshot on (a suspend keeps the workspace, never
+ *     the runner's memory);
  *   - it adds the runner's five capabilities to Substrate's default set and
  *     drops none, so the runner can run the agent as its own user and the
  *     waiter keeps port 80 (#2339);
@@ -75,14 +77,11 @@ const settings: SubstrateDriverSettings = {
   routerServerName: "",
   routerClientCertFile: "",
   atespace: "stigmer",
-  nodeAgentPrincipal: "spiffe://cluster.local/ns/ate-system/sa/atelet",
   storageLocation: "gs://ate-snapshots/stigmer",
   workerSelector: { workload: "stigmer" },
-  sandboxConfigName: "gvisor-default",
   httpsEgress: "all",
   extraHttpEgress: [],
   platformHttpsHosts: [],
-  pauseAfterSeconds: 300,
   suspendAfterSeconds: 1800,
   sweepIntervalSeconds: 60,
 };
@@ -158,10 +157,8 @@ describe("the template", () => {
         }),
       }),
     ]);
-    expect(template.sandboxConfig).toMatchObject({
-      sandboxClass: "gvisor",
-      configName: "gvisor-default",
-    });
+    // Substrate 0.6 has no such field, and refuses one it does not know.
+    expect(Object.keys(template)).not.toContain("sandboxConfig");
     expect(template.snapshotConfig).toMatchObject({
       storageLocation: "gs://ate-snapshots/stigmer",
       preferredFidelity: SnapshotFidelity.VOLUMES,
@@ -170,12 +167,10 @@ describe("the template", () => {
     expect(template.workerSelector?.matchLabels).toEqual({
       workload: "stigmer",
     });
-    expect(template.resources?.limits.map((l) => [l.name, l.quantity])).toEqual(
-      [
-        ["cpu", "2"],
-        ["memory", "2Gi"],
-      ],
-    );
+    expect(template.resources?.limits).toMatchObject({
+      cpuMillicores: 2000n,
+      memoryBytes: 2147483648n,
+    });
   });
 
   it("with HTTPS egress: projects the gateway's trust bundle and points every tool at it", () => {
@@ -293,7 +288,7 @@ describe("the keeper", () => {
     const substrate = new FakeSubstrate();
     substrate.atespacePolicy = "denied";
     substrate.atespaceGrants = [
-      { role: "viewer", member: "user:spiffe://cluster.local/ns/ate-system/sa/atelet" },
+      { role: "editor", member: "user:system:serviceaccount:stigmer:stigmer-server" },
     ];
     const k = keeper(substrate, logger);
     await k.ready();

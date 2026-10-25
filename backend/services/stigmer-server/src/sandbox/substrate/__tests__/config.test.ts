@@ -1,18 +1,15 @@
 /**
  * Pins the substrate driver's settings (config.ts): the required values,
- * the defaults (the node agent's principal among them, overridable), the router's CA, server name and client certificate (only
- * for an https:// router), the parsing of the selector and the extra destinations, the
- * platform HTTPS hosts (EGRESS_HTTPS_PLATFORM, parseHosts: lower-cased,
- * each once, a scheme, port, path or pattern refused), and the two rules the idle windows must keep (a pause before a suspend;
- * no pause longer than a workspace may live on one node only).
+ * the defaults (one idle window, 300 s), the router's CA, server name and
+ * client certificate (only for an https:// router), the parsing of the
+ * selector and the extra destinations, the platform HTTPS hosts
+ * (EGRESS_HTTPS_PLATFORM, parseHosts: lower-cased, each once, a scheme,
+ * port, path or pattern refused), and the settings Substrate 0.6 retired,
+ * each refused at boot with where its job went.
  */
 import { describe, expect, it } from "vitest";
 
-import {
-  newSubstrateSettingsFromEnv,
-  parseHosts,
-  validateWindows,
-} from "../config.js";
+import { newSubstrateSettingsFromEnv, parseHosts } from "../config.js";
 
 const base: NodeJS.ProcessEnv = {
   STIGMER_SANDBOX_SUBSTRATE_API_ENDPOINT: "https://api.ate-system.svc:443",
@@ -35,27 +32,34 @@ describe("newSubstrateSettingsFromEnv", () => {
       routerServerName: "",
       routerClientCertFile: "",
       atespace: "stigmer",
-      nodeAgentPrincipal: "spiffe://cluster.local/ns/ate-system/sa/atelet",
       storageLocation: "gs://ate-snapshots/stigmer",
       workerSelector: { workload: "stigmer" },
-      sandboxConfigName: "gvisor-default",
       httpsEgress: "all",
       extraHttpEgress: [],
       platformHttpsHosts: [],
-      pauseAfterSeconds: 300,
-      suspendAfterSeconds: 330,
+      suspendAfterSeconds: 300,
       sweepIntervalSeconds: 30,
     });
   });
 
-  it("takes the node agent's principal when one is given", () => {
-    expect(
-      newSubstrateSettingsFromEnv({
-        ...base,
-        STIGMER_SANDBOX_SUBSTRATE_NODE_AGENT_PRINCIPAL:
-          " spiffe://cluster.local/ns/substrate/sa/atelet ",
-      }).nodeAgentPrincipal,
-    ).toBe("spiffe://cluster.local/ns/substrate/sa/atelet");
+  it("refuses each setting Substrate 0.6 retired, naming where its job went", () => {
+    for (const [name, home] of [
+      ["PAUSE_AFTER_SECONDS", /STIGMER_SANDBOX_SUBSTRATE_SUSPEND_AFTER_SECONDS/],
+      ["SANDBOX_CONFIG", /WorkerPool's sandboxClasses/],
+      ["NODE_AGENT_PRINCIPAL", /system role of its own/],
+    ] as const) {
+      const variable = `STIGMER_SANDBOX_SUBSTRATE_${name}`;
+      expect(() =>
+        newSubstrateSettingsFromEnv({ ...base, [variable]: "300" }),
+      ).toThrow(new RegExp(`^${variable} is retired and nothing reads it`));
+      expect(() =>
+        newSubstrateSettingsFromEnv({ ...base, [variable]: "300" }),
+      ).toThrow(home);
+      // Set but empty is not set.
+      expect(() =>
+        newSubstrateSettingsFromEnv({ ...base, [variable]: " " }),
+      ).not.toThrow();
+    }
   });
 
   it("names each missing required value", () => {
@@ -166,7 +170,7 @@ describe("newSubstrateSettingsFromEnv", () => {
     expect(() =>
       newSubstrateSettingsFromEnv({
         ...base,
-        STIGMER_SANDBOX_SUBSTRATE_PAUSE_AFTER_SECONDS: "0",
+        STIGMER_SANDBOX_SUBSTRATE_SWEEP_INTERVAL_SECONDS: "0",
       }),
     ).toThrow(/positive whole number/);
     expect(() =>
@@ -229,34 +233,5 @@ describe("parseHosts", () => {
     ]) {
       expect(() => parseHosts(entry)).toThrow(/no scheme, port, path or pattern/);
     }
-  });
-});
-
-describe("validateWindows", () => {
-  it("accepts the shipped windows, the longest pause the bound allows, and the proof's short ones", () => {
-    expect(() =>
-      validateWindows({ pauseAfterSeconds: 300, suspendAfterSeconds: 330 }),
-    ).not.toThrow();
-    expect(() =>
-      validateWindows({
-        pauseAfterSeconds: 300,
-        suspendAfterSeconds: 300 + 30 * 60,
-      }),
-    ).not.toThrow();
-    expect(() =>
-      validateWindows({ pauseAfterSeconds: 60, suspendAfterSeconds: 180 }),
-    ).not.toThrow();
-  });
-
-  it("refuses a suspend before the pause, and a pause longer than 30 minutes", () => {
-    expect(() =>
-      validateWindows({ pauseAfterSeconds: 600, suspendAfterSeconds: 600 }),
-    ).toThrow(/must be less than/);
-    expect(() =>
-      validateWindows({
-        pauseAfterSeconds: 300,
-        suspendAfterSeconds: 300 + 30 * 60 + 1,
-      }),
-    ).toThrow(/keep a sandbox paused for 1801 s/);
   });
 });

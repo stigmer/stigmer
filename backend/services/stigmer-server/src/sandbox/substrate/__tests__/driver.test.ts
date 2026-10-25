@@ -6,32 +6,29 @@
  *     egress policy written, resumed, attached by one push carrying the
  *     queue and exactly the secrets (never a plain setting);
  *   - the ensure's log line names the path it took from the first settled
- *     state it found (created, suspended, paused, running, crashed), never
+ *     state it found (created, suspended, running, crashed), never
  *     the arm it ended in, so a created sandbox is not counted as a wake
  *     from storage; a state in transition names nothing;
  *   - suspended → moved to the current template only when that template is
- *     ready, its policy repaired when missing, resumed, pushed;
- *   - paused → resumed on its own template, however long it slept and
- *     whenever it paused, never suspended first: every wake is a fresh
- *     runner (Substrate 0.5 keeps no memory, template.ts);
+ *     ready, its policy repaired when missing, resumed, pushed: every wake
+ *     is a fresh runner (the template keeps no memory, template.ts);
  *   - running → pushed only; crashed → reverted first; deleting → refused,
  *     and so is a state the driver has no word for;
  *   - ABORTED → re-read, whether contention or a crash; no free worker →
  *     thrown at once;
  *   - a running runner refusing rotated secrets keeps running;
  *   - a runner this process started that refuses a push as already
- *     attached elsewhere is suspended, and the ensure fails: at a wake from
- *     storage or from a pause, and at a later ensure when the waking one
- *     was cut short;
+ *     attached elsewhere is suspended, and the ensure fails: at a wake, and
+ *     at a later ensure when the waking one was cut short;
  *   - a waiter refusal throws with its code; a mismatched queue throws
  *     before any call;
  *   - one actor's operations never interleave;
  *   - deprovision, probe, reattach (a running sandbox only), and template
  *     retirement;
- *   - the lifecycle a composition's own sweep calls: a guarded pause asks
+ *   - the lifecycle a composition's own sweep calls: a guarded suspend asks
  *     before the call from a fresh read and wakes the sandbox again when
  *     the sweep says it is no longer idle afterwards (a fresh runner, which
- *     the turn's own ensure pushes to), a guarded suspend asks before; `maintain`
+ *     the turn's own ensure pushes to); `maintain`
  *     repeats a stuck delete, writes no egress policy (an awake sandbox's
  *     is its next ensure's), moves only a sleeping sandbox
  *     off an older template, then retires, skipping a sandbox whose upkeep fails and stopping before
@@ -72,7 +69,6 @@ import {
   SubstrateNoWorkerError,
   type SubstrateSandboxState,
 } from "../gateway.js";
-import { MAX_IN_PLACE_PAUSE_SECONDS } from "../limits.js";
 
 const silentLogger = createLogger({
   level: "error",
@@ -104,14 +100,11 @@ const settings: SubstrateDriverSettings = {
   routerServerName: "",
   routerClientCertFile: "",
   atespace: "stigmer",
-  nodeAgentPrincipal: "spiffe://cluster.local/ns/ate-system/sa/atelet",
   storageLocation: "gs://ate-snapshots/stigmer",
   workerSelector: { workload: "stigmer" },
-  sandboxConfigName: "gvisor-default",
   httpsEgress: "all",
   extraHttpEgress: [],
   platformHttpsHosts: [],
-  pauseAfterSeconds: 300,
   suspendAfterSeconds: 1800,
   sweepIntervalSeconds: 60,
 };
@@ -278,33 +271,6 @@ describe("ensure, from each state", () => {
     expect(calls.indexOf(`ensureEgressPolicy ${ACTOR}`)).toBeLessThan(
       calls.indexOf(`resumeActor ${ACTOR}`),
     );
-  });
-
-  it("paused: wakes on its own template and node, never suspended first, however long and whenever it paused", async () => {
-    for (const asleep of [1_000, MAX_IN_PLACE_PAUSE_SECONDS * 1000 + 1]) {
-      const h = harness();
-      // The current template is ready, so a suspended actor would move.
-      await h.driver.lifecycle.prepare();
-      // Paused before this server process started.
-      h.substrate.put({
-        name: ACTOR,
-        state: "paused",
-        template: "stigmer-runner-old",
-        updateTime: new Date(h.now() - 1_000),
-      });
-      h.advance(asleep);
-      h.substrate.calls.length = 0;
-      await h.driver.provisioner.ensureSessionSandbox(SESSION, facts);
-      expect(h.substrate.calls).toEqual([
-        `getActor ${ACTOR}`,
-        `ensureEgressPolicy ${ACTOR}`,
-        `resumeActor ${ACTOR}`,
-      ]);
-      expect(h.substrate.actors.get(ACTOR)?.template).toBe(
-        "stigmer-runner-old",
-      );
-      expect(h.router.pushes).toHaveLength(1);
-    }
   });
 
   it("CRASHED: reverts, then wakes from where that leaves it", async () => {
@@ -548,7 +514,7 @@ describe("the ensure's log line names the path it took", () => {
     expect(await armOf(h, ensured)).toBe("running");
   });
 
-  it("suspended: woken from storage", async () => {
+  it("suspended: woken from its node or from storage", async () => {
     const { h, ensured } = logged();
     h.substrate.put({
       name: ACTOR,
@@ -556,13 +522,6 @@ describe("the ensure's log line names the path it took", () => {
       template: "t",
     });
     expect(await armOf(h, ensured)).toBe("suspended");
-  });
-
-  it("paused: woken on its node", async () => {
-    const { h, ensured } = logged();
-    h.substrate.put({ name: ACTOR, state: "paused", template: "t" });
-    h.advance(MAX_IN_PLACE_PAUSE_SECONDS * 1000 + 1);
-    expect(await armOf(h, ensured)).toBe("paused");
   });
 
   it("running: already awake, pushed only", async () => {
@@ -659,7 +618,7 @@ describe("deprovision, probe, lifecycle", () => {
     expect(await h.driver.provisioner.probe("session", SESSION)).toBe(
       "running",
     );
-    for (const state of ["paused", "suspended", "crashed"] as const) {
+    for (const state of ["suspending", "suspended", "crashed"] as const) {
       actor.state = state;
       expect(await h.driver.provisioner.probe("session", SESSION)).toBe(
         "stopped",
@@ -684,7 +643,7 @@ describe("deprovision, probe, lifecycle", () => {
 
   it("lifecycle.resume is the ensure", async () => {
     const h = harness();
-    h.substrate.put({ name: ACTOR, state: "paused", template: "t" });
+    h.substrate.put({ name: ACTOR, state: "suspended", template: "t" });
     await h.driver.lifecycle.resume("session", SESSION, facts);
     expect(h.substrate.actors.get(ACTOR)?.state).toBe("running");
     expect(h.router.pushes).toHaveLength(1);
@@ -710,12 +669,12 @@ describe("deprovision, probe, lifecycle", () => {
       pushed: false,
       state: "absent",
     });
-    h.substrate.put({ name: ACTOR, state: "paused", template: "t" });
+    h.substrate.put({ name: ACTOR, state: "suspended", template: "t" });
     expect(
       await h.driver.lifecycle.reattach("session", SESSION, facts),
     ).toEqual({
       pushed: false,
-      state: "paused",
+      state: "suspended",
     });
     expect(h.router.pushes).toEqual([]);
   });
@@ -734,17 +693,15 @@ describe("deprovision, probe, lifecycle", () => {
     expect(h.substrate.actors.get(ACTOR)?.state).toBe("suspended");
   });
 
-  it("pause, suspend, list and delete act on the named actor", async () => {
+  it("suspend, list and delete act on the named actor", async () => {
     const h = harness();
     h.substrate.put({ name: ACTOR, state: "running", template: "t" });
-    await h.driver.lifecycle.pause("session", SESSION);
+    await h.driver.lifecycle.suspend("session", SESSION);
     expect((await h.driver.lifecycle.list())[0]).toMatchObject({
       name: ACTOR,
-      state: "paused",
+      state: "suspended",
       template: "t",
     });
-    await h.driver.lifecycle.suspend("session", SESSION);
-    expect((await h.driver.lifecycle.list())[0]?.state).toBe("suspended");
     await h.driver.lifecycle.delete("session", SESSION);
     expect(await h.driver.lifecycle.list()).toEqual([]);
   });
@@ -785,12 +742,11 @@ describe("deprovision, probe, lifecycle", () => {
 });
 
 describe("a waiter another push reached first", () => {
-  it("on a wake from storage or from a pause, a refusal of the driver's first push suspends the sandbox and fails", async () => {
+  it("on a wake, a refusal of the driver's first push suspends the sandbox and fails", async () => {
     for (const [code, asleep] of [
       ["secrets_changed", "suspended"],
       ["token_mismatch", "suspended"],
       ["other_queue", "suspended"],
-      ["secrets_changed", "paused"],
     ] as const) {
       const h = harness(() => ({
         status: 409,
@@ -812,8 +768,8 @@ describe("a waiter another push reached first", () => {
 });
 
 describe("a runner this process started, attached elsewhere after a cut-short wake", () => {
-  it("is suspended when a later ensure finds it running or paused, and the ensure fails", async () => {
-    for (const later of ["running", "paused"]) {
+  it("is suspended when a later ensure finds it running or asleep again, and the ensure fails", async () => {
+    for (const later of ["running", "suspended"]) {
       let reply: { status: number; body: Record<string, unknown> } = {
         status: 400,
         body: { code: "malformed", error: "bad body" },
@@ -828,8 +784,8 @@ describe("a runner this process started, attached elsewhere after a cut-short wa
       await expect(
         h.driver.provisioner.ensureSessionSandbox(SESSION, facts),
       ).rejects.toThrow(/refused its attach push \(400 malformed\)/);
-      if (later === "paused") {
-        await h.driver.lifecycle.pause("session", SESSION);
+      if (later === "suspended") {
+        await h.driver.lifecycle.suspend("session", SESSION);
       }
       // A push from elsewhere then won the waiter.
       reply = {
@@ -868,19 +824,18 @@ describe("the runner's mode", () => {
 describe("the lifecycle a composition's own sweep calls", () => {
   const idle = { proceed: async () => true, stillIdle: async () => true };
 
-  it("pauses and suspends unguarded as before, answering done", async () => {
+  it("suspends unguarded, answering done", async () => {
     const h = harness();
     h.substrate.put({ name: ACTOR, state: "running", template: "t" });
-    expect(await h.driver.lifecycle.pause("session", SESSION)).toBe("done");
     expect(await h.driver.lifecycle.suspend("session", SESSION)).toBe("done");
     expect(h.substrate.actors.get(ACTOR)?.state).toBe("suspended");
   });
 
-  it("asks a pause's guard about the sandbox as it is now, and skips when it says no", async () => {
+  it("asks a suspend's guard about the sandbox as it is now, and skips when it says no", async () => {
     const h = harness();
     h.substrate.put({ name: ACTOR, state: "running", template: "t" });
     const seen: string[] = [];
-    const outcome = await h.driver.lifecycle.pause("session", SESSION, {
+    const outcome = await h.driver.lifecycle.suspend("session", SESSION, {
       proceed: async (actor) => {
         seen.push(`${actor.name} ${actor.state}`);
         return false;
@@ -892,39 +847,39 @@ describe("the lifecycle a composition's own sweep calls", () => {
     expect(h.substrate.calls).toEqual([`getActor ${ACTOR}`]);
   });
 
-  it("pauses when its guard proceeds and the sandbox is still idle afterwards", async () => {
+  it("suspends when its guard proceeds and the sandbox is still idle afterwards", async () => {
     const h = harness();
     h.substrate.put({ name: ACTOR, state: "running", template: "t" });
-    expect(await h.driver.lifecycle.pause("session", SESSION, idle)).toBe(
+    expect(await h.driver.lifecycle.suspend("session", SESSION, idle)).toBe(
       "done",
     );
-    expect(h.substrate.actors.get(ACTOR)?.state).toBe("paused");
+    expect(h.substrate.actors.get(ACTOR)?.state).toBe("suspended");
   });
 
-  it("wakes the sandbox again when a turn arrived while the pause was in flight, leaving the push to the turn's ensure", async () => {
+  it("wakes the sandbox again when a turn arrived while the suspend was in flight, leaving the push to the turn's ensure", async () => {
     const h = harness();
     h.substrate.put({ name: ACTOR, state: "running", template: "t" });
-    const outcome = await h.driver.lifecycle.pause("session", SESSION, {
+    const outcome = await h.driver.lifecycle.suspend("session", SESSION, {
       proceed: async () => true,
       stillIdle: async () => false,
     });
     expect(outcome).toBe("thawed");
     expect(h.substrate.calls).toEqual([
       `getActor ${ACTOR}`,
-      `pauseActor ${ACTOR}`,
+      `suspendActor ${ACTOR}`,
       `resumeActor ${ACTOR}`,
     ]);
     expect(h.substrate.actors.get(ACTOR)?.state).toBe("running");
     expect(h.router.pushes).toEqual([]);
   });
 
-  it("counts the runner a woken-again pause starts as this process's: a refusal of its first push as attached elsewhere suspends it", async () => {
+  it("counts the runner a woken-again suspend starts as this process's: a refusal of its first push as attached elsewhere suspends it", async () => {
     const h = harness(() => ({
       status: 409,
       body: { code: "token_mismatch", error: "taken" },
     }));
     h.substrate.put({ name: ACTOR, state: "running", template: "t" });
-    await h.driver.lifecycle.pause("session", SESSION, {
+    await h.driver.lifecycle.suspend("session", SESSION, {
       proceed: async () => true,
       stillIdle: async () => false,
     });
@@ -944,9 +899,6 @@ describe("the lifecycle a composition's own sweep calls", () => {
       },
       stillIdle: async () => true,
     };
-    expect(await h.driver.lifecycle.pause("session", SESSION, guard)).toBe(
-      "skipped",
-    );
     expect(await h.driver.lifecycle.suspend("session", SESSION, guard)).toBe(
       "skipped",
     );
@@ -955,16 +907,18 @@ describe("the lifecycle a composition's own sweep calls", () => {
 
   it("suspends only when its guard proceeds", async () => {
     const h = harness();
-    h.substrate.put({ name: ACTOR, state: "paused", template: "t" });
+    h.substrate.put({ name: ACTOR, state: "running", template: "t" });
     expect(
       await h.driver.lifecycle.suspend("session", SESSION, {
         proceed: async () => false,
+        stillIdle: async () => true,
       }),
     ).toBe("skipped");
-    expect(h.substrate.actors.get(ACTOR)?.state).toBe("paused");
+    expect(h.substrate.actors.get(ACTOR)?.state).toBe("running");
     expect(
       await h.driver.lifecycle.suspend("session", SESSION, {
-        proceed: async (actor) => actor.state === "paused",
+        proceed: async (actor) => actor.state === "running",
+        stillIdle: async () => true,
       }),
     ).toBe("done");
     expect(h.substrate.actors.get(ACTOR)?.state).toBe("suspended");
@@ -1001,7 +955,7 @@ describe("the lifecycle a composition's own sweep calls", () => {
     });
     h.substrate.put({
       name: "sbx-ses-000000000005",
-      state: "paused",
+      state: "suspending",
       template: current,
     });
     // Mid-transition: nothing to keep up this pass.

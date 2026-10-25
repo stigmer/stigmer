@@ -16,24 +16,16 @@
  * CA, server name or client certificate given for an http:// router, where
  * it would do nothing.
  *
- * The idle windows default to a pause after 5 idle minutes and a suspend
- * to storage at 5.5, chosen from measurements on a local Agent Substrate
- * cluster (kind, Substrate v0.3.0, 2026-10-03), timed from the server
- * accepting a message to the runner starting on it: a wake from storage
- * took 1.73 s at the 95th percentile and never more than 1.76 s, while a
- * sandbox paused for 1 to 25 minutes woke in 3.79 s at the 95th percentile
- * and once in 12 s, its paused state's restore growing with the pause. So
- * a sandbox stays paused only briefly before it is suspended, and the
- * sweep runs every 30 s, because a suspend lands on the pass after the
- * pause and the interval is what bounds how long a sandbox stays paused.
- * Substrate 0.5 keeps no memory across either (template.ts), so both
- * wakes are now a fresh start over the workspace; the windows stay, a
- * pause still sparing the upload of a sandbox that is soon used again.
- * Boot refuses windows that would keep a sandbox paused for longer than
- * MAX_IN_PLACE_PAUSE_SECONDS, while its workspace lives on one node only
- * (limits.ts).
+ * A sandbox sleeps once, after 5 idle minutes: Substrate suspends it on
+ * its node and copies its workspace to storage in the background
+ * (gateway.ts), so one window does what a pause and a later suspend did
+ * before Substrate 0.6. The sweep runs every 30 s, which bounds how late
+ * past its window a sandbox sleeps.
+ *
+ * Settings that Substrate 0.6 left with nothing to do are refused at boot
+ * with where their job went (RETIRED_SETTINGS): a setting that silently
+ * did nothing would leave an operator believing it in force.
  */
-import { MAX_IN_PLACE_PAUSE_SECONDS } from "./limits.js";
 
 /** Whether every actor may reach any HTTPS host through the egress gateway. */
 export type SubstrateHttpsEgress = "all" | "none";
@@ -80,19 +72,10 @@ export interface SubstrateDriverSettings {
   readonly routerClientCertFile: string;
   /** The atespace this server's actors and templates live in; the server owns it. */
   readonly atespace: string;
-  /**
-   * The principal of Substrate's node agent (atelet), granted `viewer` on
-   * the atespace so it can read each actor's egress policy for the actor's
-   * DNS, which Substrate 0.5's authorization model does not let it do
-   * (gateway.ts). A principal id, with or without `user:`.
-   */
-  readonly nodeAgentPrincipal: string;
   /** The base object-storage prefix the template's snapshots are written under. */
   readonly storageLocation: string;
   /** The labels of the WorkerPool the actors run on. */
   readonly workerSelector: Readonly<Record<string, string>>;
-  /** The gVisor sandbox configuration name. */
-  readonly sandboxConfigName: string;
   readonly httpsEgress: SubstrateHttpsEgress;
   readonly extraHttpEgress: readonly SubstrateHttpDestination[];
   /**
@@ -102,16 +85,39 @@ export interface SubstrateDriverSettings {
    * `host,host`, from EGRESS_HTTPS_PLATFORM; unused under `unrestricted`.
    */
   readonly platformHttpsHosts: readonly string[];
-  readonly pauseAfterSeconds: number;
+  /** How long a session's sandbox stays idle before it is suspended. */
   readonly suspendAfterSeconds: number;
   readonly sweepIntervalSeconds: number;
 }
 
 const PREFIX = "STIGMER_SANDBOX_SUBSTRATE_";
 
+/** Settings Substrate 0.6 left with nothing to do, each with where its job went (module header). */
+const RETIRED_SETTINGS: ReadonlyMap<string, string> = new Map([
+  [
+    "PAUSE_AFTER_SECONDS",
+    `a sandbox now sleeps once, suspended on its node and copied to storage in the background, after ${PREFIX}SUSPEND_AFTER_SECONDS (300 by default)`,
+  ],
+  [
+    "SANDBOX_CONFIG",
+    "since Substrate 0.6 the WorkerPool's sandboxClasses entry chooses a sandbox's configuration; set it there",
+  ],
+  [
+    "NODE_AGENT_PRINCIPAL",
+    "since Substrate 0.6 the node agent reads each actor's egress policy through a system role of its own, so the server grants it nothing",
+  ],
+]);
+
 export function newSubstrateSettingsFromEnv(
   env: NodeJS.ProcessEnv = process.env,
 ): SubstrateDriverSettings {
+  for (const [name, home] of RETIRED_SETTINGS) {
+    if ((env[PREFIX + name] ?? "").trim() !== "") {
+      throw new Error(
+        `${PREFIX}${name} is retired and nothing reads it: ${home}. Remove it from the environment.`,
+      );
+    }
+  }
   const required = (name: string): string => {
     const value = (env[PREFIX + name] ?? "").trim();
     if (value === "") {
@@ -171,7 +177,7 @@ export function newSubstrateSettingsFromEnv(
     );
   }
 
-  const settings: SubstrateDriverSettings = {
+  return {
     apiEndpoint,
     apiServerName: optional("API_SERVER_NAME", ""),
     apiCaFile: optional("API_CA_FILE", ""),
@@ -181,46 +187,14 @@ export function newSubstrateSettingsFromEnv(
     routerServerName,
     routerClientCertFile,
     atespace: required("ATESPACE"),
-    nodeAgentPrincipal: optional(
-      "NODE_AGENT_PRINCIPAL",
-      "spiffe://cluster.local/ns/ate-system/sa/atelet",
-    ),
     storageLocation: required("STORAGE_LOCATION"),
     workerSelector: parseSelector(required("WORKER_SELECTOR")),
-    sandboxConfigName: optional("SANDBOX_CONFIG", "gvisor-default"),
     httpsEgress,
     extraHttpEgress: parseDestinations(optional("EGRESS_HTTP", "")),
     platformHttpsHosts: parseHosts(optional("EGRESS_HTTPS_PLATFORM", "")),
-    pauseAfterSeconds: seconds("PAUSE_AFTER_SECONDS", 300),
-    suspendAfterSeconds: seconds("SUSPEND_AFTER_SECONDS", 330),
+    suspendAfterSeconds: seconds("SUSPEND_AFTER_SECONDS", 300),
     sweepIntervalSeconds: seconds("SWEEP_INTERVAL_SECONDS", 30),
   };
-  validateWindows(settings);
-  return settings;
-}
-
-/**
- * The windows' two rules: a sandbox pauses before it is suspended, and it
- * stays paused, its workspace on one node only, no longer than
- * MAX_IN_PLACE_PAUSE_SECONDS (limits.ts).
- */
-export function validateWindows(
-  settings: Pick<
-    SubstrateDriverSettings,
-    "pauseAfterSeconds" | "suspendAfterSeconds"
-  >,
-): void {
-  if (settings.pauseAfterSeconds >= settings.suspendAfterSeconds) {
-    throw new Error(
-      `${PREFIX}PAUSE_AFTER_SECONDS (${settings.pauseAfterSeconds}) must be less than ${PREFIX}SUSPEND_AFTER_SECONDS (${settings.suspendAfterSeconds})`,
-    );
-  }
-  const paused = settings.suspendAfterSeconds - settings.pauseAfterSeconds;
-  if (paused > MAX_IN_PLACE_PAUSE_SECONDS) {
-    throw new Error(
-      `the idle windows would keep a sandbox paused for ${paused} s; a paused sandbox's workspace lives on its node only, for at most ${MAX_IN_PLACE_PAUSE_SECONDS} s — bring ${PREFIX}SUSPEND_AFTER_SECONDS within ${MAX_IN_PLACE_PAUSE_SECONDS} s of ${PREFIX}PAUSE_AFTER_SECONDS`,
-    );
-  }
 }
 
 /** `k=v,k2=v2` into labels. */

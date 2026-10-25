@@ -10,17 +10,17 @@
  *     and PERMISSION_DENIED one naming the grant the server needs;
  *   - the atespace is read first and created only when it is missing, so
  *     an atespace granted to the server needs no global owner;
- *   - an actor's state in the driver's words, a pause told apart by the
- *     snapshot at its latest generation (local, no durable copy), a pause
- *     in flight by one not yet captured;
+ *   - an actor's state is Substrate's, whatever snapshot it holds;
+ *   - a suspend asks for Substrate's asynchronous mode, and a delete sends
+ *     the actor's reference alone;
  *   - the atespace's access policy: created with the atespace, holding
- *     `editor` for the server's principal and `viewer` for the node agent;
- *     on an existing atespace, the bindings it lacks added and none
+ *     `editor` for the server's principal and nothing else; on an
+ *     existing atespace, the binding it lacks added and none
  *     removed, at the version read (read again after a lost race), nothing
  *     written when it holds them all; a refused write reported as denied,
  *     never thrown; the principal read from the token's subject;
  *   - the egress policy is read by its singleton name, "default";
- *   - lists follow page tokens, in Substrate 0.5's list options;
+ *   - lists follow page tokens, in Substrate's list options;
  *   - a move replaces the stored actor with only its template changed, and
  *     refuses one that changed since it was read.
  */
@@ -44,6 +44,7 @@ import {
   ActorState,
   ActorTemplateSchema,
   Control,
+  DurabilityMode,
   EgressPolicySchema,
   EgressRuleSchema,
 } from "../gen/ateapipb/ateapi_pb.js";
@@ -115,8 +116,8 @@ const actor = (
       })),
     },
   });
-/** The snapshot a pause leaves: on a node, with no durable copy. */
-const PAUSED_SNAPSHOT = { locality: "node-1", durable: false };
+/** The snapshot an asynchronous suspend leaves: on its node, its upload not yet recorded. */
+const NODE_SNAPSHOT = { locality: "node-1", durable: false };
 /** The snapshot a suspend leaves: in storage. */
 const STORED_SNAPSHOT = { locality: "", durable: true };
 
@@ -200,7 +201,7 @@ describe("error translation", () => {
       resumeActor() {
         throw new ConnectError("actor a crashed", Code.Aborted);
       },
-      pauseActor() {
+      revertActor() {
         throw new ConnectError(
           "no free workers available",
           Code.ResourceExhausted,
@@ -213,7 +214,7 @@ describe("error translation", () => {
     await expect(gateway.resumeActor("a")).rejects.toBeInstanceOf(
       SubstrateAbortedError,
     );
-    await expect(gateway.pauseActor("a")).rejects.toBeInstanceOf(
+    await expect(gateway.revertActor("a")).rejects.toBeInstanceOf(
       SubstrateNoWorkerError,
     );
     await expect(gateway.suspendActor("a")).rejects.toMatchObject({
@@ -275,10 +276,7 @@ describe("the atespace", () => {
 describe("the atespace's access policy", () => {
   const SERVER = "system:serviceaccount:stigmer:stigmer-server";
   const ATELET = "spiffe://cluster.local/ns/ate-system/sa/atelet";
-  const wanted = [
-    { role: "editor", member: `user:${SERVER}` },
-    { role: "viewer", member: `user:${ATELET}` },
-  ];
+  const wanted = [{ role: "editor", member: `user:${SERVER}` }];
 
   function withAccess(impl: Partial<ServiceImpl<typeof Control>>) {
     const transport = createRouterTransport((router) => {
@@ -286,7 +284,6 @@ describe("the atespace's access policy", () => {
     });
     return newSubstrateGatewayOverTransport(transport, "stigmer", {
       principal: () => SERVER,
-      nodeAgentPrincipal: ATELET,
     });
   }
   const missing = () => {
@@ -301,7 +298,7 @@ describe("the atespace's access policy", () => {
       bindings,
     });
 
-  it("is created with a new atespace, holding the server's editor and the node agent's viewer", async () => {
+  it("is created with a new atespace, holding the server's editor and nothing for the node agent", async () => {
     let written: unknown;
     const gateway = withAccess({
       getAtespace: missing,
@@ -319,15 +316,12 @@ describe("the atespace's access policy", () => {
       atespace: { atespace: "", name: "stigmer" },
       accessPolicy: {
         metadata: { name: "default" },
-        bindings: [
-          { role: "editor", members: [`user:${SERVER}`] },
-          { role: "viewer", members: [`user:${ATELET}`] },
-        ],
+        bindings: [{ role: "editor", members: [`user:${SERVER}`] }],
       },
     });
   });
 
-  it("gains only the bindings an existing atespace's policy lacks, keeping every other, at the version read", async () => {
+  it("gains only the binding an existing atespace's policy lacks, keeping every other, at the version read", async () => {
     let written: unknown;
     const gateway = withAccess({
       getAtespace: (request) => ({ metadata: { name: request.atespace?.name ?? "" } }),
@@ -347,12 +341,11 @@ describe("the atespace's access policy", () => {
       bindings: [
         { role: "owner", members: ["user:admin"] },
         { role: "editor", members: ["user:someone-else", `user:${SERVER}`] },
-        { role: "viewer", members: [`user:${ATELET}`] },
       ],
     });
   });
 
-  it("writes nothing when the policy already holds every binding", async () => {
+  it("writes nothing when the policy already holds the binding, and removes none (an upgraded atespace's node-agent viewer stays)", async () => {
     let writes = 0;
     const gateway = withAccess({
       getAtespace: () => ({ metadata: { name: "stigmer" } }),
@@ -425,22 +418,25 @@ describe("the atespace's access policy", () => {
     expect(subjectOfTokenFile(path.join(dir, "absent"))).toBeUndefined();
   });
 
-  it("asks only for the node agent's binding when the server's principal cannot be known", async () => {
+  it("asks for nothing, and reads no policy, when the server's principal cannot be known", async () => {
+    let policyCalls = 0;
     const transport = createRouterTransport((router) => {
       router.service(Control, {
         getAtespace: () => ({ metadata: { name: "stigmer" } }),
-        getAtespaceAccessPolicy: () => stored([]),
-        updateAtespaceAccessPolicy: (request) => request.accessPolicy ?? {},
+        getAtespaceAccessPolicy() {
+          policyCalls += 1;
+          return stored([]);
+        },
       });
     });
     const gateway = newSubstrateGatewayOverTransport(transport, "stigmer", {
       principal: () => undefined,
-      nodeAgentPrincipal: `user:${ATELET}`,
     });
     expect(await gateway.ensureAtespace()).toEqual({
-      policy: "added",
-      grants: [{ role: "viewer", member: `user:${ATELET}` }],
+      policy: "complete",
+      grants: [],
     });
+    expect(policyCalls).toBe(0);
   });
 
   it("falls back to reading a policy someone else created first, and gives up after three lost races", async () => {
@@ -460,10 +456,7 @@ describe("the atespace's access policy", () => {
       getAtespaceAccessPolicy() {
         reads += 1;
         if (reads === 1) throw new ConnectError("absent", Code.NotFound);
-        return stored([
-          { role: "editor", members: [`user:${SERVER}`] },
-          { role: "viewer", members: [`user:${ATELET}`] },
-        ]);
+        return stored([{ role: "editor", members: [`user:${SERVER}`] }]);
       },
       createAtespaceAccessPolicy() {
         throw new ConnectError("dup", Code.AlreadyExists);
@@ -484,39 +477,29 @@ describe("the atespace's access policy", () => {
 });
 
 describe("an actor's state", () => {
-  it("reads Substrate's, with a pause told apart by its latest snapshot", () => {
+  it("reads Substrate's state alone, whichever snapshot the actor holds", () => {
     const stateOfActor = (
       state: ActorState,
       snapshots: { locality: string; durable: boolean }[] = [],
     ) => stateOf(actor("a", state, 1n, snapshots).status);
+    // Suspended with its snapshot on its node, in storage, or both: one state.
     expect(stateOfActor(ActorState.SUSPENDED)).toBe("suspended");
+    expect(stateOfActor(ActorState.SUSPENDED, [NODE_SNAPSHOT])).toBe(
+      "suspended",
+    );
     expect(stateOfActor(ActorState.SUSPENDED, [STORED_SNAPSHOT])).toBe(
       "suspended",
     );
-    expect(stateOfActor(ActorState.SUSPENDED, [PAUSED_SNAPSHOT])).toBe(
-      "paused",
-    );
-    // Only the latest generation counts: paused, then suspended.
     expect(
-      stateOfActor(ActorState.SUSPENDED, [PAUSED_SNAPSHOT, STORED_SNAPSHOT]),
+      stateOfActor(ActorState.SUSPENDED, [STORED_SNAPSHOT, NODE_SNAPSHOT]),
     ).toBe("suspended");
-    expect(
-      stateOfActor(ActorState.SUSPENDED, [STORED_SNAPSHOT, PAUSED_SNAPSHOT]),
-    ).toBe("paused");
-    // A pause in flight: its snapshot is not captured yet.
     expect(
       stateOfActor(ActorState.SUSPENDING, [
         STORED_SNAPSHOT,
         { locality: "", durable: false },
       ]),
-    ).toBe("pausing");
-    expect(stateOfActor(ActorState.SUSPENDING, [STORED_SNAPSHOT])).toBe(
-      "suspending",
-    );
-    // A running actor woken from a pause keeps its local snapshot.
-    expect(stateOfActor(ActorState.RUNNING, [PAUSED_SNAPSHOT])).toBe(
-      "running",
-    );
+    ).toBe("suspending");
+    expect(stateOfActor(ActorState.RUNNING, [NODE_SNAPSHOT])).toBe("running");
     expect(stateOfActor(ActorState.RESUMING)).toBe("resuming");
     expect(stateOfActor(ActorState.CRASHED)).toBe("crashed");
     expect(stateOfActor(ActorState.DELETING)).toBe("deleting");
@@ -576,7 +559,7 @@ describe("lists and moves", () => {
           ? { actors: [actor("a", ActorState.RUNNING)], nextPageToken: "p2" }
           : {
               actors: [
-                actor("b", ActorState.SUSPENDED, 3n, [PAUSED_SNAPSHOT]),
+                actor("b", ActorState.SUSPENDED, 3n, [NODE_SNAPSHOT]),
               ],
               nextPageToken: "",
             };
@@ -585,7 +568,7 @@ describe("lists and moves", () => {
     const actors = await gateway.listActors();
     expect(actors.map((a) => [a.name, a.state, a.template])).toEqual([
       ["a", "running", "stigmer-runner-old"],
-      ["b", "paused", "stigmer-runner-old"],
+      ["b", "suspended", "stigmer-runner-old"],
     ]);
     expect(actors[0]?.updateTime).toEqual(new Date("2026-10-03T11:00:00Z"));
   });
@@ -679,10 +662,15 @@ describe("the calls that succeed", () => {
       ),
       createActorEgressPolicy: record("createActorEgressPolicy", {}),
       resumeActor: record("resumeActor", { resumed: true }),
-      pauseActor: record("pauseActor", {}),
-      suspendActor: record("suspendActor", {}),
+      suspendActor(request) {
+        seen.push(`suspendActor mode=${DurabilityMode[request.options?.mode ?? 0]}`);
+        return {};
+      },
       revertActor: record("revertActor", {}),
-      deleteActor: record("deleteActor", actor("a", ActorState.DELETING)),
+      deleteActor(request) {
+        seen.push(`deleteActor ${request.actor?.name ?? ""}`);
+        return actor("a", ActorState.DELETING);
+      },
       deleteActorTemplate: record(
         "deleteActorTemplate",
         create(ActorTemplateSchema, {}),
@@ -713,7 +701,6 @@ describe("the calls that succeed", () => {
     ).toBe("created");
     await gateway.ensureEgressPolicy("a", []);
     await gateway.resumeActor("a");
-    await gateway.pauseActor("a");
     await gateway.suspendActor("a");
     await gateway.revertActor("a");
     await gateway.deleteActor("a");
@@ -736,10 +723,9 @@ describe("the calls that succeed", () => {
       "createActorTemplate",
       "createActorEgressPolicy",
       "resumeActor",
-      "pauseActor",
-      "suspendActor",
+      "suspendActor mode=ASYNCHRONOUS",
       "revertActor",
-      "deleteActor",
+      "deleteActor a",
       "deleteActorTemplate",
       "listActorTemplates",
       "listActorTemplates",
@@ -809,14 +795,11 @@ describe("the live client", () => {
       routerServerName: "",
       routerClientCertFile: "",
       atespace: "stigmer",
-      nodeAgentPrincipal: "spiffe://cluster.local/ns/ate-system/sa/atelet",
       storageLocation: "gs://b/p",
       workerSelector: { workload: "stigmer" },
-      sandboxConfigName: "gvisor-default",
       httpsEgress: "none",
       extraHttpEgress: [],
       platformHttpsHosts: [],
-      pauseAfterSeconds: 300,
       suspendAfterSeconds: 1800,
       sweepIntervalSeconds: 60,
     });

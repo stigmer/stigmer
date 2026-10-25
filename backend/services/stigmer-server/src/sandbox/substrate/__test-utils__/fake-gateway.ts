@@ -2,9 +2,8 @@
  * An in-memory Substrate behind the SubstrateGateway seam, for the driver's
  * and the sweep's suites: actors and templates with Substrate's state rules,
  * in the driver's words (a created actor is suspended; resume wakes
- * suspended or paused; pause needs running; suspend takes running or
- * paused; a move needs suspended, and Substrate's own also takes a paused
- * one, which the driver never asks; revert takes crashed), every call recorded in order, and a queue of
+ * suspended; suspend takes running; a move needs suspended; revert takes
+ * crashed), every call recorded in order, and a queue of
  * scripted failures per method so a test can make one call answer
  * ABORTED, crash, or run out of workers. An egress policy is created when
  * missing and replaced when its rules differ, as the real gateway does.
@@ -191,22 +190,10 @@ export class FakeSubstrate implements SubstrateGateway {
     if (actor.state === "running") return;
     this.precondition(
       name,
-      actor.state === "suspended" || actor.state === "paused",
+      actor.state === "suspended",
       `resume from ${actor.state}`,
     );
     this.mutate(actor, "running");
-  }
-
-  async pauseActor(name: string): Promise<void> {
-    this.enter("pauseActor", name);
-    const actor = this.need(name);
-    if (actor.state === "paused") return;
-    this.precondition(
-      name,
-      actor.state === "running",
-      `pause from ${actor.state}`,
-    );
-    this.mutate(actor, "paused");
   }
 
   async suspendActor(name: string): Promise<void> {
@@ -215,7 +202,7 @@ export class FakeSubstrate implements SubstrateGateway {
     if (actor.state === "suspended") return;
     this.precondition(
       name,
-      actor.state === "running" || actor.state === "paused",
+      actor.state === "running",
       `suspend from ${actor.state}`,
     );
     this.mutate(actor, "suspended");

@@ -15,12 +15,12 @@
  * snapshot the moment the waiter listens.
  *
  * The template captures volumes only (`preferred_fidelity: VOLUMES`): a
- * pause keeps the workspace on the actor's node, a suspend commits it to
- * storage, and the next wake from either boots the waiter fresh from the
- * image over it. Substrate 0.5 snapshots a pause and a suspend at the one
- * fidelity a template names, and memory would bring a suspended runner
- * back with the secrets it slept with (driver.ts); the golden snapshot is
- * always memory, so a new actor still starts from the waiter's.
+ * suspend keeps the workspace on the actor's node and Substrate copies it
+ * to storage in the background, and the next wake, from the node or from
+ * storage, boots the waiter fresh from the image over it. Memory would
+ * bring a suspended runner back with the secrets it slept with
+ * (driver.ts); the golden snapshot is always memory, so a new actor still
+ * starts from the waiter's.
  *
  * The template is named by its content: `stigmer-runner-<12 hex of the
  * SHA-256 of its encoding>`. Changing the runner image or any setting
@@ -46,6 +46,9 @@
  * Its user is not: Substrate's container carries no user or working
  * directory, so the base image's own USER decides, and the layer's start
  * script refuses one that is not root.
+ *
+ * Nor does it name a sandbox class or configuration: since Substrate 0.6
+ * the WorkerPool its worker selector names chooses both.
  *
  * Its capabilities are added to Substrate's default set, never replaced:
  * the gVisor sandbox class gives root only KILL, NET_BIND_SERVICE and
@@ -77,8 +80,6 @@ import {
 import { delay } from "./delay.js";
 import type { SubstrateGateway } from "./gateway.js";
 
-/** The sandbox class, gVisor: the class Substrate's default SandboxConfig serves. */
-const SANDBOX_CLASS = "gvisor";
 /** The waiter's port: the one Substrate's router reaches without a CONNECT tunnel. */
 const WAITER_PORT = 80;
 /** The workspace mount, the same path every driver gives the runner. */
@@ -103,10 +104,7 @@ const TRUST_VARIABLES = [
   "REQUESTS_CA_BUNDLE",
 ];
 /** The container drivers' limits (agent-sandbox/manifest.ts): 2 CPU, 2 GiB. */
-const LIMITS = [
-  { name: "cpu", quantity: "2" },
-  { name: "memory", quantity: "2Gi" },
-];
+const LIMITS = { cpuMillicores: 2000n, memoryBytes: 2n * 1024n ** 3n };
 /** Every template this driver writes carries this prefix; nothing else may. */
 export const TEMPLATE_NAME_PREFIX = "stigmer-runner-";
 
@@ -205,13 +203,9 @@ export function buildRunnerTemplate(input: RunnerTemplateInput): ActorTemplate {
         },
       },
     ],
-    sandboxConfig: {
-      sandboxClass: SANDBOX_CLASS,
-      configName: settings.sandboxConfigName,
-    },
-    resources: { limits: LIMITS.map((limit) => ({ ...limit })) },
+    resources: { limits: { ...LIMITS } },
     snapshotConfig: {
-      // The workspace only, on a pause and a suspend alike (module header).
+      // The workspace only (module header).
       storageLocation: settings.storageLocation,
       preferredFidelity: SnapshotFidelity.VOLUMES,
       goldenSnapshotConfig: { mode: GoldenSnapshotMode.ENABLED },
@@ -278,7 +272,7 @@ export function newTemplateKeeper(options: {
     } else if (access.policy === "denied" && !deniedLogged) {
       deniedLogged = true;
       logger.warn(
-        "Substrate refused this server writing its atespace's access policy; an owner of the atespace must grant these bindings (the node agent's viewer works around Substrate 0.5's authorization model, which lets atelet read no egress policy, so without it no sandbox resolves a name)",
+        "Substrate refused this server writing its atespace's access policy; an owner of the atespace must grant these bindings",
         { bindings },
       );
     }

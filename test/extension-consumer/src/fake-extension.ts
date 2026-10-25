@@ -121,7 +121,6 @@ import {
   SANDBOX_ENVIRONMENT_ENV,
   sandboxTaskQueue,
   SERVER_RELEASE_ENV,
-  SUBSTRATE_MAX_IN_PLACE_PAUSE_SECONDS,
   TARGET_RESOURCE_KEY,
   TOKEN_TYPE_EXECUTION_SCOPED,
   BOUND_ELSEWHERE_DENY_REASON,
@@ -195,10 +194,10 @@ import type {
   RoutineFireCaller,
   RoutineFireCallerInput,
   SubstrateMaintenance,
-  SubstratePauseGuard,
   SubstrateRunnerMode,
   SubstrateSleepGuard,
   SubstrateSleepOutcome,
+  SubstrateSuspendGuard,
   SecretCodec,
   SecretService,
   ServerExtension,
@@ -898,9 +897,7 @@ const consumerSandboxDriver: SandboxProvisionerFactory = ({
  * the template, sleeps sandboxes through guards it answers from its own
  * records, deletes an orphan only if its guard still finds it unrecorded
  * inside the sandbox's queue, runs the pass's upkeep over its own listing,
- * keeps its windows
- * inside the in-place pause bound, and names a sandbox's queue for a
- * renewed token's push.
+ * and names a sandbox's queue for a renewed token's push.
  */
 const consumerSubstrateDriver: SandboxProvisionerFactory = ({
   config,
@@ -916,21 +913,17 @@ const consumerSubstrateDriver: SandboxProvisionerFactory = ({
   const { lifecycle } = driver;
   void lifecycle.prepare();
   const recordUnchanged = (): Promise<boolean> => Promise.resolve(true);
-  const guard: SubstratePauseGuard = {
-    proceed: (actor) =>
-      Promise.resolve(actor.state === "running" || actor.state === "paused"),
+  const guard: SubstrateSuspendGuard = {
+    proceed: (actor) => Promise.resolve(actor.state === "running"),
     stillIdle: recordUnchanged,
   };
-  const suspendGuard: SubstrateSleepGuard = { proceed: recordUnchanged };
   const sweep = async (sessionId: string): Promise<void> => {
-    const paused: SubstrateSleepOutcome = await lifecycle.pause(
+    const slept: SubstrateSleepOutcome = await lifecycle.suspend(
       "session",
       sessionId,
       guard,
     );
-    if (paused === "done") {
-      await lifecycle.suspend("session", sessionId, suspendGuard);
-    }
+    void slept;
     const upkeep: SubstrateMaintenance = await lifecycle.maintain(
       await lifecycle.list(),
     );
@@ -950,8 +943,6 @@ const consumerSubstrateDriver: SandboxProvisionerFactory = ({
     }
   };
   void sweep;
-  const pauseBound: number = SUBSTRATE_MAX_IN_PLACE_PAUSE_SECONDS;
-  void pauseBound;
   const renewed = (sessionId: string, token: string) =>
     lifecycle.reattach("session", sessionId, {
       taskQueue: sandboxTaskQueue("session", sessionId),

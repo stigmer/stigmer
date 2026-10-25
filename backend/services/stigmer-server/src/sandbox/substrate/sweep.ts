@@ -1,9 +1,9 @@
 /**
- * The open-source idle sweep for the substrate driver: it pauses a
- * session's sandbox after its pause window and suspends it to storage after
- * its suspend window (config.ts: 300 s and 330 s by default, on a pass
- * every 30 s), so an idle session holds a stored workspace instead of a
- * running machine. Open source keeps no record of its sandboxes, so
+ * The open-source idle sweep for the substrate driver: it suspends a
+ * session's sandbox after its idle window (config.ts: 300 s by default, on
+ * a pass every 30 s), which keeps its workspace on its node and copies it
+ * to storage in the background, so an idle session holds a stored
+ * workspace instead of a running machine. Open source keeps no record of its sandboxes, so
  * the sweep keeps none either and reads what the server already has
  * (SessionActivityReader): a session's executions say whether it is busy
  * and when it was last active.
@@ -29,20 +29,19 @@
  * look (SessionActivityReader.recentActivity), which may lag a
  * recovered run but never makes a session look busier or later than it
  * is; the second decision reads the session's every execution, so a lag
- * can only cost an act that the second decision refuses. A pause is
+ * can only cost an act that the second decision refuses. A suspend is
  * followed by one more busy check: every turn's execution is saved
  * before its ensure runs (the create chain persists, starts the
- * workflow, then ensures), so a turn that began while the pause was in
+ * workflow, then ensures), so a turn that began while the suspend was in
  * flight shows as busy here and the sweep wakes the sandbox again at
  * once, a fresh runner that turn's ensure pushes to. A turn on another
  * server replica whose push lands in the moment between this replica's
- * last check and its pause or suspend loses its runner and times out
- * (a pause keeps no runner since Substrate 0.5, template.ts); the user's
- * next message wakes the sandbox again. Every suspend comes from paused,
- * and the check sits right before the call, so the window is that
- * narrow.
+ * last check and its suspend loses its runner and times out (a suspend
+ * keeps no runner, template.ts); the user's next message wakes the
+ * sandbox again. The check sits right before the call, so the window is
+ * that narrow.
  *
- * The pause and the suspend themselves, and every pass's upkeep (egress
+ * The suspend itself, and every pass's upkeep (egress
  * made current, a sleeping sandbox moved to the current template, unused
  * templates retired, a stuck delete repeated), are the driver's lifecycle
  * operations, the same ones a composition with its own sweep calls
@@ -138,8 +137,7 @@ export async function runSweepPass(
 
   const awake = actors.filter(
     (actor) =>
-      actor.name.startsWith(SESSION_ACTOR_PREFIX) &&
-      (actor.state === "running" || actor.state === "paused"),
+      actor.name.startsWith(SESSION_ACTOR_PREFIX) && actor.state === "running",
   );
   const unnamed = awake.filter(
     (actor) => !driver.sessionByActor.has(actor.name),
@@ -236,15 +234,14 @@ function decide(
     busy: activity.busy,
     lastActiveAt: new Date(stamps.length > 0 ? Math.max(...stamps) : now),
     now: new Date(now),
-    pauseAfterMs: driver.settings.pauseAfterSeconds * 1000,
     suspendAfterMs: driver.settings.suspendAfterSeconds * 1000,
   });
 }
 
 /**
  * Acts through the lifecycle, whose guard re-decides inside the actor's
- * queue from fresh reads and, after a pause, thaws the sandbox when a turn
- * has arrived (module header).
+ * queue from fresh reads and, after the suspend, thaws the sandbox when a
+ * turn has arrived (module header).
  */
 async function act(
   sessionId: string,
@@ -257,23 +254,16 @@ async function act(
   const proceed = async (fresh: SubstrateActorSummary): Promise<boolean> =>
     decide(fresh, await sessions.activity(sessionId), driver, now()) ===
     planned;
-  if (planned === "pause") {
-    const outcome = await lifecycle.pause("session", sessionId, {
-      proceed,
-      stillIdle: async () => !(await sessions.activity(sessionId)).busy,
+  const outcome = await lifecycle.suspend("session", sessionId, {
+    proceed,
+    stillIdle: async () => !(await sessions.activity(sessionId)).busy,
+  });
+  if (outcome === "thawed") {
+    logger.info("A turn arrived while its sandbox suspended; resumed it", {
+      actor,
+      sessionId,
     });
-    if (outcome === "thawed") {
-      logger.info("A turn arrived while its sandbox paused; resumed it", {
-        actor,
-        sessionId,
-      });
-    } else if (outcome === "done") {
-      logger.info("Substrate sandbox paused (idle)", { actor, sessionId });
-    }
-    return;
-  }
-  const outcome = await lifecycle.suspend("session", sessionId, { proceed });
-  if (outcome === "done") {
+  } else if (outcome === "done") {
     logger.info("Substrate sandbox suspended (idle)", { actor, sessionId });
   }
 }

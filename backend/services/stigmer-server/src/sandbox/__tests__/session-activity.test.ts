@@ -7,7 +7,7 @@
  *   - the activity clock is the latest creation or completion stamp the
  *     server wrote, never another session's;
  *   - a stamp more than a minute ahead of the server's clock is skipped,
- *     so the idle ladder still pauses the sandbox once the session has
+ *     so the idle ladder still suspends the sandbox once the session has
  *     been idle long enough by the stamps the server trusts; one less than
  *     a minute ahead counts as it is;
  *   - a session with no executions has no clock;
@@ -224,7 +224,7 @@ describe("sessionActivityOf", () => {
 });
 
 describe("a stamp ahead of the server's clock", () => {
-  const PAUSE_AFTER_MS = 5 * 60_000;
+  const SUSPEND_AFTER_MS = 5 * 60_000;
   const created = new Date("2026-10-03T12:00:00Z");
 
   /** The idle ladder's answer for a running sandbox, from the reader at `nowMs`. */
@@ -240,12 +240,11 @@ describe("a stamp ahead of the server's clock", () => {
       busy: activity.busy,
       lastActiveAt: activity.lastActiveAt ?? new Date(0),
       now: new Date(nowMs),
-      pauseAfterMs: PAUSE_AFTER_MS,
-      suspendAfterMs: 30 * 60_000,
+      suspendAfterMs: SUSPEND_AFTER_MS,
     });
   }
 
-  it("is skipped when it is more than the allowance ahead, so the sandbox still pauses on time", async () => {
+  it("is skipped when it is more than the allowance ahead, so the sandbox still sleeps on time", async () => {
     await save(
       execution(
         "aex_1",
@@ -256,8 +255,8 @@ describe("a stamp ahead of the server's clock", () => {
       ),
     );
     const t = created.getTime();
-    expect(await ladderAt(t + PAUSE_AFTER_MS - 1)).toBe("none");
-    expect(await ladderAt(t + PAUSE_AFTER_MS)).toBe("pause");
+    expect(await ladderAt(t + SUSPEND_AFTER_MS - 1)).toBe("none");
+    expect(await ladderAt(t + SUSPEND_AFTER_MS)).toBe("suspend");
   });
 
   it("counts as it is when it is within the allowance, keeping the sandbox awake at most that much longer", async () => {
@@ -275,10 +274,10 @@ describe("a stamp ahead of the server's clock", () => {
       ),
     );
     // Read while the completion is still ahead: it counts (skipping it
-    // would leave the ten-minute-old creation and pause the sandbox).
+    // would leave the ten-minute-old creation and suspend the sandbox).
     expect(await ladderAt(t)).toBe("none");
-    expect(await ladderAt(t + ahead + PAUSE_AFTER_MS - 1)).toBe("none");
-    expect(await ladderAt(t + ahead + PAUSE_AFTER_MS)).toBe("pause");
+    expect(await ladderAt(t + ahead + SUSPEND_AFTER_MS - 1)).toBe("none");
+    expect(await ladderAt(t + ahead + SUSPEND_AFTER_MS)).toBe("suspend");
   });
 });
 
