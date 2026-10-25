@@ -296,7 +296,7 @@ export interface BackgroundReadings {
    * output file").
    */
   polls: number | null;
-  /** Shell calls that begin with `sleep`, wherever they fall. */
+  /** Foreground shell calls that begin with `sleep`, wherever they fall. */
   sleeps: number;
   /** Shell calls that put a command in the background themselves: a lone `&`, or `nohup`. */
   self_backgrounded: number;

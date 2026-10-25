@@ -6,7 +6,9 @@
 // a stop keyed by who stopped it; "worked while running" is the model and
 // tool time inside any command's span; a poll is a call starting inside a
 // command's span that names that command's output file, or a `sleep`
-// there, and a read of the file once the command ended is none; a shell call
+// there, and a read of the file once the command ended is none; a call is
+// never judged against the command it started, though its span opens inside
+// that command's (the live order), and a background start is never a sleep; a shell call
 // inside a span would have paused the turn; a lone `&` or `nohup` is the
 // agent backgrounding a command itself, and `&&` or `2>&1` is not; a
 // foreground timeout is read from the shell's own line; waits and reminders
@@ -113,6 +115,26 @@ describe("backgroundReadings", () => {
       gated_while_running: 1,
       orphans: null,
     });
+  });
+
+  it("never judges a call against the command it started, whose span opens first, nor counts a background start as sleeping", () => {
+    // The registry reports a start inside the starting call, often before
+    // that call's own start is folded: the live order.
+    const calls: CallInit[] = [
+      { name: "execute", args: { command: "sleep 1; echo suite-ok", background: true } },
+      { name: "execute", args: { command: "go run ./cmd/server", background: true } },
+    ];
+    const line = timeline([
+      ["model_round", 0, 10],
+      ["background_command:c0", 10, 50],
+      ["tool:execute", 11, 12],
+      ["background_command:c1", 20, 60],
+      ["tool:execute", 21, 22],
+    ]);
+    const readings = readingsOf(calls, line);
+    expect(readings.polls, "neither start polls").toBe(0);
+    expect(readings.sleeps, "a background start is no sleep").toBe(0);
+    expect(readings.gated_while_running, "the second start began while the first command ran").toBe(1);
   });
 
   it("does not take a read of another command's output file for a poll of the one running", () => {

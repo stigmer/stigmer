@@ -34,6 +34,10 @@
 //   call asks under the default policy (a write is captured for review
 //   instead), and each pause stops every running command; the benchmark
 //   approves everything, so this is the estimate, labelled as one.
+// - A call is never judged against the command it started (its span can
+//   open inside that command's: the registry reports the start inside the
+//   call), and a background start is never the agent sleeping, whatever its
+//   command begins with.
 //
 // Never a guess: with no timeline every runner-clock reading is `null`, and
 // with calls the timeline cannot place (a sub-agent ran) every reading that
@@ -74,6 +78,8 @@ interface Interval {
 }
 
 interface CommandSpan extends Interval {
+  /** The starting call's id, as the runner keys the command. */
+  callId: string;
   /** The command's output file id: its call id, sanitized as the runner names the file. */
   fileId: string;
 }
@@ -105,10 +111,14 @@ export function backgroundReadings(
     gated = 0;
     uses.forEach((use, index) => {
       const start = facts[index]!.start_ms!;
-      const running = timeline.commands.filter((span) => start >= span.start && start < span.end);
+      // A call is never judged against the command it started: the
+      // registry reports a start inside the starting call, often before
+      // that call's own start is folded, so its span begins inside the
+      // command's.
+      const running = timeline.commands.filter((span) => start >= span.start && start < span.end && !startedBy(use, span));
       if (running.length === 0) return;
       if (use.name === SHELL_TOOL) gated! += 1;
-      const sleeping = use.name === SHELL_TOOL && SLEEP.test(commandOf(use));
+      const sleeping = use.name === SHELL_TOOL && use.input["background"] !== true && SLEEP.test(commandOf(use));
       const files = outputFilesNamed(use);
       if (sleeping || running.some((span) => files.has(span.fileId))) polls! += 1;
     });
@@ -119,7 +129,7 @@ export function backgroundReadings(
     endings,
     worked_while_running_ms: timeline === null ? null : round1(overlap(timeline.work, timeline.commands)),
     polls,
-    sleeps: shell.filter((use) => SLEEP.test(commandOf(use))).length,
+    sleeps: shell.filter((use) => use.input["background"] !== true && SLEEP.test(commandOf(use))).length,
     self_backgrounded: shell.filter((use) => LONE_AMPERSAND.test(commandOf(use)) || NOHUP.test(commandOf(use))).length,
     foreground_timeouts: shell.filter((use) => (use.result?.text ?? "").includes(FOREGROUND_TIMEOUT_MARKER)).length,
     waits: timeline === null ? null : timeline.waits.length,
@@ -204,7 +214,8 @@ function readTimeline(line: TimingLine): { commands: CommandSpan[]; waits: Inter
   const work: Interval[] = [];
   for (const segment of line.segments) {
     if (segment.name.startsWith(COMMAND_SEGMENT_PREFIX)) {
-      commands.push({ ...interval(segment), fileId: segment.name.slice(COMMAND_SEGMENT_PREFIX.length).replace(/[^A-Za-z0-9_-]/g, "_") });
+      const callId = segment.name.slice(COMMAND_SEGMENT_PREFIX.length);
+      commands.push({ ...interval(segment), callId, fileId: callId.replace(/[^A-Za-z0-9_-]/g, "_") });
     } else if (segment.name === WAIT_SEGMENT) {
       waits.push(interval(segment));
     } else if (segment.name === MODEL_ROUND_SEGMENT || segment.name.startsWith(TOOL_SEGMENT_PREFIX)) {
@@ -212,6 +223,16 @@ function readTimeline(line: TimingLine): { commands: CommandSpan[]; waits: Inter
     }
   }
   return { commands, waits, work };
+}
+
+/**
+ * Whether `use` is the call that started the command `span` spans: a tool
+ * use's id is its run's id and the call's, `<run>.<call>` (runner
+ * harness/events/ids.ts `toolUseEventId`; a call id too long for an event id
+ * is hashed there, and such a start is not recognised).
+ */
+function startedBy(use: ToolUse, span: CommandSpan): boolean {
+  return use.id.endsWith(`.${span.callId}`);
 }
 
 /** The output-file ids any string argument of the call names. */
