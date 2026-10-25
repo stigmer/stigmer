@@ -169,7 +169,7 @@ export async function runClaudeInvocation(
  * One scenario file's stack: the wire (the mock behind the real proxy), the
  * registry stub and the scripted clock, started once in `beforeAll` and
  * closed in `afterAll`; each scenario then runs one invocation on a fresh
- * session with its own script.
+ * session with its own script, the clock one step on per model call.
  */
 export interface ClaudeScenarioFile {
   readonly config: Config;
@@ -188,7 +188,13 @@ export function claudeScenarioFile(env: HermeticEnvironment, clock: ScriptedCloc
   let wire: ClaudeWire | undefined;
   let registry: ReturnType<typeof stubRegistryFetch> | undefined;
   const invoke = async (record: ExecutionRecord, script: WireScript, options: ClaudeTurnOptions): Promise<ActivityInvocation> => {
-    wire!.script(script);
+    // The clock moves one step per model call, as native's scripted model
+    // moves it, so the runtime's time-paced writes (persists, file-change
+    // progress) happen on the same steps every run.
+    wire!.script((conversation) => {
+      clock.tick();
+      return script(conversation);
+    });
     bindHermeticClient(record.client());
     return runClaudeInvocation(config, wire!.proxy, record, options);
   };

@@ -65,7 +65,7 @@ import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/stre
 import { checkMainToolListResolution, claudeToolsOf } from "../../shared/tool-lists.js";
 import { getClaudeInvocationDir, getClaudeTranscriptDir } from "../../shared/workspace/platform-dir.js";
 import { engineEnvironment } from "./engine-env.js";
-import { CLAUDE_ENGINE_TOOL_COVERS, engineOptions, offeredBuiltins, userMessageOf } from "./engine-options.js";
+import { CLAUDE_ENGINE_TOOL_COVERS, engineOptions, engineTools, offeredBuiltins, userMessageOf } from "./engine-options.js";
 import { engineSessionIdOf, runMessageIdOf, sentMessageIdOf } from "./engine-session-id.js";
 import { FileTranscripts } from "./file-store.js";
 import { ClaudeGate, canUseToolOf, gateFactsOf, preToolUseHooks } from "./gate.js";
@@ -219,7 +219,7 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
     (line) => console.warn(`[claude-turn] ${line}`),
   );
   let halted = false;
-  const offered = new Set([...builtins, ...bridge.offered, ...(shell ? [HOST_SHELL_TOOL.aliasedName] : [])]);
+  const offered = new Set([...engineTools(builtins, bridge.offered.size > 0), ...bridge.offered, ...(shell ? [HOST_SHELL_TOOL.aliasedName] : [])]);
   const isCapturable = (path: string): Promise<boolean> => (workspace.gitWorkspace ? isPathCapturable(workspace.primaryDir, path.replace(/^\/+/, "")) : Promise.resolve(false));
   const gate = new ClaudeGate(gateFactsOf(input, offered, bridge.serverOf, buildMcpApprovalDefault(bridge.listing, input.mcp.leases), isCapturable), () => halted);
   sink.setupTiming.mark("build_gate");

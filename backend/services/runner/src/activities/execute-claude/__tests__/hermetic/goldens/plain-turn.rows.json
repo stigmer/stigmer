@@ -3,7 +3,7 @@
     {
       "type": "MESSAGE_AI",
       "content": "Hello from the hermetic Claude agent.",
-      "timestamp": "2026-01-01T00:00:00.000Z"
+      "timestamp": "2026-01-01T00:00:01.000Z"
     }
   ]
 }

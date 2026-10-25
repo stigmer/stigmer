@@ -1,0 +1,31 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "toolu_shell_no",
+          "name": "Bash",
+          "args": {
+            "command": "echo ran > ran.txt",
+            "description": "Clean up"
+          },
+          "status": "TOOL_CALL_FAILED",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "completedAt": "2026-01-01T00:00:01.000Z",
+          "error": "This call needs a person's approval, which this engine does not ask for yet; it was not run.",
+          "argsPreview": "{\"command\":\"echo ran > ran.txt\",\"description\":\"Clean up\"}",
+          "toolKind": "TOOL_KIND_SHELL",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+          "policyEngineVersion": "hooks-3"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "I could not run that.",
+      "timestamp": "2026-01-01T00:00:02.000Z"
+    }
+  ]
+}

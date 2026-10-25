@@ -209,14 +209,19 @@ function stringOf(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
-/** A tool result's content as the row carries it: its text, an image or document named. */
+/**
+ * A tool result's content as the row carries it: its text, the tools a tool
+ * search loaded by name, any other block (an image, a document) by its kind.
+ */
 export function resultText(content: unknown): string {
   if (typeof content === "string") return content;
   if (!Array.isArray(content)) return "";
   return content
     .map((block: unknown) => {
-      const b = block as { type?: unknown; text?: unknown };
-      return b.type === "text" && typeof b.text === "string" ? b.text : `[${String(b.type)}]`;
+      const b = block as { type?: unknown; text?: unknown; tool_name?: unknown };
+      if (b.type === "text" && typeof b.text === "string") return b.text;
+      if (b.type === "tool_reference" && typeof b.tool_name === "string") return b.tool_name;
+      return `[${String(b.type)}]`;
     })
     .join("\n");
 }

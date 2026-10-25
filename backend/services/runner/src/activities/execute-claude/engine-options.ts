@@ -18,8 +18,8 @@
  *
  * The tools are an explicit set ({@link offeredBuiltins}): the file tools,
  * `Bash` (served by the host, `host-shell.ts`, through `toolAliases`), the
- * to-do list and `ToolSearch` (behind which the engine defers MCP tools and
- * the to-do list). Never a tool that starts a process as the engine's child
+ * to-do list and `ToolSearch`, behind which the engine defers every MCP
+ * tool and some of its own built-ins ({@link engineTools}). Never a tool that starts a process as the engine's child
  * (`PowerShell`, `Monitor`, `LSP`), fetches from the engine's own process
  * (`WebFetch`, `WebSearch`), or reaches past the turn (sessions, schedules,
  * teams, plan mode, questions to the person). Plan mode offers the read
@@ -42,20 +42,36 @@ import type { ToolScope } from "../../shared/tool-lists.js";
 import type { EffectiveThinkingMode } from "../../shared/thinking-mode.js";
 import { HOST_SHELL_TOOL } from "./host-shell.js";
 
-/** The engine's built-ins this harness may offer, in the order the engine lists them, each with the Claude tool a list names it by. */
-const OFFERABLE: readonly { readonly name: string; readonly listedAs: ClaudeTool | null; readonly writes: boolean }[] = [
-  { name: "Read", listedAs: "Read", writes: false },
-  { name: "Write", listedAs: "Write", writes: true },
-  { name: "Edit", listedAs: "Edit", writes: true },
-  { name: "NotebookEdit", listedAs: "NotebookEdit", writes: true },
-  { name: "Glob", listedAs: "Glob", writes: false },
-  { name: "Grep", listedAs: "Grep", writes: false },
-  { name: HOST_SHELL_TOOL.engineName, listedAs: "Bash", writes: true },
-  { name: "TodoWrite", listedAs: "TodoWrite", writes: false },
+/**
+ * The engine's built-ins this harness may offer, in the order the engine
+ * lists them, each with the Claude tool a list names it by, and whether the
+ * engine defers it behind its tool search (measured on SDK 0.3.310: the
+ * first request lists these by name only, `__tests__/hermetic/isolation.test.ts`).
+ */
+const OFFERABLE: readonly { readonly name: string; readonly listedAs: ClaudeTool | null; readonly writes: boolean; readonly deferred: boolean }[] = [
+  { name: "Read", listedAs: "Read", writes: false, deferred: false },
+  { name: "Write", listedAs: "Write", writes: true, deferred: false },
+  { name: "Edit", listedAs: "Edit", writes: true, deferred: false },
+  { name: "NotebookEdit", listedAs: "NotebookEdit", writes: true, deferred: true },
+  { name: "Glob", listedAs: "Glob", writes: false, deferred: false },
+  { name: "Grep", listedAs: "Grep", writes: false, deferred: false },
+  { name: HOST_SHELL_TOOL.engineName, listedAs: "Bash", writes: true, deferred: false },
+  { name: "TodoWrite", listedAs: "TodoWrite", writes: false, deferred: true },
 ];
 
 /** The engine's tool search: offered whenever a tool the engine defers is, since a deferred tool is reachable only through it. */
 export const TOOL_SEARCH = "ToolSearch";
+
+/**
+ * The engine's tools for a turn: the built-ins offered, and its tool search
+ * when any of them, or any MCP tool, is one the engine defers. The one list
+ * both the engine (`tools`) and the gate's closed world read, so a tool the
+ * engine is given is never one the gate calls unoffered.
+ */
+export function engineTools(builtins: readonly string[], anyMcpTool: boolean): string[] {
+  const deferred = anyMcpTool || OFFERABLE.some((tool) => tool.deferred && builtins.includes(tool.name));
+  return deferred ? [...builtins, TOOL_SEARCH] : [...builtins];
+}
 
 /** The engine's built-in names, each mapped to the Claude tool it is (for a tool list's resolution). */
 export const CLAUDE_ENGINE_TOOL_COVERS: ReadonlyMap<string, readonly ClaudeTool[]> = new Map(
@@ -93,8 +109,7 @@ export interface EngineOptionsInputs {
 
 /** The engine's options for one invocation (the header). */
 export function engineOptions(inputs: EngineOptionsInputs): Options {
-  const tools = [...inputs.builtins];
-  if (inputs.anyMcpTool || tools.includes("TodoWrite")) tools.push(TOOL_SEARCH);
+  const tools = engineTools(inputs.builtins, inputs.anyMcpTool);
   const shell = tools.includes(HOST_SHELL_TOOL.engineName);
   return {
     cwd: inputs.cwd,
