@@ -45,6 +45,14 @@ export const FIXTURE_MODEL = "composer-2.5";
 /** The pinned model of every native (deep-agent) hermetic run. */
 export const FIXTURE_NATIVE_MODEL = "claude-haiku-4.5";
 
+/**
+ * The pinned model of every Claude hermetic run, and the provider's id the
+ * engine is sent for it. The registry has no Claude rows of its own yet, so
+ * this fixture row is the only price a Claude turn reads in a test.
+ */
+export const FIXTURE_CLAUDE_MODEL = "claude-sonnet-4.6";
+export const FIXTURE_CLAUDE_API_MODEL = "claude-sonnet-4-6";
+
 export const REGISTRY_DOCUMENT = {
   models: [
     {
@@ -83,6 +91,22 @@ export const REGISTRY_DOCUMENT = {
         outputPricePerMillion: 5.0,
         cacheWritePricePerMillion: 1.25,
         cacheReadPricePerMillion: 0.1,
+      },
+    },
+    {
+      id: FIXTURE_CLAUDE_MODEL,
+      apiModelId: FIXTURE_CLAUDE_API_MODEL,
+      displayName: "Claude Sonnet 4.6 (hermetic fixture)",
+      provider: "anthropic",
+      harness: "claude",
+      costTier: "standard",
+      featured: false,
+      capabilities: { vision: true },
+      pricing: {
+        inputPricePerMillion: 3.0,
+        outputPricePerMillion: 15.0,
+        cacheWritePricePerMillion: 3.75,
+        cacheReadPricePerMillion: 0.3,
       },
     },
   ],
