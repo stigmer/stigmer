@@ -1,6 +1,8 @@
 import { Composition, Still, getStaticFiles, staticFile } from "remotion";
 import { FPS, HEIGHT, WIDTH } from "../films/intro/manifest";
 import { IntroFilm } from "./films/intro/IntroFilm";
+import { JOB_FILM, JOB_FILM_SQUARE, JobFilm, JobFilmSquare } from "./films/job/JobFilm";
+import { DURATION_IN_FRAMES as JOB_FILM_FRAMES, FPS as JOB_FILM_FPS } from "./films/job/storyboard";
 import { THUMB_HEIGHT, THUMB_WIDTH, Thumbnail } from "./films/intro/Thumbnail";
 import type { NarrationManifest } from "./films/intro/durations";
 import { totalDuration } from "./films/intro/durations";
@@ -75,6 +77,23 @@ export const Root = () => (
           },
         };
       }}
+    />
+    {/* The job film, silent, in a landscape and a square cut (see films/job/JobFilm.tsx). */}
+    <Composition
+      id="JobFilm"
+      component={JobFilm}
+      width={JOB_FILM.width}
+      height={JOB_FILM.height}
+      fps={JOB_FILM_FPS}
+      durationInFrames={JOB_FILM_FRAMES}
+    />
+    <Composition
+      id="JobFilmSquare"
+      component={JobFilmSquare}
+      width={JOB_FILM_SQUARE.width}
+      height={JOB_FILM_SQUARE.height}
+      fps={JOB_FILM_FPS}
+      durationInFrames={JOB_FILM_FRAMES}
     />
     {/* The film's YouTube thumbnail (see Thumbnail.tsx for the doctrine). */}
     <Still

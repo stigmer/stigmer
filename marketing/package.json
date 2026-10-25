@@ -8,6 +8,8 @@
     "studio": "remotion studio src/index.ts",
     "render": "remotion render src/index.ts IntroToStigmer out/intro-to-stigmer.mp4",
     "render:thumbnail": "remotion still src/index.ts Thumbnail out/thumbnail.png",
+    "render:job": "remotion render src/index.ts JobFilm out/job-film.mp4 --muted",
+    "render:job-square": "remotion render src/index.ts JobFilmSquare out/job-film-square.mp4 --muted",
     "narrate": "node scripts/narrate.mjs",
     "presenter": "node scripts/presenter.mjs",
     "music": "node scripts/music.mjs",
@@ -23,14 +25,17 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@remotion/cli": "4.0.448",
+    "@remotion/google-fonts": "4.0.448",
     "@stigmer/client": "*",
     "@stigmer/react-sdk": "*",
+    "lucide-react": "^0.577.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "remotion": "4.0.448",
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@types/node": "^20.19.37",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4",
