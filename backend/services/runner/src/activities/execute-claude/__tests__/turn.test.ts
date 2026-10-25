@@ -190,6 +190,7 @@ describe("runClaudeTurn", () => {
   it("refuses what it cannot run yet, each with the sentence that says how", async () => {
     const refusals: [Parameters<typeof turnInputFixture>[0], RegExp][] = [
       [{ skills: { root: [{ name: "s", description: "d", path: "/s" }], bySubAgent: new Map() } }, /has skills/],
+      [{ skills: { root: [], bySubAgent: new Map([["helper", [{ name: "s", description: "d", path: "/s" }]]]) } }, /has skills/],
       [{ subagents: [{ name: "helper" } as unknown as TurnSubagent] }, /sub-agents/],
       [{ model: { requested: FIXTURE_CLAUDE_MODEL, serviceTier: ServiceTier.FAST, thinkingMode: ThinkingMode.DISABLED } }, /fast tier/],
       [{ model: { requested: "fixture-model", serviceTier: ServiceTier.STANDARD, thinkingMode: ThinkingMode.DISABLED } }, /Claude models only/],
