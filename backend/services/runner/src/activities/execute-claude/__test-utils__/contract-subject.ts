@@ -49,13 +49,16 @@
  *                       conversation shows the engine read it: as a user
  *                       message, or riding the result of the call it was
  *                       read with.
- *  - `limit`, `cancelled`, `cut`, `open(…, subagent)` and `compact` are
- *    refused at `arrange` as test bugs: the runtime arms that need them are
- *    declared off for this subject, each with its reason in the kit file.
- *
- * The engine compacts its conversation on its own when a model call's usage
- * says the window is nearly full; its summary request is answered out of
- * band with {@link COMPACTION_SUMMARY} and counted, never taken for a step.
+ *  - `compact`        → a neutral step whose usage says the window is nearly
+ *                       full: the engine compacts its own conversation
+ *                       before its next call. Its summary request is
+ *                       answered out of band with {@link COMPACTION_SUMMARY}
+ *                       and counted, never taken for a step; a step before a
+ *                       compaction the engine already did is done, since
+ *                       the conversation that held it is now the summary.
+ *  - `limit`, `cancelled`, `cut` and `open(…, subagent)` are refused at
+ *    `arrange` as test bugs: the runtime arms that need them are declared
+ *    off for this subject, each with its reason in the kit file.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -102,6 +105,9 @@ const COMPACTION_PROMPT_MARK = "Your task is to create a detailed summary of the
 /** What the model answers a compaction with; it must never reach the person as the agent's words. */
 const COMPACTION_SUMMARY = "The kit's conversation so far, summarized for the engine.";
 
+/** A model call's input that leaves the engine's window nearly full, so it compacts before its next call. */
+const WINDOW_NEARLY_FULL_TOKENS = 195_000;
+
 /** How long a `hang` holds its model call: far past any arm; the turn's stop ends it. */
 const HANG_HOLD_MS = 3_600_000;
 
@@ -125,6 +131,8 @@ interface ArrangedTurn {
   readonly steps: TurnScenario;
   readonly view: EngineView;
   usageFolded: boolean;
+  /** The engine's compaction count when the turn was arranged; the plan's compactions are the ones after it. */
+  readonly compactedAtArrange: number;
 }
 
 /** Where a proposal's executions are counted. */
@@ -217,7 +225,7 @@ class ClaudeSubject implements ClaudeContractSubject {
     for (const step of turn) this.refuseUnproducible(step);
     mkdirSync(this.workspaceDirOf(view.sessionId), { recursive: true });
     for (const step of turn) this.seedFor(step, view);
-    this.arranged.set(view.executionId, { steps: turn, view, usageFolded: false });
+    this.arranged.set(view.executionId, { steps: turn, view, usageFolded: false, compactedAtArrange: this.compacted.get(view.executionId) ?? 0 });
     this.executionsBySession.set(view.sessionId, view.executionId);
   }
 
@@ -272,8 +280,8 @@ class ClaudeSubject implements ClaudeContractSubject {
       case "limit":
       case "cancelled":
       case "cut":
-      case "compact":
         throw new Error(`${this.name}: ${step.kind}() is not producible by this subject (its runtime arm is declared off); test bug`);
+      case "compact":
       case "say":
       case "read":
       case "usage":
@@ -348,6 +356,11 @@ class ClaudeSubject implements ClaudeContractSubject {
     const spoken = spokenThisTurn(conversation);
     const firstCall = !plan.usageFolded;
     const workspaceDir = this.workspaceDirOf(plan.view.sessionId);
+    // The plan's compactions the engine has done; one the engine does on its
+    // own (a step's usage filled the window) moves no step.
+    const planned = plan.steps.filter((step) => step.kind === "compact").length;
+    const compacted = Math.min(planned, (this.compacted.get(executionId) ?? 0) - plan.compactedAtArrange);
+    let compactsSeen = 0;
 
     let text: string | undefined;
     const usage: WireUsage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
@@ -357,6 +370,16 @@ class ClaudeSubject implements ClaudeContractSubject {
     };
 
     for (const [index, step] of plan.steps.entries()) {
+      if (step.kind === "compact") {
+        compactsSeen += 1;
+        if (compactsSeen <= compacted) continue;
+        // A step the model makes with the window nearly full: the engine
+        // compacts before its next call.
+        usage.input += WINDOW_NEARLY_FULL_TOKENS;
+        return answer([this.neutralCall()]);
+      }
+      // A step before a compaction the engine already did is done: the conversation that held it is now the summary.
+      if (compactsSeen < compacted) continue;
       switch (step.kind) {
         case "say":
           if (spoken.has(step.text)) break;
@@ -397,7 +420,6 @@ class ClaudeSubject implements ClaudeContractSubject {
         case "limit":
         case "cancelled":
         case "cut":
-        case "compact":
           throw new Error(`${this.name}: ${step.kind}() reached the model (arrange should have refused it)`);
         default: {
           const exhaustive: never = step;

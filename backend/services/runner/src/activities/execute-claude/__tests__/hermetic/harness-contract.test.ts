@@ -23,8 +23,7 @@
  *  - a cut vendor connection: every model call is its own request through
  *    the runner's proxy, so no connection outlives a call;
  *  - a working sub-agent: this harness refuses sub-agents until they are
- *    passed to the engine;
- *  - compaction: the wire mock cannot yet drive the engine's own compaction.
+ *    passed to the engine.
  */
 
 import { afterAll, beforeAll, describe, vi } from "vitest";
@@ -70,7 +69,6 @@ describe("ExecuteClaude hermetic — the harness contract kit against the real a
     engineCancel: false,
     streamCut: false,
     subagentOperation: false,
-    compaction: false,
     knownGaps: {
       "approval-round-trip": GATE_ISSUE,
       deny: GATE_ISSUE,
