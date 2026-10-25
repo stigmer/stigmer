@@ -38,14 +38,31 @@ const SECRET = "hermetic-mcp-login-5f2b9c";
 const GOLDEN = "./goldens/mcp-servers.status.json";
 const OBJECT = { type: "object" as const, properties: { q: { type: "string" } } };
 
-/** What every process on the machine was started with, as `ps` shows anyone. */
-function commandLines(): string[] {
-  return execFileSync("ps", ["-axww", "-o", "command="], { encoding: "utf8" }).split("\n");
+/**
+ * What every process the host started (here, the test process the loopback
+ * host runs in) was started with, as `ps` shows any user on the machine.
+ */
+function hostDescendantCommandLines(): string[] {
+  const rows = execFileSync("ps", ["-axww", "-o", "pid=,ppid=,command="], { encoding: "utf8" })
+    .split("\n")
+    .map((line) => /^\s*(\d+)\s+(\d+)\s(.*)$/.exec(line))
+    .flatMap((match) => (match === null ? [] : [{ pid: Number(match[1]), ppid: Number(match[2]), command: match[3]! }]));
+  const descendants = new Set([process.pid]);
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const row of rows) {
+      if (descendants.has(row.ppid) && !descendants.has(row.pid)) {
+        descendants.add(row.pid);
+        grew = true;
+      }
+    }
+  }
+  return rows.filter((row) => row.pid !== process.pid && descendants.has(row.pid)).map((row) => row.command);
 }
 
 const seenWhileWorking: string[][] = [];
 const docs = new HttpMcpServer([{ name: "lookup", description: "Look a thing up.", inputSchema: OBJECT }], async () => {
-  seenWhileWorking.push(commandLines());
+  seenWhileWorking.push(hostDescendantCommandLines());
   return "Found it.";
 });
 const memory = new HttpMcpServer([{ name: "remember", description: "Remember a fact.", inputSchema: OBJECT }], async () => "Remembered.");
