@@ -56,7 +56,7 @@ const SLOW_SUITE_CALLS: CallInit[] = [
       backgroundStatus("c0", { phase: "ended", ending: "exited", exitCode: 0, output: "ok  \texample.com/orders-sync/integration\t60.8s" }),
     ],
   },
-  { name: "read_file", args: { file_path: OUTPUT_FILE } },
+  { name: "read_file", args: { file_path: OUTPUT_FILE, limit: 50 } },
   { name: "execute", args: { command: "sleep 5" } },
   { name: "edit_file", args: { file_path: "/duration/duration.go" } },
   { name: "read_file", args: { file_path: OUTPUT_FILE } },

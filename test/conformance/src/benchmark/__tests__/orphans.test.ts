@@ -65,6 +65,11 @@ describe("descendantsOf", () => {
   it("is the root and everything below it", () => {
     expect([...descendantsOf(TABLE, 600)].sort()).toEqual([600, 610, 620]);
   });
+
+  it("walks a row that is its own parent once (the kernel's pid 0 on Linux)", () => {
+    const table = parseProcessTable("    0     0     0\n    1     0     1\n    2     1     1\n");
+    expect([...descendantsOf(table, 0)].sort()).toEqual([0, 1, 2]);
+  });
 });
 
 describe("leftovers", () => {

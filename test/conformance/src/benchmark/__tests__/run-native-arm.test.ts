@@ -12,7 +12,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ConformanceClients } from "../../harness/clients";
 import { PARITY_MODEL, type CellPlan } from "../cells";
-import { summarize, type BenchmarkReport } from "../report";
+import { summarize, type BackgroundReadings, type BenchmarkReport } from "../report";
 import { renderSummary, runBenchmark, type BenchmarkStack, type RunOptions } from "../run";
 import { makeSample } from "./sample-fixture";
 
@@ -143,6 +143,36 @@ describe("renderSummary's native arm", () => {
     expect(lines).toContain(
       "* openai:gpt-5.5 has no priced catalog row: its cost is the runner's default rate, not a price; price it from the samples' tokens at the provider's rate.",
     );
+  });
+
+  it("adds the background table, headed by the arm, over the samples that ran, and none when no sample carries readings", () => {
+    expect(renderSummary(report("catalog")), "no readings, no table").not.toContain("Background commands");
+    const readings = (starts: number, polls: number, orphans: number): BackgroundReadings => ({
+      starts,
+      endings: { exited: starts, timed_out: 0, stopped_by_agent: 0, stopped_by_person: 0, stopped_by_approval: 0, stopped_by_turn: 0, failed_to_start: 0, running: 0 },
+      worked_while_running_ms: starts > 0 ? 12_000 : 0,
+      polls,
+      sleeps: 0,
+      self_backgrounded: starts > 0 ? 0 : 1,
+      foreground_timeouts: 0,
+      waits: starts,
+      wait_ms: 0,
+      reminders: starts,
+      gated_while_running: 0,
+      orphans,
+    });
+    const off = report("catalog");
+    off.methodology.shell_background = "off";
+    off.comparisons[0]!.native = summarize(
+      "deep-agent",
+      makeSample(),
+      [makeSample({ background: readings(1, 0, 0), task_done: true }), makeSample({ background: readings(0, 1, 1), task_done: false }), makeSample({ background: null, outcome: "failed" })],
+      null,
+    );
+    const lines = renderSummary(off).split("\n");
+    expect(lines).toContain("Background commands (off), over the samples that ran:");
+    expect(lines).toContain("| report-parity-simple | deep-agent | 1/2 | 1 | 1 (max 1) | 12000 | 1 | 1 | 1 | 0 | 0 | 1 | 1/2 |");
+    expect(lines.filter((line) => line.startsWith("| report-parity-medium | deep-agent")), "a cell without readings has its main row alone").toHaveLength(1);
   });
 
   it("marks nothing on a catalog-priced arm", () => {
