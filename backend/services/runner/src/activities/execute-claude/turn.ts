@@ -397,7 +397,13 @@ async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: 
       sink.recordActivity(detail ?? message.type);
 
       if (message.type === "system") {
-        if (message.subtype === "init") console.log(`[claude-turn] execution=${input.executionId} engine init: tools=${message.tools.join(",")} mcp=${message.mcp_servers.map((s) => `${s.name}:${s.status}`).join(",")}`);
+        if (message.subtype === "init") {
+          const named = (names: readonly string[] | undefined): string => (names ?? []).join(",");
+          console.log(
+            `[claude-turn] execution=${input.executionId} engine init: tools=${named(message.tools)} mcp=${named(message.mcp_servers.map((s) => `${s.name}:${s.status}`))}` +
+              ` agents=${named(message.agents)} plugins=${named(message.plugins.map((p) => p.name))} skills=${named(message.skills)}`,
+          );
+        }
         if (message.subtype === "mirror_error") {
           mirrorError ??= message.error;
           console.error(`[claude-turn] execution=${input.executionId} the session store lost a batch: ${message.error}`);

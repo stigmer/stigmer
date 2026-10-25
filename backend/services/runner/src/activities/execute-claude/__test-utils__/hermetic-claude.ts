@@ -35,14 +35,18 @@ import { _resetPricingCache } from "../../../shared/model-pricing-data.js";
 import { getClaudeEngineDir } from "../../../shared/workspace/platform-dir.js";
 import {
   ExecutionRecord,
+  bindHermeticClient,
   runActivityHermetically,
   type ActivityInvocation,
   type HermeticEnvironment,
   type InvocationControls,
+  type ScriptedClock,
 } from "../../../__test-utils__/hermetic-activity.js";
 import { DEFAULT_RECORD_IDS, executionRecordFixture, type ExecutionRecordOptions } from "../../../__test-utils__/execution-record-fixture.js";
 import { FIXTURE_CLAUDE_MODEL } from "../../../__test-utils__/model-registry-fixture.js";
 import type { AgentProxy } from "../../../agent-proxy/server.js";
+import { stubRegistryFetch } from "../../../__test-utils__/model-registry-fixture.js";
+import { anthropicText, startClaudeWire, type ClaudeWire, type WireScript } from "./claude-wire.js";
 
 const SESSION_ID = "ses_claude_0001";
 
@@ -159,4 +163,58 @@ export async function runClaudeInvocation(
     taskQueue: config.taskQueue,
     ...(options.onControls !== undefined ? { onControls: options.onControls } : {}),
   });
+}
+
+/**
+ * One scenario file's stack: the wire (the mock behind the real proxy), the
+ * registry stub and the scripted clock, started once in `beforeAll` and
+ * closed in `afterAll`; each scenario then runs one invocation on a fresh
+ * session with its own script.
+ */
+export interface ClaudeScenarioFile {
+  readonly config: Config;
+  readonly wire: () => ClaudeWire;
+  readonly registryUrls: () => readonly string[];
+  start(): Promise<void>;
+  stop(): Promise<void>;
+  /** A fresh session (`resetClaudeScenarioState`), `script` answering, `record` bound, then one invocation. */
+  run(record: ExecutionRecord, script: WireScript, options?: ClaudeTurnOptions): Promise<ActivityInvocation>;
+  /** The session's next invocation, its saved conversation kept. */
+  resume(record: ExecutionRecord, script: WireScript, options?: ClaudeTurnOptions): Promise<ActivityInvocation>;
+}
+
+export function claudeScenarioFile(env: HermeticEnvironment, clock: ScriptedClock, overrides: Partial<Config> = {}): ClaudeScenarioFile {
+  const config = hermeticClaudeConfig(env, overrides);
+  let wire: ClaudeWire | undefined;
+  let registry: ReturnType<typeof stubRegistryFetch> | undefined;
+  const invoke = async (record: ExecutionRecord, script: WireScript, options: ClaudeTurnOptions): Promise<ActivityInvocation> => {
+    wire!.script(script);
+    bindHermeticClient(record.client());
+    return runClaudeInvocation(config, wire!.proxy, record, options);
+  };
+  return {
+    config,
+    wire: () => wire!,
+    registryUrls: () => registry?.urls ?? [],
+    async start() {
+      registry = stubRegistryFetch();
+      wire = await startClaudeWire(config, () => anthropicText(""));
+      clock.install();
+    },
+    async stop() {
+      clock.uninstall();
+      registry?.restore();
+      await wire?.close();
+      env.dispose();
+    },
+    async run(record, script, options = {}) {
+      clock.reset();
+      resetClaudeScenarioState(env);
+      wire!.conversations.length = 0;
+      return invoke(record, script, options);
+    },
+    async resume(record, script, options = {}) {
+      return invoke(record, script, options);
+    },
+  };
 }
