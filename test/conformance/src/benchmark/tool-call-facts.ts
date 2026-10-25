@@ -28,11 +28,18 @@
 //   is kept with the record of the work and read by people, and a call's
 //   target (a path, a pattern, the head of a command) is what a reader needs
 //   to tell a re-read from a new read.
+// - A shell call that asked to run its command in the background says so
+//   (`background`), because its result is the command's start, not its
+//   output: the native shell tool's `background: true` argument (runner
+//   middleware/shell.ts `BACKGROUND_ARG`, since #2562).
 import type { ToolUse, Turn } from "@stigmer/session-log";
 import type { TimingLine, TodoCounts, ToolCallFact, ToolCallOutcome } from "./report";
 
 /** The longest command head a fact keeps: enough to tell `go test ./...` from `ls -la`. */
 export const COMMAND_TARGET_CHARS = 80;
+
+/** The native engine's shell tool, the one call that can run in the background. */
+const SHELL_TOOL = "execute";
 
 const MODEL_ROUND_SEGMENT = "model_round";
 const TOOL_SEGMENT_PREFIX = "tool:";
@@ -65,6 +72,7 @@ export function toolCallFacts(turn: Turn | undefined, turnPhases: TimingLine | n
       ...(typeof limit === "number" ? { limit } : {}),
       status: use.state,
       outcome: outcomeOf(use),
+      ...(use.name === SHELL_TOOL && args["background"] === true ? { background: true as const } : {}),
     };
   });
 }

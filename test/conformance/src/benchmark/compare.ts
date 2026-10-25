@@ -2,18 +2,26 @@
 // arm holds the bar a reference arm sets (`npm run benchmark:compare`, a thin
 // script over this module). Domain: conformance benchmark (the readout).
 //
-// An arm is a harness on one model at one endpoint: native on the report's
-// `models.parity_native` at its `models.native_endpoint`, or Cursor on
-// `models.parity_cursor`. One run measures one native model (cells.ts), so a
-// native arm on another model is another report, and the comparison is
-// across reports. Reports are compared only when they measure the same
-// thing on the same ground: one `git.main_sha`, the same `methodology.reps`,
-// `methodology.quality_reps` and thinking mode, one `host`, and timestamps
-// within COMPARABLE_WINDOW_MS of each other. Anything else is refused by
-// naming the field, because a gap between arms taken on different commits,
-// machines or days measures those differences too. Reports of one arm pool:
-// a scenario measured in more than one is read from the latest (a re-run
-// replaces), and so is the arm's quality target.
+// An arm is a harness on one model at one endpoint, on one version of the
+// code: native on the report's `models.parity_native` at its
+// `models.native_endpoint`, or Cursor on `models.parity_cursor`, each on the
+// report's `git.code_sha` (the server and runner it booted; the script's
+// `--stack`). One run measures one native model on one version of the code
+// (cells.ts, run.ts), so another model or another version is another report,
+// and the comparison is across reports. Reports are compared only when one
+// instrument measured them on the same ground: one clean `git.head_sha` (the
+// tree the script ran from, whose clients and readers did the measuring),
+// the same `methodology.reps`, `methodology.quality_reps` and thinking mode,
+// one `host`, and timestamps within COMPARABLE_WINDOW_MS of each other.
+// Anything else is refused by naming the field, because a gap between arms
+// taken by different instruments, on different machines or days measures
+// those differences too; a `-dirty` instrument is refused by name, because no
+// commit names what measured. Reports of one arm pool: a scenario measured in
+// more than one is read from the latest (a re-run replaces), and so is the
+// arm's quality target. Two versions of the code are two arms, never one.
+//
+// Each report's runner marker counts (`runner_log`, per run, every cell and
+// the quality arm together) are printed beside the arms, and never gated.
 //
 // The bar is fixed before any number is read, and is three clauses per arm
 // against the reference:
@@ -38,6 +46,7 @@
 //
 // Pure: reports in, a comparison out; the script reads the files and prints.
 import { PARITY_MODEL } from "./cells";
+import { renderRunnerLog } from "./log-markers";
 import type {
   BenchmarkComparison,
   BenchmarkHarness,
@@ -45,6 +54,7 @@ import type {
   BenchmarkSample,
   BenchmarkStat,
   RefusalReason,
+  RunnerLogMarkers,
   ToolCallFact,
 } from "./report";
 
@@ -109,11 +119,20 @@ export interface ArmReading {
   cells: CellReading[];
 }
 
+/** One report's runner marker counts, with the arms it measured: printed, never gated. */
+export interface RunnerLogReading {
+  path: string;
+  arms: string[];
+  markers: RunnerLogMarkers;
+}
+
 export interface ReportComparison {
   reference: string;
   /** Every arm the reports carry, the reference included. */
   arms: string[];
   readings: ArmReading[];
+  /** Per report, in time order. */
+  runnerLogs: RunnerLogReading[];
 }
 
 /** One arm's data, pooled over its reports. */
@@ -135,11 +154,18 @@ interface QualityCase {
   passK: boolean;
 }
 
-/** `native/<model>@<endpoint>` or `cursor/<model>`. */
+/** `native/<model>@<endpoint>#<code>` or `cursor/<model>#<code>`, the code as the first ten characters of `git.code_sha`. */
 export function armLabel(report: BenchmarkReport, harness: BenchmarkHarness): string {
+  const code = `#${shortSha(report.git.code_sha)}`;
   return harness === "deep-agent"
-    ? `native/${report.models.parity_native}@${report.models.native_endpoint}`
-    : `cursor/${report.models.parity_cursor}`;
+    ? `native/${report.models.parity_native}@${report.models.native_endpoint}${code}`
+    : `cursor/${report.models.parity_cursor}${code}`;
+}
+
+/** A SHA's first ten characters, keeping a `-dirty` mark. */
+function shortSha(sha: string): string {
+  const dirty = sha.endsWith("-dirty");
+  return `${sha.replace(/-dirty$/, "").slice(0, 10)}${dirty ? "-dirty" : ""}`;
 }
 
 /**
@@ -148,9 +174,16 @@ export function armLabel(report: BenchmarkReport, harness: BenchmarkHarness): st
  */
 export function assertComparable(reports: readonly ComparedReport[]): void {
   if (reports.length === 0) throw new Error("no reports to compare");
+  for (const { path, report } of reports) {
+    if (report.git.head_sha.endsWith("-dirty")) {
+      throw new Error(
+        `report was measured by an instrument with uncommitted changes (git.head_sha ${report.git.head_sha}): ${path}; commit the instrument and measure again`,
+      );
+    }
+  }
   const first = reports[0]!;
   const fields: [string, (report: BenchmarkReport) => string | number][] = [
-    ["git.main_sha", (report) => report.git.main_sha],
+    ["git.head_sha", (report) => report.git.head_sha],
     ["methodology.reps", (report) => report.methodology.reps],
     ["methodology.quality_reps", (report) => report.methodology.quality_reps],
     ["methodology.thinking_mode", (report) => report.methodology.thinking_mode ?? "default"],
@@ -179,8 +212,9 @@ export function assertComparable(reports: readonly ComparedReport[]): void {
 }
 
 /**
- * Reads every arm against `reference` (an arm label, or `<harness>/<model>`
- * when one arm matches; default native on PARITY_MODEL["deep-agent"]).
+ * Reads every arm against `reference` (an arm label, or a prefix of one that
+ * ends where the label's endpoint or code begins or inside its code, when one
+ * arm matches; default native on PARITY_MODEL["deep-agent"]).
  */
 export function compareReports(reports: readonly ComparedReport[], reference?: string): ReportComparison {
   assertComparable(reports);
@@ -191,12 +225,27 @@ export function compareReports(reports: readonly ComparedReport[], reference?: s
   const readings = labels
     .filter((label) => label !== referenceLabel)
     .map((label) => readArm(arms.get(label)!, referenceArm));
-  return { reference: referenceLabel, arms: labels, readings };
+  return { reference: referenceLabel, arms: labels, readings, runnerLogs: runnerLogsOf(reports) };
+}
+
+function runnerLogsOf(reports: readonly ComparedReport[]): RunnerLogReading[] {
+  return [...reports]
+    .sort((a, b) => Date.parse(a.report.timestamp) - Date.parse(b.report.timestamp))
+    .map(({ path, report }) => ({
+      path,
+      arms: (["deep-agent", "cursor"] as const)
+        .filter((harness) => report.comparisons.some((comparison) => sideOf(comparison, harness) !== undefined) || qualityCases(report, harness) !== null)
+        .map((harness) => armLabel(report, harness)),
+      markers: report.runner_log,
+    }));
 }
 
 function resolveReference(labels: readonly string[], wanted: string): string {
   if (labels.includes(wanted)) return wanted;
-  const matches = labels.filter((label) => label.startsWith(`${wanted}@`));
+  const inCode = wanted.includes("#");
+  const matches = labels.filter(
+    (label) => label.startsWith(`${wanted}@`) || label.startsWith(`${wanted}#`) || (inCode && label.startsWith(wanted)),
+  );
   if (matches.length === 1) return matches[0]!;
   if (matches.length > 1) throw new Error(`reference ${wanted} matches several arms: ${matches.join(", ")}; name one`);
   throw new Error(`no report carries the reference arm ${wanted} (arms: ${labels.join(", ") || "none"})`);
@@ -381,7 +430,7 @@ export function renderComparison(comparison: ReportComparison, reports: readonly
   const lines: string[] = [];
   const first = reports[0]!.report;
   lines.push(
-    `Reference: ${comparison.reference}; main ${first.git.main_sha.slice(0, 10)}, ${first.methodology.reps} reps, ${first.methodology.quality_reps} quality tries, ${first.host.platform} ${first.host.node}`,
+    `Reference: ${comparison.reference}; instrument ${first.git.head_sha.slice(0, 10)}, ${first.methodology.reps} reps, ${first.methodology.quality_reps} quality tries, ${first.host.platform} ${first.host.node}`,
   );
   const costBasis = new Map<string, string>();
   for (const { report } of reports) costBasis.set(armLabel(report, "deep-agent"), report.models.native_cost_basis);
@@ -407,6 +456,10 @@ export function renderComparison(comparison: ReportComparison, reports: readonly
         `| ${cell.scenario} | ${cell.status} | ${failed} | ${wasted} | ${p === undefined ? "n/a" : pair(number(p.arm.end_to_end_ms), number(p.reference.end_to_end_ms))} | ${p === undefined ? "n/a" : pair(number(p.arm.rounds), number(p.reference.rounds))} | ${p === undefined ? "n/a" : pair(cost(reading.arm, p.arm.estimated_cost_micros), cost(comparison.reference, p.reference.estimated_cost_micros))} | ${cell.why} |`,
       );
     }
+  }
+  lines.push("", "## Runner log, per run (printed, never gated)", "");
+  for (const reading of comparison.runnerLogs) {
+    lines.push(`- ${reading.arms.join(", ") || "no arm"} (${reading.path}): ${renderRunnerLog(reading.markers)}`);
   }
   if ([...costBasis.values()].includes("default-rate")) {
     lines.push("", "* the runner's default rate, not a price: the arm's model has no priced catalog row.");

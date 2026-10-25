@@ -8,8 +8,10 @@
 // rule, the pooling and the bar there. Every report is read through
 // `readBenchmarkReport`, so a report of another schema version is refused by
 // name. `--reference` names an arm as the table prints it
-// (`native/<model>@<endpoint>`, `cursor/<model>`), or `<harness>/<model>`
-// when one arm matches; the default is native on the parity model.
+// (`native/<model>@<endpoint>#<code>`, `cursor/<model>#<code>`), or a prefix
+// of one ending where its endpoint or code begins, or inside its code, when
+// one arm matches (`native/<model>`, `native/<model>@<endpoint>#1a2b`); the
+// default is native on the parity model.
 //
 // Exit 0 when every arm holds the bar, 1 when any misses it or is not
 // measured, 2 when the reports cannot be read or compared together.
