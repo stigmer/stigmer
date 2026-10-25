@@ -145,6 +145,12 @@ describe("file edits", () => {
     expect(await decide(gate, "Write", { file_path: "src/a.ts", content: "x" }, "toolu_relative")).toEqual({ allow: true, source: "file_capture" });
     expect(await decide(gate, "Write", { file_path: `${WORKSPACE}/..notes`, content: "x" }, "toolu_dots_name")).toEqual({ allow: true, source: "file_capture" });
     expect(asked, "only the paths inside the workspace were asked about, in its dialect").toEqual(["/src/a.ts", "/..notes"]);
+    // A secret-like path outside the workspace is never the capture's to review, so it is blocked.
+    expect(await decide(gate, "Write", { file_path: "/etc/app/.env", content: "KEY=1" }, "toolu_outside_secret")).toEqual({
+      allow: false,
+      message: secretBlockMessage("Write", "/etc/app/.env"),
+      source: undefined,
+    });
   });
 
   it("a secret-like path is blocked even when a write lease would clear the category", async () => {
