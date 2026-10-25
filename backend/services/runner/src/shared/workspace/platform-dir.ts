@@ -18,6 +18,12 @@
  *   here). Beside `platform/`, not under it, so the workspace's `.stigmer`
  *   link and route never expose it, and outside the workspace, like every
  *   tree here.
+ * - `claude/` — the Claude engine's own: `transcripts/`, its conversation
+ *   when the runner keeps it on disk (`execute-claude/file-store.ts`), and
+ *   one `turn-<run>-<seq>/` per invocation, the engine's home and
+ *   configuration directory for that invocation alone, removed when it
+ *   ends. Beside `platform/` for the same reason as `offload/`: the agent's
+ *   `.stigmer` link never shows the engine's state.
  *
  * This module replaces the `getPlatformDir` helpers the skill and attachment
  * resolvers each once carried.
@@ -98,6 +104,21 @@ export function offloadDirBeside(platformDir: string): string {
 /** Compute the offload directory for a session. Pure function — does not create the directory or perform I/O. */
 export function getOffloadDir(sessionId: string): string {
   return offloadDirBeside(getPlatformDir(sessionId));
+}
+
+/** The Claude engine's directory of a session (the header). Pure function. */
+export function getClaudeEngineDir(sessionId: string): string {
+  return join(getSessionDir(sessionId), "claude");
+}
+
+/** Where the runner keeps a session's Claude transcripts on disk (the header). Pure function. */
+export function getClaudeTranscriptDir(sessionId: string): string {
+  return join(getClaudeEngineDir(sessionId), "transcripts");
+}
+
+/** The Claude engine's home and configuration directory for one invocation (the header). Pure function. */
+export function getClaudeInvocationDir(sessionId: string, executionId: string, turnSeq: number): string {
+  return join(getClaudeEngineDir(sessionId), `turn-${executionId}-${turnSeq}`);
 }
 
 /**

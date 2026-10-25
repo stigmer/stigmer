@@ -12,7 +12,10 @@
 // decided, so scriptedRequests() is exactly the agent loop's calls; a mock
 // bound to another address answers there, and urlAt() names it as the
 // runner's side does; native compaction's summary call is recognized by the
-// runner's own prompt opening, read from the runner's source.
+// runner's own prompt opening, read from the runner's source; a router
+// answers from the request's content before the queue, an error or a token
+// count as it says, and falls through to the queue when it answers nothing;
+// every captured request keeps the headers it arrived with.
 import { readFileSync } from "node:fs";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -223,6 +226,45 @@ describe("MockLlmProxy request disposition", () => {
       "scripted",
       "unscripted",
     ]);
+  });
+});
+
+describe("MockLlmProxy's router", () => {
+  it("answers from the request's content before the queue, and falls through to it when it answers nothing", async () => {
+    const routed = new MockLlmProxy({
+      route: (request) => {
+        const body = request.body as { messages?: { content?: unknown }[] };
+        const last = body.messages?.at(-1)?.content;
+        if (last === "count") return { json: { input_tokens: 7 } };
+        if (last === "refuse") return { error: { status: 529, body: { type: "error", error: { type: "overloaded_error", message: "busy" } } } };
+        if (last === "hello") return { body: anthropicText(`routed for ${String(request.headers["x-api-key"])}`) };
+        return undefined;
+      },
+    });
+    await routed.start();
+    try {
+      routed.enqueue(anthropicText("queued"));
+      const ask = (content: string, stream = false): Promise<Response> =>
+        fetch(`${routed.url()}${ANTHROPIC_PATH}`, {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-api-key": "the-key" },
+          body: JSON.stringify({ model: "m", stream, messages: [{ role: "user", content }] }),
+        });
+
+      const hello = (await (await ask("hello")).json()) as { content: { text: string }[] };
+      expect(hello.content[0]?.text, "answered from the content, the headers in view").toBe("routed for the-key");
+      expect((await ask("hello", true)).headers.get("content-type"), "streamed when the request streams").toContain("text/event-stream");
+      expect(await (await ask("count")).json()).toEqual({ input_tokens: 7 });
+      expect((await ask("refuse")).status).toBe(529);
+      const fell = (await (await ask("anything else")).json()) as { content: { text: string }[] };
+      expect(fell.content[0]?.text, "nothing routed: the queue answers").toBe("queued");
+
+      expect(routed.requests().map((r) => r.disposition)).toEqual(["routed", "routed", "routed", "routed", "scripted"]);
+      expect(routed.consumed(), "a routed request claims no queued turn").toBe(1);
+      expect(routed.requests().every((r) => r.headers["x-api-key"] === "the-key"), "each capture keeps its headers").toBe(true);
+    } finally {
+      await routed.close();
+    }
   });
 });
 

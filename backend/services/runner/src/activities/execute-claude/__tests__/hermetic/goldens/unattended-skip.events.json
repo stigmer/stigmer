@@ -1,0 +1,36 @@
+[
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_use": {
+      "id": "aex_claude_0001.toolu_shell_skip",
+      "input": {},
+      "name": "Bash"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_result": {
+      "id": "aex_claude_0001.toolu_shell_skip.r",
+      "tool_use_id": "aex_claude_0001.toolu_shell_skip",
+      "content": [
+        {
+          "type": "text",
+          "text": "Tool 'Bash' requires an approval that is not available in this conversation, so it was skipped automatically. Do not retry it or attempt a workaround. Adapt your plan, and explain to the user in plain language what you could not do and what they can do instead — never mention tools, approvals, or platform mechanics."
+        }
+      ],
+      "is_error": true
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_message": {
+      "id": "aex_claude_0001.root.m1",
+      "content": [
+        {
+          "type": "text",
+          "text": "Skipped it."
+        }
+      ]
+    }
+  }
+]

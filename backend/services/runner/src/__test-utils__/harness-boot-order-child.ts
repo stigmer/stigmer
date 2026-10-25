@@ -8,14 +8,16 @@
  * SDK in this process fail.
  *
  * Arms (argv[2]):
- *  - `boot`: host the table and boot it. Success means both harnesses were
+ *  - `boot`: host the table and boot it. Success means every harness was
  *    booted in a real agent host started from this build's entry, which
  *    announced itself, installed the Cursor interceptors, proved the
  *    `node:http2` facade patched (`assertHttp2ConnectPatched`, in the host's
- *    own fresh process), and loaded both engines there; and that this
- *    process, the runner, loaded neither engine's SDK.
+ *    own fresh process), and loaded every engine there; and that this
+ *    process, the runner, loaded no engine's SDK.
  *  - `import-engine`: import `@cursor/sdk` here. Must fail naming it: proves
  *    the refusal is live, so the first arm's silence means something.
+ *  - `import-claude`: the same for `@anthropic-ai/claude-agent-sdk`, the
+ *    engine whose SDK is a dependency the runner never loads.
  *  - `host-http2-first`: the same boot, with a host that imports
  *    `node:http2` before anything else (`import-http2-first.ts`). Must fail
  *    with the facade sentence: proves the Cursor adapter's guard is live in
@@ -35,8 +37,10 @@ const arm = process.argv[2];
 async function main(): Promise<void> {
   if (arm === "import-engine") {
     await import("@cursor/sdk");
+  } else if (arm === "import-claude") {
+    await import("@anthropic-ai/claude-agent-sdk");
   } else if (arm !== "boot" && arm !== "host-http2-first") {
-    throw new Error(`harness-boot-order-child: unknown arm '${String(arm)}' (expected 'boot', 'import-engine' or 'host-http2-first')`);
+    throw new Error(`harness-boot-order-child: unknown arm '${String(arm)}' (expected 'boot', 'import-engine', 'import-claude' or 'host-http2-first')`);
   }
 
   const [{ HARNESS_ADAPTERS }, { adaptersOf, bootHarnesses, shutdownHarnesses }, { hostHarnesses }] = await Promise.all([

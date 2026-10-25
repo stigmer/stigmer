@@ -45,6 +45,14 @@ export const FIXTURE_MODEL = "composer-2.5";
 /** The pinned model of every native (deep-agent) hermetic run. */
 export const FIXTURE_NATIVE_MODEL = "claude-haiku-4.5";
 
+/**
+ * The pinned model of every Claude hermetic run, and the provider's id the
+ * engine is sent for it. The registry has no Claude rows of its own yet, so
+ * this fixture row is the only price a Claude turn reads in a test.
+ */
+export const FIXTURE_CLAUDE_MODEL = "claude-sonnet-4.6";
+export const FIXTURE_CLAUDE_API_MODEL = "claude-sonnet-4-6";
+
 export const REGISTRY_DOCUMENT = {
   models: [
     {
@@ -85,6 +93,22 @@ export const REGISTRY_DOCUMENT = {
         cacheReadPricePerMillion: 0.1,
       },
     },
+    {
+      id: FIXTURE_CLAUDE_MODEL,
+      apiModelId: FIXTURE_CLAUDE_API_MODEL,
+      displayName: "Claude Sonnet 4.6 (hermetic fixture)",
+      provider: "anthropic",
+      harness: "claude",
+      costTier: "standard",
+      featured: false,
+      capabilities: { vision: true },
+      pricing: {
+        inputPricePerMillion: 3.0,
+        outputPricePerMillion: 15.0,
+        cacheWritePricePerMillion: 3.75,
+        cacheReadPricePerMillion: 0.3,
+      },
+    },
   ],
 } as const;
 
@@ -103,6 +127,11 @@ export interface StubRegistryFetchOptions {
    * id it does not know and a cost cap would count invented prices.
    */
   readonly document?: object;
+  /**
+   * Origins of servers the test itself runs (an MCP server on 127.0.0.1),
+   * reached through the pre-stub `fetch`; every other URL is still refused.
+   */
+  readonly localOrigins?: readonly string[];
 }
 
 /**
@@ -159,7 +188,7 @@ export function stubRegistryFetch(options: StubRegistryFetchOptions = {}): { rea
         hermeticUploads.set(path, await bodyBytes(init?.body));
         return new Response(null, { status: 200 });
       }
-      if (options.live) {
+      if (options.live || options.localOrigins?.includes(originOf(url))) {
         return networkFetch(input, init);
       }
       throw new Error(`hermetic run attempted a non-registry network call: ${url}`);

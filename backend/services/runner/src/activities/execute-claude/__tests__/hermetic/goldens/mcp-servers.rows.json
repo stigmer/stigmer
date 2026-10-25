@@ -1,0 +1,56 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "toolu_mcp_load",
+          "name": "ToolSearch",
+          "args": {
+            "query": "select:mcp__docs__lookup,mcp__stigmer-memory__remember",
+            "max_results": 2
+          },
+          "result": "mcp__docs__lookup\nmcp__stigmer-memory__remember",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "completedAt": "2026-01-01T00:00:01.000Z",
+          "argsPreview": "{\"query\":\"select:mcp__docs__lookup,mcp__stigmer-memory__remember\",\"max_results\":2}"
+        },
+        {
+          "id": "toolu_mcp_docs",
+          "name": "mcp__docs__lookup",
+          "args": {
+            "q": "the thing"
+          },
+          "result": "Found it.",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:02.000Z",
+          "completedAt": "2026-01-01T00:00:02.000Z",
+          "mcpServerSlug": "docs",
+          "argsPreview": "{\"q\":\"the thing\"}",
+          "toolKind": "TOOL_KIND_MCP"
+        },
+        {
+          "id": "toolu_mcp_memory",
+          "name": "mcp__stigmer-memory__remember",
+          "args": {
+            "q": "the thing is found"
+          },
+          "result": "Remembered.",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:03.000Z",
+          "completedAt": "2026-01-01T00:00:03.000Z",
+          "mcpServerSlug": "stigmer-memory",
+          "argsPreview": "{\"q\":\"the thing is found\"}",
+          "toolKind": "TOOL_KIND_MCP"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Done.",
+      "timestamp": "2026-01-01T00:00:04.000Z"
+    }
+  ]
+}

@@ -1840,7 +1840,7 @@ The set of file deltas produced by one agent turn, reviewed and reconciled as a 
   type={{
     id: { type: "string", description: "Stable id of this change set, unique per turn." },
     turnId: { type: "string", description: "Id of the turn that produced this change set." },
-    harnessId: { type: "string", description: "Harness that produced the edits: \"cursor\" | \"deep-agent\"." },
+    harnessId: { type: "string", description: "Harness that produced the edits: \"cursor\" | \"deep-agent\" | \"claude\"." },
     baselineSnapshot: { type: "SnapshotRef", description: "Workspace state captured at turn start — the \"before\" the authoritative diff is computed against.", typeDescriptionLink: "#snapshotref" },
     candidateSnapshot: { type: "SnapshotRef", description: "Workspace state captured at the turn boundary — the \"after\".", typeDescriptionLink: "#snapshotref" },
     changes: { type: "CapturedFileChange[]", description: "The per-file deltas in this change set (the rendered review surface).", typeDescriptionLink: "#capturedfilechange" },

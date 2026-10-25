@@ -370,6 +370,25 @@ export function toLangChainImageBlocks(
   return blocks;
 }
 
+/** An Anthropic Messages API content block — only the shapes this module emits. */
+export type AnthropicContentBlock =
+  | { type: "text"; text: string }
+  | { type: "image"; source: { type: "base64"; media_type: VisionMimeType; data: string } };
+
+/**
+ * Anthropic Messages API content blocks for the Claude engine's user message:
+ * the same order as {@link toLangChainImageBlocks}, each image after a one-line
+ * label block naming it, and the caller's text block last. The engine takes
+ * a user message's content as the API's own blocks, raw base64 with the
+ * sniffed media type.
+ */
+export function toAnthropicImageBlocks(images: readonly VisionImage[]): AnthropicContentBlock[] {
+  return images.flatMap((img, i) => [
+    { type: "text" as const, text: `Image ${i + 1}: ${img.filename}` },
+    { type: "image" as const, source: { type: "base64" as const, media_type: img.mimeType, data: img.base64 } },
+  ]);
+}
+
 // ---------------------------------------------------------------------------
 // Shared disclosure wording
 // ---------------------------------------------------------------------------

@@ -1,0 +1,79 @@
+[
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_use": {
+      "id": "aex_claude_0001.toolu_mcp_load",
+      "input": {},
+      "name": "ToolSearch"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_result": {
+      "id": "aex_claude_0001.toolu_mcp_load.r",
+      "tool_use_id": "aex_claude_0001.toolu_mcp_load",
+      "content": [
+        {
+          "type": "text",
+          "text": "mcp__docs__lookup\nmcp__stigmer-memory__remember"
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_mcp_tool_use": {
+      "id": "aex_claude_0001.toolu_mcp_docs",
+      "input": {},
+      "mcp_server_name": "docs",
+      "name": "mcp__docs__lookup"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_mcp_tool_result": {
+      "id": "aex_claude_0001.toolu_mcp_docs.r",
+      "mcp_tool_use_id": "aex_claude_0001.toolu_mcp_docs",
+      "content": [
+        {
+          "type": "text",
+          "text": "Found it."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_mcp_tool_use": {
+      "id": "aex_claude_0001.toolu_mcp_memory",
+      "input": {},
+      "mcp_server_name": "stigmer-memory",
+      "name": "mcp__stigmer-memory__remember"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_mcp_tool_result": {
+      "id": "aex_claude_0001.toolu_mcp_memory.r",
+      "mcp_tool_use_id": "aex_claude_0001.toolu_mcp_memory",
+      "content": [
+        {
+          "type": "text",
+          "text": "Remembered."
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_message": {
+      "id": "aex_claude_0001.root.m1",
+      "content": [
+        {
+          "type": "text",
+          "text": "Done."
+        }
+      ]
+    }
+  }
+]

@@ -31,6 +31,8 @@ const TOOL_NAME_TO_CATEGORY: ReadonlyMap<string, string> = new Map([
   ["str_replace_editor", "write"],
   ["StrReplace", "write"],
   ["EditNotebook", "write"],
+  ["Edit", "write"],
+  ["NotebookEdit", "write"],
 
   // FILE_DELETE.
   ["delete", "delete"],
@@ -46,6 +48,7 @@ const TOOL_NAME_TO_CATEGORY: ReadonlyMap<string, string> = new Map([
   ["run_command", "shell"],
   ["terminal", "shell"],
   ["Shell", "shell"],
+  ["Bash", "shell"],
 ]);
 
 /**

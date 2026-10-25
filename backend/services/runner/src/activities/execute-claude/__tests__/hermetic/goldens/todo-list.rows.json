@@ -1,0 +1,68 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "toolu_todo_load",
+          "name": "ToolSearch",
+          "args": {
+            "query": "select:TodoWrite",
+            "max_results": 1
+          },
+          "result": "TodoWrite",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "completedAt": "2026-01-01T00:00:01.000Z",
+          "argsPreview": "{\"query\":\"select:TodoWrite\",\"max_results\":1}"
+        },
+        {
+          "id": "toolu_todo_1",
+          "name": "TodoWrite",
+          "args": {
+            "todos": [
+              {
+                "content": "Read the fixture",
+                "status": "pending",
+                "activeForm": "Reading the fixture"
+              },
+              {
+                "content": "Summarise it",
+                "status": "in_progress",
+                "activeForm": "Summarising it"
+              }
+            ]
+          },
+          "result": "Todos have been modified successfully. Ensure that you continue to use the todo list to track your progress. Please proceed with the current tasks if applicable",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:02.000Z",
+          "completedAt": "2026-01-01T00:00:02.000Z",
+          "argsPreview": "{\"todos\":[{\"content\":\"Read the fixture\",\"status\":\"pending\",\"activeForm\":\"Reading the fixture\"},{\"content\":\"Summarise it\",\"status\":\"in_progress\",\"activeForm\":\"Summarising it\"}]}",
+          "toolKind": "TOOL_KIND_TODO"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Planned.",
+      "timestamp": "2026-01-01T00:00:03.000Z"
+    }
+  ],
+  "todos": {
+    "todo-0": {
+      "id": "todo-0",
+      "content": "Read the fixture",
+      "status": "TODO_PENDING",
+      "createdAt": "2026-01-01T00:00:02.000Z",
+      "updatedAt": "2026-01-01T00:00:02.000Z"
+    },
+    "todo-1": {
+      "id": "todo-1",
+      "content": "Summarise it",
+      "status": "TODO_IN_PROGRESS",
+      "createdAt": "2026-01-01T00:00:02.000Z",
+      "updatedAt": "2026-01-01T00:00:02.000Z"
+    }
+  }
+}

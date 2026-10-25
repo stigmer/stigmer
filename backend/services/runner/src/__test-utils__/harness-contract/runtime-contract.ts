@@ -174,6 +174,7 @@ export class RuntimeExecutionDriver {
   ) {
     this.record = executionRecordFixture({
       message: RUNTIME_USER_MESSAGE,
+      ...(harness.subject.model !== undefined ? { modelName: harness.subject.model } : {}),
       ...recordOptions,
       ids: {
         org: "kit-org",
@@ -364,28 +365,32 @@ export async function assertCompletedTurn(harness: RuntimeContractHarness, label
  * never asked, and with review on the hermetic environment's artifact
  * storage puts it on apply-then-review capture).
  */
-export async function assertApprovalRoundTrip(harness: RuntimeContractHarness, label = "rt-approval"): Promise<RuntimeArmResult> {
+export async function assertApprovalRoundTrip(harness: RuntimeContractHarness, gap?: string, label = "rt-approval"): Promise<RuntimeArmResult> {
   const { subject } = harness;
   const driver = new RuntimeExecutionDriver(harness, label);
   const id = `${label}-shell`;
   const propose = scenario.propose(id, { kind: "shell", resource: `npm run build # ${label}` });
+  const invocations: ActivityInvocation[] = [];
+  await expectKnownGap(gapFor(gap, refusedInsteadOfAsked(harness, driver, id)), async () => {
+    const first = await driver.turn([propose]);
+    invocations.push(first);
+    expect(slimOf(subject, first).phase, `${subject.name}: a proposal returns WAITING_FOR_APPROVAL`).toBe("RUN_WAITING_FOR_APPROVAL");
+    expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
+    expect(driver.record.waitingToolCalls().map((tc) => tc.id), `${subject.name}: exactly the proposal waits`).toEqual([id]);
+    expect(subject.executionCount(id), `${subject.name}: a proposal never executes in its own turn`).toBe(0);
+    const bindsAfterFirst = driver.record.harnessBinds.length;
 
-  const first = await driver.turn([propose]);
-  expect(slimOf(subject, first).phase, `${subject.name}: a proposal returns WAITING_FOR_APPROVAL`).toBe("RUN_WAITING_FOR_APPROVAL");
-  expect(driver.record.persistedPhases.at(-1)).toBe(RunPhase.RUN_WAITING_FOR_APPROVAL);
-  expect(driver.record.waitingToolCalls().map((tc) => tc.id), `${subject.name}: exactly the proposal waits`).toEqual([id]);
-  expect(subject.executionCount(id), `${subject.name}: a proposal never executes in its own turn`).toBe(0);
-  const bindsAfterFirst = driver.record.harnessBinds.length;
+    expect(driver.decide(ApprovalAction.APPROVE), `${subject.name}: one row to decide`).toBe(1);
 
-  expect(driver.decide(ApprovalAction.APPROVE), `${subject.name}: one row to decide`).toBe(1);
-
-  const second = await driver.turn([propose, scenario.say("Done.")]);
-  expect(slimOf(subject, second).phase, `${subject.name}: after APPROVE the turn completes`).toBe("RUN_COMPLETED");
-  expect(aiMessages(finalRowsOf(harness, driver)).at(-1)).toBe("Done.");
-  expect(subject.executionCount(id), `${subject.name}: APPROVE executes exactly once`).toBe(1);
-  expect(driver.record.waitingToolCalls(), `${subject.name}: nothing waits after the approval`).toHaveLength(0);
-  expect(driver.record.harnessBinds, `${subject.name}: a resumed engine binds nothing new`).toHaveLength(bindsAfterFirst);
-  return { driver, invocations: [first, second], final: finalStatusOf(harness, driver) };
+    const second = await driver.turn([propose, scenario.say("Done.")]);
+    invocations.push(second);
+    expect(slimOf(subject, second).phase, `${subject.name}: after APPROVE the turn completes`).toBe("RUN_COMPLETED");
+    expect(aiMessages(finalRowsOf(harness, driver)).at(-1)).toBe("Done.");
+    expect(subject.executionCount(id), `${subject.name}: APPROVE executes exactly once`).toBe(1);
+    expect(driver.record.waitingToolCalls(), `${subject.name}: nothing waits after the approval`).toHaveLength(0);
+    expect(driver.record.harnessBinds, `${subject.name}: a resumed engine binds nothing new`).toHaveLength(bindsAfterFirst);
+  });
+  return { driver, invocations, final: finalStatusOf(harness, driver) };
 }
 
 // ── Arm: file review — capture, decide, undo by a reconcile turn ────────────
@@ -522,6 +527,7 @@ export async function assertFileReviewOffWriteFlows(harness: RuntimeContractHarn
 export async function assertNonExecutingDecisionSettlesSkipped(
   harness: RuntimeContractHarness,
   denyMessage = "",
+  gap?: string,
   label = denyMessage === "" ? "rt-deny" : "rt-deny-reason",
 ): Promise<RuntimeArmResult> {
   const { subject } = harness;
@@ -530,25 +536,29 @@ export async function assertNonExecutingDecisionSettlesSkipped(
   const propose = scenario.propose(id, { kind: "shell", resource: `rm -rf build # ${label}` });
   const verdict = "deni";
   const action = ApprovalAction.REJECT;
+  const invocations: ActivityInvocation[] = [];
+  await expectKnownGap(gapFor(gap, refusedInsteadOfAsked(harness, driver, id)), async () => {
+    const first = await driver.turn([propose]);
+    invocations.push(first);
+    expect(slimOf(subject, first).phase, `${subject.name}: a proposal returns WAITING_FOR_APPROVAL`).toBe("RUN_WAITING_FOR_APPROVAL");
+    expect(driver.decide(action, denyMessage), `${subject.name}: one row to decide`).toBe(1);
 
-  const first = await driver.turn([propose]);
-  expect(slimOf(subject, first).phase, `${subject.name}: a proposal returns WAITING_FOR_APPROVAL`).toBe("RUN_WAITING_FOR_APPROVAL");
-  expect(driver.decide(action, denyMessage), `${subject.name}: one row to decide`).toBe(1);
+    const second = await driver.turn([propose, scenario.say("Moving on.")]);
+    invocations.push(second);
+    expect(slimOf(subject, second).phase, `${subject.name}: after ${verdict} the run continues to COMPLETED — it does not fail`).toBe("RUN_COMPLETED");
+    expect(aiMessages(finalRowsOf(harness, driver)).at(-1), `${subject.name}: the step after the ${verdict}ed action ran`).toBe("Moving on.");
+    expect(subject.executionCount(id), `${subject.name}: a ${verdict}ed action never executes`).toBe(0);
 
-  const second = await driver.turn([propose, scenario.say("Moving on.")]);
-  expect(slimOf(subject, second).phase, `${subject.name}: after ${verdict} the run continues to COMPLETED — it does not fail`).toBe("RUN_COMPLETED");
-  expect(aiMessages(finalRowsOf(harness, driver)).at(-1), `${subject.name}: the step after the ${verdict}ed action ran`).toBe("Moving on.");
-  expect(subject.executionCount(id), `${subject.name}: a ${verdict}ed action never executes`).toBe(0);
-
-  const final = finalStatusOf(harness, driver);
-  const row = driver.record.rowsOf(final).messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id);
-  expect(row, `${subject.name}: the decided row is carried on the transcript`).toBeDefined();
-  expect(row!.status, `${subject.name}: the runtime settles a ${verdict}ed row SKIPPED`).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
-  expect(row!.approvalAction, `${subject.name}: the decision stays legible on the settled row`).toBe(ApprovalAction.REJECT);
-  expect(row!.error, `${subject.name}: a denied row carries the refusal`).toBe(REJECTED_BY_USER_ERROR);
-  expect(driver.record.waitingToolCalls(), `${subject.name}: nothing waits on a finished execution`).toHaveLength(0);
-  expect(final.error, `${subject.name}: the execution carries no error`).toBe("");
-  return { driver, invocations: [first, second], final };
+    const final = finalStatusOf(harness, driver);
+    const row = driver.record.rowsOf(final).messages.flatMap((m) => m.toolCalls).find((tc) => tc.id === id);
+    expect(row, `${subject.name}: the decided row is carried on the transcript`).toBeDefined();
+    expect(row!.status, `${subject.name}: the runtime settles a ${verdict}ed row SKIPPED`).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(row!.approvalAction, `${subject.name}: the decision stays legible on the settled row`).toBe(ApprovalAction.REJECT);
+    expect(row!.error, `${subject.name}: a denied row carries the refusal`).toBe(REJECTED_BY_USER_ERROR);
+    expect(driver.record.waitingToolCalls(), `${subject.name}: nothing waits on a finished execution`).toHaveLength(0);
+    expect(final.error, `${subject.name}: the execution carries no error`).toBe("");
+  });
+  return { driver, invocations, final: finalStatusOf(harness, driver) };
 }
 
 // ── Arm: the tool-call limit ────────────────────────────────────────────────
@@ -609,26 +619,30 @@ export async function assertToolCallLimitTerminates(harness: RuntimeContractHarn
  * masked one. The planted outputs are the prior turn's own, written onto the
  * record between invocations as the prior turn would have persisted them.
  */
-export async function assertReinvocationCarriesThePersistedStatus(harness: RuntimeContractHarness, label = "rt-seed"): Promise<RuntimeArmResult> {
+export async function assertReinvocationCarriesThePersistedStatus(harness: RuntimeContractHarness, gap?: string, label = "rt-seed"): Promise<RuntimeArmResult> {
   const { subject } = harness;
   const driver = new RuntimeExecutionDriver(harness, label);
   const id = `${label}-shell`;
   const propose = scenario.propose(id, { kind: "shell", resource: `make release # ${label}` });
+  const invocations: ActivityInvocation[] = [];
+  await expectKnownGap(gapFor(gap, refusedInsteadOfAsked(harness, driver, id)), async () => {
+    const first = await driver.turn([scenario.say("Releasing."), propose]);
+    invocations.push(first);
+    expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
+    const planted = plantPriorTurnOutputs(driver.record.status!, label);
+    expect(driver.decide(ApprovalAction.APPROVE)).toBe(1);
 
-  const first = await driver.turn([scenario.say("Releasing."), propose]);
-  expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
-  const planted = plantPriorTurnOutputs(driver.record.status!, label);
-  expect(driver.decide(ApprovalAction.APPROVE)).toBe(1);
-
-  const second = await driver.turn([propose, scenario.say("Done."), scenario.usage({ inputTokens: 100, outputTokens: 10, estimatedCostUsd: 0.0001, model: "fixture-model" })]);
-  expect(slimOf(subject, second).phase, `${subject.name}: the resumed turn completes`).toBe("RUN_COMPLETED");
-  const final = finalStatusOf(harness, driver);
-  const rows = driver.record.rowsOf(final);
-  expect(final.workspaceWriteBacks.map((w) => w.workspaceEntryName), `${subject.name}: the prior turn's write-back rows survive the resume`).toContain(planted.writeBackEntry);
-  expect(final.streamingUsage?.inputTokens, `${subject.name}: a run resuming after an approval starts a fresh count`).toBe(100n);
-  expect(rows.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === id), `${subject.name}: the gated row is seeded once, not duplicated`).toHaveLength(1);
-  expect(aiMessages(rows), `${subject.name}: the resumed turn's rows are its own; the prior turn's text is the log's`).toEqual(["Done."]);
-  return { driver, invocations: [first, second], final };
+    const second = await driver.turn([propose, scenario.say("Done."), scenario.usage({ inputTokens: 100, outputTokens: 10, estimatedCostUsd: 0.0001, model: "fixture-model" })]);
+    invocations.push(second);
+    expect(slimOf(subject, second).phase, `${subject.name}: the resumed turn completes`).toBe("RUN_COMPLETED");
+    const final = finalStatusOf(harness, driver);
+    const rows = driver.record.rowsOf(final);
+    expect(final.workspaceWriteBacks.map((w) => w.workspaceEntryName), `${subject.name}: the prior turn's write-back rows survive the resume`).toContain(planted.writeBackEntry);
+    expect(final.streamingUsage?.inputTokens, `${subject.name}: a run resuming after an approval starts a fresh count`).toBe(100n);
+    expect(rows.messages.flatMap((m) => m.toolCalls).filter((tc) => tc.id === id), `${subject.name}: the gated row is seeded once, not duplicated`).toHaveLength(1);
+    expect(aiMessages(rows), `${subject.name}: the resumed turn's rows are its own; the prior turn's text is the log's`).toEqual(["Done."]);
+  });
+  return { driver, invocations, final: finalStatusOf(harness, driver) };
 }
 
 /** The same record with the same planted outputs but nothing in the log: a first turn carries nothing. */
@@ -1193,6 +1207,27 @@ export const LONG_OPERATION_WINDOWS = 3;
 
 /** The arms of the long turn, by the name a registration's `knownGaps` keys them on. */
 export type LongTurnArm = "silent-operation" | "streamed-output" | "subagent-operation" | "three-compactions";
+
+/**
+ * The arms that drive a person's approval, by the name a registration's
+ * `knownGaps` keys them on: a harness that cannot yet pause at a gated call
+ * marks them by the issue that will make it.
+ */
+export type ApprovalArm = "approval-round-trip" | "deny" | "deny-with-reason" | "reinvocation-carries" | "drain-after-approval";
+
+/**
+ * Today's outcome every approval gap shares: the gated call is refused where
+ * it would wait for a person, it never runs, and nothing waits on the run.
+ */
+function refusedInsteadOfAsked(harness: RuntimeContractHarness, driver: RuntimeExecutionDriver, toolCallId: string): TodayOutcome {
+  return {
+    says: "the gated call is refused where it would wait for a person: it never runs and the turn ends without waiting",
+    holds: () =>
+      harness.subject.executionCount(toolCallId) === 0 &&
+      !driver.record.persistedPhases.includes(RunPhase.RUN_WAITING_FOR_APPROVAL) &&
+      findToolCallRow(driver.record.rows ?? emptyRows(), toolCallId)?.status === ToolCallStatus.TOOL_CALL_FAILED,
+  };
+}
 
 /** The saved agent the subagent arm's agent lists (`types.ts` names it). */
 const KIT_SUBAGENT = savedAgentFixture(KIT_SUBAGENT_SLUG, { description: "Does the contract kit's delegated work.", instructions: KIT_SUBAGENT_INSTRUCTIONS });
@@ -1798,7 +1833,7 @@ export async function assertFinishedEngineSettlesWithoutAModelCall(harness: Runt
  * the asking posture its approval needs, in which a native operation's
  * shell would be gated too.
  */
-export async function assertDrainAfterAnApprovedCallContinues(harness: RuntimeContractHarness, label = "rt-drain-after-approval"): Promise<RuntimeArmResult> {
+export async function assertDrainAfterAnApprovedCallContinues(harness: RuntimeContractHarness, gap?: string, label = "rt-drain-after-approval"): Promise<RuntimeArmResult> {
   const { subject } = harness;
   const controls = longTurnOf(subject);
   const approved = `${label}-shell`;
@@ -1810,26 +1845,31 @@ export async function assertDrainAfterAnApprovedCallContinues(harness: RuntimeCo
     },
   });
   const propose = scenario.propose(approved, { kind: "shell", resource: `npm run build # ${label}` });
+  const invocations: ActivityInvocation[] = [];
+  await expectKnownGap(gapFor(gap, refusedInsteadOfAsked(harness, driver, approved)), async () => {
+    const first = await driver.turn([propose]);
+    invocations.push(first);
+    expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
+    expect(driver.decide(ApprovalAction.APPROVE)).toBe(1);
 
-  const first = await driver.turn([propose]);
-  expect(slimOf(subject, first).phase).toBe("RUN_WAITING_FOR_APPROVAL");
-  expect(driver.decide(ApprovalAction.APPROVE)).toBe(1);
-
-  const second = await driver.turn([propose, scenario.say(NEVER_SEEN)], {
-    onControls: (c) => {
-      drainOnTheApprovedCall = () => {
-        drainOnTheApprovedCall = undefined;
-        c.signalWorkerShutdown();
-      };
-    },
+    const second = await driver.turn([propose, scenario.say(NEVER_SEEN)], {
+      onControls: (c) => {
+        drainOnTheApprovedCall = () => {
+          drainOnTheApprovedCall = undefined;
+          c.signalWorkerShutdown();
+        };
+      },
   });
+  invocations.push(second);
   expect(continuationCauseOf(second.outcome), `${subject.name}: the drained invocation continues`).toBe("drain");
 
   const third = await driver.turn([propose, scenario.say("Built.")]);
+  invocations.push(third);
   expectCompleted(harness, driver, third, "Built.");
   expect(subject.executionCount(approved), `${subject.name}: the approved call ran once`).toBe(1);
   expect(controls.tasksHanded(driver.sessionId, RUNTIME_USER_MESSAGE), `${subject.name}: the engine was handed the task once`).toBe(1);
-  return { driver, invocations: [first, second, third], final: finalStatusOf(harness, driver) };
+  });
+  return { driver, invocations, final: finalStatusOf(harness, driver) };
 }
 
 /**
@@ -1999,12 +2039,12 @@ export interface RuntimeContractOptions {
    */
   readonly streamCut?: boolean;
   /**
-   * The long-turn arms that are a known gap on this subject, each with the
-   * open issue that names it (`<owner>/<repo>#<n>`). The arm passes while the
-   * gap's outcome holds and fails the day it closes: the fix removes the
-   * entry here.
+   * The long-turn and approval arms that are a known gap on this subject,
+   * each with the open issue that names it (`<owner>/<repo>#<n>`). The arm
+   * passes while the gap's outcome holds and fails the day it closes: the
+   * fix removes the entry here.
    */
-  readonly knownGaps?: Partial<Readonly<Record<LongTurnArm, string>>>;
+  readonly knownGaps?: Partial<Readonly<Record<LongTurnArm | ApprovalArm, string>>>;
   /**
    * The rejections this subject's engine leaves orphaned when a turn is
    * stopped in the middle of a step, which the long-turn arms do on purpose
@@ -2074,11 +2114,11 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
     });
     it("awaiting_approval then APPROVE: the WAITING row, the reinvocation by the bound id, one execution, COMPLETED", async () => {
       clock.reset();
-      await assertApprovalRoundTrip(harness);
+      await assertApprovalRoundTrip(harness, options.knownGaps?.["approval-round-trip"]);
     });
     it("a reinvocation carries the status's own outputs and seeds only its asks; a first turn carries nothing", async () => {
       clock.reset();
-      await assertReinvocationCarriesThePersistedStatus(harness);
+      await assertReinvocationCarriesThePersistedStatus(harness, options.knownGaps?.["reinvocation-carries"]);
       clock.reset();
       await assertFirstTurnSeedsNothing(harness);
     });
@@ -2097,7 +2137,7 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
     for (const denyMessage of ["", "use make clean instead"]) {
       it(`awaiting_approval then a deny${denyMessage === "" ? "" : " with a reason"}: the run continues without the tool and the runtime settles the row SKIPPED`, async () => {
         clock.reset();
-        await assertNonExecutingDecisionSettlesSkipped(harness, denyMessage);
+        await assertNonExecutingDecisionSettlesSkipped(harness, denyMessage, options.knownGaps?.[denyMessage === "" ? "deny" : "deny-with-reason"]);
       });
     }
     it("an orchestrator stop settles the transcript with no phase and no row, and throws the stop's CancelledFailure", async () => {
@@ -2228,7 +2268,7 @@ export function describeHarnessRuntimeContract(harness: RuntimeContractHarness, 
       });
       it("a drain after an approved call ran continues with neither the task nor the decision handed again", async () => {
         clock.reset();
-        await withStopOrphans(subject.name, orphans, () => assertDrainAfterAnApprovedCallContinues(harness));
+        await withStopOrphans(subject.name, orphans, () => assertDrainAfterAnApprovedCallContinues(harness, options.knownGaps?.["drain-after-approval"]));
       });
     });
 

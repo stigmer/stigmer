@@ -42,7 +42,8 @@
 #   builder        — compiles the runner and bundles the slim artifact for
 #                    this build's platform (its @cursor/sdk platform package
 #                    is the one npm installed here, so each arch's leg
-#                    builds its own)
+#                    builds its own; the Claude engine npm installs here is
+#                    never staged, scripts/bundle-slim.mjs NEVER_STAGED)
 #   runner-layer   — FROM scratch, /runner only. Published as
 #                    ghcr.io/stigmer/runner-layer, and `base` as
 #                    ghcr.io/stigmer/runner-base (release.sandbox-cloud)
@@ -233,6 +234,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 make g+
 
 COPY scripts/lib/source-map-pragma.mjs /build/scripts/lib/source-map-pragma.mjs
 COPY backend/services/runner/package.json backend/services/runner/package-lock.json backend/services/runner/
+# The tests' shared model fakes, a development dependency the install links
+# (no dependencies of its own; nothing of it reaches the artifact).
+COPY test/support/package.json test/support/
 WORKDIR /build/backend/services/runner
 RUN npm ci --legacy-peer-deps
 

@@ -15,7 +15,10 @@
  * control plane, so it boots first. The native deep-agent adapter boots
  * second; its `boot` registers the deepagents harness profiles and loads
  * LangChain, both after the patch (#1096, 2026-09-13; until then the roots
- * imported the native orchestrator directly beside this table).
+ * imported the native orchestrator directly beside this table). The Claude
+ * adapter boots third; its `boot` loads the Agent SDK when the runner
+ * carries it and records its absence otherwise, so a runner without the
+ * engine still serves the other two.
  *
  * THIS MODULE'S STATIC GRAPH MUST STAY CONNECT- AND SDK-FREE. The roots
  * import it BEFORE they boot the harnesses, and the Cursor adapter's boot is
@@ -25,17 +28,19 @@
  * and `execute-deep-agent/adapter.ts` show the shape; the native adapter's
  * `__tests__/adapter-graph-is-sdk-free.test.ts` walks its static graph off
  * the syntax tree). `__tests__/harness-boot-order.test.ts` boots a fresh
- * process through this module — both rows — and fails if either graph
+ * process through this module — every row — and fails if any graph
  * regresses.
  */
 
 import { createCursorAdapter } from "./activities/execute-cursor/adapter.js";
+import { createClaudeAdapter } from "./activities/execute-claude/adapter.js";
 import { createDeepAgentAdapter } from "./activities/execute-deep-agent/adapter.js";
 import type { HarnessName, HarnessRow } from "./harness/registry.js";
 
 export const HARNESS_ADAPTERS: readonly HarnessRow[] = [
   { harness: "cursor", adapter: createCursorAdapter() },
   { harness: "deep-agent", adapter: createDeepAgentAdapter() },
+  { harness: "claude", adapter: createClaudeAdapter() },
 ];
 
 /**
@@ -45,4 +50,4 @@ export const HARNESS_ADAPTERS: readonly HarnessRow[] = [
  * SDKs) and its approval hook server run there, and the runner's own
  * process loads no engine (`__tests__/harness-boot-order.test.ts`).
  */
-export const HOSTED_HARNESSES: ReadonlySet<HarnessName> = new Set<HarnessName>(["cursor", "deep-agent"]);
+export const HOSTED_HARNESSES: ReadonlySet<HarnessName> = new Set<HarnessName>(["cursor", "deep-agent", "claude"]);

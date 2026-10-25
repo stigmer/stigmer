@@ -164,7 +164,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
 
     it("the approval round trip: the WAITING write is the fake's first full persist", async () => {
       clock.reset();
-      const { driver } = await assertApprovalRoundTrip(harness, "fake-approval");
+      const { driver } = await assertApprovalRoundTrip(harness, undefined, "fake-approval");
       expect(driver.record.persistedPhases).toEqual([
         RunPhase.RUN_WAITING_FOR_APPROVAL,
         RunPhase.RUN_IN_PROGRESS,
@@ -207,7 +207,7 @@ describe("run-turn: the fake adapter through the real runtime", () => {
       // The kit's runtime half now carries the contract for every subject;
       // what is the fake's own here is the persist cadence around it.
       clock.reset();
-      const { driver, final } = await assertNonExecutingDecisionSettlesSkipped(harness, "", "fake-reject");
+      const { driver, final } = await assertNonExecutingDecisionSettlesSkipped(harness, "", undefined, "fake-reject");
       expect(driver.record.persistedPhases).toEqual([
         RunPhase.RUN_WAITING_FOR_APPROVAL,
         RunPhase.RUN_IN_PROGRESS,

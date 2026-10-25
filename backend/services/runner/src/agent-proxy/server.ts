@@ -11,7 +11,13 @@
  *
  *  - Only the current host's token is accepted, in `Authorization: Bearer`
  *    or `x-api-key` (the two places the host's SDKs put a key), compared in
- *    constant time.
+ *    constant time. One exception: on the Anthropic lane a live turn's own
+ *    key stands in for it, as that turn's ({@link AgentProxy.turnCredentialOf}).
+ *    An engine that is its own program (the Claude engine, a process the host
+ *    starts per turn) sends one key and no scope headers, and handing it the
+ *    host's token would give a process the agent's user can read a credential
+ *    that outlives the turn; its turn's key is worth model calls for that one
+ *    execution, and nothing once the turn settles.
  *  - A model call must carry the key of a turn that is live on this runner
  *    (`X-Stigmer-Turn-Key`), and name that turn's own execution
  *    (`X-Stigmer-Execution-Id`). The remote adapter mints a key for each
@@ -23,7 +29,9 @@
  *    execution.
  *  - A checkpoint call must carry a live turn's key and name only that
  *    turn's own thread (the `threadId` its engine checkpoints under), in
- *    its query or, for a write, in every entry of its body.
+ *    its query or, for a write, in every entry of its body. An
+ *    engine-session call (an engine's transcript store) is held to the same
+ *    rule: the thread it names, in its query or its body, is its turn's.
  *  - The model registry is exempt from the live-turn rule: it is the
  *    catalog every caller may read, and the platform's proxy serves it even
  *    to visitors.
@@ -57,13 +65,15 @@ import { TURN_KEY_HEADER } from "../shared/execution-context.js";
 import type { LiveTurnRegistry } from "../agent-host/remote-adapter.js";
 import type { AgentProxyGate } from "../agent-host/supervisor.js";
 import { CursorLane } from "./cursor-lane.js";
-import { LaneRefusal, checkpointUpstream, isModelProviderLane, modelUpstream, registryUpstream } from "./lanes.js";
+import { LaneRefusal, checkpointUpstream, engineSessionUpstream, isModelProviderLane, modelUpstream, registryUpstream } from "./lanes.js";
 import { RequestTooLargeError, bearerOf, readBody, relay, replyError } from "./relay.js";
 import { OTLP_LANE_PREFIX } from "../otel-export.js";
 import { OtlpForward, otlpSignalOf } from "./otlp-forward.js";
 
 const LLM_PREFIX = "/v1/proxy/llm/";
+const ANTHROPIC_LANE = `${LLM_PREFIX}anthropic/`;
 const CHECKPOINT_PREFIX = "/v1/proxy/checkpoints";
+const ENGINE_SESSIONS_PREFIX = "/v1/proxy/engine-sessions";
 const REGISTRY_PATH = "/v1/proxy/model-registry";
 
 /** A turn live at the proxy. */
@@ -146,7 +156,8 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     const url = new URL(req.url ?? "/", "http://agent-proxy");
     const path = url.pathname;
     try {
-      if (!this.authenticated(req)) throw new LaneRefusal(401, "the agent proxy accepts the current agent host's token only");
+      const engineTurn = this.turnCredentialOf(req, path);
+      if (engineTurn === undefined && !this.authenticated(req)) throw new LaneRefusal(401, "the agent proxy accepts the current agent host's token only");
       if (path === REGISTRY_PATH) {
         if (req.method !== "GET") throw new LaneRefusal(405, "the model registry is read with GET");
         await relay(res, registryUpstream(req));
@@ -161,16 +172,22 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
       if (path.startsWith(LLM_PREFIX)) {
         const [lane = "", ...segments] = path.slice(LLM_PREFIX.length).split("/");
         if (!isModelProviderLane(lane)) throw new LaneRefusal(404, `no model lane '${lane}'`);
-        this.requireLiveExecution(req);
+        const turn = engineTurn ?? this.requireLiveExecution(req);
         const body = await readBody(req);
         const rest = `/${segments.join("/")}${url.search}`;
-        await relay(res, await modelUpstream(this.config, lane, rest, req, body));
+        await relay(res, await modelUpstream(this.config, lane, rest, req, body, turn.executionId));
         return;
       }
       if (path === CHECKPOINT_PREFIX || path.startsWith(`${CHECKPOINT_PREFIX}/`)) {
         const body = await readBody(req);
         this.requireLiveThreads(req, url, body, req.method === "PUT" && path === `${CHECKPOINT_PREFIX}/writes`);
         await relay(res, checkpointUpstream(this.config, `${path.slice(CHECKPOINT_PREFIX.length)}${url.search}`, req, body));
+        return;
+      }
+      if (path === ENGINE_SESSIONS_PREFIX || path.startsWith(`${ENGINE_SESSIONS_PREFIX}/`)) {
+        const body = await readBody(req);
+        this.requireLiveThreads(req, url, body, false);
+        await relay(res, engineSessionUpstream(this.config, `${path.slice(ENGINE_SESSIONS_PREFIX.length)}${url.search}`, req, body));
         return;
       }
       throw new LaneRefusal(404, `the agent proxy serves no lane at ${path}`);
@@ -185,7 +202,23 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
   }
 
   private authenticated(req: IncomingMessage): boolean {
-    return this.isHostToken(bearerOf(req.headers.authorization) ?? headerValue(req.headers["x-api-key"]));
+    return this.isHostToken(presentedCredential(req));
+  }
+
+  /**
+   * The live turn whose own key a model call on the Anthropic lane presents
+   * as its credential (the module header), or undefined when it presents
+   * none: every other lane and path keeps the host's token alone. The turn
+   * is the call's scope, so its execution is the turn's, never a header's;
+   * a call that names another execution with the key is refused.
+   */
+  private turnCredentialOf(req: IncomingMessage, path: string): LiveTurn | undefined {
+    if (!path.startsWith(ANTHROPIC_LANE)) return undefined;
+    const turn = this.liveTurnPresenting(presentedCredential(req));
+    if (turn === undefined) return undefined;
+    const named = headerValue(req.headers["x-stigmer-execution-id"]);
+    if (named !== undefined && named !== turn.executionId) throw new LaneRefusal(403, `the turn key is not execution ${named}'s`);
+    return turn;
   }
 
   private isHostToken(presented: string | undefined): boolean {
@@ -200,21 +233,30 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
   private liveTurnOf(req: { readonly headers: IncomingMessage["headers"] }): LiveTurn {
     const presented = headerValue(req.headers[TURN_KEY_HEADER]);
     if (!presented) throw new LaneRefusal(403, "a call must carry its turn's key (X-Stigmer-Turn-Key)");
+    const turn = this.liveTurnPresenting(presented);
+    if (turn === undefined) throw new LaneRefusal(403, "the turn key names no turn running on this runner");
+    return turn;
+  }
+
+  /** The live turn whose key `presented` is, compared in constant time; undefined for none. */
+  private liveTurnPresenting(presented: string | undefined): LiveTurn | undefined {
+    if (!presented) return undefined;
     const candidate = Buffer.from(presented);
     for (const turn of this.live) {
       if (candidate.length === turn.key.length && timingSafeEqual(candidate, turn.key)) return turn;
     }
-    throw new LaneRefusal(403, "the turn key names no turn running on this runner");
+    return undefined;
   }
 
-  private requireLiveExecution(req: { readonly headers: IncomingMessage["headers"] }): void {
+  private requireLiveExecution(req: { readonly headers: IncomingMessage["headers"] }): LiveTurn {
     const turn = this.liveTurnOf(req);
     const executionId = headerValue(req.headers["x-stigmer-execution-id"]);
     if (!executionId) throw new LaneRefusal(403, "a model call must name its execution (X-Stigmer-Execution-Id)");
     if (executionId !== turn.executionId) throw new LaneRefusal(403, `the turn key is not execution ${executionId}'s`);
+    return turn;
   }
 
-  /** Every thread a checkpoint call names must be its turn's own. */
+  /** Every thread a call carrying an engine's conversation (a checkpoint, an engine session) names must be its turn's own. */
   private requireLiveThreads(req: IncomingMessage, url: URL, body: Buffer, isWriteBatch: boolean): void {
     const turn = this.liveTurnOf(req);
     const threads = new Set<string>();
@@ -225,7 +267,7 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     // one for a task whose writes all go to untracked channels, and the
     // platform answers it as a no-op.
     if (threads.size === 0 && isWriteBatch && isEmptyWriteBatch(body)) return;
-    if (threads.size === 0) throw new LaneRefusal(403, "a checkpoint call must name its thread");
+    if (threads.size === 0) throw new LaneRefusal(403, "a call that carries an engine's conversation must name its thread");
     for (const thread of threads) {
       if (thread !== turn.threadId) throw new LaneRefusal(403, `thread ${thread} is not the turn's own`);
     }
@@ -246,7 +288,7 @@ function threadsInBody(body: Buffer): string[] {
   try {
     parsed = JSON.parse(body.toString("utf8"));
   } catch {
-    throw new LaneRefusal(400, "a checkpoint write must be JSON");
+    throw new LaneRefusal(400, "a write that carries an engine's conversation must be JSON");
   }
   const threads: string[] = [];
   const collect = (value: unknown): void => {
@@ -263,4 +305,9 @@ function threadsInBody(body: Buffer): string[] {
 
 function headerValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
+}
+
+/** The credential a request presents: a bearer, else an `x-api-key`. */
+function presentedCredential(req: IncomingMessage): string | undefined {
+  return bearerOf(req.headers.authorization) ?? headerValue(req.headers["x-api-key"]);
 }

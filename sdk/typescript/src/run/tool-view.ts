@@ -181,6 +181,8 @@ const NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map<string, ToolKind>([
   ["str_replace_editor", "file_edit"],
   ["StrReplace", "file_edit"],
   ["EditNotebook", "file_edit"],
+  ["Edit", "file_edit"],
+  ["NotebookEdit", "file_edit"],
 
   ["delete", "file_delete"],
   ["delete_file", "file_delete"],
@@ -194,6 +196,7 @@ const NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map<string, ToolKind>([
   ["run_command", "shell"],
   ["terminal", "shell"],
   ["Shell", "shell"],
+  ["Bash", "shell"],
 
   ["grep", "search"],
   ["glob", "search"],
@@ -219,6 +222,7 @@ const NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map<string, ToolKind>([
 
   ["task", "subagent"],
   ["Task", "subagent"],
+  ["Agent", "subagent"],
 
   ["stop_background_command", "background_stop"],
 ]);

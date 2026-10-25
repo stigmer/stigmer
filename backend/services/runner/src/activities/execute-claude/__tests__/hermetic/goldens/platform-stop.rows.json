@@ -1,0 +1,28 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "toolu_stop_glob",
+          "name": "Glob",
+          "args": {
+            "pattern": "**/*.md"
+          },
+          "result": "No files found",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "completedAt": "2026-01-01T00:00:01.000Z",
+          "argsPreview": "{\"pattern\":\"**/*.md\"}",
+          "toolKind": "TOOL_KIND_SEARCH"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_SYSTEM",
+      "content": "Execution stopped by the platform.",
+      "timestamp": "2026-01-01T00:00:01.000Z"
+    }
+  ]
+}

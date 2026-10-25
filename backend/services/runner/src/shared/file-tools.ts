@@ -11,11 +11,12 @@
  * event, a v3 protocol event, an AI-message tool call read out of graph state at
  * an interrupt, or the Cursor preToolUse hook's captured `tool_input`.
  *
- * Both taxonomies are covered in one place on purpose: the deepagents harness
+ * Every taxonomy is covered in one place on purpose: the deepagents harness
  * names a file write `write_file`/`write`, the Cursor SDK stream names it
- * `edit`/`write`, and the Cursor preToolUse hook names it `Write`/`StrReplace`/
- * `EditNotebook`. The four extractors below span every arg-field name these
- * surfaces use, so a single capture path is correct for all of them.
+ * `edit`/`write`, the Cursor preToolUse hook names it `Write`/`StrReplace`/
+ * `EditNotebook`, and Claude Code `Write`/`Edit`/`NotebookEdit`. The four
+ * extractors below span every arg-field name these surfaces use, so a single
+ * capture path is correct for all of them.
  */
 
 import { createHash } from "node:crypto";
@@ -26,7 +27,8 @@ import { createHash } from "node:crypto";
  * - deepagents (native): `write_file`/`edit_file`/`create_file` (stream) and
  *   `write`/`edit`/`create`/`str_replace_editor` (SDK names);
  * - Cursor: `write`/`edit` (SDK stream, shared with native) and
- *   `Write`/`StrReplace`/`EditNotebook` (preToolUse hook + tool names).
+ *   `Write`/`StrReplace`/`EditNotebook` (preToolUse hook + tool names);
+ * - Claude: `Write` (shared with Cursor's hook), `Edit`, `NotebookEdit`.
  *
  * Delete is intentionally absent: it has no whole-file content or hunk to
  * preview, so it is not "file-modifying" in the diff-capture sense.
@@ -39,6 +41,8 @@ export const FILE_MODIFYING_TOOLS: ReadonlySet<string> = new Set([
   // Cursor taxonomy (PascalCase preToolUse hook + tool names; `write`/`edit`
   // above are shared with the SDK stream).
   "Write", "StrReplace", "EditNotebook",
+  // Claude Code's own names (`Write` above is shared with Cursor's hook).
+  "Edit", "NotebookEdit",
 ]);
 
 /** Whether `toolName` is a file-modifying tool in either harness taxonomy. */
@@ -49,8 +53,9 @@ export function isFileModifyingTool(toolName: string): boolean {
 /**
  * Extract the target file path from a file-modifying tool's arguments. Returns
  * `null` when no recognized path key is present. The key set is the union across
- * both taxonomies: deepagents/Cursor write+edit use `path`/`file_path`; a Cursor
- * notebook edit uses `target_notebook`; the rest are defensive against drift.
+ * every taxonomy: deepagents/Cursor/Claude write+edit use `path`/`file_path`; a
+ * Cursor notebook edit uses `target_notebook`, a Claude one `notebook_path`; the
+ * rest are defensive against drift.
  */
 export function extractFilePath(args: Record<string, unknown>): string | null {
   if (typeof args.path === "string") return args.path;
@@ -59,6 +64,7 @@ export function extractFilePath(args: Record<string, unknown>): string | null {
   if (typeof args.filename === "string") return args.filename;
   if (typeof args.file === "string") return args.file;
   if (typeof args.target_notebook === "string") return args.target_notebook;
+  if (typeof args.notebook_path === "string") return args.notebook_path;
   return null;
 }
 

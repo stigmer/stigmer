@@ -58,6 +58,10 @@ describe("buildShellEnv", () => {
     expect(buildShellEnv({ CURSOR_BACKEND_URL: "https://declared.example" }, {}).CURSOR_BACKEND_URL, "a value the agent declares still reaches it").toBe("https://declared.example");
   });
 
+  it("keeps the version the Claude Agent SDK writes into the host's environment out of the agent's shell", () => {
+    expect(buildShellEnv({}, { PATH: "/bin", CLAUDE_AGENT_SDK_VERSION: "0.3.310" })).toEqual({ PATH: "/bin" });
+  });
+
   it("drops undefined base values", () => {
     const base = { DEFINED: "yes", UNDEFINED: undefined };
     const env = buildShellEnv({}, base as NodeJS.ProcessEnv);

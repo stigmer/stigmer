@@ -42,6 +42,21 @@
       "expected": { "category": "shell" }
     },
     {
+      "name": "builtin-edit-claude-collapses-to-write",
+      "input": { "toolName": "Edit" },
+      "expected": { "category": "write" }
+    },
+    {
+      "name": "builtin-notebook-edit-claude-collapses-to-write",
+      "input": { "toolName": "NotebookEdit" },
+      "expected": { "category": "write" }
+    },
+    {
+      "name": "builtin-shell-claude",
+      "input": { "toolName": "Bash" },
+      "expected": { "category": "shell" }
+    },
+    {
       "name": "builtin-read-is-ungated",
       "input": { "toolName": "read" },
       "expected": null

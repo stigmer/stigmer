@@ -39,8 +39,11 @@ export const SHELL_ENV_DENYLIST: readonly string[] = RUNNER_SECRET_ENV_KEYS;
  * lane (`agent-host/entry.ts`), which the SDK reads per call, so it stays in
  * the host's environment. Commands the Cursor SDK starts itself inherit it
  * from there; the shells and hooks the runner's code starts do not.
+ * `CLAUDE_AGENT_SDK_VERSION` is written into the host's own environment by
+ * the Claude Agent SDK when it is imported (0.3.310), which every runner's
+ * boot does; an engine's library version is no agent's business either.
  */
-const HOST_ONLY_ENV_KEYS: readonly string[] = ["CURSOR_BACKEND_URL"];
+const HOST_ONLY_ENV_KEYS: readonly string[] = ["CURSOR_BACKEND_URL", "CLAUDE_AGENT_SDK_VERSION"];
 
 /** The run values the agent's shell and hooks hold: the agent's own group, as delivered. */
 export function shellRunValues(runValues: Pick<RunValues, "agent">): Record<string, string> {

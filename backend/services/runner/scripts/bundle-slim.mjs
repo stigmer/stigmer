@@ -84,6 +84,9 @@ const pkgsDir = join(runnerRoot, "dist-slim-pkgs");
  * - @cursor/sdk: resolves its per-platform helper binaries (cursorsandbox,
  *   rg) from sibling packages at runtime. (Its SQLite is `node:sqlite` since
  *   1.0.31; the native `sqlite3` module it once pulled in is gone.)
+ * - @anthropic-ai/claude-agent-sdk: the Claude engine, a native executable
+ *   in a per-platform package. External, and never staged
+ *   ({@link NEVER_STAGED}).
  *
  * @temporalio/core-bridge (the other native piece) is NOT listed here: it is
  * aliased to core-bridge-shim.cjs, which dispatches to the per-platform
@@ -92,7 +95,18 @@ const pkgsDir = join(runnerRoot, "dist-slim-pkgs");
  * Temporal's error classes use Symbol.for-based instanceof precisely so
  * multiple copies interoperate.
  */
-const RUNTIME_EXTERNALS = ["@cursor/sdk"];
+const RUNTIME_EXTERNALS = ["@cursor/sdk", "@anthropic-ai/claude-agent-sdk"];
+
+/**
+ * Externals the artifact never carries. Anthropic's engine is not ours to
+ * distribute until its terms are settled for every edition, and every
+ * published runner (the CLI's on-demand install, the desktop app, the
+ * sandbox image) is this artifact, so it stays out of all of them. A runner
+ * built from it boots without the engine and refuses a Claude turn with a
+ * sentence saying so (`activities/execute-claude/adapter.ts`);
+ * `verify-slim-artifact.mjs` fails if one is staged.
+ */
+const NEVER_STAGED = new Set(["@anthropic-ai/claude-agent-sdk"]);
 
 /**
  * Assets that bundled modules read from disk relative to their __dirname.
@@ -546,7 +560,7 @@ function stageSelfContained(platform, isCrossBuild) {
   }
 
   for (const external of RUNTIME_EXTERNALS) {
-    stage(external, null);
+    if (!NEVER_STAGED.has(external)) stage(external, null);
   }
 
   // The native bridge, in the same per-platform package layout npm installs —

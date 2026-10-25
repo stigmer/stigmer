@@ -1,0 +1,14 @@
+[
+  {
+    "run_id": "aex_claude_0001",
+    "agent_message": {
+      "id": "aex_claude_0001.root.m0",
+      "content": [
+        {
+          "type": "text",
+          "text": "Hello from the hermetic Claude agent."
+        }
+      ]
+    }
+  }
+]

@@ -232,9 +232,10 @@ export const ToolCallStatusSchema: GenEnum<ToolCallStatus> = /*@__PURE__*/
 /**
  * ToolKind is the harness-agnostic category of a tool call.
  *
- * Both execution harnesses emit tool calls with engine-specific names — the
+ * Every execution harness emits tool calls with engine-specific names — the
  * native (deepagents) harness uses snake_case (edit_file, execute, grep), while
- * the Cursor harness uses PascalCase (StrReplace, Shell, Grep). ToolKind
+ * the Cursor and Claude harnesses use PascalCase (StrReplace, Shell, Grep;
+ * Edit, Bash, Grep). ToolKind
  * normalizes that identity once, in the runner, so every client (web, desktop,
  * CLI, Ink) renders a tool the same way regardless of which harness produced it.
  *
@@ -260,7 +261,7 @@ export enum ToolKind {
   UNSPECIFIED = 0,
 
   /**
-   * Read a file's contents. Native: read, read_file. Cursor: Read.
+   * Read a file's contents. Native: read, read_file. Cursor, Claude: Read.
    *
    * @generated from enum value: TOOL_KIND_FILE_READ = 1;
    */
@@ -268,7 +269,7 @@ export enum ToolKind {
 
   /**
    * Create or overwrite an entire file. Native: write_file, create_file.
-   * Cursor: Write.
+   * Cursor, Claude: Write.
    *
    * @generated from enum value: TOOL_KIND_FILE_WRITE = 2;
    */
@@ -276,7 +277,7 @@ export enum ToolKind {
 
   /**
    * Modify part of an existing file. Native: edit_file, str_replace_editor.
-   * Cursor: StrReplace, EditNotebook.
+   * Cursor: StrReplace, EditNotebook. Claude: Edit, NotebookEdit.
    *
    * @generated from enum value: TOOL_KIND_FILE_EDIT = 3;
    */
@@ -290,7 +291,8 @@ export enum ToolKind {
   FILE_DELETE = 4,
 
   /**
-   * Execute a shell command. Native: execute, shell. Cursor: Shell.
+   * Execute a shell command. Native: execute, shell. Cursor: Shell. Claude:
+   * Bash.
    *
    * @generated from enum value: TOOL_KIND_SHELL = 5;
    */
@@ -298,7 +300,7 @@ export enum ToolKind {
 
   /**
    * Search file contents or names. Native: grep, glob. Cursor: Grep, Glob,
-   * SemanticSearch.
+   * SemanticSearch. Claude: Grep, Glob.
    *
    * @generated from enum value: TOOL_KIND_SEARCH = 6;
    */
@@ -333,7 +335,8 @@ export enum ToolKind {
   THINK = 10,
 
   /**
-   * Manage the agent's todo list. Native: write_todos. Cursor: TodoWrite.
+   * Manage the agent's todo list. Native: write_todos. Cursor, Claude:
+   * TodoWrite.
    * Typically rendered through a dedicated todo surface, not the tool thread.
    *
    * @generated from enum value: TOOL_KIND_TODO = 11;
@@ -341,7 +344,8 @@ export enum ToolKind {
   TODO = 11,
 
   /**
-   * Delegate work to a sub-agent. Native/Cursor: task/Task. Rendered as a
+   * Delegate work to a sub-agent. Native/Cursor: task/Task. Claude: Agent.
+   * Rendered as a
    * nested thread, not via the standard tool result view.
    *
    * @generated from enum value: TOOL_KIND_SUBAGENT = 12;
@@ -360,7 +364,7 @@ export enum ToolKind {
    * Propose a durable fact about the user for the platform to remember
    * (the first-party remember tool, injected via the synthesized memory
    * attachment when the run's recall snapshot is enabled).
-   * Both harnesses: remember. Rendered as a memory-proposal consent chip
+   * Every harness: remember. Rendered as a memory-proposal consent chip
    * (verbatim fact + Confirm/Reject), not the generic tool result view —
    * the record it creates stays "proposed" until the user decides.
    *

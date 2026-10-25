@@ -3147,7 +3147,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Harness that produced the edits: \"cursor\" | \"deep-agent\". Carried for audit\n and so the reconcile adapter knows which harness lifecycle authored the set.",
+          "description": "Harness that produced the edits: \"cursor\" | \"deep-agent\" | \"claude\".\n Carried for audit and so the reconcile adapter knows which harness\n lifecycle authored the set.",
           "required": false
         },
         {

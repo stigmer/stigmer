@@ -36,7 +36,7 @@ import { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/s
 import type { SessionResource } from "@stigmer/apis/ai/stigmer/agentic/session/v1/resource_pb";
 import { AgentSchema, type Agent } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { SkillSchema } from "@stigmer/apis/ai/stigmer/agentic/skill/v1/api_pb";
-import { AgentSpecSchema, type HookSource } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentMcpServerSchema, AgentSpecSchema, type HookSource } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/apis/ai/stigmer/commons/apiresource/metadata_pb";
@@ -123,6 +123,8 @@ export interface ExecutionRecordOptions {
   readonly skills?: ReadonlyArray<{ readonly slug: string; readonly description: string; readonly skillMd: string }>;
   /** The agent's `AgentSpec.hooks`: plugin references and its own hooks block. */
   readonly hooks?: HookSource[];
+  /** The agent's own MCP servers (`AgentSpec.mcp_servers`), reached over HTTP. */
+  readonly mcpServers?: ReadonlyArray<{ readonly name: string; readonly url: string; readonly headers?: Record<string, string> }>;
   /**
    * The built-in assistant: the session names NO agent and the turn's stamp
    * is empty, so the record carries no agent and the activity must run on
@@ -201,6 +203,7 @@ export function executionRecordFixture(options: ExecutionRecordOptions): Executi
       tools: options.tools ?? [],
       disallowedTools: options.disallowedTools ?? [],
       hooks: options.hooks ?? [],
+      mcpServers: (options.mcpServers ?? []).map((server) => create(AgentMcpServerSchema, { name: server.name, url: server.url, headers: server.headers ?? {} })),
       skillRefs: (options.skills ?? []).map((s) => create(ApiResourceReferenceSchema, { org: ids.org, slug: s.slug })),
     }),
   });

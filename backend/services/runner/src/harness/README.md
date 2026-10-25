@@ -3,8 +3,8 @@
 This folder is the turn runtime, the code that runs one agent turn for every
 harness, and the contract a harness implements to run behind it
 (`harness/types.ts`). A harness is one engine the runner can drive: today the
-native LangGraph deep-agent and the Cursor SDK; the contract was designed
-against the Claude Agent SDK and the Codex SDK as well
+native LangGraph deep-agent, the Cursor SDK and the Claude Agent SDK; the
+contract was designed against the Codex SDK as well
 (`harness/capabilities.ts`). An adapter is the `HarnessAdapter` object a
 harness's factory returns; a harness is that adapter plus its registry row.
 
@@ -19,17 +19,18 @@ pinned somewhere. Read a row across before searching for anything.
 
 | Spelling | Native | Cursor | Claude |
 | --- | --- | --- | --- |
-| The adapter's folder | `activities/execute-deep-agent/` | `activities/execute-cursor/` | (with its adapter) |
-| `HarnessName` in `harness/registry.ts` | `deep-agent` | `cursor` | (with its adapter) |
+| The adapter's folder | `activities/execute-deep-agent/` | `activities/execute-cursor/` | `activities/execute-claude/` |
+| `HarnessName` in `harness/registry.ts` | `deep-agent` | `cursor` | `claude` |
 | The Temporal activity, declared once in `backend/libs/ts/temporal-codecs/src/activity-names/names.ts` | `ExecuteDeepAgent` | `ExecuteCursor` | `ExecuteClaude` |
 | The proto enum in `apis/ai/stigmer/agentic/session/v1/enum.proto` | `HARNESS_NATIVE` | `HARNESS_CURSOR` | `HARNESS_CLAUDE` |
 | The model registry's key in `backend/services/stigmer-server/src/modelcatalog/data/model-registry.json` | `native` | `cursor` | `claude` (no rows yet) |
-| The file-review id in `activities/execute-deep-agent/deep-agent-capabilities.ts` and `activities/execute-cursor/cursor-capabilities.ts` | `deep-agent` | `cursor` | (with its adapter) |
-| The vendor SDK package in `backend/services/runner/package.json` | `deepagents` | `@cursor/sdk` | (with its adapter) |
+| The file-review id in `activities/execute-deep-agent/deep-agent-capabilities.ts`, `activities/execute-cursor/cursor-capabilities.ts` and `activities/execute-claude/claude-capabilities.ts` | `deep-agent` | `cursor` | `claude` |
+| The vendor SDK package in `backend/services/runner/package.json` | `deepagents` | `@cursor/sdk` | `@anthropic-ai/claude-agent-sdk` |
 
-Claude is named on the wire and refused by the server until the platform
-offers it (`backend/services/stigmer-server/src/domain/session/harness.ts`):
-the spellings it has today are the ones the server and the wire need.
+The runner runs a Claude turn; the server refuses Claude until the platform
+offers it (`backend/services/stigmer-server/src/domain/session/harness.ts`),
+and no published runner carries its engine yet
+(`backend/services/runner/scripts/bundle-slim.mjs` stages none of it).
 
 ## Modules, in reading order
 
@@ -113,7 +114,7 @@ Every harness's adapter runs in the agent host, the runner's second process,
 which holds none of its keys; the runner's own process loads no engine SDK
 (`__tests__/harness-boot-order.test.ts`):
 
-- `harness-adapters.ts` — `HOSTED_HARNESSES` names the hosted ones: both.
+- `harness-adapters.ts` — `HOSTED_HARNESSES` names the hosted ones: all three.
 - `agent-host/hosting.ts` — what the composition roots call: the table with
   each hosted row's adapter replaced by its remote stand-in.
 - `agent-host/remote-adapter.ts` — the stand-in: `createRemoteAdapter` turns
@@ -145,20 +146,23 @@ What the contract requires:
   `activities/execute-deep-agent/adapter.ts` (`createDeepAgentAdapter`) is the
   smaller real shape, with no per-session state;
   `activities/execute-cursor/adapter.ts` (`createCursorAdapter`) is the one with
-  session state.
+  session state; `activities/execute-claude/adapter.ts` (`createClaudeAdapter`)
+  is the one whose engine is a separate program, and boots without it.
 - `activities/<harness>/<harness>-capabilities.ts` — the flags, declared once,
   each with its reason:
   `activities/execute-deep-agent/deep-agent-capabilities.ts`
   (`DEEP_AGENT_CAPABILITIES`),
-  `activities/execute-cursor/cursor-capabilities.ts` (`CURSOR_CAPABILITIES`).
+  `activities/execute-cursor/cursor-capabilities.ts` (`CURSOR_CAPABILITIES`),
+  `activities/execute-claude/claude-capabilities.ts` (`CLAUDE_CAPABILITIES`).
 - `activities/<harness>/translator.ts` — the engine's events rendered as
   `TranscriptEvent`s into `TranscriptBuilder` (`harness/transcript/events.ts` is
   the union): `activities/execute-deep-agent/translator.ts`,
-  `activities/execute-cursor/translator.ts`.
+  `activities/execute-cursor/translator.ts`,
+  `activities/execute-claude/translator.ts`.
 
 Everything else in an adapter's folder is the engine's business and is not a
-template: 17 of the native adapter's 20 modules and 32 of the Cursor adapter's
-35, at the commit the footprint below measures. That business is:
+template: 25 of the native adapter's 28 modules, 37 of the Cursor adapter's 40
+and 17 of the Claude adapter's 20, at the commit the footprint below measures. That business is:
 
 - how the engine is created or resumed,
 - how the prompt is placed,
@@ -172,23 +176,31 @@ What every adapter's test side carries:
   translated onto the harness's own SDK double.
   `activities/execute-deep-agent/__test-utils__/contract-subject.ts` is the
   smaller example;
-  `activities/execute-cursor/__test-utils__/contract-subject.ts` the first.
+  `activities/execute-cursor/__test-utils__/contract-subject.ts` the first;
+  `activities/execute-claude/__test-utils__/contract-subject.ts` has no SDK
+  double: it runs the real engine and scripts only what its model says, through
+  the wire mock behind the runner's real proxy
+  (`activities/execute-claude/__test-utils__/claude-wire.ts`).
 - `activities/<harness>/__tests__/hermetic/harness-contract.test.ts` — both
   halves of the kit against the real adapter, with what the subject cannot
   produce declared SKIPPED:
   `activities/execute-deep-agent/__tests__/hermetic/harness-contract.test.ts`,
-  `activities/execute-cursor/__tests__/hermetic/harness-contract.test.ts`. Their
+  `activities/execute-cursor/__tests__/hermetic/harness-contract.test.ts`,
+  `activities/execute-claude/__tests__/hermetic/harness-contract.test.ts`. Their
   goldens: `activities/execute-deep-agent/__tests__/hermetic/goldens/`,
-  `activities/execute-cursor/__tests__/hermetic/goldens/`.
+  `activities/execute-cursor/__tests__/hermetic/goldens/`,
+  `activities/execute-claude/__tests__/hermetic/goldens/`.
 - `activities/<harness>/__tests__/adapter-is-temporal-free.test.ts` — the fence
   that keeps `@temporalio/*` out of the adapter:
   `activities/execute-deep-agent/__tests__/adapter-is-temporal-free.test.ts`,
-  `activities/execute-cursor/__tests__/adapter-is-temporal-free.test.ts`.
+  `activities/execute-cursor/__tests__/adapter-is-temporal-free.test.ts`,
+  `activities/execute-claude/__tests__/adapter-is-temporal-free.test.ts`.
 - `activities/<harness>/__tests__/adapter-graph-is-sdk-free.test.ts` — the fence
   that walks the adapter module's static graph and refuses a vendor SDK on it. A
   new harness adds it.
   `activities/execute-deep-agent/__tests__/adapter-graph-is-sdk-free.test.ts` is
-  the shape; the Cursor adapter predates it, and
+  the shape, `activities/execute-claude/__tests__/adapter-graph-is-sdk-free.test.ts`
+  its second; the Cursor adapter predates it, and
   `__tests__/harness-boot-order.test.ts` proves its graph in a fresh process.
 
 ## Sites a new harness touches
@@ -495,13 +507,13 @@ second net: they pin a turn's persisted status byte for byte.
 
 ## Footprint
 
-Measured at commit f25d15131 (2026-09-16), production TypeScript only,
-`__tests__/` and `__test-utils__/` excluded. Run from `backend/services/runner/`
-to re-measure:
+Measured on 2026-10-25 at dca730bb11 with the change that added the Claude adapter
+applied, production TypeScript only, `__tests__/` and `__test-utils__/`
+excluded. Run from `backend/services/runner/` to re-measure:
 
 ```bash
 wc -l src/__test-utils__/harness-contract/scripted-adapter.ts
-for d in src/activities/execute-deep-agent src/activities/execute-cursor src/harness; do
+for d in src/activities/execute-deep-agent src/activities/execute-cursor src/activities/execute-claude src/harness; do
   printf '%s: ' "$d"
   find "$d" -name '*.ts' -not -path '*/__tests__/*' -not -path '*/__test-utils__/*' | xargs cat | wc -l
 done
@@ -509,11 +521,13 @@ done
 
 | What                                                                                                     | Lines  | Files |
 | -------------------------------------------------------------------------------------------------------- | ------ | ----- |
-| The template, `__test-utils__/harness-contract/scripted-adapter.ts`: the floor, no engine, no translator | 385    | 1     |
-| The native adapter, `activities/execute-deep-agent/`                                                     | 4,308  | 20    |
-| The Cursor adapter, `activities/execute-cursor/`: the ceiling, with its deny-and-retry hook and ledger   | 11,554 | 35    |
-| The runtime, `harness/`, for scale: written once                                                         | 4,985  | 14    |
-| The test side the native adapter adds: its subject, its hermetic kit file, its two fences                | 658    | 4     |
+| The template, `__test-utils__/harness-contract/scripted-adapter.ts`: the floor, no engine, no translator | 609    | 1     |
+| The native adapter, `activities/execute-deep-agent/`                                                     | 6,393  | 28    |
+| The Cursor adapter, `activities/execute-cursor/`: the ceiling, with its deny-and-retry hook and ledger   | 14,938 | 40    |
+| The Claude adapter, `activities/execute-claude/`: an engine that is its own program, with its gate        | 2,620  | 20    |
+| The runtime, `harness/`, for scale: written once                                                         | 11,338 | 29    |
+| The test side the native adapter adds: its subject, its hermetic kit file, its two fences                | 935    | 4     |
+| The test side the Claude adapter adds: its subject, its wire stack, its hermetic kit file, its two fences | 882    | 5     |
 
 ## Design history
 

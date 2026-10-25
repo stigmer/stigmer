@@ -9,9 +9,9 @@
  * checkpoint's un-resumed interrupts, keyed by the interrupt's own id, become
  * a `Command(resume)` map ({@link resolveResumeInput}), and after a stream the
  * interrupts still pending become WAITING_APPROVAL rows
- * ({@link detectPendingInterrupts}). {@link reconcileUnattendedSkips} is the
- * one settlement that stays here because its evidence — the gate's registry
- * of auto-skipped call ids — exists only inside this harness.
+ * ({@link detectPendingInterrupts}). The gate's unattended skips are settled
+ * by the shared fold (`shared/unattended-skips.ts`), re-exported here for
+ * this harness's settle.
  *
  * Until #1096 this module also read the decisions from the execution itself
  * and carried the SKIP/REJECT settlement; both are the runtime's now, one
@@ -19,9 +19,9 @@
  */
 
 import { Command } from "@langchain/langgraph";
-import { POLICY_ENGINE_VERSION, unattendedSkipMessage, type PolicySource } from "../../shared/approval-policy.js";
-import type { AgentMessage, TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
-import { ApprovalAction, ApprovalPolicySource, ToolCallStatus } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
+export { reconcileUnattendedSkips } from "../../shared/unattended-skips.js";
+import type { PolicySource } from "../../shared/approval-policy.js";
+import { ApprovalAction } from "../../gen/turn/ai/stigmer/runner/turn/v1/enum_pb.js";
 
 /**
  * The gate's resume vocabulary for each decision. APPROVE_ALL resumes the
@@ -172,62 +172,6 @@ function extractPendingInterrupts(state: GraphStateSnapshot): ResumableInterrupt
   }
 
   return result;
-}
-
-/**
- * Terminalize every tool call the approval gate auto-skipped under UNATTENDED
- * approval mode — the sibling of the runtime's `terminalizeNonExecutingDecisions`
- * for skips that have no human decision behind them.
- *
- * The gate (the single writer of the registry) records each auto-skipped
- * tool-call id at the moment it returns the skip ToolMessage; this reconciler
- * (the single writer of the terminal row) folds each id into:
- * - `status = TOOL_CALL_SKIPPED` — the tool did not run, whatever transient
- *   status the stream left behind (FAILED from the gate's refusal event,
- *   which opened the row with this provenance already, so the session's log
- *   wrote the skip as the policy's deny; or RUNNING when no event fired);
- * - `approval_policy_source = UNATTENDED_SKIP` — the resolution layer,
- *   overriding the gating-layer source stamped at tool-start (the
- *   AUTO_APPROVE_ALL precedent: layer-4 resolutions own the resolved call),
- *   with `approval_policy_hook` naming the hook whose ask was skipped, or
- *   empty when the default asked;
- * - the skip message ({@link unattendedSkipMessage}) as the result and no
- *   error, the shape Cursor's boundary stamps for the same skip
- *   (`stampUnattendedSkippedToolCalls`): a skip, not a failure.
- *
- * `approval_action` / `approved_by` are deliberately NOT touched — those
- * record HUMAN decisions only (the runtime's seed copies the answer from the
- * session's log). No
- * approval-request event exists for these calls, so the pending-approvals
- * projection stays empty by construction. Idempotent: re-running re-resolves
- * identically. Covers sub-agent transcripts because sub-agent gates inherit
- * the parent's registry instance.
- */
-export function reconcileUnattendedSkips(
-  rows: Pick<TurnRows, "messages" | "subAgentRuns">,
-  unattendedSkips: ReadonlyMap<string, string | null> | undefined,
-): void {
-  if (!unattendedSkips || unattendedSkips.size === 0) return;
-
-  const apply = (messages: readonly AgentMessage[]): void => {
-    for (const msg of messages) {
-      for (const tc of msg.toolCalls) {
-        if (!unattendedSkips.has(tc.id)) continue;
-        tc.status = ToolCallStatus.TOOL_CALL_SKIPPED;
-        tc.approvalPolicySource = ApprovalPolicySource.UNATTENDED_SKIP;
-        tc.approvalPolicyHook = unattendedSkips.get(tc.id) ?? "";
-        tc.policyEngineVersion = POLICY_ENGINE_VERSION;
-        tc.isStreaming = false;
-        tc.error = "";
-        tc.result = unattendedSkipMessage(tc.name);
-      }
-    }
-  };
-
-  apply(rows.messages);
-  for (const subAgent of rows.subAgentRuns) {
-    apply(subAgent.messages);
-  }
 }
 
 /** A pending LangGraph approval interrupt, normalized from the graph checkpoint. */
