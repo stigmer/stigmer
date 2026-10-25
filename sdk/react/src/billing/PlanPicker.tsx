@@ -9,6 +9,7 @@ import { FEATURE_COPY } from "../internal/features.js";
 import {
   ENTERPRISE_CLOUD_PLAN,
   formatAgentHoursTerms,
+  formatAgentsAtOnce,
   formatChildOrgs,
   formatMonthlyFee,
   offeredFeatures,
@@ -73,6 +74,7 @@ export function PlanPicker({
         const move = planMove(standing, plan, periodEnd);
         const managed = formatChildOrgs(plan.spec?.entitlements, plan.spec?.terms);
         const hours = formatAgentHoursTerms(plan.spec?.entitlements, plan.spec?.terms);
+        const atOnce = formatAgentsAtOnce(plan.spec?.entitlements);
         return (
           <PlanOption
             key={plan.metadata?.id ?? plan.metadata?.slug}
@@ -82,6 +84,7 @@ export function PlanPicker({
               ...offeredFeatures(plan.spec?.entitlements).map((feature) => feature.label),
               ...(managed === "" ? [] : [managed]),
               ...(hours === "" ? [] : [hours]),
+              ...(atOnce === "" ? [] : [atOnce]),
             ]}
             current={move === null && standing.kind !== "free"}
             action={canManage && move !== null ? { label: actionLabel(move), move } : undefined}
