@@ -184,12 +184,23 @@ with the runner in **direct mode** (no mock proxy) reading
 `CURSOR_API_KEY` from the environment. A missing key,
 or a missing `stigmer` CLI for the cells that need it, refuses those cells by
 name and the run continues with the rest. It is in no vitest config, `npm
-test` cannot reach it, and it spends money: at the defaults, eight scenarios
-on two harnesses with one warm-up plus five samples each (144 executions),
-plus the quality arm's eval run (nine cases, three tries each on each
-harness). Its numbers are a new baseline for the machine, model versions
-and runner they were taken on, compared only across arms of one commit,
-machine and day, as `benchmark-compare` enforces (below).
+test` cannot reach it, and it spends money: at the defaults, ten scenarios
+on two harnesses with one warm-up plus five samples each, three turns a
+sample on the four three-turn scenarios (216 executions), plus the quality
+arm's eval run (eleven cases, three tries each on each harness). Its numbers
+are a new baseline for the machine, model versions and runner they were
+taken on, compared only across arms of one instrument commit, machine and
+day, an arm being a model on one version of the code, as `benchmark-compare`
+enforces (below).
+
+`--stack <checkout>` measures another stigmer checkout's server and runner
+with this tree as the instrument: the script, its clients and its readers
+stay this tree's, so two versions of the code are measured alike. Build that
+checkout first (`npm ci`, then `make build-runner build-server`; an existing
+dist is reused, never rebuilt), and point the `stigmer` CLI on PATH at it, so
+the working agent's memory runs its code too. The report records the
+checkout's HEAD as `git.code_sha` beside the instrument's `git.head_sha`; a
+path that is not a stigmer checkout is refused before anything boots.
 
 The native arm runs on Claude Sonnet 4.6 unless `--native-model <id>` names
 another model: a catalog id, or the own-endpoint form `openai:<name>` /
@@ -203,7 +214,7 @@ cell and in the native quality target; the native `default` cells are refused,
 and the Cursor arm, the judge and the prompts stay as they are. A native cell
 needs the key of its model's provider. One run measures one native model,
 because the runner holds one OpenAI-slot key and address for the whole run.
-The report (schema v8) records the arm in `models`: the model, the host its
+The report (schema v9) records the arm in `models`: the model, the host its
 calls went to (`native_endpoint`, never a key or a path), the API they were
 made on (`native_api`) and whether the runner priced them from a catalog row
 or at its default rate (`native_cost_basis`). A default-rate cost is marked in
@@ -223,12 +234,15 @@ the July cost benchmark's seven scenarios. The **working** agent
   fixed directory outside the repository (`fixtures/working-agent/README.md`
   says why and what is planted in it).
 
-It runs two timing scenarios, each three turns in one session with the second
-sampled:
+It runs three timing scenarios, each three turns in one session with the
+second sampled:
 - `working-read-edit`: read, edit, follow up;
 - `working-cross-turn`: three read-only questions, each reaching a different
   skill, so its later turns' cache writes show whether the native system
-  prompt held from one message to the next.
+  prompt held from one message to the next;
+- `working-long-log`: why last night's sync failed, from a log longer than
+  the runner's bound on a tool result whose cause is in its last lines, so the
+  sampled turn shows what the agent sees of a result past the bound.
 
 The working agent is also a plugin (`fixtures/working-agent`), whose `evals/`
 suite holds the quality tasks.
@@ -257,6 +271,14 @@ Per execution it reads its sources and joins them by execution id:
   timeline's spans, `src/benchmark/tool-call-facts.ts`);
 - the Temporal history, through the `temporal` CLI (the wait before the
   runner's activity started, the `EnsureThread` hop).
+
+Once every execution has ended, the run's runner logs (`runner.log`, and
+`runner-<n>.log` after a restart) are read for the native runner's marker
+lines: edits repaired, tool results cut (and whether each was kept whole),
+model calls retried, turns that read the repository's own instruction files,
+and failed PostToolUse hooks (`src/benchmark/log-markers.ts` names each
+line's writer). The lines carry no execution id, so the report's
+`runner_log` counts them per run, over every cell and the quality arm.
 
 The **quality arm** (`src/benchmark/quality-eval.ts`) is one eval run: the
 working agent's plugin pushed into a fresh organization, every case of its
@@ -292,12 +314,19 @@ through the driver as well as single turns.
 `npm run benchmark:compare -w @stigmer/conformance -- [--reference <arm>] <report.json> ...`
 reads reports (`src/benchmark/compare.ts`) and says, per arm and cell,
 whether each arm holds the bar the reference arm sets (default: native on
-the parity model). An arm is a harness on one model at one endpoint
-(`native/<model>@<host>`, `cursor/<model>`). Reports are compared only when
-they share `git.main_sha`, `reps`, `quality_reps`, the thinking mode and the
-host, and were taken within 24 hours of each other; anything else is refused
-by naming the field. Reports of one arm pool, a later scenario replacing an
-earlier one. The bar, per arm against the reference:
+the parity model). An arm is a harness on one model at one endpoint,
+on one version of the code (`native/<model>@<host>#<code>`,
+`cursor/<model>#<code>`, the code being the first ten characters of
+`git.code_sha`); `--reference` takes a label, or a prefix of one ending
+where its `@` or `#` begins or inside its code, when one arm matches. Reports are compared only when one
+instrument made them: they share a clean `git.head_sha` (an instrument with
+uncommitted changes is refused by name), `reps`, `quality_reps`, the thinking
+mode and the host, and were taken within 24 hours of each other; anything
+else is refused by naming the field. Reports of one arm pool, a later
+scenario replacing an earlier one, and two versions of the code are two
+arms, never one. So a fix is measured from `main`'s instrument, once on
+`main` and once with `--stack <the fix's checkout>`. The bar, per arm
+against the reference:
 - quality: the mean case score over the cases graded on both arms is at
   least the reference's minus 0.05;
 - failures: no more failed samples per timing cell than the reference's;
@@ -305,7 +334,7 @@ earlier one. The bar, per arm against the reference:
   `not_unique` or `failed` is at most the reference's plus 5 points.
 
 Timing, rounds and cost are printed and never gated, because on another
-model they measure the model. Fewer than three samples that ran, or three
+model they measure the model; so is each report's `runner_log`. Fewer than three samples that ran, or three
 cases graded on both arms, reads "not measured"; a cell the arm's report
 refused by design is expected. Exit 0 when every arm holds the bar, 1 when
 any misses it or is not measured, 2 when the reports cannot be compared.

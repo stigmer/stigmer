@@ -104,6 +104,9 @@ node_modules/
 
 # Temporary files
 *.log
+# ...except the benchmark fixture's sync log, data the instrument reads
+# (test/conformance/fixtures/working-agent/README.md).
+!test/conformance/fixtures/working-agent/evals/_fixture/workspace/logs/*.log
 *.tmp
 tmp/
 
