@@ -1,15 +1,15 @@
 /**
  * The substrate sandbox driver: every sandbox is an Agent Substrate actor,
- * a gVisor sandbox that can be paused (stopped, its workspace kept on its
- * node) or suspended (its workspace committed to storage, the node let
- * go) and resumed with its files. A session's sandbox therefore sleeps
- * while the session is idle and wakes when the next turn arrives.
+ * a gVisor sandbox that can be suspended (stopped, its workspace kept on
+ * its node and copied to storage in the background) and resumed with its
+ * files, from its node or, once the node is gone, from storage. A
+ * session's sandbox therefore sleeps while the session is idle and wakes
+ * when the next turn arrives.
  *
  * Every wake starts a fresh runner. The template captures volumes only
- * (template.ts), so neither a pause nor a suspend keeps the runner's
- * memory: Substrate 0.5 snapshots a pause and a suspend at one fidelity,
- * and a memory fidelity would bring a suspended runner back with the
- * secrets it slept with, where a fresh start takes this configuration's.
+ * (template.ts), so a suspend keeps no runner's memory: a memory fidelity
+ * would bring a suspended runner back with the secrets it slept with,
+ * where a fresh start takes this configuration's.
  *
  * Shape: a gateway is the only surface touching
  * Substrate (gateway.ts), the provisioner is built over it, and
@@ -23,23 +23,21 @@
  *   - absent: wait for the template (template.ts), create the actor from
  *     it; a created actor is suspended.
  *   - suspended: move it to the current template when it is on an older
- *     one and the current one is ready (a running or paused actor is never
+ *     one and the current one is ready (a running actor is never
  *     disturbed); make its egress policy this configuration's (below);
  *     resume; push.
- *   - paused: make its egress policy this configuration's; resume on its
- *     node; push.
  *   - running: push; the waiter keeps its runner and takes the fresh token
  *     for a restart.
  *   - crashed: revert, then from the state that leaves.
- *   - resuming, pausing, suspending, reverting: wait for it to settle.
+ *   - resuming, suspending, reverting: wait for it to settle.
  *   - deleting: refused.
  *
  * The ensure's log line names, in `arm`, the path the ensure took from the
  * first settled state it found, never the arm it ended in, because the
  * wake budgets are measured per path: `created` (absent, created, then
- * woken), `suspended` (woken from storage), `paused` (woken on its node),
- * `running` (pushed only), `crashed` (reverted, then brought up). A state
- * in transition that the ensure waits out names nothing.
+ * woken), `suspended` (woken from its node or from storage), `running`
+ * (pushed only), `crashed` (reverted, then brought up). A state in
+ * transition that the ensure waits out names nothing.
  *
  * Any call answering ABORTED (another operation holds the actor, or it
  * crashed while resuming) sends the ensure back to reading the actor; no
@@ -53,7 +51,7 @@
  * driver's secrets change only when this server restarts with new
  * settings, and every wake starts a fresh runner, so only a running actor
  * can hold old ones: it keeps its runner, logs the refusal, and takes the
- * new secrets at its next wake, after its next idle pause.
+ * new secrets at its next wake, after it next sleeps.
  *
  * The egress policy is this configuration's and the session's
  * Environment's (egress.ts) on every actor the server ensures: created
@@ -61,7 +59,7 @@
  * writing it; an actor without one reaches nothing) and replaced when its
  * rules differ. Every ensure, so every turn, computes the rules and writes
  * them when their digest differs from what this process last wrote for
- * the actor (always on a wake from storage), so a host an Environment no
+ * the actor (always on a wake), so a host an Environment no
  * longer lists stops being reachable at the conversation's next turn, and
  * a changed endpoint or HTTPS egress switched off reaches a sandbox at its
  * next turn or wake. A running turn keeps the policy it started with until
@@ -82,7 +80,7 @@
  * runner, and fails the ensure. It remembers those runners in memory, not
  * only for the ensure that woke them, so the check holds when that ensure
  * was cut short (a failed push, a suspend Substrate turned away) and a
- * later one finds the actor running or paused. Only a runner older than
+ * later one finds the actor running. Only a runner older than
  * this process may answer `secrets_changed` honestly. The router being
  * reachable by this server alone is what keeps a foreign push from
  * happening (egress.ts); this catches it if it does.
@@ -100,10 +98,10 @@
  * The lifecycle is everything an idle sweep needs except the decision of
  * what is idle, which belongs to whoever keeps the sweep: open source's
  * own (sweep.ts) or a composition that keeps records of its sandboxes and
- * runs its own. So pause, suspend and a delete by name take a guard the
+ * runs its own. So suspend and a delete by name take a guard the
  * sweep answers inside the actor's queue, from fresh reads, right before
- * the call (and, after a pause, once more: a turn that arrived while the
- * pause was in flight wakes the sandbox again at once, a fresh runner the
+ * the call (and, after a suspend, once more: a turn that arrived while the
+ * suspend was in flight wakes the sandbox again at once, a fresh runner the
  * turn's own ensure pushes to); a delete's guard is how
  * a composition reaping orphans never deletes a sandbox a turn woke while
  * the delete waited in the queue; `maintain` is a pass's upkeep over the
@@ -168,19 +166,19 @@ export interface SubstrateSleepGuard {
 }
 
 /**
- * A pause's guard also answers once the pause has landed: a turn that
+ * A suspend's guard also answers once the suspend has landed: a turn that
  * arrived while it was in flight (on this server or another) is seen here
- * and the sandbox is thawed in place.
+ * and the sandbox is thawed, woken again from its node.
  */
-export interface SubstratePauseGuard extends SubstrateSleepGuard {
+export interface SubstrateSuspendGuard extends SubstrateSleepGuard {
   stillIdle(): Promise<boolean>;
 }
 
-/** What a guarded pause, suspend or delete did; only a pause thaws (wakes again at once). */
+/** What a guarded suspend or delete did; only a suspend thaws (wakes again at once). */
 export type SubstrateSleepOutcome = "done" | "skipped" | "thawed";
 
 /** The paths an ensure takes, named by the state it first acts on (module header). */
-type EnsurePath = "created" | "suspended" | "paused" | "running" | "crashed";
+type EnsurePath = "created" | "suspended" | "running" | "crashed";
 
 /** What one pass of upkeep did (SubstrateSandboxLifecycle.maintain). */
 export interface SubstrateMaintenance {
@@ -198,17 +196,11 @@ export interface SubstrateMaintenance {
  * records and its own sweep calls the same ones (module header).
  */
 export interface SubstrateSandboxLifecycle {
-  /** Pauses; with a guard, only if it proceeds, and thawed again if it is no longer idle afterwards. */
-  pause(
-    scope: SandboxScope,
-    id: string,
-    guard?: SubstratePauseGuard,
-  ): Promise<SubstrateSleepOutcome>;
-  /** Suspends to storage; with a guard, only if it proceeds. */
+  /** Suspends; with a guard, only if it proceeds, and thawed again if it is no longer idle afterwards. */
   suspend(
     scope: SandboxScope,
     id: string,
-    guard?: SubstrateSleepGuard,
+    guard?: SubstrateSuspendGuard,
   ): Promise<SubstrateSleepOutcome>;
   /** The ensure: wakes (or creates) the sandbox and pushes its attachment. */
   resume(scope: SandboxScope, id: string, facts: SandboxFacts): Promise<void>;
@@ -314,7 +306,6 @@ const ATTACHED_ELSEWHERE: ReadonlySet<string> = new Set([
 
 const TRANSITIONAL: ReadonlySet<SubstrateSandboxState> = new Set([
   "resuming",
-  "pausing",
   "suspending",
   "reverting",
 ]);
@@ -475,7 +466,7 @@ export function newSubstrateSandboxDriverOverGateway(
     if (!refusedMoves.has(actor.name)) {
       refusedMoves.add(actor.name);
       logger.warn(
-        "Substrate refused to move a sandbox to the current template (its volumes or sandbox configuration differ); it stays on its own template",
+        "Substrate refused to move a sandbox to the current template (its volumes differ); it stays on its own template",
         { actor: actor.name, template: actor.template, current: keeper.name },
       );
     }
@@ -546,19 +537,12 @@ export function newSubstrateSandboxDriverOverGateway(
             continue;
           }
           switch (actor.state) {
-            case "suspended":
-            case "paused": {
+            case "suspended": {
               // A wake starts a fresh waiter, so this push is its first: a
-              // refusal means another push won it (attach). A paused actor
-              // stays on its template, pinned to its node until it wakes.
-              if (actor.state === "suspended") {
-                path ??= "suspended";
-                await moveToCurrent(actor);
-                await reconcileEgress(name, facts, true);
-              } else {
-                path ??= "paused";
-                await reconcileEgress(name, facts);
-              }
+              // refusal means another push won it (attach).
+              path ??= "suspended";
+              await moveToCurrent(actor);
+              await reconcileEgress(name, facts, true);
               startedHere.add(name);
               await gateway.resumeActor(name);
               await attach(scope, name, facts);
@@ -584,7 +568,6 @@ export function newSubstrateSandboxDriverOverGateway(
             case "deleting":
               throw new Error(`sandbox ${name} is being deleted`);
             case "resuming":
-            case "pausing":
             case "suspending":
             case "reverting":
             case "unknown":
@@ -732,25 +715,17 @@ export function newSubstrateSandboxDriverOverGateway(
   }
 
   const lifecycle: SubstrateSandboxLifecycle = {
-    pause: (scope, id, guard) => {
+    suspend: (scope, id, guard) => {
       const name = sandboxBaseName(scope, id);
       return serialize(name, async (): Promise<SubstrateSleepOutcome> => {
         if ((await asked(name, guard)) !== "proceed") return "skipped";
-        await gateway.pauseActor(name);
+        await gateway.suspendActor(name);
         if (guard !== undefined && !(await guard.stillIdle())) {
           // A fresh runner, which the turn's own ensure pushes to.
           startedHere.add(name);
           await gateway.resumeActor(name);
           return "thawed";
         }
-        return "done";
-      });
-    },
-    suspend: (scope, id, guard) => {
-      const name = sandboxBaseName(scope, id);
-      return serialize(name, async (): Promise<SubstrateSleepOutcome> => {
-        if ((await asked(name, guard)) !== "proceed") return "skipped";
-        await gateway.suspendActor(name);
         return "done";
       });
     },

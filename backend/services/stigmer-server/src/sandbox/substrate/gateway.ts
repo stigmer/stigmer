@@ -23,34 +23,28 @@
  * with the grant the server lacks named, because an operator meets it
  * once, at the first sandbox. Every call has a deadline.
  *
- * An actor's state is read as the driver needs it (SubstrateSandboxState),
- * not as Substrate stores it: since Substrate 0.5 a paused actor is
- * SUSPENDED with a node-local snapshot at its latest generation (a pause
- * in flight is SUSPENDING with one not yet captured), and only that
- * snapshot tells it from an actor whose files are in storage (Substrate's
- * own snapshot_helpers.go reads it the same way).
+ * An actor's state is Substrate's, read as an enum. A suspend asks for
+ * Substrate's asynchronous mode: the call returns once the snapshot is
+ * captured on the actor's node, so a quick wake restores from there, and
+ * Substrate copies it to storage in the background. Nothing here waits for
+ * that copy or reads it: a wake takes the same call either way.
  *
- * Authorization is the install's choice. Without it, whoever holds this
- * token controls every actor, template and worker of that Substrate. With
- * it (OpenFGA, Substrate's `--experimental-enable-authz`), the caller is
- * its token's subject, `system:serviceaccount:<namespace>:<name>`, and
+ * Substrate always enforces authorization (OpenFGA). The caller is its
+ * token's subject, `system:serviceaccount:<namespace>:<name>`, and
  * everything the driver does inside its atespace needs `editor` there;
  * creating the atespace needs a global owner, so the atespace is read
  * first and created only when it is missing. The operator guide names
  * both grants.
  *
  * With the atespace, the gateway ensures the atespace's access policy:
- * `editor` for this server (its token's subject, read from the token
- * file) and `viewer` for Substrate's node agent. The second is a
- * workaround for a gap in Substrate 0.5's authorization model
- * (`cmd/ateapi/internal/authz/model.fga`): atelet reads each actor's egress
- * policy to answer the actor's DNS, the model gives it no
- * `can_get_egress_policy`, and without the grant every name a sandbox looks
- * up is refused. A new atespace gets the policy at once; an existing one
- * gets only the bindings it lacks, and no binding is ever removed. Writing
- * a policy needs an owner of the atespace (a global owner is one, as a
- * hosted install's bootstrap owners are), so a refusal is reported, not
- * thrown: an owner may have made the grants by hand.
+ * `editor` for this server, its token's subject read from the token file,
+ * the one grant the server's own calls need. Substrate's node agent reads
+ * each actor's egress policy through a system role of its own, so the
+ * atespace grants it nothing. A new atespace gets the policy at once; an
+ * existing one gets only the binding it lacks, and no binding is ever
+ * removed. Writing a policy needs an owner of the atespace (a global owner
+ * is one, as a hosted install's bootstrap owners are), so a refusal is
+ * reported, not thrown: an owner may have made the grant by hand.
  */
 import { readFileSync, statSync } from "node:fs";
 
@@ -74,6 +68,7 @@ import {
   AtespaceSchema,
   BindingSchema,
   Control,
+  DurabilityMode,
   EgressPolicySchema,
   EgressRuleSchema,
   ObjectRefSchema,
@@ -107,14 +102,12 @@ export class SubstratePermissionError extends Error {
   }
 }
 
-/** An actor's state, in the platform's words: Substrate's, with a pause told apart (module header). */
+/** An actor's state, in the platform's words: Substrate's (module header). */
 export type SubstrateSandboxState =
   | "resuming"
   | "running"
   | "suspending"
   | "suspended"
-  | "pausing"
-  | "paused"
   | "crashed"
   | "deleting"
   | "reverting"
@@ -146,7 +139,7 @@ export interface SubstrateTemplateView {
 
 /** One binding the server wants on its atespace's access policy. */
 export interface AtespaceGrant {
-  readonly role: "editor" | "viewer";
+  readonly role: "editor";
   /** A policy member, `user:<principal id>`. */
   readonly member: string;
 }
@@ -176,7 +169,7 @@ export interface SubstrateGateway {
     template: string,
   ): Promise<"moved" | "refused">;
   resumeActor(name: string): Promise<void>;
-  pauseActor(name: string): Promise<void>;
+  /** Returns once the snapshot is on the actor's node; storage follows in the background. */
   suspendActor(name: string): Promise<void>;
   revertActor(name: string): Promise<void>;
   /** In any state; an absent actor is success. */
@@ -201,7 +194,8 @@ const CALL_TIMEOUT_MS = 30_000;
 /**
  * Deadline of the calls that move an actor's memory or files: a resume
  * waits for the restore and the wakeup probe (30 s by Substrate's
- * default), a suspend for the commit to storage.
+ * default), a suspend for the snapshot on the node, and a delete for the
+ * actor's worker to let go.
  */
 const LIFECYCLE_TIMEOUT_MS = 120_000;
 /** The largest page Substrate serves. */
@@ -248,7 +242,6 @@ export function newSubstrateClientGateway(
   });
   return newSubstrateGatewayOverTransport(transport, settings.atespace, {
     principal: () => subjectOfTokenFile(settings.apiTokenFile),
-    nodeAgentPrincipal: settings.nodeAgentPrincipal,
   });
 }
 
@@ -321,8 +314,7 @@ export function newSubstrateGatewayOverTransport(
   access: {
     /** This server's principal id, or undefined when it cannot be known. */
     readonly principal: () => string | undefined;
-    readonly nodeAgentPrincipal: string;
-  } = { principal: () => undefined, nodeAgentPrincipal: "" },
+  } = { principal: () => undefined },
 ): SubstrateGateway {
   const client = createClient(Control, transport);
   const ref = (name: string) => create(ObjectRefSchema, { atespace, name });
@@ -334,19 +326,10 @@ export function newSubstrateGatewayOverTransport(
       // An atespace is global: its reference names it and nothing else.
       const atespaceRef = create(ObjectRefSchema, { name: atespace });
       const principal = access.principal();
-      const grants: AtespaceGrant[] = [
-        ...(principal !== undefined
-          ? [{ role: "editor" as const, member: policyMember(principal) }]
-          : []),
-        ...(access.nodeAgentPrincipal !== ""
-          ? [
-              {
-                role: "viewer" as const,
-                member: policyMember(access.nodeAgentPrincipal),
-              },
-            ]
-          : []),
-      ];
+      const grants: AtespaceGrant[] =
+        principal !== undefined
+          ? [{ role: "editor", member: policyMember(principal) }]
+          : [];
       const created = await translate(async () => {
         // Read first: under authorization, an atespace someone else created
         // and granted this server needs no global owner (module header).
@@ -510,13 +493,15 @@ export function newSubstrateGatewayOverTransport(
       translate(async () => {
         await client.resumeActor({ actor: ref(name) }, lifecycle);
       }),
-    pauseActor: (name) =>
-      translate(async () => {
-        await client.pauseActor({ actor: ref(name) }, lifecycle);
-      }),
     suspendActor: (name) =>
       translate(async () => {
-        await client.suspendActor({ actor: ref(name) }, lifecycle);
+        await client.suspendActor(
+          {
+            actor: ref(name),
+            options: { mode: DurabilityMode.ASYNCHRONOUS },
+          },
+          lifecycle,
+        );
       }),
     revertActor: (name) =>
       translate(async () => {
@@ -526,10 +511,7 @@ export function newSubstrateGatewayOverTransport(
     deleteActor: (name) =>
       translate(async () => {
         try {
-          await client.deleteActor(
-            { actor: ref(name), anyState: true },
-            lifecycle,
-          );
+          await client.deleteActor({ actor: ref(name) }, lifecycle);
         } catch (error) {
           if (!hasCode(error, Code.NotFound)) throw error;
         }
@@ -689,16 +671,8 @@ function templateView(template: ActorTemplate): SubstrateTemplateView {
   };
 }
 
-/**
- * Substrate's state in the driver's words, a pause told apart by the
- * snapshot at the actor's latest generation (module header).
- */
+/** Substrate's state in the driver's words (module header). */
 export function stateOf(status: ActorStatus | undefined): SubstrateSandboxState {
-  const latest = status?.snapshots.find(
-    (snapshot) => snapshot.generation === status.lastAssignedGeneration,
-  );
-  const localOnly =
-    latest !== undefined && latest.durableSnapshot === undefined;
   const state = status?.state ?? ActorState.UNSPECIFIED;
   switch (state) {
     case ActorState.RESUMING:
@@ -706,9 +680,9 @@ export function stateOf(status: ActorStatus | undefined): SubstrateSandboxState 
     case ActorState.RUNNING:
       return "running";
     case ActorState.SUSPENDING:
-      return localOnly && latest.locality === "" ? "pausing" : "suspending";
+      return "suspending";
     case ActorState.SUSPENDED:
-      return localOnly && latest.locality !== "" ? "paused" : "suspended";
+      return "suspended";
     case ActorState.CRASHED:
       return "crashed";
     case ActorState.DELETING:

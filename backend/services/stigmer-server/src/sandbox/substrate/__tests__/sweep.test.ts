@@ -2,10 +2,10 @@
  * Pins the open-source idle sweep (sweep.ts) over a fake Substrate and a
  * fake session reader, with no real time:
  *
- *   - an idle running session sandbox is paused, an idle paused one
- *     suspended, a busy one left running; connect sandboxes are never
+ *   - an idle running session sandbox is suspended, a sleeping one left
+ *     asleep, a busy one left running; connect sandboxes are never
  *     touched;
- *   - a turn that arrives while the pause is in flight resumes the
+ *   - a turn that arrives while the suspend is in flight resumes the
  *     sandbox at once;
  *   - each action is re-decided from fresh reads inside the actor's queue;
  *   - the pass decides from the reader's cheap read and every act from
@@ -71,15 +71,12 @@ const settings: SubstrateDriverSettings = {
   routerServerName: "",
   routerClientCertFile: "",
   atespace: "stigmer",
-  nodeAgentPrincipal: "spiffe://cluster.local/ns/ate-system/sa/atelet",
   storageLocation: "gs://b/p",
   workerSelector: { workload: "stigmer" },
-  sandboxConfigName: "gvisor-default",
   httpsEgress: "none",
   extraHttpEgress: [],
   platformHttpsHosts: [],
-  pauseAfterSeconds: 300,
-  suspendAfterSeconds: 1800,
+  suspendAfterSeconds: 300,
   sweepIntervalSeconds: 60,
 };
 
@@ -185,15 +182,16 @@ function known(
 }
 
 describe("the ladder", () => {
-  it("pauses an idle running sandbox, suspends an idle paused one, leaves a busy one", async () => {
+  it("suspends an idle running sandbox, leaves a sleeping one and a busy one", async () => {
     const h = harness();
     const idle = known(h, "ses_idle", "running", 6 * MIN);
-    const asleep = known(h, "ses_asleep", "paused", 31 * MIN);
+    const asleep = known(h, "ses_asleep", "suspended", 31 * MIN);
     const busy = known(h, "ses_busy", "running", 120 * MIN, true);
     const fresh = known(h, "ses_fresh", "running", 1 * MIN);
     await h.pass();
-    expect(h.substrate.actors.get(idle)?.state).toBe("paused");
+    expect(h.substrate.actors.get(idle)?.state).toBe("suspended");
     expect(h.substrate.actors.get(asleep)?.state).toBe("suspended");
+    expect(h.substrate.calls).not.toContain(`suspendActor ${asleep}`);
     expect(h.substrate.actors.get(busy)?.state).toBe("running");
     expect(h.substrate.actors.get(fresh)?.state).toBe("running");
   });
@@ -210,25 +208,23 @@ describe("the ladder", () => {
     });
     h.substrate.put({
       name: mcp,
-      state: "paused",
+      state: "suspended",
       template: "t",
       createTime: new Date(h.t() - 600 * MIN),
     });
     await h.pass();
     expect(h.substrate.actors.get(running)?.state).toBe("running");
-    expect(h.substrate.actors.get(mcp)?.state).toBe("paused");
+    expect(h.substrate.actors.get(mcp)?.state).toBe("suspended");
     expect(
-      h.substrate.calls.filter(
-        (c) => c.startsWith("pauseActor") || c.startsWith("suspendActor"),
-      ),
+      h.substrate.calls.filter((c) => c.startsWith("suspendActor")),
     ).toEqual([]);
   });
 
-  it("resumes at once when a turn arrived while the pause was in flight", async () => {
+  it("resumes at once when a turn arrived while the suspend was in flight", async () => {
     const h = harness();
     const name = known(h, "ses_a", "running", 6 * MIN);
     // Reads: the pass's decision, the re-decision in the queue, then the
-    // check after the pause, which sees the new turn.
+    // check after the suspend, which sees the new turn.
     h.sessions.onRead = (_id, read) => {
       if (read === 3)
         h.sessions.activities.set("ses_a", {
@@ -239,7 +235,7 @@ describe("the ladder", () => {
     await h.pass();
     expect(h.substrate.calls.filter((c) => c.endsWith(name))).toEqual([
       `getActor ${name}`,
-      `pauseActor ${name}`,
+      `suspendActor ${name}`,
       `resumeActor ${name}`,
     ]);
     expect(h.substrate.actors.get(name)?.state).toBe("running");
@@ -256,16 +252,16 @@ describe("the ladder", () => {
         });
     };
     await h.pass();
-    expect(h.substrate.calls).not.toContain(`pauseActor ${name}`);
+    expect(h.substrate.calls).not.toContain(`suspendActor ${name}`);
   });
 
   it("decides from the cheap read and acts only on full reads", async () => {
     const h = harness();
     const name = known(h, "ses_a", "running", 6 * MIN);
     await h.pass();
-    expect(h.substrate.actors.get(name)?.state).toBe("paused");
+    expect(h.substrate.actors.get(name)?.state).toBe("suspended");
     // The pass's decision, the re-decision in the queue, the check after
-    // the pause.
+    // the suspend.
     expect(h.sessions.kinds).toEqual(["recent", "full", "full"]);
   });
 
@@ -277,7 +273,7 @@ describe("the ladder", () => {
       lastActiveAt: new Date(h.t() - 60 * MIN),
     });
     await h.pass();
-    expect(h.substrate.calls).not.toContain(`pauseActor ${name}`);
+    expect(h.substrate.calls).not.toContain(`suspendActor ${name}`);
     expect(h.sessions.kinds).toEqual(["recent", "full"]);
 
     h.sessions.kinds.length = 0;
@@ -316,7 +312,7 @@ describe("sandboxes this process never ensured", () => {
     });
     await h.pass();
     expect(h.sessions.scans).toBe(1);
-    expect(h.substrate.actors.get(name)?.state).toBe("paused");
+    expect(h.substrate.actors.get(name)?.state).toBe("suspended");
   });
 
   it("an orphan is suspended and kept, never deleted", async () => {
@@ -451,7 +447,7 @@ describe("housekeeping", () => {
     const name = known(h, "ses_a", "running", 6 * MIN);
     const handle = startSubstrateSweep(h.options);
     await vi.waitFor(() => {
-      expect(h.substrate.actors.get(name)?.state).toBe("paused");
+      expect(h.substrate.actors.get(name)?.state).toBe("suspended");
     });
     await handle.stop();
     expect(h.substrate.calls.some((c) => c.startsWith("createTemplate"))).toBe(
@@ -464,14 +460,14 @@ describe("housekeeping", () => {
     const first = known(h, "ses_a", "running", 6 * MIN);
     const second = known(h, "ses_b", "running", 6 * MIN);
     let stopping = false;
-    const pause = h.substrate.pauseActor.bind(h.substrate);
-    h.substrate.pauseActor = async (name) => {
+    const suspend = h.substrate.suspendActor.bind(h.substrate);
+    h.substrate.suspendActor = async (name) => {
       stopping = true;
-      return pause(name);
+      return suspend(name);
     };
     await runSweepPass(h.state, { ...h.options, stopping: () => stopping });
     const states = [first, second].map((n) => h.substrate.actors.get(n)?.state);
-    expect(states.filter((s) => s === "paused")).toHaveLength(1);
+    expect(states.filter((s) => s === "suspended")).toHaveLength(1);
     expect(states.filter((s) => s === "running")).toHaveLength(1);
     expect(h.substrate.calls).not.toContain("listTemplates ");
   });
@@ -480,13 +476,13 @@ describe("housekeeping", () => {
     const h = harness();
     const only = known(h, "ses_a", "running", 6 * MIN);
     let stopping = false;
-    const pause = h.substrate.pauseActor.bind(h.substrate);
-    h.substrate.pauseActor = async (name) => {
+    const suspend = h.substrate.suspendActor.bind(h.substrate);
+    h.substrate.suspendActor = async (name) => {
       stopping = true;
-      return pause(name);
+      return suspend(name);
     };
     await runSweepPass(h.state, { ...h.options, stopping: () => stopping });
-    expect(h.substrate.actors.get(only)?.state).toBe("paused");
+    expect(h.substrate.actors.get(only)?.state).toBe("suspended");
     expect(h.substrate.calls).not.toContain("listTemplates ");
   });
 });
@@ -496,14 +492,14 @@ describe("failures and races", () => {
     const h = harness();
     const bad = known(h, "ses_bad", "running", 6 * MIN);
     const good = known(h, "ses_good", "running", 6 * MIN);
-    const pause = h.substrate.pauseActor.bind(h.substrate);
-    h.substrate.pauseActor = async (name) => {
+    const suspend = h.substrate.suspendActor.bind(h.substrate);
+    h.substrate.suspendActor = async (name) => {
       if (name === bad) throw new Error("worker gone");
-      return pause(name);
+      return suspend(name);
     };
     await h.pass();
     expect(h.substrate.actors.get(bad)?.state).toBe("running");
-    expect(h.substrate.actors.get(good)?.state).toBe("paused");
+    expect(h.substrate.actors.get(good)?.state).toBe("suspended");
   });
 
   it("a sandbox gone between the pass's read and its queue is left alone", async () => {
@@ -513,7 +509,7 @@ describe("failures and races", () => {
       if (read === 1) h.substrate.actors.delete(name);
     };
     await h.pass();
-    expect(h.substrate.calls).not.toContain(`pauseActor ${name}`);
+    expect(h.substrate.calls).not.toContain(`suspendActor ${name}`);
   });
 
   it("an orphan named by an ensure while it waited in the queue is not suspended", async () => {

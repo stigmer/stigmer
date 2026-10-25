@@ -6,41 +6,28 @@
  *
  *   - A busy session is never touched: a run that is pending, running,
  *     waiting on a person or paused keeps its sandbox running.
- *   - running and idle for `pauseAfter`: pause (the sandbox stopped, its
- *     workspace kept on its node; the next wakeup starts a fresh runner
- *     over it there).
- *   - paused and idle for `suspendAfter`: suspend (the workspace committed
- *     to storage and the node let go; the next wakeup starts a fresh
- *     runner over it on any worker).
- *   - A running sandbox idle past `suspendAfter` is paused first and
- *     suspended on a later pass: one rule per step, and every suspend
- *     comes from paused, where no turn can be in flight.
+ *   - running and idle for `suspendAfter`: suspend (the sandbox stopped,
+ *     its workspace kept on its node and copied to storage in the
+ *     background; the next wakeup starts a fresh runner over it, on its
+ *     node or, once that is gone, on any worker).
  *   - Every other state is mid-transition or already asleep: nothing.
  */
 import type { SubstrateSandboxState } from "./driver.js";
 
-export type IdleAction = "none" | "pause" | "suspend";
+export type IdleAction = "none" | "suspend";
 
 export interface IdleInput {
   readonly state: SubstrateSandboxState;
   readonly busy: boolean;
   readonly lastActiveAt: Date;
   readonly now: Date;
-  readonly pauseAfterMs: number;
   readonly suspendAfterMs: number;
 }
 
 export function decideIdle(input: IdleInput): IdleAction {
-  if (input.busy) {
+  if (input.busy || input.state !== "running") {
     return "none";
   }
   const idleMs = input.now.getTime() - input.lastActiveAt.getTime();
-  switch (input.state) {
-    case "running":
-      return idleMs >= input.pauseAfterMs ? "pause" : "none";
-    case "paused":
-      return idleMs >= input.suspendAfterMs ? "suspend" : "none";
-    default:
-      return "none";
-  }
+  return idleMs >= input.suspendAfterMs ? "suspend" : "none";
 }
