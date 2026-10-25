@@ -85,7 +85,7 @@ describe("run-turn: the deterministic fake adapter through the real runtime", ()
 
     it("the approval round trip resumes on the transcript, not the thread id: the WAITING row is carried and settled, and no session write happens", async () => {
       clock.reset();
-      const { driver } = await assertApprovalRoundTrip(harness, "det-approval");
+      const { driver } = await assertApprovalRoundTrip(harness, undefined, "det-approval");
       expect(driver.record.persistedPhases).toEqual([
         RunPhase.RUN_WAITING_FOR_APPROVAL,
         RunPhase.RUN_IN_PROGRESS,

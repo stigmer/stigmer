@@ -73,6 +73,11 @@
  * that cannot fail proves nothing. Every message names the subject. Each
  * function requires a booted adapter; {@link describeHarnessContract} boots.
  *
+ * A harness that cannot yet pause at a gated call marks invariants 2, 3 and
+ * 8 by the issue that will make it ({@link HarnessContractOptions.knownGaps},
+ * `../known-gap.ts`): each passes while the call is refused where it would
+ * wait, and fails the day the pause lands, so the fix removes the mark.
+ *
  * Above the contract line the pause primitives are indistinguishable: both
  * end a turn `awaiting_approval`, both take the decisions on reinvocation.
  * The kit therefore never branches on `capabilities.pausePrimitive`, and the
@@ -97,6 +102,7 @@ import type { TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.
 import type { TurnInput, TurnOutcome, UsageDelta } from "../../harness/types.js";
 import type { ProposedAction } from "../approval-contract/types.js";
 import { emptyStatus, findToolCallRow } from "../proto-helpers.js";
+import { expectKnownGap, type KnownGap, type TodayOutcome } from "../known-gap.js";
 import { turnInputFixture } from "../turn-input-fixture.js";
 import { KitMessageQueue } from "./message-queue.js";
 import { RecordingTurnSink } from "./recording-sink.js";
@@ -379,18 +385,20 @@ export async function assertEveryExitIsAnOutcome(subject: HarnessContractSubject
  * turn must end `awaiting_approval` — not `completed`, which would tell the
  * workflow nothing is pending.
  */
-export async function assertProposalIsWaitingAndUnexecuted(subject: HarnessContractSubject): Promise<void> {
+export async function assertProposalIsWaitingAndUnexecuted(subject: HarnessContractSubject, gap?: string): Promise<void> {
   const driver = new ExecutionDriver(subject, "inv2");
   const id = "inv2-write";
   const { outcome, sink } = await driver.turn([scenario.say("about to write"), scenario.propose(id, WRITE_ALPHA), scenario.say("after")]);
+  await expectKnownGap(gapFor(gap, refusedInsteadOfAsked(subject, id, () => ({ outcome, rows: sink.rows }))), () => {
 
-  expect(outcome.kind, `${subject.name}: a turn that proposes an undecided action must end awaiting_approval`).toBe("awaiting_approval");
-  const row = findToolCallRow(sink.rows, id);
-  expect(row, `${subject.name}: the proposal must be a tool-call row on sink.rows when awaiting_approval resolves`).toBeDefined();
-  expect(row?.status, `${subject.name}: the proposal's row must be WAITING_APPROVAL`).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
-  expect(row?.requiresApproval, `${subject.name}: the proposal's row must carry requiresApproval`).toBe(true);
-  expect(row?.approvalAction, `${subject.name}: the adapter must never write approvalAction (the runtime's seed copies it from the log)`).toBe(ApprovalAction.UNSPECIFIED);
-  expect(subject.executionCount(id), `${subject.name}: an undecided proposal must not execute in its own turn`).toBe(0);
+    expect(outcome.kind, `${subject.name}: a turn that proposes an undecided action must end awaiting_approval`).toBe("awaiting_approval");
+    const row = findToolCallRow(sink.rows, id);
+    expect(row, `${subject.name}: the proposal must be a tool-call row on sink.rows when awaiting_approval resolves`).toBeDefined();
+    expect(row?.status, `${subject.name}: the proposal's row must be WAITING_APPROVAL`).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(row?.requiresApproval, `${subject.name}: the proposal's row must carry requiresApproval`).toBe(true);
+    expect(row?.approvalAction, `${subject.name}: the adapter must never write approvalAction (the runtime's seed copies it from the log)`).toBe(ApprovalAction.UNSPECIFIED);
+    expect(subject.executionCount(id), `${subject.name}: an undecided proposal must not execute in its own turn`).toBe(0);
+  });
 }
 
 // ── Invariant 3 ─────────────────────────────────────────────────────────────
@@ -411,37 +419,39 @@ export async function assertProposalIsWaitingAndUnexecuted(subject: HarnessContr
  * task, and an engine that remembers its runs (a `checkpoint` harness)
  * settles a finished one with no model call.
  */
-export async function assertDecisionsExecuteExactlyOnce(subject: HarnessContractSubject): Promise<void> {
+export async function assertDecisionsExecuteExactlyOnce(subject: HarnessContractSubject, gap?: string): Promise<void> {
   const driver = new ExecutionDriver(subject, "inv3");
 
   const approved = "inv3-approve";
   const later = "inv3-later";
   const first = await driver.turn([scenario.propose(approved, WRITE_ALPHA)]);
-  expect(first.outcome.kind, `${subject.name}: proposal must end awaiting_approval`).toBe("awaiting_approval");
-  driver.decide(approved, ApprovalAction.APPROVE);
+  await expectKnownGap(gapFor(gap, refusedInsteadOfAsked(subject, approved, () => ({ outcome: first.outcome, rows: first.sink.rows }))), async () => {
+    expect(first.outcome.kind, `${subject.name}: proposal must end awaiting_approval`).toBe("awaiting_approval");
+    driver.decide(approved, ApprovalAction.APPROVE);
 
-  const resumed = await driver.turn([scenario.propose(approved, WRITE_ALPHA), scenario.say("done"), scenario.propose(later, WRITE_BETA)]);
-  expect(resumed.outcome.kind, `${subject.name}: after APPROVE the turn must run on, here to its next proposal`).toBe("awaiting_approval");
-  expect(subject.executionCount(approved), `${subject.name}: an approved action must execute exactly once`).toBe(1);
-  expect(findToolCallRow(resumed.sink.rows, approved)?.status, `${subject.name}: the approved row must be carried to COMPLETED`).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-  driver.decide(later, ApprovalAction.APPROVE);
+    const resumed = await driver.turn([scenario.propose(approved, WRITE_ALPHA), scenario.say("done"), scenario.propose(later, WRITE_BETA)]);
+    expect(resumed.outcome.kind, `${subject.name}: after APPROVE the turn must run on, here to its next proposal`).toBe("awaiting_approval");
+    expect(subject.executionCount(approved), `${subject.name}: an approved action must execute exactly once`).toBe(1);
+    expect(findToolCallRow(resumed.sink.rows, approved)?.status, `${subject.name}: the approved row must be carried to COMPLETED`).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    driver.decide(later, ApprovalAction.APPROVE);
 
-  const again = await driver.turn([scenario.propose(approved, WRITE_ALPHA), scenario.say("done"), scenario.propose(later, WRITE_BETA), scenario.say("again")]);
-  expect(again.outcome.kind, `${subject.name}: a settled proposal seen again must not re-gate`).toBe("completed");
-  expect(subject.executionCount(approved), `${subject.name}: reinvoked again after the approval, the action must still have executed exactly once`).toBe(1);
-  expect(subject.executionCount(later), `${subject.name}: the later cycle's approved action executes once`).toBe(1);
+    const again = await driver.turn([scenario.propose(approved, WRITE_ALPHA), scenario.say("done"), scenario.propose(later, WRITE_BETA), scenario.say("again")]);
+    expect(again.outcome.kind, `${subject.name}: a settled proposal seen again must not re-gate`).toBe("completed");
+    expect(subject.executionCount(approved), `${subject.name}: reinvoked again after the approval, the action must still have executed exactly once`).toBe(1);
+    expect(subject.executionCount(later), `${subject.name}: the later cycle's approved action executes once`).toBe(1);
 
-  for (const [label, action] of [["REJECT", ApprovalAction.REJECT], ["SKIP", ApprovalAction.SKIP]] as const) {
-    const id = `inv3-${label.toLowerCase()}`;
-    const deciding = new ExecutionDriver(subject, id);
-    const proposed = await deciding.turn([scenario.propose(id, WRITE_ALPHA)]);
-    expect(proposed.outcome.kind, `${subject.name}: proposal must end awaiting_approval`).toBe("awaiting_approval");
-    deciding.decide(id, action);
-    const decided = await deciding.turn([scenario.propose(id, WRITE_ALPHA), scenario.say("moving on")]);
-    expect(decided.outcome.kind, `${subject.name}: after ${label} the turn must continue to completion`).toBe("completed");
-    expect(subject.executionCount(id), `${subject.name}: a ${label}-ed action must never execute`).toBe(0);
-    expect(findToolCallRow(decided.sink.rows, id)?.status, `${subject.name}: a ${label}-ed action must never be reported as executed`).not.toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
-  }
+    for (const [label, action] of [["REJECT", ApprovalAction.REJECT], ["SKIP", ApprovalAction.SKIP]] as const) {
+      const id = `inv3-${label.toLowerCase()}`;
+      const deciding = new ExecutionDriver(subject, id);
+      const proposed = await deciding.turn([scenario.propose(id, WRITE_ALPHA)]);
+      expect(proposed.outcome.kind, `${subject.name}: proposal must end awaiting_approval`).toBe("awaiting_approval");
+      deciding.decide(id, action);
+      const decided = await deciding.turn([scenario.propose(id, WRITE_ALPHA), scenario.say("moving on")]);
+      expect(decided.outcome.kind, `${subject.name}: after ${label} the turn must continue to completion`).toBe("completed");
+      expect(subject.executionCount(id), `${subject.name}: a ${label}-ed action must never execute`).toBe(0);
+      expect(findToolCallRow(decided.sink.rows, id)?.status, `${subject.name}: a ${label}-ed action must never be reported as executed`).not.toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    }
+  });
 }
 
 // ── Invariant 4 ─────────────────────────────────────────────────────────────
@@ -602,7 +612,7 @@ export async function assertLifetimesResolve(subject: HarnessContractSubject): P
  * per-turn state" made observable — the property `maxConcurrentActivities`
  * relies on.
  */
-export async function assertConcurrentTurnsAreIndependent(subject: HarnessContractSubject, boundMs = INTERRUPT_SETTLE_BOUND_MS): Promise<void> {
+export async function assertConcurrentTurnsAreIndependent(subject: HarnessContractSubject, boundMs = INTERRUPT_SETTLE_BOUND_MS, gap?: string): Promise<void> {
   const hangingExecution = new ExecutionDriver(subject, "inv8-hanging");
   const busyExecution = new ExecutionDriver(subject, "inv8-busy");
   const id = "inv8-busy-write";
@@ -611,18 +621,63 @@ export async function assertConcurrentTurnsAreIndependent(subject: HarnessContra
   const hanging = hangingExecution.begin([scenario.say("parked"), scenario.hang()]);
   await settleWithinBound(subject, parked, "waiting for the first execution to park on its hang", boundMs);
 
+  // Whatever the busy execution does, the parked turn is stopped before the invariant returns.
+  let stoppedOutcome: TurnOutcome | undefined;
+  const stopHanging = async (): Promise<TurnOutcome> => {
+    if (stoppedOutcome === undefined) {
+      hanging.sink.abort("kit: stop the parked turn");
+      stoppedOutcome = await settleWithinBound(subject, hanging.settled, "after the hanging turn was stopped", boundMs);
+    }
+    return stoppedOutcome;
+  };
   const proposed = await settleWithinBound(subject, busyExecution.turn([scenario.propose(id, WRITE_ALPHA)]), "on a second execution while another turn hangs", boundMs);
-  expect(proposed.outcome.kind, `${subject.name}: a second execution's proposal must settle while another turn hangs`).toBe("awaiting_approval");
-  busyExecution.decide(id, ApprovalAction.APPROVE);
-  const resumed = await settleWithinBound(subject, busyExecution.turn([scenario.propose(id, WRITE_ALPHA)]), "on a second execution's reinvocation while another turn hangs", boundMs);
-  expect(resumed.outcome.kind, `${subject.name}: a second execution's approved turn must complete while another turn hangs`).toBe("completed");
-  expect(subject.executionCount(id), `${subject.name}: the busy execution's action must execute exactly once`).toBe(1);
+  try {
+    await expectKnownGap(gapFor(gap, refusedInsteadOfAsked(subject, id, () => ({ outcome: proposed.outcome, rows: proposed.sink.rows }))), async () => {
+      expect(proposed.outcome.kind, `${subject.name}: a second execution's proposal must settle while another turn hangs`).toBe("awaiting_approval");
+      busyExecution.decide(id, ApprovalAction.APPROVE);
+      const resumed = await settleWithinBound(subject, busyExecution.turn([scenario.propose(id, WRITE_ALPHA)]), "on a second execution's reinvocation while another turn hangs", boundMs);
+      expect(resumed.outcome.kind, `${subject.name}: a second execution's approved turn must complete while another turn hangs`).toBe("completed");
+      expect(subject.executionCount(id), `${subject.name}: the busy execution's action must execute exactly once`).toBe(1);
 
-  hanging.sink.abort("kit: stop the parked turn");
-  const stopped = await settleWithinBound(subject, hanging.settled, "after the hanging turn was stopped", boundMs);
-  expect(stopped.kind, `${subject.name}: the hanging turn must settle interrupted, and only it`).toBe("interrupted");
-  expect(subject.executionCount(id), `${subject.name}: stopping one execution must not touch another's execution count`).toBe(1);
-  expect(findToolCallRow(hanging.sink.rows, id), `${subject.name}: one execution's rows must never appear on another's status`).toBeUndefined();
+      const stopped = await stopHanging();
+      expect(stopped.kind, `${subject.name}: the hanging turn must settle interrupted, and only it`).toBe("interrupted");
+      expect(subject.executionCount(id), `${subject.name}: stopping one execution must not touch another's execution count`).toBe(1);
+      expect(findToolCallRow(hanging.sink.rows, id), `${subject.name}: one execution's rows must never appear on another's status`).toBeUndefined();
+    });
+  } finally {
+    const stopped = await stopHanging();
+    expect(stopped.kind, `${subject.name}: the hanging turn must settle interrupted`).toBe("interrupted");
+  }
+}
+
+// ── The known gap on the approval invariants ────────────────────────────────
+
+/** The adapter-half invariants that drive a person's approval, by the name a registration's `knownGaps` keys them on. */
+export type ApprovalInvariant = "proposal-waits" | "decisions-execute-once" | "concurrent-turns";
+
+/** What a registration may say beyond the subject (see {@link describeHarnessContract}). */
+export interface HarnessContractOptions {
+  /** The approval invariants that are a known gap on this subject, each with the open issue that names it (`<owner>/<repo>#<n>`). */
+  readonly knownGaps?: Partial<Readonly<Record<ApprovalInvariant, string>>>;
+}
+
+function gapFor(issue: string | undefined, today: TodayOutcome): KnownGap | undefined {
+  return issue ? { issue, today } : undefined;
+}
+
+/**
+ * Today's outcome every approval gap shares: the gated call is refused
+ * where it would wait for a person, never runs, and the turn ends without
+ * waiting. `turn` is read when the mark asks, after the invariant failed.
+ */
+function refusedInsteadOfAsked(subject: HarnessContractSubject, toolCallId: string, turn: () => { readonly outcome: TurnOutcome; readonly rows: TurnRows }): TodayOutcome {
+  return {
+    says: "the gated call is refused where it would wait for a person: it never runs and the turn ends without waiting",
+    holds: () => {
+      const { outcome, rows } = turn();
+      return outcome.kind !== "awaiting_approval" && subject.executionCount(toolCallId) === 0 && findToolCallRow(rows, toolCallId)?.status === ToolCallStatus.TOOL_CALL_FAILED;
+    },
+  };
 }
 
 // ── The runnable suite ──────────────────────────────────────────────────────
@@ -632,7 +687,7 @@ export async function assertConcurrentTurnsAreIndependent(subject: HarnessContra
  * once before the first invariant and shuts it down after the last, as the
  * registry does around a worker's life (`bootHarnesses` / `shutdownHarnesses`).
  */
-export function describeHarnessContract(subject: HarnessContractSubject): void {
+export function describeHarnessContract(subject: HarnessContractSubject, options: HarnessContractOptions = {}): void {
   describe(`harness contract — ${subject.name}`, () => {
     beforeAll(async () => {
       await subject.adapter.boot(subject.config);
@@ -645,10 +700,10 @@ export function describeHarnessContract(subject: HarnessContractSubject): void {
       await assertEveryExitIsAnOutcome(subject);
     });
     it("surfaces a proposal as a WAITING row and never executes it in its turn (invariant 2)", async () => {
-      await assertProposalIsWaitingAndUnexecuted(subject);
+      await assertProposalIsWaitingAndUnexecuted(subject, options.knownGaps?.["proposal-waits"]);
     });
     it("executes an approval exactly once and a rejection or skip never (invariant 3)", async () => {
-      await assertDecisionsExecuteExactlyOnce(subject);
+      await assertDecisionsExecuteExactlyOnce(subject, options.knownGaps?.["decisions-execute-once"]);
     });
     it("settles interrupted promptly when stopSignal aborts and does nothing after it (invariant 4)", async () => {
       await assertStopSignalInterrupts(subject);
@@ -663,7 +718,7 @@ export function describeHarnessContract(subject: HarnessContractSubject): void {
       await assertLifetimesResolve(subject);
     });
     it("serves concurrent turns on one adapter object independently (invariant 8)", async () => {
-      await assertConcurrentTurnsAreIndependent(subject);
+      await assertConcurrentTurnsAreIndependent(subject, INTERRUPT_SETTLE_BOUND_MS, options.knownGaps?.["concurrent-turns"]);
     });
   });
 }
