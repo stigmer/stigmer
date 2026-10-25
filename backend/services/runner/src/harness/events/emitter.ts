@@ -36,6 +36,22 @@
  * So narration a boundary later blanks sits behind an unsealed row and
  * reaches neither the log nor a preview.
  *
+ * Background commands. A command the agent started in the background has
+ * an entry in `rows.background_commands` (the builder's projection of its
+ * registry's facts). Its `stigmer.background_command.status` events,
+ * `running` and then `ended`, are written only once the starting call's
+ * result is in the log or queued before them, so the log never holds a
+ * status for a tool use it has not shown; each in the starting call's
+ * thread. While it runs, its output is previewed as
+ * `stigmer.tool_output_delta` under the starting call's tool use, which
+ * a client appends to the command, not to the call (the call's result is
+ * in): only once the running status is in the log, held until then, and
+ * dropped once the ended status is known, which carries the whole output.
+ * Held output never rides the append that carries its running status: the
+ * log publishes an append's previews before its events, so a client would
+ * see output for a command it has not heard of. It leaves in an append of
+ * previews alone, right after the write that sent the status.
+ *
  * File review. A change set the turn captured (a CANDIDATE_CAPTURED on the
  * turn's own ledger, `rows.file_review_event_stream`) is written as one
  * `stigmer.file_review.changes`, read from that ledger at the same
@@ -116,6 +132,8 @@ import { isToolCallRowHidden } from "../../shared/tool-row.js";
 import type { OperationsSnapshot } from "../open-operations.js";
 import type { TranscriptEvent } from "../transcript/events.js";
 import {
+  backgroundEndedEventId,
+  backgroundRunningEventId,
   fileReviewChangesEventId,
   fileReviewReconciledEventId,
   harnessNoteEventId,
@@ -176,6 +194,13 @@ const CREDENTIAL_RETRY_MS = 60_000;
 /** The refusals that may mean the credential, not the event: re-acquired once before the batch is judged. */
 const CREDENTIAL_REFUSALS: ReadonlySet<Code> = new Set([Code.Unauthenticated, Code.PermissionDenied]);
 
+/**
+ * The most characters of one background command's output held while its
+ * running status is not yet in the log: more is dropped, since the ended
+ * status carries the whole output.
+ */
+export const BACKGROUND_PREVIEW_HOLD_MAX_CHARS = 256 * 1024;
+
 /** The most operations one liveness names: `RunLiveness.operations`' bound in the contract. */
 export const LIVENESS_MAX_OPERATIONS = 256;
 
@@ -227,7 +252,8 @@ interface Thread {
 type PendingPreview =
   | { readonly kind: "text"; readonly subAgentId?: string; readonly index: number; readonly text: string }
   | { readonly kind: "thinking"; readonly subAgentId?: string; readonly index: number }
-  | { readonly kind: "tool-output"; readonly callId: string; readonly delta: string };
+  | { readonly kind: "tool-output"; readonly callId: string; readonly delta: string }
+  | { readonly kind: "background-output"; readonly callId: string; readonly delta: string };
 
 /**
  * The ask's policy source as the log's word, the enum value without its
@@ -282,6 +308,8 @@ export class SessionEventEmitter {
   private queue: SessionEvent[] = [];
   private readonly queued = new Set<string>();
   private pendingPreviews: PendingPreview[] = [];
+  /** The characters of each background command's output that wait to be previewed, by call id. */
+  private readonly pendingBackgroundChars = new Map<string, number>();
   /** Previewed message ids already opened with an event_start. */
   private readonly previewStarted = new Set<string>();
   /** Message ids never to preview again (their previews were held back once). */
@@ -350,14 +378,31 @@ export class SessionEventEmitter {
       case "tool_output_delta":
         if (event.delta !== "") this.pendingPreviews.push({ kind: "tool-output", callId: event.callId, delta: event.delta });
         return;
+      case "background_output_delta": {
+        if (event.delta === "") return;
+        const waiting = this.pendingBackgroundChars.get(event.callId) ?? 0;
+        if (waiting + event.delta.length > BACKGROUND_PREVIEW_HOLD_MAX_CHARS) return;
+        this.pendingBackgroundChars.set(event.callId, waiting + event.delta.length);
+        this.pendingPreviews.push({ kind: "background-output", callId: event.callId, delta: event.delta });
+        return;
+      }
       default:
         return;
     }
   }
 
-  /** Whether a running tool's output waits to be sent: what the runtime's pump asks before it asks for a flush. */
+  /**
+   * Whether a running tool's output, or a background command's that may be
+   * sent now, waits: what the runtime's pump asks before it asks for a
+   * flush. A background command's held output leaves right after the write
+   * that sends its running status ({@link flush}).
+   */
   get toolOutputPending(): boolean {
-    return this.pendingPreviews.some((preview) => preview.kind === "tool-output");
+    return this.pendingPreviews.some(
+      (preview) =>
+        preview.kind === "tool-output" ||
+        (preview.kind === "background-output" && this.backgroundOutput(preview.callId) === "send"),
+    );
   }
 
   /**
@@ -374,6 +419,12 @@ export class SessionEventEmitter {
     const previews: SessionEventPreview[] = [];
     const rest: PendingPreview[] = [];
     for (const preview of this.pendingPreviews) {
+      if (preview.kind === "background-output") {
+        const fate = this.backgroundOutput(preview.callId);
+        if (fate === "hold") rest.push(preview);
+        else this.backgroundPreviewDone(preview, fate === "send" ? previews : undefined);
+        continue;
+      }
       if (preview.kind !== "tool-output") {
         rest.push(preview);
         continue;
@@ -456,6 +507,9 @@ export class SessionEventEmitter {
     const previews = this.decidePreviews(opts.final);
     if (this.queue.length === 0 && previews.length === 0) return;
     await this.append(previews, opts.final);
+    // Output held for a command whose running status this write sent: alone,
+    // after it (the module header).
+    if (!opts.final && this.toolOutputPending) await this.flushToolOutput();
   }
 
   // ── Reading the rows ──────────────────────────────────────────────────────
@@ -495,12 +549,50 @@ export class SessionEventEmitter {
       if (this.queue.length === before) break;
     }
 
+    this.collectBackgroundCommands(rows);
     this.collectFileReviewChanges(rows);
 
     if (rows.structuredOutput !== undefined && this.frontiers.get("")?.kind === "end" && final) {
       this.push("", structuredOutputEventId(runId), {
         case: "stigmerAgentStructuredOutput",
         value: { id: structuredOutputEventId(runId), output: rows.structuredOutput },
+      });
+    }
+  }
+
+  /**
+   * Each background command's status events, once its starting call's
+   * result is in the log or queued (the module header).
+   */
+  private collectBackgroundCommands(rows: TurnRows): void {
+    if (rows.backgroundCommands.length === 0) return;
+    const runId = this.deps.runId;
+    const threads = callThreads(runId, rows);
+    for (const command of rows.backgroundCommands) {
+      const toolUseId = toolUseEventId(runId, command.callId);
+      if (!this.known(toolResultEventId(toolUseId))) continue;
+      const sessionThreadId = threads.get(command.callId) ?? "";
+      const runningId = backgroundRunningEventId(toolUseId);
+      this.push(sessionThreadId, runningId, {
+        case: "stigmerBackgroundCommandStatus",
+        value: { id: runningId, toolUseId, sessionThreadId, phase: "running", timeoutSeconds: command.timeoutSeconds },
+      });
+      if (command.ending === "") continue;
+      const endedId = backgroundEndedEventId(toolUseId);
+      this.push(sessionThreadId, endedId, {
+        case: "stigmerBackgroundCommandStatus",
+        value: {
+          id: endedId,
+          toolUseId,
+          sessionThreadId,
+          phase: "ended",
+          ending: command.ending,
+          ...(command.exitCode === undefined ? {} : { exitCode: command.exitCode }),
+          stoppedBy: command.stoppedBy,
+          stoppedByToolUseId: command.stoppedByCallId === "" ? "" : toolUseEventId(runId, command.stoppedByCallId),
+          output: command.output,
+          endedAt: command.endedAt,
+        },
       });
     }
   }
@@ -796,9 +888,19 @@ export class SessionEventEmitter {
   private decidePreviews(final: boolean): SessionEventPreview[] {
     const pending = this.pendingPreviews;
     this.pendingPreviews = [];
-    if (final) return [];
+    if (final) {
+      this.pendingBackgroundChars.clear();
+      return [];
+    }
     const out: SessionEventPreview[] = [];
+    const held: PendingPreview[] = [];
     for (const preview of pending) {
+      if (preview.kind === "background-output") {
+        const fate = this.backgroundOutput(preview.callId);
+        if (fate === "hold") held.push(preview);
+        else this.backgroundPreviewDone(preview, fate === "send" ? out : undefined);
+        continue;
+      }
       if (preview.kind === "tool-output") {
         const sent = this.toolOutputPreview(preview.callId, preview.delta);
         if (sent !== undefined) out.push(sent);
@@ -829,7 +931,34 @@ export class SessionEventEmitter {
         }));
       }
     }
+    this.pendingPreviews = [...held, ...this.pendingPreviews];
     return out;
+  }
+
+  /**
+   * What becomes of a background command's output fragment (the module
+   * header): `drop` once its ended status is known; `send` once its running
+   * status is in the log; `hold` until then.
+   */
+  private backgroundOutput(callId: string): "send" | "hold" | "drop" {
+    const toolUseId = toolUseEventId(this.deps.runId, callId);
+    if (this.known(backgroundEndedEventId(toolUseId))) return "drop";
+    return this.sent.has(backgroundRunningEventId(toolUseId)) ? "send" : "hold";
+  }
+
+  /** A background fragment leaves the queue: into `out` as its preview, or dropped when `out` is undefined. */
+  private backgroundPreviewDone(preview: { readonly callId: string; readonly delta: string }, out: SessionEventPreview[] | undefined): void {
+    const waiting = (this.pendingBackgroundChars.get(preview.callId) ?? 0) - preview.delta.length;
+    if (waiting > 0) this.pendingBackgroundChars.set(preview.callId, waiting);
+    else this.pendingBackgroundChars.delete(preview.callId);
+    out?.push(
+      create(SessionEventPreviewSchema, {
+        preview: {
+          case: "stigmerToolOutputDelta",
+          value: { toolUseId: toolUseEventId(this.deps.runId, preview.callId), delta: preview.delta },
+        },
+      }),
+    );
   }
 
   /** A running call's output as its preview; none once the call's result is in the log, where the output is whole. */
@@ -987,6 +1116,21 @@ export function nextScopeIndexes(runId: string, ids: readonly string[]): Map<str
     next.set(prefix, Math.max(next.get(prefix) ?? 0, Number(match[2]) + 1));
   }
   return next;
+}
+
+/** The thread each tool call of `rows` ran in, by call id: "" for the root's, the sub-agent's thread for one of its own. */
+function callThreads(runId: string, rows: TurnRows): Map<string, string> {
+  const threads = new Map<string, string>();
+  for (const message of rows.messages) {
+    for (const row of message.toolCalls) threads.set(row.id, "");
+  }
+  for (const subAgent of rows.subAgentRuns) {
+    const thread = threadId(runId, subAgent.id);
+    for (const message of subAgent.messages) {
+      for (const row of message.toolCalls) threads.set(row.id, thread);
+    }
+  }
+  return threads;
 }
 
 /** A tool's name as a liveness carries it: within the contract's bound, and never empty. */

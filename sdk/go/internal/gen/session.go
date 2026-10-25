@@ -74,6 +74,11 @@ func (s *SessionClient) GrantPermission(ctx context.Context, input *sessionv1.Gr
 	return resp, wrapErr(err)
 }
 
+func (s *SessionClient) StopBackgroundCommand(ctx context.Context, input *sessionv1.StopBackgroundCommandInput) (*sessionv1.SessionEvent, error) {
+	resp, err := s.command.StopBackgroundCommand(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (s *SessionClient) Interrupt(ctx context.Context, input *sessionv1.InterruptSessionInput) (*sessionv1.InterruptSessionResponse, error) {
 	resp, err := s.command.Interrupt(ctx, input)
 	return resp, wrapErr(err)

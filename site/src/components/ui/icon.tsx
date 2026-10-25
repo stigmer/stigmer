@@ -25,6 +25,13 @@ import {
   Shield,
   Download,
   Monitor,
+  Clock,
+  Building2,
+  File,
+  KeyRound,
+  User,
+  Pause,
+  Play,
   type LucideIcon,
 } from "lucide-react";
 
@@ -56,6 +63,13 @@ const iconMap = {
   shield: Shield,
   download: Download,
   monitor: Monitor,
+  clock: Clock,
+  "building-2": Building2,
+  file: File,
+  "key-round": KeyRound,
+  user: User,
+  pause: Pause,
+  play: Play,
 } as const;
 
 /**

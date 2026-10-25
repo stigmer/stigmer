@@ -5,9 +5,9 @@
  * Queue architecture (worker_config.go's contract):
  *   - This worker polls ONLY the stigmer queue (agent_execution_stigmer):
  *     the invoke workflow + the server-side activities.
- *   - The TS unified runner polls the runner queue and owns EnsureThread,
- *     ExecuteDeepAgent, ExecuteCursor, GenerateSessionSubject. Each
- *     worker registers ONLY what it implements — a worker registering the
+ *   - The TS unified runner polls the runner queue and owns the
+ *     activities declared in `@stigmer/temporal-codecs/activity-names`.
+ *     Each worker registers ONLY what it implements — a worker registering the
  *     other side's names would break queue-based routing.
  *
  * The workflow type registers under its byte-pinned slash name via the

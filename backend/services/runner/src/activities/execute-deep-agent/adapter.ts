@@ -21,7 +21,13 @@
  * Nothing is parked per session, and the header says so where the contract
  * asks: the sqlite saver is opened and closed per turn and the MCP
  * subprocesses are connected and closed per turn (`turn.ts`), so
- * `shutdown` and `releaseSession` resolve as no-ops.
+ * `releaseSession` resolves as a no-op. The one thing `shutdown` reaches is
+ * the background commands of the turns still running
+ * (`shared/shell/background-commands.ts`): each `runTurn` creates its
+ * invocation's registry, which reports each command to the turn's
+ * transcript (`background-facts.ts`), and the adapter keeps the live ones
+ * only so that a host stopping under a running turn stops their commands
+ * too.
  *
  * What this adapter never does: throw out of `runTurn` (an engine failure is
  * `failed` on the `internal` surface; the recursion limit is
@@ -36,6 +42,9 @@
 
 import type { Config } from "../../config.js";
 import type { HarnessAdapter, TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
+import { BackgroundCommands } from "../../shared/shell/background-commands.js";
+import { loadStreamingConfig } from "../../shared/streaming-scheduler.js";
+import { backgroundFacts } from "./background-facts.js";
 import { DEEP_AGENT_CAPABILITIES } from "./deep-agent-capabilities.js";
 import type { DeepAgentAdapterConfig } from "./turn-setup.js";
 
@@ -60,6 +69,8 @@ interface BootedDeepAgentHarness {
 
 export function createDeepAgentAdapter(): HarnessAdapter {
   let booted: BootedDeepAgentHarness | undefined;
+  /** The background commands of each turn running now (the header). */
+  const live = new Set<BackgroundCommands>();
 
   return {
     name: "deep-agent",
@@ -80,8 +91,10 @@ export function createDeepAgentAdapter(): HarnessAdapter {
       booted = { config: resolveDeepAgentConfig(bootConfig), runDeepAgentTurn };
     },
 
-    /** Nothing is held across turns (see the header). */
-    async shutdown(): Promise<void> {},
+    /** Nothing is held across turns; the running turns' background commands are stopped (see the header). */
+    async shutdown(): Promise<void> {
+      await Promise.all([...live].map((commands) => commands.stopAll()));
+    },
 
     /** Nothing is parked per session (see the header); an unknown id is a no-op by construction. */
     async releaseSession(_sessionId: string): Promise<void> {},
@@ -90,7 +103,13 @@ export function createDeepAgentAdapter(): HarnessAdapter {
       if (booted === undefined) {
         throw new Error("deep-agent adapter: runTurn before boot (the registry boots every adapter before the worker polls)");
       }
-      return booted.runDeepAgentTurn(input, sink, booted.config);
+      const commands = new BackgroundCommands(backgroundFacts(sink, loadStreamingConfig().minIntervalMs));
+      live.add(commands);
+      try {
+        return await booted.runDeepAgentTurn(input, sink, booted.config, commands);
+      } finally {
+        live.delete(commands);
+      }
     },
   };
 }

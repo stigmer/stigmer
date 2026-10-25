@@ -173,6 +173,9 @@ async function getRegistry(): Promise<readonly RegistryModel[]> {
   return inflightFetch;
 }
 
+/** A registry section: the engine a model row is listed for. */
+export type RegistryHarness = "native" | "cursor" | "claude";
+
 /**
  * Whether one engine's registry section lists a model by its id: a model a
  * subagent's run defaults or a plugin agent's file names runs only then
@@ -180,7 +183,7 @@ async function getRegistry(): Promise<readonly RegistryModel[]> {
  * registry is empty (its fetch failed), so the subagent runs the turn's
  * model rather than one nobody checked.
  */
-export async function isModelListedFor(modelId: string, harness: "native" | "cursor"): Promise<boolean> {
+export async function isModelListedFor(modelId: string, harness: RegistryHarness): Promise<boolean> {
   const registry = await getRegistry();
   return registry.some((m) => m.harness === harness && m.id === modelId);
 }

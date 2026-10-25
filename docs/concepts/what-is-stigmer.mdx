@@ -23,6 +23,10 @@ runs the agent on your model provider.
   it and what it may reach, and
   [Sessions](/docs/concepts/sessions#what-a-session-keeps) says where it runs on
   your servers and on ours.
+- **It works on a job for hours, not one request.** A turn keeps going for as
+  long as the job takes, carries on where it was when the server or its runner
+  restarts, and reads a message you send while it works
+  ([A job that runs for hours](/docs/concepts/sessions#a-job-that-runs-for-hours)).
 - **It asks before acting** on anything you mark as needing a yes. The agent
   stops, a person approves or declines, and the agent carries on
   ([Approval flows](/docs/concepts/approval-flows)).
@@ -111,11 +115,11 @@ the page that explains it.
 
 ### From calling a model API
 
-A model's API answers one request at a time. It has no computer to work on,
-keeps no customer's files between turns, never stops to ask a person, and has no
-wall between one customer's data and the next. You would build each of those
-yourself, along with the queues, retries and tenant checks around them. Stigmer
-is those pieces, behind your app.
+A model's API answers one request at a time. It has no computer to work on, ends
+its work with the request, keeps no customer's files between turns, never stops
+to ask a person, and has no wall between one customer's data and the next. You
+would build each of those yourself, along with the queues, retries and tenant
+checks around them. Stigmer is those pieces, behind your app.
 
 ### From an agent framework
 

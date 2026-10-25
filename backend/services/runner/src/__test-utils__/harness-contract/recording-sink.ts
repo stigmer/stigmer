@@ -25,7 +25,7 @@ import type { RunStatus } from "@stigmer/apis/ai/stigmer/agentic/run/v1/api_pb";
 import { TurnRowsSchema, type TurnRows } from "../../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js";
 
 import { TranscriptBuilder } from "../../harness/transcript/builder.js";
-import type { TurnSink, UsageDelta } from "../../harness/types.js";
+import type { BackgroundStopChannel, TurnSink, UsageDelta } from "../../harness/types.js";
 import { NO_TURN_INPUT, type TurnInputChannel } from "../../harness/turn-input.js";
 import type { CasTouchedReader } from "../../shared/filereview/cas-touched.js";
 import { TimingRecorder } from "../../shared/cold-start-timing.js";
@@ -62,7 +62,14 @@ export class RecordingTurnSink implements TurnSink {
   readonly yieldSignal: AbortSignal;
   readonly setupTiming = new TimingRecorder();
   readonly input: TurnInputChannel;
+  readonly backgroundStops: BackgroundStopChannel = {
+    onStop: (listener) => {
+      this.backgroundStopListeners.add(listener);
+      return () => this.backgroundStopListeners.delete(listener);
+    },
+  };
 
+  private readonly backgroundStopListeners = new Set<(callId: string) => void>();
   private readonly controller = new AbortController();
   private readonly yieldController = new AbortController();
   private readonly log: SinkEvent[] = [];
@@ -89,6 +96,11 @@ export class RecordingTurnSink implements TurnSink {
   /** Stop the turn from the outside, the way the runtime would. */
   abort(reason?: unknown): void {
     this.controller.abort(reason);
+  }
+
+  /** A person stops one background command, the way the runtime's pump hands it on. */
+  stopBackground(callId: string): void {
+    for (const listener of [...this.backgroundStopListeners]) listener(callId);
   }
 
   /** Ask the turn to yield at its next durable step boundary, the way a draining runtime would. */

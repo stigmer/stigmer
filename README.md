@@ -10,8 +10,8 @@
 
 **The open-source backend for the agents in your product.** It runs behind
 your app, the way your database does. Each of your customers gets an agent with
-its own computer, one that asks before acting and keeps their data apart from
-every other customer's.
+its own computer, one that works on a job for hours, asks before acting and
+keeps their data apart from every other customer's.
 
 Run it yourself on a laptop, one server or Kubernetes, or use Stigmer Cloud.
 Agents run on your own model provider key.

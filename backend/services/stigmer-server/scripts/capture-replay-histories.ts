@@ -48,6 +48,13 @@ const activities = {
   ExecuteCursor: async () => {
     throw new Error("not used in capture scenarios");
   },
+  // The Claude engine shares native's deterministic-state flow and its
+  // scripted turns.
+  ExecuteClaude: async () => {
+    const behavior = executeBehaviors.shift();
+    if (!behavior) throw new Error("capture script exhausted");
+    return behavior();
+  },
   UpdateExecutionStatus: async () => {},
   // The HITL wait counts the turn's open gates in its session's log.
   CountOpenGates: async () => (gateCounts.length > 1 ? gateCounts.shift()! : (gateCounts[0] ?? 0)),
@@ -255,6 +262,25 @@ async function main(): Promise<void> {
     "drain-continued",
     { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1" },
     async (handle) => {
+      await handle.result();
+    },
+  );
+
+  // 8. A Claude turn's HITL cycle: the deterministic-state flow with the
+  //    Claude engine's activity — EnsureThread, ExecuteClaude WAITING, gate
+  //    re-read, approvalGateResolved, ExecuteClaude (TurnSeq 1) completed.
+  //    Freezes the third arm's command shape before a release carries it.
+  executeBehaviors = [
+    async () => slim("EXECUTION_WAITING_FOR_APPROVAL"),
+    async () => slim("EXECUTION_COMPLETED"),
+  ];
+  gateCounts = [1];
+  await capture(
+    "claude-hitl-approval",
+    { execution_id: "exec-replay", session_id: "ses-1", agent_id: "agt-1", harness: 3 },
+    async (handle) => {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await handle.signal("approvalGateResolved");
       await handle.result();
     },
   );

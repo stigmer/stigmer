@@ -25,23 +25,23 @@ An agent that uses skill references for specialized knowledge. Skill references 
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: code-reviewer
+  name: variance-reporter
   tags:
-    - code-review
-    - security
+    - variance-report
+    - accounting
 spec:
-  description: "Reviews code for best practices and security issues"
+  description: "Turns a customer's ledger into a variance report"
   instructions: |
-    You are a code review assistant. Review code for:
-    - Code quality and best practices
-    - Security vulnerabilities
-    - Performance issues
-    - Proper error handling
+    You review a customer's quarterly ledger and report how each account
+    did against its budget:
+    - Map each line to the customer's chart of accounts
+    - Flag every account over or under budget
+    - Lay out the report the way the variance-report Skill says
   skill_refs:
     - kind: skill
-      slug: code-analysis
+      slug: variance-report
     - kind: skill
-      slug: company-style-guide
+      slug: chart-of-accounts
 ```
 
 ## Agent with Plugins
@@ -52,40 +52,42 @@ An agent that uses external tools through a plugin's MCP server. The plugin refe
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: github-assistant
+  name: ledger-reader
   labels:
-    team: engineering
+    team: finance
 spec:
-  description: "Assists with GitHub operations and code management"
+  description: "Reads a customer's ledger and lists each account's balance"
   instructions: |
-    You help developers with GitHub tasks including searching code,
-    creating pull requests, and managing issues.
+    You read a customer's ledger with the ledger tools and list each
+    account's balance for the period you are given. You never post an
+    entry.
   plugins:
     - kind: plugin
-      slug: github
-  tools: [Read, Grep, mcp__plugin_github_github]
-  disallowed_tools: [mcp__plugin_github_github__delete_repository]
+      slug: ledger
+  tools: [Read, Grep, mcp__plugin_ledger_ledger]
+  disallowed_tools: [mcp__plugin_ledger_ledger__post_adjustment]
 ```
 
 ## Agent with Its Own MCP Server
 
-An agent that carries an MCP server of its own instead of a plugin, as an integrator creates it from code in one call. Only an organization admin may apply it with the server. The header names the key as `${TICKETS_API_KEY}`, so the value is read from the conversation's vaults and never stored in the agent.
+An agent that carries an MCP server of its own instead of a plugin, as an integrator creates it from code in one call. Only an organization admin may apply it with the server. The header names the key as `${LEDGER_API_KEY}`, so the value is read from the conversation's vaults and never stored in the agent.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: support-agent
+  name: variance-reporter
 spec:
-  description: "Answers support tickets"
+  description: "Turns a customer's ledger into a variance report"
   instructions: |
-    Answer support tickets. Look a ticket up before you reply.
+    Report how each account did against its budget. Read the ledger
+    before you write the report.
   mcp_servers:
-    - name: tickets
-      url: https://tickets.acme-helpdesk.example/mcp
+    - name: ledger
+      url: https://ledger.acme-books.example/mcp
       headers:
-        Authorization: Bearer ${TICKETS_API_KEY}
-  tools: [Read, mcp__tickets]
+        Authorization: Bearer ${LEDGER_API_KEY}
+  tools: [Read, mcp__ledger]
 ```
 
 ## Agent with Subagents
@@ -96,57 +98,59 @@ A parent agent that hands work to two saved agents. Each subagent is an agent of
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: code-reviewer
+  name: bank-reconciler
 spec:
-  description: "Reviews code changes for quality and security"
+  description: "Matches a customer's bank statements to their ledger entries"
   instructions: |
-    You review code for quality, security, and best practices.
-    Provide specific, actionable feedback.
+    You reconcile bank statements. Match each statement line to the
+    ledger entry it settles, and list every line left unmatched.
   plugins:
     - kind: plugin
-      slug: github
-  tools: [Read, Grep, mcp__plugin_github_github__search_code, mcp__plugin_github_github__get_file_contents]
+      slug: ledger
+  tools: [Read, Grep, mcp__plugin_ledger_ledger__get_ledger, mcp__plugin_ledger_ledger__list_accounts]
 ```
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: pr-creator
+  name: payroll-accruals
 spec:
-  description: "Creates well-formatted pull requests"
+  description: "Proposes the month's payroll accruals as ledger adjustments"
   instructions: |
-    You create pull requests with clear titles and descriptions.
-    Always summarize the changes and their purpose.
+    You work out the month's payroll accruals from the payroll run and
+    propose each one as an adjustment. Say which pay period each covers.
   plugins:
     - kind: plugin
-      slug: github
-  tools: [mcp__plugin_github_github__create_pull_request, mcp__plugin_github_github__get_file_contents]
+      slug: payroll
+    - kind: plugin
+      slug: ledger
+  tools: [mcp__plugin_payroll_payroll, mcp__plugin_ledger_ledger__post_adjustment]
 ```
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: engineering-manager
+  name: month-end-close
 spec:
-  description: "Coordinates engineering tasks with specialized subagents"
+  description: "Closes a customer's books at the end of the month"
   instructions: |
-    You coordinate engineering work. Hand work to subagents based on the task:
-    - Code reviews go to the code-reviewer subagent
-    - PR creation goes to the pr-creator subagent
+    You close a customer's books for the month. Hand work to subagents based on the task:
+    - Matching bank statements goes to the bank-reconciler subagent
+    - Payroll accruals go to the payroll-accruals subagent
   plugins:
     - kind: plugin
-      slug: github
-  tools: [Read, Grep, Agent, mcp__plugin_github_github]
+      slug: ledger
+  tools: [Read, Grep, Agent, mcp__plugin_ledger_ledger]
   subagents:
     - kind: agent
-      slug: code-reviewer
+      slug: bank-reconciler
     - kind: agent
-      slug: pr-creator
+      slug: payroll-accruals
 ```
 
-Each subagent is pinned to its latest version when `engineering-manager` is saved. Apply `engineering-manager` again to take a newer version of either.
+Each subagent is pinned to its latest version when `month-end-close` is saved. Apply `month-end-close` again to take a newer version of either.
 
 ## Full-Featured Agent
 

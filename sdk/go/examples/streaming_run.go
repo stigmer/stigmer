@@ -44,9 +44,9 @@ func StreamingRun() {
 
 	run, err := client.Run.Create(ctx, &stigmer.RunInput{
 		SessionSpec: &stigmer.SessionSpecInput{
-			AgentRef: stigmer.ResourceRef{Org: "my-org", Slug: "code-reviewer"},
+			AgentRef: stigmer.ResourceRef{Org: "my-org", Slug: "variance-reporter"},
 		},
-		Message: "Review the latest changes in the auth module",
+		Message: "Report Q3's variances for the uploaded ledger",
 		RunConfig: &stigmer.RunConfigInput{
 			ModelName:     "claude-sonnet-4-6",
 			MaxToolRounds: 25,

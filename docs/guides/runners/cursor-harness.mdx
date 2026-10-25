@@ -106,10 +106,10 @@ Set it when you create the Session:
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 
 const session = await client.session.create({
-  name: "refactor-auth-module",
+  name: "q3-variance-report",
   org: "acme",
-  subject: "Refactor auth module",
-  agentRef: { org: "acme", slug: "code-reviewer" },
+  subject: "Q3 variance report",
+  agentRef: { org: "acme", slug: "variance-reporter" },
   harness: Harness.CURSOR,
 });
 ```
@@ -119,10 +119,10 @@ const session = await client.session.create({
 
 ```go
 session, err := client.Session.Create(ctx, &stigmer.SessionInput{
-    Name:     "refactor-auth-module",
+    Name:     "q3-variance-report",
     Org:      "acme",
-    Subject:  "Refactor auth module",
-    AgentRef: stigmer.ResourceRef{Org: "acme", Slug: "code-reviewer"},
+    Subject:  "Q3 variance report",
+    AgentRef: stigmer.ResourceRef{Org: "acme", Slug: "variance-reporter"},
     Harness:  sessionv1.Harness_HARNESS_CURSOR,
 })
 ```

@@ -321,8 +321,12 @@ describe("folding several runs", () => {
     expect(harnessName(Harness.UNSPECIFIED)).toBe("native");
   });
 
-  it("a harness value this build does not know is named native, the platform default", () => {
-    expect(harnessName(99 as Harness)).toBe("native");
+  it("names Claude as its own engine", () => {
+    expect(harnessName(Harness.CLAUDE)).toBe("claude");
+  });
+
+  it("a harness value no engine owns is a defect, named rather than counted as native", () => {
+    expect(() => harnessName(99 as Harness)).toThrow(/harness 99 names no engine/);
   });
 
   it("an empty fold is zero everywhere", () => {

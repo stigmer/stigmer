@@ -31,16 +31,17 @@ Save the agent that does the work first:
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: release-notes
+  name: bank-reconciler
 spec:
-  description: "Writes release notes from the pull requests merged since a tag"
+  description: "Matches a customer's bank statements to their ledger entries"
   instructions: |
-    You write release notes. Read the pull requests merged since the tag you
-    are given, group them by area, and write one plain sentence per change.
+    You reconcile bank statements. Match each statement line to the ledger
+    entry it settles, and list every line and entry left unmatched, with its
+    date and amount.
   plugins:
     - kind: plugin
-      slug: github
-  tools: [Read, mcp__plugin_github_github__list_pull_requests]
+      slug: ledger
+  tools: [Read, mcp__plugin_ledger_ledger__get_ledger]
   harness: HARNESS_NATIVE
   run_config:
     model_name: claude-sonnet-4.5
@@ -52,19 +53,20 @@ Then list it in the agent that hands work to it:
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: pr-bot
+  name: month-end-close
 spec:
-  description: "Reviews pull requests and prepares releases"
+  description: "Closes a customer's books at the end of the month"
   instructions: |
-    You review pull requests and prepare releases. When asked for release
-    notes, hand the work to the release-notes subagent.
+    You close a customer's books for the month. Hand the matching of bank
+    statements to ledger entries to the bank-reconciler subagent, then use
+    what it reports to finish the close.
   plugins:
     - kind: plugin
-      slug: github
-  tools: [Read, Grep, Agent, mcp__plugin_github_github]
+      slug: ledger
+  tools: [Read, Grep, Agent, mcp__plugin_ledger_ledger]
   subagents:
     - kind: agent
-      slug: release-notes
+      slug: bank-reconciler
 ```
 
 A listed agent must exist when the agent that lists it is saved. A `tools` list
@@ -98,7 +100,7 @@ An agent that another agent lists cannot be deleted. The refusal names the
 agents that list it:
 
 ```text
-agent 'release-notes' is still used by agent 'pr-bot'; remove it from their subagents first
+agent 'bank-reconciler' is still used by agent 'month-end-close'; remove it from their subagents first
 ```
 
 ## Which Version Runs
@@ -117,8 +119,8 @@ What a save sends decides. A reference without a version takes the latest again,
 so `stigmer apply` of a manifest that names no version always takes each
 subagent's latest version. A save that sends the stored list back, as the
 console does when you edit the instructions, keeps every pin. When the team
-improves `release-notes`, `pr-bot` keeps the version it was saved with until
-someone saves it again; the console's agent page shows each subagent's pinned
+improves `bank-reconciler`, `month-end-close` keeps the version it was saved
+with until someone saves it again; the console's agent page shows each subagent's pinned
 version and says when a newer one exists.
 
 ## What a Saved Subagent Runs With
@@ -174,7 +176,7 @@ A plugin's agents follow Claude Code's rule for plugin subagents:
 ## Choosing Which Subagents Start
 
 In the main agent's `tools`, `Agent` lets it start any subagent, and
-`Agent(release-notes, thermos:review)` limits it to those named. Inside a
+`Agent(bank-reconciler, thermos:review)` limits it to those named. Inside a
 subagent the `Agent` tool is gone, whatever its lists say.
 
 ## Engines
@@ -186,7 +188,7 @@ cannot tell a subagent's tool call from the main agent's, so it refuses a turn
 whose saved subagent brings its own plugins, hooks, MCP servers or tool lists:
 
 ```text
-Subagent 'release-notes' brings its own plugins, hooks, MCP servers or tool lists, which the Cursor engine cannot keep to it: it cannot tell a subagent's tool call from the main agent's. Run this agent on the native engine, or remove them from 'release-notes'.
+Subagent 'bank-reconciler' brings its own plugins, hooks, MCP servers or tool lists, which the Cursor engine cannot keep to it: it cannot tell a subagent's tool call from the main agent's. Run this agent on the native engine, or remove them from 'bank-reconciler'.
 ```
 
 For the same reason it refuses a turn whose plugin subagent carries tool lists
@@ -208,18 +210,18 @@ description. A description that says what work the agent takes on routes well:
 
 ```yaml
 # Good — clear about what the agent takes on
-description: "Writes release notes from the pull requests merged since a tag"
+description: "Matches a customer's bank statements to their ledger entries"
 
 # Poor — too vague for the main agent to route
-description: "Handles release stuff"
+description: "Handles bank stuff"
 ```
 
 The main agent's `instructions` can say when to hand work over:
 
 ```yaml
 instructions: |
-  You coordinate engineering work. Hand release notes to the release-notes
-  subagent and security reviews to the security-review subagent. Handle
+  You close a customer's books. Hand bank matching to the bank-reconciler
+  subagent and payroll accruals to the payroll-accruals subagent. Handle
   everything else yourself.
 ```
 

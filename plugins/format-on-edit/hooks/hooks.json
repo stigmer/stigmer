@@ -1,0 +1,18 @@
+{
+  "description": "After a file is written or edited, run the project's own formatter on it and tell the agent which lines moved.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/format.mjs"],
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

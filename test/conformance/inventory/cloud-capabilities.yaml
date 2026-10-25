@@ -1163,6 +1163,17 @@ rows:
     observability: launcher
     caller: primary
     needs: [fake-llm-upstream, agent-execution]
+  - id: proxy.llm.upstream.retry-hint-relayed
+    surface: proxy
+    lane: >-
+      llm
+    behavior: >-
+      An upstream 429 or 5xx on the organization's own key is relayed with the provider's retry-after and retry-after-ms headers when it sent them, so the runner's model retry waits the provider's own wait; no x-* header relays (x-should-retry included), and an answer without them gains none.
+    class: behavior
+    disposition: conformance
+    observability: launcher
+    caller: primary
+    needs: [fake-llm-upstream, keyed-org, agent-execution]
   - id: proxy.llm.upstream.aborted-mid-stream-truncates-and-records-partial-usage
     surface: proxy
     lane: >-

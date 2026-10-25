@@ -35,6 +35,19 @@
  * opened and closed per turn (it holds an OS handle); the MCP subprocesses
  * are connected and closed per turn. Both are closed on EVERY exit path in
  * the `finally`, before the runtime removes the link and releases the lock.
+ * The commands the agent started in the background are this invocation's
+ * (`shared/shell/background-commands.ts`): they are stopped when the turn's
+ * stop or yield fires, and stopped and awaited first in the `finally`,
+ * whatever the outcome, an approval pause included, so every write they
+ * made is on the tree before the runtime captures it (`harness/capture.ts`)
+ * and nothing changes the tree while the person decides. That last stop
+ * names the outcome it reads (`approval` when the turn ends awaiting the
+ * person's answer, `turn` otherwise), never why a signal fired, and its
+ * endings are applied before this returns, so the runtime's terminal write
+ * carries them (`background-facts.ts`). A person's stop of one command
+ * arrives through `sink.backgroundStops` and stops that command alone. An
+ * invocation that resumes the person's decisions says so to its registry,
+ * so the agent is told why its commands were stopped.
  *
  * Extracted from `index.ts` `createDeepAgentActivities` in #1096; the
  * hermetic goldens under `__tests__/hermetic/` pin the result byte for
@@ -65,15 +78,28 @@ import { RUN_STAMP_KEY } from "./run-stamp.js";
 import { deliveredInputsOf, deliveryOf } from "./turn-input-middleware.js";
 import { consumeDeepAgentStream, createDeepAgentTranscript } from "./turn-stream.js";
 import { settleDeepAgentTurn } from "./turn-settle.js";
+import { BackgroundCommands } from "../../shared/shell/background-commands.js";
+import { loadStreamingConfig } from "../../shared/streaming-scheduler.js";
+import { backgroundFacts } from "./background-facts.js";
 
-export async function runDeepAgentTurn(input: TurnInput, sink: TurnSink, config: DeepAgentAdapterConfig): Promise<TurnOutcome> {
+export async function runDeepAgentTurn(
+  input: TurnInput,
+  sink: TurnSink,
+  config: DeepAgentAdapterConfig,
+  background: BackgroundCommands = new BackgroundCommands(backgroundFacts(sink, loadStreamingConfig().minIntervalMs)),
+): Promise<TurnOutcome> {
   if (stopsBeforeTheEngine(sink)) return { kind: "interrupted" };
 
   let checkpointer: BaseCheckpointSaver | undefined;
   let connection: McpConnectionResult | undefined;
   let modelName: string | undefined;
+  let outcome: TurnOutcome | undefined;
+  const stopBackground = (): void => void background.stopAll();
+  sink.stopSignal.addEventListener("abort", stopBackground, { once: true });
+  sink.yieldSignal.addEventListener("abort", stopBackground, { once: true });
+  const stopForPerson = sink.backgroundStops.onStop((callId) => void background.stop(callId, "person"));
 
-  try {
+  const engineTurn = async (): Promise<TurnOutcome> => {
     modelName = await resolveModelName(input);
     checkpointer = await openCheckpointer(input, sink, config);
     const workspace = buildDeepAgentWorkspace(input);
@@ -85,10 +111,12 @@ export async function runDeepAgentTurn(input: TurnInput, sink: TurnSink, config:
     if (sink.stopSignal.aborted) return { kind: "interrupted" };
 
     const gate = readGateState(input, tools);
-    const engine = await buildEngine(input, sink, config, { modelName, checkpointer, workspace, tools, gate });
+    const engine = await buildEngine(input, sink, config, { modelName, checkpointer, workspace, tools, gate, background });
     if (sink.stopSignal.aborted) return { kind: "interrupted" };
 
-    const graphInput = await deliverOwedToFinished(await composeGraphInput(input, engine), input, sink);
+    const composed = await composeGraphInput(input, engine);
+    if (composed.kind === "resume") background.resumesApproval();
+    const graphInput = await deliverOwedToFinished(composed, input, sink);
     sink.recordActivity();
 
     const transcript = createDeepAgentTranscript(engine);
@@ -99,9 +127,20 @@ export async function runDeepAgentTurn(input: TurnInput, sink: TurnSink, config:
         ? { reason: "completed" as const, eventsProcessed: 0, runOutput: graphInput.values }
         : await consumeDeepAgentStream({ input, sink, engine, graphInput, transcript });
     return await settleDeepAgentTurn({ input, sink, engine, stream });
+  };
+
+  try {
+    outcome = await engineTurn();
+    return outcome;
   } catch (err) {
-    return classifyThrown(err, input, config, modelName);
+    outcome = classifyThrown(err, input, config, modelName);
+    return outcome;
   } finally {
+    sink.stopSignal.removeEventListener("abort", stopBackground);
+    sink.yieldSignal.removeEventListener("abort", stopBackground);
+    stopForPerson();
+    const why = outcome?.kind === "awaiting_approval" ? "approval" : "turn";
+    await closeQuietly(input.executionId, "background commands", () => background.stopAll(why));
     await closeQuietly(input.executionId, "MCP connection", () => connection?.client.close());
     // Only the durable sqlite saver holds an OS handle (an open DB file);
     // memory/http savers have no close(), so this is duck-typed.

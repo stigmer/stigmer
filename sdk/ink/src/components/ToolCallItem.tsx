@@ -1,11 +1,14 @@
 // One tool use as a terminal row: its status glyph, the harness-agnostic
 // label (or a shell call's model-authored intent), its live file-review
-// badge when it edited a file, and, expanded, its result described from the
-// shared `@stigmer/client` view model.
+// badge when it edited a file, a command it started in the background as
+// one line beneath it ("Background command `npm test` exited with code 1",
+// from the fold's `background`), and, expanded, its result described from
+// the shared `@stigmer/client` view model.
 import React from "react";
 import { Box, Text } from "ink";
 import {
   type ToolKind,
+  backgroundEndingLine,
   resolveToolKind,
   normalizeToolResult,
   extractShellIntent,
@@ -60,6 +63,7 @@ const KIND_LABEL: Partial<Record<ToolKind, string>> = {
   // primary arg) plus the honest "proposed" result text is the whole story —
   // confirm/reject happen in the console's memory surfaces.
   memory: "Remember",
+  background_stop: "Stop command",
 };
 
 // File-review row badges, mirroring the web console's per-row badge labels and
@@ -98,6 +102,7 @@ export function ToolCallItem({ toolUse, expanded = false }: ToolCallItemProps) {
   // edit).
   const reviewState = useFileReviewRowState(toolUse.runId, editedPath(toolUse));
   const reviewBadge = reviewState ? REVIEW_BADGE[reviewState] : null;
+  const backgroundLine = backgroundEndingLine(toolUse);
 
   return (
     <Box flexDirection="column">
@@ -112,6 +117,13 @@ export function ToolCallItem({ toolUse, expanded = false }: ToolCallItemProps) {
         {toolUse.state === "running" && <Text dimColor>running</Text>}
         {reviewBadge && <Text color={reviewBadge.color}>{reviewBadge.label}</Text>}
       </Box>
+      {backgroundLine !== undefined && (
+        <Box paddingLeft={3}>
+          <Text dimColor={toolUse.background?.state !== "running"} color={toolUse.background?.state === "running" ? "yellow" : undefined} wrap="truncate-end">
+            {backgroundLine}
+          </Text>
+        </Box>
+      )}
       {view.type === "error" ? (
         expanded && (
           <Box paddingLeft={3}>

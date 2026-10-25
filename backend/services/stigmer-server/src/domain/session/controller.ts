@@ -46,6 +46,7 @@ import { SessionCommandController } from "@stigmer/apis/ai/stigmer/agentic/sessi
 import { SessionQueryController } from "@stigmer/apis/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
 import type { Session } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type {
   ListSessionsByAgentRequest,
   ListSessionsByChannelRequest,
@@ -158,6 +159,7 @@ import {
   newValidateExecutionTargetImmutabilityStep,
   newValidateHarnessImmutabilityStep,
 } from "./steps.js";
+import { newRefuseUnofferedHarnessStep, type NamedHarness } from "./harness.js";
 import { newVaultAttachmentsStep } from "../vault/attachments.js";
 import {
   newDestroyDroppedSessionValuesStep,
@@ -184,6 +186,7 @@ import { reviewFileChanges } from "./filereview/review-file-changes.js";
 import { confirmToolUse } from "./hitl/confirm-tool-use.js";
 import { grantPermission } from "./hitl/grant-permission.js";
 import { interrupt } from "./hitl/interrupt.js";
+import { stopBackgroundCommand } from "./hitl/stop-background-command.js";
 import type { ExecutionEngineStateProvider } from "../run/engine.js";
 import type { RunStatusObserver } from "../../extensions/status-hooks.js";
 import { SessionStatusSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/status_pb";
@@ -282,6 +285,7 @@ export function registerSessionServices(
     confirmToolUse: (input, ctx) => confirmToolUse(deps, input, callerIdentityOf(ctx)),
     grantPermission: (input, ctx) => grantPermission(deps, input, callerIdentityOf(ctx)),
     interrupt: (input, ctx) => interrupt(deps, input, callerIdentityOf(ctx)),
+    stopBackgroundCommand: (input, ctx) => stopBackgroundCommand(deps, input, callerIdentityOf(ctx)),
   });
   router.service(SessionQueryController, {
     get: (id, ctx) => get(deps, id, ctx),
@@ -292,6 +296,11 @@ export function registerSessionServices(
     streamEvents: (req, ctx) => streamSessionEvents(deps, req, ctx),
     streamAttention: (req, ctx) => streamAttention(deps, req, ctx),
   });
+}
+
+/** The engine a conversation names (harness.ts). */
+function sessionHarnesses(session: Session): readonly NamedHarness[] {
+  return [{ field: "spec.harness", harness: session.spec?.harness ?? Harness.UNSPECIFIED }];
 }
 
 function kindOf(ctx: HandlerContext): ApiResourceKind {
@@ -351,6 +360,7 @@ async function createSession(
       newResolveSessionAgentStep(deps.store, deps.logger, deps.authorizer),
     )
     .addStep(newResolveSessionEnvironmentStep(deps.store, deps.environmentPolicy))
+    .addStep(newRefuseUnofferedHarnessStep(sessionHarnesses))
     .addStep(newAuthorizeRunTargetStep(deps.authorizer, sessionRunTarget))
     .addStep(
       newRefuseLocalProgramsStep(
@@ -441,6 +451,7 @@ async function update(
       .addStep(newLoadExistingStep(deps.store))
       .addStep(newBuildUpdateStateStep())
       .addStep(newValidateProtoStep({ of: "state" }))
+      .addStep(newRefuseUnofferedHarnessStep(sessionHarnesses))
       .addStep(newValidateHarnessImmutabilityStep())
       .addStep(newValidateExecutionTargetImmutabilityStep(deps.temporalConfig))
       .addStep(newNormalizeReferencesStep(deps.store))

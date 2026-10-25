@@ -55,6 +55,17 @@ public enum Harness
    * <code>HARNESS_CURSOR = 2;</code>
    */
   HARNESS_CURSOR(2),
+  /**
+   * <pre>
+   * Anthropic's Claude Agent SDK execution engine.
+   *
+   * Approvals that stop at the exact call, conversation state mirrored to
+   * Stigmer. Refused until the platform offers it.
+   * </pre>
+   *
+   * <code>HARNESS_CLAUDE = 3;</code>
+   */
+  HARNESS_CLAUDE(3),
   UNRECOGNIZED(-1),
   ;
 
@@ -97,6 +108,17 @@ public enum Harness
    * <code>HARNESS_CURSOR = 2;</code>
    */
   public static final int HARNESS_CURSOR_VALUE = 2;
+  /**
+   * <pre>
+   * Anthropic's Claude Agent SDK execution engine.
+   *
+   * Approvals that stop at the exact call, conversation state mirrored to
+   * Stigmer. Refused until the platform offers it.
+   * </pre>
+   *
+   * <code>HARNESS_CLAUDE = 3;</code>
+   */
+  public static final int HARNESS_CLAUDE_VALUE = 3;
 
 
   public final int getNumber() {
@@ -126,6 +148,7 @@ public enum Harness
       case 0: return HARNESS_UNSPECIFIED;
       case 1: return HARNESS_NATIVE;
       case 2: return HARNESS_CURSOR;
+      case 3: return HARNESS_CLAUDE;
       default: return null;
     }
   }

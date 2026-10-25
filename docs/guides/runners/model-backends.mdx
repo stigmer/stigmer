@@ -311,16 +311,25 @@ Stigmer Cloud proxy.
 ## Bound each model request with a timeout
 
 Set `STIGMER_LLM_REQUEST_TIMEOUT_MS` to cap how long the runner waits for a
-single model response. The bound applies uniformly to the public provider APIs
-and to every backend on this page:
+model's reply to begin. The bound applies to each attempt, uniformly to the
+public provider APIs and to every backend on this page, and it never cuts off an
+agent's reply that is already streaming. The runner's short calls that do not
+stream (extracting a run's structured output, naming a session) receive their
+reply whole, so for them the bound covers the whole reply, and an attempt that
+exceeds it is not retried:
 
 ```bash
-export STIGMER_LLM_REQUEST_TIMEOUT_MS=120000   # fail a stuck request after 2 minutes
+export STIGMER_LLM_REQUEST_TIMEOUT_MS=120000   # give up on an attempt after 2 minutes
 ```
 
 Leave it unset to use each SDK's default (10 minutes). Values that are not
-positive integers are ignored. A request that exceeds the bound fails as a
-retryable connection timeout that names the model.
+positive integers are ignored. An agent's attempt that exceeds the bound is
+retried like any other passing failure (an overload, a rate limit, a server
+error, or a dropped connection), up to six times with a growing wait. A turn
+that hears nothing from its model for three minutes, attempts and waits
+together, is continued: the run issues the call again in a fresh turn. A call
+whose attempts all fail within that window fails the run with a connection
+timeout that names the model.
 
 ## Troubleshooting
 

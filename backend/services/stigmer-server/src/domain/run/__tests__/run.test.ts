@@ -9,6 +9,11 @@
  * seed with SaveResource.
  *
  * Load-bearing pins the conformance suite cannot cover:
+ *   - a turn whose conversation would run on an engine the platform does
+ *     not offer (Claude, until it is offered) is refused before the engine
+ *     gate and before anything is stored: a new conversation naming it,
+ *     and a message to a stored conversation on it (a row written before
+ *     the rule);
  *   - the MANGLED unknown-execution message on getRunUsageReport,
  *     byte-for-byte (a faithful port of the Go message);
  *   - getAgentUsageReport org scoping (oss#389) incl. the no-name-oracle
@@ -67,6 +72,7 @@ import {
   type StreamingUsageSummarySchema,
 } from "@stigmer/apis/ai/stigmer/agentic/run/v1/usage_pb";
 import { SessionSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/api_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { IamPermission } from "@stigmer/apis/ai/stigmer/iam/v1/enum_pb";
 import { ErrorInfoSchema } from "@stigmer/apis/google/rpc/error_details_pb";
@@ -331,6 +337,73 @@ describe("create over the wire (engine gate)", () => {
       Code.InvalidArgument,
     );
     expect(err.rawMessage).toContain("requires a model_name");
+  });
+});
+
+describe("the offered-engine rule over the wire", () => {
+  it("refuses a new conversation on Claude before the engine gate, creating no session", async () => {
+    await namingSaves(server.store).saveResource(
+      ApiResourceKind.agent,
+      "agt_claude_gate",
+      AgentSchema,
+      create(AgentSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Agent",
+        metadata: { id: "agt_claude_gate", name: "claude-gate-agent", slug: "claude-gate-agent", org: ORG_ID },
+      }),
+    );
+    const err = await expectCode(
+      () =>
+        command.create({
+          apiVersion: API_VERSION,
+          kind: KIND,
+          metadata: { name: "claude-exec", org: ORG },
+          spec: {
+            target: {
+              case: "sessionSpec",
+              value: { agentRef: { ...GATE_AGENT_REF, slug: "claude-gate-agent" }, harness: Harness.CLAUDE },
+            },
+            message: "hello",
+          },
+        }),
+      Code.FailedPrecondition,
+    );
+    expect(err.rawMessage).toBe(
+      "Claude is not available on this platform yet (the conversation's engine)",
+    );
+    for (const data of await server.store.listResources(ApiResourceKind.run)) {
+      expect(fromBinary(RunSchema, data).metadata?.name).not.toBe("claude-exec");
+    }
+    for (const data of await server.store.listResources(ApiResourceKind.session)) {
+      expect(fromBinary(SessionSchema, data).spec?.harness).not.toBe(Harness.CLAUDE);
+    }
+  });
+
+  it("refuses a message to a stored conversation on Claude", async () => {
+    await namingSaves(server.store).saveResource(
+      ApiResourceKind.session,
+      "ses_stored_on_claude",
+      SessionSchema,
+      create(SessionSchema, {
+        apiVersion: "agentic.stigmer.ai/v1",
+        kind: "Session",
+        metadata: { id: "ses_stored_on_claude", name: "claude-session", slug: "claude-session", org: ORG_ID },
+        spec: { harness: Harness.CLAUDE },
+      }),
+    );
+    const err = await expectCode(
+      () =>
+        command.sendMessage({
+          apiVersion: API_VERSION,
+          kind: KIND,
+          metadata: { name: "a-claude-message", org: ORG },
+          spec: { target: { case: "sessionId", value: "ses_stored_on_claude" }, message: "hello" },
+        }),
+      Code.FailedPrecondition,
+    );
+    expect(err.rawMessage).toBe(
+      "Claude is not available on this platform yet (the conversation's engine)",
+    );
   });
 });
 

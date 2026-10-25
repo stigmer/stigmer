@@ -113,6 +113,22 @@ export function note(runId: string, id: string, message: string): SessionEvent {
   return ev(runId, { case: "stigmerHarnessNote", value: { id, text: message } });
 }
 
+/** A `stigmer.background_command.status` for the command `call` started: running, or ended as `ended` says. */
+export function background(
+  runId: string,
+  call: string,
+  ended?: { readonly ending: string; readonly exitCode?: number; readonly stoppedBy?: string },
+): SessionEvent {
+  const toolUseId = `${runId}.${call}`;
+  return ev(runId, {
+    case: "stigmerBackgroundCommandStatus",
+    value:
+      ended === undefined
+        ? { id: `${toolUseId}.bg`, toolUseId, phase: "running", timeoutSeconds: 300 }
+        : { id: `${toolUseId}.bg.end`, toolUseId, phase: "ended", ...ended },
+  });
+}
+
 /** A stored event as a stream frame. */
 export function frameOf(event: SessionEvent): StreamSessionEventsResponse {
   return create(StreamSessionEventsResponseSchema, { frame: { case: "event", value: event } });

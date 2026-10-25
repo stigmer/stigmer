@@ -272,6 +272,31 @@ return url ? <img src={url} alt="Tool output" /> : null;
 ```
 
 
+### useBackgroundStop
+
+Returns the stop state for a tool use's background command, or `null`
+when it runs no command now (or no stop handler is wired).
+
+**Signature**
+
+```tsx
+function useBackgroundStop(toolUse: ToolUse): UseBackgroundStopResult | null
+```
+
+<TypeTable
+  type={{
+    toolUse: { type: "ToolUse", description: "", required: true },
+  }}
+/>
+
+```tsx
+const stop = useBackgroundStop(toolUse);
+if (stop) {
+  return <button onClick={stop.onStop} disabled={stop.isStopping}>Stop</button>;
+}
+```
+
+
 ### useChangeSetCapture
 
 Data hook that loads the captured bytes of one change set on demand: the
@@ -667,6 +692,44 @@ const actions = useRunActions(executionId, {
 ```
 
 
+### useStopBackgroundCommand
+
+Behavior hook that stops a command the agent runs in the background,
+through the session's own method (`stopBackgroundCommand`), with
+per-tool-use loading and error state. The turn goes on: only that
+command stops, and the agent is told a person stopped it.
+
+Platform builders who render their own tool rows use this hook directly;
+[`BackgroundCommandContext`](#backgroundcommandcontext) carries the handler it produces to the
+console's rows.
+
+**Signature**
+
+```tsx
+function useStopBackgroundCommand(): UseStopBackgroundCommandReturn
+```
+
+**Returns** — `UseStopBackgroundCommandReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset every stop error." },
+    error: { type: "Error | null", description: "The most recent failure, or `null`, for a headless consumer; the map is authoritative." },
+    errorsByToolUseId: { type: "ReadonlyMap<string, Error>", description: "Each tool use's last failed stop, keyed like stoppingToolUseIds." },
+    stopBackgroundCommand: { type: "(sessionId: string, toolUseId: string) => Promise<void>", description: "Stop one command the agent runs in the background, by the tool use that started it. Resolves when the server recorded the request; the turn's runner stops the command within seconds, and the session's events then say it ended, stopped by a person (`ToolUse.background`). Rejects with the server's error, which is also kept per tool use." },
+    stoppingToolUseIds: { type: "ReadonlySet<string>", description: "The tool uses whose stop is in flight, by id." },
+  }}
+/>
+
+```tsx
+const { stopBackgroundCommand, stoppingToolUseIds } = useStopBackgroundCommand();
+
+if (isBackgroundRunning(toolUse)) {
+  await stopBackgroundCommand(sessionId, toolUse.id);
+}
+```
+
+
 ### useToolOutputContent
 
 Behavior hook that resolves the full text of a tool output that the runner
@@ -817,6 +880,14 @@ The primary argument and intent are read from the ask's sanitized preview
     toolUse: { type: "ToolUse", description: "The waiting tool use to summarize.", required: true },
   }}
 />
+
+
+### BackgroundCommandTrail
+
+The header's trail for a tool use that started a command in the
+background: a "Background" chip, its state (with a clock from its start
+while it runs), and Stop while it runs and a stop handler is wired
+([`BackgroundCommandContext`](#backgroundcommandcontext)). Renders nothing for any other call.
 
 
 ### EmptyChangeNotice
@@ -1383,6 +1454,7 @@ All visual properties flow through `--stgm-*` tokens.
     onOpenPlan: { type: "(executionId: string) => void", description: "Opens a plan in the session panel's plan document tab — the side-by-side review/refine surface. Wired to EVERY plan card: the latest opens editable/buildable, a superseded plan opens read-only (the host decides from the run id). When omitted, cards fall back to the \"Open full\" preview modal (hosts without a panel).  Providing this also opts the thread into LIVE plan collapse: while a Plan-mode turn writes its plan (detected via `findStreamingPlan`), the plan message is suppressed behind a compact PlanStreamingCard whose \"Open plan\" routes here — the host is expected to render the streaming document in its plan surface. Hosts without one (this prop omitted) keep the plan streaming inline, where it stays readable." },
     onRetryRun: { type: "(message: string) => void", description: "Retry handler for a turn that failed with a server error reason. Receives the originating message; the consumer typically resends it as a new turn. When omitted, no Retry control is shown beside the surfaced failure reason." },
     onRetrySend: { type: "() => void", description: "Retry handler for a failed pending message. Wired to the inline \"Retry\" control when pendingMessageFailed is `true`." },
+    onStopBackgroundCommand: { type: "(toolUseId: string) => void", description: "Stops one command the agent runs in the background, by the tool use that started it. When provided, a running command's row, and the thread's tail line while the turn waits only on such commands, offer Stop; when omitted, none is shown." },
     org: { type: "string", description: "Organization id (a slug is also accepted). Required for the plan completion card's \"Review plan\" action, which opens the shared file preview modal (the modal needs `org` for its detection/apply pipeline)." },
     pendingFiles: { type: "readonly MessageFileView[] | null", description: "Files sent with the pending user message, rendered as chips on the optimistic bubble so the files never vanish between submit and the turn appearing (stigmer/stigmer#372). Supply useSessionConversation's `pendingFiles`; clear together with pendingUserMessage. Chips are inert on the pending bubble (no run record yet); previews and downloads light up the moment the real turn replaces it." },
     pendingMessageFailed: { type: "boolean", description: "Marks the pending user message as failed-to-send. The optimistic bubble renders an inline \"Couldn't send — Retry\" affordance instead of the sending indicator, so a failed follow-up never silently vanishes. Pair with onRetrySend." },
@@ -1398,6 +1470,8 @@ All visual properties flow through `--stgm-*` tokens.
     scrollOnSend: { type: "boolean", description: "Scroll to the reader's own message when they send one from a scrolled-up position (the WhatsApp convention: showing the result of the reader's own action is Nielsen #1 system-status feedback). The send moment is the pendingUserMessage transition from empty to present; the pin re-engages follow mode, so the optimistic bubble and the streamed reply stay in view. Incoming content is unaffected — it still never moves a scrolled-up reader.  Default `true` on all three SDK thread surfaces at once — a deliberate exception to opt-in defaults: cross-surface consistency is the point, and a per-surface opt-in would re-create the inconsistency it fixes. Set `false` to keep today's leave-the-reader-alone behavior." },
     showFileReviewRecords: { type: "boolean", description: "Render each *settled* file review as a read-only record card at its anchor in the thread (after the last row that edited one of its files) — the durable history of what changed and how it was decided. This is the only in-thread trace for changes made by shell commands, so the surface that owns the session history should enable it.  The thread never renders *decision* controls: a set still undecided on a live turn is deliberately NOT emitted here — its decision surface is the composer-docked FileReviewDock, which cannot scroll out of view. The edit rows' badges carry the pending state in-thread." },
     slots: { type: "MessageThreadSlots", description: "Component overrides for the thread's chrome — see MessageThreadSlots. Omitted slots render the built-ins; omitting the prop entirely changes nothing.", typeDescriptionLink: "#messagethreadslots" },
+    stopBackgroundErrors: { type: "ReadonlyMap<string, Error>", description: "Each tool use's last failed background stop, keyed by its id, shown on its row. Supply useStopBackgroundCommand's `errorsByToolUseId`." },
+    stoppingBackgroundToolUseIds: { type: "ReadonlySet<string>", description: "The tool uses whose background stop is in flight, by id. Only meaningful with `onStopBackgroundCommand`." },
     turns: { type: "readonly Turn[]", description: "The conversation's turns, in order: the session's events folded (`useSessionConversation().turns`, or `useSessionEvents().fold.turns`). Each turn renders its person's message, the agent's items, its asks, to-dos and file reviews. A turn that has not ended is the live one.", required: true },
     virtualized: { type: "boolean", description: "Enable virtualized rendering for long conversations. Requires `react-virtuoso` to be installed as a peer dependency. When enabled, only visible items are rendered in the DOM, improving performance for threads with 100+ items." },
   }}
@@ -1942,6 +2016,48 @@ decision UI is shown (a read-only transcript).
     submittingIds: { type: "ReadonlySet<string>", description: "Tool-use ids whose answer is in flight, for per-gate spinners.", required: true },
   }}
 />
+
+
+### BackgroundCommandContext
+
+Context that supplies the stop handler to the rows of running background commands.
+
+
+### BackgroundCommandContextValue
+
+Context value that carries the stop handler for commands the agent runs
+in the background, and its per-command state, to the tool rows, so a
+running command's row offers Stop on itself (parent thread and nested
+subagents alike).
+
+Whether a command runs is the row's own fact (`ToolUse.background`, from
+the session's events); the context supplies only what the row cannot
+know: how to stop one, and which stops are in flight or failed.
+
+Provided by [`SessionViewer`](/docs/sdk/react/session#sessionviewer) from [`useStopBackgroundCommand`](#usestopbackgroundcommand)
+(or a platform builder's own wrapper). Without a provider, or without an
+`onStop` handler (a viewer who may not act on the session), no Stop is
+shown.
+
+<TypeTable
+  type={{
+    errorsByToolUseId: { type: "ReadonlyMap<string, Error>", description: "Each tool use's last failed stop, keyed by its id.", required: true },
+    onStop: { type: "(toolUseId: string) => void", description: "Stops the command the tool use started; when absent, no Stop is shown." },
+    stoppingIds: { type: "ReadonlySet<string>", description: "Tool-use ids whose stop is in flight.", required: true },
+  }}
+/>
+
+
+### backgroundStatusLabel
+
+How a background command stands, in the row's words: "Running in the
+background" while it runs, else how it ended ("Exited · code 1", "Timed
+out", "Stopped by a person", "Stopped by the agent", "Stopped when the
+turn paused for approval", "Stopped with the turn", "Failed to start").
+
+```tsx
+function backgroundStatusLabel(background: BackgroundCommandView): string
+```
 
 
 ### BootstrapSessionSpec
@@ -2723,6 +2839,12 @@ shimmering "Working…" would be a lie, and when a tool is running, its own
 row carries the sweep. It disappears the moment the run settles
 (phase-driven — never inferred from the stream going quiet).
 
+When the agent has ended its reply and the turn is held only for
+commands it runs in the background (`LivenessStatusLineProps.waitingOn`),
+the line says what it waits for, and offers Stop for a lone command: that
+is when the turn is held for the person, and when a command's row may be
+scrolled far away.
+
 Replaceable via [`MessageThreadSlots.LivenessStatusLine`](#livenessstatusline) (the
 SetupProgress precedent) for hosts that want their own liveness voice.
 
@@ -2742,6 +2864,7 @@ Props for [`LivenessStatusLine`](#livenessstatusline).
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     label: { type: "string", description: "The status copy. Defaults to `\"Working…\"` — deliberately generic: the thread has no model-authored account of what the agent is doing between visible events (that seam is stigmer#276), so the line claims only what is provably true." },
+    waitingOn: { type: "readonly ToolUse[]", description: "The background commands the turn waits on, oldest first, when the agent has ended its reply and the turn is held only for them; the line then says so (\"Waiting for `npm test` · 2m\", \"and 1 more\") in place of label, with Stop when there is one." },
   }}
 />
 
@@ -3606,6 +3729,13 @@ categories keep their cards. A quiet row escalates to a card while gated
 or failed; its disclosed body renders under a light left rail instead of a
 border. See `ToolChrome`.
 
+A call that started a command in the background (`toolUse.background`)
+is the command's row: a "Background" chip and the command's state beside
+the call's own, the running look (shimmer, spinner, forced open) for as
+long as the command runs though the call itself returned, its output in
+the body, and Stop while a stop handler is wired
+([`BackgroundCommandContext`](#backgroundcommandcontext)).
+
 Shows category-aware labels (e.g., "Shell", "Read", "Edit") with
 the primary argument as a subtitle, a category-specific icon, and
 an inline approval decision badge when applicable. A shell row whose
@@ -3759,6 +3889,19 @@ Options for [`useArtifactDownloadUrl`](#useartifactdownloadurl).
 <TypeTable
   type={{
     enabled: { type: "boolean", description: "Gate the request. When `false`, the hook stays idle and returns `null` — use this to defer minting a URL until it is actually needed (e.g. only when an image becomes visible, or after a truncation is detected). Defaults to `true`." },
+  }}
+/>
+
+
+### UseBackgroundStopResult
+
+Resolved stop state for one running background command.
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "This command's last failed stop, or `null`.", required: true },
+    isStopping: { type: "boolean", description: "True from the click until the command's end arrives: while the request is in flight, and after it, as the log's own stop request says (so a reload keeps \"Stopping…\").", required: true },
+    onStop: { type: "() => void", description: "Stops this command (its id already bound).", required: true },
   }}
 />
 

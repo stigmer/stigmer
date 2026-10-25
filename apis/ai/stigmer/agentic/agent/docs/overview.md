@@ -16,21 +16,21 @@ and limits it may lower but never raise.
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
-  name: engineering-assistant
-  slug: eng-assistant
+  name: quarterly-variance-reporter
+  slug: variance-reporter
 spec:
-  description: "Helps engineering teams with code review"
-  instructions: "You are an engineering assistant..."
+  description: "Turns a customer's ledger into a variance report"
+  instructions: "You review a customer's quarterly ledger..."
   plugins:
     - kind: plugin
-      slug: github
+      slug: ledger
     - kind: plugin
       slug: safety
   skill_refs:
     - kind: skill
-      slug: code-review-best-practices
-  tools: [Read, Grep, Glob, mcp__plugin_github_github]
-  disallowed_tools: [mcp__plugin_github_github__merge_pull_request]
+      slug: variance-report
+  tools: [Read, Grep, Glob, mcp__plugin_ledger_ledger]
+  disallowed_tools: [mcp__plugin_ledger_ledger__post_adjustment]
   harness: HARNESS_NATIVE
   run_config:
     model_name: claude-sonnet-4.5

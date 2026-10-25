@@ -11,7 +11,7 @@ export default defineConfig({
     // names exactly the executable lines a run missed.
     coverage: {
       provider: "v8",
-      include: ["scripts/**"],
+      include: ["scripts/**", "format-on-edit/hooks/**"],
       exclude: [...coverageConfigDefaults.exclude, "**/__test-utils__/**", "**/__fixtures__/**", "**/__mocks__/**"],
       reporter: ["json", "json-summary"],
       reportOnFailure: true,

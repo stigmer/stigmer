@@ -89,15 +89,17 @@ import { jsonSchemaToZod } from "../../shared/json-schema-to-zod.js";
 import { skillContentReadCheck } from "../../shared/skill-mount.js";
 import { CasCaptureObserver } from "./cas-capture-observer.js";
 import { CasCaptureShellBackend, createCasCaptureBackend } from "./cas-capture-backend.js";
-import { createShellTool } from "./shell-tool.js";
+import { createShellBinding } from "./shell-tool.js";
+import type { BackgroundCommands } from "../../shared/shell/background-commands.js";
 import { loadStreamingConfig } from "../../shared/streaming-scheduler.js";
-import { admitsRoutedRead, mountPlatformRoute } from "./platform-route.js";
+import { admitsRoutedRead, backgroundOutputPathsIn, mountPlatformRoute } from "./platform-route.js";
 import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
 import { RUN_STAMP_KEY, createRunStampMiddleware, stampedRunOf } from "./run-stamp.js";
 import { createTurnInputMiddleware } from "./turn-input-middleware.js";
 import { InputBarriers } from "./input-barrier.js";
 import { resumedMessages, threadIsEmpty } from "./resumed-history.js";
 import { buildEnhancedSystemPrompt, composeUserMessage, renderSkillsSection } from "./prompt-builder.js";
+import { readRootInstructions, renderRepositoryInstructions, workspaceRoots } from "./repository-instructions.js";
 import { buildShellEnv, shellRunValues } from "../../shared/shell-env.js";
 import { transformAndCompileSubagents, type SavedSubagentGraph, type SubagentScopeBase } from "./subagent-transformer.js";
 import { pluginSubagentScope } from "../../shared/subagents.js";
@@ -370,7 +372,10 @@ export function refusalsOf(
  * calls exactly this) rather than a stretch of `buildEngine`. The one input
  * that is not on the record is the memoized memory selection, which the
  * caller awaits (the runtime stamps the report on the status the first time
- * it is pulled, before this turn's first persist).
+ * it is pulled, before this turn's first persist), and the workspace roots'
+ * instruction files, which the caller reads through the graph's backend and
+ * renders (`repository-instructions.ts`), empty when none reads or the
+ * agent's lists refuse a workspace read.
  *
  * Nothing here reads the turn's message or payload: the system prompt is the
  * session's (`prompt-builder.ts` says why), so every mounted skill is
@@ -378,13 +383,18 @@ export function refusalsOf(
  * The approved plan's path is the one fact taken from the message's files, and
  * only on a build-from-plan turn, where the mode already changes the prompt.
  */
-export function composeSystemPrompt(input: TurnInput, recalledMemories: RecalledMemoriesContent | undefined): string {
+export function composeSystemPrompt(
+  input: TurnInput,
+  recalledMemories: RecalledMemoriesContent | undefined,
+  repositoryInstructionsSection: string,
+): string {
   const spec = input.execution.spec!;
   const primaryDir = input.workspace.primaryDir;
   return buildEnhancedSystemPrompt({
     instructions: input.blueprint.instructions,
     provisionResults: input.workspace.provision.provisionResults,
     containerRoot: primaryDir,
+    repositoryInstructionsSection,
     skillsPromptSection: renderSkillsSection(input.skills.root),
     // "" (nothing sendable) threads as undefined: the tool alone still serves
     // text sends inside a 24-hour window.
@@ -451,6 +461,8 @@ export async function buildEngine(
     readonly workspace: DeepAgentWorkspace;
     readonly tools: DeepAgentTools;
     readonly gate: DeepAgentGateState;
+    /** This invocation's background commands (`shared/shell/background-commands.ts`), shared by every graph's shell. */
+    readonly background: BackgroundCommands;
   },
 ): Promise<DeepAgentEngine> {
   const { modelName, checkpointer, workspace, tools, gate } = args;
@@ -603,10 +615,53 @@ export async function buildEngine(
   // shell-capable backend is what the runner's shell tool runs through
   // (`middleware/shell.ts`); plan mode's is filesystem-only and gets none.
   const workspaceBackend = await createCasCaptureBackend({ rootDir: primaryDir, observer: workspace.casObserver, shellEnv });
-  const shellStreaming = { maxTimeoutSeconds: config.shellTimeoutMaxSeconds, floorMs: loadStreamingConfig().minIntervalMs };
+  // Every graph's shell runs its background commands in this invocation's
+  // one registry, writing their output beside the results deepagents
+  // offloads (`platform-route.ts` `backgroundOutputPathsIn`).
+  const shellStreaming = {
+    maxTimeoutSeconds: config.shellTimeoutMaxSeconds,
+    floorMs: loadStreamingConfig().minIntervalMs,
+    background: { commands: args.background, outputPaths: backgroundOutputPathsIn(workspace.backend.platformDir) },
+  };
   const shell = workspaceBackend instanceof CasCaptureShellBackend
-    ? { tool: createShellTool({ backend: workspaceBackend, ...shellStreaming }) }
+    ? createShellBinding({ backend: workspaceBackend, ...shellStreaming })
     : null;
+
+  // Platform content (skills, inputs, the approved plan) is mounted over the
+  // workspace backend read-only at `.stigmer/` (`platform-route.ts`): the
+  // virtual-rooted backend refuses to follow the workspace link out of the
+  // root. Mounted before the stack, whose truncation keeps a long tool
+  // result whole through it, in the session's offload directory
+  // (`middleware/tool-truncation.ts`).
+  const fileBackend = await mountPlatformRoute(workspaceBackend, {
+    workspaceDir: primaryDir,
+    platformDir: workspace.backend.platformDir,
+  });
+  const maxToolResultChars = runConfig?.maxToolResultChars || 30_000;
+
+  // The workspace roots' own AGENTS.md (else CLAUDE.md), read once per turn
+  // through the graph's backend, before the stack and the sub-agents are
+  // built (`repository-instructions.ts`). Each graph is shown them only when
+  // its own scope may read the workspace: the parent here, each sub-agent at
+  // its compile (`subagent-transformer.ts`).
+  const repositoryRoots = workspaceRoots(
+    primaryDir,
+    input.workspace.provision.provisionResults.map((result) => result.rootDir),
+  );
+  const rootInstructions = await readRootInstructions(fileBackend, repositoryRoots, maxToolResultChars);
+  const repositoryInstructions = {
+    section: renderRepositoryInstructions(rootInstructions),
+    roots: repositoryRoots,
+    maxChars: maxToolResultChars,
+  };
+  const parentReadsWorkspace = toolScope.allowsEngineTool(ENGINE_TOOL.readFile, NATIVE_TOOL_COVERS);
+  if (parentReadsWorkspace && rootInstructions.length > 0) {
+    console.log(
+      `[REPO-INSTRUCTIONS] root=${rootInstructions.length} ` +
+      `chars=${rootInstructions.reduce((sum, file) => sum + file.chars, 0)} ` +
+      `cut=${rootInstructions.filter((file) => file.cut).length}`,
+    );
+  }
 
   const maxCostUsd = runConfig?.maxCostUsd ?? 0;
   const toolRoundLimit = resolveToolRoundLimit(runConfig?.maxToolRounds);
@@ -615,12 +670,14 @@ export async function buildEngine(
   // and lags behind it, so a stop the loop takes alone can land after steps
   // the session's log never received (stigmer#2469).
   const turnBoundary = { stopSignal: sink.stopSignal, yieldSignal: sink.yieldSignal };
+  const inputBarriers = new InputBarriers();
   const { middleware, costAdvisory } = buildMiddlewareStack({
     turnBoundary,
     shell,
+    turnInput: { channel: sink.input, barriers: inputBarriers },
     loopDetection: { historySize: 20, consecutiveThreshold: 7, totalThreshold: 20 },
     executionBudget: { maxToolRounds: toolRoundLimit, warningPct: 80 },
-    toolTruncation: { maxChars: runConfig?.maxToolResultChars || 30_000 },
+    toolTruncation: { maxChars: maxToolResultChars, backend: fileBackend },
     costAdvisory: maxCostUsd > 0
       ? {
           maxCostUsd,
@@ -637,6 +694,9 @@ export async function buildEngine(
     // model-supplied paths canonical for the virtual-rooted backend and every
     // downstream consumer (gate, capture, spans).
     pathNormalization: { rootDir: primaryDir },
+    folderInstructions: parentReadsWorkspace
+      ? { backend: fileBackend, roots: repositoryRoots, maxChars: maxToolResultChars }
+      : null,
   });
   sink.setupTiming.mark("build_middleware");
 
@@ -666,6 +726,8 @@ export async function buildEngine(
     webFetchPosture,
     costAdvisory: costAdvisory ?? undefined,
     turnBoundary,
+    toolTruncation: { maxChars: maxToolResultChars },
+    repositoryInstructions,
     modelFactory: buildModelFor,
     shellEnv,
     shellStreaming,
@@ -677,7 +739,11 @@ export async function buildEngine(
   await sink.reportProgress("Creating agent…");
   // The runtime's memoized memory selection; it stamps the report on the
   // status the first time it is pulled, before this turn's first persist.
-  const systemPrompt = composeSystemPrompt(input, await input.standing.selectRecalledMemories());
+  const systemPrompt = composeSystemPrompt(
+    input,
+    await input.standing.selectRecalledMemories(),
+    parentReadsWorkspace ? repositoryInstructions.section : "",
+  );
 
   // Structured output takes one of langchain's two strategies, chosen here
   // explicitly. A graph that thinks uses the provider strategy: Anthropic's
@@ -694,15 +760,6 @@ export async function buildEngine(
       ? providerStrategy({ schema: transformJSONSchema(outputSchema) as ObjectJsonSchema })
       : jsonSchemaToZod(outputSchema);
 
-  // Platform content (skills, inputs, the approved plan) is mounted over the
-  // workspace backend read-only at `.stigmer/` (`platform-route.ts`): the
-  // virtual-rooted backend refuses to follow the workspace link out of the
-  // root.
-  const fileBackend = await mountPlatformRoute(workspaceBackend, {
-    workspaceDir: primaryDir,
-    platformDir: workspace.backend.platformDir,
-  });
-  const inputBarriers = new InputBarriers();
   const graph = await createDeepAgent({
     model,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

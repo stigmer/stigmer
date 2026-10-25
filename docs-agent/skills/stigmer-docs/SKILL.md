@@ -50,6 +50,7 @@ machinery that runs it.
 **What each customer's agent has**, in this order:
 
 - its own computer, a sandbox that keeps its files between turns;
+- it works on a job for hours, not one request;
 - it asks before acting on anything the developer marks as needing a yes;
 - each customer's agents, files and keys stay apart from every other
   customer's. On the editions that include it, each customer gets an
@@ -65,8 +66,8 @@ product's customer uploads a ledger, and the agent works through it and hands
 back a variance report as a file.
 
 **Never** call Stigmer an "agent platform" or "agent infrastructure", give a
-coding example (reviewing pull requests, writing code), say its agents work
-for hours, or use hype ("revolutionary", "seamless", "unlock"). Stigmer is not
+coding example (reviewing pull requests, writing code), or use hype
+("revolutionary", "seamless", "unlock"). Stigmer is not
 a coding agent: that is Claude Code's, Cursor's and Codex's world, and the
 plugins built for them still work in Stigmer.
 

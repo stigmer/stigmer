@@ -205,7 +205,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * URL-friendly identifier, unique within the organization.
    *
-   * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
+   * Lowercase alphanumeric with hyphens (e.g., "variance-reporter", "web-search").
    * </pre>
    *
    * <code>string slug = 4 [json_name = "slug"];</code>
@@ -228,7 +228,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * URL-friendly identifier, unique within the organization.
    *
-   * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
+   * Lowercase alphanumeric with hyphens (e.g., "variance-reporter", "web-search").
    * </pre>
    *
    * <code>string slug = 4 [json_name = "slug"];</code>
@@ -257,8 +257,8 @@ private static final long serialVersionUID = 0L;
    * Fully qualified reference: "&lt;org&gt;/&lt;slug&gt;", where org is the owning
    * organization's id, as metadata.org carries it.
    *
-   * Example: "org_01j5q3k7m8r2s4tnz2hf6w8x9a/code-reviewer"; an organization
-   * made before ids were minted reads "acme/code-reviewer".
+   * Example: "org_01j5q3k7m8r2s4tnz2hf6w8x9a/variance-reporter"; an organization
+   * made before ids were minted reads "acme/variance-reporter".
    *
    * A reference in this form resolves as written. Clients that show it to a
    * person put the organization's slug in place of its id.
@@ -285,8 +285,8 @@ private static final long serialVersionUID = 0L;
    * Fully qualified reference: "&lt;org&gt;/&lt;slug&gt;", where org is the owning
    * organization's id, as metadata.org carries it.
    *
-   * Example: "org_01j5q3k7m8r2s4tnz2hf6w8x9a/code-reviewer"; an organization
-   * made before ids were minted reads "acme/code-reviewer".
+   * Example: "org_01j5q3k7m8r2s4tnz2hf6w8x9a/variance-reporter"; an organization
+   * made before ids were minted reads "acme/variance-reporter".
    *
    * A reference in this form resolves as written. Clients that show it to a
    * person put the organization's slug in place of its id.
@@ -1575,7 +1575,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * URL-friendly identifier, unique within the organization.
      *
-     * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
+     * Lowercase alphanumeric with hyphens (e.g., "variance-reporter", "web-search").
      * </pre>
      *
      * <code>string slug = 4 [json_name = "slug"];</code>
@@ -1597,7 +1597,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * URL-friendly identifier, unique within the organization.
      *
-     * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
+     * Lowercase alphanumeric with hyphens (e.g., "variance-reporter", "web-search").
      * </pre>
      *
      * <code>string slug = 4 [json_name = "slug"];</code>
@@ -1620,7 +1620,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * URL-friendly identifier, unique within the organization.
      *
-     * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
+     * Lowercase alphanumeric with hyphens (e.g., "variance-reporter", "web-search").
      * </pre>
      *
      * <code>string slug = 4 [json_name = "slug"];</code>
@@ -1639,7 +1639,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * URL-friendly identifier, unique within the organization.
      *
-     * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
+     * Lowercase alphanumeric with hyphens (e.g., "variance-reporter", "web-search").
      * </pre>
      *
      * <code>string slug = 4 [json_name = "slug"];</code>
@@ -1655,7 +1655,7 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * URL-friendly identifier, unique within the organization.
      *
-     * Lowercase alphanumeric with hyphens (e.g., "code-review-agent", "web-search").
+     * Lowercase alphanumeric with hyphens (e.g., "variance-reporter", "web-search").
      * </pre>
      *
      * <code>string slug = 4 [json_name = "slug"];</code>
@@ -1678,8 +1678,8 @@ private static final long serialVersionUID = 0L;
      * Fully qualified reference: "&lt;org&gt;/&lt;slug&gt;", where org is the owning
      * organization's id, as metadata.org carries it.
      *
-     * Example: "org_01j5q3k7m8r2s4tnz2hf6w8x9a/code-reviewer"; an organization
-     * made before ids were minted reads "acme/code-reviewer".
+     * Example: "org_01j5q3k7m8r2s4tnz2hf6w8x9a/variance-reporter"; an organization
+     * made before ids were minted reads "acme/variance-reporter".
      *
      * A reference in this form resolves as written. Clients that show it to a
      * person put the organization's slug in place of its id.
@@ -1705,8 +1705,8 @@ private static final long serialVersionUID = 0L;
      * Fully qualified reference: "&lt;org&gt;/&lt;slug&gt;", where org is the owning
      * organization's id, as metadata.org carries it.
      *
-     * Example: "org_01j5q3k7m8r2s4tnz2hf6w8x9a/code-reviewer"; an organization
-     * made before ids were minted reads "acme/code-reviewer".
+     * Example: "org_01j5q3k7m8r2s4tnz2hf6w8x9a/variance-reporter"; an organization
+     * made before ids were minted reads "acme/variance-reporter".
      *
      * A reference in this form resolves as written. Clients that show it to a
      * person put the organization's slug in place of its id.
@@ -1733,8 +1733,8 @@ private static final long serialVersionUID = 0L;
      * Fully qualified reference: "&lt;org&gt;/&lt;slug&gt;", where org is the owning
      * organization's id, as metadata.org carries it.
      *
-     * Example: "org_01j5q3k7m8r2s4tnz2hf6w8x9a/code-reviewer"; an organization
-     * made before ids were minted reads "acme/code-reviewer".
+     * Example: "org_01j5q3k7m8r2s4tnz2hf6w8x9a/variance-reporter"; an organization
+     * made before ids were minted reads "acme/variance-reporter".
      *
      * A reference in this form resolves as written. Clients that show it to a
      * person put the organization's slug in place of its id.
@@ -1757,8 +1757,8 @@ private static final long serialVersionUID = 0L;
      * Fully qualified reference: "&lt;org&gt;/&lt;slug&gt;", where org is the owning
      * organization's id, as metadata.org carries it.
      *
-     * Example: "org_01j5q3k7m8r2s4tnz2hf6w8x9a/code-reviewer"; an organization
-     * made before ids were minted reads "acme/code-reviewer".
+     * Example: "org_01j5q3k7m8r2s4tnz2hf6w8x9a/variance-reporter"; an organization
+     * made before ids were minted reads "acme/variance-reporter".
      *
      * A reference in this form resolves as written. Clients that show it to a
      * person put the organization's slug in place of its id.
@@ -1778,8 +1778,8 @@ private static final long serialVersionUID = 0L;
      * Fully qualified reference: "&lt;org&gt;/&lt;slug&gt;", where org is the owning
      * organization's id, as metadata.org carries it.
      *
-     * Example: "org_01j5q3k7m8r2s4tnz2hf6w8x9a/code-reviewer"; an organization
-     * made before ids were minted reads "acme/code-reviewer".
+     * Example: "org_01j5q3k7m8r2s4tnz2hf6w8x9a/variance-reporter"; an organization
+     * made before ids were minted reads "acme/variance-reporter".
      *
      * A reference in this form resolves as written. Clients that show it to a
      * person put the organization's slug in place of its id.

@@ -3,31 +3,33 @@
  * on, declared once per adapter and read nowhere else.
  *
  * The runtime is written against the flags, not against harness names: a
- * phase that must differ per engine asks "does this harness accept a system
- * prompt?" rather than "is this Cursor?". That is what keeps a new harness a
+ * phase that must differ per engine asks "does this harness pause by
+ * denying and retrying?" rather than "is this Cursor?". That is what keeps a new harness a
  * registry row and an SDK slice instead of a new branch in every phase.
- * Every row of the matrix below is either a flag here or internal to one
- * adapter; nothing in it needed a third kind of thing.
+ * Every row of the matrix below is a flag here, a fact one adapter acts on
+ * by itself, or internal to one adapter.
  *
- * One flag is declared for the matrix and read by no runtime phase today:
- * `systemPrompt`. Its readers are the adapters' own prompt builders, by
- * placement (the native builder renders a system prompt rebuilt every turn;
- * the Cursor builder renders the session's first user message), and the
- * shared prompt glue (`shared/prompt-sections.ts`) is written so that
- * placement stays each adapter's. The runtime would branch on it only if it
- * ever composed prompts itself — an open unification question (#1135), not a
- * phase that exists.
+ * Two rows of the matrix are facts, not flags: `systemPrompt` (does the
+ * engine take a system prompt, or do instructions ride the first message)
+ * and `toolRestriction` (can the engine hide a tool, or must its approval
+ * hook refuse it). Each adapter acts on its own row by construction (the
+ * native prompt builder renders a system prompt rebuilt every turn, the
+ * Cursor builder renders the session's first user message, and
+ * `shared/prompt-sections.ts` keeps that placement each adapter's), and no
+ * runtime phase branches on either, so neither is declared here (#1135).
  *
- * The matrix the contract was designed against (2026-09; Claude and Codex are
- * the surveyed SDKs, not built harnesses):
+ * The matrix the contract was designed against (2026-09 survey; the Claude
+ * column's `pausePrimitive`, `stateIdSource`, `subAgents` and
+ * `contextCompaction` re-measured 2026-10 against SDK 0.3.310; Codex is
+ * surveyed, not built):
  *
  * | Capability        | Native (LangGraph)          | Cursor (`@cursor/sdk`)                  | Claude (`@anthropic-ai/claude-agent-sdk`)     | Codex (`@openai/codex-sdk`)                    |
  * |-------------------|-----------------------------|-----------------------------------------|-----------------------------------------------|------------------------------------------------|
- * | `pausePrimitive`  | `interrupt` (checkpoint)    | `deny-and-retry` (hook, ledger, cancel) | `callback` (`canUseTool`, in-process)         | `none` (approvalPolicy only) → capture-only    |
- * | `stateIdSource`   | `deterministic` (thread id) | `engine-minted` (agent id)              | either (caller-supplied or minted)            | `engine-minted` (thread id)                    |
- * | `systemPrompt`    | yes                         | no (rides the first message)            | yes                                           | no (`AGENTS.md` or first message)              |
- * | `subAgents`       | yes (compiled sub-graphs)   | yes (`agents` option)                   | yes (`AgentDefinition`)                       | no                                             |
- * | `toolRestriction` | yes (tool list)             | no (the hook enforces)                  | yes (`disallowedTools`, `tools`)              | per-server config                              |
+ * | `pausePrimitive`  | `interrupt` (checkpoint)    | `deny-and-retry` (hook, ledger, cancel) | `interrupt` (`defer` from `PreToolUse`; the resumed session runs exactly that call) | no gate (approvalPolicy only); refused until a confinement exists |
+ * | `stateIdSource`   | `deterministic` (thread id) | `engine-minted` (agent id)              | `deterministic` (session id derived from the thread id) | `engine-minted` (thread id)            |
+ * | system prompt     | yes                         | no (rides the first message)            | yes                                           | no (`AGENTS.md` or first message)              |
+ * | `subAgents`       | yes (compiled sub-graphs)   | yes (`agents` option)                   | yes (`AgentDefinition`); a sub-agent's gated call cannot wait, so it is refused | no             |
+ * | tool restriction  | yes (tool list)             | no (the hook enforces)                  | yes (`disallowedTools`, `tools`)              | per-server config                              |
  * | `runsHooks`       | yes (in the approval gate)  | yes (the gate's hook server)            | yes (its own hooks)                           | (surveyed later)                               |
  * | `visionProfile`   | PNG, JPEG, WebP, GIF        | PNG, JPEG (transport re-sniffs)         | (surveyed later)                              | (surveyed later)                               |
  * | `fileReview`      | `deep-agent`, no excludes   | `cursor`, the gate's files excluded     | (surveyed later)                              | (surveyed later)                               |
@@ -56,29 +58,22 @@ import type { ToolCall } from "../gen/turn/ai/stigmer/runner/turn/v1/rows_pb.js"
 /**
  * How the engine can be made to stop before a gated side effect.
  *
- *  - `interrupt`: the engine checkpoints and stops at the gate (LangGraph
- *    `interrupt`); the adapter resumes it with the decisions.
+ *  - `interrupt`: the engine stops at the gated call itself and, resumed,
+ *    runs exactly that call with the decision (native: LangGraph
+ *    `interrupt` at a checkpoint; the Claude Agent SDK: `defer` from a
+ *    `PreToolUse` callback); the adapter resumes it with the decisions.
  *  - `deny-and-retry`: an out-of-process hook denies the tool, the adapter
  *    records the denial, cancels the run, and re-runs with grants on the next
  *    invocation.
- *  - `callback`: an in-process callback decides per tool. The intended shape
- *    is the `interrupt` one seen from the runtime: the turn still ends
- *    `awaiting_approval` and reinvokes, and the adapter answers the callback
- *    with "deny, stop" and resumes with the decisions.
- *  - `none`: the engine offers no gate. The intended shape is that the
- *    runtime confines such a harness to capture-only work (a read-only
- *    sandbox) so a gated action never reaches the engine.
  *
- * Two of the four are built and two are reserved. `interrupt` (native) and
- * `deny-and-retry` (Cursor) each have a real adapter and the contract kit
- * runs under both. `callback` and `none` come from the 2026-09 survey of the
- * Claude and Codex SDKs: the type carries them so an adapter can declare
- * them, but no adapter does, and the runtime reads `pausePrimitive` in one
- * place only (`turn-context.ts` `regeneratesApprovedWrites`, which returns
- * false for `none`). The capture-only confinement for `none` is design
- * still to be done before the first gate-less harness lands.
+ * Both have a real adapter and the contract kit runs under both. There is
+ * deliberately no value for an engine that offers no gate: such an engine
+ * cannot be declared until the runtime can confine it to work a gated
+ * action never reaches (#1144), so a gate-less declaration does not
+ * compile rather than run unconfined. The runtime reads the primitive in
+ * one place (`turn-context.ts` `regeneratesApprovedWrites`).
  */
-export type PausePrimitive = "interrupt" | "deny-and-retry" | "callback" | "none";
+export type PausePrimitive = "interrupt" | "deny-and-retry";
 
 /**
  * Who mints the engine's state id. `deterministic`: the runtime derives it
@@ -197,15 +192,11 @@ export interface HarnessCapabilities {
    * defaults (its model) count only on the engine they were chosen for,
    * and a model counts only when this engine's registry section lists it.
    */
-  readonly harness: Harness.NATIVE | Harness.CURSOR;
+  readonly harness: Exclude<Harness, Harness.UNSPECIFIED>;
   readonly pausePrimitive: PausePrimitive;
   readonly stateIdSource: StateIdSource;
-  /** The engine accepts a system prompt; otherwise instructions ride the first user message. */
-  readonly systemPrompt: boolean;
   /** The engine runs delegated sub-agents from a definition map. */
   readonly subAgents: boolean;
-  /** The engine can hide or deny every tool an agent's tool lists exclude; otherwise its approval hook refuses what it cannot hide. */
-  readonly toolRestriction: boolean;
   /**
    * The engine runs an agent's hooks around its tool calls. A turn whose
    * agent has hooks is refused on an engine that does not, before anything

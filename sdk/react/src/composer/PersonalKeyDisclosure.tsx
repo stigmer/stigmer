@@ -59,7 +59,7 @@ export interface PersonalKeyDisclosureProps {
  *
  * @example
  * ```tsx
- * <PersonalKeyDisclosure agentRef={{ org: "acme", slug: "pr-reviewer" }} runOrg="org_acme" />
+ * <PersonalKeyDisclosure agentRef={{ org: "acme", slug: "variance-reporter" }} runOrg="org_acme" />
  * // This agent can read these keys from your My vault: GITHUB_TOKEN, LINEAR_API_KEY
  * ```
  */

@@ -1,7 +1,8 @@
 /**
  * Compaction middleware — the native engine's summarizer, deepagents' own
- * (`createSummarizationMiddleware`, 1.14.1) with two things it never did:
- * the person is told, and the summary never speaks as the agent.
+ * (`createSummarizationMiddleware`, 1.14.1) with three things it never did:
+ * the person is told, the summary never speaks as the agent, and the summary
+ * is a checkpoint that carries the goal.
  *
  * Why a wrapper and not a new engine: deepagents decides when to compact,
  * what to keep, where the history goes and how to recover from an overflow,
@@ -11,7 +12,15 @@
  * stack it is handed to (`mergeMiddlewareStack`), and it hands the real
  * middleware every call. Its numbers stay deepagents'.
  *
- * What it changes, all inside one `wrapModelCall`:
+ * What the summarizer is asked is the runner's: deepagents' default prompt
+ * asked for a recap ("the main topics discussed"), and after the first
+ * compaction the person's opening message lives only in the summary, so a
+ * recap that drops the remaining steps or the closing instruction loses the
+ * goal for the rest of the turn (stigmer#2539). The middleware passes the
+ * checkpoint prompt (`compaction-prompt.ts`, which says why its words and
+ * their order are what they are) as deepagents' own `summaryPrompt` option.
+ *
+ * What it changes in each call, all inside one `wrapModelCall`:
  *
  *  - The model the summarizer sees is a summarizer runnable over the
  *    request's own model. Its summary call carries LangGraph's `nostream`
@@ -51,6 +60,7 @@ import { Runnable, type RunnableConfig } from "@langchain/core/runnables";
 import { createSummarizationMiddleware, type AnyBackendProtocol } from "deepagents";
 
 import { windowOf } from "../shared/model-window.js";
+import { SUMMARY_PROMPT } from "./compaction-prompt.js";
 import { customStreamWriterOf } from "./tool-scope.js";
 
 /** The custom-stream event of one summary: the native translator folds it into a compaction row, the loop prices its usage. */
@@ -98,9 +108,9 @@ class Summarizer extends Runnable<BaseLanguageModelInput, LanguageModelOutput> {
   }
 }
 
-/** deepagents' summarizer under its own name, telling the stream of each summary and keeping the summary off it (the header). */
+/** deepagents' summarizer under its own name, asking for the runner's checkpoint, telling the stream of each summary and keeping the summary off it (the header). */
 export function createCompactionMiddleware(config: CompactionConfig): SummarizationMiddleware {
-  const summarization = createSummarizationMiddleware({ backend: config.backend });
+  const summarization = createSummarizationMiddleware({ backend: config.backend, summaryPrompt: SUMMARY_PROMPT });
   // deepagents' summarizer is a `wrapModelCall` middleware and nothing else.
   const summarize = summarization.wrapModelCall!;
   const wrapModelCall: WrapModelCall = (request, handler) => {

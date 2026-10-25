@@ -151,9 +151,8 @@ const TURN_MESSAGE_TYPE = "user.message";
 
 /**
  * Builds the activity record the worker registers. Keys are the
- * byte-pinned activity names; runner-owned activities (EnsureThread,
- * ExecuteDeepAgent, ExecuteCursor, GenerateSessionSubject) are
- * deliberately NOT here — registering them would break queue-based
+ * byte-pinned activity names; runner-owned activities (declared in
+ * `@stigmer/temporal-codecs/activity-names`) are deliberately NOT here — registering them would break queue-based
  * routing (worker_config.go's CRITICAL rules).
  */
 export function createAgentExecutionActivities(

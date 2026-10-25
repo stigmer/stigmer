@@ -46,16 +46,16 @@ Using the `principal.relation` qualifier to target all members of a team. The `u
 apiVersion: iam.stigmer.ai/v1
 kind: Grant
 metadata:
-  name: support-team-tools-user
+  name: finance-team-ledger-keys-user
   org: acme-corp
 spec:
   principal:
     kind: team
-    id: tm-01HQSUPPORT
+    id: tm-01HQFINANCE
     relation: member  # all members of this team
   resource:
     kind: vault
-    id: vlt-01HQSUPPORTTOOLS
+    id: vlt-01HQLEDGERKEYS
   relation: user
 ```
 
@@ -118,10 +118,10 @@ stigmer grant list-authorized-resources \
 ## CLI: List Principals With Access to a Resource
 
 ```bash
-# Who may use the Support tools vault?
+# Who may use the Ledger keys vault?
 stigmer grant list-authorized-principals \
   --resource-kind vault \
-  --resource-id vlt-01HQSUPPORTTOOLS \
+  --resource-id vlt-01HQLEDGERKEYS \
   --principal-kind identity_account \
   --relation user
 

@@ -169,17 +169,17 @@ to admins only; anyone else sees the servers the Agent already has.
 
 ```yaml validate-as="Agent"
 spec:
-  instructions: Answer support tickets. Look a ticket up before you reply.
+  instructions: Report each account's variance. Read the ledger first.
   mcp_servers:
-    - name: tickets
-      url: https://tickets.acme-helpdesk.example/mcp
+    - name: ledger
+      url: https://ledger.acme-books.example/mcp
       headers:
-        Authorization: Bearer ${TICKETS_API_KEY}
-  tools: [Read, mcp__tickets]
+        Authorization: Bearer ${LEDGER_API_KEY}
+  tools: [Read, mcp__ledger]
 ```
 
 Save it with the rest of the Agent's manifest and apply it with
-`stigmer apply -f support-agent.yaml`.
+`stigmer apply -f variance-reporter.yaml`.
 
 ### From your code
 
@@ -192,17 +192,17 @@ starts.
 
 ```typescript
 const agent = await stigmer.agent.apply({
-  org: "acme-helpdesk",
-  name: "Support agent",
-  instructions: "Answer support tickets. Look a ticket up before you reply.",
+  org: "acme-books",
+  name: "Variance reporter",
+  instructions: "Report each account's variance. Read the ledger first.",
   mcpServers: [
     {
-      name: "tickets",
-      url: "https://tickets.acme-helpdesk.example/mcp",
-      headers: { Authorization: "Bearer ${TICKETS_API_KEY}" },
+      name: "ledger",
+      url: "https://ledger.acme-books.example/mcp",
+      headers: { Authorization: "Bearer ${LEDGER_API_KEY}" },
     },
   ],
-  tools: ["Read", "mcp__tickets"],
+  tools: ["Read", "mcp__ledger"],
 });
 ```
 
@@ -211,15 +211,15 @@ const agent = await stigmer.agent.apply({
 
 ```go
 agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
-  Org:          "acme-helpdesk",
-  Name:         "Support agent",
-  Instructions: "Answer support tickets. Look a ticket up before you reply.",
+  Org:          "acme-books",
+  Name:         "Variance reporter",
+  Instructions: "Report each account's variance. Read the ledger first.",
   McpServers: []*stigmer.AgentMcpServerInput{{
-    Name:    "tickets",
-    Url:     "https://tickets.acme-helpdesk.example/mcp",
-    Headers: map[string]string{"Authorization": "Bearer ${TICKETS_API_KEY}"},
+    Name:    "ledger",
+    Url:     "https://ledger.acme-books.example/mcp",
+    Headers: map[string]string{"Authorization": "Bearer ${LEDGER_API_KEY}"},
   }},
-  Tools: []string{"Read", "mcp__tickets"},
+  Tools: []string{"Read", "mcp__ledger"},
 })
 if err != nil {
   return fmt.Errorf("apply agent: %w", err)
@@ -231,15 +231,15 @@ if err != nil {
 
 ```python
 agent = client.agents.apply(AgentInput(
-    org="acme-helpdesk",
-    name="Support agent",
-    instructions="Answer support tickets. Look a ticket up before you reply.",
+    org="acme-books",
+    name="Variance reporter",
+    instructions="Report each account's variance. Read the ledger first.",
     mcp_servers=[AgentMcpServerInput(
-        name="tickets",
-        url="https://tickets.acme-helpdesk.example/mcp",
-        headers={"Authorization": "Bearer ${TICKETS_API_KEY}"},
+        name="ledger",
+        url="https://ledger.acme-books.example/mcp",
+        headers={"Authorization": "Bearer ${LEDGER_API_KEY}"},
     )],
-    tools=["Read", "mcp__tickets"],
+    tools=["Read", "mcp__ledger"],
 ))
 ```
 
@@ -248,24 +248,24 @@ agent = client.agents.apply(AgentInput(
 
 ```java
 Agent agent = client.agent.apply(AgentInput.builder()
-    .org("acme-helpdesk")
-    .name("Support agent")
-    .instructions("Answer support tickets. Look a ticket up before you reply.")
+    .org("acme-books")
+    .name("Variance reporter")
+    .instructions("Report each account's variance. Read the ledger first.")
     .mcpServers(List.of(AgentInput.AgentMcpServerInput.builder()
-        .name("tickets")
-        .url("https://tickets.acme-helpdesk.example/mcp")
-        .headers(Map.of("Authorization", "Bearer ${TICKETS_API_KEY}"))
+        .name("ledger")
+        .url("https://ledger.acme-books.example/mcp")
+        .headers(Map.of("Authorization", "Bearer ${LEDGER_API_KEY}"))
         .build()))
-    .tools(List.of("Read", "mcp__tickets"))
+    .tools(List.of("Read", "mcp__ledger"))
     .build());
 ```
 
 </Tab>
 </SDKTabs>
 
-`${TICKETS_API_KEY}` stays as written: it names a key, and each run fills it
-from its own vaults. One Agent serves all your customers, because the key comes
-from the conversation, not from the Agent. If each customer's server has its own
+`${LEDGER_API_KEY}` stays as written: it names a key, and each run fills it from
+its own vaults. One Agent serves all your customers, because the key comes from
+the conversation, not from the Agent. If each customer's server has its own
 address, run the same call once per customer, with a name and address each.
 
 ### How it logs in
@@ -277,7 +277,7 @@ A run finds the server's login the way the contract states it:
   is refused before it starts, naming the key.
 - **With no `Authorization` header**, the run uses the login saved in its vaults
   at the server's address, else a secret named `<NAME>_ACCESS_TOKEN` (here
-  `TICKETS_ACCESS_TOKEN`: the server's name upper-cased, each other character
+  `LEDGER_ACCESS_TOKEN`: the server's name upper-cased, each other character
   written as `_`), else it calls the server with no login. For a server that
   asks you to sign in, the server's row on the Agent's page carries **Sign in**,
   which saves the login at the address in your vault.
@@ -296,7 +296,7 @@ their conversations:
 
 - **No tool listing yet.** **Check tools** and `stigmer connect` list a plugin's
   servers only ([#2325](https://github.com/stigmer/stigmer/issues/2325)). Name
-  the whole server as `mcp__tickets` in `tools`, or take the tool names from the
+  the whole server as `mcp__ledger` in `tools`, or take the tool names from the
   server's own documentation. Destructive tools still ask first: the annotation
   is read from the live server at the start of every turn.
 - **On the Agent only.** A conversation adds plugins, not servers of its own,

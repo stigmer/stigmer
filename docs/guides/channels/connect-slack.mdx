@@ -91,13 +91,13 @@ reply. In the console's conversation view, the skipped call shows as "skipped:
 approval not available on this surface". A call the Agent's hooks refuse is
 refused here as anywhere.
 
-For actions a member's own request authorizes — filing their ticket, booking
-their slot — design the Agent to confirm the specifics in conversation first,
-and use a tool that runs without approval: an MCP tool its server does not mark
-destructive and the Agent's hooks do not ask about. Keep truly destructive
-operations marked: on a channel they are skipped, which is exactly right. To
-keep the Agent away from a tool entirely, leave it out of the Agent's `tools`
-list.
+For actions a member's own request authorizes — exporting their variance report,
+booking their slot — design the Agent to confirm the specifics in conversation
+first, and use a tool that runs without approval: an MCP tool its server does
+not mark destructive and the Agent's hooks do not ask about. Keep truly
+destructive operations marked: on a channel they are skipped, which is exactly
+right. To keep the Agent away from a tool entirely, leave it out of the Agent's
+`tools` list.
 
 ## Give the Agent its tool credentials
 
@@ -180,19 +180,19 @@ manifests, manage the channel the same way:
 apiVersion: agentic.stigmer.ai/v1
 kind: Channel
 metadata:
-  name: support-agent-slack
+  name: variance-reporter-slack
   org: acme-corp
 spec:
   agent_ref:
     kind: agent
     org: acme-corp
-    slug: support-agent
+    slug: variance-reporter
   enabled: true
   slack: {}
   vaults:
     - kind: vault
       org: acme-corp
-      slug: support-tools
+      slug: ledger-keys
 ```
 
 Apply it with `stigmer apply -f channel.yaml`. The manifest manages the
@@ -214,7 +214,7 @@ spec:
   agent_ref:
     kind: agent
     org: acme-corp
-    slug: support-agent
+    slug: variance-reporter
   enabled: true
   slack: {}
   run_config:

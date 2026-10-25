@@ -9,6 +9,11 @@
 
 import type { ToolMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
 import type { Command } from "@langchain/langgraph";
+import type { AnyBackendProtocol } from "deepagents";
+
+import type { BackgroundCommands, BackgroundOutputPaths } from "../shared/shell/background-commands.js";
+import type { TurnInputChannel } from "../harness/turn-input.js";
+import type { InputBarriers } from "../activities/execute-deep-agent/input-barrier.js";
 
 export type { ToolMessage, SystemMessage, AIMessage };
 
@@ -22,8 +27,14 @@ export type { ToolMessage, SystemMessage, AIMessage };
  */
 export interface StigmerMiddleware {
   readonly name: string;
+  /** Tools the middleware binds to its graph; langchain registers them beside the agent's own. */
+  readonly tools?: readonly unknown[];
   beforeAgent?: (state: Record<string, unknown>, runtime: unknown) => unknown;
-  afterModel?: (state: Record<string, unknown>, runtime: unknown) => unknown;
+  beforeModel?: (state: Record<string, unknown>, runtime: unknown) => unknown;
+  /** A hook, or a hook with the targets it may jump to (`jumpTo` in its update). */
+  afterModel?:
+    | ((state: Record<string, unknown>, runtime: unknown) => unknown)
+    | { readonly canJumpTo: readonly ("model" | "tools" | "end")[]; readonly hook: (state: Record<string, unknown>, runtime: unknown) => unknown };
   wrapToolCall?: (
     request: ToolCallRequest,
     handler: (request: ToolCallRequest) => Promise<ToolMessage | Command> | ToolMessage | Command,
@@ -84,7 +95,15 @@ export interface ExecutionBudgetConfig {
 }
 
 export interface ToolTruncationConfig {
+  /** The run's `max_tool_result_chars`; a tool deepagents would offload is cut at no more than its threshold (`tool-truncation.ts`). */
   readonly maxChars: number;
+  /**
+   * The graph's file backend. A long result is kept whole through it only
+   * when it routes the offload root outside the workspace
+   * (`platform-route.ts` `routesOffloads`); otherwise, or absent, the result
+   * is cut with nothing kept.
+   */
+  readonly backend?: AnyBackendProtocol;
   readonly onTruncation?: (toolName: string, charsTruncated: number) => void;
 }
 
@@ -117,6 +136,10 @@ import type { ToolScopeConfig } from "./tool-scope.js";
 import type { TurnBoundarySignals } from "./turn-boundary.js";
 export type { ToolScopeConfig };
 
+// Same idiom: the folder-instructions middleware consumes it.
+import type { FolderInstructionsConfig } from "./folder-instructions.js";
+export type { FolderInstructionsConfig };
+
 /**
  * Top-level configuration for buildMiddlewareStack().
  * All sections are optional — the factory applies sensible defaults.
@@ -142,15 +165,42 @@ export interface MiddlewareStackConfig {
    */
   readonly pathNormalization?: PathNormalizationConfig | null;
   /**
+   * A folder's own instruction file on the first read beneath it
+   * (`folder-instructions.ts`). Set only on a graph whose tool scope may
+   * read the workspace; absent, nothing is attached.
+   */
+  readonly folderInstructions?: FolderInstructionsConfig | null;
+  /**
    * The runner's shell for this graph (`middleware/shell.ts`): the
    * executable `execute` tool every `execute` call runs. Present only on a
    * graph whose backend can run a shell; absent, deepagents binds no
    * `execute` and none is supplied.
    */
   readonly shell?: ShellMiddlewareConfig | null;
+  /**
+   * The person's messages, for the background middleware's round-end wait
+   * to hand on (`background-commands.ts`); the root's alone.
+   */
+  readonly turnInput?: { readonly channel: TurnInputChannel; readonly barriers?: InputBarriers };
 }
 
 export interface ShellMiddlewareConfig {
   /** The graph's `execute` tool (`execute-deep-agent/shell-tool.ts` `createShellTool`). */
   readonly tool: unknown;
+  /**
+   * Present when `execute` can run a command in the background
+   * (`execute-deep-agent/shell-tool.ts` `createShellBinding`): the
+   * invocation's commands, where their output goes, and the stop tool bound
+   * beside `execute`. The `shell` middleware declares `background` and binds
+   * the stop tool, and the background middleware is installed with it
+   * (`background-commands.ts`).
+   */
+  readonly background?: BackgroundShellConfig;
+}
+
+export interface BackgroundShellConfig {
+  readonly commands: BackgroundCommands;
+  readonly outputPaths: BackgroundOutputPaths | undefined;
+  /** The `stop_background_command` tool. */
+  readonly stopTool: unknown;
 }

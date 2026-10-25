@@ -54,7 +54,10 @@
  * outside the workspace), an {@link OffloadBackend} each, where
  * "attaching a real repo never leaves Stigmer files behind in it" holds for
  * them too (`platform-dir.ts`); through the workspace backend they were
- * top-level directories of the person's tree. Routed, they bypass the CAS
+ * top-level directories of the person's tree. The runner keeps a long tool
+ * result under the first root too, by the same name, through the same route
+ * (`middleware/tool-truncation.ts`, which writes only through a backend
+ * {@link routesOffloads} admits). Routed, they bypass the CAS
  * observer and live outside the work tree, as the outputs folder does. The two roots are left out of the root listing, as
  * an empty route is: deepagents names them to the model itself. A
  * repository's own real directory of either name is behind the route and
@@ -100,6 +103,7 @@ import type {
 import { OUTPUTS_SUBDIR } from "../../shared/outputs.js";
 import { STIGMER_LOCAL_STATE_DIR, stigmerSymlinkPointsAt } from "../../shared/workspace/stigmer-link.js";
 import { offloadDirBeside } from "../../shared/workspace/platform-dir.js";
+import { backgroundOutputFileName, type BackgroundOutputPaths } from "../../shared/shell/background-commands.js";
 import { agentFs } from "../../shared/agent-fs.js";
 import { editLoosely } from "./loose-edit.js";
 
@@ -311,6 +315,8 @@ export class NoPlatformContentBackend implements BackendProtocolV2 {
  */
 export class PlatformRoutedBackend extends CompositeBackend {
   private readonly exposesPlatform: boolean;
+  /** Holds the {@link DEEPAGENTS_OFFLOAD_ROOT} route; read through {@link routesOffloads}. */
+  readonly routesToolResults: boolean;
 
   constructor(
     backend: AnyBackendProtocol,
@@ -324,6 +330,7 @@ export class PlatformRoutedBackend extends CompositeBackend {
       ...offloads,
     });
     this.exposesPlatform = platform instanceof PlatformContentBackend;
+    this.routesToolResults = DEEPAGENTS_OFFLOAD_ROOT in offloads;
   }
 
   override async ls(path: string): Promise<LsResult> {
@@ -341,6 +348,19 @@ export class PlatformRoutedBackend extends CompositeBackend {
       }),
     };
   }
+}
+
+/**
+ * Whether a write under {@link DEEPAGENTS_OFFLOAD_ROOT} through `backend` lands
+ * in the session's offload directory, never the workspace: true only for a
+ * routed backend holding that route, which both of {@link mountPlatformRoute}'s
+ * constructions pass. The runner's own keeping of long tool results
+ * (`middleware/tool-truncation.ts`) writes through a backend only when this
+ * holds; the class alone does not prove the route, since `offloads` defaults
+ * to none.
+ */
+export function routesOffloads(backend: AnyBackendProtocol): boolean {
+  return backend instanceof PlatformRoutedBackend && backend.routesToolResults;
 }
 
 export interface PlatformRouteOptions {
@@ -376,6 +396,23 @@ export async function mountPlatformRoute(
     new OutputsBackend(join(platformDir, OUTPUTS_SUBDIR)),
     offloads,
   );
+}
+
+/**
+ * Where a command the agent runs in the background writes its output
+ * (`shared/shell/background-commands.ts`): beside the results deepagents
+ * offloads, under {@link DEEPAGENTS_OFFLOAD_ROOT}, so `read_file` reads it
+ * like any kept result, outside the workspace and file review, even where
+ * the agent's lists exclude `Read` (`admitsRoutedRead`). Undefined for a
+ * session without a platform dir, which has no offload route.
+ */
+export function backgroundOutputPathsIn(platformDir: string | undefined): BackgroundOutputPaths | undefined {
+  if (platformDir === undefined) return undefined;
+  const dir = join(offloadDirBeside(platformDir), DEEPAGENTS_OFFLOAD_ROOT.slice(1, -1));
+  return {
+    virtual: (id) => `${DEEPAGENTS_OFFLOAD_ROOT}${backgroundOutputFileName(id)}`,
+    real: (id) => join(dir, backgroundOutputFileName(id)),
+  };
 }
 
 /** One {@link OffloadBackend} per offload root, each in its own directory of the session's offload directory. */

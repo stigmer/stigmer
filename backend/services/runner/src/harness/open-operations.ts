@@ -38,6 +38,14 @@
  *     sub-agent's own calls are what count, so a sub-agent whose model hangs
  *     with nothing open is caught at the window like the root's.
  *
+ * A scope whose agent waits for its background commands at a round's end
+ * (`background_wait_started` until `background_wait_finished`) holds the
+ * watchdog too, and the window counts from the wait's end. It is not an
+ * operation: the turn's liveness names tool calls, and the backstop bounds
+ * what has no bound of its own, while every background command has its
+ * timeout. So a wait is in neither {@link OpenOperations.snapshot} nor
+ * {@link OpenOperations.oldest}.
+ *
  * Whether the turn is waiting on its model ({@link OpenOperations.awaitingModel})
  * is the stall's second question: a stall owed by the model provider is
  * recoverable, and any other is the engine's (`run-turn.ts`). It is true
@@ -46,7 +54,12 @@
  * answered yet (no call started, no round opened since) and nothing is open:
  * the engine handed the model a result and the model has not replied. A
  * turn that has folded nothing yet is not waiting on its model by this
- * reading: the stall may be in the engine's own setup.
+ * reading: the stall may be in the engine's own setup. A round also ends
+ * when the next round of its scope (the root, or one sub-agent) starts, and
+ * when its sub-agent finishes or fails: a graph makes one model call at a
+ * time, and a call that threw never finishes (LangGraph emits no
+ * `message-finish` for it, and a retried call is a new run), so without
+ * this a failed round stayed open for the rest of the turn.
  *
  * The oldest open call, with its age, is what the runtime's backstop reads:
  * an operation open longer than `Config.openOperationMaxMs` is stopped
@@ -107,12 +120,14 @@ export class OpenOperations {
   private readonly open = new Map<string, OpenOperation>();
   private readonly closed = new Set<string>();
   private readonly delegating = new Set<string>();
-  /** The model rounds open now, by the run id their `message_start` named, with when each opened. */
-  private readonly openRounds = new Map<string, number>();
+  /** The model rounds open now, by the run id their `message_start` named, with when each opened and whose scope it is. */
+  private readonly openRounds = new Map<string, { readonly openedAtMs: number; readonly scope: string | undefined }>();
   /** The newest fact folded is a tool's result nothing has answered yet. */
   private resultUnanswered = false;
   /** When the newest unanswered result arrived. */
   private resultAtMs = 0;
+  /** The scopes waiting for their background commands (the root as `""`). */
+  private readonly waiting = new Set<string>();
   private readonly now: () => number;
 
   constructor(private readonly options: OpenOperationsOptions) {
@@ -144,15 +159,31 @@ export class OpenOperations {
         this.resultUnanswered = false;
         return;
       case "message_start":
-        if (!this.openRounds.has(event.runId)) this.openRounds.set(event.runId, this.now());
+        if (!this.openRounds.has(event.runId)) {
+          this.closeRounds(event.subAgentId);
+          this.openRounds.set(event.runId, { openedAtMs: this.now(), scope: event.subAgentId });
+        }
         this.resultUnanswered = false;
         return;
       case "message_finish":
         this.openRounds.delete(event.runId);
         return;
+      case "sub_agent_finished":
+      case "sub_agent_failed":
+        this.closeRounds(event.subAgentId);
+        return;
       case "sub_agent_started": {
         const wasHeld = this.held();
         this.delegating.add(event.subAgentId);
+        if (wasHeld && !this.held()) this.options.onIdle?.();
+        return;
+      }
+      case "background_wait_started":
+        this.waiting.add(event.subAgentId ?? "");
+        return;
+      case "background_wait_finished": {
+        const wasHeld = this.held();
+        this.waiting.delete(event.subAgentId ?? "");
         if (wasHeld && !this.held()) this.options.onIdle?.();
         return;
       }
@@ -161,8 +192,16 @@ export class OpenOperations {
     }
   }
 
-  /** Whether anything counted is running: the watchdog's `held()`. */
+  /** End every round open in `scope` (the root when undefined): see the module header. */
+  private closeRounds(scope: string | undefined): void {
+    for (const [runId, round] of this.openRounds) {
+      if (round.scope === scope) this.openRounds.delete(runId);
+    }
+  }
+
+  /** Whether anything counted is running, or a scope waits for its background commands: the watchdog's `held()`. */
   held(): boolean {
+    if (this.waiting.size > 0) return true;
     for (const operation of this.open.values()) {
       if (this.counts(operation)) return true;
     }
@@ -186,7 +225,7 @@ export class OpenOperations {
 
   /** How long the turn has waited on its model, by {@link awaitingModel}'s reading; undefined when it is not. */
   private awaitingSinceMs(held: boolean, now: number): number | undefined {
-    if (this.openRounds.size > 0) return now - Math.min(...this.openRounds.values());
+    if (this.openRounds.size > 0) return now - Math.min(...[...this.openRounds.values()].map((round) => round.openedAtMs));
     return this.resultUnanswered && !held ? now - this.resultAtMs : undefined;
   }
 

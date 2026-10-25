@@ -16,16 +16,23 @@
  *  - It resolved on `close`, which waits for every holder of the pipes, so a
  *    backgrounded or orphaned child that kept them open held the call open
  *    for ever (stigmer#2432). Here the call ends at the shell's `exit`: the
- *    pipes are drained for a short grace, then destroyed. A background child
- *    is not killed when its shell exits normally; it loses its output pipe.
+ *    pipes are drained for a short grace, then destroyed. A child the
+ *    command itself sent to the background (`cmd &`) is not killed when its
+ *    shell exits normally; it loses its output pipe. A command the agent
+ *    asks to run in the background is the runner's own and is stopped with
+ *    its turn (`background-commands.ts`).
  *  - It took no signal, so the turn's stop never reached a running command.
  *    Here an abort stops the group at once.
  *  - stdin is closed (`ignore`): a command that reads input sees end of file
  *    rather than waiting for input nobody will send.
  *
  * Output is capped per stream at `maxOutputBytes` characters, deepagents'
- * own cap (100,000), so a chatty build cannot grow without bound; the
- * formatted result keeps deepagents' shape byte for byte
+ * own cap (100,000), so a chatty build cannot grow without bound. A stream
+ * over the cap keeps its first half and its last half, cut at line ends
+ * (`shared/text-cut.ts`), with `… [N characters omitted] …` between them:
+ * the end of a long command is where its verdict is (the failing tests, the
+ * last error), and deepagents kept only the start. The formatted result
+ * keeps deepagents' shape and notes byte for byte
  * ({@link formatCommandOutput}), so prompts and goldens read as before.
  *
  * No LangChain here: the tool and the backend own their framework's shapes.
@@ -33,6 +40,7 @@
  */
 
 import { spawn } from "node:child_process";
+import { headCutIndex, tailCutIndex } from "../text-cut.js";
 
 /** deepagents' `LocalShellBackend` cap on a command's output, in characters. */
 export const DEFAULT_MAX_OUTPUT_BYTES = 100_000;
@@ -41,7 +49,10 @@ export const DEFAULT_MAX_OUTPUT_BYTES = 100_000;
 const DRAIN_GRACE_MS = 100;
 
 /** How long a stopped group has after SIGTERM before it is killed. */
-const KILL_GRACE_MS = 2_000;
+export const KILL_GRACE_MS = 2_000;
+
+/** How often {@link stopProcessGroup} looks for a process still in the group. */
+const GROUP_POLL_MS = 25;
 
 export interface RunCommandOptions {
   readonly command: string;
@@ -54,6 +65,8 @@ export interface RunCommandOptions {
   /** Told every chunk as it arrives, in arrival order. */
   readonly onOutput?: (chunk: string, stream: "stdout" | "stderr") => void;
   readonly maxOutputBytes?: number;
+  /** Told the process group's id once the shell has started: the handle {@link stopProcessGroup} takes. */
+  readonly onSpawn?: (processGroupId: number) => void;
 }
 
 export interface CommandResult {
@@ -71,22 +84,46 @@ export interface CommandResult {
   readonly spawnError?: string;
 }
 
-/** Collects one stream up to the cap. */
+/** The line standing in for what a capped stream left out. */
+export function omittedOutputLine(chars: number): string {
+  return `… [${chars} characters omitted] …`;
+}
+
+/**
+ * Collects one stream up to the cap: its first half as it arrives, and a
+ * window over its last half (the module header).
+ */
 class Capped {
-  private text = "";
-  truncated = false;
-  constructor(private readonly max: number) {}
+  private head = "";
+  private tail = "";
+  private total = 0;
+  private readonly headMax: number;
+  private readonly tailMax: number;
+  constructor(max: number) {
+    this.headMax = Math.ceil(max / 2);
+    this.tailMax = max - this.headMax;
+  }
   add(chunk: string): void {
-    if (this.text.length >= this.max) {
-      this.truncated = true;
-      return;
+    this.total += chunk.length;
+    const room = this.headMax - this.head.length;
+    if (room > 0) {
+      this.head += chunk.slice(0, room);
+      chunk = chunk.slice(room);
     }
-    const room = this.max - this.text.length;
-    if (chunk.length > room) this.truncated = true;
-    this.text += chunk.slice(0, room);
+    if (chunk.length === 0) return;
+    // One character more than the tail keeps: the one before it says whether the tail starts a line.
+    this.tail += chunk;
+    if (this.tail.length > this.tailMax + 1) this.tail = this.tail.slice(this.tail.length - this.tailMax - 1);
+  }
+  get truncated(): boolean {
+    return this.total > this.headMax + this.tailMax;
   }
   get value(): string {
-    return this.text;
+    if (!this.truncated) return this.head + this.tail;
+    const head = this.head.slice(0, headCutIndex(this.head, this.headMax));
+    const tail = this.tail.slice(tailCutIndex(this.tail, this.tailMax));
+    const joint = head.endsWith("\n") || head.length === 0 ? "" : "\n";
+    return `${head}${joint}${omittedOutputLine(this.total - head.length - tail.length)}\n${tail}`;
   }
 }
 
@@ -111,6 +148,7 @@ export function runCommand(options: RunCommandOptions): Promise<CommandResult> {
       env: options.env,
       stdio: ["ignore", "pipe", "pipe"],
     });
+    if (child.pid !== undefined) options.onSpawn?.(child.pid);
 
     let settled = false;
     let killTimer: ReturnType<typeof setTimeout> | undefined;
@@ -187,6 +225,42 @@ export function runCommand(options: RunCommandOptions): Promise<CommandResult> {
       drainTimer.unref?.();
     });
   });
+}
+
+/** Whether any process is still in group `processGroupId` (a zombie not yet reaped counts). */
+function groupAlive(processGroupId: number): boolean {
+  try {
+    process.kill(-processGroupId, 0);
+    return true;
+  } catch (err) {
+    // EPERM: a process is there, owned by someone else; only ESRCH means the group is empty.
+    return (err as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
+/**
+ * Stop every process in group `processGroupId` and resolve once none is
+ * left: SIGTERM, then SIGKILL after {@link KILL_GRACE_MS}. Resolves at once
+ * for an empty group. A process that outlives SIGKILL (one stuck in the
+ * kernel) is given up on a second grace later, so a caller is never held
+ * for ever.
+ */
+export async function stopProcessGroup(processGroupId: number): Promise<void> {
+  if (!groupAlive(processGroupId)) return;
+  const signal = (name: NodeJS.Signals): void => {
+    try {
+      process.kill(-processGroupId, name);
+    } catch {
+      // The group emptied between the look and the signal.
+    }
+  };
+  signal("SIGTERM");
+  // Time is counted in polls, not read from the clock: a test that fakes
+  // `Date` must not hold a stop for ever.
+  for (let waited = 0; waited < 2 * KILL_GRACE_MS && groupAlive(processGroupId); waited += GROUP_POLL_MS) {
+    if (waited === KILL_GRACE_MS) signal("SIGKILL");
+    await new Promise((resolve) => setTimeout(resolve, GROUP_POLL_MS));
+  }
 }
 
 /** How a command ended, as both doors word it. */

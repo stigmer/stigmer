@@ -112,8 +112,8 @@ export class CasCaptureFilesystemBackend extends FilesystemBackend {
   }
 }
 
-/** What one command run through the backend may set: its bound, the turn's stop, and a listener for its output. */
-export type ShellRunOptions = Pick<RunCommandOptions, "timeoutSeconds" | "signal" | "onOutput">;
+/** What one command run through the backend may set: its bound, the turn's stop, a listener for its output, and one for its process group. */
+export type ShellRunOptions = Pick<RunCommandOptions, "timeoutSeconds" | "signal" | "onOutput" | "onSpawn">;
 
 export class CasCaptureShellBackend extends LocalShellBackend {
   private readonly observer: CasCaptureObserver;

@@ -56,6 +56,8 @@ export function toolUseOf(init: ToolRowInit): ToolUse {
             isImage: init.outputRef.isImage ?? false,
           },
     liveOutput: "",
+    background: undefined,
+    stoppedBackground: undefined,
     thread: undefined,
     processedAt: "",
   };

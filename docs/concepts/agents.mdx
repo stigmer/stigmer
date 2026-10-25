@@ -278,7 +278,7 @@ message starts a fresh count.
 | `service_tier`          | `SERVICE_TIER_FAST` runs at the model's fast tier and bills at its fast rates. Needs a model that offers one.                                                                             |
 | `max_cost_usd`          | Stops a message once its estimated cost reaches this many dollars.                                                                                                                        |
 | `max_tool_rounds`       | Stops a message after this many rounds of tool calls (native Harness only).                                                                                                               |
-| `max_tool_result_chars` | Cuts a single tool result longer than this; 30,000 characters when no one sets it.                                                                                                        |
+| `max_tool_result_chars` | Cuts a single tool result longer than this to its start and its end, keeping the whole where the Agent can read it back; 30,000 characters when no one sets it (native Harness only).     |
 
 ### Where each setting comes from
 
@@ -362,6 +362,14 @@ factor in how the Agent behaves. Structure it as a brief for a new team member:
   tools" guides the Agent to apply its tools to each job.
 - **Set the tone.** "Be direct and concise. Act on requests rather than
   explaining steps." shapes conversational style.
+
+On the native Harness, a repository's own notes for coding agents join the
+instructions. When the files the Agent works on keep an `AGENTS.md` (or, failing
+that, a `CLAUDE.md`) at their root, the Agent reads it at the start of every
+turn, beneath its instructions; a subfolder's own file is shown the first time
+the Agent reads a file beneath it. Where the two disagree, the Agent's
+instructions win. An Agent whose tool lists keep it from reading those files is
+shown none of them.
 
 ## What's next
 

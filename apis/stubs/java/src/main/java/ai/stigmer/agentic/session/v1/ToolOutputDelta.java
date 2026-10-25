@@ -7,9 +7,12 @@ package ai.stigmer.agentic.session.v1;
 
 /**
  * <pre>
- * ToolOutputDelta is one fragment of a running tool's output:
+ * ToolOutputDelta is one fragment of a running tool's output, or, after the
+ * result of a tool use that started a command in the background, of that
+ * command's output until its stigmer.background_command.status ended:
  * stigmer.tool_output_delta. Streamed, never stored; the tool's result
- * event carries the whole output.
+ * event carries the whole output, and the ended status the background
+ * command's.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.session.v1.ToolOutputDelta}
@@ -318,9 +321,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ToolOutputDelta is one fragment of a running tool's output:
+   * ToolOutputDelta is one fragment of a running tool's output, or, after the
+   * result of a tool use that started a command in the background, of that
+   * command's output until its stigmer.background_command.status ended:
    * stigmer.tool_output_delta. Streamed, never stored; the tool's result
-   * event carries the whole output.
+   * event carries the whole output, and the ended status the background
+   * command's.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.session.v1.ToolOutputDelta}

@@ -20,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/run/v1/invocation.proto.
  */
 export const file_ai_stigmer_agentic_run_v1_invocation: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2ludm9jYXRpb24ucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEi7AYKD0FnZW50SW52b2NhdGlvbhJTCglhZ2VudF9yZWYYASABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCCrpIA8gBAeCFLCgSGwoHbWVzc2FnZRgCIAEoCUIKukgHcgUQARiAQBI3CgdoYXJuZXNzGAMgASgOMiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSGFybmVzcxJSCgZ2YXVsdHMYByADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCDLpIBZIBAhAU4IUsOxI4CgpydW5fY29uZmlnGAYgASgLMiQuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5SdW5Db25maWcSUwoPZW52aXJvbm1lbnRfcmVmGAggASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgTghSxDEpkDCglyZXNvdXJjZXMYCSADKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uUmVzb3VyY2VC1QK6SNECkgHNAhD0AyLHAroBjAEKF3Jlc291cmNlcy5ub19sb2NhbF9wYXRoElphIHJvdXRpbmUncyBydW5zIGNhbm5vdCB1c2UgYSBmb2xkZXIgb24gc29tZW9uZSdzIG1hY2hpbmU6IG5hbWUgYSBnaXQgcmVwb3NpdG9yeSBvciBhIEZpbGUaFSFoYXModGhpcy5sb2NhbF9wYXRoKboBswEKEnJlc291cmNlcy5ub190b2tlbhJfYSByZXBvc2l0b3J5IGhlcmUgY2Fubm90IGNhcnJ5IGEgdG9rZW46IHNhdmUgaXQgYXMgYSBjb25uZWN0aW9uIGluIGEgdmF1bHQgdGhlIGludm9jYXRpb24gbmFtZXMaPCFoYXModGhpcy5naXRfcmVwb3NpdG9yeSkgfHwgdGhpcy5naXRfcmVwb3NpdG9yeS50b2tlbiA9PSAnJ0oECAQQBUoECAUQBlIRd29ya3NwYWNlX2VudHJpZXNSEGVudmlyb25tZW50X3JlZnMioQIKCVJ1bkNvbmZpZxISCgptb2RlbF9uYW1lGAEgASgJEiQKDG1heF9jb3N0X3VzZBgCIAEoAUIOukgLEgkpAAAAAAAAAAASIAoPbWF4X3Rvb2xfcm91bmRzGAMgASgFQge6SAQaAigAEkYKDHNlcnZpY2VfdGllchgEIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuU2VydmljZVRpZXJCCLpIBYIBAhABEkgKDXRoaW5raW5nX21vZGUYBSABKA4yJy5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlRoaW5raW5nTW9kZUIIukgFggECEAESJgoVbWF4X3Rvb2xfcmVzdWx0X2NoYXJzGAYgASgFQge6SAQaAigAYgZwcm90bzM", [file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_resource, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvcnVuL3YxL2ludm9jYXRpb24ucHJvdG8SGWFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEi9gYKD0FnZW50SW52b2NhdGlvbhJTCglhZ2VudF9yZWYYASABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCCrpIA8gBAeCFLCgSGwoHbWVzc2FnZRgCIAEoCUIKukgHcgUQARiAQBJBCgdoYXJuZXNzGAMgASgOMiYuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuSGFybmVzc0IIukgFggECEAESUgoGdmF1bHRzGAcgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQgy6SAWSAQIQFOCFLDsSOAoKcnVuX2NvbmZpZxgGIAEoCzIkLmFpLnN0aWdtZXIuYWdlbnRpYy5ydW4udjEuUnVuQ29uZmlnElMKD2Vudmlyb25tZW50X3JlZhgIIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIE4IUsQxKZAwoJcmVzb3VyY2VzGAkgAygLMi4uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvblJlc291cmNlQtUCukjRApIBzQIQ9AMixwK6AYwBChdyZXNvdXJjZXMubm9fbG9jYWxfcGF0aBJaYSByb3V0aW5lJ3MgcnVucyBjYW5ub3QgdXNlIGEgZm9sZGVyIG9uIHNvbWVvbmUncyBtYWNoaW5lOiBuYW1lIGEgZ2l0IHJlcG9zaXRvcnkgb3IgYSBGaWxlGhUhaGFzKHRoaXMubG9jYWxfcGF0aCm6AbMBChJyZXNvdXJjZXMubm9fdG9rZW4SX2EgcmVwb3NpdG9yeSBoZXJlIGNhbm5vdCBjYXJyeSBhIHRva2VuOiBzYXZlIGl0IGFzIGEgY29ubmVjdGlvbiBpbiBhIHZhdWx0IHRoZSBpbnZvY2F0aW9uIG5hbWVzGjwhaGFzKHRoaXMuZ2l0X3JlcG9zaXRvcnkpIHx8IHRoaXMuZ2l0X3JlcG9zaXRvcnkudG9rZW4gPT0gJydKBAgEEAVKBAgFEAZSEXdvcmtzcGFjZV9lbnRyaWVzUhBlbnZpcm9ubWVudF9yZWZzIqECCglSdW5Db25maWcSEgoKbW9kZWxfbmFtZRgBIAEoCRIkCgxtYXhfY29zdF91c2QYAiABKAFCDrpICxIJKQAAAAAAAAAAEiAKD21heF90b29sX3JvdW5kcxgDIAEoBUIHukgEGgIoABJGCgxzZXJ2aWNlX3RpZXIYBCABKA4yJi5haS5zdGlnbWVyLmFnZW50aWMucnVuLnYxLlNlcnZpY2VUaWVyQgi6SAWCAQIQARJICg10aGlua2luZ19tb2RlGAUgASgOMicuYWkuc3RpZ21lci5hZ2VudGljLnJ1bi52MS5UaGlua2luZ01vZGVCCLpIBYIBAhABEiYKFW1heF90b29sX3Jlc3VsdF9jaGFycxgGIAEoBUIHukgEGgIoAGIGcHJvdG8z", [file_ai_stigmer_agentic_run_v1_enum, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_resource, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentInvocation is what a caller may ask an agent to do.
@@ -228,13 +228,19 @@ export type RunConfig = Message<"ai.stigmer.agentic.run.v1.RunConfig"> & {
 
   /**
    * Maximum number of characters for a single tool result before truncation.
-   * When a tool result exceeds this limit, it is truncated and a marker is
-   * appended: "[truncated — result exceeded {limit} chars, ask for specific sections]"
+   * A longer result reaches the agent as its start and its end, with a line
+   * between them saying how much was left out. The whole result is kept for
+   * the session, outside the workspace, and the line says where, so the
+   * agent reads the rest back instead of running the tool again; a tool that
+   * pages itself (reading a file, searching, listing, fetching a page) keeps
+   * no copy, and the line says how to narrow the call instead. A value above
+   * 80,000 raises the bound only for the file tools (reading, searching,
+   * listing and editing files); every other tool's result is cut at 80,000
+   * at most.
    *
    * 0 = not set at this layer; with no layer setting it the platform default
-   * applies (30,000 chars, about 7,500 tokens). Applies to all tool results
-   * (shell, read, write, MCP tools), except built-in tools that already
-   * manage their output size.
+   * applies (30,000 chars, about 7,500 tokens). Applies to every tool result,
+   * a subagent's included; the Cursor harness does not read this field.
    *
    * @generated from field: int32 max_tool_result_chars = 6;
    */

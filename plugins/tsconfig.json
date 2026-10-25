@@ -13,8 +13,10 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node"]
+    "types": ["node"],
+    "allowJs": true,
+    "checkJs": true
   },
-  "include": ["scripts/**/*.ts", "__tests__/**/*.ts", "vitest.config.ts"],
+  "include": ["scripts/**/*.ts", "__tests__/**/*.ts", "vitest.config.ts", "format-on-edit/hooks/*.mjs"],
   "exclude": ["node_modules", "dist"]
 }

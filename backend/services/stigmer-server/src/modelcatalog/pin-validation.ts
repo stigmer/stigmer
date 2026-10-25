@@ -22,6 +22,7 @@ import type { ModelCatalogProvider } from "./model-catalog-provider.js";
  */
 export const HARNESS_NAME_CURSOR = "cursor";
 export const HARNESS_NAME_NATIVE = "native";
+export const HARNESS_NAME_CLAUDE = "claude";
 
 const MAX_MODEL_SUGGESTIONS = 3;
 const MAX_MODEL_EDIT_DISTANCE = 5;
@@ -32,12 +33,29 @@ const MAX_MODEL_EDIT_DISTANCE = 5;
  * edition-honest posture: each edition judges pins against the harness ITS
  * runs would actually use; the cloud edition resolves its own configured
  * default).
+ *
+ * Every engine has its own section, so a pin is never judged against
+ * another engine's catalog. An engine whose section the registry does not
+ * have yet (Claude, until its rows land) judges every pin unverifiable
+ * (the no-section posture below); the offered-engine rule refuses its
+ * requests first (domain/session/harness.ts). A number no engine owns is
+ * its own word, so it matches no section either, and the same rule names
+ * it.
  */
 export function harnessName(h: Harness): string {
-  if (h === Harness.CURSOR) {
-    return HARNESS_NAME_CURSOR;
+  switch (h) {
+    case Harness.CURSOR:
+      return HARNESS_NAME_CURSOR;
+    case Harness.CLAUDE:
+      return HARNESS_NAME_CLAUDE;
+    case Harness.NATIVE:
+    case Harness.UNSPECIFIED:
+      return HARNESS_NAME_NATIVE;
+    default: {
+      const unknown: never = h;
+      return `harness-${String(unknown)}`;
+    }
   }
-  return HARNESS_NAME_NATIVE;
 }
 
 /**

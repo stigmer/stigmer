@@ -6,8 +6,9 @@
  * model, provider, tokens and, when the operator switches content on, its
  * text.
  *
- * Innermost in the stack (`middleware/index.ts`), so a span covers the call
- * itself: a held or denied tool call never reaches here and gets no span.
+ * Innermost in the stack but for the model retry (`middleware/index.ts`),
+ * so a span covers the call itself, a model call's retries included: a
+ * held or denied tool call never reaches here and gets no span.
  * Every tool the graph executes gets one, the built-in ones (`task`,
  * `execute`, `read_file`, ...) as much as an MCP server's, which is an
  * `extension` tool with `mcp.method.name=tools/call`, one span per call.

@@ -40,12 +40,12 @@ export interface UseCreateAgentReturn {
  * const { create, isCreating, error, clearError } = useCreateAgent();
  *
  * const agent = await create({
- *   name: "pr-review-bot",
+ *   name: "variance-reporter",
  *   org: "acme",
- *   instructions: "Review pull requests for code quality...",
- *   plugins: [{ org: "acme", slug: "github" }],
+ *   instructions: "Report how each account did against its budget...",
+ *   plugins: [{ org: "acme", slug: "ledger" }],
  * });
- * // agent.metadata?.slug → "pr-review-bot"
+ * // agent.metadata?.slug → "variance-reporter"
  * ```
  */
 export function useCreateAgent(): UseCreateAgentReturn {

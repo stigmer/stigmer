@@ -239,7 +239,7 @@ export interface UseAgentSetupReturn {
  * ```tsx
  * const { state, resolveAgent, submitEnvVars } = useAgentSetup("acme");
  *
- * const result = await resolveAgent({ org: "acme", slug: "code-reviewer" });
+ * const result = await resolveAgent({ org: "acme", slug: "variance-reporter" });
  *
  * if (result.status === "needsEnvVars") {
  *   // Render AgentEnvForm with result.missingVariables

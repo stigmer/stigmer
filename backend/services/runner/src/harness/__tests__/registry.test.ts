@@ -7,13 +7,17 @@
  * Posture: boot validates the table before touching any adapter and fails
  * fast at the first rejection; shutdown and release continue past a failing
  * adapter and surface every failure in one AggregateError. Names: the map
- * must equal the server's constants byte for byte; the runner cannot import
- * the server, so the literals are asserted here and the server's file is
- * cited beside them.
+ * reads the activity names the server's workflow schedules by, from the
+ * one declaration both share (`@stigmer/temporal-codecs/activity-names`,
+ * whose own test pins the bytes).
  */
 
 import { describe, it, expect } from "vitest";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
+import {
+  EXECUTE_CURSOR_ACTIVITY_NAME,
+  EXECUTE_DEEP_AGENT_ACTIVITY_NAME,
+} from "@stigmer/temporal-codecs/activity-names";
 
 import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { DEEP_AGENT_VISION_PROFILE } from "../../shared/attachment-vision.js";
@@ -34,9 +38,7 @@ function stubAdapter(name: string, log: string[], behaviour: StubBehaviour = {})
       harness: Harness.NATIVE,
       pausePrimitive: "interrupt",
       stateIdSource: "deterministic",
-      systemPrompt: true,
       subAgents: false,
-      toolRestriction: true,
       runsHooks: true,
       readsToolMarks: true,
       visionProfile: DEEP_AGENT_VISION_PROFILE,
@@ -65,9 +67,9 @@ function stubAdapter(name: string, log: string[], behaviour: StubBehaviour = {})
 }
 
 describe("HARNESS_ACTIVITY_NAMES", () => {
-  it("equals the server's byte-pinned activity names (stigmer-server temporal/agentexecution/names.ts)", () => {
-    expect(HARNESS_ACTIVITY_NAMES.cursor).toBe("ExecuteCursor");
-    expect(HARNESS_ACTIVITY_NAMES["deep-agent"]).toBe("ExecuteDeepAgent");
+  it("reads the activity names the server's workflow schedules (@stigmer/temporal-codecs/activity-names)", () => {
+    expect(HARNESS_ACTIVITY_NAMES.cursor).toBe(EXECUTE_CURSOR_ACTIVITY_NAME);
+    expect(HARNESS_ACTIVITY_NAMES["deep-agent"]).toBe(EXECUTE_DEEP_AGENT_ACTIVITY_NAME);
     expect(Object.keys(HARNESS_ACTIVITY_NAMES).sort()).toEqual(["cursor", "deep-agent"]);
   });
 });

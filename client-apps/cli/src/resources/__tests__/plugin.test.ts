@@ -371,7 +371,7 @@ describe("the hooks summary", () => {
       },
     });
     const text = await human(renderPushOutcome({ plugin, archiveBytes: 10 }));
-    expect(text).toContain("Installed plugin 'guard' (nothing installed)");
+    expect(text).toContain("Installed plugin 'guard' (hooks)");
     expect(text).toContain("Cursor format: preToolUse 1, beforeShellExecution 1");
   });
 });

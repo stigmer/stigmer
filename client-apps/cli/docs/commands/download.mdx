@@ -30,7 +30,7 @@ stigmer download session ses_01abc123 -o reports/
 stigmer download file file_01abc123
 
 # Get the eval version tagged stable back as a folder
-stigmer download eval support-agent-evals@stable -o ./evals
+stigmer download eval variance-reporter-evals@stable -o ./evals
 ```
 
 {/* AUTO_FLAGS */}
@@ -79,8 +79,8 @@ stigmer download file file_01abc123 -o ./inputs/
 ### Download an eval
 
 ```bash
-stigmer download eval support-agent-evals
-stigmer download eval acme/support-agent-evals@3f1c0e9a7b2d4c6e8f0a1b3c5d7e9f1a2b4c6d8e0f1a3b5c7d9e1f2a4b6c8d0e
+stigmer download eval variance-reporter-evals
+stigmer download eval acme/variance-reporter-evals@3f1c0e9a7b2d4c6e8f0a1b3c5d7e9f1a2b4c6d8e0f1a3b5c7d9e1f2a4b6c8d0e
 ```
 
 Without a suffix the current version is downloaded; `@<tag>` or `@<digest>`

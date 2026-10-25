@@ -35,6 +35,7 @@ import { useConversationStoreRef } from "../internal/store/index.js";
 import { useCreateRun, type SharedRunFields } from "../run/useCreateRun.js";
 import { useRunActions } from "../run/useRunActions.js";
 import { useAnswerToolUse, type ToolUseAnswer } from "../run/useAnswerToolUse.js";
+import { useStopBackgroundCommand } from "../run/useStopBackgroundCommand.js";
 import {
   useReviewFileChanges,
   type FileReviewAction,
@@ -383,6 +384,18 @@ export interface UseSessionConversationReturn {
   readonly clearAnswerError: () => void;
 
   /**
+   * Stop one command the agent runs in the background, by the tool use that
+   * started it (`ToolUse.background`); the turn goes on, and the agent is
+   * told a person stopped it. The session id is managed internally.
+   * Rejects with the server's error.
+   */
+  readonly stopBackgroundCommand: (toolUseId: string) => Promise<void>;
+  /** The tool uses whose background stop is in flight, by id. */
+  readonly stoppingBackgroundToolUseIds: ReadonlySet<string>;
+  /** Each tool use's last failed background stop, keyed by its id. */
+  readonly stopBackgroundErrors: ReadonlyMap<string, Error>;
+
+  /**
    * The newest turn's file reviews with files still undecided, whether or
    * not that turn has finished; empty when none. A turn never waits on
    * review, so its edits stay offered for Keep and Undo after it ends,
@@ -577,6 +590,11 @@ export function useSessionConversation(
     error: answerError,
     clearError: clearAnswerError,
   } = useAnswerToolUse();
+  const {
+    stopBackgroundCommand: rawStopBackgroundCommand,
+    stoppingToolUseIds: stoppingBackgroundToolUseIds,
+    errorsByToolUseId: stopBackgroundErrors,
+  } = useStopBackgroundCommand();
   const {
     reviewFileChanges: rawReviewFileChanges,
     submittingDecisionKeys,
@@ -921,6 +939,14 @@ export function useSessionConversation(
     [sessionId, rawAnswerToolUse],
   );
 
+  const stopBackgroundCommand = useCallback(
+    async (toolUseId: string): Promise<void> => {
+      if (!sessionId) return;
+      await rawStopBackgroundCommand(sessionId, toolUseId);
+    },
+    [sessionId, rawStopBackgroundCommand],
+  );
+
   // The conversation's newest turn, finished or not: the one whose edits
   // are offered for review.
   const reviewTurn = turns.at(-1);
@@ -1013,6 +1039,10 @@ export function useSessionConversation(
     answerErrors: errorsByToolUseId,
     answerError,
     clearAnswerError,
+
+    stopBackgroundCommand,
+    stoppingBackgroundToolUseIds,
+    stopBackgroundErrors,
 
     fileReviewSets,
     fileChangeCaptures,

@@ -90,7 +90,7 @@ function useCreateSession(): UseCreateSessionReturn
 const { create } = useCreateSession();
 await create({
   org: "acme",
-  agentRef: { org: "acme", slug: "code-reviewer" },
+  agentRef: { org: "acme", slug: "variance-reporter" },
 });
 ```
 
@@ -504,7 +504,10 @@ function useSessionConversation(sessionId: string | null, org: string): UseSessi
     session: { type: "Session | null", description: "The session object, or null while loading." },
     skillRefs: { type: "readonly ApiResourceReference[]", description: "Current skill references from the session spec. Empty array when session is not loaded." },
     stop: { type: "(reason?: string) => Promise<void>", description: "Stop the live turn, with progressive escalation: the first call interrupts the session (every unfinished turn stops gracefully); a repeat call, because the turn is still winding down, terminates its run (with `reason` recorded). No-op when nothing is isStoppable." },
+    stopBackgroundCommand: { type: "(toolUseId: string) => Promise<void>", description: "Stop one command the agent runs in the background, by the tool use that started it (`ToolUse.background`); the turn goes on, and the agent is told a person stopped it. The session id is managed internally. Rejects with the server's error." },
+    stopBackgroundErrors: { type: "ReadonlyMap<string, Error>", description: "Each tool use's last failed background stop, keyed by its id." },
     stopError: { type: "Error | null", description: "Error from the last stop attempt, or `null` when healthy." },
+    stoppingBackgroundToolUseIds: { type: "ReadonlySet<string>", description: "The tool uses whose background stop is in flight, by id." },
     streamError: { type: "Error | null", description: "Why the follow ended (refused), or `null`. A dropped stream never ends it: the follow reconnects for as long as the outage lasts." },
     submittingFileDecisionKeys: { type: "ReadonlySet<string>", description: "Decision keys (fileDecisionKey) currently being submitted." },
     turns: { type: "readonly Turn[]", description: "The conversation's turns, in order: the session's events folded (each turn's message, the agent's items, its asks, to-dos, file reviews and phase). Objects no event touched keep their reference from render to render, so memoized rows skip re-renders.  Excludes turns replaced via edit-and-resubmit (a run whose id appears as another run's `supersedesRunId`) — the edited message stands in the original's place — and reconcile turns (`spec.reconcileFileReview`): the message-less turn an Undo starts to put files back is not a turn of the conversation." },

@@ -6,11 +6,10 @@ description:
 ---
 
 A product built on Stigmer often needs keys that belong to its customers: Acme
-Helpdesk's Agent reads each customer's Zendesk with that customer's own key.
-Stigmer keeps every key in a [vault](/docs/concepts/vaults), and a conversation
-uses only the vaults it names. This guide shows how to give each customer a
-vault no other customer can name, put a key in it, and replace the key when it
-rotates.
+Books' Agent reads each customer's ledger with that customer's own key. Stigmer
+keeps every key in a [vault](/docs/concepts/vaults), and a conversation uses
+only the vaults it names. This guide shows how to give each customer a vault no
+other customer can name, put a key in it, and replace the key when it rotates.
 
 ## Pick the setup by how your customers sign in
 
@@ -86,23 +85,23 @@ file, or an environment variable.
 
 ```bash
 stigmer vault create "cust-4411 keys" --external-id cust-4411
-stigmer vault set-secret ZENDESK_API_KEY --vault cust-4411-keys --from-env ZENDESK_API_KEY
+stigmer vault set-secret LEDGER_API_KEY --vault cust-4411-keys --from-env LEDGER_API_KEY
 ```
 
 From your backend, find the vault by your id and save the key into it:
 
 ```typescript
 const vault = await stigmer.vault.getByExternalId({
-  org: "acme-helpdesk",
+  org: "acme-books",
   externalId: "cust-4411",
 });
 
 await stigmer.vault.setSecrets({
   vault: {
-    org: "acme-helpdesk",
+    org: "acme-books",
     vault: { case: "id", value: vault.metadata!.id },
   },
-  secrets: { ZENDESK_API_KEY: { value: zendeskKey } },
+  secrets: { LEDGER_API_KEY: { value: ledgerKey } },
 });
 ```
 

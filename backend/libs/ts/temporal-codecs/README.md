@@ -6,6 +6,11 @@ Temporal payload codecs shared by Stigmer's TypeScript Temporal processes:
   in workflow history, with key-id-addressed rotation.
 - **`ClaimcheckPayloadCodec`** — transparent offload of large payloads to
   blob storage (with optional gzip), replaced in history by a small marker.
+- **`@stigmer/temporal-codecs/activity-names`** — the Temporal activity
+  names the runner registers and the server's agent execution workflow
+  calls, declared once so the two sides cannot drift (a split name shows
+  only as a run stuck until its schedule-to-start timeout). Dependency-free,
+  so the workflow sandbox can load it.
 
 ## Why this is a library
 

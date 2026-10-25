@@ -36,6 +36,7 @@ export type ToolCategory =
   | "internal"
   | "mcp"
   | "memory"
+  | "background-stop"
   | "unknown";
 
 /**
@@ -96,6 +97,9 @@ const QUIET_CATEGORIES: ReadonlySet<ToolCategory> = new Set<ToolCategory>([
   "list",
   "search",
   "think",
+  // The agent's stop of a background command reads as narration ("Stopped
+  // `npm test`"): the command's own row carries its output and its end.
+  "background-stop",
 ]);
 
 /**
@@ -242,6 +246,7 @@ const KIND_DISPLAY: Partial<Record<ToolKind, KindDisplayEntry>> = {
   subagent:    { category: "subagent", label: "Subagent", primaryField: "description", fallbackFields: ["prompt"] },
   todo:        { category: "internal",  label: "Todos",     primaryField: "todos" },
   memory:      { category: "memory",    label: "Remember",  primaryField: "fact" },
+  background_stop: { category: "background-stop", label: "Stop command", primaryField: "" },
 };
 
 /**

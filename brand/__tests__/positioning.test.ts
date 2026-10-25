@@ -13,6 +13,10 @@
  * formula) are hand-written in their own formats, so they are held to the
  * sentence's core, the part every fitted form keeps, and every public
  * package's description to carrying no retired phrase.
+ *
+ * The examples a developer reads (the docs, the reference sources, the
+ * consoles, the MCP server and the SDK READMEs) are held to the current job
+ * by refusing the example names of the jobs the earlier story showed.
  */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -108,6 +112,60 @@ test("the root README opens with the headline, the one sentence and where it run
   assert.ok(carries(alt ?? "", POSITIONING.headline), "README.md: the banner's alt text");
   assert.ok(carries(opening, POSITIONING.oneSentence), "README.md: first paragraph, the one sentence");
   assert.ok(carries(opening, POSITIONING.whereItRuns), "README.md: first paragraph, where it runs");
+});
+
+/**
+ * What each customer's agent has, one marker word per point, in the order of
+ * the vocabulary's "What each customer's agent has" paragraph, the list's
+ * public form. Each home words the points in its own register, so only the
+ * markers are held. The model keys and editions are where it runs, which the
+ * README carries apart from this list, so they are not a marker.
+ */
+const AGENT_HAS = ["own computer", "for hours", "asks before", "apart"];
+
+/** The text from the paragraph that opens with `**label**` to the next bold-labelled paragraph. */
+function boldLabelledBlock(markdown: string, label: string): string | undefined {
+  const blocks = markdown.split(/\n\s*\n/);
+  const start = blocks.findIndex((block) => block.startsWith(`**${label}**`));
+  if (start === -1) return undefined;
+  const end = blocks.findIndex((block, index) => index > start && block.startsWith("**"));
+  return blocks.slice(start, end === -1 ? undefined : end).join("\n\n");
+}
+
+/** Where the list of what each customer's agent has lives in each prose home. */
+const AGENT_HAS_HOMES: ReadonlyArray<readonly [path: string, list: (text: string) => string | undefined]> = [
+  [
+    "docs/vocabulary.md",
+    (text) => text.split(/\n\s*\n/).find((block) => block.startsWith("**What each customer's agent has**")),
+  ],
+  [
+    "docs/concepts/what-is-stigmer.mdx",
+    (text) => /^## What each customer's agent has\n([\s\S]*?)(?=^## |$(?![\s\S]))/m.exec(text)?.[1],
+  ],
+  ["docs-agent/skills/stigmer-docs/SKILL.md", (text) => boldLabelledBlock(text, "What each customer's agent has")],
+  ["README.md", (text) => readmeLead(text).opening],
+];
+
+test("every prose home lists what each customer's agent has, in the vocabulary's order", () => {
+  const drifted: string[] = [];
+  for (const [path, extract] of AGENT_HAS_HOMES) {
+    const list = extract(read(path));
+    if (list === undefined) {
+      drifted.push(`${path}: no list found`);
+      continue;
+    }
+    const text = collapse(list).toLowerCase();
+    let from = 0;
+    for (const marker of AGENT_HAS) {
+      const at = text.indexOf(marker, from);
+      if (at === -1) {
+        drifted.push(`${path}: "${marker}" ${text.includes(marker) ? "out of order" : "missing"}`);
+        break;
+      }
+      from = at + marker.length;
+    }
+  }
+  assert.deepEqual(drifted, [], `each lists ${AGENT_HAS.map((marker) => `"${marker}"`).join(", ")} in that order`);
 });
 
 /**
@@ -213,6 +271,8 @@ const TEXT_EXTENSIONS = new Set([
   ".mdx",
   ".html",
   ".webmanifest",
+  ".proto",
+  ".go",
 ]);
 
 /**
@@ -255,4 +315,61 @@ test("no site or console source holds the words as a literal of its own", () => 
     }
   }
   assert.deepEqual(copies, [], "import POSITIONING from brand/positioning.ts instead");
+});
+
+/**
+ * The example names of the jobs Stigmer's earlier story showed: a support
+ * desk and a code review. Its job now is a job inside the developer's own
+ * product, "not a chat and not code", and every shown example takes the
+ * ledger job the quickstart and the concept pages use (docs/vocabulary.md,
+ * "What Stigmer is, and who it is for", Examples). `code-review-` is a
+ * prefix, so the real `thermos:code-review` plugin agent, shown as a plugin
+ * and not as a job, is not caught.
+ */
+const RETIRED_EXAMPLES = [
+  "support-agent",
+  "support-desk",
+  "support-bot",
+  "support bot",
+  "Support tools",
+  "Zendesk",
+  "refund-policy",
+  "code-reviewer",
+  "code-review-",
+  "pr-reviewer",
+  "pr-bot",
+  "release-notes",
+];
+
+/**
+ * Where a developer reads an example: the docs, the API reference's sources
+ * (protos and their docs), the CLI's help and reference sources, the React
+ * SDK and both consoles, the MCP server's tool descriptions, and the Go
+ * examples. Plugins are left out: the vendored marketplace is real plugins.
+ */
+const EXAMPLE_ROOTS = [
+  "docs",
+  "apis/ai",
+  "client-apps/cli/docs",
+  "client-apps/cli/src",
+  "sdk/react/src",
+  "client-apps/web/src",
+  "client-apps/desktop/src",
+  "mcp-server/src",
+  "sdk/go/examples",
+];
+
+/** Each SDK's README, its package's page on its registry. */
+const SDK_READMES = ["sdk/go/README.md", "sdk/python/README.md", "sdk/java/README.md", "sdk/typescript/README.md"];
+
+test("no page, reference source, console or SDK README shows a retired example job", () => {
+  const paths = [...EXAMPLE_ROOTS.flatMap((root) => [...textSources(root)]), ...SDK_READMES];
+  const shown: string[] = [];
+  for (const path of paths) {
+    const text = collapse(read(path)).toLowerCase();
+    for (const name of RETIRED_EXAMPLES) {
+      if (text.includes(name.toLowerCase())) shown.push(`${path}: "${name}"`);
+    }
+  }
+  assert.deepEqual(shown, [], "show the ledger job instead: docs/concepts/agents.mdx holds its names");
 });

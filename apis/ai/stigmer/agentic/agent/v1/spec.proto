@@ -67,7 +67,7 @@ message AgentSpec {
   // tool. A plugin's server is named plugin_<plugin>_<server>, as Claude Code
   // names it, with every character outside letters, digits, _ and - written
   // as _. A specifier in parentheses, as in Bash(git push *), is
-  // accepted and governs the whole tool. Agent(explore, release-notes)
+  // accepted and governs the whole tool. Agent(explore, bank-reconciler)
   // also limits which subagents this agent may start; the Cursor engine
   // cannot hold its built-in subagents back, so it refuses a turn whose agent
   // limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -150,7 +150,7 @@ message AgentSpec {
   // model, tier and thinking count only on this engine. A conversation keeps
   // the engine it started on; a later version naming another engine changes
   // only new conversations.
-  ai.stigmer.agentic.session.v1.Harness harness = 14;
+  ai.stigmer.agentic.session.v1.Harness harness = 14 [(buf.validate.field).enum.defined_only = true];
 
   // Field 15 named shared vaults this agent's conversations used; an agent
   // is a blueprint and carries no vaults: each conversation names its own.

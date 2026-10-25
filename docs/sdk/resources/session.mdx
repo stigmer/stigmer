@@ -19,28 +19,28 @@ like its own.
 apiVersion: agentic.stigmer.ai/v1
 kind: Session
 metadata:
-  name: refactor-auth-module
+  name: q3-variance-report
   org: acme
 spec:
   agent_ref:
     kind: agent
     org: acme
-    slug: code-reviewer
-  subject: "Refactor the auth module"
+    slug: variance-reporter
+  subject: "Q3 variance report"
   resources:
-    - name: backend
+    - name: budgets
       git_repository:
-        url: https://github.com/acme/backend.git
+        url: https://github.com/acme/budgets.git
         branch: main
     - file:
         file_id: file_01j9x7k2m4q8r3t5v6w7y8z9a0
         mount_path: q3-ledger.xlsx
   plugins:
     - kind: plugin
-      slug: github
+      slug: ledger
   skill_refs:
     - kind: skill
-      slug: go-best-practices
+      slug: variance-report
 ```
 
 ## Client Access
@@ -89,6 +89,7 @@ Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`grantPermission`](#grantpermission) | Allow a tool use, and every call of its class for the rest of the turn. | |
 | [`interrupt`](#interrupt) | Stop the session's unfinished work. | |
 | [`reviewFileChanges`](#reviewfilechanges) | Keep or undo the file changes a turn made, or one of its files. | |
+| [`stopBackgroundCommand`](#stopbackgroundcommand) | Stop one command the agent runs in the background. | |
 | [`streamAttention`](#streamattention) | Stream what needs the caller: one Attention each time a conversation they created in the organization stops working, because its turn finished, failed, or waits for their answer. | Server |
 | [`streamEvents`](#streamevents) | Stream a session's events as they are appended. | Server |
 
@@ -1057,6 +1058,51 @@ ReviewFileChangesResponse reviewFileChangesResponse = client.sessions().reviewFi
 
 **Returns**: [`ReviewFileChangesResponse`](#reviewfilechangesresponse)
 
+### stopBackgroundCommand
+
+Stop one command the agent runs in the background.
+
+A command started in the background has a stigmer.background_command.status with phase running, keyed to the agent.tool_use that started it. The request is appended as a stigmer.background_command.stop_requested; the turn's runner reads it within seconds and stops that command alone, whose status then ends with stopped_by person. The agent is told a person stopped it and carries on. The turn itself is not stopped (interrupt stops it).
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const sessionEvent = await stigmer.session.stopBackgroundCommand({
+  sessionId: "...",
+  toolUseId: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+sessionEvent, err := client.Session.StopBackgroundCommand(ctx, &stigmer.StopBackgroundCommandInput{
+  SessionId: "...",
+  ToolUseId: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+session_event = client.sessions.stop_background_command(StopBackgroundCommandInput(
+    session_id="...",
+    tool_use_id="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+SessionEvent sessionEvent = client.sessions().stopBackgroundCommand(StopBackgroundCommandInput.builder()
+    .sessionId("...")
+    .toolUseId("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`StopBackgroundCommandInput`](#stopbackgroundcommandinput)
+
+**Returns**: [`SessionEvent`](#sessionevent)
+
 ### streamAttention
 
 > **Server Streaming** — This method returns a stream of updates, not a single response.
@@ -1344,6 +1390,8 @@ SessionEvent is one entry in a session's ordered event log.
     stigmerPermissionGrant: { type: "StigmerPermissionGrantEventInput", description: "A person allowed every call of one class for the rest of the turn." },
     stigmerRunStatus: { type: "StigmerRunStatusEventInput", description: "A turn (run) changed phase: it started, waits, paused, or ended and how." },
     stigmerToolResultFullOutput: { type: "StigmerToolResultFullOutputEventInput", description: "Where the whole output of a tool result that was too large to keep inline is stored." },
+    stigmerBackgroundCommandStatus: { type: "StigmerBackgroundCommandStatusEventInput", description: "A command the agent started in the background began running, or ended and how." },
+    stigmerBackgroundCommandStopRequested: { type: "StigmerBackgroundCommandStopRequestedEventInput", description: "A person asked to stop a command running in the background." },
   }}
 />
 
@@ -1366,6 +1414,17 @@ GrantPermissionResponse answers a recorded grant.
   type={{
     grant: { type: "SessionEventInput", description: "The stigmer.permission.grant; absent when the call has no class and was allowed alone." },
     confirmations: { type: "SessionEventInput[]", description: "The user.tool_confirmation events written: the named call's first, then every call of the class the grant allowed." },
+  }}
+/>
+
+### StopBackgroundCommandInput
+
+StopBackgroundCommandInput stops one command the agent runs in the background.
+
+<TypeTable
+  type={{
+    sessionId: { type: "string", description: "The conversation." },
+    toolUseId: { type: "string", description: "The agent.tool_use event that started the command, as its stigmer.background_command.status names it." },
   }}
 />
 
@@ -1654,6 +1713,7 @@ Harness identifies the execution engine that processes agent activities for a se
 |-------|-------------|
 | `HARNESS_NATIVE` | Stigmer's native execution engine. |
 | `HARNESS_CURSOR` | Cursor SDK execution engine. |
+| `HARNESS_CLAUDE` | Anthropic's Claude Agent SDK execution engine. |
 
 ### CursorMode
 

@@ -58,10 +58,11 @@ agents in your product." A surface with its own length rules fits the sentence
 to them.
 
 **What each customer's agent has**, in this order where a surface has room: its
-own computer, a sandbox that keeps its files between turns; it asks before
-acting on anything you mark as needing a yes; and each customer's agents, files
-and keys stay apart from every other customer's. It runs on your model keys, on
-your servers or ours; the [editions](#edition) say how.
+own computer, a sandbox that keeps its files between turns; it works on a job
+for hours, not one request; it asks before acting on anything you mark as
+needing a yes; and each customer's agents, files and keys stay apart from every
+other customer's. It runs on your model keys, on your servers or ours; the
+[editions](#edition) say how.
 
 **Examples** are jobs done inside a customer's product. They are never a chat
 and never code. Say whose product it is, what the customer asks for, what the

@@ -33,9 +33,11 @@
  *     message anywhere but first, and a tool call not answered by its tool
  *     message directly after it (parallel calls answered in any order are
  *     fine). The refusal names the index, and the model call rejects with it.
- *  8. A context window reaches deepagents' summarization middleware: on a
- *     REAL graph whose tool results cross 0.85 of the window, the middleware
- *     asks the same model for a summary, the double answers it out of band
+ *  8. A context window reaches the runner's compaction middleware
+ *     (`middleware/compaction.ts`, deepagents' summarizer asking for the
+ *     runner's checkpoint): on a REAL graph whose tool results cross 0.85 of
+ *     the window, the middleware asks the same model for a summary, the
+ *     double recognizes the checkpoint prompt and answers it out of band
  *     (the script never sees the call, `onSummary` counts it), and the next
  *     scripted turn reads the summary in place of the compacted messages.
  *     Without a window the same graph never compacts (the 170,000 fallback).
@@ -55,9 +57,10 @@ import { z } from "zod";
 import { MemorySaver } from "@langchain/langgraph";
 import { createDeepAgent, StateBackend } from "deepagents";
 
+import { createCompactionMiddleware } from "../../../middleware/compaction.js";
+import { SUMMARY_PROMPT_OPENING } from "../../../middleware/compaction-prompt.js";
 import {
   SCRIPTED_SUMMARY,
-  SUMMARY_PROMPT_OPENING,
   ScriptedModel,
   assertProviderTranscript,
   completedToolRounds,
@@ -415,6 +418,7 @@ describe("ScriptedModel — a context window reaches the summarization middlewar
   /** Run probes until the transcript shows a summary (or 40 rounds pass), then say which. */
   async function runUntilCompacted(contextWindow: number | undefined): Promise<{ readonly said: string; readonly summaries: number; readonly rounds: number }> {
     let summaries = 0;
+    const backend = new StateBackend();
     let rounds = 0;
     const probe = tool(async () => "x".repeat(RESULT_CHARS), {
       name: "probe",
@@ -428,11 +432,13 @@ describe("ScriptedModel — a context window reaches the summarization middlewar
       return { toolCalls: [{ ...CALL, id: `probe-${rounds}` }] };
     };
     const model = new ScriptedModel(() => player, [], { contextWindow, onSummary: () => (summaries += 1) });
+    // The runner's summarizer replaces deepagents' by name, as in every stack the runner builds.
     const agent = await createDeepAgent({
       model,
       checkpointer: new MemorySaver() as never,
-      backend: new StateBackend(),
+      backend,
       tools: [probe],
+      middleware: [createCompactionMiddleware({ backend })],
     } as unknown as Parameters<typeof createDeepAgent>[0]);
     const result = (await agent.invoke(
       { messages: [new HumanMessage("go")] },
@@ -451,13 +457,13 @@ describe("ScriptedModel — a context window reaches the summarization middlewar
     let summaries = 0;
     let asked = 0;
     const model = new ScriptedModel(() => () => ((asked += 1), { text: "scripted" }), [], { onSummary: () => (summaries += 1) });
-    const reply = await model.invoke([new HumanMessage(`${SUMMARY_PROMPT_OPENING} Your task is to create a concise summary.`)]);
+    const reply = await model.invoke([new HumanMessage(`${SUMMARY_PROMPT_OPENING}\n\nThe conversation below is between a user and an agent.`)]);
     expect(reply.text).toBe(SCRIPTED_SUMMARY);
     expect({ summaries, asked }).toEqual({ summaries: 1, asked: 0 });
     expect(isSummaryRequest([new SystemMessage("sys"), new HumanMessage(SUMMARY_PROMPT_OPENING)]), "only a lone human message is a summary call").toBe(false);
   });
 
-  it("on a REAL graph, tool results past 0.85 of the window compact the conversation once, and the next turn reads the summary", async () => {
+  it("on a REAL graph under the runner's middleware, tool results past 0.85 of the window compact the conversation once, and the next turn reads the summary", async () => {
     const compacted = await runUntilCompacted(WINDOW);
     expect(compacted.said, "the script saw the summary in the transcript").toBe("compacted");
     expect(compacted.summaries, "the middleware asked for one summary").toBe(1);

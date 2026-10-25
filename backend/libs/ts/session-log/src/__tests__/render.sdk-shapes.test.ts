@@ -580,6 +580,35 @@ describe("Stigmer's own events render by the same three rules, under their stigm
         mime_type: "text/plain",
       },
     },
+    {
+      proto: {
+        case: "stigmerBackgroundCommandStatus",
+        value: { id: "s13", processedAt: AT, toolUseId: "u1", phase: "running", timeoutSeconds: 3300 },
+      },
+      json: { id: "s13", type: "stigmer.background_command.status", processed_at: AT, tool_use_id: "u1", phase: "running", timeout_seconds: 3300, exit_code: null },
+    },
+    {
+      proto: {
+        case: "stigmerBackgroundCommandStatus",
+        value: { id: "s14", processedAt: AT, toolUseId: "u1", sessionThreadId: "th1", phase: "ended", ending: "exited", exitCode: 0, output: "ok\n", endedAt: AT },
+      },
+      json: {
+        id: "s14",
+        type: "stigmer.background_command.status",
+        processed_at: AT,
+        tool_use_id: "u1",
+        session_thread_id: "th1",
+        phase: "ended",
+        ending: "exited",
+        exit_code: 0,
+        output: "ok\n",
+        ended_at: AT,
+      },
+    },
+    {
+      proto: { case: "stigmerBackgroundCommandStopRequested", value: { id: "s15", processedAt: AT, toolUseId: "u1" } },
+      json: { id: "s15", type: "stigmer.background_command.stop_requested", processed_at: AT, tool_use_id: "u1" },
+    },
   ];
 
   it.each(own)("$json.type", ({ proto, json }) => {

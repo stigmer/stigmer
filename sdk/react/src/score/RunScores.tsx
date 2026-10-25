@@ -31,7 +31,7 @@ export interface RunScoresProps {
 /**
  * A completed run's scores under its final answer: thumbs up and down with
  * an optional one-line comment, the run-health chip that opens to the
- * reason for each flag ("the last call to create_ticket failed (step 7)"),
+ * reason for each flag ("the last call to post_adjustment failed (step 7)"),
  * and, where the run's agent has AI grading switched on, the judge chip:
  * "Judge: grading…" while the grade is in progress, then "Judge: passed" or
  * "Judge: 1 of 4 failed", which opens to each rubric's reason and the model

@@ -36,6 +36,7 @@ import { RoutineCommandController } from "@stigmer/apis/ai/stigmer/agentic/routi
 import { RoutineQueryController } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/query_pb";
 import { RoutineSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
 import type { Routine } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/api_pb";
+import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { RoutineListSchema } from "@stigmer/apis/ai/stigmer/agentic/routine/v1/io_pb";
 import type {
   FireRoutineInput,
@@ -145,6 +146,7 @@ import {
   newValidateRoutineUpdateStep,
   resolveRoutineCreateTargets,
 } from "./steps.js";
+import { newRefuseUnofferedHarnessStep, type NamedHarness } from "../session/harness.js";
 import { newEnsureRoutineAgentStillExistsStep } from "./cascade.js";
 import {
   FIRE_RESULT_KEY,
@@ -221,6 +223,11 @@ export function registerRoutineServices(
   });
 }
 
+/** The engine a routine's runs start on (domain/session/harness.ts). */
+function routineHarnesses(routine: Routine): readonly NamedHarness[] {
+  return [{ field: "spec.agent.harness", harness: routine.spec?.agent?.harness ?? Harness.UNSPECIFIED }];
+}
+
 function kindOf(ctx: HandlerContext): ApiResourceKind {
   return ctx.values.get(apiResourceKindKey);
 }
@@ -279,6 +286,7 @@ async function createRoutine(
     .addStep(newNormalizeReferencesStep(deps.store))
     .addStep(newValidateVisibilityStep())
     .addStep(newResolveRoutineDefaultsStep(deps))
+    .addStep(newRefuseUnofferedHarnessStep(routineHarnesses))
     // Before the duplicate check and before ArmRoutineArtifact: a refused caller
     // learns nothing about existing slugs and costs no Temporal schedule
     // (steps.ts, resolveRoutineCreateTargets).
@@ -347,6 +355,7 @@ async function update(
       .addStep(newLoadExistingStep(deps.store))
       .addStep(newBuildUpdateStateStep())
       .addStep(newValidateProtoStep({ of: "state" }))
+      .addStep(newRefuseUnofferedHarnessStep(routineHarnesses))
       .addStep(newNormalizeReferencesStep(deps.store))
       .addStep(newValidateRoutineUpdateStep(deps))
       .addStep(newOwnersLockStep(deps.ownerAccounts))

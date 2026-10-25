@@ -32,7 +32,7 @@ stigmer run
 stigmer run my-agent
 
 # Run by org-qualified slug
-stigmer run acme-corp/code-reviewer
+stigmer run acme-corp/variance-reporter
 
 # Run with an initial prompt
 stigmer run my-agent -m "Summarize the Q4 earnings report"
@@ -87,8 +87,8 @@ vaults it was started with.
 # Your own keys (the default)
 stigmer run my-agent
 
-# Your keys, then the team's support tools
-stigmer run my-agent --vault support-tools
+# Your keys, then the team's ledger keys
+stigmer run my-agent --vault ledger-keys
 
 # The team's keys only
 stigmer run my-agent --vault acme/ci-keys --no-my-vault
@@ -138,13 +138,13 @@ Give your agent access to code repositories or local directories. Multiple
 
 ```bash
 # Local directory
-stigmer run code-reviewer -w . -m "Review my project"
+stigmer run variance-reporter -w . -m "Report Q3's variances"
 
 # Git repository
-stigmer run code-reviewer --workspace https://github.com/acme/app -m "Review"
+stigmer run variance-reporter --workspace https://github.com/acme/books -m "Report Q3's variances"
 
 # Pin to a specific branch or commit
-stigmer run code-reviewer --workspace https://github.com/acme/app --branch feature/auth
+stigmer run variance-reporter --workspace https://github.com/acme/books --branch q3-close
 
 # Multiple workspaces
 stigmer run my-agent -w ./frontend -w ./backend
@@ -240,7 +240,7 @@ per-run override:
 
 ```bash
 # Start a cursor-harness session explicitly
-stigmer run code-reviewer --harness cursor -w . -m "Review my changes"
+stigmer run variance-reporter --harness cursor -w . -m "Report Q3's variances"
 
 # Force one native run without changing your account's cursor default
 stigmer run my-agent --harness native -m "Quick question"
@@ -281,17 +281,17 @@ Stream the session's events as JSON for programmatic consumption. Each line is
 one complete event. Combine with `--auto-approve` to run without human
 interaction.
 
-### Git repository review
+### Git repository workspace
 
 ```bash
-stigmer run code-reviewer \
-  --workspace https://github.com/acme/app \
+stigmer run variance-reporter \
+  --workspace https://github.com/acme/books \
   --branch main \
-  -m "Review the latest changes for security issues"
+  -m "Report Q3's variances from the ledgers in this repository"
 ```
 
-The agent clones the repository, checks out the specified branch, and performs
-the review with full access to the codebase.
+The agent clones the repository, checks out the specified branch, and does the
+job with full access to its files.
 
 ### Fire-and-forget run
 

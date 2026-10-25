@@ -55,6 +55,8 @@
     { "name": "task", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SUBAGENT" },
     { "name": "Task", "mcpServerSlug": "", "toolKind": "TOOL_KIND_SUBAGENT" },
 
+    { "name": "stop_background_command", "mcpServerSlug": "", "toolKind": "TOOL_KIND_BACKGROUND_STOP" },
+
     { "name": "search_services", "mcpServerSlug": "planton", "toolKind": "TOOL_KIND_MCP" },
     { "name": "apply_mcp_server", "mcpServerSlug": "planton", "toolKind": "TOOL_KIND_MCP" },
     { "name": "create_issue", "mcpServerSlug": "github", "toolKind": "TOOL_KIND_MCP" },

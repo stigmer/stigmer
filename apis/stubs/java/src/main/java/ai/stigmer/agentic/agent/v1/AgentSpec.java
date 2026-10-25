@@ -403,7 +403,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
    * names it, with every character outside letters, digits, _ and - written
    * as _. A specifier in parentheses, as in Bash(git push *), is
-   * accepted and governs the whole tool. Agent(explore, release-notes)
+   * accepted and governs the whole tool. Agent(explore, bank-reconciler)
    * also limits which subagents this agent may start; the Cursor engine
    * cannot hold its built-in subagents back, so it refuses a turn whose agent
    * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -434,7 +434,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
    * names it, with every character outside letters, digits, _ and - written
    * as _. A specifier in parentheses, as in Bash(git push *), is
-   * accepted and governs the whole tool. Agent(explore, release-notes)
+   * accepted and governs the whole tool. Agent(explore, bank-reconciler)
    * also limits which subagents this agent may start; the Cursor engine
    * cannot hold its built-in subagents back, so it refuses a turn whose agent
    * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -464,7 +464,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
    * names it, with every character outside letters, digits, _ and - written
    * as _. A specifier in parentheses, as in Bash(git push *), is
-   * accepted and governs the whole tool. Agent(explore, release-notes)
+   * accepted and governs the whole tool. Agent(explore, bank-reconciler)
    * also limits which subagents this agent may start; the Cursor engine
    * cannot hold its built-in subagents back, so it refuses a turn whose agent
    * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -495,7 +495,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
    * names it, with every character outside letters, digits, _ and - written
    * as _. A specifier in parentheses, as in Bash(git push *), is
-   * accepted and governs the whole tool. Agent(explore, release-notes)
+   * accepted and governs the whole tool. Agent(explore, bank-reconciler)
    * also limits which subagents this agent may start; the Cursor engine
    * cannot hold its built-in subagents back, so it refuses a turn whose agent
    * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -786,7 +786,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * only new conversations.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness", (.buf.validate.field) = { ... }</code>
    * @return The enum numeric value on the wire for harness.
    */
   @java.lang.Override public int getHarnessValue() {
@@ -806,7 +806,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
    * only new conversations.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
+   * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness", (.buf.validate.field) = { ... }</code>
    * @return The harness.
    */
   @java.lang.Override public ai.stigmer.agentic.session.v1.Harness getHarness() {
@@ -2954,7 +2954,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
      * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -2986,7 +2986,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
      * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -3016,7 +3016,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
      * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -3047,7 +3047,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
      * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -3079,7 +3079,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
      * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -3117,7 +3117,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
      * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -3154,7 +3154,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
      * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -3191,7 +3191,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
      * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -3225,7 +3225,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * tool. A plugin's server is named plugin_&lt;plugin&gt;_&lt;server&gt;, as Claude Code
      * names it, with every character outside letters, digits, _ and - written
      * as _. A specifier in parentheses, as in Bash(git push *), is
-     * accepted and governs the whole tool. Agent(explore, release-notes)
+     * accepted and governs the whole tool. Agent(explore, bank-reconciler)
      * also limits which subagents this agent may start; the Cursor engine
      * cannot hold its built-in subagents back, so it refuses a turn whose agent
      * limits Agent to types. The lists hold on both engines, and under "approve everything"
@@ -4191,7 +4191,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * only new conversations.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @return The enum numeric value on the wire for harness.
      */
     @java.lang.Override public int getHarnessValue() {
@@ -4211,7 +4211,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * only new conversations.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @param value The enum numeric value on the wire for harness to set.
      * @throws IllegalArgumentException if UNRECOGNIZED is provided.
      * @return This builder for chaining.
@@ -4236,7 +4236,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * only new conversations.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @return The harness.
      */
     @java.lang.Override
@@ -4258,7 +4258,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * only new conversations.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @param value The harness to set.
      * @return This builder for chaining.
      */
@@ -4283,7 +4283,7 @@ ai.stigmer.agentic.vault.v1.EnvVarDeclaration defaultValue) {
      * only new conversations.
      * </pre>
      *
-     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness"];</code>
+     * <code>.ai.stigmer.agentic.session.v1.Harness harness = 14 [json_name = "harness", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
     public Builder clearHarness() {

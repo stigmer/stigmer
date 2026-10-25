@@ -84,11 +84,11 @@ Slugs must match `^[a-z][a-z0-9-]*$` — lowercase, hyphens only, starts with a 
 
 ```yaml
 # Wrong
-slug: Code_Reviewer
-slug: codeReviewer
+slug: Variance_Reporter
+slug: varianceReporter
 
 # Correct
-slug: code-reviewer
+slug: variance-reporter
 ```
 
 ### Wrong capitalization in `kind` values
@@ -121,24 +121,24 @@ instructions: "You are a helpful assistant that answers questions clearly."
 A saved subagent runs with its own plugins and tool lists, never the parent's. A subagent that names a plugin's tool without listing the plugin finds no such tool.
 
 ```yaml
-# Wrong — the reviewer lists no plugin, so it has no GitHub tools
+# Wrong — the reconciler lists no plugin, so it has no ledger tools
 kind: Agent
 metadata:
-  name: reviewer
+  name: bank-reconciler
 spec:
-  instructions: "Review pull requests for correctness."
-  tools: [Read, mcp__plugin_github_github__search_code]
+  instructions: "Match bank statement lines to ledger entries."
+  tools: [Read, mcp__plugin_ledger_ledger__get_ledger]
 
-# Correct — the reviewer lists the plugin its tools come from
+# Correct — the reconciler lists the plugin its tools come from
 kind: Agent
 metadata:
-  name: reviewer
+  name: bank-reconciler
 spec:
-  instructions: "Review pull requests for correctness."
+  instructions: "Match bank statement lines to ledger entries."
   plugins:
     - kind: plugin
-      slug: github
-  tools: [Read, mcp__plugin_github_github__search_code]
+      slug: ledger
+  tools: [Read, mcp__plugin_ledger_ledger__get_ledger]
 ```
 
 ### Writing subagents inside an agent
@@ -148,13 +148,13 @@ The `sub_agents` field is gone, and apply refuses a manifest that uses it. Save 
 ```yaml
 # Wrong — refused at apply
 sub_agents:
-  - name: reviewer
-    instructions: "Review pull requests for correctness."
+  - name: bank-reconciler
+    instructions: "Match bank statement lines to ledger entries."
 
-# Correct — reviewer is an Agent of its own, saved first
+# Correct — bank-reconciler is an Agent of its own, saved first
 subagents:
   - kind: agent
-    slug: reviewer
+    slug: bank-reconciler
 ```
 
 ### Listing a plugin twice
@@ -199,7 +199,7 @@ Never write `slug: github` without verifying the plugin is installed. References
 ```bash
 # Verify before referencing
 stigmer get plugin github
-stigmer get skill code-review-best-practices
+stigmer get skill variance-report
 ```
 
 ### Missing required fields in references

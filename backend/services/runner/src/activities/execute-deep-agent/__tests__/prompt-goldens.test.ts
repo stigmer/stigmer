@@ -63,6 +63,10 @@
  *   since the write-watcher went, #2475): a cloned entry's description ends
  *   at its URL and branch; what the agent returns is the outputs folder's
  *   instruction alone.
+ * - 2026-10-24 (the workspace's own `AGENTS.md`, else `CLAUDE.md`): a new
+ *   golden, the everything shape with the roots' files, whose section
+ *   follows the workspace section; every other shape reads no file, and no
+ *   existing golden moved.
  */
 
 import { describe, it, expect } from "vitest";
@@ -82,6 +86,7 @@ import type { SkillMetadata } from "../../../shared/skill-resolver.js";
 import type { RecalledMemoriesContent } from "../../../shared/recalled-memories.js";
 import type { ProvisionResult } from "../../../shared/workspace/types.js";
 import { buildEnhancedSystemPrompt } from "../prompt-builder.js";
+import { renderRepositoryInstructions, type InstructionFile } from "../repository-instructions.js";
 import { composeSystemPrompt, composeTurnMessage } from "../turn-setup.js";
 import { ToolScope } from "../../../shared/tool-lists.js";
 import { JUDGE_INSTRUCTIONS } from "@stigmer/eval-runtime/judge";
@@ -235,10 +240,30 @@ function everythingInput(shape: EverythingShape): TurnInput {
   });
 }
 
-/** The prompt as `buildEngine` composes it: the production mapping over the record and the awaited memory selection. */
-async function systemPromptOf(input: TurnInput): Promise<string> {
-  return composeSystemPrompt(input, await input.standing.selectRecalledMemories());
+/**
+ * The prompt as `buildEngine` composes it: the production mapping over the
+ * record, the awaited memory selection, and the roots' instruction files
+ * rendered as `buildEngine` renders what it read (none unless given).
+ */
+async function systemPromptOf(input: TurnInput, repositoryFiles: readonly InstructionFile[] = []): Promise<string> {
+  return composeSystemPrompt(input, await input.standing.selectRecalledMemories(), renderRepositoryInstructions(repositoryFiles));
 }
+
+/** The roots' files for the everything shape: the workspace root's `AGENTS.md`, and the cloned entry's, cut at the bound. */
+const REPOSITORY_FILES: readonly InstructionFile[] = [
+  {
+    path: "/AGENTS.md",
+    text: "# Agent guide\n\n- Run `make check` before you finish.\n- Never edit generated files.\n",
+    chars: 82,
+    cut: false,
+  },
+  {
+    path: "/app/AGENTS.md",
+    text: "# Payments\n\nTests run with `make test-payments`.\n[cut at 48 of 61000 characters; read /app/AGENTS.md for the rest]",
+    chars: 61_000,
+    cut: true,
+  },
+];
 
 // ---------------------------------------------------------------------------
 // Goldens
@@ -248,6 +273,11 @@ describe("native system prompt goldens", () => {
   it("everything at once, nine skills, every one described", async () => {
     const prompt = await systemPromptOf(everythingInput({ skills: NINE_SKILLS }));
     await expect(prompt).toMatchFileSnapshot("./goldens/system-prompt.everything.prompt.md");
+  });
+
+  it("the workspace's own instruction files follow the workspace section, beneath the instructions", async () => {
+    const prompt = await systemPromptOf(everythingInput({ skills: THREE_SKILLS }), REPOSITORY_FILES);
+    await expect(prompt).toMatchFileSnapshot("./goldens/system-prompt.repository-instructions.prompt.md");
   });
 
   it("plan mode appends the shared directive plus the native read-boundary sentence, last", async () => {

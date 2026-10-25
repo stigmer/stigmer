@@ -78,6 +78,8 @@ import { notifyStatusObservers } from "./status-observers.js";
 import type { SessionEventBroker } from "../session/events/broker.js";
 import { overwriteRunAppendingEvents } from "../session/events/run-writes.js";
 import { newSessionSpecOf, sessionIdOf } from "./target.js";
+import { offeredHarnessRefusal } from "../session/harness.js";
+import { RUN_ENGINE_FIELD } from "./refuse-unoffered-engine.js";
 import { unavailableError } from "../../pipeline/errors.js";
 import { isEvalRun } from "../eval-run/run-label.js";
 import { isJudgeRun } from "../score/judge/judge-run.js";
@@ -251,6 +253,10 @@ export function newCreateSessionIfNeededStep(deps: {
         createdSession,
       );
       if (placement !== undefined) {
+        const engineRefusal = offeredHarnessRefusal(placement.engine, RUN_ENGINE_FIELD);
+        if (engineRefusal !== "") {
+          throw failedPreconditionError(engineRefusal);
+        }
         const refusal = [
           serviceTierRefusal(deps.modelRegistry, placement),
           thinkingModeRefusal(deps.modelRegistry, placement),

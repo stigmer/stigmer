@@ -17,7 +17,7 @@ A **Vault** holds them. An [Environment](/docs/concepts/environments), which
 sets up the sandbox an Agent runs in, never does. A vault holds two kinds of
 entry:
 
-- **Secrets**, matched by name: `OPENAI_API_KEY`, `ZENDESK_API_KEY`.
+- **Secrets**, matched by name: `OPENAI_API_KEY`, `LEDGER_API_KEY`.
 - **Connections** (logins), matched by the address of the tool or Git host they
   are for: `https://mcp.linear.app/mcp`, `github.com`.
 
@@ -35,8 +35,8 @@ When you leave an Organization, your vault there is deleted with every value in
 it.
 
 A **shared vault** belongs to the Organization. Its admins create it, for
-example "Support tools" holding the team's Zendesk key, and decide who may use
-it:
+example "Ledger keys" holding the finance team's ledger key, and decide who may
+use it:
 
 - **Organization** visibility lets every member of the Organization use it.
 - On Stigmer Cloud, an admin can also grant **Can use** to a person or a Team.
@@ -49,8 +49,8 @@ vault only while that person may use it.
 stigmer vault set-secret OPENAI_API_KEY --mine
 
 # A shared vault for a team
-stigmer vault create "Support tools"
-stigmer vault set-secret ZENDESK_API_KEY --vault support-tools
+stigmer vault create "Ledger keys"
+stigmer vault set-secret LEDGER_API_KEY --vault ledger-keys
 ```
 
 A sign-in starts from an address. Signing in to an MCP server from its plugin's
@@ -75,12 +75,12 @@ Agent's own `mcp_servers` follows the same rule from the Agent's `env`, and its
 ```yaml validate-as="Agent"
 spec:
   env:
-    ZENDESK_SUBDOMAIN:
-      description: Your Zendesk subdomain
-      value: acme
-    ZENDESK_API_KEY:
+    LEDGER_API_URL:
+      description: Base URL of the ledger API
+      value: https://ledger.acme-books.example
+    LEDGER_API_KEY:
       is_secret: true
-      description: API key for the Zendesk API
+      description: API key for the ledger API
 ```
 
 A declaration describes what the Agent or plugin needs, never a person's key. A
@@ -233,7 +233,7 @@ An integrator that keeps keys for its own customers follows
 A customer of an integrator often needs to sign in to a tool themselves (their
 own Slack, their own Linear) without ever having a Stigmer account. A **Connect
 link** does that: a one-time page for one shared vault and one address. The
-customer opens it, sees "Connect Slack for Acme Helpdesk" with a **Continue**
+customer opens it, sees "Connect Slack for Acme Books" with a **Continue**
 button, signs in on Slack's own page, and lands back in the integrator's app.
 The login is saved into that customer's vault.
 
@@ -250,7 +250,7 @@ customer to its `url`:
 ```bash
 stigmer vault connect-link vlt_01hzx9m5k7customervault001 \
   --address https://mcp.slack.com/mcp \
-  --return-url https://helpdesk.example.com/settings/integrations
+  --return-url https://app.acme-books.example/settings/integrations
 ```
 
 The API call is `createConnectLink` on the vault service, with the Organization,

@@ -29,7 +29,9 @@
  *
  * Previews. `event_start` opens a live message or thinking under the id its
  * stored event will carry, `event_delta` grows a message's text, and
- * `stigmer.tool_output_delta` grows a running tool's output; the stored
+ * `stigmer.tool_output_delta` grows a running tool's output (or, once a
+ * tool use that started a background command has its result, that
+ * command's output until it ends); the stored
  * event with the same id replaces the live one in place. A preview carries
  * only an id and a type, so the fold reads where it belongs from the id
  * the runner derived (`<run>.<scope>.m<index>`, `<run>.<scope>.t<index>`,
@@ -39,11 +41,20 @@
  * whose result the log already holds. A liveness for a run the log has
  * not shown is dropped, never a turn of its own.
  *
+ * Background commands. A tool use that started a command in the
+ * background returns at once; the command's own life is
+ * `stigmer.background_command.status` (running, then ended), keyed to the
+ * tool use, and a person's stop request names it too. They fold into the
+ * tool use's `background`, beside its result, never in place of it: the
+ * call completed, and the command is a second fact. An ended status that
+ * names the agent's stop call marks that call's `stoppedBackground`.
+ *
  * A turn's end. The newest `stigmer.run.status` says it. A turn whose
  * events predate that event reads as ended once a later turn began, or
  * once the session went idle for anything but its own open asks. A tool
  * use its ended turn never answered reads `stopped`; nothing more will
- * come for it.
+ * come for it, and a background command its ended turn never ended reads
+ * `stopped` by `turn` for the same reason.
  *
  * Messages a turn did not start with. A message sent while a turn works
  * waits in the session's queue: its `user.message` has no run until a turn
@@ -74,6 +85,9 @@ import type { StreamSessionEventsResponse } from "@stigmer/apis/ai/stigmer/agent
 import { applyTodoUpdate, isTodoTool } from "./todos.js";
 import {
   TURN_ENDED_PHASES,
+  type BackgroundCommandState,
+  type BackgroundCommandView,
+  type BackgroundStopper,
   type CompactedItem,
   type FileReviewDecision,
   type FileReviewFile,
@@ -85,6 +99,7 @@ import {
   type PermissionGrant,
   type SessionFold,
   type SessionStatusView,
+  type StoppedBackgroundCommand,
   type ThinkingItem,
   type Thread,
   type Todo,
@@ -149,8 +164,30 @@ interface MutTool extends Node {
   result?: ToolResult;
   fullOutput?: ToolFullOutput;
   liveOutput: string;
+  background?: MutBackground;
+  stoppedBackground?: string;
   cache?: Cached<ToolUse>;
 }
+
+/** A tool use's background command as the log has said it so far. */
+interface MutBackground {
+  timeoutSeconds: number;
+  startedAt: string;
+  ended?: {
+    readonly state: Exclude<BackgroundCommandState, "running">;
+    readonly exitCode: number | undefined;
+    readonly stoppedBy: BackgroundStopper | undefined;
+    readonly stoppedByToolUseId: string;
+    readonly output: string;
+    readonly endedAt: string;
+  };
+  liveOutput: string;
+  stopRequested: boolean;
+}
+
+/** The endings a status may name, as the contract's words. */
+const BACKGROUND_ENDINGS: ReadonlySet<string> = new Set(["exited", "timed_out", "stopped", "failed_to_start"]);
+const BACKGROUND_STOPPERS: ReadonlySet<string> = new Set(["agent", "person", "approval", "turn"]);
 
 type MutItem = MutText | MutTool;
 
@@ -253,6 +290,9 @@ export class SessionLog {
           this.pendingOutput.set(toolUseId, (this.pendingOutput.get(toolUseId) ?? "") + delta);
         } else if (tool.kind === "tool_use" && tool.result === undefined && delta !== "") {
           tool.liveOutput += delta;
+          this.touch(tool);
+        } else if (tool.kind === "tool_use" && tool.background !== undefined && tool.background.ended === undefined && delta !== "") {
+          tool.background.liveOutput += delta;
           this.touch(tool);
         }
         break;
@@ -463,6 +503,42 @@ export class SessionLog {
         });
         break;
       }
+      case "stigmerBackgroundCommandStatus": {
+        const value = e.value;
+        this.whenTool(value.toolUseId, (tool) => {
+          const background = backgroundOf(tool);
+          if (value.phase === "running") {
+            background.timeoutSeconds = value.timeoutSeconds;
+            background.startedAt = at;
+            return;
+          }
+          if (background.ended !== undefined) {
+            return;
+          }
+          background.startedAt ||= at;
+          background.ended = {
+            state: BACKGROUND_ENDINGS.has(value.ending) ? (value.ending as Exclude<BackgroundCommandState, "running">) : "stopped",
+            exitCode: value.exitCode,
+            stoppedBy: BACKGROUND_STOPPERS.has(value.stoppedBy) ? (value.stoppedBy as BackgroundStopper) : undefined,
+            stoppedByToolUseId: value.stoppedByToolUseId,
+            output: value.output,
+            endedAt: value.endedAt,
+          };
+          background.liveOutput = "";
+        });
+        if (value.phase === "ended" && value.stoppedByToolUseId !== "") {
+          const stopped = value.toolUseId;
+          this.whenTool(value.stoppedByToolUseId, (stop) => {
+            stop.stoppedBackground = stopped;
+          });
+        }
+        break;
+      }
+      case "stigmerBackgroundCommandStopRequested":
+        this.whenTool(e.value.toolUseId, (tool) => {
+          backgroundOf(tool).stopRequested = true;
+        });
+        break;
       case "sessionThreadCreated": {
         const thread = this.threadOf(this.turnOf(runId), e.value.sessionThreadId);
         thread.agentName = e.value.agentName;
@@ -899,6 +975,8 @@ export class SessionLog {
         result: item.result,
         fullOutput: item.fullOutput,
         liveOutput: item.liveOutput,
+        background: backgroundViewOf(item.background, ended),
+        stoppedBackground: this.stoppedBackgroundOf(item),
         thread: snappedThread,
         processedAt: item.processedAt,
       };
@@ -909,6 +987,15 @@ export class SessionLog {
     }
     asks.push(...threadAsks);
     return value;
+  }
+
+  /** The command a stop call stopped, with its starting call's input (which never changes once logged). */
+  private stoppedBackgroundOf(item: MutTool): StoppedBackgroundCommand | undefined {
+    if (item.stoppedBackground === undefined) {
+      return undefined;
+    }
+    const command = this.items.get(item.stoppedBackground);
+    return { toolUseId: item.stoppedBackground, input: command?.kind === "tool_use" ? command.input : {} };
   }
 
   private snapThread(thread: MutThread, ended: boolean, asks: ToolUse[]): Thread {
@@ -1037,6 +1124,51 @@ function toolStateOf(tool: MutTool, ended: boolean): ToolUseState {
     return "waiting";
   }
   return "running";
+}
+
+/** A tool use's background command, made when the log first names it. */
+function backgroundOf(tool: MutTool): MutBackground {
+  tool.background ??= { timeoutSeconds: 0, startedAt: "", liveOutput: "", stopRequested: false };
+  return tool.background;
+}
+
+/** A background command as a client reads it (types.ts `BackgroundCommandView`); `turnEnded` stops one that never ended. */
+function backgroundViewOf(background: MutBackground | undefined, turnEnded: boolean): BackgroundCommandView | undefined {
+  if (background === undefined) {
+    return undefined;
+  }
+  const ended = background.ended;
+  if (ended !== undefined) {
+    return {
+      state: ended.state,
+      timeoutSeconds: background.timeoutSeconds,
+      exitCode: ended.exitCode,
+      stoppedBy: ended.stoppedBy,
+      stoppedByToolUseId: ended.stoppedByToolUseId,
+      output: ended.output,
+      startedAt: background.startedAt,
+      endedAt: ended.endedAt,
+      liveOutput: "",
+      stopRequested: background.stopRequested,
+    };
+  }
+  return {
+    state: turnEnded ? "stopped" : "running",
+    timeoutSeconds: background.timeoutSeconds,
+    exitCode: undefined,
+    stoppedBy: turnEnded ? "turn" : undefined,
+    stoppedByToolUseId: "",
+    output: turnEnded ? background.liveOutput : "",
+    startedAt: background.startedAt,
+    endedAt: "",
+    liveOutput: turnEnded ? "" : background.liveOutput,
+    stopRequested: background.stopRequested,
+  };
+}
+
+/** Whether a tool use's background command is running now: the one test every reader uses. */
+export function isBackgroundRunning(tool: Pick<ToolUse, "background">): boolean {
+  return tool.background?.state === "running";
 }
 
 /** Each file's state, from the set's decisions and reconciles in log order. */

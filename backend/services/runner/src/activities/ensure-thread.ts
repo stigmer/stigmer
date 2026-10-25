@@ -21,11 +21,13 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { ENSURE_THREAD_ACTIVITY_NAME } from "@stigmer/temporal-codecs/activity-names";
 import { activityStarted, activityFinished } from "../idle-watchdog.js";
 
 export function createEnsureThreadActivities() {
   return {
-    EnsureThread: async (sessionId: string, agentId: string): Promise<string> => {
+    // Registered under the name the server's workflow schedules, declared once for both.
+    [ENSURE_THREAD_ACTIVITY_NAME]: async (sessionId: string, agentId: string): Promise<string> => {
       activityStarted();
       try {
         if (sessionId) {

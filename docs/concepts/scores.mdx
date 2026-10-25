@@ -47,9 +47,9 @@ When a run completes, Stigmer checks it for three things:
 A check that does not apply to a run (a run that called no tools, or one not
 asked for a fixed shape) is marked not applicable. The run passes when every
 check that applies passes. A run with a problem shows a flag that opens to the
-reason, for example "ended on a failed action: create_ticket (step 7)". A reason
-is built from counts, tool names and step numbers, and never quotes what anyone
-typed.
+reason, for example "ended on a failed action: post_adjustment (step 7)". A
+reason is built from counts, tool names and step numbers, and never quotes what
+anyone typed.
 
 Run health is graded shortly after the run completes, so a score can appear a
 moment after the final answer does. If grading cannot run, the run's score says
@@ -71,10 +71,10 @@ An AI judge reads a finished run and answers four standard questions:
 | `asked-when-unclear`  | The request could be read in ways that lead to different results, and the Agent guessed without saying which reading it chose; or it asked about something the request already made plain. Not applicable when the request had one plain reading.        |
 
 Each rubric passes, fails or does not apply, with a reason. The run passes when
-no rubric fails. For example, Priya asks her triage Agent to label a ticket and
-it also closes it: the run shows **Judge: grading…**, and a minute later
-**Judge: 1 of 4 failed**, which opens to "closed ticket 812, which the request
-did not ask for" and the model that graded it.
+no rubric fails. For example, Priya asks her variance-reporter Agent for Q3's
+variance report and it also posts a correcting entry: the run shows **Judge:
+grading…**, and a minute later **Judge: 1 of 4 failed**, which opens to "posted
+adjustment 812, which the request did not ask for" and the model that graded it.
 
 The judge also sees up to three earlier turns of the conversation, each turn's
 request and final answer, so a request like "yes, go ahead" is graded for what
@@ -154,10 +154,10 @@ product, such as an embedded chat or a chat link, show none.
 ## How an Agent's runs are going
 
 An Agent's **Quality** tab opens with how its runs went over the last 7, 30 or
-90 days. For example, the `support-desk` Agent's tab says that over the last 30
-days 412 runs were graded, 97% passed the run-health checks, the AI judge passed
-`did-the-task` on 81% of the 120 runs it graded, and people gave 18 thumbs up
-and 5 down. Below the totals:
+90 days. For example, the `variance-reporter` Agent's tab says that over the
+last 30 days 412 runs were graded, 97% passed the run-health checks, the AI
+judge passed `did-the-task` on 81% of the 120 runs it graded, and people gave 18
+thumbs up and 5 down. Below the totals:
 
 - **A chart per measure**, day by day. A dot marks the day the Agent's version
   changed. The line breaks where the judge's rubrics or the run-health checks
@@ -192,16 +192,16 @@ The grading settings follow the report on the same tab. From the CLI:
 
 ```bash
 # The last 30 days of an Agent's runs, in total and per version
-stigmer agent quality support-desk
+stigmer agent quality variance-reporter
 
 # The last 7 days, as JSON for a script
-stigmer agent quality support-desk --days 7 -o json
+stigmer agent quality variance-reporter --days 7 -o json
 
 # The flagged runs you can open
-stigmer agent quality support-desk --flagged
+stigmer agent quality variance-reporter --flagged
 
 # Where people's thumbs and the AI judge disagree, per rubric
-stigmer agent quality support-desk --agreement
+stigmer agent quality variance-reporter --agreement
 ```
 
 `--agreement` sets people's thumbs against the judge on the same runs. For each

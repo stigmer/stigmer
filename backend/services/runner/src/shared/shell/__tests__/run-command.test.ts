@@ -3,16 +3,27 @@
  * streams as it is printed; a timeout keeps what was printed and stops the
  * whole process group; an abort does the same at once; a background child
  * that keeps the pipes open no longer holds the call open (stigmer#2432);
- * stdin is closed; the output is capped; and the formatted output keeps
- * deepagents' words.
+ * stdin is closed; the output is capped, keeping its start and its end; the
+ * formatted output keeps deepagents' words; and `stopProcessGroup` ends a
+ * group whose processes ignore SIGTERM, resolving only once it is empty.
  */
 
+import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { DEFAULT_MAX_OUTPUT_BYTES, endingOf, formatCommandOutput, runCommand, type CommandResult } from "../run-command.js";
+import {
+  DEFAULT_MAX_OUTPUT_BYTES,
+  endingOf,
+  formatCommandOutput,
+  omittedOutputLine,
+  runCommand,
+  stopProcessGroup,
+  KILL_GRACE_MS,
+  type CommandResult,
+} from "../run-command.js";
 
 const ENV = { PATH: process.env.PATH ?? "/usr/bin:/bin" };
 
@@ -126,23 +137,74 @@ describe("runCommand", () => {
     expect(done.stdout).toBe("read-done\n");
   });
 
-  it("caps each stream and says it truncated", async () => {
+  it("caps each stream at its start and its end, says what it left out, and keeps the notes' words", async () => {
     const done = await runCommand({ command: "head -c 5000 /dev/zero | tr '\\0' a", cwd, env: ENV, timeoutSeconds: 5, maxOutputBytes: 1000 });
-    expect(done.stdout).toHaveLength(1000);
+    expect(done.stdout).toBe(`${"a".repeat(500)}\n${omittedOutputLine(4000)}\n${"a".repeat(500)}`);
     expect(done.truncated).toBe(true);
     expect(formatCommandOutput(done, 1000)).toContain("... Output truncated at 1000 bytes.");
   });
 
-  it("keeps capping a stream that goes on printing past the cap", async () => {
+  it("keeps the end of a stream that goes on printing past the cap", async () => {
     const done = await runCommand({ command: "head -c 1500 /dev/zero | tr '\\0' a; sleep 0.2; head -c 1500 /dev/zero | tr '\\0' b", cwd, env: ENV, timeoutSeconds: 5, maxOutputBytes: 1000 });
-    expect(done.stdout).toBe("a".repeat(1000));
+    expect(done.stdout).toBe(`${"a".repeat(500)}\n${omittedOutputLine(2000)}\n${"b".repeat(500)}`);
     expect(done.truncated).toBe(true);
+  });
+
+  it("cuts a capped stream of lines at line ends, so its last lines and the stream's verdict survive", async () => {
+    // 300 lines of 10 characters: "line 0001\n" … "line 0300\n", then a last line on stderr.
+    const done = await runCommand({
+      command: "for i in $(seq 1 300); do printf 'line %04d\\n' $i; done; echo 'FAILED: 3 tests' >&2; exit 1",
+      cwd, env: ENV, timeoutSeconds: 5, maxOutputBytes: 1000,
+    });
+    expect(done.truncated).toBe(true);
+    const lines = done.stdout.split("\n");
+    expect(lines[0]).toBe("line 0001");
+    expect(lines[49]).toBe("line 0050");
+    expect(lines[50]).toBe(omittedOutputLine(2000));
+    expect(lines[51]).toBe("line 0251");
+    expect(done.stdout.endsWith("line 0300\n")).toBe(true);
+    expect(done.stderr).toBe("FAILED: 3 tests\n");
+    expect(formatCommandOutput(done, 1000)).toMatch(/line 0300\n\n\[stderr\] FAILED: 3 tests\n\n\.\.\. Output truncated at 1000 bytes\.\n\nExit code: 1$/);
+  });
+
+  it("leaves a stream within the cap untouched", async () => {
+    const done = await runCommand({ command: "head -c 1000 /dev/zero | tr '\\0' a", cwd, env: ENV, timeoutSeconds: 5, maxOutputBytes: 1000 });
+    expect(done.stdout).toBe("a".repeat(1000));
+    expect(done.truncated).toBe(false);
+  });
+
+  it("never keeps half of a character a cut falls inside", async () => {
+    // 600 emoji, each two UTF-16 units: the 500-unit halves fall on pair boundaries only if the cut moves off them.
+    const done = await runCommand({ command: "for i in $(seq 1 600); do printf '\\360\\237\\231\\202'; done; printf x", cwd, env: ENV, timeoutSeconds: 5, maxOutputBytes: 1001 });
+    expect(done.truncated).toBe(true);
+    expect(Buffer.from(done.stdout, "utf8").toString("utf8"), "no lone surrogate").toBe(done.stdout);
+    expect(done.stdout.endsWith("x")).toBe(true);
   });
 
   it("reports a spawn that fails", async () => {
     const done = await runCommand({ command: "echo hi", cwd: join(cwd, "missing"), env: ENV, timeoutSeconds: 5 });
     expect(done.spawnError).toBeDefined();
     expect(endingOf(done, 5).kind).toBe("spawn-failed");
+  });
+});
+
+describe("stopProcessGroup", () => {
+  it("kills a group that ignores SIGTERM after the grace, and resolves only once it is empty", async () => {
+    const child = spawn("sh", ["-c", "trap '' TERM; sleep 30 & wait"], { detached: true, stdio: "ignore", env: ENV });
+    const pid = child.pid!;
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const started = Date.now();
+    await stopProcessGroup(pid);
+    expect(Date.now() - started, "SIGTERM was ignored: only SIGKILL, after the grace, ended it").toBeGreaterThanOrEqual(KILL_GRACE_MS - 100);
+    expect(() => process.kill(-pid, 0), "nothing of the group is left").toThrow();
+  }, 15_000);
+
+  it("resolves at once for a group that is already empty", async () => {
+    const child = spawn("sh", ["-c", "exit 0"], { detached: true, stdio: "ignore", env: ENV });
+    await new Promise((resolve) => child.on("exit", resolve));
+    const started = Date.now();
+    await stopProcessGroup(child.pid!);
+    expect(Date.now() - started).toBeLessThan(500);
   });
 });
 

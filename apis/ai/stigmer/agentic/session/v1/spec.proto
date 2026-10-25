@@ -90,6 +90,8 @@ message SessionSpec {
   // Determines which harness runs every turn in this session:
   // - NATIVE (default): Stigmer's own runner
   // - CURSOR: the Cursor SDK
+  // - CLAUDE: Anthropic's Claude Agent SDK, refused until the platform
+  //   offers it
   //
   // The harness affects which tools the agent has, how conversation state
   // is managed, available models, and billing tier. Once set and a run
@@ -103,7 +105,8 @@ message SessionSpec {
   // created in this session:
   // - NATIVE: ExecuteDeepAgent activity -> Stigmer unified runner
   // - CURSOR: ExecuteCursor activity -> TypeScript/Cursor SDK worker
-  Harness harness = 10;
+  // - CLAUDE: ExecuteClaude activity -> Stigmer unified runner
+  Harness harness = 10 [(buf.validate.field).enum.defined_only = true];
 
   // Cursor SDK agent mode for this session.
   //

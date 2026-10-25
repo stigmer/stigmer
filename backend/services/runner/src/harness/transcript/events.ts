@@ -41,10 +41,15 @@
  *     hook is a process, not policy state a translator can re-derive, so the
  *     gate that ran it says what it decided, and the builder stamps the row
  *     whether it opens before or after.
+ *   - `background_command_*`, a command the agent started in the
+ *     background: its start, its output and its end, reported by the
+ *     harness's own registry rather than a translator, because the engine's
+ *     stream sees none of them after the starting call returns.
  *
  * The rule the union keeps: a member carries an identity and the
  * fact the builder cannot read elsewhere, nothing else. Every engine fact
- * reaches the builder as a translator's output.
+ * reaches the builder as a translator's output, but a background command's,
+ * which its registry reports.
  *
  * ID conventions:
  *   - `runId`  — the identity of ONE streamed assistant message (LangGraph's
@@ -277,6 +282,78 @@ export interface SystemNoteEvent extends Scoped {
   readonly text: string;
 }
 
+/**
+ * The engine's agent ended its reply while commands it started in the
+ * background still run, and the turn waits for them in the scope (native's
+ * background middleware, `middleware/background-commands.ts`). The turn is
+ * working, not stalled: the runtime's open-operations fold holds the stall
+ * watchdog until the matching {@link BackgroundWaitFinishedEvent}. Not an
+ * operation: it is no tool call, so it is in neither the turn's liveness
+ * nor the backstop (each command has its own bound). No row.
+ */
+export interface BackgroundWaitStartedEvent extends Scoped {
+  readonly kind: "background_wait_started";
+}
+
+/** The scope's wait for its background commands ended (see {@link BackgroundWaitStartedEvent}). No row. */
+export interface BackgroundWaitFinishedEvent extends Scoped {
+  readonly kind: "background_wait_finished";
+}
+
+// ── Background Command Events ─────────────────────────────────────
+
+/** How a background command ended, as the session log's word (`stigmer.background_command.status`). */
+export type BackgroundEnding = "exited" | "timed_out" | "stopped" | "failed_to_start";
+
+/**
+ * Who stopped a background command: the agent (its stop tool), a person
+ * (`SessionCommandController.stopBackgroundCommand`), the invocation's end
+ * awaiting a person's answer, or its end any other way.
+ */
+export type BackgroundStopper = "agent" | "person" | "approval" | "turn";
+
+/**
+ * A command the agent started in the background began running. Reported by
+ * the harness's registry of background commands, which starts it inside the
+ * starting call itself, so the fact can arrive before the call's own
+ * `tool_started` is folded: the builder keeps background commands apart from
+ * the transcript, keyed by `callId` alone (`rows.background_commands`), and
+ * needs no row to exist first. Unscoped for the same reason: the event
+ * emitter reads the thread from the starting call's row.
+ */
+export interface BackgroundCommandStartedEvent extends Observed {
+  readonly kind: "background_command_started";
+  /** The starting call's id: the command's identity. */
+  readonly callId: string;
+  readonly timeoutSeconds: number;
+}
+
+/**
+ * A fragment of a background command's output, coalesced to the streaming
+ * floor by the harness. Builds nothing: the runtime's observer previews it
+ * under the starting call's tool use (`events/emitter.ts`).
+ */
+export interface BackgroundOutputDeltaEvent {
+  readonly kind: "background_output_delta";
+  readonly callId: string;
+  readonly delta: string;
+}
+
+/** A background command ended, however it ended (see {@link BackgroundCommandStartedEvent}). */
+export interface BackgroundCommandEndedEvent extends Observed {
+  readonly kind: "background_command_ended";
+  readonly callId: string;
+  readonly ending: BackgroundEnding;
+  /** Set when it exited. */
+  readonly exitCode?: number;
+  /** Set when it was stopped. */
+  readonly stoppedBy?: BackgroundStopper;
+  /** The agent's stop call, when the agent stopped it. */
+  readonly stoppedByCallId?: string;
+  /** What it printed, as a foreground command's result would carry it. */
+  readonly output: string;
+}
+
 // ── Union ─────────────────────────────────────────────────────────
 
 export type TranscriptEvent =
@@ -295,4 +372,15 @@ export type TranscriptEvent =
   | SubAgentFailedEvent
   | ApprovalProposedEvent
   | ContextCompactedEvent
-  | SystemNoteEvent;
+  | SystemNoteEvent
+  | BackgroundWaitStartedEvent
+  | BackgroundWaitFinishedEvent
+  | BackgroundCommandStartedEvent
+  | BackgroundOutputDeltaEvent
+  | BackgroundCommandEndedEvent;
+
+/** The facts a harness's registry of background commands reports, never a translator. */
+export type BackgroundCommandFact = BackgroundCommandStartedEvent | BackgroundOutputDeltaEvent | BackgroundCommandEndedEvent;
+
+/** The facts a translator makes of its engine's stream: every fact but a background command's. */
+export type StreamFact = Exclude<TranscriptEvent, BackgroundCommandFact>;

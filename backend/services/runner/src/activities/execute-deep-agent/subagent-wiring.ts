@@ -11,7 +11,13 @@
  * - Tool intent (issue #276) — the shell tool's bind-time schema gains the
  *   optional model-authored `description`, so sub-agent shell rows carry
  *   intent titles exactly like the parent's
- * - Fresh tool truncation (same limits as parent)
+ * - Folder instructions (`middleware/folder-instructions.ts`), right outside
+ *   truncation as on the parent, over the sub-agent's own backend and its
+ *   own messages, when its own scope may read the workspace
+ *   (`compileSubagents` decides)
+ * - Fresh tool truncation at the run's bound, as on the parent, keeping a
+ *   long result through the sub-agent's own backend (`compileSubagents`
+ *   passes both)
  * - Periodic execution budget (interval=30, max=4 advisories)
  * - Tool scope (`middleware/tool-scope.ts`) with THIS sub-agent's scope —
  *   the parent's narrowed by the sub-agent's own lists, never widened —
@@ -31,11 +37,14 @@
  *   tool round the model adapts to.
  *
  * - OTel spans: a `chat` span per model call and an `execute_tool` span per
- *   tool call, innermost as on the parent. Until 2026-10 the stack left them
+ *   tool call, innermost but for the model retry, as on the parent. Until 2026-10 the stack left them
  *   out on the belief that the parent's context covered them; nothing in the
  *   parent spans a sub-agent's own calls, so its work was invisible. The
  *   invocation's `invoke_agent` span is the transformer's
  *   (`subagent-transformer.ts`), opened inside the parent's `task` span.
+ * - Model retry (`middleware/model-retry.ts`), LAST as on the parent: a
+ *   sub-agent's reply that fails after it began is tried again inside the
+ *   sub-agent, never by failing its `task` back to the parent.
  *
  * The sub-agent middleware stack does NOT include:
  * - Graceful stop (parent handles STOP signal propagation)
@@ -50,6 +59,7 @@
 import type {
   StigmerMiddleware,
   ToolTruncationConfig,
+  FolderInstructionsConfig,
   PathNormalizationConfig,
   ToolScopeConfig,
   OtelSpansConfig,
@@ -58,9 +68,11 @@ import type { CostAdvisoryMiddleware } from "../../middleware/index.js";
 import { createPathNormalizationMiddleware } from "../../middleware/path-normalization.js";
 import { createLoopDetectionMiddleware } from "../../middleware/loop-detection.js";
 import { createToolTruncationMiddleware } from "../../middleware/tool-truncation.js";
+import { createFolderInstructionsMiddleware } from "../../middleware/folder-instructions.js";
 import { createExecutionBudgetMiddleware } from "../../middleware/execution-budget.js";
 import { createToolIntentMiddleware } from "../../middleware/tool-intent.js";
 import { createShellMiddleware } from "../../middleware/shell.js";
+import { createBackgroundCommandsMiddleware } from "../../middleware/background-commands.js";
 import type { ShellMiddlewareConfig } from "../../middleware/types.js";
 import { createTurnBoundaryMiddleware, type TurnBoundarySignals } from "../../middleware/turn-boundary.js";
 import {
@@ -70,6 +82,7 @@ import {
 import { createErrorHintsMiddleware } from "../../middleware/error-hints.js";
 import { createOtelSpansMiddleware } from "../../middleware/otel-spans.js";
 import { createToolScopeMiddleware } from "../../middleware/tool-scope.js";
+import { createModelRetryMiddleware } from "../../middleware/model-retry.js";
 
 const SUB_AGENT_ADVISORY_INTERVAL = 30;
 const SUB_AGENT_MAX_ADVISORIES = 4;
@@ -78,6 +91,8 @@ export interface SubAgentMiddlewareOptions {
   /** The parent's cost advisory, whose running total the sub-agent's calls advance. */
   readonly costAdvisory?: CostAdvisoryMiddleware;
   readonly toolTruncation?: Partial<ToolTruncationConfig>;
+  /** A folder's own instruction file on the first read beneath it; absent when this sub-agent's scope may not read the workspace. */
+  readonly folderInstructions?: FolderInstructionsConfig;
   /**
    * Approval gate config inherited from the parent. When present, the sub-agent
    * gates its own mutating tool calls; when null/undefined (e.g. auto-approve-
@@ -117,8 +132,8 @@ export interface SubAgentMiddlewareOptions {
  *
  * Returns an ordered array mirroring the parent composition:
  * [turn boundary] → [path normalization] → loop detection → execution budget (periodic) →
- * [shell] → tool intent → tool truncation → [tool scope] → [approval gate] → cost
- * cap view → error hints → OTel spans.
+ * [shell] → [background commands] → tool intent → [folder instructions] → tool truncation → [tool scope] → [approval gate] → cost
+ * cap view → error hints → OTel spans → model retry.
  * Normalization is outermost so everything downstream observes canonical
  * workspace-absolute paths (matching the parent). The gate sits before the
  * cost-cap view so an approval pause happens before budget accounting, and
@@ -149,8 +164,19 @@ export function buildSubAgentMiddleware(
   // Sub-agent shell rows render in the same thread as the parent's and must
   // carry the same model-authored intent titles (issue #276).
   if (options.shell) stack.push(createShellMiddleware(options.shell));
+  // A sub-agent hears of its own background commands and waits for them at
+  // its round's end; a person's message and a yield are the parent's.
+  if (options.shell?.background) {
+    stack.push(createBackgroundCommandsMiddleware({
+      ...options.shell.background,
+      scope: "subagent",
+      ...(options.turnBoundary ? { signals: options.turnBoundary } : {}),
+      ...(options.toolTruncation?.maxChars !== undefined ? { maxNoticeChars: options.toolTruncation.maxChars } : {}),
+    }));
+  }
   stack.push(createToolIntentMiddleware());
 
+  if (options.folderInstructions) stack.push(createFolderInstructionsMiddleware(options.folderInstructions));
   stack.push(createToolTruncationMiddleware(options.toolTruncation));
 
   if (options.toolScope?.scope.restricted) {
@@ -187,6 +213,7 @@ export function buildSubAgentMiddleware(
 
   stack.push(createErrorHintsMiddleware());
   stack.push(createOtelSpansMiddleware(options.otelSpans));
+  stack.push(createModelRetryMiddleware());
 
   return stack;
 }

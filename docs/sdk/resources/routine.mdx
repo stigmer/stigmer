@@ -34,8 +34,8 @@ skipped entirely after that.
 apiVersion: agentic.stigmer.ai/v1
 kind: Routine
 metadata:
-  name: daily-fee-reminders
-  org: workshop
+  name: daily-variance-report
+  org: acme
 spec:
   cron: "0 9 * * *"
   time_zone: Asia/Kolkata
@@ -43,9 +43,9 @@ spec:
   agent:
     agent_ref:
       kind: agent
-      org: workshop
-      slug: support-agent
-    message: Send fee reminders to members whose dues fall in the next 3 days.
+      org: acme
+      slug: variance-reporter
+    message: Report yesterday's variances for every account more than 5% over budget.
 ```
 
 ## Client Access
@@ -982,6 +982,7 @@ Harness identifies the execution engine that processes agent activities for a se
 |-------|-------------|
 | `HARNESS_NATIVE` | Stigmer's native execution engine. |
 | `HARNESS_CURSOR` | Cursor SDK execution engine. |
+| `HARNESS_CLAUDE` | Anthropic's Claude Agent SDK execution engine. |
 
 ### ServiceTier
 

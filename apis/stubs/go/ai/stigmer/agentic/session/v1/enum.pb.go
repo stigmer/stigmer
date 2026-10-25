@@ -96,6 +96,11 @@ const (
 	// Cursor-managed conversation state, Cursor built-in tools + MCP,
 	// both local and cloud runtimes. Premium billing tier.
 	Harness_HARNESS_CURSOR Harness = 2
+	// Anthropic's Claude Agent SDK execution engine.
+	//
+	// Approvals that stop at the exact call, conversation state mirrored to
+	// Stigmer. Refused until the platform offers it.
+	Harness_HARNESS_CLAUDE Harness = 3
 )
 
 // Enum value maps for Harness.
@@ -104,11 +109,13 @@ var (
 		0: "HARNESS_UNSPECIFIED",
 		1: "HARNESS_NATIVE",
 		2: "HARNESS_CURSOR",
+		3: "HARNESS_CLAUDE",
 	}
 	Harness_value = map[string]int32{
 		"HARNESS_UNSPECIFIED": 0,
 		"HARNESS_NATIVE":      1,
 		"HARNESS_CURSOR":      2,
+		"HARNESS_CLAUDE":      3,
 	}
 )
 
@@ -342,11 +349,12 @@ const file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc = "" +
 	"(ai/stigmer/agentic/session/v1/enum.proto\x12\x1dai.stigmer.agentic.session.v1*Y\n" +
 	"\x10GitWriteBackMode\x12#\n" +
 	"\x1fGIT_WRITE_BACK_MODE_UNSPECIFIED\x10\x00\x12 \n" +
-	"\x1cGIT_WRITE_BACK_BRANCH_AND_PR\x10\x01*J\n" +
+	"\x1cGIT_WRITE_BACK_BRANCH_AND_PR\x10\x01*^\n" +
 	"\aHarness\x12\x17\n" +
 	"\x13HARNESS_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eHARNESS_NATIVE\x10\x01\x12\x12\n" +
-	"\x0eHARNESS_CURSOR\x10\x02*\xba\x01\n" +
+	"\x0eHARNESS_CURSOR\x10\x02\x12\x12\n" +
+	"\x0eHARNESS_CLAUDE\x10\x03*\xba\x01\n" +
 	"\x11EnvironmentSource\x12\"\n" +
 	"\x1eENVIRONMENT_SOURCE_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aENVIRONMENT_SOURCE_SESSION\x10\x01\x12\x1e\n" +

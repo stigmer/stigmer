@@ -238,13 +238,19 @@ type RunConfig struct {
 	// create. Combines freely with service_tier.
 	ThinkingMode ThinkingMode `protobuf:"varint,5,opt,name=thinking_mode,json=thinkingMode,proto3,enum=ai.stigmer.agentic.run.v1.ThinkingMode" json:"thinking_mode,omitempty"`
 	// Maximum number of characters for a single tool result before truncation.
-	// When a tool result exceeds this limit, it is truncated and a marker is
-	// appended: "[truncated — result exceeded {limit} chars, ask for specific sections]"
+	// A longer result reaches the agent as its start and its end, with a line
+	// between them saying how much was left out. The whole result is kept for
+	// the session, outside the workspace, and the line says where, so the
+	// agent reads the rest back instead of running the tool again; a tool that
+	// pages itself (reading a file, searching, listing, fetching a page) keeps
+	// no copy, and the line says how to narrow the call instead. A value above
+	// 80,000 raises the bound only for the file tools (reading, searching,
+	// listing and editing files); every other tool's result is cut at 80,000
+	// at most.
 	//
 	// 0 = not set at this layer; with no layer setting it the platform default
-	// applies (30,000 chars, about 7,500 tokens). Applies to all tool results
-	// (shell, read, write, MCP tools), except built-in tools that already
-	// manage their output size.
+	// applies (30,000 chars, about 7,500 tokens). Applies to every tool result,
+	// a subagent's included; the Cursor harness does not read this field.
 	MaxToolResultChars int32 `protobuf:"varint,6,opt,name=max_tool_result_chars,json=maxToolResultChars,proto3" json:"max_tool_result_chars,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
@@ -326,13 +332,13 @@ var File_ai_stigmer_agentic_run_v1_invocation_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_run_v1_invocation_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/run/v1/invocation.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a,ai/stigmer/agentic/session/v1/resource.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xb6\a\n" +
+	"*ai/stigmer/agentic/run/v1/invocation.proto\x12\x19ai.stigmer.agentic.run.v1\x1a$ai/stigmer/agentic/run/v1/enum.proto\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a,ai/stigmer/agentic/session/v1/resource.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xc0\a\n" +
 	"\x0fAgentInvocation\x12]\n" +
 	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\n" +
 	"\xbaH\x03\xc8\x01\x01\xe0\x85,(R\bagentRef\x12$\n" +
 	"\amessage\x18\x02 \x01(\tB\n" +
-	"\xbaH\ar\x05\x10\x01\x18\x80@R\amessage\x12@\n" +
-	"\aharness\x18\x03 \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessR\aharness\x12Z\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80@R\amessage\x12J\n" +
+	"\aharness\x18\x03 \x01(\x0e2&.ai.stigmer.agentic.session.v1.HarnessB\b\xbaH\x05\x82\x01\x02\x10\x01R\aharness\x12Z\n" +
 	"\x06vaults\x18\a \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\f\xbaH\x05\x92\x01\x02\x10\x14\xe0\x85,;R\x06vaults\x12C\n" +
 	"\n" +
 	"run_config\x18\x06 \x01(\v2$.ai.stigmer.agentic.run.v1.RunConfigR\trunConfig\x12c\n" +

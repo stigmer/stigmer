@@ -14,7 +14,8 @@
  * the operations the turn has open, folded from the same events
  * (`open-operations.ts`), which hold the stall watchdog while something
  * runs and feed the backstop; the pump that sends a running tool's output
- * between writes (`preview-pump.ts`);
+ * between writes (`preview-pump.ts`); the pump that reads a person's stop
+ * of a background command while one runs (`background-stops.ts`);
  * the periodic heartbeat; the stop controller and its producers (the
  * stall watchdog and the open-operation backstop on its timer, the cost
  * cap, the platform STOP, Temporal's cancellation), and the yield a
@@ -84,6 +85,7 @@ import { SessionEventEmitter } from "./events/emitter.js";
 import { OpenOperations, OperationLimitError } from "./open-operations.js";
 import { newTurnInput, USER_MESSAGE_EVENT_TYPE } from "./turn-input.js";
 import { PersistChokepoint } from "./persist-chokepoint.js";
+import { BACKGROUND_STOP_REQUESTED_TYPE, BackgroundStopPump } from "./background-stops.js";
 import { LivenessPump } from "./liveness-pump.js";
 import { PreviewPump } from "./preview-pump.js";
 import { StopController } from "./stop-controller.js";
@@ -275,19 +277,31 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     runId: executionId,
   });
 
+  // A person's stop of a background command, read while one runs
+  // (`background-stops.ts`). Commands start only once the engine runs,
+  // after the turn's session is known.
+  const backgroundStops = new BackgroundStopPump({
+    runId: executionId,
+    read: () =>
+      engineTurn === undefined
+        ? Promise.resolve([])
+        : client.listRunSessionEvents(engineTurn.sessionId, executionId, [BACKGROUND_STOP_REQUESTED_TYPE]),
+  });
+
   // The one transcript builder of this turn, born with the rows and before
   // any phase, so it exists for everything that writes a row or an output:
   // the write-back coordinator (phase 2c), the seed of a reinvocation's asks
   // (phase 3, through `seed()`, which indexes them as it appends), the
   // adapter (`sink.transcript`), and the epilogue. One constructor call per
   // turn; a second builder over the same rows would index them twice. The
-  // timeline, the emitter's previews, the open operations and the two
+  // timeline, the emitter's previews, the open operations and the three
   // pumps are its observer, told every event in both process modes.
   const transcript = new TranscriptBuilder(executionId, rows, status, (event, at, place) => {
     timeline.observe(event, at);
     events.observe(event, place);
     operations.observe(event);
-    if (event.kind === "tool_output_delta") previews.note();
+    backgroundStops.observe(event);
+    if (event.kind === "tool_output_delta" || event.kind === "background_output_delta") previews.note();
     else if (LIVENESS_EVENTS.has(event.kind)) liveness.note();
   });
 
@@ -591,6 +605,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
       yieldSignal: stop.yieldSignal,
       setupTiming,
       input: queuedInput,
+      backgroundStops,
       requestPersist: () => chokepoint.request(),
       recordActivity: (detail) => {
         if (detail !== undefined) lastActivityDetail = detail;
@@ -650,6 +665,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     // Nothing streams now; a flush still sending lands before the turn's own writes.
     await previews.stop();
     await liveness.stop();
+    backgroundStops.stop();
     heartbeatPhase = "epilogue";
 
     // The stream is over, however it ended: nothing on the transcript is
@@ -1050,6 +1066,7 @@ async function runTurn(deps: TurnRuntimeDeps, input: NormalizedActivityInput, ru
     watchdog?.stop();
     await previews.stop();
     await liveness.stop();
+    backgroundStops.stop();
     cancellationSignal.removeEventListener("abort", onCancellation);
     shutdownSignal?.removeEventListener("abort", onDrain);
     stopNowSignal?.removeEventListener("abort", onStopNow);
