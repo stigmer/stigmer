@@ -5,6 +5,11 @@
 //   in the tee'd log, the execute activity's start and the EnsureThread hop in
 //   the Temporal history, the first visible token and the turn's end on the
 //   session's event stream, the usage aggregate on the terminal status.
+// - One bare three-turn session through the driver (`measureSession`), the
+//   shape of every three-turn cell: each later turn is created only once the
+//   turn before it has settled on the server, so no create is refused and
+//   every turn completes with the server's own completion stamp
+//   (stigmer#2536).
 // - The working agent (support/working-agent.ts), provisioned as the live run
 //   provisions it: the target's MCP fixture, memory through a real
 //   Organization, eight skills, a sub-agent, a seeded non-git workspace
@@ -44,7 +49,7 @@ import { join } from "node:path";
 import { RunPhase } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { JUDGE_MODEL, PARITY_MODEL } from "../benchmark/cells";
+import { JUDGE_MODEL, PARITY_MODEL, TURN_2_PROMPTS } from "../benchmark/cells";
 import { renderQuality, runQualityEval } from "../benchmark/quality-eval";
 import { measureSession, type SessionStack } from "../benchmark/session";
 import { changedFiles } from "../benchmark/workspace-facts";
@@ -157,6 +162,46 @@ describe.skipIf(!hasReaders)("Benchmark readers — the instrument reads what th
     const before = historyAxes(history, executeActivityNameFor("deep-agent"));
     expect(before.before_activity_ms, "the history shows the execute activity starting").not.toBeNull();
     expect(before.ensure_thread_ms, "the history shows the EnsureThread hop completing").not.toBeNull();
+  });
+
+  it("the driver runs a three-turn session to the end, each later turn created once the one before has settled", async () => {
+    const { org } = await target.provisionTenancy();
+    const agent = await clients.agentCommand.create(
+      makeAgent({ org, name: uniqueName("agent-bench"), instructions: BARE_AGENT_INSTRUCTIONS }),
+    );
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    for (const reply of ["Noted.", "Paris.", "That the capital of France is Paris."]) mock.enqueue(anthropicText(reply));
+
+    const stack: SessionStack = {
+      clients,
+      runnerLogFile: target.runnerLogFile!(),
+      temporal: { hostPort: target.engineCoordinates!().temporalHostPort, namespace: TEMPORAL_DEV_NAMESPACE },
+    };
+    const lines: string[] = [];
+    const turns = await measureSession(
+      stack,
+      {
+        org,
+        agentRef: agentRefOf(agent),
+        harness: "deep-agent",
+        modelRequested: null,
+        sessionSpec: { harness: Harness.NATIVE, subject: "benchmark readers smoke" },
+        prompts: TURN_2_PROMPTS,
+        label: "smoke/three-turns",
+      },
+      { log: (line) => lines.push(line) },
+    );
+    expect(turns.map((turn) => turn.sample.outcome), `every turn completes (${JSON.stringify(turns.map((turn) => turn.sample.failure))}; ${lines.join(" | ")})`).toEqual([
+      "completed",
+      "completed",
+      "completed",
+    ]);
+    expect(turns.map((turn) => turn.reply)).toEqual(["Noted.", "Paris.", "That the capital of France is Paris."]);
+    expect(new Set(turns.map((turn) => turn.sample.session_id)).size, "one session").toBe(1);
+    for (const turn of turns) {
+      expect(turn.sample.server.completed_at, "the status facts come from the settled run").not.toBe("");
+    }
+    expect(mock.consumed(), "one scripted round per turn").toBe(3);
   });
 
   it.skipIf(!probe.capabilities.runnerActsAsRunCreator)(

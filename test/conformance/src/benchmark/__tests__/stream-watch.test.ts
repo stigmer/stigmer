@@ -7,13 +7,15 @@
 // included; the review stamp is the arrival of the turn's offer, and the
 // watch goes on to the turn's end; the end-to-end stamp is the arrival of
 // the turn's end; every axis is relative to the create call's start; another
-// turn's events stamp nothing; a stream that never ends the turn reports a
+// turn's events stamp nothing; a later turn of a session is not ended by the
+// idle the turn before it left, only by its own run status (stigmer#2536);
+// a stream that never ends the turn reports a
 // timeout with a null end-to-end and keeps what it did see. The default
 // stream reads the session's whole log, then its live events, with message
 // and thinking previews.
 import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import type { SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
+import { SessionEventSchema, type SessionEvent } from "@stigmer/apis/ai/stigmer/agentic/session/v1/event_pb";
 import {
   StreamSessionEventsResponseSchema,
   type StreamSessionEventsResponse,
@@ -118,6 +120,25 @@ describe("watchTurn", () => {
     expect(watched.outcome).toBe("timeout");
     expect(watched.end_to_end_ms).toBeNull();
     expect(watched.client_first_text_ms).toBe(20);
+  });
+
+  it("a later turn is not ended by the idle the turn before it left, only by its own run status", async () => {
+    // The log replays from its start: the earlier turn's end and the session's
+    // idle, then this run's message, before the session reads as running.
+    const earlierIdle = create(SessionEventSchema, {
+      seq: 0n,
+      sessionId: "ses_1",
+      runId: "run_0",
+      event: { case: "sessionStatusIdle", value: { id: "run_0.idle", stopReason: { type: "end_turn" } } },
+    });
+    const frames = [stored(earlierIdle), stored(userMessage("next")), stored(said(0, "Paris.")), stored(phase("completed"))];
+    // One tick per frame that shows the run's turn: the message, the reply, the status.
+    const clock = [200, 900, 1500];
+    let tick = 0;
+    const watched = await watchTurn(scripted(frames), RUN, { startedAtMs: 0, timeoutMs: 10_000, now: () => clock[tick++] ?? 9999 });
+    expect(watched.end_to_end_ms, "the end is the run's own completed status").toBe(1500);
+    expect(watched.client_first_text_ms).toBe(900);
+    expect(watched.turn?.answer).toBe("Paris.");
   });
 
   it("stamps nothing for a turn of another run", async () => {
