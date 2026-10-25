@@ -388,6 +388,25 @@ describe("resultText", () => {
     ).toBe("line one\n[image]\nline two\n[document]");
   });
 
+  it("renders each tool a tool search loaded by its name", () => {
+    expect(
+      resultText([
+        { type: "tool_reference", tool_name: "mcp__github__create_issue" },
+        { type: "tool_reference", tool_name: "TodoWrite" },
+      ]),
+    ).toBe("mcp__github__create_issue\nTodoWrite");
+  });
+
+  it("names a tool reference without a string tool name by its type", () => {
+    expect(resultText([{ type: "tool_reference", tool_name: 3 }, { type: "tool_reference" }])).toBe("[tool_reference]\n[tool_reference]");
+  });
+
+  it("settles a tool search's result with the loaded tools' names", () => {
+    expect(translator().translate(user([toolResult("toolu_search", [{ type: "tool_reference", tool_name: "NotebookEdit" }])]))).toEqual([
+      { kind: "tool_finished", callId: "toolu_search", result: "NotebookEdit" },
+    ]);
+  });
+
   it("names a text block without text by its type", () => {
     expect(resultText([{ type: "text", text: 7 }, {}])).toBe("[text]\n[undefined]");
   });
