@@ -17,7 +17,12 @@
 //   unmatched span of its name, in order. A sub-agent's rounds and tools are
 //   spans on the same timeline, so when any `sub_agent:` span is present the
 //   alignment is ambiguous and every round is left `null` rather than
-//   guessed.
+//   guessed. A placed call also keeps its span's start (`start_ms`), on the
+//   runner's clock, so a reader can tell which calls ran while a background
+//   command did (`background-readings.ts`).
+// - Whether a shell call asked for the background is its own input's
+//   `background: true`, the argument the runner adds to `execute` while
+//   background commands are on (runner middleware/shell.ts).
 // - The outcome is read from the result, because the native engine RETURNS a
 //   failed edit as a plain result string ("Error: String not found in
 //   file: ..."), so a call can complete and have done nothing (deepagents
@@ -38,6 +43,9 @@ const MODEL_ROUND_SEGMENT = "model_round";
 const TOOL_SEGMENT_PREFIX = "tool:";
 const SUB_AGENT_SEGMENT_PREFIX = "sub_agent:";
 
+/** The native shell's tool name, the one call that can ask for the background. */
+export const SHELL_TOOL = "execute";
+
 // The argument that names what a call points at, in the order a call is read:
 // the file tools' `file_path` (native `read_file`, `edit_file`, `write_file`),
 // a listing's or a search's `path`, a search's `pattern`. `command` is read
@@ -57,9 +65,12 @@ export function toolCallFacts(turn: Turn | undefined, turnPhases: TimingLine | n
     const args = use.input;
     const offset = args["offset"];
     const limit = args["limit"];
+    const span = rounds === null ? undefined : takeSpan(rounds, use.name);
     return {
-      round: rounds === null ? null : takeRound(rounds, use.name),
+      round: span?.round ?? null,
+      start_ms: span?.start_ms ?? null,
       name: use.name,
+      ...(use.name === SHELL_TOOL && args["background"] === true ? { background: true as const } : {}),
       target: targetOf(args),
       ...(typeof offset === "number" ? { offset } : {}),
       ...(typeof limit === "number" ? { limit } : {}),
@@ -108,30 +119,36 @@ export function targetOf(args: Readonly<Record<string, unknown>>): string {
   return typeof command === "string" ? command.slice(0, COMMAND_TARGET_CHARS) : "";
 }
 
+/** A tool span: its bare name, the round it started in and its start on the runner's clock. */
+interface ToolSpan {
+  name: string;
+  round: number;
+  start_ms: number;
+}
+
 // Each tool span's bare name with the 1-based round it started in, in start
 // order; `null` when the timeline is absent or carries a sub-agent (see the
 // header). A call started before any round is on round 0, which the runner
 // never emits and a reader would see as the anomaly it is.
-function roundsByToolSpan(turnPhases: TimingLine | null): { name: string; round: number }[] | null {
+function roundsByToolSpan(turnPhases: TimingLine | null): ToolSpan[] | null {
   if (turnPhases === null) return null;
   const segments = [...turnPhases.segments].sort((a, b) => a.start_ms - b.start_ms);
   if (segments.some((segment) => segment.name.startsWith(SUB_AGENT_SEGMENT_PREFIX))) return null;
-  const spans: { name: string; round: number }[] = [];
+  const spans: ToolSpan[] = [];
   let round = 0;
   for (const segment of segments) {
     if (segment.name === MODEL_ROUND_SEGMENT) {
       round += 1;
     } else if (segment.name.startsWith(TOOL_SEGMENT_PREFIX)) {
       const qualified = segment.name.slice(TOOL_SEGMENT_PREFIX.length);
-      spans.push({ name: qualified.slice(qualified.lastIndexOf("/") + 1), round });
+      spans.push({ name: qualified.slice(qualified.lastIndexOf("/") + 1), round, start_ms: segment.start_ms });
     }
   }
   return spans;
 }
 
-function takeRound(spans: { name: string; round: number }[], name: string): number | null {
+function takeSpan(spans: ToolSpan[], name: string): ToolSpan | undefined {
   const index = spans.findIndex((span) => span.name === name);
-  if (index === -1) return null;
-  const [span] = spans.splice(index, 1);
-  return span?.round ?? null;
+  if (index === -1) return undefined;
+  return spans.splice(index, 1)[0];
 }

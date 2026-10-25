@@ -216,6 +216,16 @@ export interface Config {
    */
   readonly shellTimeoutMaxSeconds: number;
   /**
+   * Whether the native shell's model may start a command in the background
+   * (STIGMER_SHELL_BACKGROUND_ENABLED, the `shellBackgroundEnabled` option;
+   * on by default). Off, `execute` is declared without `background`, no
+   * `stop_background_command` is bound, and no round-end wait is installed
+   * (`turn-setup.ts`): every command runs in the foreground, so a turn never
+   * waits on one and a sandbox never stays awake for one. Crosses to the
+   * agent host, where the shell runs.
+   */
+  readonly shellBackgroundEnabled: boolean;
+  /**
    * Bound (milliseconds) for Cursor Agent.create/Agent.resume. On expiry the
    * execution fails fast with an explicit transport diagnosis instead of
    * hanging into Temporal's heartbeat timeout. See
@@ -355,6 +365,8 @@ export function loadConfig(): Config {
     ? parseInt(process.env.STIGMER_SHELL_TIMEOUT_MAX_SECONDS, 10)
     : DEFAULT_SHELL_TIMEOUT_MAX_SECONDS;
 
+  const shellBackgroundEnabled = parseShellBackgroundEnabled(process.env.STIGMER_SHELL_BACKGROUND_ENABLED);
+
   const workspaceLockTimeoutMs = process.env.WORKSPACE_LOCK_TIMEOUT_MS
     ? parseInt(process.env.WORKSPACE_LOCK_TIMEOUT_MS, 10)
     : DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS;
@@ -391,6 +403,7 @@ export function loadConfig(): Config {
     openOperationMaxMs,
     livenessIntervalMs,
     shellTimeoutMaxSeconds,
+    shellBackgroundEnabled,
     agentResolveTimeoutMs,
     workspaceLockTimeoutMs,
     drainGraceMs,
@@ -419,6 +432,19 @@ function parseLivenessIntervalMs(raw: string | undefined): number {
     return DEFAULT_LIVENESS_INTERVAL_MS;
   }
   return parsed;
+}
+
+/**
+ * `STIGMER_SHELL_BACKGROUND_ENABLED`: `false` turns background commands off,
+ * `true` or unset leaves them on. Any other value keeps them on with a
+ * warning, as a malformed liveness interval keeps its default: a typo must
+ * not quietly take a capability away.
+ */
+function parseShellBackgroundEnabled(raw: string | undefined): boolean {
+  if (raw === undefined || raw === "" || raw === "true") return true;
+  if (raw === "false") return false;
+  console.warn(`STIGMER_SHELL_BACKGROUND_ENABLED=${JSON.stringify(raw)} is neither "true" nor "false"; background commands stay on`);
+  return true;
 }
 
 function resolveWorkspaceRootDir(): string {

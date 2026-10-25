@@ -36,6 +36,7 @@ describe("loadConfig", () => {
     expect(config.openOperationMaxMs).toBe(3600000);
     expect(config.livenessIntervalMs).toBe(30000);
     expect(config.shellTimeoutMaxSeconds).toBe(3300);
+    expect(config.shellBackgroundEnabled).toBe(true);
     expect(config.agentResolveTimeoutMs).toBe(120000);
     expect(config.workspaceLockTimeoutMs).toBe(900000);
   });
@@ -98,6 +99,30 @@ describe("loadConfig", () => {
     process.env.STIGMER_SHELL_TIMEOUT_MAX_SECONDS = "900";
     const config = loadConfig();
     expect(config.shellTimeoutMaxSeconds).toBe(900);
+  });
+
+  it("turns background shell commands off for STIGMER_SHELL_BACKGROUND_ENABLED=false, and on for true or unset", () => {
+    process.env.CURSOR_API_KEY = "test-key";
+    process.env.STIGMER_SHELL_BACKGROUND_ENABLED = "false";
+    expect(loadConfig().shellBackgroundEnabled).toBe(false);
+    process.env.STIGMER_SHELL_BACKGROUND_ENABLED = "true";
+    expect(loadConfig().shellBackgroundEnabled).toBe(true);
+    process.env.STIGMER_SHELL_BACKGROUND_ENABLED = "";
+    expect(loadConfig().shellBackgroundEnabled).toBe(true);
+  });
+
+  it("keeps background shell commands on, warning, for any other STIGMER_SHELL_BACKGROUND_ENABLED", () => {
+    process.env.CURSOR_API_KEY = "test-key";
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      for (const raw of ["0", "off", "FALSE", "no"]) {
+        process.env.STIGMER_SHELL_BACKGROUND_ENABLED = raw;
+        expect(loadConfig().shellBackgroundEnabled, raw).toBe(true);
+      }
+      expect(warn.mock.calls.filter(([line]) => String(line).startsWith("STIGMER_SHELL_BACKGROUND_ENABLED="))).toHaveLength(4);
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("respects WORKSPACE_LOCK_TIMEOUT_MS", () => {

@@ -4,7 +4,10 @@
 //
 // An arm is a harness on one model at one endpoint: native on the report's
 // `models.parity_native` at its `models.native_endpoint`, or Cursor on
-// `models.parity_cursor`. One run measures one native model (cells.ts), so a
+// `models.parity_cursor`. A native report taken with the runner's background
+// commands turned off (`methodology.shell_background`) is an arm of its own,
+// `+background-off`, so it is read beside the arm with them on rather than
+// pooled into it. One run measures one native model (cells.ts), so a
 // native arm on another model is another report, and the comparison is
 // across reports. Reports are compared only when they measure the same
 // thing on the same ground: one `git.main_sha`, the same `methodology.reps`,
@@ -26,8 +29,12 @@
 //   calls (sampled and sibling turns) that ended `not_found`, `not_unique` or
 //   `failed` is at most the reference's plus WASTE_TOLERANCE. `skipped` and
 //   `unsettled` calls are not settled by the model and are left out.
-// Timing, rounds and cost are printed and never gated: on another model they
-// measure the model's speed and price, not the engine. A cell with fewer than
+// Timing, rounds, cost and the input-token median are printed and never
+// gated: on another model they measure the model's speed and price, not the
+// engine, and between two arms of one model the input tokens show what a
+// longer tool declaration costs every turn. So is what each arm did with
+// background commands, cell by cell (`background-readings.ts`
+// `summarizeBackground`), printed whenever an arm's samples carry it. A cell with fewer than
 // MIN_SAMPLES samples that ran (a sample that failed at create is the
 // benchmark's stack, not the arm, and is left out of both clauses), or a
 // quality reading over fewer than MIN_SAMPLES cases graded on both arms,
@@ -37,6 +44,7 @@
 // clause was measured.
 //
 // Pure: reports in, a comparison out; the script reads the files and prints.
+import { summarizeBackground, type BackgroundSummary } from "./background-readings";
 import { PARITY_MODEL } from "./cells";
 import type {
   BenchmarkComparison,
@@ -84,12 +92,15 @@ export interface CellReading {
   wasted?: { arm: number; reference: number; status: ClauseStatus };
   /** Printed, never gated: the medians of each side. */
   printed?: { arm: PrintedAxes; reference: PrintedAxes };
+  /** Printed, never gated: what each side did with background commands, over its samples that ran. */
+  background?: { arm: BackgroundSummary | null; reference: BackgroundSummary | null };
 }
 
 export interface PrintedAxes {
   end_to_end_ms: number | null;
   rounds: number | null;
   estimated_cost_micros: number | null;
+  input_tokens: number | null;
 }
 
 export interface QualityReading {
@@ -135,11 +146,11 @@ interface QualityCase {
   passK: boolean;
 }
 
-/** `native/<model>@<endpoint>` or `cursor/<model>`. */
+/** `native/<model>@<endpoint>`, with `+background-off` when the runner's background commands were off, or `cursor/<model>`. */
 export function armLabel(report: BenchmarkReport, harness: BenchmarkHarness): string {
-  return harness === "deep-agent"
-    ? `native/${report.models.parity_native}@${report.models.native_endpoint}`
-    : `cursor/${report.models.parity_cursor}`;
+  if (harness === "cursor") return `cursor/${report.models.parity_cursor}`;
+  const off = report.methodology.shell_background === "off" ? "+background-off" : "";
+  return `native/${report.models.parity_native}@${report.models.native_endpoint}${off}`;
 }
 
 /**
@@ -316,12 +327,17 @@ function readCell(scenario: string, arm: PooledArm, reference: PooledArm): CellR
   const ran = (stat: BenchmarkStat): BenchmarkSample[] => stat.samples.filter((sample) => sample.failure?.stage !== "create");
   const oursRan = ran(ours);
   const theirsRan = ran(theirs);
+  const backgroundArm = summarizeBackground(oursRan);
+  const backgroundReference = summarizeBackground(theirsRan);
+  const background =
+    backgroundArm === null && backgroundReference === null ? {} : { background: { arm: backgroundArm, reference: backgroundReference } };
   if (oursRan.length < MIN_SAMPLES || theirsRan.length < MIN_SAMPLES) {
     return {
       scenario,
       status: "not measured",
       why: `samples that ran: arm ${oursRan.length}, reference ${theirsRan.length} (need ${MIN_SAMPLES})`,
       printed,
+      ...background,
     };
   }
   const failedOf = (samples: BenchmarkSample[]): number => samples.filter((sample) => sample.outcome !== "completed").length;
@@ -343,6 +359,7 @@ function readCell(scenario: string, arm: PooledArm, reference: PooledArm): CellR
     failures,
     wasted,
     printed,
+    ...background,
   };
 }
 
@@ -369,6 +386,7 @@ function printedAxes(stat: BenchmarkStat): PrintedAxes {
     end_to_end_ms: stat.median?.end_to_end_ms ?? null,
     rounds: stat.median?.rounds ?? null,
     estimated_cost_micros: stat.median?.estimated_cost_micros ?? null,
+    input_tokens: stat.median?.tokens.input ?? null,
   };
 }
 
@@ -395,8 +413,8 @@ export function renderComparison(comparison: ReportComparison, reports: readonly
     const q = reading.quality;
     lines.push(`Quality: ${q.status} (${q.why}); pass^k ${q.passK.arm} against ${q.passK.reference}`, "");
     lines.push(
-      "| cell | status | failed | wasted calls | e2e ms | rounds | est. cost µ$ | why |",
-      "|---|---|---|---|---|---|---|---|",
+      "| cell | status | failed | wasted calls | e2e ms | rounds | est. cost µ$ | input tokens | why |",
+      "|---|---|---|---|---|---|---|---|---|",
     );
     for (const cell of reading.cells) {
       const pair = (a: string, b: string): string => `${a} / ${b}`;
@@ -404,15 +422,38 @@ export function renderComparison(comparison: ReportComparison, reports: readonly
       const wasted = cell.wasted === undefined ? "n/a" : pair(percent(cell.wasted.arm), percent(cell.wasted.reference));
       const p = cell.printed;
       lines.push(
-        `| ${cell.scenario} | ${cell.status} | ${failed} | ${wasted} | ${p === undefined ? "n/a" : pair(number(p.arm.end_to_end_ms), number(p.reference.end_to_end_ms))} | ${p === undefined ? "n/a" : pair(number(p.arm.rounds), number(p.reference.rounds))} | ${p === undefined ? "n/a" : pair(cost(reading.arm, p.arm.estimated_cost_micros), cost(comparison.reference, p.reference.estimated_cost_micros))} | ${cell.why} |`,
+        `| ${cell.scenario} | ${cell.status} | ${failed} | ${wasted} | ${p === undefined ? "n/a" : pair(number(p.arm.end_to_end_ms), number(p.reference.end_to_end_ms))} | ${p === undefined ? "n/a" : pair(number(p.arm.rounds), number(p.reference.rounds))} | ${p === undefined ? "n/a" : pair(cost(reading.arm, p.arm.estimated_cost_micros), cost(comparison.reference, p.reference.estimated_cost_micros))} | ${p === undefined ? "n/a" : pair(number(p.arm.input_tokens), number(p.reference.input_tokens))} | ${cell.why} |`,
       );
     }
+    lines.push(...renderBackgroundReadings(reading.cells));
   }
   if ([...costBasis.values()].includes("default-rate")) {
     lines.push("", "* the runner's default rate, not a price: the arm's model has no priced catalog row.");
   }
   lines.push("", "Each pair is arm / reference. Timing, rounds and cost are printed, never gated.");
   return lines.join("\n");
+}
+
+/** One arm's background table: each cell's summary, arm / reference; nothing when no cell carries one. */
+function renderBackgroundReadings(cells: readonly CellReading[]): string[] {
+  const rows = cells.filter((cell) => cell.background !== undefined);
+  if (rows.length === 0) return [];
+  const value = (n: number | null | undefined): string => (n === null || n === undefined ? "n/a" : String(Math.round(n)));
+  const pair = (read: (summary: BackgroundSummary) => string, cell: CellReading): string => {
+    const side = (summary: BackgroundSummary | null | undefined): string => (summary === null || summary === undefined ? "n/a" : read(summary));
+    return `${side(cell.background?.arm)} / ${side(cell.background?.reference)}`;
+  };
+  return [
+    "",
+    "Background commands, over the samples that ran:",
+    "",
+    "| cell | used | starts | polls median (max) | worked while running ms | waits | reminders | own & | fg timeouts | would pause | left running | task done |",
+    "|---|---|---|---|---|---|---|---|---|---|---|---|",
+    ...rows.map(
+      (cell) =>
+        `| ${cell.scenario} | ${pair((s) => `${s.used}/${s.ran}`, cell)} | ${pair((s) => String(s.starts), cell)} | ${pair((s) => `${value(s.polls_median)} (${value(s.polls_max)})`, cell)} | ${pair((s) => value(s.worked_while_running_ms), cell)} | ${pair((s) => String(s.waits), cell)} | ${pair((s) => String(s.reminders), cell)} | ${pair((s) => String(s.self_backgrounded), cell)} | ${pair((s) => String(s.foreground_timeouts), cell)} | ${pair((s) => String(s.gated_while_running), cell)} | ${pair((s) => String(s.orphans), cell)} | ${pair((s) => (s.task_done === null ? "n/a" : `${s.task_done.done}/${s.task_done.of}`), cell)} |`,
+    ),
+  ];
 }
 
 function arrayOf(value: unknown): unknown[] {

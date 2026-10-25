@@ -128,6 +128,9 @@ export interface RunnerManagerOptions {
   /** The most the native shell's model may raise one command's timeout to (seconds). @default 3300 */
   readonly shellTimeoutMaxSeconds?: number;
 
+  /** Whether the native shell's model may start a command in the background. @default true */
+  readonly shellBackgroundEnabled?: boolean;
+
   /** Bound for Cursor Agent.create/resume (ms). @default 120000 */
   readonly agentResolveTimeoutMs?: number;
 
@@ -690,6 +693,7 @@ export function mapManagerOptionsToConfig(
     openOperationMaxMs: options.openOperationMaxMs ?? DEFAULT_OPEN_OPERATION_MAX_MS,
     livenessIntervalMs: options.livenessIntervalMs ?? DEFAULT_LIVENESS_INTERVAL_MS,
     shellTimeoutMaxSeconds: options.shellTimeoutMaxSeconds ?? DEFAULT_SHELL_TIMEOUT_MAX_SECONDS,
+    shellBackgroundEnabled: options.shellBackgroundEnabled ?? true,
     agentResolveTimeoutMs:
       options.agentResolveTimeoutMs ?? DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
     workspaceLockTimeoutMs:

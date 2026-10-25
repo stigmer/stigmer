@@ -588,6 +588,25 @@ describe("TranscriptBuilder — context_compacted marks where the engine summari
   });
 });
 
+describe("TranscriptBuilder — a background wait and reminder are no rows", () => {
+  it("takes background_wait_started, background_wait_finished and background_reminded as nothing, in any scope", () => {
+    const reply: TranscriptEvent[] = [
+      { kind: "message_start", runId: "run-1" },
+      { kind: "text_delta", runId: "run-1", text: "It runs." },
+      { kind: "message_finish", runId: "run-1" },
+    ];
+    const plain = feed(builder(), reply).status;
+    const marked = feed(builder(), [
+      ...reply,
+      { kind: "background_reminded" },
+      { kind: "background_wait_started" },
+      { kind: "background_wait_finished" },
+      { kind: "background_reminded", subAgentId: "task-1" },
+    ]).status;
+    expect(marked).toEqual(plain);
+  });
+});
+
 describe("TranscriptBuilder — tool_output_delta streams the row's output", () => {
   it("appends the delta and marks the row streaming its OUTPUT", () => {
     const { status } = feed(builder(), [

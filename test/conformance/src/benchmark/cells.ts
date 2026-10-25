@@ -14,6 +14,16 @@
 // show whether the system prompt, and so the provider's prompt cache, held
 // from one message to the next.
 //
+// Two more working-agent cells are single turns where running a command in
+// the background pays, asked in a person's ordinary words that never name
+// the background: run a slow test suite while fixing a bug, and start a
+// server and call it. Their workspace gains a slow suite and a server from
+// an overlay (fixtures/working-agent-background), copied over the seed for
+// these cells only, so every other cell and the quality eval read the bytes
+// they always did. Each names checks of the work (`doneChecks`), read after
+// the turn into the sample's `task_done`. Every other cell is their control:
+// a background start there is the agent using it where it does not pay.
+//
 // The quality arm is the working agent as a plugin with an `evals/` suite
 // (fixtures/working-agent, the plugin-eval format), run by one eval run
 // about the plugin, with each harness on its parity model as a
@@ -110,12 +120,69 @@ export const WORKING_CROSS_TURN_PROMPTS: readonly string[] = [
   "Run go test ./... and tell me in one line whether it passes.",
 ];
 
+/** The port the background cells' server listens on (fixtures/working-agent-background). */
+export const BACKGROUND_SERVER_PORT = 8765;
+
+/** The slow-suite job: start the minute-long suite, fix a bug while it runs, hear how it ended. */
+export const BACKGROUND_SLOW_SUITE_PROMPT =
+  'Two things. The integration tests in ./integration take about a minute: run them and tell me whether they pass. And make ParseMinutes in duration/duration.go accept seconds ("90s" is 1, rounding down), with a test case.';
+
+/** The server job: a process that never ends on its own, called twice. */
+export const BACKGROUND_DEV_SERVER_PROMPT = `Start the service's HTTP server (go run ./cmd/server; it listens on 127.0.0.1:${BACKGROUND_SERVER_PORT}) and tell me what GET /minutes?d=1h30m and GET /minutes?d=90s return.`;
+
+/**
+ * One check of a cell's work, in the quality cases' regex shape
+ * (fixtures/working-agent/evals/<case>/case.yaml): a pattern over a
+ * workspace file, the agent's final reply, or what its shell commands
+ * printed (a foreground call's result or a background command's output).
+ */
+export interface DoneCheck {
+  name: string;
+  pattern: string;
+  flags?: string;
+  target: { source: "file"; path: string } | { source: "reply" } | { source: "command_output" };
+}
+
+/** What a cell's checks read, gathered after the turn. */
+export interface DoneSources {
+  reply: string;
+  /** Everything the turn's shell commands printed. */
+  commandOutputs: readonly string[];
+  /** The workspace files the checks name; `undefined` for one that is not there. */
+  files: ReadonlyMap<string, string | undefined>;
+}
+
+/** Whether every check holds; a file that is not there fails its check. */
+export function doneChecksHold(checks: readonly DoneCheck[], sources: DoneSources): boolean {
+  return checks.every((check) => {
+    const pattern = new RegExp(check.pattern, check.flags);
+    switch (check.target.source) {
+      case "reply":
+        return pattern.test(sources.reply);
+      case "command_output":
+        return sources.commandOutputs.some((output) => pattern.test(output));
+      case "file": {
+        const text = sources.files.get(check.target.path);
+        return text !== undefined && pattern.test(text);
+      }
+    }
+  });
+}
+
 export interface Scenario {
   name: string;
   mode: ComparisonMode;
   sessionShape: SessionShape;
   agent: AgentShape;
   prompts: readonly string[];
+  /**
+   * Files copied over the working agent's seeded workspace for this cell
+   * alone: `background` is fixtures/working-agent-background's slow suite and
+   * server (support/working-agent.ts `WORKING_AGENT_BACKGROUND_OVERLAY_DIR`).
+   */
+  overlay?: "background";
+  /** Checks of the work, read after each attempt into `task_done`. */
+  doneChecks?: readonly DoneCheck[];
 }
 
 export const SCENARIOS: readonly Scenario[] = [
@@ -128,6 +195,30 @@ export const SCENARIOS: readonly Scenario[] = [
   { name: "report-parity-turn-2", mode: "turn-2", sessionShape: "one-session-three-turns", agent: "bare", prompts: TURN_2_PROMPTS },
   { name: "working-read-edit", mode: "working-agent", sessionShape: "one-session-three-turns", agent: "working", prompts: WORKING_READ_EDIT_PROMPTS },
   { name: "working-cross-turn", mode: "working-agent", sessionShape: "one-session-three-turns", agent: "working", prompts: WORKING_CROSS_TURN_PROMPTS },
+  {
+    name: "background-slow-suite",
+    mode: "working-agent",
+    sessionShape: "fresh-per-execution",
+    agent: "working",
+    prompts: [BACKGROUND_SLOW_SUITE_PROMPT],
+    overlay: "background",
+    doneChecks: [
+      { name: "suite-passed", pattern: "^ok\\s+\\S*integration", flags: "m", target: { source: "command_output" } },
+      { name: "seconds-test", pattern: '"\\d+s"', target: { source: "file", path: "duration/duration_test.go" } },
+    ],
+  },
+  {
+    name: "background-dev-server",
+    mode: "working-agent",
+    sessionShape: "fresh-per-execution",
+    agent: "working",
+    prompts: [BACKGROUND_DEV_SERVER_PROMPT],
+    overlay: "background",
+    doneChecks: [
+      { name: "hours-answered", pattern: "\\b90\\b", target: { source: "reply" } },
+      { name: "seconds-refused", pattern: "\\b400\\b|unknown unit|error", flags: "i", target: { source: "reply" } },
+    ],
+  },
 ];
 
 export const HARNESSES: readonly BenchmarkHarness[] = ["deep-agent", "cursor"];

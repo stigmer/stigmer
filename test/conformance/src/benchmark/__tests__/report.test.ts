@@ -107,6 +107,7 @@ describe("readBenchmarkReport", () => {
         cold: "first-call-of-run-per-harness-model-and-agent",
         titling_suppressed: true,
         file_review: "approved-at-review-ready",
+        shell_background: "on",
       },
       models: {
         parity_native: "claude-sonnet-4.6",
@@ -184,6 +185,19 @@ describe("readBenchmarkReport", () => {
     delete noModels["models"];
     expect(() => readBenchmarkReport(noModels)).toThrow("report.models is missing");
     expect(() => readBenchmarkReport({ ...validReport(), schema_version: 7 })).toThrow("schema_version is 7");
+  });
+
+  it("refuses a v8 report, and one whose arm names no background setting or another word", () => {
+    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 8 })).toThrow("not a v9 benchmark report: schema_version is 8");
+    const unnamed = validReport();
+    delete (unnamed.methodology as unknown as Record<string, unknown>)["shell_background"];
+    expect(() => readBenchmarkReport(unnamed)).toThrow("report.methodology.shell_background is missing, expected one of on, off");
+    const other = validReport();
+    (other.methodology as unknown as Record<string, unknown>)["shell_background"] = "auto";
+    expect(() => readBenchmarkReport(other)).toThrow('report.methodology.shell_background is "auto", expected one of on, off');
+    const off = validReport();
+    off.methodology.shell_background = "off";
+    expect(readBenchmarkReport(off).methodology.shell_background).toBe("off");
   });
 
   it("refuses a missing field by name", () => {

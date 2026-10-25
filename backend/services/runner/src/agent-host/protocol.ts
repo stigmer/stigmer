@@ -54,7 +54,7 @@ import type { TimingRecorderWire } from "../shared/cold-start-timing.js";
 import type { TelemetrySettings } from "../otel-export.js";
 import type { RuntimeFieldsWire, WireOffload, WireProjection, WireTurnInput } from "./codec.js";
 
-export const AGENT_HOST_PROTOCOL_VERSION = 17;
+export const AGENT_HOST_PROTOCOL_VERSION = 18;
 
 /**
  * The largest single message either side sends or accepts. A turn's input
@@ -97,6 +97,8 @@ export interface HostConfigWire {
   readonly cursorStreamStallTimeoutMs: number;
   /** The native shell's timeout ceiling: the shell runs in the host. */
   readonly shellTimeoutMaxSeconds: number;
+  /** Whether the native shell may run commands in the background: the shell runs in the host. */
+  readonly shellBackgroundEnabled: boolean;
   readonly agentResolveTimeoutMs: number;
   readonly workspaceLockTimeoutMs: number;
   /** The runner's local proxy, `http://127.0.0.1:<port>`. */

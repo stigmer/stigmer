@@ -19,6 +19,11 @@
  *    the command is stopped, its ended status says the turn stopped it, the
  *    agent's thread is told so, and the run completes with the
  *    platform-stop row, long before the command's own end.
+ *  - With the operator's setting off (`STIGMER_SHELL_BACKGROUND_ENABLED`),
+ *    carried from the runner to the agent host, the model sees `execute`
+ *    without `background` and no stop tool, and a call that asks for the
+ *    background anyway runs in the foreground: today's engine, as before
+ *    background commands existed.
  *  - An approval pause stops the command, and the stop is awaited before
  *    the adapter returns: a command that writes a file when it is stopped
  *    has written it by the time the activity returns, which is when the
@@ -124,6 +129,35 @@ describe("ExecuteDeepAgent hermetic — background commands", () => {
       ai.filter((text) => text.includes("<background-command")),
       "the turn's reminder and notices are the agent's input, never its words",
     ).toEqual([]);
+  });
+
+  it("with the operator's setting off, shows the model execute without background and no stop tool, and runs a call that asks for it in the foreground", async () => {
+    const CALL = "call-hermetic-bg-off-0001";
+    const record = deepAgentExecutionRecord({ message: "Run the slow check.", autoApproveAll: true });
+    const scenario = beginDeepAgentScenario({
+      env,
+      clock,
+      record,
+      config: { shellBackgroundEnabled: false },
+      script: () => (transcript: readonly BaseMessage[]): ScriptedTurn => {
+        if (isToolMessage(transcript.at(-1))) return { text: "The check printed done." };
+        return { toolCalls: [{ id: CALL, name: "execute", args: { command: "echo done", background: true } }] };
+      },
+    });
+
+    const invocation = await runDeepAgentTurn(scenario);
+
+    expect(phaseOf(invocation.outcome)).toBe("RUN_COMPLETED");
+    const named = (name: string) => scenario.model.boundTools.filter((tool) => (tool as { name?: unknown }).name === name) as Array<{ schema?: { properties?: Record<string, unknown> } }>;
+    expect(named("execute")).toHaveLength(1);
+    expect(Object.keys(named("execute")[0]!.schema?.properties ?? {})).toContain("timeout");
+    expect(Object.keys(named("execute")[0]!.schema?.properties ?? {}), "the field is declared only while background commands are on").not.toContain("background");
+    expect(named("stop_background_command"), "no stop tool is bound").toEqual([]);
+    const rows = record.rowsOf(record.lastFullStatus!);
+    const call = rows.messages.flatMap((m) => m.toolCalls).find((row) => row.id === CALL);
+    expect(call?.result).toContain("done");
+    expect(call?.result).not.toContain("Started in the background");
+    expect(statusesOf(record.sessionEvents, CALL), "nothing ran in the background").toEqual([]);
   });
 
   it("stops the command a person stopped, read from the log while the turn waits, and the agent answers", async () => {

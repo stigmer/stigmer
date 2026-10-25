@@ -21,7 +21,8 @@
 //   of its own. The Cursor harness mounts but never reads a subagent's
 //   skills (stigmer#1288), so giving it some would measure that defect
 //   instead of the harness;
-// - a seeded non-git workspace, a small Go module.
+// - a seeded non-git workspace, a small Go module; the benchmark's
+//   background cells lay a slow test suite and a server over it.
 //
 // Its instructions are the seeded default agent's own words
 // (seedpack/dist/agents/assistant.yaml), plus one sentence naming the
@@ -64,6 +65,13 @@ export const WORKING_AGENT_FIXTURE_DIR = resolve(import.meta.dirname, "..", ".."
 
 /** The repository the agent works in, kept once in the suite as the scaffolds' shared fixture. */
 export const WORKING_AGENT_WORKSPACE_FIXTURE_DIR = join(WORKING_AGENT_FIXTURE_DIR, "evals", "_fixture", "workspace");
+
+/**
+ * What the benchmark's background cells lay over the seeded workspace: a slow
+ * integration suite and an HTTP server (its README). Beside the plugin's
+ * directory, never in it, so the quality eval's plugin stays as it is.
+ */
+export const WORKING_AGENT_BACKGROUND_OVERLAY_DIR = resolve(WORKING_AGENT_FIXTURE_DIR, "..", "working-agent-background", "workspace");
 
 export const WORKING_AGENT_NAME = "orders-assistant";
 /** The plugin the agent uses, and its one MCP server's name inside it. */
@@ -114,6 +122,8 @@ export interface WorkingAgentOptions {
   mcpUrl: string;
   /** The absolute directory the workspace is seeded into: outside the repository, basename {@link WORKING_AGENT_WORKSPACE_NAME}. */
   workspaceDir: string;
+  /** A directory copied over the seeded workspace (a cell's own files, {@link WORKING_AGENT_BACKGROUND_OVERLAY_DIR}). */
+  overlayDir?: string;
 }
 
 /**
@@ -127,7 +137,7 @@ export async function provisionWorkingAgent(
   fixtures: FixtureTracker,
   opts: WorkingAgentOptions,
 ): Promise<WorkingAgent> {
-  await seedWorkingWorkspace(opts.workspaceDir);
+  await seedWorkingWorkspace(opts.workspaceDir, opts.overlayDir);
   const { org } = await provisionOrgWithFacts(clients, fixtures, WORKING_AGENT_FACTS);
 
   const plugin = await pushPlugin(
@@ -185,16 +195,17 @@ export function workingAgentSessionSpec(
 }
 
 /**
- * Replaces `dir` with a fresh copy of the fixture workspace. Refuses a
- * directory whose basename is not the workspace's own name, so a wrong
- * argument can never empty an unrelated tree.
+ * Replaces `dir` with a fresh copy of the fixture workspace, with `overlayDir`
+ * copied over it when given. Refuses a directory whose basename is not the
+ * workspace's own name, so a wrong argument can never empty an unrelated tree.
  */
-export async function seedWorkingWorkspace(dir: string): Promise<void> {
+export async function seedWorkingWorkspace(dir: string, overlayDir?: string): Promise<void> {
   if (basename(dir) !== WORKING_AGENT_WORKSPACE_NAME) {
     throw new Error(`refusing to seed ${dir}: a working-agent workspace directory is named ${WORKING_AGENT_WORKSPACE_NAME}`);
   }
   await rm(dir, { recursive: true, force: true });
   await cp(WORKING_AGENT_WORKSPACE_FIXTURE_DIR, dir, { recursive: true });
+  if (overlayDir !== undefined) await cp(overlayDir, dir, { recursive: true });
 }
 
 /** The fixture's skill directory names, sorted, so the push order is fixed. */

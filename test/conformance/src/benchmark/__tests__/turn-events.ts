@@ -60,6 +60,31 @@ export function result(call: string, output: string, opts: { isError?: boolean; 
   );
 }
 
+/** A background command's status beside the call that started it, as the runner writes it: running, then ended. */
+export function backgroundStatus(
+  call: string,
+  status:
+    | { phase: "running"; timeoutSeconds?: number }
+    | { phase: "ended"; ending: "exited" | "timed_out" | "stopped" | "failed_to_start"; exitCode?: number; stoppedBy?: string; stoppedByCall?: string; output?: string },
+): SessionEvent {
+  const useId = `${RUN}.${call}`;
+  const value =
+    status.phase === "running"
+      ? { id: `${useId}.bg.running`, toolUseId: useId, phase: "running", timeoutSeconds: status.timeoutSeconds ?? 3300 }
+      : {
+          id: `${useId}.bg.ended`,
+          toolUseId: useId,
+          phase: "ended",
+          ending: status.ending,
+          ...(status.exitCode !== undefined ? { exitCode: status.exitCode } : {}),
+          stoppedBy: status.stoppedBy ?? "",
+          stoppedByToolUseId: status.stoppedByCall === undefined ? "" : `${RUN}.${status.stoppedByCall}`,
+          output: status.output ?? "",
+          endedAt: "2026-10-25T00:00:01Z",
+        };
+  return ev({ case: "stigmerBackgroundCommandStatus", value });
+}
+
 /** A person's deny of a waiting call. */
 export function denied(call: string): SessionEvent {
   return ev({ case: "userToolConfirmation", value: { id: `${RUN}.${call}.deny`, toolUseId: `${RUN}.${call}`, result: "deny" } });

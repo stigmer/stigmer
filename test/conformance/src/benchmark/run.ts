@@ -21,6 +21,18 @@
 // it ends. Each cell's first attempt is a discarded warm-up. The run's first
 // call per harness, served model and agent shape is the cold call.
 //
+// The runner's background commands are the run's arm (`shellBackground`): on
+// by default, off through the operator's setting the runner reads,
+// STIGMER_SHELL_BACKGROUND_ENABLED, passed in its environment, so the off arm
+// is the engine as an operator who turned it off runs it. The background
+// cells' workspace gains the overlay's slow suite and server; before each of
+// their attempts Go's test cache is cleared (a passing suite is otherwise
+// answered from it at once, the workspace being re-seeded byte-identical),
+// and an attempt whose server port is already taken is refused by name, so
+// a leftover server can never answer for it. After every working-agent
+// attempt the processes it left behind are counted and stopped
+// (`orphans.ts`), and a cell's checks of the work are read into `task_done`.
+//
 // The quality arm is one eval run about a plugin (quality-eval.ts): the
 // working agent as a plugin, pushed into a fresh organization, its `evals/`
 // suite run by the platform with each planned harness's parity model as a
@@ -29,9 +41,11 @@
 //
 // Nothing aborts the run but the stack itself. A provisioning or create error
 // fails its attempt with `failure.stage: "create"`, and the run goes on.
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { promisify } from "node:util";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import type { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
@@ -50,20 +64,26 @@ import { uniqueName } from "../support/naming";
 import { createUniqueOrganization } from "../support/organizations";
 import {
   provisionWorkingAgent,
+  WORKING_AGENT_BACKGROUND_OVERLAY_DIR,
   WORKING_AGENT_FIXTURE_DIR,
   WORKING_AGENT_MCP_TOOLS,
   WORKING_AGENT_WORKSPACE_NAME,
   workingAgentSessionSpec,
 } from "../support/working-agent";
 import {
+  BACKGROUND_SERVER_PORT,
   BENCHMARK_SESSION_SUBJECT,
   JUDGE_MODEL,
   PARITY_MODEL,
+  doneChecksHold,
   explicitProvider,
   nativeApi,
   type BenchmarkCell,
   type CellPlan,
+  type Scenario,
 } from "./cells";
+import { listenersOn, sweepLeftovers } from "./orphans";
+import { summarizeBackground } from "./background-readings";
 import { renderQuality, runQualityEval } from "./quality-eval";
 import {
   BENCHMARK_REPORT_SCHEMA_VERSION,
@@ -77,6 +97,7 @@ import {
   type BenchmarkStat,
   type QualityEval,
   type RefusedCell,
+  type ShellBackground,
   type SiblingTurn,
 } from "./report";
 import { EXECUTION_BUDGET_MS, failedAtCreate, measureSession, type MeasuredTurn, type SessionPlan, type SessionStack } from "./session";
@@ -87,6 +108,8 @@ import { EXECUTION_BUDGET_MS, failedAtCreate, measureSession, type MeasuredTurn,
  * outside this repository, so its go.work cannot capture the agent's `go`.
  */
 export const WORKING_WORKSPACE_DIR = join(tmpdir(), "stigmer-benchmark", WORKING_AGENT_WORKSPACE_NAME);
+
+const execFileAsync = promisify(execFile);
 
 export interface BenchmarkStack extends SessionStack {
   serverBaseUrl: string;
@@ -100,11 +123,18 @@ export interface BenchmarkStack extends SessionStack {
    * Its output goes to `runner-<n>.log` beside the first runner's.
    */
   restartRunner(signal: "SIGKILL" | "SIGTERM"): Promise<void>;
+  /** The serving runner's process id (a restart changes it). */
+  runnerPid(): number;
   stop(): Promise<void>;
 }
 
+export interface BenchmarkStackOptions {
+  /** Whether the runner lets the native agent start commands in the background; on unless off. */
+  shellBackground?: ShellBackground;
+}
+
 /** The MCP fixture, Temporal, then the server on it, then the runner in direct mode; `stop()` reverses. */
-export async function bootBenchmarkStack(runDir: string): Promise<BenchmarkStack> {
+export async function bootBenchmarkStack(runDir: string, options: BenchmarkStackOptions = {}): Promise<BenchmarkStack> {
   await mkdir(runDir, { recursive: true });
   // The library entry: every working-agent cell provisions an organization
   // of its own (support/working-agent.ts).
@@ -151,6 +181,7 @@ export async function bootBenchmarkStack(runDir: string): Promise<BenchmarkStack
       artifactDir: server.artifactBaseDir,
       logFile: join(runDir, "runner.log"),
       dirs: runnerDirs,
+      env: { STIGMER_SHELL_BACKGROUND_ENABLED: options.shellBackground === "off" ? "false" : "true" },
     };
     runner = await spawnRunner(runnerOptions);
     return {
@@ -160,6 +191,10 @@ export async function bootBenchmarkStack(runDir: string): Promise<BenchmarkStack
       runnerLogFile: runner.logFile,
       mcpFixture,
       restartRunner,
+      runnerPid: () => {
+        if (runner === undefined) throw new Error("bootBenchmarkStack: no runner is serving");
+        return runner.pid;
+      },
       stop,
     };
   } catch (error) {
@@ -185,6 +220,8 @@ export interface RunOptions {
   thinking?: "enabled";
   /** Where the runner serves the native model (cells.ts `nativeEndpoint`, read from the runner's environment). */
   nativeEndpoint: string;
+  /** The arm the stack was booted on (`BenchmarkStackOptions.shellBackground`). */
+  shellBackground: ShellBackground;
 }
 
 /**
@@ -272,6 +309,7 @@ export async function runBenchmark(stack: BenchmarkStack, plan: CellPlan, option
       titling_suppressed: options.titlingSuppressed,
       file_review: "approved-at-review-ready",
       ...(options.thinking !== undefined ? { thinking_mode: options.thinking } : {}),
+      shell_background: options.shellBackground,
     },
     models: {
       parity_native: plan.nativeModel,
@@ -314,13 +352,14 @@ interface ProvisionedAgent {
 async function provisionAgent(
   stack: BenchmarkStack,
   fixtures: FixtureTracker,
-  cell: { agent: AgentShape; harness: BenchmarkHarness },
+  cell: { agent: AgentShape; harness: BenchmarkHarness; overlay?: Scenario["overlay"] },
 ): Promise<ProvisionedAgent> {
   const harness = sessionHarness(cell.harness);
   if (cell.agent === "working") {
     const agent = await provisionWorkingAgent(stack.clients, fixtures, {
       mcpUrl: stack.mcpFixture.url(WORKING_AGENT_MCP_TOOLS),
       workspaceDir: WORKING_WORKSPACE_DIR,
+      ...(cell.overlay === "background" ? { overlayDir: WORKING_AGENT_BACKGROUND_OVERLAY_DIR } : {}),
     });
     return { org: agent.org, agentRef: agent.agentRef, sessionSpec: workingAgentSessionSpec(agent, harness, BENCHMARK_SESSION_SUBJECT) };
   }
@@ -346,10 +385,22 @@ async function measureCell(
 ): Promise<BenchmarkSample> {
   const fixtures = new FixtureTracker();
   const label = `${cell.id}#${attempt}`;
+  const { scenario } = cell;
   try {
+    if (scenario.overlay === "background") {
+      const refusal = await prepareBackgroundAttempt();
+      if (refusal !== undefined) {
+        io.log(`${label}: ${refusal}`);
+        return failedAtCreate(cell.modelRequested, refusal);
+      }
+    }
     let agent: ProvisionedAgent;
     try {
-      agent = await provisionAgent(stack, fixtures, { agent: cell.scenario.agent, harness: cell.harness });
+      agent = await provisionAgent(stack, fixtures, {
+        agent: scenario.agent,
+        harness: cell.harness,
+        ...(scenario.overlay !== undefined ? { overlay: scenario.overlay } : {}),
+      });
     } catch (error) {
       io.log(`${label}: provisioning failed: ${errorMessage(error)}`);
       return failedAtCreate(cell.modelRequested, `provision the agent: ${errorMessage(error)}`);
@@ -365,7 +416,9 @@ async function measureCell(
       label,
     };
     const turns = await measureSession(stack, plan, io);
-    if (cell.scenario.sessionShape === "fresh-per-execution") return turns[0]!.sample;
+    const sampled = cell.scenario.sessionShape === "fresh-per-execution" ? turns[0]! : turns[1]!;
+    if (scenario.agent === "working") await readAfterAttempt(stack, scenario, sampled, label, io);
+    if (cell.scenario.sessionShape === "fresh-per-execution") return sampled.sample;
     // One session, three turns: the second turn is the sample, the others
     // ride on it as siblings.
     const sibling = (turnSeq: number, turn: MeasuredTurn): SiblingTurn => ({
@@ -384,8 +437,77 @@ async function measureCell(
   }
 }
 
+/**
+ * Before a background cell's attempt: Go's test cache cleared, and the
+ * server's port free. Returns why the attempt is refused, if it is.
+ */
+/* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
+async function prepareBackgroundAttempt(): Promise<string | undefined> {
+  try {
+    await execFileAsync("go", ["clean", "-testcache"]);
+  } catch (error) {
+    return `clear Go's test cache: ${errorMessage(error)}`;
+  }
+  const holders = await listenersOn(BACKGROUND_SERVER_PORT);
+  if (holders.length > 0) {
+    return `port ${BACKGROUND_SERVER_PORT} is already taken (pid ${holders.join(", ")}): its server would answer for this attempt's`;
+  }
+  return undefined;
+}
+
+/**
+ * After a working-agent attempt, before its workspace is re-seeded: what it
+ * left running, counted and stopped, and the cell's checks of the work, both
+ * onto the sampled turn.
+ */
+/* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
+async function readAfterAttempt(stack: BenchmarkStack, scenario: Scenario, sampled: MeasuredTurn, label: string, io: RunIo): Promise<void> {
+  const { sample } = sampled;
+  try {
+    const orphans = await sweepLeftovers({ workspaceDir: WORKING_WORKSPACE_DIR, port: BACKGROUND_SERVER_PORT, runnerPid: stack.runnerPid() });
+    if (orphans > 0) io.log(`${label}: stopped ${orphans} process group(s) the attempt left running`);
+    if (sample.background !== null) sample.background.orphans = orphans;
+  } catch (error) {
+    io.log(`${label}: could not look for processes left running: ${errorMessage(error)}`);
+  }
+  const checks = scenario.doneChecks;
+  if (checks === undefined || sample.execution_id === "") return;
+  const files = new Map<string, string | undefined>();
+  for (const check of checks) {
+    if (check.target.source !== "file") continue;
+    files.set(check.target.path, await readFile(join(WORKING_WORKSPACE_DIR, check.target.path), "utf8").catch(() => undefined));
+  }
+  sample.task_done = doneChecksHold(checks, { reply: sampled.reply, commandOutputs: sampled.commandOutputs, files });
+}
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/** The summary's background table (`summarizeBackground`), headed by the run's arm. */
+function renderBackgroundTable(report: BenchmarkReport): string[] {
+  const rows: string[] = [];
+  const value = (n: number | null): string => (n === null ? "n/a" : String(Math.round(n)));
+  for (const comparison of report.comparisons) {
+    for (const side of [comparison.native, comparison.cursor]) {
+      if (side === undefined) continue;
+      const summary = summarizeBackground(side.samples);
+      if (summary === null) continue;
+      const done = summary.task_done === null ? "n/a" : `${summary.task_done.done}/${summary.task_done.of}`;
+      rows.push(
+        `| ${comparison.scenario} | ${side.harness} | ${summary.used}/${summary.ran} | ${summary.starts} | ${value(summary.polls_median)} (max ${value(summary.polls_max)}) | ${value(summary.worked_while_running_ms)} | ${summary.waits} | ${summary.reminders} | ${summary.self_backgrounded} | ${summary.foreground_timeouts} | ${summary.gated_while_running} | ${summary.orphans} | ${done} |`,
+      );
+    }
+  }
+  if (rows.length === 0) return [];
+  return [
+    "",
+    `Background commands (${report.methodology.shell_background}), over the samples that ran:`,
+    "",
+    "| scenario | harness | used | starts | polls median | worked while running ms | waits | reminders | own & | fg timeouts | would pause | left running | task done |",
+    "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+    ...rows,
+  ];
 }
 
 /** Writes the report as `<timestamp>-<sha>.json` under `dir` and returns the path. */
@@ -402,7 +524,8 @@ export async function writeReport(dir: string, report: BenchmarkReport): Promise
  * One row per cell: the medians a reader wants at a glance, the quality
  * medians, and the refusals. Markdown, for stdout. A native cost the runner
  * took at its default rate is marked, with a line naming why, so it is never
- * read as a price.
+ * read as a price. Then what the agent did with background commands, cell by
+ * cell, over the samples that ran.
  */
 export function renderSummary(report: BenchmarkReport): string {
   const lines: string[] = [];
@@ -435,6 +558,7 @@ export function renderSummary(report: BenchmarkReport): string {
       `* ${report.models.parity_native} has no priced catalog row: its cost is the runner's default rate, not a price; price it from the samples' tokens at the provider's rate.`,
     );
   }
+  lines.push(...renderBackgroundTable(report));
   lines.push(...renderQuality(report.quality));
   if (report.refused.length > 0) {
     lines.push("");

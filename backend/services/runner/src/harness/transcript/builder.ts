@@ -402,6 +402,9 @@ export class TranscriptBuilder {
         case "background_wait_finished":
           // A liveness fact for the runtime's fold, never a row (`events.ts`).
           break;
+        case "background_reminded":
+          // A fact for the turn's timeline, never a row (`events.ts`).
+          break;
         default: {
           const exhaustive: never = event;
           throw new Error(`unknown transcript event ${String((exhaustive as { kind: string }).kind)}`);

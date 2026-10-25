@@ -22,6 +22,7 @@ const OPTIONS: RunOptions = {
   git: { head_sha: "abc1234", main_sha: "abc1234" },
   titlingSuppressed: true,
   nativeEndpoint: "generativelanguage.googleapis.com",
+  shellBackground: "on",
 };
 
 function refusingStack(): BenchmarkStack {
@@ -88,7 +89,7 @@ describe("runBenchmark's native arm", () => {
 describe("renderSummary's native arm", () => {
   function report(basis: "catalog" | "default-rate"): BenchmarkReport {
     return {
-      schema_version: 8,
+      schema_version: 9,
       timestamp: "2026-10-23T00:00:00Z",
       git: { head_sha: "abc", main_sha: "abc" },
       host: { platform: "darwin/arm64", node: "v22.22.1" },
@@ -99,6 +100,7 @@ describe("renderSummary's native arm", () => {
         cold: "first-call-of-run-per-harness-model-and-agent",
         titling_suppressed: true,
         file_review: "approved-at-review-ready",
+        shell_background: "on",
       },
       models: {
         parity_native: "openai:gpt-5.5",

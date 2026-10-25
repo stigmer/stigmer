@@ -872,6 +872,12 @@ export interface TargetProfile {
   // spawn the runner. Valid only after setup().
   runnerLogFile?(): string;
 
+  // The target's runner process id: the root the benchmark's sweep walks the
+  // process table from, to tell the runner's own children from the processes
+  // a turn left running (benchmark/orphans.ts). Present only on targets that
+  // spawn the runner on this machine. Valid only after setup().
+  runnerPid?(): number;
+
   // The addresses a SECOND runner would need to join this target's engine: the
   // Temporal frontend and the server's base URL. Present only on targets that
   // boot their own Temporal (the local execution targets); the cloud runner
