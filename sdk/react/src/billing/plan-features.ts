@@ -156,6 +156,18 @@ export function formatAgentHoursTerms(
 }
 
 /**
+ * How many agents a plan runs at once, e.g. "25 agents at once"; empty when
+ * the plan states no number, so a plan promises only what its row says.
+ */
+export function formatAgentsAtOnce(entitlements: Entitlements | undefined): string {
+  const limit = entitlements?.limits?.maxActiveSessionSandboxes;
+  if (limit === undefined) {
+    return "";
+  }
+  return `${limit} agent${limit === 1 ? "" : "s"} at once`;
+}
+
+/**
  * Working agent time as hours to one decimal, e.g. "31.4 h": the tenth of
  * an hour the invoice bills by, rounded half up.
  */

@@ -15,17 +15,23 @@
 //      is published;
 //   3. the suite, as Stripe, posts a signed `payment_method.attached` for
 //      that customer, which saves the card on the account;
-//   4. the owner changes the plan to the catalog's `team` row, read by slug.
+//   4. the owner changes the plan to the plan a customer buys for teams:
+//      the active subscription plan whose entitlements include teams, at the
+//      lowest monthly fee. It is chosen by what it includes, not by slug,
+//      because a catalog replaces a plan under a new slug when its terms
+//      change (plans are immutable) and retires the old one.
 //
 // The plan's prices and the subscription's periods are the billing suites'
 // to pin, not this move's; a step that does not answer as above throws with
 // what it saw, since a team arm on Free would only repeat the plan refusal.
+import type { Plan } from "@stigmer/apis/ai/stigmer/billing/plan/v1/api_pb";
+import { PlanInstrument } from "@stigmer/apis/ai/stigmer/billing/plan/v1/spec_pb";
+import { PlanLifecycle } from "@stigmer/apis/ai/stigmer/billing/plan/v1/status_pb";
+import { Feature } from "@stigmer/apis/ai/stigmer/platform/v1/entitlement_pb";
+
 import type { ConformanceClients } from "./clients";
 import { paymentMethodAttached, postStripeWebhook, signedEvent } from "./fake-stripe";
 import type { StripeWebhookLane } from "../targets/target";
-
-// The catalog slug of the plan whose entitlements include teams.
-export const TEAM_PLAN_SLUG = "team";
 
 // Where the setup session would send the browser; nothing follows them.
 const SETUP_RETURN_URLS = {
@@ -58,10 +64,22 @@ export async function moveToTeamPlan(
     );
   }
   const { entries } = await owner.planQuery.list({});
-  const team = entries.find((plan) => plan.metadata?.slug === TEAM_PLAN_SLUG);
-  const planId = team?.metadata?.id ?? "";
+  const planId = teamPlan(entries)?.metadata?.id ?? "";
   if (planId === "") {
-    throw new Error(`moveToTeamPlan(${org}): the catalog lists no '${TEAM_PLAN_SLUG}' plan`);
+    throw new Error(`moveToTeamPlan(${org}): the catalog lists no active subscription plan that includes teams`);
   }
   await owner.subscriptionCommand.changePlan({ org, planId });
+}
+
+/** The cheapest active subscription plan whose entitlements include teams, or undefined. */
+export function teamPlan(entries: readonly Plan[]): Plan | undefined {
+  const fee = (plan: Plan): bigint => plan.spec?.terms?.monthlyMinimumMicros ?? BigInt(0);
+  return entries
+    .filter(
+      (plan) =>
+        plan.status?.lifecycle === PlanLifecycle.active &&
+        plan.spec?.instrument === PlanInstrument.subscription &&
+        (plan.spec?.entitlements?.features ?? []).includes(Feature.teams),
+    )
+    .reduce<Plan | undefined>((cheapest, plan) => (cheapest === undefined || fee(plan) < fee(cheapest) ? plan : cheapest), undefined);
 }

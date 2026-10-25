@@ -16,6 +16,7 @@ import {
   featuresLost,
   formatAgentHours,
   formatAgentHoursTerms,
+  formatAgentsAtOnce,
   formatChildOrgs,
   formatMonthlyFee,
   formatPeriodDay,
@@ -75,6 +76,16 @@ describe("formatAgentHoursTerms", () => {
     expect(formatAgentHoursTerms(hours(1), undefined)).toBe("1 agent hour a month, then new work pauses");
     expect(formatAgentHoursTerms(BUSINESS, create(PlanTermsSchema, { perAgentHourMicros: USD }))).toBe("");
     expect(formatAgentHoursTerms(undefined, undefined)).toBe("");
+  });
+});
+
+describe("formatAgentsAtOnce", () => {
+  it("says how many agents a plan runs at once, and nothing when it states no number", () => {
+    const atOnce = (maxActiveSessionSandboxes: number) => create(EntitlementsSchema, { limits: { maxActiveSessionSandboxes } });
+    expect(formatAgentsAtOnce(atOnce(25))).toBe("25 agents at once");
+    expect(formatAgentsAtOnce(atOnce(1))).toBe("1 agent at once");
+    expect(formatAgentsAtOnce(BUSINESS)).toBe("");
+    expect(formatAgentsAtOnce(undefined)).toBe("");
   });
 });
 
