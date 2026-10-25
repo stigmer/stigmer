@@ -132,6 +132,21 @@ describe("file edits", () => {
     expect(await decide(gate, "Write", { file_path: `${WORKSPACE}/../other/a.ts` }, "toolu_up")).toMatchObject({ allow: false, message: NEEDS_APPROVAL_MESSAGE });
   });
 
+  it("resolve against the workspace: a relative path that climbs out, or an absolute one outside, takes no flow", async () => {
+    const asked: string[] = [];
+    const capture = facts({
+      posture: { fileCaptureMode: true, fileCaptureSubstrate: true, captureIgnored: false, isCapturablePath: async (path) => (asked.push(path), true) },
+    });
+    const gate = new ClaudeGate(capture);
+    expect(await decide(gate, "Write", { file_path: "src/../../outside.txt", content: "x" }, "toolu_climb")).toMatchObject({ allow: false, message: NEEDS_APPROVAL_MESSAGE });
+    expect(await decide(gate, "Write", { file_path: "/.stigmer/outputs/x.md", content: "x" }, "toolu_root_outputs")).toMatchObject({ allow: false, message: NEEDS_APPROVAL_MESSAGE });
+    const reviewOff = new ClaudeGate(facts({ posture: { fileReviewOff: true, isCapturablePath: async () => false } }));
+    expect(await decide(reviewOff, "Edit", { file_path: "/etc/hosts" }, "toolu_off_outside")).toMatchObject({ allow: false, message: NEEDS_APPROVAL_MESSAGE });
+    expect(await decide(gate, "Write", { file_path: "src/a.ts", content: "x" }, "toolu_relative")).toEqual({ allow: true, source: "file_capture" });
+    expect(await decide(gate, "Write", { file_path: `${WORKSPACE}/..notes`, content: "x" }, "toolu_dots_name")).toEqual({ allow: true, source: "file_capture" });
+    expect(asked, "only the paths inside the workspace were asked about, in its dialect").toEqual(["/src/a.ts", "/..notes"]);
+  });
+
   it("a secret-like path is blocked even when a write lease would clear the category", async () => {
     const gate = new ClaudeGate(facts({ leases: leases({ categories: ["write"] }), posture: { fileReviewOff: true, isCapturablePath: async () => false } }));
     expect(await decide(gate, "Write", { file_path: `${WORKSPACE}/.env`, content: "KEY=1" })).toEqual({ allow: false, message: secretBlockMessage("Write", "/.env"), source: undefined });

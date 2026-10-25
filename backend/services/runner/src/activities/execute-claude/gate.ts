@@ -38,10 +38,13 @@
  *
  * The engine's shell reaches the gate under its aliased name
  * (`mcp__stigmer__bash`, `host-shell.ts`), and the model may name that tool
- * itself: both are the shell to the gate. A path is judged in the
- * workspace's own dialect (`/` its root), so the outputs folder and the
- * capture substrate read it as they read the native engine's; a path
- * outside the workspace is never capturable.
+ * itself: both are the shell to the gate. A path is resolved against the
+ * workspace's primary directory, relative or absolute, `..` included, and
+ * judged in the workspace's own dialect (`/` its root), so the outputs
+ * folder and the capture substrate read it as they read the native
+ * engine's. A path that resolves outside the workspace takes none of the
+ * file-edit flows (capture, review off, the outputs folder are all about
+ * the workspace's own files): the default decides it.
  *
  * Every refusal and every flow is recorded by call id, so the translator
  * stamps the row's provenance (`translator.ts`) and the settle folds the
@@ -49,7 +52,7 @@
  * changed input runs as changed.
  */
 
-import { isAbsolute, relative } from "node:path";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 import type { CanUseTool, HookCallback, HookCallbackMatcher, HookEvent } from "@anthropic-ai/claude-agent-sdk";
 
 import {
@@ -174,11 +177,11 @@ export class ClaudeGate {
     const serverSlug = server?.slug ?? "";
     const policyName = server?.tool ?? name;
     const category = serverSlug ? undefined : toolApprovalCategory(name);
-    const { args, posture } = this.inWorkspaceDialect(input);
+    const { args, posture, inside } = this.inWorkspaceDialect(input);
 
     const secret = await blockedSecretPath(posture, args, serverSlug, category);
     if (secret !== undefined) return { allow: false, message: secretBlockMessage(name, secret), source: undefined };
-    const flow = await fileEditFlow(posture, args, serverSlug, category);
+    const flow = inside ? await fileEditFlow(posture, args, serverSlug, category) : undefined;
     if (flow !== undefined) return { allow: true, source: flow };
 
     const requirement = resolveToolApproval(policyName, serverSlug, args, facts.mcpDefault, facts.leases.categories);
@@ -192,18 +195,19 @@ export class ClaudeGate {
 
   /**
    * A call's arguments with its file path in the workspace's dialect (`/`
-   * its root), and the posture to judge them with: a path outside the
-   * workspace keeps its own spelling and is never capturable.
+   * its root), the posture to judge them with, and whether the path is
+   * inside the workspace at all: one outside keeps its own spelling and is
+   * never capturable (the header).
    */
-  private inWorkspaceDialect(input: Record<string, unknown>): { args: Record<string, unknown>; posture: FileEditPosture } {
+  private inWorkspaceDialect(input: Record<string, unknown>): { args: Record<string, unknown>; posture: FileEditPosture; inside: boolean } {
     const path = extractFilePath(input);
-    if (path === null) return { args: input, posture: this.facts.posture };
-    const rel = isAbsolute(path) ? relative(this.facts.primaryDir, path) : path;
-    if (rel.startsWith("..") || isAbsolute(rel)) {
-      return { args: input, posture: { ...this.facts.posture, isCapturablePath: async () => false } };
+    if (path === null) return { args: input, posture: this.facts.posture, inside: true };
+    const rel = relative(this.facts.primaryDir, resolve(this.facts.primaryDir, path));
+    if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+      return { args: input, posture: { ...this.facts.posture, isCapturablePath: async () => false }, inside: false };
     }
     // `path` is the first field `extractFilePath` reads, whatever field the call named it in.
-    return { args: { ...input, path: `/${rel}` }, posture: this.facts.posture };
+    return { args: { ...input, path: `/${rel}` }, posture: this.facts.posture, inside: true };
   }
 }
 

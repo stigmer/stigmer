@@ -109,6 +109,7 @@ export function hermeticClaudeConfig(env: HermeticEnvironment, overrides: Partia
     openOperationMaxMs: 3_600_000,
     livenessIntervalMs: 30_000,
     shellTimeoutMaxSeconds: 3_300,
+    shellBackgroundEnabled: true,
     agentResolveTimeoutMs: 120_000,
     workspaceLockTimeoutMs: 900_000,
     drainGraceMs: 0,
