@@ -127,6 +127,11 @@ export interface StubRegistryFetchOptions {
    * id it does not know and a cost cap would count invented prices.
    */
   readonly document?: object;
+  /**
+   * Origins of servers the test itself runs (an MCP server on 127.0.0.1),
+   * reached through the pre-stub `fetch`; every other URL is still refused.
+   */
+  readonly localOrigins?: readonly string[];
 }
 
 /**
@@ -183,7 +188,7 @@ export function stubRegistryFetch(options: StubRegistryFetchOptions = {}): { rea
         hermeticUploads.set(path, await bodyBytes(init?.body));
         return new Response(null, { status: 200 });
       }
-      if (options.live) {
+      if (options.live || options.localOrigins?.includes(originOf(url))) {
         return networkFetch(input, init);
       }
       throw new Error(`hermetic run attempted a non-registry network call: ${url}`);

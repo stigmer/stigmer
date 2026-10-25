@@ -183,7 +183,16 @@ export interface ClaudeScenarioFile {
   resume(record: ExecutionRecord, script: WireScript, options?: ClaudeTurnOptions): Promise<ActivityInvocation>;
 }
 
-export function claudeScenarioFile(env: HermeticEnvironment, clock: ScriptedClock, overrides: Partial<Config> = {}): ClaudeScenarioFile {
+/**
+ * @param localOrigins the origins of servers the scenario runs itself (its
+ *   MCP servers), which the registry stub lets through.
+ */
+export function claudeScenarioFile(
+  env: HermeticEnvironment,
+  clock: ScriptedClock,
+  overrides: Partial<Config> = {},
+  localOrigins: readonly string[] = [],
+): ClaudeScenarioFile {
   const config = hermeticClaudeConfig(env, overrides);
   let wire: ClaudeWire | undefined;
   let registry: ReturnType<typeof stubRegistryFetch> | undefined;
@@ -203,7 +212,7 @@ export function claudeScenarioFile(env: HermeticEnvironment, clock: ScriptedCloc
     wire: () => wire!,
     registryUrls: () => registry?.urls ?? [],
     async start() {
-      registry = stubRegistryFetch();
+      registry = stubRegistryFetch({ localOrigins });
       wire = await startClaudeWire(config, () => anthropicText(""));
       clock.install();
     },
