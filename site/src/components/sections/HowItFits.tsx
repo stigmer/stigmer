@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
 import { Icon } from "@/components/ui/icon";
 import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/ui/motion";
+import { WhereItSits } from "@/components/visuals/WhereItSits";
 
 export type HowItFitsProps = React.HTMLAttributes<HTMLElement>;
 
@@ -56,6 +57,10 @@ function HowItFits({ className, ...props }: HowItFitsProps) {
               {SITE_CONFIG.whereItRuns}
             </h2>
           </div>
+        </FadeInUp>
+
+        <FadeInUp className="mb-16">
+          <WhereItSits />
         </FadeInUp>
 
         <StaggerContainer
