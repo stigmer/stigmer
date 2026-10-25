@@ -179,13 +179,14 @@ export interface ClaudeScenarioFile {
   stop(): Promise<void>;
   /** A fresh session (`resetClaudeScenarioState`), `script` answering, `record` bound, then one invocation. */
   run(record: ExecutionRecord, script: WireScript, options?: ClaudeTurnOptions): Promise<ActivityInvocation>;
-  /** The session's next invocation, its saved conversation kept. */
-  resume(record: ExecutionRecord, script: WireScript, options?: ClaudeTurnOptions): Promise<ActivityInvocation>;
+  /** The session's next invocation, its saved conversation kept; `config` overrides the file's for this invocation (another workspace root). */
+  resume(record: ExecutionRecord, script: WireScript, options?: ClaudeTurnOptions, config?: Partial<Config>): Promise<ActivityInvocation>;
 }
 
 /**
  * @param localOrigins the origins of servers the scenario runs itself (its
- *   MCP servers), which the registry stub lets through.
+ *   MCP servers), which the registry stub lets through, as it lets through
+ *   the runner's own proxy (the http transcript store calls it).
  */
 export function claudeScenarioFile(
   env: HermeticEnvironment,
@@ -196,7 +197,7 @@ export function claudeScenarioFile(
   const config = hermeticClaudeConfig(env, overrides);
   let wire: ClaudeWire | undefined;
   let registry: ReturnType<typeof stubRegistryFetch> | undefined;
-  const invoke = async (record: ExecutionRecord, script: WireScript, options: ClaudeTurnOptions): Promise<ActivityInvocation> => {
+  const invoke = async (record: ExecutionRecord, script: WireScript, options: ClaudeTurnOptions, overrides: Partial<Config> = {}): Promise<ActivityInvocation> => {
     // The clock moves one step per model call, as native's scripted model
     // moves it, so the runtime's time-paced writes (persists, file-change
     // progress) happen on the same steps every run.
@@ -205,15 +206,15 @@ export function claudeScenarioFile(
       return script(conversation);
     });
     bindHermeticClient(record.client());
-    return runClaudeInvocation(config, wire!.proxy, record, options);
+    return runClaudeInvocation({ ...config, ...overrides }, wire!.proxy, record, options);
   };
   return {
     config,
     wire: () => wire!,
     registryUrls: () => registry?.urls ?? [],
     async start() {
-      registry = stubRegistryFetch({ localOrigins });
       wire = await startClaudeWire(config, () => anthropicText(""));
+      registry = stubRegistryFetch({ localOrigins: [...localOrigins, new URL(wire.proxy.endpoint).origin] });
       clock.install();
     },
     async stop() {
@@ -228,8 +229,8 @@ export function claudeScenarioFile(
       wire!.conversations.length = 0;
       return invoke(record, script, options);
     },
-    async resume(record, script, options = {}) {
-      return invoke(record, script, options);
+    async resume(record, script, options = {}, overrides = {}) {
+      return invoke(record, script, options, overrides);
     },
   };
 }
