@@ -1,9 +1,11 @@
-// Unit arms for how the harness finds the Enterprise server it spawns: the
+// Unit arms for how the harness finds the servers it spawns: the Enterprise
 // entry is the licensed test server under ee/server/test/conformance, run
 // by the repository root's own tsx loader; the entry is handed out once the
 // server's build exists and Enterprise's own dependencies are installed, and
-// refused, naming the install, when they are not. The file system is
-// stubbed for the refusal; nothing here builds or starts a server.
+// refused, naming the install, when they are not. The library entry is this
+// checkout's by default, and another checkout's when its root is given (the
+// live benchmark's `--stack`). The file system is stubbed for the refusal
+// and the other checkout; nothing here builds or starts a server.
 // Domain: test support (stack spawns).
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -22,9 +24,14 @@ vi.mock("node:fs", async (importOriginal) => {
   };
 });
 
-const { enterpriseServerEntryPath, ensureEnterpriseServerEntry, tsServerEntryPath, tsxLoaderUrl } = await import(
-  "../ts-build.ts"
-);
+const {
+  enterpriseServerEntryPath,
+  ensureEnterpriseServerEntry,
+  ensureLibraryServerEntry,
+  libraryServerEntryPath,
+  tsServerEntryPath,
+  tsxLoaderUrl,
+} = await import("../ts-build.ts");
 
 afterEach(() => {
   missing.clear();
@@ -61,5 +68,22 @@ describe("the Enterprise server entry", () => {
       "ee/server/node_modules is missing: the enterprise target runs Stigmer Enterprise from source " +
         "on its own dependencies; install them with `npm ci` in ee/server first",
     );
+  });
+});
+
+describe("the library server entry", () => {
+  it("is this checkout's by default", async () => {
+    present.add(tsServerEntryPath());
+    const entry = await ensureLibraryServerEntry();
+    expect(entry).toBe(libraryServerEntryPath());
+    expect(entry).toMatch(/test\/support\/src\/library-server\.mjs$/);
+    expect(existsSync(entry)).toBe(true);
+  });
+
+  it("is another checkout's, beside that checkout's built server, when its root is given", async () => {
+    const root = "/elsewhere/stigmer";
+    present.add(tsServerEntryPath(root));
+    expect(tsServerEntryPath(root)).toBe("/elsewhere/stigmer/backend/services/stigmer-server/dist/main.js");
+    expect(await ensureLibraryServerEntry(root)).toBe("/elsewhere/stigmer/test/support/src/library-server.mjs");
   });
 });

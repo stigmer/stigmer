@@ -9,6 +9,10 @@
 // or CI); the file-linked workspace-lib dists must exist first — built
 // below through the canonical root script, which also keeps single-file
 // editor runs working from a fresh checkout.
+//
+// The server and library-entry functions take an optional checkout root,
+// defaulting to this one: the live benchmark boots another checkout's server
+// through it (`--stack`), so one instrument measures two versions of the code.
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -21,23 +25,23 @@ const execFileAsync = promisify(execFile);
 // Repo root is three levels up from test/support/src/.
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
-const SERVER_DIR = join(REPO_ROOT, "backend", "services", "stigmer-server");
+const serverDir = (root: string): string => join(root, "backend", "services", "stigmer-server");
 
 const ENTERPRISE_DIR = join(REPO_ROOT, "ee", "server");
 
 // The shipped entry: the open-source edition, which holds one organization.
-export function tsServerEntryPath(): string {
-  return join(SERVER_DIR, "dist", "main.js");
+export function tsServerEntryPath(root: string = REPO_ROOT): string {
+  return join(serverDir(root), "dist", "main.js");
 }
 
 // The library entry: the same process body with no extension unit, holding
 // any number of organizations (library-server.mjs says why the harness
 // needs it).
-export function libraryServerEntryPath(): string {
-  return join(REPO_ROOT, "test", "support", "src", "library-server.mjs");
+export function libraryServerEntryPath(root: string = REPO_ROOT): string {
+  return join(root, "test", "support", "src", "library-server.mjs");
 }
 
-export async function buildTsServer(): Promise<string> {
+export async function buildTsServer(root: string = REPO_ROOT): Promise<string> {
   // The server file-links the workspace libs (@stigmer/apis,
   // @stigmer/temporal-codecs, @stigmer/zip-structure), so their dists must
   // exist before the server compiles. The root
@@ -47,35 +51,35 @@ export async function buildTsServer(): Promise<string> {
   // zip-structure did when only temporal-codecs was built. Idempotent tsc;
   // always fresh so the suite tests HEAD.
   await execFileAsync("npm", ["run", "build:runner-deps"], {
-    cwd: REPO_ROOT,
+    cwd: root,
     maxBuffer: 64 * 1024 * 1024,
   });
-  if (!existsSync(join(SERVER_DIR, "node_modules"))) {
+  if (!existsSync(join(serverDir(root), "node_modules"))) {
     await execFileAsync("npm", ["ci", "--no-audit", "--no-fund"], {
-      cwd: SERVER_DIR,
+      cwd: serverDir(root),
       maxBuffer: 64 * 1024 * 1024,
     });
   }
   await execFileAsync("npm", ["run", "build"], {
-    cwd: SERVER_DIR,
+    cwd: serverDir(root),
     maxBuffer: 64 * 1024 * 1024,
   });
-  return tsServerEntryPath();
+  return tsServerEntryPath(root);
 }
 
 // Fallback for a single suite file run without global-setup (e.g. from an
 // editor). Building is idempotent; reuse an existing dist if present.
-export async function ensureTsServerEntry(): Promise<string> {
-  const entry = tsServerEntryPath();
+export async function ensureTsServerEntry(root: string = REPO_ROOT): Promise<string> {
+  const entry = tsServerEntryPath(root);
   if (existsSync(entry)) return entry;
-  return buildTsServer();
+  return buildTsServer(root);
 }
 
 // The library entry, building the server first when its dist is missing:
 // the entry imports the built process body.
-export async function ensureLibraryServerEntry(): Promise<string> {
-  await ensureTsServerEntry();
-  return libraryServerEntryPath();
+export async function ensureLibraryServerEntry(root: string = REPO_ROOT): Promise<string> {
+  await ensureTsServerEntry(root);
+  return libraryServerEntryPath(root);
 }
 
 // The conformance suite's licensed Enterprise server: TypeScript under
