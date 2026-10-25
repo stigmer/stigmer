@@ -149,6 +149,7 @@
   },
   "devDependencies": {
     "@bufbuild/protovalidate": "1.2.0",
+    "@stigmer/test-support": "file:../../../test/support",
     "@stryker-mutator/core": "10.0.0",
     "@stryker-mutator/typescript-checker": "10.0.0",
     "@stryker-mutator/vitest-runner": "10.0.0",

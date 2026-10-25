@@ -29,7 +29,9 @@
  *    execution.
  *  - A checkpoint call must carry a live turn's key and name only that
  *    turn's own thread (the `threadId` its engine checkpoints under), in
- *    its query or, for a write, in every entry of its body.
+ *    its query or, for a write, in every entry of its body. An
+ *    engine-session call (an engine's transcript store) is held to the same
+ *    rule: the thread it names, in its query or its body, is its turn's.
  *  - The model registry is exempt from the live-turn rule: it is the
  *    catalog every caller may read, and the platform's proxy serves it even
  *    to visitors.
@@ -63,7 +65,7 @@ import { TURN_KEY_HEADER } from "../shared/execution-context.js";
 import type { LiveTurnRegistry } from "../agent-host/remote-adapter.js";
 import type { AgentProxyGate } from "../agent-host/supervisor.js";
 import { CursorLane } from "./cursor-lane.js";
-import { LaneRefusal, checkpointUpstream, isModelProviderLane, modelUpstream, registryUpstream } from "./lanes.js";
+import { LaneRefusal, checkpointUpstream, engineSessionUpstream, isModelProviderLane, modelUpstream, registryUpstream } from "./lanes.js";
 import { RequestTooLargeError, bearerOf, readBody, relay, replyError } from "./relay.js";
 import { OTLP_LANE_PREFIX } from "../otel-export.js";
 import { OtlpForward, otlpSignalOf } from "./otlp-forward.js";
@@ -71,6 +73,7 @@ import { OtlpForward, otlpSignalOf } from "./otlp-forward.js";
 const LLM_PREFIX = "/v1/proxy/llm/";
 const ANTHROPIC_LANE = `${LLM_PREFIX}anthropic/`;
 const CHECKPOINT_PREFIX = "/v1/proxy/checkpoints";
+const ENGINE_SESSIONS_PREFIX = "/v1/proxy/engine-sessions";
 const REGISTRY_PATH = "/v1/proxy/model-registry";
 
 /** A turn live at the proxy. */
@@ -181,6 +184,12 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
         await relay(res, checkpointUpstream(this.config, `${path.slice(CHECKPOINT_PREFIX.length)}${url.search}`, req, body));
         return;
       }
+      if (path === ENGINE_SESSIONS_PREFIX || path.startsWith(`${ENGINE_SESSIONS_PREFIX}/`)) {
+        const body = await readBody(req);
+        this.requireLiveThreads(req, url, body, false);
+        await relay(res, engineSessionUpstream(this.config, `${path.slice(ENGINE_SESSIONS_PREFIX.length)}${url.search}`, req, body));
+        return;
+      }
       throw new LaneRefusal(404, `the agent proxy serves no lane at ${path}`);
     } catch (err) {
       const refusal =
@@ -247,7 +256,7 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     return turn;
   }
 
-  /** Every thread a checkpoint call names must be its turn's own. */
+  /** Every thread a call carrying an engine's conversation (a checkpoint, an engine session) names must be its turn's own. */
   private requireLiveThreads(req: IncomingMessage, url: URL, body: Buffer, isWriteBatch: boolean): void {
     const turn = this.liveTurnOf(req);
     const threads = new Set<string>();
@@ -258,7 +267,7 @@ export class AgentProxy implements AgentProxyGate, LiveTurnRegistry {
     // one for a task whose writes all go to untracked channels, and the
     // platform answers it as a no-op.
     if (threads.size === 0 && isWriteBatch && isEmptyWriteBatch(body)) return;
-    if (threads.size === 0) throw new LaneRefusal(403, "a checkpoint call must name its thread");
+    if (threads.size === 0) throw new LaneRefusal(403, "a call that carries an engine's conversation must name its thread");
     for (const thread of threads) {
       if (thread !== turn.threadId) throw new LaneRefusal(403, `thread ${thread} is not the turn's own`);
     }
@@ -279,7 +288,7 @@ function threadsInBody(body: Buffer): string[] {
   try {
     parsed = JSON.parse(body.toString("utf8"));
   } catch {
-    throw new LaneRefusal(400, "a checkpoint write must be JSON");
+    throw new LaneRefusal(400, "a write that carries an engine's conversation must be JSON");
   }
   const threads: string[] = [];
   const collect = (value: unknown): void => {

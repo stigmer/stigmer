@@ -28,6 +28,7 @@
  * | `llm/bedrock`, `llm/vertex`, `llm/foundry` | no | yes |
  * | `model-registry`             | yes     | yes (to the runner's own control plane) |
  * | `checkpoints`                | yes     | no: a runner without the platform proxy checkpoints locally |
+ * | `engine-sessions`            | yes     | no: such a runner keeps an engine's conversation locally too |
  * | `otlp`                       | to the operator's collector, in both (`otlp-forward.ts`) | |
  *
  * What each lane may be asked, and by whom, is `server.ts`'s; this module
@@ -137,11 +138,26 @@ export function registryUpstream(req: IncomingMessage): Upstream {
 
 /** A checkpoint call, forwarded to the platform's checkpoint lane. `rest` keeps its query. */
 export function checkpointUpstream(config: Config, rest: string, req: IncomingMessage, body: Buffer): Upstream {
+  return conversationStateUpstream(config, "/v1/proxy/checkpoints", "the checkpoint lane is not served: this runner checkpoints locally", rest, req, body);
+}
+
+/**
+ * An engine-session call (the Claude engine's transcript store,
+ * `execute-claude/http-store.ts`), forwarded to the platform's lane of the
+ * same name. Served exactly where the checkpoint lane is: both carry an
+ * engine's conversation, placed by one setting. `rest` keeps its query.
+ */
+export function engineSessionUpstream(config: Config, rest: string, req: IncomingMessage, body: Buffer): Upstream {
+  return conversationStateUpstream(config, "/v1/proxy/engine-sessions", "the engine-sessions lane is not served: this runner keeps an engine's conversation locally", rest, req, body);
+}
+
+/** A call on a lane that carries an engine's conversation to the platform, where the runner's setting puts it there. */
+function conversationStateUpstream(config: Config, lane: string, notServed: string, rest: string, req: IncomingMessage, body: Buffer): Upstream {
   if (config.checkpointerType !== "http" || config.checkpointerProxyEndpoint === null) {
-    throw new LaneRefusal(404, "the checkpoint lane is not served: this runner checkpoints locally");
+    throw new LaneRefusal(404, notServed);
   }
   return {
-    url: laneUrl(config.checkpointerProxyEndpoint, `/v1/proxy/checkpoints${rest}`),
+    url: laneUrl(config.checkpointerProxyEndpoint, `${lane}${rest}`),
     method: req.method ?? "GET",
     headers: { ...forwardableHeaders(req.headers, false), authorization: `Bearer ${runnerToken(config)}` },
     body,

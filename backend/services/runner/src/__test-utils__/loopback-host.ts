@@ -17,6 +17,12 @@
  * rules have their own tests (`agent-proxy/__tests__/`). The in-process
  * host installs no process-wide routes (`agent-host/host.ts`), so the
  * test's registry stub and model double are not rerouted.
+ *
+ * An engine that is a real program of its own (the Claude engine) has no
+ * double to stand in for its model client: it dials. Its tests pass the
+ * production proxy (`agent-proxy/server.ts`), started in forward mode
+ * against the wire-level model mock, so every model call crosses the same
+ * host token, turn key and lane rules it crosses in production.
  */
 
 import { loopbackChannels } from "../agent-host/channel.js";
@@ -28,9 +34,9 @@ import type { HarnessRow } from "../harness/registry.js";
 /** The stand-in proxy's address; nothing dials it in a hermetic run. */
 const LOOPBACK_PROXY_ENDPOINT = "http://127.0.0.1:9";
 
-/** `row`, hosted: its adapter replaced by a remote adapter over an in-process host serving the real one. */
-export function loopbackHostedRow(row: HarnessRow): HarnessRow {
-  const proxy: AgentProxyGate & LiveTurnRegistry = {
+/** `row`, hosted: its adapter replaced by a remote adapter over an in-process host serving the real one, behind `proxy` (the stand-in when absent). */
+export function loopbackHostedRow(row: HarnessRow, options: { readonly proxy?: AgentProxyGate & LiveTurnRegistry } = {}): HarnessRow {
+  const proxy: AgentProxyGate & LiveTurnRegistry = options.proxy ?? {
     endpoint: LOOPBACK_PROXY_ENDPOINT,
     cursorEndpoint: "https://127.0.0.1:9",
     authorizeHost: () => {},

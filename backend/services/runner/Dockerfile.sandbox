@@ -233,6 +233,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 make g+
 
 COPY scripts/lib/source-map-pragma.mjs /build/scripts/lib/source-map-pragma.mjs
 COPY backend/services/runner/package.json backend/services/runner/package-lock.json backend/services/runner/
+# The tests' shared model fakes, a development dependency the install links
+# (no dependencies of its own; nothing of it reaches the artifact).
+COPY test/support/package.json test/support/
 WORKDIR /build/backend/services/runner
 RUN npm ci --legacy-peer-deps
 
