@@ -5,7 +5,8 @@
 // its switch and cancel copy (child organizations beyond those included
 // among its lines), the agent hours used of those the plan includes on
 // every plan (pausing, priced, unlimited, past the allowance, and left out
-// where the server does not serve the read), the plans cheapest first and what a switch
+// where the server does not serve the read), how many agents a plan runs at
+// once beside its hours, the plans cheapest first and what a switch
 // down gives up, the reopened choice after a card was saved,
 // a child organization, and nothing at all where subscriptions are not
 // served.
@@ -111,6 +112,20 @@ describe("PlanSection", () => {
     renderSection(client);
     expect(within(await planOption("Team")).getByText("25 agent hours a month, then $0.50 an hour")).toBeTruthy();
     expect(within(await planOption("Business")).queryByText(/agent hour/)).toBeNull();
+  });
+
+  it("says how many agents a plan runs at once, beside its hours, and nothing for a plan that states no number", async () => {
+    const client = mockClient();
+    const sized = clone(PlanSchema, TEAM);
+    if (sized.spec?.entitlements === undefined || sized.spec.terms === undefined) throw new Error("TEAM has no terms");
+    sized.spec.entitlements.limits = create(EntitlementLimitsSchema, { includedAgentHours: 300, maxActiveSessionSandboxes: 25 });
+    sized.spec.terms.perAgentHourMicros = (USD * 3n) / 10n;
+    client.plan.list.mockResolvedValue({ entries: [sized, BUSINESS], nextPageToken: "" });
+    renderSection(client);
+    const team = await planOption("Team");
+    const lines = Array.from(team.querySelectorAll("li"), (line) => line.textContent);
+    expect(lines.slice(-2)).toEqual(["300 agent hours a month, then $0.30 an hour", "25 agents at once"]);
+    expect(within(await planOption("Business")).queryByText(/at once/)).toBeNull();
   });
 
   it("offers a viewer no choices", async () => {
