@@ -509,55 +509,51 @@ registries and the network decide yours.
 
 On [Agent Substrate](https://github.com/agent-substrate/substrate), each
 Session's runner lives in a gVisor actor. After
-`STIGMER_SANDBOX_SUBSTRATE_PAUSE_AFTER_SECONDS` idle (300 by default) the server
-pauses it: the sandbox stops and the Session's files stay on its node. After
-`STIGMER_SANDBOX_SUBSTRATE_SUSPEND_AFTER_SECONDS` (330) it suspends it: the
-files go to storage and the node is free. Paused or suspended, the next message
-wakes it with its files intact and a fresh runner. A Session with a run in
-progress, waiting for approval or paused is never put to sleep. Connect
-sandboxes don't sleep; they end with their run.
+`STIGMER_SANDBOX_SUBSTRATE_SUSPEND_AFTER_SECONDS` idle (300 by default) the
+server suspends it: the sandbox stops and the Session's files stay on its node.
+Substrate's node agent copies them to storage 5 minutes later and lets the node
+go after 30 (atelet's `--snapshot-upload-delay` and `--snapshot-detach-delay`),
+so a node lost in those first 5 minutes loses what the Session wrote since its
+last copy. The next message wakes it with its files intact and a fresh runner,
+from its node while the node still holds it and from storage otherwise. A
+Session with a run in progress, waiting for approval or paused is never put to
+sleep. Connect sandboxes don't sleep; they end with their run.
 
-The defaults come from measurements on a local Agent Substrate cluster (kind,
-Substrate v0.3.0, 2026-10-03), timed from the server accepting a message to the
-runner starting work on it, at the ninety-fifth percentile:
-
-| The Session when the message arrives | Wait             |
-| ------------------------------------ | ---------------- |
-| Awake                                | 0.01 s           |
-| Paused for less than a minute        | 0.9 s            |
-| Paused for 1 to 25 minutes           | 3.8 s, once 12 s |
-| In storage                           | 1.7 s            |
-| New                                  | 1.8 s            |
-
-Those were measured on v0.3.0, where a pause kept the runner's memory. From
-v0.5.0 Substrate snapshots a pause and a suspend alike, and the server keeps the
-Session's files only, so every wake starts a fresh runner. On v0.5.0 (kind,
-2026-10-23), a wake took 1.6 to 2.4 s from its start to the runner reaching
-Temporal (seven wakes, pauses and storage alike), and a new Session 1.9 s. A
-short pause wakes slower than it did; a long one wakes faster. A pause still
-spares the upload and download of a Session that is soon used again. The sweep
-runs every `STIGMER_SANDBOX_SUBSTRATE_SWEEP_INTERVAL_SECONDS` (30), and the
-suspend lands on the pass after the pause. Storage in a cloud bucket adds its
-download time to a wake from storage. A paused Session's files live on one node
-until the suspend, so the server refuses windows that would keep it paused
-longer than 30 minutes.
+On v0.6.0 (kind, 2026-10-25, one wake each), the server's wake, Substrate's
+resume and the push that starts a fresh runner, took 0.22 s while the files were
+on the node only and 0.27 s once their copy had reached storage, and the whole
+turn, from the message to the agent's answer with a fake model, took 4.5 s and
+9.1 s. A worker lost under an awake Session leaves its actor crashed, and the
+next message reverts it to its last snapshot and wakes it, so it loses what the
+Session wrote since then. The sweep runs every
+`STIGMER_SANDBOX_SUBSTRATE_SWEEP_INTERVAL_SECONDS` (30), so a Session sleeps up
+to that long after its window. Storage in a cloud bucket adds its download time
+to a wake whose node no longer holds the files.
 
 A new value for one of the runner's secrets, a model key for one, takes effect
 when the server restarts with it, and reaches each sandbox at its next wake: at
-once for a Session that is asleep, but only after its next idle pause for one
-whose runner is awake, and never while it stays busy. To cut off a leaked key at
-once, delete or suspend the sandboxes that hold it.
+once for a Session that is asleep, but only after it next sleeps for one whose
+runner is awake, and never while it stays busy. To cut off a leaked key at once,
+delete or suspend the sandboxes that hold it.
 
 Every Session's actor comes from one template the server creates and names by
-its content, so a new runner image or setting makes a new template. Sessions in
-storage move to it when they next wake, and the server deletes old templates
+its content, so a new runner image or setting makes a new template. Sleeping
+Sessions move to it when they next wake, and the server deletes old templates
 nothing uses any more.
 
 What the driver needs:
 
-- **Agent Substrate v0.5.0, exactly.** Substrate refuses fields it doesn't know,
+- **Agent Substrate v0.6.0, exactly.** Substrate refuses fields it doesn't know,
   so the server speaks the one release its stubs were generated from. Before 1.0
-  every Substrate minor release is a reinstall.
+  every Substrate minor release is a reinstall: the new install starts with no
+  actors, so every Session's sandbox starts again empty at its next turn.
+  Upgrade the server in the same window, since a server and a Substrate of
+  different releases can't talk. On GKE, v0.6.0's install also needs a service
+  account of its own for snapshot transfers (Substrate's
+  `go run ./tools/setup-gcp create iam`, then `SNAPSHOT_TRANSFER_GSA_NAME`), and
+  `create bucket` before that, which makes the `<bucket>-assets` bucket
+  ([substrate#3093](https://github.com/agent-substrate/substrate/pull/3093),
+  [substrate#3037](https://github.com/agent-substrate/substrate/pull/3037)).
 - **Its Control API**: `STIGMER_SANDBOX_SUBSTRATE_API_ENDPOINT` (an `https://`
   URL; in the cluster, `https://api.ate-system.svc:443`), the CA that signs it
   (`STIGMER_SANDBOX_SUBSTRATE_API_CA_FILE`) and, when you reach it under another
@@ -585,38 +581,37 @@ What the driver needs:
   `credentialBundlePath`), point
   `STIGMER_SANDBOX_SUBSTRATE_ROUTER_CLIENT_CERT_FILE` at that bundle, and add
   the server's SPIFFE ID, `spiffe://cluster.local/ns/<namespace>/sa/<name>`, to
-  the router's `--ingress-allowed-spiffe-ids`. The server reads the bundle again
-  when it changes, as the certificate renews daily. Without it the router ends
-  the handshake and the first Session fails naming the setting. An `http://`
-  router works too, as a port-forward to its port 80, but the push then carries
-  the Session's token and the runner's secrets, model keys among them, across
-  the cluster in cleartext, and the server logs a warning at boot.
+  the router's `--ingress-allowed-spiffe-ids`, which v0.6.0's
+  `ate-setup deploy ate-system` takes and requires. The server reads the bundle
+  again when it changes, as the certificate renews daily. Without it the router
+  ends the handshake and the first Session fails naming the setting. An
+  `http://` router works too, as a port-forward to its port 80, but the push
+  then carries the Session's token and the runner's secrets, model keys among
+  them, across the cluster in cleartext, and the server logs a warning at boot.
 - **Where actors live**: an atespace the server owns
   (`STIGMER_SANDBOX_SUBSTRATE_ATESPACE`; the server creates it when it is
   missing), the labels of the WorkerPool they run on
   (`STIGMER_SANDBOX_SUBSTRATE_WORKER_SELECTOR`, as `key=value,…`, matching the
-  pool's own labels; the pool runs the `gvisor` sandbox class), and the bucket
-  prefix their files are committed under
+  pool's own labels; the pool's `sandboxClasses` entry is `gvisor`, and it
+  chooses the sandbox's configuration, the class default unless it names a
+  `configRef`), and the bucket prefix their files are committed under
   (`STIGMER_SANDBOX_SUBSTRATE_STORAGE_LOCATION`).
-- **Grants, when Substrate's authorization is on.** Substrate then names the
+- **Grants.** Substrate always enforces authorization from v0.6.0, and names the
   server by its token's subject, `system:serviceaccount:<namespace>:<name>`. The
-  server needs `editor` on its atespace, and atelet, Substrate's process on each
-  node, needs `viewer` there: in v0.5.0 atelet reads each actor's egress policy
-  to answer its DNS, yet the authorization model gives it no role to, so without
-  that grant every name a sandbox looks up is refused, Temporal's included. The
-  server writes both bindings into the atespace's access policy itself, when it
-  creates the atespace and, for one that exists, adding only the bindings it
-  lacks; it never removes one. That takes an owner: list the server among
-  Substrate's bootstrap owners and nothing else is needed. If it is no owner, it
-  logs once that the grant must be made and carries on; then, as a global owner,
-  create the atespace (`kubectl ate create atespace <name>`) and give it an
-  access policy binding `editor` to
-  `user:system:serviceaccount:<namespace>:<name>` and `viewer` to
-  `user:spiffe://cluster.local/ns/ate-system/sa/atelet`, through the Control
-  API's `CreateAtespaceAccessPolicy` call (the `kubectl ate` plugin has no
-  command for it in v0.5.0). Without `editor` the first Session fails with a
-  message naming it. When atelet runs under another identity, name it in
-  `STIGMER_SANDBOX_SUBSTRATE_NODE_AGENT_PRINCIPAL`.
+  server needs `editor` on its atespace and nothing else; atelet, Substrate's
+  process on each node, reads each actor's egress policy through a system role
+  of its own. The server writes its binding into the atespace's access policy
+  itself, when it creates the atespace and, for one that exists, when the
+  binding is missing; it never removes one, so a `viewer` binding for atelet
+  that an earlier release of the server wrote stays until an owner removes it.
+  That takes an owner: list the server among Substrate's bootstrap owners
+  (`ate-setup`'s `--ateapi-authz-bootstrap-owners`) and nothing else is needed.
+  If it is no owner, it logs once that the grant must be made and carries on;
+  then, as a global owner, create the atespace
+  (`kubectl ate create atespace <name>`) and give it an access policy binding
+  `editor` to `user:system:serviceaccount:<namespace>:<name>`
+  (`kubectl ate create access-policy -a <atespace> -f <manifest>`). Without
+  `editor` the first Session fails with a message naming it.
 - **A runner image pinned by digest** in `STIGMER_SANDBOX_RUNNER_IMAGE`
   (`…@sha256:…`), and fully qualified DNS names, not addresses, short names or
   patterns, in the backend and Temporal endpoints and the extra destinations:
@@ -634,6 +629,13 @@ What the driver needs:
   a public address such as your server's, is reached like any HTTPS site, so
   only while HTTPS egress is on. With HTTPS egress off, the server logs a
   warning at boot that no sandbox can reach it.
+
+The server refuses to boot while a setting it no longer reads is set, naming
+where its job went: `STIGMER_SANDBOX_SUBSTRATE_PAUSE_AFTER_SECONDS` (a sandbox
+sleeps once, after `STIGMER_SANDBOX_SUBSTRATE_SUSPEND_AFTER_SECONDS`),
+`STIGMER_SANDBOX_SUBSTRATE_SANDBOX_CONFIG` (the WorkerPool's `sandboxClasses`
+entry chooses the configuration) and
+`STIGMER_SANDBOX_SUBSTRATE_NODE_AGENT_PRINCIPAL` (atelet needs no grant).
 
 What an Agent can reach: the server's endpoints, any extra cleartext `host:port`
 you list in `STIGMER_SANDBOX_SUBSTRATE_EGRESS_HTTP`, and HTTPS to any name
@@ -664,11 +666,10 @@ lists them.
   actor's egress name it, and the HTTPS gateway refuses Substrate's own services
   because their certificates come from the cluster's private CA; that holds only
   while you never serve the router or the Control API under a publicly trusted
-  certificate at an address the gateway can reach. And unless you turn on
-  Substrate's authorization, its Control API checks no permissions: the server's
-  token controls every actor, template and worker of that Substrate, so give the
-  server one of its own, or turn authorization on and grant it its atespace
-  only.
+  certificate at an address the gateway can reach. And a bootstrap owner's token
+  controls every actor, template and worker of that Substrate: for a server that
+  holds its atespace only, leave it out of the bootstrap owners, and have an
+  owner create its atespace and grant it `editor` there.
 </Callout>
 
 ## Next step

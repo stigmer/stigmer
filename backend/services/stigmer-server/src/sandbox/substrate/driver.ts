@@ -466,7 +466,7 @@ export function newSubstrateSandboxDriverOverGateway(
     if (!refusedMoves.has(actor.name)) {
       refusedMoves.add(actor.name);
       logger.warn(
-        "Substrate refused to move a sandbox to the current template (its volumes differ, or its snapshot is not yet in storage); it stays on its own template",
+        "Substrate refused to move a sandbox to the current template (its volumes differ); it stays on its own template",
         { actor: actor.name, template: actor.template, current: keeper.name },
       );
     }
