@@ -424,6 +424,14 @@ describe("platform content and the engine's home", () => {
     expect(await decide(gate, "NotebookEdit", { notebook_path: `${HOME}/n.ipynb`, new_source: "" }, "toolu_nb")).toEqual(refused(READ_ONLY_MESSAGE));
   });
 
+  it("refuse the engine's home itself, and judge a call with no path, or a session with no platform folder, by the rest", async () => {
+    const gate = new ClaudeGate(facts({ leases: leases({ global: true }) }));
+    expect(await decide(gate, "Write", { file_path: HOME, content: "x" }, "toolu_home_itself")).toEqual(refused(READ_ONLY_MESSAGE));
+    expect(await decide(gate, "Write", { content: "x" }, "toolu_no_path")).toEqual(allowed("auto_approve_all"));
+    const noPlatform = new ClaudeGate(facts({ leases: leases({ global: true }), platformDir: undefined }));
+    expect(await decide(noPlatform, "Write", { file_path: `${PLATFORM}/skills/x/SKILL.md`, content: "x" }, "toolu_no_platform")).toEqual(allowed("auto_approve_all"));
+  });
+
   it("keep the outputs folder writable and every read open", async () => {
     const gate = new ClaudeGate(facts({ leases: leases({ global: true }) }));
     expect(await decide(gate, "Write", { file_path: `${WORKSPACE}/.stigmer/outputs/report.md`, content: "x" }, "toolu_out")).toEqual(allowed("auto_approve_all"));
@@ -442,6 +450,17 @@ describe("skill files for a caller whose lists deny Skill", () => {
     }
     expect(await decide(gate, "Read", { file_path: `${WORKSPACE}/src/a.ts` }, "toolu_plain", "agent_helper")).toEqual(allowed("auto_approve_all", helper));
     expect(await decide(gate, "Read", { file_path: `${PLATFORM}/inputs/a.txt` }, "toolu_input", "agent_helper")).toEqual(allowed("auto_approve_all", helper));
+  });
+
+  it("leave that caller every other read: none with no path, none outside both folders, the platform folder itself", async () => {
+    const helper: Caller = { kind: "subagent", type: "acme:helper" };
+    const gate = startedGate({ leases: leases({ global: true }) });
+    expect(await decide(gate, "Read", {}, "toolu_no_path", "agent_helper")).toEqual(allowed("auto_approve_all", helper));
+    expect(await decide(gate, "Read", { file_path: "/etc/hosts" }, "toolu_outside", "agent_helper")).toEqual(allowed("auto_approve_all", helper));
+    expect(await decide(gate, "Read", { file_path: PLATFORM }, "toolu_platform_itself", "agent_helper")).toEqual(allowed("auto_approve_all", helper));
+    const noPlatform = new ClaudeGate(facts({ leases: leases({ global: true }), platformDir: undefined }));
+    noPlatform.subagentStarted("agent_helper", "acme:helper");
+    expect(await decide(noPlatform, "Read", { file_path: `${PLATFORM}/skills/x/SKILL.md` }, "toolu_no_platform", "agent_helper")).toEqual(allowed("auto_approve_all", helper));
   });
 
   it("stay readable to a caller whose lists keep skills", async () => {
