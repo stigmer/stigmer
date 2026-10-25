@@ -7,6 +7,9 @@
  *  - a model call only for an execution with a turn live on this runner;
  *  - a checkpoint call only for a live turn's thread, in its query and in
  *    every entry of a write;
+ *  - an engine-session call (the Claude engine's transcript store) only for
+ *    a live turn's own thread, in its query and in its body, and nothing
+ *    once the turn has settled;
  *  - the model registry with no live turn, the one exemption;
  *  - on the Anthropic lane alone, a live turn's own key in place of the
  *    host's token (an engine that is its own program sends one key and no
@@ -45,6 +48,7 @@ import { testConfig } from "../../__test-utils__/config-fixture.js";
 import { FakeUpstream } from "../../__test-utils__/fake-upstream.js";
 import type { Config } from "../../config.js";
 import { bearerOf } from "../relay.js";
+import { HttpTranscripts } from "../../activities/execute-claude/http-store.js";
 import { HttpCheckpointSaver } from "../../shared/checkpointer/http-saver.js";
 import { runWithExecutionContext } from "../../shared/execution-context.js";
 import { AgentProxy } from "../server.js";
@@ -495,6 +499,131 @@ describe("forward: a runner behind the Stigmer platform's proxy", () => {
       expect((await call(proxy, `/v1/proxy/checkpoints/checkpoint?thread_id=${THREAD}`, { method: "GET", headers: { authorization: `Bearer ${HOST_TOKEN}`, "x-stigmer-execution-id": EXECUTION } })).status, "no key").toBe(403);
     } finally {
       close();
+    }
+  });
+});
+
+describe("the engine-sessions lane: a turn's transcript store reaches its own thread only", () => {
+  const LANE = "/v1/proxy/engine-sessions";
+  const OTHER_THREAD = "thread-ses-other";
+  let proxy: AgentProxy;
+  let closeTurn: () => void;
+
+  beforeEach(async () => {
+    // An earlier block can leave the upstream answering something else.
+    upstream.answer = FakeUpstream.DEFAULT_ANSWER;
+    proxy = await startProxy({ proxyEndpoint: upstream.url, checkpointerType: "http", checkpointerProxyEndpoint: upstream.url });
+    closeTurn = proxy.openTurn({ executionId: EXECUTION, threadId: THREAD, turnKey: TURN_KEY });
+  });
+  afterEach(async () => {
+    closeTurn();
+    await proxy.close();
+  });
+
+  /** What reached the platform carries the runner's token and nothing of the host's or the turn's. */
+  function expectRunnerCredentialOnly(headers: IncomingHttpHeaders): void {
+    expect(headers.authorization).toBe(`Bearer ${RUNNER_TOKEN}`);
+    expect(headers["x-api-key"]).toBeUndefined();
+    expect(Object.keys(headers).filter((h) => h.startsWith("x-stigmer-")), "no scope header, the turn key included").toEqual([]);
+    const sent = JSON.stringify(headers);
+    expect(sent).not.toContain(HOST_TOKEN);
+    expect(sent).not.toContain(TURN_KEY);
+  }
+
+  it("forwards the live turn's own thread to the platform's lane with the runner's token, by query and by body", async () => {
+    const read = await call(proxy, `${LANE}/entries?thread_id=${THREAD}&subpath=`, { method: "GET", headers: asHost });
+    expect(read.status).toBe(200);
+    expect(upstream.last.method).toBe("GET");
+    expect(upstream.last.path).toBe(`${LANE}/entries?thread_id=${THREAD}&subpath=`);
+    expectRunnerCredentialOnly(upstream.last.headers);
+
+    const body = JSON.stringify({ thread_id: THREAD, subpath: "", entries: [{ type: "user", uuid: "u1" }] });
+    const write = await call(proxy, `${LANE}/entries`, { headers: asHost, body });
+    expect(write.status).toBe(200);
+    expect(upstream.last.method).toBe("POST");
+    expect(upstream.last.path).toBe(`${LANE}/entries`);
+    expect(upstream.last.body, "the bytes unchanged").toBe(body);
+    expectRunnerCredentialOnly(upstream.last.headers);
+
+    expect((await call(proxy, `${LANE}/subkeys?thread_id=${THREAD}`, { method: "GET", headers: asHost })).status).toBe(200);
+    expect((await call(proxy, `${LANE}/entries?thread_id=${THREAD}`, { method: "DELETE", headers: asHost })).status).toBe(200);
+    expect(upstream.last.method).toBe("DELETE");
+    expect(upstream.last.path).toBe(`${LANE}/entries?thread_id=${THREAD}`);
+    expectRunnerCredentialOnly(upstream.last.headers);
+  });
+
+  it("refuses another thread, a live turn's included, in the query or in the body", async () => {
+    const closeOther = proxy.openTurn({ executionId: "aex-other", threadId: OTHER_THREAD, turnKey: "turn-key-other" });
+    try {
+      const sent = upstream.received.length;
+      const read = await call(proxy, `${LANE}/entries?thread_id=${OTHER_THREAD}&subpath=`, { method: "GET", headers: asHost });
+      expect(read.status, "another live turn's thread, read").toBe(403);
+      expect(((await read.json()) as { error: { message: string } }).error.message).toBe(`thread ${OTHER_THREAD} is not the turn's own`);
+      expect((await call(proxy, `${LANE}/subkeys?thread_id=${OTHER_THREAD}`, { method: "GET", headers: asHost })).status, "listed").toBe(403);
+      expect((await call(proxy, `${LANE}/entries?thread_id=${OTHER_THREAD}`, { method: "DELETE", headers: asHost })).status, "deleted").toBe(403);
+      const intrusion = JSON.stringify({ thread_id: OTHER_THREAD, subpath: "", entries: [{ type: "user", uuid: "u1" }] });
+      expect((await call(proxy, `${LANE}/entries`, { headers: asHost, body: intrusion })).status, "written").toBe(403);
+      expect((await call(proxy, `${LANE}/entries?thread_id=${THREAD}`, { headers: asHost, body: intrusion })).status, "written, with the own thread in the query").toBe(403);
+      expect((await call(proxy, `${LANE}/entries`, { headers: asHost, body: JSON.stringify({ thread_id: 7, entries: [] }) })).status, "a thread that is not a string").toBe(403);
+      expect((await call(proxy, `${LANE}/entries`, { method: "GET", headers: asHost })).status, "a call that names no thread").toBe(403);
+      expect((await call(proxy, `${LANE}/entries`, { headers: asHost, body: "not json" })).status, "a body that is not JSON").toBe(400);
+      expect(upstream.received, "nothing reached the platform").toHaveLength(sent);
+    } finally {
+      closeOther();
+    }
+  });
+
+  it("refuses a call without its turn's key, or with a key no live turn holds", async () => {
+    const sent = upstream.received.length;
+    expect((await call(proxy, `${LANE}/entries?thread_id=${THREAD}`, { method: "GET", headers: { authorization: `Bearer ${HOST_TOKEN}` } })).status, "no key").toBe(403);
+    expect((await call(proxy, `${LANE}/entries?thread_id=${THREAD}`, { method: "GET", headers: { ...asHost, "x-stigmer-turn-key": "turn-key-forged" } })).status, "a forged key").toBe(403);
+    expect((await call(proxy, `${LANE}/entries?thread_id=${THREAD}`, { method: "GET", headers: { "x-api-key": TURN_KEY } })).status, "the turn's key as the credential").toBe(401);
+    expect(upstream.received).toHaveLength(sent);
+  });
+
+  it("refuses the turn's own thread once the turn has settled", async () => {
+    const close = proxy.openTurn({ executionId: "aex-settling", threadId: "thread-ses-settling", turnKey: "turn-key-settling" });
+    const asSettling = { ...asHost, "x-stigmer-execution-id": "aex-settling", "x-stigmer-turn-key": "turn-key-settling" };
+    const path = `${LANE}/entries?thread_id=thread-ses-settling&subpath=`;
+    expect((await call(proxy, path, { method: "GET", headers: asSettling })).status, "while live").toBe(200);
+    const sent = upstream.received.length;
+    close();
+    const settled = await call(proxy, path, { method: "GET", headers: asSettling });
+    expect(settled.status, "settled").toBe(403);
+    expect(((await settled.json()) as { error: { message: string } }).error.message).toBe("the turn key names no turn running on this runner");
+    expect(upstream.received).toHaveLength(sent);
+  });
+
+  it("serves the host's own transcript store the turn's thread under the turn's key, and refuses it without one", async () => {
+    const store = new HttpTranscripts(proxy.endpoint, { current: HOST_TOKEN }, { maxRetries: 0 });
+    upstream.answer = { status: 404, headers: {}, body: "" };
+    try {
+      const sent = upstream.received.length;
+      await expect(runWithExecutionContext(EXECUTION, () => store.load(THREAD, undefined), TURN_KEY)).resolves.toBeNull();
+      expect(upstream.received).toHaveLength(sent + 1);
+      expect(upstream.last.path).toBe(`${LANE}/entries?thread_id=${THREAD}&subpath=`);
+      expectRunnerCredentialOnly(upstream.last.headers);
+
+      await expect(runWithExecutionContext(EXECUTION, () => store.load(THREAD, undefined)), "no key in the turn's context").rejects.toThrow(/403/);
+      await expect(runWithExecutionContext(EXECUTION, () => store.load(OTHER_THREAD, undefined), TURN_KEY), "another thread").rejects.toThrow(/403/);
+      expect(upstream.received, "nothing more reaches the platform").toHaveLength(sent + 1);
+    } finally {
+      upstream.answer = FakeUpstream.DEFAULT_ANSWER;
+    }
+  });
+
+  it("is not served on a runner that keeps an engine's conversation locally", async () => {
+    const local = await startProxy({ proxyEndpoint: upstream.url, checkpointerType: "sqlite", checkpointerProxyEndpoint: null });
+    const close = local.openTurn({ executionId: EXECUTION, threadId: THREAD, turnKey: TURN_KEY });
+    try {
+      const res = await call(local, `${LANE}/entries?thread_id=${THREAD}&subpath=`, { method: "GET", headers: asHost });
+      expect(res.status).toBe(404);
+      expect(((await res.json()) as { error: { message: string } }).error.message).toBe(
+        "the engine-sessions lane is not served: this runner keeps an engine's conversation locally",
+      );
+    } finally {
+      close();
+      await local.close();
     }
   });
 });
