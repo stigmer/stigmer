@@ -20,6 +20,7 @@ import {
   CLAUDE_ENGINE_TOOL_COVERS,
   TOOL_SEARCH,
   engineOptions,
+  engineTools,
   offeredBuiltins,
   userMessageOf,
   type EngineOptionsInputs,
@@ -89,6 +90,38 @@ describe("offeredBuiltins", () => {
   });
 });
 
+describe("engineTools", () => {
+  it("is the built-ins alone when none is deferred and no MCP tool is offered", () => {
+    expect(engineTools(["Read", "Write", "Edit", "Glob", "Grep", "Bash"], false)).toEqual(["Read", "Write", "Edit", "Glob", "Grep", "Bash"]);
+    expect(engineTools([], false)).toEqual([]);
+  });
+
+  it("adds tool search when the notebook editor is offered, since the engine defers it", () => {
+    expect(engineTools(["Read", "NotebookEdit"], false)).toEqual(["Read", "NotebookEdit", TOOL_SEARCH]);
+  });
+
+  it("adds tool search when the to-do list is offered, since the engine defers it", () => {
+    expect(engineTools(["TodoWrite"], false)).toEqual(["TodoWrite", TOOL_SEARCH]);
+  });
+
+  it("adds tool search when only an MCP tool is offered", () => {
+    expect(engineTools(["Read"], true)).toEqual(["Read", TOOL_SEARCH]);
+    expect(engineTools([], true)).toEqual([TOOL_SEARCH]);
+  });
+
+  it("adds tool search once, whatever the number of deferred tools", () => {
+    expect(engineTools(ALL_BUILTINS, true)).toEqual([...ALL_BUILTINS, TOOL_SEARCH]);
+  });
+
+  it("answers a new list, never the caller's", () => {
+    const builtins = ["Read"];
+    const tools = engineTools(builtins, false);
+    expect(tools).not.toBe(builtins);
+    tools.push("Extra");
+    expect(builtins).toEqual(["Read"]);
+  });
+});
+
 describe("engineOptions", () => {
   it("carries every isolation switch by value", () => {
     const options = engineOptions(inputs());
@@ -144,8 +177,13 @@ describe("engineOptions", () => {
     expect(options).not.toHaveProperty("toolAliases");
   });
 
-  it("adds tool search when any MCP tool is offered, even without the to-do list", () => {
+  it("adds tool search when any MCP tool is offered, even without a deferred built-in", () => {
     expect(engineOptions(inputs({ builtins: ["Read"], anyMcpTool: true })).tools).toEqual(["Read", TOOL_SEARCH]);
+  });
+
+  it("gives the engine the same tool list engineTools answers", () => {
+    expect(engineOptions(inputs({ builtins: ["Read", "NotebookEdit"] })).tools).toEqual(engineTools(["Read", "NotebookEdit"], false));
+    expect(engineOptions(inputs({ builtins: ["Read", "NotebookEdit"] })).tools).toEqual(["Read", "NotebookEdit", TOOL_SEARCH]);
   });
 
   it("never mutates the caller's built-in list", () => {
