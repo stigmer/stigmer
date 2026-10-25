@@ -59,11 +59,14 @@ describe("ExecuteClaude hermetic — signals", () => {
         return RunControlSignal.UNSPECIFIED;
       },
     });
-    const invocation = await file.run(record, (c) =>
-      c.issued.has("toolu_stop_glob")
-        ? { body: anthropicText(NEVER_SEEN), delayMs: 120_000 }
-        : anthropicToolUses([{ toolCallId: "toolu_stop_glob", toolName: "Glob", toolInput: { pattern: "**/*.md" } }]),
-    );
+    const invocation = await file.run(record, (c) => {
+      if (!c.issued.has("toolu_stop_glob")) return anthropicToolUses([{ toolCallId: "toolu_stop_glob", toolName: "Glob", toolInput: { pattern: "**/*.md" } }]);
+      // The held call takes back its clock step: whether it reaches the model
+      // before the stop settles is the machine's timing (a loaded CI runner
+      // lands it first), never the scenario's, so the golden holds either way.
+      vi.setSystemTime(Date.now() - ScriptedClock.STEP_MS);
+      return { body: anthropicText(NEVER_SEEN), delayMs: 120_000 };
+    });
 
     expect(stopsAnswered, "the platform said STOP").toBeGreaterThan(0);
     expect(invocation.outcome.kind, "a platform stop returns").toBe("returned");
