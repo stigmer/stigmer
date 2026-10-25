@@ -1,0 +1,26 @@
+{
+  "phase": "RUN_COMPLETED",
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "completedAt": "2026-01-01T00:00:07.000Z",
+  "streamingUsage": {
+    "inputTokens": "70",
+    "outputTokens": "35",
+    "totalTokens": "105",
+    "turnCount": 8,
+    "estimatedCostUsd": 0.000735,
+    "model": "claude-sonnet-4.6",
+    "observedAt": "2026-01-01T00:00:07.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
+  },
+  "loadedVersions": {
+    "skills": [
+      {
+        "org": "hermetic-org",
+        "kind": "skill",
+        "version": "hash-ci-checklist",
+        "id": "skill-ci-checklist"
+      }
+    ]
+  }
+}

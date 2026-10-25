@@ -23,9 +23,17 @@
  *  - each tool's own destructive mark, for the approval default
  *    (`shared/approval-policy.ts`), the platform's servers left out as on
  *    every engine;
- *  - the agent's tool lists: a tool out of scope is never listed to the
- *    engine, and a call to one is refused by the gate's closed world. The
- *    platform's servers are outside every list (`shared/tool-lists.ts`).
+ *  - the agents' tool lists: a tool no agent of the turn may call is never
+ *    listed to the engine. The platform's servers are outside every list
+ *    (`shared/tool-lists.ts`).
+ *
+ * One connection per server, whichever agents have it: the main agent's
+ * servers and each saved sub-agent's own, a server two of them have being
+ * the same server by its slug (the runtime refuses a clash first,
+ * `harness/turn-context.ts`). The engine holds no server for one sub-agent
+ * alone (measured on SDK 0.3.310), so each is one in-process view of the
+ * union of what its agents may call; each agent is narrowed to its own by
+ * its definition and by the gate's closed world (`agents.ts`, `gate.ts`).
  *
  * Every connection is closed when the turn ends (`turn.ts`).
  */
@@ -39,7 +47,6 @@ import { toMcpClientConfig } from "../../shared/mcp-manager.js";
 import type { ResolvedMcpServer } from "../../shared/mcp-resolver.js";
 import { sanitizeSchemaPatterns } from "../../shared/mcp-schema-sanitizer.js";
 import type { McpToolListing } from "../../shared/mcp-tool-listing.js";
-import type { ToolScope } from "../../shared/tool-lists.js";
 import { inProcessServer, textResult } from "./in-process-server.js";
 
 /** The most pages of tools one server's listing reads before the turn gives up on it. */
@@ -79,10 +86,10 @@ const NO_BRIDGE: McpBridge = {
   close: async () => undefined,
 };
 
-/** Connect the turn's `servers` and list what `scope` lets the engine see. */
+/** Connect the turn's `servers` and list the tools `inScope` says some agent of the turn may call (a platform server's, always). */
 export async function connectBridge(
   servers: readonly ResolvedMcpServer[],
-  scope: ToolScope,
+  inScope: (slug: string, tool: string) => boolean,
   platformServerSlugs: ReadonlySet<string>,
 ): Promise<McpBridge> {
   const config = toMcpClientConfig([...servers]);
@@ -94,8 +101,8 @@ export async function connectBridge(
     for (const slug of Object.keys(config)) {
       const client = await connections.getClient(slug);
       if (client === undefined) throw new Error(`MCP server '${slug}' did not connect`);
-      const inScope = (tool: Tool): boolean => platformServerSlugs.has(slug) || scope.allowsMcpTool(slug, tool.name);
-      bridged.push({ slug, client, tools: (await listAllTools(slug, client)).filter(inScope) });
+      const listed = (tool: Tool): boolean => platformServerSlugs.has(slug) || inScope(slug, tool.name);
+      bridged.push({ slug, client, tools: (await listAllTools(slug, client)).filter(listed) });
     }
     return bridgeOf(bridged, platformServerSlugs, () => connections.close());
   } catch (err) {

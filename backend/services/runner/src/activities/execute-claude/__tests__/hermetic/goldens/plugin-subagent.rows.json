@@ -1,0 +1,81 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "toolu_delegate_helper",
+          "name": "Agent",
+          "args": {
+            "description": "lint",
+            "prompt": "Lint the change.",
+            "subagent_type": "acme:helper"
+          },
+          "result": "Lint is clean.",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "completedAt": "2026-01-01T00:00:04.000Z",
+          "argsPreview": "{\"description\":\"lint\",\"prompt\":\"Lint the change.\",\"subagent_type\":\"acme:helper\"}",
+          "toolKind": "TOOL_KIND_SUBAGENT"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Linted.",
+      "timestamp": "2026-01-01T00:00:05.000Z"
+    }
+  ],
+  "subAgentRuns": [
+    {
+      "id": "toolu_delegate_helper",
+      "name": "acme:helper",
+      "input": "Lint the change.",
+      "output": "Lint is clean.",
+      "status": "SUB_AGENT_COMPLETED",
+      "startedAt": "2026-01-01T00:00:01.000Z",
+      "completedAt": "2026-01-01T00:00:04.000Z",
+      "messages": [
+        {
+          "type": "MESSAGE_AI",
+          "timestamp": "2026-01-01T00:00:02.000Z",
+          "toolCalls": [
+            {
+              "id": "toolu_helper_skill",
+              "name": "Skill",
+              "args": {
+                "skill": "acme:lint"
+              },
+              "result": "Launching skill: acme:lint",
+              "status": "TOOL_CALL_COMPLETED",
+              "startedAt": "2026-01-01T00:00:02.000Z",
+              "completedAt": "2026-01-01T00:00:02.000Z",
+              "argsPreview": "{\"skill\":\"acme:lint\"}"
+            },
+            {
+              "id": "toolu_helper_docs",
+              "name": "mcp__docs__lookup",
+              "args": {
+                "target": "style guide"
+              },
+              "result": "Found it.",
+              "status": "TOOL_CALL_COMPLETED",
+              "startedAt": "2026-01-01T00:00:03.000Z",
+              "completedAt": "2026-01-01T00:00:03.000Z",
+              "mcpServerSlug": "docs",
+              "argsPreview": "{\"target\":\"style guide\"}",
+              "toolKind": "TOOL_KIND_MCP"
+            }
+          ]
+        },
+        {
+          "type": "MESSAGE_AI",
+          "content": "Lint is clean.",
+          "timestamp": "2026-01-01T00:00:04.000Z"
+        }
+      ],
+      "subject": "lint"
+    }
+  ]
+}

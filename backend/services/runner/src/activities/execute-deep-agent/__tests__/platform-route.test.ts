@@ -14,6 +14,9 @@
 //    readable, every write refused and nothing created in the workspace (the
 //    write that used to make a real directory there, #1123), and the root
 //    listing without it;
+//  - the shared read-only rule (`shared/outputs.ts` `isReadOnlyPlatformPath`),
+//    which the Claude engine's gate reads, naming exactly the writes the
+//    route refuses;
 //  - the outputs folder, `.stigmer/outputs/`, the one writable corner: the
 //    file tools write, edit (a loosely quoted edit too), read and delete
 //    inside it, while every other
@@ -43,6 +46,7 @@ import {
   PlatformRoutedBackend,
   mountPlatformRoute,
 } from "../platform-route.js";
+import { isReadOnlyPlatformPath } from "../../../shared/outputs.js";
 import { offloadDirBeside } from "../../../shared/workspace/platform-dir.js";
 import { LocalWorkspaceBackend } from "../../../shared/workspace/local-backend.js";
 import { ensureStigmerSymlink } from "../../../shared/workspace/stigmer-link.js";
@@ -214,6 +218,15 @@ describe("platform route", () => {
       expect((await backend.write(`${PLATFORM_ROUTE_PREFIX}outputs.md`, "x")).error, "a sibling named like the folder").toMatch(/read-only/);
       expect((await backend.write(`${PLATFORM_ROUTE_PREFIX}new.md`, "x")).error).toMatch(/outputs/);
       expect(await readFile(join(platformDir, "skills/my-skill/SKILL.md"), "utf8")).toContain("My Skill");
+    });
+
+    it("refuses exactly the writes the shared read-only rule names, the rule every engine's gate reads", async () => {
+      const backend = v2(await productionBackend(mode));
+      const paths = [`/${SKILL}`, `${PLATFORM_ROUTE_PREFIX}uploads/a.txt`, `${PLATFORM_ROUTE_PREFIX}outputs.md`, `${OUTPUTS_ROUTE_PREFIX}pinned.md`, `${OUTPUTS_ROUTE_PREFIX}nested/pinned.md`];
+      for (const path of paths) {
+        const refused = (await backend.write(path, "x")).error !== undefined;
+        expect(refused, path).toBe(isReadOnlyPlatformPath(path));
+      }
     });
 
     it("reaches nothing outside it through `..` or through a link inside it", async () => {

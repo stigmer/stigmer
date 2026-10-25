@@ -27,8 +27,9 @@ pinned somewhere. Read a row across before searching for anything.
 | The file-review id in `activities/execute-deep-agent/deep-agent-capabilities.ts`, `activities/execute-cursor/cursor-capabilities.ts` and `activities/execute-claude/claude-capabilities.ts` | `deep-agent` | `cursor` | `claude` |
 | The vendor SDK package in `backend/services/runner/package.json` | `deepagents` | `@cursor/sdk` | `@anthropic-ai/claude-agent-sdk` |
 
-The runner runs a Claude turn; the server refuses Claude until the platform
-offers it (`backend/services/stigmer-server/src/domain/session/harness.ts`),
+The runner runs a Claude turn, the agent's skills and sub-agents included
+(`activities/execute-claude/agents.ts`); the server refuses Claude until the
+platform offers it (`backend/services/stigmer-server/src/domain/session/harness.ts`),
 and no published runner carries its engine yet
 (`backend/services/runner/scripts/bundle-slim.mjs` stages none of it).
 
@@ -507,8 +508,8 @@ second net: they pin a turn's persisted status byte for byte.
 
 ## Footprint
 
-Measured on 2026-10-25 at dca730bb11 with the change that added the Claude adapter
-applied, production TypeScript only, `__tests__/` and `__test-utils__/`
+Measured on 2026-10-25 at 27d72cc165 with the change that gave the Claude adapter
+skills and sub-agents applied, production TypeScript only, `__tests__/` and `__test-utils__/`
 excluded. Run from `backend/services/runner/` to re-measure:
 
 ```bash
@@ -522,12 +523,12 @@ done
 | What                                                                                                     | Lines  | Files |
 | -------------------------------------------------------------------------------------------------------- | ------ | ----- |
 | The template, `__test-utils__/harness-contract/scripted-adapter.ts`: the floor, no engine, no translator | 609    | 1     |
-| The native adapter, `activities/execute-deep-agent/`                                                     | 6,393  | 28    |
+| The native adapter, `activities/execute-deep-agent/`                                                     | 6,405  | 28    |
 | The Cursor adapter, `activities/execute-cursor/`: the ceiling, with its deny-and-retry hook and ledger   | 14,938 | 40    |
-| The Claude adapter, `activities/execute-claude/`: an engine that is its own program, with its gate        | 2,620  | 20    |
-| The runtime, `harness/`, for scale: written once                                                         | 11,338 | 29    |
+| The Claude adapter, `activities/execute-claude/`: an engine that is its own program, with its gate        | 3,444  | 22    |
+| The runtime, `harness/`, for scale: written once                                                         | 11,397 | 29    |
 | The test side the native adapter adds: its subject, its hermetic kit file, its two fences                | 935    | 4     |
-| The test side the Claude adapter adds: its subject, its wire stack, its hermetic kit file, its two fences | 882    | 5     |
+| The test side the Claude adapter adds: its subject, its wire stack, its hermetic kit file, its two fences | 910    | 5     |
 
 ## Design history
 

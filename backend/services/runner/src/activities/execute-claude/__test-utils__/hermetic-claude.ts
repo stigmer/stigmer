@@ -28,6 +28,7 @@
 import { rmSync } from "node:fs";
 import { join } from "node:path";
 
+import type { StigmerClient } from "../../../client/stigmer-client.js";
 import type { Config } from "../../../config.js";
 import type { ExecuteActivityInput } from "../../../shared/activity-input.js";
 import { _resetRegistryCache } from "../../../shared/model-registry.js";
@@ -145,6 +146,8 @@ export interface ClaudeTurnOptions {
   readonly executionId?: string;
   readonly turnSeq?: number;
   readonly onControls?: (controls: InvocationControls) => void;
+  /** Control-plane answers beyond the record's own (a plugin, its archive, the run's values). */
+  readonly clientOverrides?: Partial<StigmerClient>;
 }
 
 /** Run ONE `ExecuteClaude` invocation of `record`'s execution. */
@@ -206,7 +209,7 @@ export function claudeScenarioFile(
       clock.tick();
       return script(conversation);
     });
-    bindHermeticClient(record.client());
+    bindHermeticClient(record.client(options.clientOverrides));
     return runClaudeInvocation({ ...config, ...overrides }, wire!.proxy, record, options);
   };
   return {

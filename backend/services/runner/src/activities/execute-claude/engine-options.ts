@@ -10,8 +10,13 @@
  *    `.mcp.json`, skills, agents and commands never load. Nothing is set
  *    aside in the workspace, because nothing there is read.
  *  - `strictMcpConfig`: only the servers handed over here exist.
- *  - `skills: []`, and no `Skill` tool: the engine's bundled skills stay out
- *    of every request. `enabledPlugins` turns its built-in plugins off.
+ *  - Skills only from the plugins this adapter writes (`skill-plugins.ts`),
+ *    `skills` the exact list of the turn's, the engine's bundled skills off
+ *    (`engine-env.ts`), and `enabledPlugins` turning its built-in plugins
+ *    off. `disableSkillShellExecution` keeps a skill body's inline commands
+ *    from running and `disableAllHooks` silences every plugin's and skill's
+ *    hooks; the SDK's own callbacks, which carry the gate, keep firing
+ *    under it (measured). A turn with no skills offers no `Skill` tool.
  *  - `attribution` empty: the engine adds no co-author lines of its own.
  *  - `verbatimPrompts`: the person's text reaches the model as written, with
  *    no slash-command or `@path` dispatch, as it does on every engine.
@@ -19,7 +24,11 @@
  * The tools are an explicit set ({@link offeredBuiltins}): the file tools,
  * `Bash` (served by the host, `host-shell.ts`, through `toolAliases`), the
  * to-do list and `ToolSearch`, behind which the engine defers every MCP
- * tool and some of its own built-ins ({@link engineTools}). Never a tool that starts a process as the engine's child
+ * tool and some of its own built-ins ({@link engineTools}), with `Skill`
+ * and `Agent` when the turn has skills or sub-agents. The set is the
+ * session's pool, every sub-agent's too, so it is the union of every
+ * agent's, each held to its own by its definition and the gate
+ * (`agents.ts`). Never a tool that starts a process as the engine's child
  * (`PowerShell`, `Monitor`, `LSP`), fetches from the engine's own process
  * (`WebFetch`, `WebSearch`), or reaches past the turn (sessions, schedules,
  * teams, plan mode, questions to the person). Plan mode offers the read
@@ -34,7 +43,7 @@
  * and a recorded prompt would keep the first turn's (`prompt.ts`).
  */
 
-import type { McpServerConfig, Options, SDKUserMessage, SessionStore, ThinkingConfig } from "@anthropic-ai/claude-agent-sdk";
+import type { AgentDefinition, McpServerConfig, Options, SdkPluginConfig, SDKUserMessage, SessionStore, ThinkingConfig } from "@anthropic-ai/claude-agent-sdk";
 import type { ClaudeTool } from "@stigmer/tool-vocabulary";
 import { ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
@@ -96,12 +105,16 @@ export interface EngineOptionsInputs {
   readonly cwd: string;
   readonly additionalDirectories: readonly string[];
   readonly env: Record<string, string>;
-  /** The built-ins offered ({@link offeredBuiltins}). */
-  readonly builtins: readonly string[];
+  /** The session's tools: every agent's built-ins and the engine's own tools any of them needs (`agents.ts`). */
+  readonly tools: readonly string[];
   /** Every in-process server: the host's shell, when offered, and the bridged ones, by name. */
   readonly mcpServers: Readonly<Record<string, McpServerConfig>>;
-  /** Whether any MCP tool is offered, which the engine defers behind its tool search. */
-  readonly anyMcpTool: boolean;
+  /** The skills-only plugins this adapter wrote (`skill-plugins.ts`). */
+  readonly plugins: readonly SdkPluginConfig[];
+  /** The turn's skills, by the engine's ids: the exact allowlist. */
+  readonly skills: readonly string[];
+  /** The sub-agents' definitions, by type (`agents.ts`). */
+  readonly agents: Readonly<Record<string, AgentDefinition>>;
   readonly systemAppend: string;
   readonly model: string;
   readonly thinkingMode: EffectiveThinkingMode;
@@ -117,7 +130,7 @@ export interface EngineOptionsInputs {
 
 /** The engine's options for one invocation (the header). */
 export function engineOptions(inputs: EngineOptionsInputs): Options {
-  const tools = engineTools(inputs.builtins, inputs.anyMcpTool);
+  const tools = [...inputs.tools];
   const shell = tools.includes(HOST_SHELL_TOOL.engineName);
   return {
     cwd: inputs.cwd,
@@ -129,11 +142,15 @@ export function engineOptions(inputs: EngineOptionsInputs): Options {
     tools,
     ...(shell ? { toolAliases: { [HOST_SHELL_TOOL.engineName]: HOST_SHELL_TOOL.aliasedName } } : {}),
     mcpServers: { ...inputs.mcpServers },
-    skills: [],
+    ...(inputs.plugins.length > 0 ? { plugins: [...inputs.plugins], pluginDelivery: "initialize" as const } : {}),
+    skills: [...inputs.skills],
+    ...(Object.keys(inputs.agents).length > 0 ? { agents: { ...inputs.agents } } : {}),
     settings: {
       permissions: { ask: ["*"] },
       attribution: { commit: "", pr: "" },
       enabledPlugins: Object.fromEntries(BUILT_IN_PLUGINS.map((plugin) => [plugin, false])),
+      disableSkillShellExecution: true,
+      disableAllHooks: true,
     },
     includePartialMessages: true,
     forwardSubagentText: true,

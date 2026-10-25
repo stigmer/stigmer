@@ -21,7 +21,7 @@ import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { NATIVE_TOOL_COVERS } from "@stigmer/tool-vocabulary";
 
 import { _resetRegistryCache } from "../model-registry.js";
-import { pluginSubagentScope, savedSubagentScope, subagentModel, subagentOwner } from "../subagents.js";
+import { pluginSubagentScope, savedSubagentScope, subagentModel, subagentOwner, subagentPromptExtras } from "../subagents.js";
 import { ToolScope } from "../tool-lists.js";
 
 describe("savedSubagentScope", () => {
@@ -142,5 +142,18 @@ describe("subagentModel", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
 
     expect(await subagentModel("claude-sonnet-4-5", Harness.NATIVE, Harness.NATIVE)).toBeUndefined();
+  });
+});
+
+describe("subagentPromptExtras", () => {
+  it("adds the outputs folder's line exactly when the subagent may write", () => {
+    expect(subagentPromptExtras({ writesAllowed: true, readsWorkspace: false, hasRepositoryInstructions: false }).outputsLine).toBe(true);
+    expect(subagentPromptExtras({ writesAllowed: false, readsWorkspace: true, hasRepositoryInstructions: true }).outputsLine).toBe(false);
+  });
+
+  it("adds the repository's instructions only when there are some and its own scope reads the workspace", () => {
+    expect(subagentPromptExtras({ writesAllowed: false, readsWorkspace: true, hasRepositoryInstructions: true }).repositoryInstructions).toBe(true);
+    expect(subagentPromptExtras({ writesAllowed: true, readsWorkspace: false, hasRepositoryInstructions: true }).repositoryInstructions).toBe(false);
+    expect(subagentPromptExtras({ writesAllowed: true, readsWorkspace: true, hasRepositoryInstructions: false }).repositoryInstructions).toBe(false);
   });
 });

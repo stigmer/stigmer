@@ -7,8 +7,11 @@
  * and is never handed a refused turn. Here the SDK is a stand-in whose
  * `query` plays a script, so each of the turn's own decisions is pinned:
  *
- *  - the refusals, each actionable with its sentence: skills, sub-agents,
- *    the fast tier, a model that is not Claude;
+ *  - the refusals, each actionable with its sentence: the fast tier, a
+ *    model that is not Claude, skills that cannot be named apart;
+ *  - the engine is handed the turn's skills as plugins it can load, with
+ *    their exact allowlist, and its sub-agents as definitions, and a skill
+ *    or sub-agent the engine did not load is warned of;
  *  - the turn's internal failures: no turn key (the engine runs only in the
  *    agent host), no model lane, an http store with no endpoint, an engine
  *    that fails before any result;
@@ -22,7 +25,7 @@
  *  - a teardown that fails is logged and never masks the outcome.
  */
 
-import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Options, Query, SDKMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
@@ -189,9 +192,18 @@ describe("runClaudeTurn", () => {
 
   it("refuses what it cannot run yet, each with the sentence that says how", async () => {
     const refusals: [Parameters<typeof turnInputFixture>[0], RegExp][] = [
-      [{ skills: { root: [{ name: "s", description: "d", path: "/s" }], bySubAgent: new Map() } }, /has skills/],
-      [{ skills: { root: [], bySubAgent: new Map([["helper", [{ name: "s", description: "d", path: "/s" }]]]) } }, /has skills/],
-      [{ subagents: [{ name: "helper" } as unknown as TurnSubagent] }, /sub-agents/],
+      [
+        {
+          skills: {
+            root: [
+              { name: "notes.style", description: "d", path: ".stigmer/skills/notes.style/SKILL.md" },
+              { name: "notes-style", description: "d", path: ".stigmer/skills/notes-style/SKILL.md" },
+            ],
+            bySubAgent: new Map(),
+          },
+        },
+        /both load on Claude as 'agent:notes-style'/,
+      ],
       [{ model: { requested: FIXTURE_CLAUDE_MODEL, serviceTier: ServiceTier.FAST, thinkingMode: ThinkingMode.DISABLED } }, /fast tier/],
       [{ model: { requested: "fixture-model", serviceTier: ServiceTier.STANDARD, thinkingMode: ThinkingMode.DISABLED } }, /Claude models only/],
     ];
@@ -296,6 +308,47 @@ describe("runClaudeTurn", () => {
     const outcome = await turn(turnInput, new RecordingTurnSink({ input: channel }), sdk, { ...CONFIG, checkpointerType: "sqlite" });
     expect(outcome.kind).toBe("completed");
     expect(opened?.uuid, "the owed message, under its own id, never the task").toBe(sentMessageIdOf(owed.id));
+  });
+
+  it("hands the engine the turn's skills as plugins and its sub-agents as definitions, and warns of what it did not load", async () => {
+    const warn = vi.spyOn(console, "warn");
+    const skillDir = join(env.workspaceRootDir, ".stigmer", "skills", "review");
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(join(skillDir, "SKILL.md"), "---\nname: review\nallowed-tools: Bash\n---\nReview carefully.\n");
+    const review = { name: "review", description: "Reviews a change.", path: ".stigmer/skills/review/SKILL.md" };
+    const runner: TurnSubagent = {
+      name: "test-runner",
+      description: "Runs the tests.",
+      instructions: "You run the tests.",
+      model: undefined,
+      toolScope: ToolScope.of("Subagent \"test-runner\"", { tools: [], disallowedTools: ["Agent"] }),
+      servers: [],
+      skills: [],
+      hooks: [],
+      values: { RUNNER_ONLY: "1" },
+      bringsOwn: { plugins: false, hooks: false, lists: false, mcpServers: false },
+    };
+    let written = "";
+    const { sdk, played } = scriptedSdk(async function* (run) {
+      const plugin = run.options.plugins?.[0];
+      written = plugin === undefined ? "" : readFileSync(join(plugin.path, "skills", "review", "SKILL.md"), "utf8");
+      yield init();
+      yield result();
+    });
+    const outcome = await turn(input({ skills: { root: [review], bySubAgent: new Map() }, subagents: [runner] }), new RecordingTurnSink(), sdk);
+    expect(outcome.kind).toBe("completed");
+    const options = played[0]!.options;
+    expect(options.skills).toEqual(["agent:review"]);
+    expect(options.plugins).toHaveLength(1);
+    expect(options.pluginDelivery).toBe("initialize");
+    expect(written).toBe('---\nname: "review"\ndescription: "Reviews a change."\n---\n\nReview carefully.\n');
+    expect(options.tools).toEqual(expect.arrayContaining(["Skill", "Agent", "Bash"]));
+    expect(Object.keys(options.agents ?? {})).toEqual(["test-runner"]);
+    expect(options.agents?.["test-runner"]).toMatchObject({ description: "Runs the tests.", model: "inherit", mcpServers: ["stigmer"] });
+    expect(options.agents?.["test-runner"]?.tools).not.toContain("Agent");
+    expect(options.agents?.["test-runner"]?.tools).not.toContain("Skill");
+    const warned = warn.mock.calls.map((args) => String(args[0]));
+    expect(warned.some((line) => line.includes("the engine did not load skill agent:review, sub-agent test-runner"))).toBe(true);
   });
 
   it("warns of an agent's tool list naming an MCP tool no server offers", async () => {

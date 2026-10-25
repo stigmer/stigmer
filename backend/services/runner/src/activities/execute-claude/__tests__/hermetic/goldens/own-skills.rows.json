@@ -1,0 +1,52 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "toolu_skill_review",
+          "name": "Skill",
+          "args": {
+            "skill": "agent:review"
+          },
+          "result": "Launching skill: agent:review",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "completedAt": "2026-01-01T00:00:01.000Z",
+          "argsPreview": "{\"skill\":\"agent:review\"}"
+        },
+        {
+          "id": "toolu_skill_notes",
+          "name": "Skill",
+          "args": {
+            "skill": "agent:notes.style"
+          },
+          "result": "Launching skill: agent:notes.style",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:02.000Z",
+          "completedAt": "2026-01-01T00:00:02.000Z",
+          "argsPreview": "{\"skill\":\"agent:notes.style\"}"
+        },
+        {
+          "id": "toolu_skill_glob",
+          "name": "Glob",
+          "args": {
+            "pattern": "*.md"
+          },
+          "result": "No files found",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:03.000Z",
+          "completedAt": "2026-01-01T00:00:03.000Z",
+          "argsPreview": "{\"pattern\":\"*.md\"}",
+          "toolKind": "TOOL_KIND_SEARCH"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Reviewed.",
+      "timestamp": "2026-01-01T00:00:04.000Z"
+    }
+  ]
+}

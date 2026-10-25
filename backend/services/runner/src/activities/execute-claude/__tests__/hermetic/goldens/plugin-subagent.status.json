@@ -1,0 +1,26 @@
+{
+  "phase": "RUN_COMPLETED",
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "completedAt": "2026-01-01T00:00:05.000Z",
+  "streamingUsage": {
+    "inputTokens": "50",
+    "outputTokens": "25",
+    "totalTokens": "75",
+    "turnCount": 6,
+    "estimatedCostUsd": 0.0005250000000000001,
+    "model": "claude-sonnet-4.6",
+    "observedAt": "2026-01-01T00:00:05.000Z",
+    "requestedServiceTier": "SERVICE_TIER_STANDARD",
+    "requestedThinkingMode": "THINKING_MODE_DISABLED"
+  },
+  "loadedVersions": {
+    "plugins": [
+      {
+        "org": "hermetic-org",
+        "kind": "plugin",
+        "version": "5156a63894b075221db98cbbd2747140a2bb5051700b643aa65d6662c3e735fc",
+        "id": "plg_acme"
+      }
+    ]
+  }
+}

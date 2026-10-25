@@ -13,8 +13,9 @@
  *    server's listing read, each schema loosened where a pattern cannot
  *    compile under the unicode flag, so one vendor pattern never leaves a
  *    tool uncallable;
- *  - the agent's per-server and per-tool lists decide what is listed, and a
- *    call to a tool out of scope is refused before it reaches its server;
+ *  - the agents' per-server and per-tool lists decide what is listed (the
+ *    turn's agents answer as one predicate, `agents.ts`), and a call to a
+ *    tool nobody may call is refused before it reaches its server;
  *    the platform's own servers are outside every list and outside the
  *    approval default's listing;
  *  - calls are forwarded unchanged and their answers returned, a server's
@@ -194,6 +195,11 @@ const SCOPE = ToolScope.of("agent", {
   disallowedTools: ["mcp__web__secret"],
 });
 
+/** A scope as the bridge's predicate. */
+function inScope(scope: ToolScope): (slug: string, tool: string) => boolean {
+  return (slug, tool) => scope.allowsMcpTool(slug, tool);
+}
+
 /** The engine's side of one bridged server: a client over the SDK's in-process channel. */
 async function engineClient(server: McpServer): Promise<Client> {
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
@@ -228,7 +234,7 @@ describe("connectBridge over a real stdio server and a real HTTP server", () => 
   it("lists in-scope tools under the engine's names, forwards calls, and closes every connection", async () => {
     const bridge = await connectBridge(
       [stdioServer("local", { DECLARED_VALUE: "declared" }), httpServer("web", { Authorization: "Bearer web-login" }), httpServer("chan", { Authorization: "Bearer platform-login" }, true)],
-      SCOPE,
+      inScope(SCOPE),
       new Set(["chan"]),
     );
 
@@ -311,7 +317,7 @@ describe("connectBridge over a real stdio server and a real HTTP server", () => 
   it("closes what it connected when connecting fails half way", async () => {
     const pidFile = join(dir, "endless.pid");
     await expect(
-      connectBridge([stdioServer("endless", { BRIDGE_TEST_MODE: "endless", PID_FILE: pidFile })], ToolScope.unrestricted(), new Set()),
+      connectBridge([stdioServer("endless", { BRIDGE_TEST_MODE: "endless", PID_FILE: pidFile })], () => true, new Set()),
     ).rejects.toThrow("MCP server 'endless' answered more than 100 pages of tools");
     const pid = Number(await readFile(pidFile, "utf8"));
     await until(() => !isAlive(pid), "the half-connected server exits");
@@ -320,7 +326,7 @@ describe("connectBridge over a real stdio server and a real HTTP server", () => 
   it("raises a server the connections hold no client for", async () => {
     const missing = vi.spyOn(MultiServerMCPClient.prototype, "getClient").mockResolvedValue(undefined);
     try {
-      await expect(connectBridge([stdioServer("local")], ToolScope.unrestricted(), new Set())).rejects.toThrow("MCP server 'local' did not connect");
+      await expect(connectBridge([stdioServer("local")], () => true, new Set())).rejects.toThrow("MCP server 'local' did not connect");
     } finally {
       missing.mockRestore();
     }
@@ -328,13 +334,13 @@ describe("connectBridge over a real stdio server and a real HTTP server", () => 
 
   it("raises a server that does not connect", async () => {
     const dead: ResolvedMcpServer = { ...stdioServer("dead"), args: ["-e", "process.exit(3)"] };
-    await expect(connectBridge([dead], ToolScope.unrestricted(), new Set())).rejects.toThrow();
+    await expect(connectBridge([dead], () => true, new Set())).rejects.toThrow();
   });
 
   it("connects nothing for a turn with no servers, or none it can reach", async () => {
     const commandless: ResolvedMcpServer = { slug: "nothing", connectionType: "stdio", home: { kind: "platform" } };
     for (const servers of [[], [commandless]]) {
-      const bridge = await connectBridge(servers, SCOPE, new Set());
+      const bridge = await connectBridge(servers, inScope(SCOPE), new Set());
       bridges.push(bridge);
       expect(bridge.servers.size).toBe(0);
       expect(bridge.offered.size).toBe(0);

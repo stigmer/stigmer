@@ -23,7 +23,13 @@
  *  - What it must not do on its own (each a documented switch of the
  *    engine): no traffic of its own beyond model calls, no updates, no
  *    built-in sub-agents, no background commands or agents (a command the
- *    engine left running would outlive the turn), no auto memory, no
+ *    engine left running would outlive the turn, and every sub-agent runs
+ *    to its end before the main agent goes on), no forked sub-agents (a
+ *    fork copies the conversation with the main agent's tools), no
+ *    sub-agent below the first, no more sub-agents at once than the native
+ *    engine runs (`shared/subagent-gate.ts`; a call past the cap is refused
+ *    at once on both), no bundled skills (only the turn's own load,
+ *    `skill-plugins.ts`), no auto memory, no
  *    `CLAUDE.md` of its own reading (the repository's instructions reach it
  *    the way they reach every engine, `prompt.ts`), no web fetch from its
  *    process, and the to-do list as `TodoWrite`, which the runtime projects
@@ -37,6 +43,8 @@
  * sandbox the container cannot start, and the engine starts no process of
  * its own (the shell is the host's, `host-shell.ts`).
  */
+
+import { DEFAULT_MAX_CONCURRENT } from "../../shared/subagent-gate.js";
 
 /** What one invocation's environment is built from. */
 export interface EngineEnvironmentInputs {
@@ -65,6 +73,10 @@ export const ENGINE_SWITCHES: Readonly<Record<string, string>> = {
   CLAUDE_CODE_DISABLE_CLAUDE_MDS: "1",
   CLAUDE_CODE_DISABLE_WEB_FETCH: "1",
   CLAUDE_CODE_ENABLE_TASKS: "0",
+  CLAUDE_CODE_FORK_SUBAGENT: "0",
+  CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: "1",
+  CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS: String(DEFAULT_MAX_CONCURRENT),
+  CLAUDE_CODE_DISABLE_BUNDLED_SKILLS: "1",
 };
 
 /** The engine's environment, whole (the header). */

@@ -14,8 +14,9 @@
  * (`shared/repository-instructions.ts`: `AGENTS.md`, else `CLAUDE.md`), so
  * here `AGENTS.md` is read and `CLAUDE.md` is not.
  *
- * The engine still lists its bundled skills in its init message; none of
- * them reaches a request, and the engine has no Skill tool to call them by.
+ * The engine's bundled skills are off (`CLAUDE_CODE_DISABLE_BUNDLED_SKILLS`,
+ * `engine-env.ts`): its init lists none, none reaches a request, and a turn
+ * with no skills has no Skill tool.
  *
  * Egress: every request the engine makes, its agent loop and its own token
  * counts alike, arrives on the proxy's Anthropic lane with the run's
@@ -34,6 +35,9 @@ import { ScriptedClock, createHermeticEnvironment } from "../../../../__test-uti
 import { localPathEntry } from "../../../../__test-utils__/git-workspace-fixture.js";
 import { anthropicText, anthropicToolUses } from "../../__test-utils__/claude-wire.js";
 import { FIXTURE, claudeExecutionRecord, claudeScenarioFile } from "../../__test-utils__/hermetic-claude.js";
+
+/** Skills the engine bundles (SDK 0.3.310, listed at init before the switch turned them off). */
+const BUNDLED_SKILLS = ["deep-research", "dataviz", "update-config", "code-review", "fewer-permission-prompts", "claude-api", "workflow-authoring", "run-skill-generator"];
 
 const env = createHermeticEnvironment();
 const clock = new ScriptedClock();
@@ -94,8 +98,8 @@ describe("ExecuteClaude hermetic — the engine reads nothing of its own", () =>
 
     expect(init).toContain(`tools=${OFFERED_AT_INIT} `);
     expect(init).toContain(" agents= plugins= ");
-    const bundledSkills = (/ skills=(.*)$/.exec(init)?.[1] ?? "").split(",").filter((name) => name.includes("-"));
-    expect(bundledSkills.length, "the engine still lists bundled skills it is never given").toBeGreaterThan(0);
+    const listed = (/ skills=(.*)$/.exec(init)?.[1] ?? "").split(",").filter((name) => name !== "");
+    expect(listed.filter((name) => BUNDLED_SKILLS.includes(name)), "the engine lists none of its bundled skills").toEqual([]);
 
     const conversations = file.wire().conversations;
     expect(conversations.length).toBe(2);
@@ -103,7 +107,7 @@ describe("ExecuteClaude hermetic — the engine reads nothing of its own", () =>
       const body = JSON.stringify(conversation.body);
       expect([...conversation.toolNames].sort()).toEqual(OFFERED_IN_REQUEST);
       expect(conversation.system, "the repository's instructions, read as every engine reads them").toContain(AGENTS_MD_MARK);
-      for (const absent of [CLAUDE_MD_MARK, ...WORKSPACE_NAMES, ...bundledSkills, "MEMORY.md", "auto memory", "Co-Authored-By", "Generated with"]) {
+      for (const absent of [CLAUDE_MD_MARK, ...WORKSPACE_NAMES, ...BUNDLED_SKILLS, "MEMORY.md", "auto memory", "Co-Authored-By", "Generated with"]) {
         expect(body.includes(absent), `'${absent}' reached a model call`).toBe(false);
       }
     }

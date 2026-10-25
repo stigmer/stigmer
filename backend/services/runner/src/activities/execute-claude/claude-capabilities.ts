@@ -9,8 +9,10 @@
  *    (`gate.ts`): no turn of this harness ends `awaiting_approval` yet.
  *  - `deterministic`: the engine's session id is derived from the thread id
  *    the runtime mints (`engine-session-id.ts`), so nothing is bound.
- *  - Sub-agents as `agents` definitions; a turn whose agent has them is
- *    refused until the harness passes them (`turn.ts`).
+ *  - Sub-agents as `agents` definitions, each run to its end before the
+ *    main agent goes on, with its own tools, skills, servers and shell
+ *    values (`agents.ts`); the agent's skills load through the engine's own
+ *    Skill tool, from plugins the harness writes (`skill-plugins.ts`).
  *  - No hooks: the agent's hooks run through the gate once it pauses, so an
  *    agent with hooks is refused up front by the runtime, never run without
  *    them (`harness/turn-context.ts`).

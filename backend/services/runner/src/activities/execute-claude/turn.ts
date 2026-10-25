@@ -9,11 +9,14 @@
  * nothing is parked between invocations. What an invocation does, in order:
  *
  *  1. Refuse what this harness does not run yet, before anything starts:
- *     an agent with skills or sub-agents, the fast tier, a model that is not
- *     Claude. Each refusal is `actionable`, with the sentence that says how.
- *  2. Connect the turn's MCP servers in the host (`mcp-bridge.ts`), decide
- *     the tools the engine is offered (`engine-options.ts`), and build the
- *     gate over them (`gate.ts`).
+ *     the fast tier, a model that is not Claude. Each refusal is
+ *     `actionable`, with the sentence that says how; so is a turn whose
+ *     skills cannot be named apart (`skill-plugins.ts`).
+ *  2. Decide the turn's agents, the main one and every sub-agent it may
+ *     start (`agents.ts`); connect their MCP servers in the host, once each
+ *     (`mcp-bridge.ts`); decide what each is offered (`engine-options.ts`)
+ *     and build the gate over every caller's reach (`gate.ts`); write the
+ *     turn's skills as plugins in the engine's home (`skill-plugins.ts`).
  *  3. Read the session's transcript from the store (`session-store.ts`,
  *     `transcript-facts.ts`): a new run hands the engine its message; a run
  *     the engine already took is continued without the task (stigmer#2417),
@@ -49,6 +52,7 @@ import type { Config } from "../../config.js";
 import type { TurnInputChannel } from "../../harness/turn-input.js";
 import type { TurnInput, TurnOutcome, TurnSink } from "../../harness/types.js";
 import { buildMcpApprovalDefault } from "../../shared/approval-policy.js";
+import { skillContentReadCheck } from "../../shared/skill-mount.js";
 import { toAnthropicImageBlocks } from "../../shared/attachment-vision.js";
 import { emitTimingLog } from "../../shared/cold-start-timing.js";
 import { getExecutionContext } from "../../shared/execution-context.js";
@@ -60,23 +64,24 @@ import { ensureLoaded as ensurePricingLoaded, getModelPricing } from "../../shar
 import { getDefaultModel, resolveToApiModelId } from "../../shared/model-registry.js";
 import { shouldPersistStreamingStatus } from "../../shared/persist-decision.js";
 import { readRootInstructionsWith, renderRepositoryInstructions } from "../../shared/repository-instructions.js";
-import { buildShellEnv, shellRunValues } from "../../shared/shell-env.js";
+import { buildShellEnv } from "../../shared/shell-env.js";
 import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/streaming-scheduler.js";
-import { checkMainToolListResolution, claudeToolsOf } from "../../shared/tool-lists.js";
-import { getClaudeInvocationDir, getClaudeTranscriptDir } from "../../shared/workspace/platform-dir.js";
+import { getClaudeInvocationDir, getClaudeTranscriptDir, getPlatformDir } from "../../shared/workspace/platform-dir.js";
+import { agentDefinitionsOf, bridgeServersOf, checkAgentToolLists, subagentSpecsOf, turnAgentsOf, type SubagentSpec, type TurnAgents } from "./agents.js";
 import { engineEnvironment } from "./engine-env.js";
-import { CLAUDE_ENGINE_TOOL_COVERS, engineAddedTools, engineOptions, engineTools, offeredBuiltins, userMessageOf } from "./engine-options.js";
+import { engineOptions, userMessageOf } from "./engine-options.js";
 import { engineSessionIdOf, runMessageIdOf, sentMessageIdOf } from "./engine-session-id.js";
 import { FileTranscripts } from "./file-store.js";
-import { ClaudeGate, canUseToolOf, gateFactsOf, preToolUseHooks } from "./gate.js";
+import { ClaudeGate, canUseToolOf, gateFactsOf, gateHooks, type Caller } from "./gate.js";
 import { hostShellServer, HOST_SHELL_TOOL } from "./host-shell.js";
 import { HttpTranscripts } from "./http-store.js";
 import { connectBridge, type McpBridge } from "./mcp-bridge.js";
-import { composeSystemAppend, composeTurnMessage, instructionRoots, workspaceInstructionReader } from "./prompt.js";
+import { composeSubagentPrompt, composeSystemAppend, composeTurnMessage, instructionRoots, skillsSection, workspaceInstructionReader } from "./prompt.js";
 import { PromptStream } from "./prompt-stream.js";
 import { MidTurnInput, sentMessageOf } from "./mid-turn-input.js";
 import { MemoryTranscripts, sessionStoreFor, type TranscriptBacking } from "./session-store.js";
 import { settleClaudeTurn, type InvocationEnd } from "./settle.js";
+import { SkillNameClash, writeSkillPlugins } from "./skill-plugins.js";
 import { transcriptFactsOf, type TranscriptFacts } from "./transcript-facts.js";
 import { ClaudeTranslator } from "./translator.js";
 import { ClaudeUsage } from "./usage.js";
@@ -106,10 +111,11 @@ export async function runClaudeTurn(input: TurnInput, sink: TurnSink, config: Cl
   try {
     refuseUnsupported(input);
     const model = await resolveModel(input);
-    bridge = await connectTools(input, sink);
-    return await engineTurn(input, sink, config, sdk, { model, bridge, home });
+    const specs = await subagentSpecsOf(input);
+    bridge = await connectTools(input, sink, specs);
+    return await engineTurn(input, sink, config, sdk, { model, bridge, home, specs });
   } catch (err) {
-    if (err instanceof Refusal) {
+    if (err instanceof Refusal || err instanceof SkillNameClash) {
       console.warn(`ExecuteClaude refused the turn: execution=${input.executionId}, ${err.message}`);
       return { kind: "failed", surface: "actionable", message: err.message, cause: err };
     }
@@ -124,11 +130,6 @@ export async function runClaudeTurn(input: TurnInput, sink: TurnSink, config: Cl
 
 /** Step 1 of the header. */
 function refuseUnsupported(input: TurnInput): void {
-  const skills = input.skills.root.length + [...input.skills.bySubAgent.values()].reduce((n, list) => n + list.length, 0);
-  if (skills > 0) throw new Refusal("This agent has skills, which Claude does not run yet. Run it on another engine, or remove its skills.");
-  if (input.subagents.length > 0 || input.blueprint.pluginAgents.length > 0) {
-    throw new Refusal("This agent hands work to sub-agents, which Claude does not run yet. Run it on another engine, or remove its sub-agents.");
-  }
   if (input.model.serviceTier === ServiceTier.FAST) throw new Refusal("Claude does not offer the fast tier yet. Run this turn on the standard tier.");
 }
 
@@ -145,9 +146,10 @@ async function resolveModel(input: TurnInput): Promise<TurnModel> {
   return { registryId, apiId };
 }
 
-async function connectTools(input: TurnInput, sink: TurnSink): Promise<McpBridge> {
-  if (input.mcp.servers.length > 0) await sink.reportProgress("Connecting tools…");
-  const bridge = await connectBridge(input.mcp.servers, input.mcp.toolScope, input.mcp.platformServerSlugs);
+async function connectTools(input: TurnInput, sink: TurnSink, specs: readonly SubagentSpec[]): Promise<McpBridge> {
+  const { servers, inScope } = bridgeServersOf(input, specs);
+  if (servers.length > 0) await sink.reportProgress("Connecting tools…");
+  const bridge = await connectBridge(servers, inScope, input.mcp.platformServerSlugs);
   sink.setupTiming.mark("connect_mcp");
   sink.recordActivity();
   return bridge;
@@ -196,6 +198,7 @@ interface EngineTurnDeps {
   readonly model: TurnModel;
   readonly bridge: McpBridge;
   readonly home: string;
+  readonly specs: readonly SubagentSpec[];
 }
 
 async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapterConfig, sdk: ClaudeSdk, deps: EngineTurnDeps): Promise<TurnOutcome> {
@@ -206,24 +209,23 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
   const laneEndpoint = config.proxyEndpoint ?? modelLanes()?.endpoint;
   if (laneEndpoint === undefined) throw new Error("the agent host has no model lane to send the Claude engine's calls through");
 
-  // The tools, the gate over them, and the lists checked against what binds.
+  // The agents, each one's tools, the lists checked against what binds, and the gate over every caller.
   const planMode = input.execution.spec!.interactionMode === InteractionMode.PLAN;
-  const builtins = offeredBuiltins(input.mcp.toolScope, planMode);
-  const shell = builtins.includes(HOST_SHELL_TOOL.engineName);
-  checkMainToolListResolution(
-    input.mcp.toolScope,
-    { claudeTools: claudeToolsOf(builtins, CLAUDE_ENGINE_TOOL_COVERS), hasMcp: (server, tool) => hasTool(bridge, server, tool), anyMcp: bridge.offered.size > 0 },
-    (line) => console.warn(`[claude-turn] ${line}`),
-  );
+  const agents = turnAgentsOf(input, deps.specs, bridge, { planMode, structuredOutput: input.structuredOutputSchema !== undefined });
+  checkAgentToolLists(input, agents, bridge, { planMode });
   let halted = false;
-  const offered = new Set([
-    ...engineTools(builtins, bridge.offered.size > 0),
-    ...engineAddedTools(input.structuredOutputSchema !== undefined),
-    ...bridge.offered,
-    ...(shell ? [HOST_SHELL_TOOL.aliasedName] : []),
-  ]);
+  const platformDir = getPlatformDir(input.sessionId);
   const isCapturable = (path: string): Promise<boolean> => (workspace.gitWorkspace ? isPathCapturable(workspace.primaryDir, path.replace(/^\/+/, "")) : Promise.resolve(false));
-  const gate = new ClaudeGate(gateFactsOf(input, offered, bridge.serverOf, buildMcpApprovalDefault(bridge.listing, input.mcp.leases), isCapturable), () => halted);
+  const gate = new ClaudeGate(
+    gateFactsOf(
+      input,
+      { root: agents.root.reach, subagents: new Map([...agents.subagents].map(([name, world]) => [name, world.reach])) },
+      { serverOf: bridge.serverOf, mcpDefault: buildMcpApprovalDefault(bridge.listing, input.mcp.leases) },
+      { platformDir, engineHome: home, readsSkillContent: skillContentReadCheck(platformDir) },
+      isCapturable,
+    ),
+    () => halted,
+  );
   sink.setupTiming.mark("build_gate");
 
   // The conversation so far, and what the engine is handed first.
@@ -235,19 +237,24 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
     return { kind: "completed" };
   }
 
-  // The prompt's append, with the repository's own instructions.
+  // The prompt's append, with the repository's own instructions, and each sub-agent's prompt.
   const maxChars = input.execution.status?.runConfig?.maxToolResultChars || 30_000;
   const roots = instructionRoots(workspace.primaryDir, workspace.provision.provisionResults.map((result) => result.rootDir));
   const instructions = await readRootInstructionsWith(workspaceInstructionReader(workspace.primaryDir), roots, maxChars);
-  const systemAppend = composeSystemAppend(input, await input.standing.selectRecalledMemories(), renderRepositoryInstructions(instructions));
+  const repositoryInstructionsSection = renderRepositoryInstructions(instructions);
+  const turnSkillCount = agents.skills.length;
+  const systemAppend = composeSystemAppend(input, await input.standing.selectRecalledMemories(), repositoryInstructionsSection, skillsSection(agents.root.skills, turnSkillCount));
+  const definitions = await agentDefinitionsOf(agents, (world) =>
+    composeSubagentPrompt(world, { turnSkillCount, planMode, repositoryInstructionsSection, primaryDir: workspace.primaryDir }),
+  );
 
   // The engine's servers: the host's shell and the bridged ones.
   const abort = new AbortController();
   const mcpServers: Record<string, McpServerConfig> = {};
-  if (shell) {
+  if (agents.shell) {
     const shellServer = hostShellServer({
       cwd: workspace.primaryDir,
-      env: buildShellEnv(shellRunValues(input.values)),
+      envFor: (caller) => buildShellEnv(shellValuesOf(agents, caller)),
       maxTimeoutSeconds: config.shellTimeoutMaxSeconds,
       gate,
       stopSignal: sink.stopSignal,
@@ -264,6 +271,7 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
   const midTurn = new MidTurnInput(sink, stream);
 
   await mkdir(home, { recursive: true });
+  const plugins = await writeSkillPlugins(home, agents.skills);
   const sessionId = engineSessionIdOf(input.threadId);
   const options = engineOptions({
     cwd: workspace.primaryDir,
@@ -275,13 +283,15 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
       projectKey: sessionId,
       path: process.env.PATH ?? "/usr/bin:/bin",
     }),
-    builtins,
+    tools: agents.sessionTools,
     mcpServers,
-    anyMcpTool: bridge.offered.size > 0,
+    plugins,
+    skills: agents.skills.map((skill) => skill.id),
+    agents: definitions,
     systemAppend,
     model: model.apiId,
     thinkingMode: input.model.thinkingMode,
-    hooks: preToolUseHooks(gate),
+    hooks: gateHooks(gate),
     canUseTool: canUseToolOf(gate),
     sessionStore: sessionStoreFor(input.threadId, backing),
     session: facts.exists ? { resume: sessionId } : { start: sessionId },
@@ -296,11 +306,12 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
     session_id: input.sessionId,
     harness: "claude",
     mcp_server_count: declaredServerCount(input.mcp.servers),
-    skill_count: 0,
+    skill_count: agents.skills.length,
     workspace_entry_count: workspace.provision.provisionResults.length,
   }, sink.setupTiming);
 
   const end = await runEngine(input, sink, sdk, {
+    expected: { skills: agents.skills.map((skill) => skill.id), agents: Object.keys(definitions) },
     stream,
     midTurn,
     options,
@@ -315,16 +326,14 @@ async function engineTurn(input: TurnInput, sink: TurnSink, config: ClaudeAdapte
   return settleClaudeTurn(sink, end);
 }
 
-/** Whether the bridge offers `tool` of `server` (any of its tools for `null`). */
-function hasTool(bridge: McpBridge, server: string, tool: string | null): boolean {
-  for (const name of bridge.offered) {
-    const owner = bridge.serverOf(name);
-    if (owner?.slug === server && (tool === null || owner.tool === tool)) return true;
-  }
-  return false;
+/** The run values a caller's shell holds: a sub-agent's own, else the main agent's. */
+function shellValuesOf(agents: TurnAgents, caller: Caller): Readonly<Record<string, string>> {
+  return caller.kind === "subagent" ? (agents.subagents.get(caller.type)?.shellValues ?? agents.root.shellValues) : agents.root.shellValues;
 }
 
 interface EngineRun {
+  /** What the engine should report loading at its init: the turn's skills by id and its sub-agents' types. */
+  readonly expected: { readonly skills: readonly string[]; readonly agents: readonly string[] };
   readonly stream: PromptStream;
   readonly midTurn: MidTurnInput;
   readonly options: Parameters<ClaudeSdk["query"]>[0]["options"];
@@ -405,6 +414,11 @@ async function runEngine(input: TurnInput, sink: TurnSink, sdk: ClaudeSdk, run: 
             `[claude-turn] execution=${input.executionId} engine init: tools=${named(message.tools)} mcp=${named(message.mcp_servers.map((s) => `${s.name}:${s.status}`))}` +
               ` agents=${named(message.agents)} plugins=${named(message.plugins.map((p) => p.name))} skills=${named(message.skills)}`,
           );
+          const missing = [
+            ...run.expected.skills.filter((skill) => !message.skills.includes(skill)).map((skill) => `skill ${skill}`),
+            ...run.expected.agents.filter((agent) => !(message.agents ?? []).includes(agent)).map((agent) => `sub-agent ${agent}`),
+          ];
+          if (missing.length > 0) console.warn(`[claude-turn] execution=${input.executionId} the engine did not load ${missing.join(", ")}`);
         }
         if (message.subtype === "mirror_error") {
           mirrorError ??= message.error;
