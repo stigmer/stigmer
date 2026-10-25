@@ -14,9 +14,17 @@
  * SDK retries a batch); the uuids a file holds are read from it once per
  * turn, on its first append. A turn runs alone on its session (the
  * workspace lock), so nothing else writes these files while it does.
+ *
+ * Every write ends its last entry with a newline, so text after a file's
+ * last newline is a write a crash cut short: no append that wrote it ever
+ * returned. It is not an entry: a read leaves it out, and the first append
+ * after it cuts it off before writing, so the next entry starts on a line
+ * of its own. A complete line that does not parse is damage no crash
+ * explains, and a read of it throws: resuming over it would hand the engine
+ * a conversation with a hole.
  */
 
-import { appendFile, mkdir, readdir, readFile, rm } from "node:fs/promises";
+import { appendFile, mkdir, readdir, readFile, rm, truncate } from "node:fs/promises";
 import { join } from "node:path";
 import type { SessionStoreEntry } from "@anthropic-ai/claude-agent-sdk";
 
@@ -36,7 +44,9 @@ export class FileTranscripts implements TranscriptBacking {
     const file = this.fileOf(threadId, subpath);
     let seen = this.seen.get(file);
     if (seen === undefined) {
-      seen = new Set((await readEntries(file) ?? []).flatMap((entry) => (typeof entry.uuid === "string" ? [entry.uuid] : [])));
+      const read = await readTranscript(file);
+      if (read !== null && read.torn) await truncate(file, read.completeBytes);
+      seen = new Set((read?.entries ?? []).flatMap((entry) => (typeof entry.uuid === "string" ? [entry.uuid] : [])));
       this.seen.set(file, seen);
     }
     const fresh = unseenEntries(seen, entries);
@@ -45,8 +55,10 @@ export class FileTranscripts implements TranscriptBacking {
     await appendFile(file, fresh.map((entry) => `${JSON.stringify(entry)}\n`).join(""));
   }
 
+  /** The file's complete entries; `null` when it holds none, as a first write a crash cut short leaves it: no conversation to resume. */
   async load(threadId: string, subpath: string | undefined): Promise<SessionStoreEntry[] | null> {
-    return readEntries(this.fileOf(threadId, subpath));
+    const read = await readTranscript(this.fileOf(threadId, subpath));
+    return read === null || read.entries.length === 0 ? null : read.entries;
   }
 
   async listSubkeys(threadId: string): Promise<string[]> {
@@ -75,19 +87,31 @@ export class FileTranscripts implements TranscriptBacking {
   }
 }
 
-/** A transcript file's entries, or `null` when it does not exist. */
-async function readEntries(file: string): Promise<SessionStoreEntry[] | null> {
-  let text: string;
+/** A transcript file as read (the header); `null` when it does not exist. */
+interface ReadTranscript {
+  readonly entries: SessionStoreEntry[];
+  /** Whether the file ends in a write a crash cut short. */
+  readonly torn: boolean;
+  /** The bytes up to and including the last complete line. */
+  readonly completeBytes: number;
+}
+
+async function readTranscript(file: string): Promise<ReadTranscript | null> {
+  let bytes: Buffer;
   try {
-    text = await readFile(file, "utf8");
+    bytes = await readFile(file);
   } catch (err) {
     if (isMissing(err)) return null;
     throw err;
   }
-  return text
+  const completeBytes = bytes.lastIndexOf(0x0a) + 1;
+  const entries = bytes
+    .subarray(0, completeBytes)
+    .toString("utf8")
     .split("\n")
     .filter((line) => line !== "")
     .map((line) => JSON.parse(line) as SessionStoreEntry);
+  return { entries, torn: completeBytes < bytes.length, completeBytes };
 }
 
 function isMissing(err: unknown): boolean {

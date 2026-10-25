@@ -369,6 +369,34 @@ describe("the file backing on disk", () => {
     expect(await files.listSubkeys(THREAD)).toEqual([]);
   });
 
+  it("leaves out a last write a crash cut short, and starts the next append on a line of its own", async () => {
+    const root = join(await tempDir(), "transcripts");
+    const file = join(root, encodeURIComponent(THREAD), "transcript.jsonl");
+    await mkdir(join(file, ".."), { recursive: true });
+    await writeFile(file, `${JSON.stringify(entry("u1"))}\n{"type":"us`);
+    const files = new FileTranscripts(root);
+    expect(uuidsOf(await files.load(THREAD, undefined))).toEqual(["u1"]);
+    await files.append(THREAD, undefined, [entry("u1"), entry("u2")]);
+    expect(await readFile(file, "utf8")).toBe(`${JSON.stringify(entry("u1"))}\n${JSON.stringify(entry("u2"))}\n`);
+    expect(uuidsOf(await new FileTranscripts(root).load(THREAD, undefined))).toEqual(["u1", "u2"]);
+  });
+
+  it("reads a file whose only write was cut short as no conversation", async () => {
+    const root = join(await tempDir(), "transcripts");
+    const file = join(root, encodeURIComponent(THREAD), "transcript.jsonl");
+    await mkdir(join(file, ".."), { recursive: true });
+    await writeFile(file, '{"type":"us');
+    expect(await new FileTranscripts(root).load(THREAD, undefined)).toBeNull();
+  });
+
+  it("raises a complete line that does not parse: damage no crash explains", async () => {
+    const root = join(await tempDir(), "transcripts");
+    const file = join(root, encodeURIComponent(THREAD), "transcript.jsonl");
+    await mkdir(join(file, ".."), { recursive: true });
+    await writeFile(file, `not json\n${JSON.stringify(entry("u1"))}\n`);
+    await expect(new FileTranscripts(root).load(THREAD, undefined)).rejects.toThrow(SyntaxError);
+  });
+
   it("keeps a thread id with a path separator inside its own directory", async () => {
     const root = join(await tempDir(), "transcripts");
     await new FileTranscripts(root).append("a/../../b", undefined, [entry("u1")]);
