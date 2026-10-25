@@ -31,7 +31,7 @@ export const AGENT_GETS: Readonly<Record<AgentGetId, AgentGet>> = {
   },
   hours: {
     icon: "clock",
-    title: AGENT_GET_TITLES[hours],
+    title: AGENT_GET_TITLES.hours,
     description:
       "A job, not one request: it keeps going through restarts and reads what you send while it works.",
     cta: "A job that runs for hours",
@@ -47,14 +47,14 @@ export const AGENT_GETS: Readonly<Record<AgentGetId, AgentGet>> = {
   },
   walls: {
     icon: "lock",
-    title: AGENT_GET_TITLES[walls],
+    title: AGENT_GET_TITLES.walls,
     description: "Each customer's agents, files and keys stay apart. The editions say how.",
     cta: "Give each customer their own organization",
     href: "/docs/getting-started/one-organization-per-customer",
   },
   keys: {
     icon: "network",
-    title: AGENT_GET_TITLES[keys],
+    title: AGENT_GET_TITLES.keys,
     description:
       "Runs on your own model keys: Anthropic or Cursor anywhere, OpenAI too on Stigmer Cloud. On your servers or ours.",
     cta: "Open source, Enterprise and Cloud",
