@@ -142,11 +142,10 @@ export async function bootBenchmarkStack(runDir: string, stackRoot?: string): Pr
   await mkdir(runDir, { recursive: true });
   // The library entry: every working-agent cell provisions an organization
   // of its own (support/working-agent.ts).
-  /* v8 ignore next -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
+  /* v8 ignore start -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
   const serverEntry = await ensureLibraryServerEntry(stackRoot);
   const runnerEntry = await ensureRunnerBuilt(stackRoot);
 
-  /* v8 ignore start -- @preserve: the live benchmark is a hand-run script no vitest config collects (vitest.unit.config.ts tests only its pure readers) */
   const mcpFixture = new McpToolFixture();
   await mcpFixture.start();
   // The runner's directories are the stack's, so a replacement runs on them.
