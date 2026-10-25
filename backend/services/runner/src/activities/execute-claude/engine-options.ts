@@ -73,6 +73,14 @@ export function engineTools(builtins: readonly string[], anyMcpTool: boolean): s
   return deferred ? [...builtins, TOOL_SEARCH] : [...builtins];
 }
 
+/** The tool the engine adds of its own for a turn with an answer schema (`outputFormat`), which the model answers through (SDK 0.3.310). */
+export const STRUCTURED_OUTPUT_TOOL = "StructuredOutput";
+
+/** The tools the engine adds to a turn's own from its options, which the gate's closed world must know too. */
+export function engineAddedTools(structuredOutput: boolean): string[] {
+  return structuredOutput ? [STRUCTURED_OUTPUT_TOOL] : [];
+}
+
 /** The engine's built-in names, each mapped to the Claude tool it is (for a tool list's resolution). */
 export const CLAUDE_ENGINE_TOOL_COVERS: ReadonlyMap<string, readonly ClaudeTool[]> = new Map(
   OFFERABLE.flatMap((tool) => (tool.listedAs === null ? [] : [[tool.name, [tool.listedAs]] as const])),

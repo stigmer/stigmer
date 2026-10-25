@@ -18,8 +18,10 @@ import { ToolScope } from "../../../shared/tool-lists.js";
 import {
   BUILT_IN_PLUGINS,
   CLAUDE_ENGINE_TOOL_COVERS,
+  STRUCTURED_OUTPUT_TOOL,
   TOOL_SEARCH,
   engineOptions,
+  engineAddedTools,
   engineTools,
   offeredBuiltins,
   userMessageOf,
@@ -87,6 +89,13 @@ describe("offeredBuiltins", () => {
 
   it("maps each engine built-in to the Claude tool a list names it by", () => {
     expect([...CLAUDE_ENGINE_TOOL_COVERS.entries()]).toEqual(ALL_BUILTINS.map((name) => [name, [name]]));
+  });
+});
+
+describe("engineAddedTools", () => {
+  it("names the engine's own structured-answer tool exactly when the turn has a schema", () => {
+    expect(engineAddedTools(true)).toEqual([STRUCTURED_OUTPUT_TOOL]);
+    expect(engineAddedTools(false)).toEqual([]);
   });
 });
 

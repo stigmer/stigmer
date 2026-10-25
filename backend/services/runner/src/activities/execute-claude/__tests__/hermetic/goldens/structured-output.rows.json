@@ -1,0 +1,25 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "toolu_answer",
+          "name": "StructuredOutput",
+          "args": {
+            "answer": "42"
+          },
+          "result": "Structured output provided successfully",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "completedAt": "2026-01-01T00:00:01.000Z",
+          "argsPreview": "{\"answer\":\"42\"}"
+        }
+      ]
+    }
+  ],
+  "structuredOutput": {
+    "answer": "42"
+  }
+}

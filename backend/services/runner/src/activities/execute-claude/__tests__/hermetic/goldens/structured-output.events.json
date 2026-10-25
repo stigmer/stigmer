@@ -1,0 +1,32 @@
+[
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_use": {
+      "id": "aex_claude_0001.toolu_answer",
+      "input": {},
+      "name": "StructuredOutput"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_result": {
+      "id": "aex_claude_0001.toolu_answer.r",
+      "tool_use_id": "aex_claude_0001.toolu_answer",
+      "content": [
+        {
+          "type": "text",
+          "text": "Structured output provided successfully"
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "stigmer_agent_structured_output": {
+      "id": "aex_claude_0001.output",
+      "output": {
+        "answer": "42"
+      }
+    }
+  }
+]
