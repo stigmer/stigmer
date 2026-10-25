@@ -236,6 +236,13 @@ export interface HarnessContractSubject {
   /** What `adapter.boot` needs. The subject knows its adapter's fields; the kit does not. */
   readonly config: Config;
   /**
+   * The model this subject's engine runs, named on every record the runtime
+   * half builds (`status.run_config.model_name`); the record fixture's model
+   * when absent. An engine that runs only its own vendor's models (Claude)
+   * names one; an engine whose double ignores the model names none.
+   */
+  readonly model?: string;
+  /**
    * Arrange the engine so that the NEXT `runTurn` for `view.sessionId` plays
    * `turn` — REPLACING whatever was arranged for that session and not yet
    * played (a turn interrupted before its engine ran leaves no stale script

@@ -174,6 +174,7 @@ export class RuntimeExecutionDriver {
   ) {
     this.record = executionRecordFixture({
       message: RUNTIME_USER_MESSAGE,
+      ...(harness.subject.model !== undefined ? { modelName: harness.subject.model } : {}),
       ...recordOptions,
       ids: {
         org: "kit-org",
