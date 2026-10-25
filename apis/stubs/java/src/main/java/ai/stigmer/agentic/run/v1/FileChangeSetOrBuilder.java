@@ -54,8 +54,9 @@ public interface FileChangeSetOrBuilder extends
 
   /**
    * <pre>
-   * Harness that produced the edits: "cursor" | "deep-agent". Carried for audit
-   * and so the reconcile adapter knows which harness lifecycle authored the set.
+   * Harness that produced the edits: "cursor" | "deep-agent" | "claude".
+   * Carried for audit and so the reconcile adapter knows which harness
+   * lifecycle authored the set.
    * </pre>
    *
    * <code>string harness_id = 3 [json_name = "harnessId"];</code>
@@ -64,8 +65,9 @@ public interface FileChangeSetOrBuilder extends
   java.lang.String getHarnessId();
   /**
    * <pre>
-   * Harness that produced the edits: "cursor" | "deep-agent". Carried for audit
-   * and so the reconcile adapter knows which harness lifecycle authored the set.
+   * Harness that produced the edits: "cursor" | "deep-agent" | "claude".
+   * Carried for audit and so the reconcile adapter knows which harness
+   * lifecycle authored the set.
    * </pre>
    *
    * <code>string harness_id = 3 [json_name = "harnessId"];</code>

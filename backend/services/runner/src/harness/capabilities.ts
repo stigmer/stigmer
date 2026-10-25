@@ -19,9 +19,9 @@
  * runtime phase branches on either, so neither is declared here (#1135).
  *
  * The matrix the contract was designed against (2026-09 survey; the Claude
- * column's `pausePrimitive`, `stateIdSource`, `subAgents` and
- * `contextCompaction` re-measured 2026-10 against SDK 0.3.310; Codex is
- * surveyed, not built):
+ * column re-measured 2026-10 against SDK 0.3.310 and built,
+ * `activities/execute-claude/claude-capabilities.ts`; Codex is surveyed, not
+ * built):
  *
  * | Capability        | Native (LangGraph)          | Cursor (`@cursor/sdk`)                  | Claude (`@anthropic-ai/claude-agent-sdk`)     | Codex (`@openai/codex-sdk`)                    |
  * |-------------------|-----------------------------|-----------------------------------------|-----------------------------------------------|------------------------------------------------|
@@ -30,12 +30,12 @@
  * | system prompt     | yes                         | no (rides the first message)            | yes                                           | no (`AGENTS.md` or first message)              |
  * | `subAgents`       | yes (compiled sub-graphs)   | yes (`agents` option)                   | yes (`AgentDefinition`); a sub-agent's gated call cannot wait, so it is refused | no             |
  * | tool restriction  | yes (tool list)             | no (the hook enforces)                  | yes (`disallowedTools`, `tools`)              | per-server config                              |
- * | `runsHooks`       | yes (in the approval gate)  | yes (the gate's hook server)            | yes (its own hooks)                           | (surveyed later)                               |
- * | `visionProfile`   | PNG, JPEG, WebP, GIF        | PNG, JPEG (transport re-sniffs)         | (surveyed later)                              | (surveyed later)                               |
- * | `fileReview`      | `deep-agent`, no excludes   | `cursor`, the gate's files excluded     | (surveyed later)                              | (surveyed later)                               |
- * | `boundaryRewritesRow` | none                    | the boundary's reopened, hidden and refused rows | (surveyed later)                     | (surveyed later)                               |
- * | `subAgentProgress` | `streamed` (sub-graph events) | `at-completion` (the `task` result only) | (surveyed later)                          | (no sub-agents)                                |
- * | `continuation`    | `checkpoint` (the thread's saved step) | `digest` (a prompt on the resumed agent) | (surveyed later)                  | (surveyed later)                               |
+ * | `runsHooks`       | yes (in the approval gate)  | yes (the gate's hook server)            | not yet (through the gate once it pauses; an agent with hooks is refused) | (surveyed later)   |
+ * | `visionProfile`   | PNG, JPEG, WebP, GIF        | PNG, JPEG (transport re-sniffs)         | PNG, JPEG, WebP, GIF (native's: the same Messages API) | (surveyed later)                      |
+ * | `fileReview`      | `deep-agent`, no excludes   | `cursor`, the gate's files excluded     | `claude`, no excludes (its state is outside the workspace) | (surveyed later)                  |
+ * | `boundaryRewritesRow` | none                    | the boundary's reopened, hidden and refused rows | none                                 | (surveyed later)                               |
+ * | `subAgentProgress` | `streamed` (sub-graph events) | `at-completion` (the `task` result only) | `streamed` (`forwardSubagentText`)        | (no sub-agents)                                |
+ * | `continuation`    | `checkpoint` (the thread's saved step) | `digest` (a prompt on the resumed agent) | `checkpoint` (the session store's transcript) | (surveyed later)                  |
  * | `contextCompaction` | `runner-summarizer` (deepagents' in the graph) | `vendor-server` (Cursor's server) | `engine-cli` (the SDK's own)           | (surveyed later)                               |
  *
  * Adapter-internal, deliberately NOT flags: how MCP servers are bound, how

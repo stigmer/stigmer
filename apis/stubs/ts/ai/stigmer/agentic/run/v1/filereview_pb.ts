@@ -46,8 +46,9 @@ export type FileChangeSet = Message<"ai.stigmer.agentic.run.v1.FileChangeSet"> &
   turnId: string;
 
   /**
-   * Harness that produced the edits: "cursor" | "deep-agent". Carried for audit
-   * and so the reconcile adapter knows which harness lifecycle authored the set.
+   * Harness that produced the edits: "cursor" | "deep-agent" | "claude".
+   * Carried for audit and so the reconcile adapter knows which harness
+   * lifecycle authored the set.
    *
    * @generated from field: string harness_id = 3;
    */

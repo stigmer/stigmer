@@ -42,7 +42,8 @@
 #   builder        — compiles the runner and bundles the slim artifact for
 #                    this build's platform (its @cursor/sdk platform package
 #                    is the one npm installed here, so each arch's leg
-#                    builds its own)
+#                    builds its own; the Claude engine npm installs here is
+#                    never staged, scripts/bundle-slim.mjs NEVER_STAGED)
 #   runner-layer   — FROM scratch, /runner only. Published as
 #                    ghcr.io/stigmer/runner-layer, and `base` as
 #                    ghcr.io/stigmer/runner-base (release.sandbox-cloud)

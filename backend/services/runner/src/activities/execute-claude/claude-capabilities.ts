@@ -27,7 +27,7 @@
  *  - A continued turn resumes from the engine's own transcript, which holds
  *    every step (`session-store.ts`).
  *  - A message sent while the turn works reaches the engine before its next
- *    model call: it is pushed into the open prompt stream (`turn.ts`).
+ *    model call: it is pushed into the open prompt stream (`mid-turn-input.ts`).
  *  - The engine compacts its own context and says where (`compact_boundary`).
  */
 

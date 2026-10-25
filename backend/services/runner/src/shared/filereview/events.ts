@@ -316,7 +316,7 @@ export function buildCapturedFileChange(input: CapturedChangeInput): CapturedFil
 export interface ChangeSetContext {
   readonly changeSetId: string;
   readonly turnId: string;
-  /** "cursor" | "deep-agent". */
+  /** "cursor" | "deep-agent" | "claude". */
   readonly harnessId: string;
   /** ISO 8601 timestamp authored onto each event. */
   readonly timestamp: string;
