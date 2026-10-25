@@ -1,0 +1,147 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "toolu_model",
+          "name": "Agent",
+          "args": {
+            "description": "run the tests",
+            "prompt": "Run the tests and report.",
+            "subagent_type": "test-runner",
+            "model": "opus"
+          },
+          "status": "TOOL_CALL_FAILED",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "completedAt": "2026-01-01T00:00:01.000Z",
+          "error": "A helper runs on its own definition, so 'model' cannot be set; call it again without it. It was not run.",
+          "argsPreview": "{\"description\":\"run the tests\",\"prompt\":\"Run the tests and report.\",\"subagent_type\":\"test-runner\",\"model\":\"opus\"}",
+          "toolKind": "TOOL_KIND_SUBAGENT"
+        },
+        {
+          "id": "toolu_isolated",
+          "name": "Agent",
+          "args": {
+            "description": "run the tests",
+            "prompt": "Run the tests and report.",
+            "subagent_type": "test-runner",
+            "isolation": "worktree"
+          },
+          "status": "TOOL_CALL_FAILED",
+          "startedAt": "2026-01-01T00:00:02.000Z",
+          "completedAt": "2026-01-01T00:00:02.000Z",
+          "error": "A helper runs on its own definition, so 'isolation' cannot be set; call it again without it. It was not run.",
+          "argsPreview": "{\"description\":\"run the tests\",\"prompt\":\"Run the tests and report.\",\"subagent_type\":\"test-runner\",\"isolation\":\"worktree\"}",
+          "toolKind": "TOOL_KIND_SUBAGENT"
+        },
+        {
+          "id": "toolu_fork",
+          "name": "Agent",
+          "args": {
+            "description": "run the tests",
+            "prompt": "Run the tests and report.",
+            "subagent_type": "fork"
+          },
+          "status": "TOOL_CALL_FAILED",
+          "startedAt": "2026-01-01T00:00:03.000Z",
+          "completedAt": "2026-01-01T00:00:03.000Z",
+          "error": "There is no helper named 'fork' in this conversation; it was not run.",
+          "argsPreview": "{\"description\":\"run the tests\",\"prompt\":\"Run the tests and report.\",\"subagent_type\":\"fork\"}",
+          "toolKind": "TOOL_KIND_SUBAGENT"
+        },
+        {
+          "id": "toolu_delegate",
+          "name": "Agent",
+          "args": {
+            "description": "run the tests",
+            "prompt": "Run the tests and report.",
+            "subagent_type": "test-runner"
+          },
+          "result": "I could not run the tests.",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:04.000Z",
+          "completedAt": "2026-01-01T00:00:06.000Z",
+          "argsPreview": "{\"description\":\"run the tests\",\"prompt\":\"Run the tests and report.\",\"subagent_type\":\"test-runner\"}",
+          "toolKind": "TOOL_KIND_SUBAGENT"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "The helper could not run them.",
+      "timestamp": "2026-01-01T00:00:07.000Z"
+    }
+  ],
+  "subAgentRuns": [
+    {
+      "id": "toolu_model",
+      "name": "test-runner",
+      "input": "Run the tests and report.",
+      "status": "SUB_AGENT_FAILED",
+      "startedAt": "2026-01-01T00:00:01.000Z",
+      "completedAt": "2026-01-01T00:00:01.000Z",
+      "error": "A helper runs on its own definition, so 'model' cannot be set; call it again without it. It was not run.",
+      "subject": "run the tests"
+    },
+    {
+      "id": "toolu_isolated",
+      "name": "test-runner",
+      "input": "Run the tests and report.",
+      "status": "SUB_AGENT_FAILED",
+      "startedAt": "2026-01-01T00:00:02.000Z",
+      "completedAt": "2026-01-01T00:00:02.000Z",
+      "error": "A helper runs on its own definition, so 'isolation' cannot be set; call it again without it. It was not run.",
+      "subject": "run the tests"
+    },
+    {
+      "id": "toolu_fork",
+      "name": "fork",
+      "input": "Run the tests and report.",
+      "status": "SUB_AGENT_FAILED",
+      "startedAt": "2026-01-01T00:00:03.000Z",
+      "completedAt": "2026-01-01T00:00:03.000Z",
+      "error": "There is no helper named 'fork' in this conversation; it was not run.",
+      "subject": "run the tests"
+    },
+    {
+      "id": "toolu_delegate",
+      "name": "test-runner",
+      "input": "Run the tests and report.",
+      "output": "I could not run the tests.",
+      "status": "SUB_AGENT_COMPLETED",
+      "startedAt": "2026-01-01T00:00:04.000Z",
+      "completedAt": "2026-01-01T00:00:06.000Z",
+      "messages": [
+        {
+          "type": "MESSAGE_AI",
+          "timestamp": "2026-01-01T00:00:05.000Z",
+          "toolCalls": [
+            {
+              "id": "toolu_runner_asks",
+              "name": "Bash",
+              "args": {
+                "command": "touch .ran"
+              },
+              "status": "TOOL_CALL_FAILED",
+              "startedAt": "2026-01-01T00:00:05.000Z",
+              "completedAt": "2026-01-01T00:00:05.000Z",
+              "error": "This call needs a person's approval, which a helper cannot ask for; ask the agent that delegated to you to run this. It was not run.",
+              "argsPreview": "{\"command\":\"touch .ran\"}",
+              "toolKind": "TOOL_KIND_SHELL",
+              "approvalPolicySource": "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
+              "policyEngineVersion": "hooks-3"
+            }
+          ]
+        },
+        {
+          "type": "MESSAGE_AI",
+          "content": "I could not run the tests.",
+          "timestamp": "2026-01-01T00:00:06.000Z"
+        }
+      ],
+      "subject": "run the tests"
+    }
+  ]
+}

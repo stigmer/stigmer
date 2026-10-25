@@ -15,12 +15,20 @@
  *  3. the repository's own instructions, by the shared rule
  *     (`shared/repository-instructions.ts`), read through a confined reader
  *     ({@link workspaceInstructionReader});
- *  4. the channel templates an agent serving a channel may send;
- *  5. the standing context in the shared order
+ *  4. the agent's own skills, when the engine's listing does not already
+ *     name exactly them ({@link skillsSection});
+ *  5. the channel templates an agent serving a channel may send;
+ *  6. the standing context in the shared order
  *     (`shared/prompt-sections.ts`), framed as the native builder frames it;
- *  6. where files for the person go (the outputs folder), outside plan mode;
- *  7. the plan-mode or build-from-plan directive, the freshest instruction;
- *  8. the turn's own `appendSystemPrompt`, last.
+ *  7. where files for the person go (the outputs folder), outside plan mode;
+ *  8. the plan-mode or build-from-plan directive, the freshest instruction;
+ *  9. the turn's own `appendSystemPrompt`, last.
+ *
+ * A sub-agent's prompt ({@link composeSubagentPrompt}) is its instructions,
+ * its own skills on the same rule, then what the shared rule adds to every
+ * engine's sub-agent (`shared/subagents.ts` `subagentPromptExtras`): the
+ * outputs folder's line outside plan mode, and the repository's
+ * instructions when its own lists let it read the workspace.
  *
  * Rendered fresh every turn and never recorded with the conversation
  * (`engine-options.ts` passes it with the engine's snapshot off): the
@@ -42,6 +50,7 @@ import { basename, dirname, isAbsolute, join, relative } from "node:path";
 import { InteractionMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 
 import type { TurnInput } from "../../harness/types.js";
+import { subagentPromptExtras } from "../../shared/subagents.js";
 import { effectiveInstructions } from "../../shared/builtin-assistant-prompt.js";
 import { formatChannelTemplatesSection } from "../../shared/channel-attachment.js";
 import { formatConversationCatchupText } from "../../shared/conversation-catchup.js";
@@ -61,6 +70,8 @@ import type { RecalledMemoriesContent } from "../../shared/recalled-memories.js"
 import { type InstructionReader } from "../../shared/repository-instructions.js";
 import { STIGMER_LOCAL_STATE_DIR } from "../../shared/workspace/stigmer-link.js";
 import type { ProvisionResult } from "../../shared/workspace/types.js";
+import type { SubagentWorld } from "./agents.js";
+import type { EngineSkill } from "./skill-plugins.js";
 
 /** Each standing section's heading, as the native builder frames it. */
 const STANDING_SECTION_HEADINGS: Record<StandingSectionKind, string> = {
@@ -79,25 +90,70 @@ export function composeSystemAppend(
   input: TurnInput,
   recalledMemories: RecalledMemoriesContent | undefined,
   repositoryInstructionsSection: string,
+  ownSkillsSection = "",
 ): string {
   const spec = input.execution.spec!;
   const plan = spec.interactionMode === InteractionMode.PLAN;
   let prompt = effectiveInstructions(input.blueprint.instructions);
   prompt += workspaceSection(input.workspace.provision.provisionResults, input.workspace.primaryDir);
   prompt += repositoryInstructionsSection;
+  prompt += ownSkillsSection;
   if (input.mcp.channelMessaging.length > 0) {
     const templates = formatChannelTemplatesSection(input.mcp.channelMessaging);
     if (templates !== "") prompt += `\n\n${templates}`;
   }
   const standing = standingContextSections({ ...input.standing, recalledMemories });
   for (const section of standing) prompt += `\n\n## ${STANDING_SECTION_HEADINGS[section.kind]}\n\n${section.body}`;
-  if (!plan) prompt += `\n\n## Files for the person\n\n${outputsFolderInstruction(`${join(input.workspace.primaryDir, STIGMER_LOCAL_STATE_DIR, OUTPUTS_SUBDIR)}/`)}`;
+  if (!plan) prompt += filesForThePerson(input.workspace.primaryDir);
   if (plan) prompt += `\n\n## Plan mode\n\n${PLAN_MODE_DIRECTIVE}`;
   if (spec.buildFromPlan) {
     const planPath = findApprovedPlanPath(input.files.message);
     prompt += `\n\n## Implement the approved plan\n\n${buildImplementPlanDirective(planPath === undefined ? undefined : join(input.workspace.primaryDir, planPath))}`;
   }
   if (input.appendSystemPrompt) prompt += `\n\n${input.appendSystemPrompt}`;
+  return prompt;
+}
+
+/** Where files for the person go, in real paths (the header, item 7). */
+function filesForThePerson(primaryDir: string): string {
+  return `\n\n## Files for the person\n\n${outputsFolderInstruction(`${join(primaryDir, STIGMER_LOCAL_STATE_DIR, OUTPUTS_SUBDIR)}/`)}`;
+}
+
+/**
+ * The section an agent is told its own skills in, by the names the Skill
+ * tool takes, or "" when the engine's own listing already names exactly
+ * them. Measured on SDK 0.3.310: the engine names every skill of the turn
+ * to every agent, from its first request, so the section is written
+ * whenever an agent's own skills are fewer than the turn's, and says the
+ * others are not its to load (the gate refuses them, `gate.ts`).
+ */
+export function skillsSection(own: readonly EngineSkill[], turnSkillCount: number): string {
+  if (own.length === turnSkillCount) return "";
+  if (own.length === 0) {
+    return "\n\n## Skills\n\nYou have no skills of your own. The skill listing names skills of other agents in this conversation, which you cannot load.";
+  }
+  const lines = own.map((skill) => `- \`${skill.name}\`: ${skill.description}`);
+  return (
+    "\n\n## Skills\n\nThese are your skills. When the task calls for one, load it with the Skill tool by the name given here, and follow what it says. " +
+    "The skill listing may also name skills of other agents in this conversation, which you cannot load.\n\n" +
+    lines.join("\n")
+  );
+}
+
+/** A sub-agent's prompt (the header): its instructions, its own skills, then the shared extras. */
+export function composeSubagentPrompt(
+  world: Pick<SubagentWorld, "spec" | "skills">,
+  turn: { readonly turnSkillCount: number; readonly planMode: boolean; readonly repositoryInstructionsSection: string; readonly primaryDir: string },
+): string {
+  const extras = subagentPromptExtras({
+    writesAllowed: !turn.planMode,
+    readsWorkspace: world.spec.scope.allowsClaudeTool("Read"),
+    hasRepositoryInstructions: turn.repositoryInstructionsSection !== "",
+  });
+  let prompt = world.spec.instructions.trim() || world.spec.description;
+  prompt += skillsSection(world.skills, turn.turnSkillCount);
+  if (extras.outputsLine) prompt += filesForThePerson(turn.primaryDir);
+  if (extras.repositoryInstructions) prompt += turn.repositoryInstructionsSection;
   return prompt;
 }
 

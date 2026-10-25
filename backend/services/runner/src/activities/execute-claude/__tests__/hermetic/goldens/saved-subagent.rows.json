@@ -1,0 +1,114 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "toolu_delegate",
+          "name": "Agent",
+          "args": {
+            "description": "run the tests",
+            "prompt": "Run the tests and report.",
+            "subagent_type": "test-runner"
+          },
+          "result": "All suites pass.",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "completedAt": "2026-01-01T00:00:06.000Z",
+          "argsPreview": "{\"description\":\"run the tests\",\"prompt\":\"Run the tests and report.\",\"subagent_type\":\"test-runner\"}",
+          "toolKind": "TOOL_KIND_SUBAGENT",
+          "approvalPolicySource": "APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL",
+          "policyEngineVersion": "hooks-3"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "The tests pass.",
+      "timestamp": "2026-01-01T00:00:07.000Z"
+    }
+  ],
+  "subAgentRuns": [
+    {
+      "id": "toolu_delegate",
+      "name": "test-runner",
+      "input": "Run the tests and report.",
+      "output": "All suites pass.",
+      "status": "SUB_AGENT_COMPLETED",
+      "startedAt": "2026-01-01T00:00:01.000Z",
+      "completedAt": "2026-01-01T00:00:06.000Z",
+      "messages": [
+        {
+          "type": "MESSAGE_AI",
+          "timestamp": "2026-01-01T00:00:02.000Z",
+          "toolCalls": [
+            {
+              "id": "toolu_runner_skill",
+              "name": "Skill",
+              "args": {
+                "skill": "agent:ci-checklist"
+              },
+              "result": "Launching skill: agent:ci-checklist",
+              "status": "TOOL_CALL_COMPLETED",
+              "startedAt": "2026-01-01T00:00:02.000Z",
+              "completedAt": "2026-01-01T00:00:02.000Z",
+              "argsPreview": "{\"skill\":\"agent:ci-checklist\"}"
+            },
+            {
+              "id": "toolu_runner_ci",
+              "name": "mcp__ci__run",
+              "args": {
+                "target": "all"
+              },
+              "result": "CI green.",
+              "status": "TOOL_CALL_COMPLETED",
+              "startedAt": "2026-01-01T00:00:03.000Z",
+              "completedAt": "2026-01-01T00:00:03.000Z",
+              "mcpServerSlug": "ci",
+              "argsPreview": "{\"target\":\"all\"}",
+              "toolKind": "TOOL_KIND_MCP",
+              "approvalPolicySource": "APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL",
+              "policyEngineVersion": "hooks-3"
+            },
+            {
+              "id": "toolu_runner_shell",
+              "name": "Bash",
+              "args": {
+                "command": "echo \"$RUNNER_TOKEN|${MAIN_VALUE:-none}\"; echo $PPID > .runner-ppid"
+              },
+              "result": "runner-only|none\n",
+              "status": "TOOL_CALL_COMPLETED",
+              "startedAt": "2026-01-01T00:00:04.000Z",
+              "completedAt": "2026-01-01T00:00:04.000Z",
+              "argsPreview": "{\"command\":\"echo \\\"$RUNNER_TOKEN|${MAIN_VALUE:-none}\\\"; echo $PPID > .runner-ppid\"}",
+              "toolKind": "TOOL_KIND_SHELL",
+              "approvalPolicySource": "APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL",
+              "policyEngineVersion": "hooks-3"
+            },
+            {
+              "id": "toolu_runner_docs",
+              "name": "mcp__docs__lookup",
+              "args": {
+                "target": "x"
+              },
+              "status": "TOOL_CALL_FAILED",
+              "startedAt": "2026-01-01T00:00:05.000Z",
+              "completedAt": "2026-01-01T00:00:05.000Z",
+              "error": "<tool_use_error>Error: No such tool available: mcp__docs__lookup</tool_use_error>",
+              "mcpServerSlug": "docs",
+              "argsPreview": "{\"target\":\"x\"}",
+              "toolKind": "TOOL_KIND_MCP"
+            }
+          ]
+        },
+        {
+          "type": "MESSAGE_AI",
+          "content": "All suites pass.",
+          "timestamp": "2026-01-01T00:00:06.000Z"
+        }
+      ],
+      "subject": "run the tests"
+    }
+  ]
+}

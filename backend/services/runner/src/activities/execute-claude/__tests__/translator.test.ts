@@ -29,8 +29,8 @@ import type {
   SDKUserMessageReplay,
 } from "@anthropic-ai/claude-agent-sdk";
 
-import type { GateVerdict } from "../gate.js";
-import { ClaudeTranslator, resultText, type ClaudeTranslatorDeps } from "../translator.js";
+import { ROOT_CALLER, type GateVerdict } from "../gate.js";
+import { agentAnswerOf, ClaudeTranslator, resultText, type ClaudeTranslatorDeps } from "../translator.js";
 
 type StreamEvent = SDKPartialAssistantMessage["event"];
 type AssistantContent = SDKAssistantMessage["message"]["content"];
@@ -218,8 +218,8 @@ describe("ClaudeTranslator: tool results", () => {
 
   it("stamps the gate's provenance before the settle, so the row says which layer decided", () => {
     const verdicts = new Map<string, GateVerdict>([
-      ["toolu_allowed", { allow: true, source: "approval_lease" }],
-      ["toolu_refused", { allow: false, message: "no", source: "builtin_category" }],
+      ["toolu_allowed", { allow: true, source: "approval_lease", caller: ROOT_CALLER }],
+      ["toolu_refused", { allow: false, message: "no", source: "builtin_category", caller: ROOT_CALLER }],
     ]);
     const t = translator({ verdictOf: (id) => verdicts.get(id) });
     expect(t.translate(user([toolResult("toolu_allowed", "ok")]))).toEqual([
@@ -233,7 +233,7 @@ describe("ClaudeTranslator: tool results", () => {
   });
 
   it("stamps no provenance when the gate's verdict names no source", () => {
-    const t = translator({ verdictOf: () => ({ allow: true, source: undefined }) });
+    const t = translator({ verdictOf: () => ({ allow: true, source: undefined, caller: ROOT_CALLER }) });
     expect(t.translate(user([toolResult("toolu_1", "ok")]))).toEqual([{ kind: "tool_finished", callId: "toolu_1", result: "ok" }]);
   });
 
@@ -280,6 +280,23 @@ describe("ClaudeTranslator: sub-agents", () => {
       { kind: "tool_finished", callId: "toolu_agent", result: "three packages" },
       { kind: "sub_agent_finished", subAgentId: "toolu_agent", output: "three packages" },
     ]);
+  });
+
+  it("carries the sub-agent's own answer from the structured result, never the engine's hand-back frame", () => {
+    const t = translator();
+    t.translate(assistant("msg_1", [{ type: "tool_use", id: "toolu_agent", name: "Agent", input: agentInput }]));
+    const framed = "[Subagent hand-back] The report follows:\n  three packages\nagentId: a1b2\n<usage>duration_ms: 55</usage>";
+    const result = { ...user([toolResult("toolu_agent", [{ type: "text", text: framed }])]), tool_use_result: { status: "completed", agentId: "a1b2", content: [{ type: "text", text: "three packages" }, { type: "text", text: "and a script" }] } } as SDKUserMessage;
+    expect(t.translate(result)).toEqual([
+      { kind: "tool_finished", callId: "toolu_agent", result: "three packages\nand a script" },
+      { kind: "sub_agent_finished", subAgentId: "toolu_agent", output: "three packages\nand a script" },
+    ]);
+  });
+
+  it("falls back to the result's text when the structured result carries no answer", () => {
+    expect(agentAnswerOf(undefined)).toBeUndefined();
+    expect(agentAnswerOf({ content: "plain" })).toBeUndefined();
+    expect(agentAnswerOf({ content: [{ type: "image" }] })).toBeUndefined();
   });
 
   it("fails the sub-agent row when its call errors, and settles it once", () => {

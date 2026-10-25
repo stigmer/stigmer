@@ -1,0 +1,27 @@
+{
+  "messages": [
+    {
+      "type": "MESSAGE_AI",
+      "timestamp": "2026-01-01T00:00:01.000Z",
+      "toolCalls": [
+        {
+          "id": "toolu_skill_lint",
+          "name": "Skill",
+          "args": {
+            "skill": "acme:lint"
+          },
+          "result": "Launching skill: acme:lint",
+          "status": "TOOL_CALL_COMPLETED",
+          "startedAt": "2026-01-01T00:00:01.000Z",
+          "completedAt": "2026-01-01T00:00:01.000Z",
+          "argsPreview": "{\"skill\":\"acme:lint\"}"
+        }
+      ]
+    },
+    {
+      "type": "MESSAGE_AI",
+      "content": "Linted.",
+      "timestamp": "2026-01-01T00:00:02.000Z"
+    }
+  ]
+}

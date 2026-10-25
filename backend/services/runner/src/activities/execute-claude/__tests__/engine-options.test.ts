@@ -1,7 +1,8 @@
 /**
  * Pins what the Claude engine is started with (`engine-options.ts`): the
  * built-ins a turn offers, the isolation switches every invocation carries,
- * and the shape of a prompt-stream message.
+ * the turn's skills, plugins and sub-agents passed as given, and the shape
+ * of a prompt-stream message.
  *
  * Why it matters: each isolation switch is what keeps a repository's own
  * configuration (hooks, permissions, `CLAUDE.md`, `.mcp.json`, skills,
@@ -44,9 +45,11 @@ function inputs(overrides: Partial<EngineOptionsInputs> = {}): EngineOptionsInpu
     cwd: "/work/primary",
     additionalDirectories: [],
     env: { PATH: "/bin" },
-    builtins: ["Read"],
+    tools: ["Read"],
     mcpServers: {},
-    anyMcpTool: false,
+    plugins: [],
+    skills: [],
+    agents: {},
     systemAppend: "the append",
     model: "claude-sonnet-4-5",
     thinkingMode: ThinkingMode.DISABLED,
@@ -143,7 +146,12 @@ describe("engineOptions", () => {
       permissions: { ask: ["*"] },
       attribution: { commit: "", pr: "" },
       enabledPlugins: { "cc-plugin-agents-md@builtin": false, "cc-plugin-plugin-authoring@builtin": false },
+      disableSkillShellExecution: true,
+      disableAllHooks: true,
     });
+    expect(options).not.toHaveProperty("plugins");
+    expect(options).not.toHaveProperty("pluginDelivery");
+    expect(options).not.toHaveProperty("agents");
     expect(BUILT_IN_PLUGINS).toEqual(["cc-plugin-agents-md@builtin", "cc-plugin-plugin-authoring@builtin"]);
   });
 
@@ -173,32 +181,40 @@ describe("engineOptions", () => {
     });
   });
 
-  it("aliases the shell to the host's tool and adds tool search when the shell and to-do list are offered", () => {
-    const options = engineOptions(inputs({ builtins: ALL_BUILTINS }));
+  it("aliases the shell to the host's tool when the session's tools hold it", () => {
+    const options = engineOptions(inputs({ tools: [...ALL_BUILTINS, TOOL_SEARCH] }));
     expect(options.tools).toEqual([...ALL_BUILTINS, TOOL_SEARCH]);
     expect(options.toolAliases).toEqual({ Bash: "mcp__stigmer__bash" });
     expect(options.toolAliases).toEqual({ [HOST_SHELL_TOOL.engineName]: HOST_SHELL_TOOL.aliasedName });
   });
 
-  it("offers no tool search and no alias when neither a deferred tool nor the shell is offered", () => {
-    const options = engineOptions(inputs({ builtins: ["Read", "Grep"] }));
+  it("names no alias when the session's tools hold no shell", () => {
+    const options = engineOptions(inputs({ tools: ["Read", "Grep"] }));
     expect(options.tools).toEqual(["Read", "Grep"]);
     expect(options).not.toHaveProperty("toolAliases");
   });
 
-  it("adds tool search when any MCP tool is offered, even without a deferred built-in", () => {
-    expect(engineOptions(inputs({ builtins: ["Read"], anyMcpTool: true })).tools).toEqual(["Read", TOOL_SEARCH]);
+  it("never shares or mutates the caller's tool list", () => {
+    const tools = ["Read", "TodoWrite"];
+    const options = engineOptions(inputs({ tools }));
+    expect(options.tools).toEqual(tools);
+    expect(options.tools).not.toBe(tools);
   });
 
-  it("gives the engine the same tool list engineTools answers", () => {
-    expect(engineOptions(inputs({ builtins: ["Read", "NotebookEdit"] })).tools).toEqual(engineTools(["Read", "NotebookEdit"], false));
-    expect(engineOptions(inputs({ builtins: ["Read", "NotebookEdit"] })).tools).toEqual(["Read", "NotebookEdit", TOOL_SEARCH]);
+  it("loads the turn's skill plugins over the initialize request, with the exact skills allowlist", () => {
+    const plugins = [{ type: "local" as const, path: "/home/plugins/agent", skipMcpDiscovery: true }];
+    const options = engineOptions(inputs({ plugins, skills: ["agent:review", "acme:lint"] }));
+    expect(options.plugins).toEqual(plugins);
+    expect(options.plugins).not.toBe(plugins);
+    expect(options.pluginDelivery).toBe("initialize");
+    expect(options.skills).toEqual(["agent:review", "acme:lint"]);
   });
 
-  it("never mutates the caller's built-in list", () => {
-    const builtins = ["Read", "TodoWrite"];
-    engineOptions(inputs({ builtins }));
-    expect(builtins).toEqual(["Read", "TodoWrite"]);
+  it("passes the sub-agents' definitions by type", () => {
+    const agents = { reviewer: { description: "Reviews", prompt: "You review.", tools: ["Read"], model: "inherit" } };
+    const options = engineOptions(inputs({ agents }));
+    expect(options.agents).toEqual(agents);
+    expect(options.agents).not.toBe(agents);
   });
 
   it("copies the in-process servers rather than sharing the caller's record", () => {

@@ -1,6 +1,7 @@
 /**
  * Pins the Claude harness's prompt (`prompt.ts`): the system prompt's append
- * in its documented order, the roots whose instruction files it shows, the
+ * in its documented order, the section an agent is told its own skills in,
+ * a sub-agent's prompt, the roots whose instruction files it shows, the
  * confined reader of those files, and the turn's message.
  *
  * Why it matters: the append is rebuilt every turn and is the only place the
@@ -33,7 +34,10 @@ import type { MessageFile, MountedFile } from "../../../shared/file-mount.js";
 import { PLAN_MODE_DIRECTIVE } from "../../../shared/plan-mode-prompt.js";
 import { outputsFolderInstruction, standingContextSections } from "../../../shared/prompt-sections.js";
 import type { ProvisionResult } from "../../../shared/workspace/types.js";
-import { composeSystemAppend, composeTurnMessage, instructionRoots, workspaceInstructionReader } from "../prompt.js";
+import { ToolScope } from "../../../shared/tool-lists.js";
+import type { SubagentSpec } from "../agents.js";
+import { composeSubagentPrompt, composeSystemAppend, composeTurnMessage, instructionRoots, skillsSection, workspaceInstructionReader } from "../prompt.js";
+import { engineSkillOf } from "../skill-plugins.js";
 
 const PRIMARY = "/work/primary";
 
@@ -94,12 +98,14 @@ describe("composeSystemAppend", () => {
     });
     const recalled = { facts: ["Prefers small PRs."] };
     const repository = "\n\n## Repository instructions\n\nRun the linter.";
+    const skills = "\n\n## Skills\n\nYour skills.";
 
     const standing = standingContextSections({ sessionContext: "The person is on call.", contextBridge: "Earlier they asked about CI.", recalledMemories: recalled });
     const expected =
       "You review pull requests." +
       "\n\n## Workspace\n\nYour working directory is `/work/primary`.\n\n### service (`/work/primary`)\n\nThe service's repository.\n\nsrc/\n  main.ts" +
       repository +
+      skills +
       `\n\n${formatChannelTemplatesSection([channelInfo()])}` +
       `\n\n## Remembered facts\n\n${standing[0]!.body}` +
       `\n\n## Session context\n\n${standing[1]!.body}` +
@@ -107,7 +113,7 @@ describe("composeSystemAppend", () => {
       `\n\n## Files for the person\n\n${outputsFolderInstruction("/work/primary/.stigmer/outputs/")}` +
       `\n\n## Implement the approved plan\n\n${buildImplementPlanDirective("/work/primary/.stigmer/uploads/x.plan.md")}` +
       "\n\nAnswer in French.";
-    expect(composeSystemAppend(turn, recalled, repository)).toBe(expected);
+    expect(composeSystemAppend(turn, recalled, repository, skills)).toBe(expected);
   });
 
   it("frames the conversation sender and declared preferences under their own headings, sender first", () => {
@@ -182,6 +188,60 @@ describe("composeSystemAppend", () => {
   it("never carries the person's message", () => {
     const turn = input({ message: "a secret request only the message holds" });
     expect(composeSystemAppend(turn, undefined, "")).not.toContain("a secret request only the message holds");
+  });
+});
+
+describe("skillsSection", () => {
+  const review = engineSkillOf({ name: "review", description: "Reviews a change.", path: ".stigmer/skills/review/SKILL.md" }, PRIMARY);
+  const dotted = engineSkillOf({ name: "platform.x", description: "Knows the platform.", path: ".stigmer/skills/platform.x/SKILL.md" }, PRIMARY);
+
+  it("is empty when the engine's listing already names exactly the agent's skills", () => {
+    expect(skillsSection([review, dotted], 2)).toBe("");
+    expect(skillsSection([], 0)).toBe("");
+  });
+
+  it("names the agent's own skills by the names the Skill tool takes, and says the others are not its to load", () => {
+    const section = skillsSection([review, dotted], 3);
+    expect(section.startsWith("\n\n## Skills\n\n")).toBe(true);
+    expect(section).toContain("- `agent:review`: Reviews a change.\n- `agent:platform.x`: Knows the platform.");
+    expect(section).toContain("other agents in this conversation, which you cannot load");
+  });
+
+  it("tells an agent with no skills of its own that the listing's are others'", () => {
+    expect(skillsSection([], 2)).toBe("\n\n## Skills\n\nYou have no skills of your own. The skill listing names skills of other agents in this conversation, which you cannot load.");
+  });
+});
+
+describe("composeSubagentPrompt", () => {
+  const spec = (overrides: Partial<SubagentSpec> = {}): SubagentSpec => ({
+    name: "test-runner",
+    kind: "saved",
+    description: "Runs the tests.",
+    instructions: "You run the tests.\n",
+    scope: ToolScope.unrestricted(),
+    skills: [],
+    servers: [],
+    model: undefined,
+    shellValues: {},
+    ...overrides,
+  });
+  const repository = "\n\n## Repository instructions\n\nRun the linter.";
+  const ci = engineSkillOf({ name: "ci", description: "CI checks.", path: ".stigmer/skills/ci/SKILL.md" }, PRIMARY);
+
+  it("is its instructions, its own skills, the outputs folder and the repository's instructions, in that order", () => {
+    const prompt = composeSubagentPrompt({ spec: spec(), skills: [ci] }, { turnSkillCount: 2, planMode: false, repositoryInstructionsSection: repository, primaryDir: PRIMARY });
+    expect(prompt).toBe(
+      "You run the tests." + skillsSection([ci], 2) + `\n\n## Files for the person\n\n${outputsFolderInstruction("/work/primary/.stigmer/outputs/")}` + repository,
+    );
+  });
+
+  it("names no outputs folder in plan mode, and no repository instructions when its lists keep it from reading the workspace", () => {
+    const noRead = spec({ scope: ToolScope.of("Subagent", { tools: [], disallowedTools: ["Read"] }) });
+    expect(composeSubagentPrompt({ spec: noRead, skills: [] }, { turnSkillCount: 0, planMode: true, repositoryInstructionsSection: repository, primaryDir: PRIMARY })).toBe("You run the tests.");
+  });
+
+  it("stands on its description when it has no instructions", () => {
+    expect(composeSubagentPrompt({ spec: spec({ instructions: "  " }), skills: [] }, { turnSkillCount: 0, planMode: true, repositoryInstructionsSection: "", primaryDir: PRIMARY })).toBe("Runs the tests.");
   });
 });
 

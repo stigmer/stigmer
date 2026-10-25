@@ -14,6 +14,9 @@
  *    process group, the output capped at both ends, the group stopped when
  *    the turn stops;
  *  - the workspace's primary directory as its working directory;
+ *  - its caller's environment: the main agent's run values, or a saved
+ *    sub-agent's own, never the main agent's (the gate's verdict names the
+ *    caller, `gate.ts`), as the native engine gives each its own shell;
  *  - the engine's `timeout` (milliseconds, its default two minutes) clamped
  *    to the runner's ceiling (`Config.shellTimeoutMaxSeconds`), the result
  *    saying so when it was;
@@ -31,7 +34,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 import { formatCommandOutput, runCommand } from "../../shared/shell/run-command.js";
-import type { ClaudeGate } from "./gate.js";
+import type { Caller, ClaudeGate } from "./gate.js";
 import { inProcessServer, textResult, type InProcessCall } from "./in-process-server.js";
 
 /** The shell's names: the server and tool the engine is pointed at, and the built-in it stands in for. */
@@ -53,8 +56,8 @@ export const DEFAULT_SHELL_TIMEOUT_MS = 120_000;
 /** What the shell runs with for one turn. */
 export interface HostShellOptions {
   readonly cwd: string;
-  /** The command's whole environment (`buildShellEnv`). */
-  readonly env: Record<string, string>;
+  /** A command's whole environment by its caller (`buildShellEnv` over the caller's values). */
+  readonly envFor: (caller: Caller) => Record<string, string>;
   readonly maxTimeoutSeconds: number;
   readonly gate: Pick<ClaudeGate, "verdictOf">;
   /** Stops every running command (the turn's stop). */
@@ -98,7 +101,7 @@ export async function runShellCall(options: HostShellOptions, call: InProcessCal
   const result = await runCommand({
     command,
     cwd: options.cwd,
-    env: options.env,
+    env: options.envFor(verdict.caller),
     timeoutSeconds,
     signal: options.stopSignal,
     onOutput: (chunk) => {

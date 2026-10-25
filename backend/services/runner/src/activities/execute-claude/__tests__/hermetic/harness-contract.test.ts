@@ -21,9 +21,7 @@
  *    as it does a Cursor one; the engine has no round budget of Stigmer's;
  *  - an engine-side cancel: the engine never ends a run cancelled;
  *  - a cut vendor connection: every model call is its own request through
- *    the runner's proxy, so no connection outlives a call;
- *  - a working sub-agent: this harness refuses sub-agents until they are
- *    passed to the engine.
+ *    the runner's proxy, so no connection outlives a call.
  */
 
 import { afterAll, beforeAll, describe, vi } from "vitest";
@@ -68,7 +66,6 @@ describe("ExecuteClaude hermetic — the harness contract kit against the real a
     toolCallLimit: false,
     engineCancel: false,
     streamCut: false,
-    subagentOperation: false,
     knownGaps: {
       "approval-round-trip": GATE_ISSUE,
       deny: GATE_ISSUE,

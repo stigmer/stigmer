@@ -1,7 +1,10 @@
 /**
  * Pins the Claude engine's usage reports (`usage.ts`): one priced report per
  * main-loop model call, made when the call's `message_stop` arrives, from the
- * counts its `message_start` and last `message_delta` streamed.
+ * counts its `message_start` and last `message_delta` streamed; one per
+ * sub-agent call, its input, as its forwarded message arrives; and at each
+ * result, the output the result's cumulative figure holds that no call
+ * reported (a sub-agent's, which its messages carry as zero).
  *
  * Why it matters: the runtime enforces the cost cap from these reports, so a
  * call counted twice overcharges, a call never counted escapes the cap, and
@@ -130,4 +133,54 @@ describe("ClaudeUsage", () => {
     expect(usage.observe(stream({ type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "x" } }))).toBeUndefined();
     expect(usage.observe(stop())?.inputTokens).toBe(1);
   });
+
+  it("reports a sub-agent's call once by its message id, its input and cache buckets, priced at the turn's model", () => {
+    const usage = new ClaudeUsage(PRICING, "claude-sonnet-4-5");
+    const call = subagentMessage("msg_sub_1", { input: 100, cacheWrite: 20, cacheRead: 300 });
+    expect(usage.observe(call)).toEqual({
+      inputTokens: 420,
+      outputTokens: 0,
+      cacheReadTokens: 300,
+      cacheWriteTokens: 20,
+      estimatedCostUsd: (100 * 3 + 20 * 3.75 + 300 * 0.3) / 1_000_000,
+      model: "claude-sonnet-4-5",
+    });
+    expect(usage.observe(subagentMessage("msg_sub_1", { input: 100, cacheWrite: 20, cacheRead: 300 })), "the same call's next block").toBeUndefined();
+    expect(usage.observe({ ...subagentMessage("msg_main", { input: 5, cacheWrite: 0, cacheRead: 0 }), parent_tool_use_id: null } as SDKMessage), "the main loop's whole messages are the stream's").toBeUndefined();
+  });
+
+  it("reports at each result the output its cumulative figure holds and no call reported, and nothing more", () => {
+    const usage = new ClaudeUsage(PRICING, "m");
+    usage.observe(start({ input: 10, cacheWrite: 0, cacheRead: 0, output: 0 }));
+    usage.observe(delta(3));
+    usage.observe(stop());
+    usage.observe(subagentMessage("msg_sub_1", { input: 100, cacheWrite: 0, cacheRead: 0 }));
+    usage.observe(subagentMessage("msg_sub_2", { input: 200, cacheWrite: 0, cacheRead: 0 }));
+    expect(usage.observe(resultWith({ "claude-sonnet-4-6": 33 }))).toMatchObject({ inputTokens: 0, outputTokens: 30, estimatedCostUsd: (30 * 15) / 1_000_000 });
+    expect(usage.observe(resultWith({ "claude-sonnet-4-6": 33 })), "a second result with nothing new").toBeUndefined();
+    usage.observe(start({ input: 10, cacheWrite: 0, cacheRead: 0, output: 0 }));
+    usage.observe(delta(4));
+    usage.observe(stop());
+    expect(usage.observe(resultWith({ "claude-sonnet-4-6": 47, "claude-haiku-4-5": 5 })), "summed over every model, cumulative over the run").toMatchObject({ outputTokens: 15 });
+  });
 });
+
+function subagentMessage(id: string, usage: { input: number; cacheWrite: number; cacheRead: number }): SDKMessage {
+  return {
+    type: "assistant",
+    parent_tool_use_id: "toolu_agent",
+    message: { id, usage: { input_tokens: usage.input, cache_creation_input_tokens: usage.cacheWrite, cache_read_input_tokens: usage.cacheRead, output_tokens: 0 }, content: [] },
+    uuid: "00000000-0000-4000-8000-000000000003",
+    session_id: "s",
+  } as unknown as SDKMessage;
+}
+
+function resultWith(outputByModel: Record<string, number>): SDKMessage {
+  return {
+    type: "result",
+    subtype: "success",
+    modelUsage: Object.fromEntries(Object.entries(outputByModel).map(([model, outputTokens]) => [model, { inputTokens: 0, outputTokens, cacheReadInputTokens: 0, cacheCreationInputTokens: 0 }])),
+    uuid: "00000000-0000-4000-8000-000000000004",
+    session_id: "s",
+  } as unknown as SDKMessage;
+}

@@ -93,6 +93,23 @@ export function isInOutputsFolder(virtualPath: string): boolean {
 /** The outputs folder as the native file tools name it. */
 const OUTPUTS_VIRTUAL_PREFIX = `/${STIGMER_LOCAL_STATE_DIR}/${OUTPUTS_SUBDIR}/`;
 
+/**
+ * Whether a file tool's path, in the workspace's dialect (`/` its root),
+ * names platform content, which no turn writes: `.stigmer/` itself or
+ * anything under it but the outputs folder's contents. Skills, plugins and
+ * inputs are presented read-only, and a write there would reach the
+ * session's platform folder unreviewed; the native engine mounts it so
+ * (`execute-deep-agent/platform-route.ts`), and every engine's gate that
+ * judges paths reads this. Compared without regard to case: on a
+ * case-insensitive filesystem `.Stigmer/skills` is the same folder.
+ */
+export function isReadOnlyPlatformPath(virtualPath: string): boolean {
+  const normalized = posix.normalize(virtualPath.startsWith("/") ? virtualPath : `/${virtualPath}`).toLowerCase();
+  const root = `/${STIGMER_LOCAL_STATE_DIR}`;
+  if (normalized !== root && normalized !== `${root}/` && !normalized.startsWith(`${root}/`)) return false;
+  return !isInOutputsFolder(normalized);
+}
+
 /** One record of the index: an output as it was when it last came back. */
 interface IndexRecord {
   readonly sizeBytes: number;

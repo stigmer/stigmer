@@ -21,7 +21,11 @@
  *    The gate's provenance for the call (`gate.ts`) is stamped first
  *    (`tool_policy`), so the row says which layer let it run or refused it.
  *  - An `Agent` call opens and closes a sub-agent row around it, the
- *    sub-agent's own messages scoped to it by `parent_tool_use_id`.
+ *    sub-agent's own messages scoped to it by `parent_tool_use_id`. Its
+ *    result, on the call's row and the sub-agent's, is the sub-agent's own
+ *    answer, read from the result's structured content (`tool_use_result`):
+ *    the text the model reads wraps it in the engine's hand-back frame, with
+ *    the sub-agent's id and timing, which no row carries.
  *  - `compact_boundary` marks a compaction (`context_compacted`).
  *
  * Names: the engine's shell is reported under the name its model used,
@@ -157,7 +161,8 @@ export class ClaudeTranslator {
       const callId = block.tool_use_id;
       const verdict = this.deps.verdictOf(callId);
       if (verdict?.source !== undefined) out.push({ kind: "tool_policy", callId, provenance: verdict.source, policyHook: "", ...scope });
-      const text = resultText(block.content);
+      const answer = this.agentCalls.has(callId) && block.is_error !== true ? agentAnswerOf(message.tool_use_result) : undefined;
+      const text = answer ?? resultText(block.content);
       out.push(block.is_error === true ? { kind: "tool_error", callId, message: text, ...scope } : { kind: "tool_finished", callId, result: text, ...scope });
       if (this.agentCalls.delete(callId)) {
         out.push(block.is_error === true ? { kind: "sub_agent_failed", subAgentId: callId, error: text } : { kind: "sub_agent_finished", subAgentId: callId, output: text });
@@ -207,6 +212,17 @@ function toolInputOf(value: unknown): Record<string, unknown> {
 
 function stringOf(value: unknown): string {
   return typeof value === "string" ? value : "";
+}
+
+/** A sub-agent's own answer from an `Agent` call's structured result (the header); undefined when it carries none. */
+export function agentAnswerOf(toolUseResult: unknown): string | undefined {
+  const content = (toolUseResult as { content?: unknown } | null | undefined)?.content;
+  if (!Array.isArray(content)) return undefined;
+  const texts = content.flatMap((block: unknown) => {
+    const b = block as { type?: unknown; text?: unknown };
+    return b.type === "text" && typeof b.text === "string" ? [b.text] : [];
+  });
+  return texts.length === 0 ? undefined : texts.join("\n");
 }
 
 /**

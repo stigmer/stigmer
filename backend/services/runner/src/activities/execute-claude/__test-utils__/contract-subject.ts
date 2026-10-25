@@ -44,6 +44,13 @@
  *                       `whenOpen`, `emit` and `release` drive a real
  *                       command; under the record's whole-run trust, since a
  *                       shell is gated in every other posture.
+ *  - `open(id, { as: "subagent" })` → an `Agent` call (its own id,
+ *                       {@link delegationIdOf}) handing the work to the
+ *                       kit's saved helper, which the engine runs as a
+ *                       sub-agent; the helper's model, known by its
+ *                       instructions in its prompt, runs the same FIFO
+ *                       shell under `id`, then answers, and the main agent
+ *                       plays on once the delegation's result is in.
  *  - `message(text)`  → the kit's person sends `text` as the engine plays
  *                       the step before it; the step is done once the
  *                       conversation shows the engine read it: as a user
@@ -56,9 +63,9 @@
  *                       and counted, never taken for a step; a step before a
  *                       compaction the engine already did is done, since
  *                       the conversation that held it is now the summary.
- *  - `limit`, `cancelled`, `cut` and `open(…, subagent)` are refused at
- *    `arrange` as test bugs: the runtime arms that need them are declared
- *    off for this subject, each with its reason in the kit file.
+ *  - `limit`, `cancelled` and `cut` are refused at `arrange` as test bugs:
+ *    the runtime arms that need them are declared off for this subject,
+ *    each with its reason in the kit file.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -72,6 +79,8 @@ import type { ProposedAction } from "../../../__test-utils__/approval-contract/t
 import { KitOperations } from "../../../__test-utils__/harness-contract/kit-operations.js";
 import { RUNTIME_USER_MESSAGE } from "../../../__test-utils__/harness-contract/runtime-contract.js";
 import {
+  KIT_SUBAGENT_INSTRUCTIONS,
+  KIT_SUBAGENT_SLUG,
   messageAfter,
   type EngineView,
   type HarnessContractSubject,
@@ -275,7 +284,6 @@ class ClaudeSubject implements ClaudeContractSubject {
         if (step.surface !== "engine") throw new Error(`${this.name}: fail(..., "${step.surface}") is not producible by a model answer; test bug`);
         return;
       case "open":
-        if (step.as === "subagent") throw new Error(`${this.name}: open(…, { as: "subagent" }) is not translated while this harness refuses sub-agents; test bug`);
         return;
       case "limit":
       case "cancelled":
@@ -351,6 +359,7 @@ class ClaudeSubject implements ClaudeContractSubject {
       this.compacted.set(executionId, (this.compacted.get(executionId) ?? 0) + 1);
       return this.body(`<analysis>The kit's turn.</analysis>\n<summary>${COMPACTION_SUMMARY}</summary>`, [], { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
     }
+    if (conversation.system.includes(KIT_SUBAGENT_INSTRUCTIONS)) return this.playHelper(plan, conversation);
     this.lastConversations.set(executionId, conversation);
     const settled = new Set(conversation.toolResults.keys());
     const spoken = spokenThisTurn(conversation);
@@ -407,9 +416,14 @@ class ClaudeSubject implements ClaudeContractSubject {
           plan.usageFolded = true;
           return { error: { status: 400, body: { type: "error", error: { type: "invalid_request_error", message: step.message } } } };
         case "open":
+          if (step.as === "subagent") {
+            if (settled.has(delegationIdOf(step.toolCallId))) break;
+            this.sendAfter(plan, index);
+            return answer([{ id: delegationIdOf(step.toolCallId), name: "Agent", input: { description: "the kit's delegated work", prompt: "Do the delegated work.", subagent_type: KIT_SUBAGENT_SLUG } }]);
+          }
           if (settled.has(step.toolCallId)) break;
           this.sendAfter(plan, index);
-          return answer([{ id: step.toolCallId, name: "Bash", input: { command: this.operations.shellCommand(step.toolCallId), description: "the kit's operation" } }]);
+          return answer([this.operationCall(step.toolCallId)]);
         case "message":
           if (readTexts(conversation).some((said) => said.includes(step.text))) break;
           if (this.sentMessages.get(executionId)?.has(step.text)) {
@@ -452,6 +466,18 @@ class ClaudeSubject implements ClaudeContractSubject {
   }
 
   /** An ungated, effect-free call: the step boundary between two texts. */
+  /** The kit's helper's model call: the first delegated operation its conversation has not run, then its answer. */
+  private playHelper(plan: ArrangedTurn, conversation: WireConversation): AnthropicMessageBody {
+    const open = plan.steps.find((step) => step.kind === "open" && step.as === "subagent" && !conversation.toolResults.has(step.toolCallId));
+    const none = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+    return open?.kind === "open" ? this.body(undefined, [this.operationCall(open.toolCallId)], none) : this.body("The delegated work is done.", [], none);
+  }
+
+  /** The kit's FIFO shell for operation `id` (`harness-contract/kit-operations.ts`). */
+  private operationCall(id: string): WireToolUse {
+    return { id, name: "Bash", input: { command: this.operations.shellCommand(id), description: "the kit's operation" } };
+  }
+
   private neutralCall(): WireToolUse {
     return { id: `toolu_kit_boundary_${++this.mintCounter}`, name: "Glob", input: { pattern: "*" } };
   }
@@ -529,4 +555,9 @@ function addUsage(total: WireUsage, delta: { inputTokens?: number; outputTokens?
   total.output += delta.outputTokens ?? 0;
   total.cacheRead += delta.cacheReadTokens ?? 0;
   total.cacheWrite += delta.cacheWriteTokens ?? 0;
+}
+
+/** The `Agent` call that hands operation `id` to the kit's helper: its own id, since the helper's shell runs under `id`. */
+export function delegationIdOf(id: string): string {
+  return `${id}-delegation`;
 }

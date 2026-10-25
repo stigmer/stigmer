@@ -1,0 +1,35 @@
+[
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_use": {
+      "id": "aex_claude_0001.toolu_skill_lint",
+      "input": {},
+      "name": "Skill"
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_tool_result": {
+      "id": "aex_claude_0001.toolu_skill_lint.r",
+      "tool_use_id": "aex_claude_0001.toolu_skill_lint",
+      "content": [
+        {
+          "type": "text",
+          "text": "Launching skill: acme:lint"
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "aex_claude_0001",
+    "agent_message": {
+      "id": "aex_claude_0001.root.m1",
+      "content": [
+        {
+          "type": "text",
+          "text": "Linted."
+        }
+      ]
+    }
+  }
+]

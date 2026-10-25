@@ -148,12 +148,19 @@ test.describe("tool-call disclosure timeline (deterministic mock LLM)", () => {
     const diff = fileDiff(row).first();
     await expect(diff).toBeVisible();
     const clamp = diff.locator('[class*="overflow-hidden"]').first();
-    // Visible is not laid out: the clamp can read 0 high for a frame after the
-    // diff appears, so wait for its height before measuring it.
-    await expect.poll(() => clamp.evaluate((el) => el.clientHeight)).toBeGreaterThan(0);
-    const collapsed = await clamp.evaluate((el) => el.clientHeight);
-    const full = await clamp.evaluate((el) => el.scrollHeight);
-    expect(collapsed).toBeLessThan(full); // actually clipped, not the whole file
+    // Visible is not laid out, and the diff can re-render after it appears: a
+    // node read mid re-render reports 0 for one height and not the other
+    // (#2260). So both heights come from one read of one element, polled until
+    // the clamp is laid out and clipping: actually clipped, not the whole file.
+    // A clamp that never clips still fails, at the poll's timeout.
+    let measured = { collapsed: 0, full: 0 };
+    await expect
+      .poll(async () => {
+        measured = await clamp.evaluate((el) => ({ collapsed: el.clientHeight, full: el.scrollHeight }));
+        return measured.collapsed > 0 && measured.collapsed < measured.full;
+      })
+      .toBe(true);
+    const { collapsed } = measured;
     expect(collapsed).toBeLessThanOrEqual(220); // ~max-h-48 (192px) + table chrome
 
     // "Show more" reveals the rest IN PLACE — the clamp grows past its collapsed

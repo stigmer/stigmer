@@ -37,6 +37,7 @@ import { installAgentFs, localAgentFs } from "../agent-fs.js";
 import {
   collectOutputs,
   isInOutputsFolder,
+  isReadOnlyPlatformPath,
   MAX_OUTPUT_BYTES,
   MAX_OUTPUTS_PER_TURN,
   OUTPUTS_INDEX_FILE,
@@ -414,5 +415,19 @@ describe("isInOutputsFolder", () => {
     expect(isInOutputsFolder("/.stigmer/outputs.md")).toBe(false);
     expect(isInOutputsFolder("/src/.stigmer/outputs/x.md")).toBe(false);
     expect(isInOutputsFolder("/.stigmer/outputs/a/../b.md"), "any `..` segment, even one that stays inside").toBe(false);
+  });
+});
+
+describe("isReadOnlyPlatformPath", () => {
+  it("names `.stigmer/` and everything under it but the outputs folder's contents, however the path is spelled", () => {
+    for (const path of ["/.stigmer", "/.stigmer/", ".stigmer/skills/x/SKILL.md", "/.stigmer/plugins/abc/hooks/run.sh", "/.stigmer/inputs/a.txt", "/.stigmer/outputs", "/.stigmer/outputs/", "/.stigmer/outputs.md", "/.stigmer/outputs/../skills/x.md", "/src/../.stigmer/skills/x.md", "/.Stigmer/skills/x.md"]) {
+      expect(isReadOnlyPlatformPath(path), path).toBe(true);
+    }
+  });
+
+  it("leaves the outputs folder's contents and every workspace path writable", () => {
+    for (const path of ["/.stigmer/outputs/report.md", ".stigmer/outputs/reports/q3.md", "/.stigmer/outputs/a/../b.md", "/src/main.ts", "/.stigmerx/a.md", "/src/.stigmer/skills/x.md", "/"]) {
+      expect(isReadOnlyPlatformPath(path), path).toBe(false);
+    }
   });
 });

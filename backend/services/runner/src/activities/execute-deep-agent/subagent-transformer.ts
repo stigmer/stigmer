@@ -91,7 +91,7 @@ import { SubAgentGate } from "../../shared/subagent-gate.js";
 import type { SkillMetadata } from "../../shared/skill-resolver.js";
 import type { PluginSubagent } from "../../shared/blueprint-resolver.js";
 import type { TurnSubagent } from "../../harness/types.js";
-import { ONE_LEVEL_LAYER, pluginSubagentScope, subagentModel } from "../../shared/subagents.js";
+import { ONE_LEVEL_LAYER, pluginSubagentScope, subagentModel, subagentPromptExtras } from "../../shared/subagents.js";
 import { renderSkillsSection } from "./prompt-builder.js";
 import { ENGINE_TOOL } from "./engine-tools.js";
 
@@ -186,10 +186,13 @@ same files.
  * beneath its instructions ({@link readsWorkspace}).
  */
 export function compiledPrompt(spec: TransformedSubagent, writesAllowed: boolean, repositoryInstructionsSection = ""): string {
-  const own = !writesAllowed || spec.name === "explore"
-    ? spec.systemPrompt
-    : `${spec.systemPrompt}- ${outputsFolderInstruction(NATIVE_OUTPUTS_FOLDER)}\n`;
-  if (repositoryInstructionsSection === "" || !readsWorkspace(spec)) return own;
+  const extras = subagentPromptExtras({
+    writesAllowed: writesAllowed && spec.name !== "explore",
+    readsWorkspace: readsWorkspace(spec),
+    hasRepositoryInstructions: repositoryInstructionsSection !== "",
+  });
+  const own = extras.outputsLine ? `${spec.systemPrompt}- ${outputsFolderInstruction(NATIVE_OUTPUTS_FOLDER)}\n` : spec.systemPrompt;
+  if (!extras.repositoryInstructions) return own;
   return `${trimTrailingLineEnds(own)}${repositoryInstructionsSection}\n`;
 }
 

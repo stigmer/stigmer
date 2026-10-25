@@ -1,7 +1,7 @@
 /**
  * The rules every engine reads about a turn's subagents, in one place: the
- * tool scope a saved subagent and a plugin subagent each run under, and the
- * model each runs on. Pure but for the model registry read; no engine
+ * tool scope a saved subagent and a plugin subagent each run under, the
+ * model each runs on, and what its prompt carries beyond its own text. Pure but for the model registry read; no engine
  * import, so both harnesses and the runtime share it.
  *
  * One level: every subagent's scope denies `Agent` ({@link ONE_LEVEL_LAYER}),
@@ -52,6 +52,25 @@ export function pluginSubagentScope(
   return mainScope
     .narrow(`Subagent "${agent.name}"`, { tools: [...agent.tools], disallowedTools: [...agent.disallowedTools] })
     .narrow(ONE_LEVEL_LAYER.owner, ONE_LEVEL_LAYER.lists);
+}
+
+/** What a subagent's prompt carries beyond its own text ({@link subagentPromptExtras}). */
+export interface SubagentPromptExtras {
+  /** The outputs folder's line: it may save a file for the person. */
+  readonly outputsLine: boolean;
+  /** The workspace roots' instruction files, beneath its own text. */
+  readonly repositoryInstructions: boolean;
+}
+
+/**
+ * The one rule for what a subagent's prompt carries beyond its own text, on
+ * every engine: the outputs folder's line when it may write (never under
+ * plan mode, whose rules deny every write), and the repository's own
+ * instructions when there are any and its own scope may read the
+ * workspace, where they apply. Each engine words and places them.
+ */
+export function subagentPromptExtras(opts: { readonly writesAllowed: boolean; readonly readsWorkspace: boolean; readonly hasRepositoryInstructions: boolean }): SubagentPromptExtras {
+  return { outputsLine: opts.writesAllowed, repositoryInstructions: opts.hasRepositoryInstructions && opts.readsWorkspace };
 }
 
 /**

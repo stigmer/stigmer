@@ -12,6 +12,7 @@
 
 import { describe, it, expect, afterEach } from "vitest";
 
+import { DEFAULT_MAX_CONCURRENT } from "../../../shared/subagent-gate.js";
 import { CLAUDE_CLIENT_APP, ENGINE_SWITCHES, engineEnvironment, type EngineEnvironmentInputs } from "../engine-env.js";
 
 const INPUTS: EngineEnvironmentInputs = {
@@ -37,6 +38,10 @@ const GOLDEN: Record<string, string> = {
   CLAUDE_CODE_DISABLE_CLAUDE_MDS: "1",
   CLAUDE_CODE_DISABLE_WEB_FETCH: "1",
   CLAUDE_CODE_ENABLE_TASKS: "0",
+  CLAUDE_CODE_FORK_SUBAGENT: "0",
+  CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: "1",
+  CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS: "3",
+  CLAUDE_CODE_DISABLE_BUNDLED_SKILLS: "1",
   CLAUDE_AGENT_SDK_CLIENT_APP: "stigmer-runner",
 };
 
@@ -85,6 +90,10 @@ describe("the engine's environment", () => {
         Object.entries(GOLDEN).filter(([name]) => !["PATH", "HOME", "CLAUDE_CONFIG_DIR", "CLAUDE_CODE_PROJECT_DIR_NAME", "ANTHROPIC_BASE_URL", "ANTHROPIC_API_KEY", "CLAUDE_AGENT_SDK_CLIENT_APP"].includes(name)),
       ),
     );
+  });
+
+  it("caps concurrent sub-agents at the native engine's own number", () => {
+    expect(ENGINE_SWITCHES.CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS).toBe(String(DEFAULT_MAX_CONCURRENT));
   });
 
   it("lets no switch override an input-derived variable", () => {

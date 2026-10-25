@@ -2,7 +2,8 @@
  * Pins the Claude engine's shell as the agent host serves it
  * (`host-shell.ts`): the command runs only under the gate's allow for its
  * own call, in the workspace's directory, with exactly the environment the
- * turn hands it, its output streamed under the call's id, and every way it
+ * turn hands its caller (the main agent's, or a sub-agent's own), its
+ * output streamed under the call's id, and every way it
  * can end (an exit code, its timeout, the turn's stop, a shell that never
  * started) reported as a failure the model reads.
  *
@@ -23,11 +24,11 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import type { GateVerdict } from "../gate.js";
+import { ROOT_CALLER, type Caller, type GateVerdict } from "../gate.js";
 import { DEFAULT_SHELL_TIMEOUT_MS, HOST_SHELL_TOOL, hostShellServer, isHostShell, runShellCall, timeoutOf, type HostShellOptions } from "../host-shell.js";
 import type { InProcessCall } from "../in-process-server.js";
 
-const ALLOW: GateVerdict = { allow: true, source: undefined };
+const ALLOW: GateVerdict = { allow: true, source: undefined, caller: ROOT_CALLER };
 
 let cwd: string;
 let verdicts: Map<string, GateVerdict>;
@@ -49,7 +50,7 @@ afterEach(async () => {
 function options(overrides: Partial<HostShellOptions> = {}): HostShellOptions {
   return {
     cwd,
-    env: { PATH: process.env.PATH ?? "/usr/bin:/bin" },
+    envFor: () => ({ PATH: process.env.PATH ?? "/usr/bin:/bin" }),
     maxTimeoutSeconds: 600,
     gate: { verdictOf: (id) => verdicts.get(id) },
     stopSignal: stop.signal,
@@ -107,7 +108,7 @@ describe("runShellCall", () => {
 
   it("refuses a call the gate denied with the gate's own words, and runs nothing", async () => {
     const marker = join(cwd, "ran");
-    verdicts.set("toolu_denied", { allow: false, message: "Denied by policy: no touching.", source: undefined });
+    verdicts.set("toolu_denied", { allow: false, message: "Denied by policy: no touching.", source: undefined, caller: ROOT_CALLER });
     verdicts.set("toolu_other", ALLOW);
     const result = await runShellCall(options(), bash("toolu_denied", { command: `touch ${marker}` }));
     expect(result.isError).toBe(true);
@@ -129,7 +130,7 @@ describe("runShellCall", () => {
     try {
       verdicts.set("toolu_env", ALLOW);
       const env = { PATH: process.env.PATH ?? "/usr/bin:/bin", AGENT_VALUE: "from-the-run" };
-      const result = await runShellCall(options({ env }), bash("toolu_env", { command: "pwd -P; env" }));
+      const result = await runShellCall(options({ envFor: () => env }), bash("toolu_env", { command: "pwd -P; env" }));
       expect(result.isError).toBeUndefined();
       const [dir, ...envLines] = textOf(result).trim().split("\n");
       expect(dir).toBe(cwd);
@@ -142,6 +143,19 @@ describe("runShellCall", () => {
     } finally {
       delete process.env.STIGMER_RUNNER_ONLY_SECRET;
     }
+  });
+
+  it("runs a sub-agent's command with its own environment, never the main agent's", async () => {
+    const helper: Caller = { kind: "subagent", type: "test-runner" };
+    verdicts.set("toolu_main", ALLOW);
+    verdicts.set("toolu_helper", { allow: true, source: undefined, caller: helper });
+    const envFor = (caller: Caller): Record<string, string> => ({
+      PATH: process.env.PATH ?? "/usr/bin:/bin",
+      WHOSE: caller.kind === "root" ? "main" : caller.type,
+    });
+    const main = await runShellCall(options({ envFor }), bash("toolu_main", { command: "echo $WHOSE" }));
+    const sub = await runShellCall(options({ envFor }), bash("toolu_helper", { command: "echo $WHOSE" }));
+    expect([textOf(main).trim(), textOf(sub).trim()]).toEqual(["main", "test-runner"]);
   });
 
   it("streams each chunk as it prints, under the call's id, and reports the shell's activity", async () => {
