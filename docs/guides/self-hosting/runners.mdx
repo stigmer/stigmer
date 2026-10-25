@@ -511,20 +511,20 @@ On [Agent Substrate](https://github.com/agent-substrate/substrate), each
 Session's runner lives in a gVisor actor. After
 `STIGMER_SANDBOX_SUBSTRATE_SUSPEND_AFTER_SECONDS` idle (300 by default) the
 server suspends it: the sandbox stops and the Session's files stay on its node.
-Substrate's node agent copies them to storage 5 minutes later and lets the node
-go after 30 (atelet's `--snapshot-upload-delay` and `--snapshot-detach-delay`),
-so a node lost in those first 5 minutes loses what the Session wrote since its
-last copy. The next message wakes it with its files intact and a fresh runner,
-from its node while the node still holds it and from storage otherwise. A
-Session with a run in progress, waiting for approval or paused is never put to
-sleep. Connect sandboxes don't sleep; they end with their run.
+Substrate's atelet copies them to storage 5 minutes later and lets the node go
+after 30 (atelet's `--snapshot-upload-delay` and `--snapshot-detach-delay`), so
+a node lost in those first 5 minutes loses what the Session wrote since its last
+copy. The next message wakes it with its files intact and a fresh runner, from
+its node while the node still holds it and from storage otherwise. A Session
+with a run in progress, waiting for approval or paused is never put to sleep.
+Connect sandboxes don't sleep; they end with their run.
 
 On v0.6.0 (kind, 2026-10-25, one wake each), the server's wake, Substrate's
 resume and the push that starts a fresh runner, took 0.22 s while the files were
 on the node only and 0.27 s once their copy had reached storage, and the whole
-turn, from the message to the agent's answer with a fake model, took 4.5 s and
-9.1 s. A worker lost under an awake Session leaves its actor crashed, and the
-next message reverts it to its last snapshot and wakes it, so it loses what the
+turn, from the message to the reply, with a fake model,, took 4.5 s and 9.1 s. A
+worker lost under an awake Session leaves its actor crashed, and the next
+message reverts it to its last snapshot and wakes it, so it loses what the
 Session wrote since then. The sweep runs every
 `STIGMER_SANDBOX_SUBSTRATE_SWEEP_INTERVAL_SECONDS` (30), so a Session sleeps up
 to that long after its window. Storage in a cloud bucket adds its download time
