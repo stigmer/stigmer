@@ -56,6 +56,8 @@ export function makeSample(
     timing: { turn_phases: null, execution_setup: null, turn_first_event: null },
     tool_calls: [],
     todos: { pending: 0, in_progress: 0, completed: 0, cancelled: 0 },
+    background: null,
+    task_done: null,
     outcome: "completed",
     ...rest,
   };

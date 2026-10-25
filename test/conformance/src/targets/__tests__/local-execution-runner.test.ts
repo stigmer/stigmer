@@ -1,4 +1,5 @@
-// Pins the local execution target's one door to its runner, restartRunner:
+// Pins the local execution target's one door to its runner, restartRunner,
+// and the runner's pid it names (the benchmark's sweep walks from it):
 // it ends the runner by the signal asked (a crash or a drain), boots the
 // replacement with the options the first had, on the SAME state directories
 // the target owns, refuses before setup, and the target removes those
@@ -48,6 +49,7 @@ vi.mock("@stigmer/test-support/runner-process", () => ({
     const runner: SpawnedRunner = { options, ended: [] };
     runners.push(runner);
     return {
+      pid: 4242 + runners.length,
       stop: async () => void runner.ended.push("stop"),
       kill: async (signal: string) => void runner.ended.push(signal),
     };
@@ -122,5 +124,15 @@ describe("the local execution target's restartRunner", () => {
 
   it("refuses before setup", async () => {
     await expect(new LocalExecutionTarget().restartRunner({ signal: "SIGTERM" })).rejects.toThrow(/setup\(\) must be called before restartRunner/);
+  });
+
+  it("names the serving runner's pid, a replacement's after a restart, and refuses before setup", async () => {
+    expect(() => new LocalExecutionTarget().runnerPid()).toThrow(/setup\(\) must be called before runnerPid/);
+    const target = new LocalExecutionTarget();
+    await target.setup();
+    expect(target.runnerPid()).toBe(4243);
+    await target.restartRunner({ signal: "SIGKILL" });
+    expect(target.runnerPid()).toBe(4244);
+    await target.teardown();
   });
 });

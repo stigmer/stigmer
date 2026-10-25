@@ -4,10 +4,10 @@
 // Domain: conformance benchmark (the live instrument's entrypoint).
 //
 // THIS IS AN EXPERIMENT, NOT A TEST. It makes live model calls and spends
-// real money: at the defaults, ten scenarios on two harnesses, one warm-up
+// real money: at the defaults, twelve scenarios on two harnesses, one warm-up
 // plus five samples each, three turns per sample on the four three-turn
 // scenarios (the bare turn-2 cell and the working agent's read-edit,
-// cross-turn and long-log cells) — 216 executions — plus the quality arm: one
+// cross-turn and long-log cells) — 240 executions — plus the quality arm: one
 // eval run of the working agent's eleven cases, three tries per case on each
 // harness, the AI-graded checks judged by three votes each. It is in no vitest
 // config and `npm test` cannot reach it. Its numbers are a new baseline for the
@@ -25,8 +25,10 @@
 // OpenAI-compatible address (Google's, a router's); CURSOR_API_KEY for
 // the Cursor cells; the `stigmer` CLI on PATH for every timing cell on the
 // working agent (its memory spawns `stigmer mcp-server`; `make
-// install-cli-shim`); `go` on PATH for the quality cases that run `go test`;
-// the network. A missing key or CLI refuses the cells that need it BY NAME in
+// install-cli-shim`); `go` on PATH for the quality cases that run `go test`
+// and the background cells (whose Go test cache the run clears before each
+// attempt); `lsof` and `ps` on PATH, with which every working-agent attempt
+// finds the processes it left running and stops them; the network. A missing key or CLI refuses the cells that need it BY NAME in
 // the report and the run goes on with the rest. The working agent's
 // workspace is seeded outside the repository (the OS temp directory); nothing
 // is written into the tree. Thin over src/benchmark/ (the lib/script split of
@@ -44,6 +46,9 @@
 //                            `make build-runner build-server`) instead of this tree's; this tree stays the
 //                            instrument, so its clients and readers measure both alike. The report records
 //                            the checkout's HEAD as `git.code_sha`. Refused when the path is no checkout.
+//   --shell-background on|off  whether the runner lets the native agent start commands in the background (default
+//                            on; off sets the runner's STIGMER_SHELL_BACKGROUND_ENABLED=false): the arm, recorded on
+//                            the report, which benchmark-compare reads as an arm of its own
 //   --pr N                   the pull request the measuring checkout belongs to, recorded on the report
 //   --thinking enabled       every execution asks for thinking (the judge's does not); the cells on a
 //                            harness's default model are refused, since the server refuses thinking on Auto
@@ -69,7 +74,7 @@ import { runJudgeCalibration } from "../src/benchmark/judge/calibrate";
 import { renderCalibrationModule, shortfallsOf } from "../src/benchmark/judge/calibration-tally";
 import { JUDGE_EXAMPLES } from "../src/benchmark/judge/examples";
 import { bootBenchmarkStack, renderSummary, resolveStackRoot, runBenchmark, writeReport } from "../src/benchmark/run";
-import type { BenchmarkHarness, BenchmarkReport } from "../src/benchmark/report";
+import type { BenchmarkHarness, BenchmarkReport, ShellBackground } from "../src/benchmark/report";
 
 const execFileAsync = promisify(execFile);
 const PACKAGE_ROOT = resolve(import.meta.dirname, "..");
@@ -93,6 +98,7 @@ interface Flags extends PlanFlags {
   judgeConcurrency: number;
   judgeBudgetUsd: number;
   writeCalibration: boolean;
+  shellBackground: ShellBackground;
 }
 
 function parseFlags(argv: readonly string[]): Flags {
@@ -106,6 +112,7 @@ function parseFlags(argv: readonly string[]): Flags {
     judgeConcurrency: DEFAULT_JUDGE_CONCURRENCY,
     judgeBudgetUsd: DEFAULT_JUDGE_BUDGET_USD,
     writeCalibration: false,
+    shellBackground: "on",
   };
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
@@ -147,6 +154,12 @@ function parseFlags(argv: readonly string[]): Flags {
         const mode = value();
         if (mode !== "enabled") throw new Error("--thinking needs enabled");
         flags.thinking = mode;
+        break;
+      }
+      case "--shell-background": {
+        const arm = value();
+        if (arm !== "on" && arm !== "off") throw new Error("--shell-background needs on or off");
+        flags.shellBackground = arm;
         break;
       }
       case "--pr": {
@@ -252,7 +265,9 @@ async function main(): Promise<void> {
       `target(s), ${flags.qualityReps} tries per case, on real providers; this spends money`,
   );
   const endpoint = nativeEndpoint(plan.nativeModel, process.env);
-  console.error(`native arm: ${plan.nativeModel} at ${endpoint}, ${nativeApi(plan.nativeModel) ?? "unknown"} API`);
+  console.error(
+    `native arm: ${plan.nativeModel} at ${endpoint}, ${nativeApi(plan.nativeModel) ?? "unknown"} API, background commands ${flags.shellBackground}`,
+  );
   if (plan.judge) {
     console.error(
       `judge: ${JUDGE_EXAMPLES.length} examples, ${flags.judgeTries} tries each, at most $${flags.judgeBudgetUsd}; this spends money`,
@@ -262,7 +277,7 @@ async function main(): Promise<void> {
   const git = await gitFacts(flags.pr, stackRoot);
   if (stackRoot !== REPOSITORY_ROOT) console.error(`stack: the server and runner of ${stackRoot} at ${git.code_sha}`);
   const runDir = resolve(flags.out, `run-${Date.now()}`);
-  const stack = await bootBenchmarkStack(runDir, stackRoot === REPOSITORY_ROOT ? undefined : stackRoot);
+  const stack = await bootBenchmarkStack(runDir, stackRoot === REPOSITORY_ROOT ? undefined : stackRoot, { shellBackground: flags.shellBackground });
   const stop = (): void => {
     void stack.stop().finally(() => process.exit(130));
   };
@@ -276,6 +291,7 @@ async function main(): Promise<void> {
         git,
         titlingSuppressed: true,
         nativeEndpoint: endpoint,
+        shellBackground: flags.shellBackground,
         ...(flags.thinking !== undefined ? { thinking: flags.thinking } : {}),
       }, {
         now: Date.now,

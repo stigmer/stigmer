@@ -39,6 +39,7 @@ const OPTIONS: RunOptions = {
   git: { head_sha: "abc1234", main_sha: "abc1234", code_sha: "abc1234" },
   titlingSuppressed: true,
   nativeEndpoint: "api.anthropic.com",
+  shellBackground: "on",
 };
 
 /** A stack whose only reachable seam is the organization create, which refuses. */

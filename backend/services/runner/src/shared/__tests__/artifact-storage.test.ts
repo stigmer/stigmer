@@ -641,6 +641,7 @@ describe("loadArtifactStorageConfig", () => {
     openOperationMaxMs: 3600000,
     livenessIntervalMs: 30000,
     shellTimeoutMaxSeconds: 3300,
+    shellBackgroundEnabled: true,
     agentResolveTimeoutMs: 120000,
     workspaceLockTimeoutMs: 900000,
     drainGraceMs: 0,

@@ -87,8 +87,17 @@
 //   repaired, a result cut, a model call retried or a repository's own
 //   instructions read; and a tool call's fact says when it asked for a
 //   background command.
+// - A native agent can run a shell command in the background, and an
+//   operator can turn that off (runner STIGMER_SHELL_BACKGROUND_ENABLED), so
+//   a report says which arm it measured (schema v10):
+//   `methodology.shell_background`. Every sample that ran carries what the
+//   agent did with background commands (`background`, derived in
+//   `background-readings.ts` on the runner's one clock, and the processes
+//   the turn left behind, `orphans.ts`), every tool call when it
+//   started, and `task_done`: whether a cell's own checks of the work held,
+//   so a fast sample that skipped the work reads as what it is.
 
-export const BENCHMARK_REPORT_SCHEMA_VERSION = 9;
+export const BENCHMARK_REPORT_SCHEMA_VERSION = 10;
 
 /** The runtime's harness vocabulary, as the runner's `turn_phases` line labels it. */
 export type BenchmarkHarness = "deep-agent" | "cursor";
@@ -96,6 +105,9 @@ export type BenchmarkHarness = "deep-agent" | "cursor";
 export type ComparisonMode = "parity" | "default" | "turn-2" | "working-agent";
 
 export type SessionShape = "fresh-per-execution" | "one-session-three-turns";
+
+/** Whether the runner let the native agent start shell commands in the background (STIGMER_SHELL_BACKGROUND_ENABLED). */
+export type ShellBackground = "on" | "off";
 
 /**
  * Which agent a cell measures: the bare agent the request-shape goldens
@@ -241,6 +253,8 @@ export type ToolCallOutcome = "ok" | "failed" | "not_found" | "not_unique" | "sk
 export interface ToolCallFact {
   /** The 1-based model round that issued it, from the turn timeline; `null` where the timeline cannot place it. */
   round: number | null;
+  /** Runner clock: the start of the tool span the call was placed on; `null` exactly where `round` is. */
+  start_ms: number | null;
   name: string;
   /** The call's `file_path`, `path` or `pattern`, or the head of its `command`; "" when it names none. */
   target: string;
@@ -252,6 +266,65 @@ export interface ToolCallFact {
   outcome: ToolCallOutcome;
   /** Present only on a shell call (`execute`) whose input asked to run the command in the background. */
   background?: true;
+}
+
+/**
+ * How a background command ended, as the session's log folds it: it exited,
+ * ran out its time, was stopped (by the agent's stop tool, a person, the
+ * turn's pause for an approval, or the turn's end), or never started.
+ * `running` is one the log had not seen end when the turn was read.
+ */
+export type BackgroundEndingKey =
+  | "exited"
+  | "timed_out"
+  | "stopped_by_agent"
+  | "stopped_by_person"
+  | "stopped_by_approval"
+  | "stopped_by_turn"
+  | "failed_to_start"
+  | "running";
+
+/**
+ * What the agent did with background commands in one turn (`background-readings.ts`).
+ * Counts are over the primary thread's calls. A runner-clock reading is
+ * `null` when the turn has no timeline, and a reading that needs each call's
+ * start is `null` when the timeline cannot place the calls (a sub-agent ran):
+ * never guessed.
+ */
+export interface BackgroundReadings {
+  /** Shell calls that asked for the background. */
+  starts: number;
+  /** Those commands by how they ended. */
+  endings: Record<BackgroundEndingKey, number>;
+  /** Runner clock: model and tool time overlapping any command's run, the measure of "kept working". */
+  worked_while_running_ms: number | null;
+  /**
+   * Calls that started while a command ran and read or searched a command's
+   * output file, or a shell call that begins with `sleep`: polling, by
+   * OpenCode's definition ("repeatedly sleeping and reading or searching the
+   * output file").
+   */
+  polls: number | null;
+  /** Foreground shell calls that begin with `sleep`, wherever they fall. */
+  sleeps: number;
+  /** Shell calls that put a command in the background themselves: a lone `&`, or `nohup`. */
+  self_backgrounded: number;
+  /** Shell calls that ran out their foreground time limit. */
+  foreground_timeouts: number;
+  /** Runner clock: the waits at a round's end for running commands, and their total length. */
+  waits: number | null;
+  wait_ms: number | null;
+  /** Times the agent was sent back with a reminder that its commands still ran. */
+  reminders: number | null;
+  /**
+   * Shell calls that started while a command ran. Under the default approval
+   * policy each would pause the turn and stop every running command; the
+   * benchmark approves everything, so this is an estimate of that cost, not
+   * an observation.
+   */
+  gated_while_running: number | null;
+  /** Process groups the attempt left running in its workspace or on the fixture's port, each stopped after the attempt; `null` where nothing was swept. */
+  orphans: number | null;
 }
 
 /** The turn's to-do list at its end, by state: what the user's progress card showed. */
@@ -301,6 +374,10 @@ export interface BenchmarkSample {
   /** The turn's root tool calls in start order; empty on an attempt that never ran. */
   tool_calls: ToolCallFact[];
   todos: TodoCounts;
+  /** What the agent did with background commands; `null` on an attempt that never ran. */
+  background: BackgroundReadings | null;
+  /** Whether every one of the cell's checks of the work held; `null` on a cell that names none. */
+  task_done: boolean | null;
   outcome: SampleOutcome;
   /** Present on every attempt whose outcome is not `completed`. */
   failure?: SampleFailure;
@@ -417,6 +494,8 @@ export interface BenchmarkReport {
      * written before the field read the same.
      */
     thinking_mode?: "enabled";
+    /** Whether the runner let the native agent start commands in the background: the arm (`--shell-background`). */
+    shell_background: ShellBackground;
   };
   models: {
     /** The native arm's model: `--native-model`, else the parity pin. */
@@ -570,13 +649,14 @@ export function costRatio(native: BenchmarkStat | undefined, cursor: BenchmarkSt
 
 const NATIVE_APIS: readonly NativeApi[] = ["messages", "chat-completions", "responses"];
 const NATIVE_COST_BASES: readonly NativeCostBasis[] = ["catalog", "default-rate"];
+const SHELL_BACKGROUNDS: readonly ShellBackground[] = ["on", "off"];
 
 /**
  * Refuses, by naming the field, a body that is not a current benchmark report. It
  * checks the discriminating fields and the shape every consumer walks
  * (`comparisons[].{native,cursor}.median`, `git.head_sha` and `git.code_sha`,
- * `methodology.reps`, the native arm in `models`, `runner_log`) and trusts
- * the rest to the producer: a full
+ * `methodology.reps` and `shell_background`, the native arm in `models`,
+ * `runner_log`) and trusts the rest to the producer: a full
  * structural check would be a second copy of the types above.
  */
 export function readBenchmarkReport(body: unknown): BenchmarkReport {
@@ -595,6 +675,7 @@ export function readBenchmarkReport(body: unknown): BenchmarkReport {
   const methodology = asRecord(root["methodology"], "report.methodology");
   requireNumber(methodology, "reps", "report.methodology");
   requireNumber(methodology, "quality_reps", "report.methodology");
+  requireOneOf(methodology, "shell_background", SHELL_BACKGROUNDS, "report.methodology");
   const models = asRecord(root["models"], "report.models");
   requireString(models, "parity_native", "report.models");
   requireString(models, "native_endpoint", "report.models");

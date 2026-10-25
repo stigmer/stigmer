@@ -43,6 +43,7 @@ const CONFIG: Config = {
   openOperationMaxMs: 3_600_000,
   livenessIntervalMs: 30_000,
   shellTimeoutMaxSeconds: 3_300,
+  shellBackgroundEnabled: true,
   agentResolveTimeoutMs: 120_000,
   workspaceLockTimeoutMs: 900_000,
   drainGraceMs: 0,
@@ -83,6 +84,7 @@ describe("createDeepAgentAdapter", () => {
       mode: "local",
       cursorStreamStallTimeoutMs: CONFIG.cursorStreamStallTimeoutMs,
       shellTimeoutMaxSeconds: CONFIG.shellTimeoutMaxSeconds,
+      shellBackgroundEnabled: CONFIG.shellBackgroundEnabled,
     });
   });
 });

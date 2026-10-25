@@ -26,6 +26,7 @@ const SET = {
   STIGMER_OPEN_OPERATION_MAX_MS: "1200000",
   STIGMER_LIVENESS_INTERVAL_MS: "45000",
   STIGMER_SHELL_TIMEOUT_MAX_SECONDS: "900",
+  STIGMER_SHELL_BACKGROUND_ENABLED: "false",
   WORKSPACE_LOCK_TIMEOUT_MS: "60000",
   CURSOR_AGENT_RESOLVE_TIMEOUT_MS: "45000",
 };
@@ -35,6 +36,7 @@ const EXPECTED = {
   openOperationMaxMs: 1_200_000,
   livenessIntervalMs: 45_000,
   shellTimeoutMaxSeconds: 900,
+  shellBackgroundEnabled: false,
   workspaceLockTimeoutMs: 60_000,
   agentResolveTimeoutMs: 45_000,
 };

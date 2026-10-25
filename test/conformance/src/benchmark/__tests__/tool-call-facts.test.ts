@@ -5,7 +5,8 @@
 // Pinned: the primary thread's calls are read in the order the agent made
 // them, a sub-agent's never; each takes the round of the first unmatched
 // timeline span of its name, an MCP span matching by its bare name; a
-// timeline with a sub-agent, or none, places no call; the target is the
+// timeline with a sub-agent, or none, places no call; a placed call keeps its
+// span's start; a shell call that asked for the background says so; the target is the
 // first of `file_path`, `path`, `pattern`, else the command's head; a paged
 // read keeps its window; a completed call whose result is the engine's
 // returned edit failure is `not_found` or `not_unique` in both backends'
@@ -84,6 +85,22 @@ describe("toolCallFacts", () => {
     expect(toolCallFacts(turn, withSubAgent)[0]?.round).toBeNull();
     expect(toolCallFacts(turn, null)[0]?.round).toBeNull();
     expect(toolCallFacts(undefined, null)).toEqual([]);
+  });
+
+  it("keeps the start of the span a call was placed on, null where it is unplaced, and marks a shell call that asked for the background", () => {
+    const turn = turnWith([
+      { name: "execute", args: { command: "go test ./integration", background: true } },
+      { name: "execute", args: { command: "go test ./duration", background: false } },
+      { name: "read_file", args: { file_path: "/a.go", background: true } },
+    ]);
+    const facts = toolCallFacts(turn, timeline(["model_round", "tool:execute", "tool:execute", "model_round"]));
+    expect(facts.map((fact) => [fact.start_ms, fact.background])).toEqual([
+      [10, true],
+      [20, undefined],
+      [null, undefined],
+    ]);
+    expect(facts[1], "only `true` is recorded").not.toHaveProperty("background");
+    expect(toolCallFacts(turn, null).every((fact) => fact.start_ms === null)).toBe(true);
   });
 
   it("leaves a call the timeline never saw unplaced", () => {

@@ -51,6 +51,17 @@
  *     a call the engine held before it ran is not a tool phase.
  *   - One `sub_agent:<name>` span per `subAgentId`, opened by
  *     `sub_agent_started`, closed by `finished` or `failed`.
+ *   - One `background_command:<callId>` span per command the agent started
+ *     in the background, `background_command_started` to
+ *     `background_command_ended`, keyed by the starting call's id; and one
+ *     `background_wait` span per wait at a round's end for those commands,
+ *     `background_wait_started` to `background_wait_finished`, in its scope.
+ *     With the tool and round spans on the same clock, a reader can tell
+ *     what the agent did while a command ran, and how long the turn only
+ *     waited for one. `background_reminders` counts the times the agent was
+ *     sent back with a reminder that its commands still ran
+ *     (`background_reminded`), which no span or round reveals: a round the
+ *     runtime causes can as well be a wake after a wait or a notice owed.
  *   - A fact that carries `observedAt` is placed at that instant, everything
  *     else at the fold's clock — the builder's rule for `completedAt`
  *     (`transcript/events.ts`, `Observed`), restated here because the
@@ -122,6 +133,11 @@ export class TurnTimeline {
   private readonly rounds = new Map<string, OpenSpan>();
   private readonly tools = new Map<string, OpenSpan>();
   private readonly subAgents = new Map<string, OpenSpan>();
+  private readonly backgroundCommands = new Map<string, OpenSpan>();
+  /** Every wait, in order; a scope has at most one open, the last of its scope. */
+  private readonly backgroundWaits: OpenSpan[] = [];
+  private readonly openWaits = new Map<string, OpenSpan>();
+  private backgroundReminders = 0;
 
   constructor(clock: TurnTimelineClock) {
     this.clock = clock;
@@ -159,6 +175,31 @@ export class TurnTimeline {
       case "sub_agent_failed":
         this.close(this.subAgents, event.subAgentId, at);
         return;
+      case "background_command_started":
+        this.open(this.backgroundCommands, event.callId, `background_command:${event.callId}`, this.placeObserved(event.observedAt, at));
+        return;
+      case "background_command_ended":
+        this.close(this.backgroundCommands, event.callId, this.placeObserved(event.observedAt, at));
+        return;
+      case "background_wait_started": {
+        const scope = event.subAgentId ?? "";
+        if (this.openWaits.has(scope)) return;
+        const span: OpenSpan = { name: "background_wait", startMs: at, endMs: undefined };
+        this.openWaits.set(scope, span);
+        this.backgroundWaits.push(span);
+        return;
+      }
+      case "background_wait_finished": {
+        const scope = event.subAgentId ?? "";
+        const span = this.openWaits.get(scope);
+        if (span === undefined) return;
+        span.endMs = at;
+        this.openWaits.delete(scope);
+        return;
+      }
+      case "background_reminded":
+        this.backgroundReminders += 1;
+        return;
       case "text_delta":
       case "reasoning_delta":
       case "tool_arg_delta":
@@ -167,11 +208,7 @@ export class TurnTimeline {
       case "approval_proposed":
       case "context_compacted":
       case "system_note":
-      case "background_wait_started":
-      case "background_wait_finished":
-      case "background_command_started":
       case "background_output_delta":
-      case "background_command_ended":
         return;
       default: {
         const exhaustive: never = event;
@@ -188,8 +225,13 @@ export class TurnTimeline {
   emit(context: TurnPhasesContext): void {
     const settledAt = this.clock.now();
     const recorder = new TimingRecorder(this.clock.originMs);
-    const spans = [...this.rounds.values(), ...this.tools.values(), ...this.subAgents.values()]
-      .sort((a, b) => a.startMs - b.startMs);
+    const spans = [
+      ...this.rounds.values(),
+      ...this.tools.values(),
+      ...this.subAgents.values(),
+      ...this.backgroundCommands.values(),
+      ...this.backgroundWaits,
+    ].sort((a, b) => a.startMs - b.startMs);
     for (const span of spans) {
       recorder.span(span.name, span.startMs, span.endMs ?? settledAt);
     }
@@ -201,6 +243,8 @@ export class TurnTimeline {
       rounds: this.rounds.size,
       tool_calls: this.tools.size,
       sub_agents: this.subAgents.size,
+      background_commands: this.backgroundCommands.size,
+      background_reminders: this.backgroundReminders,
       max_gap_ms: this.maxGapMs === undefined ? null : round1(this.maxGapMs),
     }, recorder);
   }

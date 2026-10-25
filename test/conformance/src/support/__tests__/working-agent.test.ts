@@ -7,7 +7,9 @@
 // push a skill the agent's references never find) and carries a description
 // (what the agent reads to choose one); seeding copies
 // the workspace byte for byte into a fresh directory and replaces a
-// previous session's edits; a directory that is not named for the workspace
+// previous session's edits, and lays a cell's overlay over it (the
+// background cells' server on the port their prompt names) without touching
+// another byte; a directory that is not named for the workspace
 // is refused, so a wrong argument can never empty an unrelated tree; the
 // session bootstrap mounts that one workspace; provisioning (against stubbed
 // clients) starts sessions on the agent it created by reference, saves the
@@ -20,6 +22,7 @@ import { join } from "node:path";
 import type { AgentSchema } from "@stigmer/apis/ai/stigmer/agentic/agent/v1/api_pb";
 import { Harness } from "@stigmer/apis/ai/stigmer/agentic/session/v1/enum_pb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { BACKGROUND_SERVER_PORT } from "../../benchmark/cells";
 import { changedFiles } from "../../benchmark/workspace-facts";
 import type { ConformanceClients } from "../../harness/clients";
 import { FixtureTracker } from "../../harness/fixtures";
@@ -27,6 +30,7 @@ import type { InitShape } from "../init-shape";
 import {
   provisionWorkingAgent,
   seedWorkingWorkspace,
+  WORKING_AGENT_BACKGROUND_OVERLAY_DIR,
   WORKING_AGENT_FACTS,
   WORKING_AGENT_FIXTURE_DIR,
   WORKING_AGENT_NAME,
@@ -70,6 +74,18 @@ describe("seedWorkingWorkspace", () => {
     await writeFile(join(dir, "go.mod"), "module edited\n");
     await seedWorkingWorkspace(dir);
     expect(await changedFiles(WORKING_AGENT_WORKSPACE_FIXTURE_DIR, dir)).toEqual([]);
+  });
+
+  it("lays an overlay over the fixture workspace, adding its files and leaving every other byte as it was", async () => {
+    const dir = join(base, WORKING_AGENT_WORKSPACE_NAME);
+    await seedWorkingWorkspace(dir, WORKING_AGENT_BACKGROUND_OVERLAY_DIR);
+    expect(await changedFiles(WORKING_AGENT_WORKSPACE_FIXTURE_DIR, dir)).toEqual([
+      { path: "cmd/server/main.go", change: "added" },
+      { path: "integration/sync_config_test.go", change: "added" },
+    ]);
+    expect(await readFile(join(dir, "cmd", "server", "main.go"), "utf8")).toContain(`127.0.0.1:${BACKGROUND_SERVER_PORT}`);
+    await seedWorkingWorkspace(dir);
+    expect(await changedFiles(WORKING_AGENT_WORKSPACE_FIXTURE_DIR, dir), "the next cell's seed drops the overlay").toEqual([]);
   });
 
   it("refuses a directory not named for the workspace", async () => {

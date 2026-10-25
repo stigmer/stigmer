@@ -52,7 +52,10 @@
  * and the end of the wait, which the native translator turns into the
  * `background_wait_started` and `background_wait_finished` facts, and the
  * runtime's open-operations fold holds the stall watchdog between them
- * (`harness/open-operations.ts`). The person learns of each ending from the
+ * (`harness/open-operations.ts`). The reminder writes
+ * {@link BACKGROUND_REMINDER_EVENT}, the `background_reminded` fact the
+ * turn's timeline counts: the reminder itself is a user message no reader
+ * of the stream keeps. The person learns of each ending from the
  * command's own status in the session's log, written when it ended
  * (`execute-deep-agent/background-facts.ts`), not from this middleware.
  *
@@ -75,6 +78,9 @@ import type { BackgroundShellConfig, StigmerMiddleware } from "./types.js";
 
 /** The custom-stream event a wait writes at its start and its end (`translator.ts` reads it). Wire-free. */
 export const BACKGROUND_WAIT_EVENT = "stigmer.background_wait";
+
+/** The custom-stream event the round-end reminder writes when it sends the model back (`translator.ts` reads it). Wire-free. */
+export const BACKGROUND_REMINDER_EVENT = "stigmer.background_reminder";
 
 /** How often a wait asks for a person's message when no status write refreshed the hint. */
 export const BACKGROUND_WAIT_CLAIM_MS = 10_000;
@@ -315,7 +321,10 @@ export function createBackgroundCommandsMiddleware(config: BackgroundCommandsMid
         if (running.length === 0) return undefined;
         if (halted()) return { messages: haltNotices(messages), jumpTo: "model" };
         if (await personWaits(state, write)) return undefined;
-        if (commands.takeReminder()) return { messages: [reminder(running)], jumpTo: "model" };
+        if (commands.takeReminder()) {
+          write?.({ name: BACKGROUND_REMINDER_EVENT });
+          return { messages: [reminder(running)], jumpTo: "model" };
+        }
 
         write?.({ name: BACKGROUND_WAIT_EVENT, phase: "started" });
         let woke: "ended" | "person" | "halted";

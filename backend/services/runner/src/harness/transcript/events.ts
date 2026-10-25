@@ -300,6 +300,17 @@ export interface BackgroundWaitFinishedEvent extends Scoped {
   readonly kind: "background_wait_finished";
 }
 
+/**
+ * The engine's agent ended its reply while its background commands still
+ * ran, and was sent back once with a reminder naming them instead of the
+ * turn waiting (native's background middleware). The reminder is a user
+ * message the translator never shows, so this fact is its one trace: the
+ * turn timeline counts it (`turn-timeline.ts`). No row, and no liveness.
+ */
+export interface BackgroundRemindedEvent extends Scoped {
+  readonly kind: "background_reminded";
+}
+
 // ── Background Command Events ─────────────────────────────────────
 
 /** How a background command ended, as the session log's word (`stigmer.background_command.status`). */
@@ -375,6 +386,7 @@ export type TranscriptEvent =
   | SystemNoteEvent
   | BackgroundWaitStartedEvent
   | BackgroundWaitFinishedEvent
+  | BackgroundRemindedEvent
   | BackgroundCommandStartedEvent
   | BackgroundOutputDeltaEvent
   | BackgroundCommandEndedEvent;

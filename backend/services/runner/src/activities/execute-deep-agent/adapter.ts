@@ -58,6 +58,7 @@ export function resolveDeepAgentConfig(config: Config): DeepAgentAdapterConfig {
     mode: config.mode,
     cursorStreamStallTimeoutMs: config.cursorStreamStallTimeoutMs,
     shellTimeoutMaxSeconds: config.shellTimeoutMaxSeconds,
+    shellBackgroundEnabled: config.shellBackgroundEnabled,
   };
 }
 

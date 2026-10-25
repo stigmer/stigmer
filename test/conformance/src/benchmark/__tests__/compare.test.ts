@@ -12,7 +12,9 @@
 // is native on the parity model; a reference resolves by a prefix ending
 // where the label's endpoint or code begins, and one matching two codes is
 // refused naming both. Each report's runner marker counts are printed with
-// the arms it measured, and never gate a verdict. Quality holds at the reference's mean minus 0.05 and misses
+// the arms it measured, and never gate a verdict. A native report taken with background commands off
+// is an arm of its own, and the input-token median and each side's
+// background readings are printed, never gated. Quality holds at the reference's mean minus 0.05 and misses
 // past it, over the cases graded on both arms only (a null score is left
 // out); failures hold at the reference's count and miss above it; the wasted
 // share holds at the reference's plus 5 points and misses past it, counting
@@ -31,15 +33,31 @@ import {
   type ComparedReport,
 } from "../compare";
 import { emptyMarkers } from "../log-markers";
-import { summarize, type BenchmarkReport, type BenchmarkSample, type RunnerLogMarkers, type ToolCallFact } from "../report";
+import { summarize, type BackgroundReadings, type BenchmarkReport, type BenchmarkSample, type RunnerLogMarkers, type ToolCallFact } from "../report";
 import { makeSample } from "./sample-fixture";
 
 const REF = PARITY_MODEL["deep-agent"];
 /** The label suffix of the default code, `git.code_sha` "c" * 40. */
 const C = `#${"c".repeat(10)}`;
 
+/** A sample's background readings with nothing started and every timeline reading at zero. */
+const NO_BACKGROUND: BackgroundReadings = {
+  starts: 0,
+  endings: { exited: 0, timed_out: 0, stopped_by_agent: 0, stopped_by_person: 0, stopped_by_approval: 0, stopped_by_turn: 0, failed_to_start: 0, running: 0 },
+  worked_while_running_ms: 0,
+  polls: 0,
+  sleeps: 0,
+  self_backgrounded: 0,
+  foreground_timeouts: 0,
+  waits: 0,
+  wait_ms: 0,
+  reminders: 0,
+  gated_while_running: 0,
+  orphans: 0,
+};
+
 function call(outcome: ToolCallFact["outcome"]): ToolCallFact {
-  return { round: 1, name: "edit_file", target: "a.go", status: outcome === "ok" ? "completed" : "failed", outcome };
+  return { round: 1, start_ms: 100, name: "edit_file", target: "a.go", status: outcome === "ok" ? "completed" : "failed", outcome };
 }
 
 /** `n` samples, each with the given tool-call outcomes on its sampled turn. */
@@ -60,13 +78,14 @@ interface ArmSpec {
   headSha?: string;
   codeSha?: string;
   runnerLog?: RunnerLogMarkers;
+  shellBackground?: "on" | "off";
 }
 
 function report(spec: ArmSpec = {}): BenchmarkReport {
   const model = spec.model ?? REF;
   const cells = spec.cells ?? { "working-read-edit": samples(3) };
   return {
-    schema_version: 9,
+    schema_version: 10,
     timestamp: spec.timestamp ?? "2026-10-23T10:00:00Z",
     git: { head_sha: spec.headSha ?? "h".repeat(40), main_sha: "m".repeat(40), code_sha: spec.codeSha ?? "c".repeat(40) },
     host: { platform: "darwin/arm64", node: "v22.22.1" },
@@ -77,6 +96,7 @@ function report(spec: ArmSpec = {}): BenchmarkReport {
       cold: "first-call-of-run-per-harness-model-and-agent",
       titling_suppressed: true,
       file_review: "approved-at-review-ready",
+      shell_background: spec.shellBackground ?? "on",
     },
     models: {
       parity_native: model,
@@ -211,6 +231,19 @@ describe("compareReports: arms and pooling", () => {
       at("b.json", report({ model: "openai:x", endpoint: "b.example" })),
     ];
     expect(() => compareReports(twoEndpoints, "native/openai:x")).toThrow("matches several arms");
+  });
+
+  it("reads a report with background commands off as an arm of its own, beside the same model's arm with them on", () => {
+    const off = report({ shellBackground: "off", timestamp: "2026-10-23T09:00:00Z", cells: { "working-read-edit": samples(3, ["failed"]) } });
+    const reports = [at("off.json", off), at("on.json", report())];
+    expect(armLabel(off, "deep-agent")).toBe(`native/${REF}@api.anthropic.com${C}+background-off`);
+    expect(armLabel(off, "cursor"), "the setting is native's alone").toBe(`cursor/${PARITY_MODEL.cursor}${C}`);
+    const comparison = compareReports(reports, `native/${REF}@api.anthropic.com${C}+background-off`);
+    expect(comparison.arms).toEqual([`native/${REF}@api.anthropic.com${C}+background-off`, `native/${REF}@api.anthropic.com${C}`]);
+    expect(comparison.readings[0]!.arm).toBe(`native/${REF}@api.anthropic.com${C}`);
+    expect(compareReports(reports, `native/${REF}@api.anthropic.com${C}`).reference, "the full label of the arm with them on names it alone").toBe(`native/${REF}@api.anthropic.com${C}`);
+    expect(comparison.readings[0]!.cells[0]!.wasted, "the off arm's samples were not pooled into the on arm").toMatchObject({ arm: 0, reference: 1 });
+    expect(() => compareReports(reports), "the bare model now names two arms").toThrow("matches several arms");
   });
 
   it("pools an arm's reports, a later scenario replacing an earlier one", () => {
@@ -359,6 +392,26 @@ describe("renderComparison", () => {
     expect(text).toContain(`- native/${REF}@api.anthropic.com${C} (after.json): edits repaired 0;`);
     expect(text).toContain("repository instructions read on 7 turns, 0 nested; hook failures 3; from runner.log");
     expect(text).toContain(`- native/${REF}@api.anthropic.com#${"b".repeat(10)} (ref.json): edits repaired 0;`);
+  });
+
+  it("prints each side's input-token median, and its background readings once a side carries them", () => {
+    const used = (polls: number): BenchmarkSample =>
+      makeSample({
+        measures: { tokens: { input: 1200, output: 20, cache_read: 900, cache_write: 0, total: 1220 } },
+        background: { ...NO_BACKGROUND, starts: 1, endings: { ...NO_BACKGROUND.endings, exited: 1 }, polls, worked_while_running_ms: 30_000, waits: 1, wait_ms: 20_000, reminders: 0, gated_while_running: 0, orphans: 0 },
+        task_done: true,
+      });
+    const left = makeSample({ background: { ...NO_BACKGROUND, self_backgrounded: 1, foreground_timeouts: 1, orphans: 1 }, task_done: false });
+    const reports = [
+      at("off.json", report({ shellBackground: "off", quality: GOOD_QUALITY, cells: { "background-dev-server": [left, left, left] } })),
+      at("on.json", report({ quality: GOOD_QUALITY, cells: { "background-dev-server": [used(0), used(0), used(1)] } })),
+    ];
+    const text = renderComparison(compareReports(reports, `native/${REF}@api.anthropic.com${C}+background-off`), reports);
+    expect(text).toContain("| background-dev-server | holds | 0 / 0 | 0.0% / 0.0% | 1000 / 1000 | 1 / 1 | 3000 / 3000 | 1200 / 1000 |");
+    expect(text).toContain("Background commands, over the samples that ran:");
+    expect(text).toContain("| background-dev-server | 3/3 / 0/3 | 3 / 0 | 0 (1) / 0 (0) | 30000 / n/a | 3 / 0 | 0 / 0 | 0 / 3 | 0 / 3 | 0 / 0 | 0 / 3 | 3/3 / 0/3 |");
+    const plain = [at("ref.json", report({ quality: GOOD_QUALITY })), at("gpt.json", report({ model: "openai:gpt-5.5", quality: GOOD_QUALITY }))];
+    expect(renderComparison(compareReports(plain), plain), "no readings, no table").not.toContain("Background commands");
   });
 
   it("prints n/a for a side with no successful sample", () => {

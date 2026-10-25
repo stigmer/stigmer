@@ -64,6 +64,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     openOperationMaxMs: DEFAULT_OPEN_OPERATION_MAX_MS,
     livenessIntervalMs: DEFAULT_LIVENESS_INTERVAL_MS,
     shellTimeoutMaxSeconds: DEFAULT_SHELL_TIMEOUT_MAX_SECONDS,
+    shellBackgroundEnabled: true,
     agentResolveTimeoutMs: DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
     workspaceLockTimeoutMs: DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
     drainGraceMs: 0,

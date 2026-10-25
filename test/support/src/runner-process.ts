@@ -206,6 +206,11 @@ export interface RunnerOptions {
   // root), as a pod restarted on a durable volume does. Omitted, the runner
   // gets fresh directories of its own, removed with it.
   dirs?: RunnerDirs;
+  // Settings the caller adds to the runner's environment, an operator's
+  // choice such as STIGMER_SHELL_BACKGROUND_ENABLED (the live benchmark's
+  // arm). Laid over this process's environment and under every variable
+  // this module sets, so the stack's own wiring always wins.
+  env?: Readonly<Record<string, string>>;
 }
 
 // A runner's two state directories (RunnerOptions.dirs).
@@ -242,6 +247,9 @@ export interface RunningRunner {
   // The state directories this runner runs on; the caller's when it passed
   // `dirs`, else the runner's own, removed with it.
   dirs: RunnerDirs;
+  // The runner's process id: the root a reader walks the process table
+  // from to tell the runner's own children from processes a run left behind.
+  pid: number;
   stop(): Promise<void>;
   // Ends the runner by `signal` and resolves once it has exited: SIGKILL is
   // a crash (nothing drains, nothing is written), SIGTERM a drain (the
@@ -286,6 +294,7 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
     stdio: ["ignore", "pipe", "pipe"],
     env: {
       ...process.env,
+      ...opts.env,
       ...runnerHomeEnv(homeDir),
       // STIGMER_RUNNER_MODE intentionally unset -> static (single-queue) mode.
       MODE: "local",
@@ -419,6 +428,8 @@ export async function spawnRunner(opts: RunnerOptions): Promise<RunningRunner> {
     homeDir,
     publicEndpoint: opts.backendEndpoint,
     dirs: { homeDir, workspaceDir },
+    // A spawn that failed throws before here (waitForReady), so the child has a pid.
+    pid: child.pid!,
     stop,
     kill: end,
   };
