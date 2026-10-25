@@ -7,7 +7,8 @@
 // divides by cache-inclusive input tokens; failed samples are counted and kept
 // but excluded from every median; the reader accepts a report with or
 // without the quality eval and refuses a wrong version, a missing field, a
-// malformed side and a quality eval without its document object by name.
+// malformed side, a quality eval without its document object and a native
+// arm without its endpoint, API or cost basis by name.
 import { describe, expect, it } from "vitest";
 import {
   BENCHMARK_REPORT_SCHEMA_VERSION,
@@ -107,7 +108,14 @@ describe("readBenchmarkReport", () => {
         titling_suppressed: true,
         file_review: "approved-at-review-ready",
       },
-      models: { parity_native: "claude-sonnet-4.6", parity_cursor: "claude-sonnet-4-6", judge_requested: "claude-sonnet-4.6" },
+      models: {
+        parity_native: "claude-sonnet-4.6",
+        parity_cursor: "claude-sonnet-4-6",
+        judge_requested: "claude-sonnet-4.6",
+        native_endpoint: "api.anthropic.com",
+        native_api: "messages",
+        native_cost_basis: "catalog",
+      },
       comparisons: [
         {
           scenario: "report-parity-simple",
@@ -156,6 +164,26 @@ describe("readBenchmarkReport", () => {
     const withoutAgent = validReport();
     delete (withoutAgent.comparisons[0] as unknown as Record<string, unknown>)["agent"];
     expect(() => readBenchmarkReport(withoutAgent)).toThrow("report.comparisons[0].agent is missing");
+  });
+
+  it("refuses a report without the native arm's endpoint, API or cost basis, the v7 reports before one arm per run", () => {
+    for (const key of ["native_endpoint", "native_api", "native_cost_basis"]) {
+      const report = validReport();
+      delete (report.models as unknown as Record<string, unknown>)[key];
+      expect(() => readBenchmarkReport(report), key).toThrow(`report.models.${key} is missing`);
+    }
+    const unknownApi = validReport();
+    (unknownApi.models as unknown as Record<string, unknown>)["native_api"] = "grpc";
+    expect(() => readBenchmarkReport(unknownApi)).toThrow(
+      'report.models.native_api is "grpc", expected one of messages, chat-completions, responses',
+    );
+    const unknownBasis = validReport();
+    (unknownBasis.models as unknown as Record<string, unknown>)["native_cost_basis"] = 3;
+    expect(() => readBenchmarkReport(unknownBasis)).toThrow("report.models.native_cost_basis is a number");
+    const noModels = validReport() as unknown as Record<string, unknown>;
+    delete noModels["models"];
+    expect(() => readBenchmarkReport(noModels)).toThrow("report.models is missing");
+    expect(() => readBenchmarkReport({ ...validReport(), schema_version: 7 })).toThrow("schema_version is 7");
   });
 
   it("refuses a missing field by name", () => {

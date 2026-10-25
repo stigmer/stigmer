@@ -17,7 +17,16 @@
 // is kept. That is a correctness rule, not a convenience: the platform
 // accepts a follow-up while a review is still open, and a later undo would
 // rewrite the files from the capture whatever the follow-up has written
-// since (stigmer#1290).
+// since (stigmer#1290). "Ended" is the server's word, not the stream's: the
+// stream shows the turn's end before the run's own phase is terminal, and the
+// server refuses a session's next turn while another is still working,
+// waiting or paused (stigmer#2518). So once the watch has ended and every
+// offered review is kept, the run is read until its phase is terminal
+// (`awaitTerminal`, bounded by SETTLE_BUDGET_MS), and its status facts come
+// from that settled read; the next turn's create follows it, because
+// `measureSession` is sequential (stigmer#2536). A turn whose watch timed out
+// or whose keep failed is already decided and is not waited on. End-to-end
+// time stays the stream's end of the turn.
 //
 // Nothing is retried. A refused create, a provider fault or a stall is a fact
 // about the harness under measurement and stays on the sample as its outcome,
@@ -30,7 +39,7 @@ import { ThinkingMode } from "@stigmer/apis/ai/stigmer/agentic/run/v1/enum_pb";
 import type { RunConfigSchema } from "@stigmer/apis/ai/stigmer/agentic/run/v1/invocation_pb";
 import type { SessionSpecSchema } from "@stigmer/apis/ai/stigmer/agentic/session/v1/spec_pb";
 import type { ConformanceClients } from "../harness/clients";
-import { makeAgentExecution, sessionIdOf } from "../support/runs";
+import { awaitTerminal, makeAgentExecution, sessionIdOf } from "../support/runs";
 import type { AgentRefInit } from "../support/agents";
 import { recordedSet, reviewChangeSet } from "../support/file-review";
 import { uniqueName } from "../support/naming";
@@ -43,6 +52,13 @@ import { todoCounts, toolCallFacts } from "./tool-call-facts";
 
 /** How long one turn may take before the sample is a `timeout`: a live edit turn outlives the poll core's default. */
 export const EXECUTION_BUDGET_MS = 10 * 60_000;
+
+/**
+ * How long a turn the stream showed ending may take to reach a terminal phase
+ * on the server before the sample is a `timeout`: the gap is the runner's
+ * last status writes, seconds at most, so a minute is a stall.
+ */
+export const SETTLE_BUDGET_MS = 60_000;
 
 /** The reason every keep the benchmark decides carries, so a reader of the log knows who decided. */
 export const BENCHMARK_APPROVAL_REASON = "harness benchmark: kept whole at review-ready";
@@ -169,8 +185,14 @@ async function measureTurn(stack: SessionStack, plan: SessionPlan, turn: TurnReq
         io.log(`${turn.label}: ${executionId} ${approvalFailure}`);
       }
     }
-    if (approvalFailure === undefined && (watched.turn?.fileReview.length ?? 0) > 0) {
-      terminal = await clients.agentExecutionQuery.get({ value: executionId }).catch(() => terminal);
+  }
+  let unsettled = false;
+  if (!timedOut && approvalFailure === undefined) {
+    try {
+      terminal = await awaitTerminal(clients, executionId, { timeoutMs: SETTLE_BUDGET_MS, label: `${turn.label} settled` });
+    } catch (error) {
+      unsettled = true;
+      io.log(`${turn.label}: ${executionId} ended on the stream but not on the server: ${errorMessage(error)}; recorded as timeout`);
     }
   }
 
@@ -181,7 +203,7 @@ async function measureTurn(stack: SessionStack, plan: SessionPlan, turn: TurnReq
   );
   const fromHistory = historyAxes(history, executeActivityNameFor(plan.harness));
 
-  const outcome: SampleOutcome = approvalFailure !== undefined ? "failed" : timedOut ? "timeout" : facts.outcome;
+  const outcome: SampleOutcome = approvalFailure !== undefined ? "failed" : timedOut || unsettled ? "timeout" : facts.outcome;
   const failure: SampleFailure | undefined =
     outcome === "completed"
       ? undefined
@@ -189,7 +211,11 @@ async function measureTurn(stack: SessionStack, plan: SessionPlan, turn: TurnReq
           stage: "execution",
           message:
             approvalFailure ??
-            (timedOut ? `no terminal phase within ${EXECUTION_BUDGET_MS}ms` : facts.error || `the execution ended ${outcome}`),
+            (timedOut
+              ? `no terminal phase within ${EXECUTION_BUDGET_MS}ms`
+              : unsettled
+                ? `no terminal phase within ${SETTLE_BUDGET_MS}ms of the turn's end on the stream (settle budget)`
+                : facts.error || `the execution ended ${outcome}`),
         };
 
   const sample: BenchmarkSample = {

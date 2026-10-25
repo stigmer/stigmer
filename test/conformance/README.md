@@ -180,14 +180,35 @@ drives the native and Cursor harnesses against **real providers** and writes
 the report the harness work is judged on. It boots the same
 MCP fixture + Temporal + server + runner stack the execution suites use, but
 with the runner in **direct mode** (no mock proxy) reading
-`ANTHROPIC_API_KEY` and `CURSOR_API_KEY` from the environment. A missing key,
+`ANTHROPIC_API_KEY`, `OPENAI_API_KEY` (with `OPENAI_BASE_URL`) and
+`CURSOR_API_KEY` from the environment. A missing key,
 or a missing `stigmer` CLI for the cells that need it, refuses those cells by
 name and the run continues with the rest. It is in no vitest config, `npm
 test` cannot reach it, and it spends money: at the defaults, eight scenarios
 on two harnesses with one warm-up plus five samples each (144 executions),
 plus the quality arm's eval run (nine cases, three tries each on each
 harness). Its numbers are a new baseline for the machine, model versions
-and runner they were taken on, never a comparison with an earlier page.
+and runner they were taken on, compared only across arms of one commit,
+machine and day, as `benchmark-compare` enforces (below).
+
+The native arm runs on Claude Sonnet 4.6 unless `--native-model <id>` names
+another model: a catalog id, or the own-endpoint form `openai:<name>` /
+`anthropic:<name>` the platform serves without a catalog row. Gemini runs
+this way through Google's OpenAI-compatible address:
+`OPENAI_API_KEY=<a Gemini key>
+OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+npm run benchmark:harnesses -- --only native --native-model openai:<gemini id>`.
+The model replaces the parity pin in every native parity, turn-2 and working
+cell and in the native quality target; the native `default` cells are refused,
+and the Cursor arm, the judge and the prompts stay as they are. A native cell
+needs the key of its model's provider. One run measures one native model,
+because the runner holds one OpenAI-slot key and address for the whole run.
+The report (schema v8) records the arm in `models`: the model, the host its
+calls went to (`native_endpoint`, never a key or a path), the API they were
+made on (`native_api`) and whether the runner priced them from a catalog row
+or at its default rate (`native_cost_basis`). A default-rate cost is marked in
+the summary and is not a price; a readout prices such an arm from the
+samples' tokens at the provider's published rate.
 
 Two agents are measured. The **bare** agent (`support/agents.ts`
 `BARE_AGENT_INSTRUCTIONS`, the one the request-shape goldens photograph) runs
@@ -216,7 +237,9 @@ The benchmark's sessions leave file review off, so a turn that edits files
 ends on its own and its edits stay. A turn whose session asks for review is
 offered for review when it ends; the benchmark stamps when the agent's work
 was offered (`review_ready_ms`), keeps the change set whole once the turn has
-ended, and only then sends the next turn.
+ended, waits for the run's phase to be terminal on the server (the stream
+shows a turn's end first, and the server refuses a session's next turn while
+another is still working), and only then sends the next turn.
 
 Per execution it reads its sources and joins them by execution id:
 - the session's event stream (`streamEvents`, folded with `SessionLog`): when
@@ -261,7 +284,31 @@ carries the rule and its reason under "What to refuse"). The instrument's
 wiring (the readers, the working agent through review, its prompt stability
 across sessions, the quality arm's eval) is proven hermetically by
 `benchmark-readers.harness.test.ts` on the execution lane, which
-asserts presence and shape and never a number.
+asserts presence and shape and never a number; it runs a three-turn session
+through the driver as well as single turns.
+
+#### Comparing arms
+
+`npm run benchmark:compare -w @stigmer/conformance -- [--reference <arm>] <report.json> ...`
+reads reports (`src/benchmark/compare.ts`) and says, per arm and cell,
+whether each arm holds the bar the reference arm sets (default: native on
+the parity model). An arm is a harness on one model at one endpoint
+(`native/<model>@<host>`, `cursor/<model>`). Reports are compared only when
+they share `git.main_sha`, `reps`, `quality_reps`, the thinking mode and the
+host, and were taken within 24 hours of each other; anything else is refused
+by naming the field. Reports of one arm pool, a later scenario replacing an
+earlier one. The bar, per arm against the reference:
+- quality: the mean case score over the cases graded on both arms is at
+  least the reference's minus 0.05;
+- failures: no more failed samples per timing cell than the reference's;
+- rounds wasted: the share of settled tool calls that ended `not_found`,
+  `not_unique` or `failed` is at most the reference's plus 5 points.
+
+Timing, rounds and cost are printed and never gated, because on another
+model they measure the model. Fewer than three samples that ran, or three
+cases graded on both arms, reads "not measured"; a cell the arm's report
+refused by design is expected. Exit 0 when every arm holds the bar, 1 when
+any misses it or is not measured, 2 when the reports cannot be compared.
 
 ### A long turn in real time (a measurement, not a test)
 

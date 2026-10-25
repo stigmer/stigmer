@@ -15,6 +15,7 @@
     "inventory:check": "tsx scripts/check-inventory.ts",
     "fixtures:serve": "tsx scripts/cloud-fixtures-serve.ts",
     "benchmark:harnesses": "tsx scripts/benchmark-harnesses.ts",
+    "benchmark:compare": "tsx scripts/benchmark-compare.ts",
     "long-turn:real-clock": "tsx scripts/long-turn-real-clock.ts",
     "long-turn:live": "tsx scripts/long-turn-live.ts",
     "typecheck": "tsc --noEmit"

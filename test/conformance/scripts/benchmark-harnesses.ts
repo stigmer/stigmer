@@ -11,13 +11,17 @@
 // the working agent's nine cases, three tries per case on each harness, the
 // AI-graded checks judged by three votes each. It is in no vitest config and
 // `npm test` cannot reach it. Its numbers are a new baseline for the machine,
-// the model versions and the runner they were taken on, never a comparison
-// with an earlier run. They are internal: the benchmark's numbers never
+// the model versions and the runner they were taken on, compared only across
+// arms of one commit, machine and day, as `benchmark-compare` enforces
+// (`npm run benchmark:compare`). They are internal: the benchmark's numbers never
 // appear on the docs site (`.agents/skills/docs-writing/SKILL.md` carries the
 // rule under "What to refuse").
 //
 // Needs: the `temporal` CLI on PATH (the dev server backs the stack);
-// ANTHROPIC_API_KEY for the native cells and the judge; CURSOR_API_KEY for
+// ANTHROPIC_API_KEY for the judge and a Claude native model; OPENAI_API_KEY for
+// an OpenAI-provider native model (`--native-model openai:<name>`, or a `gpt*`
+// catalog id), with OPENAI_BASE_URL when that model is served on another
+// OpenAI-compatible address (Google's, a router's); CURSOR_API_KEY for
 // the Cursor cells; the `stigmer` CLI on PATH for every timing cell on the
 // working agent (its memory spawns `stigmer mcp-server`; `make
 // install-cli-shim`); `go` on PATH for the quality cases that run `go test`;
@@ -32,6 +36,9 @@
 //   --quality-reps N         tries per quality case per harness (default 3)
 //   --cells <glob>           run only cells whose id matches (`report-parity-*`, `*/cursor`)
 //   --only native|cursor     one harness
+//   --native-model <id>      the native arm's model instead of the parity pin: a catalog id, or the own-endpoint
+//                            form openai:<name> / anthropic:<name>; the native default cells are refused, and the
+//                            report records the host, API and cost basis it ran on. Not with --only cursor.
 //   --pr N                   the pull request the measuring checkout belongs to, recorded on the report
 //   --thinking enabled       every execution asks for thinking (the judge's does not); the cells on a
 //                            harness's default model are refused, since the server refuses thinking on Auto
@@ -52,7 +59,7 @@ import { accessSync, constants } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { delimiter, join, resolve } from "node:path";
 import { promisify } from "node:util";
-import { planCells, type PlanFlags } from "../src/benchmark/cells";
+import { nativeApi, nativeEndpoint, planCells, type PlanFlags } from "../src/benchmark/cells";
 import { runJudgeCalibration } from "../src/benchmark/judge/calibrate";
 import { renderCalibrationModule, shortfallsOf } from "../src/benchmark/judge/calibration-tally";
 import { JUDGE_EXAMPLES } from "../src/benchmark/judge/examples";
@@ -122,6 +129,12 @@ function parseFlags(argv: readonly string[]): Flags {
         flags.only = (only === "native" ? "deep-agent" : "cursor") satisfies BenchmarkHarness;
         break;
       }
+      case "--native-model": {
+        const model = value().trim();
+        if (model === "") throw new Error("--native-model needs a model id");
+        flags.nativeModel = model;
+        break;
+      }
       case "--thinking": {
         const mode = value();
         if (mode !== "enabled") throw new Error("--thinking needs enabled");
@@ -162,6 +175,9 @@ function parseFlags(argv: readonly string[]): Flags {
         throw new Error(`unknown flag ${String(flag)}`);
     }
   }
+  if (flags.nativeModel !== undefined && flags.only === "cursor") {
+    throw new Error("--native-model names the native arm's model, and --only cursor runs no native cell");
+  }
   return flags;
 }
 
@@ -196,6 +212,7 @@ async function main(): Promise<void> {
   const flags = parseFlags(process.argv.slice(2));
   const env = {
     anthropicKey: Boolean(process.env["ANTHROPIC_API_KEY"]),
+    openaiKey: Boolean(process.env["OPENAI_API_KEY"]),
     cursorKey: Boolean(process.env["CURSOR_API_KEY"]),
     stigmerCli: onPath("stigmer"),
   };
@@ -203,7 +220,9 @@ async function main(): Promise<void> {
 
   for (const refusal of plan.refused) console.error(`refused ${refusal.cell}: ${refusal.reason}`);
   if (plan.cells.length === 0 && plan.quality.length === 0 && !plan.judge) {
-    console.error("every cell was refused; nothing to run (set ANTHROPIC_API_KEY and/or CURSOR_API_KEY, or widen --only/--cells)");
+    console.error(
+      "every cell was refused; nothing to run (set ANTHROPIC_API_KEY, OPENAI_API_KEY and/or CURSOR_API_KEY, or widen --only/--cells)",
+    );
     process.exit(2);
   }
   if (flags.writeCalibration && !plan.judge) {
@@ -215,6 +234,8 @@ async function main(): Promise<void> {
     `benchmark: ${plan.cells.length} cells (${executions} executions) and the quality eval on ${plan.quality.length} ` +
       `target(s), ${flags.qualityReps} tries per case, on real providers; this spends money`,
   );
+  const endpoint = nativeEndpoint(plan.nativeModel, process.env);
+  console.error(`native arm: ${plan.nativeModel} at ${endpoint}, ${nativeApi(plan.nativeModel) ?? "unknown"} API`);
   if (plan.judge) {
     console.error(
       `judge: ${JUDGE_EXAMPLES.length} examples, ${flags.judgeTries} tries each, at most $${flags.judgeBudgetUsd}; this spends money`,
@@ -236,6 +257,7 @@ async function main(): Promise<void> {
         qualityReps: flags.qualityReps,
         git,
         titlingSuppressed: true,
+        nativeEndpoint: endpoint,
         ...(flags.thinking !== undefined ? { thinking: flags.thinking } : {}),
       }, {
         now: Date.now,
